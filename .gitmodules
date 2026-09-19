@@ -1,0 +1,4 @@
+[submodule "vendor/distilled"]
+	path = vendor/distilled
+	url = https://github.com/alchemy-run/distilled.git
+	branch = feat/typesafe-ai-sdk
