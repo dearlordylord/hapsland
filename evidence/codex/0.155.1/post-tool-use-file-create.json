@@ -1,0 +1,15 @@
+{
+  "session_id": "<SESSION>",
+  "turn_id": "<TURN>",
+  "transcript_path": null,
+  "cwd": "/workspace",
+  "hook_event_name": "PostToolUse",
+  "model": "<MODEL>",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "apply_patch",
+  "tool_input": {
+    "command": "*** Begin Patch\n*** Add File: /workspace/probe.ts\n+export const probe = 1;\n*** End Patch"
+  },
+  "tool_response": "<TOOL_RESPONSE>",
+  "tool_use_id": "<TOOL_USE>"
+}

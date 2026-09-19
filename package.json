@@ -6,10 +6,14 @@
   "scripts": {
     "hello": "bun run src/hello.ts",
     "test": "vitest run",
+    "test:live": "RUN_LIVE_JEV=1 vitest run src/jev-live.test.ts",
+    "benchmark:live": "node evidence/codex/0.155.1/probe/benchmark-live.mjs --runs=100",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "e0": "bun run src/e0.ts",
-    "scan": "bun run src/scan.ts"
+    "scan": "bun run src/scan.ts",
+    "review": "node src/cli.ts",
+    "review:codex": "node src/cli.ts --codex-hook"
   },
   "dependencies": {
     "@effect/ai-typesafe": "4.0.0-rc.116",

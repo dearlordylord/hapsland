@@ -40,6 +40,10 @@ oracle, not an active workspace or production integration dependency. Runnable s
 must use the Effect integration. Preserve the vendor evidence until equivalent live
 contract fixtures and the real vertical slice are in place.
 
+Live paid Jev validation is authorized at declared project milestones when credentials are
+available. Keep ordinary tests deterministic and offline, do not print or commit credentials
+or source-bearing paid responses, and record only sanitized contract and timing evidence.
+
 ## Research and specification boundary
 
 Research reports are **product-specification advisory material**. They identify evidence,

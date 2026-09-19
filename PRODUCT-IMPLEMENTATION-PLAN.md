@@ -1,8 +1,8 @@
 # Product implementation plan
 
-**Status:** proposed execution plan after the research advisory. This plan is not yet the
-normative product specification. The product remains unnamed; Jev is its initial review
-backend, not the product name.
+**Status:** staged execution plan after the research advisory. Issue #1 adopted phases B–E
+as its normative implementation specification; later phases remain proposed. The product
+remains unnamed; Jev is its initial review backend, not the product name.
 
 ## 1. Goal
 
@@ -38,8 +38,9 @@ successful Codex edit
   permission for an edit.
 - The first cadence is **post-write and synchronous**: the edit succeeds, then Codex waits
   for review before continuing.
-- The expected Jev call is roughly 100 ms, but latency claims must be measured, especially
-  tails and failures.
+- The earlier expected Jev call was roughly 100 ms. The 100-call live milestone instead
+  measured backend p50/p95/p99 of 411/475/509 ms and full command p50/p95/p99 of
+  650/723/808 ms, so these measurements replace the estimate for this environment.
 - There is no debounce or persistent queue in version one.
 - A later async mode may enqueue successful edits, debounce them, review a stable snapshot,
   and deliver advice later with explicit stale-result handling.
@@ -98,7 +99,13 @@ type ReviewResult<RuleId extends string = string> =
       status: "reviewed"
       assessment: Assessment<RuleId>
       advice: readonly Advice<RuleId>[]
-      backend: { id: string; model?: string; durationMs: number }
+      backend: {
+        id: string
+        model?: string
+        durationMs: number
+        retries: number
+        usage: { inputTokens?: number; outputTokens?: number }
+      }
     }
   | {
       status: "skipped"
@@ -165,9 +172,9 @@ For each successful edit event:
 9. Attach the reviewed path/hash and emit advice through the Codex advisory channel.
 10. Return successfully so the completed edit remains completed and Codex continues.
 
-For a multi-file event, review eligible files independently with a small concurrency bound,
-then emit one combined report with a findings budget. Do not serialize one 100 ms request per
-file unless measurement shows that is desirable.
+For a multi-file event, review eligible files independently with a concurrency bound of four,
+then emit one combined report with a findings budget. The bound is part of the implemented
+slice and avoids serializing one backend request per file.
 
 ## 7. Failure and privacy behavior
 
@@ -301,6 +308,9 @@ experiment, not a settled choice.
 
 ### Phase B — derive the Codex adapter specification
 
+**Status: completed for Codex CLI 0.155.1.** The versioned contract is
+[`CODEX-ADAPTER-CONTRACT-v1.md`](./CODEX-ADAPTER-CONTRACT-v1.md).
+
 Extract current Codex hook schemas, lifecycle behavior, output channels, sync/async
 semantics, configuration precedence, and failure rules from official sources and existing
 adapters. Reuse their fixtures and edge cases where licenses permit.
@@ -309,6 +319,9 @@ Output: a Codex adapter contract with each behavior labeled documented, source-i
 runtime-tested, inferred, or unknown.
 
 ### Phase C — targeted Codex runtime probe
+
+**Status: completed for Linux Codex CLI 0.155.1.** Sanitized, reproducible evidence is under
+[`evidence/codex/0.155.1`](./evidence/codex/0.155.1/README.md).
 
 Test only propositions the live Codex process must establish:
 
@@ -322,6 +335,11 @@ Test only propositions the live Codex process must establish:
 The probe records sanitized fixtures and exact Codex version. It does not call Jev.
 
 ### Phase D — deterministic vertical slice
+
+**Status: completed.** The version-1 JSON subprocess, controlled `DecisionModel`, snapshot
+identity, eligibility, exact assessment validation, timeout/stale behavior, bounded
+multi-file concurrency, findings budget, and process-level deduplication are covered by the
+offline suite.
 
 Implement the full Codex-to-advice path using a test evaluator that returns controlled
 Jev-shaped assessment maps. Exercise:
@@ -343,12 +361,23 @@ integration. The proven local questions use `Decision.probability`, calls go thr
 `DecisionModel.decide`, and `TypeSafeDecisionModel` from `@effect/ai-typesafe` supplies the
 Jev provider. No active source, root dependency, or lockfile entry uses
 `@distilled.cloud/typesafe-ai`. A deterministic test verifies one-call batching, wording
-rendering, and typed probability answers. No live paid Jev request was made during the
-migration.
+rendering, and typed probability answers. The migration itself made no live paid request;
+the separately authorized milestone validation below did.
 
-Complete the real vertical slice by comparing one representative rule against the recorded
-pre-migration result, then run the full enabled Noul set. Measure end-to-end p50/p95/p99
-hook duration, retries, payload size, and Codex-visible feedback timing.
+**Vertical-slice validation status (completed 2026-09-19):** after explicit milestone
+authorization, the credential-gated Effect integration passed the recorded representative
+r6 migration gate and returned the exact full nine-rule key set in one live `decide`
+operation. A 100-call full product-process milestone then completed with 100 reviewed
+results, no unavailable or malformed result, and no retry. It recorded backend and command
+p50/p95/p99, source and process-contract byte sizes, and provider usage. Provider-wire byte
+size is not exposed by the Effect provider and remains explicitly unknown.
+
+Headless and interactive Codex probes both established that advice for the reviewed hash
+arrives before the next action. Codex's stable event stream does not expose the instant at
+which hook context enters model context, so an exact model-visibility timestamp is not
+claimed; command latency is the measured synchronous wait and delivery ordering is the host
+evidence. Paid probabilities, source-bearing responses, and credentials were not committed.
+The paid suite remains excluded from ordinary test runs.
 
 Acceptance requires that Codex sees advice for the reviewed snapshot before its next action,
 the completed edit is never rejected, and unavailable review is distinguishable from no

@@ -1,0 +1,27 @@
+{
+  "description": "Isolated failure probe; never install as user configuration.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "^(apply_patch|Edit|Write)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /workspace/typescript/jev/evidence/codex/0.155.1/probe/capture-hook.mjs malformed",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node /workspace/typescript/jev/evidence/codex/0.155.1/probe/capture-hook.mjs crash",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node /workspace/typescript/jev/evidence/codex/0.155.1/probe/capture-hook.mjs timeout",
+            "timeout": 1
+          }
+        ]
+      }
+    ]
+  }
+}

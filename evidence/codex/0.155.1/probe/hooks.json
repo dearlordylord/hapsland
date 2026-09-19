@@ -1,0 +1,22 @@
+{
+  "description": "Isolated issue-1 Codex hook probe; never install as user configuration.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "^(apply_patch|Edit|Write|Bash)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /workspace/typescript/jev/evidence/codex/0.155.1/probe/capture-hook.mjs review",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node /workspace/typescript/jev/evidence/codex/0.155.1/probe/capture-hook.mjs companion",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

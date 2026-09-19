@@ -1,0 +1,17 @@
+{
+  "description": "Actual product command with a controlled backend; isolated probe only.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "^(apply_patch|Edit|Write)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /workspace/typescript/jev/src/cli.ts --codex-hook --controlled",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
