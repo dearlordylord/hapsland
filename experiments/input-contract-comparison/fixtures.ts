@@ -106,11 +106,17 @@ export interface Order {
   make({
     id: "iface-profile-control", name: "independent profile attributes", category: "interface", rootName: "Profile", rootKind: "interface",
     before: `interface ProfileNoise { id: string; value: number; }
+interface ProfileNoiseA { id: string; value: number; }
+interface ProfileNoiseB { id: string; value: number; }
+interface ProfileNoiseC { id: string; value: number; }
 export interface Profile {
   nickname?: string;
 }
 `,
     after: `interface ProfileNoise { id: string; value: number; }
+interface ProfileNoiseA { id: string; value: number; }
+interface ProfileNoiseB { id: string; value: number; }
+interface ProfileNoiseC { id: string; value: number; }
 export interface Profile {
   nickname?: string;
   phone?: string;
@@ -129,6 +135,10 @@ export interface Shipment {
 }
 interface NoiseC { a: string; b: number; c: boolean }
 interface NoiseD { a: string; b: number; c: boolean }
+interface NoiseE { a: string; b: number; c: boolean }
+interface NoiseF { a: string; b: number; c: boolean }
+interface NoiseG { a: string; b: number; c: boolean }
+interface NoiseH { a: string; b: number; c: boolean }
 `,
     after: `interface NoiseA { a: string; b: number; c: boolean }
 interface NoiseB { a: string; b: number; c: boolean }
@@ -139,6 +149,10 @@ export interface Shipment {
 }
 interface NoiseC { a: string; b: number; c: boolean }
 interface NoiseD { a: string; b: number; c: boolean }
+interface NoiseE { a: string; b: number; c: boolean }
+interface NoiseF { a: string; b: number; c: boolean }
+interface NoiseG { a: string; b: number; c: boolean }
+interface NoiseH { a: string; b: number; c: boolean }
 `,
     evidence: { requiredReferences: [] }, wholeFileDilution: true, expected: "violation",
     rationale: "The target keeps mutually exclusive transport fields flat while unrelated declarations increase whole-file distraction.",
@@ -197,11 +211,17 @@ export type Period = {
   make({
     id: "alias-money", name: "self-contained money pair", category: "type-alias", rootName: "Money", rootKind: "type-alias",
     before: `type MoneyNoise = { id: string; value: number };
+type MoneyNoise2 = { id: string; value: number };
+type MoneyNoise3 = { id: string; value: number };
+type MoneyNoise4 = { id: string; value: number };
 export type Money = {
   amount: number;
 }
 `,
     after: `type MoneyNoise = { id: string; value: number };
+type MoneyNoise2 = { id: string; value: number };
+type MoneyNoise3 = { id: string; value: number };
+type MoneyNoise4 = { id: string; value: number };
 export type Money = {
   amount: number;
   currency: "USD" | "CAD";
@@ -236,6 +256,10 @@ export type JobCommand = {
 }
 type Noise3 = { id: string; createdAt: string };
 type Noise4 = { id: string; createdAt: string };
+type Noise5 = { id: string; createdAt: string };
+type Noise6 = { id: string; createdAt: string };
+type Noise7 = { id: string; createdAt: string };
+type Noise8 = { id: string; createdAt: string };
 `,
     after: `type Noise1 = { id: string; createdAt: string };
 type Noise2 = { id: string; createdAt: string };
@@ -246,6 +270,10 @@ export type JobCommand = {
 }
 type Noise3 = { id: string; createdAt: string };
 type Noise4 = { id: string; createdAt: string };
+type Noise5 = { id: string; createdAt: string };
+type Noise6 = { id: string; createdAt: string };
+type Noise7 = { id: string; createdAt: string };
+type Noise8 = { id: string; createdAt: string };
 `,
     evidence: { requiredReferences: [] }, wholeFileDilution: true, expected: "violation",
     rationale: "Run-only schedule and cancel-only reason remain independently optional; unrelated aliases deliberately dilute the whole-file input.",
@@ -348,6 +376,9 @@ export const PaymentSchema = z.object({
     before: `import { z } from "zod";
 const NoiseA = z.object({ id: z.string(), value: z.number() });
 const NoiseB = z.object({ id: z.string(), value: z.number() });
+const NoiseD = z.object({ id: z.string(), value: z.number() });
+const NoiseE = z.object({ id: z.string(), value: z.number() });
+const NoiseF = z.object({ id: z.string(), value: z.number() });
 export const CommandSchema = z.object({
   kind: z.enum(["start", "stop"]),
   at: z.string().optional(),
@@ -357,6 +388,9 @@ const NoiseC = z.object({ id: z.string(), value: z.number() });
     after: `import { z } from "zod";
 const NoiseA = z.object({ id: z.string(), value: z.number() });
 const NoiseB = z.object({ id: z.string(), value: z.number() });
+const NoiseD = z.object({ id: z.string(), value: z.number() });
+const NoiseE = z.object({ id: z.string(), value: z.number() });
+const NoiseF = z.object({ id: z.string(), value: z.number() });
 export const CommandSchema = z.object({
   kind: z.enum(["start", "stop"]),
   at: z.string().optional(),
@@ -467,6 +501,9 @@ export const NotificationSchema = Schema.Struct({
     before: `import * as Schema from "effect/Schema";
 const NoiseA = Schema.Struct({ id: Schema.String, value: Schema.Number });
 const NoiseB = Schema.Struct({ id: Schema.String, value: Schema.Number });
+const NoiseD = Schema.Struct({ id: Schema.String, value: Schema.Number });
+const NoiseE = Schema.Struct({ id: Schema.String, value: Schema.Number });
+const NoiseF = Schema.Struct({ id: Schema.String, value: Schema.Number });
 export const CommandSchema = Schema.Struct({
   kind: Schema.Literals(["start", "stop"]),
   at: Schema.optionalKey(Schema.String),
@@ -476,6 +513,9 @@ const NoiseC = Schema.Struct({ id: Schema.String, value: Schema.Number });
     after: `import * as Schema from "effect/Schema";
 const NoiseA = Schema.Struct({ id: Schema.String, value: Schema.Number });
 const NoiseB = Schema.Struct({ id: Schema.String, value: Schema.Number });
+const NoiseD = Schema.Struct({ id: Schema.String, value: Schema.Number });
+const NoiseE = Schema.Struct({ id: Schema.String, value: Schema.Number });
+const NoiseF = Schema.Struct({ id: Schema.String, value: Schema.Number });
 export const CommandSchema = Schema.Struct({
   kind: Schema.Literals(["start", "stop"]),
   at: Schema.optionalKey(Schema.String),

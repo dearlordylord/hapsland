@@ -61,8 +61,11 @@ describe("input-contract comparison corpus", () => {
     expect(new Set(rendered.map((input) => input.domain)).size).toBe(1);
     expect(rendered.find((input) => input.mode === "diff")?.before).toBe(fixture.before);
     expect(rendered.find((input) => input.mode === "whole-file")?.source).toBe(fixture.after);
+    expect(rendered.find((input) => input.mode === "diff")?.completeness.status).toBe("not-applicable");
+    expect(rendered.find((input) => input.mode === "whole-file")?.completeness.status).toBe("complete");
     expect(rendered.find((input) => input.mode === "declaration-only")?.declarationName).toBe(fixture.rootName);
-    expect(rendered.find((input) => input.mode === "declaration-only")?.completeness.status).toBe("incomplete-required");
+    expect(rendered.find((input) => input.mode === "declaration-only")?.completeness.status).toBe("not-applicable");
+    expect(rendered.find((input) => input.mode === "declaration-context")?.source).not.toContain("/* completeness:");
   });
 
   it("renders diff as the changed member hunk, not the whole declaration", () => {
@@ -85,6 +88,16 @@ describe("input-contract comparison corpus", () => {
     ]));
     const irrelevant = renderInput(inputComparisonFixtures.find((item) => item.id === "iface-profile-control")!, "declaration-context");
     expect(irrelevant.completeness.status).toBe("incomplete-irrelevant");
+  });
+
+  it("records structurally unavailable renderer arms without treating them as semantic negatives", () => {
+    const diff = renderInput(fixture, "diff");
+    const declaration = renderInput(fixture, "declaration-only");
+    expect(diff.completeness.status).toBe("not-applicable");
+    expect(declaration.completeness.status).toBe("not-applicable");
+    expect(diff.completeness.omissions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: "DeliveryChannel", required: true }),
+    ]));
   });
 });
 
@@ -109,6 +122,26 @@ describe("input-contract comparison math", () => {
     const ambiguous = { ...fixture, expectations: [{ ...withoutBand, kind: "ambiguous" as const }] };
     expect(compareScenario(unchecked, "diff", []).status).toBe("unchecked");
     expect(compareScenario(ambiguous, "diff", []).status).toBe("ambiguous");
+  });
+
+  it("keeps not-applicable renderer arms out of semantic status", () => {
+    const rendered = renderInput(fixture, "declaration-only");
+    const result = compareScenario(fixture, "declaration-only", [{
+      id: "not-applicable",
+      fixtureId: fixture.id,
+      mode: "declaration-only",
+      repetition: 1,
+      rendered,
+      status: "not-applicable",
+      semantic: "not-applicable",
+      durationMs: 0,
+      extractionMs: 0,
+      renderingMs: 0,
+      attempts: 0,
+      retries: 0,
+    }]);
+    expect(result.status).toBe("not-applicable");
+    expect(result.available).toBe(0);
   });
 });
 

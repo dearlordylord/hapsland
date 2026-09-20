@@ -59,6 +59,7 @@ const buildReport = (plan: EvaluationPlan, observations: readonly Observation[])
   const unavailable = observations.filter((observation) => observation.status === "unavailable").length;
   const semantic = summarize(scenarios);
   const allCheckedAvailable = scenarios.filter((scenario) => scenario.expectation.kind === "clear" || scenario.expectation.kind === "violation")
+    .filter((scenario) => scenario.status !== "not-applicable")
     .every((scenario) => scenario.available === 3);
   const warmExtraction = observations.filter((observation) => observation.repetition > 1).map((observation) => observation.extractionMs);
   const coldExtraction = observations.filter((observation) => observation.repetition === 1).map((observation) => observation.extractionMs);
@@ -130,7 +131,9 @@ export const runPlanned = Effect.fn("InputComparison.runPlanned")(function* (opt
         ledger.reserve(plan.maximumRetriesPerCall + 1);
         const observation = yield* observe(fixture, mode, repetition, options.caps === undefined ? {} : { caps: options.caps });
         observations.push(observation);
-        if (observation.status !== "incomplete") ledger.observe(Math.max(1, observation.attempts));
+        if (observation.status === "reviewed" || observation.status === "unavailable") {
+          ledger.observe(Math.max(1, observation.attempts));
+        }
       }
     }
   }

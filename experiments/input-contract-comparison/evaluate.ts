@@ -63,6 +63,9 @@ export const observe = Effect.fn("InputComparison.observe")(function* (
     attempts: 0,
     retries: 0,
   };
+  if (prepared.rendered.completeness.status === "not-applicable") {
+    return { ...base, status: "not-applicable" as const, semantic: "not-applicable" as const, errorCategory: "mode-not-applicable" } satisfies Observation;
+  }
   if (prepared.rendered.completeness.status === "incomplete-required") {
     return { ...base, status: "incomplete" as const, semantic: "inconclusive" as const, errorCategory: "required-evidence-missing" } satisfies Observation;
   }
