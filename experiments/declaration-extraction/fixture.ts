@@ -27,7 +27,7 @@ export type FixtureManifest = {
   edit?: EditSpec;
   edits?: Record<string, EditSpec>;
   defaultEdit?: string;
-  caps?: Partial<TraversalCaps>;
+  caps?: Partial<TraversalCaps> & { maxElapsedMs?: number };
 };
 
 export type SelectedEdit = {
@@ -164,7 +164,13 @@ const selectedSpec = (manifest: FixtureManifest, requested?: string) => {
 };
 
 const boundedCaps = (caps: Partial<TraversalCaps> | undefined): TraversalCaps => {
-  const merged = { ...DEFAULT_CAPS, ...(caps ?? {}) };
+  const supplied = (caps ?? {}) as Partial<TraversalCaps> & { maxElapsedMs?: number };
+  const merged = {
+    ...DEFAULT_CAPS,
+    ...supplied,
+    elapsedMs: supplied.maxElapsedMs ?? supplied.elapsedMs ?? DEFAULT_CAPS.elapsedMs,
+  };
+  delete (merged as { maxElapsedMs?: number }).maxElapsedMs;
   for (const [key, value] of Object.entries(merged)) {
     if (!Number.isInteger(value) || Number(value) < 0) {
       throw new Error(`cap ${key} must be a non-negative integer`);

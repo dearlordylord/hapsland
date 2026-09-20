@@ -73,12 +73,31 @@ const argument = (args: string[], name: string) => {
   return index >= 0 ? args[index + 1] : undefined;
 };
 
+const sanitizeText = (value: unknown, workspaceRoot?: string) => {
+  let text = String(value).replaceAll("\\", "/");
+  const roots = [workspaceRoot, process.cwd()].filter((root): root is string => Boolean(root));
+  for (const root of roots) text = text.replaceAll(root.replaceAll("\\", "/"), "<fixture-root>");
+  text = text.replace(/file:\/\/\/[^\s"']+/g, "fixture://external");
+  text = text.replace(/(?:^|\s)(?:\/tmp|\/private\/tmp)\/[^\s"']+/g, "$1<temp-path>");
+  text = text.replace(/(?:^|\s)\/(?:[^\s"']+\/)+[^\s"']+/g, "$1<absolute-path>");
+  text = text.replace(/(?:^|\s)[A-Za-z]:\/[^\s"']+/g, "$1<absolute-path>");
+  return text;
+};
+
+const stableDefinitionUri = (definition: NavigationDefinition) => {
+  if (definition.external) {
+    const packageName = definition.packageName ?? "package";
+    return `fixture://external/${encodeURIComponent(packageName)}`;
+  }
+  return `fixture://${definition.path.replace(/^\.\.\//, "external/")}`;
+};
+
 const packageNameFor = (path: string) => {
-  const marker = `${join("node_modules", "")}`.replaceAll("\\", "/");
   const normalized = path.replaceAll("\\", "/");
-  const index = normalized.lastIndexOf(`/${marker}`);
+  const marker = "/node_modules/";
+  const index = normalized.lastIndexOf(marker);
   if (index < 0) return undefined;
-  const tail = normalized.slice(index + marker.length + 1);
+  const tail = normalized.slice(index + marker.length);
   const parts = tail.split("/");
   if (parts[0]?.startsWith("@")) return parts.slice(0, 2).join("/");
   return parts[0];
@@ -290,15 +309,30 @@ const runTraversal = async (
         state.edges.push(edge);
         continue;
       }
-      const response = await client.definition(sourceFile.uri, reference.sourceRange.utf16.start);
+      const deadline = state.started + fixture.caps.elapsedMs;
+      const response = await client.definition(sourceFile.uri, reference.sourceRange.utf16.start, deadline);
       const definitions = normalizeDefinitions(response)
         ?.map((definition) => exactDefinition(fixture.workspaceRoot, workspace, definition)) ?? null;
       const sorted = definitions ? sortDefinitions(definitions) : null;
+      if (response.timedOut || performance.now() >= deadline) {
+        edge.resolution = "timeout";
+        edge.unresolved = true;
+        edge.definitions = null;
+        edge.omission = "elapsed-time";
+        state.navigationFailures.push({
+          path: current.artifact.path,
+          name: reference.name,
+          reason: response.error ?? "elapsed-time deadline exceeded",
+        });
+        addReason(state, "elapsed-time", edgeId);
+        state.edges.push(edge);
+        continue;
+      }
       const resolution = edgeResolution(sorted, response);
       edge.resolution = resolution;
       edge.unresolved = resolution === "null" || resolution === "unresolved" || resolution === "error";
       edge.definitions = sorted?.map((definition) => ({
-        uri: definition.uri,
+        uri: stableDefinitionUri(definition),
         path: definition.path,
         range: definition.range,
         external: definition.external,
@@ -360,7 +394,7 @@ const runTraversal = async (
       complete: state.completenessReasons.size === 0,
       reasons: [...state.completenessReasons].sort(),
       omittedEdges: state.omitted,
-      caps: fixture.caps,
+      caps: reportedCaps(fixture.caps),
       observed: {
         declarations: state.roots.length + state.context.length,
         depth: Math.max(0, ...state.edges.map((edge) => Number(edge.depth ?? 0))),
@@ -384,8 +418,9 @@ const packageVersions = () => {
     parserPackage: "tree-sitter",
     grammarPackage: "tree-sitter-typescript",
     binding: {
-      package: "tree-sitter/node-addon-api",
-      version: parser,
+      parser: { package: "tree-sitter", version: parser, nativeAddon: "tree-sitter.node" },
+      grammar: { package: "tree-sitter-typescript", version: grammar, nativeAddon: "tree-sitter-typescript.node" },
+      implementation: "Node-API native addons",
       napi: process.versions.napi ?? "unknown",
       modules: process.versions.modules ?? "unknown",
     },
@@ -403,6 +438,11 @@ const countDelta = (before: Record<string, number>, after: Record<string, number
   return Object.fromEntries([...keys].sort().map((key) => [key, (after[key] ?? 0) - (before[key] ?? 0)]));
 };
 
+const reportedCaps = (caps: TraversalCaps) => ({
+  ...caps,
+  maxElapsedMs: caps.elapsedMs,
+});
+
 const main = async () => {
   const args = process.argv.slice(2);
   const fixturePath = argument(args, "--fixture");
@@ -413,7 +453,9 @@ const main = async () => {
   const roots = rootSelection.roots;
   const markerBefore = fixture.markerPath ? existsSync(fixture.markerPath) : false;
   const coldStarted = performance.now();
-  const lsp = await NativeLspClient.start(fixture.workspaceRoot);
+  const lsp = await NativeLspClient.start(fixture.workspaceRoot, 2_000, {
+    nonResponding: argument(args, "--fault") === "nonresponding",
+  });
   await lsp.open(
     [...workspace.values()].map((file) => ({
       uri: file.uri,
@@ -433,6 +475,8 @@ const main = async () => {
   const serverVersion = lsp.serverVersion;
   await lsp.stop();
   const markerAfter = fixture.markerPath ? existsSync(fixture.markerPath) : false;
+  const markerChanged = markerBefore !== markerAfter;
+  const modulesImported = !markerBefore && markerAfter;
   const stableCold = JSON.stringify({
     roots: cold.roots,
     context: cold.context,
@@ -481,18 +525,33 @@ const main = async () => {
       shutdownParamsOmitted: true,
       exitParamsOmitted: true,
       unexpectedOrFailedNavigation: [
-        ...cold.navigationFailures,
-        ...warm.navigationFailures,
-        ...lsp.diagnostics,
+        ...cold.navigationFailures.map((failure) => ({
+          ...failure,
+          reason: sanitizeText(failure.reason, fixture.workspaceRoot),
+        })),
+        ...warm.navigationFailures.map((failure) => ({
+          ...failure,
+          reason: sanitizeText(failure.reason, fixture.workspaceRoot),
+        })),
+        ...lsp.diagnostics.map((diagnostic) => ({
+          ...diagnostic,
+          message: sanitizeText(diagnostic.message, fixture.workspaceRoot),
+        })),
       ],
-      stderr: lsp.stderr,
+      stderr: sanitizeText(lsp.stderr, fixture.workspaceRoot),
     },
     evaluation: {
       marker: fixture.markerPath ? relativePath(fixture.workspaceRoot, fixture.markerPath) : null,
       existsBefore: markerBefore,
       existsAfter: markerAfter,
       observed: !markerBefore && !markerAfter,
-      modulesImported: false,
+      markerChanged,
+      modulesImported,
+      observation: markerBefore
+        ? "indeterminate-marker-preexisted"
+        : markerAfter
+          ? "module-evaluated-during-extraction"
+          : "marker-absent-no-evaluation-observed",
     },
     determinism: { coldWarmStable: stableCold === stableWarm },
   };
@@ -506,7 +565,7 @@ const run = async () => {
     const record = {
       schemaVersion: 1,
       status: "error",
-      error: error instanceof Error ? error.message : String(error),
+      error: sanitizeText(error instanceof Error ? error.message : String(error)),
     };
     process.stdout.write(`${JSON.stringify(record)}\n`);
     process.exitCode = 1;

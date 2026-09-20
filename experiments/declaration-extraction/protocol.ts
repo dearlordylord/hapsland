@@ -32,6 +32,7 @@ export type DefinitionResponse = {
   result: LspLocation | LspLocationLink | Array<LspLocation | LspLocationLink> | null;
   error?: string;
   elapsedMs: number;
+  timedOut?: boolean;
 };
 
 export type LspDocument = {
@@ -82,6 +83,7 @@ export class NativeLspClient {
 
   private readonly child: ChildProcessWithoutNullStreams;
   private readonly timeoutMs: number;
+  private readonly nonResponding: boolean;
   private readonly pending = new Map<number, PendingRequest>();
   private readonly serverInfo: { name?: string; version?: string } = {};
   private readonly stderrChunks: string[] = [];
@@ -96,9 +98,11 @@ export class NativeLspClient {
   private constructor(
     child: ChildProcessWithoutNullStreams,
     timeoutMs: number,
+    nonResponding = false,
   ) {
     this.child = child;
     this.timeoutMs = timeoutMs;
+    this.nonResponding = nonResponding;
     this.closed = new Promise<void>((resolve, reject) => {
       this.resolveClosed = resolve;
       this.rejectClosed = reject;
@@ -135,7 +139,11 @@ export class NativeLspClient {
     });
   }
 
-  static async start(workspaceRoot: string, timeoutMs = 2_000) {
+  static async start(
+    workspaceRoot: string,
+    timeoutMs = 2_000,
+    options: { nonResponding?: boolean } = {},
+  ) {
     const tsc = join(
       dirname(fileURLToPath(import.meta.url)),
       "../../node_modules/typescript/bin/tsc",
@@ -144,7 +152,7 @@ export class NativeLspClient {
       cwd: workspaceRoot,
       stdio: ["pipe", "pipe", "pipe"],
     });
-    const client = new NativeLspClient(child, timeoutMs);
+    const client = new NativeLspClient(child, timeoutMs, options.nonResponding === true);
     await client.initialize(workspaceRoot);
     return client;
   }
@@ -163,7 +171,11 @@ export class NativeLspClient {
     this.child.stdin.write(header + body);
   }
 
-  private request(method: string, params: unknown | typeof noParams = noParams) {
+  private request(
+    method: string,
+    params: unknown | typeof noParams = noParams,
+    requestTimeoutMs = this.timeoutMs,
+  ) {
     const id = this.nextId++;
     increment(this.counts.clientRequests, method);
     if (method === "textDocument/definition") {
@@ -177,8 +189,9 @@ export class NativeLspClient {
     return new Promise<unknown>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id);
-        reject(new Error(`${method} timed out after ${this.timeoutMs}ms`));
-      }, this.timeoutMs);
+        this.notify("$/cancelRequest", { id });
+        reject(new Error(`${method} timed out after ${requestTimeoutMs}ms`));
+      }, Math.max(0, requestTimeoutMs));
       this.pending.set(id, { method, resolve, reject, timer });
     });
   }
@@ -301,19 +314,46 @@ export class NativeLspClient {
     await new Promise<void>((resolve) => setImmediate(resolve));
   }
 
-  async definition(uri: string, position: LspPosition): Promise<DefinitionResponse> {
+  async definition(
+    uri: string,
+    position: LspPosition,
+    deadline?: number,
+  ): Promise<DefinitionResponse> {
     const started = performance.now();
+    const remaining = deadline === undefined
+      ? this.timeoutMs
+      : Math.min(this.timeoutMs, deadline - started);
+    if (remaining <= 0) {
+      return {
+        result: null,
+        error: "elapsed-time deadline exceeded",
+        elapsedMs: performance.now() - started,
+        timedOut: true,
+      };
+    }
+    if (this.nonResponding) {
+      increment(this.counts.clientRequests, "textDocument/definition");
+      increment(this.counts.positionalRequests, "textDocument/definition");
+      await new Promise<void>((resolve) => setTimeout(resolve, remaining));
+      return {
+        result: null,
+        error: "controlled nonresponding client deadline exceeded",
+        elapsedMs: performance.now() - started,
+        timedOut: true,
+      };
+    }
     try {
       const result = await this.request("textDocument/definition", {
         textDocument: { uri },
         position,
-      });
+      }, remaining);
       return { result: (result ?? null) as DefinitionResponse["result"], elapsedMs: performance.now() - started };
     } catch (error) {
       return {
         result: null,
         error: sanitizeError(error),
         elapsedMs: performance.now() - started,
+        timedOut: performance.now() - started >= remaining,
       };
     }
   }

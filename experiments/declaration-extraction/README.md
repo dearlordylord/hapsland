@@ -43,6 +43,10 @@ tool/runtime versions, cold/warm timings, positional request counts, native-serv
 request evidence, and a module-initialization marker observation. Source files are
 read as text only; no fixture module is imported or evaluated.
 
+The deterministic `--fault nonresponding` option is used by the offline tests to
+prove that an in-flight positional request is cancelled at the remaining elapsed
+budget; ordinary extraction always uses the native server.
+
 Run deterministic offline black-box tests with:
 
 ```sh

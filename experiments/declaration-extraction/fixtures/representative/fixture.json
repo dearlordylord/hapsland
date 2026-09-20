@@ -7,13 +7,13 @@
   "edits": {
     "interface": {
       "path": "src/target.ts",
-      "beforeRange": { "start": { "line": 7, "character": 1 }, "end": { "line": 7, "character": 30 } },
-      "afterRange": { "start": { "line": 7, "character": 1 }, "end": { "line": 7, "character": 31 } }
+      "beforeRange": { "start": { "line": 8, "character": 1 }, "end": { "line": 8, "character": 30 } },
+      "afterRange": { "start": { "line": 8, "character": 1 }, "end": { "line": 8, "character": 31 } }
     },
     "alias": {
       "path": "src/target.ts",
-      "beforeRange": { "start": { "line": 17, "character": 1 }, "end": { "line": 17, "character": 22 } },
-      "afterRange": { "start": { "line": 17, "character": 1 }, "end": { "line": 17, "character": 23 } }
+      "beforeRange": { "start": { "line": 18, "character": 1 }, "end": { "line": 18, "character": 22 } },
+      "afterRange": { "start": { "line": 18, "character": 1 }, "end": { "line": 18, "character": 23 } }
     }
   }
 }
