@@ -146,7 +146,13 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
     };
   }
 
-  const rules = applicableRules(initial.value.content);
+  const rules = applicableRules(
+    initial.value.content,
+    initial.value.path,
+    context._tag === "authorized" && context.settings.rules !== undefined
+      ? context.settings.rules
+      : undefined,
+  );
   if (rules.length === 0) {
     return {
       status: "skipped" as const,

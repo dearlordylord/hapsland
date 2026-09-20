@@ -17,6 +17,7 @@ const strict = {
 const ROOT_KEYS = new Set([
   "version", "$schema", "includes", "excludes", "privacyExcludes",
   "credentialEnvVar", "settings", "consent", "enabled",
+  "packs", "ruleOverrides",
 ]);
 const SETTINGS_KEYS = new Set(["deadlineMs", "concurrency", "adviceBudget", "transientRetries"]);
 
@@ -117,6 +118,89 @@ const checkSetting = (
   checkRuntimeNumber(value[key], source, `${prefix.length === 0 ? "" : `${prefix}.`}${key}`, range[0], range[1]);
 };
 
+const checkPackReferences = (
+  value: unknown,
+  source: string,
+  field: string,
+): void => {
+  if (!Array.isArray(value)) throw configurationError(source, field, "must be an array");
+  value.forEach((reference, index) => {
+    if (typeof reference === "string") {
+      if (reference.length === 0) throw configurationError(source, `${field}[${index}]`, "pack path must be non-empty");
+      return;
+    }
+    if (!record(reference)) throw configurationError(source, `${field}[${index}]`, "pack reference must be a string or object");
+    assertKnownKeys(reference, new Set(["path", "id", "enabled"]), source, `${field}[${index}]`);
+    if (!hasOwn(reference, "path") && !hasOwn(reference, "id")) {
+      throw configurationError(source, `${field}[${index}]`, "a pack reference needs path or inherited id");
+    }
+    if (hasOwn(reference, "path")) checkString(reference.path, source, `${field}[${index}].path`, "must be a non-empty string");
+    if (hasOwn(reference, "path") && (reference.path as string).length === 0) {
+      throw configurationError(source, `${field}[${index}].path`, "must be a non-empty string");
+    }
+    if (hasOwn(reference, "id")) checkString(reference.id, source, `${field}[${index}].id`, "must be a non-empty string");
+    if (hasOwn(reference, "id") && (reference.id as string).length === 0) {
+      throw configurationError(source, `${field}[${index}].id`, "must be a non-empty string");
+    }
+    if (hasOwn(reference, "enabled")) checkBoolean(reference.enabled, source, `${field}[${index}].enabled`);
+  });
+};
+
+const checkRuleOverrides = (
+  value: unknown,
+  source: string,
+  field: string,
+): Record<string, unknown> => {
+  // The canonical v1 form is a map. Accepting an array here lets callers write
+  // the evaluation-model form without making its ruleId redundant in JSON.
+  const normalized: Record<string, unknown> = {};
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => {
+      if (!record(entry)) throw configurationError(source, `${field}[${index}]`, "must be an object");
+      if (typeof entry.ruleId !== "string" || entry.ruleId.length === 0) {
+        throw configurationError(source, `${field}[${index}].ruleId`, "must be a non-empty string");
+      }
+      const { ruleId, ...override } = entry;
+      if (normalized[ruleId] !== undefined) {
+        throw configurationError(source, `${field}[${index}].ruleId`, "duplicate rule override");
+      }
+      normalized[ruleId] = override;
+    });
+  } else if (record(value)) {
+    for (const [ruleId, override] of Object.entries(value)) {
+      if (ruleId.length === 0 || !record(override)) {
+        throw configurationError(source, `${field}.${ruleId}`, "rule override must be an object");
+      }
+      normalized[ruleId] = override;
+    }
+  } else {
+    throw configurationError(source, field, "must be a map or array");
+  }
+  for (const [ruleId, override] of Object.entries(normalized)) {
+    assertKnownKeys(override as Record<string, unknown>, new Set([
+      "enabled", "includes", "excludes", "threshold", "message",
+    ]), source, `${field}.${ruleId}`);
+    if (hasOwn(override as Record<string, unknown>, "enabled")) {
+      checkBoolean((override as Record<string, unknown>).enabled, source, `${field}.${ruleId}.enabled`);
+    }
+    for (const key of ["includes", "excludes"] as const) {
+      if (hasOwn(override as Record<string, unknown>, key)) {
+        checkPatterns((override as Record<string, unknown>)[key], source, `${field}.${ruleId}.${key}`);
+      }
+    }
+    if (hasOwn(override as Record<string, unknown>, "threshold")) {
+      checkRuntimeNumber((override as Record<string, unknown>).threshold, source, `${field}.${ruleId}.threshold`, 0, 1);
+    }
+    if (hasOwn(override as Record<string, unknown>, "message")) {
+      checkString((override as Record<string, unknown>).message, source, `${field}.${ruleId}.message`, "must be a non-empty string");
+      if (((override as Record<string, unknown>).message as string).length === 0) {
+        throw configurationError(source, `${field}.${ruleId}.message`, "must be a non-empty string");
+      }
+    }
+  }
+  return normalized;
+};
+
 /** Validate raw values before Effect Schema can collapse their path to `$`. */
 const checkBoundaryValues = (
   value: Record<string, unknown>,
@@ -144,6 +228,8 @@ const checkBoundaryValues = (
       checkSetting(value.settings, key, source, "settings");
     }
   }
+  if (hasOwn(value, "packs")) checkPackReferences(value.packs, source, "packs");
+  if (hasOwn(value, "ruleOverrides")) checkRuleOverrides(value.ruleOverrides, source, "ruleOverrides");
   if (hasOwn(value, "consent")) checkBoolean(value.consent, source, "consent");
   if (hasOwn(value, "enabled")) checkBoolean(value.enabled, source, "enabled");
 };
@@ -180,6 +266,12 @@ export const decodeConfigurationDocument = (
     throw configurationError(source, "version", "unsupported configuration schema version");
   }
   checkBoundaryValues(raw, source);
+  // Normalize the optional evaluation-model array form before Schema decoding.
+  // This keeps the stored configuration canonical and makes digests independent
+  // of whether a caller used an array or a map at the boundary.
+  if (hasOwn(raw, "ruleOverrides")) {
+    raw.ruleOverrides = checkRuleOverrides(raw.ruleOverrides, source, "ruleOverrides");
+  }
   try {
     return Schema.decodeUnknownSync(ConfigurationDocument, strict)(raw);
   } catch (cause) {
