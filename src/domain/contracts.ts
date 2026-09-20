@@ -1,4 +1,5 @@
 import * as Schema from "effect/Schema";
+import { DiagnosticObservation } from "../diagnostics/domain.ts";
 
 export const Probability = Schema.Finite.check(
   Schema.isBetween({ minimum: 0, maximum: 1 }),
@@ -96,6 +97,8 @@ export const ReviewResponse = Schema.Struct({
   eventId: Schema.String,
   results: Schema.Array(ReviewResult),
   advice: Schema.Array(Advice),
+  /** Structured observations are retained even when host notices are suppressed. */
+  diagnostics: Schema.optionalKey(Schema.Array(DiagnosticObservation)),
 });
 export type ReviewResponse = typeof ReviewResponse.Type;
 
