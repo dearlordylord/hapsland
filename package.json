@@ -16,7 +16,10 @@
     "review:codex": "node src/cli.ts --codex-hook",
     "experiment:extract": "node experiments/declaration-extraction/extract.ts",
     "experiment:extract:evidence": "node experiments/declaration-extraction/generate-evidence.ts",
-    "test:extract": "vitest run --config experiments/declaration-extraction/vitest.config.ts"
+    "test:extract": "vitest run --config experiments/declaration-extraction/vitest.config.ts",
+    "test:input-contract": "vitest run --config experiments/input-contract-comparison/vitest.config.ts",
+    "typecheck:input-contract": "tsc -p experiments/input-contract-comparison/tsconfig.json --noEmit",
+    "experiment:input-contract": "node --experimental-strip-types experiments/input-contract-comparison/run.ts"
   },
   "dependencies": {
     "@effect/ai-typesafe": "4.0.0-rc.116",

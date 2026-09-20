@@ -1,0 +1,66 @@
+{
+  "runId": "input-contract-comparison-2026-09-20",
+  "outcome": "inconclusive",
+  "backend": {
+    "id": "jev",
+    "provider": "@effect/ai-typesafe",
+    "model": "jev-latest",
+    "decisionModel": "effect/unstable/ai/DecisionModel"
+  },
+  "environment": {
+    "node": "v24.20.0",
+    "typescript": "7.0.2",
+    "effect": "4.0.0-rc.116"
+  },
+  "matrix": {
+    "fixtures": 24,
+    "modes": 4,
+    "repetitions": 3,
+    "logicalCalls": 288,
+    "maximumTransportAttempts": 864,
+    "authorizedRemainingBeforeRun": 864
+  },
+  "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
+  "rendererDigests": {
+    "diff": "2ffd47c26dc65ae0cd2cce969b81ddd4ad8d81f3330ace2b46d31e8ab5bae399",
+    "whole-file": "9047b197b6213d3c8fe13511967757f99dde9704a670235b9a9ca2288fd6147a",
+    "declaration-only": "08e127e112a86727f9d39197f05667a9e9ee078ca7edec07708a9ebab612cd9e",
+    "declaration-context": "5e1a69eaccb4be11fffec4ca2c2a09472b5963da4cfaab157cbf5239d7ff1a01"
+  },
+  "identitySample": {
+    "fixtureId": "iface-delivery-flat",
+    "fixtureDigest": "b29a19fe9f931c8ff4de381250e1553c384325d88281e145b0a1e78cbfb727b1",
+    "contentHash": "80e25cafddd80986874d07b5d5bc03953bb5473f9c260b3b6e54bfc1cfdcc34b"
+  },
+  "counts": {
+    "observations": 96,
+    "semanticPassed": 46,
+    "semanticFailed": 31,
+    "semanticInconclusive": 11,
+    "unchecked": 4,
+    "ambiguous": 4,
+    "transportAvailable": 252,
+    "transportUnavailable": 0,
+    "incompleteRequired": 36
+  },
+  "gates": {
+    "contextRequiredSemantic": { "passed": false, "numerator": 9, "denominator": 11, "required": 10 },
+    "contextRequiredExceedsDiff": { "passed": false, "delta": 0, "required": 3 },
+    "contextRequiredExceedsDeclarationOnly": { "passed": true, "delta": 9, "required": 3 },
+    "wholeFileDilutionSemantic": { "passed": false, "numerator": 3, "denominator": 6, "required": 5 },
+    "diffSufficientControls": { "passed": false, "numerator": 2, "denominator": 7, "required": 5 },
+    "negativeControlsRemainClear": { "passed": false, "numerator": 4, "denominator": 6, "required": 5 },
+    "threeAvailableRepetitions": { "passed": false },
+    "warmExtractionP95Ms": { "passed": true, "value": 6.515132000000449, "maximum": 250 },
+    "endToEndP95Ms": { "passed": true, "value": 8.169644000001426, "maximum": 1000 },
+    "declarationContextMedianRequestBytes": { "passed": false, "value": 897, "wholeFileMedian": 765 }
+  },
+  "timing": {
+    "coldExtractionP95Ms": 10.271117999996932,
+    "warmExtractionP95Ms": 6.515132000000449,
+    "endToEndP95Ms": 8.169644000001426
+  },
+  "usage": "not-retained-by-sanitized-runner",
+  "sourceBearingResponses": "not-retained",
+  "individualProbabilities": "not-retained"
+}

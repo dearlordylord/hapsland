@@ -3,6 +3,17 @@
 Date: 2026-09-20. Status: agreed discussion scope and experiment hypothesis;
 not a production architecture or a claim of implemented behavior.
 
+## Resolution
+
+The scoped experiment completed in issues #5–#8 and its **CONDITIONAL ACCEPT**
+feasibility verdict was accepted by the product owner on 2026-09-20. This resolves the
+research pause recorded below without selecting a production extractor. Phase F may
+continue independently with its provisional full-file-plus-path input contract. The
+next extraction-related gate is the separately scoped input comparison in
+[#16](https://github.com/dearlordylord/jevs/issues/16); its semantic, completeness,
+latency, size, and paid-call criteria must be evaluated before production extraction
+architecture work begins.
+
 ## Agreed scope
 
 - Target TypeScript 7 and later. Do not assume the legacy JavaScript Compiler API
@@ -59,7 +70,9 @@ local extraction feasibility test can proceed without deciding the final product
 
 ## Parked work and continuity
 
-- Broader host integration and Phase F implementation remain paused for this research gate.
+- The former pause on broader host integration and Phase F was released when the
+  conditional feasibility verdict was accepted. Phase F remains independent of
+  production extraction and does not gain additional context egress from this result.
 - Before Phase F implementation resumes, reconcile the local specification corrections
   with [the configuration issue](https://github.com/dearlordylord/jevs/issues/3).
   The [assumption audit](./PRODUCT-PROTOTYPE-ASSUMPTION-AUDIT-2026-09-19.md) records this
@@ -71,8 +84,9 @@ local extraction feasibility test can proceed without deciding the final product
   separately tracked in [the consent issue](https://github.com/dearlordylord/jevs/issues/2).
 - No Wayfinder map exists yet. The user expressed interest in using it later; map creation
   is not a prerequisite for this bounded feasibility test.
-- Discuss experiment results with the user before choosing production architecture or
-  resuming broader integration. Other-language implementations remain future work.
+- The experiment results were discussed and accepted as feasibility-only. Production
+  architecture remains gated by #16 and a later explicit architecture decision.
+  Other-language implementations remain future work.
 
 This brief preserves the current discussion beyond the temporary handoff at
 `/tmp/jev-extraction-handoff.md`. Historical reports remain evidence of their original

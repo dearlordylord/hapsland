@@ -86,7 +86,6 @@ Only a definition in the real `zod` package or an `effect/Schema` declaration ge
 framework identity. Project wrappers, null/multiple/external locations, and
 unsupported transformations/declarations remain explicit unresolved or partial
 evidence with the exact expression source retained opaquely. Ordinary object
-evidence with the exact expression source retained opaquely. Ordinary object
 values with similarly named members are not candidates. Candidates rejected by
 framework provenance are removed before outbound traversal, so they do not add
 edges, completeness reasons, budget observations, or positional navigation
