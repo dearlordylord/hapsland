@@ -1,0 +1,13 @@
+{
+  "name": "malformed-half-written-source",
+  "workspace": "workspace",
+  "before": "before",
+  "defaultEdit": "half-written",
+  "edits": {
+    "half-written": {
+      "path": "src/target.ts",
+      "beforeRange": { "start": { "line": 0, "character": 0 }, "end": { "line": 2, "character": 1 } },
+      "afterRange": { "start": { "line": 0, "character": 0 }, "end": { "line": 2, "character": 20 } }
+    }
+  }
+}

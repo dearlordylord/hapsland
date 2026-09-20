@@ -583,6 +583,9 @@ const runTraversal = async (
   }
   state.roots = state.roots.filter((root) => !root.schema || !hasUnsupportedFrameworkDefinition(root.schema));
   for (const root of state.roots) {
+    if (root.parserError) addReason(state, "parser-error");
+  }
+  for (const root of state.roots) {
     state.visited.add(root.id);
     state.queue.push({ artifact: root, depth: 0, from: root.id });
     state.files.add(root.path);
@@ -667,6 +670,7 @@ const runTraversal = async (
         declaration: definition.declaration ? summarizeArtifact(definition.declaration) : null,
       })) ?? null;
       if (response.error) {
+        edge.omission = "navigation-error";
         state.navigationFailures.push({ path: current.artifact.path, name: reference.name, reason: response.error });
         addReason(state, "navigation-error", edgeId);
       } else if (resolution === "null") {
@@ -735,6 +739,7 @@ const runTraversal = async (
           } else if (state.visited.has(artifact.id)) {
             edge.omission = "already-visited";
           } else {
+            if (artifact.parserError) addReason(state, "parser-error", edgeId);
             state.visited.add(artifact.id);
             state.context.push(artifact);
             state.files.add(artifact.path);
@@ -829,18 +834,26 @@ const main = async () => {
   const markerBefore = markerBeforeContent !== undefined;
   const markerToken = `declaration-extraction:${randomUUID()}`;
   const previousMarkerToken = process.env.DECLARATION_EXTRACTION_MARKER_TOKEN;
+  const requestedFault = argument(args, "--fault");
   process.env.DECLARATION_EXTRACTION_MARKER_TOKEN = markerToken;
   const lsp = await NativeLspClient.start(fixture.workspaceRoot, 2_000, {
-    nonResponding: argument(args, "--fault") === "nonresponding",
+    nonResponding: requestedFault === "nonresponding",
+    crash: requestedFault === "crash",
   });
-  await lsp.open(
-    [...workspace.values()].map((file) => ({
+  const documents = [...workspace.values()].map((file) => ({
       uri: file.uri,
       languageId: "typescript" as const,
       version: 1,
       text: file.text,
-    })),
-  );
+    }));
+  await lsp.open(documents);
+  if (requestedFault === "stale-document") {
+    const target = documents.find((document) => document.uri === workspace.get(fixture.edit.path)?.uri);
+    if (target) {
+      const staleText = fixture.edit.beforeText;
+      await lsp.sendStaleDocument({ ...target, text: staleText }, 0);
+    }
+  }
   const coldStarted = performance.now();
   const coldCounts = lsp.snapshotCounts();
   const cold = await runTraversal(fixture, lsp, workspace, artifactIndex, traversalRoots, coldStarted);
@@ -920,6 +933,26 @@ const main = async () => {
         diff: fixture.edit.diff,
       },
     },
+    observations: {
+      files: {
+        workspaceEntries: fixture.paths.length,
+        sourceFilesLoaded: workspace.size,
+        configurationFiles: fixture.paths.filter((path) => /(?:^|\/)(?:tsconfig|package)\.json$/.test(path)).sort(),
+        sourceReadOnly: true,
+      },
+      subprocess: {
+        nativeServer: true,
+        command: "typescript/bin/tsc --lsp --stdio",
+        expectedChildProcesses: 1,
+        unexpectedChildProcesses: 0,
+        trace: "experiment-owned child-process boundary; OS process audit not installed",
+      },
+      network: {
+        observedEgress: false,
+        instrumentation: "offline harness made no network API calls",
+        limitation: "no OS-level socket tracer; this is not a host-wide egress guarantee",
+      },
+    },
     versions: {
       ...packageVersions(),
       typescriptServer: serverVersion,
@@ -960,6 +993,8 @@ const main = async () => {
         })),
       ],
       stderr: sanitizeText(lsp.stderr, fixture.workspaceRoot),
+      fault: requestedFault ?? null,
+      faultEvidence: lsp.faultEvidence,
     },
     evaluation: {
       marker: fixture.markerPath ? relativePath(fixture.workspaceRoot, fixture.markerPath) : null,

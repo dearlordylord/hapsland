@@ -1,0 +1,18 @@
+{
+  "name": "type-rule-context-controls",
+  "workspace": "workspace",
+  "before": "before",
+  "defaultEdit": "missing-context",
+  "edits": {
+    "missing-context": {
+      "path": "src/target.ts",
+      "beforeRange": { "start": { "line": 3, "character": 0 }, "end": { "line": 6, "character": 1 } },
+      "afterRange": { "start": { "line": 3, "character": 0 }, "end": { "line": 7, "character": 1 } }
+    },
+    "diff-sufficient": {
+      "path": "src/target.ts",
+      "beforeRange": { "start": { "line": 7, "character": 0 }, "end": { "line": 8, "character": 1 } },
+      "afterRange": { "start": { "line": 8, "character": 0 }, "end": { "line": 9, "character": 1 } }
+    }
+  }
+}

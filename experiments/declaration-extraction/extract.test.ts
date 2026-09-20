@@ -13,6 +13,12 @@ const zodOperationsFixture = resolve(root, "experiments/declaration-extraction/f
 const zodShadowFixture = resolve(root, "experiments/declaration-extraction/fixtures/zod-shadow");
 const crossFrameworkFixture = resolve(root, "experiments/declaration-extraction/fixtures/cross-framework-context");
 const effectFixture = resolve(root, "experiments/declaration-extraction/fixtures/effect");
+const malformedFixture = resolve(root, "experiments/declaration-extraction/fixtures/malformed-half-written");
+const missingConfigFixture = resolve(root, "experiments/declaration-extraction/fixtures/missing-config");
+const unresolvedImportFixture = resolve(root, "experiments/declaration-extraction/fixtures/unresolved-import");
+const cyclesFixture = resolve(root, "experiments/declaration-extraction/fixtures/cycles");
+const evolutionFixture = resolve(root, "experiments/declaration-extraction/fixtures/evolution");
+const ruleControlsFixture = resolve(root, "experiments/declaration-extraction/fixtures/rule-controls");
 
 const runFixture = (fixturePath: string, edit: string, extra: string[] = []) => {
   const stdout = execFileSync(process.execPath, [command, "--fixture", fixturePath, "--edit", edit, ...extra], {
@@ -229,6 +235,149 @@ describe("declaration extraction experiment black-box seam", () => {
     expect(record.extraction.completeness.reasons).toEqual(expect.arrayContaining(["elapsed-time"]));
     expect(record.extraction.completeness.observed.elapsedMs).toBeGreaterThanOrEqual(25);
     expect(record.lsp.unexpectedOrFailedNavigation[0].reason).toContain("deadline exceeded");
+    expect(record.lsp.notifications["$/cancelRequest"]).toBeGreaterThan(0);
+    expect(record.lsp.faultEvidence.cancellationSent).toBe(true);
+  }, 30_000);
+
+  test("keeps malformed or half-written source as a parser-error root", () => {
+    const record = runFixture(malformedFixture, "half-written");
+    expect(record.status).toBe("ok");
+    expect(record.rootSelection.before[0].parserError).toBe(false);
+    expect(record.rootSelection.after[0].parserError).toBe(true);
+    expect(record.extraction.roots[0].parserError).toBe(true);
+    expect(record.extraction.roots[0].source).not.toContain("}");
+    expect(record.extraction.completeness.complete).toBe(false);
+    expect(record.extraction.completeness.reasons).toContain("parser-error");
+  }, 30_000);
+
+  test("records a missing project configuration without hiding resolved local context", () => {
+    const record = runFixture(missingConfigFixture, "root");
+    expect(record.status).toBe("ok");
+    expect(record.observations.files.configurationFiles).toEqual([]);
+    expect(record.extraction.context.map((declaration: any) => declaration.name)).toContain("LocalShape");
+    expect(record.extraction.completeness.complete).toBe(true);
+  }, 30_000);
+
+  test("keeps an unresolved import explicit", () => {
+    const record = runFixture(unresolvedImportFixture, "root");
+    expect(record.status).toBe("ok");
+    expect(record.extraction.edges).toEqual([
+      expect.objectContaining({
+        reference: expect.objectContaining({ name: "MissingImported" }),
+        resolution: "unresolved",
+        unresolved: true,
+      }),
+    ]);
+    expect(record.extraction.completeness.reasons).toContain("definition-without-source-declaration");
+  }, 30_000);
+
+  test("terminates recursive references with a visible already-visited omission", () => {
+    const record = runFixture(cyclesFixture, "root");
+    expect(record.status).toBe("ok");
+    expect(record.extraction.context.map((declaration: any) => declaration.name)).toEqual(["CycleB"]);
+    expect(record.extraction.edges).toEqual([
+      expect.objectContaining({ reference: expect.objectContaining({ name: "CycleB" }), included: true }),
+      expect.objectContaining({ reference: expect.objectContaining({ name: "CycleA" }), omission: "already-visited", included: false }),
+    ]);
+    expect(record.extraction.completeness.complete).toBe(true);
+  }, 30_000);
+
+  test("records a controlled native-server crash without converting it to success", () => {
+    const record = run("interface", ["--fault", "crash"]);
+    expect(record.status).toBe("ok");
+    expect(record.lsp.fault).toBe("crash");
+    expect(record.lsp.faultEvidence.crashTriggered).toBe(true);
+    expect(record.extraction.completeness.complete).toBe(false);
+    expect(record.extraction.completeness.reasons).toContain("navigation-error");
+    expect(record.extraction.edges[0].omission).toBe("navigation-error");
+    expect(record.lsp.unexpectedOrFailedNavigation.some((entry: any) => String(entry.reason).includes("crash") || String(entry.reason).includes("EPIPE"))).toBe(true);
+  }, 30_000);
+
+  test("records stale-document synchronization as a distinct controllable fault", () => {
+    const record = run("interface", ["--fault", "stale-document"]);
+    expect(record.status).toBe("ok");
+    expect(record.lsp.fault).toBe("stale-document");
+    expect(record.lsp.faultEvidence.staleDocumentSent).toBe(true);
+    expect(record.lsp.notifications["textDocument/didChange"]).toBe(1);
+    expect(record.extraction.edges.find((edge: any) => edge.reference.name === "RenamedShape")?.resolution).toBe("null");
+  }, 30_000);
+
+  test("exercises declaration, depth, source, file, external-package, and elapsed caps", () => {
+    const cases: Array<[string, Record<string, number>, string]> = [
+      ["declarations", { declarations: 1 }, "declarations"],
+      ["depth", { depth: 0 }, "depth"],
+      ["source characters", { sourceCharacters: 1 }, "source-characters"],
+      ["files", { files: 1 }, "files"],
+      ["external packages", { externalPackages: 0 }, "external-packages"],
+    ];
+    for (const [, caps, reason] of cases) {
+      const record = run("interface", ["--caps", JSON.stringify(caps)]);
+      expect(record.extraction.completeness.complete).toBe(false);
+      expect(record.extraction.completeness.reasons).toContain(reason);
+      expect(record.extraction.completeness.caps[reason === "source-characters" ? "sourceCharacters" : reason === "external-packages" ? "externalPackages" : reason]).toBe(Object.values(caps)[0]);
+    }
+    const elapsed = run("interface", ["--fault", "nonresponding", "--caps", JSON.stringify({ elapsedMs: 20 })]);
+    expect(elapsed.extraction.completeness.reasons).toContain("elapsed-time");
+    expect(elapsed.extraction.completeness.observed.elapsedMs).toBeGreaterThanOrEqual(20);
+    expect(elapsed.lsp.faultEvidence.cancellationSent).toBe(true);
+  }, 60_000);
+
+  test("records identity and materiality controls across formatting, rename, retarget, roots, move, deletion, and generics", () => {
+    const formatting = runFixture(evolutionFixture, "formatting");
+    expect(formatting.rootSelection.before[0].sourceHash).not.toBe(formatting.rootSelection.after[0].sourceHash);
+    expect(formatting.rootSelection.before[0].name).toBe("Formatting");
+
+    const rename = runFixture(evolutionFixture, "rename");
+    expect(rename.rootSelection.before.map((root: any) => root.name)).toEqual(["BeforeName"]);
+    expect(rename.rootSelection.after.map((root: any) => root.name)).toEqual(["AfterName"]);
+    expect(rename.extraction.roots.map((root: any) => root.name)).toEqual(["AfterName", "BeforeName"]);
+
+    const retarget = runFixture(evolutionFixture, "import-retarget");
+    expect(retarget.extraction.context[0].path).toBe("src/types-b.ts");
+    expect(retarget.input.edit.diff).toContain("types-b.ts");
+
+    const multiple = runFixture(evolutionFixture, "multiple-root");
+    expect(multiple.extraction.roots.map((root: any) => root.name)).toEqual(["RootOne", "RootTwo"]);
+
+    const moved = runFixture(evolutionFixture, "move");
+    expect(moved.rootSelection.before[0].name).toBe("Moved");
+    expect(moved.rootSelection.after[0].name).toBe("Moved");
+    expect(moved.rootSelection.before[0].range.byte.start).not.toBe(moved.rootSelection.after[0].range.byte.start);
+
+    const deleted = runFixture(evolutionFixture, "deletion");
+    expect(deleted.rootSelection.before.map((root: any) => root.name)).toEqual(["Deleted"]);
+    expect(deleted.rootSelection.after).toEqual([]);
+    expect(deleted.extraction.roots.map((root: any) => root.name)).toEqual(["Deleted"]);
+
+    const generic = runFixture(evolutionFixture, "generic");
+    expect(generic.extraction.roots.map((root: any) => root.name)).toEqual(["GenericBox", "GenericUse"]);
+    expect(generic.extraction.edges.every((edge: any) => edge.reference.name === "GenericBox")).toBe(true);
+  }, 60_000);
+
+  test("repeated evolution runs keep roots, traversal order, omissions, completeness, and hashes stable", () => {
+    const first = runFixture(evolutionFixture, "import-retarget");
+    const second = runFixture(evolutionFixture, "import-retarget");
+    expect(stable(first)).toEqual(stable(second));
+    expect(first.extraction.edges.map((edge: any) => edge.id)).toEqual(["edge-0000"]);
+    expect(first.extraction.roots.every((root: any) => /^[a-f0-9]{64}$/.test(root.sourceHash))).toBe(true);
+  }, 30_000);
+
+  test("keeps a type-rule missing-context case distinct from a diff-sufficient control", () => {
+    const missingContext = runFixture(ruleControlsFixture, "missing-context");
+    expect(missingContext.extraction.roots.map((root: any) => root.name)).toEqual(["DeliveryEvent"]);
+    expect(missingContext.extraction.context.map((declaration: any) => declaration.name)).toEqual([
+      "DeliveryStatus",
+      "DeliveredAt",
+    ]);
+    expect(missingContext.extraction.edges.map((edge: any) => edge.reference.name)).toEqual([
+      "DeliveryStatus",
+      "DeliveredAt",
+    ]);
+
+    const diffSufficient = runFixture(ruleControlsFixture, "diff-sufficient");
+    expect(diffSufficient.extraction.roots.map((root: any) => root.name)).toEqual(["Money"]);
+    expect(diffSufficient.extraction.context).toEqual([]);
+    expect(diffSufficient.extraction.edges).toEqual([]);
   }, 30_000);
 
   test("does not depend on parser-query or incidental server-message order", () => {

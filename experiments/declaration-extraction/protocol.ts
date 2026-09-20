@@ -28,6 +28,8 @@ type PendingRequest = {
   timer: NodeJS.Timeout;
 };
 
+export type NativeLspFault = "nonresponding" | "crash" | "stale-document";
+
 export type DefinitionResponse = {
   result: LspLocation | LspLocationLink | Array<LspLocation | LspLocationLink> | null;
   error?: string;
@@ -84,6 +86,10 @@ export class NativeLspClient {
   private readonly child: ChildProcessWithoutNullStreams;
   private readonly timeoutMs: number;
   private readonly nonResponding: boolean;
+  private readonly crash: boolean;
+  private crashed = false;
+  private staleDocumentSent = false;
+  private controlledCancellationSent = false;
   private readonly pending = new Map<number, PendingRequest>();
   private readonly serverInfo: { name?: string; version?: string } = {};
   private readonly stderrChunks: string[] = [];
@@ -99,11 +105,12 @@ export class NativeLspClient {
   private constructor(
     child: ChildProcessWithoutNullStreams,
     timeoutMs: number,
-    nonResponding = false,
+    options: { nonResponding?: boolean; crash?: boolean } = {},
   ) {
     this.child = child;
     this.timeoutMs = timeoutMs;
-    this.nonResponding = nonResponding;
+    this.nonResponding = options.nonResponding === true;
+    this.crash = options.crash === true;
     this.closed = new Promise<void>((resolve, reject) => {
       this.resolveClosed = resolve;
       this.rejectClosed = reject;
@@ -115,6 +122,14 @@ export class NativeLspClient {
     child.stderr.on("data", (chunk: Buffer | string) => {
       this.stderrChunks.push(Buffer.from(chunk).toString("utf8"));
     });
+    child.stdin.on("error", (error) => {
+      // A controlled server crash closes stdin while the server may still
+      // have queued callbacks. Keep EPIPE as sanitized subprocess evidence
+      // instead of letting the experiment process terminate on an unhandled
+      // stream error.
+      this.closeError = error;
+      this.diagnostics.push({ method: "stdin", message: sanitizeError(error) });
+    });
     child.on("error", (error) => {
       this.closeError = error;
       for (const pending of this.pending.values()) {
@@ -122,7 +137,11 @@ export class NativeLspClient {
         pending.reject(error);
       }
       this.pending.clear();
-      this.rejectClosed(error);
+      // `closed` is a teardown signal; the concrete failure is retained in
+      // `closeError` and surfaced by the request/diagnostic paths. Resolving
+      // here avoids an unhandled rejection when a controlled crash happens
+      // before the caller reaches stop().
+      this.resolveClosed();
     });
     child.on("close", (code, signal) => {
       if (code !== 0 && !this.closeError && !this.stopping) {
@@ -135,15 +154,14 @@ export class NativeLspClient {
         pending.reject(this.closeError ?? new Error("TypeScript LSP closed"));
       }
       this.pending.clear();
-      if (this.closeError) this.rejectClosed(this.closeError);
-      else this.resolveClosed();
+      this.resolveClosed();
     });
   }
 
   static async start(
     workspaceRoot: string,
     timeoutMs = 2_000,
-    options: { nonResponding?: boolean } = {},
+    options: { nonResponding?: boolean; crash?: boolean } = {},
   ) {
     const tsc = join(
       dirname(fileURLToPath(import.meta.url)),
@@ -153,7 +171,7 @@ export class NativeLspClient {
       cwd: workspaceRoot,
       stdio: ["pipe", "pipe", "pipe"],
     });
-    const client = new NativeLspClient(child, timeoutMs, options.nonResponding === true);
+    const client = new NativeLspClient(child, timeoutMs, options);
     try {
       await client.initialize(workspaceRoot);
       return client;
@@ -172,6 +190,7 @@ export class NativeLspClient {
   }
 
   private write(message: JsonRpcMessage) {
+    if (this.child.stdin.destroyed || this.child.stdin.writableEnded) return;
     const body = JSON.stringify(message);
     const header = `Content-Length: ${Buffer.byteLength(body, "utf8")}\r\n\r\n`;
     this.child.stdin.write(header + body);
@@ -327,12 +346,42 @@ export class NativeLspClient {
     await new Promise<void>((resolve) => setImmediate(resolve));
   }
 
+  /**
+   * Deliberately send a full-content change after didOpen. This is an offline
+   * stale-document seam: callers can submit an older buffer/version while the
+   * parser side continues to use the current fixture source. The native server
+   * response remains evidence, not a production synchronization contract.
+   */
+  async sendStaleDocument(document: LspDocument, version = 0) {
+    this.staleDocumentSent = true;
+    this.notify("textDocument/didChange", {
+      textDocument: { uri: document.uri, version },
+      contentChanges: [{ text: document.text }],
+    });
+    await new Promise<void>((resolve) => setImmediate(resolve));
+  }
+
+  get faultEvidence() {
+    return {
+      crashTriggered: this.crashed,
+      staleDocumentSent: this.staleDocumentSent,
+      cancellationSent: this.controlledCancellationSent,
+    };
+  }
+
   async definition(
     uri: string,
     position: LspPosition,
     deadline?: number,
   ): Promise<DefinitionResponse> {
     const started = performance.now();
+    if (this.closeError || this.child.killed || this.child.stdin.destroyed) {
+      return {
+        result: null,
+        error: this.closeError ? sanitizeError(this.closeError) : "TypeScript LSP is closed",
+        elapsedMs: performance.now() - started,
+      };
+    }
     const remaining = deadline === undefined
       ? this.timeoutMs
       : Math.min(this.timeoutMs, deadline - started);
@@ -347,12 +396,40 @@ export class NativeLspClient {
     if (this.nonResponding) {
       increment(this.counts.clientRequests, "textDocument/definition");
       increment(this.counts.positionalRequests, "textDocument/definition");
-      await new Promise<void>((resolve) => setTimeout(resolve, remaining));
+      // Keep the request on the wire, then deterministically cancel it at the
+      // elapsed deadline. We intentionally do not retain a pending resolver;
+      // any late server response is ignored as a stale response.
+      const id = this.nextId++;
+      this.write({
+        jsonrpc: "2.0",
+        id,
+        method: "textDocument/definition",
+        params: { textDocument: { uri }, position },
+      });
+      // Add a small deterministic margin so the traversal observes its
+      // elapsed deadline before trying a second edge. This keeps cold/warm
+      // cancellation counts stable while remaining bounded by the caller's
+      // timeout plus the margin.
+      await new Promise<void>((resolve) => setTimeout(resolve, remaining + 2));
+      this.controlledCancellationSent = true;
+      this.notify("$/cancelRequest", { id });
       return {
         result: null,
         error: "controlled nonresponding client deadline exceeded",
         elapsedMs: performance.now() - started,
         timedOut: true,
+      };
+    }
+    if (this.crash && !this.crashed) {
+      this.crashed = true;
+      // Kill the selected native server process only after initialization and
+      // document synchronization. This makes the crash a subprocess fault,
+      // not a fixture-load failure, while keeping the test deterministic.
+      this.child.kill("SIGKILL");
+      return {
+        result: null,
+        error: "controlled TypeScript LSP server crash",
+        elapsedMs: performance.now() - started,
       };
     }
     try {

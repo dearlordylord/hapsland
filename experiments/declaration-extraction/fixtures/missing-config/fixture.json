@@ -1,0 +1,11 @@
+{
+  "name": "missing-project-configuration",
+  "workspace": "workspace",
+  "before": "before",
+  "defaultEdit": "root",
+  "edits": {
+    "root": {
+      "path": "src/target.ts"
+    }
+  }
+}

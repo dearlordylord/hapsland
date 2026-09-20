@@ -47,6 +47,12 @@ The deterministic `--fault nonresponding` option is used by the offline tests to
 prove that an in-flight positional request is cancelled at the remaining elapsed
 budget; ordinary extraction always uses the native server.
 
+The offline fault seams also expose `--fault crash` (kill the initialized native
+server) and `--fault stale-document` (send an older full-buffer `didChange` after
+`didOpen`). Their records identify the injected nature of the observation. A crash is
+reported as navigation failure and a stale response is not treated as a correctness
+guarantee.
+
 The fixture's target module has erased type-only imports and one real `node:fs`
 import so the positive-control test can evaluate a copied module under Node 24.
 Extraction itself sets a unique marker token and reports `modulesImported: true`,
@@ -78,3 +84,15 @@ Run deterministic offline black-box tests with:
 ```sh
 npm run test:extract
 ```
+
+Generate the checked-in source-free corpus summary and verdict inputs with:
+
+```sh
+npm run --silent experiment:extract:evidence
+```
+
+Degradation fixtures live under `fixtures/malformed-half-written`,
+`fixtures/missing-config`, `fixtures/unresolved-import`, and `fixtures/cycles`.
+`fixtures/evolution` records formatting, rename, import-retargeting, multiple roots,
+move, deletion, and generic-reference controls. See [`VERDICT.md`](./VERDICT.md) for
+the criterion-by-criterion limitations and follow-ups.

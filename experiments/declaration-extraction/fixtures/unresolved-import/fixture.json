@@ -1,0 +1,11 @@
+{
+  "name": "unresolved-import",
+  "workspace": "workspace",
+  "before": "before",
+  "defaultEdit": "root",
+  "edits": {
+    "root": {
+      "path": "src/target.ts"
+    }
+  }
+}
