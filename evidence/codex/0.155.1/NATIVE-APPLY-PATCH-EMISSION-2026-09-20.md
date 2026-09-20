@@ -52,6 +52,24 @@ The tested `PostToolUse` envelope also carried `session_id`, `turn_id`,
 `tool_use_id`, plus the event name and tool name. The product receives this envelope
 through the hook stdin; it does not receive the model provider's private API trace.
 
+## Ten-line interface edit probe
+
+The probe was rerun with a ten-line `Delivery` interface and one requested edit:
+`email?: string` became `email: string`. Codex emitted this exact sanitized command:
+
+```diff
+*** Begin Patch
+*** Update File: <WORKSPACE>/baseline.ts
+@@
+-  email?: string;
++  email: string;
+*** End Patch
+```
+
+It made one successful `PostToolUse` callback and changed the file. Codex chose a
+minimal hunk here: it did not include the other interface lines as context. The full
+sanitized capture is [`native-interface-edit-emission-2026-09-20.json`](./native-interface-edit-emission-2026-09-20.json).
+
 ## What this does not establish
 
 - It does not establish that every Codex release uses this exact patch grammar.

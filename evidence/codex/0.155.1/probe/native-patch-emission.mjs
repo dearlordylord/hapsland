@@ -6,11 +6,12 @@ import { spawn } from "node:child_process";
 
 const repoRoot = resolve(new URL("../../../../", import.meta.url).pathname);
 const hookScript = join(repoRoot, "evidence/codex/0.155.1/probe/capture-hook.mjs");
-const updateMode = process.argv.includes("--update");
+const updateMode = process.argv.includes("--update") || process.argv.includes("--interface");
+const interfaceMode = process.argv.includes("--interface");
 const targetPath = updateMode ? "baseline.ts" : "native-probe.ts";
 const outputPath = join(
   repoRoot,
-  `evidence/codex/0.155.1/native-${updateMode ? "update" : "patch"}-emission-2026-09-20.json`,
+  `evidence/codex/0.155.1/native-${interfaceMode ? "interface-edit" : updateMode ? "update" : "patch"}-emission-2026-09-20.json`,
 );
 const run = (command, args, options = {}) =>
   new Promise((resolvePromise, reject) => {
@@ -89,7 +90,22 @@ const runProbe = async () => {
   await git(repository, ["init", "--quiet", "--initial-branch=master"]);
   await git(repository, ["config", "user.name", "Native Patch Probe"]);
   await git(repository, ["config", "user.email", "native-patch-probe@example.invalid"]);
-  await writeFile(join(repository, "baseline.ts"), "export const baseline = 1;\n", { mode: 0o600 });
+  const baseline = interfaceMode
+    ? [
+      "export interface Delivery {",
+      "  id: string;",
+      "  channel: DeliveryChannel;",
+      "  email?: string;",
+      "  phone?: string;",
+      '  priority: "normal" | "urgent";',
+      "  retries: number;",
+      "  scheduledAt?: string;",
+      "  metadata: Record<string, string>;",
+      "}",
+      "",
+    ].join("\n")
+    : "export const baseline = 1;\n";
+  await writeFile(join(repository, "baseline.ts"), baseline, { mode: 0o600 });
   await git(repository, ["add", "baseline.ts"]);
   await git(repository, ["commit", "--quiet", "-m", "synthetic baseline"]);
   await writeFile(capturePath, "", { mode: 0o600 });
@@ -136,7 +152,9 @@ const runProbe = async () => {
       "--ignore-rules",
       "-C",
       repository,
-      updateMode
+      interfaceMode
+        ? "Use apply_patch exactly once. Update existing baseline.ts by changing exactly `email?: string;` to `email: string;` in the Delivery interface. Do not use Bash, inspect files, make another tool call, or edit another path. Then reply DONE."
+        : updateMode
         ? "Use apply_patch exactly once. Update existing baseline.ts by adding exactly `export const nativeProbe = true;` after the existing export. Do not use Bash, inspect files, make another tool call, or edit another path. Then reply DONE."
         : "Use apply_patch exactly once. Add a new file named native-probe.ts containing exactly `export const nativeProbe = true;` and no other content. Do not use Bash, inspect files, make another tool call, or edit another path. Then reply DONE.",
     ], { cwd: repository, env, timeoutMs: 120_000 });
@@ -166,7 +184,9 @@ const runProbe = async () => {
       sourceAndCredentialsRetained: false,
     },
     request: {
-      instruction: updateMode
+      instruction: interfaceMode
+        ? "one native apply_patch call changing one line in a 10-line interface; no Bash or other tool call"
+        : updateMode
         ? "one native apply_patch call updating baseline.ts; no Bash or other tool call"
         : "one native apply_patch call adding native-probe.ts; no Bash or other tool call",
       toolName: event?.tool_name,
