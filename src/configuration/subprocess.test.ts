@@ -14,6 +14,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { configuredRules } from "../policy/rules.ts";
 
 const roots: Array<string> = [];
 afterEach(() => {
@@ -86,6 +87,69 @@ describe("configuration v1 subprocess contract", () => {
     expect(output.results[0]).toMatchObject({ status: "reviewed", snapshot: { path: "src/example.ts" } });
     expect(readFileSync(path, "utf8")).toContain("Example");
     expect(readFileSync(capturePath, "utf8").trim()).toBe("called");
+  });
+
+  it("applies captured runtime limits to deadline and one event-wide advice budget", () => {
+    const root = mkdtempSync(join(tmpdir(), "review-config-runtime-limits-"));
+    roots.push(root);
+    execFileSync("git", ["init", "--quiet", root]);
+    mkdirSync(join(root, "src"));
+    const content = "export type Count = { value: number; unit: string };\n";
+    writeFileSync(join(root, "src", "a.ts"), content);
+    writeFileSync(join(root, "src", "b.ts"), content);
+    writeFileSync(
+      join(root, ".review.jsonc"),
+      '{"version":1,"settings":{"deadlineMs":50,"concurrency":1,"adviceBudget":1,"transientRetries":0}}\n',
+    );
+    const statePath = join(root, "state");
+    enable(root, statePath);
+    const input = request(root, ["src/a.ts", "src/b.ts"], `runtime-limits-timeout-${root}`);
+    const delayed = run(
+      ["--controlled"],
+      input,
+      {
+        REVIEW_STATE_PATH: statePath,
+        REVIEW_CONTROL_JSON: JSON.stringify({
+          delayMs: 100,
+          answers: Object.fromEntries(
+            configuredRules.map((rule) => [
+              rule.id,
+              { _tag: "Probability", probability: 0.9 },
+            ]),
+          ),
+        }),
+        REVIEW_USER_CONFIG_PATH: join(root, "missing-user.jsonc"),
+      },
+    ) as { results: Array<{ status: string; code?: string }>; advice: Array<unknown> };
+    expect(delayed.results).toHaveLength(2);
+    expect(delayed.results.every((result) => result.status === "unavailable")).toBe(true);
+    expect(delayed.results.every((result) => result.code === "review_timeout")).toBe(true);
+    expect(delayed.advice).toEqual([]);
+    expect(readFileSync(join(root, "src", "a.ts"), "utf8")).toBe(content);
+    expect(readFileSync(join(root, "src", "b.ts"), "utf8")).toBe(content);
+
+    writeFileSync(
+      join(root, ".review.jsonc"),
+      '{"version":1,"settings":{"deadlineMs":1000,"concurrency":1,"adviceBudget":1,"transientRetries":0}}\n',
+    );
+    const reviewed = run(
+      ["--controlled"],
+      request(root, ["src/a.ts", "src/b.ts"], `runtime-limits-budget-${root}`),
+      {
+        REVIEW_STATE_PATH: statePath,
+        REVIEW_CONTROL_JSON: JSON.stringify({
+          answers: Object.fromEntries(
+            configuredRules.map((rule) => [
+              rule.id,
+              { _tag: "Probability", probability: 0.9 },
+            ]),
+          ),
+        }),
+        REVIEW_USER_CONFIG_PATH: join(root, "missing-user.jsonc"),
+      },
+    ) as { results: Array<{ status: string }>; advice: Array<unknown> };
+    expect(reviewed.results.every((result) => result.status === "reviewed")).toBe(true);
+    expect(reviewed.advice).toHaveLength(1);
   });
 
   it("applies exclusions before dispatch for traversal, symlink, generated and oversized paths", () => {

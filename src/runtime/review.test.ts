@@ -271,7 +271,7 @@ describe("review orchestration", () => {
       Effect.gen(function* () {
         const root = yield* fixture;
         const output = yield* run(
-          request(root, ["src/example.ts", "src/example.ts"]),
+          request(root, ["src/example.ts", "./src/example.ts", "src/../src/example.ts"]),
           { answers: answers(0) },
         );
         expect(output.results).toHaveLength(1);
