@@ -1,10 +1,10 @@
 import * as Schema from "effect/Schema";
 import {
-  Expectation as SharedExpectationSchema,
   Fixture as SharedFixtureSchema,
   type Expectation as SharedExpectation,
   type Fixture as SharedFixture,
 } from "../../src/evaluation/model.ts";
+import { makeExpectation } from "../../src/evaluation/digest.ts";
 import type { Fixture } from "./protocol.ts";
 
 /**
@@ -40,7 +40,7 @@ export const sharedExpectationRecord = (fixture: Fixture): SharedExpectation => 
         },
       }
     : { kind: authored.kind, reason: authored.rationale };
-  return Schema.decodeUnknownSync(SharedExpectationSchema)({
+  return makeExpectation({
     fixtureId: fixture.id,
     ruleId: authored.ruleId,
     result,
