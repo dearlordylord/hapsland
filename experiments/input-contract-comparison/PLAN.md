@@ -1,8 +1,9 @@
 # Pre-run plan: input-contract comparison
 
-Status: revised credential-gated run completed on 2026-09-20. The prior corrected run
-and one aborted pre-recovery attempt remain historical evidence; the revised sanitized
-result is recorded in `evidence/input-contract-comparison/live-report-2026-09-20-revised.json`.
+Status: follow-up credential-gated run completed on 2026-09-20. The prior corrected run,
+the revised run, and one aborted pre-recovery attempt remain historical evidence. The
+follow-up sanitized result is recorded in
+`evidence/input-contract-comparison/live-report-2026-09-20-followup.json`.
 
 - Backend: Jev through `@effect/ai-typesafe` `TypeSafeDecisionModel`, model id
   `jev-latest`, using the provider-neutral Effect `Decision.probability` and one
@@ -65,10 +66,15 @@ The final report must be `advance-to-production-architecture`, `reject-or-narrow
 incomplete context, or unavailable timing/size gate makes the result inconclusive;
 `not-applicable` arms are reported separately and do not become semantic negatives.
 
-## Follow-up pre-registration after `reject-or-narrow`
+## Follow-up execution after `reject-or-narrow`
 
-No additional paid run is authorized by this revision. Before any separately approved
-follow-up, the checked-in corpus and gates now address the first run's confounds:
+The follow-up run was separately authorized after this corpus/gate revision. It used
+the existing `.env` credential, `--maximum-retries 0`, and an authorized remaining
+ledger of 280 calls. The revised matrix made 216 applicable backend calls (72 logical
+slots were structurally not-applicable), with no transport failures; 936 retained
+attempts are now accounted for against the 1,000-call project ceiling.
+
+The checked-in corpus and gates addressed the first run's confounds:
 
 - Every context-required or whole-file-dilution fixture has a fixed, unchanged,
   semantically clear declaration tail. An offline guard requires whole-file source to
@@ -84,5 +90,9 @@ follow-up, the checked-in corpus and gates now address the first run's confounds
 - Negative controls are checked across every applicable renderer scenario, allowing at
   most two failures overall and at most one per mode.
 
-These are prospective gates. The 2026-09-20 evidence remains evaluated only against
-its original pre-registration and must not be rescored against this revision.
+The follow-up passed context-required semantic accuracy (10/11), focused-diff controls
+(7/8), negative controls (19/20), all repetitions, timing, and request-size gates. It
+failed both paired semantic-advantage gates: context-only wins were 0/3 required and
+whole-file dilution context-only wins were 0/2 required. Its final outcome is therefore
+`reject-or-narrow`. The earlier 2026-09-20 reports remain historical evidence and are
+not rescored against this revision.

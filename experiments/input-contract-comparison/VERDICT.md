@@ -1,6 +1,21 @@
 # Input-contract comparison milestone verdict
 
-Status: `reject-or-narrow`.
+Status: `reject-or-narrow` (final follow-up result).
+
+The separately authorized follow-up run completed on 2026-09-20 using the revised
+corpus and gates. Its sanitized report is
+[`live-report-2026-09-20-followup.json`](../../evidence/input-contract-comparison/live-report-2026-09-20-followup.json).
+It made 216 applicable calls with zero transport failures. Context-required semantic
+accuracy passed at 10/11, focused-diff controls passed at 7/8, negative controls passed
+at 19/20, all three repetitions were available, and timing/request-size gates passed.
+The context-only paired-advantage gate had 0/3 wins and the whole-file-dilution
+paired-advantage gate had 0/2 wins, so declaration-oriented context did not establish a
+material semantic advantage. This is valid final evidence to reject or narrow the
+declaration-oriented production architecture hypothesis; no production extractor
+authorization follows.
+
+The prior revised run remains recorded below as historical evidence; it is not rescored
+against the follow-up gates.
 
 The revised credential-gated run completed on 2026-09-20 using the 24-fixture corpus,
 four versioned renderers, three repetitions, fixed nine-rule batch, and Effect

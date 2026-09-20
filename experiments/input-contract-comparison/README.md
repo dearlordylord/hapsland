@@ -18,11 +18,13 @@ edit; the diff renderer includes only a bounded unified hunk around that edit, r
 than repeating the whole post-edit declaration. `manifest.ts` exposes the source-free
 identity view for report tooling.
 
-After the first milestone returned `reject-or-narrow`, the prospective follow-up corpus
-was tightened without authorizing another paid run. Diff-sufficient fixtures are now a
-balanced Rule 2 calibration set, nominal dilution/context fixtures carry a deterministic
+After the first milestone returned `reject-or-narrow`, the follow-up corpus was tightened
+and then run as a separately authorized paid milestone. Diff-sufficient fixtures are now
+a balanced Rule 2 calibration set, nominal dilution/context fixtures carry a deterministic
 clear tail with an offline 3× source-size guard, and superiority is assessed as paired
-wins. The exact prospective gates are recorded in [`PLAN.md`](./PLAN.md).
+wins. The final sanitized follow-up result is recorded in
+[`live-report-2026-09-20-followup.json`](../../evidence/input-contract-comparison/live-report-2026-09-20-followup.json),
+and the exact gates are recorded in [`PLAN.md`](./PLAN.md).
 
 The declaration-context renderer reuses the parsing/artifact seam from the accepted
 declaration-extraction experiment. It does not make extraction a production dependency;
