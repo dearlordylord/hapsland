@@ -1,0 +1,9 @@
+{
+  "status": "aborted-before-report",
+  "cause": "runner reserved retry slots for structurally not-applicable arms",
+  "plannedMaximumTransportAttempts": 432,
+  "actualProviderUsage": "not-retained",
+  "sourceBearingResponses": "not-retained",
+  "credentials": "not-retained",
+  "disposition": "runner fixed in commit eddea66; recovery run used zero retries and a 216-attempt maximum"
+}

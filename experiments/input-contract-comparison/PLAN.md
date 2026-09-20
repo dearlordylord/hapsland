@@ -1,8 +1,8 @@
 # Pre-run plan: input-contract comparison
 
-Status: revised after review; deterministic checks pass and a new credential-gated run
-is pending. The prior corrected run remains historical evidence and is not used for the
-revised decision.
+Status: revised credential-gated run completed on 2026-09-20. The prior corrected run
+and one aborted pre-recovery attempt remain historical evidence; the revised sanitized
+result is recorded in `evidence/input-contract-comparison/live-report-2026-09-20-revised.json`.
 
 - Backend: Jev through `@effect/ai-typesafe` `TypeSafeDecisionModel`, model id
   `jev-latest`, using the provider-neutral Effect `Decision.probability` and one
@@ -43,7 +43,9 @@ revised decision.
   applicable request, the revised run has a 432-attempt maximum. Before `--live`
   execution, the operator must supply an authorization ledger covering that envelope;
   the command refuses to start when it does not. The project ledger ceiling is 1,000
-  calls, with 432 remaining after the two prior 252-observation runs.
+  calls. The recovery run used zero retries and a 216-attempt maximum after the runner
+  reservation bug was fixed; 216 calls were authorized for that run, leaving a safety
+  margin rather than spending the remaining ceiling.
 - Environment: pinned package cohort `effect`, `@effect/ai-typesafe`, and
   `@effect/vitest` `4.0.0-rc.116`; TypeScript `7.0.2`; Node runtime identity and
   renderer digests are recorded by the command environment. Credentials are checked
