@@ -104,6 +104,11 @@ Headless activity inspection is documented in [`docs/status.md`](./docs/status.m
 uses an explicit host session ID and local source-free receipts; readiness and observed
 activity are reported separately.
 
+The maintainer-only semantic evaluation protocol and its sanitized offline milestone
+evidence are documented in [`docs/evaluation.md`](./docs/evaluation.md) and
+[`evidence/evaluation/README.md`](./evidence/evaluation/README.md). Ordinary tests and
+the review hook never perform a paid evaluation.
+
 The historical `vendor/distilled` tree is retained as a Git submodule and migration oracle;
 it is not an active workspace or production dependency. Clone it when that evidence is
 needed:

@@ -3,3 +3,6 @@ export * from "./digest.ts";
 export * from "./plan.ts";
 export * from "./comparison.ts";
 export * from "./report.ts";
+export * from "./fixtures.ts";
+export * from "./runner.ts";
+export * from "./command.ts";

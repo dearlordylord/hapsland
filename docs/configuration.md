@@ -179,3 +179,7 @@ and explanation use the same policy digest. Shared fixture, configuration-case,
 scenario, observation, and comparison identities are defined in
 [`src/evaluation/model.ts`](../src/evaluation/model.ts), so later semantic slices can
 refer to these configuration cases without changing the process contract.
+
+The semantic milestone command is documented separately in
+[`evaluation.md`](./evaluation.md). It is an explicit maintainer operation and does
+not alter this version-1 review request/response protocol.
