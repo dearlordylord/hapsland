@@ -1,10 +1,11 @@
 # Codex CLI 0.155.1 runtime evidence
 
-**Date:** 2026-09-19
+**Dates:** 2026-09-19 (baseline probes), 2026-09-20 (diagnostic-channel probe)
 **Platform:** Linux, headless `codex exec --ephemeral --json` and interactive TUI
 **Codex:** `codex-cli 0.155.1`
-**Pinned source:** tag `rust-v0.155.1`, commit
-`4e21628f9ec9ee656650cd2b62ef92225725b5ac`
+**Pinned source:** annotated tag `rust-v0.155.1`, tag object
+`4e21628f9ec9ee656650cd2b62ef92225725b5ac`, resolving to commit
+`be2951ea34f0d295ed0becf97079f92fa5f6950e`
 
 The probes used a temporary `CODEX_HOME`, a disposable Git repository, and the repository
 scripts in `probe/`. Only authentication material was copied into the temporary home. The

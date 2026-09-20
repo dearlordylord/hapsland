@@ -50,8 +50,9 @@ Evidence labels mean: **documented** (official current documentation),
 - Official hook documentation: <https://developers.openai.com/codex/hooks>, inspected
   2026-09-19. It defines discovery, trust, matcher aliases, input/output fields,
   synchronous default behavior, and `PostToolUse` semantics.
-- Codex tag `rust-v0.155.1`, commit
-  `4e21628f9ec9ee656650cd2b62ef92225725b5ac`:
+- Codex annotated tag `rust-v0.155.1`, tag object
+  `4e21628f9ec9ee656650cd2b62ef92225725b5ac`, resolving to commit
+  `be2951ea34f0d295ed0becf97079f92fa5f6950e`:
   `codex-rs/hooks/schema/generated/post-tool-use.command.input.schema.json`,
   `codex-rs/hooks/src/events/post_tool_use.rs`,
   `codex-rs/core/src/tools/registry.rs`, and
