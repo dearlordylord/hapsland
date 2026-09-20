@@ -5,8 +5,14 @@ import { modes, renderInput } from "./render.ts";
 
 const root = resolve(import.meta.dirname, "../..");
 const reportPath = resolve(root, "evidence/input-contract-comparison/live-report-2026-09-20-followup.json");
+const diagnosticPath = resolve(root, "evidence/input-contract-comparison/live-diagnostic-2026-09-20.json");
+const codexEmissionPath = resolve(root, "evidence/codex/0.155.1/native-patch-emission-2026-09-20.json");
 const outputPath = resolve(root, "evidence/input-contract-comparison/dashboard-data.js");
 const report = JSON.parse(readFileSync(reportPath, "utf8")) as unknown;
+type WireQuestion = { readonly id: string; readonly type: "noul"; readonly instructions: string; readonly criteria: { readonly false: string; readonly true: string } };
+type Diagnostic = { readonly backend: Record<string, unknown>; readonly wireQuestions: readonly WireQuestion[] } & Record<string, unknown>;
+const diagnostic = JSON.parse(readFileSync(diagnosticPath, "utf8")) as Diagnostic;
+const codexEmission = JSON.parse(readFileSync(codexEmissionPath, "utf8")) as unknown;
 
 const fixtures = inputComparisonFixtures.map((fixture) => ({
   id: fixture.id,
@@ -57,15 +63,33 @@ const data = {
       "before and after source for all 24 fixtures",
       "deterministically regenerated inputs for all four modes",
       "aggregate run counts, gates, timing, and request-size summaries",
+      "sanitized 64-call production request/result diagnostic for four representative fixtures",
+      "runtime-probed native Codex apply_patch emission shape",
     ],
     notRetained: [
       "individual backend probabilities",
-      "per-repetition and per-fixture live semantic outcomes",
+      "full-corpus per-repetition and per-fixture live semantic outcomes",
       "raw or source-bearing provider responses",
       "provider usage details",
     ],
-    consequence: "The corpus and renderer inputs are directly inspectable, but the final aggregate semantic totals cannot be independently recomputed from retained evidence.",
+    consequence: "The 24-fixture final gate remains aggregate-only, while the bounded diagnostic exposes a joined request/result trace for four fixtures and all four modes.",
   },
+  providerContract: {
+    source: [
+      "src/ports/review-backend.ts",
+      "node_modules/@effect/ai-typesafe/dist/TypeSafeDecisionModel.js",
+      "node_modules/@effect/ai-typesafe/dist/TypeSafeClient.js",
+    ],
+    backend: diagnostic.backend,
+    requestTemplate: {
+      model: "jev-latest",
+      state: { artifact: { domain: "<rendered path>", source: "<rendered input source>" } },
+      questions: diagnostic.wireQuestions,
+    },
+    note: "The provider receives one POST /systemone request with model, state, and the nine Noul questions. The dashboard fills the two artifact placeholders from the selected fixture and mode.",
+  },
+  codexEmission,
+  diagnostic,
   report,
   fixtures,
 };

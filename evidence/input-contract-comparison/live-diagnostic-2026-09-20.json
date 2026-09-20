@@ -1,0 +1,3267 @@
+{
+  "evidenceVersion": 1,
+  "status": "complete",
+  "date": "2026-09-20",
+  "runId": "input-contract-dashboard-diagnostic-2026-09-20",
+  "purpose": "Expose sanitized production request/result evidence for dashboard review; not a full issue-16 gate rerun.",
+  "budget": {
+    "authorizedCallsBeforeRun": 64,
+    "declaredCalls": 64,
+    "observedCalls": 64,
+    "maximumRetriesPerCall": 0,
+    "authorizedCallsAfterRun": 0
+  },
+  "selection": {
+    "fullCorpusFixtures": 24,
+    "selectedFixtures": [
+      {
+        "id": "iface-range-diff",
+        "category": "interface",
+        "expectation": {
+          "ruleId": "r2_meaningless_combinations",
+          "kind": "violation",
+          "band": {
+            "minimum": 0.7,
+            "maximum": 1,
+            "minimumInclusive": false,
+            "maximumInclusive": true
+          },
+          "rationale": "The diff shows authenticated false beside a settable userId; no external evidence is needed to identify that meaningless combination."
+        }
+      },
+      {
+        "id": "alias-money",
+        "category": "type-alias",
+        "expectation": {
+          "ruleId": "r2_meaningless_combinations",
+          "kind": "clear",
+          "band": {
+            "minimum": 0,
+            "maximum": 0.3
+          },
+          "rationale": "Amount and currency are intentionally one value; every representable object has both parts even when a whole-file control includes an unrelated alias."
+        }
+      },
+      {
+        "id": "zod-range",
+        "category": "zod",
+        "expectation": {
+          "ruleId": "r2_meaningless_combinations",
+          "kind": "violation",
+          "band": {
+            "minimum": 0.7,
+            "maximum": 1,
+            "minimumInclusive": false,
+            "maximumInclusive": true
+          },
+          "rationale": "The diff admits pending beside deliveredAt; the condition and conditional field are self-contained."
+        }
+      },
+      {
+        "id": "effect-money",
+        "category": "effect-schema",
+        "expectation": {
+          "ruleId": "r2_meaningless_combinations",
+          "kind": "clear",
+          "band": {
+            "minimum": 0,
+            "maximum": 0.3
+          },
+          "rationale": "Amount and currency are one complete money value; the schema does not create conditional fields."
+        }
+      }
+    ],
+    "modes": [
+      "diff",
+      "whole-file",
+      "declaration-only",
+      "declaration-context"
+    ],
+    "repetitions": 4
+  },
+  "backend": {
+    "id": "jev",
+    "provider": "@effect/ai-typesafe",
+    "model": "jev-latest",
+    "decisionModel": "effect/unstable/ai/DecisionModel",
+    "destination": "https://api.typesafe.ai/v1/systemone",
+    "requestMethod": "POST",
+    "requestShape": [
+      "model",
+      "state",
+      "questions"
+    ]
+  },
+  "wireQuestions": [
+    {
+      "id": "r1_inferred_case",
+      "type": "noul",
+      "instructions": "Can `artifact` express values that mean different operations of the domain in `artifact.domain`, with no field of the shape naming which one a value is?\n\nFocus: A shape with exactly one meaning has no cases to tell apart, and its optional fields are independent attributes of that one meaning. The finding is a shape whose instances mean different things with nothing naming which.",
+      "criteria": {
+        "false": "One field names the case and each case's own fields sit with it, or the shape has a single meaning whose fields are independent attributes of it\n\nExamples:\n- `{ tag: \"ok\", value } | { tag: \"error\", message }`, read by looking at `tag`\n- each member of the union opens with a literal naming it, and carries only its own fields\n- a customer record whose optional `nickname` and `phone` are attributes of one meaning rather than alternative modes",
+        "true": "Instances mean different things and the case is recoverable only from which fields are present or absent, a flat record whose optional fields belong to different operations included\n\nExamples:\n- a delivery record carrying `emailAddress` and `phoneNumber`, either absent, where whichever is filled decides how it is sent\n- a payment holding both `cardLast4` and `bankAccount`, with the caller told to fill one\n- an event that is a signup when `referrer` is there and a login when it is not\n- a union of `string | { x: number; y: number }` distinguished only by which type arrived\n- a report request where `month` alone means one month, `from` with `to` means a custom range, and nothing states which was intended"
+      }
+    },
+    {
+      "id": "r2_meaningless_combinations",
+      "type": "noul",
+      "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+      "criteria": {
+        "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+        "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+      }
+    },
+    {
+      "id": "r3_split_correlations",
+      "type": "noul",
+      "instructions": "Does `artifact` let one part of a fact be set without the parts it is only correct with, because the shape keeps them in separate fields instead of one value?\n\nFocus: Fields that are independent attributes of one thing are not the finding. The finding is a group that must move together to stay correct — a quantity and its unit, the two ends of a range, the coordinates of a point — which the shape lets be supplied or changed one at a time. A part that is already meaningful on its own is not half of a fact, however closely it goes with its neighbours.",
+      "criteria": {
+        "false": "Parts that are only correct together arrive as one value, or each field carries something that means what it says on its own\n\nExamples:\n- money is one `{ amount, currency }` value, constructed together and passed whole\n- a period is one `{ from, to }` value, so an end never exists without its start\n- a position is a `Point`, not two loose numbers\n- a `widthMm` and a `heightMm` on one label, each a measurement that means what it says without the other",
+        "true": "Two or more fields carry parts of one fact, and the shape lets one be set without the others\n\nExamples:\n- an `amount` beside a `currency`, so a number can arrive in no currency at all\n- `latitude` and `longitude` as separate optional fields, so half a position is representable\n- `startedAt` and `endedAt` side by side, either settable without the other\n- a `value` beside a `unit` and a `scale`, each reachable on its own"
+      }
+    },
+    {
+      "id": "r4_duplicate_encoding",
+      "type": "noul",
+      "instructions": "Can a value of `artifact` carry one fact twice over and have the two copies disagree, because the shape stores it in more than one place?\n\nFocus: Fields that happen to correlate are not the finding. The finding is a fact the shape lets be written down twice, so nothing stops one copy from saying something the other contradicts.",
+      "criteria": {
+        "false": "Each fact is written down once, and anything else that depends on it is derived rather than stored\n\nExamples:\n- a `birthDate` alone, with age computed where it is needed\n- a `lines` list alone, its length read from the list\n- one `price: Money` value, formatted at the edge that displays it",
+        "true": "One fact is reachable through two fields at once, and the shape admits values where they disagree\n\nExamples:\n- a `birthDate` beside an `age`, either settable, so a value can claim an age its date denies\n- a `lines` list beside a `lineCount`, which nothing keeps in step\n- `priceCents` beside a `priceLabel` string that spells the same price out\n- a `path` beside a `directory` and a `fileName` that repeat its parts"
+      }
+    },
+    {
+      "id": "r5_absence_confusion",
+      "type": "noul",
+      "instructions": "Does `artifact` offer two encodings of one state, or collapse two states that the domain distinguishes, around missing values?\n\nFocus: \"Not supplied\", \"known to be nothing\", and \"known to be empty\" are three different facts.",
+      "criteria": {
+        "false": "Collections are required and emptiness carries the nothing meaning, or absence has its own named meaning\n\nExamples:\n- a required `tags` list where empty is how a caller says there are none\n- permissions are `{ kind: \"inherited\" } | { kind: \"own\", granted: Permission[] }`, so inheritance is a named state rather than a missing field\n- an attachment list typed non-empty, so the invariant holds at construction",
+        "true": "An optional collection whose absence and emptiness mean the same thing, or a field where undefined, null and empty are all reachable\n\nExamples:\n- an optional `tags` list where absent and `[]` are both reachable and denote the same nothing\n- a `middleName` where missing, `null` and `\"\"` are all reachable\n- an optional `permissions` list whose absence carries a meaning the shape never names\n- an `items` list that must not be empty, with emptiness still representable"
+      }
+    },
+    {
+      "id": "r6_bare_domain_value",
+      "type": "noul",
+      "instructions": "Does `artifact` carry something the domain of `artifact.domain` treats as its own kind of thing as a bare primitive, in a shape where the domain's own distinctions are made — not a shape whose subject is how a value is written down or carried — so that any value of that primitive would fit where the thing belongs?\n\nFocus: A field typed `string` or `number` is not the finding; most fields bottom out in primitives and most of them should. The finding is a value with a meaning of its own in the domain — an identity, a locator, a revision, a quantity whose unit matters, a member of a fixed set — represented so that nothing distinguishes it from any other value of the same primitive, in a shape that speaks the domain's own vocabulary. A shape whose subject is how values are stored or transmitted — a table or column definition, a row type mirroring one, a wire message, a memory layout — makes no domain distinctions: its primitives state an encoding, so the finding has nothing to be about. A shape that runs the domain's logic speaks the domain's vocabulary whatever its file is named.",
+      "criteria": {
+        "false": "Each thing the domain names has a type of its own, or the bare primitives sit in a shape that only states how values are written down or carried, or the primitive is free text the domain genuinely accepts\n\nExamples:\n- identifiers for two kinds of thing are distinct branded types over string\n- a duration is a type that carries its unit rather than a loose number\n- a fixed set of values is a literal union derived from one declared list\n- free text such as a title or a note is typed `string`, because the domain really does accept any text there\n- a table definition whose TEXT and INTEGER columns state how rows are stored\n- a wire message whose string fields state how the values are carried between systems",
+        "true": "Something the domain names as its own kind of thing is written as a bare primitive in a shape where the domain's own distinctions live, so a value meaning something else entirely fits where it belongs\n\nExamples:\n- two identifiers for different kinds of thing both typed plain `string`, so either fits wherever the other is expected\n- a pair of bare strings returned together, told apart only by their position\n- a duration carried as a bare number, with nothing saying whether it counts seconds or milliseconds\n- a display name standing in for the identity of the thing it names, both being strings\n- a fixed set of roles carried as `string`, so any spelling at all is admissible"
+      }
+    },
+    {
+      "id": "r7_name_wider_than_type",
+      "type": "noul",
+      "instructions": "Does `artifact` declare a field, a parameter, or a type whose own name states what it holds, while its declared type or definition still admits values that name rules out?\n\nFocus: Breadth is not the finding. A type is right to be broad where the domain really accepts anything: free text, a note, a comment. The finding is a name that makes a claim — a count, a price, a duration, a URL, a file extension, a code, a percentage — carried by a definition that admits values contradicting the claim: the empty string where a code is meant, a negative or fractional value where a count is meant, any text at all where one of a few spellings is meant. A named type is judged the same way as a field: the name makes the claim and the definition either holds it or does not. The notation in use must be able to say it: a refinement, a constraint, a narrower type, a union of the values actually allowed.",
+      "criteria": {
+        "false": "Each name's declared type or definition admits only what its name claims, or the name claims nothing more than the type already says, or the claim is delegated: the declared type is itself a name stating the same claim the field's name makes, so this question applies to that type's declaration rather than here\n\nExamples:\n- a code is a type refined to reject the empty string\n- a count is a type refined to whole numbers not below zero\n- a set of known values is a union of exactly those values\n- a column carries a constraint stating the values it accepts\n- free text such as a title or a body is typed as text, because any text is genuinely allowed\n- a duration named `term` typed `Days`, a rate named `rate` typed `FeePerDay` — the type's own name carries the claim, and whether it is refined is settled where that type is declared",
+        "true": "A field, parameter or type name states what it holds, and what it is defined as admits values that contradict the name\n\nExamples:\n- a field named for a code or an identifier typed as text, so the empty string is admissible\n- a count or a quantity typed as a general number, so negative and fractional values are admissible\n- a field named for a link typed as text, so any text at all is a link\n- a field named for one of a few known values typed as text, so any spelling is admissible\n- a monetary amount typed as a floating-point number, so fractions of the smallest unit are admissible\n- a type named for an identifier defined as plain text, so the empty string inhabits it\n- a type named for a count defined as a plain number, so negatives inhabit it"
+      }
+    },
+    {
+      "id": "r8_name_claims_resource",
+      "type": "noul",
+      "instructions": "Does `artifact` declare a callable whose own name claims a read or a write of a resource — saving, fetching, finding, sending, deleting, renewing — that its parameters and return type do not mention?\n\nFocus: A name that states only a computation claims nothing: computing, checking, formatting. The finding is a name that reaches past its arguments — a store it saves to, a source it finds in, a channel it sends over — while the declaration names no store, client, or channel among its parameters, and no requirements or error channel stating one in its return type.",
+      "criteria": {
+        "false": "Each callable's declaration accounts for what its name claims, or no name claims a resource\n\nExamples:\n- the store, client, or clock the name implies appears as a parameter\n- the return type's requirements or error channel names the resource, as `Effect<T, E, Database>`\n- the name claims only a computation over the arguments given",
+        "true": "A callable's name claims an effect on a resource its declaration never mentions\n\nExamples:\n- `save(x): Promise<void>` — a write with no store in sight\n- `findById(id): Promise<T | null>` — a read from an unnamed source\n- `send(msg): void` — a transmission with no channel"
+      }
+    },
+    {
+      "id": "r9_body_reaches_undeclared",
+      "type": "noul",
+      "instructions": "Does `artifact` declare a callable whose body reaches for a resource or a change of state that its own parameters and return type do not mention?\n\nFocus: Doing work is not the finding, and neither is a shape that declares no callable at all — a record of fields has nothing to reach for. The finding is a declaration that reads as a function of its arguments while the body reads a clock, a filesystem, a network, a device, a global or an enclosing object, or writes to one. A callable that takes what it touches as an argument, or states the effect in its return type, is not a finding, however much work it does.",
+      "criteria": {
+        "false": "Everything a callable reaches for appears in its declaration, or the artifact declares no callable\n\nExamples:\n- a function receives the client, the clock or the writer it uses as a parameter\n- a function's return type states the effect it performs and the resources it needs\n- a pure function of its arguments, returning a value computed from them alone\n- a record or a table of fields, which calls nothing",
+        "true": "A callable's parameters and return type do not account for something its body reads or writes\n\nExamples:\n- a function taking a path and returning text while its body uploads to remote storage\n- a function whose result depends on the current time, with no time among its parameters\n- a method that reads or mutates the object it hangs off while its parameters mention none of it\n- a function that selects a device or an accelerator its declaration never names\n- a procedure that leaves the object it was called on in a different state, returning nothing that says so"
+      }
+    }
+  ],
+  "counts": {
+    "total": 64,
+    "reviewed": 64,
+    "unavailable": 0,
+    "semantic": {
+      "passed": 62,
+      "failed": 2,
+      "ambiguous": 0,
+      "unchecked": 0,
+      "inconclusive": 0,
+      "not-applicable": 0
+    }
+  },
+  "scenarioSummaries": [
+    {
+      "fixtureId": "iface-range-diff",
+      "category": "interface",
+      "mode": "diff",
+      "calls": 4,
+      "reviewed": 4,
+      "semantic": {
+        "passed": 4,
+        "failed": 0,
+        "ambiguous": 0,
+        "unchecked": 0,
+        "inconclusive": 0,
+        "not-applicable": 0
+      },
+      "timing": {
+        "endToEnd": {
+          "count": 4,
+          "minMs": 0.07474999999999454,
+          "p50Ms": 0.08350100000006933,
+          "p95Ms": 0.38116899999999987,
+          "maxMs": 0.38116899999999987
+        },
+        "backend": {
+          "count": 4,
+          "minMs": 182,
+          "p50Ms": 211,
+          "p95Ms": 447,
+          "maxMs": 447
+        }
+      }
+    },
+    {
+      "fixtureId": "iface-range-diff",
+      "category": "interface",
+      "mode": "whole-file",
+      "calls": 4,
+      "reviewed": 4,
+      "semantic": {
+        "passed": 4,
+        "failed": 0,
+        "ambiguous": 0,
+        "unchecked": 0,
+        "inconclusive": 0,
+        "not-applicable": 0
+      },
+      "timing": {
+        "endToEnd": {
+          "count": 4,
+          "minMs": 0.06445900000016991,
+          "p50Ms": 0.07020799999986593,
+          "p95Ms": 0.1698349999999209,
+          "maxMs": 0.1698349999999209
+        },
+        "backend": {
+          "count": 4,
+          "minMs": 198,
+          "p50Ms": 272,
+          "p95Ms": 315,
+          "maxMs": 315
+        }
+      }
+    },
+    {
+      "fixtureId": "iface-range-diff",
+      "category": "interface",
+      "mode": "declaration-only",
+      "calls": 4,
+      "reviewed": 4,
+      "semantic": {
+        "passed": 4,
+        "failed": 0,
+        "ambiguous": 0,
+        "unchecked": 0,
+        "inconclusive": 0,
+        "not-applicable": 0
+      },
+      "timing": {
+        "endToEnd": {
+          "count": 4,
+          "minMs": 0.2931279999997969,
+          "p50Ms": 0.4447950000003402,
+          "p95Ms": 17.111337000000276,
+          "maxMs": 17.111337000000276
+        },
+        "backend": {
+          "count": 4,
+          "minMs": 232,
+          "p50Ms": 245,
+          "p95Ms": 342,
+          "maxMs": 342
+        }
+      }
+    },
+    {
+      "fixtureId": "iface-range-diff",
+      "category": "interface",
+      "mode": "declaration-context",
+      "calls": 4,
+      "reviewed": 4,
+      "semantic": {
+        "passed": 4,
+        "failed": 0,
+        "ambiguous": 0,
+        "unchecked": 0,
+        "inconclusive": 0,
+        "not-applicable": 0
+      },
+      "timing": {
+        "endToEnd": {
+          "count": 4,
+          "minMs": 0.3244189999995797,
+          "p50Ms": 0.3491279999998369,
+          "p95Ms": 0.4701289999998153,
+          "maxMs": 0.4701289999998153
+        },
+        "backend": {
+          "count": 4,
+          "minMs": 240,
+          "p50Ms": 256,
+          "p95Ms": 295,
+          "maxMs": 295
+        }
+      }
+    },
+    {
+      "fixtureId": "alias-money",
+      "category": "type-alias",
+      "mode": "diff",
+      "calls": 4,
+      "reviewed": 4,
+      "semantic": {
+        "passed": 2,
+        "failed": 2,
+        "ambiguous": 0,
+        "unchecked": 0,
+        "inconclusive": 0,
+        "not-applicable": 0
+      },
+      "timing": {
+        "endToEnd": {
+          "count": 4,
+          "minMs": 0.06512500000008004,
+          "p50Ms": 0.06666700000005221,
+          "p95Ms": 0.30970999999954074,
+          "maxMs": 0.30970999999954074
+        },
+        "backend": {
+          "count": 4,
+          "minMs": 177,
+          "p50Ms": 178,
+          "p95Ms": 248,
+          "maxMs": 248
+        }
+      }
+    },
+    {
+      "fixtureId": "alias-money",
+      "category": "type-alias",
+      "mode": "whole-file",
+      "calls": 4,
+      "reviewed": 4,
+      "semantic": {
+        "passed": 4,
+        "failed": 0,
+        "ambiguous": 0,
+        "unchecked": 0,
+        "inconclusive": 0,
+        "not-applicable": 0
+      },
+      "timing": {
+        "endToEnd": {
+          "count": 4,
+          "minMs": 0.050958999999238586,
+          "p50Ms": 0.06820900000002439,
+          "p95Ms": 0.41125300000021525,
+          "maxMs": 0.41125300000021525
+        },
+        "backend": {
+          "count": 4,
+          "minMs": 178,
+          "p50Ms": 187,
+          "p95Ms": 234,
+          "maxMs": 234
+        }
+      }
+    },
+    {
+      "fixtureId": "alias-money",
+      "category": "type-alias",
+      "mode": "declaration-only",
+      "calls": 4,
+      "reviewed": 4,
+      "semantic": {
+        "passed": 4,
+        "failed": 0,
+        "ambiguous": 0,
+        "unchecked": 0,
+        "inconclusive": 0,
+        "not-applicable": 0
+      },
+      "timing": {
+        "endToEnd": {
+          "count": 4,
+          "minMs": 2.1279739999999947,
+          "p50Ms": 2.2038080000002083,
+          "p95Ms": 3.038771999999881,
+          "maxMs": 3.038771999999881
+        },
+        "backend": {
+          "count": 4,
+          "minMs": 204,
+          "p50Ms": 254,
+          "p95Ms": 273,
+          "maxMs": 273
+        }
+      }
+    },
+    {
+      "fixtureId": "alias-money",
+      "category": "type-alias",
+      "mode": "declaration-context",
+      "calls": 4,
+      "reviewed": 4,
+      "semantic": {
+        "passed": 4,
+        "failed": 0,
+        "ambiguous": 0,
+        "unchecked": 0,
+        "inconclusive": 0,
+        "not-applicable": 0
+      },
+      "timing": {
+        "endToEnd": {
+          "count": 4,
+          "minMs": 1.977097999999387,
+          "p50Ms": 2.1325999999999112,
+          "p95Ms": 2.534810999999536,
+          "maxMs": 2.534810999999536
+        },
+        "backend": {
+          "count": 4,
+          "minMs": 220,
+          "p50Ms": 231,
+          "p95Ms": 363,
+          "maxMs": 363
+        }
+      }
+    },
+    {
+      "fixtureId": "zod-range",
+      "category": "zod",
+      "mode": "diff",
+      "calls": 4,
+      "reviewed": 4,
+      "semantic": {
+        "passed": 4,
+        "failed": 0,
+        "ambiguous": 0,
+        "unchecked": 0,
+        "inconclusive": 0,
+        "not-applicable": 0
+      },
+      "timing": {
+        "endToEnd": {
+          "count": 4,
+          "minMs": 0.05949999999938882,
+          "p50Ms": 0.06470900000022084,
+          "p95Ms": 0.09371000000101048,
+          "maxMs": 0.09371000000101048
+        },
+        "backend": {
+          "count": 4,
+          "minMs": 167,
+          "p50Ms": 171,
+          "p95Ms": 194,
+          "maxMs": 194
+        }
+      }
+    },
+    {
+      "fixtureId": "zod-range",
+      "category": "zod",
+      "mode": "whole-file",
+      "calls": 4,
+      "reviewed": 4,
+      "semantic": {
+        "passed": 4,
+        "failed": 0,
+        "ambiguous": 0,
+        "unchecked": 0,
+        "inconclusive": 0,
+        "not-applicable": 0
+      },
+      "timing": {
+        "endToEnd": {
+          "count": 4,
+          "minMs": 0.05341799999951036,
+          "p50Ms": 0.05870900000081747,
+          "p95Ms": 0.07345899999927497,
+          "maxMs": 0.07345899999927497
+        },
+        "backend": {
+          "count": 4,
+          "minMs": 236,
+          "p50Ms": 238,
+          "p95Ms": 275,
+          "maxMs": 275
+        }
+      }
+    },
+    {
+      "fixtureId": "zod-range",
+      "category": "zod",
+      "mode": "declaration-only",
+      "calls": 4,
+      "reviewed": 4,
+      "semantic": {
+        "passed": 4,
+        "failed": 0,
+        "ambiguous": 0,
+        "unchecked": 0,
+        "inconclusive": 0,
+        "not-applicable": 0
+      },
+      "timing": {
+        "endToEnd": {
+          "count": 4,
+          "minMs": 0.44296399999984715,
+          "p50Ms": 0.4622139999992214,
+          "p95Ms": 4.042381999999634,
+          "maxMs": 4.042381999999634
+        },
+        "backend": {
+          "count": 4,
+          "minMs": 208,
+          "p50Ms": 218,
+          "p95Ms": 282,
+          "maxMs": 282
+        }
+      }
+    },
+    {
+      "fixtureId": "zod-range",
+      "category": "zod",
+      "mode": "declaration-context",
+      "calls": 4,
+      "reviewed": 4,
+      "semantic": {
+        "passed": 4,
+        "failed": 0,
+        "ambiguous": 0,
+        "unchecked": 0,
+        "inconclusive": 0,
+        "not-applicable": 0
+      },
+      "timing": {
+        "endToEnd": {
+          "count": 4,
+          "minMs": 0.43192199999975855,
+          "p50Ms": 0.44129700000121375,
+          "p95Ms": 0.5937979999998788,
+          "maxMs": 0.5937979999998788
+        },
+        "backend": {
+          "count": 4,
+          "minMs": 215,
+          "p50Ms": 233,
+          "p95Ms": 306,
+          "maxMs": 306
+        }
+      }
+    },
+    {
+      "fixtureId": "effect-money",
+      "category": "effect-schema",
+      "mode": "diff",
+      "calls": 4,
+      "reviewed": 4,
+      "semantic": {
+        "passed": 4,
+        "failed": 0,
+        "ambiguous": 0,
+        "unchecked": 0,
+        "inconclusive": 0,
+        "not-applicable": 0
+      },
+      "timing": {
+        "endToEnd": {
+          "count": 4,
+          "minMs": 0.05304299999988871,
+          "p50Ms": 0.05695899999955145,
+          "p95Ms": 0.07429200000115088,
+          "maxMs": 0.07429200000115088
+        },
+        "backend": {
+          "count": 4,
+          "minMs": 139,
+          "p50Ms": 156,
+          "p95Ms": 245,
+          "maxMs": 245
+        }
+      }
+    },
+    {
+      "fixtureId": "effect-money",
+      "category": "effect-schema",
+      "mode": "whole-file",
+      "calls": 4,
+      "reviewed": 4,
+      "semantic": {
+        "passed": 4,
+        "failed": 0,
+        "ambiguous": 0,
+        "unchecked": 0,
+        "inconclusive": 0,
+        "not-applicable": 0
+      },
+      "timing": {
+        "endToEnd": {
+          "count": 4,
+          "minMs": 0.03670899999997346,
+          "p50Ms": 0.04229200000008859,
+          "p95Ms": 0.12483400000019174,
+          "maxMs": 0.12483400000019174
+        },
+        "backend": {
+          "count": 4,
+          "minMs": 161,
+          "p50Ms": 165,
+          "p95Ms": 213,
+          "maxMs": 213
+        }
+      }
+    },
+    {
+      "fixtureId": "effect-money",
+      "category": "effect-schema",
+      "mode": "declaration-only",
+      "calls": 4,
+      "reviewed": 4,
+      "semantic": {
+        "passed": 4,
+        "failed": 0,
+        "ambiguous": 0,
+        "unchecked": 0,
+        "inconclusive": 0,
+        "not-applicable": 0
+      },
+      "timing": {
+        "endToEnd": {
+          "count": 4,
+          "minMs": 0.3815039999990404,
+          "p50Ms": 0.39554600000155915,
+          "p95Ms": 0.8531349999993836,
+          "maxMs": 0.8531349999993836
+        },
+        "backend": {
+          "count": 4,
+          "minMs": 192,
+          "p50Ms": 221,
+          "p95Ms": 241,
+          "maxMs": 241
+        }
+      }
+    },
+    {
+      "fixtureId": "effect-money",
+      "category": "effect-schema",
+      "mode": "declaration-context",
+      "calls": 4,
+      "reviewed": 4,
+      "semantic": {
+        "passed": 4,
+        "failed": 0,
+        "ambiguous": 0,
+        "unchecked": 0,
+        "inconclusive": 0,
+        "not-applicable": 0
+      },
+      "timing": {
+        "endToEnd": {
+          "count": 4,
+          "minMs": 0.4144219999998313,
+          "p50Ms": 0.42804699999942386,
+          "p95Ms": 0.6173820000003616,
+          "maxMs": 0.6173820000003616
+        },
+        "backend": {
+          "count": 4,
+          "minMs": 217,
+          "p50Ms": 233,
+          "p95Ms": 276,
+          "maxMs": 276
+        }
+      }
+    }
+  ],
+  "observations": [
+    {
+      "id": "iface-range-diff:diff:1",
+      "fixtureId": "iface-range-diff",
+      "mode": "diff",
+      "repetition": 1,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-range-diff.ts",
+          "sourceSha256": "42fdefe05acbf00130f10425981d42cfa35382f11c83c6c2267d895d1b3712d2",
+          "sourceCharacters": 224
+        },
+        "contract": {
+          "id": "textual-diff",
+          "version": "2",
+          "renderer": "renderer.diff",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 811,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "iface-range-diff:diff:2",
+      "fixtureId": "iface-range-diff",
+      "mode": "diff",
+      "repetition": 2,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-range-diff.ts",
+          "sourceSha256": "42fdefe05acbf00130f10425981d42cfa35382f11c83c6c2267d895d1b3712d2",
+          "sourceCharacters": 224
+        },
+        "contract": {
+          "id": "textual-diff",
+          "version": "2",
+          "renderer": "renderer.diff",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 811,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "iface-range-diff:diff:3",
+      "fixtureId": "iface-range-diff",
+      "mode": "diff",
+      "repetition": 3,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-range-diff.ts",
+          "sourceSha256": "42fdefe05acbf00130f10425981d42cfa35382f11c83c6c2267d895d1b3712d2",
+          "sourceCharacters": 224
+        },
+        "contract": {
+          "id": "textual-diff",
+          "version": "2",
+          "renderer": "renderer.diff",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 811,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "iface-range-diff:diff:4",
+      "fixtureId": "iface-range-diff",
+      "mode": "diff",
+      "repetition": 4,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-range-diff.ts",
+          "sourceSha256": "42fdefe05acbf00130f10425981d42cfa35382f11c83c6c2267d895d1b3712d2",
+          "sourceCharacters": 224
+        },
+        "contract": {
+          "id": "textual-diff",
+          "version": "2",
+          "renderer": "renderer.diff",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 811,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "iface-range-diff:whole-file:1",
+      "fixtureId": "iface-range-diff",
+      "mode": "whole-file",
+      "repetition": 1,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-range-diff.ts",
+          "sourceSha256": "f80e0ec32ed41b206cd34dc0007eccb8fa886ce89bdeab0552825f8f327d897a",
+          "sourceCharacters": 76
+        },
+        "contract": {
+          "id": "whole-post-edit-file",
+          "version": "2",
+          "renderer": "renderer.whole-file",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 675,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "iface-range-diff:whole-file:2",
+      "fixtureId": "iface-range-diff",
+      "mode": "whole-file",
+      "repetition": 2,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-range-diff.ts",
+          "sourceSha256": "f80e0ec32ed41b206cd34dc0007eccb8fa886ce89bdeab0552825f8f327d897a",
+          "sourceCharacters": 76
+        },
+        "contract": {
+          "id": "whole-post-edit-file",
+          "version": "2",
+          "renderer": "renderer.whole-file",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 675,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "iface-range-diff:whole-file:3",
+      "fixtureId": "iface-range-diff",
+      "mode": "whole-file",
+      "repetition": 3,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-range-diff.ts",
+          "sourceSha256": "f80e0ec32ed41b206cd34dc0007eccb8fa886ce89bdeab0552825f8f327d897a",
+          "sourceCharacters": 76
+        },
+        "contract": {
+          "id": "whole-post-edit-file",
+          "version": "2",
+          "renderer": "renderer.whole-file",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 675,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "iface-range-diff:whole-file:4",
+      "fixtureId": "iface-range-diff",
+      "mode": "whole-file",
+      "repetition": 4,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-range-diff.ts",
+          "sourceSha256": "f80e0ec32ed41b206cd34dc0007eccb8fa886ce89bdeab0552825f8f327d897a",
+          "sourceCharacters": 76
+        },
+        "contract": {
+          "id": "whole-post-edit-file",
+          "version": "2",
+          "renderer": "renderer.whole-file",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 675,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "iface-range-diff:declaration-only:1",
+      "fixtureId": "iface-range-diff",
+      "mode": "declaration-only",
+      "repetition": 1,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-range-diff.ts",
+          "sourceSha256": "9c9ed8dba31dd8094eb45a6495afbc6c01fc2bb59eddd85007016da4c10d1442",
+          "sourceCharacters": 75
+        },
+        "contract": {
+          "id": "edited-declaration",
+          "version": "2",
+          "renderer": "renderer.declaration",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 672,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "iface-range-diff:declaration-only:2",
+      "fixtureId": "iface-range-diff",
+      "mode": "declaration-only",
+      "repetition": 2,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-range-diff.ts",
+          "sourceSha256": "9c9ed8dba31dd8094eb45a6495afbc6c01fc2bb59eddd85007016da4c10d1442",
+          "sourceCharacters": 75
+        },
+        "contract": {
+          "id": "edited-declaration",
+          "version": "2",
+          "renderer": "renderer.declaration",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 672,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "iface-range-diff:declaration-only:3",
+      "fixtureId": "iface-range-diff",
+      "mode": "declaration-only",
+      "repetition": 3,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-range-diff.ts",
+          "sourceSha256": "9c9ed8dba31dd8094eb45a6495afbc6c01fc2bb59eddd85007016da4c10d1442",
+          "sourceCharacters": 75
+        },
+        "contract": {
+          "id": "edited-declaration",
+          "version": "2",
+          "renderer": "renderer.declaration",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 672,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "iface-range-diff:declaration-only:4",
+      "fixtureId": "iface-range-diff",
+      "mode": "declaration-only",
+      "repetition": 4,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-range-diff.ts",
+          "sourceSha256": "9c9ed8dba31dd8094eb45a6495afbc6c01fc2bb59eddd85007016da4c10d1442",
+          "sourceCharacters": 75
+        },
+        "contract": {
+          "id": "edited-declaration",
+          "version": "2",
+          "renderer": "renderer.declaration",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 672,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "iface-range-diff:declaration-context:1",
+      "fixtureId": "iface-range-diff",
+      "mode": "declaration-context",
+      "repetition": 1,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-range-diff.ts",
+          "sourceSha256": "9c9ed8dba31dd8094eb45a6495afbc6c01fc2bb59eddd85007016da4c10d1442",
+          "sourceCharacters": 75
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 696,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "iface-range-diff:declaration-context:2",
+      "fixtureId": "iface-range-diff",
+      "mode": "declaration-context",
+      "repetition": 2,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-range-diff.ts",
+          "sourceSha256": "9c9ed8dba31dd8094eb45a6495afbc6c01fc2bb59eddd85007016da4c10d1442",
+          "sourceCharacters": 75
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 696,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "iface-range-diff:declaration-context:3",
+      "fixtureId": "iface-range-diff",
+      "mode": "declaration-context",
+      "repetition": 3,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-range-diff.ts",
+          "sourceSha256": "9c9ed8dba31dd8094eb45a6495afbc6c01fc2bb59eddd85007016da4c10d1442",
+          "sourceCharacters": 75
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 696,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "iface-range-diff:declaration-context:4",
+      "fixtureId": "iface-range-diff",
+      "mode": "declaration-context",
+      "repetition": 4,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-range-diff.ts",
+          "sourceSha256": "9c9ed8dba31dd8094eb45a6495afbc6c01fc2bb59eddd85007016da4c10d1442",
+          "sourceCharacters": 75
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 696,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "alias-money:diff:1",
+      "fixtureId": "alias-money",
+      "mode": "diff",
+      "repetition": 1,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-money.ts",
+          "sourceSha256": "3755a0a5abe7bd145176dd0444c6938524635b8bc0ba94d63f2a8367919b367c",
+          "sourceCharacters": 211
+        },
+        "contract": {
+          "id": "textual-diff",
+          "version": "2",
+          "renderer": "renderer.diff",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 795,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "alias-money:diff:2",
+      "fixtureId": "alias-money",
+      "mode": "diff",
+      "repetition": 2,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-money.ts",
+          "sourceSha256": "3755a0a5abe7bd145176dd0444c6938524635b8bc0ba94d63f2a8367919b367c",
+          "sourceCharacters": 211
+        },
+        "contract": {
+          "id": "textual-diff",
+          "version": "2",
+          "renderer": "renderer.diff",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 795,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "failed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "alias-money:diff:3",
+      "fixtureId": "alias-money",
+      "mode": "diff",
+      "repetition": 3,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-money.ts",
+          "sourceSha256": "3755a0a5abe7bd145176dd0444c6938524635b8bc0ba94d63f2a8367919b367c",
+          "sourceCharacters": 211
+        },
+        "contract": {
+          "id": "textual-diff",
+          "version": "2",
+          "renderer": "renderer.diff",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 795,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "failed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "alias-money:diff:4",
+      "fixtureId": "alias-money",
+      "mode": "diff",
+      "repetition": 4,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-money.ts",
+          "sourceSha256": "3755a0a5abe7bd145176dd0444c6938524635b8bc0ba94d63f2a8367919b367c",
+          "sourceCharacters": 211
+        },
+        "contract": {
+          "id": "textual-diff",
+          "version": "2",
+          "renderer": "renderer.diff",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 795,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "alias-money:whole-file:1",
+      "fixtureId": "alias-money",
+      "mode": "whole-file",
+      "repetition": 1,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-money.ts",
+          "sourceSha256": "ce4d8fda6153d7036c90720cd86f650596375ee8486b835a2f3da5f2a94a4c23",
+          "sourceCharacters": 1565
+        },
+        "contract": {
+          "id": "whole-post-edit-file",
+          "version": "2",
+          "renderer": "renderer.whole-file",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 2181,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "alias-money:whole-file:2",
+      "fixtureId": "alias-money",
+      "mode": "whole-file",
+      "repetition": 2,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-money.ts",
+          "sourceSha256": "ce4d8fda6153d7036c90720cd86f650596375ee8486b835a2f3da5f2a94a4c23",
+          "sourceCharacters": 1565
+        },
+        "contract": {
+          "id": "whole-post-edit-file",
+          "version": "2",
+          "renderer": "renderer.whole-file",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 2181,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "alias-money:whole-file:3",
+      "fixtureId": "alias-money",
+      "mode": "whole-file",
+      "repetition": 3,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-money.ts",
+          "sourceSha256": "ce4d8fda6153d7036c90720cd86f650596375ee8486b835a2f3da5f2a94a4c23",
+          "sourceCharacters": 1565
+        },
+        "contract": {
+          "id": "whole-post-edit-file",
+          "version": "2",
+          "renderer": "renderer.whole-file",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 2181,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "alias-money:whole-file:4",
+      "fixtureId": "alias-money",
+      "mode": "whole-file",
+      "repetition": 4,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-money.ts",
+          "sourceSha256": "ce4d8fda6153d7036c90720cd86f650596375ee8486b835a2f3da5f2a94a4c23",
+          "sourceCharacters": 1565
+        },
+        "contract": {
+          "id": "whole-post-edit-file",
+          "version": "2",
+          "renderer": "renderer.whole-file",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 2181,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "alias-money:declaration-only:1",
+      "fixtureId": "alias-money",
+      "mode": "declaration-only",
+      "repetition": 1,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-money.ts",
+          "sourceSha256": "e33b609d432f013fadae6ad94ce328584743da3d4c5e65f3ba4042596f783e82",
+          "sourceCharacters": 68
+        },
+        "contract": {
+          "id": "edited-declaration",
+          "version": "2",
+          "renderer": "renderer.declaration",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 661,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "alias-money:declaration-only:2",
+      "fixtureId": "alias-money",
+      "mode": "declaration-only",
+      "repetition": 2,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-money.ts",
+          "sourceSha256": "e33b609d432f013fadae6ad94ce328584743da3d4c5e65f3ba4042596f783e82",
+          "sourceCharacters": 68
+        },
+        "contract": {
+          "id": "edited-declaration",
+          "version": "2",
+          "renderer": "renderer.declaration",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 661,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "alias-money:declaration-only:3",
+      "fixtureId": "alias-money",
+      "mode": "declaration-only",
+      "repetition": 3,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-money.ts",
+          "sourceSha256": "e33b609d432f013fadae6ad94ce328584743da3d4c5e65f3ba4042596f783e82",
+          "sourceCharacters": 68
+        },
+        "contract": {
+          "id": "edited-declaration",
+          "version": "2",
+          "renderer": "renderer.declaration",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 661,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "alias-money:declaration-only:4",
+      "fixtureId": "alias-money",
+      "mode": "declaration-only",
+      "repetition": 4,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-money.ts",
+          "sourceSha256": "e33b609d432f013fadae6ad94ce328584743da3d4c5e65f3ba4042596f783e82",
+          "sourceCharacters": 68
+        },
+        "contract": {
+          "id": "edited-declaration",
+          "version": "2",
+          "renderer": "renderer.declaration",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 661,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "alias-money:declaration-context:1",
+      "fixtureId": "alias-money",
+      "mode": "declaration-context",
+      "repetition": 1,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-money.ts",
+          "sourceSha256": "e33b609d432f013fadae6ad94ce328584743da3d4c5e65f3ba4042596f783e82",
+          "sourceCharacters": 68
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 685,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "alias-money:declaration-context:2",
+      "fixtureId": "alias-money",
+      "mode": "declaration-context",
+      "repetition": 2,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-money.ts",
+          "sourceSha256": "e33b609d432f013fadae6ad94ce328584743da3d4c5e65f3ba4042596f783e82",
+          "sourceCharacters": 68
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 685,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "alias-money:declaration-context:3",
+      "fixtureId": "alias-money",
+      "mode": "declaration-context",
+      "repetition": 3,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-money.ts",
+          "sourceSha256": "e33b609d432f013fadae6ad94ce328584743da3d4c5e65f3ba4042596f783e82",
+          "sourceCharacters": 68
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 685,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "alias-money:declaration-context:4",
+      "fixtureId": "alias-money",
+      "mode": "declaration-context",
+      "repetition": 4,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-money.ts",
+          "sourceSha256": "e33b609d432f013fadae6ad94ce328584743da3d4c5e65f3ba4042596f783e82",
+          "sourceCharacters": 68
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 685,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "zod-range:diff:1",
+      "fixtureId": "zod-range",
+      "mode": "diff",
+      "repetition": 1,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-range.ts",
+          "sourceSha256": "e0960d072e0be06f81f2753b8362e3433538f850ff45966b4cbb4951476d20a1",
+          "sourceCharacters": 249
+        },
+        "contract": {
+          "id": "textual-diff",
+          "version": "2",
+          "renderer": "renderer.diff",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 814,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "zod-range:diff:2",
+      "fixtureId": "zod-range",
+      "mode": "diff",
+      "repetition": 2,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-range.ts",
+          "sourceSha256": "e0960d072e0be06f81f2753b8362e3433538f850ff45966b4cbb4951476d20a1",
+          "sourceCharacters": 249
+        },
+        "contract": {
+          "id": "textual-diff",
+          "version": "2",
+          "renderer": "renderer.diff",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 814,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "zod-range:diff:3",
+      "fixtureId": "zod-range",
+      "mode": "diff",
+      "repetition": 3,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-range.ts",
+          "sourceSha256": "e0960d072e0be06f81f2753b8362e3433538f850ff45966b4cbb4951476d20a1",
+          "sourceCharacters": 249
+        },
+        "contract": {
+          "id": "textual-diff",
+          "version": "2",
+          "renderer": "renderer.diff",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 814,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "zod-range:diff:4",
+      "fixtureId": "zod-range",
+      "mode": "diff",
+      "repetition": 4,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-range.ts",
+          "sourceSha256": "e0960d072e0be06f81f2753b8362e3433538f850ff45966b4cbb4951476d20a1",
+          "sourceCharacters": 249
+        },
+        "contract": {
+          "id": "textual-diff",
+          "version": "2",
+          "renderer": "renderer.diff",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 814,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "zod-range:whole-file:1",
+      "fixtureId": "zod-range",
+      "mode": "whole-file",
+      "repetition": 1,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-range.ts",
+          "sourceSha256": "3aad82fa0fde7e88537d47ab8429e0c3680fadf476059bf72cff828d61b62b80",
+          "sourceCharacters": 152
+        },
+        "contract": {
+          "id": "whole-post-edit-file",
+          "version": "2",
+          "renderer": "renderer.whole-file",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 732,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "zod-range:whole-file:2",
+      "fixtureId": "zod-range",
+      "mode": "whole-file",
+      "repetition": 2,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-range.ts",
+          "sourceSha256": "3aad82fa0fde7e88537d47ab8429e0c3680fadf476059bf72cff828d61b62b80",
+          "sourceCharacters": 152
+        },
+        "contract": {
+          "id": "whole-post-edit-file",
+          "version": "2",
+          "renderer": "renderer.whole-file",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 732,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "zod-range:whole-file:3",
+      "fixtureId": "zod-range",
+      "mode": "whole-file",
+      "repetition": 3,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-range.ts",
+          "sourceSha256": "3aad82fa0fde7e88537d47ab8429e0c3680fadf476059bf72cff828d61b62b80",
+          "sourceCharacters": 152
+        },
+        "contract": {
+          "id": "whole-post-edit-file",
+          "version": "2",
+          "renderer": "renderer.whole-file",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 732,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "zod-range:whole-file:4",
+      "fixtureId": "zod-range",
+      "mode": "whole-file",
+      "repetition": 4,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-range.ts",
+          "sourceSha256": "3aad82fa0fde7e88537d47ab8429e0c3680fadf476059bf72cff828d61b62b80",
+          "sourceCharacters": 152
+        },
+        "contract": {
+          "id": "whole-post-edit-file",
+          "version": "2",
+          "renderer": "renderer.whole-file",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 732,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "zod-range:declaration-only:1",
+      "fixtureId": "zod-range",
+      "mode": "declaration-only",
+      "repetition": 1,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-range.ts",
+          "sourceSha256": "cac18797dca1399cb119bf9620849b4ac18cc80d453652c5518a9afb1cf4bde3",
+          "sourceCharacters": 126
+        },
+        "contract": {
+          "id": "edited-declaration",
+          "version": "2",
+          "renderer": "renderer.declaration",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 701,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "zod-range:declaration-only:2",
+      "fixtureId": "zod-range",
+      "mode": "declaration-only",
+      "repetition": 2,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-range.ts",
+          "sourceSha256": "cac18797dca1399cb119bf9620849b4ac18cc80d453652c5518a9afb1cf4bde3",
+          "sourceCharacters": 126
+        },
+        "contract": {
+          "id": "edited-declaration",
+          "version": "2",
+          "renderer": "renderer.declaration",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 701,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "zod-range:declaration-only:3",
+      "fixtureId": "zod-range",
+      "mode": "declaration-only",
+      "repetition": 3,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-range.ts",
+          "sourceSha256": "cac18797dca1399cb119bf9620849b4ac18cc80d453652c5518a9afb1cf4bde3",
+          "sourceCharacters": 126
+        },
+        "contract": {
+          "id": "edited-declaration",
+          "version": "2",
+          "renderer": "renderer.declaration",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 701,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "zod-range:declaration-only:4",
+      "fixtureId": "zod-range",
+      "mode": "declaration-only",
+      "repetition": 4,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-range.ts",
+          "sourceSha256": "cac18797dca1399cb119bf9620849b4ac18cc80d453652c5518a9afb1cf4bde3",
+          "sourceCharacters": 126
+        },
+        "contract": {
+          "id": "edited-declaration",
+          "version": "2",
+          "renderer": "renderer.declaration",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 701,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "zod-range:declaration-context:1",
+      "fixtureId": "zod-range",
+      "mode": "declaration-context",
+      "repetition": 1,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-range.ts",
+          "sourceSha256": "cac18797dca1399cb119bf9620849b4ac18cc80d453652c5518a9afb1cf4bde3",
+          "sourceCharacters": 126
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 725,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "zod-range:declaration-context:2",
+      "fixtureId": "zod-range",
+      "mode": "declaration-context",
+      "repetition": 2,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-range.ts",
+          "sourceSha256": "cac18797dca1399cb119bf9620849b4ac18cc80d453652c5518a9afb1cf4bde3",
+          "sourceCharacters": 126
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 725,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "zod-range:declaration-context:3",
+      "fixtureId": "zod-range",
+      "mode": "declaration-context",
+      "repetition": 3,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-range.ts",
+          "sourceSha256": "cac18797dca1399cb119bf9620849b4ac18cc80d453652c5518a9afb1cf4bde3",
+          "sourceCharacters": 126
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 725,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "zod-range:declaration-context:4",
+      "fixtureId": "zod-range",
+      "mode": "declaration-context",
+      "repetition": 4,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-range.ts",
+          "sourceSha256": "cac18797dca1399cb119bf9620849b4ac18cc80d453652c5518a9afb1cf4bde3",
+          "sourceCharacters": 126
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 725,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "effect-money:diff:1",
+      "fixtureId": "effect-money",
+      "mode": "diff",
+      "repetition": 1,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-money.ts",
+          "sourceSha256": "f0416df9dd67da2b882a9b76f6d92fc72111e0161d14d64f92c7a5fb05febeba",
+          "sourceCharacters": 265
+        },
+        "contract": {
+          "id": "textual-diff",
+          "version": "2",
+          "renderer": "renderer.diff",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 856,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "effect-money:diff:2",
+      "fixtureId": "effect-money",
+      "mode": "diff",
+      "repetition": 2,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-money.ts",
+          "sourceSha256": "f0416df9dd67da2b882a9b76f6d92fc72111e0161d14d64f92c7a5fb05febeba",
+          "sourceCharacters": 265
+        },
+        "contract": {
+          "id": "textual-diff",
+          "version": "2",
+          "renderer": "renderer.diff",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 856,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "effect-money:diff:3",
+      "fixtureId": "effect-money",
+      "mode": "diff",
+      "repetition": 3,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-money.ts",
+          "sourceSha256": "f0416df9dd67da2b882a9b76f6d92fc72111e0161d14d64f92c7a5fb05febeba",
+          "sourceCharacters": 265
+        },
+        "contract": {
+          "id": "textual-diff",
+          "version": "2",
+          "renderer": "renderer.diff",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 856,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "effect-money:diff:4",
+      "fixtureId": "effect-money",
+      "mode": "diff",
+      "repetition": 4,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-money.ts",
+          "sourceSha256": "f0416df9dd67da2b882a9b76f6d92fc72111e0161d14d64f92c7a5fb05febeba",
+          "sourceCharacters": 265
+        },
+        "contract": {
+          "id": "textual-diff",
+          "version": "2",
+          "renderer": "renderer.diff",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 856,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "effect-money:whole-file:1",
+      "fixtureId": "effect-money",
+      "mode": "whole-file",
+      "repetition": 1,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-money.ts",
+          "sourceSha256": "c153a45fe82357160aa561f0510bd2f8b960db88597e3bef7b2789dc76f5e3fc",
+          "sourceCharacters": 158
+        },
+        "contract": {
+          "id": "whole-post-edit-file",
+          "version": "2",
+          "renderer": "renderer.whole-file",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 764,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "effect-money:whole-file:2",
+      "fixtureId": "effect-money",
+      "mode": "whole-file",
+      "repetition": 2,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-money.ts",
+          "sourceSha256": "c153a45fe82357160aa561f0510bd2f8b960db88597e3bef7b2789dc76f5e3fc",
+          "sourceCharacters": 158
+        },
+        "contract": {
+          "id": "whole-post-edit-file",
+          "version": "2",
+          "renderer": "renderer.whole-file",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 764,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "effect-money:whole-file:3",
+      "fixtureId": "effect-money",
+      "mode": "whole-file",
+      "repetition": 3,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-money.ts",
+          "sourceSha256": "c153a45fe82357160aa561f0510bd2f8b960db88597e3bef7b2789dc76f5e3fc",
+          "sourceCharacters": 158
+        },
+        "contract": {
+          "id": "whole-post-edit-file",
+          "version": "2",
+          "renderer": "renderer.whole-file",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 764,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "effect-money:whole-file:4",
+      "fixtureId": "effect-money",
+      "mode": "whole-file",
+      "repetition": 4,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-money.ts",
+          "sourceSha256": "c153a45fe82357160aa561f0510bd2f8b960db88597e3bef7b2789dc76f5e3fc",
+          "sourceCharacters": 158
+        },
+        "contract": {
+          "id": "whole-post-edit-file",
+          "version": "2",
+          "renderer": "renderer.whole-file",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 764,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "effect-money:declaration-only:1",
+      "fixtureId": "effect-money",
+      "mode": "declaration-only",
+      "repetition": 1,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-money.ts",
+          "sourceSha256": "50b836b0844741c3cef460319a573de596068a069f5a70f4437a4f1e0dfa43b5",
+          "sourceCharacters": 116
+        },
+        "contract": {
+          "id": "edited-declaration",
+          "version": "2",
+          "renderer": "renderer.declaration",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 717,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "effect-money:declaration-only:2",
+      "fixtureId": "effect-money",
+      "mode": "declaration-only",
+      "repetition": 2,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-money.ts",
+          "sourceSha256": "50b836b0844741c3cef460319a573de596068a069f5a70f4437a4f1e0dfa43b5",
+          "sourceCharacters": 116
+        },
+        "contract": {
+          "id": "edited-declaration",
+          "version": "2",
+          "renderer": "renderer.declaration",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 717,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "effect-money:declaration-only:3",
+      "fixtureId": "effect-money",
+      "mode": "declaration-only",
+      "repetition": 3,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-money.ts",
+          "sourceSha256": "50b836b0844741c3cef460319a573de596068a069f5a70f4437a4f1e0dfa43b5",
+          "sourceCharacters": 116
+        },
+        "contract": {
+          "id": "edited-declaration",
+          "version": "2",
+          "renderer": "renderer.declaration",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 717,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "effect-money:declaration-only:4",
+      "fixtureId": "effect-money",
+      "mode": "declaration-only",
+      "repetition": 4,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-money.ts",
+          "sourceSha256": "50b836b0844741c3cef460319a573de596068a069f5a70f4437a4f1e0dfa43b5",
+          "sourceCharacters": 116
+        },
+        "contract": {
+          "id": "edited-declaration",
+          "version": "2",
+          "renderer": "renderer.declaration",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 717,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "effect-money:declaration-context:1",
+      "fixtureId": "effect-money",
+      "mode": "declaration-context",
+      "repetition": 1,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-money.ts",
+          "sourceSha256": "50b836b0844741c3cef460319a573de596068a069f5a70f4437a4f1e0dfa43b5",
+          "sourceCharacters": 116
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 741,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "effect-money:declaration-context:2",
+      "fixtureId": "effect-money",
+      "mode": "declaration-context",
+      "repetition": 2,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-money.ts",
+          "sourceSha256": "50b836b0844741c3cef460319a573de596068a069f5a70f4437a4f1e0dfa43b5",
+          "sourceCharacters": 116
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 741,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "effect-money:declaration-context:3",
+      "fixtureId": "effect-money",
+      "mode": "declaration-context",
+      "repetition": 3,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-money.ts",
+          "sourceSha256": "50b836b0844741c3cef460319a573de596068a069f5a70f4437a4f1e0dfa43b5",
+          "sourceCharacters": 116
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 741,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    },
+    {
+      "id": "effect-money:declaration-context:4",
+      "fixtureId": "effect-money",
+      "mode": "declaration-context",
+      "repetition": 4,
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-money.ts",
+          "sourceSha256": "50b836b0844741c3cef460319a573de596068a069f5a70f4437a4f1e0dfa43b5",
+          "sourceCharacters": 116
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 741,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "assessmentKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "attempts": 1,
+      "retries": 0
+    }
+  ],
+  "retention": {
+    "retained": [
+      "sanitized request envelope metadata",
+      "source SHA-256 and source size for joining to the dashboard fixture",
+      "decision key set and authored-band semantic outcome",
+      "aggregate timing by fixture and input mode"
+    ],
+    "notRetained": [
+      "individual probabilities",
+      "raw or source-bearing provider responses",
+      "provider usage details",
+      "credentials"
+    ],
+    "limitation": "This is a representative 64-call diagnostic, not a replacement for the 24-fixture issue-16 gate run."
+  },
+  "runDigest": "eea36b46bd0b9ad7fc1683792203ddffa6c47aa4a2fd12442b545295f442346f"
+}

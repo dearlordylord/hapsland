@@ -58,3 +58,19 @@ declaration-context, and several positive controls described Rule 3 while the ru
 Rule 2. The revised corpus uses balanced self-contained Rule 2 controls and a material,
 offline-guarded whole-file contrast. Paired context/dilution wins and negative-control
 performance across all applicable modes must pass the gates in [`PLAN.md`](./PLAN.md).
+
+## Bounded production request/result diagnostic
+
+At the user's explicit authorization, a separate 64-call diagnostic was run after the
+verdict. It selected one no-reference fixture from each source category, exercised all
+four renderers, used four repetitions, and allowed zero retries. All 64 calls were
+reviewed with no transport failures; 62 fell in their authored Rule 2 bands and 2 fell
+outside (both `alias-money` focused-diff repetitions). The sanitized per-call trace,
+request metadata, question definitions, and aggregate timing are in
+[`live-diagnostic-2026-09-20.json`](../../evidence/input-contract-comparison/live-diagnostic-2026-09-20.json).
+
+This diagnostic makes the production request and representative result boundary
+inspectable; it is not a replacement for the 24-fixture gate and does not change the
+`reject-or-narrow` verdict. The dashboard's `Jev request` and `Jev result` tabs join this
+trace to the selected rendered source. The final 1,000-call authorization is now
+exhausted, so another paid run requires a new authorization.

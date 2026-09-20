@@ -69,3 +69,19 @@ the semantic matrix and three repetitions remain unchanged.
 Reports contain aggregate timing, usage, availability, request-size, coverage, gate,
 and identity evidence only. They do not print source, credentials, or individual paid
 probabilities. No live run is started by ordinary tests.
+
+## Production request/result diagnostic
+
+The dashboard also includes a separately authorized, bounded production diagnostic:
+[`live-diagnostic-2026-09-20.json`](../../evidence/input-contract-comparison/live-diagnostic-2026-09-20.json).
+It spent the final 64 calls (four no-reference fixtures × four renderers × four
+repetitions, zero retries) to retain a sanitized representative trace. It records the
+exact product-owned artifact metadata, the nine Noul question definitions, returned
+decision keys, authored-band semantic outcomes, and aggregate timing. It deliberately
+does not retain individual probabilities, raw/source-bearing Jev responses, usage
+details, or credentials. This diagnostic is not a rerun of the 24-fixture acceptance
+matrix and does not alter the `reject-or-narrow` verdict.
+
+The reproducible runner is
+[`live-diagnostic.ts`](./live-diagnostic.ts); do not execute it without a newly approved
+paid-call authorization because the current 1,000-call budget is exhausted.
