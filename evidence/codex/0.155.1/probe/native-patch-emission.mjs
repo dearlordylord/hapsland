@@ -1,6 +1,6 @@
 import { chmod, copyFile, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { spawn } from "node:child_process";
 
@@ -8,10 +8,13 @@ const repoRoot = resolve(new URL("../../../../", import.meta.url).pathname);
 const hookScript = join(repoRoot, "evidence/codex/0.155.1/probe/capture-hook.mjs");
 const updateMode = process.argv.includes("--update") || process.argv.includes("--interface");
 const interfaceMode = process.argv.includes("--interface");
-const targetPath = updateMode ? "baseline.ts" : "native-probe.ts";
+const fixtureMode = process.argv.includes("--fixture");
+const targetPath = fixtureMode
+  ? "fixtures/input-contract/interface/iface-delivery-flat.ts"
+  : updateMode ? "baseline.ts" : "native-probe.ts";
 const outputPath = join(
   repoRoot,
-  `evidence/codex/0.155.1/native-${interfaceMode ? "interface-edit" : updateMode ? "update" : "patch"}-emission-2026-09-20.json`,
+  `evidence/codex/0.155.1/native-${fixtureMode ? "fixture" : interfaceMode ? "interface-edit" : updateMode ? "update" : "patch"}-emission-2026-09-20.json`,
 );
 const run = (command, args, options = {}) =>
   new Promise((resolvePromise, reject) => {
@@ -90,7 +93,31 @@ const runProbe = async () => {
   await git(repository, ["init", "--quiet", "--initial-branch=master"]);
   await git(repository, ["config", "user.name", "Native Patch Probe"]);
   await git(repository, ["config", "user.email", "native-patch-probe@example.invalid"]);
-  const baseline = interfaceMode
+  const baseline = fixtureMode
+    ? `type DeliveryChannel = "email" | "sms";
+export interface Delivery {
+  channel: DeliveryChannel;
+  email?: string;
+}
+
+interface UnrelatedAuditEntry01 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry02 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry03 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry04 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry05 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry06 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry07 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry08 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry09 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry10 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry11 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry12 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry13 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }
+`
+    : interfaceMode
     ? [
       "export interface Delivery {",
       "  id: string;",
@@ -105,8 +132,10 @@ const runProbe = async () => {
       "",
     ].join("\n")
     : "export const baseline = 1;\n";
-  await writeFile(join(repository, "baseline.ts"), baseline, { mode: 0o600 });
-  await git(repository, ["add", "baseline.ts"]);
+  const targetFile = join(repository, targetPath);
+  await run("mkdir", ["-p", dirname(targetFile)]);
+  await writeFile(targetFile, baseline, { mode: 0o600 });
+  await git(repository, ["add", targetPath]);
   await git(repository, ["commit", "--quiet", "-m", "synthetic baseline"]);
   await writeFile(capturePath, "", { mode: 0o600 });
 
@@ -152,7 +181,9 @@ const runProbe = async () => {
       "--ignore-rules",
       "-C",
       repository,
-      interfaceMode
+      fixtureMode
+        ? "Use apply_patch exactly once. Update existing fixtures/input-contract/interface/iface-delivery-flat.ts by adding exactly `  phone?: string;` after the existing email field. Do not use Bash, inspect files, make another tool call, or edit another path. Then reply DONE."
+        : interfaceMode
         ? "Use apply_patch exactly once. Update existing baseline.ts by changing exactly `email?: string;` to `email: string;` in the Delivery interface. Do not use Bash, inspect files, make another tool call, or edit another path. Then reply DONE."
         : updateMode
         ? "Use apply_patch exactly once. Update existing baseline.ts by adding exactly `export const nativeProbe = true;` after the existing export. Do not use Bash, inspect files, make another tool call, or edit another path. Then reply DONE."
@@ -184,7 +215,9 @@ const runProbe = async () => {
       sourceAndCredentialsRetained: false,
     },
     request: {
-      instruction: interfaceMode
+      instruction: fixtureMode
+        ? "one native apply_patch call adding one line to the retained input-contract fixture; no Bash or other tool call"
+        : interfaceMode
         ? "one native apply_patch call changing one line in a 10-line interface; no Bash or other tool call"
         : updateMode
         ? "one native apply_patch call updating baseline.ts; no Bash or other tool call"
