@@ -39,29 +39,21 @@ const timingPhases = [
   "coldExtraction",
   "warmExtraction",
 ] as const;
-type TimingPhase = typeof timingPhases[number];
 
-// Timing is retained as numeric, phase-aware upper-bound buckets. The lower
-// subsecond buckets preserve cold/warm scale while the wider upper buckets
-// absorb scheduler noise between repeated local runs.
-const timingBucketBoundariesMs: Record<TimingPhase, number[]> = {
-  processStartup: [25, 50, 100, 250, 500, 1_000, 5_000, 10_000],
-  initialize: [250, 500, 1_000, 5_000, 10_000],
-  openDispatch: [5, 10, 25, 50, 100, 250, 500, 1_000, 5_000, 10_000],
-  coldExtraction: [500, 1_000, 5_000, 10_000],
-  warmExtraction: [250, 500, 1_000, 5_000, 10_000],
-};
-const timingBucketMs = (value: unknown, phase: TimingPhase) => {
+// Timing is retained as numeric, shared upper-bound buckets. The subsecond
+// buckets preserve measured cold/warm scale; timing buckets can vary when
+// scheduler noise crosses a boundary, while semantic projections stay stable.
+const timingBucketBoundariesMs = [5, 10, 25, 50, 100, 250, 500, 1_000, 5_000, 10_000];
+const timingBucketMs = (value: unknown) => {
   const numeric = typeof value === "number" && Number.isFinite(value) ? Math.max(0, value) : 10_000;
-  const boundaries = timingBucketBoundariesMs[phase];
-  return boundaries.find((boundary) => numeric <= boundary) ?? boundaries[boundaries.length - 1];
+  return timingBucketBoundariesMs.find((boundary) => numeric <= boundary) ?? 10_000;
 };
 
-const numericDistribution = (values: number[], phase: TimingPhase) => {
+const numericDistribution = (values: number[]) => {
   if (values.length === 0) {
     return { sampleCount: 0, minMs: null, medianMs: null, maxMs: null, distributionMs: {} };
   }
-  const buckets = values.map((value) => timingBucketMs(value, phase));
+  const buckets = values.map(timingBucketMs);
   const sorted = [...buckets].sort((left, right) => left - right);
   const middle = Math.floor(sorted.length / 2);
   const medianMs = sorted.length % 2 === 1
@@ -91,7 +83,7 @@ const integerDistribution = (values: number[]) => {
 };
 
 const timingSummary = (timings: JsonRecord) => Object.fromEntries(
-  timingPhases.map((phase) => [phase, numericDistribution([timings[phase]], phase)]),
+  timingPhases.map((phase) => [phase, numericDistribution([timings[phase]])]),
 );
 
 const positionalSummary = (counts: JsonRecord) => Object.fromEntries(
@@ -275,7 +267,7 @@ const timingByFixtureClass = Object.fromEntries(
           ? Object.entries(summary.distributionMs).flatMap(([bucket, count]) => Array(Number(count)).fill(Number(bucket)))
           : [];
       });
-      return [phase, numericDistribution(values, phase)];
+      return [phase, numericDistribution(values)];
     }));
     const positionalByTemperature = Object.fromEntries(["cold", "warm"].map((temperature) => {
       const values = classRecords.flatMap((record) => {

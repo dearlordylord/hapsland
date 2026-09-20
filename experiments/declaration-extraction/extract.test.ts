@@ -124,13 +124,33 @@ describe("declaration extraction experiment black-box seam", () => {
       expect(record.timingsMs[phase]).toBeGreaterThanOrEqual(0);
     }
     const timingEvidence = JSON.parse(readFileSync(resolve(root, "experiments/declaration-extraction/evidence/timing-summary.json"), "utf8"));
+    const sharedBoundaries = timingEvidence.bucketBoundariesMs as number[];
+    expect(sharedBoundaries.length).toBeGreaterThan(1);
+    expect(sharedBoundaries).toEqual([...sharedBoundaries].sort((left, right) => left - right));
+    expect(sharedBoundaries.every((boundary, index) => Number.isFinite(boundary) && boundary > 0 && (index === 0 || boundary > sharedBoundaries[index - 1]))).toBe(true);
     const declarationTimings = timingEvidence.byFixtureClass.declarations;
     expect(declarationTimings.sampleCount).toBe(2);
-    expect(declarationTimings.phaseTimingsMs.coldExtraction.sampleCount).toBe(2);
-    expect(declarationTimings.phaseTimingsMs.warmExtraction.sampleCount).toBe(2);
-    expect(declarationTimings.phaseTimingsMs.coldExtraction.medianMs).toBeGreaterThan(
-      declarationTimings.phaseTimingsMs.warmExtraction.medianMs,
-    );
+    for (const phase of ["processStartup", "initialize", "openDispatch", "coldExtraction", "warmExtraction"] as const) {
+      const phaseTiming = declarationTimings.phaseTimingsMs[phase];
+      expect(phaseTiming.sampleCount).toBe(2);
+      expect(phaseTiming.minMs).toBeLessThanOrEqual(phaseTiming.medianMs);
+      expect(phaseTiming.medianMs).toBeLessThanOrEqual(phaseTiming.maxMs);
+      expect(Object.keys(phaseTiming.distributionMs).map(Number).every((bucket) => sharedBoundaries.includes(bucket))).toBe(true);
+      expect(Object.values(phaseTiming.distributionMs).reduce((sum: number, count: number) => sum + count, 0)).toBe(phaseTiming.sampleCount);
+    }
+    const evidenceRecords = readFileSync(resolve(root, "experiments/declaration-extraction/evidence/records.jsonl"), "utf8")
+      .trim()
+      .split(/\r?\n/)
+      .map((line) => JSON.parse(line));
+    expect(evidenceRecords).toHaveLength(30);
+    for (const evidenceRecord of evidenceRecords) {
+      expect(evidenceRecord.latency.bucketBoundariesMs).toEqual(sharedBoundaries);
+      for (const phase of ["processStartup", "initialize", "openDispatch", "coldExtraction", "warmExtraction"] as const) {
+        const phaseTiming = evidenceRecord.latency.phaseTimingsMs[phase];
+        expect(Object.keys(phaseTiming.distributionMs).map(Number).every((bucket) => sharedBoundaries.includes(bucket))).toBe(true);
+        expect(Object.values(phaseTiming.distributionMs).reduce((sum: number, count: number) => sum + count, 0)).toBe(phaseTiming.sampleCount);
+      }
+    }
     expect(record.observations.files.directWorkspaceSourceReads).toBeGreaterThan(0);
     expect(record.observations.subprocess.directChildrenSpawnedByHarness).toBe(1);
     expect(record.observations.subprocess.descendantProcesses).toBeNull();

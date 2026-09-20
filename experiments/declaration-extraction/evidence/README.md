@@ -6,17 +6,19 @@ absolute paths, environment details, exact declaration source, and variable timi
 values. Hashes are SHA-256 over synthetic fixture declarations and are retained only to
 make repeated-run identity checks visible.
 
-Regenerate it deterministically with:
+Regenerate it with:
 
 ```sh
 npm run --silent experiment:extract:evidence
 ```
 
 Every record has stable fixture names and cases, root/context identities, navigation
-outcomes, omission reasons, requested and observed caps, numeric phase-aware timing
+outcomes, omission reasons, requested and observed caps, numeric shared timing
 buckets, and positional request counts. `timing-summary.json` groups the 30 cases into
 repeated fixture classes and contains numeric sample counts, minimums, medians, maximums,
-and bucket distributions by phase. The full local command record contains scalar
+and bucket distributions by phase. The same bucket scale is used for every phase; the
+semantic projections are deterministic, while measured timing buckets can move between
+adjacent boundaries when scheduler noise changes. The full local command record contains scalar
 process-startup, initialize, open-dispatch, cold-extraction, and warm-extraction
 measurements:
 

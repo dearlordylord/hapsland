@@ -1,50 +1,18 @@
 {
   "schemaVersion": 1,
   "recordType": "synthetic-extraction-timing-distributions",
-  "bucketBoundariesMs": {
-    "processStartup": [
-      25,
-      50,
-      100,
-      250,
-      500,
-      1000,
-      5000,
-      10000
-    ],
-    "initialize": [
-      250,
-      500,
-      1000,
-      5000,
-      10000
-    ],
-    "openDispatch": [
-      5,
-      10,
-      25,
-      50,
-      100,
-      250,
-      500,
-      1000,
-      5000,
-      10000
-    ],
-    "coldExtraction": [
-      500,
-      1000,
-      5000,
-      10000
-    ],
-    "warmExtraction": [
-      250,
-      500,
-      1000,
-      5000,
-      10000
-    ]
-  },
+  "bucketBoundariesMs": [
+    5,
+    10,
+    25,
+    50,
+    100,
+    250,
+    500,
+    1000,
+    5000,
+    10000
+  ],
   "byFixtureClass": {
     "budgets": {
       "sampleCount": 7,
@@ -60,20 +28,21 @@
       "phaseTimingsMs": {
         "processStartup": {
           "sampleCount": 7,
-          "minMs": 25,
-          "medianMs": 25,
-          "maxMs": 25,
+          "minMs": 5,
+          "medianMs": 5,
+          "maxMs": 5,
           "distributionMs": {
-            "25": 7
+            "5": 7
           }
         },
         "initialize": {
           "sampleCount": 7,
-          "minMs": 250,
-          "medianMs": 250,
-          "maxMs": 250,
+          "minMs": 25,
+          "medianMs": 25,
+          "maxMs": 50,
           "distributionMs": {
-            "250": 7
+            "25": 6,
+            "50": 1
           }
         },
         "openDispatch": {
@@ -87,20 +56,23 @@
         },
         "coldExtraction": {
           "sampleCount": 7,
-          "minMs": 500,
-          "medianMs": 500,
-          "maxMs": 500,
+          "minMs": 5,
+          "medianMs": 50,
+          "maxMs": 100,
           "distributionMs": {
-            "500": 7
+            "5": 1,
+            "50": 4,
+            "100": 2
           }
         },
         "warmExtraction": {
           "sampleCount": 7,
-          "minMs": 250,
-          "medianMs": 250,
-          "maxMs": 250,
+          "minMs": 5,
+          "medianMs": 10,
+          "maxMs": 10,
           "distributionMs": {
-            "250": 7
+            "5": 2,
+            "10": 5
           }
         }
       },
@@ -134,20 +106,21 @@
       "phaseTimingsMs": {
         "processStartup": {
           "sampleCount": 2,
-          "minMs": 25,
-          "medianMs": 25,
-          "maxMs": 25,
+          "minMs": 5,
+          "medianMs": 5,
+          "maxMs": 5,
           "distributionMs": {
-            "25": 2
+            "5": 2
           }
         },
         "initialize": {
           "sampleCount": 2,
-          "minMs": 250,
-          "medianMs": 250,
-          "maxMs": 250,
+          "minMs": 25,
+          "medianMs": 37.5,
+          "maxMs": 50,
           "distributionMs": {
-            "250": 2
+            "25": 1,
+            "50": 1
           }
         },
         "openDispatch": {
@@ -161,20 +134,22 @@
         },
         "coldExtraction": {
           "sampleCount": 2,
-          "minMs": 500,
-          "medianMs": 500,
-          "maxMs": 500,
+          "minMs": 50,
+          "medianMs": 75,
+          "maxMs": 100,
           "distributionMs": {
-            "500": 2
+            "50": 1,
+            "100": 1
           }
         },
         "warmExtraction": {
           "sampleCount": 2,
-          "minMs": 250,
-          "medianMs": 250,
-          "maxMs": 250,
+          "minMs": 5,
+          "medianMs": 15,
+          "maxMs": 25,
           "distributionMs": {
-            "250": 2
+            "5": 1,
+            "25": 1
           }
         }
       },
@@ -210,20 +185,20 @@
       "phaseTimingsMs": {
         "processStartup": {
           "sampleCount": 4,
+          "minMs": 5,
+          "medianMs": 5,
+          "maxMs": 5,
+          "distributionMs": {
+            "5": 4
+          }
+        },
+        "initialize": {
+          "sampleCount": 4,
           "minMs": 25,
           "medianMs": 25,
           "maxMs": 25,
           "distributionMs": {
             "25": 4
-          }
-        },
-        "initialize": {
-          "sampleCount": 4,
-          "minMs": 250,
-          "medianMs": 250,
-          "maxMs": 250,
-          "distributionMs": {
-            "250": 4
           }
         },
         "openDispatch": {
@@ -237,20 +212,22 @@
         },
         "coldExtraction": {
           "sampleCount": 4,
-          "minMs": 500,
-          "medianMs": 500,
-          "maxMs": 500,
+          "minMs": 5,
+          "medianMs": 150,
+          "maxMs": 250,
           "distributionMs": {
-            "500": 4
+            "5": 1,
+            "50": 1,
+            "250": 2
           }
         },
         "warmExtraction": {
           "sampleCount": 4,
-          "minMs": 250,
-          "medianMs": 250,
-          "maxMs": 250,
+          "minMs": 5,
+          "medianMs": 5,
+          "maxMs": 5,
           "distributionMs": {
-            "250": 4
+            "5": 4
           }
         }
       },
@@ -286,20 +263,21 @@
       "phaseTimingsMs": {
         "processStartup": {
           "sampleCount": 2,
-          "minMs": 25,
-          "medianMs": 25,
-          "maxMs": 25,
+          "minMs": 5,
+          "medianMs": 5,
+          "maxMs": 5,
           "distributionMs": {
-            "25": 2
+            "5": 2
           }
         },
         "initialize": {
           "sampleCount": 2,
-          "minMs": 250,
-          "medianMs": 250,
-          "maxMs": 250,
+          "minMs": 25,
+          "medianMs": 37.5,
+          "maxMs": 50,
           "distributionMs": {
-            "250": 2
+            "25": 1,
+            "50": 1
           }
         },
         "openDispatch": {
@@ -313,20 +291,21 @@
         },
         "coldExtraction": {
           "sampleCount": 2,
-          "minMs": 500,
-          "medianMs": 500,
-          "maxMs": 500,
-          "distributionMs": {
-            "500": 2
-          }
-        },
-        "warmExtraction": {
-          "sampleCount": 2,
           "minMs": 250,
           "medianMs": 250,
           "maxMs": 250,
           "distributionMs": {
             "250": 2
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 2,
+          "minMs": 25,
+          "medianMs": 37.5,
+          "maxMs": 50,
+          "distributionMs": {
+            "25": 1,
+            "50": 1
           }
         }
       },
@@ -363,20 +342,21 @@
       "phaseTimingsMs": {
         "processStartup": {
           "sampleCount": 7,
-          "minMs": 25,
-          "medianMs": 25,
-          "maxMs": 25,
+          "minMs": 5,
+          "medianMs": 5,
+          "maxMs": 5,
           "distributionMs": {
-            "25": 7
+            "5": 7
           }
         },
         "initialize": {
           "sampleCount": 7,
-          "minMs": 250,
-          "medianMs": 250,
-          "maxMs": 250,
+          "minMs": 25,
+          "medianMs": 25,
+          "maxMs": 50,
           "distributionMs": {
-            "250": 7
+            "25": 5,
+            "50": 2
           }
         },
         "openDispatch": {
@@ -390,20 +370,22 @@
         },
         "coldExtraction": {
           "sampleCount": 7,
-          "minMs": 500,
-          "medianMs": 500,
-          "maxMs": 500,
+          "minMs": 5,
+          "medianMs": 5,
+          "maxMs": 100,
           "distributionMs": {
-            "500": 7
+            "5": 5,
+            "50": 1,
+            "100": 1
           }
         },
         "warmExtraction": {
           "sampleCount": 7,
-          "minMs": 250,
-          "medianMs": 250,
-          "maxMs": 250,
+          "minMs": 5,
+          "medianMs": 5,
+          "maxMs": 5,
           "distributionMs": {
-            "250": 7
+            "5": 7
           }
         }
       },
@@ -440,20 +422,21 @@
       "phaseTimingsMs": {
         "processStartup": {
           "sampleCount": 3,
-          "minMs": 25,
-          "medianMs": 25,
-          "maxMs": 25,
+          "minMs": 5,
+          "medianMs": 5,
+          "maxMs": 5,
           "distributionMs": {
-            "25": 3
+            "5": 3
           }
         },
         "initialize": {
           "sampleCount": 3,
-          "minMs": 250,
-          "medianMs": 250,
-          "maxMs": 250,
+          "minMs": 25,
+          "medianMs": 50,
+          "maxMs": 50,
           "distributionMs": {
-            "250": 3
+            "25": 1,
+            "50": 2
           }
         },
         "openDispatch": {
@@ -467,20 +450,23 @@
         },
         "coldExtraction": {
           "sampleCount": 3,
-          "minMs": 500,
-          "medianMs": 500,
-          "maxMs": 500,
+          "minMs": 5,
+          "medianMs": 50,
+          "maxMs": 100,
           "distributionMs": {
-            "500": 3
+            "5": 1,
+            "50": 1,
+            "100": 1
           }
         },
         "warmExtraction": {
           "sampleCount": 3,
-          "minMs": 250,
-          "medianMs": 250,
-          "maxMs": 250,
+          "minMs": 5,
+          "medianMs": 5,
+          "maxMs": 50,
           "distributionMs": {
-            "250": 3
+            "5": 2,
+            "50": 1
           }
         }
       },
@@ -516,20 +502,20 @@
       "phaseTimingsMs": {
         "processStartup": {
           "sampleCount": 2,
-          "minMs": 25,
-          "medianMs": 25,
-          "maxMs": 25,
+          "minMs": 5,
+          "medianMs": 5,
+          "maxMs": 5,
           "distributionMs": {
-            "25": 2
+            "5": 2
           }
         },
         "initialize": {
           "sampleCount": 2,
-          "minMs": 250,
-          "medianMs": 250,
-          "maxMs": 250,
+          "minMs": 50,
+          "medianMs": 50,
+          "maxMs": 50,
           "distributionMs": {
-            "250": 2
+            "50": 2
           }
         },
         "openDispatch": {
@@ -543,20 +529,21 @@
         },
         "coldExtraction": {
           "sampleCount": 2,
-          "minMs": 500,
-          "medianMs": 500,
-          "maxMs": 500,
+          "minMs": 5,
+          "medianMs": 52.5,
+          "maxMs": 100,
           "distributionMs": {
-            "500": 2
+            "5": 1,
+            "100": 1
           }
         },
         "warmExtraction": {
           "sampleCount": 2,
-          "minMs": 250,
-          "medianMs": 250,
-          "maxMs": 250,
+          "minMs": 5,
+          "medianMs": 5,
+          "maxMs": 5,
           "distributionMs": {
-            "250": 2
+            "5": 2
           }
         }
       },
@@ -591,20 +578,22 @@
       "phaseTimingsMs": {
         "processStartup": {
           "sampleCount": 3,
-          "minMs": 25,
-          "medianMs": 25,
-          "maxMs": 25,
+          "minMs": 5,
+          "medianMs": 10,
+          "maxMs": 10,
           "distributionMs": {
-            "25": 3
+            "5": 1,
+            "10": 2
           }
         },
         "initialize": {
           "sampleCount": 3,
-          "minMs": 250,
-          "medianMs": 250,
-          "maxMs": 250,
+          "minMs": 25,
+          "medianMs": 25,
+          "maxMs": 50,
           "distributionMs": {
-            "250": 3
+            "25": 2,
+            "50": 1
           }
         },
         "openDispatch": {
@@ -618,20 +607,22 @@
         },
         "coldExtraction": {
           "sampleCount": 3,
-          "minMs": 500,
-          "medianMs": 500,
+          "minMs": 100,
+          "medianMs": 250,
           "maxMs": 500,
           "distributionMs": {
-            "500": 3
+            "100": 1,
+            "250": 1,
+            "500": 1
           }
         },
         "warmExtraction": {
           "sampleCount": 3,
-          "minMs": 250,
-          "medianMs": 250,
-          "maxMs": 250,
+          "minMs": 5,
+          "medianMs": 5,
+          "maxMs": 5,
           "distributionMs": {
-            "250": 3
+            "5": 3
           }
         }
       },
