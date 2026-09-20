@@ -396,7 +396,6 @@ export const ReleaseAcceptance = Schema.Struct({
 });
 export interface ReleaseAcceptance
   extends Schema.Schema.Type<typeof ReleaseAcceptance> {}
-
 export const EvaluationRun = Schema.Struct({
   id: RunId,
   name: Schema.NonEmptyString,
