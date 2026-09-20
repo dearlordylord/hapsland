@@ -85,3 +85,9 @@ matrix and does not alter the `reject-or-narrow` verdict.
 The reproducible runner is
 [`live-diagnostic.ts`](./live-diagnostic.ts); do not execute it without a newly approved
 paid-call authorization because the current 1,000-call budget is exhausted.
+
+The user-authorized confidence probe for `iface-delivery-flat` is recorded in
+[`live-confidence-probe-2026-09-20.json`](../../evidence/input-contract-comparison/live-confidence-probe-2026-09-20.json).
+It made two additional zero-retry calls for the applicable whole-file and
+declaration-context modes and retains the nine numeric per-rule probabilities. It does
+not retain credentials, raw provider responses, or source-bearing paid responses.

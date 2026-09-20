@@ -74,3 +74,12 @@ inspectable; it is not a replacement for the 24-fixture gate and does not change
 `reject-or-narrow` verdict. The dashboard's `Jev request` and `Jev result` tabs join this
 trace to the selected rendered source. The final 1,000-call authorization is now
 exhausted, so another paid run requires a new authorization.
+
+The user then authorized a narrow two-call confidence probe for `iface-delivery-flat`.
+The applicable `whole-file` and `declaration-context` calls both returned Rule 2 at
+`0.92`, with all nine numeric rule probabilities retained in
+[`live-confidence-probe-2026-09-20.json`](../../evidence/input-contract-comparison/live-confidence-probe-2026-09-20.json).
+Focused diff and declaration-only remain explicitly not-applicable because they cannot
+carry the required `DeliveryChannel` reference. This probe is a user-authorized
+exception to the aggregate-only retention policy; it does not reopen or rescore issue
+#16.

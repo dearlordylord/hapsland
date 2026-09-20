@@ -6,12 +6,14 @@ import { modes, renderInput } from "./render.ts";
 const root = resolve(import.meta.dirname, "../..");
 const reportPath = resolve(root, "evidence/input-contract-comparison/live-report-2026-09-20-followup.json");
 const diagnosticPath = resolve(root, "evidence/input-contract-comparison/live-diagnostic-2026-09-20.json");
+const confidenceProbePath = resolve(root, "evidence/input-contract-comparison/live-confidence-probe-2026-09-20.json");
 const codexEmissionPath = resolve(root, "evidence/codex/0.155.1/native-patch-emission-2026-09-20.json");
 const outputPath = resolve(root, "evidence/input-contract-comparison/dashboard-data.js");
 const report = JSON.parse(readFileSync(reportPath, "utf8")) as unknown;
 type WireQuestion = { readonly id: string; readonly type: "noul"; readonly instructions: string; readonly criteria: { readonly false: string; readonly true: string } };
 type Diagnostic = { readonly backend: Record<string, unknown>; readonly wireQuestions: readonly WireQuestion[] } & Record<string, unknown>;
 const diagnostic = JSON.parse(readFileSync(diagnosticPath, "utf8")) as Diagnostic;
+const confidenceProbe = JSON.parse(readFileSync(confidenceProbePath, "utf8")) as unknown;
 const codexEmission = JSON.parse(readFileSync(codexEmissionPath, "utf8")) as unknown;
 
 const fixtures = inputComparisonFixtures.map((fixture) => ({
@@ -58,6 +60,9 @@ const data = {
     fixtures: "experiments/input-contract-comparison/fixtures.ts",
     renderer: "experiments/input-contract-comparison/render.ts",
     report: "evidence/input-contract-comparison/live-report-2026-09-20-followup.json",
+    diagnostic: "evidence/input-contract-comparison/live-diagnostic-2026-09-20.json",
+    confidenceProbe: "evidence/input-contract-comparison/live-confidence-probe-2026-09-20.json",
+    codexEmission: "evidence/codex/0.155.1/native-patch-emission-2026-09-20.json",
   },
   retention: {
     retained: [
@@ -66,15 +71,16 @@ const data = {
       "deterministically regenerated inputs for all four modes",
       "aggregate run counts, gates, timing, and request-size summaries",
       "sanitized 64-call production request/result diagnostic for four representative fixtures",
+      "user-authorized two-call numeric confidence probe for iface-delivery-flat",
       "runtime-probed native Codex apply_patch emission shape",
     ],
     notRetained: [
-      "individual backend probabilities",
+      "individual backend probabilities for the full gate and 64-call diagnostic",
       "full-corpus per-repetition and per-fixture live semantic outcomes",
       "raw or source-bearing provider responses",
       "provider usage details",
     ],
-    consequence: "The 24-fixture final gate remains aggregate-only, while the bounded diagnostic exposes a joined request/result trace for four fixtures and all four modes.",
+    consequence: "The 24-fixture final gate remains aggregate-only; a user-authorized two-call probe exposes numeric Jev probabilities for iface-delivery-flat's applicable modes.",
   },
   providerContract: {
     source: [
@@ -92,6 +98,7 @@ const data = {
   },
   codexEmission,
   diagnostic,
+  confidenceProbe,
   report,
   fixtures,
 };

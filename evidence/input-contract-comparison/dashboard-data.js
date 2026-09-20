@@ -4,7 +4,10 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
   "source": {
     "fixtures": "experiments/input-contract-comparison/fixtures.ts",
     "renderer": "experiments/input-contract-comparison/render.ts",
-    "report": "evidence/input-contract-comparison/live-report-2026-09-20-followup.json"
+    "report": "evidence/input-contract-comparison/live-report-2026-09-20-followup.json",
+    "diagnostic": "evidence/input-contract-comparison/live-diagnostic-2026-09-20.json",
+    "confidenceProbe": "evidence/input-contract-comparison/live-confidence-probe-2026-09-20.json",
+    "codexEmission": "evidence/codex/0.155.1/native-patch-emission-2026-09-20.json"
   },
   "retention": {
     "retained": [
@@ -13,15 +16,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "deterministically regenerated inputs for all four modes",
       "aggregate run counts, gates, timing, and request-size summaries",
       "sanitized 64-call production request/result diagnostic for four representative fixtures",
+      "user-authorized two-call numeric confidence probe for iface-delivery-flat",
       "runtime-probed native Codex apply_patch emission shape"
     ],
     "notRetained": [
-      "individual backend probabilities",
+      "individual backend probabilities for the full gate and 64-call diagnostic",
       "full-corpus per-repetition and per-fixture live semantic outcomes",
       "raw or source-bearing provider responses",
       "provider usage details"
     ],
-    "consequence": "The 24-fixture final gate remains aggregate-only, while the bounded diagnostic exposes a joined request/result trace for four fixtures and all four modes."
+    "consequence": "The 24-fixture final gate remains aggregate-only; a user-authorized two-call probe exposes numeric Jev probabilities for iface-delivery-flat's applicable modes."
   },
   "providerContract": {
     "source": [
@@ -3496,6 +3500,170 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "limitation": "This is a representative 64-call diagnostic, not a replacement for the 24-fixture issue-16 gate run."
     },
     "runDigest": "eea36b46bd0b9ad7fc1683792203ddffa6c47aa4a2fd12442b545295f442346f"
+  },
+  "confidenceProbe": {
+    "evidenceVersion": 1,
+    "status": "complete",
+    "date": "2026-09-20",
+    "runId": "input-contract-confidence-probe-2026-09-20",
+    "purpose": "User-authorized confidence visibility probe for iface-delivery-flat; not a corpus gate rerun.",
+    "authorization": {
+      "previousProjectLedgerRemaining": 0,
+      "additionalCallsAuthorized": 2,
+      "callsObserved": 2,
+      "remainingAdditionalCalls": 0
+    },
+    "fixture": {
+      "id": "iface-delivery-flat",
+      "category": "interface",
+      "expectation": {
+        "ruleId": "r2_meaningless_combinations",
+        "kind": "violation",
+        "band": {
+          "minimum": 0.7,
+          "maximum": 1,
+          "minimumInclusive": false,
+          "maximumInclusive": true
+        },
+        "rationale": "The edited interface leaves both channel-specific fields independently representable; channel does not constrain either field."
+      },
+      "omittedModes": [
+        {
+          "mode": "diff",
+          "reason": "not-applicable: required DeliveryChannel reference is omitted"
+        },
+        {
+          "mode": "declaration-only",
+          "reason": "not-applicable: required DeliveryChannel reference is omitted"
+        }
+      ]
+    },
+    "backend": {
+      "id": "jev",
+      "provider": "@effect/ai-typesafe",
+      "model": "jev-latest",
+      "destination": "https://api.typesafe.ai/v1/systemone",
+      "requestMethod": "POST"
+    },
+    "rows": [
+      {
+        "fixtureId": "iface-delivery-flat",
+        "mode": "whole-file",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/interface/iface-delivery-flat.ts",
+            "sourceSha256": "11b18d7cf9eef70908a67b8a864a08954a0612665f2895936b0db4a0d2f0328c",
+            "sourceCharacters": 1431
+          },
+          "contract": {
+            "id": "whole-post-edit-file",
+            "version": "2",
+            "renderer": "renderer.whole-file",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 2093,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.16,
+            "r2_meaningless_combinations": 0.92,
+            "r3_split_correlations": 0.25,
+            "r4_duplicate_encoding": 0.13,
+            "r5_absence_confusion": 0.44,
+            "r6_bare_domain_value": 0.41,
+            "r7_name_wider_than_type": 0.41,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 474,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "iface-delivery-flat",
+        "mode": "declaration-context",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/interface/iface-delivery-flat.ts",
+            "sourceSha256": "718fc52ac72b4c2e84a0e3c136962be8e11f66dc4490fc7e57012efe5b59c43f",
+            "sourceCharacters": 176
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 845,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.22,
+            "r2_meaningless_combinations": 0.92,
+            "r3_split_correlations": 0.44,
+            "r4_duplicate_encoding": 0.75,
+            "r5_absence_confusion": 0.5,
+            "r6_bare_domain_value": 0.3,
+            "r7_name_wider_than_type": 0.19,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 419,
+          "retries": 0
+        }
+      }
+    ],
+    "retention": {
+      "retained": [
+        "numeric per-rule probabilities returned by Jev",
+        "sanitized request metadata and source digest",
+        "decision keys, Rule 2 semantic classification, and backend timing"
+      ],
+      "notRetained": [
+        "credentials",
+        "raw provider responses",
+        "source-bearing paid responses",
+        "provider usage details"
+      ],
+      "authorizationNote": "This is a user-authorized narrow exception to the aggregate-only issue-16 evidence retention policy."
+    },
+    "runDigest": "aa3375504158d5dc9be2578dc372b6425b9ac59e8bccdcbaece35db0f4dd914e"
   },
   "report": {
     "outcome": "reject-or-narrow",
