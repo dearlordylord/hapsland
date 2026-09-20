@@ -28,6 +28,12 @@ import { SnapshotReader } from "./ports/snapshot-reader.ts";
 import { ReceiptStore } from "./ports/receipt-store.ts";
 import { formatHuman as formatReceiptStatus, read as readReceiptStatus } from "./receipts/status.ts";
 import type { ReceiptOutcomeInput } from "./ports/receipt-store.ts";
+import { DiagnosticStore } from "./diagnostics/store.ts";
+import {
+  eventFromOutcomeCodes,
+  makeDiagnosticScope,
+  type DiagnosticObservation,
+} from "./diagnostics/domain.ts";
 import type { ReviewContext } from "./runtime/review.ts";
 import { review } from "./runtime/review.ts";
 import {
@@ -134,6 +140,11 @@ const statePathConfig = Config.String("REVIEW_STATE_PATH").pipe(
 const receiptPathConfig = Config.String("REVIEW_RECEIPT_PATH").pipe(
   Config.orElse(() => Config.String("REVIEW_RECEIPTS_PATH")),
   Config.withDefault(join(homedir(), ".local", "state", "realtime-review-tool", "receipts")),
+);
+
+const diagnosticPathConfig = Config.String("REVIEW_DIAGNOSTIC_PATH").pipe(
+  Config.orElse(() => Config.String("REVIEW_DIAGNOSTICS_PATH")),
+  Config.withDefault(join(homedir(), ".local", "state", "realtime-review-tool", "diagnostics")),
 );
 
 const userConfigPathConfig = Config.option(Config.String("REVIEW_USER_CONFIG_PATH"));
@@ -458,37 +469,58 @@ const runReviewRequestCore = (
           : failure instanceof Error
             ? failure.message
             : undefined;
-      return defaultResponse(
-        request,
-        "invalid_configuration",
-        detail === undefined
-          ? "review configuration or consent state is unavailable"
-          : `review configuration is invalid (${detail})`,
-      );
+      return {
+        response: defaultResponse(
+          request,
+          "invalid_configuration",
+          detail === undefined
+            ? "review configuration or consent state is unavailable"
+            : `review configuration is invalid (${detail})`,
+        ),
+        diagnosticScope: makeDiagnosticScope(
+          request.event.sessionId ?? request.event.id,
+          request.event.cwd,
+          DEFAULT_BACKEND,
+        ),
+      };
     }
+    const diagnosticScope = makeDiagnosticScope(
+      request.event.sessionId ?? request.event.id,
+      authorization.success.root ?? request.event.cwd,
+      authorization.success.settings.backend,
+    );
     if (authorization.success.authorization.status !== "approved") {
-      return noConsentResponse(request, authorization.success.authorization);
+      return {
+        response: noConsentResponse(request, authorization.success.authorization),
+        diagnosticScope,
+      };
     }
     if (controlled === undefined) {
       const present = yield* Config.option(
         Config.String(authorization.success.settings.credentialEnvVar),
       ).pipe(Effect.map((value) => Option.isSome(value) && value.value.length > 0));
       if (!present) {
-        return defaultResponse(
-          request,
-          "missing_credentials",
-          `review credential is unavailable; set ${authorization.success.settings.credentialEnvVar}`,
-        );
+        return {
+          response: defaultResponse(
+            request,
+            "missing_credentials",
+            `review credential is unavailable; set ${authorization.success.settings.credentialEnvVar}`,
+          ),
+          diagnosticScope,
+        };
       }
     }
     if (authorization.success.root === undefined) {
-      return defaultResponse(
-        request,
-        "invalid_configuration",
-        "review working-tree identity is unavailable",
-      );
+      return {
+        response: defaultResponse(
+          request,
+          "invalid_configuration",
+          "review working-tree identity is unavailable",
+        ),
+        diagnosticScope,
+      };
     }
-    return yield* runRequest(
+    const response = yield* runRequest(
       request,
       controlled,
       authorization.success.settings,
@@ -509,6 +541,7 @@ const runReviewRequestCore = (
         ),
       ),
     );
+    return { response, diagnosticScope };
   });
 
 const receiptOutcomes = (response: { readonly results: ReadonlyArray<{ readonly status: string; readonly code?: string }> }):
@@ -532,6 +565,7 @@ const runReviewRequest = (
   request: ReviewRequest,
   controlled: ControlledDecisionModelOptions | undefined,
   statePath: string,
+  diagnosticPath: string,
   userConfigPath: string | undefined,
 ) =>
   Effect.gen(function* () {
@@ -546,12 +580,34 @@ const runReviewRequest = (
         })
         .pipe(Effect.catch(() => Effect.succeed(undefined)));
     }
-    const response = yield* runReviewRequestCore(
+    const core = yield* runReviewRequestCore(
       request,
       controlled,
       statePath,
       userConfigPath,
     );
+    const outcomeCodes = core.response.results.flatMap((result) =>
+      result.status === "reviewed" ? [] : [result.code],
+    );
+    const diagnosticEvent = eventFromOutcomeCodes(
+      core.diagnosticScope,
+      outcomeCodes,
+    );
+    const diagnostic = yield* DiagnosticStore.Service;
+    // Diagnostic persistence is best effort. A persistence failure must not
+    // prevent receipt completion or alter the review outcome for the edit.
+    const observation = yield* diagnostic.observe(diagnosticEvent).pipe(
+      Effect.catch(() =>
+        Effect.succeed({
+          ...diagnosticEvent,
+          suppressed: true,
+        } satisfies DiagnosticObservation),
+      ),
+    );
+    const response = {
+      ...core.response,
+      diagnostics: [observation],
+    };
     if (sessionId !== undefined) {
       yield* receipt
         .complete({
@@ -570,6 +626,7 @@ const program = Effect.gen(function* () {
   const input = yield* readStdin;
   const statePath = yield* statePathConfig;
   const receiptPath = yield* receiptPathConfig;
+  const diagnosticPath = yield* diagnosticPathConfig;
   const userConfigPathOption = yield* userConfigPathConfig;
   const userConfigPath = Option.isSome(userConfigPathOption)
     ? userConfigPathOption.value
@@ -599,8 +656,16 @@ const program = Effect.gen(function* () {
       request,
       controlled,
       statePath,
+      diagnosticPath,
       userConfigPath,
-    ).pipe(Effect.provide(ReceiptStore.layer({ statePath: receiptPath })));
+    ).pipe(
+      Effect.provide(
+        Layer.mergeAll(
+          ReceiptStore.layer({ statePath: receiptPath }),
+          DiagnosticStore.layer({ statePath: diagnosticPath }),
+        ),
+      ),
+    );
     return toCodexOutput(response);
   }
 
@@ -610,8 +675,16 @@ const program = Effect.gen(function* () {
     request,
     controlled,
     statePath,
+    diagnosticPath,
     userConfigPath,
-  ).pipe(Effect.provide(ReceiptStore.layer({ statePath: receiptPath })));
+  ).pipe(
+    Effect.provide(
+      Layer.mergeAll(
+        ReceiptStore.layer({ statePath: receiptPath }),
+        DiagnosticStore.layer({ statePath: diagnosticPath }),
+      ),
+    ),
+  );
 }).pipe(
   Effect.catchCause(() =>
     Effect.succeed(

@@ -23,7 +23,13 @@ const initializeRepository = (root: string) => {
   execFileSync("git", ["init", "--quiet", root]);
   const consent = join(root, "consent-state");
   const receipts = join(root, "receipts");
-  const environment = { ...process.env, REVIEW_STATE_PATH: consent, REVIEW_RECEIPT_PATH: receipts };
+  const diagnostics = join(root, "diagnostics");
+  const environment = {
+    ...process.env,
+    REVIEW_STATE_PATH: consent,
+    REVIEW_RECEIPT_PATH: receipts,
+    REVIEW_DIAGNOSTIC_PATH: diagnostics,
+  };
   const preview = spawnSync(process.execPath, ["src/cli.ts", "--enable"], {
     cwd: process.cwd(),
     input: JSON.stringify({ version: 1, operation: "enable", cwd: root }),
@@ -38,7 +44,7 @@ const initializeRepository = (root: string) => {
     env: environment,
   });
   expect(enabled.status).toBe(0);
-  return { consent, receipts, environment };
+  return { consent, receipts, diagnostics, environment };
 };
 
 const review = (
@@ -163,6 +169,108 @@ describe("session receipt subprocess contract", { timeout }, () => {
     expect(persisted).not.toContain(secret);
     expect(persisted).not.toContain("export type Secret");
     expect(persisted).not.toContain("probability");
+  });
+
+  it("keeps receipt outcomes while suppressing repeated diagnostics and announcing recovery", () => {
+    const root = mkdtempSync(join(tmpdir(), "receipt-subprocess-diagnostics-"));
+    roots.push(root);
+    const { environment, diagnostics } = initializeRepository(root);
+    mkdirSource(root);
+    writeFileSync(join(root, "src", "diagnostics.ts"), "export type DiagnosticFixture = string;\n");
+    const sessionId = "session-diagnostics";
+    const failure = "SECRET_PROVIDER_FAILURE_SHOULD_NOT_APPEAR";
+    const first = review(
+      root,
+      environment,
+      "event-diagnostic-1",
+      sessionId,
+      ["src/diagnostics.ts"],
+      JSON.stringify({ failure }),
+    );
+    const firstResponse = JSON.parse(first.stdout) as {
+      results: Array<{ status: string; code?: string }>;
+      diagnostics: Array<{
+        status: string;
+        suppressed: boolean;
+        notification?: { code: string };
+      }>;
+    };
+    expect(first.status).toBe(0);
+    expect(firstResponse.results[0]).toMatchObject({
+      status: "unavailable",
+      code: "backend_unavailable",
+    });
+    expect(firstResponse.diagnostics[0]).toMatchObject({
+      status: "problem",
+      suppressed: false,
+      notification: { code: "backend_outage" },
+    });
+
+    const repeated = review(
+      root,
+      environment,
+      "event-diagnostic-2",
+      sessionId,
+      ["src/diagnostics.ts"],
+      JSON.stringify({ failure }),
+    );
+    const repeatedResponse = JSON.parse(repeated.stdout) as {
+      results: Array<{ status: string; code?: string }>;
+      diagnostics: Array<{
+        status: string;
+        suppressed: boolean;
+        notification?: unknown;
+      }>;
+    };
+    expect(repeated.status).toBe(0);
+    expect(repeatedResponse.results[0]).toMatchObject({
+      status: "unavailable",
+      code: "backend_unavailable",
+    });
+    expect(repeatedResponse.diagnostics[0]).toMatchObject({
+      status: "problem",
+      suppressed: true,
+    });
+    expect(repeatedResponse.diagnostics[0]?.notification).toBeUndefined();
+
+    const recovered = review(
+      root,
+      environment,
+      "event-diagnostic-3",
+      sessionId,
+      ["src/diagnostics.ts"],
+    );
+    const recoveredResponse = JSON.parse(recovered.stdout) as {
+      results: Array<{ status: string }>;
+      diagnostics: Array<{
+        status: string;
+        suppressed: boolean;
+        notification?: { kind: string; code: string };
+      }>;
+    };
+    expect(recovered.status).toBe(0);
+    expect(recoveredResponse.results[0]).toMatchObject({ status: "reviewed" });
+    expect(recoveredResponse.diagnostics[0]).toMatchObject({
+      status: "healthy",
+      suppressed: false,
+      notification: { kind: "recovery", code: "recovery" },
+    });
+
+    const status = readStatus(root, environment, sessionId);
+    expect(status.parsed).toMatchObject({
+      activity: {
+        counts: {
+          started: 3,
+          completed: 3,
+          reviewed: 1,
+          unavailable: 2,
+        },
+        categories: { "unavailable:backend_unavailable": 2 },
+      },
+    });
+    const diagnosticText = existsSync(diagnostics) ? readAllFiles(diagnostics).join("\n") : "";
+    expect(diagnosticText).not.toContain(failure);
+    expect(diagnosticText).not.toContain("export type DiagnosticFixture");
   });
 });
 
