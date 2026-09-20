@@ -1,5 +1,7 @@
 import type { Decision } from "effect/unstable/ai";
 import type { Probability, RuleId, SnapshotRef } from "../domain/contracts.ts";
+import type { ResolvedPolicy } from "../configuration/types.ts";
+import { selectRulePath } from "./file-policy.ts";
 import { E0, NOUL_KEYS, measured } from "../questions.ts";
 
 export type Rule = {
@@ -30,8 +32,34 @@ export const configuredRules: ReadonlyArray<Rule> = NOUL_KEYS.map((id, rank) => 
   rank,
 }));
 
-export const applicableRules = (source: string): ReadonlyArray<Rule> =>
-  configuredRules.filter((rule) => measured(rule.id, source));
+export const configuredRulesFor = (
+  policy: ResolvedPolicy | undefined,
+): ReadonlyArray<Rule> =>
+  configuredRules.flatMap((rule) => {
+    const override = policy?.rules[rule.id];
+    if (override?.enabled === false) return [];
+    return [
+      {
+        ...rule,
+        ...(override?.threshold === undefined ? {} : { threshold: override.threshold }),
+        ...(override?.message === undefined ? {} : { message: override.message }),
+      },
+    ];
+  });
+
+export const applicableRules = (
+  source: string,
+  policy?: ResolvedPolicy,
+  path?: string,
+): ReadonlyArray<Rule> => {
+  const rules = configuredRulesFor(policy);
+  return rules.filter(
+    (rule) =>
+      measured(rule.id, source) &&
+      (policy === undefined || path === undefined ||
+        selectRulePath(policy, policy.rules[rule.id], path).selected),
+  );
+};
 
 export const deriveAdvice = (
   rules: ReadonlyArray<Rule>,

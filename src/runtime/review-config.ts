@@ -1,7 +1,14 @@
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
-import { access, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import {
+  loadConfiguration,
+  type LoadConfigurationOptions,
+} from "../configuration/load.ts";
+import { ConfigurationError } from "../configuration/errors.ts";
+import {
+  resolveConfiguration,
+} from "../configuration/resolve.ts";
+import type { ConfigurationCapture, ResolvedPolicy } from "../configuration/types.ts";
 import {
   JEV_API_BASE,
   JEV_BACKEND,
@@ -15,30 +22,11 @@ export const DEFAULT_API_BASE = JEV_API_BASE;
 export const DEFAULT_DESTINATION = JEV_DESTINATION;
 export const DEFAULT_CREDENTIAL_ENV_VAR = "TYPESAFE_API_KEY";
 
-const CONFIG_FILES = [".review.jsonc", ".realtime-review.jsonc"] as const;
-
+/** Compatibility error for callers of the pre-#10 runtime configuration API. */
 export class ReviewConfigError extends Schema.TaggedError<ReviewConfigError>()(
   "ReviewConfigError",
-  { reason: Schema.String },
+  { source: Schema.String, field: Schema.String, reason: Schema.String },
 ) {}
-
-const EnvironmentVariableName = Schema.String.check(
-  Schema.isPattern(/^[A-Z_][A-Z0-9_]*$/),
-).pipe(Schema.brand("EnvironmentVariableName"));
-type EnvironmentVariableName = typeof EnvironmentVariableName.Type;
-
-const ProjectConfig = Schema.Struct({
-  version: Schema.Literal(1),
-  backend: Schema.optionalKey(Schema.Literal(JEV_BACKEND)),
-  credentialEnvVar: Schema.optionalKey(EnvironmentVariableName),
-  credentials: Schema.optionalKey(
-    Schema.Struct({ envVar: EnvironmentVariableName }),
-  ),
-  // These fields are deliberately accepted as project requests but never grant consent.
-  consent: Schema.optionalKey(Schema.Boolean),
-  enabled: Schema.optionalKey(Schema.Boolean),
-});
-type ProjectConfig = typeof ProjectConfig.Type;
 
 export interface ReviewSettings {
   readonly backend: BackendId;
@@ -46,143 +34,60 @@ export interface ReviewSettings {
   readonly destination: Destination;
   readonly credentialEnvVar: string;
   readonly projectConfigPath?: string;
+  readonly userConfigPath?: string;
   /** A project may request consent, but this value is never an authorization grant. */
   readonly projectRequestedConsent: boolean;
+  /** Captured once for the event and shared by explanation and runtime selection. */
+  readonly configuration?: ConfigurationCapture;
+  readonly policy?: ResolvedPolicy;
 }
 
-const defaultSettings = (): ReviewSettings => ({
-  backend: DEFAULT_BACKEND,
-  apiBase: DEFAULT_API_BASE,
-  destination: DEFAULT_DESTINATION,
-  credentialEnvVar: DEFAULT_CREDENTIAL_ENV_VAR,
-  projectRequestedConsent: false,
-});
-
-/** Remove JSONC comments and trailing commas without changing string contents. */
-const stripJsonc = (text: string): string => {
-  let output = "";
-  let inString = false;
-  let escaped = false;
-  let inLineComment = false;
-  let inBlockComment = false;
-
-  for (let index = 0; index < text.length; index += 1) {
-    const current = text[index];
-    const next = text[index + 1];
-    if (inLineComment) {
-      if (current === "\n" || current === "\r") {
-        inLineComment = false;
-        output += current;
-      } else {
-        output += " ";
-      }
-      continue;
-    }
-    if (inBlockComment) {
-      if (current === "*" && next === "/") {
-        inBlockComment = false;
-        output += "  ";
-        index += 1;
-      } else {
-        output += current === "\n" || current === "\r" ? current : " ";
-      }
-      continue;
-    }
-    if (inString) {
-      output += current;
-      if (escaped) {
-        escaped = false;
-      } else if (current === "\\") {
-        escaped = true;
-      } else if (current === '"') {
-        inString = false;
-      }
-      continue;
-    }
-    if (current === '"') {
-      inString = true;
-      output += current;
-    } else if (current === "/" && next === "/") {
-      inLineComment = true;
-      output += "  ";
-      index += 1;
-    } else if (current === "/" && next === "*") {
-      inBlockComment = true;
-      output += "  ";
-      index += 1;
-    } else {
-      output += current;
-    }
-  }
-
-  return output.replace(/,\s*([}\]])/g, "$1");
+const defaultCapture = (root: string): ConfigurationCapture => {
+  const policy = resolveConfiguration([], root);
+  return { root, policy };
 };
 
-const decodeProjectConfig = (text: string) =>
-  Effect.try({
-    try: () => JSON.parse(stripJsonc(text)) as unknown,
-    catch: () => new ReviewConfigError({ reason: "review configuration is not valid JSONC" }),
-  }).pipe(
-    Effect.flatMap((unknown) =>
-      Schema.decodeUnknownEffect(ProjectConfig, {
-        onExcessProperty: "error",
-        errors: "all",
-      })(unknown).pipe(
-        Effect.mapError(
-          () => new ReviewConfigError({ reason: "review configuration has invalid fields" }),
-        ),
-      ),
+const settingsFrom = (
+  capture: ConfigurationCapture,
+): ReviewSettings => {
+  const project = capture.policy.layers.find((layer) => layer.name === "project");
+  const user = capture.policy.layers.find((layer) => layer.name === "user");
+  const projectRequestedConsent =
+    Boolean(project?.document.consent) || Boolean(project?.document.enabled);
+  return {
+    backend: DEFAULT_BACKEND,
+    apiBase: DEFAULT_API_BASE,
+    destination: DEFAULT_DESTINATION,
+    credentialEnvVar: capture.policy.credentialEnvVar.value,
+    ...(project === undefined ? {} : { projectConfigPath: project.source }),
+    ...(user === undefined ? {} : { userConfigPath: user.source }),
+    projectRequestedConsent,
+    configuration: capture,
+    policy: capture.policy,
+  };
+};
+
+export const loadReviewSettings = Effect.fn("ReviewConfig.load")(function* (
+  root: string,
+  options: LoadConfigurationOptions = {},
+) {
+  const capture = yield* loadConfiguration(root, options).pipe(
+    Effect.mapError(
+      (error: ConfigurationError) =>
+        new ReviewConfigError({
+          source: error.source,
+          field: error.field,
+          reason: error.reason,
+        }),
     ),
   );
-
-const readConfigFile = (path: string) =>
-  Effect.tryPromise({
-    try: () => readFile(path, "utf8"),
-    catch: () => new ReviewConfigError({ reason: "could not read review configuration" }),
-  });
-
-const settingsFrom = (config: ProjectConfig): Omit<ReviewSettings, "projectConfigPath"> => ({
-  backend: config.backend ?? DEFAULT_BACKEND,
-  apiBase: DEFAULT_API_BASE,
-  destination: DEFAULT_DESTINATION,
-  credentialEnvVar:
-    config.credentialEnvVar ?? config.credentials?.envVar ?? DEFAULT_CREDENTIAL_ENV_VAR,
-  projectRequestedConsent: Boolean(config.consent) || Boolean(config.enabled),
+  return settingsFrom(capture);
 });
 
-/**
- * Load the one project configuration at the canonical working-tree root.
- * Absence is valid and returns built-in defaults. The project cannot select an endpoint.
- */
-export const loadReviewSettings = Effect.fn("ReviewConfig.load")(
-  function* (root: string) {
-    const found: Array<string> = [];
-    for (const name of CONFIG_FILES) {
-      const path = join(root, name);
-      const exists = yield* Effect.tryPromise({
-        try: async () => {
-          try {
-            await access(path);
-            return true;
-          } catch {
-            return false;
-          }
-        },
-        catch: () => new ReviewConfigError({ reason: "could not inspect review configuration" }),
-      });
-      if (exists) found.push(path);
-    }
-    if (found.length > 1) {
-      return yield* new ReviewConfigError({
-        reason: "multiple project review configuration files were found",
-      });
-    }
-    const path = found[0];
-    if (path === undefined) return defaultSettings();
-    const config = yield* readConfigFile(path).pipe(Effect.flatMap(decodeProjectConfig));
-    return { ...settingsFrom(config), projectConfigPath: path };
-  },
-);
+export const defaultReviewSettings = (root = "."): ReviewSettings => {
+  const configuration = defaultCapture(root);
+  return settingsFrom(configuration);
+};
 
-export const isEnvironmentVariableName = (value: string): value is EnvironmentVariableName =>
+export const isEnvironmentVariableName = (value: string): boolean =>
   /^[A-Z_][A-Z0-9_]*$/.test(value);
