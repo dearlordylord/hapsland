@@ -39,11 +39,13 @@ describe("configuration v1 decoding", () => {
     ["unsupported version", '{"version":2}', "version"],
     ["unknown field", '{"version":1,"nope":true}', "nope"],
     ["invalid environment reference", '{"version":1,"credentialEnvVar":"secret"}', "credentialEnvVar"],
-    ["invalid nested environment reference", '{"version":1,"credentials":{"envVar":"secret"}}', "credentials.envVar"],
-    ["credential value", '{"version":1,"credentials":{"value":"secret"}}', "credentials.value"],
+    ["undocumented credential object", '{"version":1,"credentials":{"envVar":"ALT_KEY"}}', "credentials"],
+    ["credential value", '{"version":1,"credentials":{"value":"secret"}}', "credentials"],
     ["invalid pattern array", '{"version":1,"includes":"src/**"}', "includes"],
     ["invalid runtime bound", '{"version":1,"settings":{"deadlineMs":0}}', "settings.deadlineMs"],
-    ["invalid flat runtime bound", '{"version":1,"adviceBudget":101}', "adviceBudget"],
+    ["undocumented flat runtime field", '{"version":1,"adviceBudget":101}', "adviceBudget"],
+    ["undocumented include alias", '{"version":1,"include":["src/**"]}', "include"],
+    ["undocumented exclude alias", '{"version":1,"exclude":["src/**"]}', "exclude"],
     ["negated include", '{"version":1,"includes":["!src/**"]}', "includes[0]"],
     ["traversal include", '{"version":1,"includes":["../src/**"]}', "includes[0]"],
     ["reversed glob range", '{"version":1,"includes":["[z-a]"]}', "includes[0]"],
@@ -60,20 +62,26 @@ describe("configuration v1 decoding", () => {
     }
   });
 
-  it("normalizes aliases into one canonical downstream shape", () => {
+  it("accepts only canonical fields at the configuration boundary", () => {
     expect(decodeConfigurationText(
-      '{"version":1,"include":["src/**"],"credentials":{"envVar":"ALT_KEY"},"deadlineMs":9}',
-      "alias.jsonc",
+      '{"version":1,"includes":["src/**"],"credentialEnvVar":"ALT_KEY","settings":{"deadlineMs":9}}',
+      "canonical.jsonc",
     )).toEqual({
       version: 1,
       includes: ["src/**"],
       credentialEnvVar: "ALT_KEY",
       settings: { deadlineMs: 9 },
     });
-    expect(decodeConfigurationText(
-      '{"version":1,"settings":{},"deadlineMs":9}',
-      "flat-setting.jsonc",
-    )).toEqual({ version: 1, settings: { deadlineMs: 9 } });
+    for (const [field, text] of [
+      ["include", '{"version":1,"include":["src/**"]}'],
+      ["exclude", '{"version":1,"exclude":["src/**"]}'],
+      ["credentials", '{"version":1,"credentials":{"envVar":"ALT_KEY"}}'],
+      ["deadlineMs", '{"version":1,"deadlineMs":9}'],
+    ] as const) {
+      expect(() => decodeConfigurationText(text, "noncanonical.jsonc")).toThrowError(
+        expect.objectContaining({ field }),
+      );
+    }
   });
 });
 
@@ -167,7 +175,7 @@ describe("configuration composition properties", () => {
       fc.integer({ min: 60_001, max: 100_000 }).map((deadlineMs) =>
         JSON.stringify({ version: 1, deadlineMs })),
       fc.integer({ min: -100, max: -1 }).map((adviceBudget) =>
-        JSON.stringify({ version: 1, adviceBudget })),
+        JSON.stringify({ version: 1, settings: { adviceBudget } })),
     );
     fc.assert(
       fc.property(invalidText, (text) => {

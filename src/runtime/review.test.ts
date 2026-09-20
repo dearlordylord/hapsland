@@ -12,6 +12,7 @@ import * as TestClock from "effect/testing/TestClock";
 import type * as DecisionModel from "effect/unstable/ai/DecisionModel";
 import type { ReviewRequest } from "../domain/contracts.ts";
 import { configuredRules } from "../policy/rules.ts";
+import { resolveConfiguration } from "../configuration/resolve.ts";
 import { ReviewBackend } from "../ports/review-backend.ts";
 import { DedupeStore } from "../ports/dedupe-store.ts";
 import { SnapshotReader } from "../ports/snapshot-reader.ts";
@@ -290,6 +291,7 @@ describe("review orchestration", () => {
           destination: DEFAULT_DESTINATION,
           credentialEnvVar: DEFAULT_CREDENTIAL_ENV_VAR,
           projectRequestedConsent: false,
+          configuration: { policy: resolveConfiguration([], root) },
         };
         const calls = yield* Ref.make(0);
         const backend = Layer.succeed(

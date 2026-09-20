@@ -25,37 +25,11 @@ export const RuntimeSettings = Schema.Struct({
 });
 export interface RuntimeSettings extends Schema.Schema.Type<typeof RuntimeSettings> {}
 
-/** Boundary shape accepted by the decoder before aliases are normalized. */
-export const ConfigurationDocumentInput = Schema.Struct({
-  version: Schema.Literal(CONFIGURATION_VERSION),
-  /** Standard editor metadata; it has no runtime effect. */
-  $schema: Schema.optionalKey(Schema.String),
-  includes: Schema.optionalKey(Schema.Array(Pattern)),
-  excludes: Schema.optionalKey(Schema.Array(Pattern)),
-  include: Schema.optionalKey(Schema.Array(Pattern)),
-  exclude: Schema.optionalKey(Schema.Array(Pattern)),
-  privacyExcludes: Schema.optionalKey(Schema.Array(Pattern)),
-  credentialEnvVar: Schema.optionalKey(EnvironmentVariableName),
-  credentials: Schema.optionalKey(
-    Schema.Struct({ envVar: EnvironmentVariableName }),
-  ),
-  settings: Schema.optionalKey(RuntimeSettings),
-  deadlineMs: RuntimeSettings.fields.deadlineMs,
-  concurrency: RuntimeSettings.fields.concurrency,
-  adviceBudget: RuntimeSettings.fields.adviceBudget,
-  transientRetries: RuntimeSettings.fields.transientRetries,
-  // These fields are accepted for compatibility with the consent slice. They
-  // never authorize source egress and are never used as privacy policy.
-  consent: Schema.optionalKey(Schema.Boolean),
-  enabled: Schema.optionalKey(Schema.Boolean),
-});
-
 /**
  * Canonical JSONC v1 project/user document.
  *
- * Alias spellings are accepted only by ConfigurationDocumentInput and disappear
- * at the decode boundary. Lists intentionally remain optional: omission inherits
- * while [] is an explicit empty selection.
+ * Lists intentionally remain optional: omission inherits while [] is an explicit
+ * empty selection.
  */
 export const ConfigurationDocument = Schema.Struct({
   version: Schema.Literal(CONFIGURATION_VERSION),
@@ -114,8 +88,6 @@ export type ResolvedPolicy = {
 };
 
 export type ConfigurationCapture = {
-  readonly projectSource?: string;
-  readonly userSource?: string;
   readonly policy: ResolvedPolicy;
 };
 

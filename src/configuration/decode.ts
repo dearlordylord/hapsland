@@ -4,7 +4,6 @@ import { parseJsonc } from "./jsonc.ts";
 import { configurationError, ConfigurationError } from "./errors.ts";
 import {
   ConfigurationDocument,
-  ConfigurationDocumentInput,
   RuntimeSettings,
   type ConfigurationDocument as ConfigurationDocumentType,
 } from "./types.ts";
@@ -16,9 +15,8 @@ const strict = {
 } as const;
 
 const ROOT_KEYS = new Set([
-  "version", "$schema", "includes", "excludes", "include", "exclude", "privacyExcludes",
-  "credentialEnvVar", "credentials", "settings", "deadlineMs", "concurrency",
-  "adviceBudget", "transientRetries", "consent", "enabled",
+  "version", "$schema", "includes", "excludes", "privacyExcludes",
+  "credentialEnvVar", "settings", "consent", "enabled",
 ]);
 const SETTINGS_KEYS = new Set(["deadlineMs", "concurrency", "adviceBudget", "transientRetries"]);
 
@@ -102,21 +100,6 @@ const checkPatterns = (
   });
 };
 
-const checkAlias = (
-  value: Record<string, unknown>,
-  plural: "includes" | "excludes" | "credentialEnvVar",
-  singular: "include" | "exclude" | "credentials",
-  source: string,
-): void => {
-  if (hasOwn(value, plural) && hasOwn(value, singular)) {
-    throw configurationError(
-      source,
-      plural,
-      `${plural} and ${singular} cannot both be supplied`,
-    );
-  }
-};
-
 const checkSetting = (
   value: Record<string, unknown>,
   key: "deadlineMs" | "concurrency" | "adviceBudget" | "transientRetries",
@@ -144,9 +127,6 @@ const checkBoundaryValues = (
   for (const field of ["includes", "excludes", "privacyExcludes"] as const) {
     if (hasOwn(value, field)) checkPatterns(value[field], source, field);
   }
-  for (const field of ["include", "exclude"] as const) {
-    if (hasOwn(value, field)) checkPatterns(value[field], source, field);
-  }
   if (hasOwn(value, "credentialEnvVar")) {
     checkString(value.credentialEnvVar, source, "credentialEnvVar");
     if (!/^[A-Z_][A-Z0-9_]*$/.test(value.credentialEnvVar as string)) {
@@ -157,83 +137,15 @@ const checkBoundaryValues = (
       );
     }
   }
-  if (hasOwn(value, "credentials")) {
-    if (!record(value.credentials)) {
-      throw configurationError(source, "credentials", "must be an object with envVar");
-    }
-    assertKnownKeys(value.credentials, new Set(["envVar"]), source, "credentials");
-    if (!hasOwn(value.credentials, "envVar")) {
-      throw configurationError(source, "credentials.envVar", "must be provided");
-    }
-    checkString(value.credentials.envVar, source, "credentials.envVar");
-    if (!/^[A-Z_][A-Z0-9_]*$/.test(value.credentials.envVar as string)) {
-      throw configurationError(
-        source,
-        "credentials.envVar",
-        "must reference an uppercase environment variable name",
-      );
-    }
-  }
   if (hasOwn(value, "settings")) {
     if (!record(value.settings)) throw configurationError(source, "settings", "must be an object");
     assertKnownKeys(value.settings, SETTINGS_KEYS, source, "settings");
     for (const key of ["deadlineMs", "concurrency", "adviceBudget", "transientRetries"] as const) {
       checkSetting(value.settings, key, source, "settings");
-      if (hasOwn(value.settings, key) && hasOwn(value, key)) {
-        throw configurationError(
-          source,
-          `settings.${key}`,
-          `settings.${key} and ${key} cannot both be supplied`,
-        );
-      }
     }
-  }
-  for (const key of ["deadlineMs", "concurrency", "adviceBudget", "transientRetries"] as const) {
-    checkSetting(value, key, source, "");
   }
   if (hasOwn(value, "consent")) checkBoolean(value.consent, source, "consent");
   if (hasOwn(value, "enabled")) checkBoolean(value.enabled, source, "enabled");
-  checkAlias(value, "includes", "include", source);
-  checkAlias(value, "excludes", "exclude", source);
-  checkAlias(value, "credentialEnvVar", "credentials", source);
-};
-
-const normalizedSettings = (
-  value: Record<string, unknown>,
-): Record<string, number> | undefined => {
-  const nested = record(value.settings) ? value.settings : undefined;
-  const settings: Record<string, number> = {};
-  for (const key of ["deadlineMs", "concurrency", "adviceBudget", "transientRetries"] as const) {
-    const candidate = nested?.[key] ?? value[key];
-    if (candidate !== undefined) settings[key] = candidate as number;
-  }
-  return Object.keys(settings).length === 0 ? undefined : settings;
-};
-
-const canonicalDocument = (
-  value: Record<string, unknown>,
-): Record<string, unknown> => {
-  const settings = normalizedSettings(value);
-  return {
-    version: 1,
-    ...(value.$schema === undefined ? {} : { $schema: value.$schema }),
-    ...(value.includes === undefined && value.include === undefined
-      ? {}
-      : { includes: value.includes ?? value.include }),
-    ...(value.excludes === undefined && value.exclude === undefined
-      ? {}
-      : { excludes: value.excludes ?? value.exclude }),
-    ...(value.privacyExcludes === undefined ? {} : { privacyExcludes: value.privacyExcludes }),
-    ...(value.credentialEnvVar === undefined && !record(value.credentials)
-      ? {}
-      : {
-          credentialEnvVar:
-            value.credentialEnvVar ?? (value.credentials as Record<string, unknown>).envVar,
-        }),
-    ...(settings === undefined ? {} : { settings }),
-    ...(value.consent === undefined ? {} : { consent: value.consent }),
-    ...(value.enabled === undefined ? {} : { enabled: value.enabled }),
-  };
 };
 
 const stableJson = (value: unknown): string => {
@@ -250,7 +162,7 @@ const stableJson = (value: unknown): string => {
   return encoded === undefined ? "null" : encoded;
 };
 
-/** Serialize only canonical fields so an alias cannot re-enter downstream layers. */
+/** Serialize canonical fields in stable order for replayable configuration tests. */
 export const serializeConfigurationDocument = (
   document: ConfigurationDocumentType,
 ): string => stableJson(document);
@@ -269,9 +181,7 @@ export const decodeConfigurationDocument = (
   }
   checkBoundaryValues(raw, source);
   try {
-    const input = Schema.decodeUnknownSync(ConfigurationDocumentInput, strict)(raw) as unknown as Record<string, unknown>;
-    const canonical = canonicalDocument(input);
-    return Schema.decodeUnknownSync(ConfigurationDocument, strict)(canonical);
+    return Schema.decodeUnknownSync(ConfigurationDocument, strict)(raw);
   } catch (cause) {
     if (cause instanceof ConfigurationError) throw cause;
     throw configurationError(source, "$", "configuration contains an unknown or malformed field");
@@ -314,4 +224,4 @@ export const runtimeSettingsFrom = (
 ): ConfigurationDocumentType["settings"] => document.settings;
 
 // Keep these exports discoverable for callers constructing test documents.
-export { ConfigurationDocument, ConfigurationDocumentInput, RuntimeSettings };
+export { ConfigurationDocument, RuntimeSettings };

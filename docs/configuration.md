@@ -47,8 +47,10 @@ printf '%s\n' '{"version":1,"operation":"explain","cwd":"/repo","path":"src/a.ts
 Patterns are repository-relative and use `/` separators. Matching is case-sensitive;
 `*` and `?` do not cross `/`, while `**` may cross directories. Dot-files are matched
 only by a pattern segment beginning with `.`. Bracket classes (`[ab]`) and simple
-brace alternatives (`{ts,tsx}`) are supported. `!` is not negation and never
-re-includes a path. Ordinary patterns are still subject to protected gates: repository
+brace alternatives (`{ts,tsx}`) are supported. To keep matching bounded, a pattern is
+limited to 1,024 characters, eight brace groups, eight choices per group, and 256
+total brace expansions. `!` is not negation and never re-includes a path. Ordinary
+patterns are still subject to protected gates: repository
 boundary, sensitive names (`.env`, credentials, secret/key/certificate files),
 generated/lock and vendor/build directories, configured source extensions, regular
 files, symlink containment, and the 256 KiB snapshot limit.
