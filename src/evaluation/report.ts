@@ -11,6 +11,7 @@ import {
   type EvaluationPlan,
   type EvaluationRun,
   type EvaluationScenario,
+  type Expectation,
   strictParseOptions,
 } from "./model.ts";
 import { digestValue } from "./digest.ts";
@@ -59,6 +60,8 @@ export interface ReportInput {
   readonly scenarios: ReadonlyArray<EvaluationScenario>;
   readonly observations: ReadonlyArray<import("./model.ts").Observation>;
   readonly comparisons: ReadonlyArray<ComparisonResult>;
+  /** Authored comparison declarations are kept separate from sanitized results. */
+  readonly comparisonInputs?: ReadonlyArray<import("./model.ts").Comparison>;
 }
 
 /**
@@ -81,6 +84,7 @@ export const buildEvaluationReport = (
   let deterministic = emptyCounts();
   let semantic = emptyCounts();
   let crossBatch = emptyCounts();
+  let unchecked = emptyCounts();
   const summaries = input.comparisons.map((comparison) => {
     if (comparison.relation === "exact") {
       deterministic = increment(deterministic, comparison.deterministic);
@@ -88,6 +92,11 @@ export const buildEvaluationReport = (
       semantic = increment(semantic, comparison.semantic);
     } else {
       crossBatch = increment(crossBatch, comparison.semantic);
+    }
+    if (comparison.semantic === "unchecked") {
+      unchecked = increment(unchecked, "unchecked");
+    } else if (comparison.semantic === "ambiguous") {
+      unchecked = increment(unchecked, "ambiguous");
     }
     return summarizeComparison(comparison);
   });
@@ -104,6 +113,23 @@ export const buildEvaluationReport = (
     (total, scenario) => total + scenario.fixtures.length * input.run.repetitions,
     0,
   );
+  const comparisonInputs = input.comparisonInputs ?? [];
+  const expectationEntries: Array<readonly [string, Expectation]> = comparisonInputs.flatMap((comparison) => {
+      const expectation = comparison.expectation;
+      return expectation === undefined
+        ? []
+        : [[`${expectation.fixtureId}:${expectation.ruleId}`, expectation] as const];
+    });
+  const expectationByKey = new Map<string, Expectation>(expectationEntries);
+  const observedExpectations = comparisonInputs.filter(
+    (comparison) => comparison.expectation !== undefined,
+  ).length;
+  const uncheckedExpectations = [...expectationByKey.values()].filter(
+    (expectation) => expectation.result.kind === "unchecked",
+  ).length;
+  const ambiguousExpectations = [...expectationByKey.values()].filter(
+    (expectation) => expectation.result.kind === "ambiguous",
+  ).length;
   const coverage = decode(EvaluationCoverage, {
     plannedScenarios: input.scenarios.length,
     observedScenarios: observedScenarioIds.size,
@@ -120,6 +146,10 @@ export const buildEvaluationReport = (
     ).length,
     plannedComparisons: input.comparisons.length,
     observedComparisons: input.comparisons.length,
+    plannedExpectations: input.run.expectationDigests.length,
+    observedExpectations,
+    uncheckedExpectations,
+    ambiguousExpectations,
   });
 
   const observedRequests = input.observations.reduce(
@@ -139,21 +169,36 @@ export const buildEvaluationReport = (
       ? {}
       : { rejectionReason: input.plan.rejectionReason }),
   };
+  const acceptance = input.run.acceptance;
+  const releaseAccepted =
+    input.plan.permitted &&
+    budget.withinBudget &&
+    (!acceptance.requireTransportAvailable || transport.failed === 0) &&
+    (!acceptance.requireConformance ||
+      (conformance.failed === 0 && conformance.unchecked === 0)) &&
+    (!acceptance.requireSemanticPass ||
+      (semantic.failed === 0 && semantic.unchecked === 0 && semantic.ambiguous === 0)) &&
+    (!acceptance.requireNoUnchecked ||
+      (unchecked.unchecked === 0 && unchecked.ambiguous === 0));
   const reportWithoutDigest = {
     runId: input.run.id,
     suiteId: input.run.suiteId,
     runDigest: input.run.runDigest,
     planDigest: input.plan.planDigest,
     budget,
+    acceptance,
+    releaseAccepted,
     deterministic,
     transport,
     conformance,
     semantic,
     crossBatch,
+    unchecked,
     coverage,
     comparisons: summaries,
     fixtureDigests: input.run.fixtureDigests,
     ruleDefinitionDigests: input.run.ruleDefinitionDigests,
+    expectationDigests: input.run.expectationDigests,
     configurationCaseIds: input.run.configurationCaseIds,
     configurationCaseDigests: input.run.configurationCaseDigests,
     inputContract: input.run.inputContract,
@@ -173,15 +218,19 @@ export const isReportDigestValid = (report: EvaluationReportType): boolean =>
     runDigest: report.runDigest,
     planDigest: report.planDigest,
     budget: report.budget,
+    acceptance: report.acceptance,
+    releaseAccepted: report.releaseAccepted,
     deterministic: report.deterministic,
     transport: report.transport,
     conformance: report.conformance,
     semantic: report.semantic,
     crossBatch: report.crossBatch,
+    unchecked: report.unchecked,
     coverage: report.coverage,
     comparisons: report.comparisons,
     fixtureDigests: report.fixtureDigests,
     ruleDefinitionDigests: report.ruleDefinitionDigests,
+    expectationDigests: report.expectationDigests,
     configurationCaseIds: report.configurationCaseIds,
     configurationCaseDigests: report.configurationCaseDigests,
     inputContract: report.inputContract,

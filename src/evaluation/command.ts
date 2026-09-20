@@ -1,0 +1,337 @@
+import * as Config from "effect/Config";
+import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
+import * as Schema from "effect/Schema";
+import { JEV_API_BASE } from "../runtime/backend.ts";
+import { liveLayer } from "../jev-decision.ts";
+import { ReviewBackend } from "../ports/review-backend.ts";
+import { compileRules } from "../rules/compiler.ts";
+import type { LoadedRulePack } from "../rules/loader.ts";
+import { BUNDLED_NOUL_PACK } from "../rules/bundled.ts";
+import {
+  controlledDecisionModelLayer,
+  type ControlledDecisionModelOptions,
+} from "../test-support/controlled-decision-model.ts";
+import {
+  makeBackendIdentity,
+  makeEvaluationRun,
+  makeEvaluationScenario,
+  makeInputContractIdentity,
+  makeRendererAdapterIdentity,
+  planEvaluation,
+} from "./plan.ts";
+import {
+  BUNDLED_EVALUATION_EXPECTATIONS,
+  BUNDLED_EVALUATION_FIXTURES,
+  BUNDLED_EVALUATION_RULES,
+} from "./fixtures.ts";
+import { digestValue, makeConfigurationCase, makeConfigurationLayer, makeEffectiveConfiguration } from "./digest.ts";
+import { executeEvaluation } from "./runner.ts";
+import { isReportDigestValid } from "./report.ts";
+import {
+  EvaluationReport,
+  strictParseOptions,
+  type EvaluationPlan,
+  type EvaluationReport as EvaluationReportType,
+  type EvaluationRun,
+  type EvaluationScenario,
+} from "./model.ts";
+
+export const EVALUATION_PROTOCOL_VERSION = 1 as const;
+
+const NonNegativeInteger = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
+const PositiveInteger = Schema.Int.check(Schema.isGreaterThanOrEqualTo(1));
+
+const OperationBase = {
+  version: Schema.Literal(EVALUATION_PROTOCOL_VERSION),
+  liveOptIn: Schema.optionalKey(Schema.Boolean),
+  repetitions: Schema.optionalKey(PositiveInteger),
+  maximumRequests: Schema.optionalKey(PositiveInteger),
+  maximumRetriesPerRequest: Schema.optionalKey(NonNegativeInteger),
+  authorizedRemainingCalls: Schema.optionalKey(NonNegativeInteger),
+};
+
+export const EvaluationCommand = Schema.Union([
+  Schema.Struct({ ...OperationBase, operation: Schema.Literal("plan") }),
+  Schema.Struct({ ...OperationBase, operation: Schema.Literal("run") }),
+  Schema.Struct({
+    version: Schema.Literal(EVALUATION_PROTOCOL_VERSION),
+    operation: Schema.Literal("report"),
+    report: Schema.Unknown,
+  }),
+]);
+export type EvaluationCommand = typeof EvaluationCommand.Type;
+
+export type EvaluationCommandOptions = {
+  /** A command flag must explicitly allow live provider construction. */
+  readonly allowLive?: boolean;
+  /** Credential presence is checked by name only and never returned. */
+  readonly credentialEnvVar?: string;
+  readonly controlled?: ControlledDecisionModelOptions;
+};
+
+export type DefaultEvaluationSuite = {
+  readonly scenarios: ReadonlyArray<EvaluationScenario>;
+  readonly run: EvaluationRun;
+  readonly plan: EvaluationPlan;
+  readonly compiledRules: ReadonlyArray<ReturnType<typeof compileRules>[number]>;
+};
+
+const productionPack: LoadedRulePack = {
+  ...BUNDLED_NOUL_PACK,
+  origin: {
+    layer: "built-in",
+    source: "built-in:noul",
+    field: "bundled.noul",
+  },
+  path: "built-in:noul",
+  enabled: true,
+};
+
+const compiledRules = compileRules({ packs: [productionPack] });
+const allRuleIds = BUNDLED_EVALUATION_RULES.map((rule) => rule.identity.qualifiedId);
+const backendIdentity = (mode: "controlled" | "live") =>
+  makeBackendIdentity({ id: "jev", version: "1", mode });
+const inputContract = makeInputContractIdentity({
+  id: "full-file-plus-path",
+  version: "1",
+  digest: digestValue("full-file-plus-path-v1"),
+});
+const rendererAdapter = makeRendererAdapterIdentity({
+  id: "production-review-renderer",
+  version: "1",
+  digest: digestValue("review-backend-artifact-v1"),
+});
+
+const makeScenarioSet = (backend: ReturnType<typeof backendIdentity>) => {
+  const configuration = makeConfigurationCase({
+    id: "bundled-noul-defaults",
+    builtIn: makeConfigurationLayer({ name: "built-in" }),
+    user: makeConfigurationLayer({ name: "user" }),
+    project: makeConfigurationLayer({ name: "project" }),
+    consent: {
+      repositoryId: "evaluation-repository",
+      backendId: backend.id,
+      destinationId: "https://api.typesafe.ai/v1/systemone",
+      granted: true,
+    },
+    expectedEffective: makeEffectiveConfiguration({ selectedRuleIds: allRuleIds }),
+  });
+  const scenario = (input: {
+    readonly id: string;
+    readonly name: string;
+    readonly interaction: "isolated" | "full" | "named";
+    readonly rules: ReadonlyArray<(typeof BUNDLED_EVALUATION_RULES)[number]>;
+  }) => makeEvaluationScenario({
+    id: input.id,
+    name: input.name,
+    interaction: input.interaction,
+    ...(input.interaction === "named" ? { interactionName: "inferred-case-related-pair" } : {}),
+    fixtures: BUNDLED_EVALUATION_FIXTURES,
+    ruleDefinitions: input.rules,
+    configurationCaseId: configuration.id,
+    effectiveConfigurationDigest: configuration.expectedEffective.configurationDigest,
+    backend,
+    inputContract,
+    rendererAdapter,
+  });
+  const r1 = BUNDLED_EVALUATION_RULES.filter((rule) => rule.identity.ruleId === "r1_inferred_case");
+  const r2 = BUNDLED_EVALUATION_RULES.filter((rule) => rule.identity.ruleId === "r2_meaningless_combinations");
+  return {
+    configuration,
+    scenarios: [
+      ...BUNDLED_EVALUATION_RULES.map((rule) => scenario({
+        id: `isolated-${rule.identity.ruleId}`,
+        name: "isolated inferred-case rule",
+        interaction: "isolated",
+        rules: [rule],
+      })),
+      scenario({
+        id: "full-enabled-batch",
+        name: "full enabled bundled batch",
+        interaction: "full",
+        rules: BUNDLED_EVALUATION_RULES,
+      }),
+      scenario({
+        id: "named-inferred-case-pair",
+        name: "named related inferred-case pair",
+        interaction: "named",
+        rules: [...r1, ...r2],
+      }),
+    ],
+  };
+};
+
+export const makeDefaultEvaluationSuite = (input: {
+  readonly mode?: "controlled" | "live";
+  readonly repetitions?: number;
+  readonly maximumRequests?: number;
+  readonly maximumRetriesPerRequest?: number;
+  readonly authorizedRemainingCalls?: number;
+  readonly liveOptIn?: boolean;
+} = {}): DefaultEvaluationSuite => {
+  const backend = backendIdentity(input.mode ?? "controlled");
+  const { configuration, scenarios } = makeScenarioSet(backend);
+  const run = makeEvaluationRun({
+    id: `noul-semantic-${backend.mode}`,
+    name: `${backend.mode} Noul semantic milestone`,
+    suiteId: "bundled-noul-semantic",
+    scenarios,
+    configurationCases: [configuration],
+    fixtures: BUNDLED_EVALUATION_FIXTURES,
+    ruleDefinitions: BUNDLED_EVALUATION_RULES,
+    expectations: BUNDLED_EVALUATION_EXPECTATIONS,
+    backend,
+    inputContract,
+    rendererAdapter,
+    repetitions: input.repetitions ?? 1,
+    budget: {
+      maximumRequests: input.maximumRequests ?? 1000,
+      maximumRetriesPerRequest: input.maximumRetriesPerRequest ?? 2,
+      ...(input.authorizedRemainingCalls === undefined
+        ? {}
+        : { authorizedRemainingCalls: input.authorizedRemainingCalls }),
+    },
+    liveOptIn: input.liveOptIn ?? false,
+  });
+  return {
+    scenarios,
+    run,
+    plan: planEvaluation(run, scenarios),
+    compiledRules,
+  };
+};
+
+const parseCommand = (value: unknown): EvaluationCommand =>
+  Schema.decodeUnknownSync(EvaluationCommand, strictParseOptions)(value);
+
+const credentialPresent = (name: string): boolean =>
+  Effect.runSync(
+    Config.option(Config.String(name)).pipe(
+      Effect.map((value) => value._tag === "Some" && value.value.length > 0),
+    ),
+  );
+
+const runLayer = (
+  options: EvaluationCommandOptions,
+  suite: DefaultEvaluationSuite,
+) => {
+  if (suite.run.backend.mode === "live") {
+    return ReviewBackend.layerWithOptions({
+      transientRetries: suite.run.budget.maximumRetriesPerRequest,
+    }).pipe(
+      Layer.provide(
+        liveLayer({
+          apiUrl: JEV_API_BASE,
+          credentialEnvVar: options.credentialEnvVar ?? "TYPESAFE_API_KEY",
+        }),
+      ),
+    ).pipe(Layer.orDie);
+  }
+  return ReviewBackend.layerWithOptions({
+    transientRetries: suite.run.budget.maximumRetriesPerRequest,
+  }).pipe(Layer.provide(controlledDecisionModelLayer(options.controlled ?? {})));
+};
+
+const planFor = (
+  command: Extract<EvaluationCommand, { readonly operation: "plan" | "run" }>,
+  options: EvaluationCommandOptions,
+): DefaultEvaluationSuite => {
+  const live = command.liveOptIn === true;
+  const suite = makeDefaultEvaluationSuite({
+    mode: live ? "live" : "controlled",
+    ...(command.repetitions === undefined ? {} : { repetitions: command.repetitions }),
+    ...(command.maximumRequests === undefined ? {} : { maximumRequests: command.maximumRequests }),
+    ...(command.maximumRetriesPerRequest === undefined
+      ? {}
+      : { maximumRetriesPerRequest: command.maximumRetriesPerRequest }),
+    ...(command.authorizedRemainingCalls === undefined
+      ? {}
+      : { authorizedRemainingCalls: command.authorizedRemainingCalls }),
+    liveOptIn: live,
+  });
+  const liveCredentialPresent = live
+    ? credentialPresent(options.credentialEnvVar ?? "TYPESAFE_API_KEY")
+    : undefined;
+  const planOptions = liveCredentialPresent === undefined
+    ? {}
+    : { liveCredentialPresent };
+  return {
+    ...suite,
+    plan: planEvaluation(suite.run, suite.scenarios, planOptions),
+  };
+};
+
+export type EvaluationCommandResult =
+  | { readonly version: 1; readonly operation: "plan"; readonly status: "planned"; readonly plan: EvaluationPlan }
+  | { readonly version: 1; readonly operation: "run"; readonly status: "complete" | "rejected"; readonly plan: EvaluationPlan; readonly report?: EvaluationReportType; readonly reason?: string }
+  | { readonly version: 1; readonly operation: "report"; readonly status: "verified" | "invalid"; readonly report?: EvaluationReportType; readonly reason?: string };
+
+export const runEvaluationCommand = (
+  value: unknown,
+  options: EvaluationCommandOptions = {},
+): Effect.Effect<EvaluationCommandResult, Error> =>
+  Effect.gen(function* () {
+    const command = parseCommand(value);
+    if (command.operation === "report") {
+      const report = Schema.decodeUnknownResult(EvaluationReport, strictParseOptions)(command.report);
+      if (report._tag === "Failure") {
+        return { version: 1, operation: "report", status: "invalid", reason: "report does not satisfy the evaluation contract" };
+      }
+      if (!isReportDigestValid(report.success)) {
+        return { version: 1, operation: "report", status: "invalid", reason: "report digest does not match its sanitized contents" };
+      }
+      return {
+        version: 1,
+        operation: "report",
+        status: "verified",
+        report: report.success,
+      };
+    }
+    const suite = planFor(command, options);
+    if (command.operation === "plan") {
+      return { version: 1, operation: "plan", status: "planned", plan: suite.plan };
+    }
+    if (!suite.plan.permitted) {
+      return {
+        version: 1,
+        operation: "run",
+        status: "rejected",
+        plan: suite.plan,
+        ...(suite.plan.rejectionReason === undefined
+          ? {}
+          : { reason: suite.plan.rejectionReason }),
+      };
+    }
+    if (suite.run.backend.mode === "live" && options.allowLive !== true) {
+      return {
+        version: 1,
+        operation: "run",
+        status: "rejected",
+        plan: { ...suite.plan, permitted: false, rejectionReason: "live-opt-in-required" },
+        reason: "live evaluation requires the explicit command flag",
+      };
+    }
+    const executionInput = {
+      run: suite.run,
+      plan: suite.plan,
+      scenarios: suite.scenarios,
+      fixtures: BUNDLED_EVALUATION_FIXTURES,
+      ruleDefinitions: BUNDLED_EVALUATION_RULES,
+      expectations: BUNDLED_EVALUATION_EXPECTATIONS,
+      compiledRules: suite.compiledRules,
+    };
+    const execution = yield* executeEvaluation(executionInput, runLayer(options, suite));
+    return {
+      version: 1,
+      operation: "run",
+      status: "complete",
+      plan: suite.plan,
+      report: execution.report,
+    };
+  });
+
+/** Read the credential name through Effect Config without exposing its value. */
+export const configuredCredentialName = Config.String("EVALUATION_CREDENTIAL_ENV").pipe(
+  Config.withDefault("TYPESAFE_API_KEY"),
+);

@@ -19,7 +19,13 @@ import {
   makeFixtureReference,
   makeRuleReference,
 } from "./digest.ts";
-import type { ConfigurationCase, Fixture, RuleDefinition } from "./model.ts";
+import type {
+  ConfigurationCase,
+  Expectation,
+  Fixture,
+  ReleaseAcceptance,
+  RuleDefinition,
+} from "./model.ts";
 
 const decode = <S extends Schema.ConstraintDecoder<unknown>>(
   schema: S,
@@ -29,6 +35,9 @@ const decode = <S extends Schema.ConstraintDecoder<unknown>>(
 
 const scenarioRequestCount = (scenario: EvaluationScenarioType): number =>
   scenario.requestCount ?? scenario.fixtures.length;
+
+/** The project-level authorization is cumulative, not an unlimited default. */
+export const LIVE_CALL_AUTHORIZATION_LIMIT = 1_000 as const;
 
 /**
  * Estimate logical requests and worst-case attempts before any backend call.  A
@@ -58,6 +67,10 @@ export const estimatePlanRequests = (
 export const planEvaluation = (
   run: EvaluationRunType,
   scenarios: ReadonlyArray<EvaluationScenarioType>,
+  options: {
+    /** Explicitly supplied by a milestone command; absence does not imply presence. */
+    readonly liveCredentialPresent?: boolean;
+  } = {},
 ): EvaluationPlanType => {
   const estimates = estimatePlanRequests(run, scenarios);
   const hasLiveScenario = scenarios.some(
@@ -70,11 +83,18 @@ export const planEvaluation = (
       run.budget.maximumRequests,
       run.budget.authorizedRemainingCalls ?? run.budget.maximumRequests,
     );
+  const remainingAuthorization = run.budget.authorizedRemainingCalls;
   const rejectionReason = budgetExceeded
     ? "budget-exceeded"
     : hasLiveScenario && !run.liveOptIn
       ? "live-opt-in-required"
-      : undefined;
+      : hasLiveScenario && options.liveCredentialPresent === false
+        ? "live-credential-required"
+        : hasLiveScenario && remainingAuthorization === undefined
+          ? "live-authorization-required"
+          : hasLiveScenario && remainingAuthorization !== undefined && remainingAuthorization > LIVE_CALL_AUTHORIZATION_LIMIT
+            ? "live-authorization-exceeds-limit"
+            : undefined;
   const planWithoutDigest = {
     runId: run.id,
     scenarioIds: run.scenarioIds,
@@ -191,6 +211,7 @@ export interface RunInput {
   readonly configurationCases?: ReadonlyArray<ConfigurationCase>;
   readonly fixtures?: ReadonlyArray<Fixture>;
   readonly ruleDefinitions?: ReadonlyArray<RuleDefinition>;
+  readonly expectations?: ReadonlyArray<Expectation>;
   readonly backend: BackendIdentityType;
   readonly inputContract: InputContractIdentityType;
   readonly rendererAdapter: RendererAdapterIdentityType;
@@ -200,6 +221,7 @@ export interface RunInput {
     readonly maximumRetriesPerRequest: number;
     readonly authorizedRemainingCalls?: number;
   };
+  readonly acceptance?: ReleaseAcceptance;
   readonly liveOptIn: boolean;
 }
 
@@ -220,11 +242,20 @@ export const makeEvaluationRun = (input: RunInput): EvaluationRunType => {
     ruleDefinitionDigests: (input.ruleDefinitions ?? []).map(
       (definition) => definition.definitionDigest,
     ),
+    expectationDigests: (input.expectations ?? []).map(
+      (expectation) => expectation.expectationDigest,
+    ),
     backend: input.backend,
     inputContract: input.inputContract,
     rendererAdapter: input.rendererAdapter,
     repetitions: input.repetitions,
     budget: input.budget,
+    acceptance: input.acceptance ?? {
+      requireTransportAvailable: true,
+      requireConformance: true,
+      requireSemanticPass: true,
+      requireNoUnchecked: true,
+    },
     liveOptIn: input.liveOptIn,
   };
   return decode(EvaluationRun, {

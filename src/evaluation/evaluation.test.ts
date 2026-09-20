@@ -432,6 +432,7 @@ describe("evaluation model", () => {
     expect(report.coverage.fullBatchScenarios).toBe(1);
     expect(report.coverage.namedInteractionScenarios).toBe(1);
     expect(report.budget.withinBudget).toBe(false);
+    expect(report.releaseAccepted).toBe(false);
     expect(reportHasTransportAvailability(report)).toBe(false);
     expect(reportIsConformant(report)).toBe(false);
     expect(reportHasSemanticFailures(report)).toBe(false);

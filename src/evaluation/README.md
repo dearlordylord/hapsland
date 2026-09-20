@@ -1,9 +1,10 @@
 # Offline evaluation substrate
 
-`src/evaluation/` is the host-independent model for the rule-meaning milestone. It
-does not invoke a backend and it does not add an execution command. A future runner
-can use the same `EvaluationScenario` values for controlled, fake-HTTP, or explicitly
-opted-in live DecisionModel execution.
+`src/evaluation/` is the host-independent model and bounded execution seam for the
+rule-meaning milestone. `runner.ts` invokes the production `ReviewBackend` service,
+which is backed by the same provider-neutral `DecisionModel` path as ordinary review.
+`command.ts` exposes offline `plan`, `run`, and `report` operations; the regular test
+command never invokes a provider.
 
 The construction helpers in `digest.ts` compute SHA-256 identities from canonical,
 recursively key-sorted JSON. Fixture content and rule question/criteria are therefore
@@ -21,5 +22,7 @@ produce `ambiguous` and never become a clear result.
 `buildEvaluationReport` retains only sanitized aggregate counts, identities, digests,
 comparison summaries, and coverage. It does not persist fixture source, raw provider
 responses, individual live probabilities, credentials, or advice text. Ordinary tests
-for this module are deterministic and offline; live evaluation remains an explicit
-milestone operation outside the test command.
+for this module are deterministic and offline. Live execution requires the evaluation
+opt-in flag, a non-empty credential environment variable, and a declared remaining
+authorization within the project's cumulative 1,000-call milestone; no command or test
+silently upgrades a controlled run to paid execution.

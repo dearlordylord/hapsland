@@ -95,10 +95,21 @@ export const RuleApplicability = Schema.Struct({
 export interface RuleApplicability
   extends Schema.Schema.Type<typeof RuleApplicability> {}
 
+/** Production packs use the structured Noul criteria; string criteria remain
+ * accepted for small authored fixtures and backwards-compatible model data. */
+export const RuleCriteria = Schema.Union([
+  Schema.NonEmptyString,
+  Schema.Struct({
+    false: Schema.NonEmptyString,
+    true: Schema.NonEmptyString,
+  }),
+]);
+export type RuleCriteria = typeof RuleCriteria.Type;
+
 export const RuleDefinition = Schema.Struct({
   identity: RuleIdentity,
   question: Schema.NonEmptyString,
-  criteria: Schema.NonEmptyString,
+  criteria: RuleCriteria,
   defaultMessage: Schema.NonEmptyString,
   threshold: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
   applicability: RuleApplicability,
@@ -370,9 +381,21 @@ export interface Comparison extends Schema.Schema.Type<typeof Comparison> {}
 export const CallBudget = Schema.Struct({
   maximumRequests: PositiveInteger,
   maximumRetriesPerRequest: NonNegativeInteger,
-  authorizedRemainingCalls: Schema.optionalKey(PositiveInteger),
+  // A milestone may have no remaining authorization.  Keeping zero valid lets a
+  // planner reject the run before a provider layer is acquired.
+  authorizedRemainingCalls: Schema.optionalKey(NonNegativeInteger),
 });
 export interface CallBudget extends Schema.Schema.Type<typeof CallBudget> {}
+
+/** Predeclared milestone release gate; it is part of run identity. */
+export const ReleaseAcceptance = Schema.Struct({
+  requireTransportAvailable: Schema.Boolean,
+  requireConformance: Schema.Boolean,
+  requireSemanticPass: Schema.Boolean,
+  requireNoUnchecked: Schema.Boolean,
+});
+export interface ReleaseAcceptance
+  extends Schema.Schema.Type<typeof ReleaseAcceptance> {}
 
 export const EvaluationRun = Schema.Struct({
   id: RunId,
@@ -384,11 +407,13 @@ export const EvaluationRun = Schema.Struct({
   configurationCaseDigests: Schema.Array(EvaluationDigest),
   fixtureDigests: Schema.Array(EvaluationDigest),
   ruleDefinitionDigests: Schema.Array(EvaluationDigest),
+  expectationDigests: Schema.Array(EvaluationDigest),
   backend: BackendIdentity,
   inputContract: InputContractIdentity,
   rendererAdapter: RendererAdapterIdentity,
   repetitions: PositiveInteger,
   budget: CallBudget,
+  acceptance: ReleaseAcceptance,
   liveOptIn: Schema.Boolean,
   runDigest: EvaluationDigest,
 });
@@ -403,7 +428,15 @@ export const EvaluationPlan = Schema.Struct({
   worstCaseRequests: NonNegativeInteger,
   budgetMaximumRequests: PositiveInteger,
   permitted: Schema.Boolean,
-  rejectionReason: Schema.optionalKey(Schema.Literals(["budget-exceeded", "live-opt-in-required"] as const)),
+  rejectionReason: Schema.optionalKey(
+    Schema.Literals([
+      "budget-exceeded",
+      "live-opt-in-required",
+      "live-credential-required",
+      "live-authorization-required",
+      "live-authorization-exceeds-limit",
+    ] as const),
+  ),
   planDigest: EvaluationDigest,
 });
 export interface EvaluationPlan extends Schema.Schema.Type<typeof EvaluationPlan> {}
@@ -453,6 +486,10 @@ export const EvaluationCoverage = Schema.Struct({
   namedInteractionScenarios: NonNegativeInteger,
   plannedComparisons: NonNegativeInteger,
   observedComparisons: NonNegativeInteger,
+  plannedExpectations: NonNegativeInteger,
+  observedExpectations: NonNegativeInteger,
+  uncheckedExpectations: NonNegativeInteger,
+  ambiguousExpectations: NonNegativeInteger,
 });
 export interface EvaluationCoverage extends Schema.Schema.Type<typeof EvaluationCoverage> {}
 
@@ -469,18 +506,28 @@ export const EvaluationReport = Schema.Struct({
     withinBudget: Schema.Boolean,
     planPermitted: Schema.Boolean,
     rejectionReason: Schema.optionalKey(
-      Schema.Literals(["budget-exceeded", "live-opt-in-required"] as const),
+      Schema.Literals([
+        "budget-exceeded",
+        "live-opt-in-required",
+        "live-credential-required",
+        "live-authorization-required",
+        "live-authorization-exceeds-limit",
+      ] as const),
     ),
   }),
+  acceptance: ReleaseAcceptance,
+  releaseAccepted: Schema.Boolean,
   deterministic: AggregateCounts,
   transport: AggregateCounts,
   conformance: AggregateCounts,
   semantic: AggregateCounts,
   crossBatch: AggregateCounts,
+  unchecked: AggregateCounts,
   coverage: EvaluationCoverage,
   comparisons: Schema.Array(ComparisonSummary),
   fixtureDigests: Schema.Array(EvaluationDigest),
   ruleDefinitionDigests: Schema.Array(EvaluationDigest),
+  expectationDigests: Schema.Array(EvaluationDigest),
   configurationCaseIds: Schema.Array(ConfigurationCaseId),
   configurationCaseDigests: Schema.Array(EvaluationDigest),
   inputContract: InputContractIdentity,

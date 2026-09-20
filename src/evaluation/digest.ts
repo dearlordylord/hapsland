@@ -25,6 +25,7 @@ import {
   type FixtureReference as FixtureReferenceType,
   RuleDefinition,
   type RuleDefinition as RuleDefinitionType,
+  type RuleCriteria,
   RuleReference,
   type RuleReference as RuleReferenceType,
   strictParseOptions,
@@ -152,11 +153,13 @@ export const digestRun = (run: EvaluationRunType): EvaluationDigest =>
     configurationCaseDigests: run.configurationCaseDigests,
     fixtureDigests: run.fixtureDigests,
     ruleDefinitionDigests: run.ruleDefinitionDigests,
+    expectationDigests: run.expectationDigests,
     backend: run.backend,
     inputContract: run.inputContract,
     rendererAdapter: run.rendererAdapter,
     repetitions: run.repetitions,
     budget: run.budget,
+    acceptance: run.acceptance,
     liveOptIn: run.liveOptIn,
   });
 
@@ -273,7 +276,7 @@ export interface RuleDefinitionInput {
   readonly ruleId: string;
   readonly packVersion: string;
   readonly question: string;
-  readonly criteria: string;
+  readonly criteria: RuleCriteria;
   readonly defaultMessage: string;
   readonly threshold: number;
   readonly applicability?: {
@@ -288,7 +291,9 @@ export const makeRuleDefinition = (
   const identity = {
     packId: input.packId,
     ruleId: input.ruleId,
-    qualifiedId: `${input.packId}:${input.ruleId}`,
+    // Production packs and configuration use slash-qualified IDs.  Keep the
+    // identity identical across authored evaluation data and compiled rules.
+    qualifiedId: `${input.packId}/${input.ruleId}`,
     packVersion: input.packVersion,
   };
   const definitionWithoutDigest = {
