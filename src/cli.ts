@@ -40,6 +40,7 @@ import {
   controlledDecisionModelLayer,
   type ControlledDecisionModelOptions,
 } from "./test-support/controlled-decision-model.ts";
+import { runEvaluationCommand } from "./evaluation/command.ts";
 
 const readStdin = Effect.try({
   try: () => readFileSync(0, "utf8"),
@@ -165,6 +166,15 @@ const forcedOperation = (): ConsentOperation["operation"] | undefined => {
   if (process.argv.includes("--explain") || process.argv.includes("--config-explain")) {
     return "explain";
   }
+  return undefined;
+};
+
+type EvaluationOperationName = "plan" | "run" | "report";
+
+const forcedEvaluationOperation = (): EvaluationOperationName | undefined => {
+  if (process.argv.includes("--evaluation-plan")) return "plan";
+  if (process.argv.includes("--evaluation-run")) return "run";
+  if (process.argv.includes("--evaluation-report")) return "report";
   return undefined;
 };
 
@@ -297,6 +307,7 @@ const runRequest = (
 const isCodexHook = process.argv.includes("--codex-hook");
 const isControlled = process.argv.includes("--controlled");
 const requestedOperation = forcedOperation();
+const requestedEvaluationOperation = forcedEvaluationOperation();
 
 const runOperation = (
   operation: ConsentOperation,
@@ -635,6 +646,30 @@ const program = Effect.gen(function* () {
   const inputRequestsOperation = /"operation"\s*:\s*"(?:enable|enable-confirm|disable|credentials|status|explain)"/.test(
     input,
   );
+  const inputRequestsEvaluation = /"operation"\s*:\s*"(?:plan|run|report)"/.test(input);
+  if (requestedEvaluationOperation !== undefined || inputRequestsEvaluation) {
+    const evaluationInput = yield* decodeJson(input);
+    if (
+      typeof evaluationInput !== "object" ||
+      evaluationInput === null ||
+      !("operation" in evaluationInput) ||
+      (requestedEvaluationOperation !== undefined &&
+        evaluationInput.operation !== requestedEvaluationOperation)
+    ) {
+      return {
+        version: 1,
+        error: {
+          code: "invalid_request",
+          message: "evaluation operation flag does not match the version-1 evaluation contract",
+        },
+      };
+    }
+    return yield* runEvaluationCommand(evaluationInput, {
+      allowLive: process.argv.includes("--evaluation-live"),
+      credentialEnvVar: process.env.EVALUATION_CREDENTIAL_ENV ?? "TYPESAFE_API_KEY",
+      ...(isControlled ? { controlled: yield* controlledOptions } : {}),
+    });
+  }
   if (requestedOperation !== undefined || inputRequestsOperation) {
     const decodedOperation = yield* decodeOperation(input, requestedOperation);
     const operation =
