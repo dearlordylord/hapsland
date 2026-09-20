@@ -11,6 +11,16 @@ and source-free in [`evidence/records.jsonl`](./evidence/records.jsonl). The com
 machine-readable record can be regenerated with
 `npm run --silent experiment:extract:evidence`.
 
+## Product decision after review
+
+On 2026-09-20, the product owner accepted this conditional feasibility verdict with
+its stated limits. Issues #5–#8 are complete; this decision does not select or authorize
+a production extractor. Phase F may continue under its provisional full-file-plus-path
+input contract. The separate classification experiment in
+[#16](https://github.com/dearlordylord/jevs/issues/16) will compare diff, whole-file,
+declaration-only, and declaration-plus-bounded-context inputs before production
+architecture work is authorized.
+
 ## Evidence index
 
 | Record or test | What it establishes |
