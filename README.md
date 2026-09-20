@@ -65,6 +65,29 @@ npm test
 npm run review -- --controlled < request.json
 ```
 
+Review dispatch is repository opt-in. The explicit enable operation discovers the
+canonical Git working-tree root and records a user-owned grant for the Jev backend and
+the actual destination; project configuration cannot create that grant. For a temporary
+state directory (useful in tests), set `REVIEW_STATE_PATH`:
+
+```sh
+printf '%s\n' '{"version":1,"operation":"enable","cwd":"/absolute/repo"}' \\
+  | REVIEW_STATE_PATH="$HOME/.config/realtime-review-tool/consent" node src/cli.ts --enable
+printf '%s\n' '{"version":1,"operation":"disable","cwd":"/absolute/repo"}' \\
+  | node src/cli.ts --disable
+printf '%s\n' '{"version":1,"operation":"credentials","cwd":"/absolute/repo"}' \\
+  | node src/cli.ts --inspect-credentials
+```
+
+`--inspect-credentials` reports only the configured environment-variable name and
+whether it is non-empty. The default is `TYPESAFE_API_KEY`; credential values and
+environment files are never stored or printed. Project settings are optional JSONC in
+`.review.jsonc` at the Git root. They may select the Jev destination and credential
+variable, but `consent`/`enabled` fields never authorize source transmission. Hooks do
+not prompt: without a matching root/backend/destination grant, review returns a bounded
+`skipped` result and makes no provider request. Disabling affects future dispatches and
+does not claim to recall a request already sent.
+
 The product-owned JSON contract is documented in
 [`CODEX-ADAPTER-CONTRACT-v1.md`](./CODEX-ADAPTER-CONTRACT-v1.md). During development, a
 Codex command hook invokes `node /absolute/path/to/this/repo/src/cli.ts --codex-hook`;

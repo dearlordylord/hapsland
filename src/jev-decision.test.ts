@@ -1,7 +1,11 @@
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import * as Redacted from "effect/Redacted";
 import * as DecisionModel from "effect/unstable/ai/DecisionModel";
+import * as HttpClient from "effect/unstable/http/HttpClient";
+import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse";
+import { TypeSafeClient, TypeSafeDecisionModel } from "@effect/ai-typesafe";
 import { decide, probability } from "./jev-decision.ts";
 
 describe("Jev Decision adapter", () => {
@@ -60,6 +64,91 @@ describe("Jev Decision adapter", () => {
       expect(result.answers.first.probability).toBe(0.25);
       expect(result.answers.second.probability).toBe(0.75);
       expect(result.usage.inputTokens).toBe(12);
+    }),
+  );
+
+  it.effect("asserts the actual TypeSafe HTTP contract at a fake transport", () =>
+    Effect.gen(function* () {
+      const requests: Array<{
+        readonly url: string;
+        readonly authorization: string | undefined;
+        readonly body: string;
+      }> = [];
+      const fakeHttp = HttpClient.make((request) => {
+        const body =
+          request.body._tag === "Uint8Array"
+            ? new TextDecoder().decode(request.body.body)
+            : "";
+        requests.push({
+          url: request.url,
+          authorization: request.headers.authorization,
+          body,
+        });
+        return Effect.succeed(
+          HttpClientResponse.fromWeb(
+            request,
+            new Response(
+              JSON.stringify({
+                model: "jev-latest",
+                answers: { rule: { type: "noul", noul: 0.75 } },
+                usage: { input_tokens: 11, output_tokens: 2 },
+              }),
+              { status: 200, headers: { "content-type": "application/json" } },
+            ),
+          ),
+        );
+      });
+      const client = TypeSafeClient.layer({
+        apiUrl: "https://fake.review.invalid/v1",
+        apiKey: Redacted.make("SECRET-SENTINEL"),
+      }).pipe(Layer.provide(Layer.succeed(HttpClient.HttpClient, fakeHttp)));
+      const model = TypeSafeDecisionModel.layer({ model: "jev-latest" }).pipe(
+        Layer.provide(client),
+      );
+      const result = yield* decide({
+        state: {
+          artifact: {
+            domain: "src/example.ts",
+            source: "SOURCE-SENTINEL",
+          },
+        },
+        decisions: {
+          rule: probability(
+            { question: "QUESTION-SENTINEL", focus: "FOCUS-SENTINEL" },
+            {
+              false: { what: "FALSE-CRITERION", examples: ["false example"] },
+              true: { what: "TRUE-CRITERION", examples: ["true example"] },
+            },
+          ),
+        },
+      }).pipe(Effect.provide(model));
+
+      expect(result.answers.rule).toEqual({ probability: 0.75 });
+      expect(requests).toHaveLength(1);
+      const request = requests[0];
+      if (request === undefined) throw new Error("expected one fake HTTP request");
+      expect(request.url).toBe("https://fake.review.invalid/v1/systemone");
+      expect(request.authorization).toBe("Bearer SECRET-SENTINEL");
+      const payload = JSON.parse(request.body) as Record<string, unknown>;
+      expect(Object.keys(payload).sort()).toEqual(["model", "questions", "state"]);
+      expect(payload.model).toBe("jev-latest");
+      expect(payload.state).toEqual({
+        artifact: { domain: "src/example.ts", source: "SOURCE-SENTINEL" },
+      });
+      expect(payload.questions).toEqual({
+        rule: {
+          type: "noul",
+          instructions: "QUESTION-SENTINEL\n\nFocus: FOCUS-SENTINEL",
+          criteria: {
+            false: "FALSE-CRITERION\n\nExamples:\n- false example",
+            true: "TRUE-CRITERION\n\nExamples:\n- true example",
+          },
+        },
+      });
+      expect(request.body).not.toContain("TRANSCRIPT-SENTINEL");
+      expect(request.body).not.toContain("TASK-SENTINEL");
+      expect(request.body).not.toContain("/absolute/local/path");
+      expect(request.body).not.toContain("SECRET-SENTINEL");
     }),
   );
 });

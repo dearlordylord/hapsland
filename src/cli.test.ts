@@ -3,6 +3,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 import { configuredRules } from "./policy/rules.ts";
 
@@ -11,10 +12,25 @@ afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
 });
 
+const initializeRepository = (root: string) => {
+  execFileSync("git", ["init", "--quiet", root]);
+  const statePath = join(root, ".consent-state.json");
+  const enabled = spawnSync(process.execPath, ["src/cli.ts", "--enable"], {
+    cwd: process.cwd(),
+    input: JSON.stringify({ version: 1, operation: "enable", cwd: root }),
+    encoding: "utf8",
+    env: { ...process.env, REVIEW_STATE_PATH: statePath },
+  });
+  expect(enabled.status).toBe(0);
+  expect(JSON.parse(enabled.stdout)).toMatchObject({ status: "enabled" });
+  return statePath;
+};
+
 describe("JSON subprocess contract", () => {
   it("reviews a completed edit and reserves stdout for one protocol response", () => {
     const root = mkdtempSync(join(tmpdir(), "review-cli-"));
     roots.push(root);
+    const statePath = initializeRepository(root);
     mkdirSync(join(root, "src"));
     const content = "export type Counter = { count: number };\n";
     const path = join(root, "src/counter.ts");
@@ -33,7 +49,7 @@ describe("JSON subprocess contract", () => {
       cwd: process.cwd(),
       input: JSON.stringify(input),
       encoding: "utf8",
-      env: { ...process.env, REVIEW_CONTROL_JSON: "{}" },
+      env: { ...process.env, REVIEW_CONTROL_JSON: "{}", REVIEW_STATE_PATH: statePath },
     });
 
     expect(child.status).toBe(0);
@@ -65,6 +81,7 @@ describe("JSON subprocess contract", () => {
   it("does not emit duplicate advice for the same event and snapshot", () => {
     const root = mkdtempSync(join(tmpdir(), "review-cli-dedupe-"));
     roots.push(root);
+    const statePath = initializeRepository(root);
     mkdirSync(join(root, "src"));
     writeFileSync(
       join(root, "src/example.ts"),
@@ -93,7 +110,7 @@ describe("JSON subprocess contract", () => {
         cwd: process.cwd(),
         input,
         encoding: "utf8",
-        env: { ...process.env, REVIEW_CONTROL_JSON: control },
+        env: { ...process.env, REVIEW_CONTROL_JSON: control, REVIEW_STATE_PATH: statePath },
       });
 
     const first = JSON.parse(invoke().stdout) as { advice: Array<unknown> };
@@ -105,6 +122,7 @@ describe("JSON subprocess contract", () => {
   it("preserves the completed edit and reports unavailable without credentials", () => {
     const root = mkdtempSync(join(tmpdir(), "review-cli-no-credential-"));
     roots.push(root);
+    const statePath = initializeRepository(root);
     mkdirSync(join(root, "src"));
     const content = "export type Counter = { count: number };\n";
     const path = join(root, "src/counter.ts");
@@ -125,7 +143,7 @@ describe("JSON subprocess contract", () => {
       cwd: process.cwd(),
       input,
       encoding: "utf8",
-      env: environment,
+      env: { ...environment, REVIEW_STATE_PATH: statePath },
     });
 
     expect(child.status).toBe(0);
@@ -135,5 +153,145 @@ describe("JSON subprocess contract", () => {
       path: "src/counter.ts",
     });
     expect(readFileSync(path, "utf8")).toBe(content);
+  });
+
+  it("reuses a grant, isolates destinations and revokes future dispatch", () => {
+    const root = mkdtempSync(join(tmpdir(), "review-cli-consent-"));
+    roots.push(root);
+    const statePath = initializeRepository(root);
+    mkdirSync(join(root, "src"));
+    writeFileSync(join(root, "src/example.ts"), "export type Example = string;\n");
+    const enableAgain = spawnSync(process.execPath, ["src/cli.ts", "--enable"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({ version: 1, operation: "enable", cwd: root }),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    expect(JSON.parse(enableAgain.stdout)).toMatchObject({ status: "enabled" });
+
+    const request = (id: string) =>
+      JSON.stringify({
+        version: 1,
+        event: {
+          id,
+          kind: "successful-edit",
+          host: "test",
+          cwd: root,
+          paths: ["src/example.ts"],
+        },
+      });
+    const approved = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+      cwd: process.cwd(),
+      input: request("approved"),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    expect(JSON.parse(approved.stdout).results[0]).toMatchObject({ status: "reviewed" });
+
+    writeFileSync(
+      join(root, ".review.jsonc"),
+      '{ "version": 1, "destination": "https://other.example/v1", "consent": true }',
+    );
+    const differentDestination = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+      cwd: process.cwd(),
+      input: request("different-destination"),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    expect(JSON.parse(differentDestination.stdout).results[0]).toMatchObject({
+      status: "skipped",
+      code: "missing_consent",
+    });
+    expect(differentDestination.stdout).not.toContain("Example");
+
+    const enableOther = spawnSync(process.execPath, ["src/cli.ts", "--enable"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({ version: 1, operation: "enable", cwd: root }),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    expect(JSON.parse(enableOther.stdout)).toMatchObject({
+      backend: { destination: "https://other.example/v1" },
+      projectAuthorizationIgnored: true,
+    });
+    const approvedOther = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+      cwd: process.cwd(),
+      input: request("approved-other"),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    expect(JSON.parse(approvedOther.stdout).results[0]).toMatchObject({ status: "reviewed" });
+
+    const disabled = spawnSync(process.execPath, ["src/cli.ts", "--disable"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({ version: 1, operation: "disable", cwd: root }),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    expect(JSON.parse(disabled.stdout)).toMatchObject({ status: "disabled" });
+    const revoked = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+      cwd: process.cwd(),
+      input: request("revoked"),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    expect(JSON.parse(revoked.stdout).results[0]).toMatchObject({
+      status: "skipped",
+      code: "missing_consent",
+    });
+  }, 20_000);
+
+  it("does not inherit consent across working trees", () => {
+    const first = mkdtempSync(join(tmpdir(), "review-cli-root-a-"));
+    const second = mkdtempSync(join(tmpdir(), "review-cli-root-b-"));
+    roots.push(first, second);
+    const statePath = initializeRepository(first);
+    execFileSync("git", ["init", "--quiet", second]);
+    mkdirSync(join(second, "src"));
+    writeFileSync(join(second, "src/example.ts"), "export type Other = string;\n");
+    const child = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({
+        version: 1,
+        event: {
+          id: "other-root",
+          kind: "successful-edit",
+          host: "test",
+          cwd: second,
+          paths: ["src/example.ts"],
+        },
+      }),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    expect(JSON.parse(child.stdout).results[0]).toMatchObject({
+      status: "skipped",
+      code: "missing_consent",
+    });
+    expect(child.stdout).not.toContain("Other");
+  });
+
+  it("inspects credential presence without exposing the value", () => {
+    const root = mkdtempSync(join(tmpdir(), "review-cli-credential-"));
+    roots.push(root);
+    const statePath = initializeRepository(root);
+    const secret = "CREDENTIAL-SENTINEL";
+    const child = spawnSync(process.execPath, ["src/cli.ts", "--inspect-credentials"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({ version: 1, operation: "credentials", cwd: root }),
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        REVIEW_STATE_PATH: statePath,
+        TYPESAFE_API_KEY: secret,
+      },
+    });
+    expect(JSON.parse(child.stdout)).toEqual({
+      version: 1,
+      operation: "credentials",
+      credentialEnvVar: "TYPESAFE_API_KEY",
+      present: true,
+    });
+    expect(child.stdout).not.toContain(secret);
   });
 });
