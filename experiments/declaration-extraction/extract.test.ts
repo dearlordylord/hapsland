@@ -1,6 +1,8 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, unlinkSync, writeFileSync, mkdtempSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "vitest";
 
 const root = resolve(import.meta.dirname, "../..");
@@ -79,7 +81,9 @@ describe("declaration extraction experiment black-box seam", () => {
     expect(record.lsp.exitParamsOmitted).toBe(true);
     expect(record.evaluation.observed).toBe(true);
     expect(record.evaluation.markerChanged).toBe(false);
+    expect(record.evaluation.markerTokenObserved).toBe(false);
     expect(record.evaluation.modulesImported).toBe(false);
+    expect(record.evaluation.noEvaluationObserved).toBe(true);
     const serialized = JSON.stringify(record);
     expect(serialized).not.toContain(root);
     expect(serialized).not.toContain("/tmp/");
@@ -138,10 +142,39 @@ describe("declaration extraction experiment black-box seam", () => {
       expect(record.evaluation.existsBefore).toBe(true);
       expect(record.evaluation.existsAfter).toBe(true);
       expect(record.evaluation.observed).toBe(false);
-      expect(record.evaluation.modulesImported).toBe(false);
+      expect(record.evaluation.modulesImported).toBeNull();
+      expect(record.evaluation.noEvaluationObserved).toBeNull();
       expect(record.evaluation.observation).toBe("indeterminate-marker-preexisted");
     } finally {
       if (existsSync(marker)) unlinkSync(marker);
+    }
+  }, 30_000);
+
+  test("positive control copies and evaluates the fixture module and observes its unique marker token", () => {
+    const temporary = mkdtempSync(join(tmpdir(), "declaration-extraction-control-"));
+    const copiedSource = join(temporary, "src", "target.ts");
+    mkdirSync(join(temporary, "src"), { recursive: true });
+    writeFileSync(join(temporary, "package.json"), '{"type":"module"}\n', "utf8");
+    copyFileSync(resolve(fixture, "workspace/src/target.ts"), copiedSource);
+    try {
+      execFileSync(
+        process.execPath,
+        [
+          "--input-type=module",
+          "-e",
+          `await import(${JSON.stringify(pathToFileURL(copiedSource).href)})`,
+        ],
+        {
+          cwd: temporary,
+          env: { ...process.env, DECLARATION_EXTRACTION_MARKER_TOKEN: "positive-control-token" },
+          encoding: "utf8",
+        },
+      );
+      const marker = join(temporary, ".module-init.marker");
+      expect(existsSync(marker)).toBe(true);
+      expect(readFileSync(marker, "utf8")).toBe("positive-control-token");
+    } finally {
+      rmSync(temporary, { recursive: true, force: true });
     }
   }, 30_000);
 

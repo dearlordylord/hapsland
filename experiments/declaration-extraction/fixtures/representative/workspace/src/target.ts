@@ -1,8 +1,8 @@
-import { LocalId, ImportedShape as RenamedShape, Merged } from "./types";
-import * as Types from "./types";
-import { PublicShape } from "./reexports";
-import { ExternalThing } from "external-types";
-import { ScopedThing } from "@scope/external-types";
+import type { LocalId, ImportedShape as RenamedShape, Merged } from "./types.ts";
+import type * as Types from "./types.ts";
+import type { PublicShape } from "./reexports.ts";
+import type { ExternalThing } from "external-types";
+import type { ScopedThing } from "@scope/external-types";
 
 export interface Order {
   id: LocalId;
@@ -23,4 +23,7 @@ export type OrderPayload = {
 // This top-level initializer is deliberately in the edited module's import
 // graph. The extractor must read source without importing/evaluating it.
 import { writeFileSync } from "node:fs";
-writeFileSync(new URL("../.module-init.marker", import.meta.url), "evaluated");
+writeFileSync(
+  new URL("../.module-init.marker", import.meta.url),
+  process.env.DECLARATION_EXTRACTION_MARKER_TOKEN ?? "evaluated",
+);

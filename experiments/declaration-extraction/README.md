@@ -47,6 +47,11 @@ The deterministic `--fault nonresponding` option is used by the offline tests to
 prove that an in-flight positional request is cancelled at the remaining elapsed
 budget; ordinary extraction always uses the native server.
 
+The fixture's target module has erased type-only imports and one real `node:fs`
+import so the positive-control test can evaluate a copied module under Node 24.
+Extraction itself sets a unique marker token and reports `modulesImported: true`,
+`false`, or `null` (indeterminate when a pre-existing marker prevents attribution).
+
 Run deterministic offline black-box tests with:
 
 ```sh

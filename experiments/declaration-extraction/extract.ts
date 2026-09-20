@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 import { basename, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -451,7 +452,13 @@ const main = async () => {
   const workspace = loadWorkspace(fixture);
   const rootSelection = selectedRoots(fixture, workspace);
   const roots = rootSelection.roots;
-  const markerBefore = fixture.markerPath ? existsSync(fixture.markerPath) : false;
+  const markerBeforeContent = fixture.markerPath && existsSync(fixture.markerPath)
+    ? readFileSync(fixture.markerPath, "utf8")
+    : undefined;
+  const markerBefore = markerBeforeContent !== undefined;
+  const markerToken = `declaration-extraction:${randomUUID()}`;
+  const previousMarkerToken = process.env.DECLARATION_EXTRACTION_MARKER_TOKEN;
+  process.env.DECLARATION_EXTRACTION_MARKER_TOKEN = markerToken;
   const coldStarted = performance.now();
   const lsp = await NativeLspClient.start(fixture.workspaceRoot, 2_000, {
     nonResponding: argument(args, "--fault") === "nonresponding",
@@ -474,9 +481,24 @@ const main = async () => {
   const afterWarmCounts = lsp.snapshotCounts();
   const serverVersion = lsp.serverVersion;
   await lsp.stop();
-  const markerAfter = fixture.markerPath ? existsSync(fixture.markerPath) : false;
-  const markerChanged = markerBefore !== markerAfter;
-  const modulesImported = !markerBefore && markerAfter;
+  if (previousMarkerToken === undefined) delete process.env.DECLARATION_EXTRACTION_MARKER_TOKEN;
+  else process.env.DECLARATION_EXTRACTION_MARKER_TOKEN = previousMarkerToken;
+  const markerAfterContent = fixture.markerPath && existsSync(fixture.markerPath)
+    ? readFileSync(fixture.markerPath, "utf8")
+    : undefined;
+  const markerAfter = markerAfterContent !== undefined;
+  const markerChanged = markerBeforeContent !== markerAfterContent;
+  const markerTokenObserved = markerAfterContent === markerToken;
+  const modulesImported: boolean | null = markerTokenObserved
+    ? true
+    : markerAfterContent === undefined
+      ? false
+      : null;
+  const noEvaluationObserved: boolean | null = !markerBefore && !markerAfter
+    ? true
+    : markerTokenObserved
+      ? false
+      : null;
   const stableCold = JSON.stringify({
     roots: cold.roots,
     context: cold.context,
@@ -546,11 +568,15 @@ const main = async () => {
       existsAfter: markerAfter,
       observed: !markerBefore && !markerAfter,
       markerChanged,
+      markerTokenObserved,
       modulesImported,
-      observation: markerBefore
+      noEvaluationObserved,
+      observation: markerTokenObserved
+        ? "module-evaluated-during-extraction"
+        : markerBefore
         ? "indeterminate-marker-preexisted"
         : markerAfter
-          ? "module-evaluated-during-extraction"
+          ? "indeterminate-marker-changed-without-run-token"
           : "marker-absent-no-evaluation-observed",
     },
     determinism: { coldWarmStable: stableCold === stableWarm },
