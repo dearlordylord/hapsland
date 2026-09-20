@@ -16,6 +16,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import { configuredRules } from "./policy/rules.ts";
 
 const roots: Array<string> = [];
+// Each case launches the real TypeScript subprocess; concurrent evaluation-suite
+// compilation can make that bounded process startup exceed Vitest's 5 s default.
+const SUBPROCESS_TEST_TIMEOUT = 30_000;
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
 });
@@ -50,7 +53,7 @@ const initializeRepository = (root: string, requestedStatePath?: string) => {
   return statePath;
 };
 
-describe("JSON subprocess contract", () => {
+describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () => {
   it("reviews a completed edit and reserves stdout for one protocol response", () => {
     const root = mkdtempSync(join(tmpdir(), "review-cli-"));
     roots.push(root);
