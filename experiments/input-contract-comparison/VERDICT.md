@@ -34,3 +34,12 @@ advantage is not established and the controls are not strong enough for producti
 authorization. Do not run another paid matrix without a newly approved corpus or gate
 revision. Individual paid probabilities, source-bearing responses, credentials, and raw
 provider usage were not retained; only aggregate sanitized evidence is committed.
+
+## Bounded follow-up disposition
+
+The follow-up revision does not reinterpret this verdict or authorize a paid call. It
+prospectively corrects two design defects: the old diff-sufficient gate scored
+declaration-context, and several positive controls described Rule 3 while the run checked
+Rule 2. The revised corpus uses balanced self-contained Rule 2 controls and a material,
+offline-guarded whole-file contrast. Paired context/dilution wins and negative-control
+performance across all applicable modes must pass the gates in [`PLAN.md`](./PLAN.md).

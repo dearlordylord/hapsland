@@ -64,3 +64,25 @@ The final report must be `advance-to-production-architecture`, `reject-or-narrow
 `inconclusive`. Any missing applicable observation, transport unavailability, required
 incomplete context, or unavailable timing/size gate makes the result inconclusive;
 `not-applicable` arms are reported separately and do not become semantic negatives.
+
+## Follow-up pre-registration after `reject-or-narrow`
+
+No additional paid run is authorized by this revision. Before any separately approved
+follow-up, the checked-in corpus and gates now address the first run's confounds:
+
+- Every context-required or whole-file-dilution fixture has a fixed, unchanged,
+  semantically clear declaration tail. An offline guard requires whole-file source to
+  be at least three times bounded declaration-context source for every such fixture.
+- The eight diff-sufficient controls are balanced: four Rule 2 violations and four
+  clear controls. Optional-range examples that tested Rule 3 were replaced with explicit
+  condition/conditional-field combinations visible in the focused hunk.
+- The focused-diff arm must pass at least six of eight controls and may trail the best
+  other arm by at most one.
+- Context advantage requires three paired context-only wins and at most one whole-file-
+  only win. Dilution requires five context passes, two context-only wins, and zero
+  whole-file-only wins.
+- Negative controls are checked across every applicable renderer scenario, allowing at
+  most two failures overall and at most one per mode.
+
+These are prospective gates. The 2026-09-20 evidence remains evaluated only against
+its original pre-registration and must not be rescored against this revision.

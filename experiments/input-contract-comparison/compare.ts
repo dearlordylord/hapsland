@@ -73,6 +73,17 @@ const candidate = (byMode: ReadonlyMap<InputMode, readonly ScenarioResult[]>, fi
 
 const passedFor = (byMode: ReadonlyMap<InputMode, readonly ScenarioResult[]>, fixtureIds: readonly string[], mode: InputMode) => candidate(byMode, fixtureIds, mode).filter((scenario) => scenario?.status === "passed").length;
 
+const pairedWins = (
+  byMode: ReadonlyMap<InputMode, readonly ScenarioResult[]>,
+  fixtureIds: readonly string[],
+  preferred: InputMode,
+  baseline: InputMode,
+) => fixtureIds.filter((fixtureId) => {
+  const preferredScenario = candidate(byMode, [fixtureId], preferred)[0];
+  const baselineScenario = candidate(byMode, [fixtureId], baseline)[0];
+  return preferredScenario?.status === "passed" && baselineScenario?.status === "failed";
+}).length;
+
 export type GateInput = {
   readonly byMode: ReadonlyMap<InputMode, readonly ScenarioResult[]>;
   readonly contextRequired: readonly string[];
@@ -84,29 +95,24 @@ export type GateInput = {
 
 export const evaluateGates = (input: GateInput): readonly ComparisonGate[] => {
   const context = passedFor(input.byMode, input.contextRequired, "declaration-context");
-  const contextWhole = passedFor(input.byMode, input.contextRequired, "whole-file");
+  const contextWins = pairedWins(input.byMode, input.contextRequired, "declaration-context", "whole-file");
+  const wholeContextWins = pairedWins(input.byMode, input.contextRequired, "whole-file", "declaration-context");
   const dilution = passedFor(input.byMode, input.wholeFileDilution, "declaration-context");
-  const whole = passedFor(input.byMode, input.wholeFileDilution, "whole-file");
-  const controls = passedFor(input.byMode, input.diffSufficient, "declaration-context");
+  const dilutionWins = pairedWins(input.byMode, input.wholeFileDilution, "declaration-context", "whole-file");
+  const wholeDilutionWins = pairedWins(input.byMode, input.wholeFileDilution, "whole-file", "declaration-context");
+  const controls = passedFor(input.byMode, input.diffSufficient, "diff");
   const controlBestBaseline = Math.max(
-    passedFor(input.byMode, input.diffSufficient, "diff"),
     passedFor(input.byMode, input.diffSufficient, "whole-file"),
     passedFor(input.byMode, input.diffSufficient, "declaration-only"),
+    passedFor(input.byMode, input.diffSufficient, "declaration-context"),
   );
-  const applicableNegativeControls = input.negativeControls.filter((fixtureId) =>
-    (["diff", "whole-file", "declaration-only", "declaration-context"] as const).every((mode) => {
-      const scenario = candidate(input.byMode, [fixtureId], mode)[0];
-      return scenario?.status !== "not-applicable";
-    }),
-  );
-  const applicableClearCrossings = applicableNegativeControls.filter((fixtureId) => {
-    const scenario = candidate(input.byMode, [fixtureId], "declaration-context")[0];
-    return scenario?.status === "failed";
-  }).length;
-  const clearBestBaseline = Math.min(
-    applicableNegativeControls.length - passedFor(input.byMode, applicableNegativeControls, "diff"),
-    applicableNegativeControls.length - passedFor(input.byMode, applicableNegativeControls, "whole-file"),
-    applicableNegativeControls.length - passedFor(input.byMode, applicableNegativeControls, "declaration-only"),
+  const applicableNegativeScenarios = (["diff", "whole-file", "declaration-only", "declaration-context"] as const)
+    .flatMap((mode) => candidate(input.byMode, input.negativeControls, mode))
+    .filter((scenario): scenario is ScenarioResult => scenario !== undefined && scenario.status !== "not-applicable");
+  const clearPasses = applicableNegativeScenarios.filter((scenario) => scenario.status === "passed").length;
+  const clearRequired = Math.max(0, applicableNegativeScenarios.length - 2);
+  const eachModeHasAtMostOneClearFailure = (["diff", "whole-file", "declaration-only", "declaration-context"] as const).every((mode) =>
+    applicableNegativeScenarios.filter((scenario) => scenario.mode === mode && scenario.status !== "passed").length <= 1,
   );
   const checkedScenarios = [...input.byMode.values()].flat().filter((scenario) =>
     (scenario.expectation.kind === "clear" || scenario.expectation.kind === "violation") && scenario.status !== "not-applicable",
@@ -114,10 +120,10 @@ export const evaluateGates = (input: GateInput): readonly ComparisonGate[] => {
   const available = checkedScenarios.every((scenario) => scenario.available === 3);
   return [
     { name: "context-required semantic", passed: context >= 10, numerator: context, denominator: input.contextRequired.length, required: 10 },
-    { name: "context-required exceeds whole-file", passed: context - contextWhole >= 3, numerator: context - contextWhole, denominator: input.contextRequired.length, required: 3 },
-    { name: "whole-file dilution semantic", passed: dilution >= 5 && dilution - whole >= 2, numerator: dilution, denominator: input.wholeFileDilution.length, required: 5 },
-    { name: "diff-sufficient controls", passed: controls >= 5 && controlBestBaseline - controls <= 1, numerator: controls, denominator: input.diffSufficient.length, required: 5 },
-    { name: "negative controls remain clear", passed: applicableClearCrossings <= 1 && applicableClearCrossings <= clearBestBaseline + 1, numerator: applicableNegativeControls.length - applicableClearCrossings, denominator: applicableNegativeControls.length, required: Math.max(0, applicableNegativeControls.length - 1), ...(applicableNegativeControls.length === 0 ? { reason: "no fully applicable negative controls" } : {}) },
+    { name: "context-required paired advantage", passed: contextWins >= 3 && wholeContextWins <= 1, numerator: contextWins, denominator: input.contextRequired.length, required: 3, ...(wholeContextWins <= 1 ? {} : { reason: `${wholeContextWins} whole-file-only wins exceed the one-case tolerance` }) },
+    { name: "whole-file dilution paired advantage", passed: dilution >= 5 && dilutionWins >= 2 && wholeDilutionWins === 0, numerator: dilutionWins, denominator: input.wholeFileDilution.length, required: 2, ...(wholeDilutionWins === 0 ? {} : { reason: `${wholeDilutionWins} whole-file-only wins are not allowed` }) },
+    { name: "focused-diff sufficient controls", passed: controls >= 6 && controlBestBaseline - controls <= 1, numerator: controls, denominator: input.diffSufficient.length, required: 6 },
+    { name: "negative controls remain clear across applicable modes", passed: applicableNegativeScenarios.length > 0 && clearPasses >= clearRequired && eachModeHasAtMostOneClearFailure, numerator: clearPasses, denominator: applicableNegativeScenarios.length, required: clearRequired, ...(applicableNegativeScenarios.length === 0 ? { reason: "no applicable negative-control scenarios" } : eachModeHasAtMostOneClearFailure ? {} : { reason: "one or more input modes has over one negative-control failure" }) },
     { name: "three available repetitions", passed: available, numerator: available ? 1 : 0, denominator: 1, required: 1, ...(available ? {} : { reason: "one or more checked comparisons has fewer than three available repetitions" }) },
   ];
 };

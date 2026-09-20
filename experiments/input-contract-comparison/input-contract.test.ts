@@ -4,13 +4,13 @@ import * as Layer from "effect/Layer";
 import { controlledDecisionModelLayer } from "../../src/test-support/controlled-decision-model.ts";
 import { configuredRules } from "../../src/policy/rules.ts";
 import { ReviewBackend } from "../../src/ports/review-backend.ts";
-import { compareScenario } from "./compare.ts";
+import { compareScenario, evaluateGates } from "./compare.ts";
 import { inputComparisonFixtures, fixtureSummary } from "./fixtures.ts";
 import { observe } from "./evaluate.ts";
 import { CallBudget, planRun } from "./plan.ts";
 import { runPlanned } from "./runner.ts";
 import { modes, renderDiff, renderInput } from "./render.ts";
-import { bandContains, type Observation } from "./protocol.ts";
+import { bandContains, type InputMode, type Observation, type ScenarioResult } from "./protocol.ts";
 import { sharedExpectationRecord, sharedFixtureRecord } from "./shared-model.ts";
 
 const fixture = inputComparisonFixtures[0]!;
@@ -42,7 +42,7 @@ describe("input-contract comparison corpus", () => {
     expect(fixtureSummary.diffSufficient).toBeGreaterThanOrEqual(6);
     expect(fixtureSummary.negativeControls).toBeGreaterThanOrEqual(6);
     expect(inputComparisonFixtures.some((item) => item.expectations.some((expectation) => expectation.kind === "ambiguous"))).toBe(true);
-    expect(inputComparisonFixtures.some((item) => item.expectations.some((expectation) => expectation.kind === "unchecked"))).toBe(true);
+    expect(inputComparisonFixtures.every((item) => item.expectations.some((expectation) => expectation.kind !== "unchecked"))).toBe(true);
   });
 
   it("validates fixture identity and authored expectations through the shared model", () => {
@@ -87,8 +87,20 @@ describe("input-contract comparison corpus", () => {
     expect(rendered.completeness.omissions).toEqual(expect.arrayContaining([
       expect.objectContaining({ name: "DeliveryChannel", required: true }),
     ]));
-    const irrelevant = renderInput(inputComparisonFixtures.find((item) => item.id === "iface-profile-control")!, "declaration-context");
-    expect(irrelevant.completeness.status).toBe("incomplete-irrelevant");
+  });
+
+  it("pre-registers material whole-file contrast and Rule 2-specific diff controls", () => {
+    const contrastFixtures = inputComparisonFixtures.filter((item) => item.contextRequired || item.wholeFileDilution);
+    for (const item of contrastFixtures) {
+      const whole = renderInput(item, "whole-file");
+      const context = renderInput(item, "declaration-context");
+      expect(whole.sourceCharacters / context.sourceCharacters, item.id).toBeGreaterThanOrEqual(3);
+    }
+    const diffControls = inputComparisonFixtures.filter((item) => item.diffSufficient);
+    expect(diffControls).toHaveLength(8);
+    expect(diffControls.every((item) => item.evidence.requiredReferences.length === 0)).toBe(true);
+    expect(diffControls.filter((item) => item.expectations[0]?.kind === "violation")).toHaveLength(4);
+    expect(diffControls.filter((item) => item.expectations[0]?.kind === "clear")).toHaveLength(4);
   });
 
   it("records structurally unavailable renderer arms without treating them as semantic negatives", () => {
@@ -143,6 +155,51 @@ describe("input-contract comparison math", () => {
     }]);
     expect(result.status).toBe("not-applicable");
     expect(result.available).toBe(0);
+  });
+
+  it("scores diff-sufficient controls from the focused-diff arm", () => {
+    const ids = inputComparisonFixtures.filter((item) => item.diffSufficient).map((item) => item.id);
+    const modes: readonly InputMode[] = ["diff", "whole-file", "declaration-only", "declaration-context"];
+    const byMode = new Map<InputMode, readonly ScenarioResult[]>(modes.map((mode) => [mode, ids.map((fixtureId) => ({
+      fixtureId,
+      mode,
+      expectation: inputComparisonFixtures.find((item) => item.id === fixtureId)!.expectations[0]!,
+      observations: [],
+      available: 3,
+      inBand: mode === "declaration-context" ? 0 : 3,
+      status: mode === "declaration-context" ? "failed" as const : "passed" as const,
+    }))]));
+    const gate = evaluateGates({ byMode, contextRequired: [], diffSufficient: ids, wholeFileDilution: [], negativeControls: [] })
+      .find((item) => item.name === "focused-diff sufficient controls");
+    expect(gate).toMatchObject({ passed: true, numerator: 8, denominator: 8, required: 6 });
+  });
+
+  it("requires paired wins for context and dilution advantage", () => {
+    const selected = inputComparisonFixtures.filter((item) => item.contextRequired).slice(0, 5);
+    const makeScenarios = (mode: InputMode): readonly ScenarioResult[] => selected.map((item, index) => ({
+      fixtureId: item.id,
+      mode,
+      expectation: item.expectations[0]!,
+      observations: [],
+      available: 3,
+      inBand: mode === "whole-file" && index < 3 ? 0 : 3,
+      status: mode === "whole-file" && index < 3 ? "failed" : "passed",
+    }));
+    const byMode = new Map<InputMode, readonly ScenarioResult[]>([
+      ["diff", makeScenarios("diff")],
+      ["whole-file", makeScenarios("whole-file")],
+      ["declaration-only", makeScenarios("declaration-only")],
+      ["declaration-context", makeScenarios("declaration-context")],
+    ]);
+    const gates = evaluateGates({
+      byMode,
+      contextRequired: selected.map((item) => item.id),
+      diffSufficient: [],
+      wholeFileDilution: selected.map((item) => item.id),
+      negativeControls: [],
+    });
+    expect(gates.find((item) => item.name === "context-required paired advantage")).toMatchObject({ passed: true, numerator: 3 });
+    expect(gates.find((item) => item.name === "whole-file dilution paired advantage")).toMatchObject({ passed: true, numerator: 3 });
   });
 });
 

@@ -9,13 +9,36 @@ type FixtureOptions = Omit<Fixture, "expectations" | "domain" | "path" | "conten
   readonly rationale: string;
 };
 
+// The first run's nominal dilution files were almost the same size as bounded
+// declaration context. This fixed, semantically-clear tail makes the follow-up
+// contrast real without introducing another Rule 2 finding.
+const contrastTail = `
+interface UnrelatedAuditEntry01 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry02 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry03 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry04 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry05 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry06 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry07 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry08 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry09 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry10 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry11 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry12 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry13 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }
+interface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }
+`;
+
 const make = (options: FixtureOptions): Fixture => {
   const { expected, rationale, ...fixtureOptions } = options;
   if (fixtureOptions.before === fixtureOptions.after) {
     throw new Error(`fixture ${fixtureOptions.id} must contain a real before/after edit`);
   }
-  const before = fixtureOptions.before;
-  const after = fixtureOptions.after;
+  const contrastRequired = fixtureOptions.contextRequired === true || fixtureOptions.wholeFileDilution === true;
+  const before = contrastRequired ? `${fixtureOptions.before}${contrastTail}` : fixtureOptions.before;
+  const after = contrastRequired ? `${fixtureOptions.after}${contrastTail}` : fixtureOptions.after;
   const base = {
     ...fixtureOptions,
     before,
@@ -90,40 +113,32 @@ export interface Order {
     rationale: "The declaration is intentionally borderline: whether downloadUrl is independent of the state is domain-dependent and is reported without a hard gate label.",
   }),
   make({
-    id: "iface-range-diff", name: "self-contained range", category: "interface", rootName: "Range", rootKind: "interface",
-    before: `export interface Range {
-  from?: number;
+    id: "iface-range-diff", name: "self-contained authentication state", category: "interface", rootName: "AuthState", rootKind: "interface",
+    before: `export interface AuthState {
+  authenticated: boolean;
 }
 `,
-    after: `export interface Range {
-  from?: number;
-  to?: number;
+    after: `export interface AuthState {
+  authenticated: boolean;
+  userId?: string;
 }
 `,
     evidence: { requiredReferences: [] }, diffSufficient: true, expected: "violation",
-    rationale: "Both endpoints are independently optional in the edited declaration; no external evidence is needed to identify the impossible half-range states.",
+    rationale: "The diff shows authenticated false beside a settable userId; no external evidence is needed to identify that meaningless combination.",
   }),
   make({
     id: "iface-profile-control", name: "independent profile attributes", category: "interface", rootName: "Profile", rootKind: "interface",
-    before: `interface ProfileNoise { id: string; value: number; }
-interface ProfileNoiseA { id: string; value: number; }
-interface ProfileNoiseB { id: string; value: number; }
-interface ProfileNoiseC { id: string; value: number; }
-export interface Profile {
-  nickname?: string;
+    before: `export interface Profile {
+  id: string;
 }
 `,
-    after: `interface ProfileNoise { id: string; value: number; }
-interface ProfileNoiseA { id: string; value: number; }
-interface ProfileNoiseB { id: string; value: number; }
-interface ProfileNoiseC { id: string; value: number; }
-export interface Profile {
-  nickname?: string;
-  phone?: string;
+    after: `export interface Profile {
+  id: string;
+  displayName: string;
 }
 `,
-    evidence: { requiredReferences: [], optionalReferences: ["AuditTrail"] }, diffSufficient: true, wholeFileDilution: true, negativeControl: true, expected: "clear",
-    rationale: "Nickname and phone are independent attributes of one profile, so their cross-product is meaningful even with an unrelated declaration in the whole-file control.",
+    evidence: { requiredReferences: [] }, diffSufficient: true, wholeFileDilution: true, negativeControl: true, expected: "clear",
+    rationale: "The edit adds one required independent profile attribute and creates no conditional field or meaningless combination.",
   }),
   make({
     id: "iface-dilution", name: "large unrelated interface file", category: "interface", rootName: "Shipment", rootKind: "interface",
@@ -231,20 +246,18 @@ export type Money = {
     rationale: "Amount and currency are intentionally one value; every representable object has both parts even when a whole-file control includes an unrelated alias.",
   }),
   make({
-    id: "alias-report-range", name: "report range", category: "type-alias", rootName: "ReportRange", rootKind: "type-alias",
-    before: `export type ReportRange = {
-  month?: string;
-  from?: string;
+    id: "alias-report-range", name: "feature rollout state", category: "type-alias", rootName: "FeatureRollout", rootKind: "type-alias",
+    before: `export type FeatureRollout = {
+  enabled: boolean;
 }
 `,
-    after: `export type ReportRange = {
-  month?: string;
-  from?: string;
-  to?: string;
+    after: `export type FeatureRollout = {
+  enabled: boolean;
+  rolloutPercentage?: number;
 }
 `,
-    evidence: { requiredReferences: [] }, diffSufficient: true, expected: "unchecked",
-    rationale: "The report-range fixture is retained as a human-authored unchecked example until the product owner confirms whether month and custom ranges are mutually exclusive.",
+    evidence: { requiredReferences: [] }, diffSufficient: true, expected: "violation",
+    rationale: "The diff admits a disabled feature with a rollout percentage; the condition and conditional field are both visible in the hunk.",
   }),
   make({
     id: "alias-dilution", name: "diluted job command alias", category: "type-alias", rootName: "JobCommand", rootKind: "type-alias",
@@ -324,34 +337,32 @@ export const NotificationSchema = z.object({
   make({
     id: "zod-profile", name: "Zod profile control", category: "zod", rootName: "ProfileSchema", rootKind: "schema",
     before: `import { z } from "zod";
-export const ProfileSchema = z.object({
-  nickname: z.string().optional(),
-});
+export const ProfileSchema = z.object({ id: z.string() });
 `,
     after: `import { z } from "zod";
 export const ProfileSchema = z.object({
-  nickname: z.string().optional(),
-  phone: z.string().optional(),
+  id: z.string(),
+  displayName: z.string(),
 });
 `,
     evidence: { requiredReferences: [] }, diffSufficient: true, negativeControl: true, expected: "clear",
-    rationale: "Both optional fields describe independent profile attributes; no combination is inherently meaningless.",
+    rationale: "The edit adds one required independent profile attribute and creates no conditional field or meaningless combination.",
   }),
   make({
-    id: "zod-range", name: "Zod range schema", category: "zod", rootName: "RangeSchema", rootKind: "schema",
+    id: "zod-range", name: "Zod delivery status", category: "zod", rootName: "DeliverySchema", rootKind: "schema",
     before: `import { z } from "zod";
-export const RangeSchema = z.object({
-  from: z.number().optional(),
+export const DeliverySchema = z.object({
+  status: z.enum(["pending", "delivered"]),
 });
 `,
     after: `import { z } from "zod";
-export const RangeSchema = z.object({
-  from: z.number().optional(),
-  to: z.number().optional(),
+export const DeliverySchema = z.object({
+  status: z.enum(["pending", "delivered"]),
+  deliveredAt: z.string().optional(),
 });
 `,
     evidence: { requiredReferences: [] }, diffSufficient: true, expected: "violation",
-    rationale: "The schema admits a range with only one endpoint, a concrete meaningless combination for the stated range domain.",
+    rationale: "The diff admits pending beside deliveredAt; the condition and conditional field are self-contained.",
   }),
   make({
     id: "zod-payment", name: "Zod payment schema", category: "zod", rootName: "PaymentSchema", rootKind: "schema",
@@ -461,20 +472,20 @@ export const MoneySchema = Schema.Struct({
     rationale: "Amount and currency are one complete money value; the schema does not create conditional fields.",
   }),
   make({
-    id: "effect-range", name: "Effect range schema", category: "effect-schema", rootName: "RangeSchema", rootKind: "schema",
+    id: "effect-range", name: "Effect authentication schema", category: "effect-schema", rootName: "AuthSchema", rootKind: "schema",
     before: `import * as Schema from "effect/Schema";
-export const RangeSchema = Schema.Struct({
-  from: Schema.optionalKey(Schema.String),
+export const AuthSchema = Schema.Struct({
+  authenticated: Schema.Boolean,
 });
 `,
     after: `import * as Schema from "effect/Schema";
-export const RangeSchema = Schema.Struct({
-  from: Schema.optionalKey(Schema.String),
-  to: Schema.optionalKey(Schema.String),
+export const AuthSchema = Schema.Struct({
+  authenticated: Schema.Boolean,
+  userId: Schema.optionalKey(Schema.String),
 });
 `,
     evidence: { requiredReferences: [] }, diffSufficient: true, expected: "violation",
-    rationale: "The range schema admits an end without a beginning and vice versa, which the domain does not define.",
+    rationale: "The diff admits authenticated false beside a userId; no outbound declaration is needed to see the meaningless combination.",
   }),
   make({
     id: "effect-notification", name: "Effect notification schema", category: "effect-schema", rootName: "NotificationSchema", rootKind: "schema",
