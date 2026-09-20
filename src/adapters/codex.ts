@@ -57,7 +57,7 @@ export const toReviewRequest = (
   if (command === undefined) return undefined;
   const paths = patchPaths(command);
   if (paths.length === 0) return undefined;
-  return {
+  const request: ReviewRequest = {
     version: 1,
     event: {
       id: `${event.session_id}:${event.turn_id}:${event.tool_use_id}`,
@@ -67,6 +67,15 @@ export const toReviewRequest = (
       paths,
     },
   };
+  // Keep the version-1 request's historical enumerable shape stable while
+  // carrying the native host session identity to the observational receipt.
+  Object.defineProperty(request.event, "sessionId", {
+    value: event.session_id,
+    enumerable: false,
+    writable: false,
+    configurable: false,
+  });
+  return request;
 };
 
 const formatAdvice = (response: ReviewResponse) => {

@@ -80,6 +80,8 @@ export const SuccessfulEditEvent = Schema.Struct({
   kind: Schema.Literal("successful-edit"),
   host: Schema.String,
   cwd: Schema.String,
+  /** Host-provided session identity used only for source-free local receipts. */
+  sessionId: Schema.optionalKey(Schema.NonEmptyString),
   paths: Schema.Array(Schema.String),
 });
 
