@@ -9,6 +9,7 @@ const root = resolve(import.meta.dirname, "../..");
 const command = resolve(root, "experiments/declaration-extraction/extract.ts");
 const fixture = resolve(root, "experiments/declaration-extraction/fixtures/representative");
 const zodFixture = resolve(root, "experiments/declaration-extraction/fixtures/zod");
+const zodShadowFixture = resolve(root, "experiments/declaration-extraction/fixtures/zod-shadow");
 const effectFixture = resolve(root, "experiments/declaration-extraction/fixtures/effect");
 
 const runFixture = (fixturePath: string, edit: string, extra: string[] = []) => {
@@ -274,7 +275,7 @@ describe("declaration extraction experiment black-box seam", () => {
       transformed.schema.expression,
     ]);
     expect(transformed.schema.expression).toContain(".transform");
-    expect(roots.some((root) => ["Ordinary", "OrdinaryNamespace", "OrdinaryCall", "Treeified", "Locales"].includes(root.name))).toBe(false);
+    expect(roots.some((root) => ["Ordinary", "OrdinaryNamespace", "OrdinaryCall", "Treeified", "Locales", "Regexes"].includes(root.name))).toBe(false);
     expect(roots.find((root) => root.name === "MissingConstructor")?.schema.provenance).toBe("null");
     expect(record.extraction.completeness.reasons).toContain("schema-unresolved");
     expect(record.evaluation.modulesImported).toBe(false);
@@ -284,6 +285,44 @@ describe("declaration extraction experiment black-box seam", () => {
     const serialized = JSON.stringify(record);
     expect(serialized).not.toContain(root);
     expect(serialized).not.toContain("/tmp/");
+  }, 60_000);
+
+  test("rejects unallowlisted Zod framework exports such as regexes", () => {
+    const record = runFixture(zodFixture, "src/target.ts:0:0-40:0");
+    expect((record.extraction.roots as Array<Record<string, any>>).some((root) => root.name === "Regexes")).toBe(false);
+  }, 60_000);
+
+  test("does not request Zod provenance when the external package cap is zero", () => {
+    const record = runFixture(zodFixture, "src/target.ts:0:0-40:0", [
+      "--caps",
+      JSON.stringify({ externalPackages: 0 }),
+    ]);
+    expect(record.positionalRequestCounts.cold["textDocument/definition"]).toBeLessThan(18);
+    expect(record.extraction.schemaFailures.some((failure: any) => failure.name === "Address" && failure.reason === "external-packages")).toBe(true);
+    expect(record.extraction.roots.find((root: any) => root.name === "Address")?.schema.constructor.definitions).toHaveLength(0);
+    expect(record.extraction.completeness.observed.externalPackages).toBe(0);
+  }, 60_000);
+
+  test("applies the source-character cap cumulatively across schema roots", () => {
+    const record = runFixture(zodFixture, "src/target.ts:0:0-40:0", [
+      "--caps",
+      JSON.stringify({ sourceCharacters: 200 }),
+    ]);
+    expect(record.extraction.roots.find((root: any) => root.name === "Address")?.schema.constructor.definitions.length).toBeGreaterThan(0);
+    expect(record.extraction.roots.find((root: any) => root.name === "Composed")?.schema.constructor.definitions.length).toBeGreaterThan(0);
+    expect(record.extraction.schemaFailures.some((failure: any) => failure.name === "NamedAlias" && failure.reason === "source-characters")).toBe(true);
+    expect(record.extraction.completeness.reasons).toContain("source-characters");
+  }, 60_000);
+
+  test("uses LSP identity for same-name shadowed schema references", () => {
+    const record = runFixture(zodShadowFixture, "all");
+    const roots = record.extraction.roots as Array<Record<string, any>>;
+    expect(roots.map((root) => root.name)).toEqual(["Address", "GenuineWrapper", "ShadowWrapper"]);
+    const shadowReferences = (record.extraction.edges as Array<Record<string, any>>).filter(
+      (edge) => edge.from.name === "ShadowWrapper" && edge.reference.name === "Address",
+    );
+    expect(shadowReferences.some((edge) => edge.definitions?.[0]?.declaration?.name === "ShadowWrapper")).toBe(true);
+    expect(shadowReferences.filter((edge) => edge.definitions?.[0]?.declaration?.name === "Address")).toHaveLength(1);
   }, 60_000);
 
   test("recognizes Effect Schema named, namespace, aliased, re-exported, composed, transformed, and declared roots", () => {

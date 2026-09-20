@@ -26,6 +26,7 @@ export const Wrapped = wrap(Composed);
 // Framework-owned APIs that return errors/configuration, not schemas.
 export const Treeified = Z.treeifyError({ issues: [] } as never);
 export const Locales = Z.locales;
+export const Regexes = Z.regexes;
 export const MissingConstructor = globalThis.missingZodFactory?.(Composed);
 
 // Similar-looking ordinary values are deliberately not schema roots.

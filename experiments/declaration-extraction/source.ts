@@ -67,6 +67,11 @@ export type SchemaEvidence = {
   referencedSchemaIds: string[];
 };
 
+const schemaFrameworkPackageHints = new WeakMap<SchemaEvidence, "zod" | "effect">();
+
+export const schemaFrameworkPackageHint = (schema: SchemaEvidence) =>
+  schemaFrameworkPackageHints.get(schema);
+
 export type SyntaxReference = {
   name: string;
   syntaxKind: string;
@@ -354,8 +359,27 @@ const constructorShape = (input: TreeNode): ConstructorShape | undefined => {
   return undefined;
 };
 
+const expressionRootIdentifier = (input: TreeNode): string | undefined => {
+  const node = unwrapExpression(input);
+  if (node.type === "call_expression") {
+    const callee = node.namedChildren.find((child) =>
+      child.type === "member_expression" ||
+      child.type === "optional_member_expression" ||
+      child.type === "identifier" ||
+      child.type === "call_expression" ||
+      child.type === "parenthesized_expression",
+    );
+    return callee ? expressionRootIdentifier(callee) : undefined;
+  }
+  if (node.type === "member_expression" || node.type === "optional_member_expression") {
+    const object = node.namedChildren[0];
+    return object ? expressionRootIdentifier(object) : undefined;
+  }
+  return node.type === "identifier" || node.type === "type_identifier" ? node.text : undefined;
+};
+
 const importedFrameworkNames = (tree: Tree) => {
-  const names = new Set<string>();
+  const names = new Map<string, "zod" | "effect">();
   const visit = (node: TreeNode) => {
     if (node.type === "import_statement") {
       const source = node.namedChildren.find((child) => child.type === "string")?.text.slice(1, -1) ?? "";
@@ -365,7 +389,7 @@ const importedFrameworkNames = (tree: Tree) => {
           if (child.type === "namespace_import" || child.type === "import_specifier") {
             const identifiers = child.namedChildren.filter((item) => item.type === "identifier");
             const local = identifiers.at(-1);
-            if (local) names.add(local.text);
+            if (local) names.set(local.text, source === "effect/Schema" ? "effect" : "zod");
           }
         }
       }
@@ -373,23 +397,6 @@ const importedFrameworkNames = (tree: Tree) => {
     for (const child of node.namedChildren) visit(child);
   };
   visit(tree.rootNode);
-  return names;
-};
-
-const localBindingNames = (root: TreeNode) => {
-  const names = new Set<string>();
-  for (const node of descendants(root)) {
-    if (node.type === "arrow_function" || node.type === "function_declaration" || node.type === "function_expression") {
-      const parameters = node.namedChildren.find(
-        (child) => child.type === "formal_parameters" || child.type === "required_parameter" || child.type === "parameters",
-      );
-      if (parameters) {
-        for (const nested of descendants(parameters)) {
-          if (nested.type === "identifier") names.add(nested.text);
-        }
-      }
-    }
-  }
   return names;
 };
 
@@ -406,11 +413,10 @@ const schemaReferences = (
   declarationNameText: string,
   frameworkNames: Set<string>,
 ) => {
-  const localNames = localBindingNames(root);
   const references: SyntaxReference[] = [];
   for (const node of descendants(root)) {
     if (node.type !== "identifier") continue;
-    if (node.text === declarationNameText || frameworkNames.has(node.text) || localNames.has(node.text)) continue;
+    if (node.text === declarationNameText || frameworkNames.has(node.text)) continue;
     if (isObjectKey(node)) continue;
     // A named property is represented separately as property_identifier and
     // therefore never reaches this branch. Keep references to identifiers in
@@ -448,7 +454,8 @@ const schemaExpressionShape = (value: TreeNode) => {
  */
 export const schemaCandidatesFor = (sourceFile: SourceFile, path = sourceFile.path): DeclarationArtifact[] => {
   const occurrences = new Map<string, number>();
-  const frameworkNames = importedFrameworkNames(sourceFile.tree);
+  const frameworkPackages = importedFrameworkNames(sourceFile.tree);
+  const frameworkNames = new Set(frameworkPackages.keys());
   const candidates: DeclarationArtifact[] = [];
   for (const declaration of lexicalDeclarations(sourceFile.tree)) {
     for (const declarator of variableDeclarators(declaration)) {
@@ -495,6 +502,8 @@ export const schemaCandidatesFor = (sourceFile: SourceFile, path = sourceFile.pa
         node: declaration,
         schema,
       });
+      const packageHint = frameworkPackages.get(expressionRootIdentifier(value) ?? "");
+      if (packageHint) schemaFrameworkPackageHints.set(schema, packageHint);
     }
   }
   return candidates.sort((left, right) => left.range.byte.start - right.range.byte.start || left.name.localeCompare(right.name));

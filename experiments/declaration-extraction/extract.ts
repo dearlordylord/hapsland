@@ -19,6 +19,7 @@ import {
   parseSource,
   pathFromUri,
   schemaCandidatesFor,
+  schemaFrameworkPackageHint,
   type DeclarationArtifact,
   type DeclarationKind,
   type ExactRange,
@@ -270,37 +271,6 @@ const effectSchemaSymbols = new Set([
   "Unknown", "Undefined", "Void", "compose", "filter", "refine", "check", "suspend", "transform",
 ]);
 
-const zodNonSchemaSymbols = new Set([
-  "locales", "treeifyError", "prettifyError", "formatError", "flattenError", "toJSONSchema",
-  "config", "registry", "globalRegistry", "clone", "NEVER", "INVALID", "compile", "withParser",
-]);
-
-const effectNonSchemaSymbols = new Set([
-  "isSchema", "isSchemaError", "decodeSync", "encodeSync",
-  "decodeUnknownSync", "encodeUnknownSync", "toJsonSchemaDocument", "toStandardSchemaV1", "makeFilter",
-]);
-
-const hasFrameworkNonSchemaDefinition = (schema: NonNullable<DeclarationArtifact["schema"]>) => {
-  const definitions = schema.constructor.definitions;
-  // The spelling alone is not enough: a project-owned wrapper may legitimately
-  // be named `clone`, `isSchema`, or another framework API.  Filter only when
-  // every native-LSP location is a known framework-owned non-schema export. A
-  // package definition whose selection range is a module export can lose the
-  // symbol spelling (`Z.locales` is one such TypeScript 7 response), so the
-  // candidate name is accepted only after the package identity is established.
-  return definitions.length > 0 && definitions.every((definition) => {
-    if (definition.packageName === "zod") {
-      return (definition.symbolName !== null && zodNonSchemaSymbols.has(definition.symbolName)) ||
-        zodNonSchemaSymbols.has(schema.constructor.name);
-    }
-    if (definition.packageName === "effect") {
-      return (definition.symbolName !== null && effectNonSchemaSymbols.has(definition.symbolName)) ||
-        effectNonSchemaSymbols.has(schema.constructor.name);
-    }
-    return false;
-  });
-};
-
 const schemaFrameworkForDefinition = (definition: NavigationDefinition, candidateName?: string): SchemaFramework | null => {
   if (
     definition.packageName === "zod" &&
@@ -321,6 +291,20 @@ const schemaFrameworkForDefinition = (definition: NavigationDefinition, candidat
     return "effect-schema";
   }
   return null;
+};
+
+const isFrameworkDefinition = (definition: NavigationDefinition) =>
+  definition.packageName === "zod" ||
+  definition.packageName === "effect" && /(?:^|[\\/])schema(?:\.d\.ts|\.ts|\.js)?$/i.test(definition.path);
+
+const hasUnsupportedFrameworkDefinition = (schema: NonNullable<DeclarationArtifact["schema"]>) => {
+  const definitions = schema.constructor.definitions;
+  // Framework identity is a positive allowlist.  A location in a pinned
+  // framework package is not enough: exports such as Z.regexes are framework
+  // values, but are not schema constructors or operations and must be dropped.
+  return definitions.length > 0 && definitions.every((definition) =>
+    isFrameworkDefinition(definition) && schemaFrameworkForDefinition(definition, schema.constructor.name) === null,
+  );
 };
 
 const stableSchemaDefinition = (definition: NavigationDefinition) => ({
@@ -455,7 +439,7 @@ const annotateSchemaArtifact = async (
 const removeUnprovenProjectRoots = (roots: DeclarationArtifact[]) =>
   roots.filter((artifact) => {
     if (artifact.kind !== "schema" || !artifact.schema) return true;
-    if (hasFrameworkNonSchemaDefinition(artifact.schema)) return false;
+    if (hasUnsupportedFrameworkDefinition(artifact.schema)) return false;
     if (artifact.schema.provenance !== "project" || artifact.schema.framework !== null) return true;
     // A project wrapper is retained as an unresolved schema only when a native
     // LSP edge reached a separately recognized schema artifact identity. This
@@ -478,6 +462,31 @@ const addReason = (state: TraversalState, reason: string, edgeId?: string) => {
   if (edgeId) state.omitted.push({ edgeId, reason });
 };
 
+const omitSchemaProvenance = (
+  state: TraversalState,
+  artifact: DeclarationArtifact,
+  reason: string,
+) => {
+  const schema = artifact.schema;
+  if (!schema) return;
+  schema.provenance = "unresolved";
+  schema.framework = null;
+  schema.interpretation = "unresolved";
+  schema.opaque = [{
+    source: schema.expression,
+    range: schema.expressionRange,
+    reason: `schema constructor provenance omitted at ${reason} cap`,
+  }];
+  addReason(state, reason);
+  state.schemaFailures.push({ path: artifact.path, name: artifact.name, reason });
+  state.schemaAnnotated.add(artifact.id);
+};
+
+const recordSchemaExternalPackage = (state: TraversalState, artifact: DeclarationArtifact) => {
+  const packageName = artifact.schema?.constructor.definitions.find((definition) => definition.external)?.packageName;
+  if (packageName) state.externalPackages.add(packageName);
+};
+
 const capCheck = (
   state: TraversalState,
   fixture: Fixture,
@@ -485,13 +494,17 @@ const capCheck = (
   artifact: DeclarationArtifact,
   depth: number,
   externalPackage?: string,
+  usage: { declarations?: number; sourceCharacters?: number; files?: number } = {},
 ) => {
   const caps = fixture.caps;
   if (performance.now() - state.started >= caps.elapsedMs) return "elapsed-time";
   if (depth > caps.depth) return "depth";
-  if (state.context.length + state.roots.length >= caps.declarations) return "declarations";
-  if (!state.files.has(artifact.path) && state.files.size >= caps.files) return "files";
-  if (state.sourceCharacters + artifact.source.length > caps.sourceCharacters) return "source-characters";
+  const declarations = usage.declarations ?? state.context.length + state.roots.length + 1;
+  if (declarations > caps.declarations) return "declarations";
+  const files = usage.files ?? state.files.size + (state.files.has(artifact.path) ? 0 : 1);
+  if (files > caps.files) return "files";
+  const sourceCharacters = usage.sourceCharacters ?? state.sourceCharacters + artifact.source.length;
+  if (sourceCharacters > caps.sourceCharacters) return "source-characters";
   if (externalPackage && !state.externalPackages.has(externalPackage) && state.externalPackages.size >= caps.externalPackages) {
     return "external-packages";
   }
@@ -525,28 +538,31 @@ const runTraversal = async (
     schemaFailures: [],
     schemaAnnotated: new Set(),
   };
+  let rootSourceCharacters = 0;
+  const rootFiles = new Set<string>();
   for (const [index, root] of state.roots.entries()) {
+    rootSourceCharacters += root.source.length;
+    rootFiles.add(root.path);
     if (root.kind === "schema" && root.schema) {
       root.schema.referencedSchemaIds = [];
       if (forceSchemaAnnotation || !state.schemaAnnotated.has(root.id)) {
-        const rootCap = index >= fixture.caps.declarations
-          ? "declarations"
-          : state.sourceCharacters + root.source.length > fixture.caps.sourceCharacters
-            ? "source-characters"
-            : performance.now() >= deadline
-              ? "elapsed-time"
-              : undefined;
+        const packageHint = schemaFrameworkPackageHint(root.schema) ??
+          (fixture.caps.externalPackages === 0 ? "<unknown>" : undefined);
+        const rootCap = capCheck(
+          state,
+          fixture,
+          `root-${String(index).padStart(4, "0")}`,
+          root,
+          0,
+          packageHint,
+          {
+            declarations: index + 1,
+            sourceCharacters: rootSourceCharacters,
+            files: rootFiles.size,
+          },
+        );
         if (rootCap) {
-          root.schema.provenance = "unresolved";
-          root.schema.framework = null;
-          root.schema.interpretation = "unresolved";
-          root.schema.opaque = [{
-            source: root.schema.expression,
-            range: root.schema.expressionRange,
-            reason: `schema constructor provenance omitted at ${rootCap} cap`,
-          }];
-          addReason(state, rootCap);
-          state.schemaFailures.push({ path: root.path, name: root.name, reason: rootCap });
+          omitSchemaProvenance(state, root, rootCap);
         } else {
           const failure = await annotateSchemaArtifact(
             fixture,
@@ -557,12 +573,13 @@ const runTraversal = async (
             deadline,
           );
           if (failure) state.schemaFailures.push(failure);
+          recordSchemaExternalPackage(state, root);
         }
         state.schemaAnnotated.add(root.id);
       }
     }
   }
-  state.roots = state.roots.filter((root) => !root.schema || !hasFrameworkNonSchemaDefinition(root.schema));
+  state.roots = state.roots.filter((root) => !root.schema || !hasUnsupportedFrameworkDefinition(root.schema));
   for (const root of state.roots) {
     state.visited.add(root.id);
     state.queue.push({ artifact: root, depth: 0, from: root.id });
@@ -675,16 +692,9 @@ const runTraversal = async (
           addReason(state, "definition-without-source-declaration", edgeId);
         } else {
           if (artifact.kind === "schema" && artifact.schema && !state.schemaAnnotated.has(artifact.id)) {
-            if (performance.now() >= state.deadline) {
-              artifact.schema.provenance = "unresolved";
-              artifact.schema.framework = null;
-              artifact.schema.interpretation = "unresolved";
-              artifact.schema.opaque = [{
-                source: artifact.schema.expression,
-                range: artifact.schema.expressionRange,
-                reason: "schema constructor provenance omitted at elapsed-time cap",
-              }];
-              state.schemaFailures.push({ path: artifact.path, name: artifact.name, reason: "elapsed-time deadline exceeded" });
+            const schemaCap = capCheck(state, fixture, edgeId, artifact, edgeDepth);
+            if (schemaCap) {
+              omitSchemaProvenance(state, artifact, schemaCap);
             } else {
               const failure = await annotateSchemaArtifact(
                 fixture,
@@ -695,6 +705,7 @@ const runTraversal = async (
                 state.deadline,
               );
               if (failure) state.schemaFailures.push(failure);
+              recordSchemaExternalPackage(state, artifact);
             }
             state.schemaAnnotated.add(artifact.id);
           }
