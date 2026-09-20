@@ -7,6 +7,13 @@ the [evaluation model](./PRODUCT-RULE-EVALUATION-MODEL.md), and
 [combinatorics tests](./PRODUCT-RULE-COMBINATORICS-TEST-SPEC.md).
 It does not supersede the broader report, implement anything, or alter issues/ADRs.
 
+**Disposition update, 2026-09-20:** the Phase F reconciliation retains full-file-plus-path
+input provisionally; declaration extraction and richer context are deferred and do not
+block #3. AF2's actual-provider/fake-HTTP transport test is accepted. AF3's separate
+source-persistence prohibition was not adopted; it remains an implementation-review
+consideration, not a Phase F requirement. The recommendations below retain their
+research provenance; the reconciled Phase F specification governs implementation.
+
 ## Brief and candidate boundary
 
 Question: what does Abide validate, contradict, or improve in our agreed configuration,

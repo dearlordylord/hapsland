@@ -19,7 +19,7 @@ Sources: [implementation plan](./PRODUCT-IMPLEMENTATION-PLAN.md),
 
 | Choice | Recorded origin/status | Correct interpretation |
 |---|---|---|
-| Full post-edit file plus path; one artifact per request; independent file reviews | Implemented B–E baseline, carried into F | Reopened by user correction. Not a universal rule-input model. Define required evidence before finalizing input and pack contracts. |
+| Full post-edit file plus path; one artifact per request; independent file reviews | Implemented B–E baseline; explicitly retained for F on 2026-09-20 | Provisional milestone input, not a universal rule-input model. Extraction and richer context are deferred and non-blocking; a future replacement needs an explicit contract. |
 | Synchronous post-write advisory review, Codex first, no rollback | Explicit scope of the earlier implementation plan/issue #1 | Milestone boundary, not proof that other cadences or hosts are unsuitable. No scope expansion authorized now. |
 | Noul/binary questions and nine bundled rules | Initial integration baseline; Noul-only initial rule set also required by current project instructions | Initial supported set, not the universe of useful rules. Other answer kinds need a concrete later requirement. |
 | Bundled source-content applicability heuristics; custom applicability only by path | Prototype checks preserved by delegated pack decisions in the interview record | Heuristics and a scoped extension choice, not proven domain truths or a general applicability model. Reassess compatibility with the selected input contract. |
@@ -42,14 +42,16 @@ Exact Effect integration/cohort requirements come from project instructions.
 - Separate prototype baselines, explicit decisions, delegated choices, and unresolved
   assumptions in subsequent design work. Do not use a generated document as proof of
   explicit user approval for every sentence it contains.
-- The user accepted documenting the input contract; the clarification above means
-  defining that contract deliberately, not freezing the prototype input. Record input
-  contract/renderer identity in evaluation evidence.
+- The user accepted documenting the input contract and subsequently retained full-file
+  plus path for Phase F as a provisional milestone choice. Declaration extraction and
+  richer context are deferred, not blockers. Record input-contract/renderer identity
+  in evaluation evidence without treating the current input as permanent.
 - The user accepted actual-provider/fake-HTTP transport tests. These are now required in
   the local Phase F specification, with no automatic additional context egress.
-- The proposed prohibition on auxiliary source persistence is not adopted yet. The user
-  requested an explanation. Existing source-free receipt requirements remain intact.
+- The proposed separate prohibition on auxiliary source persistence was not adopted;
+  unintended persistence is an implementation-review concern, not a new Phase F
+  requirement. Existing source-free receipt requirements remain intact.
 
-No implementation, GitHub issue mutation, CONTEXT.md change, or paid validation is part
-of this audit. The local specification correction must be reconciled with issue #3
-before an implementation handoff uses its older copied body.
+The 2026-09-20 reconciliation carries these decisions into the Phase F implementation
+handoff and issue #3. Shell/script-write coverage is post-first-version research in
+issue #4. No implementation, CONTEXT.md change, or paid validation is part of this audit.

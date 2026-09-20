@@ -44,8 +44,9 @@ Evaluation identity also records the input-contract version and the renderer/ada
 identity that constructs backend context. The current single full-file fixture is a
 prototype baseline, not a permanent restriction on product inputs. Full-file, diff,
 task-relative, or multi-file evaluations must not be treated as equivalent merely because
-they reuse a question. The product input contract is reopened for explicit design in
-the Phase F specification; no additional context egress is authorized by this note.
+they reuse a question. Phase F explicitly retains the current full-file-plus-path input
+for this milestone; declaration extraction and richer context are deferred, non-blocking
+work. No additional context egress is authorized by this note.
 
 ## Fixture expectations
 
