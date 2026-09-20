@@ -44,7 +44,7 @@ export interface ReviewSettings {
 
 const defaultCapture = (root: string): ConfigurationCapture => {
   const policy = resolveConfiguration([], root);
-  return { root, policy };
+  return { policy };
 };
 
 const settingsFrom = (

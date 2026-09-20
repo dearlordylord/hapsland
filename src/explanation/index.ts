@@ -3,7 +3,7 @@ import type {
   PatternOrigin,
   ResolvedPolicy,
 } from "../configuration/types.ts";
-import { selectGlobalPath, type SelectionDecision } from "../policy/file-policy.ts";
+import { selectGlobalPath, type ProtectedGate, type SelectionDecision } from "../policy/file-policy.ts";
 
 export type PathExplanation = {
   readonly version: 1;
@@ -12,7 +12,7 @@ export type PathExplanation = {
   readonly policyDigest: string;
   readonly selected: boolean;
   readonly reason: SelectionDecision["reason"];
-  readonly protectedGate?: SelectionDecision["gate"];
+  readonly protectedGate?: ProtectedGate;
   readonly effectiveIncludes: ReadonlyArray<PatternOrigin>;
   readonly overriddenIncludes: ReadonlyArray<PatternOrigin>;
   readonly matchingIncludes: ReadonlyArray<PatternOrigin>;
@@ -39,6 +39,7 @@ export const explainPath = (
   path: string,
 ): PathExplanation => {
   const selection = selectGlobalPath(policy, path);
+  const protectedGate = selection.reason === "protected" ? selection.gate : undefined;
   const allExcludes = [...policy.excludes, ...policy.protectedExcludes];
   const origins = uniqueOrigins([
     ...selection.matchingIncludes.map((entry) => entry.origin),
@@ -53,7 +54,7 @@ export const explainPath = (
     policyDigest: policy.digest,
     selected: selection.selected,
     reason: selection.reason,
-    ...(selection.gate === undefined ? {} : { protectedGate: selection.gate }),
+    ...(protectedGate === undefined ? {} : { protectedGate }),
     effectiveIncludes: policy.includes,
     overriddenIncludes: policy.overriddenIncludes,
     matchingIncludes: selection.matchingIncludes,

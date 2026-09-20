@@ -38,7 +38,59 @@ export const validateGlobPattern = (pattern: string): string => {
   if (normalized.split("/").some((segment) => segment === "..")) {
     throw new GlobPatternError("glob patterns cannot traverse the repository root");
   }
-  return normalized === "." ? "" : normalized.replace(/^\.\//, "");
+  const canonical = normalized === "." ? "" : normalized.replace(/^\.\//, "");
+  for (let index = 0; index < canonical.length; index += 1) {
+    const current = canonical[index];
+    if (current === "[") {
+      const close = canonical.indexOf("]", index + 1);
+      if (close < 0) throw new GlobPatternError("glob character class is not closed");
+      const body = canonical.slice(index + 1, close);
+      const content = body.startsWith("!") || body.startsWith("^") ? body.slice(1) : body;
+      if (content.length === 0 || content.includes("[")) {
+        throw new GlobPatternError("glob character class is empty or nested");
+      }
+      for (let bodyIndex = 0; bodyIndex < content.length; bodyIndex += 1) {
+        if (content[bodyIndex] !== "-") continue;
+        const left = content[bodyIndex - 1];
+        const right = content[bodyIndex + 1];
+        if (left !== undefined && right !== undefined && right !== "-") {
+          const leftCode = left.codePointAt(0) ?? 0;
+          const rightCode = right.codePointAt(0) ?? 0;
+          if (leftCode > rightCode) {
+            throw new GlobPatternError("glob character class range is reversed");
+          }
+        }
+      }
+      index = close;
+      continue;
+    }
+    if (current === "]") {
+      throw new GlobPatternError("glob character class closes without opening");
+    }
+    if (current === "{") {
+      const close = canonical.indexOf("}", index + 1);
+      if (close < 0) throw new GlobPatternError("glob brace alternative is not closed");
+      const body = canonical.slice(index + 1, close);
+      const choices = body.split(",");
+      if (choices.length < 2 || choices.some((choice) => choice.length === 0 || choice.includes("{"))) {
+        throw new GlobPatternError("glob brace alternative must contain non-empty choices");
+      }
+      index = close;
+      continue;
+    }
+    if (current === "}") {
+      throw new GlobPatternError("glob brace alternative closes without opening");
+    }
+  }
+  try {
+    // Exercise the exact regexp compiler at the decode boundary as well. This
+    // catches engine-level classes such as `[a--]` that a structural scan alone
+    // cannot characterize safely.
+    expandBraces(canonical).forEach((expanded) => compile(expanded));
+  } catch {
+    throw new GlobPatternError("glob pattern contains invalid regular-expression syntax");
+  }
+  return canonical;
 };
 
 const escapeRegex = (value: string): string =>
@@ -130,14 +182,27 @@ const dotSegmentsAllowed = (pattern: string, path: string): boolean => {
 
 /** Compile and match one repository-relative path against one glob. */
 export const matchesGlob = (pattern: string, path: string): boolean => {
-  const validated = validateGlobPattern(pattern);
+  let validated: string;
+  try {
+    validated = validateGlobPattern(pattern);
+  } catch {
+    // Callers may use this low-level matcher with untrusted input. Configuration
+    // decoding rejects invalid syntax; direct matching remains total as well.
+    return false;
+  }
   const normalizedPath = normalizeRepositoryPath(path);
   if (normalizedPath === undefined) return false;
   const candidate = normalizedPath === "." ? "" : normalizedPath;
-  return expandBraces(validated).some(
-    (expanded) =>
-      dotSegmentsAllowed(expanded, normalizedPath) && compile(expanded).test(candidate),
-  );
+  try {
+    return expandBraces(validated).some(
+      (expanded) =>
+        dotSegmentsAllowed(expanded, normalizedPath) && compile(expanded).test(candidate),
+    );
+  } catch {
+    // RegExp syntax must never escape from this boundary, even if a future
+    // matcher feature is added without a corresponding decoder check.
+    return false;
+  }
 };
 
 export const matchesAnyGlob = (

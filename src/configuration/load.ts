@@ -120,7 +120,7 @@ export const loadConfiguration = Effect.fn("Configuration.load")(function* (
           reason: "configuration resolution failed",
         });
   }
-  return captureConfiguration(canonicalRoot, policy);
+  return captureConfiguration(policy);
 });
 
 export const loadConfigurationAtRoot = (

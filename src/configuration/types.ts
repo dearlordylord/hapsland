@@ -7,22 +7,7 @@ const Pattern = Schema.String.check(Schema.isMinLength(1));
 const EnvironmentVariableName = Schema.String.check(
   Schema.isPattern(/^[A-Z_][A-Z0-9_]*$/),
 );
-const Probability = Schema.Finite.check(
-  Schema.isBetween({ minimum: 0, maximum: 1 }),
-);
 const NonNegativeInteger = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
-
-export const RuleOverride = Schema.Struct({
-  enabled: Schema.optionalKey(Schema.Boolean),
-  threshold: Schema.optionalKey(Probability),
-  message: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1))),
-  includes: Schema.optionalKey(Schema.Array(Pattern)),
-  excludes: Schema.optionalKey(Schema.Array(Pattern)),
-  // Singular spellings are retained as explicit aliases for early v1 clients.
-  include: Schema.optionalKey(Schema.Array(Pattern)),
-  exclude: Schema.optionalKey(Schema.Array(Pattern)),
-});
-export interface RuleOverride extends Schema.Schema.Type<typeof RuleOverride> {}
 
 export const RuntimeSettings = Schema.Struct({
   deadlineMs: Schema.optionalKey(
@@ -40,14 +25,8 @@ export const RuntimeSettings = Schema.Struct({
 });
 export interface RuntimeSettings extends Schema.Schema.Type<typeof RuntimeSettings> {}
 
-/**
- * JSONC v1 project/user document.
- *
- * Lists intentionally remain optional: omission inherits while [] is an explicit
- * empty selection. The singular forms are documented compatibility aliases and
- * are rejected when their plural counterpart is also supplied.
- */
-export const ConfigurationDocument = Schema.Struct({
+/** Boundary shape accepted by the decoder before aliases are normalized. */
+export const ConfigurationDocumentInput = Schema.Struct({
   version: Schema.Literal(CONFIGURATION_VERSION),
   /** Standard editor metadata; it has no runtime effect. */
   $schema: Schema.optionalKey(Schema.String),
@@ -65,7 +44,28 @@ export const ConfigurationDocument = Schema.Struct({
   concurrency: RuntimeSettings.fields.concurrency,
   adviceBudget: RuntimeSettings.fields.adviceBudget,
   transientRetries: RuntimeSettings.fields.transientRetries,
-  rules: Schema.optionalKey(Schema.Record(Schema.String, RuleOverride)),
+  // These fields are accepted for compatibility with the consent slice. They
+  // never authorize source egress and are never used as privacy policy.
+  consent: Schema.optionalKey(Schema.Boolean),
+  enabled: Schema.optionalKey(Schema.Boolean),
+});
+
+/**
+ * Canonical JSONC v1 project/user document.
+ *
+ * Alias spellings are accepted only by ConfigurationDocumentInput and disappear
+ * at the decode boundary. Lists intentionally remain optional: omission inherits
+ * while [] is an explicit empty selection.
+ */
+export const ConfigurationDocument = Schema.Struct({
+  version: Schema.Literal(CONFIGURATION_VERSION),
+  /** Standard editor metadata; it has no runtime effect. */
+  $schema: Schema.optionalKey(Schema.String),
+  includes: Schema.optionalKey(Schema.Array(Pattern)),
+  excludes: Schema.optionalKey(Schema.Array(Pattern)),
+  privacyExcludes: Schema.optionalKey(Schema.Array(Pattern)),
+  credentialEnvVar: Schema.optionalKey(EnvironmentVariableName),
+  settings: Schema.optionalKey(RuntimeSettings),
   // These fields are accepted for compatibility with the consent slice. They
   // never authorize source egress and are never used as privacy policy.
   consent: Schema.optionalKey(Schema.Boolean),
@@ -91,17 +91,6 @@ export type PatternOrigin = Originated<string> & {
   readonly active: boolean;
 };
 
-export type ResolvedRule = {
-  readonly id: string;
-  readonly enabled: boolean;
-  readonly includesSpecified: boolean;
-  readonly threshold: number;
-  readonly message?: string;
-  readonly includes: ReadonlyArray<PatternOrigin>;
-  readonly excludes: ReadonlyArray<PatternOrigin>;
-  readonly origins: Readonly<Record<string, ConfigurationOrigin>>;
-};
-
 export type ResolvedPolicy = {
   readonly root: string;
   readonly includes: ReadonlyArray<PatternOrigin>;
@@ -115,7 +104,6 @@ export type ResolvedPolicy = {
     readonly adviceBudget: Originated<number>;
     readonly transientRetries: Originated<number>;
   };
-  readonly rules: Readonly<Record<string, ResolvedRule>>;
   readonly layers: ReadonlyArray<{
     readonly name: ConfigurationLayerName;
     readonly source: string;
@@ -126,7 +114,6 @@ export type ResolvedPolicy = {
 };
 
 export type ConfigurationCapture = {
-  readonly root: string;
   readonly projectSource?: string;
   readonly userSource?: string;
   readonly policy: ResolvedPolicy;

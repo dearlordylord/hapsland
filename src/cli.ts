@@ -22,6 +22,7 @@ import {
 } from "./adapters/codex.ts";
 import { explainPath, formatPathExplanation } from "./explanation/index.ts";
 import { resolveConfiguration } from "./configuration/resolve.ts";
+import { DEFAULT_RUNTIME_SETTINGS } from "./configuration/types.ts";
 import { decodeReviewRequest, type ReviewRequest } from "./domain/contracts.ts";
 import { ReviewBackend } from "./ports/review-backend.ts";
 import { DedupeStore } from "./ports/dedupe-store.ts";
@@ -251,12 +252,10 @@ const runtimeLayer = (
           credentialEnvVar: settings.credentialEnvVar,
         })
       : controlledDecisionModelLayer(controlled);
-  const backendLayer =
-    settings.policy?.settings.transientRetries.value === undefined
-      ? ReviewBackend.layerWithOptions()
-      : ReviewBackend.layerWithOptions({
-          transientRetries: settings.policy.settings.transientRetries.value,
-        });
+  const backendLayer = ReviewBackend.layerWithOptions({
+    transientRetries:
+      settings.policy?.settings.transientRetries.value ?? DEFAULT_RUNTIME_SETTINGS.transientRetries,
+  });
   return Layer.mergeAll(
     SnapshotReader.layer,
     DedupeStore.layer,
