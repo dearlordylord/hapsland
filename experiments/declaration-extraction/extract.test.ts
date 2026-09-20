@@ -119,6 +119,18 @@ describe("declaration extraction experiment black-box seam", () => {
     );
     expect(record.positionalRequestCounts.cold["textDocument/definition"]).toBeGreaterThan(0);
     expect(record.positionalRequestCounts.warm["textDocument/definition"]).toBeGreaterThan(0);
+    for (const phase of ["processStartup", "initialize", "openSynchronization", "coldExtraction", "warmExtraction"] as const) {
+      expect(record.timingsMs[phase]).toEqual(expect.any(Number));
+      expect(record.timingsMs[phase]).toBeGreaterThanOrEqual(0);
+    }
+    expect(record.observations.files.directWorkspaceSourceReads).toBeGreaterThan(0);
+    expect(record.observations.subprocess.directChildrenSpawnedByHarness).toBe(1);
+    expect(record.observations.subprocess.descendantProcesses).toBeNull();
+    expect(record.observations.subprocess.plugins).toBeNull();
+    expect(record.observations.files.filesystemWrites).toBeNull();
+    expect(record.observations.network.directNetworkApisInvokedByHarness).toBeNull();
+    expect(record.observations.network.networkEgress).toBeNull();
+    expect(record.observations.network.directNetworkInstrumentation).toBe("not-instrumented");
     expect(record.lsp.serverRequests["client/registerCapability"]).toBeGreaterThan(0);
     expect(record.lsp.shutdownParamsOmitted).toBe(true);
     expect(record.lsp.exitParamsOmitted).toBe(true);
@@ -236,7 +248,9 @@ describe("declaration extraction experiment black-box seam", () => {
     expect(record.extraction.completeness.observed.elapsedMs).toBeGreaterThanOrEqual(25);
     expect(record.lsp.unexpectedOrFailedNavigation[0].reason).toContain("deadline exceeded");
     expect(record.lsp.notifications["$/cancelRequest"]).toBeGreaterThan(0);
-    expect(record.lsp.faultEvidence.cancellationSent).toBe(true);
+    expect(record.lsp.faultEvidence.clientResponseSuppression).toBe(true);
+    expect(record.lsp.faultEvidence.clientCancelNotificationSent).toBe(true);
+    expect(record.lsp.faultEvidence.serverCancellationAcknowledged).toBeNull();
   }, 30_000);
 
   test("keeps malformed or half-written source as a parser-error root", () => {
@@ -253,7 +267,7 @@ describe("declaration extraction experiment black-box seam", () => {
   test("records a missing project configuration without hiding resolved local context", () => {
     const record = runFixture(missingConfigFixture, "root");
     expect(record.status).toBe("ok");
-    expect(record.observations.files.configurationFiles).toEqual([]);
+    expect(record.observations.files.configurationPathsDiscovered).toEqual([]);
     expect(record.extraction.context.map((declaration: any) => declaration.name)).toContain("LocalShape");
     expect(record.extraction.completeness.complete).toBe(true);
   }, 30_000);
@@ -319,7 +333,9 @@ describe("declaration extraction experiment black-box seam", () => {
     const elapsed = run("interface", ["--fault", "nonresponding", "--caps", JSON.stringify({ elapsedMs: 20 })]);
     expect(elapsed.extraction.completeness.reasons).toContain("elapsed-time");
     expect(elapsed.extraction.completeness.observed.elapsedMs).toBeGreaterThanOrEqual(20);
-    expect(elapsed.lsp.faultEvidence.cancellationSent).toBe(true);
+    expect(elapsed.lsp.faultEvidence.clientResponseSuppression).toBe(true);
+    expect(elapsed.lsp.faultEvidence.clientCancelNotificationSent).toBe(true);
+    expect(elapsed.lsp.faultEvidence.serverCancellationAcknowledged).toBeNull();
   }, 60_000);
 
   test("records identity and materiality controls across formatting, rename, retarget, roots, move, deletion, and generics", () => {

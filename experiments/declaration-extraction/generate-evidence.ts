@@ -8,6 +8,7 @@ const root = resolve(import.meta.dirname, "../..");
 const command = resolve(root, "experiments/declaration-extraction/extract.ts");
 const fixtureRoot = resolve(root, "experiments/declaration-extraction/fixtures");
 const output = resolve(root, "experiments/declaration-extraction/evidence/records.jsonl");
+const timingOutput = resolve(root, "experiments/declaration-extraction/evidence/timing-summary.json");
 
 const fixture = (name: string) => resolve(fixtureRoot, name);
 
@@ -30,6 +31,67 @@ const run = (fixtureName: string, edit?: string, args: string[] = []) => {
 };
 
 const unique = (values: unknown[]) => [...new Set(values.filter((value): value is string => typeof value === "string"))].sort();
+
+const timingPhases = [
+  "processStartup",
+  "initialize",
+  "openSynchronization",
+  "coldExtraction",
+  "warmExtraction",
+] as const;
+
+// Timing is retained as numeric, deliberately broad upper-bound buckets. This
+// keeps the checked-in corpus reproducible across scheduler noise while
+// preserving coarse scale without committing host-specific scalar measurements.
+const timingBucketBoundariesMs = [1_000, 5_000, 10_000];
+const timingBucketMs = (value: unknown) => {
+  const numeric = typeof value === "number" && Number.isFinite(value) ? Math.max(0, value) : 10_000;
+  return timingBucketBoundariesMs.find((boundary) => numeric <= boundary) ?? 10_000;
+};
+
+const numericDistribution = (values: number[]) => {
+  if (values.length === 0) {
+    return { sampleCount: 0, minMs: null, maxMs: null, distributionMs: {} };
+  }
+  const buckets = values.map(timingBucketMs);
+  const distribution = new Map<number, number>();
+  for (const bucket of buckets) distribution.set(bucket, (distribution.get(bucket) ?? 0) + 1);
+  return {
+    sampleCount: buckets.length,
+    minMs: Math.min(...buckets),
+    maxMs: Math.max(...buckets),
+    distributionMs: Object.fromEntries([...distribution.entries()].sort(([left], [right]) => left - right)),
+  };
+};
+
+const integerDistribution = (values: number[]) => {
+  if (values.length === 0) return { sampleCount: 0, min: null, max: null, distribution: {} };
+  const distribution = new Map<number, number>();
+  for (const value of values) distribution.set(value, (distribution.get(value) ?? 0) + 1);
+  return {
+    sampleCount: values.length,
+    min: Math.min(...values),
+    max: Math.max(...values),
+    distribution: Object.fromEntries([...distribution.entries()].sort(([left], [right]) => left - right)),
+  };
+};
+
+const timingSummary = (timings: JsonRecord) => Object.fromEntries(
+  timingPhases.map((phase) => [phase, numericDistribution([timingBucketMs(timings[phase])])]),
+);
+
+const positionalSummary = (counts: JsonRecord) => Object.fromEntries(
+  ["cold", "warm"].map((temperature) => {
+    const values = Object.values((counts[temperature] ?? {}) as Record<string, unknown>)
+      .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+    return [temperature, {
+      sampleCount: values.length,
+      min: values.length > 0 ? Math.min(...values) : 0,
+      max: values.length > 0 ? Math.max(...values) : 0,
+      total: values.reduce((sum, value) => sum + value, 0),
+    }];
+  }),
+);
 
 const summarize = (record: JsonRecord, fixtureName: string, fixtureClass: string, requestedCaps?: JsonRecord) => {
   if (record.status !== "ok") {
@@ -93,11 +155,12 @@ const summarize = (record: JsonRecord, fixtureName: string, fixtureClass: string
       externalPackages: extraction.completeness.observed.externalPackages,
     },
     latency: {
-      cold: "measured-and-recorded-in-local-run",
-      warm: "measured-and-recorded-in-local-run",
-      scalarValues: "omitted-from-checked-in-summary-to-avoid-machine-specific-timing-noise",
+      phaseTimingsMs: timingSummary(record.timingsMs as JsonRecord),
+      bucketBoundariesMs: timingBucketBoundariesMs,
+      scalarValues: "omitted-from-checked-in-summary",
     },
     positionalRequestCounts: positional,
+    positionalRequestSummary: positionalSummary(positional),
     resourceObservations: {
       files: observations.files,
       subprocess: observations.subprocess,
@@ -150,6 +213,40 @@ const cases: Array<[string, string | undefined, string, string[]?, JsonRecord?]>
 const records = cases.map(([fixtureName, edit, fixtureClass, args, requestedCaps]) =>
   summarize(run(fixtureName, edit, args), fixtureName, fixtureClass, requestedCaps));
 
+const timingByFixtureClass = Object.fromEntries(
+  [...new Set(records.map((record) => record.fixtureClass))].sort().map((fixtureClass) => {
+    const classRecords = records.filter((record) => record.fixtureClass === fixtureClass && record.status === "ok");
+    const phaseTimingsMs = Object.fromEntries(timingPhases.map((phase) => {
+      const values = classRecords.flatMap((record) => {
+        const summary = record.latency?.phaseTimingsMs?.[phase];
+        return summary?.distributionMs
+          ? Object.entries(summary.distributionMs).flatMap(([bucket, count]) => Array(Number(count)).fill(Number(bucket)))
+          : [];
+      });
+      return [phase, numericDistribution(values)];
+    }));
+    const positionalByTemperature = Object.fromEntries(["cold", "warm"].map((temperature) => {
+      const values = classRecords.flatMap((record) => {
+        const summary = record.positionalRequestSummary?.[temperature];
+        return summary ? [summary.total] : [];
+      });
+      return [temperature, integerDistribution(values)];
+    }));
+    return [fixtureClass, {
+      sampleCount: classRecords.length,
+      phaseTimingsMs,
+      positionalRequestTotals: positionalByTemperature,
+    }];
+  }),
+);
+
 mkdirSync(dirname(output), { recursive: true });
 writeFileSync(output, `${records.map((record) => JSON.stringify(record)).join("\n")}\n`, "utf8");
+writeFileSync(timingOutput, `${JSON.stringify({
+  schemaVersion: 1,
+  recordType: "synthetic-extraction-timing-distributions",
+  bucketBoundariesMs: timingBucketBoundariesMs,
+  byFixtureClass: timingByFixtureClass,
+  sanitized: true,
+}, null, 2)}\n`, "utf8");
 process.stdout.write(`${output}\n`);

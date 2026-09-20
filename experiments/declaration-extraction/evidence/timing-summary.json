@@ -1,0 +1,1902 @@
+{
+  "schemaVersion": 1,
+  "recordType": "synthetic-extraction-timing-distributions",
+  "bucketBoundariesMs": [
+    1000,
+    5000,
+    10000
+  ],
+  "byFixtureClass": {
+    "cap-declarations": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 8,
+          "max": 8,
+          "distribution": {
+            "8": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 8,
+          "max": 8,
+          "distribution": {
+            "8": 1
+          }
+        }
+      }
+    },
+    "cap-depth": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 0,
+          "max": 0,
+          "distribution": {
+            "0": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 0,
+          "max": 0,
+          "distribution": {
+            "0": 1
+          }
+        }
+      }
+    },
+    "cap-external-packages": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 8,
+          "max": 8,
+          "distribution": {
+            "8": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 8,
+          "max": 8,
+          "distribution": {
+            "8": 1
+          }
+        }
+      }
+    },
+    "cap-files": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 8,
+          "max": 8,
+          "distribution": {
+            "8": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 8,
+          "max": 8,
+          "distribution": {
+            "8": 1
+          }
+        }
+      }
+    },
+    "cap-source-characters": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 8,
+          "max": 8,
+          "distribution": {
+            "8": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 8,
+          "max": 8,
+          "distribution": {
+            "8": 1
+          }
+        }
+      }
+    },
+    "classifier-diff-sufficient-control": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 0,
+          "max": 0,
+          "distribution": {
+            "0": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 0,
+          "max": 0,
+          "distribution": {
+            "0": 1
+          }
+        }
+      }
+    },
+    "classifier-missing-context": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 2,
+          "max": 2,
+          "distribution": {
+            "2": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 2,
+          "max": 2,
+          "distribution": {
+            "2": 1
+          }
+        }
+      }
+    },
+    "cross-framework-context": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 3,
+          "max": 3,
+          "distribution": {
+            "3": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 3,
+          "max": 3,
+          "distribution": {
+            "3": 1
+          }
+        }
+      }
+    },
+    "degradation-cycle": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 2,
+          "max": 2,
+          "distribution": {
+            "2": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 2,
+          "max": 2,
+          "distribution": {
+            "2": 1
+          }
+        }
+      }
+    },
+    "degradation-malformed": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 0,
+          "max": 0,
+          "distribution": {
+            "0": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 0,
+          "max": 0,
+          "distribution": {
+            "0": 1
+          }
+        }
+      }
+    },
+    "degradation-missing-config": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 1,
+          "max": 1,
+          "distribution": {
+            "1": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 1,
+          "max": 1,
+          "distribution": {
+            "1": 1
+          }
+        }
+      }
+    },
+    "degradation-unresolved-import": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 1,
+          "max": 1,
+          "distribution": {
+            "1": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 1,
+          "max": 1,
+          "distribution": {
+            "1": 1
+          }
+        }
+      }
+    },
+    "effect-schema": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 3,
+          "max": 3,
+          "distribution": {
+            "3": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 3,
+          "max": 3,
+          "distribution": {
+            "3": 1
+          }
+        }
+      }
+    },
+    "fault-server-crash": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 0,
+          "max": 0,
+          "distribution": {
+            "0": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 0,
+          "max": 0,
+          "distribution": {
+            "0": 1
+          }
+        }
+      }
+    },
+    "fault-stale-document": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 8,
+          "max": 8,
+          "distribution": {
+            "8": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 8,
+          "max": 8,
+          "distribution": {
+            "8": 1
+          }
+        }
+      }
+    },
+    "fault-timeout-cancellation": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 1,
+          "max": 1,
+          "distribution": {
+            "1": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 1,
+          "max": 1,
+          "distribution": {
+            "1": 1
+          }
+        }
+      }
+    },
+    "identity-deletion": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 0,
+          "max": 0,
+          "distribution": {
+            "0": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 0,
+          "max": 0,
+          "distribution": {
+            "0": 1
+          }
+        }
+      }
+    },
+    "identity-formatting": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 0,
+          "max": 0,
+          "distribution": {
+            "0": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 0,
+          "max": 0,
+          "distribution": {
+            "0": 1
+          }
+        }
+      }
+    },
+    "identity-generic": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 2,
+          "max": 2,
+          "distribution": {
+            "2": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 2,
+          "max": 2,
+          "distribution": {
+            "2": 1
+          }
+        }
+      }
+    },
+    "identity-import-retarget": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 1,
+          "max": 1,
+          "distribution": {
+            "1": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 1,
+          "max": 1,
+          "distribution": {
+            "1": 1
+          }
+        }
+      }
+    },
+    "identity-move": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 0,
+          "max": 0,
+          "distribution": {
+            "0": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 0,
+          "max": 0,
+          "distribution": {
+            "0": 1
+          }
+        }
+      }
+    },
+    "identity-multiple-root": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 0,
+          "max": 0,
+          "distribution": {
+            "0": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 0,
+          "max": 0,
+          "distribution": {
+            "0": 1
+          }
+        }
+      }
+    },
+    "identity-rename": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 0,
+          "max": 0,
+          "distribution": {
+            "0": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 0,
+          "max": 0,
+          "distribution": {
+            "0": 1
+          }
+        }
+      }
+    },
+    "profile-depth-1": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 8,
+          "max": 8,
+          "distribution": {
+            "8": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 8,
+          "max": 8,
+          "distribution": {
+            "8": 1
+          }
+        }
+      }
+    },
+    "profile-source-500": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 8,
+          "max": 8,
+          "distribution": {
+            "8": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 8,
+          "max": 8,
+          "distribution": {
+            "8": 1
+          }
+        }
+      }
+    },
+    "typescript-interface": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 8,
+          "max": 8,
+          "distribution": {
+            "8": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 8,
+          "max": 8,
+          "distribution": {
+            "8": 1
+          }
+        }
+      }
+    },
+    "typescript-type-alias": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 10,
+          "max": 10,
+          "distribution": {
+            "10": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 10,
+          "max": 10,
+          "distribution": {
+            "10": 1
+          }
+        }
+      }
+    },
+    "zod": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 3,
+          "max": 3,
+          "distribution": {
+            "3": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 3,
+          "max": 3,
+          "distribution": {
+            "3": 1
+          }
+        }
+      }
+    },
+    "zod-opaque-operations": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 10,
+          "max": 10,
+          "distribution": {
+            "10": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 10,
+          "max": 10,
+          "distribution": {
+            "10": 1
+          }
+        }
+      }
+    },
+    "zod-shadow-identity": {
+      "sampleCount": 1,
+      "phaseTimingsMs": {
+        "processStartup": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "initialize": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "openSynchronization": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "coldExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        },
+        "warmExtraction": {
+          "sampleCount": 1,
+          "minMs": 1000,
+          "maxMs": 1000,
+          "distributionMs": {
+            "1000": 1
+          }
+        }
+      },
+      "positionalRequestTotals": {
+        "cold": {
+          "sampleCount": 1,
+          "min": 9,
+          "max": 9,
+          "distribution": {
+            "9": 1
+          }
+        },
+        "warm": {
+          "sampleCount": 1,
+          "min": 9,
+          "max": 9,
+          "distribution": {
+            "9": 1
+          }
+        }
+      }
+    }
+  },
+  "sanitized": true
+}

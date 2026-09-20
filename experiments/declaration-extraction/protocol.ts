@@ -30,6 +30,12 @@ type PendingRequest = {
 
 export type NativeLspFault = "nonresponding" | "crash" | "stale-document";
 
+export type NativeLspPhaseTimingsMs = {
+  processStartup: number;
+  initialize: number;
+  openSynchronization: number;
+};
+
 export type DefinitionResponse = {
   result: LspLocation | LspLocationLink | Array<LspLocation | LspLocationLink> | null;
   error?: string;
@@ -87,6 +93,12 @@ export class NativeLspClient {
   private readonly timeoutMs: number;
   private readonly nonResponding: boolean;
   private readonly crash: boolean;
+  private readonly phaseTimings: NativeLspPhaseTimingsMs = {
+    processStartup: 0,
+    initialize: 0,
+    openSynchronization: 0,
+  };
+  private readonly spawnReady: Promise<number>;
   private crashed = false;
   private staleDocumentSent = false;
   private controlledCancellationSent = false;
@@ -106,11 +118,16 @@ export class NativeLspClient {
     child: ChildProcessWithoutNullStreams,
     timeoutMs: number,
     options: { nonResponding?: boolean; crash?: boolean } = {},
+    processStartupStarted = performance.now(),
   ) {
     this.child = child;
     this.timeoutMs = timeoutMs;
     this.nonResponding = options.nonResponding === true;
     this.crash = options.crash === true;
+    this.spawnReady = new Promise<number>((resolve, reject) => {
+      child.once("spawn", () => resolve(performance.now() - processStartupStarted));
+      child.once("error", reject);
+    });
     this.closed = new Promise<void>((resolve, reject) => {
       this.resolveClosed = resolve;
       this.rejectClosed = reject;
@@ -167,13 +184,17 @@ export class NativeLspClient {
       dirname(fileURLToPath(import.meta.url)),
       "../../node_modules/typescript/bin/tsc",
     );
+    const processStartupStarted = performance.now();
     const child = spawn(process.execPath, [tsc, "--lsp", "--stdio"], {
       cwd: workspaceRoot,
       stdio: ["pipe", "pipe", "pipe"],
     });
-    const client = new NativeLspClient(child, timeoutMs, options);
+    const client = new NativeLspClient(child, timeoutMs, options, processStartupStarted);
     try {
+      client.phaseTimings.processStartup = await client.waitForSpawn();
+      const initializeStarted = performance.now();
       await client.initialize(workspaceRoot);
+      client.phaseTimings.initialize = performance.now() - initializeStarted;
       return client;
     } catch (error) {
       await client.stop();
@@ -183,6 +204,24 @@ export class NativeLspClient {
 
   get serverVersion() {
     return { ...this.serverInfo };
+  }
+
+  get phaseTimingsMs(): NativeLspPhaseTimingsMs {
+    return { ...this.phaseTimings };
+  }
+
+  private async waitForSpawn() {
+    let timeout: NodeJS.Timeout | undefined;
+    try {
+      return await Promise.race([
+        this.spawnReady,
+        new Promise<number>((_, reject) => {
+          timeout = setTimeout(() => reject(new Error("TypeScript LSP process spawn timed out")), this.timeoutMs);
+        }),
+      ]);
+    } finally {
+      if (timeout) clearTimeout(timeout);
+    }
   }
 
   get stderr() {
@@ -330,6 +369,7 @@ export class NativeLspClient {
   }
 
   async open(documents: LspDocument[]) {
+    const started = performance.now();
     for (const document of documents) {
       this.notify("textDocument/didOpen", {
         textDocument: {
@@ -344,6 +384,7 @@ export class NativeLspClient {
     // request. This is a protocol event, not a fixed sleep: a zero-delay turn
     // is enough for the native process to read the pipe.
     await new Promise<void>((resolve) => setImmediate(resolve));
+    this.phaseTimings.openSynchronization = performance.now() - started;
   }
 
   /**
@@ -365,7 +406,9 @@ export class NativeLspClient {
     return {
       crashTriggered: this.crashed,
       staleDocumentSent: this.staleDocumentSent,
-      cancellationSent: this.controlledCancellationSent,
+      clientResponseSuppression: this.nonResponding,
+      clientCancelNotificationSent: this.controlledCancellationSent,
+      serverCancellationAcknowledged: null,
     };
   }
 

@@ -887,6 +887,7 @@ const main = async () => {
   const warm = await runTraversal(fixture, lsp, workspace, artifactIndex, traversalRoots, warmStarted, true);
   const warmMs = performance.now() - warmStarted;
   const afterWarmCounts = lsp.snapshotCounts();
+  const phaseTimingsMs = lsp.phaseTimingsMs;
   const serverVersion = lsp.serverVersion;
   await lsp.stop();
   if (previousMarkerToken === undefined) delete process.env.DECLARATION_EXTRACTION_MARKER_TOKEN;
@@ -936,21 +937,24 @@ const main = async () => {
     observations: {
       files: {
         workspaceEntries: fixture.paths.length,
-        sourceFilesLoaded: workspace.size,
-        configurationFiles: fixture.paths.filter((path) => /(?:^|\/)(?:tsconfig|package)\.json$/.test(path)).sort(),
-        sourceReadOnly: true,
+        directWorkspaceSourceReads: workspace.size,
+        configurationPathsDiscovered: fixture.paths.filter((path) => /(?:^|\/)(?:tsconfig|package)\.json$/.test(path)).sort(),
+        filesystemWrites: null,
+        filesystemWriteInstrumentation: "not-instrumented",
       },
       subprocess: {
-        nativeServer: true,
+        directChildrenSpawnedByHarness: 1,
         command: "typescript/bin/tsc --lsp --stdio",
-        expectedChildProcesses: 1,
-        unexpectedChildProcesses: 0,
-        trace: "experiment-owned child-process boundary; OS process audit not installed",
+        descendantProcesses: null,
+        plugins: null,
+        descendantProcessInstrumentation: "not-instrumented",
+        pluginInstrumentation: "not-instrumented",
       },
       network: {
-        observedEgress: false,
-        instrumentation: "offline harness made no network API calls",
-        limitation: "no OS-level socket tracer; this is not a host-wide egress guarantee",
+        directNetworkApisInvokedByHarness: null,
+        directNetworkInstrumentation: "not-instrumented",
+        networkEgress: null,
+        networkEgressInstrumentation: "not-instrumented",
       },
     },
     versions: {
@@ -963,7 +967,17 @@ const main = async () => {
       after: rootSelection.after.map(summarizeArtifact),
       union: cold.roots,
     },
-    timingsMs: { cold: coldMs, warm: warmMs },
+    timingsMs: {
+      processStartup: phaseTimingsMs.processStartup,
+      initialize: phaseTimingsMs.initialize,
+      openSynchronization: phaseTimingsMs.openSynchronization,
+      coldExtraction: coldMs,
+      warmExtraction: warmMs,
+      // Keep the original short names for existing consumers of the disposable
+      // record while exposing phase-specific names for evidence summaries.
+      cold: coldMs,
+      warm: warmMs,
+    },
     positionalRequestCounts: {
       cold: countDelta(coldCounts.positionalRequests, warmCounts.positionalRequests),
       warm: countDelta(warmCounts.positionalRequests, afterWarmCounts.positionalRequests),

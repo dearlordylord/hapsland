@@ -13,9 +13,10 @@ npm run --silent experiment:extract:evidence
 ```
 
 Every record has stable fixture names, root/context identities, navigation outcomes,
-omission reasons, requested and observed caps, cold/warm latency-presence labels, and
-positional request counts. The full local command record contains scalar cold and warm
-measurements:
+omission reasons, requested and observed caps, numeric coarse timing buckets, and
+positional request counts. `timing-summary.json` contains numeric timing and positional
+request distributions by fixture class. The full local command record contains scalar
+cold and warm measurements:
 
 ```sh
 npm run --silent experiment:extract -- \
@@ -23,8 +24,9 @@ npm run --silent experiment:extract -- \
   --edit interface
 ```
 
-The harness reads fixture source and starts exactly one native `tsc --lsp --stdio`
-child process. It does not import fixture modules or make network API calls; synthetic
-marker observations and the `observations` fields record that boundary. The evidence
-is not an OS-wide process, socket, or filesystem audit: a host-level tracer was not
-installed, so those residual observations remain a limitation in the verdict.
+The harness directly reads fixture source and directly spawns one native
+`tsc --lsp --stdio` child process. It does not import fixture modules. Descendant
+processes, plugins, filesystem writes, and network activity are explicitly null or
+marked not instrumented; the evidence is not an OS-wide process, socket, or filesystem
+audit. A host-level tracer was not installed, so those residual observations remain a
+limitation in the verdict.
