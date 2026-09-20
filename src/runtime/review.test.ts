@@ -1,6 +1,7 @@
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Deferred from "effect/Deferred";
@@ -15,6 +16,14 @@ import { ReviewBackend } from "../ports/review-backend.ts";
 import { DedupeStore } from "../ports/dedupe-store.ts";
 import { SnapshotReader } from "../ports/snapshot-reader.ts";
 import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts";
+import { Consent } from "./consent.ts";
+import {
+  DEFAULT_API_BASE,
+  DEFAULT_BACKEND,
+  DEFAULT_CREDENTIAL_ENV_VAR,
+  DEFAULT_DESTINATION,
+  type ReviewSettings,
+} from "./review-config.ts";
 import { review } from "./review.ts";
 
 const source = "export type Count = { value: number; unit: string };\n";
@@ -91,6 +100,7 @@ describe("review orchestration", () => {
         expect(excluded.results[0]).toMatchObject({
           status: "skipped",
           reason: "sensitive path excluded",
+          code: "excluded",
         });
 
         const unavailable = yield* run(request(root), {
@@ -99,6 +109,7 @@ describe("review orchestration", () => {
         expect(unavailable.results[0]).toMatchObject({
           status: "unavailable",
           retryable: false,
+          code: "backend_unavailable",
         });
       }),
     ),
@@ -199,6 +210,7 @@ describe("review orchestration", () => {
         expect(output.results[0]).toMatchObject({
           status: "unavailable",
           reason: "review backend timed out after 1000 ms",
+          code: "review_timeout",
         });
       }),
     ),
@@ -247,6 +259,7 @@ describe("review orchestration", () => {
         expect(output.results[0]).toMatchObject({
           status: "unavailable",
           reason: "file changed while review was in progress; advice is stale",
+          code: "stale_snapshot",
         });
       }),
     ),
@@ -261,6 +274,74 @@ describe("review orchestration", () => {
           { answers: answers(0) },
         );
         expect(output.results).toHaveLength(1);
+      }),
+    ),
+  );
+
+  it.effect("rereads consent after preflight revocation and makes zero egress", () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const root = yield* fixture;
+        execFileSync("git", ["init", "--quiet", root]);
+        const statePath = join(root, ".consent-state");
+        const settings: ReviewSettings = {
+          backend: DEFAULT_BACKEND,
+          apiBase: DEFAULT_API_BASE,
+          destination: DEFAULT_DESTINATION,
+          credentialEnvVar: DEFAULT_CREDENTIAL_ENV_VAR,
+          projectRequestedConsent: false,
+        };
+        const calls = yield* Ref.make(0);
+        const backend = Layer.succeed(
+          ReviewBackend.Service,
+          ReviewBackend.Service.of({
+            evaluate: () =>
+              Ref.update(calls, (value) => value + 1).pipe(
+                Effect.andThen(
+                  Effect.succeed({
+                    answers: answers(0),
+                    backend: {
+                      id: "should-not-run",
+                      durationMs: 0,
+                      retries: 0,
+                      usage: {},
+                    },
+                  }),
+                ),
+              ),
+          }),
+        );
+        const output = yield* Effect.gen(function* () {
+          const consent = yield* Consent.Service;
+          const proposal = yield* consent.preview(
+            root,
+            settings.backend,
+            settings.destination,
+          );
+          yield* consent.enable(proposal);
+          const preflight = yield* consent.authorize(
+            root,
+            settings.backend,
+            settings.destination,
+          );
+          expect(preflight.status).toBe("approved");
+          yield* consent.disable(root, settings.backend, settings.destination);
+          return yield* review(request(root), {
+            _tag: "authorized",
+            root,
+            consent,
+            settings,
+          }).pipe(
+            Effect.provide(
+              Layer.mergeAll(SnapshotReader.layer, DedupeStore.testLayer, backend),
+            ),
+          );
+        }).pipe(Effect.provide(Consent.layer({ statePath })));
+        expect(output.results[0]).toMatchObject({
+          status: "skipped",
+          code: "missing_consent",
+        });
+        expect(yield* Ref.get(calls)).toBe(0);
       }),
     ),
   );

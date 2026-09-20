@@ -16,18 +16,46 @@ import {
 } from "node:fs/promises";
 import { dirname, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
+import {
+  JEV_BACKEND,
+  JEV_DESTINATION,
+} from "./backend.ts";
 
 const execFileAsync = promisify(execFile);
 
+export const CanonicalRoot = Schema.String.check(Schema.isMinLength(1)).pipe(
+  Schema.brand("CanonicalWorkingTreeRoot"),
+);
+export type CanonicalRoot = typeof CanonicalRoot.Type;
+
+export const ConsentBackend = Schema.Literal(JEV_BACKEND).pipe(
+  Schema.brand("ConsentBackend"),
+);
+export const ConsentDestination = Schema.Literal(JEV_DESTINATION).pipe(
+  Schema.brand("ConsentDestination"),
+);
+
 export const ConsentGrant = Schema.Struct({
-  root: Schema.String,
-  backend: Schema.String,
-  destination: Schema.String,
+  root: CanonicalRoot,
+  backend: ConsentBackend,
+  destination: ConsentDestination,
 });
 export const ConsentGrantFile = Schema.Struct({
   version: Schema.Literal(1),
   grant: ConsentGrant,
 });
+export const ConsentScope = Schema.Literal("repository-wide eligible source files");
+export const ProposalDigest = Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)).pipe(
+  Schema.brand("ConsentProposalDigest"),
+);
+export type ProposalDigest = typeof ProposalDigest.Type;
+export const ConsentProposal = Schema.Struct({
+  version: Schema.Literal(1),
+  target: ConsentGrant,
+  scope: ConsentScope,
+  digest: ProposalDigest,
+});
+export interface ConsentProposal extends Schema.Schema.Type<typeof ConsentProposal> {}
 export const ConsentStore = Schema.Struct({
   version: Schema.Literal(1),
   grants: Schema.Array(ConsentGrant),
@@ -35,6 +63,11 @@ export const ConsentStore = Schema.Struct({
 export interface ConsentStore extends Schema.Schema.Type<typeof ConsentStore> {}
 
 export type ConsentIdentity = ConsentStore["grants"][number];
+export type ConsentTarget = {
+  readonly root: CanonicalRoot;
+  readonly backend: typeof ConsentBackend.Type;
+  readonly destination: typeof ConsentDestination.Type;
+};
 
 export class ConsentError extends Schema.TaggedError<ConsentError>()(
   "ConsentError",
@@ -61,10 +94,14 @@ export interface Interface {
     backend: string,
     destination: string,
   ) => Effect.Effect<Authorization, ConsentError>;
-  readonly enable: (
+  readonly preview: (
     cwd: string,
     backend: string,
     destination: string,
+  ) => Effect.Effect<ConsentProposal, ConsentError>;
+  /** Confirm a proposal that was freshly previewed for the same target. */
+  readonly enable: (
+    proposal: ConsentProposal,
   ) => Effect.Effect<ConsentIdentity, ConsentError>;
   readonly disable: (
     cwd: string,
@@ -89,6 +126,13 @@ const sameIdentity = (left: ConsentIdentity, right: ConsentIdentity) =>
   left.root === right.root &&
   left.backend === right.backend &&
   left.destination === right.destination;
+
+const digestProposal = (target: ConsentIdentity) =>
+  createHash("sha256")
+    .update(
+      `consent-v1\0${target.root}\0${target.backend}\0${target.destination}\0repository-wide eligible source files`,
+    )
+    .digest("hex");
 
 const readStore = (statePath: string) =>
   Effect.tryPromise({
@@ -178,41 +222,40 @@ const discoverRoot = Effect.fn("Consent.discoverRoot")(function* (cwd: string) {
   });
 });
 
-const normalizeDestination = (value: string) => {
-  let parsed: URL;
-  try {
-    parsed = new URL(value);
-  } catch {
-    throw new Error("destination must be an absolute HTTP URL");
-  }
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new Error("destination must use HTTP or HTTPS");
-  }
-  if (parsed.username !== "" || parsed.password !== "") {
-    throw new Error("destination must not contain credentials");
-  }
-  return parsed.toString().replace(/\/$/, "");
-};
-
 const makeIdentity = Effect.fn("Consent.normalizeIdentity")(function* (
   cwd: string,
   backend: string,
   destination: string,
 ) {
   const root = yield* discoverRoot(cwd);
-  if (backend !== "jev") {
+  if (backend !== JEV_BACKEND) {
     return yield* new ConsentError({ reason: "unsupported review backend" });
   }
-  if (backend.length > 128 || destination.length > 2048) {
-    return yield* new ConsentError({ reason: "review destination identity is too long" });
+  if (destination !== JEV_DESTINATION) {
+    return yield* new ConsentError({
+      reason: "review destination is fixed to the Jev System One endpoint",
+    });
   }
-  let normalizedDestination: string;
-  try {
-    normalizedDestination = normalizeDestination(destination);
-  } catch {
-    return yield* new ConsentError({ reason: "review destination is invalid" });
-  }
-  return { root, backend, destination: normalizedDestination } satisfies ConsentIdentity;
+  return yield* Schema.decodeUnknownEffect(ConsentGrant, {
+    onExcessProperty: "error",
+  })({ root, backend, destination }).pipe(
+    Effect.mapError(() => new ConsentError({ reason: "consent target identity is invalid" })),
+  );
+});
+
+const makeProposal = Effect.fn("Consent.preview")(function* (target: ConsentIdentity) {
+  return yield* Schema.decodeUnknownEffect(ConsentProposal, {
+    onExcessProperty: "error",
+  })({
+    version: 1,
+    target,
+    scope: "repository-wide eligible source files",
+    digest: digestProposal(target),
+  }).pipe(
+    Effect.mapError(
+      () => new ConsentError({ reason: "consent proposal could not be created" }),
+    ),
+  );
 });
 
 const toRelativeRootPath = (root: string, cwd: string, path: string) => {
@@ -230,13 +273,10 @@ const toRelativeRootPath = (root: string, cwd: string, path: string) => {
 
 const makeService = (statePath: string): Effect.Effect<Interface> =>
   Effect.gen(function* () {
-    const store = yield* Ref.make<ConsentStore | undefined>(undefined);
     const loaded = Effect.fn("Consent.read")(function* () {
-      const cached = yield* Ref.get(store);
-      if (cached !== undefined) return cached;
-      const value = yield* readStore(statePath);
-      yield* Ref.set(store, value);
-      return value;
+      // Dispatch checks intentionally reread disk state. A separate process may
+      // revoke a grant after an earlier preparation check.
+      return yield* readStore(statePath);
     });
     const save = Effect.fn("Consent.write")(function* (
       previous: ConsentStore,
@@ -250,10 +290,16 @@ const makeService = (statePath: string): Effect.Effect<Interface> =>
       for (const grant of previous.grants) {
         if (!nextGrants.has(grantFileName(grant))) yield* removeGrant(statePath, grant);
       }
-      yield* Ref.set(store, value);
     });
     const identity = (cwd: string, backend: string, destination: string) =>
       makeIdentity(cwd, backend, destination);
+    const preview = Effect.fn("Consent.preview")(function* (
+      cwd: string,
+      backend: string,
+      destination: string,
+    ) {
+      return yield* identity(cwd, backend, destination).pipe(Effect.flatMap(makeProposal));
+    });
     const authorize = Effect.fn("Consent.authorize")(function* (
       cwd: string,
       backend: string,
@@ -271,12 +317,25 @@ const makeService = (statePath: string): Effect.Effect<Interface> =>
         ? { status: "approved" as const, identity: value.value }
         : { status: "missing-consent" as const, identity: value.value };
     });
-    const enable = Effect.fn("Consent.enable")(function* (
-      cwd: string,
-      backend: string,
-      destination: string,
-    ) {
-      const value = yield* identity(cwd, backend, destination);
+    const enable = Effect.fn("Consent.enable")(function* (proposal: ConsentProposal) {
+      const candidate = yield* Schema.decodeUnknownEffect(ConsentProposal, {
+        onExcessProperty: "error",
+      })(proposal).pipe(
+        Effect.mapError(
+          () => new ConsentError({ reason: "consent proposal is invalid" }),
+        ),
+      );
+      const current = yield* preview(
+        candidate.target.root,
+        candidate.target.backend,
+        candidate.target.destination,
+      );
+      if (current.digest !== candidate.digest) {
+        return yield* new ConsentError({
+          reason: "consent proposal no longer matches the current repository target",
+        });
+      }
+      const value = current.target;
       const state = yield* loaded();
       if (state.grants.some((grant) => sameIdentity(grant, value))) return value;
       yield* save(state, { version: 1, grants: [...state.grants, value] });
@@ -298,6 +357,7 @@ const makeService = (statePath: string): Effect.Effect<Interface> =>
       discoverRoot,
       normalizeIdentity: identity,
       authorize,
+      preview,
       enable,
       disable,
       list: Effect.fn("Consent.list")(function* () {
@@ -335,8 +395,18 @@ export const testLayer = (grants: ReadonlyArray<ConsentIdentity> = []) =>
             ? { status: "approved" as const, identity: identity.value }
             : { status: "missing-consent" as const, identity: identity.value };
         }),
-        enable: Effect.fn("Consent.Test.enable")(function* (cwd, backend, destination) {
+        preview: Effect.fn("Consent.Test.preview")(function* (cwd, backend, destination) {
           const identity = yield* makeIdentity(cwd, backend, destination);
+          return yield* makeProposal(identity);
+        }),
+        enable: Effect.fn("Consent.Test.enable")(function* (proposal) {
+          const current = yield* makeProposal(proposal.target);
+          if (current.digest !== proposal.digest) {
+            return yield* new ConsentError({
+              reason: "consent proposal no longer matches the current repository target",
+            });
+          }
+          const identity = current.target;
           yield* Ref.update(state, (values) =>
             values.some((grant) => sameIdentity(grant, identity)) ? values : [...values, identity],
           );

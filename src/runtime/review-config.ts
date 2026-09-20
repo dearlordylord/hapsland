@@ -2,24 +2,48 @@ import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import { access, readFile } from "node:fs/promises";
 import { join } from "node:path";
+import {
+  JEV_API_BASE,
+  JEV_BACKEND,
+  JEV_DESTINATION,
+  type BackendId,
+  type Destination,
+} from "./backend.ts";
 
-export const DEFAULT_BACKEND = "jev";
-export const DEFAULT_DESTINATION = "https://api.typesafe.ai/v1";
+export const DEFAULT_BACKEND = JEV_BACKEND;
+export const DEFAULT_API_BASE = JEV_API_BASE;
+export const DEFAULT_DESTINATION = JEV_DESTINATION;
 export const DEFAULT_CREDENTIAL_ENV_VAR = "TYPESAFE_API_KEY";
 
-const CONFIG_FILES = [
-  ".review.jsonc",
-  ".realtime-review.jsonc",
-] as const;
+const CONFIG_FILES = [".review.jsonc", ".realtime-review.jsonc"] as const;
 
 export class ReviewConfigError extends Schema.TaggedError<ReviewConfigError>()(
   "ReviewConfigError",
   { reason: Schema.String },
 ) {}
 
+const EnvironmentVariableName = Schema.String.check(
+  Schema.isPattern(/^[A-Z_][A-Z0-9_]*$/),
+).pipe(Schema.brand("EnvironmentVariableName"));
+type EnvironmentVariableName = typeof EnvironmentVariableName.Type;
+
+const ProjectConfig = Schema.Struct({
+  version: Schema.Literal(1),
+  backend: Schema.optionalKey(Schema.Literal(JEV_BACKEND)),
+  credentialEnvVar: Schema.optionalKey(EnvironmentVariableName),
+  credentials: Schema.optionalKey(
+    Schema.Struct({ envVar: EnvironmentVariableName }),
+  ),
+  // These fields are deliberately accepted as project requests but never grant consent.
+  consent: Schema.optionalKey(Schema.Boolean),
+  enabled: Schema.optionalKey(Schema.Boolean),
+});
+type ProjectConfig = typeof ProjectConfig.Type;
+
 export interface ReviewSettings {
-  readonly backend: string;
-  readonly destination: string;
+  readonly backend: BackendId;
+  readonly apiBase: typeof DEFAULT_API_BASE;
+  readonly destination: Destination;
   readonly credentialEnvVar: string;
   readonly projectConfigPath?: string;
   /** A project may request consent, but this value is never an authorization grant. */
@@ -28,16 +52,14 @@ export interface ReviewSettings {
 
 const defaultSettings = (): ReviewSettings => ({
   backend: DEFAULT_BACKEND,
+  apiBase: DEFAULT_API_BASE,
   destination: DEFAULT_DESTINATION,
   credentialEnvVar: DEFAULT_CREDENTIAL_ENV_VAR,
   projectRequestedConsent: false,
 });
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
 /** Remove JSONC comments and trailing commas without changing string contents. */
-const parseJsonc = (text: string): unknown => {
+const stripJsonc = (text: string): string => {
   let output = "";
   let inString = false;
   let escaped = false;
@@ -93,133 +115,25 @@ const parseJsonc = (text: string): unknown => {
     }
   }
 
-  return JSON.parse(output.replace(/,\s*([}\]])/g, "$1")) as unknown;
+  return output.replace(/,\s*([}\]])/g, "$1");
 };
 
-const boundedString = (value: unknown, field: string): string => {
-  if (typeof value !== "string" || value.length === 0 || value.length > 512) {
-    throw new Error(`${field} must be a non-empty string`);
-  }
-  return value;
-};
-
-const environmentVariable = (value: unknown): string => {
-  const name = boundedString(value, "credentialEnvVar");
-  if (!/^[A-Z_][A-Z0-9_]*$/.test(name)) {
-    throw new Error("credentialEnvVar must be an environment-variable name");
-  }
-  return name;
-};
-
-const destination = (value: unknown): string => {
-  const encoded = boundedString(value, "destination");
-  let parsed: URL;
-  try {
-    parsed = new URL(encoded);
-  } catch {
-    throw new Error("destination must be an absolute HTTP URL");
-  }
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-    throw new Error("destination must use HTTP or HTTPS");
-  }
-  if (parsed.username !== "" || parsed.password !== "") {
-    throw new Error("destination must not contain credentials");
-  }
-  // The provider appends /systemone. Keep the identity stable for a harmless
-  // trailing-slash spelling change while preserving the configured path.
-  return parsed.toString().replace(/\/$/, "");
-};
-
-const checkKeys = (value: Record<string, unknown>, allowed: ReadonlySet<string>) => {
-  for (const key of Object.keys(value)) {
-    if (!allowed.has(key)) throw new Error(`unknown configuration field ${key}`);
-  }
-};
-
-const nestedSettings = (value: unknown): {
-  readonly backend?: string;
-  readonly destination?: string;
-  readonly credentialEnvVar?: string;
-  readonly projectRequestedConsent?: boolean;
-} => {
-  if (!isRecord(value)) throw new Error("review configuration must be an object");
-  checkKeys(
-    value,
-    new Set([
-      "version",
-      "backend",
-      "destination",
-      "credentialEnvVar",
-      "credentials",
-      "consent",
-      "enabled",
-    ]),
+const decodeProjectConfig = (text: string) =>
+  Effect.try({
+    try: () => JSON.parse(stripJsonc(text)) as unknown,
+    catch: () => new ReviewConfigError({ reason: "review configuration is not valid JSONC" }),
+  }).pipe(
+    Effect.flatMap((unknown) =>
+      Schema.decodeUnknownEffect(ProjectConfig, {
+        onExcessProperty: "error",
+        errors: "all",
+      })(unknown).pipe(
+        Effect.mapError(
+          () => new ReviewConfigError({ reason: "review configuration has invalid fields" }),
+        ),
+      ),
+    ),
   );
-  const backendValue = value.backend;
-  const credentials = value.credentials;
-  let credentialEnvVar: string | undefined;
-  if (credentials !== undefined) {
-    if (!isRecord(credentials)) throw new Error("credentials must be an object");
-    checkKeys(credentials, new Set(["envVar", "credentialEnvVar"]));
-    const candidate = credentials.envVar ?? credentials.credentialEnvVar;
-    if (candidate !== undefined) credentialEnvVar = environmentVariable(candidate);
-  }
-  if (value.credentialEnvVar !== undefined) {
-    credentialEnvVar = environmentVariable(value.credentialEnvVar);
-  }
-  let projectRequestedConsent = false;
-  for (const key of ["consent", "enabled"] as const) {
-    const candidate = value[key];
-    if (candidate !== undefined) {
-      if (typeof candidate !== "boolean") throw new Error(`${key} must be boolean`);
-      projectRequestedConsent ||= candidate;
-    }
-  }
-  return {
-    ...(backendValue === undefined ? {} : { backend: boundedString(backendValue, "backend") }),
-    ...(value.destination === undefined
-      ? {}
-      : { destination: destination(value.destination) }),
-    ...(credentialEnvVar === undefined ? {} : { credentialEnvVar }),
-    ...(projectRequestedConsent ? { projectRequestedConsent: true } : {}),
-  };
-};
-
-const parseSettings = (value: unknown): Omit<ReviewSettings, "projectConfigPath"> => {
-  if (!isRecord(value)) throw new Error("review configuration must be an object");
-  checkKeys(
-    value,
-    new Set([
-      "version",
-      "backend",
-      "destination",
-      "credentialEnvVar",
-      "credentials",
-      "consent",
-      "enabled",
-      "review",
-    ]),
-  );
-  if (value.version !== undefined && value.version !== 1) {
-    throw new Error("unsupported review configuration version");
-  }
-  const base = nestedSettings(value);
-  const review = value.review === undefined ? {} : nestedSettings(value.review);
-  const backend = review.backend ?? base.backend ?? DEFAULT_BACKEND;
-  const selectedDestination = review.destination ?? base.destination ?? DEFAULT_DESTINATION;
-  const credentialEnvVar =
-    review.credentialEnvVar ?? base.credentialEnvVar ?? DEFAULT_CREDENTIAL_ENV_VAR;
-  if (backend !== DEFAULT_BACKEND) {
-    throw new Error(`unsupported review backend ${backend}`);
-  }
-  return {
-    backend,
-    destination: destination(selectedDestination),
-    credentialEnvVar: environmentVariable(credentialEnvVar),
-    projectRequestedConsent:
-      Boolean(base.projectRequestedConsent) || Boolean(review.projectRequestedConsent),
-  };
-};
 
 const readConfigFile = (path: string) =>
   Effect.tryPromise({
@@ -227,9 +141,18 @@ const readConfigFile = (path: string) =>
     catch: () => new ReviewConfigError({ reason: "could not read review configuration" }),
   });
 
+const settingsFrom = (config: ProjectConfig): Omit<ReviewSettings, "projectConfigPath"> => ({
+  backend: config.backend ?? DEFAULT_BACKEND,
+  apiBase: DEFAULT_API_BASE,
+  destination: DEFAULT_DESTINATION,
+  credentialEnvVar:
+    config.credentialEnvVar ?? config.credentials?.envVar ?? DEFAULT_CREDENTIAL_ENV_VAR,
+  projectRequestedConsent: Boolean(config.consent) || Boolean(config.enabled),
+});
+
 /**
  * Load the one project configuration at the canonical working-tree root.
- * Absence is a valid configuration and returns built-in defaults.
+ * Absence is valid and returns built-in defaults. The project cannot select an endpoint.
  */
 export const loadReviewSettings = Effect.fn("ReviewConfig.load")(
   function* (root: string) {
@@ -256,21 +179,10 @@ export const loadReviewSettings = Effect.fn("ReviewConfig.load")(
     }
     const path = found[0];
     if (path === undefined) return defaultSettings();
-    const text = yield* readConfigFile(path);
-    let parsed: unknown;
-    try {
-      parsed = parseJsonc(text);
-    } catch {
-      return yield* new ReviewConfigError({ reason: "review configuration is not valid JSONC" });
-    }
-    try {
-      return { ...parseSettings(parsed), projectConfigPath: path };
-    } catch (cause) {
-      return yield* new ReviewConfigError({
-        reason: cause instanceof Error ? cause.message.slice(0, 300) : "invalid review configuration",
-      });
-    }
+    const config = yield* readConfigFile(path).pipe(Effect.flatMap(decodeProjectConfig));
+    return { ...settingsFrom(config), projectConfigPath: path };
   },
 );
 
-export const normalizeDestination = destination;
+export const isEnvironmentVariableName = (value: string): value is EnvironmentVariableName =>
+  /^[A-Z_][A-Z0-9_]*$/.test(value);

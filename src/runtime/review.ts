@@ -9,12 +9,7 @@ import type {
   SnapshotRef,
 } from "../domain/contracts.ts";
 import { Consent, rootRelativePath } from "./consent.ts";
-import {
-  DEFAULT_BACKEND,
-  DEFAULT_DESTINATION,
-  loadReviewSettings,
-  type ReviewSettings,
-} from "./review-config.ts";
+import type { ReviewSettings } from "./review-config.ts";
 import { ineligibleReason } from "../policy/eligibility.ts";
 import { applicableRules, deriveAdvice } from "../policy/rules.ts";
 import { ReviewBackend } from "../ports/review-backend.ts";
@@ -24,6 +19,15 @@ import { validateAssessment } from "./assessment.ts";
 
 const MAX_FINDINGS = 5;
 const BACKEND_TIMEOUT = "1 second";
+
+export type ReviewContext =
+  | { readonly _tag: "unscoped" }
+  | {
+      readonly _tag: "authorized";
+      readonly root: string;
+      readonly consent: Consent.Interface;
+      readonly settings: ReviewSettings;
+    };
 
 const bounded = (value: string) => value.replaceAll(/\s+/g, " ").slice(0, 300);
 
@@ -35,14 +39,10 @@ const fingerprint = (eventId: string, snapshot: SnapshotRef) =>
 const reviewPath = Effect.fn("Review.reviewPath")(function* (
   request: ReviewRequest,
   path: string,
-  context: {
-    readonly root?: string;
-    readonly consent?: Consent.Interface;
-    readonly settings?: ReviewSettings;
-  },
+  context: ReviewContext,
 ) {
   const relativePath =
-    context.root === undefined
+    context._tag === "unscoped"
       ? path
       : rootRelativePath(context.root, request.event.cwd, path);
   if (relativePath === undefined) {
@@ -66,7 +66,7 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
   const snapshots = yield* SnapshotReader.Service;
   const backend = yield* ReviewBackend.Service;
   const dedupe = yield* DedupeStore.Service;
-  const readRoot = context.root ?? request.event.cwd;
+  const readRoot = context._tag === "authorized" ? context.root : request.event.cwd;
   const initial = yield* snapshots.read(readRoot, relativePath).pipe(Effect.option);
   if (Option.isNone(initial)) {
     return {
@@ -87,7 +87,7 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
     };
   }
 
-  if (context.consent !== undefined && context.settings !== undefined) {
+  if (context._tag === "authorized") {
     const authorization = yield* context.consent.authorize(
       readRoot,
       context.settings.backend,
@@ -151,7 +151,7 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
   }
 
   const current = yield* snapshots
-    .read(request.event.cwd, initial.value.path)
+    .read(readRoot, initial.value.path)
     .pipe(Effect.option);
   if (
     Option.isNone(current) ||
@@ -193,78 +193,8 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
 
 export const review = Effect.fn("Review.run")(function* (
   request: ReviewRequest,
+  context: ReviewContext = { _tag: "unscoped" },
 ) {
-  const consent = yield* Effect.serviceOption(Consent.Service);
-  let context: {
-    readonly root?: string;
-    readonly consent?: Consent.Interface;
-    readonly settings?: ReviewSettings;
-  } = {};
-  if (Option.isSome(consent)) {
-    const preflight = yield* Effect.gen(function* () {
-      const discovered = yield* consent.value.discoverRoot(request.event.cwd).pipe(Effect.result);
-      if (Result.isFailure(discovered)) {
-        return {
-          root: undefined,
-          settings: {
-            backend: DEFAULT_BACKEND,
-            destination: DEFAULT_DESTINATION,
-            credentialEnvVar: "TYPESAFE_API_KEY",
-            projectRequestedConsent: false,
-          } satisfies ReviewSettings,
-          authorization: {
-            status: "unsupported" as const,
-            reason: "review is unsupported outside a discoverable Git working tree",
-          },
-        };
-      }
-      const root = discovered.success;
-      const settings = yield* loadReviewSettings(root);
-      const authorization = yield* consent.value.authorize(
-        request.event.cwd,
-        settings.backend,
-        settings.destination,
-      );
-      return { root, settings, authorization };
-    }).pipe(Effect.result);
-    if (Result.isFailure(preflight)) {
-      const results: ReadonlyArray<ReviewResult> = request.event.paths.map((path) => ({
-        status: "unavailable" as const,
-        path,
-        reason: "review configuration or consent state is unavailable",
-        retryable: false,
-        code: "invalid_configuration" as const,
-      }));
-      return { version: 1 as const, eventId: request.event.id, results, advice: [] } satisfies ReviewResponse;
-    }
-    const { root, settings, authorization } = preflight.success;
-    if (authorization.status !== "approved") {
-      const results: ReadonlyArray<ReviewResult> = request.event.paths.map((path) => ({
-        status: "skipped" as const,
-        path,
-        reason:
-          authorization.status === "unsupported"
-            ? authorization.reason
-            : "repository review consent is required; run the explicit enable operation",
-        code:
-          authorization.status === "unsupported"
-            ? ("unsupported_repository" as const)
-            : ("missing_consent" as const),
-      }));
-      return { version: 1 as const, eventId: request.event.id, results, advice: [] } satisfies ReviewResponse;
-    }
-    if (root === undefined) {
-      const results: ReadonlyArray<ReviewResult> = request.event.paths.map((path) => ({
-        status: "unavailable" as const,
-        path,
-        reason: "review working-tree identity is unavailable",
-        retryable: false,
-        code: "invalid_configuration" as const,
-      }));
-      return { version: 1 as const, eventId: request.event.id, results, advice: [] } satisfies ReviewResponse;
-    }
-    context = { root, consent: consent.value, settings };
-  }
   const paths = [...new Set(request.event.paths)].sort();
   const results: ReadonlyArray<ReviewResult> = yield* Effect.forEach(
     paths,

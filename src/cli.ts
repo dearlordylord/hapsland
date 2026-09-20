@@ -24,7 +24,7 @@ import { decodeReviewRequest, type ReviewRequest } from "./domain/contracts.ts";
 import { ReviewBackend } from "./ports/review-backend.ts";
 import { DedupeStore } from "./ports/dedupe-store.ts";
 import { SnapshotReader } from "./ports/snapshot-reader.ts";
-import { review } from "./runtime/review.ts";
+import { review, type ReviewContext } from "./runtime/review.ts";
 import {
   controlledDecisionModelLayer,
   type ControlledDecisionModelOptions,
@@ -67,6 +67,7 @@ const ControlledOptions = Schema.Struct({
   ),
   delayMs: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
   failure: Schema.optionalKey(Schema.String),
+  capturePath: Schema.optionalKey(Schema.String),
 });
 
 const controlledOptions = Config.String("REVIEW_CONTROL_JSON").pipe(
@@ -82,16 +83,34 @@ const controlledOptions = Config.String("REVIEW_CONTROL_JSON").pipe(
   ),
 );
 
-const ConsentOperation = Schema.Struct({
-  version: Schema.optionalKey(Schema.Literal(1)),
-  operation: Schema.optionalKey(
-    Schema.Literals(["enable", "disable", "credentials", "status"]),
-  ),
-  cwd: Schema.optionalKey(Schema.String),
-  backend: Schema.optionalKey(Schema.String),
-  destination: Schema.optionalKey(Schema.String),
-  credentialEnvVar: Schema.optionalKey(Schema.String),
-});
+const ConsentOperation = Schema.Union([
+  Schema.Struct({
+    version: Schema.Literal(1),
+    operation: Schema.Literal("enable"),
+    cwd: Schema.String,
+  }),
+  Schema.Struct({
+    version: Schema.Literal(1),
+    operation: Schema.Literal("enable-confirm"),
+    cwd: Schema.String,
+    proposalDigest: Consent.ProposalDigest,
+  }),
+  Schema.Struct({
+    version: Schema.Literal(1),
+    operation: Schema.Literal("disable"),
+    cwd: Schema.String,
+  }),
+  Schema.Struct({
+    version: Schema.Literal(1),
+    operation: Schema.Literal("credentials"),
+    cwd: Schema.String,
+  }),
+  Schema.Struct({
+    version: Schema.Literal(1),
+    operation: Schema.Literal("status"),
+    cwd: Schema.String,
+  }),
+]);
 type ConsentOperation = typeof ConsentOperation.Type;
 
 const statePathConfig = Config.String("REVIEW_STATE_PATH").pipe(
@@ -99,7 +118,8 @@ const statePathConfig = Config.String("REVIEW_STATE_PATH").pipe(
   Config.withDefault(join(homedir(), ".config", "realtime-review-tool", "consent")),
 );
 
-const forcedOperation = (): ConsentOperation["operation"] => {
+const forcedOperation = (): ConsentOperation["operation"] | undefined => {
+  if (process.argv.includes("--enable-confirm")) return "enable-confirm";
   if (process.argv.includes("--enable")) return "enable";
   if (process.argv.includes("--disable")) return "disable";
   if (
@@ -114,22 +134,18 @@ const forcedOperation = (): ConsentOperation["operation"] => {
   return undefined;
 };
 
-const decodeOperation = (input: string, forced: ConsentOperation["operation"]) =>
+const decodeOperation = (input: string, forced: ConsentOperation["operation"] | undefined) =>
   decodeJson(input).pipe(
     Effect.flatMap((value) =>
       Schema.decodeUnknownEffect(ConsentOperation, {
         onExcessProperty: "error",
       })(value),
     ),
-    Effect.map((operation) => {
-      const withCwd = operation.cwd === undefined
-        ? { ...operation, cwd: process.cwd() }
-        : operation;
-      const selected = forced ?? operation.operation;
-      return selected === undefined
-        ? withCwd
-        : { ...withCwd, operation: selected };
-    }),
+    Effect.flatMap((operation) =>
+      forced !== undefined && operation.operation !== forced
+        ? Effect.fail(new Error("operation flag does not match the request"))
+        : Effect.succeed(operation),
+    ),
   );
 
 const defaultResponse = (
@@ -203,17 +219,15 @@ const noConsentResponse = (
 const runtimeLayer = (
   controlled: ControlledDecisionModelOptions | undefined,
   settings: ReviewSettings,
-  statePath: string,
 ) => {
   const decisionModel =
     controlled === undefined
       ? jevDecisionModelLiveLayer({
-          apiUrl: settings.destination,
+          apiUrl: settings.apiBase,
           credentialEnvVar: settings.credentialEnvVar,
         })
       : controlledDecisionModelLayer(controlled);
   return Layer.mergeAll(
-    Consent.layer({ statePath }),
     SnapshotReader.layer,
     DedupeStore.layer,
     ReviewBackend.layer.pipe(Layer.provide(decisionModel)),
@@ -224,8 +238,8 @@ const runRequest = (
   request: ReviewRequest,
   controlled: ControlledDecisionModelOptions | undefined,
   settings: ReviewSettings,
-  statePath: string,
-) => review(request).pipe(Effect.provide(runtimeLayer(controlled, settings, statePath)));
+  context: ReviewContext,
+) => review(request, context).pipe(Effect.provide(runtimeLayer(controlled, settings)));
 
 const isCodexHook = process.argv.includes("--codex-hook");
 const isControlled = process.argv.includes("--controlled");
@@ -234,23 +248,52 @@ const requestedOperation = forcedOperation();
 const runOperation = (operation: ConsentOperation, statePath: string) =>
   Effect.gen(function* () {
     const consent = yield* Consent.Service;
-    const cwd = operation.cwd ?? process.cwd();
+    const cwd = operation.cwd;
     const root = yield* consent.discoverRoot(cwd);
     const settings = yield* loadReviewSettings(root);
-    const backend = operation.backend ?? settings.backend ?? DEFAULT_BACKEND;
-    const destination = operation.destination ?? settings.destination ?? DEFAULT_DESTINATION;
-    const credentialEnvVar =
-      operation.credentialEnvVar ?? settings.credentialEnvVar ?? DEFAULT_CREDENTIAL_ENV_VAR;
+    const backend = settings.backend;
+    const destination = settings.destination;
+    const credentialEnvVar = settings.credentialEnvVar;
     switch (operation.operation) {
       case "enable": {
-        const identity = yield* consent.enable(cwd, backend, destination);
+        const proposal = yield* consent.preview(cwd, backend, destination);
         return {
           version: 1,
           operation: "enable",
+          status: "preview",
+          proposal: {
+            digest: proposal.digest,
+            repository: { canonicalRoot: proposal.target.root },
+            backend: {
+              id: proposal.target.backend,
+              destination: proposal.target.destination,
+            },
+            scope: proposal.scope,
+          },
+          projectAuthorizationIgnored: settings.projectRequestedConsent,
+        };
+      }
+      case "enable-confirm": {
+        const proposal = yield* consent.preview(cwd, backend, destination);
+        if (proposal.digest !== operation.proposalDigest) {
+          return {
+            version: 1,
+            operation: "enable-confirm",
+            status: "proposal-mismatch",
+            proposalDigest: operation.proposalDigest,
+            currentProposalDigest: proposal.digest,
+            repository: { canonicalRoot: proposal.target.root },
+            scope: proposal.scope,
+          };
+        }
+        const identity = yield* consent.enable(proposal);
+        return {
+          version: 1,
+          operation: "enable-confirm",
           status: "enabled",
           repository: { canonicalRoot: identity.root },
           backend: { id: identity.backend, destination: identity.destination },
-          scope: "repository-wide eligible source files",
+          scope: proposal.scope,
           projectAuthorizationIgnored: settings.projectRequestedConsent,
         };
       }
@@ -324,11 +367,23 @@ const runReviewRequest = (
         );
       }
     }
+    if (authorization.success.root === undefined) {
+      return defaultResponse(
+        request,
+        "invalid_configuration",
+        "review working-tree identity is unavailable",
+      );
+    }
     return yield* runRequest(
       request,
       controlled,
       authorization.success.settings,
-      statePath,
+      {
+        _tag: "authorized",
+        root: authorization.success.root,
+        consent: authorization.success.consent,
+        settings: authorization.success.settings,
+      },
     ).pipe(
       Effect.catchCause(() =>
         Effect.succeed(
@@ -346,7 +401,7 @@ const program = Effect.gen(function* () {
   const input = yield* readStdin;
   const statePath = yield* statePathConfig;
 
-  const inputRequestsOperation = /"operation"\s*:\s*"(?:enable|disable|credentials|status)"/.test(
+  const inputRequestsOperation = /"operation"\s*:\s*"(?:enable|enable-confirm|disable|credentials|status)"/.test(
     input,
   );
   if (requestedOperation !== undefined || inputRequestsOperation) {

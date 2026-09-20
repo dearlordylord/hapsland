@@ -64,6 +64,7 @@ describe("Codex adapter", () => {
             path: "src/a.ts",
             reason: "backend timed out",
             retryable: true,
+            code: "review_timeout",
           },
         ],
         advice: [],
