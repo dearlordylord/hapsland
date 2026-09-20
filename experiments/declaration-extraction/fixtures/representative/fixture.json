@@ -1,0 +1,19 @@
+{
+  "name": "representative-interface-and-alias",
+  "workspace": "workspace",
+  "before": "before",
+  "evaluationMarker": ".module-init.marker",
+  "defaultEdit": "interface",
+  "edits": {
+    "interface": {
+      "path": "src/target.ts",
+      "beforeRange": { "start": { "line": 7, "character": 1 }, "end": { "line": 7, "character": 30 } },
+      "afterRange": { "start": { "line": 7, "character": 1 }, "end": { "line": 7, "character": 31 } }
+    },
+    "alias": {
+      "path": "src/target.ts",
+      "beforeRange": { "start": { "line": 17, "character": 1 }, "end": { "line": 17, "character": 22 } },
+      "afterRange": { "start": { "line": 17, "character": 1 }, "end": { "line": 17, "character": 23 } }
+    }
+  }
+}
