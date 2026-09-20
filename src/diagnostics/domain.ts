@@ -58,43 +58,100 @@ export const DiagnosticProblem = Schema.Struct({
 });
 export interface DiagnosticProblem extends Schema.Schema.Type<typeof DiagnosticProblem> {}
 
-export const DiagnosticEvent = Schema.Struct({
+const HealthyDiagnosticEvent = Schema.Struct({
   scope: DiagnosticScope,
-  status: Schema.Literals(["healthy", "problem"]),
-  problem: Schema.optionalKey(DiagnosticProblem),
+  status: Schema.Literal("healthy"),
+  /** Keep the impossible field rejected even without strict decode options. */
+  problem: Schema.optionalKey(Schema.Never),
 });
-export interface DiagnosticEvent extends Schema.Schema.Type<typeof DiagnosticEvent> {}
 
-export const DiagnosticNotification = Schema.Struct({
-  kind: Schema.Literals(["problem", "recovery"]),
-  code: DiagnosticCode,
-  changed: Schema.Boolean,
-  problem: Schema.optionalKey(DiagnosticProblem),
+const ProblemDiagnosticEvent = Schema.Struct({
+  scope: DiagnosticScope,
+  status: Schema.Literal("problem"),
+  problem: DiagnosticProblem,
 });
-export interface DiagnosticNotification
-  extends Schema.Schema.Type<typeof DiagnosticNotification> {}
+
+/** An event's status determines whether a problem is permitted or required. */
+export const DiagnosticEvent = Schema.Union([
+  HealthyDiagnosticEvent,
+  ProblemDiagnosticEvent,
+]);
+export type DiagnosticEvent = typeof DiagnosticEvent.Type;
+
+const ProblemDiagnosticNotification = Schema.Struct({
+  kind: Schema.Literal("problem"),
+  /** Recovery is a separate notification variant, never a problem code. */
+  code: DiagnosticProblemCode,
+  changed: Schema.Boolean,
+  problem: DiagnosticProblem,
+});
+
+const RecoveryDiagnosticNotification = Schema.Struct({
+  kind: Schema.Literal("recovery"),
+  code: Schema.Literal("recovery"),
+  changed: Schema.Literal(false),
+  /** Identify the bounded problem that has recovered. */
+  problem: DiagnosticProblem,
+});
+
+/** Notification kind and code are coupled at the boundary. */
+export const DiagnosticNotification = Schema.Union([
+  ProblemDiagnosticNotification,
+  RecoveryDiagnosticNotification,
+]);
+export type DiagnosticNotification = typeof DiagnosticNotification.Type;
 
 /**
  * An observation is retained even when its notification is suppressed.  This
  * distinction lets receipts/status code count outcomes without re-announcing
  * the same problem to a host.
  */
-export const DiagnosticObservation = Schema.Struct({
+const HealthyDiagnosticObservation = Schema.Struct({
   scope: DiagnosticScope,
-  status: Schema.Literals(["healthy", "problem"]),
-  problem: Schema.optionalKey(DiagnosticProblem),
-  notification: Schema.optionalKey(DiagnosticNotification),
+  status: Schema.Literal("healthy"),
+  problem: Schema.optionalKey(Schema.Never),
+  notification: Schema.optionalKey(RecoveryDiagnosticNotification),
   suppressed: Schema.Boolean,
 });
-export interface DiagnosticObservation
-  extends Schema.Schema.Type<typeof DiagnosticObservation> {}
 
-export interface DiagnosticReducerState {
-  readonly announced: ReadonlyArray<DiagnosticProblem>;
-  readonly active?: DiagnosticProblem;
-  /** A recovery is useful only when the active problem was announced. */
-  readonly activeWasNotified: boolean;
-}
+const ProblemDiagnosticObservation = Schema.Struct({
+  scope: DiagnosticScope,
+  status: Schema.Literal("problem"),
+  problem: DiagnosticProblem,
+  notification: Schema.optionalKey(ProblemDiagnosticNotification),
+  suppressed: Schema.Boolean,
+});
+
+/** Observation status and its payload/notification are one tagged shape. */
+export const DiagnosticObservation = Schema.Union([
+  HealthyDiagnosticObservation,
+  ProblemDiagnosticObservation,
+]);
+export type DiagnosticObservation = typeof DiagnosticObservation.Type;
+
+const QuietDiagnosticReducerState = Schema.Struct({
+  announced: Schema.Array(DiagnosticProblem),
+  active: Schema.optionalKey(Schema.Never),
+  activeWasNotified: Schema.Literal(false),
+});
+
+const ActiveDiagnosticReducerState = Schema.Struct({
+  announced: Schema.Array(DiagnosticProblem),
+  active: DiagnosticProblem,
+  activeWasNotified: Schema.Boolean,
+});
+type ActiveDiagnosticReducerState = typeof ActiveDiagnosticReducerState.Type;
+
+/** A notification claim is meaningful only when an active problem exists. */
+export const DiagnosticReducerState = Schema.Union([
+  QuietDiagnosticReducerState,
+  ActiveDiagnosticReducerState,
+]);
+export type DiagnosticReducerState = typeof DiagnosticReducerState.Type;
+
+export const hasActiveDiagnostic = (
+  state: DiagnosticReducerState,
+): state is ActiveDiagnosticReducerState => "active" in state;
 
 export const initialDiagnosticState: DiagnosticReducerState = {
   announced: [],
