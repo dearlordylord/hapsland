@@ -44,6 +44,84 @@ printf '%s\n' '{"version":1,"operation":"explain","cwd":"/repo","path":"src/a.ts
   | node src/cli.ts --explain
 ```
 
+## Declarative rule packs
+
+The bundled `noul` pack (nine binary Noul questions) is loaded through the same
+schema/compiler boundary as local packs. It retains the historical assessment
+keys (`r1_inferred_case` through `r9_body_reaches_undeclared`) and the built-in
+source-rung applicability checks. Repository consent is still required before
+any selected source is sent to Jev.
+
+Local packs use [`../schemas/review-rule-pack-v1.schema.json`](../schemas/review-rule-pack-v1.schema.json):
+
+```jsonc
+{
+  "version": 1,
+  "packs": [
+    { "path": "./review-rules.jsonc" }
+  ],
+  "ruleOverrides": {
+    "team/rule-id": {
+      "enabled": true,
+      "includes": ["src/**"],
+      "excludes": ["src/generated/**"],
+      "threshold": 0.8,
+      "message": "Explain this finding in the project vocabulary."
+    }
+  }
+}
+```
+
+The pack file declares a schema version, stable ID, exact content version, and
+binary rules. `question` and the `true`/`false` criteria are authored content;
+configuration can change only activation, path filters, threshold, and advice
+message. A rule's qualified ID is `pack-id/rule-id` (the legacy Noul keys remain
+bare for version-1 process compatibility).
+
+```jsonc
+{
+  "schemaVersion": 1,
+  "id": "team",
+  "contentVersion": "1.0.0",
+  "rules": [
+    {
+      "id": "rule-id",
+      "question": "Does the reviewed artifact contain the named problem?",
+      "criteria": {
+        "false": "The problem is absent or the evidence is insufficient.",
+        "true": "The named problem is present in the artifact."
+      },
+      "threshold": 0.7,
+      "message": "Review the named problem in this file.",
+      "applicability": { "includes": ["src/**"] }
+    }
+  ]
+}
+```
+
+Project pack paths resolve from the project configuration and must remain inside
+the Git working tree, including their real path after symlink resolution. User
+pack paths resolve from the user configuration and may reference user-managed
+local files. If a pack is inherited, its original configuration remains the
+path-resolution base. Matching is always against the repository-relative path,
+never the pack directory. Explicitly loaded packs are enabled by default;
+disabling a pack vetoes every rule in it, including an enabled rule override.
+
+Duplicate pack/rule identities, multiple content versions, rebinding an inherited
+pack ID to another file, unknown overrides, malformed selected packs, and unknown
+schema versions make the whole selected configuration unavailable before source
+egress. A fork must use a distinct pack ID. Rule filters intersect global
+eligibility: they can narrow a review, but cannot re-include a globally excluded
+or protected path.
+
+Rule authors should state the available input explicitly. The current milestone
+provides one completed post-edit file and its repository-relative path. It does
+not provide a before/after diff, task or transcript context, or other files, and
+findings may describe pre-existing content. Do not author a rule that promises to
+judge evidence the request cannot contain. Advice is local authored text attached
+to the validated probability, rule ID, path, and snapshot hash; no extra model call
+generates a message.
+
 Patterns are repository-relative and use `/` separators. Matching is case-sensitive;
 `*` and `?` do not cross `/`, while `**` may cross directories. Dot-files are matched
 only by a pattern segment beginning with `.`. Bracket classes (`[ab]`) and simple

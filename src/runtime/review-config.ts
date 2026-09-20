@@ -9,6 +9,9 @@ import {
   resolveConfiguration,
 } from "../configuration/resolve.ts";
 import type { ConfigurationCapture } from "../configuration/types.ts";
+import { compileRules, type CompiledRule } from "../rules/compiler.ts";
+import { loadRulePacksEffect } from "../rules/loader.ts";
+import { configuredRules } from "../policy/rules.ts";
 import {
   JEV_API_BASE,
   JEV_BACKEND,
@@ -37,6 +40,8 @@ export interface ReviewSettings {
   readonly projectRequestedConsent: boolean;
   /** Captured once for the event and shared by explanation and runtime selection. */
   readonly configuration: ConfigurationCapture;
+  /** Fully validated, captured rule set. Omitted by legacy in-memory callers. */
+  readonly rules?: ReadonlyArray<CompiledRule>;
 }
 
 const defaultCapture = (root: string): ConfigurationCapture => {
@@ -46,6 +51,7 @@ const defaultCapture = (root: string): ConfigurationCapture => {
 
 const settingsFrom = (
   capture: ConfigurationCapture,
+  rules: ReadonlyArray<CompiledRule> = configuredRules,
 ): ReviewSettings => {
   const policy = capture.policy;
   const project = policy.layers.find((layer) => layer.name === "project");
@@ -58,6 +64,7 @@ const settingsFrom = (
     credentialEnvVar: policy.credentialEnvVar.value,
     projectRequestedConsent,
     configuration: capture,
+    rules,
   };
 };
 
@@ -75,7 +82,38 @@ export const loadReviewSettings = Effect.fn("ReviewConfig.load")(function* (
         }),
     ),
   );
-  return settingsFrom(capture);
+  const packs = yield* loadRulePacksEffect({
+    root,
+    layers: capture.policy.layers,
+  }).pipe(
+    Effect.mapError(
+      (error) =>
+        new ReviewConfigError({
+          source: error.source,
+          field: error.field,
+          reason: error.reason,
+        }),
+    ),
+  );
+  const rules = yield* Effect.try({
+    try: () => compileRules({ packs, layers: capture.policy.layers }),
+    catch: (error) =>
+      new ReviewConfigError({
+        source:
+          typeof error === "object" && error !== null && "source" in error
+            ? String(error.source)
+            : root,
+        field:
+          typeof error === "object" && error !== null && "field" in error
+            ? String(error.field)
+            : "ruleOverrides",
+        reason:
+          typeof error === "object" && error !== null && "reason" in error
+            ? String(error.reason)
+            : "rule-pack compilation failed",
+      }),
+  });
+  return settingsFrom(capture, rules);
 });
 
 export const defaultReviewSettings = (root = "."): ReviewSettings => {

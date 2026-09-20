@@ -9,6 +9,28 @@ const EnvironmentVariableName = Schema.String.check(
 );
 const NonNegativeInteger = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
 
+/** A local or bundled declarative rule-pack reference. */
+export const RulePackReference = Schema.Union([
+  Schema.String.check(Schema.isMinLength(1)),
+  Schema.Struct({
+    path: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1))),
+    id: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1))),
+    enabled: Schema.optionalKey(Schema.Boolean),
+  }),
+]);
+export type RulePackReference = typeof RulePackReference.Type;
+
+export const RuleOverride = Schema.Struct({
+  enabled: Schema.optionalKey(Schema.Boolean),
+  includes: Schema.optionalKey(Schema.Array(Pattern)),
+  excludes: Schema.optionalKey(Schema.Array(Pattern)),
+  threshold: Schema.optionalKey(
+    Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
+  ),
+  message: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1))),
+});
+export interface RuleOverride extends Schema.Schema.Type<typeof RuleOverride> {}
+
 export const RuntimeSettings = Schema.Struct({
   deadlineMs: Schema.optionalKey(
     Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 60_000 })),
@@ -40,6 +62,10 @@ export const ConfigurationDocument = Schema.Struct({
   privacyExcludes: Schema.optionalKey(Schema.Array(Pattern)),
   credentialEnvVar: Schema.optionalKey(EnvironmentVariableName),
   settings: Schema.optionalKey(RuntimeSettings),
+  /** Explicit local pack references. Bundled Noul is loaded independently. */
+  packs: Schema.optionalKey(Schema.Array(RulePackReference)),
+  /** Qualified rule IDs to per-field activation/selection overrides. */
+  ruleOverrides: Schema.optionalKey(Schema.Record(Schema.String, RuleOverride)),
   // These fields are accepted for compatibility with the consent slice. They
   // never authorize source egress and are never used as privacy policy.
   consent: Schema.optionalKey(Schema.Boolean),

@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Realtime review declarative rule pack v1",
+  "description": "A local JSONC pack of binary questions. contentVersion identifies the rule meaning and is independent of schemaVersion.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "contentVersion", "rules"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "$ref": "#/$defs/id" },
+    "contentVersion": { "$ref": "#/$defs/id" },
+    "rules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/rule" }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "minLength": 1 },
+    "patterns": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "criteria": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["false", "true"],
+      "properties": {
+        "false": { "$ref": "#/$defs/criterion" },
+        "true": { "$ref": "#/$defs/criterion" }
+      }
+    },
+    "criterion": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["what"],
+          "properties": {
+            "what": { "type": "string", "minLength": 1 },
+            "examples": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      ]
+    },
+    "applicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "includes": { "$ref": "#/$defs/patterns" },
+        "excludes": { "$ref": "#/$defs/patterns" }
+      }
+    },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "question", "criteria", "message"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "question": { "type": "string", "minLength": 1 },
+        "criteria": { "$ref": "#/$defs/criteria" },
+        "threshold": { "type": "number", "minimum": 0, "maximum": 1 },
+        "message": { "type": "string", "minLength": 1 },
+        "applicability": { "$ref": "#/$defs/applicability" }
+      }
+    }
+  }
+}

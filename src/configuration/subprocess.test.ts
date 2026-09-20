@@ -301,4 +301,101 @@ describe("configuration v1 subprocess contract", () => {
     expect(output.explanation.overriddenIncludes.map((entry) => entry.value)).toContain("src/**");
     expect(existsSync(capturePath)).toBe(false);
   });
+
+  it("loads a local pack through the review command and applies activation, filters and messages", () => {
+    const root = mkdtempSync(join(tmpdir(), "review-config-pack-"));
+    roots.push(root);
+    execFileSync("git", ["init", "--quiet", root]);
+    mkdirSync(join(root, "src"));
+    const path = join(root, "src", "example.ts");
+    writeFileSync(path, "export type Example = string;\n");
+    writeFileSync(join(root, "rules.jsonc"), JSON.stringify({
+      schemaVersion: 1,
+      id: "team",
+      contentVersion: "1.0.0",
+      rules: [{
+        id: "has-question",
+        question: "Does the artifact contain the authored problem?",
+        criteria: { false: "The problem is absent.", true: "The problem is present." },
+        threshold: 0.7,
+        message: "Custom authored advice.",
+        applicability: { includes: ["src/**"] },
+      }],
+    }));
+    writeFileSync(join(root, ".review.jsonc"), '{"version":1,"packs":["rules.jsonc"]}\n');
+    const statePath = join(root, "state");
+    enable(root, statePath);
+    const answers = Object.fromEntries([
+      ...configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0 }]),
+      ["team/has-question", { _tag: "Probability", probability: 1 }],
+    ]);
+    const capturePath = join(root, "calls.log");
+    const output = run(
+      ["--controlled"],
+      request(root, ["src/example.ts"], `local-pack-${Date.now()}`),
+      {
+        REVIEW_STATE_PATH: statePath,
+        REVIEW_CONTROL_JSON: JSON.stringify({ answers, capturePath }),
+        REVIEW_USER_CONFIG_PATH: join(root, "missing-user.jsonc"),
+      },
+    ) as { results: Array<{ status: string; assessment?: Record<string, number> }>; advice: Array<{ ruleId: string; message: string }> };
+    expect(output.results[0]?.status).toBe("reviewed");
+    expect(output.results[0]?.assessment).toHaveProperty("team/has-question", 1);
+    expect(output.advice).toEqual([
+      expect.objectContaining({ ruleId: "team/has-question", message: "Custom authored advice." }),
+    ]);
+    expect(readFileSync(capturePath, "utf8").trim()).toBe("called");
+
+    writeFileSync(join(root, ".review.jsonc"), JSON.stringify({
+      version: 1,
+      packs: ["rules.jsonc"],
+      ruleOverrides: { "team/has-question": { enabled: false } },
+    }));
+    const disabledCapture = join(root, "disabled-calls.log");
+    const disabled = run(
+      ["--controlled"],
+      request(root, ["src/example.ts"], "local-pack-disabled"),
+      {
+        REVIEW_STATE_PATH: statePath,
+        REVIEW_CONTROL_JSON: JSON.stringify({ answers, capturePath: disabledCapture }),
+        REVIEW_USER_CONFIG_PATH: join(root, "missing-user.jsonc"),
+      },
+    ) as { results: Array<{ status: string; assessment?: Record<string, number> }> };
+    expect(disabled.results[0]?.status).toBe("reviewed");
+    expect(disabled.results[0]?.assessment).not.toHaveProperty("team/has-question");
+    expect(readFileSync(disabledCapture, "utf8").trim()).toBe("called");
+  });
+
+  it("rejects a malformed selected pack beside a valid one before dispatch", () => {
+    const root = mkdtempSync(join(tmpdir(), "review-config-pack-invalid-"));
+    roots.push(root);
+    execFileSync("git", ["init", "--quiet", root]);
+    mkdirSync(join(root, "src"));
+    const path = join(root, "src", "example.ts");
+    writeFileSync(path, "export type Example = string;\n");
+    writeFileSync(join(root, "valid.jsonc"), JSON.stringify({
+      schemaVersion: 1,
+      id: "valid",
+      contentVersion: "1.0.0",
+      rules: [{ id: "r", question: "Q", criteria: { false: "F", true: "T" }, message: "M" }],
+    }));
+    writeFileSync(join(root, "invalid.jsonc"), '{"schemaVersion":2}\n');
+    writeFileSync(join(root, ".review.jsonc"), '{"version":1,"packs":["valid.jsonc"]}\n');
+    const statePath = join(root, "state");
+    enable(root, statePath);
+    writeFileSync(join(root, ".review.jsonc"), '{"version":1,"packs":["valid.jsonc","invalid.jsonc"]}\n');
+    const capturePath = join(root, "calls.log");
+    const output = run(
+      ["--controlled"],
+      request(root, ["src/example.ts"], "invalid-pack"),
+      {
+        REVIEW_STATE_PATH: statePath,
+        REVIEW_CONTROL_JSON: JSON.stringify({ capturePath }),
+        REVIEW_USER_CONFIG_PATH: join(root, "missing-user.jsonc"),
+      },
+    ) as { results: Array<{ status: string; code: string; reason: string }> };
+    expect(output.results[0]).toMatchObject({ status: "unavailable", code: "invalid_configuration" });
+    expect(output.results[0]?.reason).toContain("invalid.jsonc");
+    expect(existsSync(capturePath)).toBe(false);
+  });
 });

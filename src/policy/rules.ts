@@ -1,37 +1,36 @@
-import type { Decision } from "effect/unstable/ai";
 import type { Probability, RuleId, SnapshotRef } from "../domain/contracts.ts";
-import { E0, NOUL_KEYS, measured } from "../questions.ts";
+import { BUNDLED_NOUL_PACK } from "../rules/bundled.ts";
+import { compileRules, selectApplicableRules, type CompiledRule } from "../rules/compiler.ts";
+import type { LoadedRulePack } from "../rules/loader.ts";
 
-export type Rule = {
-  readonly id: RuleId;
-  readonly decision: Decision.Probability;
-  readonly threshold: number;
-  readonly message: string;
-  readonly rank: number;
+/** Runtime rule shape shared by the backend, assessment and advice policy. */
+export type Rule = CompiledRule;
+
+const bundledLoadedPack: LoadedRulePack = {
+  ...BUNDLED_NOUL_PACK,
+  origin: {
+    layer: "built-in",
+    source: "built-in:noul",
+    field: "bundled.noul",
+  },
+  path: "built-in:noul",
+  enabled: true,
 };
 
-const messages: Readonly<Record<string, string>> = {
-  r1_inferred_case: "The type appears to encode distinct cases without naming the case.",
-  r2_meaningless_combinations: "The type appears to admit field combinations with no domain meaning.",
-  r3_split_correlations: "Parts of one fact appear independently settable.",
-  r4_duplicate_encoding: "The type appears to store the same fact in places that can disagree.",
-  r5_absence_confusion: "Absence appears to carry more than one meaning.",
-  r6_bare_domain_value: "A domain value appears to use an overly broad primitive type.",
-  r7_name_wider_than_type: "A field name promises constraints that its type does not enforce.",
-  r8_name_claims_resource: "A declaration appears to hide a resource named by the operation.",
-  r9_body_reaches_undeclared: "A callable appears to reach state or resources absent from its declaration.",
+/** Compatibility export: the nine Noul rules retain their historical bare keys. */
+export const configuredRules: ReadonlyArray<Rule> = compileRules({
+  packs: [bundledLoadedPack],
+});
+
+export const applicableRules = (
+  source: string,
+  pathOrRules?: string | ReadonlyArray<Rule>,
+  maybeRules?: ReadonlyArray<Rule>,
+): ReadonlyArray<Rule> => {
+  const path = typeof pathOrRules === "string" ? pathOrRules : undefined;
+  const rules = Array.isArray(pathOrRules) ? pathOrRules : maybeRules ?? configuredRules;
+  return selectApplicableRules(rules, source, path);
 };
-
-export const configuredRules: ReadonlyArray<Rule> = NOUL_KEYS.map((id, rank) => ({
-  id: id as RuleId,
-  decision: E0[id],
-  threshold: 0.7,
-  message: messages[id] ?? `Review rule ${id} may apply.`,
-  rank,
-}));
-
-export const applicableRules = (source: string): ReadonlyArray<Rule> =>
-  configuredRules.filter((rule) => measured(rule.id, source));
 
 export const deriveAdvice = (
   rules: ReadonlyArray<Rule>,
@@ -50,10 +49,12 @@ export const deriveAdvice = (
       (left, right) =>
         right.probability - left.probability || left.rule.rank - right.rule.rank,
     )
-    .slice(0, limit)
+    .slice(0, Math.max(0, limit))
     .map(({ rule, probability }) => ({
-      ruleId: rule.id,
+      ruleId: rule.id as RuleId,
       probability,
       message: rule.message,
       snapshot,
     }));
+
+export { compileRules, selectApplicableRules, type CompiledRule };
