@@ -7,6 +7,12 @@
 `4e21628f9ec9ee656650cd2b62ef92225725b5ac`, resolving to commit
 `be2951ea34f0d295ed0becf97079f92fa5f6950e`
 
+The fresh native edit boundary is documented in
+[`NATIVE-APPLY-PATCH-EMISSION-2026-09-20.md`](./NATIVE-APPLY-PATCH-EMISSION-2026-09-20.md),
+with sanitized runtime captures for one file creation and one file update. It records
+the actual `PostToolUse` `tool_input.command` shape and separates that hook boundary
+from the host's summarized JSONL `file_change` events.
+
 The probes used a temporary `CODEX_HOME`, a disposable Git repository, and the repository
 scripts in `probe/`. Only authentication material was copied into the temporary home. The
 user's configuration was not read or changed. `--dangerously-bypass-hook-trust` was limited
