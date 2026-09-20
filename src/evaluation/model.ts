@@ -134,12 +134,22 @@ export const RuleReference = Schema.Struct({
 });
 export interface RuleReference extends Schema.Schema.Type<typeof RuleReference> {}
 
-export const ExpectedBand = Schema.Struct({
+const ExpectedBandFields = Schema.Struct({
   minimum: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
   maximum: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
   minimumInclusive: Schema.Boolean,
   maximumInclusive: Schema.Boolean,
 });
+export const ExpectedBand = ExpectedBandFields.check(
+  Schema.makeFilter((band) =>
+    band.minimum < band.maximum ||
+    (band.minimum === band.maximum &&
+      band.minimumInclusive &&
+      band.maximumInclusive)
+      ? undefined
+      : "minimum and maximum define an empty band",
+  ),
+);
 export interface ExpectedBand extends Schema.Schema.Type<typeof ExpectedBand> {}
 
 export const ExpectedResult = Schema.Union([
@@ -163,6 +173,7 @@ export const Expectation = Schema.Struct({
   ruleId: QualifiedRuleId,
   result: ExpectedResult,
   rationale: Schema.NonEmptyString,
+  expectationDigest: EvaluationDigest,
 });
 export interface Expectation extends Schema.Schema.Type<typeof Expectation> {}
 
@@ -333,6 +344,7 @@ export const Observation = Schema.Struct({
   assessment: Schema.optionalKey(Schema.Array(AssessmentEntry)),
   findings: Schema.Array(FindingObservation),
   reviewStatus: Schema.Literals(["reviewed", "skipped", "unavailable", "incomplete"] as const),
+  observationDigest: EvaluationDigest,
 });
 export interface Observation extends Schema.Schema.Type<typeof Observation> {}
 
@@ -345,11 +357,13 @@ export const Comparison = Schema.Struct({
   observationId: Schema.optionalKey(ObservationId),
   ruleId: Schema.optionalKey(QualifiedRuleId),
   expectation: Schema.optionalKey(Expectation),
+  fixtureRelation: Schema.optionalKey(Schema.Literals(["identical", "transformed"] as const)),
   direction: Schema.optionalKey(
     Schema.Literals(["increase", "decrease", "change", "no-change"] as const),
   ),
   minimumDelta: Schema.optionalKey(NonNegativeFinite),
   tolerance: NonNegativeFinite,
+  comparisonDigest: EvaluationDigest,
 });
 export interface Comparison extends Schema.Schema.Type<typeof Comparison> {}
 
@@ -453,9 +467,11 @@ export const EvaluationReport = Schema.Struct({
     observedRequests: NonNegativeInteger,
     withinBudget: Schema.Boolean,
   }),
+  deterministic: AggregateCounts,
   transport: AggregateCounts,
   conformance: AggregateCounts,
   semantic: AggregateCounts,
+  crossBatch: AggregateCounts,
   coverage: EvaluationCoverage,
   comparisons: Schema.Array(ComparisonSummary),
   fixtureDigests: Schema.Array(EvaluationDigest),
@@ -490,12 +506,20 @@ export const decodeEvaluationScenario = Schema.decodeUnknownEffect(
   EvaluationScenario,
   strictParseOptions,
 );
+export const decodeEvaluationPlan = Schema.decodeUnknownEffect(
+  EvaluationPlan,
+  strictParseOptions,
+);
 export const decodeObservation = Schema.decodeUnknownEffect(
   Observation,
   strictParseOptions,
 );
 export const decodeComparison = Schema.decodeUnknownEffect(
   Comparison,
+  strictParseOptions,
+);
+export const decodeComparisonResult = Schema.decodeUnknownEffect(
+  ComparisonResult,
   strictParseOptions,
 );
 export const decodeEvaluationRun = Schema.decodeUnknownEffect(
