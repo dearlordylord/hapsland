@@ -26,6 +26,10 @@ JSON subprocess boundary:
 - reports preserve run/plan/fixture/rule/expectation digests and input-contract and
   renderer/adapter identities while omitting source, credentials, raw responses,
   advice text, and individual probabilities.
+- reports retain only aggregate timing evidence (sample count, total/mean/minimum/
+  maximum duration, p50, and p95); individual request durations are not persisted.
+- every configured repetition contributes semantic and cross-batch comparisons and
+  release acceptance; repeatability checks cover each later repetition against the first.
 - the run carries a predeclared release gate requiring transport, conformance, semantic
   bands, and no unchecked labels; this controlled sample therefore does not claim a
   semantic-quality release certification.

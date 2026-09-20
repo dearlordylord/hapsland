@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
+import * as fc from "fast-check";
 import * as Schema from "effect/Schema";
+import { DEFAULT_RULE_THRESHOLD } from "../rules/schema.ts";
 import {
+  Comparison,
+  EvaluationPlan,
   EvaluationReport,
+  EvaluationScenario,
+  Observation,
+  TransportObservation,
   strictParseOptions,
 } from "./model.ts";
 import {
@@ -14,6 +21,7 @@ import {
   makeComparison,
   makeObservation,
   makeRuleDefinition,
+  stableStringify,
 } from "./digest.ts";
 import {
   makeBackendIdentity,
@@ -56,7 +64,7 @@ const ruleA = makeRuleDefinition({
   question: "Does the declaration encode alternatives without naming the case?",
   criteria: "Report implicit alternatives.",
   defaultMessage: "Name the case explicitly.",
-  threshold: 0.7,
+  threshold: DEFAULT_RULE_THRESHOLD,
 });
 const ruleB = makeRuleDefinition({
   packId: "synthetic",
@@ -65,7 +73,7 @@ const ruleB = makeRuleDefinition({
   question: "Does the declaration admit meaningless combinations?",
   criteria: "Report impossible combinations.",
   defaultMessage: "Constrain the state space.",
-  threshold: 0.7,
+  threshold: DEFAULT_RULE_THRESHOLD,
 });
 const fixture = makeFixture({
   id: "delivery-record",
@@ -261,6 +269,119 @@ describe("evaluation model", () => {
     expect(changedScenario.scenarioDigest).not.toBe(isolated.scenarioDigest);
   });
 
+  it("rejects invalid interaction, transport, review, comparison, and plan variants", () => {
+    expect(() => Schema.decodeUnknownSync(EvaluationScenario, strictParseOptions)({
+      ...isolated,
+      interaction: "named",
+    })).toThrow();
+    expect(() => Schema.decodeUnknownSync(EvaluationScenario, strictParseOptions)({
+      ...named,
+      interaction: "full",
+    })).toThrow();
+
+    expect(() => Schema.decodeUnknownSync(TransportObservation, strictParseOptions)({
+      ...observation({
+        id: "transport-invalid",
+        scenarioId: isolated.id,
+        fixtureId: fixture.id,
+      }).transport,
+      status: "available",
+      errorCategory: "unexpected-error",
+    })).toThrow();
+    expect(() => Schema.decodeUnknownSync(TransportObservation, strictParseOptions)({
+      ...observation({
+        id: "transport-invalid-unavailable",
+        scenarioId: isolated.id,
+        fixtureId: fixture.id,
+        transport: "unavailable",
+      }).transport,
+      errorCategory: undefined,
+    })).toThrow();
+
+    const reviewedWithoutAssessment = observation({
+      id: "reviewed-without-assessment",
+      scenarioId: isolated.id,
+      fixtureId: fixture.id,
+      probability: 0.1,
+    });
+    const { assessment: _assessment, ...reviewedWithoutAssessmentFields } = reviewedWithoutAssessment;
+    expect(() => Schema.decodeUnknownSync(Observation, strictParseOptions)({
+      ...reviewedWithoutAssessmentFields,
+    })).toThrow();
+
+    const exact = makeComparison({
+      id: "invalid-exact",
+      name: "invalid exact",
+      relation: "exact",
+      leftObservationId: "left",
+      rightObservationId: "right",
+      tolerance: 0,
+    });
+    expect(() => Schema.decodeUnknownSync(Comparison, strictParseOptions)({
+      ...exact,
+      observationId: "also-observation",
+    })).toThrow();
+    expect(() => Schema.decodeUnknownSync(Comparison, strictParseOptions)({
+      ...exact,
+      relation: "measured-change",
+    })).toThrow();
+    const semantic = makeComparison({
+      id: "semantic-without-rule",
+      name: "semantic without rule",
+      relation: "semantic-band",
+      observationId: "observation",
+      ruleId: ruleA.identity.qualifiedId,
+      tolerance: 0,
+    });
+    const { ruleId: _ruleId, ...semanticWithoutRule } = semantic;
+    expect(() => Schema.decodeUnknownSync(Comparison, strictParseOptions)({
+      ...semanticWithoutRule,
+    })).toThrow();
+
+    const plan = planEvaluation(run, [isolated, full, named]);
+    expect(() => Schema.decodeUnknownSync(EvaluationPlan, strictParseOptions)({
+      ...plan,
+      permitted: true,
+    })).toThrow();
+    expect(() => Schema.decodeUnknownSync(EvaluationPlan, strictParseOptions)({
+      ...plan,
+      permitted: false,
+      rejectionReason: undefined,
+    })).toThrow();
+  });
+
+  it("preserves canonical roundtrips under generated object-key permutations", () => {
+    fc.assert(fc.property(
+      fc.uniqueArray(fc.constantFrom("alpha", "beta", "gamma"), { minLength: 1 }),
+      (keys) => {
+        const value = Object.fromEntries(keys.map((key, index) => [key, {
+          index,
+          nested: [index, key.length],
+        }]));
+        const reordered = Object.fromEntries([...keys].reverse().map((key) => [
+          key,
+          value[key],
+        ]));
+        expect(stableStringify(reordered)).toBe(stableStringify(value));
+      },
+    ));
+
+    const report = buildEvaluationReport({
+      run,
+      plan: planEvaluation({
+        ...run,
+        budget: { maximumRequests: 100, maximumRetriesPerRequest: 1 },
+      }, [isolated, full, named]),
+      scenarios: [isolated, full, named],
+      observations: [],
+      comparisons: [],
+    });
+    const roundtripped = Schema.decodeUnknownSync(EvaluationReport, strictParseOptions)(
+      JSON.parse(JSON.stringify(report)),
+    );
+    expect(stableStringify(roundtripped)).toBe(stableStringify(report));
+  });
+
   it("marks missing and ambiguous expectations unchecked or ambiguous", () => {
     const missingComparison = makeComparison({
       id: "missing-expectation",
@@ -350,7 +471,7 @@ describe("evaluation model", () => {
         result: {
           kind: "violation",
           band: {
-            minimum: 0.7,
+            minimum: DEFAULT_RULE_THRESHOLD,
             maximum: 1,
             minimumInclusive: false,
             maximumInclusive: true,
@@ -407,8 +528,8 @@ describe("evaluation model", () => {
       id: "obs-conformance-failed",
       scenarioId: full.id,
       fixtureId: fixture.id,
-      probability: 0.9,
       conformance: "failed",
+      reviewStatus: "incomplete",
     });
     const comparison = makeComparison({
       id: "report-semantic",
@@ -432,6 +553,15 @@ describe("evaluation model", () => {
     expect(report.coverage.fullBatchScenarios).toBe(1);
     expect(report.coverage.namedInteractionScenarios).toBe(1);
     expect(report.budget.withinBudget).toBe(false);
+    expect(report.timing).toMatchObject({
+      sampleCount: 2,
+      totalDurationMs: 6,
+      minimumDurationMs: 3,
+      maximumDurationMs: 3,
+      meanDurationMs: 3,
+      p50DurationMs: 3,
+      p95DurationMs: 3,
+    });
     expect(report.releaseAccepted).toBe(false);
     expect(reportHasTransportAvailability(report)).toBe(false);
     expect(reportIsConformant(report)).toBe(false);

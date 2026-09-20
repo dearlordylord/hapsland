@@ -6,6 +6,7 @@ import {
   type ComparisonSummary as ComparisonSummaryType,
   type ComparisonResult,
   EvaluationCoverage,
+  EvaluationTimingEvidence,
   EvaluationReport,
   type EvaluationReport as EvaluationReportType,
   type EvaluationPlan,
@@ -38,6 +39,34 @@ const increment = (
   total: counts.total + 1,
   [status]: counts[status] + 1,
 });
+
+const percentile = (sorted: ReadonlyArray<number>, quantile: number): number => {
+  if (sorted.length === 0) return 0;
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * quantile) - 1));
+  return sorted[index] ?? 0;
+};
+
+/** Keep provider timing useful for milestone evidence without retaining a
+ * duration for any individual paid response. */
+const aggregateTiming = (
+  observations: ReadonlyArray<import("./model.ts").Observation>,
+): EvaluationTimingEvidence => {
+  const durations = observations
+    .map((observation) => observation.transport.durationMs)
+    .sort((left, right) => left - right);
+  const sampleCount = durations.length;
+  const totalDurationMs = durations.reduce((total, duration) => total + duration, 0);
+  const meanDurationMs = sampleCount === 0 ? 0 : totalDurationMs / sampleCount;
+  return decode(EvaluationTimingEvidence, {
+    sampleCount,
+    totalDurationMs,
+    minimumDurationMs: durations[0] ?? 0,
+    maximumDurationMs: durations.at(-1) ?? 0,
+    meanDurationMs,
+    p50DurationMs: percentile(durations, 0.5),
+    p95DurationMs: percentile(durations, 0.95),
+  });
+};
 
 const summarizeComparison = (
   result: ComparisonResult,
@@ -177,7 +206,8 @@ export const buildEvaluationReport = (
     (!acceptance.requireConformance ||
       (conformance.failed === 0 && conformance.unchecked === 0)) &&
     (!acceptance.requireSemanticPass ||
-      (semantic.failed === 0 && semantic.unchecked === 0 && semantic.ambiguous === 0)) &&
+      (semantic.failed === 0 && semantic.unchecked === 0 && semantic.ambiguous === 0 &&
+        crossBatch.failed === 0 && crossBatch.unchecked === 0 && crossBatch.ambiguous === 0)) &&
     (!acceptance.requireNoUnchecked ||
       (unchecked.unchecked === 0 && unchecked.ambiguous === 0));
   const reportWithoutDigest = {
@@ -194,6 +224,7 @@ export const buildEvaluationReport = (
     semantic,
     crossBatch,
     unchecked,
+    timing: aggregateTiming(input.observations),
     coverage,
     comparisons: summaries,
     fixtureDigests: input.run.fixtureDigests,
@@ -226,6 +257,7 @@ export const isReportDigestValid = (report: EvaluationReportType): boolean =>
     semantic: report.semantic,
     crossBatch: report.crossBatch,
     unchecked: report.unchecked,
+    timing: report.timing,
     coverage: report.coverage,
     comparisons: report.comparisons,
     fixtureDigests: report.fixtureDigests,

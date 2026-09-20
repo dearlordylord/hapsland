@@ -497,8 +497,15 @@ export interface ComparisonInput {
   readonly tolerance: number;
 }
 
-export const makeComparison = (input: ComparisonInput): ComparisonType =>
-  Schema.decodeUnknownSync(Comparison, strictParseOptions)({
-    ...input,
-    comparisonDigest: digestValue(input),
+export const makeComparison = (input: ComparisonInput): ComparisonType => {
+  // Keep the ergonomic expectation-only form of the public helper while
+  // materializing the relation's required rule identity before decoding.
+  const normalized = input.relation === "semantic-band" &&
+      input.ruleId === undefined && input.expectation !== undefined
+    ? { ...input, ruleId: input.expectation.ruleId }
+    : input;
+  return Schema.decodeUnknownSync(Comparison, strictParseOptions)({
+    ...normalized,
+    comparisonDigest: digestValue(normalized),
   });
+};

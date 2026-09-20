@@ -277,40 +277,46 @@ const defaultComparisons = (input: EvaluationExecutionInput, observations: Reado
   const full = input.scenarios.find((scenario) => scenario.interaction === "full");
   const named = input.scenarios.find((scenario) => scenario.interaction === "named");
   const comparisons: Array<Comparison> = [];
-  for (const scenario of isolated) {
-    for (const fixtureRef of scenario.fixtures) {
-      const observation = byScenarioFixture.get(`${scenario.id}:${fixtureRef.id}:1`);
-      if (observation === undefined) continue;
-      for (const ruleRef of scenario.ruleSet) {
-        const expectation = expectations.get(`${fixtureRef.id}:${ruleRef.qualifiedId}`);
-        comparisons.push(makeComparison({
-          id: `expectation:${scenario.id}:${fixtureRef.id}:${ruleRef.qualifiedId}`,
-          name: `expectation ${scenario.name} ${fixtureRef.id}`,
-          relation: "semantic-band",
-          observationId: observation.id,
-          ruleId: ruleRef.qualifiedId,
-          ...(expectation === undefined ? {} : { expectation }),
-          tolerance: 0,
-        }));
-
-        const paired = [
-          ["full", full],
-          ["named", named],
-        ] as const;
-        for (const [label, targetScenario] of paired) {
-          if (targetScenario === undefined) continue;
-          const target = byScenarioFixture.get(`${targetScenario.id}:${fixtureRef.id}:1`);
-          if (target === undefined) continue;
+  for (let repetition = 1; repetition <= input.run.repetitions; repetition += 1) {
+    for (const scenario of isolated) {
+      for (const fixtureRef of scenario.fixtures) {
+        const observation = byScenarioFixture.get(
+          `${scenario.id}:${fixtureRef.id}:${repetition}`,
+        );
+        if (observation === undefined) continue;
+        for (const ruleRef of scenario.ruleSet) {
+          const expectation = expectations.get(`${fixtureRef.id}:${ruleRef.qualifiedId}`);
           comparisons.push(makeComparison({
-            id: `cross-batch:${label}:${scenario.id}:${fixtureRef.id}:${ruleRef.qualifiedId}`,
-            name: `${label} interaction for ${fixtureRef.id}`,
-            relation: "measured-change",
-            leftObservationId: observation.id,
-            rightObservationId: target.id,
+            id: `expectation:${scenario.id}:${fixtureRef.id}:${ruleRef.qualifiedId}:${repetition}`,
+            name: `expectation ${scenario.name} ${fixtureRef.id} repetition ${repetition}`,
+            relation: "semantic-band",
+            observationId: observation.id,
             ruleId: ruleRef.qualifiedId,
-            direction: "no-change",
-            tolerance: 0.25,
+            ...(expectation === undefined ? {} : { expectation }),
+            tolerance: 0,
           }));
+
+          const paired = [
+            ["full", full],
+            ["named", named],
+          ] as const;
+          for (const [label, targetScenario] of paired) {
+            if (targetScenario === undefined) continue;
+            const target = byScenarioFixture.get(
+              `${targetScenario.id}:${fixtureRef.id}:${repetition}`,
+            );
+            if (target === undefined) continue;
+            comparisons.push(makeComparison({
+              id: `cross-batch:${label}:${scenario.id}:${fixtureRef.id}:${ruleRef.qualifiedId}:${repetition}`,
+              name: `${label} interaction for ${fixtureRef.id} repetition ${repetition}`,
+              relation: "measured-change",
+              leftObservationId: observation.id,
+              rightObservationId: target.id,
+              ruleId: ruleRef.qualifiedId,
+              direction: "no-change",
+              tolerance: 0.25,
+            }));
+          }
         }
       }
     }
@@ -319,16 +325,21 @@ const defaultComparisons = (input: EvaluationExecutionInput, observations: Reado
     for (const scenario of isolated) {
       for (const fixtureRef of scenario.fixtures) {
         const left = byScenarioFixture.get(`${scenario.id}:${fixtureRef.id}:1`);
-        const right = byScenarioFixture.get(`${scenario.id}:${fixtureRef.id}:2`);
-        if (left === undefined || right === undefined) continue;
-        comparisons.push(makeComparison({
-          id: `deterministic:${scenario.id}:${fixtureRef.id}`,
-          name: `repeatability for ${fixtureRef.id}`,
-          relation: "exact",
-          leftObservationId: left.id,
-          rightObservationId: right.id,
-          tolerance: 0,
-        }));
+        if (left === undefined) continue;
+        for (let repetition = 2; repetition <= input.run.repetitions; repetition += 1) {
+          const right = byScenarioFixture.get(
+            `${scenario.id}:${fixtureRef.id}:${repetition}`,
+          );
+          if (right === undefined) continue;
+          comparisons.push(makeComparison({
+            id: `deterministic:${scenario.id}:${fixtureRef.id}:${repetition}`,
+            name: `repeatability for ${fixtureRef.id} repetition ${repetition}`,
+            relation: "exact",
+            leftObservationId: left.id,
+            rightObservationId: right.id,
+            tolerance: 0,
+          }));
+        }
       }
     }
   }
