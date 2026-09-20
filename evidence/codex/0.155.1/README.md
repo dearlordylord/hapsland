@@ -94,8 +94,11 @@ backend reason, source path content, credential, or environment value into eithe
 The sanitized ledger is [`diagnostic-channel-issue-13.json`](./diagnostic-channel-issue-13.json).
 Its pinned-source fields identify the Codex TUI renderer and headless JSON event processor;
 the repository's existing compatibility contract remains the normative source for the
-adapter seam. An isolated `codex exec --ephemeral --json` attempt completed the synthetic
-edit but did not load the temporary PostToolUse hook in this container. Therefore host
-delivery is explicitly **not observed**, rather than claimed from the product's unit tests.
-The deterministic process-boundary suite still proves healthy/problem/repeated/changed/
-recovered/concurrent/independent transitions and secret-sentinel absence offline.
+adapter seam. An isolated interactive Codex 0.155.1 PTY probe performed a successful
+synthetic `apply_patch`. The TUI visibly rendered the bounded `systemMessage` as a Hook
+history cell, and the next model response confirmed receipt of the separate
+`additionalContext` value. The raw transcript, temporary repository, copied authentication
+files, and model session were deleted; the ledger retains only the exact sanitized
+observations and cryptographic digests. The deterministic process-boundary suite separately
+proves healthy/problem/repeated/changed/recovered/concurrent/independent transitions and
+secret-sentinel absence offline.

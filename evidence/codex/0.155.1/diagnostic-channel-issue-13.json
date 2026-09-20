@@ -14,15 +14,35 @@
     "editDisposition": "post-edit advisory output cannot undo the completed edit"
   },
   "syntheticRuntimeProbe": {
-    "mode": "codex exec --ephemeral --json",
+    "mode": "interactive Codex TUI in an isolated PTY",
+    "invocation": {
+      "isolatedCodexHome": true,
+      "temporaryRepository": true,
+      "hookTrustBypass": true,
+      "approvalAndSandboxBypass": true,
+      "reason": "The first workspace-write attempt could not write to the temporary repository, so the successful retry used the isolated disposable repository without sandboxing."
+    },
     "hookOutput": {
       "systemMessage": "Review is unavailable: synthetic backend outage. The edit succeeded; retry when the service recovers.",
       "additionalContext": "agent-facing synthetic outcome: backend_outage; no source or secret values"
     },
     "editCompleted": true,
-    "observedHostDiagnostic": false,
-    "result": "not-observed",
-    "limitation": "This container's isolated headless invocation did not load the synthetic PostToolUse hook, so it cannot establish host delivery. The probe retained no credentials, source-bearing output, or provider response."
+    "observedUserVisibleDiagnostic": true,
+    "observedAgentFacingContext": true,
+    "result": "observed",
+    "observations": {
+      "tui": "The interactive TUI rendered the system message as a Hook history cell after the successful edit.",
+      "agent": "The next model response explicitly confirmed receipt of the synthetic backend_outage context.",
+      "capture": "A second PostToolUse capture hook observed the successful apply_patch event."
+    },
+    "evidenceDigests": {
+      "terminalTranscriptSha256": "e83b3b35b40dfc5539a645c12b9d6d8d604168480733a52291687c5589bc8a42",
+      "captureJsonlSha256": "e26f716a99c69a4059e3037a3f5d3031b3cbf2abb85905536e911f18117cdc99",
+      "hooksConfigurationSha256": "3245d6e13f94382378d0acc353513b4ffc5361fa22fd29fc788fb793e1dde279",
+      "diagnosticHookSha256": "c5d1b1ec677e7d5ff9d45e5fd67c682652e6bfda3892251078b5a2f3da2ec1b5",
+      "captureHookSha256": "a31f78c163a7ba98262d306168621ea0e9c1a50fe6d0e561aa3fa89a4a96fff3"
+    },
+    "retention": "Only sanitized observations and cryptographic digests are retained; the raw PTY transcript, temporary repository, copied authentication files, and model session were deleted."
   },
   "offlineProcessCoverage": {
     "healthy": true,
