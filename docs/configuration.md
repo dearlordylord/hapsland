@@ -99,6 +99,9 @@ bare for version-1 process compatibility).
 }
 ```
 
+Each `packs` entry is either a path that declares a local pack or an inherited pack
+`id`; an object must not provide both locators (or neither).
+
 Project pack paths resolve from the project configuration and must remain inside
 the Git working tree, including their real path after symlink resolution. User
 pack paths resolve from the user configuration and may reference user-managed

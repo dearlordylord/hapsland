@@ -46,6 +46,8 @@ describe("configuration v1 decoding", () => {
     ["undocumented flat runtime field", '{"version":1,"adviceBudget":101}', "adviceBudget"],
     ["undocumented include alias", '{"version":1,"include":["src/**"]}', "include"],
     ["undocumented exclude alias", '{"version":1,"exclude":["src/**"]}', "exclude"],
+    ["pack reference without locator", '{"version":1,"packs":[{}]}', "packs[0]"],
+    ["pack reference with path and id", '{"version":1,"packs":[{"path":"rules.jsonc","id":"team"}]}', "packs[0]"],
     ["negated include", '{"version":1,"includes":["!src/**"]}', "includes[0]"],
     ["traversal include", '{"version":1,"includes":["../src/**"]}', "includes[0]"],
     ["reversed glob range", '{"version":1,"includes":["[z-a]"]}', "includes[0]"],

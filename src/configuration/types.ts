@@ -12,9 +12,15 @@ const NonNegativeInteger = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
 /** A local or bundled declarative rule-pack reference. */
 export const RulePackReference = Schema.Union([
   Schema.String.check(Schema.isMinLength(1)),
+  // A reference is either a declaration (path) or an inherited identity (id).
+  // Keeping these as separate object schemas makes the XOR part of the public
+  // boundary rather than relying on a later loader check.
   Schema.Struct({
-    path: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1))),
-    id: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1))),
+    path: Schema.String.check(Schema.isMinLength(1)),
+    enabled: Schema.optionalKey(Schema.Boolean),
+  }),
+  Schema.Struct({
+    id: Schema.String.check(Schema.isMinLength(1)),
     enabled: Schema.optionalKey(Schema.Boolean),
   }),
 ]);

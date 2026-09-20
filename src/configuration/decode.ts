@@ -131,15 +131,17 @@ const checkPackReferences = (
     }
     if (!record(reference)) throw configurationError(source, `${field}[${index}]`, "pack reference must be a string or object");
     assertKnownKeys(reference, new Set(["path", "id", "enabled"]), source, `${field}[${index}]`);
-    if (!hasOwn(reference, "path") && !hasOwn(reference, "id")) {
-      throw configurationError(source, `${field}[${index}]`, "a pack reference needs path or inherited id");
+    const hasPath = hasOwn(reference, "path");
+    const hasId = hasOwn(reference, "id");
+    if (hasPath === hasId) {
+      throw configurationError(source, `${field}[${index}]`, "a pack reference must specify exactly one of path or inherited id");
     }
-    if (hasOwn(reference, "path")) checkString(reference.path, source, `${field}[${index}].path`, "must be a non-empty string");
-    if (hasOwn(reference, "path") && (reference.path as string).length === 0) {
+    if (hasPath) checkString(reference.path, source, `${field}[${index}].path`, "must be a non-empty string");
+    if (hasPath && (reference.path as string).length === 0) {
       throw configurationError(source, `${field}[${index}].path`, "must be a non-empty string");
     }
-    if (hasOwn(reference, "id")) checkString(reference.id, source, `${field}[${index}].id`, "must be a non-empty string");
-    if (hasOwn(reference, "id") && (reference.id as string).length === 0) {
+    if (hasId) checkString(reference.id, source, `${field}[${index}].id`, "must be a non-empty string");
+    if (hasId && (reference.id as string).length === 0) {
       throw configurationError(source, `${field}[${index}].id`, "must be a non-empty string");
     }
     if (hasOwn(reference, "enabled")) checkBoolean(reference.enabled, source, `${field}[${index}].enabled`);
