@@ -10,6 +10,7 @@ implementation specification.
 | Review integration | The product's integration boundary around agent hosts, rules, findings, and review backends. |
 | Agent host | A runtime that owns an agent's tool/edit loop and exposes lifecycle interception, such as Codex CLI or OpenCode. |
 | Model provider | Secondary metadata about the inference service selected by a host or review backend. It is not a first-class adapter target in the current phase. |
+| Type-shape artifact | One interface, type declaration, or schema considered independently as a description of the domain values it admits. |
 | Rule | A user-configurable criterion evaluated against an action, edit, diff, or related context. |
 | Finding | Evidence produced by a rule evaluation, including its explanation, location, severity, and confidence where available. |
 | Decision | The operational result of a review: allow, ask, block, advisory, context, or observe. |
