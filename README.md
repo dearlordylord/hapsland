@@ -100,6 +100,10 @@ the Effect provider configuration. Run the paid integration checks only with exp
 opt-in via `npm run test:live`. The reproducible 100-call milestone additionally requires
 `RUN_LIVE_JEV_BENCHMARK=1 npm run benchmark:live`.
 
+Headless activity inspection is documented in [`docs/status.md`](./docs/status.md). It
+uses an explicit host session ID and local source-free receipts; readiness and observed
+activity are reported separately.
+
 The historical `vendor/distilled` tree is retained as a Git submodule and migration oracle;
 it is not an active workspace or production dependency. Clone it when that evidence is
 needed:
