@@ -37,13 +37,13 @@ revised decision.
 - Extraction caps: declaration count 32, outbound depth 3, source characters 20,000.
   These are experiment caps, not production defaults. Cold and warm extraction are
   measured separately.
-- Call budget: 24 × 4 × 3 = 288 logical requests. The default of two transient retries
-  per request gives an absolute 864 transport-attempt maximum. Before `--live`
-  execution, the operator must supply an authorization ledger covering the selected
-  retry envelope; the command refuses to start when it does not. The project ledger
-  ceiling is 1,000 calls. For the corrected rerun, the ledger supplied 748 remaining
-  calls and one maximum retry per request (576 maximum attempts), preserving all three
-  repetitions while accounting for the first run's 252 available observations.
+- Call budget: 24 × 4 × 3 = 288 logical matrix slots. Twelve context-required fixtures
+  have two structurally not-applicable arms (focused diff and declaration-only), so 72
+  slots make no backend call and 216 slots are applicable. With one transient retry per
+  applicable request, the revised run has a 432-attempt maximum. Before `--live`
+  execution, the operator must supply an authorization ledger covering that envelope;
+  the command refuses to start when it does not. The project ledger ceiling is 1,000
+  calls, with 432 remaining after the two prior 252-observation runs.
 - Environment: pinned package cohort `effect`, `@effect/ai-typesafe`, and
   `@effect/vitest` `4.0.0-rc.116`; TypeScript `7.0.2`; Node runtime identity and
   renderer digests are recorded by the command environment. Credentials are checked

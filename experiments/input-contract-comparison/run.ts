@@ -12,6 +12,8 @@ const remainingIndex = args.indexOf("--authorized-remaining");
 const remainingAuthorizedCalls = remainingIndex >= 0 ? Number(args[remainingIndex + 1]) : 0;
 const retriesIndex = args.indexOf("--maximum-retries");
 const maximumRetriesPerRequest = retriesIndex >= 0 ? Number(args[retriesIndex + 1]) : 2;
+const repetitions = 3;
+const notApplicableLogicalCalls = inputComparisonFixtures.filter((fixture) => fixture.evidence.requiredReferences.length > 0).length * 2 * repetitions;
 
 if (!Number.isInteger(remainingAuthorizedCalls) || remainingAuthorizedCalls < 0) {
   console.error("--authorized-remaining must be a non-negative integer");
@@ -28,6 +30,7 @@ if (!Number.isInteger(remainingAuthorizedCalls) || remainingAuthorizedCalls < 0)
     fixtureCount: inputComparisonFixtures.length,
     remainingAuthorizedCalls,
     maximumRetriesPerRequest,
+    notApplicableLogicalCalls,
     liveOptIn: live,
   });
   if (!preflight.permitted) {
@@ -39,6 +42,7 @@ if (!Number.isInteger(remainingAuthorizedCalls) || remainingAuthorizedCalls < 0)
         fixtureCount: inputComparisonFixtures.length,
         remainingAuthorizedCalls,
         maximumRetriesPerRequest,
+        notApplicableLogicalCalls,
         liveOptIn: live,
       }).pipe(Effect.provide(backendLayer)),
     ).then(({ report }) => {

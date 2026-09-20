@@ -161,6 +161,8 @@ export type EvaluationPlan = {
   readonly modeCount: number;
   readonly repetitions: number;
   readonly logicalCalls: number;
+  readonly applicableLogicalCalls: number;
+  readonly notApplicableLogicalCalls: number;
   readonly maximumRetriesPerCall: number;
   readonly maximumTransportAttempts: number;
   readonly remainingAuthorizedCalls: number;

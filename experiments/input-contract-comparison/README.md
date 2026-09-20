@@ -51,7 +51,7 @@ ledger covering all 288 logical slots and the selected retry maximum:
 
 ```sh
 TYPESAFE_API_KEY=... npm run --silent experiment:input-contract -- \
-  --live --authorized-remaining 748 --maximum-retries 1
+  --live --authorized-remaining 432 --maximum-retries 1
 ```
 
 The retry flag is part of the pre-run ledger. It may be lowered for a corrected

@@ -155,6 +155,21 @@ describe("input-contract call planning", () => {
     expect(planRun({ fixtureCount: 24, remainingAuthorizedCalls: 0, liveOptIn: false, offline: true }).permitted).toBe(true);
   });
 
+  it("budgets structurally not-applicable slots without pretending they are paid calls", () => {
+    const plan = planRun({
+      fixtureCount: 24,
+      remainingAuthorizedCalls: 432,
+      maximumRetriesPerRequest: 1,
+      notApplicableLogicalCalls: 72,
+      liveOptIn: true,
+    });
+    expect(plan.logicalCalls).toBe(288);
+    expect(plan.applicableLogicalCalls).toBe(216);
+    expect(plan.notApplicableLogicalCalls).toBe(72);
+    expect(plan.maximumTransportAttempts).toBe(432);
+    expect(plan.permitted).toBe(true);
+  });
+
   it("enforces reserved and observed attempts without making a backend call", () => {
     const budget = new CallBudget(3);
     budget.reserve(3);

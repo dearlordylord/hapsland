@@ -22,15 +22,15 @@ export const compareScenario = (
     rationale: "No human-authored expectation was supplied.",
   };
   const available = observations.filter((observation) => observation.status === "reviewed" && observation.probability !== undefined);
-  const notApplicable = observations.length > 0 && observations.every((observation) => observation.status === "not-applicable");
-  if (notApplicable) {
-    return { fixtureId: fixture.id, mode, expectation, observations, available: 0, inBand: 0, status: "not-applicable" };
-  }
   if (expectation.kind === "unchecked") {
     return { fixtureId: fixture.id, mode, expectation, observations, available: available.length, inBand: 0, status: "unchecked" };
   }
   if (expectation.kind === "ambiguous") {
     return { fixtureId: fixture.id, mode, expectation, observations, available: available.length, inBand: 0, status: "ambiguous" };
+  }
+  const notApplicable = observations.length > 0 && observations.every((observation) => observation.status === "not-applicable");
+  if (notApplicable) {
+    return { fixtureId: fixture.id, mode, expectation, observations, available: 0, inBand: 0, status: "not-applicable" };
   }
   const inBand = available.filter((observation) => {
     const probability = observation.probability;
