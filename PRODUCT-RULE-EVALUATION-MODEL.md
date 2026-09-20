@@ -40,6 +40,13 @@ definition identity and fixture identity let a result be invalidated when meanin
 input changes, even if names are reused. Operational overrides such as a message change
 must not be confused with edits to the question/criteria.
 
+Evaluation identity also records the input-contract version and the renderer/adapter
+identity that constructs backend context. The current single full-file fixture is a
+prototype baseline, not a permanent restriction on product inputs. Full-file, diff,
+task-relative, or multi-file evaluations must not be treated as equivalent merely because
+they reuse a question. The product input contract is reopened for explicit design in
+the Phase F specification; no additional context egress is authorized by this note.
+
 ## Fixture expectations
 
 Use positive and negative examples for each maintained rule, including controls that
