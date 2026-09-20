@@ -206,13 +206,7 @@ export const resolveConfiguration = (
 export const captureConfiguration = (
   policy: ResolvedPolicy,
 ): ConfigurationCapture => {
-  const project = policy.layers.find((layer) => layer.name === "project");
-  const user = policy.layers.find((layer) => layer.name === "user");
-  return {
-    policy,
-    ...(project === undefined ? {} : { projectSource: project.source }),
-    ...(user === undefined ? {} : { userSource: user.source }),
-  };
+  return { policy };
 };
 
 export const configurationDigest = (policy: ResolvedPolicy): string => policy.digest;

@@ -53,9 +53,9 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
     };
   }
   const policy =
-    context._tag === "authorized" && context.settings.policy !== undefined
-      ? context.settings.policy
-      : resolveConfiguration([], context._tag === "authorized" ? context.root : request.event.cwd);
+    context._tag === "authorized"
+      ? context.settings.configuration.policy
+      : resolveConfiguration([], request.event.cwd);
   const selection = selectGlobalPath(policy, relativePath);
   if (!selection.selected) {
     return {
@@ -127,7 +127,7 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
 
   const deadlineMs =
     context._tag === "authorized"
-      ? context.settings.policy?.settings.deadlineMs.value ?? DEFAULT_RUNTIME_SETTINGS.deadlineMs
+      ? context.settings.configuration.policy.settings.deadlineMs.value
       : DEFAULT_RUNTIME_SETTINGS.deadlineMs;
   const evaluated = yield* backend
     .evaluate({
@@ -201,7 +201,7 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
     assessment.success,
     snapshot,
     context._tag === "authorized"
-      ? context.settings.policy?.settings.adviceBudget.value ?? DEFAULT_RUNTIME_SETTINGS.adviceBudget
+      ? context.settings.configuration.policy.settings.adviceBudget.value
       : DEFAULT_RUNTIME_SETTINGS.adviceBudget,
   );
   const firstDelivery =
@@ -225,7 +225,7 @@ export const review = Effect.fn("Review.run")(function* (
   const paths = [...new Set(request.event.paths)].sort();
   const concurrency =
     context._tag === "authorized"
-      ? context.settings.policy?.settings.concurrency.value ?? DEFAULT_RUNTIME_SETTINGS.concurrency
+      ? context.settings.configuration.policy.settings.concurrency.value
       : DEFAULT_RUNTIME_SETTINGS.concurrency;
   const results: ReadonlyArray<ReviewResult> = yield* Effect.forEach(
     paths,
@@ -243,7 +243,7 @@ export const review = Effect.fn("Review.run")(function* (
     .slice(
       0,
       context._tag === "authorized"
-        ? context.settings.policy?.settings.adviceBudget.value ?? DEFAULT_RUNTIME_SETTINGS.adviceBudget
+        ? context.settings.configuration.policy.settings.adviceBudget.value
         : DEFAULT_RUNTIME_SETTINGS.adviceBudget,
     );
   return { version: 1 as const, eventId: request.event.id, results, advice } satisfies ReviewResponse;

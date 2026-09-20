@@ -16,6 +16,14 @@ export class GlobPatternError extends Error {
   }
 }
 
+/** Bounded dialect limits keep validation and matching predictable. */
+export const GLOB_COMPLEXITY_LIMITS = {
+  maxPatternLength: 1_024,
+  maxBraceGroups: 8,
+  maxBraceChoices: 8,
+  maxExpansions: 256,
+} as const;
+
 export const normalizeRepositoryPath = (value: string): string | undefined => {
   if (value.includes("\0")) return undefined;
   const normalized = value.replaceAll("\\", "/");
@@ -39,6 +47,13 @@ export const validateGlobPattern = (pattern: string): string => {
     throw new GlobPatternError("glob patterns cannot traverse the repository root");
   }
   const canonical = normalized === "." ? "" : normalized.replace(/^\.\//, "");
+  if (canonical.length > GLOB_COMPLEXITY_LIMITS.maxPatternLength) {
+    throw new GlobPatternError(
+      `glob pattern exceeds the ${GLOB_COMPLEXITY_LIMITS.maxPatternLength}-character limit`,
+    );
+  }
+  let braceGroups = 0;
+  let expansionCount = 1;
   for (let index = 0; index < canonical.length; index += 1) {
     const current = canonical[index];
     if (current === "[") {
@@ -75,6 +90,23 @@ export const validateGlobPattern = (pattern: string): string => {
       if (choices.length < 2 || choices.some((choice) => choice.length === 0 || choice.includes("{"))) {
         throw new GlobPatternError("glob brace alternative must contain non-empty choices");
       }
+      braceGroups += 1;
+      if (braceGroups > GLOB_COMPLEXITY_LIMITS.maxBraceGroups) {
+        throw new GlobPatternError(
+          `glob pattern exceeds the ${GLOB_COMPLEXITY_LIMITS.maxBraceGroups}-group limit`,
+        );
+      }
+      if (choices.length > GLOB_COMPLEXITY_LIMITS.maxBraceChoices) {
+        throw new GlobPatternError(
+          `glob brace alternatives exceed the ${GLOB_COMPLEXITY_LIMITS.maxBraceChoices}-choice limit`,
+        );
+      }
+      if (expansionCount > GLOB_COMPLEXITY_LIMITS.maxExpansions / choices.length) {
+        throw new GlobPatternError(
+          `glob brace expansion exceeds the ${GLOB_COMPLEXITY_LIMITS.maxExpansions}-expansion limit`,
+        );
+      }
+      expansionCount *= choices.length;
       index = close;
       continue;
     }

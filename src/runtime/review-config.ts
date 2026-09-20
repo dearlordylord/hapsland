@@ -8,7 +8,7 @@ import { ConfigurationError } from "../configuration/errors.ts";
 import {
   resolveConfiguration,
 } from "../configuration/resolve.ts";
-import type { ConfigurationCapture, ResolvedPolicy } from "../configuration/types.ts";
+import type { ConfigurationCapture } from "../configuration/types.ts";
 import {
   JEV_API_BASE,
   JEV_BACKEND,
@@ -33,13 +33,10 @@ export interface ReviewSettings {
   readonly apiBase: typeof DEFAULT_API_BASE;
   readonly destination: Destination;
   readonly credentialEnvVar: string;
-  readonly projectConfigPath?: string;
-  readonly userConfigPath?: string;
   /** A project may request consent, but this value is never an authorization grant. */
   readonly projectRequestedConsent: boolean;
   /** Captured once for the event and shared by explanation and runtime selection. */
-  readonly configuration?: ConfigurationCapture;
-  readonly policy?: ResolvedPolicy;
+  readonly configuration: ConfigurationCapture;
 }
 
 const defaultCapture = (root: string): ConfigurationCapture => {
@@ -50,20 +47,17 @@ const defaultCapture = (root: string): ConfigurationCapture => {
 const settingsFrom = (
   capture: ConfigurationCapture,
 ): ReviewSettings => {
-  const project = capture.policy.layers.find((layer) => layer.name === "project");
-  const user = capture.policy.layers.find((layer) => layer.name === "user");
+  const policy = capture.policy;
+  const project = policy.layers.find((layer) => layer.name === "project");
   const projectRequestedConsent =
     Boolean(project?.document.consent) || Boolean(project?.document.enabled);
   return {
     backend: DEFAULT_BACKEND,
     apiBase: DEFAULT_API_BASE,
     destination: DEFAULT_DESTINATION,
-    credentialEnvVar: capture.policy.credentialEnvVar.value,
-    ...(project === undefined ? {} : { projectConfigPath: project.source }),
-    ...(user === undefined ? {} : { userConfigPath: user.source }),
+    credentialEnvVar: policy.credentialEnvVar.value,
     projectRequestedConsent,
     configuration: capture,
-    policy: capture.policy,
   };
 };
 

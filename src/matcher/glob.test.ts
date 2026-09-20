@@ -51,4 +51,15 @@ describe("repository glob validation", () => {
       { seed: 10_018, numRuns: 30 },
     );
   });
+
+  it("rejects oversized brace expansion before materializing products", () => {
+    const tooManyChoices = `src/{${Array.from({ length: 9 }, (_, index) => `v${index}`).join(",")}}`;
+    const tooManyGroups = Array.from({ length: 9 }, () => "{a,b}").join("");
+    const tooManyExpansions = Array.from({ length: 6 }, () => "{a,b,c}").join("");
+    expect(() => validateGlobPattern(tooManyChoices)).toThrow(/choice limit/);
+    expect(() => validateGlobPattern(tooManyGroups)).toThrow(/group limit/);
+    expect(() => validateGlobPattern(tooManyExpansions)).toThrow(/expansion limit/);
+    expect(() => validateGlobPattern("a".repeat(1_025))).toThrow(/character limit/);
+    expect(matchesGlob(tooManyExpansions, "abc")).toBe(false);
+  });
 });
