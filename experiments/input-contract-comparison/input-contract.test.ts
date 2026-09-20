@@ -8,6 +8,7 @@ import { compareScenario } from "./compare.ts";
 import { inputComparisonFixtures, fixtureSummary } from "./fixtures.ts";
 import { observe } from "./evaluate.ts";
 import { CallBudget, planRun } from "./plan.ts";
+import { runPlanned } from "./runner.ts";
 import { modes, renderDiff, renderInput } from "./render.ts";
 import { bandContains, type Observation } from "./protocol.ts";
 import { sharedExpectationRecord, sharedFixtureRecord } from "./shared-model.ts";
@@ -189,5 +190,21 @@ describe("offline DecisionModel seam", () => {
     expect("probability" in result ? result.probability : undefined).toBe(0.8);
     expect(result.attempts).toBe(1);
     expect(result.rendered.completeness.status).toBe("complete");
+  });
+
+  it("does not reserve backend budget for not-applicable matrix arms", async () => {
+    const answers = Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability" as const, probability: 0.8 }]));
+    const layer = ReviewBackend.layer.pipe(Layer.provide(controlledDecisionModelLayer({ answers })));
+    const result = await Effect.runPromise(runPlanned({
+      fixtureCount: 24,
+      remainingAuthorizedCalls: 216,
+      liveOptIn: false,
+      offline: true,
+      maximumRetriesPerRequest: 0,
+      notApplicableLogicalCalls: 72,
+    }).pipe(Effect.provide(layer)));
+    expect(result.plan.maximumTransportAttempts).toBe(216);
+    expect(result.report.counts.transport.available).toBe(216);
+    expect(result.report.counts.semantic.notApplicable).toBe(22);
   });
 });

@@ -128,7 +128,8 @@ export const runPlanned = Effect.fn("InputComparison.runPlanned")(function* (opt
   for (const fixture of inputComparisonFixtures) {
     for (const mode of modes) {
       for (let repetition = 1; repetition <= plan.repetitions; repetition += 1) {
-        ledger.reserve(plan.maximumRetriesPerCall + 1);
+        const structurallyNotApplicable = fixture.evidence.requiredReferences.length > 0 && (mode === "diff" || mode === "declaration-only");
+        if (!structurallyNotApplicable) ledger.reserve(plan.maximumRetriesPerCall + 1);
         const observation = yield* observe(fixture, mode, repetition, options.caps === undefined ? {} : { caps: options.caps });
         observations.push(observation);
         if (observation.status === "reviewed" || observation.status === "unavailable") {
