@@ -41,6 +41,13 @@ export type ReviewBackendLayerOptions = {
   readonly transientRetries?: number;
 };
 
+/**
+ * The review integration owns one deliberately boring retry policy. Keeping the
+ * delay fixed makes the per-file deadline predictable and leaves host-hook timeout
+ * configuration enough room to account for the complete attempt budget.
+ */
+export const REVIEW_RETRY_BACKOFF_MS = 50 as const;
+
 export const layerWithOptions = (layerOptions: ReviewBackendLayerOptions = {}) =>
   Layer.effect(
     Service,
@@ -85,7 +92,7 @@ export const layerWithOptions = (layerOptions: ReviewBackendLayerOptions = {}) =
         Effect.retry({
           times: layerOptions.transientRetries ?? DEFAULT_RUNTIME_SETTINGS.transientRetries,
           while: (error) => error.retryable,
-          schedule: Schedule.exponential("50 millis"),
+          schedule: Schedule.spaced(`${REVIEW_RETRY_BACKOFF_MS} millis`),
         }),
       );
       return {
