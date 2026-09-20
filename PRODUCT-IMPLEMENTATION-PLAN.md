@@ -1,8 +1,9 @@
 # Product implementation plan
 
-**Status:** staged execution plan after the research advisory. Issue #1 adopted phases B–E
-as its normative implementation specification; later phases remain proposed. The product
-remains unnamed; Jev is its initial review backend, not the product name.
+**Status:** staged execution plan after the research advisory. Issues #1 and #3 adopted
+phases B–F as normative implementation specifications, and those phases are complete;
+later phases remain proposed. The product remains unnamed; Jev is its initial review
+backend, not the product name.
 
 ## 1. Goal
 
@@ -385,17 +386,23 @@ finding.
 
 ### Phase F — configuration and rule packaging
 
-**Specification published:** [issue #3](https://github.com/dearlordylord/jevs/issues/3),
-with the consolidated local specification in
+**Completed 2026-09-20:** [issue #3](https://github.com/dearlordylord/jevs/issues/3),
+implemented through issues #9–#15, with the consolidated local specification in
 [`PRODUCT-PHASE-F-SPEC.md`](./PRODUCT-PHASE-F-SPEC.md). This includes the agreed
 configuration explanation, session receipt, and rule-conformance test requirements.
 Directory-scoped consent is deferred to
-[issue #2](https://github.com/dearlordylord/jevs/issues/2). Implementation is not complete.
+[issue #2](https://github.com/dearlordylord/jevs/issues/2).
 
-Add project/user configuration, file selection, thresholds, messages, enable/disable,
-privacy exclusions, timeouts, and backend credentials. Prove that a rule set can be changed
-without modifying the Codex adapter. Add an initial user-extension mechanism only after its
-trust and versioning model is explicit.
+Phase F provides project/user configuration, file selection, thresholds, messages,
+enable/disable consent, privacy exclusions, timeouts, credential references, local
+declarative rule packs, diagnostics, and session receipts without rule-specific Codex
+adapter changes. Deterministic tests cover configuration and rule composition at the real
+process boundary. The explicit live milestone completed all 44 planned transport and
+conformance requests; its preregistered semantic release gate did not pass. Sanitized
+failed, ambiguous, and unchecked semantic results remain recorded in
+[`evidence/evaluation/live-report-2026-09-20.json`](./evidence/evaluation/live-report-2026-09-20.json)
+without weakening expectations. That result limits release claims but does not leave the
+Phase F implementation unfinished.
 
 ### Phase G — composition and release hardening
 
