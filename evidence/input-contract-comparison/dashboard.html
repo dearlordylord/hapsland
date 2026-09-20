@@ -25,6 +25,9 @@
     .diff-side-head span{padding:0 12px}.diff-side-head span+span,.diff-cell+.diff-cell{border-left:1px solid var(--line)}
     .diff-cell{display:grid;grid-template-columns:42px minmax(0,1fr);min-height:1.55em}.diff-cell.add{background:rgba(105,223,161,.12)}.diff-cell.del{background:rgba(255,139,152,.12)}.diff-cell.empty-cell{background:rgba(255,255,255,.018)}
     .line-no{padding:0 8px;color:#536785;text-align:right;user-select:none;border-right:1px solid #1b2638}.line-code{padding:0 10px;white-space:pre;overflow:visible}.diff-side-row.context{opacity:.82}.side-diff.changes-only .diff-side-row.context{display:none}
+    .codebox:not(.single) .code{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;overflow-x:hidden}
+    .fixture-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}.state-link{white-space:nowrap}.state-url{font:11px var(--mono);color:var(--muted);overflow-wrap:anywhere;margin-top:5px}
+    .statebar{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;margin:10px 0 14px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:#0c1321;font-size:.76rem}.statebar .state-url{margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   </style>
 </head>
 <body>
@@ -37,6 +40,7 @@
     <section class="panel section">
       <div class="sectionhead"><h2>Corpus and rendered-input explorer</h2><span class="muted" id="fixture-count"></span></div>
       <div class="controls"><input class="control" id="search" type="search" placeholder="Search fixture, rationale, or source…"><select class="control" id="category"><option value="">All categories</option></select><select class="control" id="flag"><option value="">All fixture roles</option><option value="contextRequired">Context required</option><option value="diffSufficient">Diff sufficient</option><option value="wholeFileDilution">Whole-file dilution</option><option value="negativeControl">Negative control</option></select></div>
+      <div class="statebar"><span class="muted">Shareable state URL</span><code id="state-url" class="state-url"></code><button class="tab" id="copy-state" type="button">Copy link</button></div>
       <div class="workspace"><nav class="fixturelist" id="fixture-list" aria-label="Fixtures"></nav><div class="detail" id="detail"></div></div>
     </section>
     <section class="panel section"><div class="sectionhead"><h2>Retained final aggregate result</h2><span class="muted">These totals are inspectable; their fixture-level derivation is not.</span></div><div class="gategrid" id="gates"></div></section>
@@ -50,7 +54,27 @@
       if (!data) { document.body.textContent = "Dashboard data failed to load."; return; }
       const modes = ["diff", "whole-file", "declaration-only", "declaration-context"];
       const labels = {diff:"Focused diff","whole-file":"Whole file","declaration-only":"Declaration only","declaration-context":"Declaration + context"};
-      let selected = data.fixtures[0].id, mode = "diff", codeView = "side", showUnchanged = true;
+      const urlParams = new URLSearchParams(window.location.search);
+      const fixtureParam = urlParams.get("fixture");
+      const modeParam = urlParams.get("mode");
+      const viewParam = urlParams.get("view");
+      const selectedFixture = data.fixtures.some(f => f.id === fixtureParam) ? fixtureParam : data.fixtures[0].id;
+      let selected = selectedFixture, mode = modes.includes(modeParam) ? modeParam : "diff", codeView = ["side","diff","input"].includes(viewParam) ? viewParam : "side", showUnchanged = urlParams.get("unchanged") !== "0";
+      const syncUrl = () => {
+        const url = new URL(window.location.href);
+        url.searchParams.set("fixture", selected);
+        url.searchParams.set("mode", mode);
+        url.searchParams.set("view", codeView);
+        url.searchParams.set("unchanged", showUnchanged ? "1" : "0");
+        const q = $("search").value, category = $("category").value, flag = $("flag").value;
+        q ? url.searchParams.set("q", q) : url.searchParams.delete("q");
+        category ? url.searchParams.set("category", category) : url.searchParams.delete("category");
+        flag ? url.searchParams.set("flag", flag) : url.searchParams.delete("flag");
+        const nextUrl = url.pathname + "?" + url.searchParams.toString() + url.hash;
+        window.history.replaceState(null, "", nextUrl);
+        const stateUrl = $("state-url");
+        if (stateUrl) stateUrl.textContent = window.location.href;
+      };
       const addList = (id, values) => values.forEach(v => { const li=document.createElement("li"); li.textContent=v; $(id).append(li); });
       $("consequence").textContent = data.retention.consequence;
       addList("retained", data.retention.retained); addList("not-retained", data.retention.notRetained);
@@ -58,6 +82,9 @@
       const stats=[[data.fixtures.length,"fixtures"],[report.plan.modeCount,"input modes"],[report.plan.repetitions,"repetitions"],[report.plan.applicableLogicalCalls,"paid calls"],[report.counts.transport.unavailable,"transport failures"],[report.counts.semantic.failed,"failed scenarios"]];
       stats.forEach(([n,l])=>{const e=document.createElement("article");e.className="panel stat";e.innerHTML=`<div class="num">${n}</div><div class="label">${l}</div>`;$("stats").append(e)});
       [...new Set(data.fixtures.map(f=>f.category))].forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;$("category").append(o)});
+      $("search").value = urlParams.get("q") || "";
+      $("category").value = urlParams.get("category") || "";
+      $("flag").value = urlParams.get("flag") || "";
       const pill=(text,cls="")=>`<span class="pill ${cls}">${text}</span>`;
       const filtered=()=>{const q=$("search").value.toLowerCase(),cat=$("category").value,flag=$("flag").value;return data.fixtures.filter(f=>(!cat||f.category===cat)&&(!flag||f.flags[flag])&&(!q||[f.id,f.name,f.expectation.rationale,f.before,f.after].join(" ").toLowerCase().includes(q)))};
       function renderList(){const fs=filtered();$("fixture-count").textContent=`${fs.length} of ${data.fixtures.length} fixtures`;$("fixture-list").replaceChildren();if(fs.length&&!fs.some(f=>f.id===selected))selected=fs[0].id;fs.forEach(f=>{const b=document.createElement("button");b.className=`fixture ${f.id===selected?"active":""}`;b.innerHTML=`<strong>${f.name}</strong><small>${f.id} · ${f.category}</small><span class="pillrow">${pill(f.expectation.kind,f.expectation.kind)}${Object.entries(f.flags).filter(x=>x[1]).map(x=>pill(x[0])).join("")}</span>`;b.onclick=()=>{selected=f.id;renderList();renderDetail()};$("fixture-list").append(b)});if(!fs.length)$("fixture-list").innerHTML='<div class="empty">No fixtures match.</div>';renderDetail()}
@@ -82,7 +109,21 @@
       function renderCode(f,r,container){container.replaceChildren();if(codeView==="side"){container.append(sideBySide(f));}else if(codeView==="diff"){container.append(codeBox("Focused unified diff",f.rendered.diff.source,true,true));}else{container.append(codeBox(`${labels[mode]} · exact source sent in artifact`,r.source,true));}}
       function renderDetail(){const f=data.fixtures.find(x=>x.id===selected);if(!f){$("detail").innerHTML='<div class="empty">Choose a fixture.</div>';return}const r=f.rendered[mode];const expected=f.expectation.band?`${f.expectation.kind}: ${f.expectation.band.minimum}${f.expectation.band.minimumInclusive===false?" < p":" ≤ p"} ${f.expectation.band.maximumInclusive===true?"≤":"<"} ${f.expectation.band.maximum}`:f.expectation.kind;$("detail").innerHTML=`<div class="fixturehead"><div><div class="eyebrow">${f.category} · ${f.rootKind}</div><h2>${f.name}</h2><div class="path">${f.path}</div></div><span class="pill ${f.expectation.kind}">${f.expectation.kind}</span></div><div class="rationale"><strong>Human expectation:</strong> ${f.expectation.rationale}</div><div class="tabs" id="mode-tabs"></div><div class="metadata">${meta("Expected band",expected)}${meta("Completeness",r.completeness.status)}${meta("Included context",r.contextNames.join(", ")||"none")}${meta("Required refs",f.evidence.requiredReferences.join(", ")||"none")}${meta("Source chars",r.sourceCharacters)}${meta("Request bytes",r.requestBytes)}${meta("Contract",`${r.contract.id} v${r.contract.version}`)}${meta("Fixture digest",f.fixtureDigest.slice(0,16)+"…")}</div><div class="viewtabs"><button class="tab" data-view="side">Side-by-side diff</button><button class="tab" data-view="diff">Unified diff</button><button class="tab" data-view="input">Rendered input</button></div><div class="codegrid" id="codegrid"></div><div class="notice"><strong>Live outcome for this fixture: not retained.</strong> The final report preserves aggregate scenario counts and gates only. No per-fixture pass/fail or probability can be shown honestly.</div>`;modes.forEach(m=>{const b=document.createElement("button");b.className=`tab ${m===mode?"active":""}`;b.textContent=labels[m];b.onclick=()=>{mode=m;renderDetail()};$("mode-tabs").append(b)});document.querySelectorAll("[data-view]").forEach(b=>{b.classList.toggle("active",b.dataset.view===codeView);b.onclick=()=>{codeView=b.dataset.view;renderDetail()}});renderCode(f,r,$("codegrid"))}
       report.gates.forEach(g=>{const e=document.createElement("article");e.className=`gate ${g.passed?"pass":"fail"}`;e.innerHTML=`<strong>${g.passed?"PASS":"FAIL"} · ${g.name}</strong><span>observed ${g.numerator}/${g.denominator} · required ${g.required}${g.reason?` · ${g.reason}`:""}</span>`;$("gates").append(e)});
-      ["search","category","flag"].forEach(id=>$(id).addEventListener(id==="search"?"input":"change",renderList));renderList();
+      const refreshFromFilter = () => { renderList(); syncUrl(); };
+      ["search","category","flag"].forEach(id=>$(id).addEventListener(id==="search"?"input":"change",refreshFromFilter));
+      $("fixture-list").addEventListener("click", () => setTimeout(syncUrl, 0));
+      $("detail").addEventListener("click", () => setTimeout(syncUrl, 0));
+      $("copy-state").addEventListener("click", async () => {
+        const value = window.location.href;
+        try {
+          await navigator.clipboard.writeText(value);
+          $("copy-state").textContent = "Copied";
+          setTimeout(() => $("copy-state").textContent = "Copy link", 1200);
+        } catch {
+          window.prompt("Copy this dashboard state URL:", value);
+        }
+      });
+      syncUrl(); renderList();
     })();
   </script>
 </body>
