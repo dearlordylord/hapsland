@@ -22,7 +22,11 @@ The declaration-context renderer reuses the parsing/artifact seam from the accep
 declaration-extraction experiment. It does not make extraction a production dependency;
 this remains an experiment and has bounded declaration, depth, and source-character
 caps. Missing required evidence is an explicit `incomplete-required` observation and is
-never counted as a clear result.
+never counted as a clear result. A renderer that structurally cannot carry a fixture's
+required reference is recorded as `not-applicable`; it is excluded from semantic
+denominators rather than treated as a provider failure or semantic negative. The
+focused diff and declaration-only arms are therefore not baselines for context-required
+fixtures, while whole-file and declaration-context remain applicable.
 
 ## Deterministic checks
 
@@ -43,11 +47,11 @@ npm run --silent experiment:input-contract
 ```
 
 The live command requires explicit opt-in, `TYPESAFE_API_KEY`, and an authorization
-ledger covering all 288 logical calls and the absolute 864-attempt retry maximum:
+ledger covering all 288 logical slots and the selected retry maximum:
 
 ```sh
 TYPESAFE_API_KEY=... npm run --silent experiment:input-contract -- \
-  --live --authorized-remaining 748 --maximum-retries 1
+  --live --authorized-remaining 216 --maximum-retries 0
 ```
 
 The retry flag is part of the pre-run ledger. It may be lowered for a corrected

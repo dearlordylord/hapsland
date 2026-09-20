@@ -1,0 +1,86 @@
+{
+  "status": "revised-rerun",
+  "supersedes": "live-report-2026-09-20-corrected.json",
+  "outcome": "reject-or-narrow",
+  "backend": {
+    "id": "jev",
+    "provider": "@effect/ai-typesafe",
+    "model": "jev-latest",
+    "decisionModel": "effect/unstable/ai/DecisionModel"
+  },
+  "environment": {
+    "node": "v24.20.0",
+    "typescript": "7.0.2",
+    "effect": "4.0.0-rc.116"
+  },
+  "matrix": {
+    "fixtures": 24,
+    "modes": 4,
+    "repetitions": 3,
+    "logicalSlots": 288,
+    "applicableLogicalCalls": 216,
+    "notApplicableLogicalSlots": 72,
+    "maximumRetriesPerRequest": 0,
+    "maximumTransportAttempts": 216,
+    "authorizedRemainingBeforeRun": 216
+  },
+  "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
+  "rendererDigests": {
+    "diff": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+    "whole-file": "3032f9f9168e2333505e9d9401cd482ff5d47e637d4f52900f63a2b18fe76112",
+    "declaration-only": "9efce0c7a27a13bd87f7a54d587f63e923193ca672359e7e7debde3448c22ef3",
+    "declaration-context": "a3eddeebc69d6e9418302f1adeb5332d5a71675ac2b12d49aa8191e5e932f03b"
+  },
+  "inputContracts": {
+    "diff": { "id": "textual-diff", "version": "2", "rendererVersion": "2" },
+    "whole-file": { "id": "whole-post-edit-file", "version": "2", "rendererVersion": "2" },
+    "declaration-only": { "id": "edited-declaration", "version": "2", "rendererVersion": "2" },
+    "declaration-context": { "id": "edited-declaration-bounded-context", "version": "2", "rendererVersion": "2" }
+  },
+  "identitySample": {
+    "fixtureId": "iface-delivery-flat",
+    "fixtureDigest": "20c79f64d82a89370e73a78ef994fdbbc2f0180968577d0166a7c7df53f8dc46",
+    "contentHash": "82ee0515dc61f1e51a182ddd9a60063378a460fbcc4178db6fce820d500ca424"
+  },
+  "counts": {
+    "scenarios": 96,
+    "semanticPassed": 37,
+    "semanticFailed": 29,
+    "semanticInconclusive": 0,
+    "notApplicableScenarios": 22,
+    "unchecked": 4,
+    "ambiguous": 4,
+    "transportAvailable": 216,
+    "transportUnavailable": 0
+  },
+  "gates": {
+    "contextRequiredSemantic": { "passed": true, "numerator": 10, "denominator": 11, "required": 10 },
+    "contextRequiredExceedsWholeFile": { "passed": false, "delta": 0, "required": 3 },
+    "wholeFileDilutionSemantic": { "passed": false, "numerator": 3, "denominator": 6, "required": 5 },
+    "diffSufficientControls": { "passed": false, "numerator": 2, "denominator": 7, "required": 5 },
+    "negativeControlsRemainClear": { "passed": false, "numerator": 2, "denominator": 4, "required": 3 },
+    "threeAvailableRepetitions": { "passed": true },
+    "warmExtractionP95Ms": { "passed": true, "value": 2.01109500000166, "maximum": 250 },
+    "endToEndP95Ms": { "passed": true, "value": 2.8729759999987436, "maximum": 1000 },
+    "declarationContextMedianRequestBytes": { "passed": true, "value": 770, "wholeFileMedian": 774 }
+  },
+  "coverage": {
+    "fixtures": 24,
+    "contextRequired": 12,
+    "diffSufficient": 8,
+    "wholeFileDilution": 6,
+    "negativeControls": 6
+  },
+  "timing": {
+    "coldExtractionP95Ms": 3.534729999999854,
+    "warmExtractionP95Ms": 2.01109500000166,
+    "endToEndP95Ms": 2.8729759999987436
+  },
+  "requestBytes": {
+    "wholeFileMedian": 774,
+    "declarationContextMedian": 770
+  },
+  "usage": "not-retained-by-sanitized-runner",
+  "sourceBearingResponses": "not-retained",
+  "individualProbabilities": "not-retained"
+}

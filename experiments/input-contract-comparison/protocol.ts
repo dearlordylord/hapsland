@@ -3,9 +3,9 @@ import { createHash } from "node:crypto";
 /** Versioned renderer contracts used by the input-comparison milestone. */
 export const INPUT_CONTRACTS = {
   diff: { id: "textual-diff", version: "2", renderer: "renderer.diff", rendererVersion: "2" },
-  "whole-file": { id: "whole-post-edit-file", version: "1", renderer: "renderer.whole-file", rendererVersion: "1" },
-  "declaration-only": { id: "edited-declaration", version: "1", renderer: "renderer.declaration", rendererVersion: "1" },
-  "declaration-context": { id: "edited-declaration-bounded-context", version: "1", renderer: "renderer.declaration-context", rendererVersion: "1" },
+  "whole-file": { id: "whole-post-edit-file", version: "2", renderer: "renderer.whole-file", rendererVersion: "2" },
+  "declaration-only": { id: "edited-declaration", version: "2", renderer: "renderer.declaration", rendererVersion: "2" },
+  "declaration-context": { id: "edited-declaration-bounded-context", version: "2", renderer: "renderer.declaration-context", rendererVersion: "2" },
 } as const;
 
 export type InputMode = keyof typeof INPUT_CONTRACTS;
@@ -15,6 +15,7 @@ export type Completeness =
   | "complete"
   | "incomplete-irrelevant"
   | "incomplete-required"
+  | "not-applicable"
   | "unknown";
 
 export type ExpectedBand = {
@@ -103,8 +104,8 @@ export type RenderedInput = {
   readonly requestBytes: number;
 };
 
-export type ObservationStatus = "reviewed" | "incomplete" | "unavailable";
-export type SemanticStatus = "passed" | "failed" | "ambiguous" | "unchecked" | "inconclusive";
+export type ObservationStatus = "reviewed" | "incomplete" | "not-applicable" | "unavailable";
+export type SemanticStatus = "passed" | "failed" | "ambiguous" | "unchecked" | "inconclusive" | "not-applicable";
 
 export type Observation = {
   readonly id: string;
@@ -140,6 +141,7 @@ export type ComparisonCounts = {
   readonly passed: number;
   readonly failed: number;
   readonly inconclusive: number;
+  readonly notApplicable: number;
   readonly unchecked: number;
   readonly ambiguous: number;
 };
@@ -159,6 +161,8 @@ export type EvaluationPlan = {
   readonly modeCount: number;
   readonly repetitions: number;
   readonly logicalCalls: number;
+  readonly applicableLogicalCalls: number;
+  readonly notApplicableLogicalCalls: number;
   readonly maximumRetriesPerCall: number;
   readonly maximumTransportAttempts: number;
   readonly remainingAuthorizedCalls: number;
@@ -239,6 +243,7 @@ export const emptyCounts = (): ComparisonCounts => ({
   passed: 0,
   failed: 0,
   inconclusive: 0,
+  notApplicable: 0,
   unchecked: 0,
   ambiguous: 0,
 });

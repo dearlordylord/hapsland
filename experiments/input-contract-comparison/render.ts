@@ -30,9 +30,9 @@ export const DEFAULT_EXTRACTION_CAPS: ExtractionCaps = {
 
 const rendererSource = {
   diff: "textual-diff-v2:focused-unified-hunk-with-context-lines",
-  "whole-file": "whole-post-edit-file-v1:exact-after-buffer",
-  "declaration-only": "edited-declaration-v1:root-artifact-source",
-  "declaration-context": "edited-declaration-bounded-context-v1:bfs-references-with-omissions",
+  "whole-file": "whole-post-edit-file-v2:exact-after-buffer-with-completeness-check",
+  "declaration-only": "edited-declaration-v2:root-artifact-source-with-structural-inapplicability",
+  "declaration-context": "edited-declaration-bounded-context-v2:bfs-references-with-omissions-outside-source",
 } as const;
 
 const contractFor = (mode: InputMode) => INPUT_CONTRACTS[mode];
@@ -104,6 +104,24 @@ const completeness = (
     included,
     omissions,
   };
+};
+
+const notApplicable = (fixture: Fixture, reason: Omission["reason"] = "unsupported"): CompletenessEvidence => ({
+  status: "not-applicable",
+  required: [...fixture.evidence.requiredReferences],
+  included: [],
+  omissions: fixture.evidence.requiredReferences.map((reference) => ({ name: reference, reason, required: true })),
+});
+
+const escapedRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const hasNamedDeclaration = (source: string, name: string) =>
+  new RegExp(`(?:^|\\n)\\s*(?:export\\s+)?(?:type|interface|const|let|var)\\s+${escapedRegExp(name)}\\b`).test(source);
+
+const wholeFileCompleteness = (fixture: Fixture, source: string) => {
+  const omissions = fixture.evidence.requiredReferences
+    .filter((name) => !hasNamedDeclaration(source, name))
+    .map((name) => ({ name, reason: "not-found" as const, required: true }));
+  return completeness(fixture, fixture.evidence.requiredReferences.filter((name) => !omissions.some((omission) => omission.name === name)), omissions);
 };
 
 const contextFor = (fixture: Fixture, root: DeclarationArtifact, artifacts: readonly DeclarationArtifact[], caps: ExtractionCaps) => {
@@ -191,8 +209,10 @@ export const renderInput = (
     before = fixture.before;
     after = fixture.after;
     source = renderDiff(fixture.path, fixture.before, fixture.after);
+    if (fixture.evidence.requiredReferences.length > 0) evidence = notApplicable(fixture);
   } else if (mode === "whole-file") {
     source = fixture.after;
+    evidence = wholeFileCompleteness(fixture, source);
   } else {
     const extractionStarted = performance.now();
     const { artifacts } = parseArtifacts(fixture);
@@ -201,18 +221,12 @@ export const renderInput = (
     declarationName = root.name;
     if (mode === "declaration-only") {
       source = root.source;
-      if (fixture.evidence.requiredReferences.length > 0) {
-        evidence = completeness(
-          fixture,
-          [],
-          fixture.evidence.requiredReferences.map((name) => ({ name, reason: "unsupported" as const, required: true })),
-        );
-      }
+      if (fixture.evidence.requiredReferences.length > 0) evidence = notApplicable(fixture);
     } else {
       const context = contextFor(fixture, root, artifacts, caps);
       contextNames = context.included.map((item) => item.name);
       evidence = context.evidence;
-      source = [root.source, ...context.included.map((item) => `/* referenced context: ${item.name} */\n${item.source}`), `/* completeness: ${stableJson(evidence)} */`].join("\n\n");
+      source = [root.source, ...context.included.map((item) => `/* referenced context: ${item.name} */\n${item.source}`)].join("\n\n");
     }
   }
   const renderingStarted = performance.now();

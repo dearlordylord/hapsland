@@ -8,6 +8,7 @@ import { compareScenario } from "./compare.ts";
 import { inputComparisonFixtures, fixtureSummary } from "./fixtures.ts";
 import { observe } from "./evaluate.ts";
 import { CallBudget, planRun } from "./plan.ts";
+import { runPlanned } from "./runner.ts";
 import { modes, renderDiff, renderInput } from "./render.ts";
 import { bandContains, type Observation } from "./protocol.ts";
 import { sharedExpectationRecord, sharedFixtureRecord } from "./shared-model.ts";
@@ -61,8 +62,11 @@ describe("input-contract comparison corpus", () => {
     expect(new Set(rendered.map((input) => input.domain)).size).toBe(1);
     expect(rendered.find((input) => input.mode === "diff")?.before).toBe(fixture.before);
     expect(rendered.find((input) => input.mode === "whole-file")?.source).toBe(fixture.after);
+    expect(rendered.find((input) => input.mode === "diff")?.completeness.status).toBe("not-applicable");
+    expect(rendered.find((input) => input.mode === "whole-file")?.completeness.status).toBe("complete");
     expect(rendered.find((input) => input.mode === "declaration-only")?.declarationName).toBe(fixture.rootName);
-    expect(rendered.find((input) => input.mode === "declaration-only")?.completeness.status).toBe("incomplete-required");
+    expect(rendered.find((input) => input.mode === "declaration-only")?.completeness.status).toBe("not-applicable");
+    expect(rendered.find((input) => input.mode === "declaration-context")?.source).not.toContain("/* completeness:");
   });
 
   it("renders diff as the changed member hunk, not the whole declaration", () => {
@@ -85,6 +89,16 @@ describe("input-contract comparison corpus", () => {
     ]));
     const irrelevant = renderInput(inputComparisonFixtures.find((item) => item.id === "iface-profile-control")!, "declaration-context");
     expect(irrelevant.completeness.status).toBe("incomplete-irrelevant");
+  });
+
+  it("records structurally unavailable renderer arms without treating them as semantic negatives", () => {
+    const diff = renderInput(fixture, "diff");
+    const declaration = renderInput(fixture, "declaration-only");
+    expect(diff.completeness.status).toBe("not-applicable");
+    expect(declaration.completeness.status).toBe("not-applicable");
+    expect(diff.completeness.omissions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: "DeliveryChannel", required: true }),
+    ]));
   });
 });
 
@@ -110,6 +124,26 @@ describe("input-contract comparison math", () => {
     expect(compareScenario(unchecked, "diff", []).status).toBe("unchecked");
     expect(compareScenario(ambiguous, "diff", []).status).toBe("ambiguous");
   });
+
+  it("keeps not-applicable renderer arms out of semantic status", () => {
+    const rendered = renderInput(fixture, "declaration-only");
+    const result = compareScenario(fixture, "declaration-only", [{
+      id: "not-applicable",
+      fixtureId: fixture.id,
+      mode: "declaration-only",
+      repetition: 1,
+      rendered,
+      status: "not-applicable",
+      semantic: "not-applicable",
+      durationMs: 0,
+      extractionMs: 0,
+      renderingMs: 0,
+      attempts: 0,
+      retries: 0,
+    }]);
+    expect(result.status).toBe("not-applicable");
+    expect(result.available).toBe(0);
+  });
 });
 
 describe("input-contract call planning", () => {
@@ -120,6 +154,21 @@ describe("input-contract call planning", () => {
     expect(plan.permitted).toBe(true);
     expect(planRun({ fixtureCount: 24, remainingAuthorizedCalls: 863, liveOptIn: true }).permitted).toBe(false);
     expect(planRun({ fixtureCount: 24, remainingAuthorizedCalls: 0, liveOptIn: false, offline: true }).permitted).toBe(true);
+  });
+
+  it("budgets structurally not-applicable slots without pretending they are paid calls", () => {
+    const plan = planRun({
+      fixtureCount: 24,
+      remainingAuthorizedCalls: 432,
+      maximumRetriesPerRequest: 1,
+      notApplicableLogicalCalls: 72,
+      liveOptIn: true,
+    });
+    expect(plan.logicalCalls).toBe(288);
+    expect(plan.applicableLogicalCalls).toBe(216);
+    expect(plan.notApplicableLogicalCalls).toBe(72);
+    expect(plan.maximumTransportAttempts).toBe(432);
+    expect(plan.permitted).toBe(true);
   });
 
   it("enforces reserved and observed attempts without making a backend call", () => {
@@ -141,5 +190,21 @@ describe("offline DecisionModel seam", () => {
     expect("probability" in result ? result.probability : undefined).toBe(0.8);
     expect(result.attempts).toBe(1);
     expect(result.rendered.completeness.status).toBe("complete");
+  });
+
+  it("does not reserve backend budget for not-applicable matrix arms", async () => {
+    const answers = Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability" as const, probability: 0.8 }]));
+    const layer = ReviewBackend.layer.pipe(Layer.provide(controlledDecisionModelLayer({ answers })));
+    const result = await Effect.runPromise(runPlanned({
+      fixtureCount: 24,
+      remainingAuthorizedCalls: 216,
+      liveOptIn: false,
+      offline: true,
+      maximumRetriesPerRequest: 0,
+      notApplicableLogicalCalls: 72,
+    }).pipe(Effect.provide(layer)));
+    expect(result.plan.maximumTransportAttempts).toBe(216);
+    expect(result.report.counts.transport.available).toBe(216);
+    expect(result.report.counts.semantic.notApplicable).toBe(22);
   });
 });

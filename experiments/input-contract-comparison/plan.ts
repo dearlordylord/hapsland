@@ -12,6 +12,8 @@ export type PlanOptions = {
   readonly modeCount?: number;
   readonly repetitions?: number;
   readonly maximumRetriesPerRequest?: number;
+  /** Logical matrix slots that are structurally not-applicable and make no backend call. */
+  readonly notApplicableLogicalCalls?: number;
   readonly remainingAuthorizedCalls: number;
   readonly liveOptIn: boolean;
   readonly offline?: boolean;
@@ -27,7 +29,9 @@ export const planRun = (options: PlanOptions): EvaluationPlan => {
   const repetitions = options.repetitions ?? DEFAULT_REPETITIONS;
   const maximumRetriesPerRequest = options.maximumRetriesPerRequest ?? DEFAULT_MAX_RETRIES;
   const logicalCalls = options.fixtureCount * modeCount * repetitions;
-  const maximumTransportAttempts = logicalCalls * (maximumRetriesPerRequest + 1);
+  const notApplicableLogicalCalls = Math.max(0, Math.min(logicalCalls, options.notApplicableLogicalCalls ?? 0));
+  const applicableLogicalCalls = logicalCalls - notApplicableLogicalCalls;
+  const maximumTransportAttempts = applicableLogicalCalls * (maximumRetriesPerRequest + 1);
   const permitted = options.offline === true || (options.liveOptIn && options.remainingAuthorizedCalls >= maximumTransportAttempts);
   const rejectionReason = permitted
     ? undefined
@@ -38,6 +42,8 @@ export const planRun = (options: PlanOptions): EvaluationPlan => {
     modeCount,
     repetitions,
     logicalCalls,
+    applicableLogicalCalls,
+    notApplicableLogicalCalls,
     maximumRetriesPerCall: maximumRetriesPerRequest,
     maximumTransportAttempts,
     remainingAuthorizedCalls: options.remainingAuthorizedCalls,
