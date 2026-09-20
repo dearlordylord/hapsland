@@ -1,7 +1,16 @@
 # Rule-meaning milestone evidence
 
-Status: deterministic offline validation only. No paid provider call was made while
-landing the evaluation execution slice.
+Status: deterministic offline validation complete; the live milestone is preregistered
+and awaiting an explicitly available credential. No paid provider call was made while
+landing or correcting the evaluation execution slice.
+
+The live milestone plan is frozen in
+[`live-plan-2026-09-20.json`](./live-plan-2026-09-20.json). It uses one repetition,
+zero retries, and a hard ceiling of 44 paid calls. That ceiling fits within the
+conservative 108-call lower bound remaining from the cumulative 1,000-call project
+authorization. Its generated plan digest is recorded before execution, and its release
+gates, authored bands, rationales, and cross-batch comparisons may not be weakened after
+results are observed.
 
 The controlled milestone uses four human-authored inferred-case fixtures (positive,
 negative, superficially similar negative control, and ambiguous), the full bundled
