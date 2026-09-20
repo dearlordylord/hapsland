@@ -11,6 +11,8 @@ implementation specification.
 | Agent host | A runtime that owns an agent's tool/edit loop and exposes lifecycle interception, such as Codex CLI or OpenCode. |
 | Model provider | Secondary metadata about the inference service selected by a host or review backend. It is not a first-class adapter target in the current phase. |
 | Type-shape artifact | One interface, type declaration, or schema considered independently as a description of the domain values it admits. |
+| Review input contract | A versioned definition of the source, path, domain text, completeness metadata, and rendering presented to a review backend. Different input contracts are distinct evaluation scenarios even when they describe the same edit. |
+| Evidence completeness | Whether the evidence required for a checked rule expectation is present. Missing required evidence is incomplete, not evidence that the source is clear. |
 | Rule | A user-configurable criterion evaluated against an action, edit, diff, or related context. |
 | Finding | Evidence produced by a rule evaluation, including its explanation, location, severity, and confidence where available. |
 | Decision | The operational result of a review: allow, ask, block, advisory, context, or observe. |
