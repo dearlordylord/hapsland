@@ -56,6 +56,7 @@ export type SchemaEvidence = {
       path: string;
       packageName: string | null;
       external: boolean;
+      symbolName: string | null;
       range: LspRange;
     }>;
   };
@@ -63,6 +64,7 @@ export type SchemaEvidence = {
   expressionRange: ExactRange;
   interpretation: "complete" | "partial" | "unresolved";
   opaque: SchemaOpaqueSegment[];
+  referencedSchemaIds: string[];
 };
 
 export type SyntaxReference = {
@@ -478,6 +480,7 @@ export const schemaCandidatesFor = (sourceFile: SourceFile, path = sourceFile.pa
           range: exactRange(sourceFile.text, value.startIndex, value.endIndex),
           reason: "constructor provenance pending native LSP resolution",
         }],
+        referencedSchemaIds: [],
       };
       candidates.push({
         id: `${path}:schema:${name}:${occurrence}`,

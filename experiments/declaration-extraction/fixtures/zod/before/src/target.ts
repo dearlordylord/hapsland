@@ -23,6 +23,11 @@ export const Transformed = namedZ
 
 export const Wrapped = wrap(Composed);
 
+// Framework-owned APIs that return errors/configuration, not schemas.
+export const Treeified = Z.treeifyError({ issues: [] } as never);
+export const Locales = Z.locales;
+export const MissingConstructor = globalThis.missingZodFactory?.(Composed);
+
 // Similar-looking ordinary values are deliberately not schema roots.
 export const Ordinary = { object: () => "ordinary", parse: (value: unknown) => value };
 export const OrdinaryNamespace = { string: () => "ordinary", array: () => [] };

@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, unlinkSync, writeFileSync, mkdtempSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, unlinkSync, writeFileSync, mkdtempSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { tmpdir } from "node:os";
@@ -16,6 +16,7 @@ const runFixture = (fixturePath: string, edit: string, extra: string[] = []) => 
     cwd: root,
     encoding: "utf8",
     maxBuffer: 2_000_000,
+    timeout: 20_000,
   });
   expect(stdout.trim().split(/\r?\n/)).toHaveLength(1);
   return JSON.parse(stdout) as Record<string, any>;
@@ -30,6 +31,35 @@ const stable = (record: Record<string, any>) => {
   delete copy.lsp;
   delete copy.extraction.completeness.observed;
   return copy;
+};
+
+const evaluateSchemaFixtureCopy = (fixturePath: string, supportFiles: string[], token: string) => {
+  const temporary = mkdtempSync(join(tmpdir(), "declaration-schema-control-"));
+  const sourceDirectory = join(temporary, "src");
+  mkdirSync(sourceDirectory, { recursive: true });
+  writeFileSync(join(temporary, "package.json"), '{"type":"module"}\n', "utf8");
+  symlinkSync(resolve(root, "node_modules"), join(temporary, "node_modules"), "dir");
+  copyFileSync(join(fixturePath, "workspace/src/target.ts"), join(sourceDirectory, "target.ts"));
+  for (const supportFile of supportFiles) {
+    copyFileSync(join(fixturePath, `workspace/src/${supportFile}`), join(sourceDirectory, supportFile));
+  }
+  try {
+    execFileSync(
+      process.execPath,
+      ["--input-type=module", "-e", `await import(${JSON.stringify(pathToFileURL(join(sourceDirectory, "target.ts")).href)})`],
+      {
+        cwd: temporary,
+        env: { ...process.env, DECLARATION_EXTRACTION_MARKER_TOKEN: token },
+        encoding: "utf8",
+        timeout: 20_000,
+      },
+    );
+    const marker = join(temporary, ".module-init.marker");
+    expect(existsSync(marker)).toBe(true);
+    expect(readFileSync(marker, "utf8")).toBe(token);
+  } finally {
+    rmSync(temporary, { recursive: true, force: true });
+  }
 };
 
 describe("declaration extraction experiment black-box seam", () => {
@@ -172,6 +202,7 @@ describe("declaration extraction experiment black-box seam", () => {
           cwd: temporary,
           env: { ...process.env, DECLARATION_EXTRACTION_MARKER_TOKEN: "positive-control-token" },
           encoding: "utf8",
+          timeout: 20_000,
         },
       );
       const marker = join(temporary, ".module-init.marker");
@@ -226,6 +257,7 @@ describe("declaration extraction experiment black-box seam", () => {
       "ReExported",
       "Transformed",
       "Wrapped",
+      "MissingConstructor",
     ]);
     expect(roots.filter((root) => root.schema?.framework === "zod").map((root) => root.name)).toEqual([
       "Address",
@@ -242,7 +274,8 @@ describe("declaration extraction experiment black-box seam", () => {
       transformed.schema.expression,
     ]);
     expect(transformed.schema.expression).toContain(".transform");
-    expect(roots.some((root) => ["Ordinary", "OrdinaryNamespace", "OrdinaryCall"].includes(root.name))).toBe(false);
+    expect(roots.some((root) => ["Ordinary", "OrdinaryNamespace", "OrdinaryCall", "Treeified", "Locales"].includes(root.name))).toBe(false);
+    expect(roots.find((root) => root.name === "MissingConstructor")?.schema.provenance).toBe("null");
     expect(record.extraction.completeness.reasons).toContain("schema-unresolved");
     expect(record.evaluation.modulesImported).toBe(false);
     expect(record.evaluation.noEvaluationObserved).toBe(true);
@@ -254,7 +287,7 @@ describe("declaration extraction experiment black-box seam", () => {
   }, 60_000);
 
   test("recognizes Effect Schema named, namespace, aliased, re-exported, composed, transformed, and declared roots", () => {
-    const record = runFixture(effectFixture, "src/target.ts:0:0-34:0");
+    const record = runFixture(effectFixture, "src/target.ts:0:0-36:0");
     expect(record.status).toBe("ok");
     expect(record.versions.effectSchema).toBe("4.0.0-rc.116");
     expect(record.versions.frameworks.effectSchema).toEqual({
@@ -272,17 +305,30 @@ describe("declaration extraction experiment black-box seam", () => {
       "Transformed",
       "Declared",
       "Wrapped",
+      "MissingConstructor",
     ]);
     expect(roots.filter((root) => root.schema?.framework === "effect-schema")).toHaveLength(7);
     expect(roots.some((root) => root.schema?.provenance === "multiple")).toBe(true);
     expect(roots.find((root) => root.name === "Transformed")?.schema.interpretation).toBe("partial");
     expect(roots.find((root) => root.name === "Declared")?.schema.opaque[0].source).toContain("declareSchema");
     expect(roots.find((root) => root.name === "Wrapped")?.schema.provenance).toBe("project");
-    expect(roots.some((root) => ["Ordinary", "OrdinaryNamespace", "OrdinaryCall"].includes(root.name))).toBe(false);
+    expect(roots.some((root) => ["Ordinary", "OrdinaryNamespace", "OrdinaryCall", "IsSchema"].includes(root.name))).toBe(false);
+    expect(roots.find((root) => root.name === "MissingConstructor")?.schema.provenance).toBe("null");
     expect(record.evaluation.modulesImported).toBe(false);
     expect(record.evaluation.noEvaluationObserved).toBe(true);
     const serialized = JSON.stringify(record);
     expect(serialized).not.toContain(root);
     expect(serialized).not.toContain("/tmp/");
+  }, 60_000);
+
+  test("positive controls evaluate copied Zod and Effect fixtures while extraction leaves markers absent", () => {
+    evaluateSchemaFixtureCopy(zodFixture, ["zod-helpers.ts", "zod-reexports.ts"], "zod-positive-control");
+    evaluateSchemaFixtureCopy(effectFixture, ["effect-helpers.ts", "effect-reexports.ts"], "effect-positive-control");
+    for (const marker of [
+      resolve(zodFixture, "workspace/.module-init.marker"),
+      resolve(effectFixture, "workspace/.module-init.marker"),
+    ]) {
+      expect(existsSync(marker)).toBe(false);
+    }
   }, 60_000);
 });

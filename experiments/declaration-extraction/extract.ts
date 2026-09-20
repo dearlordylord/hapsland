@@ -37,11 +37,13 @@ type NavigationDefinition = Definition & {
   path: string;
   external: boolean;
   packageName?: string;
+  symbolName?: string;
   declaration?: DeclarationArtifact;
 };
 
 type TraversalState = {
   started: number;
+  deadline: number;
   roots: DeclarationArtifact[];
   context: DeclarationArtifact[];
   edges: Array<Record<string, unknown>>;
@@ -53,6 +55,8 @@ type TraversalState = {
   omitted: Array<{ edgeId: string; reason: string }>;
   completenessReasons: Set<string>;
   navigationFailures: Array<{ path: string; name: string; reason: string }>;
+  schemaFailures: Array<{ path: string; name: string; reason: string }>;
+  schemaAnnotated: Set<string>;
 };
 
 const require = createRequire(import.meta.url);
@@ -105,6 +109,20 @@ const packageNameFor = (path: string) => {
   const parts = tail.split("/");
   if (parts[0]?.startsWith("@")) return parts.slice(0, 2).join("/");
   return parts[0];
+};
+
+const symbolNameAt = (path: string, range: Definition["range"]) => {
+  try {
+    const source = readFileSync(path, "utf8");
+    const lines = source.split("\n");
+    const line = lines[range.start.line] ?? "";
+    const start = Math.max(0, Math.min(range.start.character, line.length));
+    const end = Math.max(start, Math.min(range.end.line === range.start.line ? range.end.character : line.length, line.length));
+    const selected = line.slice(start, end);
+    return /[$A-Z_a-z][$\w]*/.exec(selected)?.[0];
+  } catch {
+    return undefined;
+  }
 };
 
 const isInside = (workspaceRoot: string, path: string) => {
@@ -232,17 +250,73 @@ const exactDefinition = (
         return artifact.range.byte.start <= byte && byte <= artifact.range.byte.end;
       })
     : undefined;
-  return { ...definition, path, external, packageName, declaration };
+  return { ...definition, path, external, packageName, symbolName: symbolNameAt(absolutePath, definition.range), declaration };
 };
 
-const schemaFrameworkForDefinition = (definition: NavigationDefinition): SchemaFramework | null => {
-  if (definition.packageName === "zod") return "zod";
+const zodSchemaSymbols = new Set([
+  "any", "array", "bigint", "boolean", "catch", "coerce", "custom", "date",
+  "default", "discriminatedUnion", "enum", "file", "function", "instanceof",
+  "intersection", "lazy", "literal", "map", "nativeEnum", "never", "null",
+  "nullable", "number", "object", "optional", "ostring", "onumber", "oboolean",
+  "promise", "record", "set", "string", "symbol", "transform", "tuple", "undefined",
+  "union", "unknown", "void", "strictObject", "looseObject", "int", "uint32",
+  "uint64", "int32", "int64", "json", "preprocess", "pipe", "refine", "superRefine",
+]);
+
+const effectSchemaSymbols = new Set([
+  "Array", "ArrayEnsure", "Boolean", "BigInt", "Date", "declare", "declareConstructor",
+  "decode", "decodeTo", "encode", "encodeTo", "Literal", "Literals", "Number", "optional",
+  "Readonly", "Record", "String", "Struct", "TaggedStruct", "TaggedUnion", "Tuple", "Union",
+  "Unknown", "Undefined", "Void", "compose", "filter", "refine", "check", "suspend", "transform",
+]);
+
+const zodNonSchemaSymbols = new Set([
+  "locales", "treeifyError", "prettifyError", "formatError", "flattenError", "toJSONSchema",
+  "config", "registry", "globalRegistry", "clone", "NEVER", "INVALID", "compile", "withParser",
+]);
+
+const effectNonSchemaSymbols = new Set([
+  "isSchema", "isSchemaError", "decodeSync", "encodeSync",
+  "decodeUnknownSync", "encodeUnknownSync", "toJsonSchemaDocument", "toStandardSchemaV1", "makeFilter",
+]);
+
+const hasFrameworkNonSchemaDefinition = (schema: NonNullable<DeclarationArtifact["schema"]>) => {
+  const definitions = schema.constructor.definitions;
+  // The spelling alone is not enough: a project-owned wrapper may legitimately
+  // be named `clone`, `isSchema`, or another framework API.  Filter only when
+  // every native-LSP location is a known framework-owned non-schema export. A
+  // package definition whose selection range is a module export can lose the
+  // symbol spelling (`Z.locales` is one such TypeScript 7 response), so the
+  // candidate name is accepted only after the package identity is established.
+  return definitions.length > 0 && definitions.every((definition) => {
+    if (definition.packageName === "zod") {
+      return (definition.symbolName !== null && zodNonSchemaSymbols.has(definition.symbolName)) ||
+        zodNonSchemaSymbols.has(schema.constructor.name);
+    }
+    if (definition.packageName === "effect") {
+      return (definition.symbolName !== null && effectNonSchemaSymbols.has(definition.symbolName)) ||
+        effectNonSchemaSymbols.has(schema.constructor.name);
+    }
+    return false;
+  });
+};
+
+const schemaFrameworkForDefinition = (definition: NavigationDefinition, candidateName?: string): SchemaFramework | null => {
+  if (
+    definition.packageName === "zod" &&
+    ((definition.symbolName && zodSchemaSymbols.has(definition.symbolName)) ||
+      (candidateName !== undefined && zodSchemaSymbols.has(candidateName)))
+  ) return "zod";
   // The package exports many modules.  Requiring a Schema declaration path
   // prevents an ordinary `Effect` import from becoming an Effect Schema root
   // merely because it happens to live in the `effect` package.
   if (
     definition.packageName === "effect" &&
-    /(?:^|[\\/])schema(?:\.d\.ts|\.ts|\.js)?$/i.test(definition.path)
+    /(?:^|[\\/])schema(?:\.d\.ts|\.ts|\.js)?$/i.test(definition.path) &&
+    Boolean(
+      (definition.symbolName && effectSchemaSymbols.has(definition.symbolName)) ||
+      (candidateName && effectSchemaSymbols.has(candidateName)),
+    )
   ) {
     return "effect-schema";
   }
@@ -254,6 +328,7 @@ const stableSchemaDefinition = (definition: NavigationDefinition) => ({
   path: definition.path,
   packageName: definition.packageName ?? null,
   external: definition.external,
+  symbolName: definition.symbolName ?? null,
   range: definition.range,
 });
 
@@ -271,8 +346,6 @@ const schemaOperations = (schema: NonNullable<DeclarationArtifact["schema"]>) =>
   if (/declare/i.test(schema.constructor.name)) operations.add("declare");
   return [...operations].sort();
 };
-
-type SchemaAnnotationResult = { failures: Array<{ path: string; name: string; reason: string }> };
 
 const annotateSchemaArtifact = async (
   fixture: Fixture,
@@ -330,8 +403,8 @@ const annotateSchemaArtifact = async (
   }
   if (sorted.length > 1) {
     schema.provenance = "multiple";
-    const frameworks = [...new Set(sorted.map(schemaFrameworkForDefinition).filter((value): value is SchemaFramework => value !== null))];
-    if (frameworks.length === 1 && sorted.every((definition) => schemaFrameworkForDefinition(definition) === frameworks[0])) {
+    const frameworks = [...new Set(sorted.map((definition) => schemaFrameworkForDefinition(definition, schema.constructor.name)).filter((value): value is SchemaFramework => value !== null))];
+    if (frameworks.length === 1 && sorted.every((definition) => schemaFrameworkForDefinition(definition, schema.constructor.name) === frameworks[0])) {
       schema.framework = frameworks[0]!;
       const operations = schemaOperations(schema);
       schema.opaque = operations.map((operation) => ({
@@ -352,7 +425,7 @@ const annotateSchemaArtifact = async (
     return undefined;
   }
   const definition = sorted[0]!;
-  const framework = schemaFrameworkForDefinition(definition);
+  const framework = schemaFrameworkForDefinition(definition, schema.constructor.name);
   if (!framework) {
     schema.provenance = definition.external ? "external" : "project";
     schema.framework = null;
@@ -379,55 +452,16 @@ const annotateSchemaArtifact = async (
   return undefined;
 };
 
-const annotateSchemas = async (
-  fixture: Fixture,
-  client: NativeLspClient,
-  workspace: Map<string, SourceFile>,
-  artifactIndex: Map<string, DeclarationArtifact[]>,
-  roots: DeclarationArtifact[],
-  deadline: number,
-): Promise<SchemaAnnotationResult> => {
-  const failures: Array<{ path: string; name: string; reason: string }> = [];
-  const candidates = [
-    ...[...artifactIndex.values()].flat(),
-    ...roots,
-  ].filter((artifact) => artifact.kind === "schema" && artifact.schema);
-  const unique = new Map(candidates.map((artifact) => [artifact.id, artifact]));
-  for (const artifact of [...unique.values()].sort((left, right) => left.id.localeCompare(right.id))) {
-    if (performance.now() >= deadline) {
-      artifact.schema!.provenance = "unresolved";
-      artifact.schema!.framework = null;
-      artifact.schema!.interpretation = "unresolved";
-      artifact.schema!.opaque = [{
-        source: artifact.schema!.expression,
-        range: artifact.schema!.expressionRange,
-        reason: "schema constructor provenance omitted at elapsed-time cap",
-      }];
-      failures.push({ path: artifact.path, name: artifact.name, reason: "elapsed-time deadline exceeded" });
-      continue;
-    }
-    const failure = await annotateSchemaArtifact(
-      fixture,
-      client,
-      workspace,
-      artifactIndex,
-      artifact,
-      deadline,
-    );
-    if (failure) failures.push(failure);
-  }
-  return { failures };
-};
-
-const removeUnprovenProjectRoots = (roots: DeclarationArtifact[], knownSchemaNames: Set<string>) =>
+const removeUnprovenProjectRoots = (roots: DeclarationArtifact[]) =>
   roots.filter((artifact) => {
     if (artifact.kind !== "schema" || !artifact.schema) return true;
+    if (hasFrameworkNonSchemaDefinition(artifact.schema)) return false;
     if (artifact.schema.provenance !== "project" || artifact.schema.framework !== null) return true;
-    // A project wrapper is retained as an unresolved schema only when its
-    // source expression references a separately recognized schema root.  This
+    // A project wrapper is retained as an unresolved schema only when a native
+    // LSP edge reached a separately recognized schema artifact identity. This
     // keeps helper evidence (for example wrap(Composed)) while rejecting a
     // similarly-shaped ordinary factory call with no schema provenance.
-    return artifact.references.some((reference) => knownSchemaNames.has(reference.name));
+    return artifact.schema.referencedSchemaIds.length > 0;
   });
 
 const edgeResolution = (definitions: NavigationDefinition[] | null, response: DefinitionResponse) => {
@@ -470,21 +504,71 @@ const runTraversal = async (
   workspace: Map<string, SourceFile>,
   artifactIndex: Map<string, DeclarationArtifact[]>,
   roots: DeclarationArtifact[],
+  started = performance.now(),
+  forceSchemaAnnotation = false,
 ) => {
+  const deadline = started + fixture.caps.elapsedMs;
   const state: TraversalState = {
-    started: performance.now(),
-    roots,
+    started,
+    deadline,
+    roots: roots.slice(),
     context: [],
     edges: [],
-    queue: roots.map((artifact) => ({ artifact, depth: 0, from: artifact.id })),
-    visited: new Set(roots.map((artifact) => artifact.id)),
-    files: new Set(roots.map((artifact) => artifact.path)),
+    queue: [],
+    visited: new Set(),
+    files: new Set(),
     externalPackages: new Set(),
-    sourceCharacters: roots.reduce((total, artifact) => total + artifact.source.length, 0),
+    sourceCharacters: 0,
     omitted: [],
     completenessReasons: new Set(),
     navigationFailures: [],
+    schemaFailures: [],
+    schemaAnnotated: new Set(),
   };
+  for (const [index, root] of state.roots.entries()) {
+    if (root.kind === "schema" && root.schema) {
+      root.schema.referencedSchemaIds = [];
+      if (forceSchemaAnnotation || !state.schemaAnnotated.has(root.id)) {
+        const rootCap = index >= fixture.caps.declarations
+          ? "declarations"
+          : state.sourceCharacters + root.source.length > fixture.caps.sourceCharacters
+            ? "source-characters"
+            : performance.now() >= deadline
+              ? "elapsed-time"
+              : undefined;
+        if (rootCap) {
+          root.schema.provenance = "unresolved";
+          root.schema.framework = null;
+          root.schema.interpretation = "unresolved";
+          root.schema.opaque = [{
+            source: root.schema.expression,
+            range: root.schema.expressionRange,
+            reason: `schema constructor provenance omitted at ${rootCap} cap`,
+          }];
+          addReason(state, rootCap);
+          state.schemaFailures.push({ path: root.path, name: root.name, reason: rootCap });
+        } else {
+          const failure = await annotateSchemaArtifact(
+            fixture,
+            client,
+            workspace,
+            artifactIndex,
+            root,
+            deadline,
+          );
+          if (failure) state.schemaFailures.push(failure);
+        }
+        state.schemaAnnotated.add(root.id);
+      }
+    }
+  }
+  state.roots = state.roots.filter((root) => !root.schema || !hasFrameworkNonSchemaDefinition(root.schema));
+  for (const root of state.roots) {
+    state.visited.add(root.id);
+    state.queue.push({ artifact: root, depth: 0, from: root.id });
+    state.files.add(root.path);
+    state.sourceCharacters += root.source.length;
+  }
   if (state.roots.length > fixture.caps.declarations) addReason(state, "declarations");
   if (state.files.size > fixture.caps.files) addReason(state, "files");
   if (state.sourceCharacters > fixture.caps.sourceCharacters) addReason(state, "source-characters");
@@ -522,7 +606,7 @@ const runTraversal = async (
         omission: null,
       };
       const edgeDepth = current.depth + 1;
-      if (performance.now() - state.started >= fixture.caps.elapsedMs) {
+      if (performance.now() >= state.deadline) {
         edge.omission = "elapsed-time";
         addReason(state, "elapsed-time", edgeId);
         state.edges.push(edge);
@@ -534,12 +618,11 @@ const runTraversal = async (
         state.edges.push(edge);
         continue;
       }
-      const deadline = state.started + fixture.caps.elapsedMs;
-      const response = await client.definition(sourceFile.uri, reference.sourceRange.utf16.start, deadline);
+      const response = await client.definition(sourceFile.uri, reference.sourceRange.utf16.start, state.deadline);
       const definitions = normalizeDefinitions(response)
         ?.map((definition) => exactDefinition(fixture.workspaceRoot, workspace, artifactIndex, definition)) ?? null;
       const sorted = definitions ? sortDefinitions(definitions) : null;
-      if (response.timedOut || performance.now() >= deadline) {
+      if (response.timedOut || performance.now() >= state.deadline) {
         edge.resolution = "timeout";
         edge.unresolved = true;
         edge.definitions = null;
@@ -591,6 +674,39 @@ const runTraversal = async (
           edge.resolution = "unresolved";
           addReason(state, "definition-without-source-declaration", edgeId);
         } else {
+          if (artifact.kind === "schema" && artifact.schema && !state.schemaAnnotated.has(artifact.id)) {
+            if (performance.now() >= state.deadline) {
+              artifact.schema.provenance = "unresolved";
+              artifact.schema.framework = null;
+              artifact.schema.interpretation = "unresolved";
+              artifact.schema.opaque = [{
+                source: artifact.schema.expression,
+                range: artifact.schema.expressionRange,
+                reason: "schema constructor provenance omitted at elapsed-time cap",
+              }];
+              state.schemaFailures.push({ path: artifact.path, name: artifact.name, reason: "elapsed-time deadline exceeded" });
+            } else {
+              const failure = await annotateSchemaArtifact(
+                fixture,
+                client,
+                workspace,
+                artifactIndex,
+                artifact,
+                state.deadline,
+              );
+              if (failure) state.schemaFailures.push(failure);
+            }
+            state.schemaAnnotated.add(artifact.id);
+          }
+          if (
+            current.artifact.schema &&
+            artifact.kind === "schema" &&
+            artifact.schema?.framework !== null &&
+            artifact.schema?.framework !== undefined &&
+            !current.artifact.schema.referencedSchemaIds.includes(artifact.id)
+          ) {
+            current.artifact.schema.referencedSchemaIds.push(artifact.id);
+          }
           edge.sourceDeclaration = summarizeArtifact(artifact);
           const cap = capCheck(state, fixture, edgeId, artifact, edgeDepth);
           if (cap) {
@@ -611,8 +727,9 @@ const runTraversal = async (
       state.edges.push(edge);
     }
   }
+  const retainedRoots = removeUnprovenProjectRoots(state.roots);
   return {
-    roots: state.roots.map(summarizeArtifact),
+    roots: retainedRoots.map(summarizeArtifact),
     context: state.context.map(summarizeArtifact),
     edges: state.edges,
     completeness: {
@@ -621,7 +738,7 @@ const runTraversal = async (
       omittedEdges: state.omitted,
       caps: reportedCaps(fixture.caps),
       observed: {
-        declarations: state.roots.length + state.context.length,
+        declarations: retainedRoots.length + state.context.length,
         depth: Math.max(0, ...state.edges.map((edge) => Number(edge.depth ?? 0))),
         sourceCharacters: state.sourceCharacters,
         files: state.files.size,
@@ -630,6 +747,7 @@ const runTraversal = async (
       },
     },
     navigationFailures: state.navigationFailures,
+    schemaFailures: state.schemaFailures,
   };
 };
 
@@ -684,7 +802,7 @@ const main = async () => {
   const workspace = loadWorkspace(fixture);
   const artifactIndex = indexWorkspaceArtifacts(workspace);
   const rootSelection = selectedRoots(fixture, workspace, artifactIndex);
-  let roots = rootSelection.roots;
+  const traversalRoots = rootSelection.roots.slice();
   const markerBeforeContent = fixture.markerPath && existsSync(fixture.markerPath)
     ? readFileSync(fixture.markerPath, "utf8")
     : undefined;
@@ -692,7 +810,6 @@ const main = async () => {
   const markerToken = `declaration-extraction:${randomUUID()}`;
   const previousMarkerToken = process.env.DECLARATION_EXTRACTION_MARKER_TOKEN;
   process.env.DECLARATION_EXTRACTION_MARKER_TOKEN = markerToken;
-  const coldStarted = performance.now();
   const lsp = await NativeLspClient.start(fixture.workspaceRoot, 2_000, {
     nonResponding: argument(args, "--fault") === "nonresponding",
   });
@@ -704,24 +821,12 @@ const main = async () => {
       text: file.text,
     })),
   );
+  const coldStarted = performance.now();
   const coldCounts = lsp.snapshotCounts();
-  const schemaAnnotation = await annotateSchemas(
-    fixture,
-    lsp,
-    workspace,
-    artifactIndex,
-    roots,
-    performance.now() + fixture.caps.elapsedMs,
-  );
-  const knownSchemaNames = new Set(
-    [...artifactIndex.values()]
-      .flat()
-      .filter((artifact) => artifact.kind === "schema" && artifact.schema?.framework !== null)
-      .map((artifact) => artifact.name),
-  );
-  rootSelection.before = removeUnprovenProjectRoots(rootSelection.before, knownSchemaNames);
-  rootSelection.after = removeUnprovenProjectRoots(rootSelection.after, knownSchemaNames);
-  roots = removeUnprovenProjectRoots(roots, knownSchemaNames);
+  const cold = await runTraversal(fixture, lsp, workspace, artifactIndex, traversalRoots, coldStarted);
+  const coldMs = performance.now() - coldStarted;
+  const retainedRootIds = new Set((cold.roots as Array<{ id: string }>).map((root) => root.id));
+  rootSelection.after = rootSelection.after.filter((root) => retainedRootIds.has(root.id));
   const afterSchemaById = new Map(
     [...artifactIndex.values()].flat()
       .filter((artifact) => artifact.kind === "schema")
@@ -743,11 +848,10 @@ const main = async () => {
       artifact.schema = resolution;
     }
   }
-  const cold = await runTraversal(fixture, lsp, workspace, artifactIndex, roots);
-  const coldMs = performance.now() - coldStarted;
+  rootSelection.before = rootSelection.before.filter((root) => retainedRootIds.has(root.id));
   const warmStarted = performance.now();
   const warmCounts = lsp.snapshotCounts();
-  const warm = await runTraversal(fixture, lsp, workspace, artifactIndex, roots);
+  const warm = await runTraversal(fixture, lsp, workspace, artifactIndex, traversalRoots, warmStarted, true);
   const warmMs = performance.now() - warmStarted;
   const afterWarmCounts = lsp.snapshotCounts();
   const serverVersion = lsp.serverVersion;
@@ -830,7 +934,7 @@ const main = async () => {
           ...diagnostic,
           message: sanitizeText(diagnostic.message, fixture.workspaceRoot),
         })),
-        ...schemaAnnotation.failures.map((failure) => ({
+        ...[...cold.schemaFailures, ...warm.schemaFailures].map((failure) => ({
           ...failure,
           reason: sanitizeText(failure.reason, fixture.workspaceRoot),
         })),

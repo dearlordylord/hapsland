@@ -30,6 +30,10 @@ export const Declared = declareSchema(
 
 export const Wrapped = wrap(Composed);
 
+// Framework-owned API that inspects a schema instead of constructing one.
+export const IsSchema = Schema.isSchema(Schema.String);
+export const MissingConstructor = globalThis.missingEffectFactory?.(Composed);
+
 // Similar-looking ordinary values are deliberately not schema roots.
 export const Ordinary = { Struct: () => "ordinary", String: () => "ordinary" };
 export const OrdinaryNamespace = { Array: () => [], optional: (value: unknown) => value };

@@ -94,6 +94,7 @@ export class NativeLspClient {
   private rejectClosed!: (error: Error) => void;
   private closeError: Error | undefined;
   private stopping = false;
+  private stopPromise: Promise<void> | undefined;
 
   private constructor(
     child: ChildProcessWithoutNullStreams,
@@ -153,8 +154,13 @@ export class NativeLspClient {
       stdio: ["pipe", "pipe", "pipe"],
     });
     const client = new NativeLspClient(child, timeoutMs, options.nonResponding === true);
-    await client.initialize(workspaceRoot);
-    return client;
+    try {
+      await client.initialize(workspaceRoot);
+      return client;
+    } catch (error) {
+      await client.stop();
+      throw error;
+    }
   }
 
   get serverVersion() {
@@ -181,23 +187,30 @@ export class NativeLspClient {
     if (method === "textDocument/definition") {
       increment(this.counts.positionalRequests, method);
     }
-    this.write(
-      params === noParams
-        ? { jsonrpc: "2.0", id, method }
-        : { jsonrpc: "2.0", id, method, params },
-    );
-    return new Promise<unknown>((resolve, reject) => {
+    const message = params === noParams
+      ? { jsonrpc: "2.0" as const, id, method }
+      : { jsonrpc: "2.0" as const, id, method, params };
+    const pending = new Promise<unknown>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id);
         this.notify("$/cancelRequest", { id });
         reject(new Error(`${method} timed out after ${requestTimeoutMs}ms`));
-      }, Math.max(0, requestTimeoutMs));
+      }, Math.max(0, Number.isFinite(requestTimeoutMs) ? requestTimeoutMs : 0));
       this.pending.set(id, { method, resolve, reject, timer });
+      try {
+        this.write(message);
+      } catch (error) {
+        clearTimeout(timer);
+        this.pending.delete(id);
+        reject(error);
+      }
     });
+    return pending;
   }
 
   private notify(method: string, params: unknown | typeof noParams = noParams) {
     increment(this.counts.notifications, method);
+    if (this.child.stdin.destroyed || this.child.stdin.writableEnded) return;
     this.write(
       params === noParams
         ? { jsonrpc: "2.0", method }
@@ -368,11 +381,22 @@ export class NativeLspClient {
   }
 
   async stop() {
+    if (!this.stopPromise) this.stopPromise = this.stopInternal();
+    return this.stopPromise;
+  }
+
+  private async stopInternal() {
     this.stopping = true;
+    // The native server can leave shutdown queued behind a long-running
+    // project update after a burst of definition requests.  Teardown is a
+    // bounded cleanup path: waiting for the normal request timeout here makes
+    // every cold/warm extraction pay the full two-second timeout before the
+    // existing kill fallback even starts.
+    const shutdownTimeoutMs = Math.min(this.timeoutMs, 250);
     try {
       // LSP requires shutdown to be a request with no parameters. In
       // particular, do not serialize `params: null` here.
-      await this.request("shutdown");
+      await this.request("shutdown", noParams, shutdownTimeoutMs);
     } catch (error) {
       this.diagnostics.push({ method: "shutdown", message: sanitizeError(error) });
     }
@@ -382,13 +406,20 @@ export class NativeLspClient {
     const fallback = setTimeout(() => {
       if (!this.child.killed) this.child.kill();
     }, Math.min(this.timeoutMs, 250));
+    let closeTimeout: NodeJS.Timeout | undefined;
     try {
+      const closeDeadline = new Promise<void>((resolve) => {
+        closeTimeout = setTimeout(resolve, this.timeoutMs);
+      });
       await Promise.race([
         this.closed,
-        new Promise<void>((resolve) => setTimeout(resolve, this.timeoutMs)),
+        closeDeadline,
       ]);
+    } catch (error) {
+      this.diagnostics.push({ method: "close", message: sanitizeError(error) });
     } finally {
       clearTimeout(fallback);
+      if (closeTimeout) clearTimeout(closeTimeout);
     }
   }
 }
