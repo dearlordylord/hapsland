@@ -1,6 +1,6 @@
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
-import type { ReviewRequest, ReviewResponse } from "../domain/contracts.ts";
+import type { ReviewRequest, ReviewResponse, ReviewResult } from "../domain/contracts.ts";
 
 const PermissionMode = Schema.Literals([
   "default",
@@ -77,7 +77,13 @@ const formatAdvice = (response: ReviewResponse) => {
   const unavailable = response.results
     .filter((result) => result.status === "unavailable")
     .map((result) => `${result.path}: review unavailable (${result.reason})`);
-  return [...findings, ...unavailable].join("\n");
+  const skipped = response.results
+    .filter((result): result is Extract<ReviewResult, { status: "skipped" }> =>
+        result.status === "skipped" &&
+        (result.code === "missing_consent" || result.code === "unsupported_repository"),
+    )
+    .map((result) => `${result.path}: review skipped (${result.reason})`);
+  return [...findings, ...unavailable, ...skipped].join("\n");
 };
 
 export const toCodexOutput = (response: ReviewResponse): unknown => {
