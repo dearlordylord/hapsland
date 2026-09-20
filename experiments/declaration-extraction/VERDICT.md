@@ -1,7 +1,7 @@
 # Declaration-extraction feasibility verdict
 
-Date: 2026-09-20  
-Scope: the disposable TypeScript 7.0.2 source-parser plus native LSP experiment  
+Date: 2026-09-20
+Scope: the disposable TypeScript 7.0.2 source-parser plus native LSP experiment
 Candidate decision: **CONDITIONAL ACCEPT**
 
 This is a feasibility result for the candidate composition only. It is not a
