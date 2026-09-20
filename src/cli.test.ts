@@ -1,20 +1,63 @@
 import { createHash } from "node:crypto";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 import { configuredRules } from "./policy/rules.ts";
 
 const roots: Array<string> = [];
+// Each case launches the real TypeScript subprocess; concurrent evaluation-suite
+// compilation can make that bounded process startup exceed Vitest's 5 s default.
+const SUBPROCESS_TEST_TIMEOUT = 30_000;
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
 });
 
-describe("JSON subprocess contract", () => {
+const initializeRepository = (root: string, requestedStatePath?: string) => {
+  execFileSync("git", ["init", "--quiet", root]);
+  const statePath = requestedStatePath ?? join(root, ".consent-state.json");
+  const preview = spawnSync(process.execPath, ["src/cli.ts", "--enable"], {
+    cwd: process.cwd(),
+    input: JSON.stringify({ version: 1, operation: "enable", cwd: root }),
+    encoding: "utf8",
+    env: { ...process.env, REVIEW_STATE_PATH: statePath },
+  });
+  expect(preview.status).toBe(0);
+  const proposal = JSON.parse(preview.stdout) as {
+    proposal: { digest: string };
+  };
+  expect(proposal).toMatchObject({ status: "preview" });
+  const enabled = spawnSync(process.execPath, ["src/cli.ts", "--enable-confirm"], {
+    cwd: process.cwd(),
+    input: JSON.stringify({
+      version: 1,
+      operation: "enable-confirm",
+      cwd: root,
+      proposalDigest: proposal.proposal.digest,
+    }),
+    encoding: "utf8",
+    env: { ...process.env, REVIEW_STATE_PATH: statePath },
+  });
+  expect(enabled.status).toBe(0);
+  expect(JSON.parse(enabled.stdout)).toMatchObject({ status: "enabled" });
+  return statePath;
+};
+
+describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () => {
   it("reviews a completed edit and reserves stdout for one protocol response", () => {
     const root = mkdtempSync(join(tmpdir(), "review-cli-"));
     roots.push(root);
+    const statePath = initializeRepository(root);
     mkdirSync(join(root, "src"));
     const content = "export type Counter = { count: number };\n";
     const path = join(root, "src/counter.ts");
@@ -33,7 +76,7 @@ describe("JSON subprocess contract", () => {
       cwd: process.cwd(),
       input: JSON.stringify(input),
       encoding: "utf8",
-      env: { ...process.env, REVIEW_CONTROL_JSON: "{}" },
+      env: { ...process.env, REVIEW_CONTROL_JSON: "{}", REVIEW_STATE_PATH: statePath },
     });
 
     expect(child.status).toBe(0);
@@ -65,6 +108,7 @@ describe("JSON subprocess contract", () => {
   it("does not emit duplicate advice for the same event and snapshot", () => {
     const root = mkdtempSync(join(tmpdir(), "review-cli-dedupe-"));
     roots.push(root);
+    const statePath = initializeRepository(root);
     mkdirSync(join(root, "src"));
     writeFileSync(
       join(root, "src/example.ts"),
@@ -93,7 +137,7 @@ describe("JSON subprocess contract", () => {
         cwd: process.cwd(),
         input,
         encoding: "utf8",
-        env: { ...process.env, REVIEW_CONTROL_JSON: control },
+        env: { ...process.env, REVIEW_CONTROL_JSON: control, REVIEW_STATE_PATH: statePath },
       });
 
     const first = JSON.parse(invoke().stdout) as { advice: Array<unknown> };
@@ -105,6 +149,7 @@ describe("JSON subprocess contract", () => {
   it("preserves the completed edit and reports unavailable without credentials", () => {
     const root = mkdtempSync(join(tmpdir(), "review-cli-no-credential-"));
     roots.push(root);
+    const statePath = initializeRepository(root);
     mkdirSync(join(root, "src"));
     const content = "export type Counter = { count: number };\n";
     const path = join(root, "src/counter.ts");
@@ -125,7 +170,7 @@ describe("JSON subprocess contract", () => {
       cwd: process.cwd(),
       input,
       encoding: "utf8",
-      env: environment,
+      env: { ...environment, REVIEW_STATE_PATH: statePath },
     });
 
     expect(child.status).toBe(0);
@@ -136,4 +181,418 @@ describe("JSON subprocess contract", () => {
     });
     expect(readFileSync(path, "utf8")).toBe(content);
   });
+
+  it("reuses a grant, ignores project authorization, and revokes future dispatch", () => {
+    const root = mkdtempSync(join(tmpdir(), "review-cli-consent-"));
+    roots.push(root);
+    const statePath = initializeRepository(root);
+    mkdirSync(join(root, "src"));
+    writeFileSync(join(root, "src/example.ts"), "export type Example = string;\n");
+    const previewAfterProjectAuth = spawnSync(process.execPath, ["src/cli.ts", "--enable"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({ version: 1, operation: "enable", cwd: root }),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    expect(JSON.parse(previewAfterProjectAuth.stdout)).toMatchObject({ status: "preview" });
+    const proposalAfterProjectAuth = JSON.parse(previewAfterProjectAuth.stdout) as {
+      proposal: { digest: string };
+    };
+    const enableAfterProjectAuth = spawnSync(process.execPath, ["src/cli.ts", "--enable-confirm"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({
+        version: 1,
+        operation: "enable-confirm",
+        cwd: root,
+        proposalDigest: proposalAfterProjectAuth.proposal.digest,
+      }),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    expect(JSON.parse(enableAfterProjectAuth.stdout)).toMatchObject({ status: "enabled" });
+
+    const request = (id: string) =>
+      JSON.stringify({
+        version: 1,
+        event: {
+          id,
+          kind: "successful-edit",
+          host: "test",
+          cwd: root,
+          paths: ["src/example.ts"],
+        },
+      });
+    const approved = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+      cwd: process.cwd(),
+      input: request("approved"),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    expect(JSON.parse(approved.stdout).results[0]).toMatchObject({ status: "reviewed" });
+
+    const disabledBeforeProjectAuth = spawnSync(process.execPath, ["src/cli.ts", "--disable"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({ version: 1, operation: "disable", cwd: root }),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    expect(JSON.parse(disabledBeforeProjectAuth.stdout)).toMatchObject({ status: "disabled" });
+    writeFileSync(join(root, ".review.jsonc"), '{ "version": 1, "consent": true }');
+    const projectAuthorization = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+      cwd: process.cwd(),
+      input: request("project-authorization"),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    expect(JSON.parse(projectAuthorization.stdout).results[0]).toMatchObject({
+      status: "skipped",
+      code: "missing_consent",
+    });
+    const previewAgain = spawnSync(process.execPath, ["src/cli.ts", "--enable"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({ version: 1, operation: "enable", cwd: root }),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    expect(JSON.parse(previewAgain.stdout)).toMatchObject({ status: "preview" });
+    const proposalAgain = JSON.parse(previewAgain.stdout) as {
+      proposal: { digest: string };
+    };
+    const enableAgain = spawnSync(process.execPath, ["src/cli.ts", "--enable-confirm"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({
+        version: 1,
+        operation: "enable-confirm",
+        cwd: root,
+        proposalDigest: proposalAgain.proposal.digest,
+      }),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    expect(JSON.parse(enableAgain.stdout)).toMatchObject({
+      backend: { destination: "https://api.typesafe.ai/v1/systemone" },
+      projectAuthorizationIgnored: true,
+    });
+    const approvedAgain = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+      cwd: process.cwd(),
+      input: request("approved-again"),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    expect(JSON.parse(approvedAgain.stdout).results[0]).toMatchObject({ status: "reviewed" });
+
+    const disabled = spawnSync(process.execPath, ["src/cli.ts", "--disable"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({ version: 1, operation: "disable", cwd: root }),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    expect(JSON.parse(disabled.stdout)).toMatchObject({ status: "disabled" });
+    const revoked = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+      cwd: process.cwd(),
+      input: request("revoked"),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    expect(JSON.parse(revoked.stdout).results[0]).toMatchObject({
+      status: "skipped",
+      code: "missing_consent",
+    });
+  }, 20_000);
+
+  it("previews exact consent scope without writing and rejects a mismatched confirmation", () => {
+    const root = mkdtempSync(join(tmpdir(), "review-cli-consent-preview-"));
+    roots.push(root);
+    execFileSync("git", ["init", "--quiet", root]);
+    const statePath = join(root, ".consent-state.json");
+    const preview = spawnSync(process.execPath, ["src/cli.ts", "--enable"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({ version: 1, operation: "enable", cwd: root }),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    const previewOutput = JSON.parse(preview.stdout) as {
+      status: string;
+      proposal: {
+        digest: string;
+        repository: { canonicalRoot: string };
+        backend: { id: string; destination: string };
+        scope: string;
+      };
+    };
+    expect(previewOutput).toMatchObject({
+      status: "preview",
+      proposal: {
+        repository: { canonicalRoot: root },
+        backend: {
+          id: "jev",
+          destination: "https://api.typesafe.ai/v1/systemone",
+        },
+        scope: "repository-wide eligible source files",
+      },
+    });
+    expect(existsSync(statePath)).toBe(false);
+
+    const mismatch = spawnSync(process.execPath, ["src/cli.ts", "--enable-confirm"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({
+        version: 1,
+        operation: "enable-confirm",
+        cwd: root,
+        proposalDigest: "0".repeat(64),
+      }),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    expect(JSON.parse(mismatch.stdout)).toMatchObject({ status: "proposal-mismatch" });
+    expect(existsSync(statePath)).toBe(false);
+  });
+
+  it("retains unrelated well-formed grants without reusing or revoking them", () => {
+    const root = mkdtempSync(join(tmpdir(), "review-cli-unrelated-grant-"));
+    roots.push(root);
+    execFileSync("git", ["init", "--quiet", root]);
+    mkdirSync(join(root, "src"));
+    writeFileSync(join(root, "src/example.ts"), "export type Unrelated = string;\n");
+    const statePath = join(root, ".consent-state");
+    mkdirSync(statePath);
+    const unrelatedBackend = "other-review-backend";
+    const unrelatedDestination = "https://other-review.invalid/v1/review";
+    const unrelatedFile = createHash("sha256")
+      .update(`${root}\0${unrelatedBackend}\0${unrelatedDestination}`)
+      .digest("hex");
+    writeFileSync(
+      join(statePath, `${unrelatedFile}.json`),
+      JSON.stringify({
+        version: 1,
+        grant: {
+          root,
+          backend: unrelatedBackend,
+          destination: unrelatedDestination,
+        },
+      }),
+    );
+
+    const request = JSON.stringify({
+      version: 1,
+      event: {
+        id: "unrelated-grant",
+        kind: "successful-edit",
+        host: "test",
+        cwd: root,
+        paths: ["src/example.ts"],
+      },
+    });
+    const before = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+      cwd: process.cwd(),
+      input: request,
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    expect(JSON.parse(before.stdout).results[0]).toMatchObject({
+      status: "skipped",
+      code: "missing_consent",
+    });
+
+    const preview = spawnSync(process.execPath, ["src/cli.ts", "--enable"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({ version: 1, operation: "enable", cwd: root }),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    const proposal = JSON.parse(preview.stdout) as { proposal: { digest: string } };
+    const enabled = spawnSync(process.execPath, ["src/cli.ts", "--enable-confirm"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({
+        version: 1,
+        operation: "enable-confirm",
+        cwd: root,
+        proposalDigest: proposal.proposal.digest,
+      }),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    expect(JSON.parse(enabled.stdout)).toMatchObject({ status: "enabled" });
+
+    const status = () =>
+      JSON.parse(
+        spawnSync(process.execPath, ["src/cli.ts", "--status"], {
+          cwd: process.cwd(),
+          input: JSON.stringify({ version: 1, operation: "status", cwd: root }),
+          encoding: "utf8",
+          env: { ...process.env, REVIEW_STATE_PATH: statePath },
+        }).stdout,
+      ) as { grants: Array<{ backend: string; destination: string; scope: string }> };
+    expect(status().grants).toEqual(
+      expect.arrayContaining([
+        { backend: unrelatedBackend, destination: unrelatedDestination, scope: expect.any(String) },
+        {
+          backend: "jev",
+          destination: "https://api.typesafe.ai/v1/systemone",
+          scope: expect.any(String),
+        },
+      ]),
+    );
+
+    const disabled = spawnSync(process.execPath, ["src/cli.ts", "--disable"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({ version: 1, operation: "disable", cwd: root }),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    expect(JSON.parse(disabled.stdout)).toMatchObject({ status: "disabled" });
+    expect(status().grants).toEqual([
+      { backend: unrelatedBackend, destination: unrelatedDestination, scope: expect.any(String) },
+    ]);
+  }, 20_000);
+
+  it("does not inherit consent across working trees", () => {
+    const first = mkdtempSync(join(tmpdir(), "review-cli-root-a-"));
+    const second = mkdtempSync(join(tmpdir(), "review-cli-root-b-"));
+    roots.push(first, second);
+    const statePath = initializeRepository(first);
+    execFileSync("git", ["init", "--quiet", second]);
+    mkdirSync(join(second, "src"));
+    writeFileSync(join(second, "src/example.ts"), "export type Other = string;\n");
+    const child = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({
+        version: 1,
+        event: {
+          id: "other-root",
+          kind: "successful-edit",
+          host: "test",
+          cwd: second,
+          paths: ["src/example.ts"],
+        },
+      }),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    expect(JSON.parse(child.stdout).results[0]).toMatchObject({
+      status: "skipped",
+      code: "missing_consent",
+    });
+    expect(child.stdout).not.toContain("Other");
+  });
+
+  it("does not inherit a grant when a repository root moves", () => {
+    const original = mkdtempSync(join(tmpdir(), "review-cli-moved-original-"));
+    const movedParent = mkdtempSync(join(tmpdir(), "review-cli-moved-parent-"));
+    const moved = join(movedParent, "moved");
+    const stateParent = mkdtempSync(join(tmpdir(), "review-cli-moved-state-"));
+    roots.push(original, movedParent, stateParent);
+    const statePath = join(stateParent, "consent");
+    initializeRepository(original, statePath);
+    renameSync(original, moved);
+    mkdirSync(join(moved, "src"));
+    writeFileSync(join(moved, "src/example.ts"), "export type Moved = string;\n");
+    const child = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({
+        version: 1,
+        event: {
+          id: "moved-root",
+          kind: "successful-edit",
+          host: "test",
+          cwd: moved,
+          paths: ["src/example.ts"],
+        },
+      }),
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        REVIEW_CONTROL_JSON: JSON.stringify({ capturePath: join(stateParent, "calls.log") }),
+        REVIEW_STATE_PATH: statePath,
+      },
+    });
+    expect(JSON.parse(child.stdout).results[0]).toMatchObject({
+      status: "skipped",
+      code: "missing_consent",
+    });
+    expect(existsSync(join(stateParent, "calls.log"))).toBe(false);
+    expect(child.stdout).not.toContain("Moved");
+  });
+
+  it("does not inherit a grant into a separate Git worktree and makes no provider call", () => {
+    const source = mkdtempSync(join(tmpdir(), "review-cli-worktree-source-"));
+    const worktree = mkdtempSync(join(tmpdir(), "review-cli-worktree-target-"));
+    const stateParent = mkdtempSync(join(tmpdir(), "review-cli-worktree-state-"));
+    roots.push(source, worktree, stateParent);
+    rmSync(worktree, { recursive: true, force: true });
+    execFileSync("git", ["init", "--quiet", source]);
+    execFileSync("git", ["-C", source, "-c", "user.email=test@example.invalid", "-c", "user.name=test", "commit", "--quiet", "--allow-empty", "-m", "init"]);
+    execFileSync("git", ["-C", source, "worktree", "add", "--quiet", worktree, "HEAD"]);
+    const statePath = join(stateParent, "consent");
+    const preview = spawnSync(process.execPath, ["src/cli.ts", "--enable"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({ version: 1, operation: "enable", cwd: source }),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    const proposal = JSON.parse(preview.stdout) as { proposal: { digest: string } };
+    spawnSync(process.execPath, ["src/cli.ts", "--enable-confirm"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({
+        version: 1,
+        operation: "enable-confirm",
+        cwd: source,
+        proposalDigest: proposal.proposal.digest,
+      }),
+      encoding: "utf8",
+      env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    });
+    mkdirSync(join(worktree, "src"), { recursive: true });
+    writeFileSync(join(worktree, "src/example.ts"), "export type Worktree = string;\n");
+    const calls = join(stateParent, "calls.log");
+    const child = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({
+        version: 1,
+        event: {
+          id: "separate-worktree",
+          kind: "successful-edit",
+          host: "test",
+          cwd: worktree,
+          paths: ["src/example.ts"],
+        },
+      }),
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        REVIEW_CONTROL_JSON: JSON.stringify({ capturePath: calls }),
+        REVIEW_STATE_PATH: statePath,
+      },
+    });
+    expect(JSON.parse(child.stdout).results[0]).toMatchObject({
+      status: "skipped",
+      code: "missing_consent",
+    });
+    expect(existsSync(calls)).toBe(false);
+    expect(child.stdout).not.toContain("Worktree");
+  }, 20_000);
+
+  it("inspects credential presence without exposing the value", () => {
+    const root = mkdtempSync(join(tmpdir(), "review-cli-credential-"));
+    roots.push(root);
+    const statePath = initializeRepository(root);
+    const secret = "CREDENTIAL-SENTINEL";
+    const child = spawnSync(process.execPath, ["src/cli.ts", "--inspect-credentials"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({ version: 1, operation: "credentials", cwd: root }),
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        REVIEW_STATE_PATH: statePath,
+        TYPESAFE_API_KEY: secret,
+      },
+    });
+    expect(JSON.parse(child.stdout)).toEqual({
+      version: 1,
+      operation: "credentials",
+      credentialEnvVar: "TYPESAFE_API_KEY",
+      present: true,
+    });
+    expect(child.stdout).not.toContain(secret);
+  }, 20_000);
 });

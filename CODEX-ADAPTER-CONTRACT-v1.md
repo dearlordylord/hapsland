@@ -50,8 +50,9 @@ Evidence labels mean: **documented** (official current documentation),
 - Official hook documentation: <https://developers.openai.com/codex/hooks>, inspected
   2026-09-19. It defines discovery, trust, matcher aliases, input/output fields,
   synchronous default behavior, and `PostToolUse` semantics.
-- Codex tag `rust-v0.155.1`, commit
-  `4e21628f9ec9ee656650cd2b62ef92225725b5ac`:
+- Codex annotated tag `rust-v0.155.1`, tag object
+  `4e21628f9ec9ee656650cd2b62ef92225725b5ac`, resolving to commit
+  `be2951ea34f0d295ed0becf97079f92fa5f6950e`:
   `codex-rs/hooks/schema/generated/post-tool-use.command.input.schema.json`,
   `codex-rs/hooks/src/events/post_tool_use.rs`,
   `codex-rs/core/src/tools/registry.rs`, and
@@ -81,6 +82,14 @@ Each result is exactly one of `reviewed`, `skipped`, or `unavailable`. Reviewed 
 carry the SHA-256 identity of the content read after the edit. Stdout contains only the
 single response object; diagnostics must use stderr and must not contain source content.
 Unknown fields, wrong versions, and malformed values are rejected at the boundary.
+
+When the response also carries structured diagnostic observations, the adapter renders only
+an unsuppressed observation notification. Codex `systemMessage` is the user-visible
+diagnostic channel in the pinned 0.155.1 TUI; `hookSpecificOutput.additionalContext` remains
+agent-facing review context. Problem/recovery copy is product-owned and bounded: provider
+reasons, source text, repository paths used as identities, environment dumps, and credential
+values are never rendered. Suppression affects the notification only; the structured result
+and its `status` remain available to receipts and headless callers.
 
 To suppress duplicate advice across short-lived hook processes, the runtime atomically
 claims a SHA-256 event/snapshot fingerprint under the OS temporary directory. Marker names

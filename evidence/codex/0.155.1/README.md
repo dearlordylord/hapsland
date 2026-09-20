@@ -1,10 +1,11 @@
 # Codex CLI 0.155.1 runtime evidence
 
-**Date:** 2026-09-19
+**Dates:** 2026-09-19 (baseline probes), 2026-09-20 (diagnostic-channel probe)
 **Platform:** Linux, headless `codex exec --ephemeral --json` and interactive TUI
 **Codex:** `codex-cli 0.155.1`
-**Pinned source:** tag `rust-v0.155.1`, commit
-`4e21628f9ec9ee656650cd2b62ef92225725b5ac`
+**Pinned source:** annotated tag `rust-v0.155.1`, tag object
+`4e21628f9ec9ee656650cd2b62ef92225725b5ac`, resolving to commit
+`be2951ea34f0d295ed0becf97079f92fa5f6950e`
 
 The probes used a temporary `CODEX_HOME`, a disposable Git repository, and the repository
 scripts in `probe/`. Only authentication material was copied into the temporary home. The
@@ -83,3 +84,22 @@ so the report does not claim it. One additional live diagnostic call occurred ou
 aborted processes made no paid request. See `live-milestone-100.json` and the reproducible
 `probe/benchmark-live.mjs`. No individual assessment, probability, credential, or
 source-bearing paid response was retained.
+
+## Issue-13 diagnostic channel evidence
+
+The product-owned diagnostic renderer emits bounded problem/recovery text as the top-level
+Codex `systemMessage` (the interactive user-visible channel) and keeps review findings in
+`hookSpecificOutput.additionalContext` (the agent-facing channel). It never copies a
+backend reason, source path content, credential, or environment value into either channel.
+
+The sanitized ledger is [`diagnostic-channel-issue-13.json`](./diagnostic-channel-issue-13.json).
+Its pinned-source fields identify the Codex TUI renderer and headless JSON event processor;
+the repository's existing compatibility contract remains the normative source for the
+adapter seam. An isolated interactive Codex 0.155.1 PTY probe performed a successful
+synthetic `apply_patch`. The TUI visibly rendered the bounded `systemMessage` as a Hook
+history cell, and the next model response confirmed receipt of the separate
+`additionalContext` value. The raw transcript, temporary repository, copied authentication
+files, and model session were deleted; the ledger retains only the exact sanitized
+observations and cryptographic digests. The deterministic process-boundary suite separately
+proves healthy/problem/repeated/changed/recovered/concurrent/independent transitions and
+secret-sentinel absence offline.

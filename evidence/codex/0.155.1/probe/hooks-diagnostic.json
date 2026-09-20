@@ -1,0 +1,16 @@
+{
+  "description": "Isolated issue-13 Codex diagnostic channel probe; never install as user configuration.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /workspace/typescript/jev-gh-13/evidence/codex/0.155.1/probe/diagnostic-hook.mjs",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

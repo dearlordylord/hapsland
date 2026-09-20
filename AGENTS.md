@@ -43,6 +43,8 @@ contract fixtures and the real vertical slice are in place.
 Live paid Jev validation is authorized at declared project milestones when credentials are
 available. Keep ordinary tests deterministic and offline, do not print or commit credentials
 or source-bearing paid responses, and record only sanitized contract and timing evidence.
+Ignored `.env` files are not copied into Git worktrees; check the primary `main`/`master`
+worktree when a worktree lacks credentials, without printing or automatically sourcing them.
 
 ## Research and specification boundary
 

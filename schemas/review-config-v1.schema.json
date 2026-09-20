@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Realtime review configuration v1",
+  "description": "JSONC project or user defaults. Copy this artifact to an editor-accessible path for completion; no hosted release URL is promised in this phase.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version"],
+  "properties": {
+    "version": { "const": 1 },
+    "$schema": { "type": "string", "description": "Editor schema metadata; ignored at runtime." },
+    "includes": { "$ref": "#/$defs/patterns" },
+    "excludes": { "$ref": "#/$defs/patterns" },
+    "privacyExcludes": { "$ref": "#/$defs/patterns" },
+    "credentialEnvVar": { "$ref": "#/$defs/envVar" },
+    "settings": { "$ref": "#/$defs/settings" },
+    "packs": { "$ref": "#/$defs/packs" },
+    "ruleOverrides": { "$ref": "#/$defs/ruleOverrides" },
+    "consent": { "type": "boolean", "description": "Ignored for source-egress authorization." },
+    "enabled": { "type": "boolean", "description": "Ignored for source-egress authorization." }
+  },
+  "$defs": {
+    "patterns": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "envVar": { "type": "string", "pattern": "^[A-Z_][A-Z0-9_]*$" },
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "deadlineMs": { "type": "integer", "minimum": 1, "maximum": 60000 },
+        "concurrency": { "type": "integer", "minimum": 1, "maximum": 32 },
+        "adviceBudget": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "transientRetries": { "type": "integer", "minimum": 0, "maximum": 5 }
+      }
+    },
+    "packs": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "type": "string", "minLength": 1 },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "oneOf": [
+              { "required": ["path"], "not": { "required": ["id"] } },
+              { "required": ["id"], "not": { "required": ["path"] } }
+            ],
+            "properties": {
+              "path": { "type": "string", "minLength": 1 },
+              "id": { "type": "string", "minLength": 1 },
+              "enabled": { "type": "boolean" }
+            }
+          }
+        ]
+      }
+    },
+    "ruleOverrides": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/ruleOverride"
+      }
+    },
+    "ruleOverride": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "includes": { "$ref": "#/$defs/patterns" },
+        "excludes": { "$ref": "#/$defs/patterns" },
+        "threshold": { "type": "number", "minimum": 0, "maximum": 1 },
+        "message": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

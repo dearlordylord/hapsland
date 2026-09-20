@@ -6,6 +6,7 @@ import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
 import { Decision, DecisionModel } from "effect/unstable/ai";
 import { BackendError } from "../domain/errors.ts";
+import { DEFAULT_RUNTIME_SETTINGS } from "../configuration/types.ts";
 import type { Rule } from "../policy/rules.ts";
 
 export type BackendAnswer = unknown;
@@ -36,9 +37,21 @@ export class Service extends Context.Service<Service, Interface>()(
   "@review/ReviewBackend",
 ) {}
 
-export const layer = Layer.effect(
-  Service,
-  Effect.gen(function* () {
+export type ReviewBackendLayerOptions = {
+  readonly transientRetries?: number;
+};
+
+/**
+ * The review integration owns one deliberately boring retry policy. Keeping the
+ * delay fixed makes the per-file deadline predictable and leaves host-hook timeout
+ * configuration enough room to account for the complete attempt budget.
+ */
+export const REVIEW_RETRY_BACKOFF_MS = 50 as const;
+
+export const layerWithOptions = (layerOptions: ReviewBackendLayerOptions = {}) =>
+  Layer.effect(
+    Service,
+    Effect.gen(function* () {
     const model = yield* DecisionModel.DecisionModel;
 
     const evaluate = Effect.fn("ReviewBackend.evaluate")(function* (options: {
@@ -77,9 +90,9 @@ export const layer = Layer.effect(
             }),
         ),
         Effect.retry({
-          times: 2,
+          times: layerOptions.transientRetries ?? DEFAULT_RUNTIME_SETTINGS.transientRetries,
           while: (error) => error.retryable,
-          schedule: Schedule.exponential("50 millis"),
+          schedule: Schedule.spaced(`${REVIEW_RETRY_BACKOFF_MS} millis`),
         }),
       );
       return {
@@ -101,8 +114,10 @@ export const layer = Layer.effect(
       };
     });
 
-    return Service.of({ evaluate });
-  }),
-);
+      return Service.of({ evaluate });
+    }),
+  );
+
+export const layer = layerWithOptions();
 
 export * as ReviewBackend from "./review-backend.ts";

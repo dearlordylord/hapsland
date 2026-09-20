@@ -1,4 +1,5 @@
 import * as Schema from "effect/Schema";
+import { DiagnosticObservation } from "../diagnostics/domain.ts";
 
 export const Probability = Schema.Finite.check(
   Schema.isBetween({ minimum: 0, maximum: 1 }),
@@ -46,6 +47,12 @@ export const SkippedResult = Schema.Struct({
   status: Schema.Literal("skipped"),
   path: Schema.String,
   reason: Schema.String,
+  code: Schema.Literals([
+    "excluded",
+    "missing_consent",
+    "unsupported_repository",
+    "no_applicable_rule",
+  ]),
 });
 
 export const UnavailableResult = Schema.Struct({
@@ -53,6 +60,13 @@ export const UnavailableResult = Schema.Struct({
   path: Schema.String,
   reason: Schema.String,
   retryable: Schema.Boolean,
+  code: Schema.Literals([
+    "missing_credentials",
+    "backend_unavailable",
+    "invalid_configuration",
+    "stale_snapshot",
+    "review_timeout",
+  ]),
 });
 
 export const ReviewResult = Schema.Union([
@@ -67,6 +81,8 @@ export const SuccessfulEditEvent = Schema.Struct({
   kind: Schema.Literal("successful-edit"),
   host: Schema.String,
   cwd: Schema.String,
+  /** Host-provided session identity used only for source-free local receipts. */
+  sessionId: Schema.optionalKey(Schema.NonEmptyString),
   paths: Schema.Array(Schema.String),
 });
 
@@ -81,6 +97,8 @@ export const ReviewResponse = Schema.Struct({
   eventId: Schema.String,
   results: Schema.Array(ReviewResult),
   advice: Schema.Array(Advice),
+  /** Structured observations are retained even when host notices are suppressed. */
+  diagnostics: Schema.optionalKey(Schema.Array(DiagnosticObservation)),
 });
 export type ReviewResponse = typeof ReviewResponse.Type;
 

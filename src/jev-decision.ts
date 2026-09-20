@@ -1,9 +1,11 @@
 import { TypeSafeClient, TypeSafeDecisionModel } from "@effect/ai-typesafe";
+import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import { Decision, DecisionModel } from "effect/unstable/ai";
 import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient";
+import { JEV_API_BASE } from "./runtime/backend.ts";
 
 export const MODEL = "jev-latest";
 
@@ -57,11 +59,27 @@ export const decide = <const Decisions extends ProbabilityDecisions>(options: {
     return yield* DecisionModel.decide(definition, { input });
   });
 
-const TypeSafeClientLive = TypeSafeClient.layerConfig().pipe(
-  Layer.provide(FetchHttpClient.layer),
-);
+/**
+ * Builds the Jev-backed DecisionModel for one explicit destination and credential
+ * environment variable. The destination is part of consent identity; it is not
+ * silently replaced by a provider default after dispatch authorization.
+ */
+export const liveLayer = (options: {
+  readonly apiUrl: string;
+  readonly credentialEnvVar: string;
+}) => {
+  const client = Layer.effect(
+    TypeSafeClient.TypeSafeClient,
+    Effect.gen(function* () {
+      const apiKey = yield* Config.Redacted(options.credentialEnvVar);
+      return yield* TypeSafeClient.make({ apiKey, apiUrl: options.apiUrl });
+    }),
+  ).pipe(Layer.provide(FetchHttpClient.layer));
+  return TypeSafeDecisionModel.model(MODEL).pipe(Layer.provide(client));
+};
 
-/** Reads TYPESAFE_API_KEY and provides the Jev-backed DecisionModel. */
-export const Live = TypeSafeDecisionModel.model(MODEL).pipe(
-  Layer.provide(TypeSafeClientLive),
-);
+/** Reads TYPESAFE_API_KEY and uses the TypeSafe service's default destination. */
+export const Live = liveLayer({
+  apiUrl: JEV_API_BASE,
+  credentialEnvVar: "TYPESAFE_API_KEY",
+});
