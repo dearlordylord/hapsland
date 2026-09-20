@@ -10,9 +10,8 @@ import {
   type Originated,
   type PatternOrigin,
   type ResolvedPolicy,
-  type ResolvedRule,
 } from "./types.ts";
-import { configurationError, ConfigurationError } from "./errors.ts";
+import { ConfigurationError } from "./errors.ts";
 
 export type ConfigurationLayer = {
   readonly name: ConfigurationLayerName;
@@ -42,18 +41,16 @@ const patternsFor = (
   values.map((value) => ({ value, origin: origin(layer, field), active: true }));
 
 const includeValues = (document: ConfigurationDocument):
-  | { readonly field: "includes" | "include"; readonly values: ReadonlyArray<string> }
+  | { readonly field: "includes"; readonly values: ReadonlyArray<string> }
   | undefined => {
   if (document.includes !== undefined) return { field: "includes", values: document.includes };
-  if (document.include !== undefined) return { field: "include", values: document.include };
   return undefined;
 };
 
 const excludeValues = (document: ConfigurationDocument):
-  | { readonly field: "excludes" | "exclude"; readonly values: ReadonlyArray<string> }
+  | { readonly field: "excludes"; readonly values: ReadonlyArray<string> }
   | undefined => {
   if (document.excludes !== undefined) return { field: "excludes", values: document.excludes };
-  if (document.exclude !== undefined) return { field: "exclude", values: document.exclude };
   return undefined;
 };
 
@@ -95,11 +92,6 @@ const allLayers = (layers: ReadonlyArray<ConfigurationLayer>): ReadonlyArray<Con
   ];
 };
 
-const fieldValue = <T>(
-  document: ConfigurationDocument,
-  field: keyof ConfigurationDocument,
-): T | undefined => document[field] as T | undefined;
-
 const effectiveSetting = (
   layers: ReadonlyArray<ConfigurationLayer>,
   key: "deadlineMs" | "concurrency" | "adviceBudget" | "transientRetries",
@@ -113,91 +105,12 @@ const effectiveSetting = (
   };
   for (const layer of layers) {
     const nested = layer.document.settings?.[key];
-    const flat = fieldValue<number>(layer.document, key);
     if (nested !== undefined) {
       value = nested;
       owner = origin(layer, `settings.${key}`);
     }
-    if (flat !== undefined) {
-      value = flat;
-      owner = origin(layer, key);
-    }
-    if (nested !== undefined && flat !== undefined) {
-      throw configurationError(
-        layer.source,
-        key,
-        `settings.${key} and ${key} cannot both be supplied`,
-      );
-    }
   }
   return originated(value, owner);
-};
-
-const defaultRule = (id: string): ResolvedRule => ({
-  id,
-  enabled: true,
-  includesSpecified: false,
-  threshold: 0.7,
-  includes: [],
-  excludes: [],
-  origins: {},
-});
-
-const resolveRules = (layers: ReadonlyArray<ConfigurationLayer>): Readonly<Record<string, ResolvedRule>> => {
-  const rules = new Map<string, ResolvedRule>();
-  for (const layer of layers) {
-    for (const [id, override] of Object.entries(layer.document.rules ?? {})) {
-      const previous = rules.get(id) ?? defaultRule(id);
-      const next: ResolvedRule = {
-        ...previous,
-        ...(override.enabled === undefined ? {} : { enabled: override.enabled }),
-        ...(override.threshold === undefined ? {} : { threshold: override.threshold }),
-        ...(override.message === undefined ? {} : { message: override.message }),
-        includesSpecified:
-          override.includes !== undefined || override.include !== undefined
-            ? true
-            : previous.includesSpecified,
-        includes:
-          override.includes !== undefined
-            ? patternsFor(layer, `rules.${id}.includes`, override.includes)
-            : override.include !== undefined
-              ? patternsFor(layer, `rules.${id}.include`, override.include)
-              : previous.includes,
-        excludes: [
-          ...previous.excludes,
-          ...(override.excludes !== undefined
-            ? patternsFor(layer, `rules.${id}.excludes`, override.excludes)
-            : override.exclude !== undefined
-              ? patternsFor(layer, `rules.${id}.exclude`, override.exclude)
-              : []),
-        ],
-        origins: {
-          ...previous.origins,
-          ...(override.enabled === undefined
-            ? {}
-            : { enabled: origin(layer, `rules.${id}.enabled`) }),
-          ...(override.threshold === undefined
-            ? {}
-            : { threshold: origin(layer, `rules.${id}.threshold`) }),
-          ...(override.message === undefined
-            ? {}
-            : { message: origin(layer, `rules.${id}.message`) }),
-          ...(override.includes === undefined && override.include === undefined
-            ? {}
-            : { includes: origin(layer, `rules.${id}.includes`) }),
-          ...(override.excludes === undefined && override.exclude === undefined
-            ? {}
-            : { excludes: origin(layer, `rules.${id}.excludes`) }),
-        },
-      };
-      rules.set(id, {
-        ...next,
-        includes: dedupePatterns(next.includes),
-        excludes: dedupePatterns(next.excludes),
-      });
-    }
-  }
-  return Object.fromEntries(rules);
 };
 
 /**
@@ -254,7 +167,7 @@ export const resolveConfiguration = (
     field: "credentialEnvVar",
   });
   for (const layer of layers) {
-    const value = layer.document.credentialEnvVar ?? layer.document.credentials?.envVar;
+    const value = layer.document.credentialEnvVar;
     if (value !== undefined) {
       // Credential authority is user-owned. A project may provide a reference
       // when no user reference exists, but cannot silently redirect a user's
@@ -282,7 +195,6 @@ export const resolveConfiguration = (
         DEFAULT_RUNTIME_SETTINGS.transientRetries,
       ),
     },
-    rules: resolveRules(layers),
     layers,
   };
   return {
@@ -292,13 +204,11 @@ export const resolveConfiguration = (
 };
 
 export const captureConfiguration = (
-  root: string,
   policy: ResolvedPolicy,
 ): ConfigurationCapture => {
   const project = policy.layers.find((layer) => layer.name === "project");
   const user = policy.layers.find((layer) => layer.name === "user");
   return {
-    root,
     policy,
     ...(project === undefined ? {} : { projectSource: project.source }),
     ...(user === undefined ? {} : { userSource: user.source }),
@@ -319,7 +229,6 @@ export const validateCapturedPolicy = (policy: ResolvedPolicy): void => {
     protectedExcludes: policy.protectedExcludes,
     credentialEnvVar: policy.credentialEnvVar,
     settings: policy.settings,
-    rules: policy.rules,
     layers: policy.layers,
   })) {
     throw new ConfigurationError({

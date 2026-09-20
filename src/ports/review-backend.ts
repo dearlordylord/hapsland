@@ -6,6 +6,7 @@ import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
 import { Decision, DecisionModel } from "effect/unstable/ai";
 import { BackendError } from "../domain/errors.ts";
+import { DEFAULT_RUNTIME_SETTINGS } from "../configuration/types.ts";
 import type { Rule } from "../policy/rules.ts";
 
 export type BackendAnswer = unknown;
@@ -82,7 +83,7 @@ export const layerWithOptions = (layerOptions: ReviewBackendLayerOptions = {}) =
             }),
         ),
         Effect.retry({
-          times: layerOptions.transientRetries ?? 2,
+          times: layerOptions.transientRetries ?? DEFAULT_RUNTIME_SETTINGS.transientRetries,
           while: (error) => error.retryable,
           schedule: Schedule.exponential("50 millis"),
         }),

@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { ConfigurationError } from "./errors.ts";
-import { decodeConfigurationText } from "./decode.ts";
+import { decodeConfigurationText, serializeConfigurationDocument } from "./decode.ts";
 import { resolveConfiguration, stableConfigurationValue } from "./resolve.ts";
 import type { ConfigurationLayer } from "./resolve.ts";
 import { selectGlobalPath } from "../policy/file-policy.ts";
@@ -38,10 +38,16 @@ describe("configuration v1 decoding", () => {
   it.each([
     ["unsupported version", '{"version":2}', "version"],
     ["unknown field", '{"version":1,"nope":true}', "nope"],
-    ["invalid environment reference", '{"version":1,"credentialEnvVar":"secret"}', "$"],
+    ["invalid environment reference", '{"version":1,"credentialEnvVar":"secret"}', "credentialEnvVar"],
+    ["invalid nested environment reference", '{"version":1,"credentials":{"envVar":"secret"}}', "credentials.envVar"],
     ["credential value", '{"version":1,"credentials":{"value":"secret"}}', "credentials.value"],
+    ["invalid pattern array", '{"version":1,"includes":"src/**"}', "includes"],
+    ["invalid runtime bound", '{"version":1,"settings":{"deadlineMs":0}}', "settings.deadlineMs"],
+    ["invalid flat runtime bound", '{"version":1,"adviceBudget":101}', "adviceBudget"],
     ["negated include", '{"version":1,"includes":["!src/**"]}', "includes[0]"],
     ["traversal include", '{"version":1,"includes":["../src/**"]}', "includes[0]"],
+    ["reversed glob range", '{"version":1,"includes":["[z-a]"]}', "includes[0]"],
+    ["removed rule surface", '{"version":1,"rules":{"r2_meaningless_combinations":{"threshold":0.8}}}', "rules"],
   ])("reports bounded errors for %s", (_label, text, field) => {
     try {
       decodeConfigurationText(text, "project.jsonc");
@@ -52,6 +58,22 @@ describe("configuration v1 decoding", () => {
       expect((error as ConfigurationError).field).toContain(field);
       expect((error as ConfigurationError).reason).not.toContain("secret");
     }
+  });
+
+  it("normalizes aliases into one canonical downstream shape", () => {
+    expect(decodeConfigurationText(
+      '{"version":1,"include":["src/**"],"credentials":{"envVar":"ALT_KEY"},"deadlineMs":9}',
+      "alias.jsonc",
+    )).toEqual({
+      version: 1,
+      includes: ["src/**"],
+      credentialEnvVar: "ALT_KEY",
+      settings: { deadlineMs: 9 },
+    });
+    expect(decodeConfigurationText(
+      '{"version":1,"settings":{},"deadlineMs":9}',
+      "flat-setting.jsonc",
+    )).toEqual({ version: 1, settings: { deadlineMs: 9 } });
   });
 });
 
@@ -109,6 +131,18 @@ describe("layered selection and provenance", () => {
     expect(explained.matchingIncludes).toEqual(runtime.matchingIncludes);
     expect(explained.matchingExcludes).toEqual(runtime.matchingExcludes);
   });
+
+  it("retains configured provenance before protected gates", () => {
+    const policy = resolveConfiguration(
+      [builtIn(), source("project", '{"version":1,"includes":["**/.env"],"excludes":["**/.env"]}')],
+      "/repo",
+    );
+    const decision = selectGlobalPath(policy, ".env");
+    expect(decision).toMatchObject({ selected: false, reason: "protected", gate: "sensitive" });
+    expect(decision.matchingIncludes.map((entry) => entry.value)).toContain("**/.env");
+    expect(decision.matchingExcludes.map((entry) => entry.value)).toContain("**/.env");
+    expect(explainPath(policy, ".env").matchingIncludes.map((entry) => entry.value)).toContain("**/.env");
+  });
 });
 
 const paths = ["src/a.ts", "lib/a.ts", "docs/a.md", "src/private/a.ts"] as const;
@@ -116,12 +150,24 @@ const patternArb = fc.constantFrom("src/**", "lib/**", "docs/**", "**/*.ts", "**
 
 describe("configuration composition properties", () => {
   it("separate invalid generators always fail without falling back", () => {
+    const malformedGlob = fc.oneof(
+      fc.constant("[z-a]"),
+      fc.constant("[a--]"),
+      fc.constant("src/[unterminated"),
+      fc.array(fc.constantFrom("a", "!", "[", "-"), { minLength: 0, maxLength: 8 })
+        .map((parts) => `src/[${parts.join("")}`),
+    );
     const invalidText = fc.oneof(
       fc.constant('{"version":2}'),
       fc.constant('{"version":1,"unknown":true}'),
       fc.constant('{"version":1,"includes":["!src/**"]}'),
       fc.constant('{"version":1,"includes":["../src/**"]}'),
       fc.constant('{"version":1,"credentials":{"value":"secret"}}'),
+      malformedGlob.map((pattern) => JSON.stringify({ version: 1, includes: [pattern] })),
+      fc.integer({ min: 60_001, max: 100_000 }).map((deadlineMs) =>
+        JSON.stringify({ version: 1, deadlineMs })),
+      fc.integer({ min: -100, max: -1 }).map((adviceBudget) =>
+        JSON.stringify({ version: 1, adviceBudget })),
     );
     fc.assert(
       fc.property(invalidText, (text) => {
@@ -197,6 +243,73 @@ describe("configuration composition properties", () => {
         ) && stableConfigurationValue(first.excludes) === stableConfigurationValue(second.excludes);
       }),
       { seed: 10_012, numRuns: 40 },
+    );
+  });
+
+  it("adding an empty layer preserves effective selection", () => {
+    fc.assert(
+      fc.property(fc.array(patternArb, { maxLength: 3 }), (includes) => {
+        const withoutEmpty = resolveConfiguration(
+          [builtIn(), source("user", JSON.stringify({ version: 1, includes }))],
+          "/repo",
+        );
+        const withEmpty = resolveConfiguration(
+          [
+            builtIn(),
+            source("user", JSON.stringify({ version: 1, includes })),
+            source("project", '{"version":1}'),
+          ],
+          "/repo",
+        );
+        return paths.every((path) => {
+          const left = selectGlobalPath(withoutEmpty, path);
+          const right = selectGlobalPath(withEmpty, path);
+          return left.selected === right.selected && left.reason === right.reason;
+        });
+      }),
+      { seed: 10_014, numRuns: 40 },
+    );
+  });
+
+  it("round-trips canonical serialized documents", () => {
+    fc.assert(
+      fc.property(
+        fc.array(patternArb, { maxLength: 3 }),
+        fc.array(patternArb, { maxLength: 3 }),
+        (includes, excludes) => {
+          const document = decodeConfigurationText(
+            JSON.stringify({ version: 1, includes, excludes, settings: { deadlineMs: 1_000 } }),
+            "roundtrip.jsonc",
+          );
+          const serialized = serializeConfigurationDocument(document);
+          expect(serialized).not.toContain('"include":');
+          expect(decodeConfigurationText(serialized, "roundtrip.jsonc")).toEqual(document);
+        },
+      ),
+      { seed: 10_015, numRuns: 40 },
+    );
+  });
+
+  it("keeps explanation and runtime decisions identical for generated paths", () => {
+    fc.assert(
+      fc.property(
+        fc.array(patternArb, { maxLength: 3 }),
+        fc.array(patternArb, { maxLength: 3 }),
+        fc.constantFrom(...paths),
+        (includes, excludes, path) => {
+          const policy = resolveConfiguration(
+            [builtIn(), source("project", JSON.stringify({ version: 1, includes, excludes }))],
+            "/repo",
+          );
+          const runtime = selectGlobalPath(policy, path);
+          const explained = explainPath(policy, path);
+          expect(explained.selected).toBe(runtime.selected);
+          expect(explained.reason).toBe(runtime.reason);
+          expect(explained.matchingIncludes).toEqual(runtime.matchingIncludes);
+          expect(explained.matchingExcludes).toEqual(runtime.matchingExcludes);
+        },
+      ),
+      { seed: 10_016, numRuns: 40 },
     );
   });
 });

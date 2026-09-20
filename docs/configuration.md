@@ -10,7 +10,11 @@ inheritance and no automatic `.gitignore` loading.
 Both documents have `{"version": 1}` and may contain `//` or `/* ... */` comments
 and trailing commas. Unknown fields, duplicate object keys, unsupported versions,
 malformed values, absolute/traversing patterns, and negated patterns are errors.
-The editor schema is [`../schemas/review-config-v1.schema.json`](../schemas/review-config-v1.schema.json).
+The editor-completion artifact is [`../schemas/review-config-v1.schema.json`](../schemas/review-config-v1.schema.json).
+This phase does not publish a hosted schema URL: copy that file into an
+editor-accessible installation/configuration directory and point `$schema` at the
+copy (the example below assumes a source checkout with `schemas/` at the project
+root).
 
 ```jsonc
 {
@@ -26,12 +30,6 @@ The editor schema is [`../schemas/review-config-v1.schema.json`](../schemas/revi
     "adviceBudget": 5,
     "transientRetries": 2
   },
-  "rules": {
-    "r2_meaningless_combinations": {
-      "threshold": 0.8,
-      "message": "Check whether these fields form a valid domain state."
-    }
-  }
 }
 ```
 

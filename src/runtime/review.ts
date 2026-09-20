@@ -11,15 +11,13 @@ import type {
 import { Consent, rootRelativePath } from "./consent.ts";
 import type { ReviewSettings } from "./review-config.ts";
 import { resolveConfiguration } from "../configuration/resolve.ts";
+import { DEFAULT_RUNTIME_SETTINGS } from "../configuration/types.ts";
 import { selectGlobalPath } from "../policy/file-policy.ts";
 import { applicableRules, deriveAdvice } from "../policy/rules.ts";
 import { ReviewBackend } from "../ports/review-backend.ts";
 import { DedupeStore } from "../ports/dedupe-store.ts";
 import { SnapshotReader } from "../ports/snapshot-reader.ts";
 import { validateAssessment } from "./assessment.ts";
-
-const MAX_FINDINGS = 5;
-const BACKEND_TIMEOUT = 1_000;
 
 export type ReviewContext =
   | { readonly _tag: "unscoped" }
@@ -95,7 +93,7 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
     };
   }
 
-  const rules = applicableRules(initial.value.content, policy, initial.value.path);
+  const rules = applicableRules(initial.value.content);
   if (rules.length === 0) {
     return {
       status: "skipped" as const,
@@ -127,6 +125,10 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
     }
   }
 
+  const deadlineMs =
+    context._tag === "authorized"
+      ? context.settings.policy?.settings.deadlineMs.value ?? DEFAULT_RUNTIME_SETTINGS.deadlineMs
+      : DEFAULT_RUNTIME_SETTINGS.deadlineMs;
   const evaluated = yield* backend
     .evaluate({
       path: initial.value.path,
@@ -135,7 +137,7 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
     })
     .pipe(
       Effect.timeoutOption(
-        `${context._tag === "authorized" ? context.settings.policy?.settings.deadlineMs.value ?? BACKEND_TIMEOUT : BACKEND_TIMEOUT} millis`,
+        `${deadlineMs} millis`,
       ),
       Effect.result,
     );
@@ -153,7 +155,7 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
     return {
       status: "unavailable" as const,
       path: initial.value.path,
-      reason: "review backend timed out after 1000 ms",
+      reason: `review backend timed out after ${deadlineMs} ms`,
       retryable: true,
       code: "review_timeout" as const,
     };
@@ -199,8 +201,8 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
     assessment.success,
     snapshot,
     context._tag === "authorized"
-      ? context.settings.policy?.settings.adviceBudget.value ?? MAX_FINDINGS
-      : MAX_FINDINGS,
+      ? context.settings.policy?.settings.adviceBudget.value ?? DEFAULT_RUNTIME_SETTINGS.adviceBudget
+      : DEFAULT_RUNTIME_SETTINGS.adviceBudget,
   );
   const firstDelivery =
     candidateAdvice.length === 0
@@ -223,8 +225,8 @@ export const review = Effect.fn("Review.run")(function* (
   const paths = [...new Set(request.event.paths)].sort();
   const concurrency =
     context._tag === "authorized"
-      ? context.settings.policy?.settings.concurrency.value ?? 4
-      : 4;
+      ? context.settings.policy?.settings.concurrency.value ?? DEFAULT_RUNTIME_SETTINGS.concurrency
+      : DEFAULT_RUNTIME_SETTINGS.concurrency;
   const results: ReadonlyArray<ReviewResult> = yield* Effect.forEach(
     paths,
     (path) => reviewPath(request, path, context),
@@ -241,8 +243,8 @@ export const review = Effect.fn("Review.run")(function* (
     .slice(
       0,
       context._tag === "authorized"
-        ? context.settings.policy?.settings.adviceBudget.value ?? MAX_FINDINGS
-        : MAX_FINDINGS,
+        ? context.settings.policy?.settings.adviceBudget.value ?? DEFAULT_RUNTIME_SETTINGS.adviceBudget
+        : DEFAULT_RUNTIME_SETTINGS.adviceBudget,
     );
   return { version: 1 as const, eventId: request.event.id, results, advice } satisfies ReviewResponse;
 });

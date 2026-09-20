@@ -97,6 +97,7 @@ describe("configuration v1 subprocess contract", () => {
     writeFileSync(join(root, "src", "private", "secret.ts"), "export type Secret = string;\n");
     writeFileSync(join(root, "src", "large.ts"), Buffer.alloc(262145, 65));
     writeFileSync(join(root, "src", "real.ts"), "export type Real = string;\n");
+    mkdirSync(join(root, "src", "directory.ts"));
     symlinkSync(join(root, "src", "real.ts"), join(root, "src", "link.ts"));
     const statePath = join(root, "state");
     enable(root, statePath);
@@ -106,6 +107,7 @@ describe("configuration v1 subprocess contract", () => {
       request(root, [
         "src/private/secret.ts",
         "src/large.ts",
+        "src/directory.ts",
         "src/link.ts",
         "../outside.ts",
         ".env",
@@ -117,9 +119,73 @@ describe("configuration v1 subprocess contract", () => {
         REVIEW_USER_CONFIG_PATH: join(root, "missing-user.jsonc"),
       },
     ) as { results: Array<{ status: string; code?: string }> };
-    expect(output.results).toHaveLength(6);
+    expect(output.results).toHaveLength(7);
     expect(output.results.every((result) => result.status === "skipped")).toBe(true);
     expect(existsSync(capturePath)).toBe(false);
+  });
+
+  it("rejects a similar-prefix sibling root before snapshot or dispatch", () => {
+    const root = mkdtempSync(join(tmpdir(), "review-config-prefix-"));
+    const sibling = `${root}-other`;
+    roots.push(root, sibling);
+    execFileSync("git", ["init", "--quiet", root]);
+    mkdirSync(join(sibling, "src"), { recursive: true });
+    writeFileSync(join(sibling, "src", "outside.ts"), "export type Outside = string;\n");
+    writeFileSync(join(root, ".review.jsonc"), '{"version":1,"includes":["src/**"]}\n');
+    const statePath = join(root, "state");
+    enable(root, statePath);
+    const capturePath = join(root, "calls.log");
+    const siblingName = sibling.slice(sibling.lastIndexOf("/") + 1);
+    const output = run(
+      ["--controlled"],
+      request(root, [`../${siblingName}/src/outside.ts`], "similar-prefix-boundary"),
+      {
+        REVIEW_STATE_PATH: statePath,
+        REVIEW_CONTROL_JSON: JSON.stringify({ capturePath }),
+        REVIEW_USER_CONFIG_PATH: join(root, "missing-user.jsonc"),
+      },
+    ) as { results: Array<{ status: string; code?: string }> };
+    expect(output.results[0]).toMatchObject({ status: "skipped", code: "excluded" });
+    expect(existsSync(capturePath)).toBe(false);
+  });
+
+  it("distinguishes inherited includes from an explicit empty project list", () => {
+    const root = mkdtempSync(join(tmpdir(), "review-config-includes-"));
+    roots.push(root);
+    execFileSync("git", ["init", "--quiet", root]);
+    mkdirSync(join(root, "src"));
+    const path = join(root, "src", "example.ts");
+    writeFileSync(path, "export type Example = string;\n");
+    writeFileSync(join(root, ".review.jsonc"), '{"version":1}\n');
+    const statePath = join(root, "state");
+    enable(root, statePath);
+    const inheritedCapture = join(root, "inherited-calls.log");
+    const inherited = run(
+      ["--controlled"],
+      request(root, ["src/example.ts"], "inherited-includes"),
+      {
+        REVIEW_STATE_PATH: statePath,
+        REVIEW_CONTROL_JSON: JSON.stringify({ capturePath: inheritedCapture }),
+        REVIEW_USER_CONFIG_PATH: join(root, "missing-user.jsonc"),
+      },
+    ) as { results: Array<{ status: string }> };
+    expect(inherited.results[0]?.status).toBe("reviewed");
+    expect(readFileSync(inheritedCapture, "utf8").trim()).toBe("called");
+
+    writeFileSync(join(root, ".review.jsonc"), '{"version":1,"includes":[]}\n');
+    const emptyCapture = join(root, "empty-calls.log");
+    const empty = run(
+      ["--controlled"],
+      request(root, ["src/example.ts"], "empty-includes"),
+      {
+        REVIEW_STATE_PATH: statePath,
+        REVIEW_CONTROL_JSON: JSON.stringify({ capturePath: emptyCapture }),
+        REVIEW_USER_CONFIG_PATH: join(root, "missing-user.jsonc"),
+      },
+    ) as { results: Array<{ status: string; reason?: string }> };
+    expect(empty.results[0]).toMatchObject({ status: "skipped" });
+    expect(empty.results[0]?.reason).toContain("no files are selected");
+    expect(existsSync(emptyCapture)).toBe(false);
   });
 
   it("stops all dispatch on an invalid selected project document", () => {
