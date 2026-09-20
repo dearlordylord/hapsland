@@ -5,7 +5,7 @@
   "packageManager": "bun@1.3.14",
   "scripts": {
     "hello": "bun run src/hello.ts",
-    "test": "vitest run",
+    "test": "vitest run --maxWorkers=1",
     "test:live": "RUN_LIVE_JEV=1 vitest run src/jev-live.test.ts",
     "benchmark:live": "node evidence/codex/0.155.1/probe/benchmark-live.mjs --runs=100",
     "test:watch": "vitest",
