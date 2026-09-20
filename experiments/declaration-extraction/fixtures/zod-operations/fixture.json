@@ -1,0 +1,13 @@
+{
+  "name": "zod-opaque-operations",
+  "workspace": "workspace",
+  "before": "before",
+  "defaultEdit": "all",
+  "edits": {
+    "all": {
+      "path": "src/target.ts",
+      "beforeRange": { "start": { "line": 0, "character": 0 }, "end": { "line": 10, "character": 0 } },
+      "afterRange": { "start": { "line": 0, "character": 0 }, "end": { "line": 10, "character": 0 } }
+    }
+  }
+}

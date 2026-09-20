@@ -9,7 +9,9 @@ const root = resolve(import.meta.dirname, "../..");
 const command = resolve(root, "experiments/declaration-extraction/extract.ts");
 const fixture = resolve(root, "experiments/declaration-extraction/fixtures/representative");
 const zodFixture = resolve(root, "experiments/declaration-extraction/fixtures/zod");
+const zodOperationsFixture = resolve(root, "experiments/declaration-extraction/fixtures/zod-operations");
 const zodShadowFixture = resolve(root, "experiments/declaration-extraction/fixtures/zod-shadow");
+const crossFrameworkFixture = resolve(root, "experiments/declaration-extraction/fixtures/cross-framework-context");
 const effectFixture = resolve(root, "experiments/declaration-extraction/fixtures/effect");
 
 const runFixture = (fixturePath: string, edit: string, extra: string[] = []) => {
@@ -292,6 +294,20 @@ describe("declaration extraction experiment black-box seam", () => {
     expect((record.extraction.roots as Array<Record<string, any>>).some((root) => root.name === "Regexes")).toBe(false);
   }, 60_000);
 
+  test("keeps pinned Zod brand and check operations as partial opaque schemas", () => {
+    const record = runFixture(zodOperationsFixture, "all");
+    const roots = record.extraction.roots as Array<Record<string, any>>;
+    expect(roots.map((root) => root.name)).toEqual(["Branded", "Checked", "Refined", "Transformed"]);
+    for (const name of ["Branded", "Checked", "Refined", "Transformed"]) {
+      const root = roots.find((candidate) => candidate.name === name)!;
+      expect(root.schema.framework).toBe("zod");
+      expect(root.schema.interpretation).toBe("partial");
+      expect(root.schema.opaque.map((segment: any) => segment.source)).toEqual([root.schema.expression]);
+    }
+    expect(roots.find((root) => root.name === "Branded")?.schema.opaque[0].reason).toContain(".brand");
+    expect(roots.find((root) => root.name === "Checked")?.schema.opaque[0].reason).toContain(".check");
+  }, 60_000);
+
   test("does not request Zod provenance when the external package cap is zero", () => {
     const record = runFixture(zodFixture, "src/target.ts:0:0-40:0", [
       "--caps",
@@ -323,6 +339,27 @@ describe("declaration extraction experiment black-box seam", () => {
     );
     expect(shadowReferences.some((edge) => edge.definitions?.[0]?.declaration?.name === "ShadowWrapper")).toBe(true);
     expect(shadowReferences.filter((edge) => edge.definitions?.[0]?.declaration?.name === "Address")).toHaveLength(1);
+  }, 60_000);
+
+  test("applies external package caps to referenced cross-framework schema provenance", () => {
+    const extraction = (externalPackages: number) => runFixture(crossFrameworkFixture, "root", [
+      "--caps",
+      JSON.stringify({ externalPackages }),
+    ]);
+    const zero = extraction(0);
+    expect(zero.extraction.roots.find((root: any) => root.name === "CrossRoot")?.schema.provenance).toBe("unresolved");
+    expect(zero.extraction.context.find((declaration: any) => declaration.name === "EffectContext")?.schema.provenance).toBe("unresolved");
+    expect(zero.extraction.schemaFailures).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: "CrossRoot", reason: "external-packages" }),
+      expect.objectContaining({ name: "EffectContext", reason: "external-packages" }),
+    ]));
+    const one = extraction(1);
+    expect(one.extraction.roots.find((root: any) => root.name === "CrossRoot")?.schema.framework).toBe("zod");
+    expect(one.extraction.context.find((declaration: any) => declaration.name === "EffectContext")?.schema.provenance).toBe("unresolved");
+    expect(one.extraction.schemaFailures).toEqual([
+      expect.objectContaining({ name: "EffectContext", reason: "external-packages" }),
+    ]);
+    expect(one.extraction.completeness.observed.externalPackages).toBe(1);
   }, 60_000);
 
   test("recognizes Effect Schema named, namespace, aliased, re-exported, composed, transformed, and declared roots", () => {

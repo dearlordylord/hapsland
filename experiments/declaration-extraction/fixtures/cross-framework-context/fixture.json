@@ -1,0 +1,13 @@
+{
+  "name": "cross-framework-referenced-context",
+  "workspace": "workspace",
+  "before": "before",
+  "defaultEdit": "root",
+  "edits": {
+    "root": {
+      "path": "src/target.ts",
+      "beforeRange": { "start": { "line": 4, "character": 0 }, "end": { "line": 4, "character": 80 } },
+      "afterRange": { "start": { "line": 4, "character": 0 }, "end": { "line": 4, "character": 120 } }
+    }
+  }
+}

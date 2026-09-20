@@ -262,6 +262,7 @@ const zodSchemaSymbols = new Set([
   "promise", "record", "set", "string", "symbol", "transform", "tuple", "undefined",
   "union", "unknown", "void", "strictObject", "looseObject", "int", "uint32",
   "uint64", "int32", "int64", "json", "preprocess", "pipe", "refine", "superRefine",
+  "brand", "check", "filter",
 ]);
 
 const effectSchemaSymbols = new Set([
@@ -269,6 +270,7 @@ const effectSchemaSymbols = new Set([
   "decode", "decodeTo", "encode", "encodeTo", "Literal", "Literals", "Number", "optional",
   "Readonly", "Record", "String", "Struct", "TaggedStruct", "TaggedUnion", "Tuple", "Union",
   "Unknown", "Undefined", "Void", "compose", "filter", "refine", "check", "suspend", "transform",
+  "brand",
 ]);
 
 const schemaFrameworkForDefinition = (definition: NavigationDefinition, candidateName?: string): SchemaFramework | null => {
@@ -692,7 +694,14 @@ const runTraversal = async (
           addReason(state, "definition-without-source-declaration", edgeId);
         } else {
           if (artifact.kind === "schema" && artifact.schema && !state.schemaAnnotated.has(artifact.id)) {
-            const schemaCap = capCheck(state, fixture, edgeId, artifact, edgeDepth);
+            const schemaCap = capCheck(
+              state,
+              fixture,
+              edgeId,
+              artifact,
+              edgeDepth,
+              schemaFrameworkPackageHint(artifact.schema),
+            );
             if (schemaCap) {
               omitSchemaProvenance(state, artifact, schemaCap);
             } else {
