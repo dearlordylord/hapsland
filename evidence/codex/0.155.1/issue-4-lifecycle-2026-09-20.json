@@ -1,0 +1,2724 @@
+{
+  "evidenceVersion": 1,
+  "issue": 4,
+  "date": "2026-09-20",
+  "host": {
+    "expectedVersion": "codex-cli 0.155.1",
+    "observedVersion": "codex-cli 0.155.1",
+    "node": "v24.20.0",
+    "git": "git version 2.39.5",
+    "platform": "linux",
+    "arch": "arm64",
+    "kernel": "Linux 7.0.14-orbstack-00380-ga7e0a2dc9535 aarch64 GNU/Linux"
+  },
+  "isolation": {
+    "disposableGitRepository": true,
+    "temporaryCodexHome": true,
+    "authHandling": "Copied primary Codex auth.json into a mode-600 temporary CODEX_HOME only; contents were never printed or retained.",
+    "userConfigLoaded": false,
+    "hooksTrustBypassed": true,
+    "approvalAndSandboxBypassed": true,
+    "jevCalled": false,
+    "sourceBearingTranscriptsRetained": false,
+    "stdoutStderrRetained": false
+  },
+  "primarySources": [
+    {
+      "class": "DOC",
+      "verification": "DOCUMENTED",
+      "url": "https://developers.openai.com/codex/hooks",
+      "scope": "Codex hook lifecycle, Bash/PostToolUse, unified exec/write_stdin, Stop continuation, UserPromptSubmit, Interrupt, SessionEnd"
+    },
+    {
+      "class": "ISSUE",
+      "verification": "DOCUMENTED",
+      "url": "https://github.com/dearlordylord/jevs/issues/4",
+      "scope": "Issue-4 lifecycle questions and prior unretained Stop observation"
+    }
+  ],
+  "commands": {
+    "runner": "node evidence/codex/0.155.1/probe/issue-4-lifecycle.mjs",
+    "repositorySetup": [
+      "git init --quiet --initial-branch=master",
+      "git config user.name 'Issue 4 Probe'",
+      "git config user.email issue-4-probe@example.invalid",
+      "git add baseline.ts",
+      "git commit --quiet -m 'synthetic baseline'"
+    ],
+    "codexTemplate": "codex exec --ephemeral --json --dangerously-bypass-hook-trust --dangerously-bypass-approvals-and-sandbox --ignore-rules -C <DISPOSABLE_REPO> <prompt>",
+    "interrupt": "SIGINT sent to the isolated codex process 500 ms after interrupt-start.ts appeared",
+    "cleanup": "rm -rf performed by the runner's finally block on its own mkdtemp parent"
+  },
+  "fixtures": [
+    {
+      "id": "baseline",
+      "files": [
+        "baseline.ts"
+      ],
+      "retention": "tracked synthetic baseline only; repository removed"
+    },
+    {
+      "id": "bash-success",
+      "files": [
+        "successful-bash.ts"
+      ],
+      "marker": "one-byte synthetic marker",
+      "retention": "size and SHA-256 only"
+    },
+    {
+      "id": "bash-nonzero-side-effect",
+      "files": [
+        "nonzero-side-effect.ts"
+      ],
+      "marker": "one-byte synthetic marker",
+      "retention": "size and SHA-256 only"
+    },
+    {
+      "id": "long-running-unified-exec",
+      "files": [
+        "long-running.ts"
+      ],
+      "marker": "one-byte marker followed by one-byte append after sleep",
+      "retention": "size and SHA-256 only"
+    },
+    {
+      "id": "interrupt",
+      "files": [
+        "interrupt-start.ts"
+      ],
+      "marker": "one-byte start marker; delayed append is interrupted",
+      "retention": "size and SHA-256 only"
+    },
+    {
+      "id": "no-tool-controls",
+      "files": [],
+      "marker": "no file operation",
+      "retention": "no source fixture"
+    }
+  ],
+  "retainedPaths": [
+    "evidence/codex/0.155.1/probe/issue-4-lifecycle.mjs",
+    "evidence/codex/0.155.1/probe/issue-4-lifecycle-hook.mjs",
+    "evidence/codex/0.155.1/issue-4-lifecycle-2026-09-20.json"
+  ],
+  "assertions": {
+    "overallPass": true,
+    "replayExitCode": 0,
+    "total": 69,
+    "passed": 69,
+    "failed": 0,
+    "environment": [
+      {
+        "name": "codex-version",
+        "pass": true,
+        "observed": "codex-cli 0.155.1",
+        "expected": "codex-cli 0.155.1"
+      },
+      {
+        "name": "git-version-available",
+        "pass": true,
+        "observed": "git version 2.39.5",
+        "expected": "available"
+      },
+      {
+        "name": "temporary-root-cleanup",
+        "pass": true,
+        "observed": true,
+        "expected": true
+      },
+      {
+        "name": "jev-not-called",
+        "pass": true,
+        "observed": false,
+        "expected": false
+      },
+      {
+        "name": "credentials-not-retained",
+        "pass": true,
+        "observed": false,
+        "expected": false
+      },
+      {
+        "name": "raw-source-not-retained",
+        "pass": true,
+        "observed": false,
+        "expected": false
+      }
+    ],
+    "cases": [
+      {
+        "case": "bash-success",
+        "name": "authentication-available",
+        "pass": true,
+        "observed": true,
+        "expected": true
+      },
+      {
+        "case": "bash-success",
+        "name": "process-exit-signal-timeout",
+        "pass": true,
+        "observed": {
+          "exitCode": 0,
+          "signal": null,
+          "interrupted": false,
+          "timedOut": false
+        },
+        "expected": {
+          "exitCode": 0,
+          "signal": null,
+          "interrupted": false,
+          "timedOut": false
+        }
+      },
+      {
+        "case": "bash-success",
+        "name": "event-order-and-presence",
+        "pass": true,
+        "observed": [
+          "SessionStart",
+          "UserPromptSubmit",
+          "PostToolUse",
+          "Stop",
+          "SessionEnd"
+        ],
+        "expected": [
+          "SessionStart",
+          "UserPromptSubmit",
+          "PostToolUse",
+          "Stop",
+          "SessionEnd"
+        ]
+      },
+      {
+        "case": "bash-success",
+        "name": "final-target-snapshot",
+        "pass": true,
+        "observed": {
+          "path": "successful-bash.ts",
+          "exists": true,
+          "regularFile": true,
+          "size": 1,
+          "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"
+        },
+        "expected": {
+          "path": "successful-bash.ts",
+          "exists": true,
+          "regularFile": true,
+          "size": 1
+        }
+      },
+      {
+        "case": "bash-success",
+        "name": "post-tool-use-count",
+        "pass": true,
+        "observed": 1,
+        "expected": 1
+      },
+      {
+        "case": "bash-success",
+        "name": "post-tool-target-snapshot",
+        "pass": true,
+        "observed": {
+          "path": "successful-bash.ts",
+          "exists": true,
+          "regularFile": true,
+          "size": 1,
+          "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"
+        },
+        "expected": {
+          "path": "successful-bash.ts",
+          "exists": true,
+          "regularFile": true,
+          "size": 1
+        }
+      },
+      {
+        "case": "bash-success",
+        "name": "user-prompt-submit-count",
+        "pass": true,
+        "observed": 1,
+        "expected": 1
+      },
+      {
+        "case": "bash-success",
+        "name": "stop-count",
+        "pass": true,
+        "observed": 1,
+        "expected": 1
+      },
+      {
+        "case": "bash-success",
+        "name": "stop-decisions",
+        "pass": true,
+        "observed": [
+          "allow"
+        ],
+        "expected": [
+          "allow"
+        ]
+      },
+      {
+        "case": "bash-success",
+        "name": "stop-hook-active",
+        "pass": true,
+        "observed": [
+          false
+        ],
+        "expected": [
+          false
+        ]
+      },
+      {
+        "case": "bash-success",
+        "name": "cleanup",
+        "pass": true,
+        "observed": true,
+        "expected": true
+      },
+      {
+        "case": "bash-nonzero-side-effect",
+        "name": "authentication-available",
+        "pass": true,
+        "observed": true,
+        "expected": true
+      },
+      {
+        "case": "bash-nonzero-side-effect",
+        "name": "process-exit-signal-timeout",
+        "pass": true,
+        "observed": {
+          "exitCode": 0,
+          "signal": null,
+          "interrupted": false,
+          "timedOut": false
+        },
+        "expected": {
+          "exitCode": 0,
+          "signal": null,
+          "interrupted": false,
+          "timedOut": false
+        }
+      },
+      {
+        "case": "bash-nonzero-side-effect",
+        "name": "event-order-and-presence",
+        "pass": true,
+        "observed": [
+          "SessionStart",
+          "UserPromptSubmit",
+          "PostToolUse",
+          "Stop",
+          "SessionEnd"
+        ],
+        "expected": [
+          "SessionStart",
+          "UserPromptSubmit",
+          "PostToolUse",
+          "Stop",
+          "SessionEnd"
+        ]
+      },
+      {
+        "case": "bash-nonzero-side-effect",
+        "name": "final-target-snapshot",
+        "pass": true,
+        "observed": {
+          "path": "nonzero-side-effect.ts",
+          "exists": true,
+          "regularFile": true,
+          "size": 1,
+          "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"
+        },
+        "expected": {
+          "path": "nonzero-side-effect.ts",
+          "exists": true,
+          "regularFile": true,
+          "size": 1
+        }
+      },
+      {
+        "case": "bash-nonzero-side-effect",
+        "name": "post-tool-use-count",
+        "pass": true,
+        "observed": 1,
+        "expected": 1
+      },
+      {
+        "case": "bash-nonzero-side-effect",
+        "name": "post-tool-target-snapshot",
+        "pass": true,
+        "observed": {
+          "path": "nonzero-side-effect.ts",
+          "exists": true,
+          "regularFile": true,
+          "size": 1,
+          "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"
+        },
+        "expected": {
+          "path": "nonzero-side-effect.ts",
+          "exists": true,
+          "regularFile": true,
+          "size": 1
+        }
+      },
+      {
+        "case": "bash-nonzero-side-effect",
+        "name": "user-prompt-submit-count",
+        "pass": true,
+        "observed": 1,
+        "expected": 1
+      },
+      {
+        "case": "bash-nonzero-side-effect",
+        "name": "stop-count",
+        "pass": true,
+        "observed": 1,
+        "expected": 1
+      },
+      {
+        "case": "bash-nonzero-side-effect",
+        "name": "stop-decisions",
+        "pass": true,
+        "observed": [
+          "allow"
+        ],
+        "expected": [
+          "allow"
+        ]
+      },
+      {
+        "case": "bash-nonzero-side-effect",
+        "name": "stop-hook-active",
+        "pass": true,
+        "observed": [
+          false
+        ],
+        "expected": [
+          false
+        ]
+      },
+      {
+        "case": "bash-nonzero-side-effect",
+        "name": "cleanup",
+        "pass": true,
+        "observed": true,
+        "expected": true
+      },
+      {
+        "case": "long-running-unified-exec",
+        "name": "authentication-available",
+        "pass": true,
+        "observed": true,
+        "expected": true
+      },
+      {
+        "case": "long-running-unified-exec",
+        "name": "process-exit-signal-timeout",
+        "pass": true,
+        "observed": {
+          "exitCode": 0,
+          "signal": null,
+          "interrupted": false,
+          "timedOut": false
+        },
+        "expected": {
+          "exitCode": 0,
+          "signal": null,
+          "interrupted": false,
+          "timedOut": false
+        }
+      },
+      {
+        "case": "long-running-unified-exec",
+        "name": "event-order-and-presence",
+        "pass": true,
+        "observed": [
+          "SessionStart",
+          "UserPromptSubmit",
+          "PostToolUse",
+          "Stop",
+          "SessionEnd"
+        ],
+        "expected": [
+          "SessionStart",
+          "UserPromptSubmit",
+          "PostToolUse",
+          "Stop",
+          "SessionEnd"
+        ]
+      },
+      {
+        "case": "long-running-unified-exec",
+        "name": "final-target-snapshot",
+        "pass": true,
+        "observed": {
+          "path": "long-running.ts",
+          "exists": true,
+          "regularFile": true,
+          "size": 2,
+          "sha256": "ad9a67fefa847de87753df6794a0ae466431e76ad1fb4db58fbbe836d1dde0e7"
+        },
+        "expected": {
+          "path": "long-running.ts",
+          "exists": true,
+          "regularFile": true,
+          "size": 2
+        }
+      },
+      {
+        "case": "long-running-unified-exec",
+        "name": "post-tool-use-count",
+        "pass": true,
+        "observed": 1,
+        "expected": 1
+      },
+      {
+        "case": "long-running-unified-exec",
+        "name": "post-tool-target-snapshot",
+        "pass": true,
+        "observed": {
+          "path": "long-running.ts",
+          "exists": true,
+          "regularFile": true,
+          "size": 2,
+          "sha256": "ad9a67fefa847de87753df6794a0ae466431e76ad1fb4db58fbbe836d1dde0e7"
+        },
+        "expected": {
+          "path": "long-running.ts",
+          "exists": true,
+          "regularFile": true,
+          "size": 2
+        }
+      },
+      {
+        "case": "long-running-unified-exec",
+        "name": "user-prompt-submit-count",
+        "pass": true,
+        "observed": 1,
+        "expected": 1
+      },
+      {
+        "case": "long-running-unified-exec",
+        "name": "stop-count",
+        "pass": true,
+        "observed": 1,
+        "expected": 1
+      },
+      {
+        "case": "long-running-unified-exec",
+        "name": "stop-decisions",
+        "pass": true,
+        "observed": [
+          "allow"
+        ],
+        "expected": [
+          "allow"
+        ]
+      },
+      {
+        "case": "long-running-unified-exec",
+        "name": "stop-hook-active",
+        "pass": true,
+        "observed": [
+          false
+        ],
+        "expected": [
+          false
+        ]
+      },
+      {
+        "case": "long-running-unified-exec",
+        "name": "cleanup",
+        "pass": true,
+        "observed": true,
+        "expected": true
+      },
+      {
+        "case": "stop-normal",
+        "name": "authentication-available",
+        "pass": true,
+        "observed": true,
+        "expected": true
+      },
+      {
+        "case": "stop-normal",
+        "name": "process-exit-signal-timeout",
+        "pass": true,
+        "observed": {
+          "exitCode": 0,
+          "signal": null,
+          "interrupted": false,
+          "timedOut": false
+        },
+        "expected": {
+          "exitCode": 0,
+          "signal": null,
+          "interrupted": false,
+          "timedOut": false
+        }
+      },
+      {
+        "case": "stop-normal",
+        "name": "event-order-and-presence",
+        "pass": true,
+        "observed": [
+          "SessionStart",
+          "UserPromptSubmit",
+          "Stop",
+          "SessionEnd"
+        ],
+        "expected": [
+          "SessionStart",
+          "UserPromptSubmit",
+          "Stop",
+          "SessionEnd"
+        ]
+      },
+      {
+        "case": "stop-normal",
+        "name": "final-target-snapshot",
+        "pass": true,
+        "observed": [],
+        "expected": null
+      },
+      {
+        "case": "stop-normal",
+        "name": "post-tool-use-count",
+        "pass": true,
+        "observed": 0,
+        "expected": 0
+      },
+      {
+        "case": "stop-normal",
+        "name": "user-prompt-submit-count",
+        "pass": true,
+        "observed": 1,
+        "expected": 1
+      },
+      {
+        "case": "stop-normal",
+        "name": "stop-count",
+        "pass": true,
+        "observed": 1,
+        "expected": 1
+      },
+      {
+        "case": "stop-normal",
+        "name": "stop-decisions",
+        "pass": true,
+        "observed": [
+          "allow"
+        ],
+        "expected": [
+          "allow"
+        ]
+      },
+      {
+        "case": "stop-normal",
+        "name": "stop-hook-active",
+        "pass": true,
+        "observed": [
+          false
+        ],
+        "expected": [
+          false
+        ]
+      },
+      {
+        "case": "stop-normal",
+        "name": "cleanup",
+        "pass": true,
+        "observed": true,
+        "expected": true
+      },
+      {
+        "case": "stop-automatic-continuation",
+        "name": "authentication-available",
+        "pass": true,
+        "observed": true,
+        "expected": true
+      },
+      {
+        "case": "stop-automatic-continuation",
+        "name": "process-exit-signal-timeout",
+        "pass": true,
+        "observed": {
+          "exitCode": 0,
+          "signal": null,
+          "interrupted": false,
+          "timedOut": false
+        },
+        "expected": {
+          "exitCode": 0,
+          "signal": null,
+          "interrupted": false,
+          "timedOut": false
+        }
+      },
+      {
+        "case": "stop-automatic-continuation",
+        "name": "event-order-and-presence",
+        "pass": true,
+        "observed": [
+          "SessionStart",
+          "UserPromptSubmit",
+          "Stop",
+          "Stop",
+          "Stop",
+          "SessionEnd"
+        ],
+        "expected": [
+          "SessionStart",
+          "UserPromptSubmit",
+          "Stop",
+          "Stop",
+          "Stop",
+          "SessionEnd"
+        ]
+      },
+      {
+        "case": "stop-automatic-continuation",
+        "name": "final-target-snapshot",
+        "pass": true,
+        "observed": [],
+        "expected": null
+      },
+      {
+        "case": "stop-automatic-continuation",
+        "name": "post-tool-use-count",
+        "pass": true,
+        "observed": 0,
+        "expected": 0
+      },
+      {
+        "case": "stop-automatic-continuation",
+        "name": "user-prompt-submit-count",
+        "pass": true,
+        "observed": 1,
+        "expected": 1
+      },
+      {
+        "case": "stop-automatic-continuation",
+        "name": "stop-count",
+        "pass": true,
+        "observed": 3,
+        "expected": 3
+      },
+      {
+        "case": "stop-automatic-continuation",
+        "name": "stop-decisions",
+        "pass": true,
+        "observed": [
+          "block",
+          "block",
+          "allow"
+        ],
+        "expected": [
+          "block",
+          "block",
+          "allow"
+        ]
+      },
+      {
+        "case": "stop-automatic-continuation",
+        "name": "stop-hook-active",
+        "pass": true,
+        "observed": [
+          false,
+          true,
+          true
+        ],
+        "expected": [
+          false,
+          true,
+          true
+        ]
+      },
+      {
+        "case": "stop-automatic-continuation",
+        "name": "cleanup",
+        "pass": true,
+        "observed": true,
+        "expected": true
+      },
+      {
+        "case": "interrupt",
+        "name": "authentication-available",
+        "pass": true,
+        "observed": true,
+        "expected": true
+      },
+      {
+        "case": "interrupt",
+        "name": "process-exit-signal-timeout",
+        "pass": true,
+        "observed": {
+          "exitCode": 1,
+          "signal": null,
+          "interrupted": true,
+          "timedOut": false
+        },
+        "expected": {
+          "exitCode": 1,
+          "signal": null,
+          "interrupted": true,
+          "timedOut": false
+        }
+      },
+      {
+        "case": "interrupt",
+        "name": "event-order-and-presence",
+        "pass": true,
+        "observed": [
+          "SessionStart",
+          "UserPromptSubmit",
+          "Interrupt",
+          "SessionEnd"
+        ],
+        "expected": [
+          "SessionStart",
+          "UserPromptSubmit",
+          "Interrupt",
+          "SessionEnd"
+        ]
+      },
+      {
+        "case": "interrupt",
+        "name": "final-target-snapshot",
+        "pass": true,
+        "observed": {
+          "path": "interrupt-start.ts",
+          "exists": true,
+          "regularFile": true,
+          "size": 1,
+          "sha256": "043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89"
+        },
+        "expected": {
+          "path": "interrupt-start.ts",
+          "exists": true,
+          "regularFile": true,
+          "size": 1
+        }
+      },
+      {
+        "case": "interrupt",
+        "name": "post-tool-use-count",
+        "pass": true,
+        "observed": 0,
+        "expected": 0
+      },
+      {
+        "case": "interrupt",
+        "name": "user-prompt-submit-count",
+        "pass": true,
+        "observed": 1,
+        "expected": 1
+      },
+      {
+        "case": "interrupt",
+        "name": "stop-count",
+        "pass": true,
+        "observed": 0,
+        "expected": 0
+      },
+      {
+        "case": "interrupt",
+        "name": "stop-decisions",
+        "pass": true,
+        "observed": [],
+        "expected": []
+      },
+      {
+        "case": "interrupt",
+        "name": "stop-hook-active",
+        "pass": true,
+        "observed": [],
+        "expected": []
+      },
+      {
+        "case": "interrupt",
+        "name": "cleanup",
+        "pass": true,
+        "observed": true,
+        "expected": true
+      }
+    ]
+  },
+  "cases": [
+    {
+      "id": "bash-success",
+      "purpose": "Successful Bash write and post-tool lifecycle delivery.",
+      "invocation": "codex exec --ephemeral --json --dangerously-bypass-hook-trust --dangerously-bypass-approvals-and-sandbox --ignore-rules -C <DISPOSABLE_REPO> <prompt>",
+      "expectedEventOrder": [
+        "SessionStart",
+        "UserPromptSubmit",
+        "PostToolUse(Bash)",
+        "Stop",
+        "SessionEnd"
+      ],
+      "requestedShellCommands": [
+        "printf x > successful-bash.ts"
+      ],
+      "hostSurface": "headless codex exec JSONL",
+      "observedEventOrder": [
+        "SessionStart",
+        "UserPromptSubmit",
+        "PostToolUse(Bash)",
+        "Stop(allow)",
+        "SessionEnd"
+      ],
+      "observation": "PostToolUse(Bash) ran after the synthetic file existed; the same one-byte SHA-256 remained at Stop and SessionEnd.",
+      "limitations": [
+        "The hook input carried tool_response as an opaque string; this case relies on the resulting file snapshot, not a host-provided changed-path list."
+      ],
+      "authAvailable": true,
+      "process": {
+        "exitCode": 0,
+        "signal": null,
+        "interrupted": false,
+        "timedOut": false,
+        "durationMs": 21279,
+        "hostEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "command_execution"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "command_execution"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "hookEvents": [
+        {
+          "observedAfterMs": 13510,
+          "event": "SessionStart",
+          "permissionMode": "bypassPermissions",
+          "sessionStartSource": "startup",
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "source",
+            "transcript_path"
+          ],
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": [
+            {
+              "path": "successful-bash.ts",
+              "exists": false
+            }
+          ]
+        },
+        {
+          "observedAfterMs": 13778,
+          "event": "UserPromptSubmit",
+          "permissionMode": "bypassPermissions",
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "prompt",
+            "session_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "promptLength": 150,
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": [
+            {
+              "path": "successful-bash.ts",
+              "exists": false
+            }
+          ]
+        },
+        {
+          "observedAfterMs": 17399,
+          "event": "PostToolUse",
+          "tool": "Bash",
+          "permissionMode": "bypassPermissions",
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "toolInputKeys": [
+            "command"
+          ],
+          "toolResponse": {
+            "type": "string"
+          },
+          "targets": [
+            {
+              "path": "successful-bash.ts",
+              "exists": true,
+              "regularFile": true,
+              "size": 1,
+              "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"
+            }
+          ]
+        },
+        {
+          "observedAfterMs": 20446,
+          "event": "Stop",
+          "permissionMode": "bypassPermissions",
+          "stopHookActive": false,
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "last_assistant_message",
+            "model",
+            "permission_mode",
+            "session_id",
+            "stop_hook_active",
+            "transcript_path",
+            "turn_id"
+          ],
+          "lastAssistantMessageLength": 4,
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": [
+            {
+              "path": "successful-bash.ts",
+              "exists": true,
+              "regularFile": true,
+              "size": 1,
+              "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"
+            }
+          ],
+          "stopAttempt": 1,
+          "stopDecision": "allow"
+        },
+        {
+          "observedAfterMs": 20670,
+          "event": "SessionEnd",
+          "sessionEndReason": "other",
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "reason",
+            "session_id",
+            "transcript_path"
+          ],
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": [
+            {
+              "path": "successful-bash.ts",
+              "exists": true,
+              "regularFile": true,
+              "size": 1,
+              "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"
+            }
+          ]
+        }
+      ],
+      "finalFiles": [
+        {
+          "path": "successful-bash.ts",
+          "exists": true,
+          "regularFile": true,
+          "size": 1,
+          "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"
+        }
+      ],
+      "assertions": [
+        {
+          "name": "authentication-available",
+          "pass": true,
+          "observed": true,
+          "expected": true
+        },
+        {
+          "name": "process-exit-signal-timeout",
+          "pass": true,
+          "observed": {
+            "exitCode": 0,
+            "signal": null,
+            "interrupted": false,
+            "timedOut": false
+          },
+          "expected": {
+            "exitCode": 0,
+            "signal": null,
+            "interrupted": false,
+            "timedOut": false
+          }
+        },
+        {
+          "name": "event-order-and-presence",
+          "pass": true,
+          "observed": [
+            "SessionStart",
+            "UserPromptSubmit",
+            "PostToolUse",
+            "Stop",
+            "SessionEnd"
+          ],
+          "expected": [
+            "SessionStart",
+            "UserPromptSubmit",
+            "PostToolUse",
+            "Stop",
+            "SessionEnd"
+          ]
+        },
+        {
+          "name": "final-target-snapshot",
+          "pass": true,
+          "observed": {
+            "path": "successful-bash.ts",
+            "exists": true,
+            "regularFile": true,
+            "size": 1,
+            "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"
+          },
+          "expected": {
+            "path": "successful-bash.ts",
+            "exists": true,
+            "regularFile": true,
+            "size": 1
+          }
+        },
+        {
+          "name": "post-tool-use-count",
+          "pass": true,
+          "observed": 1,
+          "expected": 1
+        },
+        {
+          "name": "post-tool-target-snapshot",
+          "pass": true,
+          "observed": {
+            "path": "successful-bash.ts",
+            "exists": true,
+            "regularFile": true,
+            "size": 1,
+            "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"
+          },
+          "expected": {
+            "path": "successful-bash.ts",
+            "exists": true,
+            "regularFile": true,
+            "size": 1
+          }
+        },
+        {
+          "name": "user-prompt-submit-count",
+          "pass": true,
+          "observed": 1,
+          "expected": 1
+        },
+        {
+          "name": "stop-count",
+          "pass": true,
+          "observed": 1,
+          "expected": 1
+        },
+        {
+          "name": "stop-decisions",
+          "pass": true,
+          "observed": [
+            "allow"
+          ],
+          "expected": [
+            "allow"
+          ]
+        },
+        {
+          "name": "stop-hook-active",
+          "pass": true,
+          "observed": [
+            false
+          ],
+          "expected": [
+            false
+          ]
+        },
+        {
+          "name": "cleanup",
+          "pass": true,
+          "observed": true,
+          "expected": true
+        }
+      ],
+      "pass": true,
+      "cleanup": {
+        "pathsRemoved": true,
+        "description": "temporary repository, CODEX_HOME, hook capture, and stop state removed after this case"
+      }
+    },
+    {
+      "id": "bash-nonzero-side-effect",
+      "purpose": "Nonzero Bash exit with a completed side effect.",
+      "invocation": "codex exec --ephemeral --json --dangerously-bypass-hook-trust --dangerously-bypass-approvals-and-sandbox --ignore-rules -C <DISPOSABLE_REPO> <prompt>",
+      "expectedEventOrder": [
+        "SessionStart",
+        "UserPromptSubmit",
+        "PostToolUse(Bash; exit 17)",
+        "Stop",
+        "SessionEnd"
+      ],
+      "requestedShellCommands": [
+        "sh -c 'printf x > nonzero-side-effect.ts; exit 17'"
+      ],
+      "hostSurface": "headless codex exec JSONL",
+      "observedEventOrder": [
+        "SessionStart",
+        "UserPromptSubmit",
+        "PostToolUse(Bash)",
+        "Stop(allow)",
+        "SessionEnd"
+      ],
+      "observation": "PostToolUse(Bash) ran after the one-byte side effect existed even though the requested shell command exits 17; the hook saw an opaque string tool_response.",
+      "limitations": [
+        "The pinned hook payload did not expose a structured numeric exit code; the requested exit 17 is not independently retained from the source-bearing tool response."
+      ],
+      "authAvailable": true,
+      "process": {
+        "exitCode": 0,
+        "signal": null,
+        "interrupted": false,
+        "timedOut": false,
+        "durationMs": 11321,
+        "hostEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "command_execution"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "command_execution"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "hookEvents": [
+        {
+          "observedAfterMs": 4871,
+          "event": "SessionStart",
+          "permissionMode": "bypassPermissions",
+          "sessionStartSource": "startup",
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "source",
+            "transcript_path"
+          ],
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": [
+            {
+              "path": "nonzero-side-effect.ts",
+              "exists": false
+            }
+          ]
+        },
+        {
+          "observedAfterMs": 4930,
+          "event": "UserPromptSubmit",
+          "permissionMode": "bypassPermissions",
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "prompt",
+            "session_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "promptLength": 178,
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": [
+            {
+              "path": "nonzero-side-effect.ts",
+              "exists": false
+            }
+          ]
+        },
+        {
+          "observedAfterMs": 8523,
+          "event": "PostToolUse",
+          "tool": "Bash",
+          "permissionMode": "bypassPermissions",
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "toolInputKeys": [
+            "command"
+          ],
+          "toolResponse": {
+            "type": "string"
+          },
+          "targets": [
+            {
+              "path": "nonzero-side-effect.ts",
+              "exists": true,
+              "regularFile": true,
+              "size": 1,
+              "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"
+            }
+          ]
+        },
+        {
+          "observedAfterMs": 10341,
+          "event": "Stop",
+          "permissionMode": "bypassPermissions",
+          "stopHookActive": false,
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "last_assistant_message",
+            "model",
+            "permission_mode",
+            "session_id",
+            "stop_hook_active",
+            "transcript_path",
+            "turn_id"
+          ],
+          "lastAssistantMessageLength": 4,
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": [
+            {
+              "path": "nonzero-side-effect.ts",
+              "exists": true,
+              "regularFile": true,
+              "size": 1,
+              "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"
+            }
+          ],
+          "stopAttempt": 1,
+          "stopDecision": "allow"
+        },
+        {
+          "observedAfterMs": 10729,
+          "event": "SessionEnd",
+          "sessionEndReason": "other",
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "reason",
+            "session_id",
+            "transcript_path"
+          ],
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": [
+            {
+              "path": "nonzero-side-effect.ts",
+              "exists": true,
+              "regularFile": true,
+              "size": 1,
+              "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"
+            }
+          ]
+        }
+      ],
+      "finalFiles": [
+        {
+          "path": "nonzero-side-effect.ts",
+          "exists": true,
+          "regularFile": true,
+          "size": 1,
+          "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"
+        }
+      ],
+      "assertions": [
+        {
+          "name": "authentication-available",
+          "pass": true,
+          "observed": true,
+          "expected": true
+        },
+        {
+          "name": "process-exit-signal-timeout",
+          "pass": true,
+          "observed": {
+            "exitCode": 0,
+            "signal": null,
+            "interrupted": false,
+            "timedOut": false
+          },
+          "expected": {
+            "exitCode": 0,
+            "signal": null,
+            "interrupted": false,
+            "timedOut": false
+          }
+        },
+        {
+          "name": "event-order-and-presence",
+          "pass": true,
+          "observed": [
+            "SessionStart",
+            "UserPromptSubmit",
+            "PostToolUse",
+            "Stop",
+            "SessionEnd"
+          ],
+          "expected": [
+            "SessionStart",
+            "UserPromptSubmit",
+            "PostToolUse",
+            "Stop",
+            "SessionEnd"
+          ]
+        },
+        {
+          "name": "final-target-snapshot",
+          "pass": true,
+          "observed": {
+            "path": "nonzero-side-effect.ts",
+            "exists": true,
+            "regularFile": true,
+            "size": 1,
+            "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"
+          },
+          "expected": {
+            "path": "nonzero-side-effect.ts",
+            "exists": true,
+            "regularFile": true,
+            "size": 1
+          }
+        },
+        {
+          "name": "post-tool-use-count",
+          "pass": true,
+          "observed": 1,
+          "expected": 1
+        },
+        {
+          "name": "post-tool-target-snapshot",
+          "pass": true,
+          "observed": {
+            "path": "nonzero-side-effect.ts",
+            "exists": true,
+            "regularFile": true,
+            "size": 1,
+            "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"
+          },
+          "expected": {
+            "path": "nonzero-side-effect.ts",
+            "exists": true,
+            "regularFile": true,
+            "size": 1
+          }
+        },
+        {
+          "name": "user-prompt-submit-count",
+          "pass": true,
+          "observed": 1,
+          "expected": 1
+        },
+        {
+          "name": "stop-count",
+          "pass": true,
+          "observed": 1,
+          "expected": 1
+        },
+        {
+          "name": "stop-decisions",
+          "pass": true,
+          "observed": [
+            "allow"
+          ],
+          "expected": [
+            "allow"
+          ]
+        },
+        {
+          "name": "stop-hook-active",
+          "pass": true,
+          "observed": [
+            false
+          ],
+          "expected": [
+            false
+          ]
+        },
+        {
+          "name": "cleanup",
+          "pass": true,
+          "observed": true,
+          "expected": true
+        }
+      ],
+      "pass": true,
+      "cleanup": {
+        "pathsRemoved": true,
+        "description": "temporary repository, CODEX_HOME, hook capture, and stop state removed after this case"
+      }
+    },
+    {
+      "id": "long-running-unified-exec",
+      "purpose": "Post-tool timing for a command that writes before and after a delay.",
+      "invocation": "codex exec --ephemeral --json --dangerously-bypass-hook-trust --dangerously-bypass-approvals-and-sandbox --ignore-rules -C <DISPOSABLE_REPO> <prompt>",
+      "expectedEventOrder": [
+        "SessionStart",
+        "UserPromptSubmit",
+        "PostToolUse(Bash after final write)",
+        "Stop",
+        "SessionEnd"
+      ],
+      "requestedShellCommands": [
+        "sh -c 'printf s > long-running.ts; sleep 3; printf e >> long-running.ts'"
+      ],
+      "hostSurface": "headless codex exec JSONL; no separate write_stdin call was exposed for this run",
+      "observedEventOrder": [
+        "SessionStart",
+        "UserPromptSubmit",
+        "PostToolUse(Bash)",
+        "Stop(allow)",
+        "SessionEnd"
+      ],
+      "observation": "PostToolUse(Bash) ran only after the target reached its final two-byte snapshot; the hook did not observe the intermediate one-byte state.",
+      "limitations": [
+        "This headless model run used one Bash command; separate unified-exec/write_stdin transport was not exercised."
+      ],
+      "authAvailable": true,
+      "process": {
+        "exitCode": 0,
+        "signal": null,
+        "interrupted": false,
+        "timedOut": false,
+        "durationMs": 19280,
+        "hostEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "command_execution"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "command_execution"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "hookEvents": [
+        {
+          "observedAfterMs": 6188,
+          "event": "SessionStart",
+          "permissionMode": "bypassPermissions",
+          "sessionStartSource": "startup",
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "source",
+            "transcript_path"
+          ],
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": [
+            {
+              "path": "long-running.ts",
+              "exists": false
+            }
+          ]
+        },
+        {
+          "observedAfterMs": 6331,
+          "event": "UserPromptSubmit",
+          "permissionMode": "bypassPermissions",
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "prompt",
+            "session_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "promptLength": 193,
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": [
+            {
+              "path": "long-running.ts",
+              "exists": false
+            }
+          ]
+        },
+        {
+          "observedAfterMs": 14714,
+          "event": "PostToolUse",
+          "tool": "Bash",
+          "permissionMode": "bypassPermissions",
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "toolInputKeys": [
+            "command"
+          ],
+          "toolResponse": {
+            "type": "string"
+          },
+          "targets": [
+            {
+              "path": "long-running.ts",
+              "exists": true,
+              "regularFile": true,
+              "size": 2,
+              "sha256": "ad9a67fefa847de87753df6794a0ae466431e76ad1fb4db58fbbe836d1dde0e7"
+            }
+          ]
+        },
+        {
+          "observedAfterMs": 17988,
+          "event": "Stop",
+          "permissionMode": "bypassPermissions",
+          "stopHookActive": false,
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "last_assistant_message",
+            "model",
+            "permission_mode",
+            "session_id",
+            "stop_hook_active",
+            "transcript_path",
+            "turn_id"
+          ],
+          "lastAssistantMessageLength": 4,
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": [
+            {
+              "path": "long-running.ts",
+              "exists": true,
+              "regularFile": true,
+              "size": 2,
+              "sha256": "ad9a67fefa847de87753df6794a0ae466431e76ad1fb4db58fbbe836d1dde0e7"
+            }
+          ],
+          "stopAttempt": 1,
+          "stopDecision": "allow"
+        },
+        {
+          "observedAfterMs": 18525,
+          "event": "SessionEnd",
+          "sessionEndReason": "other",
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "reason",
+            "session_id",
+            "transcript_path"
+          ],
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": [
+            {
+              "path": "long-running.ts",
+              "exists": true,
+              "regularFile": true,
+              "size": 2,
+              "sha256": "ad9a67fefa847de87753df6794a0ae466431e76ad1fb4db58fbbe836d1dde0e7"
+            }
+          ]
+        }
+      ],
+      "finalFiles": [
+        {
+          "path": "long-running.ts",
+          "exists": true,
+          "regularFile": true,
+          "size": 2,
+          "sha256": "ad9a67fefa847de87753df6794a0ae466431e76ad1fb4db58fbbe836d1dde0e7"
+        }
+      ],
+      "assertions": [
+        {
+          "name": "authentication-available",
+          "pass": true,
+          "observed": true,
+          "expected": true
+        },
+        {
+          "name": "process-exit-signal-timeout",
+          "pass": true,
+          "observed": {
+            "exitCode": 0,
+            "signal": null,
+            "interrupted": false,
+            "timedOut": false
+          },
+          "expected": {
+            "exitCode": 0,
+            "signal": null,
+            "interrupted": false,
+            "timedOut": false
+          }
+        },
+        {
+          "name": "event-order-and-presence",
+          "pass": true,
+          "observed": [
+            "SessionStart",
+            "UserPromptSubmit",
+            "PostToolUse",
+            "Stop",
+            "SessionEnd"
+          ],
+          "expected": [
+            "SessionStart",
+            "UserPromptSubmit",
+            "PostToolUse",
+            "Stop",
+            "SessionEnd"
+          ]
+        },
+        {
+          "name": "final-target-snapshot",
+          "pass": true,
+          "observed": {
+            "path": "long-running.ts",
+            "exists": true,
+            "regularFile": true,
+            "size": 2,
+            "sha256": "ad9a67fefa847de87753df6794a0ae466431e76ad1fb4db58fbbe836d1dde0e7"
+          },
+          "expected": {
+            "path": "long-running.ts",
+            "exists": true,
+            "regularFile": true,
+            "size": 2
+          }
+        },
+        {
+          "name": "post-tool-use-count",
+          "pass": true,
+          "observed": 1,
+          "expected": 1
+        },
+        {
+          "name": "post-tool-target-snapshot",
+          "pass": true,
+          "observed": {
+            "path": "long-running.ts",
+            "exists": true,
+            "regularFile": true,
+            "size": 2,
+            "sha256": "ad9a67fefa847de87753df6794a0ae466431e76ad1fb4db58fbbe836d1dde0e7"
+          },
+          "expected": {
+            "path": "long-running.ts",
+            "exists": true,
+            "regularFile": true,
+            "size": 2
+          }
+        },
+        {
+          "name": "user-prompt-submit-count",
+          "pass": true,
+          "observed": 1,
+          "expected": 1
+        },
+        {
+          "name": "stop-count",
+          "pass": true,
+          "observed": 1,
+          "expected": 1
+        },
+        {
+          "name": "stop-decisions",
+          "pass": true,
+          "observed": [
+            "allow"
+          ],
+          "expected": [
+            "allow"
+          ]
+        },
+        {
+          "name": "stop-hook-active",
+          "pass": true,
+          "observed": [
+            false
+          ],
+          "expected": [
+            false
+          ]
+        },
+        {
+          "name": "cleanup",
+          "pass": true,
+          "observed": true,
+          "expected": true
+        }
+      ],
+      "pass": true,
+      "cleanup": {
+        "pathsRemoved": true,
+        "description": "temporary repository, CODEX_HOME, hook capture, and stop state removed after this case"
+      }
+    },
+    {
+      "id": "stop-normal",
+      "purpose": "Stop after a normal no-tool turn and clean session end.",
+      "invocation": "codex exec --ephemeral --json --dangerously-bypass-hook-trust --dangerously-bypass-approvals-and-sandbox --ignore-rules -C <DISPOSABLE_REPO> <prompt>",
+      "expectedEventOrder": [
+        "SessionStart",
+        "UserPromptSubmit",
+        "Stop",
+        "SessionEnd"
+      ],
+      "requestedShellCommands": [],
+      "hostSurface": "headless codex exec JSONL",
+      "observedEventOrder": [
+        "SessionStart",
+        "UserPromptSubmit",
+        "Stop(allow)",
+        "SessionEnd"
+      ],
+      "observation": "A normal no-tool turn emitted one UserPromptSubmit, one Stop with stop_hook_active=false, and one SessionEnd(reason=other).",
+      "limitations": [
+        "Interactive TUI behavior was not claimed."
+      ],
+      "authAvailable": true,
+      "process": {
+        "exitCode": 0,
+        "signal": null,
+        "interrupted": false,
+        "timedOut": false,
+        "durationMs": 8759,
+        "hostEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "hookEvents": [
+        {
+          "observedAfterMs": 5046,
+          "event": "SessionStart",
+          "permissionMode": "bypassPermissions",
+          "sessionStartSource": "startup",
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "source",
+            "transcript_path"
+          ],
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": []
+        },
+        {
+          "observedAfterMs": 5081,
+          "event": "UserPromptSubmit",
+          "permissionMode": "bypassPermissions",
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "prompt",
+            "session_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "promptLength": 41,
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": []
+        },
+        {
+          "observedAfterMs": 7752,
+          "event": "Stop",
+          "permissionMode": "bypassPermissions",
+          "stopHookActive": false,
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "last_assistant_message",
+            "model",
+            "permission_mode",
+            "session_id",
+            "stop_hook_active",
+            "transcript_path",
+            "turn_id"
+          ],
+          "lastAssistantMessageLength": 4,
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": [],
+          "stopAttempt": 1,
+          "stopDecision": "allow"
+        },
+        {
+          "observedAfterMs": 8277,
+          "event": "SessionEnd",
+          "sessionEndReason": "other",
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "reason",
+            "session_id",
+            "transcript_path"
+          ],
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": []
+        }
+      ],
+      "finalFiles": [],
+      "assertions": [
+        {
+          "name": "authentication-available",
+          "pass": true,
+          "observed": true,
+          "expected": true
+        },
+        {
+          "name": "process-exit-signal-timeout",
+          "pass": true,
+          "observed": {
+            "exitCode": 0,
+            "signal": null,
+            "interrupted": false,
+            "timedOut": false
+          },
+          "expected": {
+            "exitCode": 0,
+            "signal": null,
+            "interrupted": false,
+            "timedOut": false
+          }
+        },
+        {
+          "name": "event-order-and-presence",
+          "pass": true,
+          "observed": [
+            "SessionStart",
+            "UserPromptSubmit",
+            "Stop",
+            "SessionEnd"
+          ],
+          "expected": [
+            "SessionStart",
+            "UserPromptSubmit",
+            "Stop",
+            "SessionEnd"
+          ]
+        },
+        {
+          "name": "final-target-snapshot",
+          "pass": true,
+          "observed": [],
+          "expected": null
+        },
+        {
+          "name": "post-tool-use-count",
+          "pass": true,
+          "observed": 0,
+          "expected": 0
+        },
+        {
+          "name": "user-prompt-submit-count",
+          "pass": true,
+          "observed": 1,
+          "expected": 1
+        },
+        {
+          "name": "stop-count",
+          "pass": true,
+          "observed": 1,
+          "expected": 1
+        },
+        {
+          "name": "stop-decisions",
+          "pass": true,
+          "observed": [
+            "allow"
+          ],
+          "expected": [
+            "allow"
+          ]
+        },
+        {
+          "name": "stop-hook-active",
+          "pass": true,
+          "observed": [
+            false
+          ],
+          "expected": [
+            false
+          ]
+        },
+        {
+          "name": "cleanup",
+          "pass": true,
+          "observed": true,
+          "expected": true
+        }
+      ],
+      "pass": true,
+      "cleanup": {
+        "pathsRemoved": true,
+        "description": "temporary repository, CODEX_HOME, hook capture, and stop state removed after this case"
+      }
+    },
+    {
+      "id": "stop-automatic-continuation",
+      "purpose": "Stop-triggered automatic continuations and UserPromptSubmit delivery.",
+      "invocation": "codex exec --ephemeral --json --dangerously-bypass-hook-trust --dangerously-bypass-approvals-and-sandbox --ignore-rules -C <DISPOSABLE_REPO> <prompt>",
+      "expectedEventOrder": [
+        "SessionStart",
+        "UserPromptSubmit(initial)",
+        "Stop(block)",
+        "automatic continuation",
+        "Stop(block)",
+        "automatic continuation",
+        "Stop(allow)",
+        "SessionEnd"
+      ],
+      "requestedShellCommands": [],
+      "hostSurface": "headless codex exec JSONL",
+      "observedEventOrder": [
+        "SessionStart",
+        "UserPromptSubmit",
+        "Stop(block)",
+        "Stop(block)",
+        "Stop(allow)",
+        "SessionEnd"
+      ],
+      "observation": "Two Stop hooks returned block and triggered two automatic continuations; a third Stop allowed completion. Only the initial UserPromptSubmit hook ran.",
+      "limitations": [
+        "This is a bounded two-continuation fixture, not a guarantee for every future autonomous-goal mode or host release."
+      ],
+      "authAvailable": true,
+      "process": {
+        "exitCode": 0,
+        "signal": null,
+        "interrupted": false,
+        "timedOut": false,
+        "durationMs": 14088,
+        "hostEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "hookEvents": [
+        {
+          "observedAfterMs": 4898,
+          "event": "SessionStart",
+          "permissionMode": "bypassPermissions",
+          "sessionStartSource": "startup",
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "source",
+            "transcript_path"
+          ],
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": []
+        },
+        {
+          "observedAfterMs": 5036,
+          "event": "UserPromptSubmit",
+          "permissionMode": "bypassPermissions",
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "prompt",
+            "session_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "promptLength": 83,
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": []
+        },
+        {
+          "observedAfterMs": 8147,
+          "event": "Stop",
+          "permissionMode": "bypassPermissions",
+          "stopHookActive": false,
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "last_assistant_message",
+            "model",
+            "permission_mode",
+            "session_id",
+            "stop_hook_active",
+            "transcript_path",
+            "turn_id"
+          ],
+          "lastAssistantMessageLength": 4,
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": [],
+          "stopAttempt": 1,
+          "stopDecision": "block"
+        },
+        {
+          "observedAfterMs": 10645,
+          "event": "Stop",
+          "permissionMode": "bypassPermissions",
+          "stopHookActive": true,
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "last_assistant_message",
+            "model",
+            "permission_mode",
+            "session_id",
+            "stop_hook_active",
+            "transcript_path",
+            "turn_id"
+          ],
+          "lastAssistantMessageLength": 4,
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": [],
+          "stopAttempt": 2,
+          "stopDecision": "block"
+        },
+        {
+          "observedAfterMs": 13240,
+          "event": "Stop",
+          "permissionMode": "bypassPermissions",
+          "stopHookActive": true,
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "last_assistant_message",
+            "model",
+            "permission_mode",
+            "session_id",
+            "stop_hook_active",
+            "transcript_path",
+            "turn_id"
+          ],
+          "lastAssistantMessageLength": 4,
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": [],
+          "stopAttempt": 3,
+          "stopDecision": "allow"
+        },
+        {
+          "observedAfterMs": 13506,
+          "event": "SessionEnd",
+          "sessionEndReason": "other",
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "reason",
+            "session_id",
+            "transcript_path"
+          ],
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": []
+        }
+      ],
+      "finalFiles": [],
+      "assertions": [
+        {
+          "name": "authentication-available",
+          "pass": true,
+          "observed": true,
+          "expected": true
+        },
+        {
+          "name": "process-exit-signal-timeout",
+          "pass": true,
+          "observed": {
+            "exitCode": 0,
+            "signal": null,
+            "interrupted": false,
+            "timedOut": false
+          },
+          "expected": {
+            "exitCode": 0,
+            "signal": null,
+            "interrupted": false,
+            "timedOut": false
+          }
+        },
+        {
+          "name": "event-order-and-presence",
+          "pass": true,
+          "observed": [
+            "SessionStart",
+            "UserPromptSubmit",
+            "Stop",
+            "Stop",
+            "Stop",
+            "SessionEnd"
+          ],
+          "expected": [
+            "SessionStart",
+            "UserPromptSubmit",
+            "Stop",
+            "Stop",
+            "Stop",
+            "SessionEnd"
+          ]
+        },
+        {
+          "name": "final-target-snapshot",
+          "pass": true,
+          "observed": [],
+          "expected": null
+        },
+        {
+          "name": "post-tool-use-count",
+          "pass": true,
+          "observed": 0,
+          "expected": 0
+        },
+        {
+          "name": "user-prompt-submit-count",
+          "pass": true,
+          "observed": 1,
+          "expected": 1
+        },
+        {
+          "name": "stop-count",
+          "pass": true,
+          "observed": 3,
+          "expected": 3
+        },
+        {
+          "name": "stop-decisions",
+          "pass": true,
+          "observed": [
+            "block",
+            "block",
+            "allow"
+          ],
+          "expected": [
+            "block",
+            "block",
+            "allow"
+          ]
+        },
+        {
+          "name": "stop-hook-active",
+          "pass": true,
+          "observed": [
+            false,
+            true,
+            true
+          ],
+          "expected": [
+            false,
+            true,
+            true
+          ]
+        },
+        {
+          "name": "cleanup",
+          "pass": true,
+          "observed": true,
+          "expected": true
+        }
+      ],
+      "pass": true,
+      "cleanup": {
+        "pathsRemoved": true,
+        "description": "temporary repository, CODEX_HOME, hook capture, and stop state removed after this case"
+      }
+    },
+    {
+      "id": "interrupt",
+      "purpose": "Interrupt during an active long-running Bash command, if safely reachable.",
+      "invocation": "codex exec --ephemeral --json --dangerously-bypass-hook-trust --dangerously-bypass-approvals-and-sandbox --ignore-rules -C <DISPOSABLE_REPO> <prompt>; send SIGINT after interrupt-start.ts appears",
+      "expectedEventOrder": [
+        "SessionStart",
+        "UserPromptSubmit",
+        "PostToolUse(Bash) may be absent",
+        "Interrupt",
+        "SessionEnd may be absent"
+      ],
+      "requestedShellCommands": [
+        "sh -c 'printf s > interrupt-start.ts; sleep 20; printf e >> interrupt-start.ts'"
+      ],
+      "hostSurface": "headless codex exec JSONL with process SIGINT; interactive PTY not run",
+      "observedEventOrder": [
+        "SessionStart",
+        "UserPromptSubmit",
+        "Interrupt",
+        "SessionEnd"
+      ],
+      "observation": "SIGINT was sent after the one-byte start marker appeared. Interrupt and SessionEnd(reason=other) hooks ran; PostToolUse(Bash) did not run before termination and the final file remained one byte.",
+      "limitations": [
+        "The process was interrupted from outside the CLI; this does not establish behavior for terminal closure, kernel kill, or every interactive interrupt path."
+      ],
+      "authAvailable": true,
+      "process": {
+        "exitCode": 1,
+        "signal": null,
+        "interrupted": true,
+        "timedOut": false,
+        "durationMs": 11332,
+        "hostEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "command_execution"
+          }
+        ]
+      },
+      "hookEvents": [
+        {
+          "observedAfterMs": 5976,
+          "event": "SessionStart",
+          "permissionMode": "bypassPermissions",
+          "sessionStartSource": "startup",
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "source",
+            "transcript_path"
+          ],
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": [
+            {
+              "path": "interrupt-start.ts",
+              "exists": false
+            }
+          ]
+        },
+        {
+          "observedAfterMs": 6123,
+          "event": "UserPromptSubmit",
+          "permissionMode": "bypassPermissions",
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "prompt",
+            "session_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "promptLength": 158,
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": [
+            {
+              "path": "interrupt-start.ts",
+              "exists": false
+            }
+          ]
+        },
+        {
+          "observedAfterMs": 10455,
+          "event": "Interrupt",
+          "permissionMode": "bypassPermissions",
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": [
+            {
+              "path": "interrupt-start.ts",
+              "exists": true,
+              "regularFile": true,
+              "size": 1,
+              "sha256": "043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89"
+            }
+          ]
+        },
+        {
+          "observedAfterMs": 10762,
+          "event": "SessionEnd",
+          "sessionEndReason": "other",
+          "inputKeys": [
+            "cwd",
+            "hook_event_name",
+            "reason",
+            "session_id",
+            "transcript_path"
+          ],
+          "toolInputKeys": [],
+          "toolResponse": {
+            "type": "null"
+          },
+          "targets": [
+            {
+              "path": "interrupt-start.ts",
+              "exists": true,
+              "regularFile": true,
+              "size": 1,
+              "sha256": "043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89"
+            }
+          ]
+        }
+      ],
+      "finalFiles": [
+        {
+          "path": "interrupt-start.ts",
+          "exists": true,
+          "regularFile": true,
+          "size": 1,
+          "sha256": "043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89"
+        }
+      ],
+      "assertions": [
+        {
+          "name": "authentication-available",
+          "pass": true,
+          "observed": true,
+          "expected": true
+        },
+        {
+          "name": "process-exit-signal-timeout",
+          "pass": true,
+          "observed": {
+            "exitCode": 1,
+            "signal": null,
+            "interrupted": true,
+            "timedOut": false
+          },
+          "expected": {
+            "exitCode": 1,
+            "signal": null,
+            "interrupted": true,
+            "timedOut": false
+          }
+        },
+        {
+          "name": "event-order-and-presence",
+          "pass": true,
+          "observed": [
+            "SessionStart",
+            "UserPromptSubmit",
+            "Interrupt",
+            "SessionEnd"
+          ],
+          "expected": [
+            "SessionStart",
+            "UserPromptSubmit",
+            "Interrupt",
+            "SessionEnd"
+          ]
+        },
+        {
+          "name": "final-target-snapshot",
+          "pass": true,
+          "observed": {
+            "path": "interrupt-start.ts",
+            "exists": true,
+            "regularFile": true,
+            "size": 1,
+            "sha256": "043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89"
+          },
+          "expected": {
+            "path": "interrupt-start.ts",
+            "exists": true,
+            "regularFile": true,
+            "size": 1
+          }
+        },
+        {
+          "name": "post-tool-use-count",
+          "pass": true,
+          "observed": 0,
+          "expected": 0
+        },
+        {
+          "name": "user-prompt-submit-count",
+          "pass": true,
+          "observed": 1,
+          "expected": 1
+        },
+        {
+          "name": "stop-count",
+          "pass": true,
+          "observed": 0,
+          "expected": 0
+        },
+        {
+          "name": "stop-decisions",
+          "pass": true,
+          "observed": [],
+          "expected": []
+        },
+        {
+          "name": "stop-hook-active",
+          "pass": true,
+          "observed": [],
+          "expected": []
+        },
+        {
+          "name": "cleanup",
+          "pass": true,
+          "observed": true,
+          "expected": true
+        }
+      ],
+      "pass": true,
+      "cleanup": {
+        "pathsRemoved": true,
+        "description": "temporary repository, CODEX_HOME, hook capture, and stop state removed after this case"
+      }
+    }
+  ],
+  "unexecuted": [
+    {
+      "case": "write_stdin",
+      "reason": "The pinned headless run exposed only the Bash hook surface; no separate write_stdin invocation was available to drive safely. The long-running Bash case verifies completion-after-final-write behavior only."
+    },
+    {
+      "case": "interactive-pty",
+      "reason": "No interactive PTY automation was used in this bounded probe; headless lifecycle only is claimed."
+    }
+  ],
+  "retention": "Only event names, whitelisted metadata, synthetic target sizes, and SHA-256 digests were retained. Raw commands from hook input, prompt text, tool responses, host JSONL, stderr, transcripts, credentials, and source text were discarded.",
+  "cleanup": "Every case removed its disposable repository, temporary CODEX_HOME, hook capture, and stop-state files in a finally block."
+}

@@ -1,6 +1,6 @@
 # Codex CLI 0.155.1 runtime evidence
 
-**Dates:** 2026-09-19 (baseline probes), 2026-09-20 (diagnostic-channel probe)
+**Dates:** 2026-09-19 (baseline probes), 2026-09-20 (issue-4 lifecycle and diagnostic-channel probes)
 **Platform:** Linux, headless `codex exec --ephemeral --json` and interactive TUI
 **Codex:** `codex-cli 0.155.1`
 **Pinned source:** annotated tag `rust-v0.155.1`, tag object
@@ -11,6 +11,41 @@ The probes used a temporary `CODEX_HOME`, a disposable Git repository, and the r
 scripts in `probe/`. Only authentication material was copied into the temporary home. The
 user's configuration was not read or changed. `--dangerously-bypass-hook-trust` was limited
 to this isolated, reviewed configuration. No Jev request was made.
+
+## Issue-4 lifecycle evidence
+
+The exact replay command for the retained issue-4 lifecycle ledger is:
+
+```sh
+node evidence/codex/0.155.1/probe/issue-4-lifecycle.mjs
+```
+
+It ran on Linux arm64 with Node `v24.20.0`, Git `2.39.5`, and `codex-cli 0.155.1`. The runner
+created disposable repositories on `master`, temporary mode-600 Codex homes, and source-free
+hook captures. Successful Bash, nonzero Bash with a side effect, delayed final-state Bash, normal
+Stop, two Stop-driven continuations, and external SIGINT were exercised. The successful and
+continuation processes exited `0`; the interrupted process exited `1` with `SIGINT` handling. The
+continuation case observed three Stop attempts and only the initial `UserPromptSubmit`; the
+delayed-write case observed only the final snapshot; the interrupt case observed `Interrupt` and
+`SessionEnd` without `PostToolUse(Bash)`.
+
+The retained ledger assertions report `overallPass: true`, `69/69` assertions passed, `0` failed,
+and `replayExitCode: 0`. The root environment assertions also confirm the expected Codex version,
+Git availability, temporary-root cleanup, no Jev call, no retained credentials, and no retained raw
+source.
+
+Retained paths are [`issue-4-lifecycle.mjs`](./probe/issue-4-lifecycle.mjs),
+[`issue-4-lifecycle-hook.mjs`](./probe/issue-4-lifecycle-hook.mjs), and
+[`issue-4-lifecycle-2026-09-20.json`](./issue-4-lifecycle-2026-09-20.json). The ledger retains
+versions, commands with disposable placeholders, expected/observed event order, process exit
+status, final file sizes/hashes, and bounded timing. It retains no transcripts, command output,
+credentials, or source bytes.
+
+This is a headless direct-Bash claim only. Separate unified-exec/`write_stdin` transport,
+interactive issue-4 PTY, restart/resume, kill/terminal-close, and another host release were not
+exercised. The nonzero Bash fixture proves a side effect and post-event delivery, but the hook
+payload exposes `tool_response` as an opaque string, so numeric exit `17` is not claimed as a
+structured host fact.
 
 ## Observations
 

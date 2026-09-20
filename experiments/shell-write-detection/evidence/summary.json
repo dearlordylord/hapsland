@@ -1,0 +1,479 @@
+{
+  "schemaVersion": 2,
+  "experiment": "shell-write-detection",
+  "sourceFree": true,
+  "replay": {
+    "environment": {
+      "node": "v24.20.0",
+      "git": "git version 2.39.5",
+      "os": "Linux",
+      "osVersion": "#1 SMP PREEMPT Fri Aug  7 03:48:40 UTC 2026",
+      "platform": "linux",
+      "arch": "arm64",
+      "kernel": "7.0.14-orbstack-00380-ga7e0a2dc9535"
+    },
+    "command": "node --experimental-strip-types experiments/shell-write-detection/run.ts --write-evidence",
+    "config": {
+      "basePolicy": {
+        "includes": [
+          "**/*"
+        ],
+        "excludes": [
+          "excluded/**"
+        ],
+        "digest": "865d817f1af8dc971f6477007a810567f48085c50e21ab70b3312323fe8c2ff2"
+      },
+      "partialExclusionPolicy": {
+        "includes": [
+          "**/*"
+        ],
+        "excludes": [
+          "excluded/*.ts"
+        ],
+        "digest": "28dfeba934744f7e4b23fd763a7dba4ce981d135a98ddb9ffe09857510604611"
+      },
+      "syntheticBenchmarkFileCounts": [
+        1000,
+        10000
+      ],
+      "actualRepositoryBenchmark": true,
+      "sourceFreeEvidence": true
+    },
+    "expectedOutcome": {
+      "allScenariosPass": true,
+      "concurrentDirectoryAddIsIncomplete": true,
+      "mixedExtensionExclusionReadsNoExcludedType": true,
+      "noSourceBytesRetained": true
+    },
+    "observedOutcome": {
+      "allScenariosPassed": true,
+      "scenarioCount": 12,
+      "passedCount": 12,
+      "failedScenarioIds": [],
+      "benchmarkRowCount": 10
+    },
+    "exitStatus": 0,
+    "retainedPaths": [
+      "experiments/shell-write-detection/evidence/records.jsonl",
+      "experiments/shell-write-detection/evidence/summary.json",
+      "experiments/shell-write-detection/evidence/README.txt"
+    ],
+    "benchmarkInterpretation": "Benchmark rows are one observational sample per phase on the replay host, not a statistical latency guarantee.",
+    "unavailableScope": [
+      "multiprocess state locking and cross-process idempotence",
+      "writes during host review or after the final tree-stability boundary",
+      "full product policy and consent-layer fidelity; only the captured experiment policy is exercised",
+      "oversized files and maxFiles/maxBytes over-budget behavior"
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "dirty-start",
+      "passed": true,
+      "status": "complete",
+      "coverage": "complete",
+      "changes": [
+        {
+          "path": "src/tracked.ts",
+          "kind": "modified"
+        }
+      ],
+      "issueSummary": [],
+      "facts": {
+        "advanced": true,
+        "filesVisited": 3,
+        "eligibleFiles": 2,
+        "bytesRead": 61,
+        "contentReads": 2,
+        "baselineIncludedPreexistingDirtyFile": true
+      }
+    },
+    {
+      "id": "add-modify-delete-rename-as-delete-plus-add",
+      "passed": true,
+      "status": "complete",
+      "coverage": "complete",
+      "changes": [
+        {
+          "path": "src/add.ts",
+          "kind": "added"
+        },
+        {
+          "path": "src/change.ts",
+          "kind": "modified"
+        },
+        {
+          "path": "src/remove.ts",
+          "kind": "deleted"
+        },
+        {
+          "path": "src/rename-new.ts",
+          "kind": "added"
+        },
+        {
+          "path": "src/rename-old.ts",
+          "kind": "deleted"
+        }
+      ],
+      "issueSummary": [],
+      "facts": {
+        "advanced": true,
+        "filesVisited": 5,
+        "eligibleFiles": 4,
+        "bytesRead": 99,
+        "contentReads": 4,
+        "gitHintCount": 5,
+        "renameIdentityInferred": false
+      }
+    },
+    {
+      "id": "product-eligible-ignored-untracked-and-excluded-sentinel",
+      "passed": true,
+      "status": "complete",
+      "coverage": "complete",
+      "changes": [
+        {
+          "path": "src/ignored.ts",
+          "kind": "added"
+        },
+        {
+          "path": "src/untracked.ts",
+          "kind": "added"
+        }
+      ],
+      "issueSummary": [],
+      "facts": {
+        "advanced": true,
+        "filesVisited": 4,
+        "eligibleFiles": 3,
+        "bytesRead": 86,
+        "contentReads": 3,
+        "ignoredHintObserved": true,
+        "ignoredEligibleDetected": true,
+        "excludedReadCount": 0,
+        "excludedPersisted": false,
+        "excludedEmitted": false
+      }
+    },
+    {
+      "id": "partial-exclude-traverses-mixed-extension-directory",
+      "passed": true,
+      "status": "complete",
+      "coverage": "complete",
+      "changes": [
+        {
+          "path": "excluded/keep.js",
+          "kind": "added"
+        }
+      ],
+      "issueSummary": [],
+      "facts": {
+        "advanced": true,
+        "filesVisited": 4,
+        "eligibleFiles": 2,
+        "bytesRead": 46,
+        "contentReads": 2,
+        "excludedTypeNeverRead": true,
+        "eligibleSiblingIncluded": true,
+        "excludedSentinelPersisted": false
+      }
+    },
+    {
+      "id": "exact-revert-before-checkpoint",
+      "passed": true,
+      "status": "complete",
+      "coverage": "complete",
+      "changes": [],
+      "issueSummary": [],
+      "facts": {
+        "advanced": true,
+        "filesVisited": 2,
+        "eligibleFiles": 1,
+        "bytesRead": 26,
+        "contentReads": 1,
+        "netChangeOnly": true
+      }
+    },
+    {
+      "id": "symlink-and-nonregular-skipped",
+      "passed": true,
+      "status": "complete",
+      "coverage": "complete",
+      "changes": [],
+      "issueSummary": [],
+      "facts": {
+        "advanced": true,
+        "filesVisited": 3,
+        "eligibleFiles": 2,
+        "bytesRead": 51,
+        "contentReads": 2,
+        "symlinkReadCount": 0,
+        "nonregularReadCount": 0
+      }
+    },
+    {
+      "id": "mutation-during-stable-read",
+      "passed": true,
+      "status": "incomplete",
+      "coverage": "unknown",
+      "changes": [],
+      "issueSummary": [
+        {
+          "code": "unstable_read",
+          "count": 1
+        }
+      ],
+      "facts": {
+        "advanced": false,
+        "filesVisited": 2,
+        "eligibleFiles": 1,
+        "bytesRead": 30,
+        "contentReads": 1,
+        "staleReadRejected": true,
+        "nextCheckpointFindsMutation": true
+      }
+    },
+    {
+      "id": "concurrent-add-in-already-enumerated-directory-is-incomplete",
+      "passed": true,
+      "status": "incomplete",
+      "coverage": "unknown",
+      "changes": [],
+      "issueSummary": [
+        {
+          "code": "unstable_read",
+          "count": 1
+        }
+      ],
+      "facts": {
+        "advanced": false,
+        "filesVisited": 4,
+        "eligibleFiles": 3,
+        "bytesRead": 82,
+        "contentReads": 3,
+        "injectedWhileSiblingEnumerated": true,
+        "treeMutationRejected": true,
+        "stateAdvancedOnMutation": false,
+        "nextCheckpointFindsLateFile": true
+      }
+    },
+    {
+      "id": "enumeration-or-read-failure-is-incomplete",
+      "passed": true,
+      "status": "incomplete",
+      "coverage": "unknown",
+      "changes": [],
+      "issueSummary": [
+        {
+          "code": "enumeration_error",
+          "count": 1
+        }
+      ],
+      "facts": {
+        "advanced": false,
+        "filesVisited": 1,
+        "eligibleFiles": 0,
+        "bytesRead": 0,
+        "contentReads": 0,
+        "readFailureIncomplete": true,
+        "enumerationFailureIncomplete": true,
+        "stateAdvancedOnFailure": false,
+        "partialCleanPublished": false
+      }
+    },
+    {
+      "id": "duplicate-triggers-idempotent",
+      "passed": true,
+      "status": "complete",
+      "coverage": "complete",
+      "changes": [],
+      "issueSummary": [],
+      "facts": {
+        "advanced": true,
+        "filesVisited": 3,
+        "eligibleFiles": 2,
+        "bytesRead": 57,
+        "contentReads": 2,
+        "firstTriggerChanges": 1,
+        "duplicateChanges": 0
+      }
+    },
+    {
+      "id": "valid-corrupt-and-incompatible-restart",
+      "passed": true,
+      "status": "baseline_reset",
+      "coverage": "unknown",
+      "changes": [],
+      "issueSummary": [
+        {
+          "code": "enumeration_error",
+          "count": 1
+        }
+      ],
+      "facts": {
+        "advanced": true,
+        "filesVisited": 3,
+        "eligibleFiles": 2,
+        "bytesRead": 52,
+        "contentReads": 2,
+        "validRestartRecovered": true,
+        "corruptStateDidNotReconstructChanges": true,
+        "incompatibleStateDidNotReconstructChanges": true
+      }
+    },
+    {
+      "id": "separate-worktree-state-identity",
+      "passed": true,
+      "status": "complete",
+      "coverage": "complete",
+      "changes": [
+        {
+          "path": "src/tracked.ts",
+          "kind": "modified"
+        }
+      ],
+      "issueSummary": [],
+      "facts": {
+        "advanced": true,
+        "filesVisited": 3,
+        "eligibleFiles": 1,
+        "bytesRead": 26,
+        "contentReads": 1,
+        "distinctStateFiles": true,
+        "primaryUnaffected": true
+      }
+    }
+  ],
+  "benchmarks": [
+    {
+      "tree": "actual-repository",
+      "files": 243,
+      "phase": "cold-baseline",
+      "eligibleFiles": 243,
+      "bytesRead": 2118500,
+      "contentReads": 243,
+      "stateBytes": 38871,
+      "wallMs": 222.26,
+      "cpuUserMs": 58.77,
+      "cpuSystemMs": 61.79,
+      "changes": 0
+    },
+    {
+      "tree": "actual-repository",
+      "files": 243,
+      "phase": "warm-no-change",
+      "eligibleFiles": 243,
+      "bytesRead": 2118500,
+      "contentReads": 243,
+      "stateBytes": 38871,
+      "wallMs": 174.9,
+      "cpuUserMs": 53.24,
+      "cpuSystemMs": 38.42,
+      "changes": 0
+    },
+    {
+      "tree": "synthetic-1000",
+      "files": 1000,
+      "phase": "cold-baseline",
+      "eligibleFiles": 1001,
+      "bytesRead": 28806,
+      "contentReads": 1001,
+      "stateBytes": 133445,
+      "wallMs": 699.33,
+      "cpuUserMs": 140.63,
+      "cpuSystemMs": 64.07,
+      "changes": 0
+    },
+    {
+      "tree": "synthetic-1000",
+      "files": 1000,
+      "phase": "warm-no-change",
+      "eligibleFiles": 1001,
+      "bytesRead": 28806,
+      "contentReads": 1001,
+      "stateBytes": 133445,
+      "wallMs": 273.29,
+      "cpuUserMs": 101,
+      "cpuSystemMs": 37.89,
+      "changes": 0
+    },
+    {
+      "tree": "synthetic-1000",
+      "files": 1000,
+      "phase": "one-file-change",
+      "eligibleFiles": 1001,
+      "bytesRead": 28811,
+      "contentReads": 1001,
+      "stateBytes": 133445,
+      "wallMs": 4170.15,
+      "cpuUserMs": 307.36,
+      "cpuSystemMs": 124.91,
+      "changes": 1
+    },
+    {
+      "tree": "synthetic-1000",
+      "files": 1000,
+      "phase": "multi-file-change",
+      "eligibleFiles": 1001,
+      "bytesRead": 28860,
+      "contentReads": 1001,
+      "stateBytes": 133445,
+      "wallMs": 3576.77,
+      "cpuUserMs": 301.07,
+      "cpuSystemMs": 130.31,
+      "changes": 10
+    },
+    {
+      "tree": "synthetic-10000",
+      "files": 10000,
+      "phase": "cold-baseline",
+      "eligibleFiles": 10001,
+      "bytesRead": 307806,
+      "contentReads": 10001,
+      "stateBytes": 1330445,
+      "wallMs": 20753.68,
+      "cpuUserMs": 2286.79,
+      "cpuSystemMs": 1126.79,
+      "changes": 0
+    },
+    {
+      "tree": "synthetic-10000",
+      "files": 10000,
+      "phase": "warm-no-change",
+      "eligibleFiles": 10001,
+      "bytesRead": 307806,
+      "contentReads": 10001,
+      "stateBytes": 1330445,
+      "wallMs": 18465.21,
+      "cpuUserMs": 1873.2,
+      "cpuSystemMs": 919.38,
+      "changes": 0
+    },
+    {
+      "tree": "synthetic-10000",
+      "files": 10000,
+      "phase": "one-file-change",
+      "eligibleFiles": 10001,
+      "bytesRead": 307811,
+      "contentReads": 10001,
+      "stateBytes": 1330445,
+      "wallMs": 14642.9,
+      "cpuUserMs": 2150.26,
+      "cpuSystemMs": 1110.85,
+      "changes": 1
+    },
+    {
+      "tree": "synthetic-10000",
+      "files": 10000,
+      "phase": "multi-file-change",
+      "eligibleFiles": 10001,
+      "bytesRead": 307860,
+      "contentReads": 10001,
+      "stateBytes": 1330445,
+      "wallMs": 11779.49,
+      "cpuUserMs": 1650.71,
+      "cpuSystemMs": 758.1,
+      "changes": 10
+    }
+  ]
+}
