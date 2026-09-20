@@ -18,6 +18,12 @@ scripts in `probe/`. Only authentication material was copied into the temporary 
 user's configuration was not read or changed. `--dangerously-bypass-hook-trust` was limited
 to this isolated, reviewed configuration. No Jev request was made.
 
+The validated ten-line interface example is reproducible with
+[`validate-native-patch-shape.mjs`](./probe/validate-native-patch-shape.mjs). It performs a
+real Codex run for a one-line replacement, captures the `PostToolUse` command, and asserts
+the exact minimal hunk. The retained assertion record is
+[`native-interface-edit-validation-2026-09-20.json`](./native-interface-edit-validation-2026-09-20.json).
+
 ## Issue-4 lifecycle evidence
 
 The exact replay command for the retained issue-4 lifecycle ledger is:

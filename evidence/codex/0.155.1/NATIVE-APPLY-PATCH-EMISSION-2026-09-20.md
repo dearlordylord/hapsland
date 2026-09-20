@@ -69,6 +69,7 @@ The probe was rerun with a ten-line `Delivery` interface and one requested edit:
 It made one successful `PostToolUse` callback and changed the file. Codex chose a
 minimal hunk here: it did not include the other interface lines as context. The full
 sanitized capture is [`native-interface-edit-emission-2026-09-20.json`](./native-interface-edit-emission-2026-09-20.json).
+The byte-for-byte validator for this example is [`validate-native-patch-shape.mjs`](./probe/validate-native-patch-shape.mjs); its latest result is [`native-interface-edit-validation-2026-09-20.json`](./native-interface-edit-validation-2026-09-20.json). It reruns the real Codex probe and fails if the command gains context lines, includes the full interface, or otherwise changes shape.
 
 ## What this does not establish
 
@@ -89,6 +90,7 @@ Run from the repository root:
 ```sh
 node evidence/codex/0.155.1/probe/native-patch-emission.mjs
 node evidence/codex/0.155.1/probe/native-patch-emission.mjs --update
+node evidence/codex/0.155.1/probe/validate-native-patch-shape.mjs
 ```
 
 The runner uses a temporary `CODEX_HOME`, copies authentication only into that
