@@ -97,3 +97,19 @@ the runtime-observed Codex patch shape. The retained paid reports and 64-call di
 predate that revision and remain historical evidence for `textual-diff@2`; their focused
 diff measurements do not apply to the current `codex-apply-patch@1` renderer. A new full
 paid matrix is required to score the revised baseline.
+
+## Runtime Codex comparison
+
+The dashboard's Codex arm is populated from the retained runtime capture corpus
+[`native-patch-corpus-2026-09-20.json`](../../evidence/codex/0.155.1/native-patch-corpus-2026-09-20.json), not from `render.ts` synthesizing a diff. Every one of the 24
+fixture edits was executed by `codex-cli 0.155.1` in an isolated repository; the
+`PostToolUse` callback was retained only after the resulting file matched the authored
+`after` source.
+
+The separately authorized comparison
+[`live-codex-semantic-corpus-comparison-2026-09-20.json`](../../evidence/input-contract-comparison/live-codex-semantic-corpus-comparison-2026-09-20.json)
+sent each captured Codex patch and each complete declaration-context semantic object
+tree to Jev once, with zero retries (48 calls total). This is an observability
+comparison, not a replacement for the historical repeated gate. The dashboard's
+`Jev request` and `Jev result` views show those two arms side by side; whole-file is
+intentionally omitted from the mode tabs.

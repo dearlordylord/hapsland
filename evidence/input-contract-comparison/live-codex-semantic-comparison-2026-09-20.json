@@ -1,0 +1,154 @@
+{
+  "evidenceVersion": 1,
+  "status": "complete",
+  "date": "2026-09-20",
+  "runId": "input-contract-codex-semantic-comparison-2026-09-20",
+  "purpose": "User-authorized two-arm diagnostic: actual Codex callback patch versus extracted semantic object tree for the same fixture.",
+  "authorization": {
+    "previousProjectLedgerRemaining": 0,
+    "additionalCallsAuthorized": 2,
+    "callsObserved": 2,
+    "remainingAdditionalCalls": 0
+  },
+  "fixture": {
+    "id": "iface-delivery-flat",
+    "path": "fixtures/input-contract/interface/iface-delivery-flat.ts",
+    "expectation": {
+      "ruleId": "r2_meaningless_combinations",
+      "kind": "violation",
+      "band": {
+        "minimum": 0.7,
+        "maximum": 1,
+        "minimumInclusive": false,
+        "maximumInclusive": true
+      },
+      "rationale": "The edited interface leaves both channel-specific fields independently representable; channel does not constrain either field."
+    },
+    "codexCapture": "evidence/codex/0.155.1/native-fixture-emission-2026-09-20.json"
+  },
+  "backend": {
+    "id": "jev",
+    "provider": "@effect/ai-typesafe",
+    "model": "jev-latest",
+    "destination": "https://api.typesafe.ai/v1/systemone",
+    "requestMethod": "POST"
+  },
+  "rows": [
+    {
+      "fixtureId": "iface-delivery-flat",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-delivery-flat.ts",
+          "sourceSha256": "64394dc3e93f6031f92b04dffb50fa5f813f1f8aba3327a49b9c2c57aee25e23",
+          "sourceCharacters": 156
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 764,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "failed",
+        "probabilities": {
+          "r1_inferred_case": 0.36,
+          "r2_meaningless_combinations": 0.52,
+          "r3_split_correlations": 0.09,
+          "r4_duplicate_encoding": 0.07,
+          "r5_absence_confusion": 0.21,
+          "r6_bare_domain_value": 0.44,
+          "r7_name_wider_than_type": 0.46,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.04
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 459,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "iface-delivery-flat",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-delivery-flat.ts",
+          "sourceSha256": "718fc52ac72b4c2e84a0e3c136962be8e11f66dc4490fc7e57012efe5b59c43f",
+          "sourceCharacters": 176
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 857,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.23,
+          "r2_meaningless_combinations": 0.92,
+          "r3_split_correlations": 0.34,
+          "r4_duplicate_encoding": 0.74,
+          "r5_absence_confusion": 0.48,
+          "r6_bare_domain_value": 0.33,
+          "r7_name_wider_than_type": 0.19,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 420,
+        "retries": 0
+      }
+    }
+  ],
+  "retention": {
+    "retained": [
+      "numeric per-rule probabilities returned by Jev",
+      "sanitized request metadata and source digests",
+      "actual Codex patch capture separately retained"
+    ],
+    "notRetained": [
+      "credentials",
+      "raw provider responses",
+      "provider usage details"
+    ],
+    "authorizationNote": "Explicit two-call comparison requested by the user; this is not a corpus gate rerun."
+  },
+  "runDigest": "4fc5de7a25bdf38fca59da176828b45dc264e7bf4afcce11bc230bb777b64512"
+}

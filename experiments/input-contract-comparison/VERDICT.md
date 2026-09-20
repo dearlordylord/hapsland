@@ -91,3 +91,18 @@ Codex `apply_patch` command rather than the former assumed `textual-diff@2` form
 retained full paid reports and 64-call diagnostic predate this change. Their focused-diff
 measurements are historical and cannot certify the current renderer; a new full paid
 matrix is required before drawing a focused-diff conclusion.
+
+## Runtime Codex versus semantic-object-tree comparison
+
+The current dashboard no longer presents a renderer-invented patch as a Codex callback.
+All 24 fixture edits were executed by `codex-cli 0.155.1` in isolated repositories;
+each retained `PostToolUse` command was verified by checking that the resulting file
+matched the authored post-edit source. The resulting corpus is
+[`native-patch-corpus-2026-09-20.json`](../../evidence/codex/0.155.1/native-patch-corpus-2026-09-20.json).
+
+An explicitly authorized 48-call diagnostic then sent each runtime Codex patch and
+each complete declaration-context semantic object tree to Jev once, with zero retries.
+Its sanitized request metadata and numeric Jev returns are in
+[`live-codex-semantic-corpus-comparison-2026-09-20.json`](../../evidence/input-contract-comparison/live-codex-semantic-corpus-comparison-2026-09-20.json).
+This diagnostic compares the two input boundaries; it is not a repeated acceptance
+gate and does not replace the historical renderer verdict.

@@ -1,0 +1,1407 @@
+{
+  "evidenceVersion": 1,
+  "date": "2026-09-20",
+  "host": "codex-cli 0.155.1",
+  "mode": "codex exec --ephemeral --json",
+  "fixtureCount": 24,
+  "runtimeTested": 24,
+  "rows": [
+    {
+      "fixtureId": "iface-delivery-flat",
+      "path": "fixtures/input-contract/interface/iface-delivery-flat.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-delivery-flat.ts\n@@\n   email?: string;\n+  phone?: string;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-delivery-flat.ts\n@@\n   email?: string;\n+  phone?: string;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "11b18d7cf9eef70908a67b8a864a08954a0612665f2895936b0db4a0d2f0328c",
+        "expectedFileSha256": "11b18d7cf9eef70908a67b8a864a08954a0612665f2895936b0db4a0d2f0328c",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
+    {
+      "fixtureId": "iface-payment-tagged",
+      "path": "fixtures/input-contract/interface/iface-payment-tagged.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-payment-tagged.ts\n@@\n   kind: PaymentKind;\n+  amount: number;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-payment-tagged.ts\n@@\n   kind: PaymentKind;\n+  amount: number;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "74a5fa7f5bb2e68ce2a73808a235687348f44691a8415fe9ad9e9d301944f862",
+        "expectedFileSha256": "74a5fa7f5bb2e68ce2a73808a235687348f44691a8415fe9ad9e9d301944f862",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
+    {
+      "fixtureId": "iface-order-valid",
+      "path": "fixtures/input-contract/interface/iface-order-valid.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-order-valid.ts\n@@\n   sku: string;\n+  downloadUrl?: string;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-order-valid.ts\n@@\n   sku: string;\n+  downloadUrl?: string;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "798be16d06939988abbac96f174bfc647998254edae3f41a9961fdd32a2f58a4",
+        "expectedFileSha256": "798be16d06939988abbac96f174bfc647998254edae3f41a9961fdd32a2f58a4",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
+    {
+      "fixtureId": "iface-range-diff",
+      "path": "fixtures/input-contract/interface/iface-range-diff.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-range-diff.ts\n@@\n   authenticated: boolean;\n+  userId?: string;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-range-diff.ts\n@@\n   authenticated: boolean;\n+  userId?: string;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "f80e0ec32ed41b206cd34dc0007eccb8fa886ce89bdeab0552825f8f327d897a",
+        "expectedFileSha256": "f80e0ec32ed41b206cd34dc0007eccb8fa886ce89bdeab0552825f8f327d897a",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
+    {
+      "fixtureId": "iface-profile-control",
+      "path": "fixtures/input-contract/interface/iface-profile-control.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-profile-control.ts\n@@\n   id: string;\n+  displayName: string;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-profile-control.ts\n@@\n   id: string;\n+  displayName: string;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "8dc0ed88597f1d0da036ef55a44b7be20b7b489a15eee101681cb8195a309c95",
+        "expectedFileSha256": "8dc0ed88597f1d0da036ef55a44b7be20b7b489a15eee101681cb8195a309c95",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
+    {
+      "fixtureId": "iface-dilution",
+      "path": "fixtures/input-contract/interface/iface-dilution.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-dilution.ts\n@@\n   flight?: string;\n+  truck?: string;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-dilution.ts\n@@\n   flight?: string;\n+  truck?: string;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "c2858187921c451961356a0fa7058d72b6cfd784f1451117049ad7e38c9e0649",
+        "expectedFileSha256": "c2858187921c451961356a0fa7058d72b6cfd784f1451117049ad7e38c9e0649",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
+    {
+      "fixtureId": "alias-discount",
+      "path": "fixtures/input-contract/type-alias/alias-discount.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-discount.ts\n@@\n   mode: DiscountMode;\n+  percentOff?: number;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-discount.ts\n@@\n   mode: DiscountMode;\n+  percentOff?: number;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "5501a7a1a0d5578bb9f642ac64d1d507b0535d4094cb8b6c69a73fe2bf067385",
+        "expectedFileSha256": "5501a7a1a0d5578bb9f642ac64d1d507b0535d4094cb8b6c69a73fe2bf067385",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
+    {
+      "fixtureId": "alias-auth",
+      "path": "fixtures/input-contract/type-alias/alias-auth.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-auth.ts\n@@\n   kind: AuthKind;\n+  userId?: string;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-auth.ts\n@@\n   kind: AuthKind;\n+  userId?: string;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "fd13eea55bea45e21be75f17ed51dd197bdef8063ad392e1c62c80a3b29c4a19",
+        "expectedFileSha256": "fd13eea55bea45e21be75f17ed51dd197bdef8063ad392e1c62c80a3b29c4a19",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
+    {
+      "fixtureId": "alias-period",
+      "path": "fixtures/input-contract/type-alias/alias-period.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-period.ts\n@@\n   from?: Instant;\n+  to?: Instant;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-period.ts\n@@\n   from?: Instant;\n+  to?: Instant;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "71f9eb8925e5801a7230e2e058f51cf3fa671a7dfcba5ada677165f992c7326f",
+        "expectedFileSha256": "71f9eb8925e5801a7230e2e058f51cf3fa671a7dfcba5ada677165f992c7326f",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
+    {
+      "fixtureId": "alias-money",
+      "path": "fixtures/input-contract/type-alias/alias-money.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-money.ts\n@@\n   amount: number;\n+  currency: \"USD\" | \"CAD\";\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-money.ts\n@@\n   amount: number;\n+  currency: \"USD\" | \"CAD\";\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "ce4d8fda6153d7036c90720cd86f650596375ee8486b835a2f3da5f2a94a4c23",
+        "expectedFileSha256": "ce4d8fda6153d7036c90720cd86f650596375ee8486b835a2f3da5f2a94a4c23",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
+    {
+      "fixtureId": "alias-report-range",
+      "path": "fixtures/input-contract/type-alias/alias-report-range.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-report-range.ts\n@@\n   enabled: boolean;\n+  rolloutPercentage?: number;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-report-range.ts\n@@\n   enabled: boolean;\n+  rolloutPercentage?: number;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "be459b9eea5a04bf6c2432e61dbbceb45b63ffbf7f47d3601492e2c7f8fc366b",
+        "expectedFileSha256": "be459b9eea5a04bf6c2432e61dbbceb45b63ffbf7f47d3601492e2c7f8fc366b",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
+    {
+      "fixtureId": "alias-dilution",
+      "path": "fixtures/input-contract/type-alias/alias-dilution.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-dilution.ts\n@@\n   schedule?: string;\n+  reason?: string;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-dilution.ts\n@@\n   schedule?: string;\n+  reason?: string;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "4fe27646de97ccc4e8164f45729c890a849f950eff458497790738e5657aeac9",
+        "expectedFileSha256": "4fe27646de97ccc4e8164f45729c890a849f950eff458497790738e5657aeac9",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
+    {
+      "fixtureId": "zod-delivery",
+      "path": "fixtures/input-contract/zod/zod-delivery.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-delivery.ts\n@@\n   email: z.string().optional(),\n+  phone: z.string().optional(),\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-delivery.ts\n@@\n   email: z.string().optional(),\n+  phone: z.string().optional(),\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "6b15bf114c36fbe84b475c8962481ed86234a404dfbfd42c680725a4821a9a22",
+        "expectedFileSha256": "6b15bf114c36fbe84b475c8962481ed86234a404dfbfd42c680725a4821a9a22",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
+    {
+      "fixtureId": "zod-notification",
+      "path": "fixtures/input-contract/zod/zod-notification.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-notification.ts\n@@\n   email: z.string().optional(),\n+  deviceToken: z.string().optional(),\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-notification.ts\n@@\n   email: z.string().optional(),\n+  deviceToken: z.string().optional(),\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "267df075c4b18b5f7bcebde0bda8d3fdcb464035944ba730092fa55bf2c8c33d",
+        "expectedFileSha256": "267df075c4b18b5f7bcebde0bda8d3fdcb464035944ba730092fa55bf2c8c33d",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
+    {
+      "fixtureId": "zod-profile",
+      "path": "fixtures/input-contract/zod/zod-profile.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-profile.ts\n@@\n-export const ProfileSchema = z.object({ id: z.string() });\n+export const ProfileSchema = z.object({\n+  id: z.string(),\n+  displayName: z.string(),\n+});\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-profile.ts\n@@\n-export const ProfileSchema = z.object({ id: z.string() });\n+export const ProfileSchema = z.object({\n+  id: z.string(),\n+  displayName: z.string(),\n+});\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "e4e4637fcb2e2788c3f7ee2489cde7a3c93d23c66bd2e479568665f72fe7c0f2",
+        "expectedFileSha256": "e4e4637fcb2e2788c3f7ee2489cde7a3c93d23c66bd2e479568665f72fe7c0f2",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
+    {
+      "fixtureId": "zod-range",
+      "path": "fixtures/input-contract/zod/zod-range.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-range.ts\n@@\n   status: z.enum([\"pending\", \"delivered\"]),\n+  deliveredAt: z.string().optional(),\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-range.ts\n@@\n   status: z.enum([\"pending\", \"delivered\"]),\n+  deliveredAt: z.string().optional(),\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "3aad82fa0fde7e88537d47ab8429e0c3680fadf476059bf72cff828d61b62b80",
+        "expectedFileSha256": "3aad82fa0fde7e88537d47ab8429e0c3680fadf476059bf72cff828d61b62b80",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
+    {
+      "fixtureId": "zod-payment",
+      "path": "fixtures/input-contract/zod/zod-payment.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-payment.ts\n@@\n   kind: PaymentKind,\n+  amount: z.number(),\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-payment.ts\n@@\n   kind: PaymentKind,\n+  amount: z.number(),\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "16f58b7229be1286596d7487cec4f07e1f82cf38943983f0e14d0deb33e5fa6f",
+        "expectedFileSha256": "16f58b7229be1286596d7487cec4f07e1f82cf38943983f0e14d0deb33e5fa6f",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
+    {
+      "fixtureId": "zod-dilution",
+      "path": "fixtures/input-contract/zod/zod-dilution.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-dilution.ts\n@@\n   at: z.string().optional(),\n+  reason: z.string().optional(),\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-dilution.ts\n@@\n   at: z.string().optional(),\n+  reason: z.string().optional(),\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "89dd9525d46870c53446ee2b8d38dc7e0a95d13b35549046640c29b40f8f1f19",
+        "expectedFileSha256": "89dd9525d46870c53446ee2b8d38dc7e0a95d13b35549046640c29b40f8f1f19",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
+    {
+      "fixtureId": "effect-delivery",
+      "path": "fixtures/input-contract/effect-schema/effect-delivery.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-delivery.ts\n@@\n   email: Schema.optionalKey(Schema.String),\n+  phone: Schema.optionalKey(Schema.String),\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-delivery.ts\n@@\n   email: Schema.optionalKey(Schema.String),\n+  phone: Schema.optionalKey(Schema.String),\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "6105e86f5c1f7177490870206377153567e917eb66f7b44bd88b471a7c34b282",
+        "expectedFileSha256": "6105e86f5c1f7177490870206377153567e917eb66f7b44bd88b471a7c34b282",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
+    {
+      "fixtureId": "effect-job",
+      "path": "fixtures/input-contract/effect-schema/effect-job.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-job.ts\n@@\n   schedule: Schema.optionalKey(Schema.String),\n+  reason: Schema.optionalKey(Schema.String),\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-job.ts\n@@\n   schedule: Schema.optionalKey(Schema.String),\n+  reason: Schema.optionalKey(Schema.String),\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "37ccdbc2f6b319987686ac3575a84f72edf889efab982e3d695d94fec1c790fd",
+        "expectedFileSha256": "37ccdbc2f6b319987686ac3575a84f72edf889efab982e3d695d94fec1c790fd",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
+    {
+      "fixtureId": "effect-money",
+      "path": "fixtures/input-contract/effect-schema/effect-money.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-money.ts\n@@\n   amount: Schema.Number,\n+  currency: Schema.Literals([\"USD\", \"CAD\"]),\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-money.ts\n@@\n   amount: Schema.Number,\n+  currency: Schema.Literals([\"USD\", \"CAD\"]),\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "c153a45fe82357160aa561f0510bd2f8b960db88597e3bef7b2789dc76f5e3fc",
+        "expectedFileSha256": "c153a45fe82357160aa561f0510bd2f8b960db88597e3bef7b2789dc76f5e3fc",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
+    {
+      "fixtureId": "effect-range",
+      "path": "fixtures/input-contract/effect-schema/effect-range.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-range.ts\n@@\n   authenticated: Schema.Boolean,\n+  userId: Schema.optionalKey(Schema.String),\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-range.ts\n@@\n   authenticated: Schema.Boolean,\n+  userId: Schema.optionalKey(Schema.String),\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "4d4e58a4b5d7245c408b53f8104a4dae2d0a25581647e14a458853d9aa28c32a",
+        "expectedFileSha256": "4d4e58a4b5d7245c408b53f8104a4dae2d0a25581647e14a458853d9aa28c32a",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
+    {
+      "fixtureId": "effect-notification",
+      "path": "fixtures/input-contract/effect-schema/effect-notification.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-notification.ts\n@@\n   email: Schema.optionalKey(Schema.String),\n+  deviceToken: Schema.optionalKey(Schema.String),\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-notification.ts\n@@\n   email: Schema.optionalKey(Schema.String),\n+  deviceToken: Schema.optionalKey(Schema.String),\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "9df8b312173ad8d122dcd0f30e13efaab17bf2e803f15407c6119c015803d02c",
+        "expectedFileSha256": "9df8b312173ad8d122dcd0f30e13efaab17bf2e803f15407c6119c015803d02c",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
+    {
+      "fixtureId": "effect-dilution",
+      "path": "fixtures/input-contract/effect-schema/effect-dilution.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-dilution.ts\n@@\n   at: Schema.optionalKey(Schema.String),\n+  reason: Schema.optionalKey(Schema.String),\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-dilution.ts\n@@\n   at: Schema.optionalKey(Schema.String),\n+  reason: Schema.optionalKey(Schema.String),\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "754f146ec864a4e0fc61b85efd0c925be2a40cb147d2d6c3a59cd207443751b6",
+        "expectedFileSha256": "754f146ec864a4e0fc61b85efd0c925be2a40cb147d2d6c3a59cd207443751b6",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    }
+  ],
+  "verdict": "runtime-tested"
+}

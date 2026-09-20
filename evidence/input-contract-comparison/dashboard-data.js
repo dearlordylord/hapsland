@@ -8,7 +8,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
     "diagnostic": "evidence/input-contract-comparison/live-diagnostic-2026-09-20.json",
     "confidenceProbe": "evidence/input-contract-comparison/live-confidence-probe-2026-09-20.json",
     "codexEmission": "evidence/codex/0.155.1/native-patch-emission-2026-09-20.json",
-    "currentDiffRenderer": "experiments/input-contract-comparison/render.ts:renderCodexPatch"
+    "codexPatchCorpus": "evidence/codex/0.155.1/native-patch-corpus-2026-09-20.json",
+    "codexComparison": "evidence/input-contract-comparison/live-codex-semantic-corpus-comparison-2026-09-20.json",
+    "currentDiffRenderer": "evidence/codex/0.155.1/native-patch-corpus-2026-09-20.json:rows[].command"
   },
   "rendererRevision": {
     "current": "codex-apply-patch@1",
@@ -23,7 +25,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "aggregate run counts, gates, timing, and request-size summaries",
       "sanitized 64-call production request/result diagnostic for four representative fixtures",
       "user-authorized two-call numeric confidence probe for iface-delivery-flat",
-      "runtime-probed native Codex apply_patch emission shape"
+      "24 runtime-tested Codex apply_patch callbacks, one per fixture"
     ],
     "notRetained": [
       "individual backend probabilities for the full gate and 64-call diagnostic",
@@ -31,7 +33,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "raw or source-bearing provider responses",
       "provider usage details"
     ],
-    "consequence": "The retained paid aggregate report used historical textual-diff@2. Current rendered diff inputs use codex-apply-patch@1, so focused-diff measurements need a new paid matrix; whole-file/context evidence remains separately inspectable."
+    "consequence": "The active Codex arm uses 24 verified runtime apply_patch callbacks. The semantic arm is the extracted declaration-context object tree. Each arm has its own retained Jev request metadata and return; the historical repeated gate remains provenance only."
   },
   "providerContract": {
     "source": [
@@ -239,6 +241,3962 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
     },
     "sanitization": "Session, turn, tool-use, model, response, workspace, and authentication identities are redacted; the retained patch content is synthetic.",
     "verdict": "runtime-tested"
+  },
+  "codexCaptures": {
+    "iface-delivery-flat": {
+      "fixtureId": "iface-delivery-flat",
+      "path": "fixtures/input-contract/interface/iface-delivery-flat.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-delivery-flat.ts\n@@\n   email?: string;\n+  phone?: string;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-delivery-flat.ts\n@@\n   email?: string;\n+  phone?: string;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "11b18d7cf9eef70908a67b8a864a08954a0612665f2895936b0db4a0d2f0328c",
+        "expectedFileSha256": "11b18d7cf9eef70908a67b8a864a08954a0612665f2895936b0db4a0d2f0328c",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-delivery-flat.ts\n@@\n   email?: string;\n+  phone?: string;\n*** End Patch"
+      }
+    },
+    "iface-payment-tagged": {
+      "fixtureId": "iface-payment-tagged",
+      "path": "fixtures/input-contract/interface/iface-payment-tagged.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-payment-tagged.ts\n@@\n   kind: PaymentKind;\n+  amount: number;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-payment-tagged.ts\n@@\n   kind: PaymentKind;\n+  amount: number;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "74a5fa7f5bb2e68ce2a73808a235687348f44691a8415fe9ad9e9d301944f862",
+        "expectedFileSha256": "74a5fa7f5bb2e68ce2a73808a235687348f44691a8415fe9ad9e9d301944f862",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-payment-tagged.ts\n@@\n   kind: PaymentKind;\n+  amount: number;\n*** End Patch"
+      }
+    },
+    "iface-order-valid": {
+      "fixtureId": "iface-order-valid",
+      "path": "fixtures/input-contract/interface/iface-order-valid.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-order-valid.ts\n@@\n   sku: string;\n+  downloadUrl?: string;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-order-valid.ts\n@@\n   sku: string;\n+  downloadUrl?: string;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "798be16d06939988abbac96f174bfc647998254edae3f41a9961fdd32a2f58a4",
+        "expectedFileSha256": "798be16d06939988abbac96f174bfc647998254edae3f41a9961fdd32a2f58a4",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-order-valid.ts\n@@\n   sku: string;\n+  downloadUrl?: string;\n*** End Patch"
+      }
+    },
+    "iface-range-diff": {
+      "fixtureId": "iface-range-diff",
+      "path": "fixtures/input-contract/interface/iface-range-diff.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-range-diff.ts\n@@\n   authenticated: boolean;\n+  userId?: string;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-range-diff.ts\n@@\n   authenticated: boolean;\n+  userId?: string;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "f80e0ec32ed41b206cd34dc0007eccb8fa886ce89bdeab0552825f8f327d897a",
+        "expectedFileSha256": "f80e0ec32ed41b206cd34dc0007eccb8fa886ce89bdeab0552825f8f327d897a",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-range-diff.ts\n@@\n   authenticated: boolean;\n+  userId?: string;\n*** End Patch"
+      }
+    },
+    "iface-profile-control": {
+      "fixtureId": "iface-profile-control",
+      "path": "fixtures/input-contract/interface/iface-profile-control.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-profile-control.ts\n@@\n   id: string;\n+  displayName: string;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-profile-control.ts\n@@\n   id: string;\n+  displayName: string;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "8dc0ed88597f1d0da036ef55a44b7be20b7b489a15eee101681cb8195a309c95",
+        "expectedFileSha256": "8dc0ed88597f1d0da036ef55a44b7be20b7b489a15eee101681cb8195a309c95",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-profile-control.ts\n@@\n   id: string;\n+  displayName: string;\n*** End Patch"
+      }
+    },
+    "iface-dilution": {
+      "fixtureId": "iface-dilution",
+      "path": "fixtures/input-contract/interface/iface-dilution.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-dilution.ts\n@@\n   flight?: string;\n+  truck?: string;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-dilution.ts\n@@\n   flight?: string;\n+  truck?: string;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "c2858187921c451961356a0fa7058d72b6cfd784f1451117049ad7e38c9e0649",
+        "expectedFileSha256": "c2858187921c451961356a0fa7058d72b6cfd784f1451117049ad7e38c9e0649",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-dilution.ts\n@@\n   flight?: string;\n+  truck?: string;\n*** End Patch"
+      }
+    },
+    "alias-discount": {
+      "fixtureId": "alias-discount",
+      "path": "fixtures/input-contract/type-alias/alias-discount.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-discount.ts\n@@\n   mode: DiscountMode;\n+  percentOff?: number;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-discount.ts\n@@\n   mode: DiscountMode;\n+  percentOff?: number;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "5501a7a1a0d5578bb9f642ac64d1d507b0535d4094cb8b6c69a73fe2bf067385",
+        "expectedFileSha256": "5501a7a1a0d5578bb9f642ac64d1d507b0535d4094cb8b6c69a73fe2bf067385",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-discount.ts\n@@\n   mode: DiscountMode;\n+  percentOff?: number;\n*** End Patch"
+      }
+    },
+    "alias-auth": {
+      "fixtureId": "alias-auth",
+      "path": "fixtures/input-contract/type-alias/alias-auth.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-auth.ts\n@@\n   kind: AuthKind;\n+  userId?: string;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-auth.ts\n@@\n   kind: AuthKind;\n+  userId?: string;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "fd13eea55bea45e21be75f17ed51dd197bdef8063ad392e1c62c80a3b29c4a19",
+        "expectedFileSha256": "fd13eea55bea45e21be75f17ed51dd197bdef8063ad392e1c62c80a3b29c4a19",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-auth.ts\n@@\n   kind: AuthKind;\n+  userId?: string;\n*** End Patch"
+      }
+    },
+    "alias-period": {
+      "fixtureId": "alias-period",
+      "path": "fixtures/input-contract/type-alias/alias-period.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-period.ts\n@@\n   from?: Instant;\n+  to?: Instant;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-period.ts\n@@\n   from?: Instant;\n+  to?: Instant;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "71f9eb8925e5801a7230e2e058f51cf3fa671a7dfcba5ada677165f992c7326f",
+        "expectedFileSha256": "71f9eb8925e5801a7230e2e058f51cf3fa671a7dfcba5ada677165f992c7326f",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-period.ts\n@@\n   from?: Instant;\n+  to?: Instant;\n*** End Patch"
+      }
+    },
+    "alias-money": {
+      "fixtureId": "alias-money",
+      "path": "fixtures/input-contract/type-alias/alias-money.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-money.ts\n@@\n   amount: number;\n+  currency: \"USD\" | \"CAD\";\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-money.ts\n@@\n   amount: number;\n+  currency: \"USD\" | \"CAD\";\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "ce4d8fda6153d7036c90720cd86f650596375ee8486b835a2f3da5f2a94a4c23",
+        "expectedFileSha256": "ce4d8fda6153d7036c90720cd86f650596375ee8486b835a2f3da5f2a94a4c23",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-money.ts\n@@\n   amount: number;\n+  currency: \"USD\" | \"CAD\";\n*** End Patch"
+      }
+    },
+    "alias-report-range": {
+      "fixtureId": "alias-report-range",
+      "path": "fixtures/input-contract/type-alias/alias-report-range.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-report-range.ts\n@@\n   enabled: boolean;\n+  rolloutPercentage?: number;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-report-range.ts\n@@\n   enabled: boolean;\n+  rolloutPercentage?: number;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "be459b9eea5a04bf6c2432e61dbbceb45b63ffbf7f47d3601492e2c7f8fc366b",
+        "expectedFileSha256": "be459b9eea5a04bf6c2432e61dbbceb45b63ffbf7f47d3601492e2c7f8fc366b",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-report-range.ts\n@@\n   enabled: boolean;\n+  rolloutPercentage?: number;\n*** End Patch"
+      }
+    },
+    "alias-dilution": {
+      "fixtureId": "alias-dilution",
+      "path": "fixtures/input-contract/type-alias/alias-dilution.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-dilution.ts\n@@\n   schedule?: string;\n+  reason?: string;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-dilution.ts\n@@\n   schedule?: string;\n+  reason?: string;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "4fe27646de97ccc4e8164f45729c890a849f950eff458497790738e5657aeac9",
+        "expectedFileSha256": "4fe27646de97ccc4e8164f45729c890a849f950eff458497790738e5657aeac9",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-dilution.ts\n@@\n   schedule?: string;\n+  reason?: string;\n*** End Patch"
+      }
+    },
+    "zod-delivery": {
+      "fixtureId": "zod-delivery",
+      "path": "fixtures/input-contract/zod/zod-delivery.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-delivery.ts\n@@\n   email: z.string().optional(),\n+  phone: z.string().optional(),\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-delivery.ts\n@@\n   email: z.string().optional(),\n+  phone: z.string().optional(),\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "6b15bf114c36fbe84b475c8962481ed86234a404dfbfd42c680725a4821a9a22",
+        "expectedFileSha256": "6b15bf114c36fbe84b475c8962481ed86234a404dfbfd42c680725a4821a9a22",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-delivery.ts\n@@\n   email: z.string().optional(),\n+  phone: z.string().optional(),\n*** End Patch"
+      }
+    },
+    "zod-notification": {
+      "fixtureId": "zod-notification",
+      "path": "fixtures/input-contract/zod/zod-notification.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-notification.ts\n@@\n   email: z.string().optional(),\n+  deviceToken: z.string().optional(),\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-notification.ts\n@@\n   email: z.string().optional(),\n+  deviceToken: z.string().optional(),\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "267df075c4b18b5f7bcebde0bda8d3fdcb464035944ba730092fa55bf2c8c33d",
+        "expectedFileSha256": "267df075c4b18b5f7bcebde0bda8d3fdcb464035944ba730092fa55bf2c8c33d",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-notification.ts\n@@\n   email: z.string().optional(),\n+  deviceToken: z.string().optional(),\n*** End Patch"
+      }
+    },
+    "zod-profile": {
+      "fixtureId": "zod-profile",
+      "path": "fixtures/input-contract/zod/zod-profile.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-profile.ts\n@@\n-export const ProfileSchema = z.object({ id: z.string() });\n+export const ProfileSchema = z.object({\n+  id: z.string(),\n+  displayName: z.string(),\n+});\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-profile.ts\n@@\n-export const ProfileSchema = z.object({ id: z.string() });\n+export const ProfileSchema = z.object({\n+  id: z.string(),\n+  displayName: z.string(),\n+});\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "e4e4637fcb2e2788c3f7ee2489cde7a3c93d23c66bd2e479568665f72fe7c0f2",
+        "expectedFileSha256": "e4e4637fcb2e2788c3f7ee2489cde7a3c93d23c66bd2e479568665f72fe7c0f2",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-profile.ts\n@@\n-export const ProfileSchema = z.object({ id: z.string() });\n+export const ProfileSchema = z.object({\n+  id: z.string(),\n+  displayName: z.string(),\n+});\n*** End Patch"
+      }
+    },
+    "zod-range": {
+      "fixtureId": "zod-range",
+      "path": "fixtures/input-contract/zod/zod-range.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-range.ts\n@@\n   status: z.enum([\"pending\", \"delivered\"]),\n+  deliveredAt: z.string().optional(),\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-range.ts\n@@\n   status: z.enum([\"pending\", \"delivered\"]),\n+  deliveredAt: z.string().optional(),\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "3aad82fa0fde7e88537d47ab8429e0c3680fadf476059bf72cff828d61b62b80",
+        "expectedFileSha256": "3aad82fa0fde7e88537d47ab8429e0c3680fadf476059bf72cff828d61b62b80",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-range.ts\n@@\n   status: z.enum([\"pending\", \"delivered\"]),\n+  deliveredAt: z.string().optional(),\n*** End Patch"
+      }
+    },
+    "zod-payment": {
+      "fixtureId": "zod-payment",
+      "path": "fixtures/input-contract/zod/zod-payment.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-payment.ts\n@@\n   kind: PaymentKind,\n+  amount: z.number(),\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-payment.ts\n@@\n   kind: PaymentKind,\n+  amount: z.number(),\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "16f58b7229be1286596d7487cec4f07e1f82cf38943983f0e14d0deb33e5fa6f",
+        "expectedFileSha256": "16f58b7229be1286596d7487cec4f07e1f82cf38943983f0e14d0deb33e5fa6f",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-payment.ts\n@@\n   kind: PaymentKind,\n+  amount: z.number(),\n*** End Patch"
+      }
+    },
+    "zod-dilution": {
+      "fixtureId": "zod-dilution",
+      "path": "fixtures/input-contract/zod/zod-dilution.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-dilution.ts\n@@\n   at: z.string().optional(),\n+  reason: z.string().optional(),\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-dilution.ts\n@@\n   at: z.string().optional(),\n+  reason: z.string().optional(),\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "89dd9525d46870c53446ee2b8d38dc7e0a95d13b35549046640c29b40f8f1f19",
+        "expectedFileSha256": "89dd9525d46870c53446ee2b8d38dc7e0a95d13b35549046640c29b40f8f1f19",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-dilution.ts\n@@\n   at: z.string().optional(),\n+  reason: z.string().optional(),\n*** End Patch"
+      }
+    },
+    "effect-delivery": {
+      "fixtureId": "effect-delivery",
+      "path": "fixtures/input-contract/effect-schema/effect-delivery.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-delivery.ts\n@@\n   email: Schema.optionalKey(Schema.String),\n+  phone: Schema.optionalKey(Schema.String),\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-delivery.ts\n@@\n   email: Schema.optionalKey(Schema.String),\n+  phone: Schema.optionalKey(Schema.String),\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "6105e86f5c1f7177490870206377153567e917eb66f7b44bd88b471a7c34b282",
+        "expectedFileSha256": "6105e86f5c1f7177490870206377153567e917eb66f7b44bd88b471a7c34b282",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-delivery.ts\n@@\n   email: Schema.optionalKey(Schema.String),\n+  phone: Schema.optionalKey(Schema.String),\n*** End Patch"
+      }
+    },
+    "effect-job": {
+      "fixtureId": "effect-job",
+      "path": "fixtures/input-contract/effect-schema/effect-job.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-job.ts\n@@\n   schedule: Schema.optionalKey(Schema.String),\n+  reason: Schema.optionalKey(Schema.String),\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-job.ts\n@@\n   schedule: Schema.optionalKey(Schema.String),\n+  reason: Schema.optionalKey(Schema.String),\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "37ccdbc2f6b319987686ac3575a84f72edf889efab982e3d695d94fec1c790fd",
+        "expectedFileSha256": "37ccdbc2f6b319987686ac3575a84f72edf889efab982e3d695d94fec1c790fd",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-job.ts\n@@\n   schedule: Schema.optionalKey(Schema.String),\n+  reason: Schema.optionalKey(Schema.String),\n*** End Patch"
+      }
+    },
+    "effect-money": {
+      "fixtureId": "effect-money",
+      "path": "fixtures/input-contract/effect-schema/effect-money.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-money.ts\n@@\n   amount: Schema.Number,\n+  currency: Schema.Literals([\"USD\", \"CAD\"]),\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-money.ts\n@@\n   amount: Schema.Number,\n+  currency: Schema.Literals([\"USD\", \"CAD\"]),\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "c153a45fe82357160aa561f0510bd2f8b960db88597e3bef7b2789dc76f5e3fc",
+        "expectedFileSha256": "c153a45fe82357160aa561f0510bd2f8b960db88597e3bef7b2789dc76f5e3fc",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-money.ts\n@@\n   amount: Schema.Number,\n+  currency: Schema.Literals([\"USD\", \"CAD\"]),\n*** End Patch"
+      }
+    },
+    "effect-range": {
+      "fixtureId": "effect-range",
+      "path": "fixtures/input-contract/effect-schema/effect-range.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-range.ts\n@@\n   authenticated: Schema.Boolean,\n+  userId: Schema.optionalKey(Schema.String),\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-range.ts\n@@\n   authenticated: Schema.Boolean,\n+  userId: Schema.optionalKey(Schema.String),\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "4d4e58a4b5d7245c408b53f8104a4dae2d0a25581647e14a458853d9aa28c32a",
+        "expectedFileSha256": "4d4e58a4b5d7245c408b53f8104a4dae2d0a25581647e14a458853d9aa28c32a",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-range.ts\n@@\n   authenticated: Schema.Boolean,\n+  userId: Schema.optionalKey(Schema.String),\n*** End Patch"
+      }
+    },
+    "effect-notification": {
+      "fixtureId": "effect-notification",
+      "path": "fixtures/input-contract/effect-schema/effect-notification.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-notification.ts\n@@\n   email: Schema.optionalKey(Schema.String),\n+  deviceToken: Schema.optionalKey(Schema.String),\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-notification.ts\n@@\n   email: Schema.optionalKey(Schema.String),\n+  deviceToken: Schema.optionalKey(Schema.String),\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "9df8b312173ad8d122dcd0f30e13efaab17bf2e803f15407c6119c015803d02c",
+        "expectedFileSha256": "9df8b312173ad8d122dcd0f30e13efaab17bf2e803f15407c6119c015803d02c",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-notification.ts\n@@\n   email: Schema.optionalKey(Schema.String),\n+  deviceToken: Schema.optionalKey(Schema.String),\n*** End Patch"
+      }
+    },
+    "effect-dilution": {
+      "fixtureId": "effect-dilution",
+      "path": "fixtures/input-contract/effect-schema/effect-dilution.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-dilution.ts\n@@\n   at: Schema.optionalKey(Schema.String),\n+  reason: Schema.optionalKey(Schema.String),\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-dilution.ts\n@@\n   at: Schema.optionalKey(Schema.String),\n+  reason: Schema.optionalKey(Schema.String),\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "754f146ec864a4e0fc61b85efd0c925be2a40cb147d2d6c3a59cd207443751b6",
+        "expectedFileSha256": "754f146ec864a4e0fc61b85efd0c925be2a40cb147d2d6c3a59cd207443751b6",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-dilution.ts\n@@\n   at: Schema.optionalKey(Schema.String),\n+  reason: Schema.optionalKey(Schema.String),\n*** End Patch"
+      }
+    }
+  },
+  "codexComparison": {
+    "evidenceVersion": 1,
+    "status": "complete",
+    "date": "2026-09-20",
+    "runId": "input-contract-codex-semantic-corpus-comparison-2026-09-20",
+    "purpose": "User-authorized comparison of runtime-captured Codex apply_patch commands against semantic object-tree artifacts over the full authored corpus.",
+    "authorization": {
+      "previousProjectLedgerRemaining": 0,
+      "additionalCallsAuthorized": 48,
+      "callsObserved": 48,
+      "remainingAdditionalCalls": 0
+    },
+    "fixtureCount": 24,
+    "codexCapture": "evidence/codex/0.155.1/native-patch-corpus-2026-09-20.json",
+    "backend": {
+      "id": "jev",
+      "provider": "@effect/ai-typesafe",
+      "model": "jev-latest",
+      "destination": "https://api.typesafe.ai/v1/systemone",
+      "requestMethod": "POST"
+    },
+    "rows": [
+      {
+        "fixtureId": "iface-delivery-flat",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/interface/iface-delivery-flat.ts",
+            "sourceSha256": "64394dc3e93f6031f92b04dffb50fa5f813f1f8aba3327a49b9c2c57aee25e23",
+            "sourceCharacters": 156
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 631,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "failed",
+          "probabilities": {
+            "r1_inferred_case": 0.35,
+            "r2_meaningless_combinations": 0.5,
+            "r3_split_correlations": 0.09,
+            "r4_duplicate_encoding": 0.09,
+            "r5_absence_confusion": 0.21,
+            "r6_bare_domain_value": 0.44,
+            "r7_name_wider_than_type": 0.43,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 424,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "iface-delivery-flat",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/interface/iface-delivery-flat.ts",
+            "sourceSha256": "718fc52ac72b4c2e84a0e3c136962be8e11f66dc4490fc7e57012efe5b59c43f",
+            "sourceCharacters": 176
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 845,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.28,
+            "r2_meaningless_combinations": 0.92,
+            "r3_split_correlations": 0.39,
+            "r4_duplicate_encoding": 0.71,
+            "r5_absence_confusion": 0.5,
+            "r6_bare_domain_value": 0.34,
+            "r7_name_wider_than_type": 0.2,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 390,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "iface-payment-tagged",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/interface/iface-payment-tagged.ts",
+            "sourceSha256": "7aaaccf28b21909ed6152d381a8a816ee678c9a6e385ea5db92a8361fe8321ee",
+            "sourceCharacters": 160
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 637,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "failed",
+          "probabilities": {
+            "r1_inferred_case": 0.14,
+            "r2_meaningless_combinations": 0.69,
+            "r3_split_correlations": 0.4,
+            "r4_duplicate_encoding": 0.11,
+            "r5_absence_confusion": 0.15,
+            "r6_bare_domain_value": 0.65,
+            "r7_name_wider_than_type": 0.85,
+            "r8_name_claims_resource": 0.05,
+            "r9_body_reaches_undeclared": 0.04
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 189,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "iface-payment-tagged",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/interface/iface-payment-tagged.ts",
+            "sourceSha256": "ed606b70956fafbc272344e1f3bc358202f029c69d4f4ea292baf4487f536978",
+            "sourceCharacters": 142
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 804,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.05,
+            "r2_meaningless_combinations": 0.18,
+            "r3_split_correlations": 0.42,
+            "r4_duplicate_encoding": 0.08,
+            "r5_absence_confusion": 0.09,
+            "r6_bare_domain_value": 0.15,
+            "r7_name_wider_than_type": 0.74,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 248,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "iface-order-valid",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/interface/iface-order-valid.ts",
+            "sourceSha256": "efd05df40bc684543f10d9f745f619202af50d8cca8ae08ea84cd9c2e3c1ee60",
+            "sourceCharacters": 157
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 628,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "unchecked",
+          "probabilities": {
+            "r1_inferred_case": 0.12,
+            "r2_meaningless_combinations": 0.73,
+            "r3_split_correlations": 0.08,
+            "r4_duplicate_encoding": 0.08,
+            "r5_absence_confusion": 0.36,
+            "r6_bare_domain_value": 0.43,
+            "r7_name_wider_than_type": 0.88,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 169,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "iface-order-valid",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/interface/iface-order-valid.ts",
+            "sourceSha256": "de9ed933c70339869b49b56af40edde79ae06ca82b731f3fc442596e9143e6cb",
+            "sourceCharacters": 166
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 821,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "unchecked",
+          "probabilities": {
+            "r1_inferred_case": 0.12,
+            "r2_meaningless_combinations": 0.91,
+            "r3_split_correlations": 0.35,
+            "r4_duplicate_encoding": 0.3,
+            "r5_absence_confusion": 0.34,
+            "r6_bare_domain_value": 0.41,
+            "r7_name_wider_than_type": 0.87,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.04
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 267,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "iface-range-diff",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/interface/iface-range-diff.ts",
+            "sourceSha256": "5ca2f59818cea88473d30e86da0f76d6272c93e31bc88046daf99e51916f1d04",
+            "sourceCharacters": 162
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 631,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.12,
+            "r2_meaningless_combinations": 0.84,
+            "r3_split_correlations": 0.1,
+            "r4_duplicate_encoding": 0.09,
+            "r5_absence_confusion": 0.35,
+            "r6_bare_domain_value": 0.57,
+            "r7_name_wider_than_type": 0.63,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 196,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "iface-range-diff",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/interface/iface-range-diff.ts",
+            "sourceSha256": "9c9ed8dba31dd8094eb45a6495afbc6c01fc2bb59eddd85007016da4c10d1442",
+            "sourceCharacters": 75
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 696,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.11,
+            "r2_meaningless_combinations": 0.91,
+            "r3_split_correlations": 0.25,
+            "r4_duplicate_encoding": 0.27,
+            "r5_absence_confusion": 0.38,
+            "r6_bare_domain_value": 0.51,
+            "r7_name_wider_than_type": 0.57,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.04
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 208,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "iface-profile-control",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/interface/iface-profile-control.ts",
+            "sourceSha256": "54c6296a5c151898732e23ea1b5a34e8a370fb843e913f68831314de965a1262",
+            "sourceCharacters": 159
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 638,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "failed",
+          "probabilities": {
+            "r1_inferred_case": 0.07,
+            "r2_meaningless_combinations": 0.4,
+            "r3_split_correlations": 0.08,
+            "r4_duplicate_encoding": 0.27,
+            "r5_absence_confusion": 0.11,
+            "r6_bare_domain_value": 0.52,
+            "r7_name_wider_than_type": 0.15,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 160,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "iface-profile-control",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/interface/iface-profile-control.ts",
+            "sourceSha256": "208459341f15f46592d804175f7c48a3fa5bd7d33b5e71794c224bda431f10ee",
+            "sourceCharacters": 65
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 696,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.05,
+            "r2_meaningless_combinations": 0.16,
+            "r3_split_correlations": 0.07,
+            "r4_duplicate_encoding": 0.09,
+            "r5_absence_confusion": 0.09,
+            "r6_bare_domain_value": 0.63,
+            "r7_name_wider_than_type": 0.63,
+            "r8_name_claims_resource": 0.03,
+            "r9_body_reaches_undeclared": 0.04
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 241,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "iface-dilution",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/interface/iface-dilution.ts",
+            "sourceSha256": "f18ce9527eb91c8dfa4368b2181abfff37d056e06f1673124bc44d998ad13484",
+            "sourceCharacters": 152
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 617,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.41,
+            "r2_meaningless_combinations": 0.71,
+            "r3_split_correlations": 0.13,
+            "r4_duplicate_encoding": 0.1,
+            "r5_absence_confusion": 0.21,
+            "r6_bare_domain_value": 0.62,
+            "r7_name_wider_than_type": 0.34,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 297,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "iface-dilution",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/interface/iface-dilution.ts",
+            "sourceSha256": "cbffc540d3660127376fa83d5126adf82e5a418919c81d14c7d121947c70ddad",
+            "sourceCharacters": 93
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 715,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.35,
+            "r2_meaningless_combinations": 0.92,
+            "r3_split_correlations": 0.28,
+            "r4_duplicate_encoding": 0.38,
+            "r5_absence_confusion": 0.4,
+            "r6_bare_domain_value": 0.72,
+            "r7_name_wider_than_type": 0.59,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.03
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 226,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "alias-discount",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/type-alias/alias-discount.ts",
+            "sourceSha256": "55b64d733db1cb945e4683740d1aca4964def42cce5fa2f7595affcdf55e278e",
+            "sourceCharacters": 161
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 628,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.24,
+            "r2_meaningless_combinations": 0.85,
+            "r3_split_correlations": 0.31,
+            "r4_duplicate_encoding": 0.17,
+            "r5_absence_confusion": 0.34,
+            "r6_bare_domain_value": 0.47,
+            "r7_name_wider_than_type": 0.83,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.04
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 252,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "alias-discount",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/type-alias/alias-discount.ts",
+            "sourceSha256": "102ea98a91a68796652ad3bbc92b28838069dcfb8037e510afc7286f28046e84",
+            "sourceCharacters": 167
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 821,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.09,
+            "r2_meaningless_combinations": 0.94,
+            "r3_split_correlations": 0.45,
+            "r4_duplicate_encoding": 0.28,
+            "r5_absence_confusion": 0.38,
+            "r6_bare_domain_value": 0.19,
+            "r7_name_wider_than_type": 0.8,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.04
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 213,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "alias-auth",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/type-alias/alias-auth.ts",
+            "sourceSha256": "879d62870c2740a9ac11a1a0c539f2b28422fbdb937298adaabc1828e51ebfbf",
+            "sourceCharacters": 149
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 608,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.17,
+            "r2_meaningless_combinations": 0.79,
+            "r3_split_correlations": 0.16,
+            "r4_duplicate_encoding": 0.11,
+            "r5_absence_confusion": 0.35,
+            "r6_bare_domain_value": 0.62,
+            "r7_name_wider_than_type": 0.7,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 218,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "alias-auth",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/type-alias/alias-auth.ts",
+            "sourceSha256": "1dc1d6e6f48210b68cb9b10a46bf0bf6d016581b428d8689c532524606eeb0ab",
+            "sourceCharacters": 145
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 783,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.08,
+            "r2_meaningless_combinations": 0.91,
+            "r3_split_correlations": 0.33,
+            "r4_duplicate_encoding": 0.24,
+            "r5_absence_confusion": 0.33,
+            "r6_bare_domain_value": 0.39,
+            "r7_name_wider_than_type": 0.28,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 226,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "alias-period",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/type-alias/alias-period.ts",
+            "sourceSha256": "ab60ee869307631a75f40b57335ec6b9abc42c4bf9a7ca6597091c1f1d2363e4",
+            "sourceCharacters": 148
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 611,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "failed",
+          "probabilities": {
+            "r1_inferred_case": 0.31,
+            "r2_meaningless_combinations": 0.61,
+            "r3_split_correlations": 0.84,
+            "r4_duplicate_encoding": 0.15,
+            "r5_absence_confusion": 0.23,
+            "r6_bare_domain_value": 0.13,
+            "r7_name_wider_than_type": 0.12,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.04
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 267,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "alias-period",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/type-alias/alias-period.ts",
+            "sourceSha256": "57a59fda5b7777448d76a54292e79a610c981d843f0e52e0ab6a5b60d3cd76d6",
+            "sourceCharacters": 116
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 752,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.21,
+            "r2_meaningless_combinations": 0.74,
+            "r3_split_correlations": 0.85,
+            "r4_duplicate_encoding": 0.3,
+            "r5_absence_confusion": 0.42,
+            "r6_bare_domain_value": 0.73,
+            "r7_name_wider_than_type": 0.76,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.04
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 233,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "alias-money",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/type-alias/alias-money.ts",
+            "sourceSha256": "96bcfcd35fcf6703d5274af5c74dfabc279d3280e0e8bc78b06b533645c63816",
+            "sourceCharacters": 158
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 623,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "failed",
+          "probabilities": {
+            "r1_inferred_case": 0.07,
+            "r2_meaningless_combinations": 0.38,
+            "r3_split_correlations": 0.8,
+            "r4_duplicate_encoding": 0.09,
+            "r5_absence_confusion": 0.08,
+            "r6_bare_domain_value": 0.19,
+            "r7_name_wider_than_type": 0.42,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 183,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "alias-money",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/type-alias/alias-money.ts",
+            "sourceSha256": "e33b609d432f013fadae6ad94ce328584743da3d4c5e65f3ba4042596f783e82",
+            "sourceCharacters": 68
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 685,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.06,
+            "r2_meaningless_combinations": 0.21,
+            "r3_split_correlations": 0.73,
+            "r4_duplicate_encoding": 0.07,
+            "r5_absence_confusion": 0.08,
+            "r6_bare_domain_value": 0.43,
+            "r7_name_wider_than_type": 0.86,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.04
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 259,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "alias-report-range",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/type-alias/alias-report-range.ts",
+            "sourceSha256": "1a1498c1ce446cccbb84e65ecb9c209fc68919f16498636fc2e892d36e3ff91d",
+            "sourceCharacters": 170
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 645,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.11,
+            "r2_meaningless_combinations": 0.72,
+            "r3_split_correlations": 0.19,
+            "r4_duplicate_encoding": 0.11,
+            "r5_absence_confusion": 0.26,
+            "r6_bare_domain_value": 0.45,
+            "r7_name_wider_than_type": 0.82,
+            "r8_name_claims_resource": 0.03,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 175,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "alias-report-range",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/type-alias/alias-report-range.ts",
+            "sourceSha256": "401b964e3ce521db56f30bb7d4f33556c7c7efbc54dd28af25525c82eb175ba4",
+            "sourceCharacters": 82
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 709,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.09,
+            "r2_meaningless_combinations": 0.85,
+            "r3_split_correlations": 0.18,
+            "r4_duplicate_encoding": 0.12,
+            "r5_absence_confusion": 0.33,
+            "r6_bare_domain_value": 0.43,
+            "r7_name_wider_than_type": 0.86,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.04
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 259,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "alias-dilution",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/type-alias/alias-dilution.ts",
+            "sourceSha256": "fce90ebc1aed0ce00a9f4e74e49d2eebf9a4a5012c6cb1750e09e5c68627d79f",
+            "sourceCharacters": 156
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 623,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "failed",
+          "probabilities": {
+            "r1_inferred_case": 0.17,
+            "r2_meaningless_combinations": 0.62,
+            "r3_split_correlations": 0.12,
+            "r4_duplicate_encoding": 0.1,
+            "r5_absence_confusion": 0.22,
+            "r6_bare_domain_value": 0.22,
+            "r7_name_wider_than_type": 0.12,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 227,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "alias-dilution",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/type-alias/alias-dilution.ts",
+            "sourceSha256": "56f263f194498383691d9869603ff0756dfcbf8070a3c095719dc79351441cfa",
+            "sourceCharacters": 94
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 718,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.08,
+            "r2_meaningless_combinations": 0.8,
+            "r3_split_correlations": 0.18,
+            "r4_duplicate_encoding": 0.08,
+            "r5_absence_confusion": 0.37,
+            "r6_bare_domain_value": 0.3,
+            "r7_name_wider_than_type": 0.4,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.04
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 286,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "zod-delivery",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/zod/zod-delivery.ts",
+            "sourceSha256": "4cd15c18d09bf911c3ac861c477e57c6c708384ca6a115cd7d00f60cc35225ea",
+            "sourceCharacters": 171
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 620,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "failed",
+          "probabilities": {
+            "r1_inferred_case": 0.4,
+            "r2_meaningless_combinations": 0.45,
+            "r3_split_correlations": 0.08,
+            "r4_duplicate_encoding": 0.08,
+            "r5_absence_confusion": 0.27,
+            "r6_bare_domain_value": 0.49,
+            "r7_name_wider_than_type": 0.54,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.04
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 176,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "zod-delivery",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/zod/zod-delivery.ts",
+            "sourceSha256": "394542acd45f5acc1965d188cf60bb17948f37e44c36d22c7f1fbcc9c56f5182",
+            "sourceCharacters": 229
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 872,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.23,
+            "r2_meaningless_combinations": 0.89,
+            "r3_split_correlations": 0.24,
+            "r4_duplicate_encoding": 0.37,
+            "r5_absence_confusion": 0.5,
+            "r6_bare_domain_value": 0.25,
+            "r7_name_wider_than_type": 0.56,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 217,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "zod-notification",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/zod/zod-notification.ts",
+            "sourceSha256": "2b4bf78e5c515715a741223f42e22b1c4d04239b069fc72c936fcee2d1fe62f2",
+            "sourceCharacters": 181
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 638,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "failed",
+          "probabilities": {
+            "r1_inferred_case": 0.4,
+            "r2_meaningless_combinations": 0.65,
+            "r3_split_correlations": 0.09,
+            "r4_duplicate_encoding": 0.08,
+            "r5_absence_confusion": 0.28,
+            "r6_bare_domain_value": 0.64,
+            "r7_name_wider_than_type": 0.59,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.04
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 140,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "zod-notification",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/zod/zod-notification.ts",
+            "sourceSha256": "195e927d70ac7c72712b496c5df6d06e7ebddc150b2ffb690e49af5ca16bda1a",
+            "sourceCharacters": 240
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 893,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.13,
+            "r2_meaningless_combinations": 0.88,
+            "r3_split_correlations": 0.31,
+            "r4_duplicate_encoding": 0.36,
+            "r5_absence_confusion": 0.51,
+            "r6_bare_domain_value": 0.25,
+            "r7_name_wider_than_type": 0.54,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 230,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "zod-profile",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/zod/zod-profile.ts",
+            "sourceSha256": "54289c48519432dbbd41026ecd00d933c87e4d35361336e4589ede2bef9462eb",
+            "sourceCharacters": 257
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 707,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.06,
+            "r2_meaningless_combinations": 0.21,
+            "r3_split_correlations": 0.08,
+            "r4_duplicate_encoding": 0.08,
+            "r5_absence_confusion": 0.13,
+            "r6_bare_domain_value": 0.57,
+            "r7_name_wider_than_type": 0.42,
+            "r8_name_claims_resource": 0.03,
+            "r9_body_reaches_undeclared": 0.04
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 160,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "zod-profile",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/zod/zod-profile.ts",
+            "sourceSha256": "67bdc28644e27b7bab9afb81050c3bb395471726c3e4e7aa2b04260e871d33ca",
+            "sourceCharacters": 88
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 687,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.05,
+            "r2_meaningless_combinations": 0.16,
+            "r3_split_correlations": 0.07,
+            "r4_duplicate_encoding": 0.06,
+            "r5_absence_confusion": 0.12,
+            "r6_bare_domain_value": 0.67,
+            "r7_name_wider_than_type": 0.7,
+            "r8_name_claims_resource": 0.03,
+            "r9_body_reaches_undeclared": 0.04
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 234,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "zod-range",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/zod/zod-range.ts",
+            "sourceSha256": "fe23c13beac3641793c2ff561aafc117d170f1c23b9e88f39da192ba75e1e2d9",
+            "sourceCharacters": 186
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 633,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.12,
+            "r2_meaningless_combinations": 0.9,
+            "r3_split_correlations": 0.2,
+            "r4_duplicate_encoding": 0.27,
+            "r5_absence_confusion": 0.36,
+            "r6_bare_domain_value": 0.57,
+            "r7_name_wider_than_type": 0.65,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.04
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 163,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "zod-range",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/zod/zod-range.ts",
+            "sourceSha256": "cac18797dca1399cb119bf9620849b4ac18cc80d453652c5518a9afb1cf4bde3",
+            "sourceCharacters": 126
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 725,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.1,
+            "r2_meaningless_combinations": 0.92,
+            "r3_split_correlations": 0.24,
+            "r4_duplicate_encoding": 0.32,
+            "r5_absence_confusion": 0.41,
+            "r6_bare_domain_value": 0.3,
+            "r7_name_wider_than_type": 0.54,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 267,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "zod-payment",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/zod/zod-payment.ts",
+            "sourceSha256": "1f30ae1722406c9b4ea0eaa7c8bc24be914b4ec7ef4dba36c37898a1611802a7",
+            "sourceCharacters": 149
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 596,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "failed",
+          "probabilities": {
+            "r1_inferred_case": 0.14,
+            "r2_meaningless_combinations": 0.64,
+            "r3_split_correlations": 0.51,
+            "r4_duplicate_encoding": 0.11,
+            "r5_absence_confusion": 0.14,
+            "r6_bare_domain_value": 0.64,
+            "r7_name_wider_than_type": 0.87,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.04
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 156,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "zod-payment",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/zod/zod-payment.ts",
+            "sourceSha256": "49340f21b0680f24a3b2a365c1140c174ebe8b80a1f4bc4154b882b5107d358e",
+            "sourceCharacters": 171
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 803,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.07,
+            "r2_meaningless_combinations": 0.22,
+            "r3_split_correlations": 0.4,
+            "r4_duplicate_encoding": 0.07,
+            "r5_absence_confusion": 0.11,
+            "r6_bare_domain_value": 0.3,
+            "r7_name_wider_than_type": 0.79,
+            "r8_name_claims_resource": 0.03,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 239,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "zod-dilution",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/zod/zod-dilution.ts",
+            "sourceSha256": "0ba317f4de2d5ca4cb1ababb23ec329517f1747d368025262d01f254a8fc3792",
+            "sourceCharacters": 169
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 618,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "failed",
+          "probabilities": {
+            "r1_inferred_case": 0.21,
+            "r2_meaningless_combinations": 0.65,
+            "r3_split_correlations": 0.24,
+            "r4_duplicate_encoding": 0.5,
+            "r5_absence_confusion": 0.33,
+            "r6_bare_domain_value": 0.25,
+            "r7_name_wider_than_type": 0.2,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 175,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "zod-dilution",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/zod/zod-dilution.ts",
+            "sourceSha256": "f618c28ccf9e4e4fdb8642247dbfe99e79a714e49644f0904d0330a70620daa3",
+            "sourceCharacters": 140
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 746,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "failed",
+          "probabilities": {
+            "r1_inferred_case": 0.07,
+            "r2_meaningless_combinations": 0.66,
+            "r3_split_correlations": 0.17,
+            "r4_duplicate_encoding": 0.07,
+            "r5_absence_confusion": 0.47,
+            "r6_bare_domain_value": 0.3,
+            "r7_name_wider_than_type": 0.3,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.04
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 285,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "effect-delivery",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/effect-schema/effect-delivery.ts",
+            "sourceSha256": "62b74578193fe5d35f03e62547a982393ba98179d03feea28bc8b9de2d9b68f7",
+            "sourceCharacters": 208
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 683,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "failed",
+          "probabilities": {
+            "r1_inferred_case": 0.6,
+            "r2_meaningless_combinations": 0.52,
+            "r3_split_correlations": 0.1,
+            "r4_duplicate_encoding": 0.09,
+            "r5_absence_confusion": 0.26,
+            "r6_bare_domain_value": 0.52,
+            "r7_name_wider_than_type": 0.56,
+            "r8_name_claims_resource": 0.05,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 155,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "effect-delivery",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/effect-schema/effect-delivery.ts",
+            "sourceSha256": "216bf7fce52e4bbc82d02b7487bca7121d500b89a5e3f7f187af92150163f103",
+            "sourceCharacters": 267
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 936,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.26,
+            "r2_meaningless_combinations": 0.87,
+            "r3_split_correlations": 0.26,
+            "r4_duplicate_encoding": 0.57,
+            "r5_absence_confusion": 0.43,
+            "r6_bare_domain_value": 0.26,
+            "r7_name_wider_than_type": 0.5,
+            "r8_name_claims_resource": 0.05,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 171,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "effect-job",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/effect-schema/effect-job.ts",
+            "sourceSha256": "858f578138f9033a445c82cd4fa597771d6679f6b08628d1d1ea020696b83c31",
+            "sourceCharacters": 207
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 672,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "failed",
+          "probabilities": {
+            "r1_inferred_case": 0.18,
+            "r2_meaningless_combinations": 0.68,
+            "r3_split_correlations": 0.11,
+            "r4_duplicate_encoding": 0.11,
+            "r5_absence_confusion": 0.33,
+            "r6_bare_domain_value": 0.34,
+            "r7_name_wider_than_type": 0.23,
+            "r8_name_claims_resource": 0.05,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 130,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "effect-job",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/effect-schema/effect-job.ts",
+            "sourceSha256": "5d915b516e3d7b1fceaf5b5571d92327f16b7c7328b62fdae327baf2c51f926d",
+            "sourceCharacters": 240
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 883,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.09,
+            "r2_meaningless_combinations": 0.75,
+            "r3_split_correlations": 0.18,
+            "r4_duplicate_encoding": 0.1,
+            "r5_absence_confusion": 0.43,
+            "r6_bare_domain_value": 0.23,
+            "r7_name_wider_than_type": 0.44,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.06
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 257,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "effect-money",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/effect-schema/effect-money.ts",
+            "sourceSha256": "1e4ccfa2d7c6524f85e49fe98da7415e0ed07598a3bc9aab98713c12ce8fddd4",
+            "sourceCharacters": 187
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 660,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "failed",
+          "probabilities": {
+            "r1_inferred_case": 0.08,
+            "r2_meaningless_combinations": 0.33,
+            "r3_split_correlations": 0.81,
+            "r4_duplicate_encoding": 0.08,
+            "r5_absence_confusion": 0.16,
+            "r6_bare_domain_value": 0.14,
+            "r7_name_wider_than_type": 0.29,
+            "r8_name_claims_resource": 0.05,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 178,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "effect-money",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/effect-schema/effect-money.ts",
+            "sourceSha256": "50b836b0844741c3cef460319a573de596068a069f5a70f4437a4f1e0dfa43b5",
+            "sourceCharacters": 116
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 741,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.06,
+            "r2_meaningless_combinations": 0.22,
+            "r3_split_correlations": 0.64,
+            "r4_duplicate_encoding": 0.06,
+            "r5_absence_confusion": 0.1,
+            "r6_bare_domain_value": 0.39,
+            "r7_name_wider_than_type": 0.84,
+            "r8_name_claims_resource": 0.03,
+            "r9_body_reaches_undeclared": 0.04
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 228,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "effect-range",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/effect-schema/effect-range.ts",
+            "sourceSha256": "1f4a38db92f430f0c04aaebb086f777308721ea82aad1327039332184f6bab6b",
+            "sourceCharacters": 195
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 664,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.17,
+            "r2_meaningless_combinations": 0.8,
+            "r3_split_correlations": 0.14,
+            "r4_duplicate_encoding": 0.19,
+            "r5_absence_confusion": 0.3,
+            "r6_bare_domain_value": 0.62,
+            "r7_name_wider_than_type": 0.69,
+            "r8_name_claims_resource": 0.05,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 192,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "effect-range",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/effect-schema/effect-range.ts",
+            "sourceSha256": "0ead7bfe2aa57dcc5d63ec6842aa0a7d0c62343d34a24ee5b891e7ae1968fd55",
+            "sourceCharacters": 123
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 744,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.19,
+            "r2_meaningless_combinations": 0.9,
+            "r3_split_correlations": 0.26,
+            "r4_duplicate_encoding": 0.23,
+            "r5_absence_confusion": 0.34,
+            "r6_bare_domain_value": 0.57,
+            "r7_name_wider_than_type": 0.6,
+            "r8_name_claims_resource": 0.03,
+            "r9_body_reaches_undeclared": 0.04
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 225,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "effect-notification",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/effect-schema/effect-notification.ts",
+            "sourceSha256": "f33dfee1f8cca5eddfb0fd653be6755fe9de5d186444b0442ebbad183942513d",
+            "sourceCharacters": 218
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 701,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "failed",
+          "probabilities": {
+            "r1_inferred_case": 0.41,
+            "r2_meaningless_combinations": 0.65,
+            "r3_split_correlations": 0.1,
+            "r4_duplicate_encoding": 0.09,
+            "r5_absence_confusion": 0.28,
+            "r6_bare_domain_value": 0.6,
+            "r7_name_wider_than_type": 0.64,
+            "r8_name_claims_resource": 0.05,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 207,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "effect-notification",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/effect-schema/effect-notification.ts",
+            "sourceSha256": "2286e3b45c8234b89a44b4d2eed8f384647ef49566d6e5fce647acb5de55e130",
+            "sourceCharacters": 278
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 957,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.13,
+            "r2_meaningless_combinations": 0.89,
+            "r3_split_correlations": 0.23,
+            "r4_duplicate_encoding": 0.31,
+            "r5_absence_confusion": 0.44,
+            "r6_bare_domain_value": 0.2,
+            "r7_name_wider_than_type": 0.58,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.06
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 291,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "effect-dilution",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/effect-schema/effect-dilution.ts",
+            "sourceSha256": "d4800bac48ae43c1785f0f0d1a413bd6b36c808799418ce57a9ce6127e0b2ab9",
+            "sourceCharacters": 206
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 681,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "failed",
+          "probabilities": {
+            "r1_inferred_case": 0.18,
+            "r2_meaningless_combinations": 0.46,
+            "r3_split_correlations": 0.18,
+            "r4_duplicate_encoding": 0.24,
+            "r5_absence_confusion": 0.23,
+            "r6_bare_domain_value": 0.27,
+            "r7_name_wider_than_type": 0.21,
+            "r8_name_claims_resource": 0.06,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 143,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "effect-dilution",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/effect-schema/effect-dilution.ts",
+            "sourceSha256": "0a034b7dcb1a2bc0168b3fc1eff110d68ded79ff44350032a3c011ec5d216983",
+            "sourceCharacters": 178
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 810,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "failed",
+          "probabilities": {
+            "r1_inferred_case": 0.06,
+            "r2_meaningless_combinations": 0.69,
+            "r3_split_correlations": 0.2,
+            "r4_duplicate_encoding": 0.09,
+            "r5_absence_confusion": 0.39,
+            "r6_bare_domain_value": 0.3,
+            "r7_name_wider_than_type": 0.27,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.05
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 166,
+          "retries": 0
+        }
+      }
+    ],
+    "retention": {
+      "retained": [
+        "numeric per-rule probabilities returned by Jev",
+        "sanitized request metadata and source digests",
+        "runtime-tested Codex patch corpus"
+      ],
+      "notRetained": [
+        "credentials",
+        "raw provider responses",
+        "provider usage details"
+      ],
+      "authorizationNote": "Explicit user-requested two-arm corpus comparison; this is not the historical issue-16 gate rerun."
+    },
+    "runDigest": "286d2608cdc797d82430b157d24d8b33e489c587f0b056efd38755406c5f7f31"
   },
   "diagnostic": {
     "evidenceVersion": 1,
@@ -3921,9 +7879,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/interface/iface-delivery-flat.ts",
           "domain": "input-contract/interface/iface-delivery-flat",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-delivery-flat.ts\n@@\n export interface Delivery {\n   channel: DeliveryChannel;\n   email?: string;\n+  phone?: string;\n }\n \n*** End Patch",
-          "sourceCharacters": 219,
-          "requestBytes": 915,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-delivery-flat.ts\n@@\n   email?: string;\n+  phone?: string;\n*** End Patch",
+          "sourceCharacters": 156,
+          "requestBytes": 631,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -4091,9 +8049,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/interface/iface-payment-tagged.ts",
           "domain": "input-contract/interface/iface-payment-tagged",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-payment-tagged.ts\n@@\n export interface Payment {\n   kind: PaymentKind;\n+  amount: number;\n }\n \n*** End Patch",
-          "sourceCharacters": 193,
-          "requestBytes": 882,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-payment-tagged.ts\n@@\n   kind: PaymentKind;\n+  amount: number;\n*** End Patch",
+          "sourceCharacters": 160,
+          "requestBytes": 637,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -4257,9 +8215,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/interface/iface-order-valid.ts",
           "domain": "input-contract/interface/iface-order-valid",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-order-valid.ts\n@@\n export interface Order {\n   state: OrderState;\n   sku: string;\n+  downloadUrl?: string;\n }\n \n*** End Patch",
-          "sourceCharacters": 210,
-          "requestBytes": 892,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-order-valid.ts\n@@\n   sku: string;\n+  downloadUrl?: string;\n*** End Patch",
+          "sourceCharacters": 157,
+          "requestBytes": 628,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -4427,9 +8385,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/interface/iface-range-diff.ts",
           "domain": "input-contract/interface/iface-range-diff",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-range-diff.ts\n@@\n export interface AuthState {\n   authenticated: boolean;\n+  userId?: string;\n }\n*** End Patch",
-          "sourceCharacters": 195,
-          "requestBytes": 795,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-range-diff.ts\n@@\n   authenticated: boolean;\n+  userId?: string;\n*** End Patch",
+          "sourceCharacters": 162,
+          "requestBytes": 631,
           "contextNames": [],
           "completeness": {
             "status": "complete",
@@ -4569,9 +8527,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/interface/iface-profile-control.ts",
           "domain": "input-contract/interface/iface-profile-control",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-profile-control.ts\n@@\n export interface Profile {\n   id: string;\n+  displayName: string;\n }\n \n*** End Patch",
-          "sourceCharacters": 192,
-          "requestBytes": 803,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-profile-control.ts\n@@\n   id: string;\n+  displayName: string;\n*** End Patch",
+          "sourceCharacters": 159,
+          "requestBytes": 638,
           "contextNames": [],
           "completeness": {
             "status": "complete",
@@ -4713,9 +8671,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/interface/iface-dilution.ts",
           "domain": "input-contract/interface/iface-dilution",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-dilution.ts\n@@\n export interface Shipment {\n   mode?: \"air\" | \"ground\";\n   flight?: string;\n+  truck?: string;\n }\n interface NoiseC { a: string; b: number; c: boolean }\n*** End Patch",
-          "sourceCharacters": 267,
-          "requestBytes": 869,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-dilution.ts\n@@\n   flight?: string;\n+  truck?: string;\n*** End Patch",
+          "sourceCharacters": 152,
+          "requestBytes": 617,
           "contextNames": [],
           "completeness": {
             "status": "complete",
@@ -4859,9 +8817,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/type-alias/alias-discount.ts",
           "domain": "input-contract/type-alias/alias-discount",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-discount.ts\n@@\n export type Discount = {\n   mode: DiscountMode;\n+  percentOff?: number;\n }\n \n*** End Patch",
-          "sourceCharacters": 192,
-          "requestBytes": 873,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-discount.ts\n@@\n   mode: DiscountMode;\n+  percentOff?: number;\n*** End Patch",
+          "sourceCharacters": 161,
+          "requestBytes": 628,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -5031,9 +8989,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/type-alias/alias-auth.ts",
           "domain": "input-contract/type-alias/alias-auth",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-auth.ts\n@@\n export type AuthState = {\n   kind: AuthKind;\n+  userId?: string;\n }\n \n*** End Patch",
-          "sourceCharacters": 181,
-          "requestBytes": 846,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-auth.ts\n@@\n   kind: AuthKind;\n+  userId?: string;\n*** End Patch",
+          "sourceCharacters": 149,
+          "requestBytes": 608,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -5203,9 +9161,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/type-alias/alias-period.ts",
           "domain": "input-contract/type-alias/alias-period",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-period.ts\n@@\n export type Period = {\n   from?: Instant;\n+  to?: Instant;\n }\n \n*** End Patch",
-          "sourceCharacters": 177,
-          "requestBytes": 844,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-period.ts\n@@\n   from?: Instant;\n+  to?: Instant;\n*** End Patch",
+          "sourceCharacters": 148,
+          "requestBytes": 611,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -5371,9 +9329,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/type-alias/alias-money.ts",
           "domain": "input-contract/type-alias/alias-money",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-money.ts\n@@\n export type Money = {\n   amount: number;\n+  currency: \"USD\" | \"CAD\";\n }\n \n*** End Patch",
-          "sourceCharacters": 186,
-          "requestBytes": 783,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-money.ts\n@@\n   amount: number;\n+  currency: \"USD\" | \"CAD\";\n*** End Patch",
+          "sourceCharacters": 158,
+          "requestBytes": 623,
           "contextNames": [],
           "completeness": {
             "status": "complete",
@@ -5515,9 +9473,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/type-alias/alias-report-range.ts",
           "domain": "input-contract/type-alias/alias-report-range",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-report-range.ts\n@@\n export type FeatureRollout = {\n   enabled: boolean;\n+  rolloutPercentage?: number;\n }\n*** End Patch",
-          "sourceCharacters": 205,
-          "requestBytes": 811,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-report-range.ts\n@@\n   enabled: boolean;\n+  rolloutPercentage?: number;\n*** End Patch",
+          "sourceCharacters": 170,
+          "requestBytes": 645,
           "contextNames": [],
           "completeness": {
             "status": "complete",
@@ -5659,9 +9617,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/type-alias/alias-dilution.ts",
           "domain": "input-contract/type-alias/alias-dilution",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-dilution.ts\n@@\n export type JobCommand = {\n   kind: \"run\" | \"cancel\";\n   schedule?: string;\n+  reason?: string;\n }\n type Noise3 = { id: string; createdAt: string };\n*** End Patch",
-          "sourceCharacters": 264,
-          "requestBytes": 868,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-dilution.ts\n@@\n   schedule?: string;\n+  reason?: string;\n*** End Patch",
+          "sourceCharacters": 156,
+          "requestBytes": 623,
           "contextNames": [],
           "completeness": {
             "status": "complete",
@@ -5805,9 +9763,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/zod/zod-delivery.ts",
           "domain": "input-contract/zod/zod-delivery",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-delivery.ts\n@@\n export const DeliverySchema = z.object({\n   channel: DeliveryChannel,\n   email: z.string().optional(),\n+  phone: z.string().optional(),\n });\n \n*** End Patch",
-          "sourceCharacters": 249,
-          "requestBytes": 919,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-delivery.ts\n@@\n   email: z.string().optional(),\n+  phone: z.string().optional(),\n*** End Patch",
+          "sourceCharacters": 171,
+          "requestBytes": 620,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -5977,9 +9935,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/zod/zod-notification.ts",
           "domain": "input-contract/zod/zod-notification",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-notification.ts\n@@\n export const NotificationSchema = z.object({\n   kind: NotificationKind,\n   email: z.string().optional(),\n+  deviceToken: z.string().optional(),\n });\n \n*** End Patch",
-          "sourceCharacters": 261,
-          "requestBytes": 941,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-notification.ts\n@@\n   email: z.string().optional(),\n+  deviceToken: z.string().optional(),\n*** End Patch",
+          "sourceCharacters": 181,
+          "requestBytes": 638,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -6145,9 +10103,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/zod/zod-profile.ts",
           "domain": "input-contract/zod/zod-profile",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-profile.ts\n@@\n import { z } from \"zod\";\n-export const ProfileSchema = z.object({ id: z.string() });\n+export const ProfileSchema = z.object({\n+  id: z.string(),\n+  displayName: z.string(),\n+});\n*** End Patch",
-          "sourceCharacters": 283,
-          "requestBytes": 865,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-profile.ts\n@@\n-export const ProfileSchema = z.object({ id: z.string() });\n+export const ProfileSchema = z.object({\n+  id: z.string(),\n+  displayName: z.string(),\n+});\n*** End Patch",
+          "sourceCharacters": 257,
+          "requestBytes": 707,
           "contextNames": [],
           "completeness": {
             "status": "complete",
@@ -6289,9 +10247,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/zod/zod-range.ts",
           "domain": "input-contract/zod/zod-range",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-range.ts\n@@\n export const DeliverySchema = z.object({\n   status: z.enum([\"pending\", \"delivered\"]),\n+  deliveredAt: z.string().optional(),\n });\n*** End Patch",
-          "sourceCharacters": 233,
-          "requestBytes": 811,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-range.ts\n@@\n   status: z.enum([\"pending\", \"delivered\"]),\n+  deliveredAt: z.string().optional(),\n*** End Patch",
+          "sourceCharacters": 186,
+          "requestBytes": 633,
           "contextNames": [],
           "completeness": {
             "status": "complete",
@@ -6433,9 +10391,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/zod/zod-payment.ts",
           "domain": "input-contract/zod/zod-payment",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-payment.ts\n@@\n export const PaymentSchema = z.object({\n   kind: PaymentKind,\n+  amount: z.number(),\n });\n \n*** End Patch",
-          "sourceCharacters": 197,
-          "requestBytes": 856,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-payment.ts\n@@\n   kind: PaymentKind,\n+  amount: z.number(),\n*** End Patch",
+          "sourceCharacters": 149,
+          "requestBytes": 596,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -6603,9 +10561,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/zod/zod-dilution.ts",
           "domain": "input-contract/zod/zod-dilution",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-dilution.ts\n@@\n export const CommandSchema = z.object({\n   kind: z.enum([\"start\", \"stop\"]),\n   at: z.string().optional(),\n+  reason: z.string().optional(),\n });\n const NoiseC = z.object({ id: z.string(), value: z.number() });\n*** End Patch",
-          "sourceCharacters": 316,
-          "requestBytes": 902,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-dilution.ts\n@@\n   at: z.string().optional(),\n+  reason: z.string().optional(),\n*** End Patch",
+          "sourceCharacters": 169,
+          "requestBytes": 618,
           "contextNames": [],
           "completeness": {
             "status": "complete",
@@ -6749,9 +10707,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/effect-schema/effect-delivery.ts",
           "domain": "input-contract/effect-schema/effect-delivery",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-delivery.ts\n@@\n export const DeliverySchema = Schema.Struct({\n   channel: DeliveryChannel,\n   email: Schema.optionalKey(Schema.String),\n+  phone: Schema.optionalKey(Schema.String),\n });\n \n*** End Patch",
-          "sourceCharacters": 291,
-          "requestBytes": 987,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-delivery.ts\n@@\n   email: Schema.optionalKey(Schema.String),\n+  phone: Schema.optionalKey(Schema.String),\n*** End Patch",
+          "sourceCharacters": 208,
+          "requestBytes": 683,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -6921,9 +10879,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/effect-schema/effect-job.ts",
           "domain": "input-contract/effect-schema/effect-job",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-job.ts\n@@\n export const JobSchema = Schema.Struct({\n   kind: JobKind,\n   schedule: Schema.optionalKey(Schema.String),\n+  reason: Schema.optionalKey(Schema.String),\n });\n \n*** End Patch",
-          "sourceCharacters": 274,
-          "requestBytes": 944,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-job.ts\n@@\n   schedule: Schema.optionalKey(Schema.String),\n+  reason: Schema.optionalKey(Schema.String),\n*** End Patch",
+          "sourceCharacters": 207,
+          "requestBytes": 672,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -7089,9 +11047,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/effect-schema/effect-money.ts",
           "domain": "input-contract/effect-schema/effect-money",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-money.ts\n@@\n export const MoneySchema = Schema.Struct({\n   amount: Schema.Number,\n+  currency: Schema.Literals([\"USD\", \"CAD\"]),\n });\n*** End Patch",
-          "sourceCharacters": 236,
-          "requestBytes": 840,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-money.ts\n@@\n   amount: Schema.Number,\n+  currency: Schema.Literals([\"USD\", \"CAD\"]),\n*** End Patch",
+          "sourceCharacters": 187,
+          "requestBytes": 660,
           "contextNames": [],
           "completeness": {
             "status": "complete",
@@ -7233,9 +11191,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/effect-schema/effect-range.ts",
           "domain": "input-contract/effect-schema/effect-range",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-range.ts\n@@\n export const AuthSchema = Schema.Struct({\n   authenticated: Schema.Boolean,\n+  userId: Schema.optionalKey(Schema.String),\n });\n*** End Patch",
-          "sourceCharacters": 243,
-          "requestBytes": 843,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-range.ts\n@@\n   authenticated: Schema.Boolean,\n+  userId: Schema.optionalKey(Schema.String),\n*** End Patch",
+          "sourceCharacters": 195,
+          "requestBytes": 664,
           "contextNames": [],
           "completeness": {
             "status": "complete",
@@ -7379,9 +11337,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/effect-schema/effect-notification.ts",
           "domain": "input-contract/effect-schema/effect-notification",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-notification.ts\n@@\n export const NotificationSchema = Schema.Struct({\n   kind: NotificationKind,\n   email: Schema.optionalKey(Schema.String),\n+  deviceToken: Schema.optionalKey(Schema.String),\n });\n \n*** End Patch",
-          "sourceCharacters": 303,
-          "requestBytes": 1009,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-notification.ts\n@@\n   email: Schema.optionalKey(Schema.String),\n+  deviceToken: Schema.optionalKey(Schema.String),\n*** End Patch",
+          "sourceCharacters": 218,
+          "requestBytes": 701,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -7549,9 +11507,9 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           "path": "fixtures/input-contract/effect-schema/effect-dilution.ts",
           "domain": "input-contract/effect-schema/effect-dilution",
-          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-dilution.ts\n@@\n export const CommandSchema = Schema.Struct({\n   kind: Schema.Literals([\"start\", \"stop\"]),\n   at: Schema.optionalKey(Schema.String),\n+  reason: Schema.optionalKey(Schema.String),\n });\n const NoiseC = Schema.Struct({ id: Schema.String, value: Schema.Number });\n*** End Patch",
-          "sourceCharacters": 378,
-          "requestBytes": 990,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-dilution.ts\n@@\n   at: Schema.optionalKey(Schema.String),\n+  reason: Schema.optionalKey(Schema.String),\n*** End Patch",
+          "sourceCharacters": 206,
+          "requestBytes": 681,
           "contextNames": [],
           "completeness": {
             "status": "complete",

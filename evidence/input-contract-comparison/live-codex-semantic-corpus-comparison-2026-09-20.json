@@ -1,0 +1,2486 @@
+{
+  "evidenceVersion": 1,
+  "status": "complete",
+  "date": "2026-09-20",
+  "runId": "input-contract-codex-semantic-corpus-comparison-2026-09-20",
+  "purpose": "User-authorized comparison of runtime-captured Codex apply_patch commands against semantic object-tree artifacts over the full authored corpus.",
+  "authorization": {
+    "previousProjectLedgerRemaining": 0,
+    "additionalCallsAuthorized": 48,
+    "callsObserved": 48,
+    "remainingAdditionalCalls": 0
+  },
+  "fixtureCount": 24,
+  "codexCapture": "evidence/codex/0.155.1/native-patch-corpus-2026-09-20.json",
+  "backend": {
+    "id": "jev",
+    "provider": "@effect/ai-typesafe",
+    "model": "jev-latest",
+    "destination": "https://api.typesafe.ai/v1/systemone",
+    "requestMethod": "POST"
+  },
+  "rows": [
+    {
+      "fixtureId": "iface-delivery-flat",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-delivery-flat.ts",
+          "sourceSha256": "64394dc3e93f6031f92b04dffb50fa5f813f1f8aba3327a49b9c2c57aee25e23",
+          "sourceCharacters": 156
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 631,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "failed",
+        "probabilities": {
+          "r1_inferred_case": 0.35,
+          "r2_meaningless_combinations": 0.5,
+          "r3_split_correlations": 0.09,
+          "r4_duplicate_encoding": 0.09,
+          "r5_absence_confusion": 0.21,
+          "r6_bare_domain_value": 0.44,
+          "r7_name_wider_than_type": 0.43,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 424,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "iface-delivery-flat",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-delivery-flat.ts",
+          "sourceSha256": "718fc52ac72b4c2e84a0e3c136962be8e11f66dc4490fc7e57012efe5b59c43f",
+          "sourceCharacters": 176
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 845,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.28,
+          "r2_meaningless_combinations": 0.92,
+          "r3_split_correlations": 0.39,
+          "r4_duplicate_encoding": 0.71,
+          "r5_absence_confusion": 0.5,
+          "r6_bare_domain_value": 0.34,
+          "r7_name_wider_than_type": 0.2,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 390,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "iface-payment-tagged",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-payment-tagged.ts",
+          "sourceSha256": "7aaaccf28b21909ed6152d381a8a816ee678c9a6e385ea5db92a8361fe8321ee",
+          "sourceCharacters": 160
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 637,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "failed",
+        "probabilities": {
+          "r1_inferred_case": 0.14,
+          "r2_meaningless_combinations": 0.69,
+          "r3_split_correlations": 0.4,
+          "r4_duplicate_encoding": 0.11,
+          "r5_absence_confusion": 0.15,
+          "r6_bare_domain_value": 0.65,
+          "r7_name_wider_than_type": 0.85,
+          "r8_name_claims_resource": 0.05,
+          "r9_body_reaches_undeclared": 0.04
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 189,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "iface-payment-tagged",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-payment-tagged.ts",
+          "sourceSha256": "ed606b70956fafbc272344e1f3bc358202f029c69d4f4ea292baf4487f536978",
+          "sourceCharacters": 142
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 804,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.05,
+          "r2_meaningless_combinations": 0.18,
+          "r3_split_correlations": 0.42,
+          "r4_duplicate_encoding": 0.08,
+          "r5_absence_confusion": 0.09,
+          "r6_bare_domain_value": 0.15,
+          "r7_name_wider_than_type": 0.74,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 248,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "iface-order-valid",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-order-valid.ts",
+          "sourceSha256": "efd05df40bc684543f10d9f745f619202af50d8cca8ae08ea84cd9c2e3c1ee60",
+          "sourceCharacters": 157
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 628,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "unchecked",
+        "probabilities": {
+          "r1_inferred_case": 0.12,
+          "r2_meaningless_combinations": 0.73,
+          "r3_split_correlations": 0.08,
+          "r4_duplicate_encoding": 0.08,
+          "r5_absence_confusion": 0.36,
+          "r6_bare_domain_value": 0.43,
+          "r7_name_wider_than_type": 0.88,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 169,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "iface-order-valid",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-order-valid.ts",
+          "sourceSha256": "de9ed933c70339869b49b56af40edde79ae06ca82b731f3fc442596e9143e6cb",
+          "sourceCharacters": 166
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 821,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "unchecked",
+        "probabilities": {
+          "r1_inferred_case": 0.12,
+          "r2_meaningless_combinations": 0.91,
+          "r3_split_correlations": 0.35,
+          "r4_duplicate_encoding": 0.3,
+          "r5_absence_confusion": 0.34,
+          "r6_bare_domain_value": 0.41,
+          "r7_name_wider_than_type": 0.87,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.04
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 267,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "iface-range-diff",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-range-diff.ts",
+          "sourceSha256": "5ca2f59818cea88473d30e86da0f76d6272c93e31bc88046daf99e51916f1d04",
+          "sourceCharacters": 162
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 631,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.12,
+          "r2_meaningless_combinations": 0.84,
+          "r3_split_correlations": 0.1,
+          "r4_duplicate_encoding": 0.09,
+          "r5_absence_confusion": 0.35,
+          "r6_bare_domain_value": 0.57,
+          "r7_name_wider_than_type": 0.63,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 196,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "iface-range-diff",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-range-diff.ts",
+          "sourceSha256": "9c9ed8dba31dd8094eb45a6495afbc6c01fc2bb59eddd85007016da4c10d1442",
+          "sourceCharacters": 75
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 696,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.11,
+          "r2_meaningless_combinations": 0.91,
+          "r3_split_correlations": 0.25,
+          "r4_duplicate_encoding": 0.27,
+          "r5_absence_confusion": 0.38,
+          "r6_bare_domain_value": 0.51,
+          "r7_name_wider_than_type": 0.57,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.04
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 208,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "iface-profile-control",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-profile-control.ts",
+          "sourceSha256": "54c6296a5c151898732e23ea1b5a34e8a370fb843e913f68831314de965a1262",
+          "sourceCharacters": 159
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 638,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "failed",
+        "probabilities": {
+          "r1_inferred_case": 0.07,
+          "r2_meaningless_combinations": 0.4,
+          "r3_split_correlations": 0.08,
+          "r4_duplicate_encoding": 0.27,
+          "r5_absence_confusion": 0.11,
+          "r6_bare_domain_value": 0.52,
+          "r7_name_wider_than_type": 0.15,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 160,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "iface-profile-control",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-profile-control.ts",
+          "sourceSha256": "208459341f15f46592d804175f7c48a3fa5bd7d33b5e71794c224bda431f10ee",
+          "sourceCharacters": 65
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 696,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.05,
+          "r2_meaningless_combinations": 0.16,
+          "r3_split_correlations": 0.07,
+          "r4_duplicate_encoding": 0.09,
+          "r5_absence_confusion": 0.09,
+          "r6_bare_domain_value": 0.63,
+          "r7_name_wider_than_type": 0.63,
+          "r8_name_claims_resource": 0.03,
+          "r9_body_reaches_undeclared": 0.04
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 241,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "iface-dilution",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-dilution.ts",
+          "sourceSha256": "f18ce9527eb91c8dfa4368b2181abfff37d056e06f1673124bc44d998ad13484",
+          "sourceCharacters": 152
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 617,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.41,
+          "r2_meaningless_combinations": 0.71,
+          "r3_split_correlations": 0.13,
+          "r4_duplicate_encoding": 0.1,
+          "r5_absence_confusion": 0.21,
+          "r6_bare_domain_value": 0.62,
+          "r7_name_wider_than_type": 0.34,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 297,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "iface-dilution",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/interface/iface-dilution.ts",
+          "sourceSha256": "cbffc540d3660127376fa83d5126adf82e5a418919c81d14c7d121947c70ddad",
+          "sourceCharacters": 93
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 715,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.35,
+          "r2_meaningless_combinations": 0.92,
+          "r3_split_correlations": 0.28,
+          "r4_duplicate_encoding": 0.38,
+          "r5_absence_confusion": 0.4,
+          "r6_bare_domain_value": 0.72,
+          "r7_name_wider_than_type": 0.59,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.03
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 226,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "alias-discount",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-discount.ts",
+          "sourceSha256": "55b64d733db1cb945e4683740d1aca4964def42cce5fa2f7595affcdf55e278e",
+          "sourceCharacters": 161
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 628,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.24,
+          "r2_meaningless_combinations": 0.85,
+          "r3_split_correlations": 0.31,
+          "r4_duplicate_encoding": 0.17,
+          "r5_absence_confusion": 0.34,
+          "r6_bare_domain_value": 0.47,
+          "r7_name_wider_than_type": 0.83,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.04
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 252,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "alias-discount",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-discount.ts",
+          "sourceSha256": "102ea98a91a68796652ad3bbc92b28838069dcfb8037e510afc7286f28046e84",
+          "sourceCharacters": 167
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 821,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.09,
+          "r2_meaningless_combinations": 0.94,
+          "r3_split_correlations": 0.45,
+          "r4_duplicate_encoding": 0.28,
+          "r5_absence_confusion": 0.38,
+          "r6_bare_domain_value": 0.19,
+          "r7_name_wider_than_type": 0.8,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.04
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 213,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "alias-auth",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-auth.ts",
+          "sourceSha256": "879d62870c2740a9ac11a1a0c539f2b28422fbdb937298adaabc1828e51ebfbf",
+          "sourceCharacters": 149
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 608,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.17,
+          "r2_meaningless_combinations": 0.79,
+          "r3_split_correlations": 0.16,
+          "r4_duplicate_encoding": 0.11,
+          "r5_absence_confusion": 0.35,
+          "r6_bare_domain_value": 0.62,
+          "r7_name_wider_than_type": 0.7,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 218,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "alias-auth",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-auth.ts",
+          "sourceSha256": "1dc1d6e6f48210b68cb9b10a46bf0bf6d016581b428d8689c532524606eeb0ab",
+          "sourceCharacters": 145
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 783,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.08,
+          "r2_meaningless_combinations": 0.91,
+          "r3_split_correlations": 0.33,
+          "r4_duplicate_encoding": 0.24,
+          "r5_absence_confusion": 0.33,
+          "r6_bare_domain_value": 0.39,
+          "r7_name_wider_than_type": 0.28,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 226,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "alias-period",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-period.ts",
+          "sourceSha256": "ab60ee869307631a75f40b57335ec6b9abc42c4bf9a7ca6597091c1f1d2363e4",
+          "sourceCharacters": 148
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 611,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "failed",
+        "probabilities": {
+          "r1_inferred_case": 0.31,
+          "r2_meaningless_combinations": 0.61,
+          "r3_split_correlations": 0.84,
+          "r4_duplicate_encoding": 0.15,
+          "r5_absence_confusion": 0.23,
+          "r6_bare_domain_value": 0.13,
+          "r7_name_wider_than_type": 0.12,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.04
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 267,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "alias-period",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-period.ts",
+          "sourceSha256": "57a59fda5b7777448d76a54292e79a610c981d843f0e52e0ab6a5b60d3cd76d6",
+          "sourceCharacters": 116
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 752,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.21,
+          "r2_meaningless_combinations": 0.74,
+          "r3_split_correlations": 0.85,
+          "r4_duplicate_encoding": 0.3,
+          "r5_absence_confusion": 0.42,
+          "r6_bare_domain_value": 0.73,
+          "r7_name_wider_than_type": 0.76,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.04
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 233,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "alias-money",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-money.ts",
+          "sourceSha256": "96bcfcd35fcf6703d5274af5c74dfabc279d3280e0e8bc78b06b533645c63816",
+          "sourceCharacters": 158
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 623,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "failed",
+        "probabilities": {
+          "r1_inferred_case": 0.07,
+          "r2_meaningless_combinations": 0.38,
+          "r3_split_correlations": 0.8,
+          "r4_duplicate_encoding": 0.09,
+          "r5_absence_confusion": 0.08,
+          "r6_bare_domain_value": 0.19,
+          "r7_name_wider_than_type": 0.42,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 183,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "alias-money",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-money.ts",
+          "sourceSha256": "e33b609d432f013fadae6ad94ce328584743da3d4c5e65f3ba4042596f783e82",
+          "sourceCharacters": 68
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 685,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.06,
+          "r2_meaningless_combinations": 0.21,
+          "r3_split_correlations": 0.73,
+          "r4_duplicate_encoding": 0.07,
+          "r5_absence_confusion": 0.08,
+          "r6_bare_domain_value": 0.43,
+          "r7_name_wider_than_type": 0.86,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.04
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 259,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "alias-report-range",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-report-range.ts",
+          "sourceSha256": "1a1498c1ce446cccbb84e65ecb9c209fc68919f16498636fc2e892d36e3ff91d",
+          "sourceCharacters": 170
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 645,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.11,
+          "r2_meaningless_combinations": 0.72,
+          "r3_split_correlations": 0.19,
+          "r4_duplicate_encoding": 0.11,
+          "r5_absence_confusion": 0.26,
+          "r6_bare_domain_value": 0.45,
+          "r7_name_wider_than_type": 0.82,
+          "r8_name_claims_resource": 0.03,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 175,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "alias-report-range",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-report-range.ts",
+          "sourceSha256": "401b964e3ce521db56f30bb7d4f33556c7c7efbc54dd28af25525c82eb175ba4",
+          "sourceCharacters": 82
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 709,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.09,
+          "r2_meaningless_combinations": 0.85,
+          "r3_split_correlations": 0.18,
+          "r4_duplicate_encoding": 0.12,
+          "r5_absence_confusion": 0.33,
+          "r6_bare_domain_value": 0.43,
+          "r7_name_wider_than_type": 0.86,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.04
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 259,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "alias-dilution",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-dilution.ts",
+          "sourceSha256": "fce90ebc1aed0ce00a9f4e74e49d2eebf9a4a5012c6cb1750e09e5c68627d79f",
+          "sourceCharacters": 156
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 623,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "failed",
+        "probabilities": {
+          "r1_inferred_case": 0.17,
+          "r2_meaningless_combinations": 0.62,
+          "r3_split_correlations": 0.12,
+          "r4_duplicate_encoding": 0.1,
+          "r5_absence_confusion": 0.22,
+          "r6_bare_domain_value": 0.22,
+          "r7_name_wider_than_type": 0.12,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 227,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "alias-dilution",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/type-alias/alias-dilution.ts",
+          "sourceSha256": "56f263f194498383691d9869603ff0756dfcbf8070a3c095719dc79351441cfa",
+          "sourceCharacters": 94
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 718,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.08,
+          "r2_meaningless_combinations": 0.8,
+          "r3_split_correlations": 0.18,
+          "r4_duplicate_encoding": 0.08,
+          "r5_absence_confusion": 0.37,
+          "r6_bare_domain_value": 0.3,
+          "r7_name_wider_than_type": 0.4,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.04
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 286,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "zod-delivery",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-delivery.ts",
+          "sourceSha256": "4cd15c18d09bf911c3ac861c477e57c6c708384ca6a115cd7d00f60cc35225ea",
+          "sourceCharacters": 171
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 620,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "failed",
+        "probabilities": {
+          "r1_inferred_case": 0.4,
+          "r2_meaningless_combinations": 0.45,
+          "r3_split_correlations": 0.08,
+          "r4_duplicate_encoding": 0.08,
+          "r5_absence_confusion": 0.27,
+          "r6_bare_domain_value": 0.49,
+          "r7_name_wider_than_type": 0.54,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.04
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 176,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "zod-delivery",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-delivery.ts",
+          "sourceSha256": "394542acd45f5acc1965d188cf60bb17948f37e44c36d22c7f1fbcc9c56f5182",
+          "sourceCharacters": 229
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 872,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.23,
+          "r2_meaningless_combinations": 0.89,
+          "r3_split_correlations": 0.24,
+          "r4_duplicate_encoding": 0.37,
+          "r5_absence_confusion": 0.5,
+          "r6_bare_domain_value": 0.25,
+          "r7_name_wider_than_type": 0.56,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 217,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "zod-notification",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-notification.ts",
+          "sourceSha256": "2b4bf78e5c515715a741223f42e22b1c4d04239b069fc72c936fcee2d1fe62f2",
+          "sourceCharacters": 181
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 638,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "failed",
+        "probabilities": {
+          "r1_inferred_case": 0.4,
+          "r2_meaningless_combinations": 0.65,
+          "r3_split_correlations": 0.09,
+          "r4_duplicate_encoding": 0.08,
+          "r5_absence_confusion": 0.28,
+          "r6_bare_domain_value": 0.64,
+          "r7_name_wider_than_type": 0.59,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.04
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 140,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "zod-notification",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-notification.ts",
+          "sourceSha256": "195e927d70ac7c72712b496c5df6d06e7ebddc150b2ffb690e49af5ca16bda1a",
+          "sourceCharacters": 240
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 893,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.13,
+          "r2_meaningless_combinations": 0.88,
+          "r3_split_correlations": 0.31,
+          "r4_duplicate_encoding": 0.36,
+          "r5_absence_confusion": 0.51,
+          "r6_bare_domain_value": 0.25,
+          "r7_name_wider_than_type": 0.54,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 230,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "zod-profile",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-profile.ts",
+          "sourceSha256": "54289c48519432dbbd41026ecd00d933c87e4d35361336e4589ede2bef9462eb",
+          "sourceCharacters": 257
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 707,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.06,
+          "r2_meaningless_combinations": 0.21,
+          "r3_split_correlations": 0.08,
+          "r4_duplicate_encoding": 0.08,
+          "r5_absence_confusion": 0.13,
+          "r6_bare_domain_value": 0.57,
+          "r7_name_wider_than_type": 0.42,
+          "r8_name_claims_resource": 0.03,
+          "r9_body_reaches_undeclared": 0.04
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 160,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "zod-profile",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-profile.ts",
+          "sourceSha256": "67bdc28644e27b7bab9afb81050c3bb395471726c3e4e7aa2b04260e871d33ca",
+          "sourceCharacters": 88
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 687,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.05,
+          "r2_meaningless_combinations": 0.16,
+          "r3_split_correlations": 0.07,
+          "r4_duplicate_encoding": 0.06,
+          "r5_absence_confusion": 0.12,
+          "r6_bare_domain_value": 0.67,
+          "r7_name_wider_than_type": 0.7,
+          "r8_name_claims_resource": 0.03,
+          "r9_body_reaches_undeclared": 0.04
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 234,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "zod-range",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-range.ts",
+          "sourceSha256": "fe23c13beac3641793c2ff561aafc117d170f1c23b9e88f39da192ba75e1e2d9",
+          "sourceCharacters": 186
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 633,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.12,
+          "r2_meaningless_combinations": 0.9,
+          "r3_split_correlations": 0.2,
+          "r4_duplicate_encoding": 0.27,
+          "r5_absence_confusion": 0.36,
+          "r6_bare_domain_value": 0.57,
+          "r7_name_wider_than_type": 0.65,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.04
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 163,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "zod-range",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-range.ts",
+          "sourceSha256": "cac18797dca1399cb119bf9620849b4ac18cc80d453652c5518a9afb1cf4bde3",
+          "sourceCharacters": 126
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 725,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.1,
+          "r2_meaningless_combinations": 0.92,
+          "r3_split_correlations": 0.24,
+          "r4_duplicate_encoding": 0.32,
+          "r5_absence_confusion": 0.41,
+          "r6_bare_domain_value": 0.3,
+          "r7_name_wider_than_type": 0.54,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 267,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "zod-payment",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-payment.ts",
+          "sourceSha256": "1f30ae1722406c9b4ea0eaa7c8bc24be914b4ec7ef4dba36c37898a1611802a7",
+          "sourceCharacters": 149
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 596,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "failed",
+        "probabilities": {
+          "r1_inferred_case": 0.14,
+          "r2_meaningless_combinations": 0.64,
+          "r3_split_correlations": 0.51,
+          "r4_duplicate_encoding": 0.11,
+          "r5_absence_confusion": 0.14,
+          "r6_bare_domain_value": 0.64,
+          "r7_name_wider_than_type": 0.87,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.04
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 156,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "zod-payment",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-payment.ts",
+          "sourceSha256": "49340f21b0680f24a3b2a365c1140c174ebe8b80a1f4bc4154b882b5107d358e",
+          "sourceCharacters": 171
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 803,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.07,
+          "r2_meaningless_combinations": 0.22,
+          "r3_split_correlations": 0.4,
+          "r4_duplicate_encoding": 0.07,
+          "r5_absence_confusion": 0.11,
+          "r6_bare_domain_value": 0.3,
+          "r7_name_wider_than_type": 0.79,
+          "r8_name_claims_resource": 0.03,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 239,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "zod-dilution",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-dilution.ts",
+          "sourceSha256": "0ba317f4de2d5ca4cb1ababb23ec329517f1747d368025262d01f254a8fc3792",
+          "sourceCharacters": 169
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 618,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "failed",
+        "probabilities": {
+          "r1_inferred_case": 0.21,
+          "r2_meaningless_combinations": 0.65,
+          "r3_split_correlations": 0.24,
+          "r4_duplicate_encoding": 0.5,
+          "r5_absence_confusion": 0.33,
+          "r6_bare_domain_value": 0.25,
+          "r7_name_wider_than_type": 0.2,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 175,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "zod-dilution",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/zod/zod-dilution.ts",
+          "sourceSha256": "f618c28ccf9e4e4fdb8642247dbfe99e79a714e49644f0904d0330a70620daa3",
+          "sourceCharacters": 140
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 746,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "failed",
+        "probabilities": {
+          "r1_inferred_case": 0.07,
+          "r2_meaningless_combinations": 0.66,
+          "r3_split_correlations": 0.17,
+          "r4_duplicate_encoding": 0.07,
+          "r5_absence_confusion": 0.47,
+          "r6_bare_domain_value": 0.3,
+          "r7_name_wider_than_type": 0.3,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.04
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 285,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "effect-delivery",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-delivery.ts",
+          "sourceSha256": "62b74578193fe5d35f03e62547a982393ba98179d03feea28bc8b9de2d9b68f7",
+          "sourceCharacters": 208
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 683,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "failed",
+        "probabilities": {
+          "r1_inferred_case": 0.6,
+          "r2_meaningless_combinations": 0.52,
+          "r3_split_correlations": 0.1,
+          "r4_duplicate_encoding": 0.09,
+          "r5_absence_confusion": 0.26,
+          "r6_bare_domain_value": 0.52,
+          "r7_name_wider_than_type": 0.56,
+          "r8_name_claims_resource": 0.05,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 155,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "effect-delivery",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-delivery.ts",
+          "sourceSha256": "216bf7fce52e4bbc82d02b7487bca7121d500b89a5e3f7f187af92150163f103",
+          "sourceCharacters": 267
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 936,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.26,
+          "r2_meaningless_combinations": 0.87,
+          "r3_split_correlations": 0.26,
+          "r4_duplicate_encoding": 0.57,
+          "r5_absence_confusion": 0.43,
+          "r6_bare_domain_value": 0.26,
+          "r7_name_wider_than_type": 0.5,
+          "r8_name_claims_resource": 0.05,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 171,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "effect-job",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-job.ts",
+          "sourceSha256": "858f578138f9033a445c82cd4fa597771d6679f6b08628d1d1ea020696b83c31",
+          "sourceCharacters": 207
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 672,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "failed",
+        "probabilities": {
+          "r1_inferred_case": 0.18,
+          "r2_meaningless_combinations": 0.68,
+          "r3_split_correlations": 0.11,
+          "r4_duplicate_encoding": 0.11,
+          "r5_absence_confusion": 0.33,
+          "r6_bare_domain_value": 0.34,
+          "r7_name_wider_than_type": 0.23,
+          "r8_name_claims_resource": 0.05,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 130,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "effect-job",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-job.ts",
+          "sourceSha256": "5d915b516e3d7b1fceaf5b5571d92327f16b7c7328b62fdae327baf2c51f926d",
+          "sourceCharacters": 240
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 883,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.09,
+          "r2_meaningless_combinations": 0.75,
+          "r3_split_correlations": 0.18,
+          "r4_duplicate_encoding": 0.1,
+          "r5_absence_confusion": 0.43,
+          "r6_bare_domain_value": 0.23,
+          "r7_name_wider_than_type": 0.44,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.06
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 257,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "effect-money",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-money.ts",
+          "sourceSha256": "1e4ccfa2d7c6524f85e49fe98da7415e0ed07598a3bc9aab98713c12ce8fddd4",
+          "sourceCharacters": 187
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 660,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "failed",
+        "probabilities": {
+          "r1_inferred_case": 0.08,
+          "r2_meaningless_combinations": 0.33,
+          "r3_split_correlations": 0.81,
+          "r4_duplicate_encoding": 0.08,
+          "r5_absence_confusion": 0.16,
+          "r6_bare_domain_value": 0.14,
+          "r7_name_wider_than_type": 0.29,
+          "r8_name_claims_resource": 0.05,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 178,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "effect-money",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-money.ts",
+          "sourceSha256": "50b836b0844741c3cef460319a573de596068a069f5a70f4437a4f1e0dfa43b5",
+          "sourceCharacters": 116
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 741,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.06,
+          "r2_meaningless_combinations": 0.22,
+          "r3_split_correlations": 0.64,
+          "r4_duplicate_encoding": 0.06,
+          "r5_absence_confusion": 0.1,
+          "r6_bare_domain_value": 0.39,
+          "r7_name_wider_than_type": 0.84,
+          "r8_name_claims_resource": 0.03,
+          "r9_body_reaches_undeclared": 0.04
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 228,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "effect-range",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-range.ts",
+          "sourceSha256": "1f4a38db92f430f0c04aaebb086f777308721ea82aad1327039332184f6bab6b",
+          "sourceCharacters": 195
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 664,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.17,
+          "r2_meaningless_combinations": 0.8,
+          "r3_split_correlations": 0.14,
+          "r4_duplicate_encoding": 0.19,
+          "r5_absence_confusion": 0.3,
+          "r6_bare_domain_value": 0.62,
+          "r7_name_wider_than_type": 0.69,
+          "r8_name_claims_resource": 0.05,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 192,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "effect-range",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-range.ts",
+          "sourceSha256": "0ead7bfe2aa57dcc5d63ec6842aa0a7d0c62343d34a24ee5b891e7ae1968fd55",
+          "sourceCharacters": 123
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 744,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.19,
+          "r2_meaningless_combinations": 0.9,
+          "r3_split_correlations": 0.26,
+          "r4_duplicate_encoding": 0.23,
+          "r5_absence_confusion": 0.34,
+          "r6_bare_domain_value": 0.57,
+          "r7_name_wider_than_type": 0.6,
+          "r8_name_claims_resource": 0.03,
+          "r9_body_reaches_undeclared": 0.04
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 225,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "effect-notification",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-notification.ts",
+          "sourceSha256": "f33dfee1f8cca5eddfb0fd653be6755fe9de5d186444b0442ebbad183942513d",
+          "sourceCharacters": 218
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 701,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "failed",
+        "probabilities": {
+          "r1_inferred_case": 0.41,
+          "r2_meaningless_combinations": 0.65,
+          "r3_split_correlations": 0.1,
+          "r4_duplicate_encoding": 0.09,
+          "r5_absence_confusion": 0.28,
+          "r6_bare_domain_value": 0.6,
+          "r7_name_wider_than_type": 0.64,
+          "r8_name_claims_resource": 0.05,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 207,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "effect-notification",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-notification.ts",
+          "sourceSha256": "2286e3b45c8234b89a44b4d2eed8f384647ef49566d6e5fce647acb5de55e130",
+          "sourceCharacters": 278
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 957,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "passed",
+        "probabilities": {
+          "r1_inferred_case": 0.13,
+          "r2_meaningless_combinations": 0.89,
+          "r3_split_correlations": 0.23,
+          "r4_duplicate_encoding": 0.31,
+          "r5_absence_confusion": 0.44,
+          "r6_bare_domain_value": 0.2,
+          "r7_name_wider_than_type": 0.58,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.06
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 291,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "effect-dilution",
+      "arm": "codex-patch",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-dilution.ts",
+          "sourceSha256": "d4800bac48ae43c1785f0f0d1a413bd6b36c808799418ce57a9ce6127e0b2ab9",
+          "sourceCharacters": 206
+        },
+        "contract": {
+          "id": "codex-apply-patch",
+          "version": "1",
+          "renderer": "renderer.codex-patch",
+          "rendererVersion": "1"
+        },
+        "requestBytes": 681,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "runtime-codex-callback"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "failed",
+        "probabilities": {
+          "r1_inferred_case": 0.18,
+          "r2_meaningless_combinations": 0.46,
+          "r3_split_correlations": 0.18,
+          "r4_duplicate_encoding": 0.24,
+          "r5_absence_confusion": 0.23,
+          "r6_bare_domain_value": 0.27,
+          "r7_name_wider_than_type": 0.21,
+          "r8_name_claims_resource": 0.06,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 143,
+        "retries": 0
+      }
+    },
+    {
+      "fixtureId": "effect-dilution",
+      "arm": "semantic-object-tree",
+      "request": {
+        "model": "jev-latest",
+        "artifact": {
+          "domain": "fixtures/input-contract/effect-schema/effect-dilution.ts",
+          "sourceSha256": "0a034b7dcb1a2bc0168b3fc1eff110d68ded79ff44350032a3c011ec5d216983",
+          "sourceCharacters": 178
+        },
+        "contract": {
+          "id": "edited-declaration-bounded-context",
+          "version": "2",
+          "renderer": "renderer.declaration-context",
+          "rendererVersion": "2"
+        },
+        "requestBytes": 810,
+        "questionCount": 9,
+        "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+      },
+      "result": {
+        "status": "reviewed",
+        "semantic": "failed",
+        "probabilities": {
+          "r1_inferred_case": 0.06,
+          "r2_meaningless_combinations": 0.69,
+          "r3_split_correlations": 0.2,
+          "r4_duplicate_encoding": 0.09,
+          "r5_absence_confusion": 0.39,
+          "r6_bare_domain_value": 0.3,
+          "r7_name_wider_than_type": 0.27,
+          "r8_name_claims_resource": 0.04,
+          "r9_body_reaches_undeclared": 0.05
+        },
+        "returnedDecisionKeys": [
+          "r1_inferred_case",
+          "r2_meaningless_combinations",
+          "r3_split_correlations",
+          "r4_duplicate_encoding",
+          "r5_absence_confusion",
+          "r6_bare_domain_value",
+          "r7_name_wider_than_type",
+          "r8_name_claims_resource",
+          "r9_body_reaches_undeclared"
+        ]
+      },
+      "backend": {
+        "durationMs": 166,
+        "retries": 0
+      }
+    }
+  ],
+  "retention": {
+    "retained": [
+      "numeric per-rule probabilities returned by Jev",
+      "sanitized request metadata and source digests",
+      "runtime-tested Codex patch corpus"
+    ],
+    "notRetained": [
+      "credentials",
+      "raw provider responses",
+      "provider usage details"
+    ],
+    "authorizationNote": "Explicit user-requested two-arm corpus comparison; this is not the historical issue-16 gate rerun."
+  },
+  "runDigest": "286d2608cdc797d82430b157d24d8b33e489c587f0b056efd38755406c5f7f31"
+}

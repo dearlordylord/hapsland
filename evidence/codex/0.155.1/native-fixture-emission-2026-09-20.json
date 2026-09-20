@@ -1,0 +1,94 @@
+{
+  "evidenceVersion": 1,
+  "date": "2026-09-20",
+  "host": "codex-cli 0.155.1",
+  "mode": "codex exec --ephemeral --json",
+  "isolation": {
+    "temporaryCodexHome": true,
+    "temporaryRepository": true,
+    "credentialsCopiedToTemporaryHome": true,
+    "sourceAndCredentialsRetained": false
+  },
+  "request": {
+    "instruction": "one native apply_patch call adding one line to the retained input-contract fixture; no Bash or other tool call",
+    "toolName": "apply_patch",
+    "toolInputKeys": [
+      "command"
+    ],
+    "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-delivery-flat.ts\n@@\n   email?: string;\n+  phone?: string;\n*** End Patch"
+  },
+  "postToolUseEnvelope": {
+    "keys": [
+      "cwd",
+      "hook_event_name",
+      "model",
+      "permission_mode",
+      "probe_role",
+      "session_id",
+      "tool_input",
+      "tool_name",
+      "tool_response",
+      "tool_use_id",
+      "transcript_path",
+      "turn_id"
+    ],
+    "sessionId": "<SESSION>",
+    "turnId": "<TURN>",
+    "transcriptPath": null,
+    "cwd": "<WORKSPACE>",
+    "hookEventName": "PostToolUse",
+    "model": "<MODEL>",
+    "permissionMode": "bypassPermissions",
+    "toolName": "apply_patch",
+    "toolInput": {
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-delivery-flat.ts\n@@\n   email?: string;\n+  phone?: string;\n*** End Patch"
+    },
+    "toolResponse": "<TOOL_RESPONSE>",
+    "toolUseId": "<TOOL_USE>"
+  },
+  "result": {
+    "codexExitCode": 0,
+    "codexSignal": null,
+    "postToolUseEvents": 1,
+    "fileChanged": true,
+    "fileSha256": "11b18d7cf9eef70908a67b8a864a08954a0612665f2895936b0db4a0d2f0328c",
+    "fileBytes": 1431,
+    "hostJsonlEvents": [
+      {
+        "type": "thread.started"
+      },
+      {
+        "type": "item.completed",
+        "itemType": "error"
+      },
+      {
+        "type": "item.completed",
+        "itemType": "error"
+      },
+      {
+        "type": "turn.started"
+      },
+      {
+        "type": "item.completed",
+        "itemType": "agent_message"
+      },
+      {
+        "type": "item.started",
+        "itemType": "file_change"
+      },
+      {
+        "type": "item.completed",
+        "itemType": "file_change"
+      },
+      {
+        "type": "item.completed",
+        "itemType": "agent_message"
+      },
+      {
+        "type": "turn.completed"
+      }
+    ]
+  },
+  "sanitization": "Session, turn, tool-use, model, response, workspace, and authentication identities are redacted; the retained patch content is synthetic.",
+  "verdict": "runtime-tested"
+}

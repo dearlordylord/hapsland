@@ -8,6 +8,8 @@ const reportPath = resolve(root, "evidence/input-contract-comparison/live-report
 const diagnosticPath = resolve(root, "evidence/input-contract-comparison/live-diagnostic-2026-09-20.json");
 const confidenceProbePath = resolve(root, "evidence/input-contract-comparison/live-confidence-probe-2026-09-20.json");
 const codexEmissionPath = resolve(root, "evidence/codex/0.155.1/native-patch-emission-2026-09-20.json");
+const codexCorpusPath = resolve(root, "evidence/codex/0.155.1/native-patch-corpus-2026-09-20.json");
+const codexComparisonPath = resolve(root, "evidence/input-contract-comparison/live-codex-semantic-corpus-comparison-2026-09-20.json");
 const outputPath = resolve(root, "evidence/input-contract-comparison/dashboard-data.js");
 const report = JSON.parse(readFileSync(reportPath, "utf8")) as unknown;
 type WireQuestion = { readonly id: string; readonly type: "noul"; readonly instructions: string; readonly criteria: { readonly false: string; readonly true: string } };
@@ -15,6 +17,12 @@ type Diagnostic = { readonly backend: Record<string, unknown>; readonly wireQues
 const diagnostic = JSON.parse(readFileSync(diagnosticPath, "utf8")) as Diagnostic;
 const confidenceProbe = JSON.parse(readFileSync(confidenceProbePath, "utf8")) as unknown;
 const codexEmission = JSON.parse(readFileSync(codexEmissionPath, "utf8")) as unknown;
+type CodexCorpus = { readonly rows: readonly (Record<string, unknown> & { readonly fixtureId: string; readonly command?: string })[] };
+const codexCorpus = JSON.parse(readFileSync(codexCorpusPath, "utf8")) as CodexCorpus;
+type CodexComparison = { readonly rows: readonly (Record<string, unknown> & { readonly fixtureId: string; readonly arm: string; readonly request?: { readonly requestBytes?: number } })[] };
+const codexComparison = JSON.parse(readFileSync(codexComparisonPath, "utf8")) as CodexComparison;
+const codexCaptures = Object.fromEntries(codexCorpus.rows.map((row) => [row.fixtureId, { ...row, request: { command: row.command } }]));
+const codexComparisonByFixture = new Map(codexComparison.rows.filter((row) => row.arm === "codex-patch").map((row) => [row.fixtureId, row]));
 
 const fixtures = inputComparisonFixtures.map((fixture) => ({
   id: fixture.id,
@@ -37,13 +45,15 @@ const fixtures = inputComparisonFixtures.map((fixture) => ({
   after: fixture.after,
   rendered: Object.fromEntries(modes.map((mode) => {
     const rendered = renderInput(fixture, mode);
+    const capturedSource = mode === "diff" ? codexCaptures[fixture.id]?.request?.command ?? rendered.source : rendered.source;
+    const capturedComparison = mode === "diff" ? codexComparisonByFixture.get(fixture.id) : undefined;
     return [mode, {
       contract: rendered.contract,
       path: rendered.path,
       domain: rendered.domain,
-      source: rendered.source,
-      sourceCharacters: rendered.sourceCharacters,
-      requestBytes: rendered.requestBytes,
+      source: capturedSource,
+      sourceCharacters: capturedSource.length,
+      requestBytes: capturedComparison?.request?.requestBytes ?? rendered.requestBytes,
       declarationName: rendered.declarationName,
       contextNames: rendered.contextNames,
       completeness: rendered.completeness,
@@ -63,7 +73,9 @@ const data = {
     diagnostic: "evidence/input-contract-comparison/live-diagnostic-2026-09-20.json",
     confidenceProbe: "evidence/input-contract-comparison/live-confidence-probe-2026-09-20.json",
     codexEmission: "evidence/codex/0.155.1/native-patch-emission-2026-09-20.json",
-    currentDiffRenderer: "experiments/input-contract-comparison/render.ts:renderCodexPatch",
+    codexPatchCorpus: "evidence/codex/0.155.1/native-patch-corpus-2026-09-20.json",
+    codexComparison: "evidence/input-contract-comparison/live-codex-semantic-corpus-comparison-2026-09-20.json",
+    currentDiffRenderer: "evidence/codex/0.155.1/native-patch-corpus-2026-09-20.json:rows[].command",
   },
   rendererRevision: {
     current: "codex-apply-patch@1",
@@ -78,7 +90,7 @@ const data = {
       "aggregate run counts, gates, timing, and request-size summaries",
       "sanitized 64-call production request/result diagnostic for four representative fixtures",
       "user-authorized two-call numeric confidence probe for iface-delivery-flat",
-      "runtime-probed native Codex apply_patch emission shape",
+      "24 runtime-tested Codex apply_patch callbacks, one per fixture",
     ],
     notRetained: [
       "individual backend probabilities for the full gate and 64-call diagnostic",
@@ -86,7 +98,7 @@ const data = {
       "raw or source-bearing provider responses",
       "provider usage details",
     ],
-    consequence: "The retained paid aggregate report used historical textual-diff@2. Current rendered diff inputs use codex-apply-patch@1, so focused-diff measurements need a new paid matrix; whole-file/context evidence remains separately inspectable.",
+    consequence: "The active Codex arm uses 24 verified runtime apply_patch callbacks. The semantic arm is the extracted declaration-context object tree. Each arm has its own retained Jev request metadata and return; the historical repeated gate remains provenance only.",
   },
   providerContract: {
     source: [
@@ -103,6 +115,8 @@ const data = {
     note: "The provider receives one POST /systemone request with model, state, and the nine Noul questions. The dashboard fills the two artifact placeholders from the selected fixture and mode.",
   },
   codexEmission,
+  codexCaptures,
+  codexComparison,
   diagnostic,
   confidenceProbe,
   report,
