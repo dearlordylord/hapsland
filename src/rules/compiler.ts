@@ -5,6 +5,7 @@ import type { ConfigurationLayer } from "../configuration/resolve.ts";
 import { matchesAnyGlob } from "../matcher/glob.ts";
 import { BUNDLED_NOUL_PACK, isNoulRuleApplicable } from "./bundled.ts";
 import {
+  DEFAULT_RULE_THRESHOLD,
   digestRuleDefinition,
   type RuleApplicability,
   type RuleDefinition,
@@ -192,7 +193,7 @@ export const compileRules = (
         rank += 1;
         continue;
       }
-      const threshold = override?.threshold ?? rule.threshold ?? 0.7;
+      const threshold = override?.threshold ?? rule.threshold ?? DEFAULT_RULE_THRESHOLD;
       if (!Number.isFinite(threshold) || threshold < 0 || threshold > 1) {
         throw new ConfigurationError({
           source: pack.source,

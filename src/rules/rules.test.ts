@@ -6,9 +6,10 @@ import { decodeConfigurationText } from "../configuration/decode.ts";
 import { resolveConfiguration, type ConfigurationLayer } from "../configuration/resolve.ts";
 import { ConfigurationError } from "../configuration/errors.ts";
 import { BUNDLED_NOUL_PACK } from "./bundled.ts";
-import { compileRules, selectApplicableRules, shouldDispatchRule } from "./compiler.ts";
+import { compileRules, selectApplicableRules } from "./compiler.ts";
 import { loadRulePacks } from "./loader.ts";
 import { decodeRulePackText, digestRulePack } from "./schema.ts";
+import { selectGlobalPath } from "../policy/file-policy.ts";
 
 const origin = (layer: ConfigurationLayer["name"], source: string) => ({
   layer,
@@ -107,6 +108,33 @@ describe("layered local pack loading and compilation", () => {
     }
   });
 
+  it("keeps repository-relative matching stable when a pack is relocated", async () => {
+    const root = mkdtempSync(join(tmpdir(), "review-rules-relocated-"));
+    try {
+      const configDirectory = join(root, "config");
+      const packDirectory = join(configDirectory, "rules");
+      const configPath = join(configDirectory, "review.jsonc");
+      const packPath = join(packDirectory, "team.jsonc");
+      const { mkdirSync } = await import("node:fs");
+      mkdirSync(packDirectory, { recursive: true });
+      writeFileSync(packPath, packText());
+      const layer: ConfigurationLayer = {
+        name: "project",
+        source: configPath,
+        document: decodeConfigurationText('{"version":1,"packs":["rules/team.jsonc"]}', configPath),
+      };
+      const packs = await loadRulePacks({ root, layers: [layer] });
+      const rules = compileRules({ packs, layers: [layer] });
+      const localRules = rules.filter((rule) => rule.packId === "team");
+      expect(localRules).toHaveLength(1);
+      expect(localRules[0]?.source).toBe(packPath);
+      expect(selectApplicableRules(localRules, "const x = 1", "src/relocated.ts")).toHaveLength(1);
+      expect(selectApplicableRules(localRules, "const x = 1", "config/src/relocated.ts")).toHaveLength(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("rejects project path escapes, rebinding, and unknown overrides", async () => {
     const root = mkdtempSync(join(tmpdir(), "review-rules-root-"));
     const outside = mkdtempSync(join(tmpdir(), "review-rules-outside-"));
@@ -175,8 +203,20 @@ describe("layered local pack loading and compilation", () => {
 });
 
 describe("bounded rule selection combinations", () => {
-  it("executes all 128 Boolean gates with independent global and rule scopes", () => {
-    let seen = 0;
+  it("executes all 128 Boolean gates through production configuration, compilation, and selection", () => {
+    const pack = decodeRulePackText(JSON.stringify({
+      schemaVersion: 1,
+      id: "selection",
+      contentVersion: "1",
+      rules: [{
+        id: "candidate",
+        question: "Does this candidate require review?",
+        criteria: { false: "No.", true: "Yes." },
+        message: "Review this candidate.",
+      }],
+    }), "selection.jsonc");
+    const source = "const candidate = true;";
+    const path = "src/candidate.ts";
     for (let mask = 0; mask < 128; mask += 1) {
       const consent = (mask & 1) !== 0;
       const globalInclude = (mask & 2) !== 0;
@@ -185,27 +225,39 @@ describe("bounded rule selection combinations", () => {
       const ruleEnabled = (mask & 16) !== 0;
       const ruleInclude = (mask & 32) !== 0;
       const ruleExclude = (mask & 64) !== 0;
-      const selected = shouldDispatchRule({
-        consent,
-        globalIncluded: globalInclude,
-        globalExcluded: globalExclude,
-        packEnabled,
-        ruleEnabled,
-        ruleIncluded: ruleInclude,
-        ruleExcluded: ruleExclude,
+      const layer: ConfigurationLayer = {
+        name: "project",
+        source: "selection.jsonc",
+        document: decodeConfigurationText(JSON.stringify({
+          version: 1,
+          ...(globalInclude ? { includes: ["src/**"] } : { includes: [] }),
+          ...(globalExclude ? { excludes: ["src/**"] } : {}),
+          ruleOverrides: {
+            "selection/candidate": {
+              enabled: ruleEnabled,
+              includes: ruleInclude ? ["src/**"] : ["never/**"],
+              excludes: ruleExclude ? ["src/**"] : [],
+            },
+          },
+        }), "selection.jsonc"),
+      };
+      const compiled = compileRules({
+        packs: [{
+          ...pack,
+          path: "selection.jsonc",
+          enabled: packEnabled,
+          origin: origin("project", "selection.jsonc"),
+        }],
+        layers: [layer],
       });
-      const expected = [
-        consent,
-        globalInclude,
-        !globalExclude,
-        packEnabled,
-        ruleEnabled,
-        ruleInclude,
-        !ruleExclude,
-      ].every(Boolean);
-      expect(selected).toBe(expected);
-      seen += 1;
+      const policy = resolveConfiguration([layer], "/repo");
+      const globallySelected = selectGlobalPath(policy, path).selected;
+      const selected = selectApplicableRules(compiled, source, path).length > 0;
+      // The mask with every positive gate set and both exclusion gates clear is
+      // the only complete dispatch case. This expected
+      // value is independent of the helper that used to mirror the gate
+      // expression and is now checked against the production seams above.
+      expect(consent && globallySelected && selected, `mask ${mask}`).toBe(mask === 59);
     }
-    expect(seen).toBe(128);
   });
 });

@@ -12,6 +12,7 @@ import * as TestClock from "effect/testing/TestClock";
 import type * as DecisionModel from "effect/unstable/ai/DecisionModel";
 import type { ReviewRequest } from "../domain/contracts.ts";
 import { configuredRules } from "../policy/rules.ts";
+import { decodeConfigurationText } from "../configuration/decode.ts";
 import { resolveConfiguration } from "../configuration/resolve.ts";
 import { ReviewBackend } from "../ports/review-backend.ts";
 import { DedupeStore } from "../ports/dedupe-store.ts";
@@ -23,6 +24,7 @@ import {
   DEFAULT_BACKEND,
   DEFAULT_CREDENTIAL_ENV_VAR,
   DEFAULT_DESTINATION,
+  loadReviewSettings,
   type ReviewSettings,
 } from "./review-config.ts";
 import { review } from "./review.ts";
@@ -112,6 +114,91 @@ describe("review orchestration", () => {
           retryable: false,
           code: "backend_unavailable",
         });
+      }),
+    ),
+  );
+
+  it.effect("skips a selected pack when no rule in that pack applies", () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const root = yield* fixture;
+        const configPath = join(root, ".review.jsonc");
+        const packDirectory = join(root, "rules");
+        const packPath = join(packDirectory, "docs-only.jsonc");
+        yield* Effect.promise(async () => {
+          await mkdir(packDirectory, { recursive: true });
+          await writeFile(
+            packPath,
+            JSON.stringify({
+              schemaVersion: 1,
+              id: "docs-only",
+              contentVersion: "1",
+              rules: [{
+                id: "docs-rule",
+                question: "Does the document require review?",
+                criteria: { false: "No.", true: "Yes." },
+                message: "Review the document.",
+                applicability: { includes: ["docs/**"] },
+              }],
+            }),
+          );
+          await writeFile(
+            configPath,
+            JSON.stringify({
+              version: 1,
+              packs: ["rules/docs-only.jsonc"],
+              ruleOverrides: { noul: { enabled: false } },
+            }),
+          );
+        });
+        const settings = yield* loadReviewSettings(root, {
+          projectConfigPath: configPath,
+          userConfigPath: join(root, "missing-user.jsonc"),
+        });
+        const calls = yield* Ref.make(0);
+        const backend = Layer.succeed(
+          ReviewBackend.Service,
+          ReviewBackend.Service.of({
+            evaluate: () =>
+              Ref.update(calls, (value) => value + 1).pipe(
+                Effect.andThen(
+                  Effect.succeed({
+                    answers: {},
+                    backend: {
+                      id: "must-not-run",
+                      durationMs: 0,
+                      retries: 0,
+                      usage: {},
+                    },
+                  }),
+                ),
+              ),
+          }),
+        );
+        const output = yield* Effect.gen(function* () {
+          const consent = yield* Consent.Service;
+          return yield* review(request(root), {
+            _tag: "authorized",
+            root,
+            consent,
+            settings,
+          });
+        }).pipe(
+          Effect.provide(
+            Layer.mergeAll(
+              SnapshotReader.layer,
+              DedupeStore.testLayer,
+              backend,
+              Consent.layer({ statePath: join(root, ".consent-state") }),
+            ),
+          ),
+        );
+        expect(output.results[0]).toMatchObject({
+          status: "skipped",
+          reason: "no configured rule applies",
+          code: "no_applicable_rule",
+        });
+        expect(yield* Ref.get(calls)).toBe(0);
       }),
     ),
   );
@@ -217,6 +304,37 @@ describe("review orchestration", () => {
     ),
   );
 
+  it.effect("interrupts an in-flight backend evaluation when the review is cancelled", () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const root = yield* fixture;
+        const started = yield* Deferred.make<void>();
+        const interrupted = yield* Deferred.make<void>();
+        const backend = Layer.succeed(
+          ReviewBackend.Service,
+          ReviewBackend.Service.of({
+            evaluate: () =>
+              Effect.gen(function* () {
+                yield* Deferred.succeed(started, undefined);
+                return yield* Effect.never;
+              }).pipe(
+                Effect.onInterrupt(() => Deferred.succeed(interrupted, undefined)),
+              ),
+          }),
+        );
+        const fiber = yield* review(request(root)).pipe(
+          Effect.provide(
+            Layer.mergeAll(SnapshotReader.layer, DedupeStore.testLayer, backend),
+          ),
+          Effect.forkChild,
+        );
+        yield* Deferred.await(started);
+        yield* Fiber.interrupt(fiber);
+        yield* Deferred.await(interrupted);
+      }),
+    ),
+  );
+
   it.effect("completes controlled 100 ms and 500 ms evaluations before the deadline", () =>
     Effect.scoped(
       Effect.gen(function* () {
@@ -236,6 +354,171 @@ describe("review orchestration", () => {
             backend: { durationMs: delayMs },
           });
         }
+      }),
+    ),
+  );
+
+  it.effect("keeps advice stable when file evaluations complete in a different order", () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const root = yield* fixture;
+        const paths = ["src/a.ts", "src/b.ts"] as const;
+        yield* Effect.promise(() =>
+          Promise.all(paths.map((path) => writeFile(join(root, path), source))),
+        );
+
+        const runWithDelays = (delays: Readonly<Record<string, number>>) =>
+          Effect.gen(function* () {
+            const started = yield* Deferred.make<void>();
+            const count = yield* Ref.make(0);
+            const backend = Layer.succeed(
+              ReviewBackend.Service,
+              ReviewBackend.Service.of({
+                evaluate: ({ path, rules }) =>
+                  Effect.gen(function* () {
+                    const current = yield* Ref.updateAndGet(count, (value) => value + 1);
+                    if (current === paths.length) yield* Deferred.succeed(started, undefined);
+                    const delayMs = delays[path] ?? 0;
+                    if (delayMs > 0) yield* Effect.sleep(`${delayMs} millis`);
+                    const probability = path === "src/a.ts" ? 0.8 : 0.9;
+                    return {
+                      answers: Object.fromEntries(
+                        rules.map((rule) => [rule.id, { probability }]),
+                      ),
+                      backend: {
+                        id: "completion-order",
+                        durationMs: delayMs,
+                        retries: 0,
+                        usage: {},
+                      },
+                    };
+                  }),
+              }),
+            );
+            const fiber = yield* review(request(root, [...paths])).pipe(
+              Effect.provide(
+                Layer.mergeAll(SnapshotReader.layer, DedupeStore.testLayer, backend),
+              ),
+              Effect.forkChild,
+            );
+            yield* Deferred.await(started);
+            yield* TestClock.adjust("100 millis");
+            return yield* Fiber.join(fiber);
+          });
+
+        const forward = yield* runWithDelays({ "src/a.ts": 0, "src/b.ts": 100 });
+        const reverse = yield* runWithDelays({ "src/a.ts": 100, "src/b.ts": 0 });
+        expect(reverse.advice).toEqual(forward.advice);
+        const withoutTiming = (results: typeof forward.results) =>
+          results.map((result) =>
+            result.status === "reviewed"
+              ? { ...result, backend: { ...result.backend, durationMs: 0 } }
+              : result,
+          );
+        expect(withoutTiming(reverse.results)).toEqual(withoutTiming(forward.results));
+      }),
+    ),
+  );
+
+  it.effect("uses path and rule identity as deterministic tie breakers", () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const root = yield* fixture;
+        yield* Effect.promise(() =>
+          Promise.all([
+            writeFile(join(root, "src/a.ts"), source),
+            writeFile(join(root, "src/b.ts"), source),
+          ]),
+        );
+        const output = yield* run(
+          request(root, ["src/b.ts", "src/a.ts"]),
+          { answers: answers(0.8) },
+        );
+        expect(output.advice.map((entry) => `${entry.snapshot.path}:${entry.ruleId}`)).toEqual([
+          "src/a.ts:r1_inferred_case",
+          "src/a.ts:r2_meaningless_combinations",
+          "src/a.ts:r3_split_correlations",
+          "src/a.ts:r4_duplicate_encoding",
+          "src/a.ts:r5_absence_confusion",
+        ]);
+      }),
+    ),
+  );
+
+  it.effect("extends advice monotonically when the event budget increases", () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const root = yield* fixture;
+        const paths = ["src/a.ts", "src/b.ts"] as const;
+        yield* Effect.promise(() =>
+          Promise.all(paths.map((path) => writeFile(join(root, path), source))),
+        );
+        execFileSync("git", ["init", "--quiet", root]);
+        const settingsFor = (adviceBudget: number): ReviewSettings => {
+          const sourcePath = join(root, `.settings-${adviceBudget}.jsonc`);
+          const policy = resolveConfiguration([
+            {
+              name: "project",
+              source: sourcePath,
+              document: decodeConfigurationText(
+                JSON.stringify({ version: 1, settings: { adviceBudget } }),
+                sourcePath,
+              ),
+            },
+          ], root);
+          return {
+            backend: DEFAULT_BACKEND,
+            apiBase: DEFAULT_API_BASE,
+            destination: DEFAULT_DESTINATION,
+            credentialEnvVar: DEFAULT_CREDENTIAL_ENV_VAR,
+            projectRequestedConsent: false,
+            configuration: { policy },
+            rules: configuredRules,
+          };
+        };
+        const backend = Layer.succeed(
+          ReviewBackend.Service,
+          ReviewBackend.Service.of({
+            evaluate: ({ rules }) =>
+              Effect.succeed({
+                answers: Object.fromEntries(
+                  rules.map((rule) => [rule.id, { probability: 0.8 }]),
+                ),
+                backend: {
+                  id: "budget",
+                  durationMs: 0,
+                  retries: 0,
+                  usage: {},
+                },
+              }),
+          }),
+        );
+        const outputs = yield* Effect.gen(function* () {
+          const consent = yield* Consent.Service;
+          const proposal = yield* consent.preview(root, DEFAULT_BACKEND, DEFAULT_DESTINATION);
+          yield* consent.enable(proposal);
+          const small = yield* review(
+            request(root, [...paths]),
+            { _tag: "authorized", root, consent, settings: settingsFor(5) },
+          );
+          const large = yield* review(
+            request(root, [...paths]),
+            { _tag: "authorized", root, consent, settings: settingsFor(10) },
+          );
+          return { small, large };
+        }).pipe(
+          Effect.provide(
+            Layer.mergeAll(
+              SnapshotReader.layer,
+              DedupeStore.testLayer,
+              backend,
+              Consent.layer({ statePath: join(root, ".consent-state") }),
+            ),
+          ),
+        );
+        expect(outputs.small.advice).toHaveLength(5);
+        expect(outputs.large.advice).toHaveLength(10);
+        expect(outputs.large.advice.slice(0, outputs.small.advice.length)).toEqual(outputs.small.advice);
       }),
     ),
   );

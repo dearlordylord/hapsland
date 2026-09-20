@@ -1,5 +1,6 @@
 import { E0, NOUL_KEYS, measured } from "../questions.ts";
 import {
+  DEFAULT_RULE_THRESHOLD,
   decodeRulePackDocument,
   type DecodedRulePack,
   type RuleDefinition,
@@ -31,7 +32,7 @@ const rules: ReadonlyArray<RuleDefinition> = NOUL_KEYS.map((id) => {
     id,
     question: decision.instructions,
     criteria: decision.criteria,
-    threshold: 0.7,
+    threshold: DEFAULT_RULE_THRESHOLD,
     message: messages[id] ?? `Review rule ${id} may apply.`,
   };
 });

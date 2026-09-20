@@ -45,13 +45,15 @@ const asReference = (
     throw configurationError(origin.source, `${origin.field}[${index}]`, "pack reference must be a path or object");
   }
   const reference = value as Record<string, unknown>;
-  if (reference.path !== undefined && (typeof reference.path !== "string" || reference.path.length === 0)) {
+  const hasPath = Object.prototype.hasOwnProperty.call(reference, "path");
+  const hasId = Object.prototype.hasOwnProperty.call(reference, "id");
+  if (hasPath === hasId) {
+    throw configurationError(origin.source, `${origin.field}[${index}]`, "a pack reference must specify exactly one of path or inherited id");
+  }
+  if (hasPath && (typeof reference.path !== "string" || reference.path.length === 0)) {
     throw configurationError(origin.source, `${origin.field}[${index}].path`, "pack path must be a non-empty string");
   }
-  if (reference.path === undefined && (typeof reference.id !== "string" || reference.id.length === 0)) {
-    throw configurationError(origin.source, `${origin.field}[${index}]`, "a pack reference needs path or inherited id");
-  }
-  if (reference.id !== undefined && (typeof reference.id !== "string" || reference.id.length === 0)) {
+  if (hasId && (typeof reference.id !== "string" || reference.id.length === 0)) {
     throw configurationError(origin.source, `${origin.field}[${index}].id`, "pack id must be a non-empty string");
   }
   if (reference.enabled !== undefined && typeof reference.enabled !== "boolean") {
@@ -63,8 +65,8 @@ const asReference = (
     }
   }
   return {
-    ...(reference.path === undefined ? {} : { path: reference.path }),
-    ...(reference.id === undefined ? {} : { id: reference.id }),
+    ...(hasPath ? { path: reference.path as string } : {}),
+    ...(hasId ? { id: reference.id as string } : {}),
     ...(reference.enabled === undefined ? {} : { enabled: reference.enabled }),
     origin,
   };
