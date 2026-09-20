@@ -8,6 +8,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
     "diagnostic": "evidence/input-contract-comparison/live-diagnostic-2026-09-20.json",
     "confidenceProbe": "evidence/input-contract-comparison/live-confidence-probe-2026-09-20.json",
     "codexEmission": "evidence/codex/0.155.1/native-patch-emission-2026-09-20.json",
+    "codexInterfaceValidation": "evidence/codex/0.155.1/native-interface-edit-validation-2026-09-20.json",
     "codexPatchCorpus": "evidence/codex/0.155.1/native-patch-corpus-2026-09-20.json",
     "codexComparison": "evidence/input-contract-comparison/live-codex-semantic-corpus-comparison-2026-09-20.json",
     "currentDiffRenderer": "evidence/codex/0.155.1/native-patch-corpus-2026-09-20.json:rows[].command"
@@ -241,6 +242,31 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
     },
     "sanitization": "Session, turn, tool-use, model, response, workspace, and authentication identities are redacted; the retained patch content is synthetic.",
     "verdict": "runtime-tested"
+  },
+  "codexInterfaceValidation": {
+    "evidenceVersion": 1,
+    "date": "2026-09-20",
+    "purpose": "Validate the real Codex patch shape for a one-line replacement in a 10-line interface.",
+    "probe": "native-patch-emission.mjs --interface",
+    "fixture": {
+      "file": "baseline.ts",
+      "interfaceLineCount": 10,
+      "edit": "email?: string; -> email: string;"
+    },
+    "observedCommand": "*** Begin Patch\n*** Update File: <WORKSPACE>/baseline.ts\n@@\n-  email?: string;\n+  email: string;\n*** End Patch",
+    "expectedCommand": "*** Begin Patch\n*** Update File: <WORKSPACE>/baseline.ts\n@@\n-  email?: string;\n+  email: string;\n*** End Patch",
+    "assertions": {
+      "probeExitCode": true,
+      "verdict": true,
+      "toolName": true,
+      "onePostToolUseEvent": true,
+      "exactCommand": true,
+      "noFullInterfaceInPatch": true,
+      "noUnexpectedContextLines": true,
+      "fileChanged": true
+    },
+    "verdict": "validated",
+    "failures": []
   },
   "codexCaptures": {
     "iface-delivery-flat": {

@@ -8,6 +8,7 @@ const reportPath = resolve(root, "evidence/input-contract-comparison/live-report
 const diagnosticPath = resolve(root, "evidence/input-contract-comparison/live-diagnostic-2026-09-20.json");
 const confidenceProbePath = resolve(root, "evidence/input-contract-comparison/live-confidence-probe-2026-09-20.json");
 const codexEmissionPath = resolve(root, "evidence/codex/0.155.1/native-patch-emission-2026-09-20.json");
+const codexInterfaceValidationPath = resolve(root, "evidence/codex/0.155.1/native-interface-edit-validation-2026-09-20.json");
 const codexCorpusPath = resolve(root, "evidence/codex/0.155.1/native-patch-corpus-2026-09-20.json");
 const codexComparisonPath = resolve(root, "evidence/input-contract-comparison/live-codex-semantic-corpus-comparison-2026-09-20.json");
 const outputPath = resolve(root, "evidence/input-contract-comparison/dashboard-data.js");
@@ -17,6 +18,7 @@ type Diagnostic = { readonly backend: Record<string, unknown>; readonly wireQues
 const diagnostic = JSON.parse(readFileSync(diagnosticPath, "utf8")) as Diagnostic;
 const confidenceProbe = JSON.parse(readFileSync(confidenceProbePath, "utf8")) as unknown;
 const codexEmission = JSON.parse(readFileSync(codexEmissionPath, "utf8")) as unknown;
+const codexInterfaceValidation = JSON.parse(readFileSync(codexInterfaceValidationPath, "utf8")) as unknown;
 type CodexCorpus = { readonly rows: readonly (Record<string, unknown> & { readonly fixtureId: string; readonly command?: string })[] };
 const codexCorpus = JSON.parse(readFileSync(codexCorpusPath, "utf8")) as CodexCorpus;
 type CodexComparison = { readonly rows: readonly (Record<string, unknown> & { readonly fixtureId: string; readonly arm: string; readonly request?: { readonly requestBytes?: number } })[] };
@@ -73,6 +75,7 @@ const data = {
     diagnostic: "evidence/input-contract-comparison/live-diagnostic-2026-09-20.json",
     confidenceProbe: "evidence/input-contract-comparison/live-confidence-probe-2026-09-20.json",
     codexEmission: "evidence/codex/0.155.1/native-patch-emission-2026-09-20.json",
+    codexInterfaceValidation: "evidence/codex/0.155.1/native-interface-edit-validation-2026-09-20.json",
     codexPatchCorpus: "evidence/codex/0.155.1/native-patch-corpus-2026-09-20.json",
     codexComparison: "evidence/input-contract-comparison/live-codex-semantic-corpus-comparison-2026-09-20.json",
     currentDiffRenderer: "evidence/codex/0.155.1/native-patch-corpus-2026-09-20.json:rows[].command",
@@ -115,6 +118,7 @@ const data = {
     note: "The provider receives one POST /systemone request with model, state, and the nine Noul questions. The dashboard fills the two artifact placeholders from the selected fixture and mode.",
   },
   codexEmission,
+  codexInterfaceValidation,
   codexCaptures,
   codexComparison,
   diagnostic,
