@@ -62,8 +62,9 @@ describe("Codex adapter", () => {
           {
             status: "unavailable",
             path: "src/a.ts",
-            reason: "backend timed out",
+            reason: "SECRET_PROVIDER_RESPONSE_SHOULD_NOT_APPEAR",
             retryable: true,
+            code: "review_timeout",
           },
         ],
         advice: [],
@@ -72,8 +73,76 @@ describe("Codex adapter", () => {
       hookSpecificOutput: {
         hookEventName: "PostToolUse",
         additionalContext:
-          "Advisory post-write review (the edit already succeeded):\nsrc/a.ts: review unavailable (backend timed out)",
+          "Advisory post-write review (the edit already succeeded):\nsrc/a.ts: review unavailable because the review backend timed out; retry when it recovers",
       },
+    });
+  });
+
+  it("puts unsuppressed diagnostics in user-visible systemMessage", () => {
+    const output = toCodexOutput({
+      version: 1,
+      eventId: "event-1",
+      results: [
+        {
+          status: "skipped",
+          path: "src/a.ts",
+          reason: "SECRET_REASON_SHOULD_NOT_APPEAR",
+          code: "missing_consent",
+        },
+      ],
+      advice: [],
+      diagnostics: [
+        {
+          scope: { sessionId: "s1", repository: "r1", backend: "jev" },
+          status: "problem",
+          problem: { code: "missing_consent", identity: "missing-consent" },
+          notification: {
+            kind: "problem",
+            code: "missing_consent",
+            changed: false,
+            problem: { code: "missing_consent", identity: "missing-consent" },
+          },
+          suppressed: false,
+        },
+      ],
+    });
+    expect(output).toEqual({
+      systemMessage:
+        "Review is inactive: repository consent is required before source can be sent. Run the explicit enable operation.",
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse",
+        additionalContext:
+          "Advisory post-write review (the edit already succeeded):\nsrc/a.ts: review skipped because repository consent is required; run the explicit enable operation",
+      },
+    });
+    expect(JSON.stringify(output)).not.toContain("SECRET_");
+  });
+
+  it("renders recovery once supplied by the diagnostic reducer", () => {
+    expect(
+      toCodexOutput({
+        version: 1,
+        eventId: "event-1",
+        results: [],
+        advice: [],
+        diagnostics: [
+          {
+            scope: { sessionId: "s1", repository: "r1", backend: "jev" },
+            status: "healthy",
+            notification: {
+              kind: "recovery",
+              code: "recovery",
+              changed: false,
+              problem: { code: "backend_outage", identity: "backend-unavailable" },
+            },
+            suppressed: false,
+          },
+        ],
+      }),
+    ).toEqual({
+      systemMessage:
+        "Review recovered: the review backend is available again; subsequent edits can be reviewed.",
+      hookSpecificOutput: { hookEventName: "PostToolUse" },
     });
   });
 });

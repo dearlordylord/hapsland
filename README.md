@@ -65,6 +65,33 @@ npm test
 npm run review -- --controlled < request.json
 ```
 
+Review dispatch is repository opt-in. The explicit enable operation first previews the
+canonical Git working-tree root, fixed Jev backend, actual destination, and
+repository-wide eligible-source scope. Confirm that proposal with its digest to record
+a user-owned grant; project configuration cannot create that grant. For a temporary
+state directory (useful in tests), set `REVIEW_STATE_PATH`:
+
+```sh
+printf '%s\n' '{"version":1,"operation":"enable","cwd":"/absolute/repo"}' \\
+  | REVIEW_STATE_PATH="$HOME/.config/realtime-review-tool/consent" node src/cli.ts --enable
+printf '%s\n' '{"version":1,"operation":"enable-confirm","cwd":"/absolute/repo","proposalDigest":"<digest-from-preview>"}' \\
+  | REVIEW_STATE_PATH="$HOME/.config/realtime-review-tool/consent" node src/cli.ts --enable-confirm
+printf '%s\n' '{"version":1,"operation":"disable","cwd":"/absolute/repo"}' \\
+  | node src/cli.ts --disable
+printf '%s\n' '{"version":1,"operation":"credentials","cwd":"/absolute/repo"}' \\
+  | node src/cli.ts --inspect-credentials
+```
+
+`--inspect-credentials` reports only the configured environment-variable name and
+whether it is non-empty. The default is `TYPESAFE_API_KEY`; credential values and
+environment files are never stored or printed. Project settings are optional JSONC in
+`.review.jsonc` at the Git root. It may select the credential variable, but the Jev
+backend and `/v1/systemone` destination are fixed in this phase; arbitrary endpoint
+routing is not supported. `consent`/`enabled` fields never authorize source transmission.
+Hooks do not prompt: without a matching root/backend/destination grant, review returns a
+bounded `skipped` result and makes no provider request. Disabling affects future
+dispatches and does not claim to recall a request already sent.
+
 The product-owned JSON contract is documented in
 [`CODEX-ADAPTER-CONTRACT-v1.md`](./CODEX-ADAPTER-CONTRACT-v1.md). During development, a
 Codex command hook invokes `node /absolute/path/to/this/repo/src/cli.ts --codex-hook`;
@@ -72,6 +99,15 @@ packaged installation belongs to a later phase. Live use reads `TYPESAFE_API_KEY
 the Effect provider configuration. Run the paid integration checks only with explicit
 opt-in via `npm run test:live`. The reproducible 100-call milestone additionally requires
 `RUN_LIVE_JEV_BENCHMARK=1 npm run benchmark:live`.
+
+Headless activity inspection is documented in [`docs/status.md`](./docs/status.md). It
+uses an explicit host session ID and local source-free receipts; readiness and observed
+activity are reported separately.
+
+The maintainer-only semantic evaluation protocol and its sanitized offline milestone
+evidence are documented in [`docs/evaluation.md`](./docs/evaluation.md) and
+[`evidence/evaluation/README.md`](./evidence/evaluation/README.md). Ordinary tests and
+the review hook never perform a paid evaluation.
 
 The historical `vendor/distilled` tree is retained as a Git submodule and migration oracle;
 it is not an active workspace or production dependency. Clone it when that evidence is
