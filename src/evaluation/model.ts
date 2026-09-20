@@ -12,7 +12,7 @@ const NonNegativeInteger = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
 const PositiveInteger = Schema.Int.check(Schema.isGreaterThanOrEqualTo(1));
 const NonNegativeFinite = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0));
 const HexDigest = Schema.String.pipe(
-  Schema.pattern(/^[0-9a-f]{64}$/i),
+  Schema.check(Schema.isPattern(/^[0-9a-f]{64}$/i)),
   Schema.brand("EvaluationDigest"),
 );
 
@@ -109,7 +109,7 @@ export interface RuleDefinition extends Schema.Schema.Type<typeof RuleDefinition
 export const Fixture = Schema.Struct({
   id: FixtureId,
   name: Schema.NonEmptyString,
-  role: Schema.Literal("positive", "negative", "negative-control", "ambiguous"),
+  role: Schema.Literals(["positive", "negative", "negative-control", "ambiguous"] as const),
   domain: Schema.NonEmptyString,
   path: Schema.NonEmptyString,
   source: Schema.String,
@@ -144,7 +144,7 @@ export interface ExpectedBand extends Schema.Schema.Type<typeof ExpectedBand> {}
 
 export const ExpectedResult = Schema.Union([
   Schema.Struct({
-    kind: Schema.Literal("clear", "violation"),
+    kind: Schema.Literals(["clear", "violation"] as const),
     band: ExpectedBand,
   }),
   Schema.Struct({
@@ -178,7 +178,7 @@ export interface ConfigurationRuleOverride
   extends Schema.Schema.Type<typeof ConfigurationRuleOverride> {}
 
 export const ConfigurationLayer = Schema.Struct({
-  name: Schema.Literal("built-in", "user", "project"),
+  name: Schema.Literals(["built-in", "user", "project"] as const),
   includePatterns: Schema.Array(Schema.String),
   excludePatterns: Schema.Array(Schema.String),
   ruleOverrides: Schema.Array(ConfigurationRuleOverride),
@@ -196,7 +196,7 @@ export interface ConsentState extends Schema.Schema.Type<typeof ConsentState> {}
 
 export const ConfigurationProvenance = Schema.Struct({
   field: Schema.NonEmptyString,
-  origin: Schema.Literal("built-in", "user", "project"),
+  origin: Schema.Literals(["built-in", "user", "project"] as const),
   valueDigest: EvaluationDigest,
 });
 export interface ConfigurationProvenance
@@ -228,7 +228,7 @@ export interface ConfigurationCase
 export const BackendIdentity = Schema.Struct({
   id: BackendId,
   version: Version,
-  mode: Schema.Literal("controlled", "fake-http", "live"),
+  mode: Schema.Literals(["controlled", "fake-http", "live"] as const),
 });
 export interface BackendIdentity extends Schema.Schema.Type<typeof BackendIdentity> {}
 
@@ -249,14 +249,14 @@ export interface RendererAdapterIdentity
   extends Schema.Schema.Type<typeof RendererAdapterIdentity> {}
 
 export const ScenarioAction = Schema.Struct({
-  kind: Schema.Literal(
+  kind: Schema.Literals([
     "observe-edit",
     "retry",
     "duplicate-event",
     "changed-snapshot",
     "backend-failure",
     "advance-time",
-  ),
+  ] as const),
   identity: Schema.NonEmptyString,
 });
 export interface ScenarioAction extends Schema.Schema.Type<typeof ScenarioAction> {}
@@ -264,7 +264,7 @@ export interface ScenarioAction extends Schema.Schema.Type<typeof ScenarioAction
 export const EvaluationScenario = Schema.Struct({
   id: ScenarioId,
   name: Schema.NonEmptyString,
-  interaction: Schema.Literal("isolated", "full", "named"),
+  interaction: Schema.Literals(["isolated", "full", "named"] as const),
   interactionName: Schema.optionalKey(Schema.NonEmptyString),
   fixtures: Schema.Array(FixtureReference),
   ruleSet: Schema.Array(RuleReference),
@@ -298,7 +298,7 @@ export const RequestShape = Schema.Struct({
 export interface RequestShape extends Schema.Schema.Type<typeof RequestShape> {}
 
 export const TransportObservation = Schema.Struct({
-  status: Schema.Literal("available", "unavailable"),
+  status: Schema.Literals(["available", "unavailable"] as const),
   attempts: PositiveInteger,
   retries: NonNegativeInteger,
   durationMs: NonNegativeFinite,
@@ -308,7 +308,7 @@ export interface TransportObservation
   extends Schema.Schema.Type<typeof TransportObservation> {}
 
 export const ConformanceObservation = Schema.Struct({
-  status: Schema.Literal("passed", "failed", "unchecked"),
+  status: Schema.Literals(["passed", "failed", "unchecked"] as const),
   reasons: Schema.Array(Schema.NonEmptyString),
 });
 export interface ConformanceObservation
@@ -332,21 +332,21 @@ export const Observation = Schema.Struct({
   conformance: ConformanceObservation,
   assessment: Schema.optionalKey(Schema.Array(AssessmentEntry)),
   findings: Schema.Array(FindingObservation),
-  reviewStatus: Schema.Literal("reviewed", "skipped", "unavailable", "incomplete"),
+  reviewStatus: Schema.Literals(["reviewed", "skipped", "unavailable", "incomplete"] as const),
 });
 export interface Observation extends Schema.Schema.Type<typeof Observation> {}
 
 export const Comparison = Schema.Struct({
   id: ComparisonId,
   name: Schema.NonEmptyString,
-  relation: Schema.Literal("exact", "semantic-band", "measured-change"),
+  relation: Schema.Literals(["exact", "semantic-band", "measured-change"] as const),
   leftObservationId: Schema.optionalKey(ObservationId),
   rightObservationId: Schema.optionalKey(ObservationId),
   observationId: Schema.optionalKey(ObservationId),
   ruleId: Schema.optionalKey(QualifiedRuleId),
   expectation: Schema.optionalKey(Expectation),
   direction: Schema.optionalKey(
-    Schema.Literal("increase", "decrease", "change", "no-change"),
+    Schema.Literals(["increase", "decrease", "change", "no-change"] as const),
   ),
   minimumDelta: Schema.optionalKey(NonNegativeFinite),
   tolerance: NonNegativeFinite,
@@ -388,18 +388,18 @@ export const EvaluationPlan = Schema.Struct({
   worstCaseRequests: NonNegativeInteger,
   budgetMaximumRequests: PositiveInteger,
   permitted: Schema.Boolean,
-  rejectionReason: Schema.optionalKey(Schema.Literal("budget-exceeded", "live-opt-in-required")),
+  rejectionReason: Schema.optionalKey(Schema.Literals(["budget-exceeded", "live-opt-in-required"] as const)),
   planDigest: EvaluationDigest,
 });
 export interface EvaluationPlan extends Schema.Schema.Type<typeof EvaluationPlan> {}
 
 export const ComparisonResult = Schema.Struct({
   comparisonId: ComparisonId,
-  relation: Schema.Literal("exact", "semantic-band", "measured-change"),
-  deterministic: Schema.Literal("passed", "failed", "unchecked"),
-  transport: Schema.Literal("available", "unavailable", "unchecked"),
-  conformance: Schema.Literal("passed", "failed", "unchecked"),
-  semantic: Schema.Literal("passed", "failed", "ambiguous", "unchecked"),
+  relation: Schema.Literals(["exact", "semantic-band", "measured-change"] as const),
+  deterministic: Schema.Literals(["passed", "failed", "unchecked"] as const),
+  transport: Schema.Literals(["available", "unavailable", "unchecked"] as const),
+  conformance: Schema.Literals(["passed", "failed", "unchecked"] as const),
+  semantic: Schema.Literals(["passed", "failed", "ambiguous", "unchecked"] as const),
   passed: Schema.Boolean,
   reason: Schema.optionalKey(Schema.NonEmptyString),
   delta: Schema.optionalKey(Schema.Finite),
@@ -417,12 +417,12 @@ export interface AggregateCounts extends Schema.Schema.Type<typeof AggregateCoun
 
 export const ComparisonSummary = Schema.Struct({
   id: ComparisonId,
-  relation: Schema.Literal("exact", "semantic-band", "measured-change"),
+  relation: Schema.Literals(["exact", "semantic-band", "measured-change"] as const),
   passed: Schema.Boolean,
-  deterministic: Schema.Literal("passed", "failed", "unchecked"),
-  transport: Schema.Literal("available", "unavailable", "unchecked"),
-  conformance: Schema.Literal("passed", "failed", "unchecked"),
-  semantic: Schema.Literal("passed", "failed", "ambiguous", "unchecked"),
+  deterministic: Schema.Literals(["passed", "failed", "unchecked"] as const),
+  transport: Schema.Literals(["available", "unavailable", "unchecked"] as const),
+  conformance: Schema.Literals(["passed", "failed", "unchecked"] as const),
+  semantic: Schema.Literals(["passed", "failed", "ambiguous", "unchecked"] as const),
   reason: Schema.optionalKey(Schema.NonEmptyString),
   delta: Schema.optionalKey(Schema.Finite),
 });
