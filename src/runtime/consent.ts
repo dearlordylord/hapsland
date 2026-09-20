@@ -28,12 +28,16 @@ export const CanonicalRoot = Schema.String.check(Schema.isMinLength(1)).pipe(
 );
 export type CanonicalRoot = typeof CanonicalRoot.Type;
 
-export const ConsentBackend = Schema.Literal(JEV_BACKEND).pipe(
-  Schema.brand("ConsentBackend"),
-);
-export const ConsentDestination = Schema.Literal(JEV_DESTINATION).pipe(
-  Schema.brand("ConsentDestination"),
-);
+/** Stored identities are extensible so a future backend can coexist in user state. */
+export const ConsentBackend = Schema.String.check(
+  Schema.isMinLength(1),
+  Schema.isMaxLength(128),
+).pipe(Schema.brand("ConsentBackend"));
+export const ConsentDestination = Schema.String.check(
+  Schema.isMinLength(1),
+  Schema.isMaxLength(2048),
+  Schema.isPattern(/^https?:\/\/[^\s]+$/),
+).pipe(Schema.brand("ConsentDestination"));
 
 export const ConsentGrant = Schema.Struct({
   root: CanonicalRoot,
@@ -258,6 +262,9 @@ const makeProposal = Effect.fn("Consent.preview")(function* (target: ConsentIden
   );
 });
 
+const isSupportedTarget = (target: ConsentIdentity) =>
+  target.backend === JEV_BACKEND && target.destination === JEV_DESTINATION;
+
 const toRelativeRootPath = (root: string, cwd: string, path: string) => {
   const absolute = resolve(cwd, path);
   const relativePath = relative(root, absolute);
@@ -325,6 +332,11 @@ const makeService = (statePath: string): Effect.Effect<Interface> =>
           () => new ConsentError({ reason: "consent proposal is invalid" }),
         ),
       );
+      if (!isSupportedTarget(candidate.target)) {
+        return yield* new ConsentError({
+          reason: "consent proposal targets an unsupported review destination",
+        });
+      }
       const current = yield* preview(
         candidate.target.root,
         candidate.target.backend,
@@ -400,6 +412,11 @@ export const testLayer = (grants: ReadonlyArray<ConsentIdentity> = []) =>
           return yield* makeProposal(identity);
         }),
         enable: Effect.fn("Consent.Test.enable")(function* (proposal) {
+          if (!isSupportedTarget(proposal.target)) {
+            return yield* new ConsentError({
+              reason: "consent proposal targets an unsupported review destination",
+            });
+          }
           const current = yield* makeProposal(proposal.target);
           if (current.digest !== proposal.digest) {
             return yield* new ConsentError({

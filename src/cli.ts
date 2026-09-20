@@ -165,6 +165,10 @@ const defaultResponse = (
   advice: [],
 });
 
+const assertNever = (value: never): never => {
+  throw new Error(`unsupported consent operation: ${String(value)}`);
+};
+
 const preflight = (request: ReviewRequest, statePath: string) =>
   Effect.gen(function* () {
     const consent = yield* Consent.Service;
@@ -334,7 +338,7 @@ const runOperation = (operation: ConsentOperation, statePath: string) =>
         };
       }
       default:
-        return yield* Effect.fail(new Error("unsupported operation"));
+        return assertNever(operation);
     }
   }).pipe(Effect.provide(Consent.layer({ statePath })));
 
