@@ -5,6 +5,7 @@ import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import { Decision, DecisionModel } from "effect/unstable/ai";
 import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient";
+import { JEV_API_BASE } from "./runtime/backend.ts";
 
 export const MODEL = "jev-latest";
 
@@ -79,6 +80,6 @@ export const liveLayer = (options: {
 
 /** Reads TYPESAFE_API_KEY and uses the TypeSafe service's default destination. */
 export const Live = liveLayer({
-  apiUrl: "https://api.typesafe.ai/v1",
+  apiUrl: JEV_API_BASE,
   credentialEnvVar: "TYPESAFE_API_KEY",
 });

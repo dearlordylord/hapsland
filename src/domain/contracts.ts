@@ -46,9 +46,12 @@ export const SkippedResult = Schema.Struct({
   status: Schema.Literal("skipped"),
   path: Schema.String,
   reason: Schema.String,
-  code: Schema.optionalKey(
-    Schema.Literals(["excluded", "missing_consent", "unsupported_repository", "no_applicable_rule"]),
-  ),
+  code: Schema.Literals([
+    "excluded",
+    "missing_consent",
+    "unsupported_repository",
+    "no_applicable_rule",
+  ]),
 });
 
 export const UnavailableResult = Schema.Struct({
@@ -56,15 +59,13 @@ export const UnavailableResult = Schema.Struct({
   path: Schema.String,
   reason: Schema.String,
   retryable: Schema.Boolean,
-  code: Schema.optionalKey(
-    Schema.Literals([
-      "missing_credentials",
-      "backend_unavailable",
-      "invalid_configuration",
-      "stale_snapshot",
-      "review_timeout",
-    ]),
-  ),
+  code: Schema.Literals([
+    "missing_credentials",
+    "backend_unavailable",
+    "invalid_configuration",
+    "stale_snapshot",
+    "review_timeout",
+  ]),
 });
 
 export const ReviewResult = Schema.Union([
