@@ -3745,6 +3745,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-delivery-flat.ts",
+          "domain": "input-contract/interface/iface-delivery-flat",
           "source": "--- before/fixtures/input-contract/interface/iface-delivery-flat.ts\n+++ after/fixtures/input-contract/interface/iface-delivery-flat.ts\n@@ -2,5 +2,6 @@\n export interface Delivery {\n   channel: DeliveryChannel;\n   email?: string;\n+  phone?: string;\n }\n ",
           "sourceCharacters": 251,
           "requestBytes": 934,
@@ -3778,6 +3780,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-delivery-flat.ts",
+          "domain": "input-contract/interface/iface-delivery-flat",
           "source": "type DeliveryChannel = \"email\" | \"sms\";\nexport interface Delivery {\n  channel: DeliveryChannel;\n  email?: string;\n  phone?: string;\n}\n\ninterface UnrelatedAuditEntry01 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry02 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry03 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry04 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry05 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry06 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry07 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry08 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry09 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry10 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry11 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry12 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry13 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }\n",
           "sourceCharacters": 1431,
           "requestBytes": 2093,
@@ -3807,6 +3811,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-delivery-flat.ts",
+          "domain": "input-contract/interface/iface-delivery-flat",
           "source": "export interface Delivery {\n  channel: DeliveryChannel;\n  email?: string;\n  phone?: string;\n}",
           "sourceCharacters": 93,
           "requestBytes": 785,
@@ -3841,6 +3847,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-delivery-flat.ts",
+          "domain": "input-contract/interface/iface-delivery-flat",
           "source": "export interface Delivery {\n  channel: DeliveryChannel;\n  email?: string;\n  phone?: string;\n}\n\n/* referenced context: DeliveryChannel */\ntype DeliveryChannel = \"email\" | \"sms\";",
           "sourceCharacters": 176,
           "requestBytes": 845,
@@ -3907,6 +3915,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-payment-tagged.ts",
+          "domain": "input-contract/interface/iface-payment-tagged",
           "source": "--- before/fixtures/input-contract/interface/iface-payment-tagged.ts\n+++ after/fixtures/input-contract/interface/iface-payment-tagged.ts\n@@ -2,4 +2,5 @@\n export interface Payment {\n   kind: PaymentKind;\n+  amount: number;\n }\n ",
           "sourceCharacters": 226,
           "requestBytes": 902,
@@ -3940,6 +3950,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-payment-tagged.ts",
+          "domain": "input-contract/interface/iface-payment-tagged",
           "source": "type PaymentKind = \"card\" | \"bank\";\nexport interface Payment {\n  kind: PaymentKind;\n  amount: number;\n}\n\ninterface UnrelatedAuditEntry01 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry02 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry03 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry04 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry05 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry06 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry07 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry08 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry09 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry10 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry11 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry12 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry13 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }\n",
           "sourceCharacters": 1401,
           "requestBytes": 2056,
@@ -3969,6 +3981,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-payment-tagged.ts",
+          "domain": "input-contract/interface/iface-payment-tagged",
           "source": "export interface Payment {\n  kind: PaymentKind;\n  amount: number;\n}",
           "sourceCharacters": 67,
           "requestBytes": 752,
@@ -4003,6 +4017,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-payment-tagged.ts",
+          "domain": "input-contract/interface/iface-payment-tagged",
           "source": "export interface Payment {\n  kind: PaymentKind;\n  amount: number;\n}\n\n/* referenced context: PaymentKind */\ntype PaymentKind = \"card\" | \"bank\";",
           "sourceCharacters": 142,
           "requestBytes": 804,
@@ -4065,6 +4081,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-order-valid.ts",
+          "domain": "input-contract/interface/iface-order-valid",
           "source": "--- before/fixtures/input-contract/interface/iface-order-valid.ts\n+++ after/fixtures/input-contract/interface/iface-order-valid.ts\n@@ -2,5 +2,6 @@\n export interface Order {\n   state: OrderState;\n   sku: string;\n+  downloadUrl?: string;\n }\n ",
           "sourceCharacters": 240,
           "requestBytes": 909,
@@ -4098,6 +4116,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-order-valid.ts",
+          "domain": "input-contract/interface/iface-order-valid",
           "source": "type OrderState = \"physical\" | \"digital\";\nexport interface Order {\n  state: OrderState;\n  sku: string;\n  downloadUrl?: string;\n}\n\ninterface UnrelatedAuditEntry01 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry02 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry03 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry04 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry05 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry06 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry07 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry08 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry09 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry10 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry11 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry12 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry13 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }\n",
           "sourceCharacters": 1426,
           "requestBytes": 2074,
@@ -4127,6 +4147,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-order-valid.ts",
+          "domain": "input-contract/interface/iface-order-valid",
           "source": "export interface Order {\n  state: OrderState;\n  sku: string;\n  downloadUrl?: string;\n}",
           "sourceCharacters": 86,
           "requestBytes": 764,
@@ -4161,6 +4183,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-order-valid.ts",
+          "domain": "input-contract/interface/iface-order-valid",
           "source": "export interface Order {\n  state: OrderState;\n  sku: string;\n  downloadUrl?: string;\n}\n\n/* referenced context: OrderState */\ntype OrderState = \"physical\" | \"digital\";",
           "sourceCharacters": 166,
           "requestBytes": 821,
@@ -4227,6 +4251,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-range-diff.ts",
+          "domain": "input-contract/interface/iface-range-diff",
           "source": "--- before/fixtures/input-contract/interface/iface-range-diff.ts\n+++ after/fixtures/input-contract/interface/iface-range-diff.ts\n@@ -1,3 +1,4 @@\n export interface AuthState {\n   authenticated: boolean;\n+  userId?: string;\n }",
           "sourceCharacters": 224,
           "requestBytes": 811,
@@ -4252,6 +4278,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-range-diff.ts",
+          "domain": "input-contract/interface/iface-range-diff",
           "source": "export interface AuthState {\n  authenticated: boolean;\n  userId?: string;\n}\n",
           "sourceCharacters": 76,
           "requestBytes": 675,
@@ -4277,6 +4305,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-range-diff.ts",
+          "domain": "input-contract/interface/iface-range-diff",
           "source": "export interface AuthState {\n  authenticated: boolean;\n  userId?: string;\n}",
           "sourceCharacters": 75,
           "requestBytes": 672,
@@ -4303,6 +4333,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-range-diff.ts",
+          "domain": "input-contract/interface/iface-range-diff",
           "source": "export interface AuthState {\n  authenticated: boolean;\n  userId?: string;\n}",
           "sourceCharacters": 75,
           "requestBytes": 696,
@@ -4361,6 +4393,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-profile-control.ts",
+          "domain": "input-contract/interface/iface-profile-control",
           "source": "--- before/fixtures/input-contract/interface/iface-profile-control.ts\n+++ after/fixtures/input-contract/interface/iface-profile-control.ts\n@@ -1,4 +1,5 @@\n export interface Profile {\n   id: string;\n+  displayName: string;\n }\n ",
           "sourceCharacters": 226,
           "requestBytes": 824,
@@ -4386,6 +4420,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-profile-control.ts",
+          "domain": "input-contract/interface/iface-profile-control",
           "source": "export interface Profile {\n  id: string;\n  displayName: string;\n}\n\ninterface UnrelatedAuditEntry01 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry02 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry03 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry04 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry05 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry06 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry07 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry08 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry09 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry10 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry11 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry12 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry13 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }\n",
           "sourceCharacters": 1363,
           "requestBytes": 1989,
@@ -4411,6 +4447,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-profile-control.ts",
+          "domain": "input-contract/interface/iface-profile-control",
           "source": "export interface Profile {\n  id: string;\n  displayName: string;\n}",
           "sourceCharacters": 65,
           "requestBytes": 672,
@@ -4437,6 +4475,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-profile-control.ts",
+          "domain": "input-contract/interface/iface-profile-control",
           "source": "export interface Profile {\n  id: string;\n  displayName: string;\n}",
           "sourceCharacters": 65,
           "requestBytes": 696,
@@ -4497,6 +4537,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-dilution.ts",
+          "domain": "input-contract/interface/iface-dilution",
           "source": "--- before/fixtures/input-contract/interface/iface-dilution.ts\n+++ after/fixtures/input-contract/interface/iface-dilution.ts\n@@ -3,5 +3,6 @@\n export interface Shipment {\n   mode?: \"air\" | \"ground\";\n   flight?: string;\n+  truck?: string;\n }\n interface NoiseC { a: string; b: number; c: boolean }",
           "sourceCharacters": 294,
           "requestBytes": 883,
@@ -4522,6 +4564,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-dilution.ts",
+          "domain": "input-contract/interface/iface-dilution",
           "source": "interface NoiseA { a: string; b: number; c: boolean }\ninterface NoiseB { a: string; b: number; c: boolean }\nexport interface Shipment {\n  mode?: \"air\" | \"ground\";\n  flight?: string;\n  truck?: string;\n}\ninterface NoiseC { a: string; b: number; c: boolean }\ninterface NoiseD { a: string; b: number; c: boolean }\ninterface NoiseE { a: string; b: number; c: boolean }\ninterface NoiseF { a: string; b: number; c: boolean }\ninterface NoiseG { a: string; b: number; c: boolean }\ninterface NoiseH { a: string; b: number; c: boolean }\n\ninterface UnrelatedAuditEntry01 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry02 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry03 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry04 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry05 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry06 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry07 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry08 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry09 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry10 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry11 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry12 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry13 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }\n",
           "sourceCharacters": 1823,
           "requestBytes": 2448,
@@ -4547,6 +4591,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-dilution.ts",
+          "domain": "input-contract/interface/iface-dilution",
           "source": "export interface Shipment {\n  mode?: \"air\" | \"ground\";\n  flight?: string;\n  truck?: string;\n}",
           "sourceCharacters": 93,
           "requestBytes": 691,
@@ -4573,6 +4619,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/interface/iface-dilution.ts",
+          "domain": "input-contract/interface/iface-dilution",
           "source": "export interface Shipment {\n  mode?: \"air\" | \"ground\";\n  flight?: string;\n  truck?: string;\n}",
           "sourceCharacters": 93,
           "requestBytes": 715,
@@ -4635,6 +4683,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-discount.ts",
+          "domain": "input-contract/type-alias/alias-discount",
           "source": "--- before/fixtures/input-contract/type-alias/alias-discount.ts\n+++ after/fixtures/input-contract/type-alias/alias-discount.ts\n@@ -2,4 +2,5 @@\n export type Discount = {\n   mode: DiscountMode;\n+  percentOff?: number;\n }\n ",
           "sourceCharacters": 220,
           "requestBytes": 888,
@@ -4668,6 +4718,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-discount.ts",
+          "domain": "input-contract/type-alias/alias-discount",
           "source": "export type DiscountMode = \"percent\" | \"free-shipping\";\nexport type Discount = {\n  mode: DiscountMode;\n  percentOff?: number;\n}\n\ninterface UnrelatedAuditEntry01 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry02 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry03 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry04 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry05 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry06 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry07 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry08 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry09 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry10 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry11 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry12 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry13 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }\n",
           "sourceCharacters": 1425,
           "requestBytes": 2072,
@@ -4697,6 +4749,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-discount.ts",
+          "domain": "input-contract/type-alias/alias-discount",
           "source": "export type Discount = {\n  mode: DiscountMode;\n  percentOff?: number;\n}",
           "sourceCharacters": 71,
           "requestBytes": 748,
@@ -4731,6 +4785,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-discount.ts",
+          "domain": "input-contract/type-alias/alias-discount",
           "source": "export type Discount = {\n  mode: DiscountMode;\n  percentOff?: number;\n}\n\n/* referenced context: DiscountMode */\nexport type DiscountMode = \"percent\" | \"free-shipping\";",
           "sourceCharacters": 167,
           "requestBytes": 821,
@@ -4799,6 +4855,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-auth.ts",
+          "domain": "input-contract/type-alias/alias-auth",
           "source": "--- before/fixtures/input-contract/type-alias/alias-auth.ts\n+++ after/fixtures/input-contract/type-alias/alias-auth.ts\n@@ -2,4 +2,5 @@\n export type AuthState = {\n   kind: AuthKind;\n+  userId?: string;\n }\n ",
           "sourceCharacters": 205,
           "requestBytes": 857,
@@ -4832,6 +4890,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-auth.ts",
+          "domain": "input-contract/type-alias/alias-auth",
           "source": "export type AuthKind = \"anonymous\" | \"user\";\nexport type AuthState = {\n  kind: AuthKind;\n  userId?: string;\n}\n\ninterface UnrelatedAuditEntry01 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry02 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry03 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry04 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry05 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry06 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry07 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry08 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry09 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry10 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry11 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry12 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry13 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }\n",
           "sourceCharacters": 1407,
           "requestBytes": 2038,
@@ -4861,6 +4921,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-auth.ts",
+          "domain": "input-contract/type-alias/alias-auth",
           "source": "export type AuthState = {\n  kind: AuthKind;\n  userId?: string;\n}",
           "sourceCharacters": 64,
           "requestBytes": 725,
@@ -4895,6 +4957,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-auth.ts",
+          "domain": "input-contract/type-alias/alias-auth",
           "source": "export type AuthState = {\n  kind: AuthKind;\n  userId?: string;\n}\n\n/* referenced context: AuthKind */\nexport type AuthKind = \"anonymous\" | \"user\";",
           "sourceCharacters": 145,
           "requestBytes": 783,
@@ -4963,6 +5027,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-period.ts",
+          "domain": "input-contract/type-alias/alias-period",
           "source": "--- before/fixtures/input-contract/type-alias/alias-period.ts\n+++ after/fixtures/input-contract/type-alias/alias-period.ts\n@@ -2,4 +2,5 @@\n export type Period = {\n   from?: Instant;\n+  to?: Instant;\n }\n ",
           "sourceCharacters": 203,
           "requestBytes": 857,
@@ -4996,6 +5062,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-period.ts",
+          "domain": "input-contract/type-alias/alias-period",
           "source": "type Instant = string;\nexport type Period = {\n  from?: Instant;\n  to?: Instant;\n}\n\ninterface UnrelatedAuditEntry01 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry02 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry03 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry04 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry05 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry06 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry07 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry08 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry09 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry10 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry11 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry12 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry13 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }\n",
           "sourceCharacters": 1379,
           "requestBytes": 2008,
@@ -5025,6 +5093,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-period.ts",
+          "domain": "input-contract/type-alias/alias-period",
           "source": "export type Period = {\n  from?: Instant;\n  to?: Instant;\n}",
           "sourceCharacters": 58,
           "requestBytes": 721,
@@ -5059,6 +5129,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-period.ts",
+          "domain": "input-contract/type-alias/alias-period",
           "source": "export type Period = {\n  from?: Instant;\n  to?: Instant;\n}\n\n/* referenced context: Instant */\ntype Instant = string;",
           "sourceCharacters": 116,
           "requestBytes": 752,
@@ -5123,6 +5195,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-money.ts",
+          "domain": "input-contract/type-alias/alias-money",
           "source": "--- before/fixtures/input-contract/type-alias/alias-money.ts\n+++ after/fixtures/input-contract/type-alias/alias-money.ts\n@@ -5,4 +5,5 @@\n export type Money = {\n   amount: number;\n+  currency: \"USD\" | \"CAD\";\n }\n ",
           "sourceCharacters": 211,
           "requestBytes": 795,
@@ -5148,6 +5222,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-money.ts",
+          "domain": "input-contract/type-alias/alias-money",
           "source": "type MoneyNoise = { id: string; value: number };\ntype MoneyNoise2 = { id: string; value: number };\ntype MoneyNoise3 = { id: string; value: number };\ntype MoneyNoise4 = { id: string; value: number };\nexport type Money = {\n  amount: number;\n  currency: \"USD\" | \"CAD\";\n}\n\ninterface UnrelatedAuditEntry01 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry02 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry03 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry04 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry05 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry06 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry07 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry08 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry09 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry10 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry11 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry12 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry13 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }\n",
           "sourceCharacters": 1565,
           "requestBytes": 2181,
@@ -5173,6 +5249,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-money.ts",
+          "domain": "input-contract/type-alias/alias-money",
           "source": "export type Money = {\n  amount: number;\n  currency: \"USD\" | \"CAD\";\n}",
           "sourceCharacters": 68,
           "requestBytes": 661,
@@ -5199,6 +5277,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-money.ts",
+          "domain": "input-contract/type-alias/alias-money",
           "source": "export type Money = {\n  amount: number;\n  currency: \"USD\" | \"CAD\";\n}",
           "sourceCharacters": 68,
           "requestBytes": 685,
@@ -5259,6 +5339,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-report-range.ts",
+          "domain": "input-contract/type-alias/alias-report-range",
           "source": "--- before/fixtures/input-contract/type-alias/alias-report-range.ts\n+++ after/fixtures/input-contract/type-alias/alias-report-range.ts\n@@ -1,3 +1,4 @@\n export type FeatureRollout = {\n   enabled: boolean;\n+  rolloutPercentage?: number;\n }",
           "sourceCharacters": 237,
           "requestBytes": 830,
@@ -5284,6 +5366,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-report-range.ts",
+          "domain": "input-contract/type-alias/alias-report-range",
           "source": "export type FeatureRollout = {\n  enabled: boolean;\n  rolloutPercentage?: number;\n}\n",
           "sourceCharacters": 83,
           "requestBytes": 688,
@@ -5309,6 +5393,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-report-range.ts",
+          "domain": "input-contract/type-alias/alias-report-range",
           "source": "export type FeatureRollout = {\n  enabled: boolean;\n  rolloutPercentage?: number;\n}",
           "sourceCharacters": 82,
           "requestBytes": 685,
@@ -5335,6 +5421,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-report-range.ts",
+          "domain": "input-contract/type-alias/alias-report-range",
           "source": "export type FeatureRollout = {\n  enabled: boolean;\n  rolloutPercentage?: number;\n}",
           "sourceCharacters": 82,
           "requestBytes": 709,
@@ -5395,6 +5483,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-dilution.ts",
+          "domain": "input-contract/type-alias/alias-dilution",
           "source": "--- before/fixtures/input-contract/type-alias/alias-dilution.ts\n+++ after/fixtures/input-contract/type-alias/alias-dilution.ts\n@@ -3,5 +3,6 @@\n export type JobCommand = {\n   kind: \"run\" | \"cancel\";\n   schedule?: string;\n+  reason?: string;\n }\n type Noise3 = { id: string; createdAt: string };",
           "sourceCharacters": 292,
           "requestBytes": 883,
@@ -5420,6 +5510,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-dilution.ts",
+          "domain": "input-contract/type-alias/alias-dilution",
           "source": "type Noise1 = { id: string; createdAt: string };\ntype Noise2 = { id: string; createdAt: string };\nexport type JobCommand = {\n  kind: \"run\" | \"cancel\";\n  schedule?: string;\n  reason?: string;\n}\ntype Noise3 = { id: string; createdAt: string };\ntype Noise4 = { id: string; createdAt: string };\ntype Noise5 = { id: string; createdAt: string };\ntype Noise6 = { id: string; createdAt: string };\ntype Noise7 = { id: string; createdAt: string };\ntype Noise8 = { id: string; createdAt: string };\n\ninterface UnrelatedAuditEntry01 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry02 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry03 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry04 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry05 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry06 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry07 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry08 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry09 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry10 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry11 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry12 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry13 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }\n",
           "sourceCharacters": 1784,
           "requestBytes": 2411,
@@ -5445,6 +5537,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-dilution.ts",
+          "domain": "input-contract/type-alias/alias-dilution",
           "source": "export type JobCommand = {\n  kind: \"run\" | \"cancel\";\n  schedule?: string;\n  reason?: string;\n}",
           "sourceCharacters": 94,
           "requestBytes": 694,
@@ -5471,6 +5565,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/type-alias/alias-dilution.ts",
+          "domain": "input-contract/type-alias/alias-dilution",
           "source": "export type JobCommand = {\n  kind: \"run\" | \"cancel\";\n  schedule?: string;\n  reason?: string;\n}",
           "sourceCharacters": 94,
           "requestBytes": 718,
@@ -5533,6 +5629,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-delivery.ts",
+          "domain": "input-contract/zod/zod-delivery",
           "source": "--- before/fixtures/input-contract/zod/zod-delivery.ts\n+++ after/fixtures/input-contract/zod/zod-delivery.ts\n@@ -3,5 +3,6 @@\n export const DeliverySchema = z.object({\n   channel: DeliveryChannel,\n   email: z.string().optional(),\n+  phone: z.string().optional(),\n });\n ",
           "sourceCharacters": 268,
           "requestBytes": 925,
@@ -5566,6 +5664,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-delivery.ts",
+          "domain": "input-contract/zod/zod-delivery",
           "source": "import { z } from \"zod\";\nconst DeliveryChannel = z.enum([\"email\", \"sms\"]);\nexport const DeliverySchema = z.object({\n  channel: DeliveryChannel,\n  email: z.string().optional(),\n  phone: z.string().optional(),\n});\n\ninterface UnrelatedAuditEntry01 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry02 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry03 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry04 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry05 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry06 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry07 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry08 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry09 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry10 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry11 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry12 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry13 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }\n",
           "sourceCharacters": 1509,
           "requestBytes": 2148,
@@ -5595,6 +5695,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-delivery.ts",
+          "domain": "input-contract/zod/zod-delivery",
           "source": "export const DeliverySchema = z.object({\n  channel: DeliveryChannel,\n  email: z.string().optional(),\n  phone: z.string().optional(),\n});",
           "sourceCharacters": 136,
           "requestBytes": 802,
@@ -5629,6 +5731,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-delivery.ts",
+          "domain": "input-contract/zod/zod-delivery",
           "source": "export const DeliverySchema = z.object({\n  channel: DeliveryChannel,\n  email: z.string().optional(),\n  phone: z.string().optional(),\n});\n\n/* referenced context: DeliveryChannel */\nconst DeliveryChannel = z.enum([\"email\", \"sms\"]);",
           "sourceCharacters": 229,
           "requestBytes": 872,
@@ -5697,6 +5801,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-notification.ts",
+          "domain": "input-contract/zod/zod-notification",
           "source": "--- before/fixtures/input-contract/zod/zod-notification.ts\n+++ after/fixtures/input-contract/zod/zod-notification.ts\n@@ -3,5 +3,6 @@\n export const NotificationSchema = z.object({\n   kind: NotificationKind,\n   email: z.string().optional(),\n+  deviceToken: z.string().optional(),\n });\n ",
           "sourceCharacters": 284,
           "requestBytes": 951,
@@ -5730,6 +5836,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-notification.ts",
+          "domain": "input-contract/zod/zod-notification",
           "source": "import { z } from \"zod\";\nconst NotificationKind = z.enum([\"email\", \"push\"]);\nexport const NotificationSchema = z.object({\n  kind: NotificationKind,\n  email: z.string().optional(),\n  deviceToken: z.string().optional(),\n});\n\ninterface UnrelatedAuditEntry01 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry02 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry03 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry04 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry05 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry06 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry07 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry08 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry09 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry10 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry11 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry12 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry13 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }\n",
           "sourceCharacters": 1519,
           "requestBytes": 2168,
@@ -5759,6 +5867,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-notification.ts",
+          "domain": "input-contract/zod/zod-notification",
           "source": "export const NotificationSchema = z.object({\n  kind: NotificationKind,\n  email: z.string().optional(),\n  deviceToken: z.string().optional(),\n});",
           "sourceCharacters": 144,
           "requestBytes": 820,
@@ -5793,6 +5903,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-notification.ts",
+          "domain": "input-contract/zod/zod-notification",
           "source": "export const NotificationSchema = z.object({\n  kind: NotificationKind,\n  email: z.string().optional(),\n  deviceToken: z.string().optional(),\n});\n\n/* referenced context: NotificationKind */\nconst NotificationKind = z.enum([\"email\", \"push\"]);",
           "sourceCharacters": 240,
           "requestBytes": 893,
@@ -5857,6 +5969,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-profile.ts",
+          "domain": "input-contract/zod/zod-profile",
           "source": "--- before/fixtures/input-contract/zod/zod-profile.ts\n+++ after/fixtures/input-contract/zod/zod-profile.ts\n@@ -1,2 +1,5 @@\n import { z } from \"zod\";\n-export const ProfileSchema = z.object({ id: z.string() });\n+export const ProfileSchema = z.object({\n+  id: z.string(),\n+  displayName: z.string(),\n+});",
           "sourceCharacters": 301,
           "requestBytes": 870,
@@ -5882,6 +5996,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-profile.ts",
+          "domain": "input-contract/zod/zod-profile",
           "source": "import { z } from \"zod\";\nexport const ProfileSchema = z.object({\n  id: z.string(),\n  displayName: z.string(),\n});\n",
           "sourceCharacters": 114,
           "requestBytes": 694,
@@ -5907,6 +6023,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-profile.ts",
+          "domain": "input-contract/zod/zod-profile",
           "source": "export const ProfileSchema = z.object({\n  id: z.string(),\n  displayName: z.string(),\n});",
           "sourceCharacters": 88,
           "requestBytes": 663,
@@ -5933,6 +6051,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-profile.ts",
+          "domain": "input-contract/zod/zod-profile",
           "source": "export const ProfileSchema = z.object({\n  id: z.string(),\n  displayName: z.string(),\n});",
           "sourceCharacters": 88,
           "requestBytes": 687,
@@ -5993,6 +6113,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-range.ts",
+          "domain": "input-contract/zod/zod-range",
           "source": "--- before/fixtures/input-contract/zod/zod-range.ts\n+++ after/fixtures/input-contract/zod/zod-range.ts\n@@ -2,3 +2,4 @@\n export const DeliverySchema = z.object({\n   status: z.enum([\"pending\", \"delivered\"]),\n+  deliveredAt: z.string().optional(),\n });",
           "sourceCharacters": 249,
           "requestBytes": 814,
@@ -6018,6 +6140,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-range.ts",
+          "domain": "input-contract/zod/zod-range",
           "source": "import { z } from \"zod\";\nexport const DeliverySchema = z.object({\n  status: z.enum([\"pending\", \"delivered\"]),\n  deliveredAt: z.string().optional(),\n});\n",
           "sourceCharacters": 152,
           "requestBytes": 732,
@@ -6043,6 +6167,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-range.ts",
+          "domain": "input-contract/zod/zod-range",
           "source": "export const DeliverySchema = z.object({\n  status: z.enum([\"pending\", \"delivered\"]),\n  deliveredAt: z.string().optional(),\n});",
           "sourceCharacters": 126,
           "requestBytes": 701,
@@ -6069,6 +6195,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-range.ts",
+          "domain": "input-contract/zod/zod-range",
           "source": "export const DeliverySchema = z.object({\n  status: z.enum([\"pending\", \"delivered\"]),\n  deliveredAt: z.string().optional(),\n});",
           "sourceCharacters": 126,
           "requestBytes": 725,
@@ -6129,6 +6257,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-payment.ts",
+          "domain": "input-contract/zod/zod-payment",
           "source": "--- before/fixtures/input-contract/zod/zod-payment.ts\n+++ after/fixtures/input-contract/zod/zod-payment.ts\n@@ -3,4 +3,5 @@\n export const PaymentSchema = z.object({\n   kind: PaymentKind,\n+  amount: z.number(),\n });\n ",
           "sourceCharacters": 215,
           "requestBytes": 861,
@@ -6162,6 +6292,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-payment.ts",
+          "domain": "input-contract/zod/zod-payment",
           "source": "import { z } from \"zod\";\nconst PaymentKind = z.enum([\"card\", \"bank\"]);\nexport const PaymentSchema = z.object({\n  kind: PaymentKind,\n  amount: z.number(),\n});\n\ninterface UnrelatedAuditEntry01 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry02 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry03 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry04 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry05 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry06 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry07 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry08 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry09 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry10 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry11 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry12 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry13 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }\n",
           "sourceCharacters": 1455,
           "requestBytes": 2083,
@@ -6191,6 +6323,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-payment.ts",
+          "domain": "input-contract/zod/zod-payment",
           "source": "export const PaymentSchema = z.object({\n  kind: PaymentKind,\n  amount: z.number(),\n});",
           "sourceCharacters": 86,
           "requestBytes": 741,
@@ -6225,6 +6359,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-payment.ts",
+          "domain": "input-contract/zod/zod-payment",
           "source": "export const PaymentSchema = z.object({\n  kind: PaymentKind,\n  amount: z.number(),\n});\n\n/* referenced context: PaymentKind */\nconst PaymentKind = z.enum([\"card\", \"bank\"]);",
           "sourceCharacters": 171,
           "requestBytes": 803,
@@ -6291,6 +6427,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-dilution.ts",
+          "domain": "input-contract/zod/zod-dilution",
           "source": "--- before/fixtures/input-contract/zod/zod-dilution.ts\n+++ after/fixtures/input-contract/zod/zod-dilution.ts\n@@ -7,5 +7,6 @@\n export const CommandSchema = z.object({\n   kind: z.enum([\"start\", \"stop\"]),\n   at: z.string().optional(),\n+  reason: z.string().optional(),\n });\n const NoiseC = z.object({ id: z.string(), value: z.number() });",
           "sourceCharacters": 335,
           "requestBytes": 908,
@@ -6316,6 +6454,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-dilution.ts",
+          "domain": "input-contract/zod/zod-dilution",
           "source": "import { z } from \"zod\";\nconst NoiseA = z.object({ id: z.string(), value: z.number() });\nconst NoiseB = z.object({ id: z.string(), value: z.number() });\nconst NoiseD = z.object({ id: z.string(), value: z.number() });\nconst NoiseE = z.object({ id: z.string(), value: z.number() });\nconst NoiseF = z.object({ id: z.string(), value: z.number() });\nexport const CommandSchema = z.object({\n  kind: z.enum([\"start\", \"stop\"]),\n  at: z.string().optional(),\n  reason: z.string().optional(),\n});\nconst NoiseC = z.object({ id: z.string(), value: z.number() });\n\ninterface UnrelatedAuditEntry01 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry02 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry03 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry04 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry05 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry06 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry07 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry08 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry09 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry10 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry11 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry12 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry13 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }\n",
           "sourceCharacters": 1847,
           "requestBytes": 2457,
@@ -6341,6 +6481,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-dilution.ts",
+          "domain": "input-contract/zod/zod-dilution",
           "source": "export const CommandSchema = z.object({\n  kind: z.enum([\"start\", \"stop\"]),\n  at: z.string().optional(),\n  reason: z.string().optional(),\n});",
           "sourceCharacters": 140,
           "requestBytes": 722,
@@ -6367,6 +6509,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/zod/zod-dilution.ts",
+          "domain": "input-contract/zod/zod-dilution",
           "source": "export const CommandSchema = z.object({\n  kind: z.enum([\"start\", \"stop\"]),\n  at: z.string().optional(),\n  reason: z.string().optional(),\n});",
           "sourceCharacters": 140,
           "requestBytes": 746,
@@ -6429,6 +6573,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-delivery.ts",
+          "domain": "input-contract/effect-schema/effect-delivery",
           "source": "--- before/fixtures/input-contract/effect-schema/effect-delivery.ts\n+++ after/fixtures/input-contract/effect-schema/effect-delivery.ts\n@@ -3,5 +3,6 @@\n export const DeliverySchema = Schema.Struct({\n   channel: DeliveryChannel,\n   email: Schema.optionalKey(Schema.String),\n+  phone: Schema.optionalKey(Schema.String),\n });\n ",
           "sourceCharacters": 323,
           "requestBytes": 1006,
@@ -6462,6 +6608,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-delivery.ts",
+          "domain": "input-contract/effect-schema/effect-delivery",
           "source": "import * as Schema from \"effect/Schema\";\nconst DeliveryChannel = Schema.Literals([\"email\", \"sms\"]);\nexport const DeliverySchema = Schema.Struct({\n  channel: DeliveryChannel,\n  email: Schema.optionalKey(Schema.String),\n  phone: Schema.optionalKey(Schema.String),\n});\n\ninterface UnrelatedAuditEntry01 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry02 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry03 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry04 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry05 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry06 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry07 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry08 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry09 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry10 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry11 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry12 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry13 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }\n",
           "sourceCharacters": 1563,
           "requestBytes": 2228,
@@ -6491,6 +6639,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-delivery.ts",
+          "domain": "input-contract/effect-schema/effect-delivery",
           "source": "export const DeliverySchema = Schema.Struct({\n  channel: DeliveryChannel,\n  email: Schema.optionalKey(Schema.String),\n  phone: Schema.optionalKey(Schema.String),\n});",
           "sourceCharacters": 165,
           "requestBytes": 857,
@@ -6525,6 +6675,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-delivery.ts",
+          "domain": "input-contract/effect-schema/effect-delivery",
           "source": "export const DeliverySchema = Schema.Struct({\n  channel: DeliveryChannel,\n  email: Schema.optionalKey(Schema.String),\n  phone: Schema.optionalKey(Schema.String),\n});\n\n/* referenced context: DeliveryChannel */\nconst DeliveryChannel = Schema.Literals([\"email\", \"sms\"]);",
           "sourceCharacters": 267,
           "requestBytes": 936,
@@ -6593,6 +6745,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-job.ts",
+          "domain": "input-contract/effect-schema/effect-job",
           "source": "--- before/fixtures/input-contract/effect-schema/effect-job.ts\n+++ after/fixtures/input-contract/effect-schema/effect-job.ts\n@@ -3,5 +3,6 @@\n export const JobSchema = Schema.Struct({\n   kind: JobKind,\n   schedule: Schema.optionalKey(Schema.String),\n+  reason: Schema.optionalKey(Schema.String),\n });\n ",
           "sourceCharacters": 301,
           "requestBytes": 958,
@@ -6626,6 +6780,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-job.ts",
+          "domain": "input-contract/effect-schema/effect-job",
           "source": "import * as Schema from \"effect/Schema\";\nconst JobKind = Schema.Literals([\"run\", \"cancel\"]);\nexport const JobSchema = Schema.Struct({\n  kind: JobKind,\n  schedule: Schema.optionalKey(Schema.String),\n  reason: Schema.optionalKey(Schema.String),\n});\n\ninterface UnrelatedAuditEntry01 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry02 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry03 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry04 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry05 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry06 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry07 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry08 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry09 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry10 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry11 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry12 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry13 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }\n",
           "sourceCharacters": 1544,
           "requestBytes": 2183,
@@ -6655,6 +6811,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-job.ts",
+          "domain": "input-contract/effect-schema/effect-job",
           "source": "export const JobSchema = Schema.Struct({\n  kind: JobKind,\n  schedule: Schema.optionalKey(Schema.String),\n  reason: Schema.optionalKey(Schema.String),\n});",
           "sourceCharacters": 153,
           "requestBytes": 819,
@@ -6689,6 +6847,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-job.ts",
+          "domain": "input-contract/effect-schema/effect-job",
           "source": "export const JobSchema = Schema.Struct({\n  kind: JobKind,\n  schedule: Schema.optionalKey(Schema.String),\n  reason: Schema.optionalKey(Schema.String),\n});\n\n/* referenced context: JobKind */\nconst JobKind = Schema.Literals([\"run\", \"cancel\"]);",
           "sourceCharacters": 240,
           "requestBytes": 883,
@@ -6753,6 +6913,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-money.ts",
+          "domain": "input-contract/effect-schema/effect-money",
           "source": "--- before/fixtures/input-contract/effect-schema/effect-money.ts\n+++ after/fixtures/input-contract/effect-schema/effect-money.ts\n@@ -2,3 +2,4 @@\n export const MoneySchema = Schema.Struct({\n   amount: Schema.Number,\n+  currency: Schema.Literals([\"USD\", \"CAD\"]),\n });",
           "sourceCharacters": 265,
           "requestBytes": 856,
@@ -6778,6 +6940,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-money.ts",
+          "domain": "input-contract/effect-schema/effect-money",
           "source": "import * as Schema from \"effect/Schema\";\nexport const MoneySchema = Schema.Struct({\n  amount: Schema.Number,\n  currency: Schema.Literals([\"USD\", \"CAD\"]),\n});\n",
           "sourceCharacters": 158,
           "requestBytes": 764,
@@ -6803,6 +6967,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-money.ts",
+          "domain": "input-contract/effect-schema/effect-money",
           "source": "export const MoneySchema = Schema.Struct({\n  amount: Schema.Number,\n  currency: Schema.Literals([\"USD\", \"CAD\"]),\n});",
           "sourceCharacters": 116,
           "requestBytes": 717,
@@ -6829,6 +6995,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-money.ts",
+          "domain": "input-contract/effect-schema/effect-money",
           "source": "export const MoneySchema = Schema.Struct({\n  amount: Schema.Number,\n  currency: Schema.Literals([\"USD\", \"CAD\"]),\n});",
           "sourceCharacters": 116,
           "requestBytes": 741,
@@ -6889,6 +7057,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-range.ts",
+          "domain": "input-contract/effect-schema/effect-range",
           "source": "--- before/fixtures/input-contract/effect-schema/effect-range.ts\n+++ after/fixtures/input-contract/effect-schema/effect-range.ts\n@@ -2,3 +2,4 @@\n export const AuthSchema = Schema.Struct({\n   authenticated: Schema.Boolean,\n+  userId: Schema.optionalKey(Schema.String),\n });",
           "sourceCharacters": 272,
           "requestBytes": 859,
@@ -6914,6 +7084,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-range.ts",
+          "domain": "input-contract/effect-schema/effect-range",
           "source": "import * as Schema from \"effect/Schema\";\nexport const AuthSchema = Schema.Struct({\n  authenticated: Schema.Boolean,\n  userId: Schema.optionalKey(Schema.String),\n});\n",
           "sourceCharacters": 165,
           "requestBytes": 767,
@@ -6939,6 +7111,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-range.ts",
+          "domain": "input-contract/effect-schema/effect-range",
           "source": "export const AuthSchema = Schema.Struct({\n  authenticated: Schema.Boolean,\n  userId: Schema.optionalKey(Schema.String),\n});",
           "sourceCharacters": 123,
           "requestBytes": 720,
@@ -6965,6 +7139,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-range.ts",
+          "domain": "input-contract/effect-schema/effect-range",
           "source": "export const AuthSchema = Schema.Struct({\n  authenticated: Schema.Boolean,\n  userId: Schema.optionalKey(Schema.String),\n});",
           "sourceCharacters": 123,
           "requestBytes": 744,
@@ -7027,6 +7203,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-notification.ts",
+          "domain": "input-contract/effect-schema/effect-notification",
           "source": "--- before/fixtures/input-contract/effect-schema/effect-notification.ts\n+++ after/fixtures/input-contract/effect-schema/effect-notification.ts\n@@ -3,5 +3,6 @@\n export const NotificationSchema = Schema.Struct({\n   kind: NotificationKind,\n   email: Schema.optionalKey(Schema.String),\n+  deviceToken: Schema.optionalKey(Schema.String),\n });\n ",
           "sourceCharacters": 339,
           "requestBytes": 1032,
@@ -7060,6 +7238,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-notification.ts",
+          "domain": "input-contract/effect-schema/effect-notification",
           "source": "import * as Schema from \"effect/Schema\";\nconst NotificationKind = Schema.Literals([\"email\", \"push\"]);\nexport const NotificationSchema = Schema.Struct({\n  kind: NotificationKind,\n  email: Schema.optionalKey(Schema.String),\n  deviceToken: Schema.optionalKey(Schema.String),\n});\n\ninterface UnrelatedAuditEntry01 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry02 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry03 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry04 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry05 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry06 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry07 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry08 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry09 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry10 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry11 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry12 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry13 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }\n",
           "sourceCharacters": 1573,
           "requestBytes": 2248,
@@ -7089,6 +7269,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-notification.ts",
+          "domain": "input-contract/effect-schema/effect-notification",
           "source": "export const NotificationSchema = Schema.Struct({\n  kind: NotificationKind,\n  email: Schema.optionalKey(Schema.String),\n  deviceToken: Schema.optionalKey(Schema.String),\n});",
           "sourceCharacters": 173,
           "requestBytes": 875,
@@ -7123,6 +7305,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-notification.ts",
+          "domain": "input-contract/effect-schema/effect-notification",
           "source": "export const NotificationSchema = Schema.Struct({\n  kind: NotificationKind,\n  email: Schema.optionalKey(Schema.String),\n  deviceToken: Schema.optionalKey(Schema.String),\n});\n\n/* referenced context: NotificationKind */\nconst NotificationKind = Schema.Literals([\"email\", \"push\"]);",
           "sourceCharacters": 278,
           "requestBytes": 957,
@@ -7189,6 +7373,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.diff",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-dilution.ts",
+          "domain": "input-contract/effect-schema/effect-dilution",
           "source": "--- before/fixtures/input-contract/effect-schema/effect-dilution.ts\n+++ after/fixtures/input-contract/effect-schema/effect-dilution.ts\n@@ -7,5 +7,6 @@\n export const CommandSchema = Schema.Struct({\n   kind: Schema.Literals([\"start\", \"stop\"]),\n   at: Schema.optionalKey(Schema.String),\n+  reason: Schema.optionalKey(Schema.String),\n });\n const NoiseC = Schema.Struct({ id: Schema.String, value: Schema.Number });",
           "sourceCharacters": 410,
           "requestBytes": 1009,
@@ -7214,6 +7400,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.whole-file",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-dilution.ts",
+          "domain": "input-contract/effect-schema/effect-dilution",
           "source": "import * as Schema from \"effect/Schema\";\nconst NoiseA = Schema.Struct({ id: Schema.String, value: Schema.Number });\nconst NoiseB = Schema.Struct({ id: Schema.String, value: Schema.Number });\nconst NoiseD = Schema.Struct({ id: Schema.String, value: Schema.Number });\nconst NoiseE = Schema.Struct({ id: Schema.String, value: Schema.Number });\nconst NoiseF = Schema.Struct({ id: Schema.String, value: Schema.Number });\nexport const CommandSchema = Schema.Struct({\n  kind: Schema.Literals([\"start\", \"stop\"]),\n  at: Schema.optionalKey(Schema.String),\n  reason: Schema.optionalKey(Schema.String),\n});\nconst NoiseC = Schema.Struct({ id: Schema.String, value: Schema.Number });\n\ninterface UnrelatedAuditEntry01 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry02 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry03 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry04 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry05 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry06 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry07 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry08 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry09 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry10 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry11 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry12 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry13 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }\n",
           "sourceCharacters": 1967,
           "requestBytes": 2603,
@@ -7239,6 +7427,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-dilution.ts",
+          "domain": "input-contract/effect-schema/effect-dilution",
           "source": "export const CommandSchema = Schema.Struct({\n  kind: Schema.Literals([\"start\", \"stop\"]),\n  at: Schema.optionalKey(Schema.String),\n  reason: Schema.optionalKey(Schema.String),\n});",
           "sourceCharacters": 178,
           "requestBytes": 786,
@@ -7265,6 +7455,8 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "renderer": "renderer.declaration-context",
             "rendererVersion": "2"
           },
+          "path": "fixtures/input-contract/effect-schema/effect-dilution.ts",
+          "domain": "input-contract/effect-schema/effect-dilution",
           "source": "export const CommandSchema = Schema.Struct({\n  kind: Schema.Literals([\"start\", \"stop\"]),\n  at: Schema.optionalKey(Schema.String),\n  reason: Schema.optionalKey(Schema.String),\n});",
           "sourceCharacters": 178,
           "requestBytes": 810,

@@ -37,6 +37,8 @@ const fixtures = inputComparisonFixtures.map((fixture) => ({
     const rendered = renderInput(fixture, mode);
     return [mode, {
       contract: rendered.contract,
+      path: rendered.path,
+      domain: rendered.domain,
       source: rendered.source,
       sourceCharacters: rendered.sourceCharacters,
       requestBytes: rendered.requestBytes,
