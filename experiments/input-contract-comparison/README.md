@@ -5,7 +5,7 @@ renderers over the same human-authored TypeScript fixtures:
 
 | Mode | Rendered context |
 | --- | --- |
-| `diff` | focused unified hunk around the changed member and the repository-relative path |
+| `diff` | Codex-native `apply_patch` update command with a bounded hunk and workspace path |
 | `whole-file` | exact post-edit file and the same path |
 | `declaration-only` | the edited interface, type alias, or schema and the same path |
 | `declaration-context` | that declaration plus bounded outbound referenced declarations, completeness, and omission metadata |
@@ -14,9 +14,9 @@ The fixture manifest is [`fixtures.ts`](./fixtures.ts). It contains 24 fixtures 
 interfaces, six type aliases, six Zod schemas, and six Effect Schema definitions),
 human-authored Rule 2 expectations and rationales, stable content identities, and the
 pre-registered category memberships. Every fixture has a real member-level before/after
-edit; the diff renderer includes only a bounded unified hunk around that edit, rather
-than repeating the whole post-edit declaration. `manifest.ts` exposes the source-free
-identity view for report tooling.
+edit; the diff renderer emits the host-observed `*** Begin Patch` / `*** Update File` /
+`@@` / `+` / `*** End Patch` command shape rather than standard `--- before` / `+++ after`
+unified-diff text. `manifest.ts` exposes the source-free identity view for report tooling.
 
 After the first milestone returned `reject-or-narrow`, the follow-up corpus was tightened
 and then run as a separately authorized paid milestone. Diff-sufficient fixtures are now
@@ -33,7 +33,7 @@ caps. Missing required evidence is an explicit `incomplete-required` observation
 never counted as a clear result. A renderer that structurally cannot carry a fixture's
 required reference is recorded as `not-applicable`; it is excluded from semantic
 denominators rather than treated as a provider failure or semantic negative. The
-focused diff and declaration-only arms are therefore not baselines for context-required
+Codex-patch and declaration-only arms are therefore not baselines for context-required
 fixtures, while whole-file and declaration-context remain applicable.
 
 ## Deterministic checks
@@ -91,3 +91,9 @@ The user-authorized confidence probe for `iface-delivery-flat` is recorded in
 It made two additional zero-retry calls for the applicable whole-file and
 declaration-context modes and retains the nine numeric per-rule probabilities. It does
 not retain credentials, raw provider responses, or source-bearing paid responses.
+
+The focused-diff renderer was then revised from the historical assumed textual diff to
+the runtime-observed Codex patch shape. The retained paid reports and 64-call diagnostic
+predate that revision and remain historical evidence for `textual-diff@2`; their focused
+diff measurements do not apply to the current `codex-apply-patch@1` renderer. A new full
+paid matrix is required to score the revised baseline.

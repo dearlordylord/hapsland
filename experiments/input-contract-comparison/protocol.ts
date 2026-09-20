@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 
 /** Versioned renderer contracts used by the input-comparison milestone. */
 export const INPUT_CONTRACTS = {
-  diff: { id: "textual-diff", version: "2", renderer: "renderer.diff", rendererVersion: "2" },
+  diff: { id: "codex-apply-patch", version: "1", renderer: "renderer.codex-patch", rendererVersion: "1" },
   "whole-file": { id: "whole-post-edit-file", version: "2", renderer: "renderer.whole-file", rendererVersion: "2" },
   "declaration-only": { id: "edited-declaration", version: "2", renderer: "renderer.declaration", rendererVersion: "2" },
   "declaration-context": { id: "edited-declaration-bounded-context", version: "2", renderer: "renderer.declaration-context", rendererVersion: "2" },

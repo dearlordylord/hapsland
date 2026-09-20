@@ -5,6 +5,11 @@ the revised run, and one aborted pre-recovery attempt remain historical evidence
 follow-up sanitized result is recorded in
 `evidence/input-contract-comparison/live-report-2026-09-20-followup.json`.
 
+Renderer revision note: those paid reports were produced before the focused-diff
+renderer was aligned with the measured Codex host format and therefore scored the
+historical `textual-diff@2` representation. Current code emits `codex-apply-patch@1`;
+no paid matrix has scored that revised renderer yet.
+
 - Backend: Jev through `@effect/ai-typesafe` `TypeSafeDecisionModel`, model id
   `jev-latest`, using the provider-neutral Effect `Decision.probability` and one
   `DecisionModel` request containing the fixed configured Noul rule batch.
@@ -12,11 +17,11 @@ follow-up sanitized result is recorded in
   the repository's configured definitions and thresholds from `src/policy/rules.ts`.
   Rule 2 (`r2_meaningless_combinations`) is the checked expectation; other rules stay
   in the batch and are not used as new ground truth.
-- Input contracts and renderer identities: `textual-diff@2` / `renderer.diff@2`,
+- Input contracts and renderer identities: `codex-apply-patch@1` / `renderer.codex-patch@1`,
   `whole-post-edit-file@2` / `renderer.whole-file@2`, `edited-declaration@2` /
   `renderer.declaration@2`, and `edited-declaration-bounded-context@2` /
-  `renderer.declaration-context@2`. The diff contract is a focused unified hunk with
-  bounded context lines around the actual member-level edit. Each renderer records a
+  `renderer.declaration-context@2`. The diff contract is the runtime-observed Codex
+  `apply_patch` command with a bounded hunk and sanitized workspace path. Each renderer records a
   SHA-256 implementation
   digest, fixture digest, post-edit content hash, path, domain, source-character count,
   and serialized request byte count.

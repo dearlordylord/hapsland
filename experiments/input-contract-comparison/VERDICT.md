@@ -83,3 +83,11 @@ Focused diff and declaration-only remain explicitly not-applicable because they 
 carry the required `DeliveryChannel` reference. This probe is a user-authorized
 exception to the aggregate-only retention policy; it does not reopen or rescore issue
 #16.
+
+## Renderer revision
+
+The focused-diff renderer is now `codex-apply-patch@1`, matching the runtime-observed
+Codex `apply_patch` command rather than the former assumed `textual-diff@2` format. The
+retained full paid reports and 64-call diagnostic predate this change. Their focused-diff
+measurements are historical and cannot certify the current renderer; a new full paid
+matrix is required before drawing a focused-diff conclusion.

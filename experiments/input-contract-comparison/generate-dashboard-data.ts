@@ -63,6 +63,12 @@ const data = {
     diagnostic: "evidence/input-contract-comparison/live-diagnostic-2026-09-20.json",
     confidenceProbe: "evidence/input-contract-comparison/live-confidence-probe-2026-09-20.json",
     codexEmission: "evidence/codex/0.155.1/native-patch-emission-2026-09-20.json",
+    currentDiffRenderer: "experiments/input-contract-comparison/render.ts:renderCodexPatch",
+  },
+  rendererRevision: {
+    current: "codex-apply-patch@1",
+    historicalPaidReport: "textual-diff@2",
+    status: "current-focused-diff-needs-new-paid-matrix",
   },
   retention: {
     retained: [
@@ -80,7 +86,7 @@ const data = {
       "raw or source-bearing provider responses",
       "provider usage details",
     ],
-    consequence: "The 24-fixture final gate remains aggregate-only; a user-authorized two-call probe exposes numeric Jev probabilities for iface-delivery-flat's applicable modes.",
+    consequence: "The retained paid aggregate report used historical textual-diff@2. Current rendered diff inputs use codex-apply-patch@1, so focused-diff measurements need a new paid matrix; whole-file/context evidence remains separately inspectable.",
   },
   providerContract: {
     source: [

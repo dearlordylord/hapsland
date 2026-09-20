@@ -69,12 +69,15 @@ describe("input-contract comparison corpus", () => {
     expect(rendered.find((input) => input.mode === "declaration-context")?.source).not.toContain("/* completeness:");
   });
 
-  it("renders diff as the changed member hunk, not the whole declaration", () => {
+  it("renders the Codex apply_patch hunk, not a standard unified diff", () => {
     const diff = renderDiff(fixture.path, fixture.before, fixture.after);
+    expect(diff).toContain("*** Begin Patch");
+    expect(diff).toContain("*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-delivery-flat.ts");
+    expect(diff).toContain("*** End Patch");
     expect(diff).toContain("+  phone?: string;");
     expect(diff).toContain("export interface Delivery");
     expect(diff).not.toContain("type DeliveryChannel =");
-    expect(diff.split("\n").filter((line) => line.startsWith("+")).length).toBe(2);
+    expect(diff.split("\n").filter((line) => line.startsWith("+")).length).toBe(1);
   });
 
   it("classifies bounded required omissions explicitly", () => {

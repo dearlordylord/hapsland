@@ -29,7 +29,7 @@ export const DEFAULT_EXTRACTION_CAPS: ExtractionCaps = {
 };
 
 const rendererSource = {
-  diff: "textual-diff-v2:focused-unified-hunk-with-context-lines",
+  diff: "codex-apply-patch-v1:native-apply-patch-update-file-with-context-lines",
   "whole-file": "whole-post-edit-file-v2:exact-after-buffer-with-completeness-check",
   "declaration-only": "edited-declaration-v2:root-artifact-source-with-structural-inapplicability",
   "declaration-context": "edited-declaration-bounded-context-v2:bfs-references-with-omissions-outside-source",
@@ -39,7 +39,8 @@ const contractFor = (mode: InputMode) => INPUT_CONTRACTS[mode];
 const rendererDigestFor = (mode: InputMode) => sha256(rendererSource[mode]);
 export const RULE_DEFINITION_DIGEST = sha256(readFileSync(new URL("../../src/questions.ts", import.meta.url), "utf8"));
 
-export const renderDiff = (path: string, before: string, after: string) => {
+/** Render the host-observed Codex apply_patch command shape, not a standard unified diff. */
+export const renderCodexPatch = (path: string, before: string, after: string) => {
   const beforeLines = before.split("\n");
   const afterLines = after.split("\n");
   if (beforeLines.at(-1) === "") beforeLines.pop();
@@ -65,16 +66,20 @@ export const renderDiff = (path: string, before: string, after: string) => {
   const beforeEnd = Math.min(beforeLines.length, beforeSuffix + context);
   const afterEnd = Math.min(afterLines.length, afterSuffix + context);
   const lines = [
-    `--- before/${path}`,
-    `+++ after/${path}`,
-    `@@ -${beforeStart + 1},${beforeEnd - beforeStart} +${afterStart + 1},${afterEnd - afterStart} @@`,
+    "*** Begin Patch",
+    `*** Update File: <WORKSPACE>/${path}`,
+    "@@",
   ];
   for (let index = beforeStart; index < prefix; index += 1) lines.push(` ${beforeLines[index]}`);
   for (let index = prefix; index < beforeSuffix; index += 1) lines.push(`-${beforeLines[index]}`);
   for (let index = prefix; index < afterSuffix; index += 1) lines.push(`+${afterLines[index]}`);
   for (let index = beforeSuffix; index < beforeEnd; index += 1) lines.push(` ${beforeLines[index]}`);
+  lines.push("*** End Patch");
   return lines.join("\n");
 };
+
+/** Historical name retained for fixture/test callers; its output is Codex patch syntax. */
+export const renderDiff = renderCodexPatch;
 
 const parseArtifacts = (fixture: Fixture) => {
   const sourceFile = parseSource(fixture.path, fixture.path, fixture.after, `fixture://${fixture.path}`);
@@ -208,7 +213,7 @@ export const renderInput = (
   if (mode === "diff") {
     before = fixture.before;
     after = fixture.after;
-    source = renderDiff(fixture.path, fixture.before, fixture.after);
+    source = renderCodexPatch(fixture.path, fixture.before, fixture.after);
     if (fixture.evidence.requiredReferences.length > 0) evidence = notApplicable(fixture);
   } else if (mode === "whole-file") {
     source = fixture.after;

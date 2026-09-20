@@ -7,7 +7,13 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
     "report": "evidence/input-contract-comparison/live-report-2026-09-20-followup.json",
     "diagnostic": "evidence/input-contract-comparison/live-diagnostic-2026-09-20.json",
     "confidenceProbe": "evidence/input-contract-comparison/live-confidence-probe-2026-09-20.json",
-    "codexEmission": "evidence/codex/0.155.1/native-patch-emission-2026-09-20.json"
+    "codexEmission": "evidence/codex/0.155.1/native-patch-emission-2026-09-20.json",
+    "currentDiffRenderer": "experiments/input-contract-comparison/render.ts:renderCodexPatch"
+  },
+  "rendererRevision": {
+    "current": "codex-apply-patch@1",
+    "historicalPaidReport": "textual-diff@2",
+    "status": "current-focused-diff-needs-new-paid-matrix"
   },
   "retention": {
     "retained": [
@@ -25,7 +31,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "raw or source-bearing provider responses",
       "provider usage details"
     ],
-    "consequence": "The 24-fixture final gate remains aggregate-only; a user-authorized two-call probe exposes numeric Jev probabilities for iface-delivery-flat's applicable modes."
+    "consequence": "The retained paid aggregate report used historical textual-diff@2. Current rendered diff inputs use codex-apply-patch@1, so focused-diff measurements need a new paid matrix; whole-file/context evidence remains separately inspectable."
   },
   "providerContract": {
     "source": [
@@ -3908,16 +3914,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/interface/iface-delivery-flat.ts",
           "domain": "input-contract/interface/iface-delivery-flat",
-          "source": "--- before/fixtures/input-contract/interface/iface-delivery-flat.ts\n+++ after/fixtures/input-contract/interface/iface-delivery-flat.ts\n@@ -2,5 +2,6 @@\n export interface Delivery {\n   channel: DeliveryChannel;\n   email?: string;\n+  phone?: string;\n }\n ",
-          "sourceCharacters": 251,
-          "requestBytes": 934,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-delivery-flat.ts\n@@\n export interface Delivery {\n   channel: DeliveryChannel;\n   email?: string;\n+  phone?: string;\n }\n \n*** End Patch",
+          "sourceCharacters": 219,
+          "requestBytes": 915,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -3933,7 +3939,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
               }
             ]
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
@@ -4078,16 +4084,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/interface/iface-payment-tagged.ts",
           "domain": "input-contract/interface/iface-payment-tagged",
-          "source": "--- before/fixtures/input-contract/interface/iface-payment-tagged.ts\n+++ after/fixtures/input-contract/interface/iface-payment-tagged.ts\n@@ -2,4 +2,5 @@\n export interface Payment {\n   kind: PaymentKind;\n+  amount: number;\n }\n ",
-          "sourceCharacters": 226,
-          "requestBytes": 902,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-payment-tagged.ts\n@@\n export interface Payment {\n   kind: PaymentKind;\n+  amount: number;\n }\n \n*** End Patch",
+          "sourceCharacters": 193,
+          "requestBytes": 882,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -4103,7 +4109,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
               }
             ]
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
@@ -4244,16 +4250,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/interface/iface-order-valid.ts",
           "domain": "input-contract/interface/iface-order-valid",
-          "source": "--- before/fixtures/input-contract/interface/iface-order-valid.ts\n+++ after/fixtures/input-contract/interface/iface-order-valid.ts\n@@ -2,5 +2,6 @@\n export interface Order {\n   state: OrderState;\n   sku: string;\n+  downloadUrl?: string;\n }\n ",
-          "sourceCharacters": 240,
-          "requestBytes": 909,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-order-valid.ts\n@@\n export interface Order {\n   state: OrderState;\n   sku: string;\n+  downloadUrl?: string;\n }\n \n*** End Patch",
+          "sourceCharacters": 210,
+          "requestBytes": 892,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -4269,7 +4275,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
               }
             ]
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
@@ -4414,16 +4420,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/interface/iface-range-diff.ts",
           "domain": "input-contract/interface/iface-range-diff",
-          "source": "--- before/fixtures/input-contract/interface/iface-range-diff.ts\n+++ after/fixtures/input-contract/interface/iface-range-diff.ts\n@@ -1,3 +1,4 @@\n export interface AuthState {\n   authenticated: boolean;\n+  userId?: string;\n }",
-          "sourceCharacters": 224,
-          "requestBytes": 811,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-range-diff.ts\n@@\n export interface AuthState {\n   authenticated: boolean;\n+  userId?: string;\n }\n*** End Patch",
+          "sourceCharacters": 195,
+          "requestBytes": 795,
           "contextNames": [],
           "completeness": {
             "status": "complete",
@@ -4431,7 +4437,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "included": [],
             "omissions": []
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
@@ -4556,16 +4562,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/interface/iface-profile-control.ts",
           "domain": "input-contract/interface/iface-profile-control",
-          "source": "--- before/fixtures/input-contract/interface/iface-profile-control.ts\n+++ after/fixtures/input-contract/interface/iface-profile-control.ts\n@@ -1,4 +1,5 @@\n export interface Profile {\n   id: string;\n+  displayName: string;\n }\n ",
-          "sourceCharacters": 226,
-          "requestBytes": 824,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-profile-control.ts\n@@\n export interface Profile {\n   id: string;\n+  displayName: string;\n }\n \n*** End Patch",
+          "sourceCharacters": 192,
+          "requestBytes": 803,
           "contextNames": [],
           "completeness": {
             "status": "complete",
@@ -4573,7 +4579,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "included": [],
             "omissions": []
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
@@ -4700,16 +4706,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/interface/iface-dilution.ts",
           "domain": "input-contract/interface/iface-dilution",
-          "source": "--- before/fixtures/input-contract/interface/iface-dilution.ts\n+++ after/fixtures/input-contract/interface/iface-dilution.ts\n@@ -3,5 +3,6 @@\n export interface Shipment {\n   mode?: \"air\" | \"ground\";\n   flight?: string;\n+  truck?: string;\n }\n interface NoiseC { a: string; b: number; c: boolean }",
-          "sourceCharacters": 294,
-          "requestBytes": 883,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-dilution.ts\n@@\n export interface Shipment {\n   mode?: \"air\" | \"ground\";\n   flight?: string;\n+  truck?: string;\n }\n interface NoiseC { a: string; b: number; c: boolean }\n*** End Patch",
+          "sourceCharacters": 267,
+          "requestBytes": 869,
           "contextNames": [],
           "completeness": {
             "status": "complete",
@@ -4717,7 +4723,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "included": [],
             "omissions": []
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
@@ -4846,16 +4852,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/type-alias/alias-discount.ts",
           "domain": "input-contract/type-alias/alias-discount",
-          "source": "--- before/fixtures/input-contract/type-alias/alias-discount.ts\n+++ after/fixtures/input-contract/type-alias/alias-discount.ts\n@@ -2,4 +2,5 @@\n export type Discount = {\n   mode: DiscountMode;\n+  percentOff?: number;\n }\n ",
-          "sourceCharacters": 220,
-          "requestBytes": 888,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-discount.ts\n@@\n export type Discount = {\n   mode: DiscountMode;\n+  percentOff?: number;\n }\n \n*** End Patch",
+          "sourceCharacters": 192,
+          "requestBytes": 873,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -4871,7 +4877,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
               }
             ]
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
@@ -5018,16 +5024,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/type-alias/alias-auth.ts",
           "domain": "input-contract/type-alias/alias-auth",
-          "source": "--- before/fixtures/input-contract/type-alias/alias-auth.ts\n+++ after/fixtures/input-contract/type-alias/alias-auth.ts\n@@ -2,4 +2,5 @@\n export type AuthState = {\n   kind: AuthKind;\n+  userId?: string;\n }\n ",
-          "sourceCharacters": 205,
-          "requestBytes": 857,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-auth.ts\n@@\n export type AuthState = {\n   kind: AuthKind;\n+  userId?: string;\n }\n \n*** End Patch",
+          "sourceCharacters": 181,
+          "requestBytes": 846,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -5043,7 +5049,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
               }
             ]
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
@@ -5190,16 +5196,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/type-alias/alias-period.ts",
           "domain": "input-contract/type-alias/alias-period",
-          "source": "--- before/fixtures/input-contract/type-alias/alias-period.ts\n+++ after/fixtures/input-contract/type-alias/alias-period.ts\n@@ -2,4 +2,5 @@\n export type Period = {\n   from?: Instant;\n+  to?: Instant;\n }\n ",
-          "sourceCharacters": 203,
-          "requestBytes": 857,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-period.ts\n@@\n export type Period = {\n   from?: Instant;\n+  to?: Instant;\n }\n \n*** End Patch",
+          "sourceCharacters": 177,
+          "requestBytes": 844,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -5215,7 +5221,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
               }
             ]
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
@@ -5358,16 +5364,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/type-alias/alias-money.ts",
           "domain": "input-contract/type-alias/alias-money",
-          "source": "--- before/fixtures/input-contract/type-alias/alias-money.ts\n+++ after/fixtures/input-contract/type-alias/alias-money.ts\n@@ -5,4 +5,5 @@\n export type Money = {\n   amount: number;\n+  currency: \"USD\" | \"CAD\";\n }\n ",
-          "sourceCharacters": 211,
-          "requestBytes": 795,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-money.ts\n@@\n export type Money = {\n   amount: number;\n+  currency: \"USD\" | \"CAD\";\n }\n \n*** End Patch",
+          "sourceCharacters": 186,
+          "requestBytes": 783,
           "contextNames": [],
           "completeness": {
             "status": "complete",
@@ -5375,7 +5381,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "included": [],
             "omissions": []
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
@@ -5502,16 +5508,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/type-alias/alias-report-range.ts",
           "domain": "input-contract/type-alias/alias-report-range",
-          "source": "--- before/fixtures/input-contract/type-alias/alias-report-range.ts\n+++ after/fixtures/input-contract/type-alias/alias-report-range.ts\n@@ -1,3 +1,4 @@\n export type FeatureRollout = {\n   enabled: boolean;\n+  rolloutPercentage?: number;\n }",
-          "sourceCharacters": 237,
-          "requestBytes": 830,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-report-range.ts\n@@\n export type FeatureRollout = {\n   enabled: boolean;\n+  rolloutPercentage?: number;\n }\n*** End Patch",
+          "sourceCharacters": 205,
+          "requestBytes": 811,
           "contextNames": [],
           "completeness": {
             "status": "complete",
@@ -5519,7 +5525,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "included": [],
             "omissions": []
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
@@ -5646,16 +5652,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/type-alias/alias-dilution.ts",
           "domain": "input-contract/type-alias/alias-dilution",
-          "source": "--- before/fixtures/input-contract/type-alias/alias-dilution.ts\n+++ after/fixtures/input-contract/type-alias/alias-dilution.ts\n@@ -3,5 +3,6 @@\n export type JobCommand = {\n   kind: \"run\" | \"cancel\";\n   schedule?: string;\n+  reason?: string;\n }\n type Noise3 = { id: string; createdAt: string };",
-          "sourceCharacters": 292,
-          "requestBytes": 883,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/type-alias/alias-dilution.ts\n@@\n export type JobCommand = {\n   kind: \"run\" | \"cancel\";\n   schedule?: string;\n+  reason?: string;\n }\n type Noise3 = { id: string; createdAt: string };\n*** End Patch",
+          "sourceCharacters": 264,
+          "requestBytes": 868,
           "contextNames": [],
           "completeness": {
             "status": "complete",
@@ -5663,7 +5669,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "included": [],
             "omissions": []
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
@@ -5792,16 +5798,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/zod/zod-delivery.ts",
           "domain": "input-contract/zod/zod-delivery",
-          "source": "--- before/fixtures/input-contract/zod/zod-delivery.ts\n+++ after/fixtures/input-contract/zod/zod-delivery.ts\n@@ -3,5 +3,6 @@\n export const DeliverySchema = z.object({\n   channel: DeliveryChannel,\n   email: z.string().optional(),\n+  phone: z.string().optional(),\n });\n ",
-          "sourceCharacters": 268,
-          "requestBytes": 925,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-delivery.ts\n@@\n export const DeliverySchema = z.object({\n   channel: DeliveryChannel,\n   email: z.string().optional(),\n+  phone: z.string().optional(),\n });\n \n*** End Patch",
+          "sourceCharacters": 249,
+          "requestBytes": 919,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -5817,7 +5823,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
               }
             ]
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
@@ -5964,16 +5970,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/zod/zod-notification.ts",
           "domain": "input-contract/zod/zod-notification",
-          "source": "--- before/fixtures/input-contract/zod/zod-notification.ts\n+++ after/fixtures/input-contract/zod/zod-notification.ts\n@@ -3,5 +3,6 @@\n export const NotificationSchema = z.object({\n   kind: NotificationKind,\n   email: z.string().optional(),\n+  deviceToken: z.string().optional(),\n });\n ",
-          "sourceCharacters": 284,
-          "requestBytes": 951,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-notification.ts\n@@\n export const NotificationSchema = z.object({\n   kind: NotificationKind,\n   email: z.string().optional(),\n+  deviceToken: z.string().optional(),\n });\n \n*** End Patch",
+          "sourceCharacters": 261,
+          "requestBytes": 941,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -5989,7 +5995,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
               }
             ]
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
@@ -6132,16 +6138,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/zod/zod-profile.ts",
           "domain": "input-contract/zod/zod-profile",
-          "source": "--- before/fixtures/input-contract/zod/zod-profile.ts\n+++ after/fixtures/input-contract/zod/zod-profile.ts\n@@ -1,2 +1,5 @@\n import { z } from \"zod\";\n-export const ProfileSchema = z.object({ id: z.string() });\n+export const ProfileSchema = z.object({\n+  id: z.string(),\n+  displayName: z.string(),\n+});",
-          "sourceCharacters": 301,
-          "requestBytes": 870,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-profile.ts\n@@\n import { z } from \"zod\";\n-export const ProfileSchema = z.object({ id: z.string() });\n+export const ProfileSchema = z.object({\n+  id: z.string(),\n+  displayName: z.string(),\n+});\n*** End Patch",
+          "sourceCharacters": 283,
+          "requestBytes": 865,
           "contextNames": [],
           "completeness": {
             "status": "complete",
@@ -6149,7 +6155,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "included": [],
             "omissions": []
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
@@ -6276,16 +6282,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/zod/zod-range.ts",
           "domain": "input-contract/zod/zod-range",
-          "source": "--- before/fixtures/input-contract/zod/zod-range.ts\n+++ after/fixtures/input-contract/zod/zod-range.ts\n@@ -2,3 +2,4 @@\n export const DeliverySchema = z.object({\n   status: z.enum([\"pending\", \"delivered\"]),\n+  deliveredAt: z.string().optional(),\n });",
-          "sourceCharacters": 249,
-          "requestBytes": 814,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-range.ts\n@@\n export const DeliverySchema = z.object({\n   status: z.enum([\"pending\", \"delivered\"]),\n+  deliveredAt: z.string().optional(),\n });\n*** End Patch",
+          "sourceCharacters": 233,
+          "requestBytes": 811,
           "contextNames": [],
           "completeness": {
             "status": "complete",
@@ -6293,7 +6299,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "included": [],
             "omissions": []
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
@@ -6420,16 +6426,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/zod/zod-payment.ts",
           "domain": "input-contract/zod/zod-payment",
-          "source": "--- before/fixtures/input-contract/zod/zod-payment.ts\n+++ after/fixtures/input-contract/zod/zod-payment.ts\n@@ -3,4 +3,5 @@\n export const PaymentSchema = z.object({\n   kind: PaymentKind,\n+  amount: z.number(),\n });\n ",
-          "sourceCharacters": 215,
-          "requestBytes": 861,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-payment.ts\n@@\n export const PaymentSchema = z.object({\n   kind: PaymentKind,\n+  amount: z.number(),\n });\n \n*** End Patch",
+          "sourceCharacters": 197,
+          "requestBytes": 856,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -6445,7 +6451,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
               }
             ]
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
@@ -6590,16 +6596,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/zod/zod-dilution.ts",
           "domain": "input-contract/zod/zod-dilution",
-          "source": "--- before/fixtures/input-contract/zod/zod-dilution.ts\n+++ after/fixtures/input-contract/zod/zod-dilution.ts\n@@ -7,5 +7,6 @@\n export const CommandSchema = z.object({\n   kind: z.enum([\"start\", \"stop\"]),\n   at: z.string().optional(),\n+  reason: z.string().optional(),\n });\n const NoiseC = z.object({ id: z.string(), value: z.number() });",
-          "sourceCharacters": 335,
-          "requestBytes": 908,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/zod/zod-dilution.ts\n@@\n export const CommandSchema = z.object({\n   kind: z.enum([\"start\", \"stop\"]),\n   at: z.string().optional(),\n+  reason: z.string().optional(),\n });\n const NoiseC = z.object({ id: z.string(), value: z.number() });\n*** End Patch",
+          "sourceCharacters": 316,
+          "requestBytes": 902,
           "contextNames": [],
           "completeness": {
             "status": "complete",
@@ -6607,7 +6613,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "included": [],
             "omissions": []
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
@@ -6736,16 +6742,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/effect-schema/effect-delivery.ts",
           "domain": "input-contract/effect-schema/effect-delivery",
-          "source": "--- before/fixtures/input-contract/effect-schema/effect-delivery.ts\n+++ after/fixtures/input-contract/effect-schema/effect-delivery.ts\n@@ -3,5 +3,6 @@\n export const DeliverySchema = Schema.Struct({\n   channel: DeliveryChannel,\n   email: Schema.optionalKey(Schema.String),\n+  phone: Schema.optionalKey(Schema.String),\n });\n ",
-          "sourceCharacters": 323,
-          "requestBytes": 1006,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-delivery.ts\n@@\n export const DeliverySchema = Schema.Struct({\n   channel: DeliveryChannel,\n   email: Schema.optionalKey(Schema.String),\n+  phone: Schema.optionalKey(Schema.String),\n });\n \n*** End Patch",
+          "sourceCharacters": 291,
+          "requestBytes": 987,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -6761,7 +6767,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
               }
             ]
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
@@ -6908,16 +6914,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/effect-schema/effect-job.ts",
           "domain": "input-contract/effect-schema/effect-job",
-          "source": "--- before/fixtures/input-contract/effect-schema/effect-job.ts\n+++ after/fixtures/input-contract/effect-schema/effect-job.ts\n@@ -3,5 +3,6 @@\n export const JobSchema = Schema.Struct({\n   kind: JobKind,\n   schedule: Schema.optionalKey(Schema.String),\n+  reason: Schema.optionalKey(Schema.String),\n });\n ",
-          "sourceCharacters": 301,
-          "requestBytes": 958,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-job.ts\n@@\n export const JobSchema = Schema.Struct({\n   kind: JobKind,\n   schedule: Schema.optionalKey(Schema.String),\n+  reason: Schema.optionalKey(Schema.String),\n });\n \n*** End Patch",
+          "sourceCharacters": 274,
+          "requestBytes": 944,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -6933,7 +6939,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
               }
             ]
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
@@ -7076,16 +7082,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/effect-schema/effect-money.ts",
           "domain": "input-contract/effect-schema/effect-money",
-          "source": "--- before/fixtures/input-contract/effect-schema/effect-money.ts\n+++ after/fixtures/input-contract/effect-schema/effect-money.ts\n@@ -2,3 +2,4 @@\n export const MoneySchema = Schema.Struct({\n   amount: Schema.Number,\n+  currency: Schema.Literals([\"USD\", \"CAD\"]),\n });",
-          "sourceCharacters": 265,
-          "requestBytes": 856,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-money.ts\n@@\n export const MoneySchema = Schema.Struct({\n   amount: Schema.Number,\n+  currency: Schema.Literals([\"USD\", \"CAD\"]),\n });\n*** End Patch",
+          "sourceCharacters": 236,
+          "requestBytes": 840,
           "contextNames": [],
           "completeness": {
             "status": "complete",
@@ -7093,7 +7099,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "included": [],
             "omissions": []
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
@@ -7220,16 +7226,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/effect-schema/effect-range.ts",
           "domain": "input-contract/effect-schema/effect-range",
-          "source": "--- before/fixtures/input-contract/effect-schema/effect-range.ts\n+++ after/fixtures/input-contract/effect-schema/effect-range.ts\n@@ -2,3 +2,4 @@\n export const AuthSchema = Schema.Struct({\n   authenticated: Schema.Boolean,\n+  userId: Schema.optionalKey(Schema.String),\n });",
-          "sourceCharacters": 272,
-          "requestBytes": 859,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-range.ts\n@@\n export const AuthSchema = Schema.Struct({\n   authenticated: Schema.Boolean,\n+  userId: Schema.optionalKey(Schema.String),\n });\n*** End Patch",
+          "sourceCharacters": 243,
+          "requestBytes": 843,
           "contextNames": [],
           "completeness": {
             "status": "complete",
@@ -7237,7 +7243,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "included": [],
             "omissions": []
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
@@ -7366,16 +7372,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/effect-schema/effect-notification.ts",
           "domain": "input-contract/effect-schema/effect-notification",
-          "source": "--- before/fixtures/input-contract/effect-schema/effect-notification.ts\n+++ after/fixtures/input-contract/effect-schema/effect-notification.ts\n@@ -3,5 +3,6 @@\n export const NotificationSchema = Schema.Struct({\n   kind: NotificationKind,\n   email: Schema.optionalKey(Schema.String),\n+  deviceToken: Schema.optionalKey(Schema.String),\n });\n ",
-          "sourceCharacters": 339,
-          "requestBytes": 1032,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-notification.ts\n@@\n export const NotificationSchema = Schema.Struct({\n   kind: NotificationKind,\n   email: Schema.optionalKey(Schema.String),\n+  deviceToken: Schema.optionalKey(Schema.String),\n });\n \n*** End Patch",
+          "sourceCharacters": 303,
+          "requestBytes": 1009,
           "contextNames": [],
           "completeness": {
             "status": "not-applicable",
@@ -7391,7 +7397,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
               }
             ]
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
@@ -7536,16 +7542,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "rendered": {
         "diff": {
           "contract": {
-            "id": "textual-diff",
-            "version": "2",
-            "renderer": "renderer.diff",
-            "rendererVersion": "2"
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
           },
           "path": "fixtures/input-contract/effect-schema/effect-dilution.ts",
           "domain": "input-contract/effect-schema/effect-dilution",
-          "source": "--- before/fixtures/input-contract/effect-schema/effect-dilution.ts\n+++ after/fixtures/input-contract/effect-schema/effect-dilution.ts\n@@ -7,5 +7,6 @@\n export const CommandSchema = Schema.Struct({\n   kind: Schema.Literals([\"start\", \"stop\"]),\n   at: Schema.optionalKey(Schema.String),\n+  reason: Schema.optionalKey(Schema.String),\n });\n const NoiseC = Schema.Struct({ id: Schema.String, value: Schema.Number });",
-          "sourceCharacters": 410,
-          "requestBytes": 1009,
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/effect-schema/effect-dilution.ts\n@@\n export const CommandSchema = Schema.Struct({\n   kind: Schema.Literals([\"start\", \"stop\"]),\n   at: Schema.optionalKey(Schema.String),\n+  reason: Schema.optionalKey(Schema.String),\n });\n const NoiseC = Schema.Struct({ id: Schema.String, value: Schema.Number });\n*** End Patch",
+          "sourceCharacters": 378,
+          "requestBytes": 990,
           "contextNames": [],
           "completeness": {
             "status": "complete",
@@ -7553,7 +7559,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "included": [],
             "omissions": []
           },
-          "rendererDigest": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
           "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
           "extractionProfile": {
             "maxDeclarations": 32,
