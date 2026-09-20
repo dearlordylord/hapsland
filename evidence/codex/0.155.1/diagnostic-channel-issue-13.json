@@ -4,7 +4,8 @@
   "host": "codex-cli/0.155.1",
   "pinnedSource": {
     "tag": "rust-v0.155.1",
-    "commit": "4e21628f9ec9ee656650cd2b62ef92225725b5ac",
+    "tagObject": "4e21628f9ec9ee656650cd2b62ef92225725b5ac",
+    "resolvedCommit": "be2951ea34f0d295ed0becf97079f92fa5f6950e",
     "tuiRendering": "codex-rs/tui/src/history_cell/hook_cell.rs",
     "headlessHandling": "codex-rs/exec/src/event_processor_with_jsonl_output.rs"
   },
