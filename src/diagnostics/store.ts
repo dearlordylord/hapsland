@@ -27,12 +27,24 @@ export class Service extends Context.Service<Service, Interface>()(
   "@review/DiagnosticStore",
 ) {}
 
-const PersistedState = Schema.Struct({
+const PersistedQuietState = Schema.Struct({
   version: Schema.Literal(1),
   announced: Schema.Array(DiagnosticProblem),
-  active: Schema.optionalKey(DiagnosticProblem),
+  active: Schema.optionalKey(Schema.Never),
+  activeWasNotified: Schema.Literal(false),
+});
+
+const PersistedActiveState = Schema.Struct({
+  version: Schema.Literal(1),
+  announced: Schema.Array(DiagnosticProblem),
+  active: DiagnosticProblem,
   activeWasNotified: Schema.Boolean,
 });
+
+const PersistedState = Schema.Union([
+  PersistedQuietState,
+  PersistedActiveState,
+]);
 type PersistedState = typeof PersistedState.Type;
 
 const defaultDirectory = join(
@@ -45,18 +57,31 @@ const scopeKey = (event: DiagnosticEvent): string =>
     .update(`${event.scope.sessionId}\0${event.scope.repository}\0${event.scope.backend}`)
     .digest("hex");
 
-const stateFromPersisted = (value: PersistedState): DiagnosticReducerState => ({
-  announced: value.announced,
-  ...(value.active === undefined ? {} : { active: value.active }),
-  activeWasNotified: value.activeWasNotified,
-});
+const stateFromPersisted = (value: PersistedState): DiagnosticReducerState =>
+  !("active" in value)
+    ? {
+        announced: value.announced,
+        activeWasNotified: false,
+      }
+    : {
+        announced: value.announced,
+        active: value.active,
+        activeWasNotified: value.activeWasNotified,
+      };
 
-const persistedFromState = (state: DiagnosticReducerState): PersistedState => ({
-  version: 1,
-  announced: [...state.announced],
-  ...(state.active === undefined ? {} : { active: state.active }),
-  activeWasNotified: state.activeWasNotified,
-});
+const persistedFromState = (state: DiagnosticReducerState): PersistedState =>
+  !("active" in state)
+    ? {
+        version: 1,
+        announced: [...state.announced],
+        activeWasNotified: false,
+      }
+    : {
+        version: 1,
+        announced: [...state.announced],
+        active: state.active,
+        activeWasNotified: state.activeWasNotified,
+      };
 
 const readState = async (path: string): Promise<DiagnosticReducerState> => {
   try {

@@ -319,6 +319,70 @@ const runOperation = (
     const consent = yield* Consent.Service;
     const cwd = operation.cwd;
     const root = yield* consent.discoverRoot(cwd);
+    /**
+     * Status is observational: a malformed current configuration must be
+     * reported as readiness state, not prevent an explicit session receipt
+     * from being read.  It also deliberately stops before constructing any
+     * review/backend layer.
+     */
+    if (operation.operation === "status") {
+      const configuration = yield* loadReviewSettings(
+        root,
+        userConfigPath === undefined ? {} : { userConfigPath },
+      ).pipe(Effect.result);
+      const settings = configuration._tag === "Success" ? configuration.success : undefined;
+      const backend = settings?.backend ?? DEFAULT_BACKEND;
+      const destination = settings?.destination ?? DEFAULT_DESTINATION;
+      const credentialEnvVar = settings?.credentialEnvVar ?? DEFAULT_CREDENTIAL_ENV_VAR;
+      const grants = yield* consent.list();
+      const authorization = yield* consent
+        .authorize(cwd, backend, destination)
+        .pipe(Effect.result);
+      const credentials = yield* Config.option(Config.String(credentialEnvVar)).pipe(
+        Effect.map((value) => Option.isSome(value) && value.value.length > 0),
+      );
+      const configurationStatus = settings === undefined ? "invalid" : "ready";
+      const readinessStatus =
+        configurationStatus === "ready" &&
+        authorization._tag === "Success" &&
+        authorization.success.status === "approved" &&
+        credentials
+          ? "ready"
+          : "not-ready";
+      const activity =
+        operation.sessionId === undefined
+          ? yield* readReceiptStatus("")
+          : yield* readReceiptStatus(operation.sessionId);
+      const output = {
+        version: 1,
+        operation: "status",
+        repository: { canonicalRoot: root },
+        ...(operation.sessionId === undefined ? {} : { sessionId: operation.sessionId }),
+        readiness: {
+          status: readinessStatus,
+          configuration: configurationStatus,
+          consent:
+            authorization._tag === "Failure"
+              ? "unavailable"
+              : authorization.success.status,
+          credentials: { envVar: credentialEnvVar, present: credentials },
+        },
+        activity,
+        grants: grants.map((grant) => ({
+          backend: grant.backend,
+          destination: grant.destination,
+          scope: "repository-wide eligible source files",
+        })),
+        projectAuthorizationIgnored: settings?.projectRequestedConsent ?? false,
+      };
+      return operation.format === "human"
+        ? formatReceiptStatus(
+            operation.sessionId ?? "<session id required>",
+            `${readinessStatus} (configuration=${configurationStatus}, consent=${output.readiness.consent}, credentials=${credentials ? "present" : "absent"})`,
+            activity,
+          )
+        : output;
+    }
     const settings = yield* loadReviewSettings(
       root,
       userConfigPath === undefined ? {} : { userConfigPath },
@@ -390,54 +454,6 @@ const runOperation = (
           credentialEnvVar,
           present,
         };
-      }
-      case "status": {
-        const grants = yield* consent.list();
-        const authorization = yield* consent
-          .authorize(cwd, backend, destination)
-          .pipe(Effect.result);
-        const credentials = yield* Config.option(Config.String(credentialEnvVar)).pipe(
-          Effect.map((value) => Option.isSome(value) && value.value.length > 0),
-        );
-        const readinessStatus =
-          authorization._tag === "Success" &&
-          authorization.success.status === "approved" &&
-          credentials
-            ? "ready"
-            : "not-ready";
-        const activity =
-          operation.sessionId === undefined
-            ? yield* readReceiptStatus("")
-            : yield* readReceiptStatus(operation.sessionId);
-        const output = {
-          version: 1,
-          operation: "status",
-          repository: { canonicalRoot: root },
-          ...(operation.sessionId === undefined ? {} : { sessionId: operation.sessionId }),
-          readiness: {
-            status: readinessStatus,
-            configuration: "ready",
-            consent:
-              authorization._tag === "Failure"
-                ? "unavailable"
-                : authorization.success.status,
-            credentials: { envVar: credentialEnvVar, present: credentials },
-          },
-          activity,
-          grants: grants.map((grant) => ({
-            backend: grant.backend,
-            destination: grant.destination,
-            scope: "repository-wide eligible source files",
-          })),
-          projectAuthorizationIgnored: settings.projectRequestedConsent,
-        };
-        return operation.format === "human"
-          ? formatReceiptStatus(
-              operation.sessionId ?? "<session id required>",
-              `${readinessStatus} (consent=${output.readiness.consent}, credentials=${credentials ? "present" : "absent"})`,
-              activity,
-            )
-          : output;
       }
       case "explain": {
         const relativePath = rootRelativePath(root, cwd, operation.path);

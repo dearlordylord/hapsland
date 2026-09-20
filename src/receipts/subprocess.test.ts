@@ -65,14 +65,19 @@ const review = (
     env: { ...environment, REVIEW_CONTROL_JSON: control },
   });
 
-const readStatus = (root: string, environment: NodeJS.ProcessEnv, sessionId: string, format?: "human") => {
+const readStatus = (
+  root: string,
+  environment: NodeJS.ProcessEnv,
+  sessionId?: string,
+  format?: "human",
+) => {
   const output = spawnSync(process.execPath, ["src/cli.ts", "--status"], {
     cwd: process.cwd(),
     input: JSON.stringify({
       version: 1,
       operation: "status",
       cwd: root,
-      sessionId,
+      ...(sessionId === undefined ? {} : { sessionId }),
       ...(format === undefined ? {} : { format }),
     }),
     encoding: "utf8",
@@ -93,6 +98,46 @@ describe("session receipt subprocess contract", { timeout }, () => {
       operation: "status",
       activity: { kind: "no-observation", observed: false },
       readiness: { configuration: "ready", consent: "approved" },
+    });
+  });
+
+  it("reports invalid configuration while retaining explicit receipt activity", () => {
+    const root = mkdtempSync(join(tmpdir(), "receipt-subprocess-invalid-config-"));
+    roots.push(root);
+    const { environment } = initializeRepository(root);
+    mkdirSource(root);
+    writeFileSync(join(root, "src", "existing.ts"), "export type Existing = string;\n");
+    const reviewed = review(
+      root,
+      environment,
+      "event-before-invalid-config",
+      "session-existing-receipt",
+      ["src/existing.ts"],
+    );
+    expect(reviewed.status).toBe(0);
+
+    writeFileSync(
+      join(root, ".review.jsonc"),
+      '{"version":1,"invalidField":"CONFIGURATION_SENTINEL"}',
+    );
+
+    const explicit = readStatus(root, environment, "session-existing-receipt");
+    expect(explicit.output.status).toBe(0);
+    expect(explicit.parsed).toMatchObject({
+      readiness: { status: "not-ready", configuration: "invalid" },
+      activity: {
+        kind: "clean-reviewed",
+        observed: true,
+        counts: { started: 1, completed: 1, reviewed: 1 },
+      },
+    });
+    expect(JSON.stringify(explicit.parsed)).not.toContain("CONFIGURATION_SENTINEL");
+
+    const noSession = readStatus(root, environment);
+    expect(noSession.output.status).toBe(0);
+    expect(noSession.parsed).toMatchObject({
+      readiness: { status: "not-ready", configuration: "invalid" },
+      activity: { kind: "limited", limitation: "session_id_required" },
     });
   });
 

@@ -1,5 +1,11 @@
+import fc from "fast-check";
 import { describe, expect, it } from "@effect/vitest";
+import * as Schema from "effect/Schema";
 import {
+  DiagnosticEvent,
+  DiagnosticNotification,
+  DiagnosticObservation,
+  DiagnosticReducerState,
   healthyDiagnosticEvent,
   eventFromOutcomeCodes,
   makeDiagnosticScope,
@@ -26,6 +32,70 @@ const outage = {
 };
 
 describe("diagnostic reducer", () => {
+  it("rejects impossible tagged boundary shapes", () => {
+    fc.assert(
+      fc.property(fc.boolean(), (suppressed) => {
+        expect(() =>
+          Schema.decodeUnknownSync(DiagnosticEvent, { onExcessProperty: "error" })({
+            scope,
+            status: "healthy",
+            problem: credentials,
+          }),
+        ).toThrow();
+        expect(() =>
+          Schema.decodeUnknownSync(DiagnosticEvent, { onExcessProperty: "error" })({
+            scope,
+            status: "problem",
+          }),
+        ).toThrow();
+        expect(() =>
+          Schema.decodeUnknownSync(DiagnosticNotification, { onExcessProperty: "error" })({
+            kind: "problem",
+            code: "recovery",
+            changed: suppressed,
+            problem: credentials,
+          }),
+        ).toThrow();
+        expect(() =>
+          Schema.decodeUnknownSync(DiagnosticNotification, { onExcessProperty: "error" })({
+            kind: "recovery",
+            code: "backend_outage",
+            changed: false,
+          }),
+        ).toThrow();
+        expect(() =>
+          Schema.decodeUnknownSync(DiagnosticNotification, { onExcessProperty: "error" })({
+            kind: "recovery",
+            code: "recovery",
+            changed: false,
+          }),
+        ).toThrow();
+        expect(() =>
+          Schema.decodeUnknownSync(DiagnosticObservation, { onExcessProperty: "error" })({
+            scope,
+            status: "healthy",
+            problem: credentials,
+            suppressed,
+          }),
+        ).toThrow();
+        expect(() =>
+          Schema.decodeUnknownSync(DiagnosticObservation, { onExcessProperty: "error" })({
+            scope,
+            status: "problem",
+            suppressed,
+          }),
+        ).toThrow();
+        expect(() =>
+          Schema.decodeUnknownSync(DiagnosticReducerState, { onExcessProperty: "error" })({
+            announced: [],
+            activeWasNotified: true,
+          }),
+        ).toThrow();
+      }),
+      { seed: 13_014, numRuns: 25 },
+    );
+  });
+
   it("announces a problem once, suppresses repeats, then announces recovery once", () => {
     const first = reduceDiagnostic(
       initialDiagnosticState,
@@ -90,6 +160,9 @@ describe("diagnostic reducer", () => {
     );
     expect(changedRepeat.observation.status).toBe("problem");
     expect(changedRepeat.observation.suppressed).toBe(true);
+    if (changedRepeat.observation.status !== "problem") {
+      throw new Error("expected a problem observation");
+    }
     expect(changedRepeat.observation.problem).toEqual(outage);
 
     const recovered = reduceDiagnostic(

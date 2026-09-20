@@ -6,6 +6,7 @@ import {
   type DiagnosticReducerState,
   initialDiagnosticState,
   hasAnnouncedProblem,
+  hasActiveDiagnostic,
   sameDiagnosticProblem,
 } from "./domain.ts";
 
@@ -17,16 +18,17 @@ export interface DiagnosticReduction {
 const problemNotification = (
   problem: DiagnosticProblem,
   changed: boolean,
-): DiagnosticNotification => ({
+): Extract<DiagnosticNotification, { readonly kind: "problem" }> => ({
   kind: "problem",
   code: problem.code,
   changed,
   problem,
 });
 
-const recoveryNotification = (
-  problem: DiagnosticProblem,
-): DiagnosticNotification => ({
+const recoveryNotification = (problem: DiagnosticProblem): Extract<
+  DiagnosticNotification,
+  { readonly kind: "recovery" }
+> => ({
   kind: "recovery",
   code: "recovery",
   changed: false,
@@ -43,21 +45,9 @@ export const reduceDiagnostic = (
 ): DiagnosticReduction => {
   if (event.status === "problem") {
     const problem = event.problem;
-    if (problem === undefined) {
-      // Boundary callers should decode this before reduction.  Keeping this
-      // branch total makes a malformed internal event fail closed without
-      // fabricating a user-facing problem.
-      return {
-        state,
-        observation: {
-          scope: event.scope,
-          status: "problem",
-          suppressed: true,
-        },
-      };
-    }
 
-    const sameAsActive = sameDiagnosticProblem(state.active, problem);
+    const active = hasActiveDiagnostic(state) ? state.active : undefined;
+    const sameAsActive = sameDiagnosticProblem(active, problem);
     const alreadyAnnounced = hasAnnouncedProblem(state, problem);
     const shouldNotify = !alreadyAnnounced;
     const nextAnnounced = alreadyAnnounced
@@ -70,7 +60,7 @@ export const reduceDiagnostic = (
         shouldNotify || (sameAsActive && state.activeWasNotified),
     };
     const notification = shouldNotify
-      ? problemNotification(problem, state.active !== undefined && !sameAsActive)
+      ? problemNotification(problem, active !== undefined && !sameAsActive)
       : undefined;
     return {
       state: nextState,
@@ -84,9 +74,10 @@ export const reduceDiagnostic = (
     };
   }
 
-  const active = state.active;
+  const active = hasActiveDiagnostic(state) ? state.active : undefined;
   const shouldNotify = active !== undefined && state.activeWasNotified;
-  const notification = shouldNotify ? recoveryNotification(active) : undefined;
+  const notification =
+    shouldNotify && active !== undefined ? recoveryNotification(active) : undefined;
   return {
     state: {
       announced: state.announced,

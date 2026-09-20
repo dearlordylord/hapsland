@@ -133,6 +133,7 @@ describe("Codex adapter", () => {
               kind: "recovery",
               code: "recovery",
               changed: false,
+              problem: { code: "backend_outage", identity: "backend-unavailable" },
             },
             suppressed: false,
           },
