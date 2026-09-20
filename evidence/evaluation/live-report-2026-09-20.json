@@ -1,0 +1,126 @@
+{
+  "evidenceVersion": 1,
+  "status": "complete",
+  "date": "2026-09-20",
+  "suiteId": "bundled-noul-semantic",
+  "runId": "noul-semantic-live",
+  "runDigest": "502f052379403a676cdb95c26d7996e463537626feddfa42b5e98ef16e599d5f",
+  "reportDigest": "ead34fc9f20703a5022c48a708986e46fb851c3a63ada807301d350f5db3602f",
+  "plans": {
+    "credentialAbsentPreflightDigest": "7de11d3a3c373c39f08146218792a5a1d79ae4032e0eb19644aae11d0d86c32a",
+    "permittedExecutionDigest": "8e6c59b41b1f558eaa14a38988e8967fe53667b915e3329db93fcf96c94d0cf9",
+    "digestDifference": "Permission state is part of the plan digest. Scenarios, repetitions, retry policy, request ceiling, and acceptance gates were unchanged."
+  },
+  "budget": {
+    "authorizedRemainingCallsBeforeRun": 108,
+    "declaredMaximumRequests": 44,
+    "plannedRequests": 44,
+    "worstCaseRequests": 44,
+    "observedRequests": 44,
+    "maximumRetriesPerRequest": 0,
+    "withinBudget": true,
+    "conservativeAuthorizedRemainingCallsAfterRun": 64
+  },
+  "acceptance": {
+    "requireTransportAvailable": true,
+    "requireConformance": true,
+    "requireSemanticPass": true,
+    "requireNoUnchecked": true,
+    "releaseAccepted": false
+  },
+  "results": {
+    "transport": { "total": 44, "passed": 44, "failed": 0 },
+    "conformance": { "total": 44, "passed": 44, "failed": 0 },
+    "semantic": {
+      "total": 36,
+      "passed": 2,
+      "failed": 1,
+      "unchecked": 32,
+      "ambiguous": 1
+    },
+    "crossBatch": {
+      "total": 72,
+      "passed": 44,
+      "failed": 0,
+      "unchecked": 28,
+      "ambiguous": 0
+    },
+    "authoredExpectationResults": {
+      "total": 4,
+      "passed": 2,
+      "failed": 1,
+      "ambiguous": 1,
+      "failure": {
+        "fixtureId": "noul-r1-positive",
+        "qualifiedRuleId": "noul/r1_inferred_case",
+        "reason": "outside-expected-band"
+      },
+      "ambiguousCase": {
+        "fixtureId": "noul-r1-ambiguous",
+        "qualifiedRuleId": "noul/r1_inferred_case",
+        "reason": "legacy payload semantics are not established by the source alone"
+      }
+    }
+  },
+  "timing": {
+    "sampleCount": 44,
+    "totalDurationMs": 8910,
+    "minimumDurationMs": 128,
+    "maximumDurationMs": 383,
+    "meanDurationMs": 202.5,
+    "p50DurationMs": 189,
+    "p95DurationMs": 282
+  },
+  "coverage": {
+    "plannedScenarios": 11,
+    "observedScenarios": 11,
+    "plannedFixtures": 44,
+    "observedFixtures": 44,
+    "isolatedScenarios": 9,
+    "fullBatchScenarios": 1,
+    "namedInteractionScenarios": 1,
+    "plannedComparisons": 108,
+    "observedComparisons": 108,
+    "plannedExpectations": 4,
+    "observedExpectations": 4,
+    "uncheckedExpectations": 0,
+    "ambiguousExpectations": 1
+  },
+  "contentIdentity": {
+    "fixtureDigests": [
+      "fe919ed53ced3a45a276285057c4d1209cd060e92e0c767483cda127b63fbab3",
+      "d7ed1886c26f3a3c353ae18eefb2b278812384b8edf4a9bccfc35d706ad01869",
+      "b17a775c98aabb7da470f698acc7c85aae7df3ba6458ce244fc101adc1dfb73a",
+      "c88787882616e06bb22f48c6e75ba1fb7999083243db640830a8cf840bc3659a"
+    ],
+    "ruleDefinitionDigests": [
+      "3f483de780c7a463a1a650a63e47675e84cc97a70a0aad32c404496b80c8c105",
+      "2c47a0bb1540ad0f5fedbc94086f785209a7e63b1d6a456aef3143bd0fd37eaa",
+      "ae2504746c32ac902c5f2a954b46b3bdccc4d38d056ae3399cac9b1afaf5ef4a",
+      "8882a99e18cecbdc5d0491a2ce188133d509169660581546852cba94d33a08b5",
+      "e8d16a19fe40744c863e2c3931a795c53397568c4ff43cc6ea2af119b996bdad",
+      "2b8fb02359d722f4dc20c6266552632ea78e855c12234c4110661c6cd0fcb026",
+      "ebfab8e7b14f874f26adb42fe7471b83f256edcaed1b58770741f81c3b532b51",
+      "445134530c54234f18c9804d57dd9e028c84c93cea1ace26389f12032604d4e4",
+      "f5e9d35ab12dc6eadf6e4ee4525eb021ec7f0b935f086bd93ab4e745b37619ce"
+    ],
+    "expectationDigests": [
+      "a03357a0eb37e43648e3fd59a0c3d9233eccc2952b74af6d14025e70bc092e7f",
+      "57a6966beb42927e18050014b91371f875042fbc2fb5f5a0b642869b6b856801",
+      "b03761151fd40da16557a123668ce038a9c7fc7f5cad83f92b4989cc20cae0d0",
+      "5936d4a45eac918836f2db547db42bb2f1a0fdc3dc227ba516efb2ea290b11d3"
+    ],
+    "configurationCaseDigest": "56008fa83542b8d23680fb84e14b2fd5b948e32385ca6d6c32d6155955469c07",
+    "inputContract": {
+      "id": "full-file-plus-path",
+      "version": "1",
+      "digest": "2988019595cff0a91609a325eb6ac133b7f4a2526da89f617e82132054933a75"
+    },
+    "rendererAdapter": {
+      "id": "production-review-renderer",
+      "version": "1",
+      "digest": "00491bc177467df13ca5739699d8d1ed195c69a69d397b884f27c77e1f2f0cde"
+    }
+  },
+  "retention": "This ledger contains sanitized aggregate evidence only. No credential, fixture source, raw provider response, advice text, or individual probability was retained."
+}

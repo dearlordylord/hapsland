@@ -47,7 +47,10 @@ maintainer must provide all of the following before a provider layer can be acqu
 4. `authorizedRemainingCalls`, no greater than the remaining cumulative 1,000-call
    project authorization and no lower than the planned worst-case attempts.
 
-The command accounts for every retry in its preflight plan. No paid run was performed
-for this milestone. If a live milestone is later approved, publish only sanitized
-aggregate contract/quality/timing evidence and retain the plan, input-contract, and
-renderer/adapter digests needed to reproduce its identity.
+The command accounts for every retry in its preflight plan. The 2026-09-20 milestone
+used one repetition, zero retries, and a 44-call ceiling. It completed all 44 requests
+with available transport and conformant assessments, but did not pass the predeclared
+semantic release gate. The repository retains only the sanitized aggregate plan/report,
+content identities, timing, coverage, and acceptance result under `evidence/evaluation/`;
+it retains no credential, fixture source, raw provider response, advice text, or
+individual probability.

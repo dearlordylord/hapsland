@@ -1,8 +1,8 @@
 # Rule-meaning milestone evidence
 
-Status: deterministic offline validation complete; the live milestone is preregistered
-and awaiting an explicitly available credential. No paid provider call was made while
-landing or correcting the evaluation execution slice.
+Status: deterministic offline validation and the explicit live milestone are complete.
+No paid provider call was made by ordinary tests or while landing/correcting the
+evaluation execution slice.
 
 The live milestone plan is frozen in
 [`live-plan-2026-09-20.json`](./live-plan-2026-09-20.json). It uses one repetition,
@@ -11,6 +11,20 @@ conservative 108-call lower bound remaining from the cumulative 1,000-call proje
 authorization. Its generated plan digest is recorded before execution, and its release
 gates, authored bands, rationales, and cross-batch comparisons may not be weakened after
 results are observed.
+
+The sanitized live result is
+[`live-report-2026-09-20.json`](./live-report-2026-09-20.json). All 44 planned requests
+completed without retries; transport availability and assessment conformance were both
+44/44. The preregistered release gate did **not** pass: the positive inferred-case fixture
+fell outside its authored semantic band, the legacy fixture remained explicitly
+ambiguous, and unlabelled rule/fixture combinations remained unchecked. Cross-batch
+comparisons had no measured-change failures among applicable comparisons. These results
+are reported without weakening expectations or treating missing labels as clear.
+
+The credential-absent preflight and permitted execution have different plan digests
+because permission state is included in the digest. Their scenarios, repetition count,
+zero-retry policy, 44-call ceiling, and acceptance gates are identical; both digests are
+retained in the live report.
 
 The controlled milestone uses four human-authored inferred-case fixtures (positive,
 negative, superficially similar negative control, and ambiguous), the full bundled
