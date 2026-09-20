@@ -47,6 +47,37 @@ describe("evaluation execution and commands", () => {
       expect(result.report.deterministic.total).toBeGreaterThan(0);
       expect(result.report.transport.failed).toBe(0);
       expect(result.report.conformance.failed).toBe(0);
+      expect(result.report.timing.sampleCount).toBe(88);
+      expect(result.report.timing.totalDurationMs).toBe(0);
+    }),
+  );
+
+  it.effect("includes every configured repetition in comparisons and timing evidence", () =>
+    Effect.gen(function* () {
+      const suite = makeDefaultEvaluationSuite({
+        repetitions: 3,
+        maximumRequests: 1_000,
+        maximumRetriesPerRequest: 2,
+      });
+      const result = yield* executeEvaluation(
+        {
+          run: suite.run,
+          plan: suite.plan,
+          scenarios: suite.scenarios,
+          fixtures: BUNDLED_EVALUATION_FIXTURES,
+          ruleDefinitions: BUNDLED_EVALUATION_RULES,
+          expectations: BUNDLED_EVALUATION_EXPECTATIONS,
+          compiledRules: suite.compiledRules,
+        },
+        controlledBackend,
+      );
+      expect(result.observations).toHaveLength(132);
+      expect(result.report.timing.sampleCount).toBe(132);
+      expect(result.report.semantic.total).toBe(108);
+      expect(result.report.crossBatch.total).toBe(216);
+      expect(result.report.deterministic.total).toBe(72);
+      expect(result.report.coverage.observedComparisons).toBe(396);
+      expect(result.report.coverage.plannedFixtures).toBe(132);
     }),
   );
 

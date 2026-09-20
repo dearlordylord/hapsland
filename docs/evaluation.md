@@ -15,13 +15,17 @@ printf '%s\n' '{"version":1,"operation":"run"}' \
 `plan` reports logical requests and the worst-case attempt count (initial request
 plus the declared retry ceiling) before execution. `run` returns only a sanitized
 aggregate report: deterministic conformance, transport availability, semantic
-expectations, cross-batch comparisons, unchecked/ambiguous cases, budget, and
-combination coverage. Its predeclared release gate requires transport, conformance,
-semantic-band acceptance, and no unchecked labels; the controlled default is useful
+expectations, cross-batch comparisons, unchecked/ambiguous cases, budget, combination
+coverage, and aggregate timing evidence (count, total, mean, minimum, maximum, p50,
+and p95 duration). Each configured repetition contributes its own semantic and
+cross-batch comparisons; repeatability checks cover every later repetition. Its
+predeclared release gate requires transport, conformance,
+semantic-band and cross-batch acceptance, and no unchecked labels; the controlled default is useful
 for exercising the protocol but is not a semantic-quality release result. It does not
 return fixture source, raw provider responses, individual probabilities, credentials,
 or advice text. `report` verifies a previously
-captured sanitized report and its digest without making a provider call:
+captured sanitized report and its digest without making a provider call. Aggregate
+timing evidence contains no per-request durations:
 
 ```sh
 printf '%s\n' '{"version":1,"operation":"report","report":{...}}' \

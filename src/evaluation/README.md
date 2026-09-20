@@ -16,13 +16,17 @@ backend mode, input-contract identity, renderer/adapter identity, and lifecycle 
 retry ceiling before any request is authorized. `enforceCallBudget` checks observed
 attempts without truncating or reordering results. `compareObservation` and
 `compareObservationPair` keep exact deterministic equality, semantic bands, and named
-batch changes distinct. Missing expectations produce `unchecked`; ambiguous fixtures
-produce `ambiguous` and never become a clear result.
+batch changes distinct. Every configured repetition receives its own semantic and
+cross-batch comparison; repeatability checks compare each later repetition with the
+first, so no budgeted observation is omitted from acceptance. Missing expectations
+produce `unchecked`; ambiguous fixtures produce `ambiguous` and never become a clear
+result.
 
 `buildEvaluationReport` retains only sanitized aggregate counts, identities, digests,
-comparison summaries, and coverage. It does not persist fixture source, raw provider
-responses, individual live probabilities, credentials, or advice text. Ordinary tests
-for this module are deterministic and offline. Live execution requires the evaluation
-opt-in flag, a non-empty credential environment variable, and a declared remaining
-authorization within the project's cumulative 1,000-call milestone; no command or test
-silently upgrades a controlled run to paid execution.
+comparison summaries, coverage, and aggregate timing percentiles (sample count, total,
+mean, minimum, maximum, p50, and p95 duration). It does not persist fixture source,
+raw provider responses, individual live probabilities, credentials, or advice text.
+Ordinary tests for this module are deterministic and offline. Live execution requires
+the evaluation opt-in flag, a non-empty credential environment variable, and a declared
+remaining authorization within the project's cumulative 1,000-call milestone; no
+command or test silently upgrades a controlled run to paid execution.

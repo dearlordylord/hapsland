@@ -1,4 +1,5 @@
 import { BUNDLED_NOUL_PACK } from "../rules/bundled.ts";
+import { DEFAULT_RULE_THRESHOLD } from "../rules/schema.ts";
 import type { RulePack, RuleDefinition as ProductionRuleDefinition } from "../rules/schema.ts";
 import {
   makeAmbiguousExpectation,
@@ -29,7 +30,7 @@ export const evaluationDefinitionsFromPack = (
       question: rule.question,
       criteria: rule.criteria,
       defaultMessage: rule.message,
-      threshold: rule.threshold ?? 0.7,
+      threshold: rule.threshold ?? DEFAULT_RULE_THRESHOLD,
       applicability: {
         includePatterns: rule.applicability?.includes ?? [],
         excludePatterns: rule.applicability?.excludes ?? [],
@@ -109,7 +110,7 @@ export const BUNDLED_EVALUATION_EXPECTATIONS: ReadonlyArray<Expectation> = [
     result: {
       kind: "violation",
       band: {
-        minimum: 0.7,
+        minimum: DEFAULT_RULE_THRESHOLD,
         maximum: 1,
         minimumInclusive: false,
         maximumInclusive: true,
