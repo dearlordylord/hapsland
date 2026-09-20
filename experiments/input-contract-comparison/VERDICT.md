@@ -1,25 +1,28 @@
 # Input-contract comparison milestone verdict
 
-Status: `inconclusive` (implementation and deterministic conformance only; no live
-credential-gated execution has been performed).
+Status: `inconclusive`.
 
-The implementation pre-registers 24 human-authored fixtures across four categories,
-four versioned renderers, three repetitions, and the fixed nine-rule DecisionModel
-batch. The plan is 288 logical requests and an absolute 864 transport-attempt maximum.
-The supplied authorization ledger must cover that maximum before a live run can start.
+The credential-gated run completed on 2026-09-20 using the pre-registered 24 fixtures,
+four renderers, three repetitions, fixed nine-rule batch, and Effect `DecisionModel`
+path. It executed 288 logical calls within the declared 864-attempt maximum. There
+were 252 available backend observations, no transport-unavailable observations, and
+36 explicit `incomplete-required` declaration-only observations. The sanitized report
+is [`live-report-2026-09-20.json`](../../evidence/input-contract-comparison/live-report-2026-09-20.json).
 
-Offline evidence currently covers:
+Observed gates:
 
-- renderer identity, fixture/content hashes, stable path/domain, source-character and
-  request-byte accounting;
-- bounded declaration-context traversal and explicit complete,
-  incomplete-irrelevant, and incomplete-required classifications;
-- authored clear/violation bands, two-of-three repetition comparison, ambiguous and
-  missing-label handling;
-- retry/call-budget enforcement and preflight refusal below the authorized maximum;
-- the product `ReviewBackend` through Effect `DecisionModel` with a controlled model,
-  with zero paid calls.
+- Warm extraction p95 (6.52 ms) and end-to-end p95 (8.17 ms) passed their milestone
+  limits.
+- Context-required semantic comparison, whole-file dilution, diff-sufficient controls,
+  and clear-negative controls failed their pre-registered gates.
+- Declaration-plus-context did not exceed diff on the context-required subset.
+- Not every checked mode had three available repetitions because required context was
+  intentionally excluded from declaration-only observations.
+- Median declaration-context request bytes (897) exceeded whole-file median bytes
+  (765).
 
-The semantic, latency, request-size, availability, and negative-control gates remain
-unobserved until the declared live milestone is run. No conclusion about production
-extractor architecture is authorized by this file.
+The result does not authorize production extractor architecture. It is evidence to
+reject or narrow the declaration-oriented input hypothesis until the corpus, contract,
+or completeness policy receives a separately approved revision. Individual paid
+probabilities, source-bearing responses, credentials, and raw provider usage were not
+retained; only aggregate sanitized evidence is committed.

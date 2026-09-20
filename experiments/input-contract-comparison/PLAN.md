@@ -1,7 +1,8 @@
 # Pre-run plan: input-contract comparison
 
-Status: pre-registered implementation plan; no paid run has been executed in this
-repository.
+Status: pre-registered plan; executed once on 2026-09-20. The sanitized result is
+recorded in [`VERDICT.md`](./VERDICT.md) and
+[`evidence/input-contract-comparison/live-report-2026-09-20.json`](../../evidence/input-contract-comparison/live-report-2026-09-20.json).
 
 - Backend: Jev through `@effect/ai-typesafe` `TypeSafeDecisionModel`, model id
   `jev-latest`, using the provider-neutral Effect `Decision.probability` and one
