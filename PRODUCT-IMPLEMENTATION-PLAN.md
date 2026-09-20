@@ -385,6 +385,13 @@ finding.
 
 ### Phase F — configuration and rule packaging
 
+**Specification published:** [issue #3](https://github.com/dearlordylord/jevs/issues/3),
+with the consolidated local specification in
+[`PRODUCT-PHASE-F-SPEC.md`](./PRODUCT-PHASE-F-SPEC.md). This includes the agreed
+configuration explanation, session receipt, and rule-conformance test requirements.
+Directory-scoped consent is deferred to
+[issue #2](https://github.com/dearlordylord/jevs/issues/2). Implementation is not complete.
+
 Add project/user configuration, file selection, thresholds, messages, enable/disable,
 privacy exclusions, timeouts, and backend credentials. Prove that a rule set can be changed
 without modifying the Codex adapter. Add an initial user-extension mechanism only after its
