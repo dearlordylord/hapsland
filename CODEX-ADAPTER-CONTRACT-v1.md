@@ -82,6 +82,14 @@ carry the SHA-256 identity of the content read after the edit. Stdout contains o
 single response object; diagnostics must use stderr and must not contain source content.
 Unknown fields, wrong versions, and malformed values are rejected at the boundary.
 
+When the response also carries structured diagnostic observations, the adapter renders only
+an unsuppressed observation notification. Codex `systemMessage` is the user-visible
+diagnostic channel in the pinned 0.155.1 TUI; `hookSpecificOutput.additionalContext` remains
+agent-facing review context. Problem/recovery copy is product-owned and bounded: provider
+reasons, source text, repository paths used as identities, environment dumps, and credential
+values are never rendered. Suppression affects the notification only; the structured result
+and its `status` remain available to receipts and headless callers.
+
 To suppress duplicate advice across short-lived hook processes, the runtime atomically
 claims a SHA-256 event/snapshot fingerprint under the OS temporary directory. Marker names
 contain no source text, repository path, or credentials. Failure to access this best-effort

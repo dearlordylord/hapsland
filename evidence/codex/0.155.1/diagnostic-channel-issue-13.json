@@ -1,0 +1,37 @@
+{
+  "evidenceVersion": 1,
+  "date": "2026-09-20",
+  "host": "codex-cli/0.155.1",
+  "pinnedSource": {
+    "tag": "rust-v0.155.1",
+    "commit": "4e21628f9ec9ee656650cd2b62ef92225725b5ac",
+    "tuiRendering": "codex-rs/tui/src/history_cell/hook_cell.rs",
+    "headlessHandling": "codex-rs/exec/src/event_processor_with_jsonl_output.rs"
+  },
+  "contract": {
+    "systemMessage": "user-visible diagnostic channel in the interactive TUI",
+    "additionalContext": "agent-facing context channel",
+    "editDisposition": "post-edit advisory output cannot undo the completed edit"
+  },
+  "syntheticRuntimeProbe": {
+    "mode": "codex exec --ephemeral --json",
+    "hookOutput": {
+      "systemMessage": "Review is unavailable: synthetic backend outage. The edit succeeded; retry when the service recovers.",
+      "additionalContext": "agent-facing synthetic outcome: backend_outage; no source or secret values"
+    },
+    "editCompleted": true,
+    "observedHostDiagnostic": false,
+    "result": "not-observed",
+    "limitation": "This container's isolated headless invocation did not load the synthetic PostToolUse hook, so it cannot establish host delivery. The probe retained no credentials, source-bearing output, or provider response."
+  },
+  "offlineProcessCoverage": {
+    "healthy": true,
+    "problem": true,
+    "repeatedSuppressed": true,
+    "changedProblem": true,
+    "recovered": true,
+    "concurrentDeduplication": true,
+    "independentSessionRepositoryBackend": true,
+    "secretSentinelAbsent": true
+  }
+}

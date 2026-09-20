@@ -83,3 +83,19 @@ so the report does not claim it. One additional live diagnostic call occurred ou
 aborted processes made no paid request. See `live-milestone-100.json` and the reproducible
 `probe/benchmark-live.mjs`. No individual assessment, probability, credential, or
 source-bearing paid response was retained.
+
+## Issue-13 diagnostic channel evidence
+
+The product-owned diagnostic renderer emits bounded problem/recovery text as the top-level
+Codex `systemMessage` (the interactive user-visible channel) and keeps review findings in
+`hookSpecificOutput.additionalContext` (the agent-facing channel). It never copies a
+backend reason, source path content, credential, or environment value into either channel.
+
+The sanitized ledger is [`diagnostic-channel-issue-13.json`](./diagnostic-channel-issue-13.json).
+Its pinned-source fields identify the Codex TUI renderer and headless JSON event processor;
+the repository's existing compatibility contract remains the normative source for the
+adapter seam. An isolated `codex exec --ephemeral --json` attempt completed the synthetic
+edit but did not load the temporary PostToolUse hook in this container. Therefore host
+delivery is explicitly **not observed**, rather than claimed from the product's unit tests.
+The deterministic process-boundary suite still proves healthy/problem/repeated/changed/
+recovered/concurrent/independent transitions and secret-sentinel absence offline.
