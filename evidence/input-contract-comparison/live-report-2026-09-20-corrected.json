@@ -1,0 +1,85 @@
+{
+  "status": "corrected-rerun",
+  "supersedes": "live-report-2026-09-20.json",
+  "outcome": "inconclusive",
+  "backend": {
+    "id": "jev",
+    "provider": "@effect/ai-typesafe",
+    "model": "jev-latest",
+    "decisionModel": "effect/unstable/ai/DecisionModel"
+  },
+  "environment": {
+    "node": "v24.20.0",
+    "typescript": "7.0.2",
+    "effect": "4.0.0-rc.116"
+  },
+  "matrix": {
+    "fixtures": 24,
+    "modes": 4,
+    "repetitions": 3,
+    "logicalCalls": 288,
+    "maximumRetriesPerRequest": 1,
+    "maximumTransportAttempts": 576,
+    "authorizedRemainingBeforeRun": 748
+  },
+  "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
+  "rendererDigests": {
+    "diff": "d85dd233efa2b160011d8b518242167e0e71625a6560462687c7ee9de6a417c8",
+    "whole-file": "9047b197b6213d3c8fe13511967757f99dde9704a670235b9a9ca2288fd6147a",
+    "declaration-only": "08e127e112a86727f9d39197f05667a9e9ee078ca7edec07708a9ebab612cd9e",
+    "declaration-context": "5e1a69eaccb4be11fffec4ca2c2a09472b5963da4cfaab157cbf5239d7ff1a01"
+  },
+  "inputContracts": {
+    "diff": { "id": "textual-diff", "version": "2", "rendererVersion": "2" },
+    "whole-file": { "id": "whole-post-edit-file", "version": "1", "rendererVersion": "1" },
+    "declaration-only": { "id": "edited-declaration", "version": "1", "rendererVersion": "1" },
+    "declaration-context": { "id": "edited-declaration-bounded-context", "version": "1", "rendererVersion": "1" }
+  },
+  "identitySample": {
+    "fixtureId": "iface-delivery-flat",
+    "fixtureDigest": "20c79f64d82a89370e73a78ef994fdbbc2f0180968577d0166a7c7df53f8dc46",
+    "contentHash": "82ee0515dc61f1e51a182ddd9a60063378a460fbcc4178db6fce820d500ca424"
+  },
+  "counts": {
+    "scenarios": 96,
+    "semanticPassed": 43,
+    "semanticFailed": 34,
+    "semanticInconclusive": 11,
+    "unchecked": 4,
+    "ambiguous": 4,
+    "transportAvailable": 252,
+    "transportUnavailable": 0,
+    "incompleteRequired": 36
+  },
+  "gates": {
+    "contextRequiredSemantic": { "passed": false, "numerator": 9, "denominator": 11, "required": 10 },
+    "contextRequiredExceedsDiff": { "passed": true, "delta": 3, "required": 3 },
+    "contextRequiredExceedsDeclarationOnly": { "passed": true, "delta": 9, "required": 3 },
+    "wholeFileDilutionSemantic": { "passed": false, "numerator": 3, "denominator": 6, "required": 5 },
+    "diffSufficientControls": { "passed": false, "numerator": 3, "denominator": 7, "required": 5 },
+    "negativeControlsRemainClear": { "passed": true, "numerator": 5, "denominator": 6, "required": 5 },
+    "threeAvailableRepetitions": { "passed": false, "reason": "required declaration-only observations remain incomplete" },
+    "warmExtractionP95Ms": { "passed": true, "value": 0.7396299999963958, "maximum": 250 },
+    "endToEndP95Ms": { "passed": true, "value": 0.8212129999956232, "maximum": 1000 },
+    "declarationContextMedianRequestBytes": { "passed": false, "value": 905, "wholeFileMedian": 756 }
+  },
+  "coverage": {
+    "fixtures": 24,
+    "contextRequired": 12,
+    "diffSufficient": 8,
+    "wholeFileDilution": 6,
+    "negativeControls": 6
+  },
+  "timing": {
+    "coldExtractionP95Ms": 0.8255470000003697,
+    "warmExtractionP95Ms": 0.7396299999963958,
+    "endToEndP95Ms": 0.8212129999956232
+  },
+  "requestBytes": {
+    "wholeFileMedian": 756,
+    "declarationContextMedian": 905
+  },
+  "usage": "not-retained-by-sanitized-runner",
+  "sourceBearingResponses": "not-retained",
+  "individualProbabilities": "not-retained"
+}

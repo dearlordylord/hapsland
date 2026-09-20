@@ -29,7 +29,7 @@ export const DEFAULT_EXTRACTION_CAPS: ExtractionCaps = {
 };
 
 const rendererSource = {
-  diff: "textual-diff-v1:before-after-lines-with-byte-range",
+  diff: "textual-diff-v2:focused-unified-hunk-with-context-lines",
   "whole-file": "whole-post-edit-file-v1:exact-after-buffer",
   "declaration-only": "edited-declaration-v1:root-artifact-source",
   "declaration-context": "edited-declaration-bounded-context-v1:bfs-references-with-omissions",
@@ -39,27 +39,41 @@ const contractFor = (mode: InputMode) => INPUT_CONTRACTS[mode];
 const rendererDigestFor = (mode: InputMode) => sha256(rendererSource[mode]);
 export const RULE_DEFINITION_DIGEST = sha256(readFileSync(new URL("../../src/questions.ts", import.meta.url), "utf8"));
 
-const changedByteRange = (before: string, after: string) => {
-  let prefix = 0;
-  while (prefix < before.length && prefix < after.length && before[prefix] === after[prefix]) prefix += 1;
-  let beforeEnd = before.length;
-  let afterEnd = after.length;
-  while (beforeEnd > prefix && afterEnd > prefix && before[beforeEnd - 1] === after[afterEnd - 1]) {
-    beforeEnd -= 1;
-    afterEnd -= 1;
-  }
-  return { before: before.slice(prefix, beforeEnd), after: after.slice(prefix, afterEnd) };
-};
-
 export const renderDiff = (path: string, before: string, after: string) => {
-  const changed = changedByteRange(before, after);
-  return [
+  const beforeLines = before.split("\n");
+  const afterLines = after.split("\n");
+  if (beforeLines.at(-1) === "") beforeLines.pop();
+  if (afterLines.at(-1) === "") afterLines.pop();
+  let prefix = 0;
+  while (prefix < beforeLines.length && prefix < afterLines.length && beforeLines[prefix] === afterLines[prefix]) prefix += 1;
+  let beforeSuffix = beforeLines.length;
+  let afterSuffix = afterLines.length;
+  while (beforeSuffix > prefix && afterSuffix > prefix && beforeLines[beforeSuffix - 1] === afterLines[afterSuffix - 1]) {
+    beforeSuffix -= 1;
+    afterSuffix -= 1;
+  }
+  const context = 2;
+  const declarationHeader = (lines: readonly string[], end: number) => {
+    for (let index = end - 1; index >= 0; index -= 1) {
+      if (/^\s*(?:export\s+)?(?:interface\b|type\s+\w+\s*=|(?:const|let|var)\s+\w+\s*=)/.test(lines[index] ?? "")) return index;
+    }
+    return undefined;
+  };
+  const header = declarationHeader(beforeLines, prefix) ?? declarationHeader(afterLines, prefix);
+  const beforeStart = Math.max(0, header === undefined ? prefix - context : Math.min(prefix - context, header));
+  const afterStart = Math.max(0, header === undefined ? prefix - context : Math.min(prefix - context, header));
+  const beforeEnd = Math.min(beforeLines.length, beforeSuffix + context);
+  const afterEnd = Math.min(afterLines.length, afterSuffix + context);
+  const lines = [
     `--- before/${path}`,
     `+++ after/${path}`,
-    ...before.split(/(?<=\n)/).map((line) => `-${line.replace(/\n$/, "")}`),
-    ...after.split(/(?<=\n)/).map((line) => `+${line.replace(/\n$/, "")}`),
-    `@@ changed ${Buffer.byteLength(changed.before, "utf8")} -> ${Buffer.byteLength(changed.after, "utf8")} bytes @@`,
-  ].join("\n");
+    `@@ -${beforeStart + 1},${beforeEnd - beforeStart} +${afterStart + 1},${afterEnd - afterStart} @@`,
+  ];
+  for (let index = beforeStart; index < prefix; index += 1) lines.push(` ${beforeLines[index]}`);
+  for (let index = prefix; index < beforeSuffix; index += 1) lines.push(`-${beforeLines[index]}`);
+  for (let index = prefix; index < afterSuffix; index += 1) lines.push(`+${afterLines[index]}`);
+  for (let index = beforeSuffix; index < beforeEnd; index += 1) lines.push(` ${beforeLines[index]}`);
+  return lines.join("\n");
 };
 
 const parseArtifacts = (fixture: Fixture) => {

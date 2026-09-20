@@ -10,9 +10,14 @@ const args = process.argv.slice(2);
 const live = args.includes("--live");
 const remainingIndex = args.indexOf("--authorized-remaining");
 const remainingAuthorizedCalls = remainingIndex >= 0 ? Number(args[remainingIndex + 1]) : 0;
+const retriesIndex = args.indexOf("--maximum-retries");
+const maximumRetriesPerRequest = retriesIndex >= 0 ? Number(args[retriesIndex + 1]) : 2;
 
 if (!Number.isInteger(remainingAuthorizedCalls) || remainingAuthorizedCalls < 0) {
   console.error("--authorized-remaining must be a non-negative integer");
+  process.exitCode = 2;
+} else if (!Number.isInteger(maximumRetriesPerRequest) || maximumRetriesPerRequest < 0 || maximumRetriesPerRequest > 2) {
+  console.error("--maximum-retries must be an integer from 0 through 2");
   process.exitCode = 2;
 } else if (live && !process.env.TYPESAFE_API_KEY) {
   // Presence is checked without printing the credential or any provider response.
@@ -22,6 +27,7 @@ if (!Number.isInteger(remainingAuthorizedCalls) || remainingAuthorizedCalls < 0)
   const preflight = planRun({
     fixtureCount: inputComparisonFixtures.length,
     remainingAuthorizedCalls,
+    maximumRetriesPerRequest,
     liveOptIn: live,
   });
   if (!preflight.permitted) {
@@ -32,6 +38,7 @@ if (!Number.isInteger(remainingAuthorizedCalls) || remainingAuthorizedCalls < 0)
       runPlanned({
         fixtureCount: inputComparisonFixtures.length,
         remainingAuthorizedCalls,
+        maximumRetriesPerRequest,
         liveOptIn: live,
       }).pipe(Effect.provide(backendLayer)),
     ).then(({ report }) => {

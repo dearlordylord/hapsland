@@ -8,7 +8,7 @@ import { compareScenario } from "./compare.ts";
 import { inputComparisonFixtures, fixtureSummary } from "./fixtures.ts";
 import { observe } from "./evaluate.ts";
 import { CallBudget, planRun } from "./plan.ts";
-import { modes, renderInput } from "./render.ts";
+import { modes, renderDiff, renderInput } from "./render.ts";
 import { bandContains, type Observation } from "./protocol.ts";
 import { sharedExpectationRecord, sharedFixtureRecord } from "./shared-model.ts";
 
@@ -63,6 +63,14 @@ describe("input-contract comparison corpus", () => {
     expect(rendered.find((input) => input.mode === "whole-file")?.source).toBe(fixture.after);
     expect(rendered.find((input) => input.mode === "declaration-only")?.declarationName).toBe(fixture.rootName);
     expect(rendered.find((input) => input.mode === "declaration-only")?.completeness.status).toBe("incomplete-required");
+  });
+
+  it("renders diff as the changed member hunk, not the whole declaration", () => {
+    const diff = renderDiff(fixture.path, fixture.before, fixture.after);
+    expect(diff).toContain("+  phone?: string;");
+    expect(diff).toContain("export interface Delivery");
+    expect(diff).not.toContain("type DeliveryChannel =");
+    expect(diff.split("\n").filter((line) => line.startsWith("+")).length).toBe(2);
   });
 
   it("classifies bounded required omissions explicitly", () => {
