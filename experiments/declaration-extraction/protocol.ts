@@ -33,7 +33,7 @@ export type NativeLspFault = "nonresponding" | "crash" | "stale-document";
 export type NativeLspPhaseTimingsMs = {
   processStartup: number;
   initialize: number;
-  openSynchronization: number;
+  openDispatch: number;
 };
 
 export type DefinitionResponse = {
@@ -96,7 +96,7 @@ export class NativeLspClient {
   private readonly phaseTimings: NativeLspPhaseTimingsMs = {
     processStartup: 0,
     initialize: 0,
-    openSynchronization: 0,
+    openDispatch: 0,
   };
   private readonly spawnReady: Promise<number>;
   private crashed = false;
@@ -380,18 +380,19 @@ export class NativeLspClient {
         },
       });
     }
-    // Let the server consume didOpen notifications before the first positional
-    // request. This is a protocol event, not a fixed sleep: a zero-delay turn
-    // is enough for the native process to read the pipe.
+    // Give the native process one event-loop turn after writing didOpen before
+    // the first positional request. This measures client-side dispatch only;
+    // it is not a server-processing barrier, and server work may be included
+    // in the cold extraction timing.
     await new Promise<void>((resolve) => setImmediate(resolve));
-    this.phaseTimings.openSynchronization = performance.now() - started;
+    this.phaseTimings.openDispatch = performance.now() - started;
   }
 
   /**
    * Deliberately send a full-content change after didOpen. This is an offline
    * stale-document seam: callers can submit an older buffer/version while the
    * parser side continues to use the current fixture source. The native server
-   * response remains evidence, not a production synchronization contract.
+   * response remains evidence, not a production ordering/version contract.
    */
   async sendStaleDocument(document: LspDocument, version = 0) {
     this.staleDocumentSent = true;
@@ -466,7 +467,7 @@ export class NativeLspClient {
     if (this.crash && !this.crashed) {
       this.crashed = true;
       // Kill the selected native server process only after initialization and
-      // document synchronization. This makes the crash a subprocess fault,
+      // document dispatch. This makes the crash a subprocess fault,
       // not a fixture-load failure, while keeping the test deterministic.
       this.child.kill("SIGKILL");
       return {

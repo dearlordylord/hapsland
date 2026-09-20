@@ -970,7 +970,7 @@ const main = async () => {
     timingsMs: {
       processStartup: phaseTimingsMs.processStartup,
       initialize: phaseTimingsMs.initialize,
-      openSynchronization: phaseTimingsMs.openSynchronization,
+      openDispatch: phaseTimingsMs.openDispatch,
       coldExtraction: coldMs,
       warmExtraction: warmMs,
       // Keep the original short names for existing consumers of the disposable

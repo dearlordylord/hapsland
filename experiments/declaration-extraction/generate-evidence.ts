@@ -35,31 +35,45 @@ const unique = (values: unknown[]) => [...new Set(values.filter((value): value i
 const timingPhases = [
   "processStartup",
   "initialize",
-  "openSynchronization",
+  "openDispatch",
   "coldExtraction",
   "warmExtraction",
 ] as const;
+type TimingPhase = typeof timingPhases[number];
 
-// Timing is retained as numeric, deliberately broad upper-bound buckets. This
-// keeps the checked-in corpus reproducible across scheduler noise while
-// preserving coarse scale without committing host-specific scalar measurements.
-const timingBucketBoundariesMs = [1_000, 5_000, 10_000];
-const timingBucketMs = (value: unknown) => {
+// Timing is retained as numeric, phase-aware upper-bound buckets. The lower
+// subsecond buckets preserve cold/warm scale while the wider upper buckets
+// absorb scheduler noise between repeated local runs.
+const timingBucketBoundariesMs: Record<TimingPhase, number[]> = {
+  processStartup: [25, 50, 100, 250, 500, 1_000, 5_000, 10_000],
+  initialize: [250, 500, 1_000, 5_000, 10_000],
+  openDispatch: [5, 10, 25, 50, 100, 250, 500, 1_000, 5_000, 10_000],
+  coldExtraction: [500, 1_000, 5_000, 10_000],
+  warmExtraction: [250, 500, 1_000, 5_000, 10_000],
+};
+const timingBucketMs = (value: unknown, phase: TimingPhase) => {
   const numeric = typeof value === "number" && Number.isFinite(value) ? Math.max(0, value) : 10_000;
-  return timingBucketBoundariesMs.find((boundary) => numeric <= boundary) ?? 10_000;
+  const boundaries = timingBucketBoundariesMs[phase];
+  return boundaries.find((boundary) => numeric <= boundary) ?? boundaries[boundaries.length - 1];
 };
 
-const numericDistribution = (values: number[]) => {
+const numericDistribution = (values: number[], phase: TimingPhase) => {
   if (values.length === 0) {
-    return { sampleCount: 0, minMs: null, maxMs: null, distributionMs: {} };
+    return { sampleCount: 0, minMs: null, medianMs: null, maxMs: null, distributionMs: {} };
   }
-  const buckets = values.map(timingBucketMs);
+  const buckets = values.map((value) => timingBucketMs(value, phase));
+  const sorted = [...buckets].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  const medianMs = sorted.length % 2 === 1
+    ? sorted[middle]
+    : (sorted[middle - 1] + sorted[middle]) / 2;
   const distribution = new Map<number, number>();
   for (const bucket of buckets) distribution.set(bucket, (distribution.get(bucket) ?? 0) + 1);
   return {
     sampleCount: buckets.length,
-    minMs: Math.min(...buckets),
-    maxMs: Math.max(...buckets),
+    minMs: sorted[0],
+    medianMs,
+    maxMs: sorted[sorted.length - 1],
     distributionMs: Object.fromEntries([...distribution.entries()].sort(([left], [right]) => left - right)),
   };
 };
@@ -77,7 +91,7 @@ const integerDistribution = (values: number[]) => {
 };
 
 const timingSummary = (timings: JsonRecord) => Object.fromEntries(
-  timingPhases.map((phase) => [phase, numericDistribution([timingBucketMs(timings[phase])])]),
+  timingPhases.map((phase) => [phase, numericDistribution([timings[phase]], phase)]),
 );
 
 const positionalSummary = (counts: JsonRecord) => Object.fromEntries(
@@ -93,13 +107,50 @@ const positionalSummary = (counts: JsonRecord) => Object.fromEntries(
   }),
 );
 
-const summarize = (record: JsonRecord, fixtureName: string, fixtureClass: string, requestedCaps?: JsonRecord) => {
+const fixtureGroupByCase: Record<string, string> = {
+  "typescript-interface": "declarations",
+  "typescript-type-alias": "declarations",
+  "degradation-malformed": "degradation",
+  "degradation-missing-config": "degradation",
+  "degradation-unresolved-import": "degradation",
+  "degradation-cycle": "degradation",
+  "identity-formatting": "evolution",
+  "identity-rename": "evolution",
+  "identity-import-retarget": "evolution",
+  "identity-multiple-root": "evolution",
+  "identity-move": "evolution",
+  "identity-deletion": "evolution",
+  "identity-generic": "evolution",
+  "classifier-missing-context": "rule-controls",
+  "classifier-diff-sufficient-control": "rule-controls",
+  zod: "zod",
+  "zod-opaque-operations": "zod",
+  "zod-shadow-identity": "zod",
+  "effect-schema": "effect",
+  "cross-framework-context": "effect",
+  "fault-timeout-cancellation": "faults",
+  "fault-server-crash": "faults",
+  "fault-stale-document": "faults",
+  "cap-declarations": "budgets",
+  "cap-depth": "budgets",
+  "cap-source-characters": "budgets",
+  "cap-files": "budgets",
+  "cap-external-packages": "budgets",
+  "profile-depth-1": "budgets",
+  "profile-source-500": "budgets",
+};
+
+const fixtureGroup = (fixtureCase: string) => fixtureGroupByCase[fixtureCase] ?? "other";
+
+const summarize = (record: JsonRecord, fixtureName: string, fixtureCase: string, requestedCaps?: JsonRecord) => {
+  const fixtureClass = fixtureGroup(fixtureCase);
   if (record.status !== "ok") {
     return {
       schemaVersion: 2,
       recordType: "synthetic-extraction-observation",
       fixture: fixtureName,
       fixtureClass,
+      fixtureCase,
       status: record.status,
       error: "bounded command failed; details intentionally omitted",
       requestedCaps: requestedCaps ?? null,
@@ -120,6 +171,7 @@ const summarize = (record: JsonRecord, fixtureName: string, fixtureClass: string
     recordType: "synthetic-extraction-observation",
     fixture: fixtureName,
     fixtureClass,
+    fixtureCase,
     status: record.status,
     edit: (record.input as JsonRecord).edit.name,
     versions: {
@@ -223,7 +275,7 @@ const timingByFixtureClass = Object.fromEntries(
           ? Object.entries(summary.distributionMs).flatMap(([bucket, count]) => Array(Number(count)).fill(Number(bucket)))
           : [];
       });
-      return [phase, numericDistribution(values)];
+      return [phase, numericDistribution(values, phase)];
     }));
     const positionalByTemperature = Object.fromEntries(["cold", "warm"].map((temperature) => {
       const values = classRecords.flatMap((record) => {
@@ -234,6 +286,7 @@ const timingByFixtureClass = Object.fromEntries(
     }));
     return [fixtureClass, {
       sampleCount: classRecords.length,
+      fixtureCases: classRecords.map((record) => record.fixtureCase).sort(),
       phaseTimingsMs,
       positionalRequestTotals: positionalByTemperature,
     }];

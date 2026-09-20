@@ -39,9 +39,12 @@ node experiments/declaration-extraction/extract.ts \
 The JSON record contains the actual before/after diff, exact byte/line/UTF-16 ranges,
 the before/after root-selection sets, selected context declarations, syntactic edges,
 explicit null/multiple/external/unresolved results, omissions and completeness, exact
-tool/runtime versions, cold/warm timings, positional request counts, native-server
-request evidence, and a module-initialization marker observation. Source files are
-read as text only; no fixture module is imported or evaluated.
+tool/runtime versions, phase timings for process startup, initialize, open dispatch,
+cold extraction, and warm extraction, positional request counts, native-server request
+evidence, and a module-initialization marker observation. The open-dispatch timing is
+only a client-side event-loop turn after `didOpen`; native-server processing is not
+barrier-measured and may be included in cold extraction. Source files are read as text
+only; no fixture module is imported or evaluated.
 
 The deterministic `--fault nonresponding` option suppresses a positional response in
 the client and emits a `$/cancelRequest` notification at the elapsed budget. It does

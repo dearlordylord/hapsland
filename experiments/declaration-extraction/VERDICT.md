@@ -25,15 +25,18 @@ machine-readable record can be regenerated with
 
 ### What the records measure
 
-Each direct command record separates numeric process-startup, initialize,
-open/synchronization, cold-extraction, and warm-extraction timings. Checked-in
-`evidence/timing-summary.json` retains coarse numeric upper-bound distributions by
-fixture class; scalar timings remain in the local command output. Positional
+Each direct command record separates numeric process-startup, initialize, open-dispatch,
+cold-extraction, and warm-extraction timings. Checked-in
+`evidence/timing-summary.json` groups the 30 cases into repeated substantive fixture
+classes and retains numeric sample counts, minimums, medians, maximums, and upper-bound
+bucket distributions by phase; scalar timings remain in the local command output. Positional
 `textDocument/definition` counts, observed depth/source/file/package totals, omission
 reasons, and fixture classes remain in the checked-in records. The cold path includes
-the first synchronized navigation; the warm path reuses the same server after the cold
-traversal. Profiles compare depth 0/1 and source-character 1/500 alongside the default
-caps. No value is proposed as a production budget or completeness threshold.
+the first navigation after the client-side `didOpen` dispatch turn; that turn is not a
+native-server processing barrier, so server work may be included in cold extraction. The
+warm path reuses the same server after the cold traversal. Profiles compare depth 0/1 and
+source-character 1/500 alongside the default caps. No value is proposed as a production
+budget or completeness threshold.
 
 The file observation reports fixture entries enumerated and direct workspace source
 reads. The subprocess observation reports the exact direct child spawn by this harness.
@@ -47,7 +50,7 @@ process, socket, or filesystem tracer was installed.
 |---|---|---|---|
 | native server acknowledges cancellation | untestable beyond client notification | the controlled nonresponding seam withholds the response; the released server does not expose a deterministic test hook for an acknowledgement | validate with a supported server test harness |
 | arbitrary native-server crash modes | untestable beyond controlled process kill | the experiment can kill its child, but cannot induce every internal panic, OOM, or transport failure reproducibly | add fault injection only if the native server publishes one |
-| stale-response identity/correlation guarantee | untestable as a correctness contract | the stale `didChange` seam records a reproducible changed response, but no protocol oracle says which version a definition result represents | require an explicit synchronization/version contract before use |
+| stale-response identity/correlation guarantee | untestable as a correctness contract | the stale `didChange` seam records a reproducible changed response, but no protocol oracle says which version a definition result represents | require an explicit ordering/version contract before use |
 | host-wide file/process/network activity | untestable by this harness | no OS-level syscall, process, or socket tracer is installed | use sandboxed/traced qualification if this becomes a security gate |
 | semantic rule accuracy or Jev behavior | untestable in this experiment | no Jev call or classifier run is allowed in the extraction scope | define a separate classification experiment |
 
@@ -73,14 +76,14 @@ not promote an advisory finding into a product requirement.
 | U12 exact ranges/source | roots, edges, and opaque segments carry byte/line/UTF-16 ranges and source hashes | parser binding behavior is version-sensitive | pin and rerun on upgrades |
 | U13 edge reason/depth | every edge carries reason, depth, resolution, inclusion, and omission | no final closure semantics chosen | use records to define any later contract |
 | U14 explicit incomplete context | null, multiple, external, unresolved, parser-error, and cap omissions remain visible | some native responses are position-only | never convert incomplete extraction to a complete verdict |
-| U15 deterministic traversal | repeated evolution runs preserve roots, order, omissions, completeness, and hashes; cold/warm stable is recorded | scalar timings are intentionally variable; checked-in values are coarse buckets | add corpus-wide replay checks before shipping |
+| U15 deterministic traversal | repeated evolution runs preserve roots, order, omissions, completeness, and hashes; cold/warm stable is recorded | scalar timings are intentionally variable; checked-in values are deterministic phase buckets | add corpus-wide replay checks before shipping |
 | U16 depth/size budgets | `cap-*` and `profile-*` records compare representative caps | no production values selected | establish product budgets separately |
 | U17 diff-sufficient controls | `classifier-diff-sufficient-control` and `identity-formatting` retain the changed `Money`/`Formatting` root without outbound context | no Jev quality measurement | compare inputs only in a later classification experiment |
 | U18 missing imported context | `classifier-missing-context`, representative, and `identity-import-retarget` require project definitions; unresolved fixture shows the missing path | no semantic rule accuracy claim | keep context necessity as a later review question |
 | U19 half-written/unresolved edits | parser-error root and unresolved-import records are bounded and explicit | malformed grammar coverage is small | add more edit-loop mutations if needed |
 | U20 recursive cycles | `degradation-cycle` terminates with `already-visited` | only a two-node cycle | retain cycle termination as a hard regression |
 | U21 null/multiple definitions | representative records `MissingShape` null and `Merged` multiple | native server controls the exact multiplicity | preserve both states in any future adapter |
-| U22 cold/warm startup separation | each record separates process startup, initialize, open/synchronization, cold extraction, and warm extraction; `timing-summary.json` has numeric class distributions | no cross-machine benchmark | measure under a declared benchmark protocol later |
+| U22 cold/warm startup separation | each record separates process startup, initialize, open-dispatch, cold extraction, and warm extraction; `timing-summary.json` has repeated numeric class distributions | `didOpen` server processing is not barrier-measured and may be included in cold extraction; no cross-machine benchmark | measure under a declared benchmark protocol later |
 | U23 positional request cost | counts are recorded per cold/warm traversal and fixture class | only definition requests are counted | add resource telemetry only where reliable |
 | U24 timeout/cancel/crash/stale behavior | timeout record suppresses client response and emits a cancel notification; crash and stale `didChange` seams are explicit | native-server cancellation acknowledgement is null/unobserved; injected faults are not arbitrary failures | validate server behavior with a supported harness |
 | U25 file/process/network observations | direct source reads and direct child spawn are reported; descendant/plugins/writes/egress are null or not instrumented | no OS-wide audit | treat as experiment evidence, not a security guarantee |
@@ -102,7 +105,7 @@ not promote an advisory finding into a product requirement.
 | exact roots and deterministic context edges | roots/context/edges and black-box tests | exact graph depends on server version | treat edge output as evidence, not permanent contract |
 | null/multiple/external/unresolved explicit | representative plus unresolved fixture | native LSP may return position-only data | preserve unresolved states |
 | six traversal caps terminate | `cap-declarations`, `cap-depth`, `cap-source-characters`, `cap-files`, `cap-external-packages`, `fault-timeout-cancellation` | cap values are experiment values | choose production caps separately |
-| cold/warm timings and positional counts | phase-specific numeric timings, `timing-summary.json` distributions, and counts are recorded | buckets are sanitized and no cross-machine benchmark is claimed | publish benchmark protocol before comparing hosts |
+| cold/warm timings and positional counts | phase-specific numeric timings, repeated-class sample/min/median/max bucket distributions, and counts are recorded | `didOpen` server processing is not barrier-measured; buckets are sanitized and no cross-machine benchmark is claimed | publish benchmark protocol before comparing hosts |
 | no module initialization | marker fields false/absent in extraction; copied positive controls are separate | no OS-level audit | retain marker and add stronger isolation if required |
 | deterministic offline black-box tests | `npm run test:extract`, 27 tests | no paid backend | keep tests offline |
 | failed navigation and no legacy API | `lsp.unexpectedOrFailedNavigation`; native subprocess only | server crash is controlled | do not treat this as a stable TS API guarantee |
@@ -119,7 +122,7 @@ not promote an advisory finding into a product requirement.
 | native provenance and null/multiple/unsupported states | schema provenance fields and records | semantic location is position-based | keep source plus provenance together |
 | unsupported operations partial/opaque | `zod-opaque-operations`, transformed/declaration roots | interpretation coverage is incomplete | add fixtures before widening |
 | no schema module evaluation | marker absent; copied positive controls separate | no OS-level audit | preserve extraction/evaluation boundary |
-| schema cold/warm and positional evidence | Zod/Effect records include phase-specific numeric timings, class buckets, and counts | no benchmark threshold | compare only with declared method |
+| schema cold/warm and positional evidence | Zod/Effect records include phase-specific numeric timings, repeated-class buckets, and counts | `didOpen` server processing is not barrier-measured; no benchmark threshold | compare only with declared method |
 | deterministic offline tests, no Jev/production integration | schema tests and command | framework package versions can change output | rerun offline after upgrades |
 
 ## Issue #8 criteria
@@ -132,7 +135,7 @@ not promote an advisory finding into a product requirement.
 | formatting, rename/move, import-retarget, multiple-root, merged, deletion, generic references | `identity-*` plus representative merged record | no materiality policy chosen | use as identity/materiality input only |
 | missing-context and diff-sufficient classifier/rule controls | `classifier-missing-context` follows imported `DeliveryStatus`/`DeliveredAt`; `classifier-diff-sufficient-control` is local `Money`; both are derived from the shape/context distinction in `TYPE-DESIGN-RULES.md` and `JEV-TYPE-CLASSIFIER.md` | no Jev classification or accuracy claim | define classification gates separately |
 | representative depth/source profiles | `profile-depth-1`, `profile-source-500`, plus cap records | no production budget | establish budgets later |
-| cold/warm latency, positional counts, resource observations by fixture class | every summary has numeric phase buckets/counts; `timing-summary.json` distributes them by fixture class | scalar timing and host resources are not committed | run declared benchmark/resource protocol later |
+| cold/warm latency, positional counts, resource observations by fixture class | every summary has numeric phase buckets/counts; `timing-summary.json` distributes sample/min/median/max buckets across repeated fixture classes | `didOpen` server processing is not barrier-measured; scalar timing and host resources are not committed | run declared benchmark/resource protocol later |
 | file/subprocess/network observations and tracing limits | direct-read/direct-spawn fields plus null/not-instrumented fields are in `observations` and the evidence README | no OS-level tracer; inherited activity cannot be ruled out | use sandbox/traced qualification if security becomes a gate |
 | synthetic sanitized checked-in evidence | 30 JSONL summaries plus numeric timing sidecar contain no absolute paths, source, credentials, or paid output | synthetic hashes are not privacy proof for arbitrary input | sanitize any future corpus separately |
 | written verdict maps #5/#6/#7/#8 and limits candidate decision | this file plus evidence index | no product architecture/classification decision | review with product owner before next phase |
@@ -147,7 +150,7 @@ stable TypeScript 7 public semantic API, complete schema interpretation, stale-r
 correctness, host-wide security properties, production budgets, or classification value.
 
 The conditional result therefore carries these follow-ups: rerun the corpus against
-supported TypeScript upgrades; define a supported synchronization/stale-document
+supported TypeScript upgrades; define a supported ordering/version stale-document
 contract; choose budgets only after product-level criteria exist; and independently
 design the later diff/whole-file/declaration classification experiment. Incoming
 dependent selection, other languages, Phase F work, and the final product decision stay

@@ -119,10 +119,18 @@ describe("declaration extraction experiment black-box seam", () => {
     );
     expect(record.positionalRequestCounts.cold["textDocument/definition"]).toBeGreaterThan(0);
     expect(record.positionalRequestCounts.warm["textDocument/definition"]).toBeGreaterThan(0);
-    for (const phase of ["processStartup", "initialize", "openSynchronization", "coldExtraction", "warmExtraction"] as const) {
+    for (const phase of ["processStartup", "initialize", "openDispatch", "coldExtraction", "warmExtraction"] as const) {
       expect(record.timingsMs[phase]).toEqual(expect.any(Number));
       expect(record.timingsMs[phase]).toBeGreaterThanOrEqual(0);
     }
+    const timingEvidence = JSON.parse(readFileSync(resolve(root, "experiments/declaration-extraction/evidence/timing-summary.json"), "utf8"));
+    const declarationTimings = timingEvidence.byFixtureClass.declarations;
+    expect(declarationTimings.sampleCount).toBe(2);
+    expect(declarationTimings.phaseTimingsMs.coldExtraction.sampleCount).toBe(2);
+    expect(declarationTimings.phaseTimingsMs.warmExtraction.sampleCount).toBe(2);
+    expect(declarationTimings.phaseTimingsMs.coldExtraction.medianMs).toBeGreaterThan(
+      declarationTimings.phaseTimingsMs.warmExtraction.medianMs,
+    );
     expect(record.observations.files.directWorkspaceSourceReads).toBeGreaterThan(0);
     expect(record.observations.subprocess.directChildrenSpawnedByHarness).toBe(1);
     expect(record.observations.subprocess.descendantProcesses).toBeNull();
@@ -307,7 +315,7 @@ describe("declaration extraction experiment black-box seam", () => {
     expect(record.lsp.unexpectedOrFailedNavigation.some((entry: any) => String(entry.reason).includes("crash") || String(entry.reason).includes("EPIPE"))).toBe(true);
   }, 30_000);
 
-  test("records stale-document synchronization as a distinct controllable fault", () => {
+  test("records stale-document dispatch as a distinct controllable fault", () => {
     const record = run("interface", ["--fault", "stale-document"]);
     expect(record.status).toBe("ok");
     expect(record.lsp.fault).toBe("stale-document");

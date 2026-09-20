@@ -12,11 +12,13 @@ Regenerate it deterministically with:
 npm run --silent experiment:extract:evidence
 ```
 
-Every record has stable fixture names, root/context identities, navigation outcomes,
-omission reasons, requested and observed caps, numeric coarse timing buckets, and
-positional request counts. `timing-summary.json` contains numeric timing and positional
-request distributions by fixture class. The full local command record contains scalar
-cold and warm measurements:
+Every record has stable fixture names and cases, root/context identities, navigation
+outcomes, omission reasons, requested and observed caps, numeric phase-aware timing
+buckets, and positional request counts. `timing-summary.json` groups the 30 cases into
+repeated fixture classes and contains numeric sample counts, minimums, medians, maximums,
+and bucket distributions by phase. The full local command record contains scalar
+process-startup, initialize, open-dispatch, cold-extraction, and warm-extraction
+measurements:
 
 ```sh
 npm run --silent experiment:extract -- \
@@ -24,7 +26,9 @@ npm run --silent experiment:extract -- \
   --edit interface
 ```
 
-The harness directly reads fixture source and directly spawns one native
+The `openDispatch` timing covers the client-side event-loop turn after `didOpen` writes;
+it is not a barrier for native-server processing. Server work may therefore be included
+in cold extraction. The harness directly reads fixture source and directly spawns one native
 `tsc --lsp --stdio` child process. It does not import fixture modules. Descendant
 processes, plugins, filesystem writes, and network activity are explicitly null or
 marked not instrumented; the evidence is not an OS-wide process, socket, or filesystem
