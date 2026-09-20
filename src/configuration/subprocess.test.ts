@@ -1,0 +1,174 @@
+import {
+  execFileSync,
+  spawnSync,
+} from "node:child_process";
+import {
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+
+const roots: Array<string> = [];
+afterEach(() => {
+  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+});
+
+const processRoot = process.cwd();
+
+const run = (
+  args: ReadonlyArray<string>,
+  input: unknown,
+  env: Record<string, string | undefined> = {},
+) => {
+  const child = spawnSync(process.execPath, ["src/cli.ts", ...args], {
+    cwd: processRoot,
+    input: JSON.stringify(input),
+    encoding: "utf8",
+    env: { ...process.env, ...env },
+  });
+  expect(child.status, child.stderr).toBe(0);
+  expect(child.stderr).toBe("");
+  return JSON.parse(child.stdout) as Record<string, unknown>;
+};
+
+const enable = (root: string, statePath: string): void => {
+  const preview = run(["--enable"], { version: 1, operation: "enable", cwd: root }, {
+    REVIEW_STATE_PATH: statePath,
+    REVIEW_USER_CONFIG_PATH: join(root, "missing-user.jsonc"),
+  }) as { proposal: { digest: string } };
+  run(
+    ["--enable-confirm"],
+    {
+      version: 1,
+      operation: "enable-confirm",
+      cwd: root,
+      proposalDigest: preview.proposal.digest,
+    },
+    { REVIEW_STATE_PATH: statePath, REVIEW_USER_CONFIG_PATH: join(root, "missing-user.jsonc") },
+  );
+};
+
+const request = (cwd: string, paths: ReadonlyArray<string>, id = "configuration-test") => ({
+  version: 1,
+  event: { id, kind: "successful-edit", host: "test", cwd, paths },
+});
+
+describe("configuration v1 subprocess contract", () => {
+  it("discovers the root from a subdirectory and keeps includes root-relative", () => {
+    const root = mkdtempSync(join(tmpdir(), "review-config-root-"));
+    roots.push(root);
+    execFileSync("git", ["init", "--quiet", root]);
+    const subdirectory = join(root, "packages", "one");
+    mkdirSync(subdirectory, { recursive: true });
+    const path = join(root, "src", "example.ts");
+    mkdirSync(join(root, "src"));
+    writeFileSync(path, "export type Example = string;\n");
+    writeFileSync(join(root, ".review.jsonc"), '{"version":1,"includes":["src/**"]}\n');
+    const statePath = join(root, "state");
+    enable(root, statePath);
+    const capturePath = join(root, "calls.log");
+    const output = run(
+      ["--controlled"],
+      request(subdirectory, ["../../src/example.ts"]),
+      {
+        REVIEW_STATE_PATH: statePath,
+        REVIEW_CONTROL_JSON: JSON.stringify({ capturePath }),
+        REVIEW_USER_CONFIG_PATH: join(root, "missing-user.jsonc"),
+      },
+    ) as { results: Array<{ status: string; snapshot?: { path: string } }> };
+    expect(output.results[0]).toMatchObject({ status: "reviewed", snapshot: { path: "src/example.ts" } });
+    expect(readFileSync(path, "utf8")).toContain("Example");
+    expect(readFileSync(capturePath, "utf8").trim()).toBe("called");
+  });
+
+  it("applies exclusions before dispatch for traversal, symlink, generated and oversized paths", () => {
+    const root = mkdtempSync(join(tmpdir(), "review-config-gates-"));
+    roots.push(root);
+    execFileSync("git", ["init", "--quiet", root]);
+    mkdirSync(join(root, "src", "private"), { recursive: true });
+    writeFileSync(join(root, ".review.jsonc"), '{"version":1,"excludes":["src/private/**"]}\n');
+    writeFileSync(join(root, "src", "private", "secret.ts"), "export type Secret = string;\n");
+    writeFileSync(join(root, "src", "large.ts"), Buffer.alloc(262145, 65));
+    writeFileSync(join(root, "src", "real.ts"), "export type Real = string;\n");
+    symlinkSync(join(root, "src", "real.ts"), join(root, "src", "link.ts"));
+    const statePath = join(root, "state");
+    enable(root, statePath);
+    const capturePath = join(root, "calls.log");
+    const output = run(
+      ["--controlled"],
+      request(root, [
+        "src/private/secret.ts",
+        "src/large.ts",
+        "src/link.ts",
+        "../outside.ts",
+        ".env",
+        "missing.ts",
+      ]),
+      {
+        REVIEW_STATE_PATH: statePath,
+        REVIEW_CONTROL_JSON: JSON.stringify({ capturePath }),
+        REVIEW_USER_CONFIG_PATH: join(root, "missing-user.jsonc"),
+      },
+    ) as { results: Array<{ status: string; code?: string }> };
+    expect(output.results).toHaveLength(6);
+    expect(output.results.every((result) => result.status === "skipped")).toBe(true);
+    expect(existsSync(capturePath)).toBe(false);
+  });
+
+  it("stops all dispatch on an invalid selected project document", () => {
+    const root = mkdtempSync(join(tmpdir(), "review-config-invalid-"));
+    roots.push(root);
+    execFileSync("git", ["init", "--quiet", root]);
+    mkdirSync(join(root, "src"));
+    const path = join(root, "src", "example.ts");
+    writeFileSync(path, "export type Example = string;\n");
+    writeFileSync(join(root, ".review.jsonc"), '{"version":1}\n');
+    const statePath = join(root, "state");
+    enable(root, statePath);
+    writeFileSync(join(root, ".review.jsonc"), '{"version":1,"unknown":true}\n');
+    const capturePath = join(root, "calls.log");
+    const output = run(
+      ["--controlled"],
+      request(root, ["src/example.ts"], "invalid-configuration"),
+      {
+        REVIEW_STATE_PATH: statePath,
+        REVIEW_CONTROL_JSON: JSON.stringify({ capturePath }),
+        REVIEW_USER_CONFIG_PATH: join(root, "missing-user.jsonc"),
+      },
+    ) as { results: Array<{ status: string; code: string; reason: string }> };
+    expect(output.results[0]).toMatchObject({ status: "unavailable", code: "invalid_configuration" });
+    expect(output.results[0]?.reason).toContain(".review.jsonc");
+    expect(existsSync(capturePath)).toBe(false);
+    expect(readFileSync(path, "utf8")).toContain("Example");
+  });
+
+  it("explains effective and overridden origins without a provider call", () => {
+    const root = mkdtempSync(join(tmpdir(), "review-config-explain-"));
+    roots.push(root);
+    execFileSync("git", ["init", "--quiet", root]);
+    mkdirSync(join(root, "lib"));
+    writeFileSync(join(root, ".review.jsonc"), '{"version":1,"includes":["lib/**"]}\n');
+    const user = join(root, "user.jsonc");
+    writeFileSync(user, '{"version":1,"includes":["src/**"]}\n');
+    const capturePath = join(root, "calls.log");
+    const output = run(
+      ["--explain"],
+      { version: 1, operation: "explain", cwd: root, path: "lib/example.ts" },
+      {
+        REVIEW_USER_CONFIG_PATH: user,
+        REVIEW_CONTROL_JSON: JSON.stringify({ capturePath }),
+      },
+    ) as { explanation: { selected: boolean; effectiveIncludes: Array<{ value: string }>; overriddenIncludes: Array<{ value: string }> } };
+    expect(output.explanation.selected).toBe(true);
+    expect(output.explanation.effectiveIncludes.map((entry) => entry.value)).toEqual(["lib/**"]);
+    expect(output.explanation.overriddenIncludes.map((entry) => entry.value)).toContain("src/**");
+    expect(existsSync(capturePath)).toBe(false);
+  });
+});

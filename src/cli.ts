@@ -6,7 +6,7 @@ import * as Schema from "effect/Schema";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { readFileSync } from "node:fs";
-import { Consent } from "./runtime/consent.ts";
+import { Consent, rootRelativePath } from "./runtime/consent.ts";
 import {
   DEFAULT_BACKEND,
   DEFAULT_CREDENTIAL_ENV_VAR,
@@ -20,6 +20,8 @@ import {
   toCodexOutput,
   toReviewRequest,
 } from "./adapters/codex.ts";
+import { explainPath, formatPathExplanation } from "./explanation/index.ts";
+import { resolveConfiguration } from "./configuration/resolve.ts";
 import { decodeReviewRequest, type ReviewRequest } from "./domain/contracts.ts";
 import { ReviewBackend } from "./ports/review-backend.ts";
 import { DedupeStore } from "./ports/dedupe-store.ts";
@@ -110,6 +112,12 @@ const ConsentOperation = Schema.Union([
     operation: Schema.Literal("status"),
     cwd: Schema.String,
   }),
+  Schema.Struct({
+    version: Schema.Literal(1),
+    operation: Schema.Literal("explain"),
+    cwd: Schema.String,
+    path: Schema.String,
+  }),
 ]);
 type ConsentOperation = typeof ConsentOperation.Type;
 
@@ -117,6 +125,8 @@ const statePathConfig = Config.String("REVIEW_STATE_PATH").pipe(
   Config.orElse(() => Config.String("REVIEW_CONSENT_FILE")),
   Config.withDefault(join(homedir(), ".config", "realtime-review-tool", "consent")),
 );
+
+const userConfigPathConfig = Config.option(Config.String("REVIEW_USER_CONFIG_PATH"));
 
 const forcedOperation = (): ConsentOperation["operation"] | undefined => {
   if (process.argv.includes("--enable-confirm")) return "enable-confirm";
@@ -130,6 +140,9 @@ const forcedOperation = (): ConsentOperation["operation"] | undefined => {
   }
   if (process.argv.includes("--status") || process.argv.includes("--inspect-consent")) {
     return "status";
+  }
+  if (process.argv.includes("--explain") || process.argv.includes("--config-explain")) {
+    return "explain";
   }
   return undefined;
 };
@@ -169,7 +182,11 @@ const assertNever = (value: never): never => {
   throw new Error(`unsupported consent operation: ${String(value)}`);
 };
 
-const preflight = (request: ReviewRequest, statePath: string) =>
+const preflight = (
+  request: ReviewRequest,
+  statePath: string,
+  userConfigPath: string | undefined,
+) =>
   Effect.gen(function* () {
     const consent = yield* Consent.Service;
     const discovered = yield* consent.discoverRoot(request.event.cwd).pipe(Effect.result);
@@ -190,7 +207,10 @@ const preflight = (request: ReviewRequest, statePath: string) =>
       };
     }
     const root = discovered.success;
-    const settings = yield* loadReviewSettings(root);
+    const settings = yield* loadReviewSettings(
+      root,
+      userConfigPath === undefined ? {} : { userConfigPath },
+    );
     const authorization = yield* consent.authorize(
       request.event.cwd,
       settings.backend,
@@ -231,10 +251,16 @@ const runtimeLayer = (
           credentialEnvVar: settings.credentialEnvVar,
         })
       : controlledDecisionModelLayer(controlled);
+  const backendLayer =
+    settings.policy?.settings.transientRetries.value === undefined
+      ? ReviewBackend.layerWithOptions()
+      : ReviewBackend.layerWithOptions({
+          transientRetries: settings.policy.settings.transientRetries.value,
+        });
   return Layer.mergeAll(
     SnapshotReader.layer,
     DedupeStore.layer,
-    ReviewBackend.layer.pipe(Layer.provide(decisionModel)),
+    backendLayer.pipe(Layer.provide(decisionModel)),
   );
 };
 
@@ -249,12 +275,19 @@ const isCodexHook = process.argv.includes("--codex-hook");
 const isControlled = process.argv.includes("--controlled");
 const requestedOperation = forcedOperation();
 
-const runOperation = (operation: ConsentOperation, statePath: string) =>
+const runOperation = (
+  operation: ConsentOperation,
+  statePath: string,
+  userConfigPath: string | undefined,
+) =>
   Effect.gen(function* () {
     const consent = yield* Consent.Service;
     const cwd = operation.cwd;
     const root = yield* consent.discoverRoot(cwd);
-    const settings = yield* loadReviewSettings(root);
+    const settings = yield* loadReviewSettings(
+      root,
+      userConfigPath === undefined ? {} : { userConfigPath },
+    );
     const backend = settings.backend;
     const destination = settings.destination;
     const credentialEnvVar = settings.credentialEnvVar;
@@ -337,6 +370,18 @@ const runOperation = (operation: ConsentOperation, statePath: string) =>
           projectAuthorizationIgnored: settings.projectRequestedConsent,
         };
       }
+      case "explain": {
+        const relativePath = rootRelativePath(root, cwd, operation.path);
+        const policy = settings.policy ?? resolveConfiguration([], root);
+        const explanation = explainPath(policy, relativePath ?? operation.path);
+        return {
+          version: 1,
+          operation: "explain",
+          repository: { canonicalRoot: root },
+          explanation,
+          text: formatPathExplanation(explanation),
+        };
+      }
       default:
         return assertNever(operation);
     }
@@ -346,14 +391,25 @@ const runReviewRequest = (
   request: ReviewRequest,
   controlled: ControlledDecisionModelOptions | undefined,
   statePath: string,
+  userConfigPath: string | undefined,
 ) =>
   Effect.gen(function* () {
-    const authorization = yield* preflight(request, statePath).pipe(Effect.result);
+    const authorization = yield* preflight(request, statePath, userConfigPath).pipe(Effect.result);
     if (authorization._tag === "Failure") {
+      const failure = authorization.failure;
+      const detail =
+        typeof failure === "object" && failure !== null &&
+        "source" in failure && "field" in failure && "reason" in failure
+          ? `${String(failure.source)}#${String(failure.field)}: ${String(failure.reason)}`
+          : failure instanceof Error
+            ? failure.message
+            : undefined;
       return defaultResponse(
         request,
         "invalid_configuration",
-        "review configuration or consent state is unavailable",
+        detail === undefined
+          ? "review configuration or consent state is unavailable"
+          : `review configuration is invalid (${detail})`,
       );
     }
     if (authorization.success.authorization.status !== "approved") {
@@ -404,14 +460,18 @@ const runReviewRequest = (
 const program = Effect.gen(function* () {
   const input = yield* readStdin;
   const statePath = yield* statePathConfig;
+  const userConfigPathOption = yield* userConfigPathConfig;
+  const userConfigPath = Option.isSome(userConfigPathOption)
+    ? userConfigPathOption.value
+    : undefined;
 
-  const inputRequestsOperation = /"operation"\s*:\s*"(?:enable|enable-confirm|disable|credentials|status)"/.test(
+  const inputRequestsOperation = /"operation"\s*:\s*"(?:enable|enable-confirm|disable|credentials|status|explain)"/.test(
     input,
   );
   if (requestedOperation !== undefined || inputRequestsOperation) {
     const operation = yield* decodeOperation(input, requestedOperation);
     if (operation.operation !== undefined) {
-      return yield* runOperation(operation, statePath);
+      return yield* runOperation(operation, statePath, userConfigPath);
     }
   }
 
@@ -421,13 +481,13 @@ const program = Effect.gen(function* () {
     const event = yield* decodeCodexJson(input);
     const request = toReviewRequest(event);
     if (request === undefined) return {};
-    const response = yield* runReviewRequest(request, controlled, statePath);
+    const response = yield* runReviewRequest(request, controlled, statePath, userConfigPath);
     return toCodexOutput(response);
   }
 
   const unknownRequest = yield* decodeJson(input);
   const request = yield* decodeReviewRequest(unknownRequest);
-  return yield* runReviewRequest(request, controlled, statePath);
+  return yield* runReviewRequest(request, controlled, statePath, userConfigPath);
 }).pipe(
   Effect.catchCause(() =>
     Effect.succeed(

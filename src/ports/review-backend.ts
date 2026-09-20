@@ -36,9 +36,14 @@ export class Service extends Context.Service<Service, Interface>()(
   "@review/ReviewBackend",
 ) {}
 
-export const layer = Layer.effect(
-  Service,
-  Effect.gen(function* () {
+export type ReviewBackendLayerOptions = {
+  readonly transientRetries?: number;
+};
+
+export const layerWithOptions = (layerOptions: ReviewBackendLayerOptions = {}) =>
+  Layer.effect(
+    Service,
+    Effect.gen(function* () {
     const model = yield* DecisionModel.DecisionModel;
 
     const evaluate = Effect.fn("ReviewBackend.evaluate")(function* (options: {
@@ -77,7 +82,7 @@ export const layer = Layer.effect(
             }),
         ),
         Effect.retry({
-          times: 2,
+          times: layerOptions.transientRetries ?? 2,
           while: (error) => error.retryable,
           schedule: Schedule.exponential("50 millis"),
         }),
@@ -101,8 +106,10 @@ export const layer = Layer.effect(
       };
     });
 
-    return Service.of({ evaluate });
-  }),
-);
+      return Service.of({ evaluate });
+    }),
+  );
+
+export const layer = layerWithOptions();
 
 export * as ReviewBackend from "./review-backend.ts";

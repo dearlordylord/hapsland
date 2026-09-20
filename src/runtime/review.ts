@@ -10,7 +10,8 @@ import type {
 } from "../domain/contracts.ts";
 import { Consent, rootRelativePath } from "./consent.ts";
 import type { ReviewSettings } from "./review-config.ts";
-import { ineligibleReason } from "../policy/eligibility.ts";
+import { resolveConfiguration } from "../configuration/resolve.ts";
+import { selectGlobalPath } from "../policy/file-policy.ts";
 import { applicableRules, deriveAdvice } from "../policy/rules.ts";
 import { ReviewBackend } from "../ports/review-backend.ts";
 import { DedupeStore } from "../ports/dedupe-store.ts";
@@ -18,7 +19,7 @@ import { SnapshotReader } from "../ports/snapshot-reader.ts";
 import { validateAssessment } from "./assessment.ts";
 
 const MAX_FINDINGS = 5;
-const BACKEND_TIMEOUT = "1 second";
+const BACKEND_TIMEOUT = 1_000;
 
 export type ReviewContext =
   | { readonly _tag: "unscoped" }
@@ -53,12 +54,29 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
       code: "excluded" as const,
     };
   }
-  const excluded = ineligibleReason(relativePath);
-  if (excluded !== undefined) {
+  const policy =
+    context._tag === "authorized" && context.settings.policy !== undefined
+      ? context.settings.policy
+      : resolveConfiguration([], context._tag === "authorized" ? context.root : request.event.cwd);
+  const selection = selectGlobalPath(policy, relativePath);
+  if (!selection.selected) {
     return {
       status: "skipped" as const,
       path: relativePath,
-      reason: excluded,
+      reason:
+        selection.reason === "protected"
+          ? selection.gate === "sensitive"
+            ? "sensitive path excluded"
+            : selection.gate === "generated-or-vendor"
+              ? "generated, build, or vendored path excluded"
+              : selection.gate === "file-extension"
+                ? "file extension is not configured for review"
+                : "path is outside the repository working tree"
+          : selection.reason === "empty-includes"
+            ? "no files are selected by the effective include list"
+            : selection.reason === "not-included"
+              ? "path does not match the effective include list"
+              : "path matches an effective exclusion",
       code: "excluded" as const,
     };
   }
@@ -77,7 +95,7 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
     };
   }
 
-  const rules = applicableRules(initial.value.content);
+  const rules = applicableRules(initial.value.content, policy, initial.value.path);
   if (rules.length === 0) {
     return {
       status: "skipped" as const,
@@ -115,7 +133,12 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
       source: initial.value.content,
       rules,
     })
-    .pipe(Effect.timeoutOption(BACKEND_TIMEOUT), Effect.result);
+    .pipe(
+      Effect.timeoutOption(
+        `${context._tag === "authorized" ? context.settings.policy?.settings.deadlineMs.value ?? BACKEND_TIMEOUT : BACKEND_TIMEOUT} millis`,
+      ),
+      Effect.result,
+    );
 
   if (Result.isFailure(evaluated)) {
     return {
@@ -175,7 +198,9 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
     rules,
     assessment.success,
     snapshot,
-    MAX_FINDINGS,
+    context._tag === "authorized"
+      ? context.settings.policy?.settings.adviceBudget.value ?? MAX_FINDINGS
+      : MAX_FINDINGS,
   );
   const firstDelivery =
     candidateAdvice.length === 0
@@ -196,10 +221,14 @@ export const review = Effect.fn("Review.run")(function* (
   context: ReviewContext = { _tag: "unscoped" },
 ) {
   const paths = [...new Set(request.event.paths)].sort();
+  const concurrency =
+    context._tag === "authorized"
+      ? context.settings.policy?.settings.concurrency.value ?? 4
+      : 4;
   const results: ReadonlyArray<ReviewResult> = yield* Effect.forEach(
     paths,
     (path) => reviewPath(request, path, context),
-    { concurrency: 4 },
+    { concurrency },
   );
   const advice = results
     .flatMap((result) => (result.status === "reviewed" ? result.advice : []))
@@ -209,6 +238,11 @@ export const review = Effect.fn("Review.run")(function* (
         left.snapshot.path.localeCompare(right.snapshot.path) ||
         left.ruleId.localeCompare(right.ruleId),
     )
-    .slice(0, MAX_FINDINGS);
+    .slice(
+      0,
+      context._tag === "authorized"
+        ? context.settings.policy?.settings.adviceBudget.value ?? MAX_FINDINGS
+        : MAX_FINDINGS,
+    );
   return { version: 1 as const, eventId: request.event.id, results, advice } satisfies ReviewResponse;
 });

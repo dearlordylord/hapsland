@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/realtime-review/review-config-v1.schema.json",
+  "title": "Realtime review configuration v1",
+  "description": "JSONC project or user defaults. Add the schema URL to a JSONC editor for completion.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version"],
+  "properties": {
+    "version": { "const": 1 },
+    "$schema": { "type": "string", "description": "Editor schema metadata; ignored at runtime." },
+    "includes": { "$ref": "#/$defs/patterns" },
+    "excludes": { "$ref": "#/$defs/patterns" },
+    "include": { "$ref": "#/$defs/patterns" },
+    "exclude": { "$ref": "#/$defs/patterns" },
+    "privacyExcludes": { "$ref": "#/$defs/patterns" },
+    "credentialEnvVar": { "$ref": "#/$defs/envVar" },
+    "credentials": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["envVar"],
+      "properties": { "envVar": { "$ref": "#/$defs/envVar" } }
+    },
+    "settings": { "$ref": "#/$defs/settings" },
+    "deadlineMs": { "type": "integer", "minimum": 1, "maximum": 60000 },
+    "concurrency": { "type": "integer", "minimum": 1, "maximum": 32 },
+    "adviceBudget": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "transientRetries": { "type": "integer", "minimum": 0, "maximum": 5 },
+    "rules": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/ruleOverride" }
+    },
+    "consent": { "type": "boolean", "description": "Ignored for source-egress authorization." },
+    "enabled": { "type": "boolean", "description": "Ignored for source-egress authorization." }
+  },
+  "$defs": {
+    "patterns": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "envVar": { "type": "string", "pattern": "^[A-Z_][A-Z0-9_]*$" },
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "deadlineMs": { "type": "integer", "minimum": 1, "maximum": 60000 },
+        "concurrency": { "type": "integer", "minimum": 1, "maximum": 32 },
+        "adviceBudget": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "transientRetries": { "type": "integer", "minimum": 0, "maximum": 5 }
+      }
+    },
+    "ruleOverride": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "threshold": { "type": "number", "minimum": 0, "maximum": 1 },
+        "message": { "type": "string", "minLength": 1 },
+        "includes": { "$ref": "#/$defs/patterns" },
+        "excludes": { "$ref": "#/$defs/patterns" },
+        "include": { "$ref": "#/$defs/patterns" },
+        "exclude": { "$ref": "#/$defs/patterns" }
+      }
+    }
+  }
+}
