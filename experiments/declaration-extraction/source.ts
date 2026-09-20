@@ -13,7 +13,57 @@ export type ExactRange = {
   utf16: LspRange;
 };
 
-export type DeclarationKind = "interface" | "type-alias";
+export type DeclarationKind = "interface" | "type-alias" | "schema";
+
+/**
+ * The experiment deliberately keeps schema interpretation small and explicit.
+ * A const becomes a schema artifact only after its constructor position has
+ * been resolved by the native language server (see extract.ts).  The parser
+ * contributes expression shape and exact source; it never decides framework
+ * identity from a spelling such as `z` or `Schema`.
+ */
+export type SchemaFramework = "zod" | "effect-schema";
+
+export type SchemaProvenance =
+  | "native-lsp"
+  | "null"
+  | "multiple"
+  | "external"
+  | "project"
+  | "unresolved";
+
+export type SchemaOpaqueSegment = {
+  source: string;
+  range: ExactRange;
+  reason: string;
+};
+
+export type SchemaEvidence = {
+  framework: SchemaFramework | null;
+  provenance: SchemaProvenance;
+  constructor: {
+    name: string;
+    range: ExactRange;
+    definition: {
+      uri: string;
+      path: string;
+      packageName: string | null;
+      external: boolean;
+      range: LspRange;
+    } | null;
+    definitions: Array<{
+      uri: string;
+      path: string;
+      packageName: string | null;
+      external: boolean;
+      range: LspRange;
+    }>;
+  };
+  expression: string;
+  expressionRange: ExactRange;
+  interpretation: "complete" | "partial" | "unresolved";
+  opaque: SchemaOpaqueSegment[];
+};
 
 export type SyntaxReference = {
   name: string;
@@ -33,6 +83,7 @@ export type DeclarationArtifact = {
   references: SyntaxReference[];
   parserError: boolean;
   node: TreeNode;
+  schema?: SchemaEvidence;
 };
 
 export type SourceFile = {
@@ -125,6 +176,9 @@ const declarationKind = (node: TreeNode): DeclarationKind | undefined => {
   return undefined;
 };
 
+const sourceSlice = (source: string, start: number, end: number) =>
+  Buffer.from(source, "utf8").subarray(start, end).toString("utf8");
+
 const declarationName = (node: TreeNode) => {
   const name = node.namedChildren.find(
     (child) => child.type === "type_identifier" || child.type === "identifier",
@@ -215,7 +269,7 @@ export const referencesFor = (root: TreeNode, source: string) => {
     });
 };
 
-export const artifactsFor = (sourceFile: SourceFile, path = sourceFile.path) => {
+export const artifactsFor = (sourceFile: SourceFile, path = sourceFile.path): DeclarationArtifact[] => {
   const occurrences = new Map<string, number>();
   return declarationNodes(sourceFile.tree).map((node) => {
     const kind = declarationKind(node) as DeclarationKind;
@@ -227,9 +281,7 @@ export const artifactsFor = (sourceFile: SourceFile, path = sourceFile.path) => 
     // modifier because it is part of the exact declaration source presented to
     // the review seam.
     const artifactNode = node.parent?.type === "export_statement" ? node.parent : node;
-    const source = Buffer.from(sourceFile.text, "utf8")
-      .subarray(artifactNode.startIndex, artifactNode.endIndex)
-      .toString("utf8");
+    const source = sourceSlice(sourceFile.text, artifactNode.startIndex, artifactNode.endIndex);
     return {
       id: `${path}:${kind}:${name}:${occurrence}`,
       path,
@@ -243,6 +295,206 @@ export const artifactsFor = (sourceFile: SourceFile, path = sourceFile.path) => 
       node,
     } satisfies DeclarationArtifact;
   });
+};
+
+const lexicalDeclarations = (tree: Tree) => {
+  const result: TreeNode[] = [];
+  const visit = (node: TreeNode) => {
+    if (node.type === "lexical_declaration" && /^\s*const\b/.test(node.text)) result.push(node);
+    for (const child of node.namedChildren) visit(child);
+  };
+  visit(tree.rootNode);
+  return result.sort((left, right) => left.startIndex - right.startIndex || left.endIndex - right.endIndex);
+};
+
+const variableDeclarators = (declaration: TreeNode) =>
+  declaration.namedChildren.filter((child) => child.type === "variable_declarator");
+
+const variableName = (declarator: TreeNode) =>
+  declarator.namedChildren.find((child) => child.type === "identifier")?.text;
+
+const variableValue = (declarator: TreeNode) =>
+  declarator.namedChildren.find((child) => child.type !== "identifier");
+
+const unwrapExpression = (node: TreeNode): TreeNode => {
+  if (node.type === "parenthesized_expression" || node.type === "await_expression") {
+    return node.namedChildren[0] ? unwrapExpression(node.namedChildren[0]) : node;
+  }
+  return node;
+};
+
+type ConstructorShape = { name: string; node: TreeNode; positionNode: TreeNode };
+
+/** Find the left-most callable/member expression in a schema expression. */
+const constructorShape = (input: TreeNode): ConstructorShape | undefined => {
+  const node = unwrapExpression(input);
+  if (node.type === "call_expression") {
+    const callee = node.namedChildren.find((child) =>
+      child.type === "member_expression" ||
+      child.type === "optional_member_expression" ||
+      child.type === "identifier" ||
+      child.type === "call_expression" ||
+      child.type === "parenthesized_expression",
+    );
+    return callee ? constructorShape(callee) : undefined;
+  }
+  if (node.type === "member_expression" || node.type === "optional_member_expression") {
+    const property = node.namedChildren.find(
+      (child) => child.type === "property_identifier" || child.type === "private_property_identifier",
+    );
+    if (property) return { name: property.text, node, positionNode: property };
+    const object = node.namedChildren[0];
+    return object ? constructorShape(object) : undefined;
+  }
+  if (node.type === "identifier" || node.type === "type_identifier") {
+    return { name: node.text, node, positionNode: node };
+  }
+  return undefined;
+};
+
+const importedFrameworkNames = (tree: Tree) => {
+  const names = new Set<string>();
+  const visit = (node: TreeNode) => {
+    if (node.type === "import_statement") {
+      const source = node.namedChildren.find((child) => child.type === "string")?.text.slice(1, -1) ?? "";
+      const frameworkImport = source === "zod" || source === "zod/v4" || source === "effect/Schema";
+      if (frameworkImport) {
+        for (const child of descendants(node)) {
+          if (child.type === "namespace_import" || child.type === "import_specifier") {
+            const identifiers = child.namedChildren.filter((item) => item.type === "identifier");
+            const local = identifiers.at(-1);
+            if (local) names.add(local.text);
+          }
+        }
+      }
+    }
+    for (const child of node.namedChildren) visit(child);
+  };
+  visit(tree.rootNode);
+  return names;
+};
+
+const localBindingNames = (root: TreeNode) => {
+  const names = new Set<string>();
+  for (const node of descendants(root)) {
+    if (node.type === "arrow_function" || node.type === "function_declaration" || node.type === "function_expression") {
+      const parameters = node.namedChildren.find(
+        (child) => child.type === "formal_parameters" || child.type === "required_parameter" || child.type === "parameters",
+      );
+      if (parameters) {
+        for (const nested of descendants(parameters)) {
+          if (nested.type === "identifier") names.add(nested.text);
+        }
+      }
+    }
+  }
+  return names;
+};
+
+const isObjectKey = (node: TreeNode) => {
+  const parent = node.parent;
+  if (parent?.type === "pair") return parent.namedChildren[0] === node;
+  if (parent?.type === "method_definition") return parent.namedChildren[0] === node;
+  return false;
+};
+
+const schemaReferences = (
+  root: TreeNode,
+  source: string,
+  declarationNameText: string,
+  frameworkNames: Set<string>,
+) => {
+  const localNames = localBindingNames(root);
+  const references: SyntaxReference[] = [];
+  for (const node of descendants(root)) {
+    if (node.type !== "identifier") continue;
+    if (node.text === declarationNameText || frameworkNames.has(node.text) || localNames.has(node.text)) continue;
+    if (isObjectKey(node)) continue;
+    // A named property is represented separately as property_identifier and
+    // therefore never reaches this branch. Keep references to identifiers in
+    // arguments (local schema composition and wrappers) for native LSP.
+    references.push({
+      name: node.text,
+      syntaxKind: "schema-value",
+      sourceRange: exactRange(source, node.startIndex, node.endIndex),
+      startByte: node.startIndex,
+    });
+  }
+  const seen = new Set<string>();
+  return references
+    .sort((left, right) => left.startByte - right.startByte || left.name.localeCompare(right.name))
+    .filter((reference) => {
+      const key = `${reference.startByte}:${reference.name}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+};
+
+const schemaExpressionShape = (value: TreeNode) => {
+  const expression = unwrapExpression(value);
+  return expression.type === "call_expression" ||
+    expression.type === "member_expression" ||
+    expression.type === "optional_member_expression" ||
+    expression.type === "identifier";
+};
+
+/**
+ * Enumerate syntactic const roots.  This is intentionally a candidate pass:
+ * every candidate starts with unresolved provenance and must be annotated by
+ * a native-LSP definition lookup before a framework is reported.
+ */
+export const schemaCandidatesFor = (sourceFile: SourceFile, path = sourceFile.path): DeclarationArtifact[] => {
+  const occurrences = new Map<string, number>();
+  const frameworkNames = importedFrameworkNames(sourceFile.tree);
+  const candidates: DeclarationArtifact[] = [];
+  for (const declaration of lexicalDeclarations(sourceFile.tree)) {
+    for (const declarator of variableDeclarators(declaration)) {
+      const name = variableName(declarator);
+      const value = variableValue(declarator);
+      if (!name || !value || !schemaExpressionShape(value)) continue;
+      const occurrence = occurrences.get(name) ?? 0;
+      occurrences.set(name, occurrence + 1);
+      const artifactNode = declaration.parent?.type === "export_statement" ? declaration.parent : declaration;
+      const source = sourceSlice(sourceFile.text, artifactNode.startIndex, artifactNode.endIndex);
+      const expression = sourceSlice(sourceFile.text, value.startIndex, value.endIndex);
+      const constructor = constructorShape(value);
+      if (!constructor) continue;
+      const constructorRange = exactRange(sourceFile.text, constructor.positionNode.startIndex, constructor.positionNode.endIndex);
+      const schema: SchemaEvidence = {
+        framework: null,
+        provenance: "unresolved",
+        constructor: {
+          name: constructor.name,
+          range: constructorRange,
+          definition: null,
+          definitions: [],
+        },
+        expression,
+        expressionRange: exactRange(sourceFile.text, value.startIndex, value.endIndex),
+        interpretation: "unresolved",
+        opaque: [{
+          source: expression,
+          range: exactRange(sourceFile.text, value.startIndex, value.endIndex),
+          reason: "constructor provenance pending native LSP resolution",
+        }],
+      };
+      candidates.push({
+        id: `${path}:schema:${name}:${occurrence}`,
+        path,
+        kind: "schema",
+        name,
+        source,
+        sourceHash: sha256(source),
+        range: exactRange(sourceFile.text, artifactNode.startIndex, artifactNode.endIndex),
+        references: schemaReferences(value, sourceFile.text, name, frameworkNames),
+        parserError: Boolean(declaration.hasError || value.hasError),
+        node: declaration,
+        schema,
+      });
+    }
+  }
+  return candidates.sort((left, right) => left.range.byte.start - right.range.byte.start || left.name.localeCompare(right.name));
 };
 
 export const findArtifactAt = (sourceFile: SourceFile, path: string, byte: number) =>

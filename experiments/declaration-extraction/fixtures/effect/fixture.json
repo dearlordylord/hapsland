@@ -1,0 +1,19 @@
+{
+  "name": "effect-schema-roots",
+  "workspace": "workspace",
+  "before": "before",
+  "evaluationMarker": ".module-init.marker",
+  "defaultEdit": "composed",
+  "edits": {
+    "composed": {
+      "path": "src/target.ts",
+      "beforeRange": { "start": { "line": 16, "character": 0 }, "end": { "line": 16, "character": 80 } },
+      "afterRange": { "start": { "line": 16, "character": 0 }, "end": { "line": 16, "character": 100 } }
+    },
+    "transformed": {
+      "path": "src/target.ts",
+      "beforeRange": { "start": { "line": 24, "character": 0 }, "end": { "line": 24, "character": 80 } },
+      "afterRange": { "start": { "line": 24, "character": 0 }, "end": { "line": 24, "character": 80 } }
+    }
+  }
+}

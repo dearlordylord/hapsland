@@ -52,6 +52,27 @@ import so the positive-control test can evaluate a copied module under Node 24.
 Extraction itself sets a unique marker token and reports `modulesImported: true`,
 `false`, or `null` (indeterminate when a pre-existing marker prevents attribution).
 
+The independent framework fixtures exercise the same record and traversal seam:
+
+```sh
+node experiments/declaration-extraction/extract.ts \
+  --fixture experiments/declaration-extraction/fixtures/zod \
+  --edit 'src/target.ts:0:0-32:0'
+
+node experiments/declaration-extraction/extract.ts \
+  --fixture experiments/declaration-extraction/fixtures/effect \
+  --edit 'src/target.ts:0:0-34:0'
+```
+
+Const candidates are identified from Tree-sitter expression shape, then their
+constructor position is resolved through the native TypeScript 7 language server.
+Only a definition in the real `zod` package or an `effect/Schema` declaration gets
+framework identity. Project wrappers, null/multiple/external locations, and
+unsupported transformations/declarations remain explicit unresolved or partial
+evidence with the exact expression source retained opaquely. Ordinary object
+values with similarly named members are not candidates. Framework versions are
+reported as `zod@4.6.5` and `effect@4.0.0-rc.116` in the record.
+
 Run deterministic offline black-box tests with:
 
 ```sh

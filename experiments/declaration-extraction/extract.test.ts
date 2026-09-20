@@ -8,9 +8,11 @@ import { describe, expect, test } from "vitest";
 const root = resolve(import.meta.dirname, "../..");
 const command = resolve(root, "experiments/declaration-extraction/extract.ts");
 const fixture = resolve(root, "experiments/declaration-extraction/fixtures/representative");
+const zodFixture = resolve(root, "experiments/declaration-extraction/fixtures/zod");
+const effectFixture = resolve(root, "experiments/declaration-extraction/fixtures/effect");
 
-const run = (edit: string, extra: string[] = []) => {
-  const stdout = execFileSync(process.execPath, [command, "--fixture", fixture, "--edit", edit, ...extra], {
+const runFixture = (fixturePath: string, edit: string, extra: string[] = []) => {
+  const stdout = execFileSync(process.execPath, [command, "--fixture", fixturePath, "--edit", edit, ...extra], {
     cwd: root,
     encoding: "utf8",
     maxBuffer: 2_000_000,
@@ -18,6 +20,8 @@ const run = (edit: string, extra: string[] = []) => {
   expect(stdout.trim().split(/\r?\n/)).toHaveLength(1);
   return JSON.parse(stdout) as Record<string, any>;
 };
+
+const run = (edit: string, extra: string[] = []) => runFixture(fixture, edit, extra);
 
 const stable = (record: Record<string, any>) => {
   const copy = structuredClone(record);
@@ -208,4 +212,77 @@ describe("declaration extraction experiment black-box seam", () => {
       "MissingShape",
     ]);
   }, 30_000);
+
+  test("recognizes Zod roots through native constructor provenance and preserves opaque transforms", () => {
+    const record = runFixture(zodFixture, "src/target.ts:0:0-32:0");
+    expect(record.status).toBe("ok");
+    expect(record.versions.zod).toBe("4.6.5");
+    expect(record.versions.frameworks.zod).toEqual({ package: "zod", version: "4.6.5" });
+    const roots = record.extraction.roots as Array<Record<string, any>>;
+    expect(roots.map((root) => root.name)).toEqual([
+      "Address",
+      "Composed",
+      "NamedAlias",
+      "ReExported",
+      "Transformed",
+      "Wrapped",
+    ]);
+    expect(roots.filter((root) => root.schema?.framework === "zod").map((root) => root.name)).toEqual([
+      "Address",
+      "Composed",
+      "NamedAlias",
+      "ReExported",
+      "Transformed",
+    ]);
+    expect(roots.find((root) => root.name === "Wrapped")?.schema.provenance).toBe("project");
+    const transformed = roots.find((root) => root.name === "Transformed")!;
+    expect(transformed.schema.interpretation).toBe("partial");
+    expect(transformed.schema.opaque.map((segment: any) => segment.source)).toEqual([
+      transformed.schema.expression,
+      transformed.schema.expression,
+    ]);
+    expect(transformed.schema.expression).toContain(".transform");
+    expect(roots.some((root) => ["Ordinary", "OrdinaryNamespace", "OrdinaryCall"].includes(root.name))).toBe(false);
+    expect(record.extraction.completeness.reasons).toContain("schema-unresolved");
+    expect(record.evaluation.modulesImported).toBe(false);
+    expect(record.evaluation.noEvaluationObserved).toBe(true);
+    expect(record.positionalRequestCounts.cold["textDocument/definition"]).toBeGreaterThan(0);
+    expect(record.positionalRequestCounts.warm["textDocument/definition"]).toBeGreaterThan(0);
+    const serialized = JSON.stringify(record);
+    expect(serialized).not.toContain(root);
+    expect(serialized).not.toContain("/tmp/");
+  }, 60_000);
+
+  test("recognizes Effect Schema named, namespace, aliased, re-exported, composed, transformed, and declared roots", () => {
+    const record = runFixture(effectFixture, "src/target.ts:0:0-34:0");
+    expect(record.status).toBe("ok");
+    expect(record.versions.effectSchema).toBe("4.0.0-rc.116");
+    expect(record.versions.frameworks.effectSchema).toEqual({
+      package: "effect",
+      subpath: "effect/Schema",
+      version: "4.0.0-rc.116",
+    });
+    const roots = record.extraction.roots as Array<Record<string, any>>;
+    expect(roots.map((root) => root.name)).toEqual([
+      "Address",
+      "Composed",
+      "Namespaced",
+      "ReExported",
+      "Optional",
+      "Transformed",
+      "Declared",
+      "Wrapped",
+    ]);
+    expect(roots.filter((root) => root.schema?.framework === "effect-schema")).toHaveLength(7);
+    expect(roots.some((root) => root.schema?.provenance === "multiple")).toBe(true);
+    expect(roots.find((root) => root.name === "Transformed")?.schema.interpretation).toBe("partial");
+    expect(roots.find((root) => root.name === "Declared")?.schema.opaque[0].source).toContain("declareSchema");
+    expect(roots.find((root) => root.name === "Wrapped")?.schema.provenance).toBe("project");
+    expect(roots.some((root) => ["Ordinary", "OrdinaryNamespace", "OrdinaryCall"].includes(root.name))).toBe(false);
+    expect(record.evaluation.modulesImported).toBe(false);
+    expect(record.evaluation.noEvaluationObserved).toBe(true);
+    const serialized = JSON.stringify(record);
+    expect(serialized).not.toContain(root);
+    expect(serialized).not.toContain("/tmp/");
+  }, 60_000);
 });
