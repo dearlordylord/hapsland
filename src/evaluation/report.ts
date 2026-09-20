@@ -6,7 +6,6 @@ import {
   type ComparisonSummary as ComparisonSummaryType,
   type ComparisonResult,
   EvaluationCoverage,
-  type EvaluationCoverage as EvaluationCoverageType,
   EvaluationReport,
   type EvaluationReport as EvaluationReportType,
   type EvaluationPlan,
@@ -135,6 +134,10 @@ export const buildEvaluationReport = (
     observedRequests,
     withinBudget: !budgetDecision.exceeded &&
       input.plan.worstCaseRequests <= input.plan.budgetMaximumRequests,
+    planPermitted: input.plan.permitted,
+    ...(input.plan.rejectionReason === undefined
+      ? {}
+      : { rejectionReason: input.plan.rejectionReason }),
   };
   const reportWithoutDigest = {
     runId: input.run.id,
@@ -152,6 +155,7 @@ export const buildEvaluationReport = (
     fixtureDigests: input.run.fixtureDigests,
     ruleDefinitionDigests: input.run.ruleDefinitionDigests,
     configurationCaseIds: input.run.configurationCaseIds,
+    configurationCaseDigests: input.run.configurationCaseDigests,
     inputContract: input.run.inputContract,
     rendererAdapter: input.run.rendererAdapter,
   };
@@ -179,6 +183,7 @@ export const isReportDigestValid = (report: EvaluationReportType): boolean =>
     fixtureDigests: report.fixtureDigests,
     ruleDefinitionDigests: report.ruleDefinitionDigests,
     configurationCaseIds: report.configurationCaseIds,
+    configurationCaseDigests: report.configurationCaseDigests,
     inputContract: report.inputContract,
     rendererAdapter: report.rendererAdapter,
   });

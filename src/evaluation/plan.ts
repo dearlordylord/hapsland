@@ -2,8 +2,6 @@ import * as Schema from "effect/Schema";
 import {
   BackendIdentity,
   type BackendIdentity as BackendIdentityType,
-  CallBudget,
-  ConfigurationCaseId,
   EvaluationPlan,
   type EvaluationPlan as EvaluationPlanType,
   EvaluationRun,
@@ -14,13 +12,9 @@ import {
   type InputContractIdentity as InputContractIdentityType,
   RendererAdapterIdentity,
   type RendererAdapterIdentity as RendererAdapterIdentityType,
-  ScenarioId,
   strictParseOptions,
 } from "./model.ts";
 import {
-  digestRun,
-  digestScenario,
-  digestPlan,
   digestValue,
   makeFixtureReference,
   makeRuleReference,
@@ -218,6 +212,9 @@ export const makeEvaluationRun = (input: RunInput): EvaluationRunType => {
     scenarioDigests: input.scenarios.map((scenario) => scenario.scenarioDigest),
     configurationCaseIds: (input.configurationCases ?? []).map(
       (configuration) => configuration.id,
+    ),
+    configurationCaseDigests: (input.configurationCases ?? []).map(
+      (configuration) => configuration.caseDigest,
     ),
     fixtureDigests: (input.fixtures ?? []).map((fixture) => fixture.fixtureDigest),
     ruleDefinitionDigests: (input.ruleDefinitions ?? []).map(

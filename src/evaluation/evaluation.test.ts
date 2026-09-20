@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as Schema from "effect/Schema";
 import {
-  Comparison,
   EvaluationReport,
-  Observation,
   strictParseOptions,
 } from "./model.ts";
 import {
