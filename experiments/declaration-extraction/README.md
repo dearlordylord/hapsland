@@ -46,6 +46,12 @@ only a client-side event-loop turn after `didOpen`; native-server processing is 
 barrier-measured and may be included in cold extraction. Source files are read as text
 only; no fixture module is imported or evaluated.
 
+The representative workspace also exercises native TypeScript path mapping: its
+`tsconfig.json` sets `baseUrl` and `paths`, and `Order` imports `MappedShape` from
+the non-relative `@fixture/types` alias. The black-box seam asserts the resolved
+`src/types.ts` declaration, while generated evidence records the discovered
+`tsconfig.json` and mapped target without retaining source text.
+
 The deterministic `--fault nonresponding` option suppresses a positional response in
 the client and emits a `$/cancelRequest` notification at the elapsed budget. It does
 not prove that the native server observed or honoured cancellation; that field remains
@@ -80,7 +86,12 @@ Only a definition in the real `zod` package or an `effect/Schema` declaration ge
 framework identity. Project wrappers, null/multiple/external locations, and
 unsupported transformations/declarations remain explicit unresolved or partial
 evidence with the exact expression source retained opaquely. Ordinary object
-values with similarly named members are not candidates. Framework versions are
+evidence with the exact expression source retained opaquely. Ordinary object
+values with similarly named members are not candidates. Candidates rejected by
+framework provenance are removed before outbound traversal, so they do not add
+edges, completeness reasons, budget observations, or positional navigation
+requests; retained project wrappers require a native-LSP schema artifact identity.
+Framework versions are
 reported as `zod@4.6.5` and `effect@4.0.0-rc.116` in the record.
 
 Run deterministic offline black-box tests with:

@@ -15,7 +15,7 @@ machine-readable record can be regenerated with
 
 | Record or test | What it establishes |
 |---|---|
-| `typescript-interface`, `typescript-type-alias` | edited roots, exact ranges/source hashes, local/imported/renamed/namespace/re-exported references |
+| `typescript-interface`, `typescript-type-alias` | edited roots, exact ranges/source hashes, local/imported/renamed/namespace/re-exported references, and native `baseUrl`/`paths` reconciliation for `@fixture/types` |
 | `zod`, `zod-opaque-operations`, `zod-shadow`, `effect-schema`, `cross-framework-context` | provenance-based schema roots, cross-framework context, false positives, opaque unsupported operations |
 | `degradation-malformed`, `degradation-missing-config`, `degradation-unresolved-import`, `degradation-cycle` | edit-loop and resolution degradation behavior |
 | `identity-*` | formatting, rename, import retarget, multiple roots, move, deletion, and generic-reference observations |
@@ -68,14 +68,14 @@ not promote an advisory finding into a product requirement.
 | U04 exact versions | records report TS, parser, grammar, native bindings, runtime, Zod, Effect | one pinned environment | rerun after any tool upgrade |
 | U05 TypeScript 7+ | native `tsc --lsp --stdio` is the only semantic process | TS 7.0.2 only | re-run against later released TS 7 versions |
 | U06 interfaces and aliases separately | two representative edits and separate records | no broader declaration family | expand only if a later scope requires it |
-| U07 imported alias | `RenamedShape -> ImportedShape` resolves to project source | no exhaustive module-resolution claim | add path/package edge cases before production use |
+| U07 imported alias and paths mapping | `RenamedShape -> ImportedShape` and non-relative `MappedShape -> MappedShape` both resolve to project source; the record/evidence retains `tsconfig.json` discovery and mapped target identity | no exhaustive module-resolution claim | add package/workspace edge cases before production use |
 | U08 rename/namespace/re-export indirection | `RenamedShape`, `Types.UserId`, and `PublicShape -> ReExported` are visible | only synthetic local fixtures | preserve identity evidence as a regression corpus |
 | U09 Zod composition | Zod direct, namespace, alias, re-export, composition, wrapper, and operation records are present | no runtime schema execution in extraction | keep framework recognizers conservative |
 | U10 Effect Schema composition | Effect direct, namespace, alias, re-export, composition, wrapper, transform, and declaration records are present | provenance can be multiple or partial | preserve ambiguity and opaque source |
 | U11 no module evaluation | marker stays absent; positive controls evaluate only copied modules outside extraction | no host-wide syscall audit | retain marker control and add OS tracing only if required |
 | U12 exact ranges/source | roots, edges, and opaque segments carry byte/line/UTF-16 ranges and source hashes | parser binding behavior is version-sensitive | pin and rerun on upgrades |
 | U13 edge reason/depth | every edge carries reason, depth, resolution, inclusion, and omission | no final closure semantics chosen | use records to define any later contract |
-| U14 explicit incomplete context | null, multiple, external, unresolved, parser-error, and cap omissions remain visible | some native responses are position-only | never convert incomplete extraction to a complete verdict |
+| U14 explicit incomplete context | null, multiple, external, unresolved, parser-error, and cap omissions remain visible; provenance-rejected schema candidates are removed before traversal | some native responses are position-only | never convert incomplete extraction to a complete verdict |
 | U15 deterministic traversal | repeated evolution runs preserve roots, order, omissions, completeness, and hashes; cold/warm phases are recorded | scalar timings and measured bucket assignments can vary with scheduler noise; semantic projections are deterministic | add corpus-wide replay checks before shipping |
 | U16 depth/size budgets | `cap-*` and `profile-*` records compare representative caps | no production values selected | establish product budgets separately |
 | U17 diff-sufficient controls | `classifier-diff-sufficient-control` and `identity-formatting` retain the changed `Money`/`Formatting` root without outbound context | no Jev quality measurement | compare inputs only in a later classification experiment |
@@ -102,6 +102,7 @@ not promote an advisory finding into a product requirement.
 | command accepts fixture/edit and emits one sanitized record | direct `experiment:extract` command; all fixture records | direct output contains source for local inspection | keep source-free summaries for checked-in evidence |
 | exact TS/parser/grammar/binding/runtime versions | `versions` in every record | one environment | rerun after upgrades |
 | interface and alias with indirections | representative records | synthetic module graph | add repository-scale fixtures later |
+| native TypeScript `baseUrl`/`paths` mapping | representative `MappedShape` edge resolves from non-relative `@fixture/types` to `src/types.ts`; generated summary retains sanitized mapping evidence | one workspace mapping shape | add package/workspace edge cases before production use |
 | exact roots and deterministic context edges | roots/context/edges and black-box tests | exact graph depends on server version | treat edge output as evidence, not permanent contract |
 | null/multiple/external/unresolved explicit | representative plus unresolved fixture | native LSP may return position-only data | preserve unresolved states |
 | six traversal caps terminate | `cap-declarations`, `cap-depth`, `cap-source-characters`, `cap-files`, `cap-external-packages`, `fault-timeout-cancellation` | cap values are experiment values | choose production caps separately |
@@ -115,8 +116,8 @@ not promote an advisory finding into a product requirement.
 | Criterion | Observed record | Limitation | Follow-up |
 |---|---|---|---|
 | exact Zod/Effect versions | version fields and schema fixture records | pinned package cohort only | rerun on dependency changes |
-| Zod constructors/imports/aliases/re-exports/composition/wrappers | `zod`, `zod-shadow` | no exhaustive Zod surface | retain positive and negative fixtures |
-| Effect constructors/imports/aliases/re-exports/composition/wrappers | `effect-schema`, `cross-framework-context` | multiple provenance occurs | preserve multiple locations |
+| Zod constructors/imports/aliases/re-exports/composition/wrappers | `zod`, `zod-shadow` | no exhaustive Zod surface; ordinary/framework-negative candidates are excluded before graph traversal | retain positive and negative fixtures |
+| Effect constructors/imports/aliases/re-exports/composition/wrappers | `effect-schema`, `cross-framework-context` | multiple provenance occurs; ordinary/framework-negative candidates are excluded before graph traversal | preserve multiple locations |
 | false-positive ordinary values excluded | negative controls in Zod/Effect records | source recognition is intentionally narrow | expand only with false-positive tests |
 | schema roots/context use common record and traversal | schema records contain same roots/context/edges/caps | schema interpretation is experiment-only | no production schema contract yet |
 | native provenance and null/multiple/unsupported states | schema provenance fields and records | semantic location is position-based | keep source plus provenance together |

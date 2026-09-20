@@ -58,6 +58,7 @@ type TraversalState = {
   navigationFailures: Array<{ path: string; name: string; reason: string }>;
   schemaFailures: Array<{ path: string; name: string; reason: string }>;
   schemaAnnotated: Set<string>;
+  definitionCache: Map<string, DefinitionResponse>;
 };
 
 const require = createRequire(import.meta.url);
@@ -273,6 +274,16 @@ const effectSchemaSymbols = new Set([
   "brand",
 ]);
 
+const zodNonSchemaSymbols = new Set([
+  "treeifyError", "locales", "regexes", "prettifyError", "formatError", "flattenError",
+  "toJSONSchema", "config", "registry", "globalRegistry", "clone", "NEVER", "INVALID",
+]);
+
+const effectNonSchemaSymbols = new Set([
+  "isSchema", "isSchemaError", "decodeSync", "encodeSync", "decodeUnknownSync",
+  "encodeUnknownSync", "toJsonSchemaDocument", "toStandardSchemaV1", "makeFilter",
+]);
+
 const schemaFrameworkForDefinition = (definition: NavigationDefinition, candidateName?: string): SchemaFramework | null => {
   if (
     definition.packageName === "zod" &&
@@ -442,6 +453,10 @@ const removeUnprovenProjectRoots = (roots: DeclarationArtifact[]) =>
   roots.filter((artifact) => {
     if (artifact.kind !== "schema" || !artifact.schema) return true;
     if (hasUnsupportedFrameworkDefinition(artifact.schema)) return false;
+    // A definition in an unrecognized external package is not a schema root.
+    // Keep null/unresolved/multiple results as explicit uncertainty, but do not
+    // let an external ordinary factory enter the graph as if it were one.
+    if (artifact.schema.provenance === "external" && artifact.schema.framework === null) return false;
     if (artifact.schema.provenance !== "project" || artifact.schema.framework !== null) return true;
     // A project wrapper is retained as an unresolved schema only when a native
     // LSP edge reached a separately recognized schema artifact identity. This
@@ -449,6 +464,29 @@ const removeUnprovenProjectRoots = (roots: DeclarationArtifact[]) =>
     // similarly-shaped ordinary factory call with no schema provenance.
     return artifact.schema.referencedSchemaIds.length > 0;
   });
+
+const definitionCacheKey = (sourceUri: string, position: { line: number; character: number }) =>
+  `${sourceUri}:${position.line}:${position.character}`;
+
+const candidateMayReachSchemaIdentity = (
+  artifact: DeclarationArtifact,
+  schemaNames: Set<string>,
+  sourceFile?: SourceFile,
+) => {
+  if (!artifact.schema) return false;
+  const packageHint = schemaFrameworkPackageHint(artifact.schema);
+  if (packageHint === "zod" && zodNonSchemaSymbols.has(artifact.schema.constructor.name)) return false;
+  if (packageHint === "effect" && effectNonSchemaSymbols.has(artifact.schema.constructor.name)) return false;
+  if (packageHint !== undefined) return true;
+  if (artifact.references.some((reference) => schemaNames.has(reference.name))) return true;
+  // A helper/re-exported constructor is still a valid project provenance
+  // candidate.  Keep it only when the constructor binding is imported from a
+  // project-relative module; local ordinary factories are dropped here.
+  const name = artifact.schema.constructor.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const text = sourceFile?.text ?? "";
+  const imported = new RegExp(`\\bimport\\b[\\s\\S]*?\\b${name}\\b[\\s\\S]*?\\bfrom\\s*[\\\"']\\.?\\.?/[^\\\"']+[\\\"']`).test(text);
+  return imported;
+};
 
 const edgeResolution = (definitions: NavigationDefinition[] | null, response: DefinitionResponse) => {
   if (response.error) return "error";
@@ -539,7 +577,22 @@ const runTraversal = async (
     navigationFailures: [],
     schemaFailures: [],
     schemaAnnotated: new Set(),
+    definitionCache: new Map(),
   };
+  // Syntactic const discovery is intentionally broad, but a candidate with no
+  // framework hint and no possible schema-valued identity cannot become a
+  // useful root.  Drop those ordinary lookalikes before asking the server for
+  // provenance or walking their values.  Project wrappers that mention another
+  // discovered schema stay in this provisional set and are checked below by
+  // native-LSP identity.
+  const schemaNames = new Set(
+    [...artifactIndex.values()].flat()
+      .filter((artifact) => artifact.kind === "schema")
+      .map((artifact) => artifact.name),
+  );
+  state.roots = state.roots.filter((root) =>
+    root.kind !== "schema" || candidateMayReachSchemaIdentity(root, schemaNames, workspace.get(root.path)),
+  );
   let rootSourceCharacters = 0;
   const rootFiles = new Set<string>();
   for (const [index, root] of state.roots.entries()) {
@@ -575,14 +628,41 @@ const runTraversal = async (
             deadline,
           );
           if (failure) state.schemaFailures.push(failure);
-          recordSchemaExternalPackage(state, root);
         }
         state.schemaAnnotated.add(root.id);
       }
     }
   }
-  state.roots = state.roots.filter((root) => !root.schema || !hasUnsupportedFrameworkDefinition(root.schema));
+  // A project-owned constructor is not itself proof that the value is a
+  // schema.  Probe its syntactic references once and retain the wrapper only
+  // when native LSP reaches a separately recognized schema artifact identity.
+  // These probes are cached and become ordinary edges only for retained roots.
   for (const root of state.roots) {
+    if (root.kind !== "schema" || !root.schema || root.schema.provenance !== "project") continue;
+    for (const reference of root.references) {
+      const sourceFile = workspace.get(root.path);
+      if (!sourceFile) break;
+      const key = definitionCacheKey(sourceFile.uri, reference.sourceRange.utf16.start);
+      const response = await client.definition(sourceFile.uri, reference.sourceRange.utf16.start, deadline);
+      state.definitionCache.set(key, response);
+      if (response.timedOut || performance.now() >= deadline) break;
+      const definitions = normalizeDefinitions(response)
+        ?.map((definition) => exactDefinition(fixture.workspaceRoot, workspace, artifactIndex, definition)) ?? null;
+      const sorted = definitions ? sortDefinitions(definitions) : null;
+      if (sorted?.length !== 1) continue;
+      const target = sorted[0]?.declaration;
+      if (target?.kind === "schema" && target.schema?.framework !== null && target.schema?.framework !== undefined) {
+        if (!root.schema.referencedSchemaIds.includes(target.id)) root.schema.referencedSchemaIds.push(target.id);
+      }
+    }
+  }
+  state.roots = state.roots.filter((root) => !root.schema || !hasUnsupportedFrameworkDefinition(root.schema));
+  state.roots = removeUnprovenProjectRoots(state.roots);
+  // Rejected candidates must not consume traversal budgets or package
+  // observations.  Only retained roots enter the queue and contribute their
+  // source/file totals.
+  for (const root of state.roots) {
+    if (root.kind === "schema" && root.schema) recordSchemaExternalPackage(state, root);
     if (root.parserError) addReason(state, "parser-error");
   }
   for (const root of state.roots) {
@@ -640,7 +720,13 @@ const runTraversal = async (
         state.edges.push(edge);
         continue;
       }
-      const response = await client.definition(sourceFile.uri, reference.sourceRange.utf16.start, state.deadline);
+      const cacheKey = definitionCacheKey(sourceFile.uri, reference.sourceRange.utf16.start);
+      const response = state.definitionCache.get(cacheKey) ?? await client.definition(
+        sourceFile.uri,
+        reference.sourceRange.utf16.start,
+        state.deadline,
+      );
+      state.definitionCache.set(cacheKey, response);
       const definitions = normalizeDefinitions(response)
         ?.map((definition) => exactDefinition(fixture.workspaceRoot, workspace, artifactIndex, definition)) ?? null;
       const sorted = definitions ? sortDefinitions(definitions) : null;
@@ -752,7 +838,7 @@ const runTraversal = async (
       state.edges.push(edge);
     }
   }
-  const retainedRoots = removeUnprovenProjectRoots(state.roots);
+  const retainedRoots = state.roots;
   return {
     roots: retainedRoots.map(summarizeArtifact),
     context: state.context.map(summarizeArtifact),

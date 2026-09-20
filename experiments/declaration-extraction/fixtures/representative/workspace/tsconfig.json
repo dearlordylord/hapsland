@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
     "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@fixture/*": ["src/*"]
+    },
     "module": "preserve",
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,

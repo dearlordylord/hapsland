@@ -39,10 +39,9 @@
           "sampleCount": 7,
           "minMs": 25,
           "medianMs": 25,
-          "maxMs": 50,
+          "maxMs": 25,
           "distributionMs": {
-            "25": 6,
-            "50": 1
+            "25": 7
           }
         },
         "openDispatch": {
@@ -61,18 +60,19 @@
           "maxMs": 100,
           "distributionMs": {
             "5": 1,
-            "50": 4,
-            "100": 2
+            "50": 3,
+            "100": 3
           }
         },
         "warmExtraction": {
           "sampleCount": 7,
           "minMs": 5,
           "medianMs": 10,
-          "maxMs": 10,
+          "maxMs": 25,
           "distributionMs": {
             "5": 2,
-            "10": 5
+            "10": 4,
+            "25": 1
           }
         }
       },
@@ -80,19 +80,19 @@
         "cold": {
           "sampleCount": 7,
           "min": 0,
-          "max": 8,
+          "max": 9,
           "distribution": {
             "0": 1,
-            "8": 6
+            "9": 6
           }
         },
         "warm": {
           "sampleCount": 7,
           "min": 0,
-          "max": 8,
+          "max": 9,
           "distribution": {
             "0": 1,
-            "8": 6
+            "9": 6
           }
         }
       }
@@ -116,11 +116,10 @@
         "initialize": {
           "sampleCount": 2,
           "minMs": 25,
-          "medianMs": 37.5,
-          "maxMs": 50,
+          "medianMs": 25,
+          "maxMs": 25,
           "distributionMs": {
-            "25": 1,
-            "50": 1
+            "25": 2
           }
         },
         "openDispatch": {
@@ -144,11 +143,11 @@
         },
         "warmExtraction": {
           "sampleCount": 2,
-          "minMs": 5,
-          "medianMs": 15,
+          "minMs": 10,
+          "medianMs": 17.5,
           "maxMs": 25,
           "distributionMs": {
-            "5": 1,
+            "10": 1,
             "25": 1
           }
         }
@@ -156,20 +155,20 @@
       "positionalRequestTotals": {
         "cold": {
           "sampleCount": 2,
-          "min": 8,
-          "max": 10,
+          "min": 9,
+          "max": 11,
           "distribution": {
-            "8": 1,
-            "10": 1
+            "9": 1,
+            "11": 1
           }
         },
         "warm": {
           "sampleCount": 2,
-          "min": 8,
-          "max": 10,
+          "min": 9,
+          "max": 11,
           "distribution": {
-            "8": 1,
-            "10": 1
+            "9": 1,
+            "11": 1
           }
         }
       }
@@ -291,11 +290,12 @@
         },
         "coldExtraction": {
           "sampleCount": 2,
-          "minMs": 250,
-          "medianMs": 250,
+          "minMs": 100,
+          "medianMs": 175,
           "maxMs": 250,
           "distributionMs": {
-            "250": 2
+            "100": 1,
+            "250": 1
           }
         },
         "warmExtraction": {
@@ -372,11 +372,10 @@
           "sampleCount": 7,
           "minMs": 5,
           "medianMs": 5,
-          "maxMs": 100,
+          "maxMs": 50,
           "distributionMs": {
             "5": 5,
-            "50": 1,
-            "100": 1
+            "50": 2
           }
         },
         "warmExtraction": {
@@ -432,11 +431,10 @@
         "initialize": {
           "sampleCount": 3,
           "minMs": 25,
-          "medianMs": 50,
-          "maxMs": 50,
+          "medianMs": 25,
+          "maxMs": 25,
           "distributionMs": {
-            "25": 1,
-            "50": 2
+            "25": 3
           }
         },
         "openDispatch": {
@@ -462,11 +460,12 @@
         "warmExtraction": {
           "sampleCount": 3,
           "minMs": 5,
-          "medianMs": 5,
-          "maxMs": 50,
+          "medianMs": 50,
+          "maxMs": 100,
           "distributionMs": {
-            "5": 2,
-            "50": 1
+            "5": 1,
+            "50": 1,
+            "100": 1
           }
         }
       },
@@ -474,21 +473,21 @@
         "cold": {
           "sampleCount": 3,
           "min": 0,
-          "max": 8,
+          "max": 9,
           "distribution": {
             "0": 1,
             "1": 1,
-            "8": 1
+            "9": 1
           }
         },
         "warm": {
           "sampleCount": 3,
           "min": 0,
-          "max": 8,
+          "max": 9,
           "distribution": {
             "0": 1,
             "1": 1,
-            "8": 1
+            "9": 1
           }
         }
       }
@@ -511,11 +510,11 @@
         },
         "initialize": {
           "sampleCount": 2,
-          "minMs": 50,
-          "medianMs": 50,
-          "maxMs": 50,
+          "minMs": 25,
+          "medianMs": 25,
+          "maxMs": 25,
           "distributionMs": {
-            "50": 2
+            "25": 2
           }
         },
         "openDispatch": {
@@ -530,11 +529,11 @@
         "coldExtraction": {
           "sampleCount": 2,
           "minMs": 5,
-          "medianMs": 52.5,
-          "maxMs": 100,
+          "medianMs": 27.5,
+          "maxMs": 50,
           "distributionMs": {
             "5": 1,
-            "100": 1
+            "50": 1
           }
         },
         "warmExtraction": {
@@ -579,21 +578,19 @@
         "processStartup": {
           "sampleCount": 3,
           "minMs": 5,
-          "medianMs": 10,
-          "maxMs": 10,
+          "medianMs": 5,
+          "maxMs": 5,
           "distributionMs": {
-            "5": 1,
-            "10": 2
+            "5": 3
           }
         },
         "initialize": {
           "sampleCount": 3,
           "minMs": 25,
           "medianMs": 25,
-          "maxMs": 50,
+          "maxMs": 25,
           "distributionMs": {
-            "25": 2,
-            "50": 1
+            "25": 3
           }
         },
         "openDispatch": {
@@ -609,20 +606,20 @@
           "sampleCount": 3,
           "minMs": 100,
           "medianMs": 250,
-          "maxMs": 500,
+          "maxMs": 250,
           "distributionMs": {
             "100": 1,
-            "250": 1,
-            "500": 1
+            "250": 2
           }
         },
         "warmExtraction": {
           "sampleCount": 3,
           "minMs": 5,
           "medianMs": 5,
-          "maxMs": 5,
+          "maxMs": 10,
           "distributionMs": {
-            "5": 3
+            "5": 2,
+            "10": 1
           }
         }
       },

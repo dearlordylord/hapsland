@@ -42,6 +42,61 @@ const stable = (record: Record<string, any>) => {
   return copy;
 };
 
+const normalizedRange = (range: Record<string, any>) => ({
+  byte: range.byte,
+  line: range.line,
+  utf16: range.utf16,
+});
+
+const normalizedEdge = (edge: Record<string, any>) => ({
+  from: {
+    id: edge.from.id,
+    name: edge.from.name,
+    source: edge.from.source,
+    range: normalizedRange(edge.from.range),
+  },
+  reason: edge.reason,
+  depth: edge.depth,
+  reference: {
+    name: edge.reference.name,
+    syntaxKind: edge.reference.syntaxKind,
+    range: normalizedRange(edge.reference.range),
+  },
+  resolution: edge.resolution,
+  cardinality: edge.definitions === null ? null : edge.definitions.length,
+  targets: edge.definitions === null
+    ? null
+    : edge.definitions.map((definition: Record<string, any>) => ({
+      path: definition.path,
+      external: definition.external,
+      packageName: definition.packageName,
+      declarationId: definition.declaration?.id ?? null,
+    })),
+  omission: edge.omission,
+});
+
+const normalizedEdgeSummary = (edge: Record<string, any>) => ({
+  from: { id: edge.from.id, name: edge.from.name },
+  reason: edge.reason,
+  depth: edge.depth,
+  reference: {
+    name: edge.reference.name,
+    syntaxKind: edge.reference.syntaxKind,
+    range: normalizedRange(edge.reference.range),
+  },
+  resolution: edge.resolution,
+  cardinality: edge.definitions === null ? null : edge.definitions.length,
+  targets: edge.definitions === null
+    ? null
+    : edge.definitions.map((definition: Record<string, any>) => ({
+      path: definition.path,
+      external: definition.external,
+      packageName: definition.packageName,
+      declarationId: definition.declaration?.id ?? null,
+    })),
+  omission: edge.omission,
+});
+
 const evaluateSchemaFixtureCopy = (fixturePath: string, supportFiles: string[], token: string) => {
   const temporary = mkdtempSync(join(tmpdir(), "declaration-schema-control-"));
   const sourceDirectory = join(temporary, "src");
@@ -98,6 +153,24 @@ describe("declaration extraction experiment black-box seam", () => {
     expect(record.extraction.roots[0].kind).toBe("interface");
     expect(record.extraction.roots[0].range.byte.end).toBeGreaterThan(record.extraction.roots[0].range.byte.start);
     expect(record.extraction.roots[0].range.utf16.start).toEqual({ line: 6, character: 0 });
+    expect(record.extraction.roots[0].source).toBe(
+      "export interface Order {\n" +
+      "  id: LocalId;\n" +
+      "  shape: RenamedShape;\n" +
+      "  mapped: MappedShape;\n" +
+      "  user: Types.UserId;\n" +
+      "  exported: PublicShape;\n" +
+      "  merged: Merged;\n" +
+      "  external: ExternalThing;\n" +
+      "  scoped: ScopedThing;\n" +
+      "  missing: MissingShape;\n" +
+      "}",
+    );
+    expect(record.extraction.roots[0].range).toEqual({
+      byte: { start: 304, end: 531 },
+      line: { start: 6, end: 16 },
+      utf16: { start: { line: 6, character: 0 }, end: { line: 16, character: 1 } },
+    });
 
     const edges = record.extraction.edges as Array<Record<string, any>>;
     const byName = (name: string): Record<string, any> => edges.find((edge) => edge.reference.name === name)!;
@@ -113,6 +186,149 @@ describe("declaration extraction experiment black-box seam", () => {
     expect(byName("ScopedThing").definitions[0].packageName).toBe("@scope/external-types");
     expect(byName("ScopedThing").definitions[0].uri).toBe("fixture://external/%40scope%2Fexternal-types");
     expect(byName("MissingShape").resolution).toBe("null");
+    expect(byName("MappedShape").resolution).toBe("resolved");
+    expect(byName("MappedShape").definitions[0].declaration.id).toBe("src/types.ts:interface:MappedShape:0");
+    expect(record.observations.files.configurationPathsDiscovered).toContain("tsconfig.json");
+    expect(edges.map((edge) => normalizedEdge(edge))).toEqual([
+      {
+        from: {
+          id: "src/target.ts:interface:Order:0",
+          name: "Order",
+          source: "export interface Order {\n  id: LocalId;\n  shape: RenamedShape;\n  mapped: MappedShape;\n  user: Types.UserId;\n  exported: PublicShape;\n  merged: Merged;\n  external: ExternalThing;\n  scoped: ScopedThing;\n  missing: MissingShape;\n}",
+          range: { byte: { start: 304, end: 531 }, line: { start: 6, end: 16 }, utf16: { start: { line: 6, character: 0 }, end: { line: 16, character: 1 } } },
+        },
+        reason: "syntactic-outbound-reference",
+        depth: 1,
+        reference: { name: "LocalId", syntaxKind: "type_identifier", range: { byte: { start: 335, end: 342 }, line: { start: 7, end: 7 }, utf16: { start: { line: 7, character: 6 }, end: { line: 7, character: 13 } } } },
+        resolution: "resolved",
+        cardinality: 1,
+        targets: [{ path: "src/types.ts", external: false, packageName: null, declarationId: "src/types.ts:interface:LocalId:0" }],
+        omission: null,
+      },
+      {
+        from: {
+          id: "src/target.ts:interface:Order:0",
+          name: "Order",
+          source: "export interface Order {\n  id: LocalId;\n  shape: RenamedShape;\n  mapped: MappedShape;\n  user: Types.UserId;\n  exported: PublicShape;\n  merged: Merged;\n  external: ExternalThing;\n  scoped: ScopedThing;\n  missing: MissingShape;\n}",
+          range: { byte: { start: 304, end: 531 }, line: { start: 6, end: 16 }, utf16: { start: { line: 6, character: 0 }, end: { line: 16, character: 1 } } },
+        },
+        reason: "syntactic-outbound-reference",
+        depth: 1,
+        reference: { name: "RenamedShape", syntaxKind: "type_identifier", range: { byte: { start: 353, end: 365 }, line: { start: 8, end: 8 }, utf16: { start: { line: 8, character: 9 }, end: { line: 8, character: 21 } } } },
+        resolution: "resolved",
+        cardinality: 1,
+        targets: [{ path: "src/types.ts", external: false, packageName: null, declarationId: "src/types.ts:type-alias:ImportedShape:0" }],
+        omission: null,
+      },
+      {
+        from: {
+          id: "src/target.ts:interface:Order:0",
+          name: "Order",
+          source: "export interface Order {\n  id: LocalId;\n  shape: RenamedShape;\n  mapped: MappedShape;\n  user: Types.UserId;\n  exported: PublicShape;\n  merged: Merged;\n  external: ExternalThing;\n  scoped: ScopedThing;\n  missing: MissingShape;\n}",
+          range: { byte: { start: 304, end: 531 }, line: { start: 6, end: 16 }, utf16: { start: { line: 6, character: 0 }, end: { line: 16, character: 1 } } },
+        },
+        reason: "syntactic-outbound-reference",
+        depth: 1,
+        reference: { name: "MappedShape", syntaxKind: "type_identifier", range: { byte: { start: 377, end: 388 }, line: { start: 9, end: 9 }, utf16: { start: { line: 9, character: 10 }, end: { line: 9, character: 21 } } } },
+        resolution: "resolved",
+        cardinality: 1,
+        targets: [{ path: "src/types.ts", external: false, packageName: null, declarationId: "src/types.ts:interface:MappedShape:0" }],
+        omission: null,
+      },
+      {
+        from: {
+          id: "src/target.ts:interface:Order:0",
+          name: "Order",
+          source: "export interface Order {\n  id: LocalId;\n  shape: RenamedShape;\n  mapped: MappedShape;\n  user: Types.UserId;\n  exported: PublicShape;\n  merged: Merged;\n  external: ExternalThing;\n  scoped: ScopedThing;\n  missing: MissingShape;\n}",
+          range: { byte: { start: 304, end: 531 }, line: { start: 6, end: 16 }, utf16: { start: { line: 6, character: 0 }, end: { line: 16, character: 1 } } },
+        },
+        reason: "syntactic-outbound-reference",
+        depth: 1,
+        reference: { name: "UserId", syntaxKind: "nested_type_identifier", range: { byte: { start: 404, end: 410 }, line: { start: 10, end: 10 }, utf16: { start: { line: 10, character: 14 }, end: { line: 10, character: 20 } } } },
+        resolution: "resolved",
+        cardinality: 1,
+        targets: [{ path: "src/types.ts", external: false, packageName: null, declarationId: "src/types.ts:interface:UserId:0" }],
+        omission: null,
+      },
+      {
+        from: {
+          id: "src/target.ts:interface:Order:0",
+          name: "Order",
+          source: "export interface Order {\n  id: LocalId;\n  shape: RenamedShape;\n  mapped: MappedShape;\n  user: Types.UserId;\n  exported: PublicShape;\n  merged: Merged;\n  external: ExternalThing;\n  scoped: ScopedThing;\n  missing: MissingShape;\n}",
+          range: { byte: { start: 304, end: 531 }, line: { start: 6, end: 16 }, utf16: { start: { line: 6, character: 0 }, end: { line: 16, character: 1 } } },
+        },
+        reason: "syntactic-outbound-reference",
+        depth: 1,
+        reference: { name: "PublicShape", syntaxKind: "type_identifier", range: { byte: { start: 424, end: 435 }, line: { start: 11, end: 11 }, utf16: { start: { line: 11, character: 12 }, end: { line: 11, character: 23 } } } },
+        resolution: "resolved",
+        cardinality: 1,
+        targets: [{ path: "src/types.ts", external: false, packageName: null, declarationId: "src/types.ts:interface:ReExported:0" }],
+        omission: null,
+      },
+      {
+        from: {
+          id: "src/target.ts:interface:Order:0",
+          name: "Order",
+          source: "export interface Order {\n  id: LocalId;\n  shape: RenamedShape;\n  mapped: MappedShape;\n  user: Types.UserId;\n  exported: PublicShape;\n  merged: Merged;\n  external: ExternalThing;\n  scoped: ScopedThing;\n  missing: MissingShape;\n}",
+          range: { byte: { start: 304, end: 531 }, line: { start: 6, end: 16 }, utf16: { start: { line: 6, character: 0 }, end: { line: 16, character: 1 } } },
+        },
+        reason: "syntactic-outbound-reference",
+        depth: 1,
+        reference: { name: "Merged", syntaxKind: "type_identifier", range: { byte: { start: 447, end: 453 }, line: { start: 12, end: 12 }, utf16: { start: { line: 12, character: 10 }, end: { line: 12, character: 16 } } } },
+        resolution: "multiple",
+        cardinality: 2,
+        targets: [
+          { path: "src/types.ts", external: false, packageName: null, declarationId: "src/types.ts:interface:Merged:0" },
+          { path: "src/types.ts", external: false, packageName: null, declarationId: "src/types.ts:interface:Merged:1" },
+        ],
+        omission: null,
+      },
+      {
+        from: {
+          id: "src/target.ts:interface:Order:0",
+          name: "Order",
+          source: "export interface Order {\n  id: LocalId;\n  shape: RenamedShape;\n  mapped: MappedShape;\n  user: Types.UserId;\n  exported: PublicShape;\n  merged: Merged;\n  external: ExternalThing;\n  scoped: ScopedThing;\n  missing: MissingShape;\n}",
+          range: { byte: { start: 304, end: 531 }, line: { start: 6, end: 16 }, utf16: { start: { line: 6, character: 0 }, end: { line: 16, character: 1 } } },
+        },
+        reason: "syntactic-outbound-reference",
+        depth: 1,
+        reference: { name: "ExternalThing", syntaxKind: "type_identifier", range: { byte: { start: 467, end: 480 }, line: { start: 13, end: 13 }, utf16: { start: { line: 13, character: 12 }, end: { line: 13, character: 25 } } } },
+        resolution: "external",
+        cardinality: 1,
+        targets: [{ path: "node_modules/external-types/index.d.ts", external: true, packageName: "external-types", declarationId: "node_modules/external-types/index.d.ts:interface:ExternalThing:0" }],
+        omission: "external-package-terminal",
+      },
+      {
+        from: {
+          id: "src/target.ts:interface:Order:0",
+          name: "Order",
+          source: "export interface Order {\n  id: LocalId;\n  shape: RenamedShape;\n  mapped: MappedShape;\n  user: Types.UserId;\n  exported: PublicShape;\n  merged: Merged;\n  external: ExternalThing;\n  scoped: ScopedThing;\n  missing: MissingShape;\n}",
+          range: { byte: { start: 304, end: 531 }, line: { start: 6, end: 16 }, utf16: { start: { line: 6, character: 0 }, end: { line: 16, character: 1 } } },
+        },
+        reason: "syntactic-outbound-reference",
+        depth: 1,
+        reference: { name: "ScopedThing", syntaxKind: "type_identifier", range: { byte: { start: 492, end: 503 }, line: { start: 14, end: 14 }, utf16: { start: { line: 14, character: 10 }, end: { line: 14, character: 21 } } } },
+        resolution: "external",
+        cardinality: 1,
+        targets: [{ path: "node_modules/@scope/external-types/index.d.ts", external: true, packageName: "@scope/external-types", declarationId: "node_modules/@scope/external-types/index.d.ts:interface:ScopedThing:0" }],
+        omission: "external-package-terminal",
+      },
+      {
+        from: {
+          id: "src/target.ts:interface:Order:0",
+          name: "Order",
+          source: "export interface Order {\n  id: LocalId;\n  shape: RenamedShape;\n  mapped: MappedShape;\n  user: Types.UserId;\n  exported: PublicShape;\n  merged: Merged;\n  external: ExternalThing;\n  scoped: ScopedThing;\n  missing: MissingShape;\n}",
+          range: { byte: { start: 304, end: 531 }, line: { start: 6, end: 16 }, utf16: { start: { line: 6, character: 0 }, end: { line: 16, character: 1 } } },
+        },
+        reason: "syntactic-outbound-reference",
+        depth: 1,
+        reference: { name: "MissingShape", syntaxKind: "type_identifier", range: { byte: { start: 516, end: 528 }, line: { start: 15, end: 15 }, utf16: { start: { line: 15, character: 11 }, end: { line: 15, character: 23 } } } },
+        resolution: "null",
+        cardinality: 0,
+        targets: [],
+        omission: null,
+      },
+    ]);
     expect(record.extraction.completeness.complete).toBe(false);
     expect(record.extraction.completeness.reasons).toEqual(
       expect.arrayContaining(["multiple-definitions", "null-definition", "external-package-terminal"]),
@@ -179,9 +395,98 @@ describe("declaration extraction experiment black-box seam", () => {
     expect(record.rootSelection.before.map((root: any) => root.name)).toEqual(["OrderPayload"]);
     expect(record.rootSelection.after.map((root: any) => root.name)).toEqual(["OrderPayload"]);
     expect(record.extraction.roots[0].kind).toBe("type-alias");
+    expect(record.extraction.roots[0].source).toBe("export type OrderPayload = {\n  order: Order;\n  local: LocalId;\n};");
+    expect(record.extraction.roots[0].range).toEqual({
+      byte: { start: 533, end: 598 },
+      line: { start: 18, end: 21 },
+      utf16: { start: { line: 18, character: 0 }, end: { line: 21, character: 2 } },
+    });
     expect(record.extraction.context.map((declaration: any) => declaration.name)).toEqual(
       expect.arrayContaining(["Order", "LocalId"]),
     );
+    expect((record.extraction.edges as Array<Record<string, any>>).map((edge) => normalizedEdgeSummary(edge))).toEqual([
+      {
+        from: { id: "src/target.ts:type-alias:OrderPayload:0", name: "OrderPayload" },
+        reason: "syntactic-outbound-reference",
+        depth: 1,
+        reference: { name: "Order", syntaxKind: "type_identifier", range: { byte: { start: 571, end: 576 }, line: { start: 19, end: 19 }, utf16: { start: { line: 19, character: 9 }, end: { line: 19, character: 14 } } } },
+        resolution: "resolved",
+        cardinality: 1,
+        targets: [{ path: "src/target.ts", external: false, packageName: null, declarationId: "src/target.ts:interface:Order:0" }],
+        omission: null,
+      },
+      {
+        from: { id: "src/target.ts:type-alias:OrderPayload:0", name: "OrderPayload" },
+        reason: "syntactic-outbound-reference",
+        depth: 1,
+        reference: { name: "LocalId", syntaxKind: "type_identifier", range: { byte: { start: 587, end: 594 }, line: { start: 20, end: 20 }, utf16: { start: { line: 20, character: 9 }, end: { line: 20, character: 16 } } } },
+        resolution: "resolved",
+        cardinality: 1,
+        targets: [{ path: "src/types.ts", external: false, packageName: null, declarationId: "src/types.ts:interface:LocalId:0" }],
+        omission: null,
+      },
+      {
+        from: { id: "src/target.ts:interface:Order:0", name: "Order" },
+        reason: "syntactic-outbound-reference",
+        depth: 2,
+        reference: { name: "LocalId", syntaxKind: "type_identifier", range: { byte: { start: 335, end: 342 }, line: { start: 7, end: 7 }, utf16: { start: { line: 7, character: 6 }, end: { line: 7, character: 13 } } } },
+        resolution: "resolved",
+        cardinality: 1,
+        targets: [{ path: "src/types.ts", external: false, packageName: null, declarationId: "src/types.ts:interface:LocalId:0" }],
+        omission: "already-visited",
+      },
+      ...[
+        ["RenamedShape", "type_identifier", 353, 365, 8, 9, 21, "src/types.ts:type-alias:ImportedShape:0", null],
+        ["MappedShape", "type_identifier", 377, 388, 9, 10, 21, "src/types.ts:interface:MappedShape:0", null],
+        ["UserId", "nested_type_identifier", 404, 410, 10, 14, 20, "src/types.ts:interface:UserId:0", null],
+        ["PublicShape", "type_identifier", 424, 435, 11, 12, 23, "src/types.ts:interface:ReExported:0", null],
+      ].map(([name, syntaxKind, start, end, line, startCharacter, endCharacter, declarationId, omission]) => ({
+        from: { id: "src/target.ts:interface:Order:0", name: "Order" },
+        reason: "syntactic-outbound-reference",
+        depth: 2,
+        reference: { name, syntaxKind, range: { byte: { start, end }, line: { start: line, end: line }, utf16: { start: { line, character: startCharacter }, end: { line, character: endCharacter } } } },
+        resolution: "resolved",
+        cardinality: 1,
+        targets: [{ path: "src/types.ts", external: false, packageName: null, declarationId }],
+        omission,
+      })),
+      {
+        from: { id: "src/target.ts:interface:Order:0", name: "Order" },
+        reason: "syntactic-outbound-reference",
+        depth: 2,
+        reference: { name: "Merged", syntaxKind: "type_identifier", range: { byte: { start: 447, end: 453 }, line: { start: 12, end: 12 }, utf16: { start: { line: 12, character: 10 }, end: { line: 12, character: 16 } } } },
+        resolution: "multiple",
+        cardinality: 2,
+        targets: [
+          { path: "src/types.ts", external: false, packageName: null, declarationId: "src/types.ts:interface:Merged:0" },
+          { path: "src/types.ts", external: false, packageName: null, declarationId: "src/types.ts:interface:Merged:1" },
+        ],
+        omission: null,
+      },
+      ...[
+        ["ExternalThing", "type_identifier", 467, 480, 13, 12, 25, "node_modules/external-types/index.d.ts:interface:ExternalThing:0", "external-types"],
+        ["ScopedThing", "type_identifier", 492, 503, 14, 10, 21, "node_modules/@scope/external-types/index.d.ts:interface:ScopedThing:0", "@scope/external-types"],
+      ].map(([name, syntaxKind, start, end, line, startCharacter, endCharacter, declarationId, packageName]) => ({
+        from: { id: "src/target.ts:interface:Order:0", name: "Order" },
+        reason: "syntactic-outbound-reference",
+        depth: 2,
+        reference: { name, syntaxKind, range: { byte: { start, end }, line: { start: line, end: line }, utf16: { start: { line, character: startCharacter }, end: { line, character: endCharacter } } } },
+        resolution: "external",
+        cardinality: 1,
+        targets: [{ path: String(name) === "ExternalThing" ? "node_modules/external-types/index.d.ts" : "node_modules/@scope/external-types/index.d.ts", external: true, packageName, declarationId }],
+        omission: "external-package-terminal",
+      })),
+      {
+        from: { id: "src/target.ts:interface:Order:0", name: "Order" },
+        reason: "syntactic-outbound-reference",
+        depth: 2,
+        reference: { name: "MissingShape", syntaxKind: "type_identifier", range: { byte: { start: 516, end: 528 }, line: { start: 15, end: 15 }, utf16: { start: { line: 15, character: 11 }, end: { line: 15, character: 23 } } } },
+        resolution: "null",
+        cardinality: 0,
+        targets: [],
+        omission: null,
+      },
+    ]);
     expect(record.determinism.coldWarmStable).toBe(true);
   }, 30_000);
 
@@ -431,6 +736,7 @@ describe("declaration extraction experiment black-box seam", () => {
     expect(record.extraction.edges.map((edge: any) => edge.reference.name)).toEqual([
       "LocalId",
       "RenamedShape",
+      "MappedShape",
       "UserId",
       "PublicShape",
       "Merged",
@@ -472,6 +778,63 @@ describe("declaration extraction experiment black-box seam", () => {
     expect(transformed.schema.expression).toContain(".transform");
     expect(roots.some((root) => ["Ordinary", "OrdinaryNamespace", "OrdinaryCall", "Treeified", "Locales", "Regexes"].includes(root.name))).toBe(false);
     expect(roots.find((root) => root.name === "MissingConstructor")?.schema.provenance).toBe("null");
+    const rejectedZodNames = new Set(["Ordinary", "OrdinaryNamespace", "OrdinaryCall", "Treeified", "Locales", "Regexes"]);
+    expect(roots.every((root) => !rejectedZodNames.has(root.name))).toBe(true);
+    expect((record.extraction.edges as Array<Record<string, any>>).every((edge) => !rejectedZodNames.has(edge.from.name))).toBe(true);
+    expect(record.extraction.edges.some((edge: any) => edge.reference.name === "ordinaryFactory")).toBe(false);
+    expect(record.extraction.completeness.observed).toMatchObject({ declarations: 7, sourceCharacters: 490, files: 1, externalPackages: 1 });
+    expect(record.positionalRequestCounts.cold["textDocument/definition"]).toBe(18);
+    expect(record.positionalRequestCounts.warm["textDocument/definition"]).toBe(18);
+    expect(roots.find((root) => root.name === "Composed")?.source).toBe("export const Composed = Z.object({ address: Address, label: namedZ.string() });");
+    expect(roots.find((root) => root.name === "Composed")?.range).toEqual({
+      byte: { start: 317, end: 396 },
+      line: { start: 12, end: 12 },
+      utf16: { start: { line: 12, character: 0 }, end: { line: 12, character: 79 } },
+    });
+    expect((record.extraction.edges as Array<Record<string, any>>).map((edge) => normalizedEdgeSummary(edge))).toEqual([
+      {
+        from: { id: "src/target.ts:schema:Composed:0", name: "Composed" }, reason: "syntactic-outbound-reference", depth: 1,
+        reference: { name: "Address", syntaxKind: "schema-value", range: { byte: { start: 361, end: 368 }, line: { start: 12, end: 12 }, utf16: { start: { line: 12, character: 44 }, end: { line: 12, character: 51 } } } },
+        resolution: "resolved", cardinality: 1, targets: [{ path: "src/target.ts", external: false, packageName: null, declarationId: "src/target.ts:schema:Address:0" }], omission: "already-visited",
+      },
+      {
+        from: { id: "src/target.ts:schema:ReExported:0", name: "ReExported" }, reason: "syntactic-outbound-reference", depth: 1,
+        reference: { name: "reexportedZ", syntaxKind: "schema-value", range: { byte: { start: 479, end: 490 }, line: { start: 16, end: 16 }, utf16: { start: { line: 16, character: 26 }, end: { line: 16, character: 37 } } } },
+        resolution: "external", cardinality: 1, targets: [{ path: "../../../../../node_modules/zod/v4/classic/external.d.cts", external: true, packageName: "zod", declarationId: null }], omission: "external-package-terminal",
+      },
+      {
+        from: { id: "src/target.ts:schema:ReExported:0", name: "ReExported" }, reason: "syntactic-outbound-reference", depth: 1,
+        reference: { name: "Address", syntaxKind: "schema-value", range: { byte: { start: 497, end: 504 }, line: { start: 16, end: 16 }, utf16: { start: { line: 16, character: 44 }, end: { line: 16, character: 51 } } } },
+        resolution: "resolved", cardinality: 1, targets: [{ path: "src/target.ts", external: false, packageName: null, declarationId: "src/target.ts:schema:Address:0" }], omission: "already-visited",
+      },
+      ...[
+        [568, 573, 14, 19], [578, 583, 24, 29], [603, 608, 11, 16], [613, 618, 21, 26],
+      ].map(([start, end, startCharacter, endCharacter]) => ({
+        from: { id: "src/target.ts:schema:Transformed:0", name: "Transformed" }, reason: "syntactic-outbound-reference", depth: 1,
+        reference: { name: "value", syntaxKind: "schema-value", range: { byte: { start, end }, line: { start: start === 603 || start === 613 ? 21 : 20, end: start === 603 || start === 613 ? 21 : 20 }, utf16: { start: { line: start === 603 || start === 613 ? 21 : 20, character: startCharacter }, end: { line: start === 603 || start === 613 ? 21 : 20, character: endCharacter } } } },
+        resolution: "resolved", cardinality: 1, targets: [{ path: "src/target.ts", external: false, packageName: null, declarationId: "src/target.ts:schema:Transformed:0" }], omission: "already-visited",
+      })),
+      {
+        from: { id: "src/target.ts:schema:Wrapped:0", name: "Wrapped" }, reason: "syntactic-outbound-reference", depth: 1,
+        reference: { name: "wrap", syntaxKind: "schema-value", range: { byte: { start: 656, end: 660 }, line: { start: 23, end: 23 }, utf16: { start: { line: 23, character: 23 }, end: { line: 23, character: 27 } } } },
+        resolution: "unresolved", cardinality: 1, targets: [{ path: "src/zod-helpers.ts", external: false, packageName: null, declarationId: null }], omission: null,
+      },
+      {
+        from: { id: "src/target.ts:schema:Wrapped:0", name: "Wrapped" }, reason: "syntactic-outbound-reference", depth: 1,
+        reference: { name: "Composed", syntaxKind: "schema-value", range: { byte: { start: 661, end: 669 }, line: { start: 23, end: 23 }, utf16: { start: { line: 23, character: 28 }, end: { line: 23, character: 36 } } } },
+        resolution: "resolved", cardinality: 1, targets: [{ path: "src/target.ts", external: false, packageName: null, declarationId: "src/target.ts:schema:Composed:0" }], omission: "already-visited",
+      },
+      {
+        from: { id: "src/target.ts:schema:MissingConstructor:0", name: "MissingConstructor" }, reason: "syntactic-outbound-reference", depth: 1,
+        reference: { name: "globalThis", syntaxKind: "schema-value", range: { byte: { start: 912, end: 922 }, line: { start: 29, end: 29 }, utf16: { start: { line: 29, character: 34 }, end: { line: 29, character: 44 } } } },
+        resolution: "null", cardinality: 0, targets: [], omission: null,
+      },
+      {
+        from: { id: "src/target.ts:schema:MissingConstructor:0", name: "MissingConstructor" }, reason: "syntactic-outbound-reference", depth: 1,
+        reference: { name: "Composed", syntaxKind: "schema-value", range: { byte: { start: 943, end: 951 }, line: { start: 29, end: 29 }, utf16: { start: { line: 29, character: 65 }, end: { line: 29, character: 73 } } } },
+        resolution: "resolved", cardinality: 1, targets: [{ path: "src/target.ts", external: false, packageName: null, declarationId: "src/target.ts:schema:Composed:0" }], omission: "already-visited",
+      },
+    ]);
     expect(record.extraction.completeness.reasons).toContain("schema-unresolved");
     expect(record.evaluation.modulesImported).toBe(false);
     expect(record.evaluation.noEvaluationObserved).toBe(true);
@@ -583,6 +946,75 @@ describe("declaration extraction experiment black-box seam", () => {
     expect(roots.find((root) => root.name === "Wrapped")?.schema.provenance).toBe("project");
     expect(roots.some((root) => ["Ordinary", "OrdinaryNamespace", "OrdinaryCall", "IsSchema"].includes(root.name))).toBe(false);
     expect(roots.find((root) => root.name === "MissingConstructor")?.schema.provenance).toBe("null");
+    const rejectedEffectNames = new Set(["Ordinary", "OrdinaryNamespace", "OrdinaryCall", "IsSchema"]);
+    expect(roots.every((root) => !rejectedEffectNames.has(root.name))).toBe(true);
+    expect((record.extraction.edges as Array<Record<string, any>>).every((edge) => !rejectedEffectNames.has(edge.from.name))).toBe(true);
+    expect(record.extraction.edges.some((edge: any) => edge.reference.name === "ordinaryFactory")).toBe(false);
+    expect(record.extraction.completeness.observed).toMatchObject({ declarations: 9, sourceCharacters: 641, files: 1, externalPackages: 1 });
+    expect(record.positionalRequestCounts.cold["textDocument/definition"]).toBe(20);
+    expect(record.positionalRequestCounts.warm["textDocument/definition"]).toBe(20);
+    expect(roots.find((root) => root.name === "Composed")?.source).toBe("export const Composed = Schema.Struct({ address: Address, label: Schema.String });");
+    expect(roots.find((root) => root.name === "Composed")?.range).toEqual({
+      byte: { start: 431, end: 513 },
+      line: { start: 16, end: 16 },
+      utf16: { start: { line: 16, character: 0 }, end: { line: 16, character: 82 } },
+    });
+    expect((record.extraction.edges as Array<Record<string, any>>).map((edge) => normalizedEdgeSummary(edge))).toEqual([
+      {
+        from: { id: "src/target.ts:schema:Composed:0", name: "Composed" }, reason: "syntactic-outbound-reference", depth: 1,
+        reference: { name: "Address", syntaxKind: "schema-value", range: { byte: { start: 480, end: 487 }, line: { start: 16, end: 16 }, utf16: { start: { line: 16, character: 49 }, end: { line: 16, character: 56 } } } },
+        resolution: "resolved", cardinality: 1, targets: [{ path: "src/target.ts", external: false, packageName: null, declarationId: "src/target.ts:schema:Address:0" }], omission: "already-visited",
+      },
+      {
+        from: { id: "src/target.ts:schema:Namespaced:0", name: "Namespaced" }, reason: "syntactic-outbound-reference", depth: 1,
+        reference: { name: "Address", syntaxKind: "schema-value", range: { byte: { start: 554, end: 561 }, line: { start: 18, end: 18 }, utf16: { start: { line: 18, character: 39 }, end: { line: 18, character: 46 } } } },
+        resolution: "resolved", cardinality: 1, targets: [{ path: "src/target.ts", external: false, packageName: null, declarationId: "src/target.ts:schema:Address:0" }], omission: "already-visited",
+      },
+      {
+        from: { id: "src/target.ts:schema:ReExported:0", name: "ReExported" }, reason: "syntactic-outbound-reference", depth: 1,
+        reference: { name: "reexportedStruct", syntaxKind: "schema-value", range: { byte: { start: 591, end: 607 }, line: { start: 20, end: 20 }, utf16: { start: { line: 20, character: 26 }, end: { line: 20, character: 42 } } } },
+        resolution: "multiple", cardinality: 3, targets: [
+          { path: "../../../../../node_modules/effect/src/Schema.ts", external: true, packageName: "effect", declarationId: null },
+          { path: "../../../../../node_modules/effect/src/Schema.ts", external: true, packageName: "effect", declarationId: null },
+          { path: "../../../../../node_modules/effect/src/Schema.ts", external: true, packageName: "effect", declarationId: null },
+        ], omission: null,
+      },
+      {
+        from: { id: "src/target.ts:schema:ReExported:0", name: "ReExported" }, reason: "syntactic-outbound-reference", depth: 1,
+        reference: { name: "reexportedString", syntaxKind: "schema-value", range: { byte: { start: 617, end: 633 }, line: { start: 20, end: 20 }, utf16: { start: { line: 20, character: 52 }, end: { line: 20, character: 68 } } } },
+        resolution: "multiple", cardinality: 2, targets: [
+          { path: "../../../../../node_modules/effect/src/Schema.ts", external: true, packageName: "effect", declarationId: null },
+          { path: "../../../../../node_modules/effect/src/Schema.ts", external: true, packageName: "effect", declarationId: null },
+        ], omission: null,
+      },
+      ...[
+        [838, 843, 3, 8], [855, 860, 20, 25], [881, 886, 46, 51],
+      ].map(([start, end, startCharacter, endCharacter]) => ({
+        from: { id: "src/target.ts:schema:Declared:0", name: "Declared" }, reason: "syntactic-outbound-reference", depth: 1,
+        reference: { name: "value", syntaxKind: "schema-value", range: { byte: { start, end }, line: { start: 27, end: 27 }, utf16: { start: { line: 27, character: startCharacter }, end: { line: 27, character: endCharacter } } } },
+        resolution: "resolved", cardinality: 1, targets: [{ path: "src/target.ts", external: false, packageName: null, declarationId: "src/target.ts:schema:Declared:0" }], omission: "already-visited",
+      })),
+      {
+        from: { id: "src/target.ts:schema:Wrapped:0", name: "Wrapped" }, reason: "syntactic-outbound-reference", depth: 1,
+        reference: { name: "wrap", syntaxKind: "schema-value", range: { byte: { start: 928, end: 932 }, line: { start: 30, end: 30 }, utf16: { start: { line: 30, character: 23 }, end: { line: 30, character: 27 } } } },
+        resolution: "unresolved", cardinality: 1, targets: [{ path: "src/effect-helpers.ts", external: false, packageName: null, declarationId: null }], omission: null,
+      },
+      {
+        from: { id: "src/target.ts:schema:Wrapped:0", name: "Wrapped" }, reason: "syntactic-outbound-reference", depth: 1,
+        reference: { name: "Composed", syntaxKind: "schema-value", range: { byte: { start: 933, end: 941 }, line: { start: 30, end: 30 }, utf16: { start: { line: 30, character: 28 }, end: { line: 30, character: 36 } } } },
+        resolution: "resolved", cardinality: 1, targets: [{ path: "src/target.ts", external: false, packageName: null, declarationId: "src/target.ts:schema:Composed:0" }], omission: "already-visited",
+      },
+      {
+        from: { id: "src/target.ts:schema:MissingConstructor:0", name: "MissingConstructor" }, reason: "syntactic-outbound-reference", depth: 1,
+        reference: { name: "globalThis", syntaxKind: "schema-value", range: { byte: { start: 1110, end: 1120 }, line: { start: 34, end: 34 }, utf16: { start: { line: 34, character: 34 }, end: { line: 34, character: 44 } } } },
+        resolution: "null", cardinality: 0, targets: [], omission: null,
+      },
+      {
+        from: { id: "src/target.ts:schema:MissingConstructor:0", name: "MissingConstructor" }, reason: "syntactic-outbound-reference", depth: 1,
+        reference: { name: "Composed", syntaxKind: "schema-value", range: { byte: { start: 1144, end: 1152 }, line: { start: 34, end: 34 }, utf16: { start: { line: 34, character: 68 }, end: { line: 34, character: 76 } } } },
+        resolution: "resolved", cardinality: 1, targets: [{ path: "src/target.ts", external: false, packageName: null, declarationId: "src/target.ts:schema:Composed:0" }], omission: "already-visited",
+      },
+    ]);
     expect(record.evaluation.modulesImported).toBe(false);
     expect(record.evaluation.noEvaluationObserved).toBe(true);
     const serialized = JSON.stringify(record);

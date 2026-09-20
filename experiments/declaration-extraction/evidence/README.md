@@ -28,6 +28,12 @@ npm run --silent experiment:extract -- \
   --edit interface
 ```
 
+The `typescript-interface` record additionally carries source-free path-mapping
+evidence: the discovered `tsconfig.json`, the `MappedShape` reference outcome, and
+its reconciled `src/types.ts` artifact identity. Framework-negative candidates are
+absent from roots and outbound summaries and therefore do not pollute those budget
+or navigation observations.
+
 The `openDispatch` timing covers the client-side event-loop turn after `didOpen` writes;
 it is not a barrier for native-server processing. Server work may therefore be included
 in cold extraction. The harness directly reads fixture source and directly spawns one native

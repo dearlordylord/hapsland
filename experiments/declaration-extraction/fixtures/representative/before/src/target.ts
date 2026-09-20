@@ -1,4 +1,4 @@
-import type { LocalId, ImportedShape as RenamedShape, Merged } from "./types.ts";
+import type { LocalId, ImportedShape as RenamedShape, MappedShape, Merged } from "@fixture/types";
 import type * as Types from "./types.ts";
 import type { PublicShape } from "./reexports.ts";
 import type { ExternalThing } from "external-types";
@@ -7,6 +7,7 @@ import type { ScopedThing } from "@scope/external-types";
 export interface Order {
   id: LocalId;
   shape?: RenamedShape;
+  mapped: MappedShape;
   user: Types.UserId;
   exported: PublicShape;
   merged: Merged;

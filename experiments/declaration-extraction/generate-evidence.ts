@@ -180,6 +180,17 @@ const summarize = (record: JsonRecord, fixtureName: string, fixtureCase: string,
     roots: roots.map((root) => ({ kind: root.kind, name: root.name, parserError: root.parserError, sourceHash: root.sourceHash })),
     context: context.map((declaration) => ({ kind: declaration.kind, name: declaration.name, sourceHash: declaration.sourceHash })),
     navigationOutcomes: unique(edges.map((edge) => edge.resolution)),
+    pathMapping: {
+      configurationPaths: ((observations.files as JsonRecord).configurationPathsDiscovered as unknown[])
+        .filter((path): path is string => typeof path === "string" && /(?:^|\/)tsconfig\.json$/.test(path)),
+      mappedReferences: edges
+        .filter((edge) => edge.reference?.name === "MappedShape")
+        .map((edge) => ({
+          resolution: edge.resolution,
+          targetPath: edge.definitions?.[0]?.path ?? null,
+          targetDeclarationId: edge.definitions?.[0]?.declaration?.id ?? null,
+        })),
+    },
     resolvedReferences: edges
       .filter((edge) => edge.resolution === "resolved" && edge.included)
       .map((edge) => `${edge.reference?.name ?? "<unknown>"}->${edge.sourceDeclaration?.name ?? "<unknown>"}`),

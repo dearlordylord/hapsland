@@ -6,6 +6,10 @@ export type ImportedShape = {
   label: string;
 };
 
+export interface MappedShape {
+  mapped: boolean;
+}
+
 export interface UserId {
   raw: string;
 }
