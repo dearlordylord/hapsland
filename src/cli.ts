@@ -25,7 +25,11 @@ import { decodeReviewRequest, type ReviewRequest } from "./domain/contracts.ts";
 import { ReviewBackend } from "./ports/review-backend.ts";
 import { DedupeStore } from "./ports/dedupe-store.ts";
 import { SnapshotReader } from "./ports/snapshot-reader.ts";
-import { review, type ReviewContext } from "./runtime/review.ts";
+import { ReceiptStore } from "./ports/receipt-store.ts";
+import { formatHuman as formatReceiptStatus, read as readReceiptStatus } from "./receipts/status.ts";
+import type { ReceiptOutcomeInput } from "./ports/receipt-store.ts";
+import type { ReviewContext } from "./runtime/review.ts";
+import { review } from "./runtime/review.ts";
 import {
   controlledDecisionModelLayer,
   type ControlledDecisionModelOptions,
@@ -110,6 +114,8 @@ const ConsentOperation = Schema.Union([
     version: Schema.Literal(1),
     operation: Schema.Literal("status"),
     cwd: Schema.String,
+    sessionId: Schema.optionalKey(Schema.NonEmptyString),
+    format: Schema.optionalKey(Schema.Literals(["json", "human"])),
   }),
   Schema.Struct({
     version: Schema.Literal(1),
@@ -123,6 +129,11 @@ type ConsentOperation = typeof ConsentOperation.Type;
 const statePathConfig = Config.String("REVIEW_STATE_PATH").pipe(
   Config.orElse(() => Config.String("REVIEW_CONSENT_FILE")),
   Config.withDefault(join(homedir(), ".config", "realtime-review-tool", "consent")),
+);
+
+const receiptPathConfig = Config.String("REVIEW_RECEIPT_PATH").pipe(
+  Config.orElse(() => Config.String("REVIEW_RECEIPTS_PATH")),
+  Config.withDefault(join(homedir(), ".local", "state", "realtime-review-tool", "receipts")),
 );
 
 const userConfigPathConfig = Config.option(Config.String("REVIEW_USER_CONFIG_PATH"));
@@ -145,6 +156,11 @@ const forcedOperation = (): ConsentOperation["operation"] | undefined => {
   }
   return undefined;
 };
+
+const forcedStatusFormat = (): "human" | undefined =>
+  process.argv.includes("--status-human") || process.argv.includes("--human")
+    ? "human"
+    : undefined;
 
 const decodeOperation = (input: string, forced: ConsentOperation["operation"] | undefined) =>
   decodeJson(input).pipe(
@@ -274,6 +290,7 @@ const requestedOperation = forcedOperation();
 const runOperation = (
   operation: ConsentOperation,
   statePath: string,
+  receiptPath: string,
   userConfigPath: string | undefined,
 ) =>
   Effect.gen(function* () {
@@ -354,10 +371,37 @@ const runOperation = (
       }
       case "status": {
         const grants = yield* consent.list();
-        return {
+        const authorization = yield* consent
+          .authorize(cwd, backend, destination)
+          .pipe(Effect.result);
+        const credentials = yield* Config.option(Config.String(credentialEnvVar)).pipe(
+          Effect.map((value) => Option.isSome(value) && value.value.length > 0),
+        );
+        const readinessStatus =
+          authorization._tag === "Success" &&
+          authorization.success.status === "approved" &&
+          credentials
+            ? "ready"
+            : "not-ready";
+        const activity =
+          operation.sessionId === undefined
+            ? yield* readReceiptStatus("")
+            : yield* readReceiptStatus(operation.sessionId);
+        const output = {
           version: 1,
           operation: "status",
           repository: { canonicalRoot: root },
+          ...(operation.sessionId === undefined ? {} : { sessionId: operation.sessionId }),
+          readiness: {
+            status: readinessStatus,
+            configuration: "ready",
+            consent:
+              authorization._tag === "Failure"
+                ? "unavailable"
+                : authorization.success.status,
+            credentials: { envVar: credentialEnvVar, present: credentials },
+          },
+          activity,
           grants: grants.map((grant) => ({
             backend: grant.backend,
             destination: grant.destination,
@@ -365,6 +409,13 @@ const runOperation = (
           })),
           projectAuthorizationIgnored: settings.projectRequestedConsent,
         };
+        return operation.format === "human"
+          ? formatReceiptStatus(
+              operation.sessionId ?? "<session id required>",
+              `${readinessStatus} (consent=${output.readiness.consent}, credentials=${credentials ? "present" : "absent"})`,
+              activity,
+            )
+          : output;
       }
       case "explain": {
         const relativePath = rootRelativePath(root, cwd, operation.path);
@@ -381,9 +432,16 @@ const runOperation = (
       default:
         return assertNever(operation);
     }
-  }).pipe(Effect.provide(Consent.layer({ statePath })));
+  }).pipe(
+    Effect.provide(
+      Layer.mergeAll(
+        Consent.layer({ statePath }),
+        ReceiptStore.layer({ statePath: receiptPath }),
+      ),
+    ),
+  );
 
-const runReviewRequest = (
+const runReviewRequestCore = (
   request: ReviewRequest,
   controlled: ControlledDecisionModelOptions | undefined,
   statePath: string,
@@ -453,9 +511,65 @@ const runReviewRequest = (
     );
   });
 
+const receiptOutcomes = (response: { readonly results: ReadonlyArray<{ readonly status: string; readonly code?: string }> }):
+  ReadonlyArray<ReceiptOutcomeInput> =>
+  response.results.flatMap((result) => {
+    if (
+      result.status === "reviewed" ||
+      result.status === "skipped" ||
+      result.status === "unavailable"
+    ) {
+      return [{ status: result.status, ...(result.code === undefined ? {} : { code: result.code }) }];
+    }
+    return [];
+  });
+
+/**
+ * Receipt writes are observational.  A failed local write must not turn the
+ * already-completed host edit into a review failure or alter protocol output.
+ */
+const runReviewRequest = (
+  request: ReviewRequest,
+  controlled: ControlledDecisionModelOptions | undefined,
+  statePath: string,
+  userConfigPath: string | undefined,
+) =>
+  Effect.gen(function* () {
+    const receipt = yield* ReceiptStore.Service;
+    const sessionId = request.event.sessionId;
+    if (sessionId !== undefined) {
+      yield* receipt
+        .start({
+          sessionId,
+          eventId: request.event.id,
+          expectedResults: request.event.paths.length,
+        })
+        .pipe(Effect.catch(() => Effect.succeed(undefined)));
+    }
+    const response = yield* runReviewRequestCore(
+      request,
+      controlled,
+      statePath,
+      userConfigPath,
+    );
+    if (sessionId !== undefined) {
+      yield* receipt
+        .complete({
+          sessionId,
+          eventId: request.event.id,
+          expectedResults: request.event.paths.length,
+          outcomes: receiptOutcomes(response),
+          findings: response.advice.length,
+        })
+        .pipe(Effect.catch(() => Effect.succeed(undefined)));
+    }
+    return response;
+  });
+
 const program = Effect.gen(function* () {
   const input = yield* readStdin;
   const statePath = yield* statePathConfig;
+  const receiptPath = yield* receiptPathConfig;
   const userConfigPathOption = yield* userConfigPathConfig;
   const userConfigPath = Option.isSome(userConfigPathOption)
     ? userConfigPathOption.value
@@ -465,9 +579,13 @@ const program = Effect.gen(function* () {
     input,
   );
   if (requestedOperation !== undefined || inputRequestsOperation) {
-    const operation = yield* decodeOperation(input, requestedOperation);
+    const decodedOperation = yield* decodeOperation(input, requestedOperation);
+    const operation =
+      forcedStatusFormat() !== undefined && decodedOperation.operation === "status"
+        ? { ...decodedOperation, format: "human" as const }
+        : decodedOperation;
     if (operation.operation !== undefined) {
-      return yield* runOperation(operation, statePath, userConfigPath);
+      return yield* runOperation(operation, statePath, receiptPath, userConfigPath);
     }
   }
 
@@ -477,13 +595,23 @@ const program = Effect.gen(function* () {
     const event = yield* decodeCodexJson(input);
     const request = toReviewRequest(event);
     if (request === undefined) return {};
-    const response = yield* runReviewRequest(request, controlled, statePath, userConfigPath);
+    const response = yield* runReviewRequest(
+      request,
+      controlled,
+      statePath,
+      userConfigPath,
+    ).pipe(Effect.provide(ReceiptStore.layer({ statePath: receiptPath })));
     return toCodexOutput(response);
   }
 
   const unknownRequest = yield* decodeJson(input);
   const request = yield* decodeReviewRequest(unknownRequest);
-  return yield* runReviewRequest(request, controlled, statePath, userConfigPath);
+  return yield* runReviewRequest(
+    request,
+    controlled,
+    statePath,
+    userConfigPath,
+  ).pipe(Effect.provide(ReceiptStore.layer({ statePath: receiptPath })));
 }).pipe(
   Effect.catchCause(() =>
     Effect.succeed(
@@ -504,4 +632,4 @@ const program = Effect.gen(function* () {
 );
 
 const output = await Effect.runPromise(program);
-process.stdout.write(`${JSON.stringify(output)}\n`);
+process.stdout.write(typeof output === "string" ? output : `${JSON.stringify(output)}\n`);
