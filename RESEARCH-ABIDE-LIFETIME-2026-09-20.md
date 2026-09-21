@@ -353,3 +353,24 @@ The remaining product choice is whether pending reviews may wait for the next in
 and how much latency an active hook may spend before returning. Queue persistence, SQLite,
 and directory placement should be decided against that behavior. No ticket is resolved by
 this recommendation; it feeds [Choose the product process lifetime and hook transport](https://github.com/dearlordylord/jevs/issues/31).
+
+### Follow-up: process recommendation remains unsettled
+
+The user correctly challenged the assumption that a per-hook worker would exit with
+pending work: a worker could remain alive until available work is drained. Whether this
+fits the host's timeout, asynchronous execution, and feedback contract requires research.
+The last worker to start does not automatically become the owner of other workers' work;
+shared ownership/claiming or IPC would need to be specified where relevant.
+
+The user prioritizes useful feedback to the agent over the mechanism and would prefer a
+background process with in-memory state if it improves the architecture. They proposed
+starting it at agent initialization and/or lazily ensuring it is alive on any tool hook.
+This reopens the previous fresh-worker recommendation; it is not an accepted default.
+
+Before choosing queues, persistence, or SQLite, establish how bursts of sequential and
+parallel tool calls map to hook workers and how resulting advice can reach the host.
+Host invocation, product execution ownership, and host feedback delivery are separate
+questions. The source-free replay limit still applies to crash recovery of lost snapshots,
+but whether durable replay is needed depends on the eventual behavior contract.
+
+See [Research hook dispatch, worker lifetime, and feedback delivery](https://github.com/dearlordylord/jevs/issues/33).
