@@ -66,6 +66,7 @@
         url.searchParams.set("view", codeView);
         url.searchParams.delete("mode");
         url.searchParams.delete("unchanged");
+        url.searchParams.delete("example");
         const q = $("search").value, category = $("category").value, flag = $("flag").value;
         q ? url.searchParams.set("q", q) : url.searchParams.delete("q");
         category ? url.searchParams.set("category", category) : url.searchParams.delete("category");
