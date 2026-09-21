@@ -10,13 +10,19 @@ renderers over the same human-authored TypeScript fixtures:
 | `declaration-only` | the edited interface, type alias, or schema and the same path |
 | `declaration-context` | that declaration plus bounded outbound referenced declarations, completeness, and omission metadata |
 
-The fixture manifest is [`fixtures.ts`](./fixtures.ts). It contains 24 fixtures (six
+The fixture manifest is [`fixtures.ts`](./fixtures.ts). It contains 25 fixtures (seven
 interfaces, six type aliases, six Zod schemas, and six Effect Schema definitions),
 human-authored Rule 2 expectations and rationales, stable content identities, and the
 pre-registered category memberships. Every fixture has a real member-level before/after
 edit; the diff renderer emits the host-observed `*** Begin Patch` / `*** Update File` /
 `@@` / `+` / `*** End Patch` command shape rather than standard `--- before` / `+++ after`
 unified-diff text. `manifest.ts` exposes the source-free identity view for report tooling.
+
+The ten-field interface is the homogeneous `iface-delivery-ten-fields` fixture. Its
+current sanitized Codex/semantic Jev comparison is retained in
+[`live-codex-semantic-corpus-comparison-2026-09-20.json`](../../evidence/input-contract-comparison/live-codex-semantic-corpus-comparison-2026-09-20.json):
+the Codex patch arm returned `r2_meaningless_combinations = 0.44` (outside the expected
+violation band), while the declaration-context arm returned `0.86` (inside the band).
 
 After the first milestone returned `reject-or-narrow`, the follow-up corpus was tightened
 and then run as a separately authorized paid milestone. Diff-sufficient fixtures are now

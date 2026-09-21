@@ -22,12 +22,12 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
   "retention": {
     "retained": [
       "authored fixture metadata, expectations, and rationales",
-      "before and after source for all 24 fixtures",
+      "before and after source for all 25 fixtures",
       "deterministically regenerated inputs for all four modes",
       "aggregate run counts, gates, timing, and request-size summaries",
       "sanitized 64-call production request/result diagnostic for four representative fixtures",
       "user-authorized two-call numeric confidence probe for iface-delivery-flat",
-      "24 runtime-tested Codex apply_patch callbacks, one per fixture"
+      "25 runtime-tested Codex apply_patch callbacks, one per fixture"
     ],
     "notRetained": [
       "individual backend probabilities for the full gate and 64-call diagnostic",
@@ -35,7 +35,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "raw or source-bearing provider responses",
       "provider usage details"
     ],
-    "consequence": "The active Codex arm uses 24 verified runtime apply_patch callbacks. The semantic arm is the extracted declaration-context object tree. Each arm has its own retained Jev request metadata and return; the historical repeated gate remains provenance only."
+    "consequence": "The active Codex arm uses 25 verified runtime apply_patch callbacks. The semantic arm is the extracted declaration-context object tree. Each arm has its own retained Jev request metadata and return; the historical repeated gate remains provenance only."
   },
   "providerContract": {
     "source": [
@@ -310,6 +310,68 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
     "failures": []
   },
   "codexCaptures": {
+    "iface-delivery-ten-fields": {
+      "fixtureId": "iface-delivery-ten-fields",
+      "path": "fixtures/input-contract/interface/iface-delivery-ten-fields.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-delivery-ten-fields.ts\n@@\n-  email?: string;\n+  email: string;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-delivery-ten-fields.ts\n@@\n-  email?: string;\n+  email: string;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "7bee88b46501452ede6e86a0c4f5ce82ae86f25f2f2fa5a66f98cadb9793087b",
+        "expectedFileSha256": "7bee88b46501452ede6e86a0c4f5ce82ae86f25f2f2fa5a66f98cadb9793087b",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in.",
+      "request": {
+        "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-delivery-ten-fields.ts\n@@\n-  email?: string;\n+  email: string;\n*** End Patch"
+      }
+    },
     "iface-delivery-flat": {
       "fixtureId": "iface-delivery-flat",
       "path": "fixtures/input-contract/interface/iface-delivery-flat.ts",
@@ -593,6 +655,10 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           {
             "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
           },
           {
             "type": "item.started",
@@ -1025,6 +1091,10 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "type": "turn.started"
           },
           {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
             "type": "item.started",
             "itemType": "file_change"
           },
@@ -1393,6 +1463,10 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "type": "turn.started"
           },
           {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
             "type": "item.started",
             "itemType": "file_change"
           },
@@ -1511,6 +1585,10 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           },
           {
             "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
           },
           {
             "type": "item.started",
@@ -1757,6 +1835,10 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "type": "turn.started"
           },
           {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
             "type": "item.started",
             "itemType": "file_change"
           },
@@ -1782,16 +1864,16 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
   "codexComparison": {
     "evidenceVersion": 1,
     "status": "complete",
-    "date": "2026-09-20",
+    "date": "2026-09-21",
     "runId": "input-contract-codex-semantic-corpus-comparison-2026-09-20",
     "purpose": "User-authorized comparison of runtime-captured Codex apply_patch commands against semantic object-tree artifacts over the full authored corpus.",
     "authorization": {
       "previousProjectLedgerRemaining": 0,
-      "additionalCallsAuthorized": 48,
-      "callsObserved": 48,
+      "additionalCallsAuthorized": 50,
+      "callsObserved": 50,
       "remainingAdditionalCalls": 0
     },
-    "fixtureCount": 24,
+    "fixtureCount": 25,
     "codexCapture": "evidence/codex/0.155.1/native-patch-corpus-2026-09-20.json",
     "backend": {
       "id": "jev",
@@ -1801,6 +1883,108 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       "requestMethod": "POST"
     },
     "rows": [
+      {
+        "fixtureId": "iface-delivery-ten-fields",
+        "arm": "codex-patch",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/interface/iface-delivery-ten-fields.ts",
+            "sourceSha256": "ed85df3e75410116c4e1506fd385a08bbd9825fc1550c1c7bfe0cf312a4fb93b",
+            "sourceCharacters": 161
+          },
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "requestBytes": 648,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "runtime-codex-callback"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "failed",
+          "probabilities": {
+            "r1_inferred_case": 0.15,
+            "r2_meaningless_combinations": 0.44,
+            "r3_split_correlations": 0.07,
+            "r4_duplicate_encoding": 0.08,
+            "r5_absence_confusion": 0.53,
+            "r6_bare_domain_value": 0.34,
+            "r7_name_wider_than_type": 0.71,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.04
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 389,
+          "retries": 0
+        }
+      },
+      {
+        "fixtureId": "iface-delivery-ten-fields",
+        "arm": "semantic-object-tree",
+        "request": {
+          "model": "jev-latest",
+          "artifact": {
+            "domain": "fixtures/input-contract/interface/iface-delivery-ten-fields.ts",
+            "sourceSha256": "6a991fa3a6d9b5f580643ae290ac1d4af2d855b7648548f99f736c8350cef6b5",
+            "sourceCharacters": 337
+          },
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "requestBytes": 1029,
+          "questionCount": 9,
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51"
+        },
+        "result": {
+          "status": "reviewed",
+          "semantic": "passed",
+          "probabilities": {
+            "r1_inferred_case": 0.16,
+            "r2_meaningless_combinations": 0.86,
+            "r3_split_correlations": 0.22,
+            "r4_duplicate_encoding": 0.52,
+            "r5_absence_confusion": 0.48,
+            "r6_bare_domain_value": 0.56,
+            "r7_name_wider_than_type": 0.84,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.04
+          },
+          "returnedDecisionKeys": [
+            "r1_inferred_case",
+            "r2_meaningless_combinations",
+            "r3_split_correlations",
+            "r4_duplicate_encoding",
+            "r5_absence_confusion",
+            "r6_bare_domain_value",
+            "r7_name_wider_than_type",
+            "r8_name_claims_resource",
+            "r9_body_reaches_undeclared"
+          ]
+        },
+        "backend": {
+          "durationMs": 485,
+          "retries": 0
+        }
+      },
       {
         "fixtureId": "iface-delivery-flat",
         "arm": "codex-patch",
@@ -1825,15 +2009,15 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "failed",
           "probabilities": {
-            "r1_inferred_case": 0.35,
-            "r2_meaningless_combinations": 0.5,
+            "r1_inferred_case": 0.36,
+            "r2_meaningless_combinations": 0.51,
             "r3_split_correlations": 0.09,
-            "r4_duplicate_encoding": 0.09,
+            "r4_duplicate_encoding": 0.08,
             "r5_absence_confusion": 0.21,
-            "r6_bare_domain_value": 0.44,
-            "r7_name_wider_than_type": 0.43,
-            "r8_name_claims_resource": 0.04,
-            "r9_body_reaches_undeclared": 0.05
+            "r6_bare_domain_value": 0.45,
+            "r7_name_wider_than_type": 0.49,
+            "r8_name_claims_resource": 0.03,
+            "r9_body_reaches_undeclared": 0.04
           },
           "returnedDecisionKeys": [
             "r1_inferred_case",
@@ -1848,7 +2032,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 424,
+          "durationMs": 189,
           "retries": 0
         }
       },
@@ -1876,15 +2060,15 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "passed",
           "probabilities": {
-            "r1_inferred_case": 0.28,
-            "r2_meaningless_combinations": 0.92,
-            "r3_split_correlations": 0.39,
-            "r4_duplicate_encoding": 0.71,
-            "r5_absence_confusion": 0.5,
-            "r6_bare_domain_value": 0.34,
-            "r7_name_wider_than_type": 0.2,
+            "r1_inferred_case": 0.23,
+            "r2_meaningless_combinations": 0.93,
+            "r3_split_correlations": 0.38,
+            "r4_duplicate_encoding": 0.75,
+            "r5_absence_confusion": 0.49,
+            "r6_bare_domain_value": 0.33,
+            "r7_name_wider_than_type": 0.18,
             "r8_name_claims_resource": 0.04,
-            "r9_body_reaches_undeclared": 0.05
+            "r9_body_reaches_undeclared": 0.04
           },
           "returnedDecisionKeys": [
             "r1_inferred_case",
@@ -1899,7 +2083,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 390,
+          "durationMs": 174,
           "retries": 0
         }
       },
@@ -1928,11 +2112,11 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "semantic": "failed",
           "probabilities": {
             "r1_inferred_case": 0.14,
-            "r2_meaningless_combinations": 0.69,
-            "r3_split_correlations": 0.4,
-            "r4_duplicate_encoding": 0.11,
+            "r2_meaningless_combinations": 0.7,
+            "r3_split_correlations": 0.45,
+            "r4_duplicate_encoding": 0.12,
             "r5_absence_confusion": 0.15,
-            "r6_bare_domain_value": 0.65,
+            "r6_bare_domain_value": 0.63,
             "r7_name_wider_than_type": 0.85,
             "r8_name_claims_resource": 0.05,
             "r9_body_reaches_undeclared": 0.04
@@ -1950,7 +2134,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 189,
+          "durationMs": 192,
           "retries": 0
         }
       },
@@ -1979,12 +2163,12 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "semantic": "passed",
           "probabilities": {
             "r1_inferred_case": 0.05,
-            "r2_meaningless_combinations": 0.18,
-            "r3_split_correlations": 0.42,
+            "r2_meaningless_combinations": 0.2,
+            "r3_split_correlations": 0.43,
             "r4_duplicate_encoding": 0.08,
-            "r5_absence_confusion": 0.09,
-            "r6_bare_domain_value": 0.15,
-            "r7_name_wider_than_type": 0.74,
+            "r5_absence_confusion": 0.08,
+            "r6_bare_domain_value": 0.16,
+            "r7_name_wider_than_type": 0.76,
             "r8_name_claims_resource": 0.04,
             "r9_body_reaches_undeclared": 0.05
           },
@@ -2001,7 +2185,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 248,
+          "durationMs": 206,
           "retries": 0
         }
       },
@@ -2029,12 +2213,12 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "unchecked",
           "probabilities": {
-            "r1_inferred_case": 0.12,
-            "r2_meaningless_combinations": 0.73,
+            "r1_inferred_case": 0.13,
+            "r2_meaningless_combinations": 0.72,
             "r3_split_correlations": 0.08,
-            "r4_duplicate_encoding": 0.08,
-            "r5_absence_confusion": 0.36,
-            "r6_bare_domain_value": 0.43,
+            "r4_duplicate_encoding": 0.07,
+            "r5_absence_confusion": 0.37,
+            "r6_bare_domain_value": 0.46,
             "r7_name_wider_than_type": 0.88,
             "r8_name_claims_resource": 0.04,
             "r9_body_reaches_undeclared": 0.05
@@ -2052,7 +2236,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 169,
+          "durationMs": 160,
           "retries": 0
         }
       },
@@ -2081,14 +2265,14 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "semantic": "unchecked",
           "probabilities": {
             "r1_inferred_case": 0.12,
-            "r2_meaningless_combinations": 0.91,
-            "r3_split_correlations": 0.35,
-            "r4_duplicate_encoding": 0.3,
-            "r5_absence_confusion": 0.34,
-            "r6_bare_domain_value": 0.41,
-            "r7_name_wider_than_type": 0.87,
+            "r2_meaningless_combinations": 0.92,
+            "r3_split_correlations": 0.37,
+            "r4_duplicate_encoding": 0.35,
+            "r5_absence_confusion": 0.36,
+            "r6_bare_domain_value": 0.42,
+            "r7_name_wider_than_type": 0.85,
             "r8_name_claims_resource": 0.04,
-            "r9_body_reaches_undeclared": 0.04
+            "r9_body_reaches_undeclared": 0.05
           },
           "returnedDecisionKeys": [
             "r1_inferred_case",
@@ -2103,7 +2287,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 267,
+          "durationMs": 147,
           "retries": 0
         }
       },
@@ -2131,13 +2315,13 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "passed",
           "probabilities": {
-            "r1_inferred_case": 0.12,
+            "r1_inferred_case": 0.13,
             "r2_meaningless_combinations": 0.84,
             "r3_split_correlations": 0.1,
             "r4_duplicate_encoding": 0.09,
-            "r5_absence_confusion": 0.35,
-            "r6_bare_domain_value": 0.57,
-            "r7_name_wider_than_type": 0.63,
+            "r5_absence_confusion": 0.34,
+            "r6_bare_domain_value": 0.58,
+            "r7_name_wider_than_type": 0.65,
             "r8_name_claims_resource": 0.04,
             "r9_body_reaches_undeclared": 0.05
           },
@@ -2154,7 +2338,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 196,
+          "durationMs": 191,
           "retries": 0
         }
       },
@@ -2182,14 +2366,14 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "passed",
           "probabilities": {
-            "r1_inferred_case": 0.11,
-            "r2_meaningless_combinations": 0.91,
-            "r3_split_correlations": 0.25,
+            "r1_inferred_case": 0.12,
+            "r2_meaningless_combinations": 0.92,
+            "r3_split_correlations": 0.23,
             "r4_duplicate_encoding": 0.27,
-            "r5_absence_confusion": 0.38,
-            "r6_bare_domain_value": 0.51,
-            "r7_name_wider_than_type": 0.57,
-            "r8_name_claims_resource": 0.04,
+            "r5_absence_confusion": 0.37,
+            "r6_bare_domain_value": 0.57,
+            "r7_name_wider_than_type": 0.6,
+            "r8_name_claims_resource": 0.03,
             "r9_body_reaches_undeclared": 0.04
           },
           "returnedDecisionKeys": [
@@ -2205,7 +2389,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 208,
+          "durationMs": 224,
           "retries": 0
         }
       },
@@ -2233,13 +2417,13 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "failed",
           "probabilities": {
-            "r1_inferred_case": 0.07,
-            "r2_meaningless_combinations": 0.4,
-            "r3_split_correlations": 0.08,
-            "r4_duplicate_encoding": 0.27,
-            "r5_absence_confusion": 0.11,
-            "r6_bare_domain_value": 0.52,
-            "r7_name_wider_than_type": 0.15,
+            "r1_inferred_case": 0.08,
+            "r2_meaningless_combinations": 0.37,
+            "r3_split_correlations": 0.07,
+            "r4_duplicate_encoding": 0.3,
+            "r5_absence_confusion": 0.12,
+            "r6_bare_domain_value": 0.5,
+            "r7_name_wider_than_type": 0.14,
             "r8_name_claims_resource": 0.04,
             "r9_body_reaches_undeclared": 0.05
           },
@@ -2256,7 +2440,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 160,
+          "durationMs": 190,
           "retries": 0
         }
       },
@@ -2285,13 +2469,13 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "semantic": "passed",
           "probabilities": {
             "r1_inferred_case": 0.05,
-            "r2_meaningless_combinations": 0.16,
+            "r2_meaningless_combinations": 0.18,
             "r3_split_correlations": 0.07,
-            "r4_duplicate_encoding": 0.09,
-            "r5_absence_confusion": 0.09,
-            "r6_bare_domain_value": 0.63,
-            "r7_name_wider_than_type": 0.63,
-            "r8_name_claims_resource": 0.03,
+            "r4_duplicate_encoding": 0.1,
+            "r5_absence_confusion": 0.08,
+            "r6_bare_domain_value": 0.58,
+            "r7_name_wider_than_type": 0.61,
+            "r8_name_claims_resource": 0.04,
             "r9_body_reaches_undeclared": 0.04
           },
           "returnedDecisionKeys": [
@@ -2307,7 +2491,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 241,
+          "durationMs": 251,
           "retries": 0
         }
       },
@@ -2335,13 +2519,13 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "passed",
           "probabilities": {
-            "r1_inferred_case": 0.41,
+            "r1_inferred_case": 0.42,
             "r2_meaningless_combinations": 0.71,
             "r3_split_correlations": 0.13,
-            "r4_duplicate_encoding": 0.1,
-            "r5_absence_confusion": 0.21,
-            "r6_bare_domain_value": 0.62,
-            "r7_name_wider_than_type": 0.34,
+            "r4_duplicate_encoding": 0.11,
+            "r5_absence_confusion": 0.23,
+            "r6_bare_domain_value": 0.59,
+            "r7_name_wider_than_type": 0.35,
             "r8_name_claims_resource": 0.04,
             "r9_body_reaches_undeclared": 0.05
           },
@@ -2358,7 +2542,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 297,
+          "durationMs": 239,
           "retries": 0
         }
       },
@@ -2386,15 +2570,15 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "passed",
           "probabilities": {
-            "r1_inferred_case": 0.35,
+            "r1_inferred_case": 0.41,
             "r2_meaningless_combinations": 0.92,
             "r3_split_correlations": 0.28,
-            "r4_duplicate_encoding": 0.38,
+            "r4_duplicate_encoding": 0.37,
             "r5_absence_confusion": 0.4,
-            "r6_bare_domain_value": 0.72,
-            "r7_name_wider_than_type": 0.59,
-            "r8_name_claims_resource": 0.04,
-            "r9_body_reaches_undeclared": 0.03
+            "r6_bare_domain_value": 0.71,
+            "r7_name_wider_than_type": 0.58,
+            "r8_name_claims_resource": 0.03,
+            "r9_body_reaches_undeclared": 0.04
           },
           "returnedDecisionKeys": [
             "r1_inferred_case",
@@ -2409,7 +2593,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 226,
+          "durationMs": 227,
           "retries": 0
         }
       },
@@ -2437,15 +2621,15 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "passed",
           "probabilities": {
-            "r1_inferred_case": 0.24,
+            "r1_inferred_case": 0.22,
             "r2_meaningless_combinations": 0.85,
-            "r3_split_correlations": 0.31,
-            "r4_duplicate_encoding": 0.17,
-            "r5_absence_confusion": 0.34,
-            "r6_bare_domain_value": 0.47,
-            "r7_name_wider_than_type": 0.83,
+            "r3_split_correlations": 0.26,
+            "r4_duplicate_encoding": 0.2,
+            "r5_absence_confusion": 0.39,
+            "r6_bare_domain_value": 0.43,
+            "r7_name_wider_than_type": 0.84,
             "r8_name_claims_resource": 0.04,
-            "r9_body_reaches_undeclared": 0.04
+            "r9_body_reaches_undeclared": 0.05
           },
           "returnedDecisionKeys": [
             "r1_inferred_case",
@@ -2460,7 +2644,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 252,
+          "durationMs": 162,
           "retries": 0
         }
       },
@@ -2490,13 +2674,13 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "probabilities": {
             "r1_inferred_case": 0.09,
             "r2_meaningless_combinations": 0.94,
-            "r3_split_correlations": 0.45,
-            "r4_duplicate_encoding": 0.28,
-            "r5_absence_confusion": 0.38,
-            "r6_bare_domain_value": 0.19,
-            "r7_name_wider_than_type": 0.8,
-            "r8_name_claims_resource": 0.04,
-            "r9_body_reaches_undeclared": 0.04
+            "r3_split_correlations": 0.44,
+            "r4_duplicate_encoding": 0.32,
+            "r5_absence_confusion": 0.35,
+            "r6_bare_domain_value": 0.26,
+            "r7_name_wider_than_type": 0.78,
+            "r8_name_claims_resource": 0.03,
+            "r9_body_reaches_undeclared": 0.05
           },
           "returnedDecisionKeys": [
             "r1_inferred_case",
@@ -2511,7 +2695,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 213,
+          "durationMs": 215,
           "retries": 0
         }
       },
@@ -2539,15 +2723,15 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "passed",
           "probabilities": {
-            "r1_inferred_case": 0.17,
-            "r2_meaningless_combinations": 0.79,
+            "r1_inferred_case": 0.18,
+            "r2_meaningless_combinations": 0.78,
             "r3_split_correlations": 0.16,
-            "r4_duplicate_encoding": 0.11,
-            "r5_absence_confusion": 0.35,
-            "r6_bare_domain_value": 0.62,
-            "r7_name_wider_than_type": 0.7,
-            "r8_name_claims_resource": 0.04,
-            "r9_body_reaches_undeclared": 0.05
+            "r4_duplicate_encoding": 0.12,
+            "r5_absence_confusion": 0.31,
+            "r6_bare_domain_value": 0.63,
+            "r7_name_wider_than_type": 0.67,
+            "r8_name_claims_resource": 0.05,
+            "r9_body_reaches_undeclared": 0.04
           },
           "returnedDecisionKeys": [
             "r1_inferred_case",
@@ -2562,7 +2746,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 218,
+          "durationMs": 255,
           "retries": 0
         }
       },
@@ -2592,12 +2776,12 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "probabilities": {
             "r1_inferred_case": 0.08,
             "r2_meaningless_combinations": 0.91,
-            "r3_split_correlations": 0.33,
-            "r4_duplicate_encoding": 0.24,
-            "r5_absence_confusion": 0.33,
-            "r6_bare_domain_value": 0.39,
-            "r7_name_wider_than_type": 0.28,
-            "r8_name_claims_resource": 0.04,
+            "r3_split_correlations": 0.38,
+            "r4_duplicate_encoding": 0.31,
+            "r5_absence_confusion": 0.35,
+            "r6_bare_domain_value": 0.37,
+            "r7_name_wider_than_type": 0.24,
+            "r8_name_claims_resource": 0.05,
             "r9_body_reaches_undeclared": 0.05
           },
           "returnedDecisionKeys": [
@@ -2613,7 +2797,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 226,
+          "durationMs": 235,
           "retries": 0
         }
       },
@@ -2641,12 +2825,12 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "failed",
           "probabilities": {
-            "r1_inferred_case": 0.31,
-            "r2_meaningless_combinations": 0.61,
-            "r3_split_correlations": 0.84,
-            "r4_duplicate_encoding": 0.15,
-            "r5_absence_confusion": 0.23,
-            "r6_bare_domain_value": 0.13,
+            "r1_inferred_case": 0.33,
+            "r2_meaningless_combinations": 0.63,
+            "r3_split_correlations": 0.85,
+            "r4_duplicate_encoding": 0.14,
+            "r5_absence_confusion": 0.22,
+            "r6_bare_domain_value": 0.12,
             "r7_name_wider_than_type": 0.12,
             "r8_name_claims_resource": 0.04,
             "r9_body_reaches_undeclared": 0.04
@@ -2664,7 +2848,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 267,
+          "durationMs": 207,
           "retries": 0
         }
       },
@@ -2690,14 +2874,14 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
         },
         "result": {
           "status": "reviewed",
-          "semantic": "passed",
+          "semantic": "failed",
           "probabilities": {
-            "r1_inferred_case": 0.21,
-            "r2_meaningless_combinations": 0.74,
-            "r3_split_correlations": 0.85,
-            "r4_duplicate_encoding": 0.3,
-            "r5_absence_confusion": 0.42,
-            "r6_bare_domain_value": 0.73,
+            "r1_inferred_case": 0.27,
+            "r2_meaningless_combinations": 0.69,
+            "r3_split_correlations": 0.86,
+            "r4_duplicate_encoding": 0.26,
+            "r5_absence_confusion": 0.45,
+            "r6_bare_domain_value": 0.75,
             "r7_name_wider_than_type": 0.76,
             "r8_name_claims_resource": 0.04,
             "r9_body_reaches_undeclared": 0.04
@@ -2715,7 +2899,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 233,
+          "durationMs": 213,
           "retries": 0
         }
       },
@@ -2743,13 +2927,13 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "failed",
           "probabilities": {
-            "r1_inferred_case": 0.07,
-            "r2_meaningless_combinations": 0.38,
-            "r3_split_correlations": 0.8,
+            "r1_inferred_case": 0.08,
+            "r2_meaningless_combinations": 0.37,
+            "r3_split_correlations": 0.82,
             "r4_duplicate_encoding": 0.09,
-            "r5_absence_confusion": 0.08,
+            "r5_absence_confusion": 0.09,
             "r6_bare_domain_value": 0.19,
-            "r7_name_wider_than_type": 0.42,
+            "r7_name_wider_than_type": 0.56,
             "r8_name_claims_resource": 0.04,
             "r9_body_reaches_undeclared": 0.05
           },
@@ -2766,7 +2950,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 183,
+          "durationMs": 208,
           "retries": 0
         }
       },
@@ -2794,14 +2978,14 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "passed",
           "probabilities": {
-            "r1_inferred_case": 0.06,
-            "r2_meaningless_combinations": 0.21,
-            "r3_split_correlations": 0.73,
+            "r1_inferred_case": 0.05,
+            "r2_meaningless_combinations": 0.2,
+            "r3_split_correlations": 0.72,
             "r4_duplicate_encoding": 0.07,
             "r5_absence_confusion": 0.08,
-            "r6_bare_domain_value": 0.43,
+            "r6_bare_domain_value": 0.4,
             "r7_name_wider_than_type": 0.86,
-            "r8_name_claims_resource": 0.04,
+            "r8_name_claims_resource": 0.03,
             "r9_body_reaches_undeclared": 0.04
           },
           "returnedDecisionKeys": [
@@ -2817,7 +3001,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 259,
+          "durationMs": 214,
           "retries": 0
         }
       },
@@ -2845,14 +3029,14 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "passed",
           "probabilities": {
-            "r1_inferred_case": 0.11,
-            "r2_meaningless_combinations": 0.72,
-            "r3_split_correlations": 0.19,
-            "r4_duplicate_encoding": 0.11,
+            "r1_inferred_case": 0.12,
+            "r2_meaningless_combinations": 0.73,
+            "r3_split_correlations": 0.21,
+            "r4_duplicate_encoding": 0.13,
             "r5_absence_confusion": 0.26,
-            "r6_bare_domain_value": 0.45,
-            "r7_name_wider_than_type": 0.82,
-            "r8_name_claims_resource": 0.03,
+            "r6_bare_domain_value": 0.44,
+            "r7_name_wider_than_type": 0.83,
+            "r8_name_claims_resource": 0.04,
             "r9_body_reaches_undeclared": 0.05
           },
           "returnedDecisionKeys": [
@@ -2868,7 +3052,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 175,
+          "durationMs": 159,
           "retries": 0
         }
       },
@@ -2897,13 +3081,13 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "semantic": "passed",
           "probabilities": {
             "r1_inferred_case": 0.09,
-            "r2_meaningless_combinations": 0.85,
+            "r2_meaningless_combinations": 0.84,
             "r3_split_correlations": 0.18,
-            "r4_duplicate_encoding": 0.12,
+            "r4_duplicate_encoding": 0.09,
             "r5_absence_confusion": 0.33,
-            "r6_bare_domain_value": 0.43,
+            "r6_bare_domain_value": 0.41,
             "r7_name_wider_than_type": 0.86,
-            "r8_name_claims_resource": 0.04,
+            "r8_name_claims_resource": 0.03,
             "r9_body_reaches_undeclared": 0.04
           },
           "returnedDecisionKeys": [
@@ -2948,12 +3132,12 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "semantic": "failed",
           "probabilities": {
             "r1_inferred_case": 0.17,
-            "r2_meaningless_combinations": 0.62,
+            "r2_meaningless_combinations": 0.65,
             "r3_split_correlations": 0.12,
             "r4_duplicate_encoding": 0.1,
             "r5_absence_confusion": 0.22,
-            "r6_bare_domain_value": 0.22,
-            "r7_name_wider_than_type": 0.12,
+            "r6_bare_domain_value": 0.23,
+            "r7_name_wider_than_type": 0.11,
             "r8_name_claims_resource": 0.04,
             "r9_body_reaches_undeclared": 0.05
           },
@@ -2970,7 +3154,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 227,
+          "durationMs": 207,
           "retries": 0
         }
       },
@@ -2999,14 +3183,14 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "semantic": "passed",
           "probabilities": {
             "r1_inferred_case": 0.08,
-            "r2_meaningless_combinations": 0.8,
-            "r3_split_correlations": 0.18,
-            "r4_duplicate_encoding": 0.08,
-            "r5_absence_confusion": 0.37,
-            "r6_bare_domain_value": 0.3,
-            "r7_name_wider_than_type": 0.4,
-            "r8_name_claims_resource": 0.04,
-            "r9_body_reaches_undeclared": 0.04
+            "r2_meaningless_combinations": 0.79,
+            "r3_split_correlations": 0.17,
+            "r4_duplicate_encoding": 0.09,
+            "r5_absence_confusion": 0.42,
+            "r6_bare_domain_value": 0.34,
+            "r7_name_wider_than_type": 0.42,
+            "r8_name_claims_resource": 0.03,
+            "r9_body_reaches_undeclared": 0.03
           },
           "returnedDecisionKeys": [
             "r1_inferred_case",
@@ -3021,7 +3205,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 286,
+          "durationMs": 201,
           "retries": 0
         }
       },
@@ -3049,13 +3233,13 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "failed",
           "probabilities": {
-            "r1_inferred_case": 0.4,
+            "r1_inferred_case": 0.38,
             "r2_meaningless_combinations": 0.45,
             "r3_split_correlations": 0.08,
             "r4_duplicate_encoding": 0.08,
-            "r5_absence_confusion": 0.27,
-            "r6_bare_domain_value": 0.49,
-            "r7_name_wider_than_type": 0.54,
+            "r5_absence_confusion": 0.26,
+            "r6_bare_domain_value": 0.46,
+            "r7_name_wider_than_type": 0.56,
             "r8_name_claims_resource": 0.04,
             "r9_body_reaches_undeclared": 0.04
           },
@@ -3072,7 +3256,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 176,
+          "durationMs": 197,
           "retries": 0
         }
       },
@@ -3100,12 +3284,12 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "passed",
           "probabilities": {
-            "r1_inferred_case": 0.23,
-            "r2_meaningless_combinations": 0.89,
-            "r3_split_correlations": 0.24,
-            "r4_duplicate_encoding": 0.37,
+            "r1_inferred_case": 0.24,
+            "r2_meaningless_combinations": 0.88,
+            "r3_split_correlations": 0.22,
+            "r4_duplicate_encoding": 0.36,
             "r5_absence_confusion": 0.5,
-            "r6_bare_domain_value": 0.25,
+            "r6_bare_domain_value": 0.28,
             "r7_name_wider_than_type": 0.56,
             "r8_name_claims_resource": 0.04,
             "r9_body_reaches_undeclared": 0.05
@@ -3123,7 +3307,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 217,
+          "durationMs": 150,
           "retries": 0
         }
       },
@@ -3151,13 +3335,13 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "failed",
           "probabilities": {
-            "r1_inferred_case": 0.4,
-            "r2_meaningless_combinations": 0.65,
-            "r3_split_correlations": 0.09,
+            "r1_inferred_case": 0.43,
+            "r2_meaningless_combinations": 0.64,
+            "r3_split_correlations": 0.08,
             "r4_duplicate_encoding": 0.08,
             "r5_absence_confusion": 0.28,
-            "r6_bare_domain_value": 0.64,
-            "r7_name_wider_than_type": 0.59,
+            "r6_bare_domain_value": 0.63,
+            "r7_name_wider_than_type": 0.55,
             "r8_name_claims_resource": 0.04,
             "r9_body_reaches_undeclared": 0.04
           },
@@ -3174,7 +3358,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 140,
+          "durationMs": 170,
           "retries": 0
         }
       },
@@ -3203,12 +3387,12 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "semantic": "passed",
           "probabilities": {
             "r1_inferred_case": 0.13,
-            "r2_meaningless_combinations": 0.88,
-            "r3_split_correlations": 0.31,
-            "r4_duplicate_encoding": 0.36,
-            "r5_absence_confusion": 0.51,
-            "r6_bare_domain_value": 0.25,
-            "r7_name_wider_than_type": 0.54,
+            "r2_meaningless_combinations": 0.9,
+            "r3_split_correlations": 0.29,
+            "r4_duplicate_encoding": 0.45,
+            "r5_absence_confusion": 0.48,
+            "r6_bare_domain_value": 0.26,
+            "r7_name_wider_than_type": 0.53,
             "r8_name_claims_resource": 0.04,
             "r9_body_reaches_undeclared": 0.05
           },
@@ -3225,7 +3409,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 230,
+          "durationMs": 170,
           "retries": 0
         }
       },
@@ -3253,15 +3437,15 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "passed",
           "probabilities": {
-            "r1_inferred_case": 0.06,
-            "r2_meaningless_combinations": 0.21,
+            "r1_inferred_case": 0.07,
+            "r2_meaningless_combinations": 0.2,
             "r3_split_correlations": 0.08,
             "r4_duplicate_encoding": 0.08,
-            "r5_absence_confusion": 0.13,
+            "r5_absence_confusion": 0.14,
             "r6_bare_domain_value": 0.57,
-            "r7_name_wider_than_type": 0.42,
-            "r8_name_claims_resource": 0.03,
-            "r9_body_reaches_undeclared": 0.04
+            "r7_name_wider_than_type": 0.43,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.05
           },
           "returnedDecisionKeys": [
             "r1_inferred_case",
@@ -3276,7 +3460,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 160,
+          "durationMs": 179,
           "retries": 0
         }
       },
@@ -3305,12 +3489,12 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "semantic": "passed",
           "probabilities": {
             "r1_inferred_case": 0.05,
-            "r2_meaningless_combinations": 0.16,
+            "r2_meaningless_combinations": 0.18,
             "r3_split_correlations": 0.07,
-            "r4_duplicate_encoding": 0.06,
+            "r4_duplicate_encoding": 0.07,
             "r5_absence_confusion": 0.12,
-            "r6_bare_domain_value": 0.67,
-            "r7_name_wider_than_type": 0.7,
+            "r6_bare_domain_value": 0.64,
+            "r7_name_wider_than_type": 0.69,
             "r8_name_claims_resource": 0.03,
             "r9_body_reaches_undeclared": 0.04
           },
@@ -3327,7 +3511,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 234,
+          "durationMs": 251,
           "retries": 0
         }
       },
@@ -3355,13 +3539,13 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "passed",
           "probabilities": {
-            "r1_inferred_case": 0.12,
-            "r2_meaningless_combinations": 0.9,
+            "r1_inferred_case": 0.11,
+            "r2_meaningless_combinations": 0.89,
             "r3_split_correlations": 0.2,
-            "r4_duplicate_encoding": 0.27,
+            "r4_duplicate_encoding": 0.17,
             "r5_absence_confusion": 0.36,
             "r6_bare_domain_value": 0.57,
-            "r7_name_wider_than_type": 0.65,
+            "r7_name_wider_than_type": 0.7,
             "r8_name_claims_resource": 0.04,
             "r9_body_reaches_undeclared": 0.04
           },
@@ -3378,7 +3562,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 163,
+          "durationMs": 169,
           "retries": 0
         }
       },
@@ -3406,14 +3590,14 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "passed",
           "probabilities": {
-            "r1_inferred_case": 0.1,
-            "r2_meaningless_combinations": 0.92,
-            "r3_split_correlations": 0.24,
-            "r4_duplicate_encoding": 0.32,
-            "r5_absence_confusion": 0.41,
-            "r6_bare_domain_value": 0.3,
-            "r7_name_wider_than_type": 0.54,
-            "r8_name_claims_resource": 0.04,
+            "r1_inferred_case": 0.11,
+            "r2_meaningless_combinations": 0.93,
+            "r3_split_correlations": 0.25,
+            "r4_duplicate_encoding": 0.35,
+            "r5_absence_confusion": 0.39,
+            "r6_bare_domain_value": 0.31,
+            "r7_name_wider_than_type": 0.63,
+            "r8_name_claims_resource": 0.03,
             "r9_body_reaches_undeclared": 0.05
           },
           "returnedDecisionKeys": [
@@ -3429,7 +3613,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 267,
+          "durationMs": 222,
           "retries": 0
         }
       },
@@ -3458,14 +3642,14 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "semantic": "failed",
           "probabilities": {
             "r1_inferred_case": 0.14,
-            "r2_meaningless_combinations": 0.64,
-            "r3_split_correlations": 0.51,
+            "r2_meaningless_combinations": 0.65,
+            "r3_split_correlations": 0.54,
             "r4_duplicate_encoding": 0.11,
-            "r5_absence_confusion": 0.14,
+            "r5_absence_confusion": 0.15,
             "r6_bare_domain_value": 0.64,
-            "r7_name_wider_than_type": 0.87,
+            "r7_name_wider_than_type": 0.86,
             "r8_name_claims_resource": 0.04,
-            "r9_body_reaches_undeclared": 0.04
+            "r9_body_reaches_undeclared": 0.05
           },
           "returnedDecisionKeys": [
             "r1_inferred_case",
@@ -3480,7 +3664,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 156,
+          "durationMs": 218,
           "retries": 0
         }
       },
@@ -3508,15 +3692,15 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "passed",
           "probabilities": {
-            "r1_inferred_case": 0.07,
-            "r2_meaningless_combinations": 0.22,
+            "r1_inferred_case": 0.08,
+            "r2_meaningless_combinations": 0.23,
             "r3_split_correlations": 0.4,
             "r4_duplicate_encoding": 0.07,
-            "r5_absence_confusion": 0.11,
-            "r6_bare_domain_value": 0.3,
-            "r7_name_wider_than_type": 0.79,
-            "r8_name_claims_resource": 0.03,
-            "r9_body_reaches_undeclared": 0.05
+            "r5_absence_confusion": 0.1,
+            "r6_bare_domain_value": 0.31,
+            "r7_name_wider_than_type": 0.8,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.06
           },
           "returnedDecisionKeys": [
             "r1_inferred_case",
@@ -3531,7 +3715,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 239,
+          "durationMs": 130,
           "retries": 0
         }
       },
@@ -3559,11 +3743,11 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "failed",
           "probabilities": {
-            "r1_inferred_case": 0.21,
-            "r2_meaningless_combinations": 0.65,
-            "r3_split_correlations": 0.24,
-            "r4_duplicate_encoding": 0.5,
-            "r5_absence_confusion": 0.33,
+            "r1_inferred_case": 0.23,
+            "r2_meaningless_combinations": 0.66,
+            "r3_split_correlations": 0.26,
+            "r4_duplicate_encoding": 0.53,
+            "r5_absence_confusion": 0.3,
             "r6_bare_domain_value": 0.25,
             "r7_name_wider_than_type": 0.2,
             "r8_name_claims_resource": 0.04,
@@ -3582,7 +3766,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 175,
+          "durationMs": 163,
           "retries": 0
         }
       },
@@ -3610,12 +3794,12 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "failed",
           "probabilities": {
-            "r1_inferred_case": 0.07,
-            "r2_meaningless_combinations": 0.66,
-            "r3_split_correlations": 0.17,
-            "r4_duplicate_encoding": 0.07,
-            "r5_absence_confusion": 0.47,
-            "r6_bare_domain_value": 0.3,
+            "r1_inferred_case": 0.08,
+            "r2_meaningless_combinations": 0.67,
+            "r3_split_correlations": 0.15,
+            "r4_duplicate_encoding": 0.06,
+            "r5_absence_confusion": 0.45,
+            "r6_bare_domain_value": 0.31,
             "r7_name_wider_than_type": 0.3,
             "r8_name_claims_resource": 0.04,
             "r9_body_reaches_undeclared": 0.04
@@ -3633,7 +3817,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 285,
+          "durationMs": 255,
           "retries": 0
         }
       },
@@ -3661,13 +3845,13 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "failed",
           "probabilities": {
-            "r1_inferred_case": 0.6,
-            "r2_meaningless_combinations": 0.52,
+            "r1_inferred_case": 0.56,
+            "r2_meaningless_combinations": 0.53,
             "r3_split_correlations": 0.1,
-            "r4_duplicate_encoding": 0.09,
+            "r4_duplicate_encoding": 0.08,
             "r5_absence_confusion": 0.26,
-            "r6_bare_domain_value": 0.52,
-            "r7_name_wider_than_type": 0.56,
+            "r6_bare_domain_value": 0.54,
+            "r7_name_wider_than_type": 0.51,
             "r8_name_claims_resource": 0.05,
             "r9_body_reaches_undeclared": 0.05
           },
@@ -3684,7 +3868,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 155,
+          "durationMs": 220,
           "retries": 0
         }
       },
@@ -3712,15 +3896,15 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "passed",
           "probabilities": {
-            "r1_inferred_case": 0.26,
+            "r1_inferred_case": 0.28,
             "r2_meaningless_combinations": 0.87,
-            "r3_split_correlations": 0.26,
-            "r4_duplicate_encoding": 0.57,
-            "r5_absence_confusion": 0.43,
+            "r3_split_correlations": 0.28,
+            "r4_duplicate_encoding": 0.61,
+            "r5_absence_confusion": 0.45,
             "r6_bare_domain_value": 0.26,
-            "r7_name_wider_than_type": 0.5,
-            "r8_name_claims_resource": 0.05,
-            "r9_body_reaches_undeclared": 0.05
+            "r7_name_wider_than_type": 0.52,
+            "r8_name_claims_resource": 0.04,
+            "r9_body_reaches_undeclared": 0.06
           },
           "returnedDecisionKeys": [
             "r1_inferred_case",
@@ -3735,7 +3919,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 171,
+          "durationMs": 202,
           "retries": 0
         }
       },
@@ -3763,13 +3947,13 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "failed",
           "probabilities": {
-            "r1_inferred_case": 0.18,
+            "r1_inferred_case": 0.2,
             "r2_meaningless_combinations": 0.68,
             "r3_split_correlations": 0.11,
-            "r4_duplicate_encoding": 0.11,
-            "r5_absence_confusion": 0.33,
-            "r6_bare_domain_value": 0.34,
-            "r7_name_wider_than_type": 0.23,
+            "r4_duplicate_encoding": 0.1,
+            "r5_absence_confusion": 0.32,
+            "r6_bare_domain_value": 0.33,
+            "r7_name_wider_than_type": 0.2,
             "r8_name_claims_resource": 0.05,
             "r9_body_reaches_undeclared": 0.05
           },
@@ -3786,7 +3970,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 130,
+          "durationMs": 144,
           "retries": 0
         }
       },
@@ -3817,12 +4001,12 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
             "r1_inferred_case": 0.09,
             "r2_meaningless_combinations": 0.75,
             "r3_split_correlations": 0.18,
-            "r4_duplicate_encoding": 0.1,
-            "r5_absence_confusion": 0.43,
-            "r6_bare_domain_value": 0.23,
-            "r7_name_wider_than_type": 0.44,
+            "r4_duplicate_encoding": 0.09,
+            "r5_absence_confusion": 0.45,
+            "r6_bare_domain_value": 0.21,
+            "r7_name_wider_than_type": 0.4,
             "r8_name_claims_resource": 0.04,
-            "r9_body_reaches_undeclared": 0.06
+            "r9_body_reaches_undeclared": 0.05
           },
           "returnedDecisionKeys": [
             "r1_inferred_case",
@@ -3837,7 +4021,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 257,
+          "durationMs": 234,
           "retries": 0
         }
       },
@@ -3866,13 +4050,13 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "semantic": "failed",
           "probabilities": {
             "r1_inferred_case": 0.08,
-            "r2_meaningless_combinations": 0.33,
-            "r3_split_correlations": 0.81,
-            "r4_duplicate_encoding": 0.08,
-            "r5_absence_confusion": 0.16,
-            "r6_bare_domain_value": 0.14,
-            "r7_name_wider_than_type": 0.29,
-            "r8_name_claims_resource": 0.05,
+            "r2_meaningless_combinations": 0.35,
+            "r3_split_correlations": 0.82,
+            "r4_duplicate_encoding": 0.09,
+            "r5_absence_confusion": 0.14,
+            "r6_bare_domain_value": 0.16,
+            "r7_name_wider_than_type": 0.33,
+            "r8_name_claims_resource": 0.06,
             "r9_body_reaches_undeclared": 0.05
           },
           "returnedDecisionKeys": [
@@ -3917,12 +4101,12 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "semantic": "passed",
           "probabilities": {
             "r1_inferred_case": 0.06,
-            "r2_meaningless_combinations": 0.22,
-            "r3_split_correlations": 0.64,
-            "r4_duplicate_encoding": 0.06,
-            "r5_absence_confusion": 0.1,
-            "r6_bare_domain_value": 0.39,
-            "r7_name_wider_than_type": 0.84,
+            "r2_meaningless_combinations": 0.2,
+            "r3_split_correlations": 0.68,
+            "r4_duplicate_encoding": 0.07,
+            "r5_absence_confusion": 0.11,
+            "r6_bare_domain_value": 0.37,
+            "r7_name_wider_than_type": 0.83,
             "r8_name_claims_resource": 0.03,
             "r9_body_reaches_undeclared": 0.04
           },
@@ -3939,7 +4123,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 228,
+          "durationMs": 279,
           "retries": 0
         }
       },
@@ -3967,13 +4151,13 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "passed",
           "probabilities": {
-            "r1_inferred_case": 0.17,
+            "r1_inferred_case": 0.16,
             "r2_meaningless_combinations": 0.8,
             "r3_split_correlations": 0.14,
-            "r4_duplicate_encoding": 0.19,
+            "r4_duplicate_encoding": 0.2,
             "r5_absence_confusion": 0.3,
-            "r6_bare_domain_value": 0.62,
-            "r7_name_wider_than_type": 0.69,
+            "r6_bare_domain_value": 0.63,
+            "r7_name_wider_than_type": 0.68,
             "r8_name_claims_resource": 0.05,
             "r9_body_reaches_undeclared": 0.05
           },
@@ -3990,7 +4174,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 192,
+          "durationMs": 127,
           "retries": 0
         }
       },
@@ -4018,13 +4202,13 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "passed",
           "probabilities": {
-            "r1_inferred_case": 0.19,
-            "r2_meaningless_combinations": 0.9,
-            "r3_split_correlations": 0.26,
+            "r1_inferred_case": 0.2,
+            "r2_meaningless_combinations": 0.89,
+            "r3_split_correlations": 0.28,
             "r4_duplicate_encoding": 0.23,
-            "r5_absence_confusion": 0.34,
-            "r6_bare_domain_value": 0.57,
-            "r7_name_wider_than_type": 0.6,
+            "r5_absence_confusion": 0.37,
+            "r6_bare_domain_value": 0.58,
+            "r7_name_wider_than_type": 0.65,
             "r8_name_claims_resource": 0.03,
             "r9_body_reaches_undeclared": 0.04
           },
@@ -4041,7 +4225,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 225,
+          "durationMs": 217,
           "retries": 0
         }
       },
@@ -4069,13 +4253,13 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "failed",
           "probabilities": {
-            "r1_inferred_case": 0.41,
-            "r2_meaningless_combinations": 0.65,
+            "r1_inferred_case": 0.45,
+            "r2_meaningless_combinations": 0.68,
             "r3_split_correlations": 0.1,
             "r4_duplicate_encoding": 0.09,
             "r5_absence_confusion": 0.28,
-            "r6_bare_domain_value": 0.6,
-            "r7_name_wider_than_type": 0.64,
+            "r6_bare_domain_value": 0.58,
+            "r7_name_wider_than_type": 0.67,
             "r8_name_claims_resource": 0.05,
             "r9_body_reaches_undeclared": 0.05
           },
@@ -4092,7 +4276,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 207,
+          "durationMs": 158,
           "retries": 0
         }
       },
@@ -4120,15 +4304,15 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "passed",
           "probabilities": {
-            "r1_inferred_case": 0.13,
+            "r1_inferred_case": 0.12,
             "r2_meaningless_combinations": 0.89,
             "r3_split_correlations": 0.23,
-            "r4_duplicate_encoding": 0.31,
-            "r5_absence_confusion": 0.44,
-            "r6_bare_domain_value": 0.2,
-            "r7_name_wider_than_type": 0.58,
+            "r4_duplicate_encoding": 0.32,
+            "r5_absence_confusion": 0.45,
+            "r6_bare_domain_value": 0.23,
+            "r7_name_wider_than_type": 0.5,
             "r8_name_claims_resource": 0.04,
-            "r9_body_reaches_undeclared": 0.06
+            "r9_body_reaches_undeclared": 0.05
           },
           "returnedDecisionKeys": [
             "r1_inferred_case",
@@ -4143,7 +4327,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 291,
+          "durationMs": 146,
           "retries": 0
         }
       },
@@ -4171,12 +4355,12 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "failed",
           "probabilities": {
-            "r1_inferred_case": 0.18,
-            "r2_meaningless_combinations": 0.46,
-            "r3_split_correlations": 0.18,
-            "r4_duplicate_encoding": 0.24,
-            "r5_absence_confusion": 0.23,
-            "r6_bare_domain_value": 0.27,
+            "r1_inferred_case": 0.22,
+            "r2_meaningless_combinations": 0.51,
+            "r3_split_correlations": 0.19,
+            "r4_duplicate_encoding": 0.35,
+            "r5_absence_confusion": 0.24,
+            "r6_bare_domain_value": 0.28,
             "r7_name_wider_than_type": 0.21,
             "r8_name_claims_resource": 0.06,
             "r9_body_reaches_undeclared": 0.05
@@ -4194,7 +4378,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 143,
+          "durationMs": 195,
           "retries": 0
         }
       },
@@ -4222,15 +4406,15 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           "status": "reviewed",
           "semantic": "failed",
           "probabilities": {
-            "r1_inferred_case": 0.06,
+            "r1_inferred_case": 0.07,
             "r2_meaningless_combinations": 0.69,
-            "r3_split_correlations": 0.2,
-            "r4_duplicate_encoding": 0.09,
-            "r5_absence_confusion": 0.39,
-            "r6_bare_domain_value": 0.3,
-            "r7_name_wider_than_type": 0.27,
+            "r3_split_correlations": 0.19,
+            "r4_duplicate_encoding": 0.08,
+            "r5_absence_confusion": 0.41,
+            "r6_bare_domain_value": 0.31,
+            "r7_name_wider_than_type": 0.24,
             "r8_name_claims_resource": 0.04,
-            "r9_body_reaches_undeclared": 0.05
+            "r9_body_reaches_undeclared": 0.04
           },
           "returnedDecisionKeys": [
             "r1_inferred_case",
@@ -4245,7 +4429,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
           ]
         },
         "backend": {
-          "durationMs": 166,
+          "durationMs": 190,
           "retries": 0
         }
       }
@@ -4263,7 +4447,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
       ],
       "authorizationNote": "Explicit user-requested two-arm corpus comparison; this is not the historical issue-16 gate rerun."
     },
-    "runDigest": "286d2608cdc797d82430b157d24d8b33e489c587f0b056efd38755406c5f7f31"
+    "runDigest": "54b0dc28597b3a293b121961e4e0db706dbdf18d0954454b939657dd3300114b"
   },
   "diagnostic": {
     "evidenceVersion": 1,
@@ -7903,6 +8087,178 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
     }
   },
   "fixtures": [
+    {
+      "id": "iface-delivery-ten-fields",
+      "name": "ten-field delivery alternatives",
+      "category": "interface",
+      "path": "fixtures/input-contract/interface/iface-delivery-ten-fields.ts",
+      "rootName": "Delivery",
+      "rootKind": "interface",
+      "contentHash": "7bee88b46501452ede6e86a0c4f5ce82ae86f25f2f2fa5a66f98cadb9793087b",
+      "fixtureDigest": "553f17346b96c77923396f7b96ac4d1459710e19fbec40ac1dfed1e9b9948c69",
+      "flags": {
+        "contextRequired": true,
+        "diffSufficient": false,
+        "wholeFileDilution": false,
+        "negativeControl": false
+      },
+      "expectation": {
+        "ruleId": "r2_meaningless_combinations",
+        "kind": "violation",
+        "band": {
+          "minimum": 0.7,
+          "maximum": 1,
+          "minimumInclusive": false,
+          "maximumInclusive": true
+        },
+        "rationale": "The ten-field interface keeps email and phone independently representable beside the channel discriminator, so channel-specific combinations remain admitted."
+      },
+      "evidence": {
+        "requiredReferences": [
+          "DeliveryChannel"
+        ]
+      },
+      "before": "type DeliveryChannel = \"email\" | \"sms\";\nexport interface Delivery {\n  id: string;\n  channel: DeliveryChannel;\n  email?: string;\n  phone?: string;\n  priority: \"normal\" | \"urgent\";\n  retries: number;\n  scheduledAt?: string;\n  metadata: Record<string, string>;\n  region: string;\n  locale: string;\n}\n\ninterface UnrelatedAuditEntry01 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry02 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry03 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry04 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry05 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry06 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry07 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry08 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry09 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry10 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry11 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry12 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry13 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }\n",
+      "after": "type DeliveryChannel = \"email\" | \"sms\";\nexport interface Delivery {\n  id: string;\n  channel: DeliveryChannel;\n  email: string;\n  phone?: string;\n  priority: \"normal\" | \"urgent\";\n  retries: number;\n  scheduledAt?: string;\n  metadata: Record<string, string>;\n  region: string;\n  locale: string;\n}\n\ninterface UnrelatedAuditEntry01 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry02 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry03 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry04 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry05 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry06 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry07 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry08 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry09 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry10 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry11 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry12 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry13 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }\n",
+      "rendered": {
+        "diff": {
+          "contract": {
+            "id": "codex-apply-patch",
+            "version": "1",
+            "renderer": "renderer.codex-patch",
+            "rendererVersion": "1"
+          },
+          "path": "fixtures/input-contract/interface/iface-delivery-ten-fields.ts",
+          "domain": "input-contract/interface/iface-delivery-ten-fields",
+          "source": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-delivery-ten-fields.ts\n@@\n-  email?: string;\n+  email: string;\n*** End Patch",
+          "sourceCharacters": 161,
+          "requestBytes": 648,
+          "contextNames": [],
+          "completeness": {
+            "status": "not-applicable",
+            "required": [
+              "DeliveryChannel"
+            ],
+            "included": [],
+            "omissions": [
+              {
+                "name": "DeliveryChannel",
+                "reason": "unsupported",
+                "required": true
+              }
+            ]
+          },
+          "rendererDigest": "698adc1c3873035688929fc0fa490f670bb55a0ee1bd9235a1016953b1a5d2a3",
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
+          "extractionProfile": {
+            "maxDeclarations": 32,
+            "maxDepth": 3,
+            "maxSourceCharacters": 20000
+          }
+        },
+        "whole-file": {
+          "contract": {
+            "id": "whole-post-edit-file",
+            "version": "2",
+            "renderer": "renderer.whole-file",
+            "rendererVersion": "2"
+          },
+          "path": "fixtures/input-contract/interface/iface-delivery-ten-fields.ts",
+          "domain": "input-contract/interface/iface-delivery-ten-fields",
+          "source": "type DeliveryChannel = \"email\" | \"sms\";\nexport interface Delivery {\n  id: string;\n  channel: DeliveryChannel;\n  email: string;\n  phone?: string;\n  priority: \"normal\" | \"urgent\";\n  retries: number;\n  scheduledAt?: string;\n  metadata: Record<string, string>;\n  region: string;\n  locale: string;\n}\n\ninterface UnrelatedAuditEntry01 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry02 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry03 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry04 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry05 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry06 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry07 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry08 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry09 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry10 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry11 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry12 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry13 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }\ninterface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }\n",
+          "sourceCharacters": 1592,
+          "requestBytes": 2277,
+          "contextNames": [],
+          "completeness": {
+            "status": "complete",
+            "required": [
+              "DeliveryChannel"
+            ],
+            "included": [
+              "DeliveryChannel"
+            ],
+            "omissions": []
+          },
+          "rendererDigest": "3032f9f9168e2333505e9d9401cd482ff5d47e637d4f52900f63a2b18fe76112",
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
+          "extractionProfile": {
+            "maxDeclarations": 32,
+            "maxDepth": 3,
+            "maxSourceCharacters": 20000
+          }
+        },
+        "declaration-only": {
+          "contract": {
+            "id": "edited-declaration",
+            "version": "2",
+            "renderer": "renderer.declaration",
+            "rendererVersion": "2"
+          },
+          "path": "fixtures/input-contract/interface/iface-delivery-ten-fields.ts",
+          "domain": "input-contract/interface/iface-delivery-ten-fields",
+          "source": "export interface Delivery {\n  id: string;\n  channel: DeliveryChannel;\n  email: string;\n  phone?: string;\n  priority: \"normal\" | \"urgent\";\n  retries: number;\n  scheduledAt?: string;\n  metadata: Record<string, string>;\n  region: string;\n  locale: string;\n}",
+          "sourceCharacters": 254,
+          "requestBytes": 969,
+          "declarationName": "Delivery",
+          "contextNames": [],
+          "completeness": {
+            "status": "not-applicable",
+            "required": [
+              "DeliveryChannel"
+            ],
+            "included": [],
+            "omissions": [
+              {
+                "name": "DeliveryChannel",
+                "reason": "unsupported",
+                "required": true
+              }
+            ]
+          },
+          "rendererDigest": "9efce0c7a27a13bd87f7a54d587f63e923193ca672359e7e7debde3448c22ef3",
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
+          "extractionProfile": {
+            "maxDeclarations": 32,
+            "maxDepth": 3,
+            "maxSourceCharacters": 20000
+          }
+        },
+        "declaration-context": {
+          "contract": {
+            "id": "edited-declaration-bounded-context",
+            "version": "2",
+            "renderer": "renderer.declaration-context",
+            "rendererVersion": "2"
+          },
+          "path": "fixtures/input-contract/interface/iface-delivery-ten-fields.ts",
+          "domain": "input-contract/interface/iface-delivery-ten-fields",
+          "source": "export interface Delivery {\n  id: string;\n  channel: DeliveryChannel;\n  email: string;\n  phone?: string;\n  priority: \"normal\" | \"urgent\";\n  retries: number;\n  scheduledAt?: string;\n  metadata: Record<string, string>;\n  region: string;\n  locale: string;\n}\n\n/* referenced context: DeliveryChannel */\ntype DeliveryChannel = \"email\" | \"sms\";",
+          "sourceCharacters": 337,
+          "requestBytes": 1029,
+          "declarationName": "Delivery",
+          "contextNames": [
+            "DeliveryChannel"
+          ],
+          "completeness": {
+            "status": "complete",
+            "required": [
+              "DeliveryChannel"
+            ],
+            "included": [
+              "DeliveryChannel"
+            ],
+            "omissions": []
+          },
+          "rendererDigest": "a3eddeebc69d6e9418302f1adeb5332d5a71675ac2b12d49aa8191e5e932f03b",
+          "ruleDefinitionDigest": "08e84f93b800b1109935eaff988221c9047e61fd25115a5bdcbe5062d637ea51",
+          "extractionProfile": {
+            "maxDeclarations": 32,
+            "maxDepth": 3,
+            "maxSourceCharacters": 20000
+          }
+        }
+      }
+    },
     {
       "id": "iface-delivery-flat",
       "name": "flat delivery alternatives",

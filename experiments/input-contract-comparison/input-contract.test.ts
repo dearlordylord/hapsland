@@ -13,7 +13,7 @@ import { modes, renderDiff, renderInput } from "./render.ts";
 import { bandContains, type InputMode, type Observation, type ScenarioResult } from "./protocol.ts";
 import { sharedExpectationRecord, sharedFixtureRecord } from "./shared-model.ts";
 
-const fixture = inputComparisonFixtures[0]!;
+const fixture = inputComparisonFixtures.find((item) => item.id === "iface-delivery-flat")!;
 
 const observation = (probability: number, repetition: number): Observation => ({
   id: `${fixture.id}:declaration-context:${repetition}`,
@@ -34,9 +34,9 @@ const observation = (probability: number, repetition: number): Observation => ({
 describe("input-contract comparison corpus", () => {
   it("pre-registers the four balanced categories and matrix controls", () => {
     expect(fixtureSummary).toMatchObject({
-      total: 24,
-      categories: { interface: 6, "type-alias": 6, zod: 6, "effect-schema": 6 },
-      contextRequired: 12,
+      total: 25,
+      categories: { interface: 7, "type-alias": 6, zod: 6, "effect-schema": 6 },
+      contextRequired: 13,
       wholeFileDilution: 6,
     });
     expect(fixtureSummary.diffSufficient).toBeGreaterThanOrEqual(6);
@@ -208,26 +208,26 @@ describe("input-contract comparison math", () => {
 
 describe("input-contract call planning", () => {
   it("pre-registers the 288 logical and 864 maximum-attempt matrix", () => {
-    const plan = planRun({ fixtureCount: 24, remainingAuthorizedCalls: 864, liveOptIn: true });
-    expect(plan.logicalCalls).toBe(288);
-    expect(plan.maximumTransportAttempts).toBe(864);
+    const plan = planRun({ fixtureCount: 25, remainingAuthorizedCalls: 900, liveOptIn: true });
+    expect(plan.logicalCalls).toBe(300);
+    expect(plan.maximumTransportAttempts).toBe(900);
     expect(plan.permitted).toBe(true);
-    expect(planRun({ fixtureCount: 24, remainingAuthorizedCalls: 863, liveOptIn: true }).permitted).toBe(false);
+    expect(planRun({ fixtureCount: 25, remainingAuthorizedCalls: 899, liveOptIn: true }).permitted).toBe(false);
     expect(planRun({ fixtureCount: 24, remainingAuthorizedCalls: 0, liveOptIn: false, offline: true }).permitted).toBe(true);
   });
 
   it("budgets structurally not-applicable slots without pretending they are paid calls", () => {
     const plan = planRun({
-      fixtureCount: 24,
-      remainingAuthorizedCalls: 432,
+      fixtureCount: 25,
+      remainingAuthorizedCalls: 444,
       maximumRetriesPerRequest: 1,
-      notApplicableLogicalCalls: 72,
+      notApplicableLogicalCalls: 78,
       liveOptIn: true,
     });
-    expect(plan.logicalCalls).toBe(288);
-    expect(plan.applicableLogicalCalls).toBe(216);
-    expect(plan.notApplicableLogicalCalls).toBe(72);
-    expect(plan.maximumTransportAttempts).toBe(432);
+    expect(plan.logicalCalls).toBe(300);
+    expect(plan.applicableLogicalCalls).toBe(222);
+    expect(plan.notApplicableLogicalCalls).toBe(78);
+    expect(plan.maximumTransportAttempts).toBe(444);
     expect(plan.permitted).toBe(true);
   });
 
@@ -256,15 +256,15 @@ describe("offline DecisionModel seam", () => {
     const answers = Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability" as const, probability: 0.8 }]));
     const layer = ReviewBackend.layer.pipe(Layer.provide(controlledDecisionModelLayer({ answers })));
     const result = await Effect.runPromise(runPlanned({
-      fixtureCount: 24,
-      remainingAuthorizedCalls: 216,
+      fixtureCount: 25,
+      remainingAuthorizedCalls: 222,
       liveOptIn: false,
       offline: true,
       maximumRetriesPerRequest: 0,
-      notApplicableLogicalCalls: 72,
+      notApplicableLogicalCalls: 78,
     }).pipe(Effect.provide(layer)));
-    expect(result.plan.maximumTransportAttempts).toBe(216);
-    expect(result.report.counts.transport.available).toBe(216);
-    expect(result.report.counts.semantic.notApplicable).toBe(22);
+    expect(result.plan.maximumTransportAttempts).toBe(222);
+    expect(result.report.counts.transport.available).toBe(222);
+    expect(result.report.counts.semantic.notApplicable).toBe(24);
   });
 });

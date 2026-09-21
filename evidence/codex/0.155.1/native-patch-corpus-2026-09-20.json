@@ -3,9 +3,68 @@
   "date": "2026-09-20",
   "host": "codex-cli 0.155.1",
   "mode": "codex exec --ephemeral --json",
-  "fixtureCount": 24,
-  "runtimeTested": 24,
+  "fixtureCount": 25,
+  "runtimeTested": 25,
   "rows": [
+    {
+      "fixtureId": "iface-delivery-ten-fields",
+      "path": "fixtures/input-contract/interface/iface-delivery-ten-fields.ts",
+      "verdict": "runtime-tested",
+      "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-delivery-ten-fields.ts\n@@\n-  email?: string;\n+  email: string;\n*** End Patch",
+      "postToolUseEnvelope": {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "toolInput": {
+          "command": "*** Begin Patch\n*** Update File: <WORKSPACE>/fixtures/input-contract/interface/iface-delivery-ten-fields.ts\n@@\n-  email?: string;\n+  email: string;\n*** End Patch"
+        },
+        "toolResponse": "<TOOL_RESPONSE>",
+        "toolUseId": "<TOOL_USE>"
+      },
+      "result": {
+        "codexExitCode": 0,
+        "codexSignal": null,
+        "postToolUseEvents": 1,
+        "fileSha256": "7bee88b46501452ede6e86a0c4f5ce82ae86f25f2f2fa5a66f98cadb9793087b",
+        "expectedFileSha256": "7bee88b46501452ede6e86a0c4f5ce82ae86f25f2f2fa5a66f98cadb9793087b",
+        "fileMatches": true,
+        "hostJsonlEvents": [
+          {
+            "type": "thread.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "error"
+          },
+          {
+            "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "item.started",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "file_change"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
+            "type": "turn.completed"
+          }
+        ]
+      },
+      "sanitization": "Session, turn, model, response, workspace, and authentication identities are redacted; fixture source is synthetic and already checked in."
+    },
     {
       "fixtureId": "iface-delivery-flat",
       "path": "fixtures/input-contract/interface/iface-delivery-flat.ts",
@@ -277,6 +336,10 @@
           },
           {
             "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
           },
           {
             "type": "item.started",
@@ -688,6 +751,10 @@
             "type": "turn.started"
           },
           {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
             "type": "item.started",
             "itemType": "file_change"
           },
@@ -1038,6 +1105,10 @@
             "type": "turn.started"
           },
           {
+            "type": "item.completed",
+            "itemType": "agent_message"
+          },
+          {
             "type": "item.started",
             "itemType": "file_change"
           },
@@ -1150,6 +1221,10 @@
           },
           {
             "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
           },
           {
             "type": "item.started",
@@ -1382,6 +1457,10 @@
           },
           {
             "type": "turn.started"
+          },
+          {
+            "type": "item.completed",
+            "itemType": "agent_message"
           },
           {
             "type": "item.started",

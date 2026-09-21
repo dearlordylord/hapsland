@@ -91,12 +91,12 @@ const data = {
   retention: {
     retained: [
       "authored fixture metadata, expectations, and rationales",
-      "before and after source for all 24 fixtures",
+      "before and after source for all 25 fixtures",
       "deterministically regenerated inputs for all four modes",
       "aggregate run counts, gates, timing, and request-size summaries",
       "sanitized 64-call production request/result diagnostic for four representative fixtures",
       "user-authorized two-call numeric confidence probe for iface-delivery-flat",
-      "24 runtime-tested Codex apply_patch callbacks, one per fixture",
+      "25 runtime-tested Codex apply_patch callbacks, one per fixture",
     ],
     notRetained: [
       "individual backend probabilities for the full gate and 64-call diagnostic",
@@ -104,7 +104,7 @@ const data = {
       "raw or source-bearing provider responses",
       "provider usage details",
     ],
-    consequence: "The active Codex arm uses 24 verified runtime apply_patch callbacks. The semantic arm is the extracted declaration-context object tree. Each arm has its own retained Jev request metadata and return; the historical repeated gate remains provenance only.",
+    consequence: "The active Codex arm uses 25 verified runtime apply_patch callbacks. The semantic arm is the extracted declaration-context object tree. Each arm has its own retained Jev request metadata and return; the historical repeated gate remains provenance only.",
   },
   providerContract: {
     source: [

@@ -61,6 +61,39 @@ const make = (options: FixtureOptions): Fixture => {
 
 const interfaceFixtures: readonly Fixture[] = [
   make({
+    id: "iface-delivery-ten-fields", name: "ten-field delivery alternatives", category: "interface", rootName: "Delivery", rootKind: "interface",
+    before: `type DeliveryChannel = "email" | "sms";
+export interface Delivery {
+  id: string;
+  channel: DeliveryChannel;
+  email?: string;
+  phone?: string;
+  priority: "normal" | "urgent";
+  retries: number;
+  scheduledAt?: string;
+  metadata: Record<string, string>;
+  region: string;
+  locale: string;
+}
+`,
+    after: `type DeliveryChannel = "email" | "sms";
+export interface Delivery {
+  id: string;
+  channel: DeliveryChannel;
+  email: string;
+  phone?: string;
+  priority: "normal" | "urgent";
+  retries: number;
+  scheduledAt?: string;
+  metadata: Record<string, string>;
+  region: string;
+  locale: string;
+}
+`,
+    evidence: { requiredReferences: ["DeliveryChannel"] }, contextRequired: true, expected: "violation",
+    rationale: "The ten-field interface keeps email and phone independently representable beside the channel discriminator, so channel-specific combinations remain admitted.",
+  }),
+  make({
     id: "iface-delivery-flat", name: "flat delivery alternatives", category: "interface", rootName: "Delivery", rootKind: "interface",
     before: `type DeliveryChannel = "email" | "sms";
 export interface Delivery {
@@ -560,7 +593,7 @@ export const fixtureSummary = {
 };
 
 if (
-  fixtureSummary.total !== 24 ||
+  fixtureSummary.total !== 25 ||
   Object.values(fixtureSummary.categories).some((count) => count < 6) ||
   fixtureSummary.contextRequired < 12 ||
   fixtureSummary.diffSufficient < 6 ||
