@@ -40,7 +40,8 @@
     <header class="top"><div><div class="eyebrow">Issue #16 · comparison evidence</div><h1>Compare Codex patch vs semantic tree</h1><p class="lede">For each fixture, inspect the two inputs sent to Jev and the retained result for each.</p></div><span class="verdict" id="verdict">diagnostic only</span></header>
     <section class="panel audit"><h2>Comparison scope</h2><p id="consequence"></p></section>
     <section class="stats" id="stats"></section>
-    <section class="panel section">
+    <section class="panel section" id="standalone-example" hidden><div class="sectionhead"><h2>Standalone ten-field Codex probe</h2><span class="muted" id="standalone-example-status"></span></div><p class="muted">This is a separate runtime probe, not one of the input-contract fixtures. The interface has exactly ten named fields.</p><div class="codegrid"><div class="codebox"><h3>Source used by Codex</h3><pre class="code" id="standalone-example-source"></pre></div><div class="codebox"><h3>Exact apply_patch callback</h3><pre class="code" id="standalone-example-command"></pre></div></div><p class="muted" style="margin:.7rem 0 0"><a href="../codex/0.155.1/probe/validate-ten-field-interface-patch-shape.mjs">Validator</a> · <a href="../codex/0.155.1/native-ten-field-interface-edit-validation-2026-09-20.json">Validation evidence</a></p></section>
+    <section class="panel section" id="fixture-comparison">
       <div class="sectionhead"><h2>Fixture comparison</h2><span class="muted" id="fixture-count"></span></div>
       <div class="controls"><input class="control" id="search" type="search" placeholder="Search fixtures…"><select class="control" id="category"><option value="">All categories</option></select><select class="control" id="flag"><option value="">All fixture roles</option><option value="contextRequired">Context required</option><option value="diffSufficient">Diff sufficient</option><option value="negativeControl">Negative control</option></select></div>
       <div class="statebar"><span class="muted">Shareable state URL</span><code id="state-url" class="state-url"></code><button class="tab" id="copy-state" type="button">Copy link</button></div>
@@ -57,6 +58,7 @@
       const urlParams = new URLSearchParams(window.location.search);
       const fixtureParam = urlParams.get("fixture");
       const viewParam = urlParams.get("view");
+      const exampleParam = urlParams.get("example");
       const selectedFixture = data.fixtures.some(f => f.id === fixtureParam) ? fixtureParam : data.fixtures[0].id;
       const viewAliases={diff:"input",side:"input",input:"input",source:"source",request:"request",result:"result"};
       let selected = selectedFixture, codeView = viewAliases[viewParam]??"result";
@@ -66,7 +68,7 @@
         url.searchParams.set("view", codeView);
         url.searchParams.delete("mode");
         url.searchParams.delete("unchanged");
-        url.searchParams.delete("example");
+        if (exampleParam !== "ten-field") url.searchParams.delete("example");
         const q = $("search").value, category = $("category").value, flag = $("flag").value;
         q ? url.searchParams.set("q", q) : url.searchParams.delete("q");
         category ? url.searchParams.set("category", category) : url.searchParams.delete("category");
@@ -103,6 +105,7 @@
         while((match=token.exec(source))){html+=escapeHtml(source.slice(last,match.index));const value=match[0];let cls="tok-punct";if(value.startsWith("//")||value.startsWith("/*"))cls="tok-comment";else if(/["'`]/.test(value[0]))cls="tok-string";else if(/^(?:export|import|from|interface|type|const|let|var|extends|implements|readonly|optional|return|new|class|function|as|satisfies|true|false)$/.test(value))cls="tok-keyword";else if(/^(?:string|number|boolean|unknown|never|undefined|null|void|[A-Z])/.test(value))cls="tok-type";else if(/^\d/.test(value))cls="tok-number";else if(/^(?:=>|===|!==|==|!=|<=|>=|\?\?|&&|\|\||[=?<>|&+*/-])$/.test(value))cls="tok-operator";html+=`<span class="${cls}">${escapeHtml(value)}</span>`;last=token.lastIndex}return html+escapeHtml(source.slice(last));
       }
       function highlightDiff(source){return source.split("\n").map(line=>{let cls="",body=line;if(line.startsWith("diff ")||line.startsWith("---")||line.startsWith("+++")||line.startsWith("***"))cls="diff-hunk tok-diffhead";else if(line.startsWith("@@"))cls="diff-hunk";else if(line.startsWith("+"))cls="diff-add";else if(line.startsWith("-"))cls="diff-del";return `<span class="code-line ${cls}">${highlightTs(body)||" "}</span>`}).join("")}
+      const tenFieldExample=data.codexTenFieldValidation;if(exampleParam==="ten-field"&&tenFieldExample){$("stats").hidden=true;$("fixture-comparison").hidden=true;$("standalone-example").hidden=false;$("standalone-example-status").textContent=tenFieldExample.verdict;$("standalone-example-source").innerHTML=highlightTs(tenFieldExample.fixture?.source??"");$("standalone-example-command").innerHTML=highlightDiff(tenFieldExample.observedCommand)}
       function codeBox(title,source,wide=false,isDiff=false,extraClass=""){const box=document.createElement("div");box.className=`codebox ${wide?"single":""} ${extraClass}`;const h=document.createElement("h3");h.textContent=title;const pre=document.createElement("pre");pre.className="code";pre.innerHTML=isDiff?highlightDiff(source):highlightTs(source);box.append(h,pre);return box}
       function disclosure(title,children,open=false){const details=document.createElement("details");const summary=document.createElement("summary");summary.textContent=title;details.open=open;details.append(summary,...children);return details}
       function probabilityTable(probabilities){const table=document.createElement("table");table.className="probabilities";table.innerHTML="<thead><tr><th>Decision</th><th>Probability</th></tr></thead>";const body=document.createElement("tbody");Object.entries(probabilities??{}).filter(([key])=>key.startsWith("r")).forEach(([key,value])=>{const row=document.createElement("tr"),name=document.createElement("td"),score=document.createElement("td");name.textContent=key;score.textContent=String(value);row.append(name,score);body.append(row)});table.append(body);return table}
