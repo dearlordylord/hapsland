@@ -9,6 +9,7 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
     "confidenceProbe": "evidence/input-contract-comparison/live-confidence-probe-2026-09-20.json",
     "codexEmission": "evidence/codex/0.155.1/native-patch-emission-2026-09-20.json",
     "codexInterfaceValidation": "evidence/codex/0.155.1/native-interface-edit-validation-2026-09-20.json",
+    "codexTenFieldValidation": "evidence/codex/0.155.1/native-ten-field-interface-edit-validation-2026-09-20.json",
     "codexPatchCorpus": "evidence/codex/0.155.1/native-patch-corpus-2026-09-20.json",
     "codexComparison": "evidence/input-contract-comparison/live-codex-semantic-corpus-comparison-2026-09-20.json",
     "currentDiffRenderer": "evidence/codex/0.155.1/native-patch-corpus-2026-09-20.json:rows[].command"
@@ -255,6 +256,46 @@ window.INPUT_CONTRACT_DASHBOARD_DATA = {
     },
     "observedCommand": "*** Begin Patch\n*** Update File: <WORKSPACE>/baseline.ts\n@@\n-  email?: string;\n+  email: string;\n*** End Patch",
     "expectedCommand": "*** Begin Patch\n*** Update File: <WORKSPACE>/baseline.ts\n@@\n-  email?: string;\n+  email: string;\n*** End Patch",
+    "assertions": {
+      "probeExitCode": true,
+      "verdict": true,
+      "toolName": true,
+      "onePostToolUseEvent": true,
+      "exactCommand": true,
+      "noFullInterfaceInPatch": true,
+      "noUnexpectedContextLines": true,
+      "fileChanged": true
+    },
+    "verdict": "validated",
+    "failures": []
+  },
+  "codexTenFieldValidation": {
+    "evidenceVersion": 1,
+    "date": "2026-09-20",
+    "purpose": "Validate the real Codex patch shape for a one-field replacement in a 10-field interface.",
+    "probe": "native-patch-emission.mjs --ten-fields",
+    "fixture": {
+      "file": "ten-field-baseline.ts",
+      "interfaceName": "Delivery",
+      "fieldCount": 10,
+      "fields": [
+        "id",
+        "channel",
+        "email",
+        "phone",
+        "priority",
+        "retries",
+        "scheduledAt",
+        "metadata",
+        "region",
+        "locale"
+      ],
+      "source": "export interface Delivery {\n  id: string;\n  channel: DeliveryChannel;\n  email?: string;\n  phone?: string;\n  priority: \"normal\" | \"urgent\";\n  retries: number;\n  scheduledAt?: string;\n  metadata: Record<string, string>;\n  region: string;\n  locale: string;\n}",
+      "edit": "email?: string; -> email: string;"
+    },
+    "observedCommand": "*** Begin Patch\n*** Update File: ten-field-baseline.ts\n@@\n-  email?: string;\n+  email: string;\n*** End Patch",
+    "canonicalCommand": "*** Begin Patch\n*** Update File: <WORKSPACE>/ten-field-baseline.ts\n@@\n-  email?: string;\n+  email: string;\n*** End Patch",
+    "expectedCommand": "*** Begin Patch\n*** Update File: <WORKSPACE>/ten-field-baseline.ts\n@@\n-  email?: string;\n+  email: string;\n*** End Patch",
     "assertions": {
       "probeExitCode": true,
       "verdict": true,

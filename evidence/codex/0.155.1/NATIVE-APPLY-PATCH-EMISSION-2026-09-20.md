@@ -52,14 +52,14 @@ The tested `PostToolUse` envelope also carried `session_id`, `turn_id`,
 `tool_use_id`, plus the event name and tool name. The product receives this envelope
 through the hook stdin; it does not receive the model provider's private API trace.
 
-## Ten-line interface edit probe
+## Ten-field interface edit probe
 
-The probe was rerun with a ten-line `Delivery` interface and one requested edit:
+The probe was rerun with a `Delivery` interface containing exactly ten named fields and one requested edit:
 `email?: string` became `email: string`. Codex emitted this exact sanitized command:
 
 ```diff
 *** Begin Patch
-*** Update File: <WORKSPACE>/baseline.ts
+*** Update File: <WORKSPACE>/ten-field-baseline.ts
 @@
 -  email?: string;
 +  email: string;
@@ -68,8 +68,12 @@ The probe was rerun with a ten-line `Delivery` interface and one requested edit:
 
 It made one successful `PostToolUse` callback and changed the file. Codex chose a
 minimal hunk here: it did not include the other interface lines as context. The full
-sanitized capture is [`native-interface-edit-emission-2026-09-20.json`](./native-interface-edit-emission-2026-09-20.json).
-The byte-for-byte validator for this example is [`validate-native-patch-shape.mjs`](./probe/validate-native-patch-shape.mjs); its latest result is [`native-interface-edit-validation-2026-09-20.json`](./native-interface-edit-validation-2026-09-20.json). It reruns the real Codex probe and fails if the command gains context lines, includes the full interface, or otherwise changes shape.
+sanitized capture is [`native-ten-field-interface-edit-emission-2026-09-20.json`](./native-ten-field-interface-edit-emission-2026-09-20.json).
+The validator for this example is [`validate-ten-field-interface-patch-shape.mjs`](./probe/validate-ten-field-interface-patch-shape.mjs); its latest result is [`native-ten-field-interface-edit-validation-2026-09-20.json`](./native-ten-field-interface-edit-validation-2026-09-20.json). It reruns the real Codex probe and fails if the command gains context lines, includes the full interface, or otherwise changes shape.
+
+The source has ten named fields: `id`, `channel`, `email`, `phone`, `priority`, `retries`,
+`scheduledAt`, `metadata`, `region`, and `locale`. The dashboard shows that source beside
+the exact callback.
 
 ## What this does not establish
 

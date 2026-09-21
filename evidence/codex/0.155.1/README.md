@@ -18,11 +18,15 @@ scripts in `probe/`. Only authentication material was copied into the temporary 
 user's configuration was not read or changed. `--dangerously-bypass-hook-trust` was limited
 to this isolated, reviewed configuration. No Jev request was made.
 
-The validated ten-line interface example is reproducible with
-[`validate-native-patch-shape.mjs`](./probe/validate-native-patch-shape.mjs). It performs a
-real Codex run for a one-line replacement, captures the `PostToolUse` command, and asserts
-the exact minimal hunk. The retained assertion record is
-[`native-interface-edit-validation-2026-09-20.json`](./native-interface-edit-validation-2026-09-20.json).
+The validated ten-field interface example is reproducible with
+[`validate-ten-field-interface-patch-shape.mjs`](./probe/validate-ten-field-interface-patch-shape.mjs).
+It performs a real Codex run against a `Delivery` interface with exactly ten named fields,
+captures the `PostToolUse` command, and asserts the exact one-field hunk. The retained
+assertion record is
+[`native-ten-field-interface-edit-validation-2026-09-20.json`](./native-ten-field-interface-edit-validation-2026-09-20.json).
+
+The older ten-line probe remains historical evidence; it is not the dashboard's ten-field
+example.
 
 ## Issue-4 lifecycle evidence
 

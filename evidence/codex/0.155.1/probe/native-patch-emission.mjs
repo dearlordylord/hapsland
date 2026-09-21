@@ -6,15 +6,17 @@ import { spawn } from "node:child_process";
 
 const repoRoot = resolve(new URL("../../../../", import.meta.url).pathname);
 const hookScript = join(repoRoot, "evidence/codex/0.155.1/probe/capture-hook.mjs");
-const updateMode = process.argv.includes("--update") || process.argv.includes("--interface");
+const tenFieldMode = process.argv.includes("--ten-fields");
+const updateMode = process.argv.includes("--update") || process.argv.includes("--interface") || tenFieldMode;
 const interfaceMode = process.argv.includes("--interface");
 const fixtureMode = process.argv.includes("--fixture");
 const targetPath = fixtureMode
   ? "fixtures/input-contract/interface/iface-delivery-flat.ts"
+  : tenFieldMode ? "ten-field-baseline.ts"
   : updateMode ? "baseline.ts" : "native-probe.ts";
 const outputPath = join(
   repoRoot,
-  `evidence/codex/0.155.1/native-${fixtureMode ? "fixture" : interfaceMode ? "interface-edit" : updateMode ? "update" : "patch"}-emission-2026-09-20.json`,
+  `evidence/codex/0.155.1/native-${fixtureMode ? "fixture" : tenFieldMode ? "ten-field-interface-edit" : interfaceMode ? "interface-edit" : updateMode ? "update" : "patch"}-emission-2026-09-20.json`,
 );
 const run = (command, args, options = {}) =>
   new Promise((resolvePromise, reject) => {
@@ -117,6 +119,22 @@ interface UnrelatedAuditEntry14 { id: string; createdAt: string; actor: string }
 interface UnrelatedAuditEntry15 { id: string; createdAt: string; actor: string }
 interface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }
 `
+    : tenFieldMode
+    ? [
+      "export interface Delivery {",
+      "  id: string;",
+      "  channel: DeliveryChannel;",
+      "  email?: string;",
+      "  phone?: string;",
+      '  priority: "normal" | "urgent";',
+      "  retries: number;",
+      "  scheduledAt?: string;",
+      "  metadata: Record<string, string>;",
+      "  region: string;",
+      "  locale: string;",
+      "}",
+      "",
+    ].join("\n")
     : interfaceMode
     ? [
       "export interface Delivery {",
@@ -183,6 +201,8 @@ interface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }
       repository,
       fixtureMode
         ? "Use apply_patch exactly once. Update existing fixtures/input-contract/interface/iface-delivery-flat.ts by adding exactly `  phone?: string;` after the existing email field. Do not use Bash, inspect files, make another tool call, or edit another path. Then reply DONE."
+        : tenFieldMode
+        ? "Use apply_patch exactly once. Update existing ten-field-baseline.ts by changing exactly `email?: string;` to `email: string;` in the Delivery interface. Do not use Bash, inspect files, make another tool call, or edit another path. Then reply DONE."
         : interfaceMode
         ? "Use apply_patch exactly once. Update existing baseline.ts by changing exactly `email?: string;` to `email: string;` in the Delivery interface. Do not use Bash, inspect files, make another tool call, or edit another path. Then reply DONE."
         : updateMode
@@ -217,6 +237,8 @@ interface UnrelatedAuditEntry16 { id: string; createdAt: string; actor: string }
     request: {
       instruction: fixtureMode
         ? "one native apply_patch call adding one line to the retained input-contract fixture; no Bash or other tool call"
+        : tenFieldMode
+        ? "one native apply_patch call changing one field in a 10-field Delivery interface; no Bash or other tool call"
         : interfaceMode
         ? "one native apply_patch call changing one line in a 10-line interface; no Bash or other tool call"
         : updateMode

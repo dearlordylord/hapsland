@@ -9,6 +9,7 @@ const diagnosticPath = resolve(root, "evidence/input-contract-comparison/live-di
 const confidenceProbePath = resolve(root, "evidence/input-contract-comparison/live-confidence-probe-2026-09-20.json");
 const codexEmissionPath = resolve(root, "evidence/codex/0.155.1/native-patch-emission-2026-09-20.json");
 const codexInterfaceValidationPath = resolve(root, "evidence/codex/0.155.1/native-interface-edit-validation-2026-09-20.json");
+const codexTenFieldValidationPath = resolve(root, "evidence/codex/0.155.1/native-ten-field-interface-edit-validation-2026-09-20.json");
 const codexCorpusPath = resolve(root, "evidence/codex/0.155.1/native-patch-corpus-2026-09-20.json");
 const codexComparisonPath = resolve(root, "evidence/input-contract-comparison/live-codex-semantic-corpus-comparison-2026-09-20.json");
 const outputPath = resolve(root, "evidence/input-contract-comparison/dashboard-data.js");
@@ -19,6 +20,7 @@ const diagnostic = JSON.parse(readFileSync(diagnosticPath, "utf8")) as Diagnosti
 const confidenceProbe = JSON.parse(readFileSync(confidenceProbePath, "utf8")) as unknown;
 const codexEmission = JSON.parse(readFileSync(codexEmissionPath, "utf8")) as unknown;
 const codexInterfaceValidation = JSON.parse(readFileSync(codexInterfaceValidationPath, "utf8")) as unknown;
+const codexTenFieldValidation = JSON.parse(readFileSync(codexTenFieldValidationPath, "utf8")) as unknown;
 type CodexCorpus = { readonly rows: readonly (Record<string, unknown> & { readonly fixtureId: string; readonly command?: string })[] };
 const codexCorpus = JSON.parse(readFileSync(codexCorpusPath, "utf8")) as CodexCorpus;
 type CodexComparison = { readonly rows: readonly (Record<string, unknown> & { readonly fixtureId: string; readonly arm: string; readonly request?: { readonly requestBytes?: number } })[] };
@@ -76,6 +78,7 @@ const data = {
     confidenceProbe: "evidence/input-contract-comparison/live-confidence-probe-2026-09-20.json",
     codexEmission: "evidence/codex/0.155.1/native-patch-emission-2026-09-20.json",
     codexInterfaceValidation: "evidence/codex/0.155.1/native-interface-edit-validation-2026-09-20.json",
+    codexTenFieldValidation: "evidence/codex/0.155.1/native-ten-field-interface-edit-validation-2026-09-20.json",
     codexPatchCorpus: "evidence/codex/0.155.1/native-patch-corpus-2026-09-20.json",
     codexComparison: "evidence/input-contract-comparison/live-codex-semantic-corpus-comparison-2026-09-20.json",
     currentDiffRenderer: "evidence/codex/0.155.1/native-patch-corpus-2026-09-20.json:rows[].command",
@@ -119,6 +122,7 @@ const data = {
   },
   codexEmission,
   codexInterfaceValidation,
+  codexTenFieldValidation,
   codexCaptures,
   codexComparison,
   diagnostic,
