@@ -189,7 +189,7 @@ No `DEPEND ON` recommendation is made, so no dependency gate table applies.
 
 ### Patterns worth carrying forward
 
-The Claude and Codex hook contracts both expose session and turn lifecycle identifiers, and Abide's adapters translate them into one validated payload. Abide's source then demonstrates a useful split: host transport is short-lived, while turn continuity needed for coverage and repair is durable. First-write-only records and marker files make that durable seam tolerant of parallel event processes. [AL01–AL03, AL06, AL12–AL14]
+Claude and Codex both expose session and turn lifecycle events, but their payload identifiers differ; Abide translates available identifiers into one validated payload and falls back when a turn identifier is absent. Abide's source then demonstrates a useful split: host transport is short-lived, while turn continuity needed for coverage and repair is durable. First-write-only records and marker files make that durable seam tolerant of parallel event processes. [AL01–AL03, AL06, AL12–AL14]
 
 The second reusable pattern is to make a whole-turn observation/backstop independent of individual tool delivery. A baseline identity, checked-edit chain, and end-of-turn diff can detect shell-written files and avoid claiming a complete judgment when snapshot/diff work failed. Borrow that concept; do not copy Abide's source-bearing Git tree snapshot while the product's source-free local state remains a constraint. [AL07–AL09, AL12]
 
