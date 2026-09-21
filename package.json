@@ -7,6 +7,7 @@
     "hello": "bun run src/hello.ts",
     "test": "vitest run --maxWorkers=1",
     "test:live": "RUN_LIVE_JEV=1 vitest run src/jev-live.test.ts",
+    "prototype:direct-event:live": "node experiments/direct-event-pipeline/live-jev.ts",
     "benchmark:live": "node evidence/codex/0.155.1/probe/benchmark-live.mjs --runs=100",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit",
