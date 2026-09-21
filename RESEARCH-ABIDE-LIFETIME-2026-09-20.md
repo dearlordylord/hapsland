@@ -263,3 +263,93 @@ All Abide source links are immutable commit URLs. Host documentation was accesse
 | H01 | [Claude Code hooks reference](https://code.claude.com/docs/en/hooks) |
 | H02 | [Codex hooks reference](https://developers.openai.com/codex/hooks) |
 | H03 | [OpenCode plugins reference](https://opencode.ai/docs/plugins) |
+
+## 12. Architecture discussion: low-friction Claude Code and Codex
+
+**Discussion captured:** 2026-09-20 session; advisory recommendation, not a resolved architecture decision.
+
+The user prioritizes the best practical, low-hassle architecture for Claude Code and
+Codex for now. They explicitly raised fresh processes with disk-preserved state as an
+alternative to resident MCP, noted that queues can persist, and expressed an inclination
+toward SQLite while keeping storage technology a separate question. This preference does
+not itself expand the map's formally supported envelope beyond pinned Codex; a Claude
+Code version and conformance surface still need to be specified.
+
+### Abide's approach in plain language
+
+For Claude Code and Codex, each hook event launches an Abide worker. It loads saved turn
+state, performs its review, returns feedback, and exits. Files preserve continuity between
+workers. OpenCode adds a resident plugin map but still launches the same worker per event.
+Abide has no resident review daemon or demonstrated durable background job queue. Its
+stored turn state must not be described as a persistent task queue merely because it
+survives process exit. Normal non-blocking Stop handling clears the turn; stale state is
+pruned at a later SessionStart after seven days. See AL02–AL10 for source evidence and
+limits. Concurrent agent/worktree isolation remains untested.
+
+### Recommended starting architecture
+
+**INFERRED / advisory; BORROW:** small host-specific command-hook adapters invoking one
+shared TypeScript/Effect worker, with source-free state persisted between invocations.
+This follows Abide's fresh-worker lifecycle while independently specifying stronger
+identity, queue ownership, recovery, and retention. It avoids requiring users to manage
+a daemon or MCP connection simply to run reviews. Startup cost and synchronous review
+latency still need measurement. This is a recommendation under the low-operational-hassle
+preference, not a claim of measured superiority over MCP or proven Claude conformance.
+
+The [pinned Codex MCP probe](https://github.com/dearlordylord/jevs/blob/055df19/experiments/resident-mcp-lifetime/VERDICT.md)
+establishes a viable resident alternative, but also readiness gaps, no automatic recovery
+from server crash through later hooks, and no MCP SessionEnd delivery. MCP remains a
+candidate if the product needs independent background progress or measured startup cost
+makes fresh workers unsuitable. A resident transport still requires explicit queue and
+recovery semantics; it does not provide them automatically.
+
+### Queues survive; execution needs a worker
+
+A proposed invocation would record an observation, atomically claim eligible work, perform
+bounded reviews, persist source-free results, and return an eligible advice batch. Later
+invocations could resume pending work and deliver pending results. This is a proposed
+product design, not Abide's proven implementation.
+
+There are two distinct persistent concerns:
+
+- **Review work:** what still needs review, its exact input identity, claim/lease, attempt,
+  and completion status. Concurrent processes need atomic claims; a killed worker leaves
+  recoverable metadata. Network requests must run outside database write transactions.
+- **Advice delivery:** completed results awaiting presentation to the appropriate host,
+  session/agent, and checkpoint. Printing a response and committing a receipt are not one
+  atomic transaction; define replay/deduplication rather than assuming exactly-once delivery.
+
+A durable queue does not execute itself. With only per-hook workers, work progresses while
+an invocation is running. After all workers exit, pending work waits for another invocation
+or an explicit drain command. If reviews must continue while the host is idle or gone,
+choose a separately owned background worker and its lifecycle. That requirement, not the
+choice of database, is the architectural dividing line.
+
+The product's source-free persistence constraint also limits recovery: a pending row may
+store identifiers, hashes, and status, but cannot store source or a full review request.
+A later worker must reread and validate the complete review-input identity. If the exact
+input changed or vanished, it cannot reconstruct the older snapshot from a hash; mark it
+superseded/unavailable and reconcile the current state according to the eventual policy.
+A crash after a paid request succeeds but before its result is committed can also cause
+an uncertain outcome or duplicate paid work; durable storage alone cannot remove that gap.
+
+### SQLite and location are separate decisions
+
+**Candidate, not adopted:** SQLite is a reasonable first storage option for local
+transactional claims, deduplication, checkpoint metadata, and an advice outbox. Its own
+[appropriate-use guidance](https://sqlite.org/whentouse.html) supports application-local
+storage, with limits around many concurrent writers and network filesystems
+(DOC / DOCUMENTED, accessed in this discussion). Driver/Effect compatibility, migrations,
+locking, busy handling, and crash behavior require a bounded technical evaluation.
+
+**Proposed location policy:** product-owned user state on a local filesystem, partitioned
+by canonical repository/worktree identity, with host/session/agent identity represented
+explicitly in records. The actual product directory name is undecided. This avoids
+writing operational state into tracked source directories. Local data permissions,
+retention, worktree removal/moves, configuration overrides, and database granularity remain
+open. Do not copy Abide's global session-only namespace or its source-bearing snapshots.
+
+The remaining product choice is whether pending reviews may wait for the next invocation,
+and how much latency an active hook may spend before returning. Queue persistence, SQLite,
+and directory placement should be decided against that behavior. No ticket is resolved by
+this recommendation; it feeds [Choose the product process lifetime and hook transport](https://github.com/dearlordylord/jevs/issues/31).
