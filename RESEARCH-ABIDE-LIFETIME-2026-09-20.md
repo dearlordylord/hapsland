@@ -374,3 +374,26 @@ questions. The source-free replay limit still applies to crash recovery of lost 
 but whether durable replay is needed depends on the eventual behavior contract.
 
 See [Research hook dispatch, worker lifetime, and feedback delivery](https://github.com/dearlordylord/jevs/issues/33).
+
+### Confirmed behavior: feedback flow and permissible crash loss
+
+The user confirmed that ordinary edits should let the agent continue, with advice delivered
+at the earliest supported opportunity and a bounded turn-end collection point. This
+reaffirms prior feedback-flow intent; it is not a newly opened architecture question.
+
+The user explicitly accepts losing suggestions on a crash. Recovery concerns current
+state, not replaying every intermediate version. Guaranteed restoration of pending reviews
+or completed-but-undelivered suggestions is not required. This supersedes any implication
+in the earlier recommendation that durable work queues, leases, or an advice outbox are
+required to protect suggestions against crashes.
+
+The current [scheduling and delivery ticket](https://github.com/dearlordylord/jevs/issues/23)
+already specifies in-memory, nonpersistent work/advice queues, bounded by item count and
+retained bytes, and permits restart loss. Crash loss does not imply silent queue-full
+loss during normal operation; its overflow policy remains explicit. Persistence may still
+serve separately decided source-free observation/checkpoint needs, but must not be justified
+by an invented requirement to restore suggestions. SQLite is not selected.
+
+A lazily started resident worker with in-memory state remains a candidate consistent with
+these preferences. Host dispatch, worker lifetime, and feedback-delivery research must
+establish whether it improves the design before the process architecture is chosen.
