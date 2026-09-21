@@ -17,7 +17,9 @@ implementation specification.
 | Observation result | The completion, skip, or incompleteness outcome of processing one change observation before semantic review work exists. |
 | Review unit | One root artifact together with the supporting evidence evaluated independently in one review-backend request. |
 | Review work item | One review unit together with the frozen observation, rule-set, and input-contract context needed to schedule its evaluation. |
+| Review dispatch cycle | A finite group of review work items selected together for evaluation; work arriving after selection belongs to a later cycle. |
 | Review result | The operational result of evaluating one actual review work item. |
+| Pending advice | Advice from a completed review that remains eligible for delivery to its intended recipient. |
 | Advice batch | The bounded collection of review results selected for delivery together through one agent-host interaction. |
 | Source fingerprint | A deterministic fingerprint of an artifact's exact source, used as equality evidence rather than as the identity of an observation. |
 | Review projection fingerprint | A deterministic fingerprint of the canonical evidence projection evaluated for a review unit. |
