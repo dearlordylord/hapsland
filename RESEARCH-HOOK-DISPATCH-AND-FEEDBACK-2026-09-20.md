@@ -62,7 +62,7 @@ that later events are routed to the process that handled the earlier event.
 
 | Host surface | Event cardinality and concurrency | Batch boundary | Worker/lifetime fact | Verification |
 | --- | --- | --- | --- | --- |
-| Codex PostToolUse/Stop command hooks | One command child is spawned for each matching command-handler invocation. Matching hooks may launch concurrently. | The hook receives one event payload. A single apply_patch tool call is one host event even if its command edits several files; whether a particular multi-file patch is split before the hook is UNKNOWN. | The child is request-shaped: one JSON input and one result. A later event is not delivered to that child. | SRC/SOURCE-INSPECTED; DOC/DOCUMENTED |
+| Codex PostToolUse/Stop command hooks | One command child is spawned for each matching command-handler invocation. Matching hooks may launch concurrently. | The hook receives one event payload. Multi-file apply_patch event cardinality is UNKNOWN until a focused pinned-host probe; the existing run exercised a single-file patch. | The child is request-shaped: one JSON input and one result. A later event is not delivered to that child. | SRC/SOURCE-INSPECTED; DOC/DOCUMENTED |
 | Codex background command hooks | Each matching invocation is independent; up to eight background hooks run at once per session, later work waits, and completion can be out of order. | No native full-tool-batch callback was found in the pinned hook surface. | At session end, unfinished background hooks are cancelled and undelivered output is discarded. | DOC/DOCUMENTED; pinned source corroborates the child runner |
 | Claude Code PostToolUse | Fires once per tool call. When Claude makes parallel calls, matching PostToolUse hooks fire concurrently. | One tool call is the per-call payload. A MultiEdit input can contain multiple edit entries, but the docs do not promise one hook per file. | All matching handlers run in parallel. For async: true, every execution creates a separate background process; no deduplication is provided. | DOC/DOCUMENTED; SRC/SOURCE-INSPECTED for a first-party plugin's handling |
 | Claude Code PostToolBatch | Fires once after every call in a host batch resolves, before the next model call. | The tool_calls array is the complete batch; it includes each tool call's serialized result. | This is the closest host-native “review the burst once” boundary. It is not a general resident worker. | DOC/DOCUMENTED |
@@ -250,8 +250,9 @@ is host-specific:
   exits with code 2, but it is still a host control path and should not be treated as
   generic background delivery.
 - Claude claude -p kills unfinished async hooks at teardown unless the hook starts a
-  fully detached process. A detached product worker must persist its result and rely
-  on a later synchronous/async hook to deliver it.
+  fully detached process. A detached product worker may retain its result in memory while alive and rely
+  on a later supported host callback to deliver it. Disk persistence is not required
+  by the accepted crash-loss policy.
 
 The current in-memory queues can preserve work only while the owning process remains
 alive. They still need both a work state and a presentation state, for example:
@@ -282,9 +283,8 @@ identity rules:
    but it cannot reconstruct an old source snapshot after the file changes.
 
 A future persistent queue could implement all three policies, but queue persistence is
-not required by the current crash behavior and is not selected here. Whether
-source-bearing inputs should be retained remains a separate privacy and stale-result
-decision.
+not required by the current crash behavior and is not selected here. Source-bearing persistent inputs remain out of scope; transient input lifetime
+and stale-result handling require explicit rules.
 
 ## Multiple agents and identity
 
@@ -356,7 +356,7 @@ per-tool feedback, or async hooks for eventual delivery. **Lifecycle:** concurre
 per-tool events, explicit full-batch callback, SessionStart/SessionEnd caveats, and
 subagent events. **State:** product must own dedupe/claims; first-party source uses
 locked files but does not establish a universal storage contract. **Failure:** async
-work is session-bound unless detached and persisted. **Portability:** current docs are
+work is session-bound unless detached; detached work still needs a supported delivery path. **Portability:** current docs are
 living and require versioned conformance before a release promise.
 
 **Classification:** BORROW the explicit batch/feedback distinction and lazy
