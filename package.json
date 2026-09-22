@@ -14,6 +14,7 @@
   "files": [
     "dist",
     "native/capture-open.c",
+    "native/credential-input.h",
     "native/credential-keychain.c",
     "native/credential-secret-service.c",
     "scripts/build-capture-helper.mjs",

@@ -1,7 +1,7 @@
 import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   logoutCredential,
@@ -67,10 +67,40 @@ afterEach(() => {
 
 describe("native credential lifecycle", () => {
   it("uses a non-optimizable wipe on every native set input release", () => {
-    const source = readFileSync(join(process.cwd(), "native", "credential-secret-service.c"), "utf8");
-    expect(source).toContain("volatile unsigned char *cursor");
-    expect(source).not.toContain("free(input)");
-    expect(source.match(/secure_free\(input, length\)/g)?.length).toBeGreaterThanOrEqual(5);
+    const header = readFileSync(join(process.cwd(), "native", "credential-input.h"), "utf8");
+    const linux = readFileSync(join(process.cwd(), "native", "credential-secret-service.c"), "utf8");
+    const mac = readFileSync(join(process.cwd(), "native", "credential-keychain.c"), "utf8");
+    expect(header).toContain("volatile unsigned char *cursor");
+    expect(linux).not.toContain("free(input)");
+    expect(mac).not.toContain("free(input)");
+    expect(linux.match(/credential_secure_free\(input, length\)/g)?.length).toBeGreaterThanOrEqual(5);
+    expect(mac.match(/credential_secure_free\(input, length\)/g)?.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("accepts exactly 32,768 native input bytes and rejects byte 32,769", () => {
+    const harnessSource = join(root, "credential-input-harness.c");
+    const harness = join(root, "credential-input-harness");
+    writeFileSync(harnessSource, `#include <stdio.h>
+#include "credential-input.h"
+int main(void) {
+  size_t length = 0;
+  char *value = credential_read_stdin(&length);
+  if (value == NULL) return 2;
+  printf("%zu\\n", length);
+  credential_secure_free(value, length);
+  return 0;
+}
+`);
+    execFileSync("cc", [
+      "-O2", "-std=c11", "-Wall", "-Wextra",
+      "-I", join(process.cwd(), "native"), harnessSource, "-o", harness,
+    ]);
+    const exact = spawnSync(harness, [], { input: Buffer.alloc(32_768, 0x78), encoding: "utf8" });
+    expect(exact.status).toBe(0);
+    expect(exact.stdout).toBe("32768\n");
+    const oversized = spawnSync(harness, [], { input: Buffer.alloc(32_769, 0x78), encoding: "utf8" });
+    expect(oversized.status).toBe(2);
+    expect(oversized.stdout).toBe("");
   });
 
   it("bounds a nonprompting lookup by killing its helper", async () => {
@@ -102,7 +132,10 @@ describe("native credential lifecycle", () => {
     expect(source).toContain('CFSTR("dev.typesafe.realtime-review-tool")');
     expect(source).toContain('CFSTR("default")');
     expect(source).toContain("SecKeychainCopyDefault");
+    expect(source).toContain("kSecMatchSearchList");
     expect(source).toContain("kSecUseKeychain");
+    expect(source.match(/kSecUseKeychain/g)).toHaveLength(1);
+    expect(source).toContain("errSecInteractionRequired");
     expect(source).toContain("kSecUseAuthenticationUIFail");
     expect(source).toContain("allow_interaction ? kSecUseAuthenticationUIAllow");
     expect(source).toContain("kSecAttrAccessibleAfterFirstUnlock");
