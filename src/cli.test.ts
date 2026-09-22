@@ -20,7 +20,15 @@ const roots: Array<string> = [];
 // compilation can make that bounded process startup exceed Vitest's 5 s default.
 const SUBPROCESS_TEST_TIMEOUT = 30_000;
 afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+  for (const root of roots.splice(0)) {
+    try {
+      const owner = JSON.parse(readFileSync(join(root, "runtime", "owner.json"), "utf8")) as { pid: number };
+      process.kill(owner.pid, "SIGTERM");
+    } catch {
+      // Most tests do not start a resident.
+    }
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 const initializeRepository = (root: string, requestedStatePath?: string) => {
@@ -114,12 +122,21 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
         command: "*** Begin Patch\n*** Add File: pinned.ts\n+type OrderCount = number\n*** End Patch",
       },
     };
+    const capturePath = join(root, "resident-backend-calls.txt");
     const control = JSON.stringify({
       answers: Object.fromEntries(configuredRules.map((rule) => [
         rule.id,
         { _tag: "Probability", probability: 0.9 },
       ])),
+      capturePath,
     });
+    const residentDirectory = join(root, "runtime");
+    const residentEnv = {
+      ...process.env,
+      REVIEW_CONTROL_JSON: control,
+      REVIEW_STATE_PATH: statePath,
+      REVIEW_RESIDENT_DIR: residentDirectory,
+    };
     const child = spawnSync(process.execPath, [
       "src/cli.ts",
       "--codex-hook",
@@ -129,23 +146,36 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
       cwd: process.cwd(),
       input: JSON.stringify(input),
       encoding: "utf8",
-      env: {
-        ...process.env,
-        REVIEW_CONTROL_JSON: control,
-        REVIEW_STATE_PATH: statePath,
-      },
+      env: residentEnv,
     });
 
     expect(child.status).toBe(0);
     expect(child.stderr).toBe("");
-    expect(child.stdout.trim().split("\n")).toHaveLength(1);
-    const output = JSON.parse(child.stdout) as {
+    expect(JSON.parse(child.stdout)).toEqual({});
+    const bash = {
+      ...input,
+      tool_name: "Bash",
+      turn_id: "later-turn",
+      tool_use_id: "later-tool",
+      tool_input: { command: "true" },
+    };
+    let later = spawnSync(process.execPath, ["src/cli.ts", "--codex-hook", "--controlled"], {
+      cwd: process.cwd(), input: JSON.stringify(bash), encoding: "utf8", env: residentEnv,
+    });
+    for (let attempt = 0; attempt < 20 && JSON.parse(later.stdout).hookSpecificOutput === undefined; attempt++) {
+      later = spawnSync(process.execPath, ["src/cli.ts", "--codex-hook", "--controlled"], {
+        cwd: process.cwd(), input: JSON.stringify(bash), encoding: "utf8", env: residentEnv,
+      });
+    }
+    expect(later.status).toBe(0);
+    const output = JSON.parse(later.stdout) as {
       hookSpecificOutput: { hookEventName: string; additionalContext: string };
     };
     expect(output.hookSpecificOutput.hookEventName).toBe("PostToolUse");
     expect(output.hookSpecificOutput.additionalContext).toContain("pinned.ts");
     expect(output.hookSpecificOutput.additionalContext).toContain("Advisory direct-event review");
-    expect(child.stdout).not.toContain("submission attempted");
+    expect(later.stdout).not.toContain("submission attempted");
+    expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(1);
     expect(readFileSync(path, "utf8")).toBe("type OrderCount = number\n");
   });
 
@@ -159,6 +189,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
     // would produce an operational message rather than the required quiet object.
     writeFileSync(join(root, ".review.jsonc"), "{ malformed");
     const capturePath = join(root, "backend-called.txt");
+    const residentDirectory = join(root, "runtime");
     const base = {
       session_id: "unsupported-session",
       turn_id: "unsupported-turn",
@@ -202,6 +233,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
           ...process.env,
           REVIEW_CONTROL_JSON: JSON.stringify({ capturePath }),
           REVIEW_STATE_PATH: join(root, "consent"),
+          REVIEW_RESIDENT_DIR: residentDirectory,
         },
       });
       expect(child.status).toBe(0);
