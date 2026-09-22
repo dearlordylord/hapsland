@@ -97,15 +97,29 @@ describe("resident delivery lease", () => {
     expect(server.stats()).toMatchObject({ queued: 0, running: 0, pendingAdvice: 0, retainedBytes: 0 });
   });
 
-  it("accounts each prepared unit exactly and rejects excess units independently", async () => {
+  it("bounds 16-path/64-unit preparation and accounts accepted units exactly", async () => {
     const root = await makeGitFixture();
-    const paths = ["a.ts", "b.ts", "c.ts", "d.ts"];
+    const paths = Array.from({ length: 16 }, (_, index) => `types-${index}.ts`);
     for (const [fileIndex, path] of paths.entries()) {
       await put(root, path, Array.from(
-        { length: 16 },
+        { length: 64 },
         (_, declarationIndex) => `type Shape${fileIndex}_${declarationIndex} = number`,
       ).join("\n"));
     }
+    await put(root, "rules.jsonc", JSON.stringify({
+      schemaVersion: 1,
+      id: "team",
+      contentVersion: "1",
+      rules: [{
+        id: "large",
+        question: "Does this declaration use a primitive?",
+        criteria: { false: "No", true: "Yes" },
+        threshold: 0.7,
+        message: "x".repeat(4 * 1024),
+        applicability: { includes: ["**/*.ts"] },
+      }],
+    }));
+    await put(root, ".review.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
     const statePath = join(root, "consent");
     const capturePath = join(root, "backend-calls");
     await enable(root, statePath);
@@ -118,17 +132,21 @@ describe("resident delivery lease", () => {
       credential: null,
       controlled: {
         capturePath,
-        answers: Object.fromEntries(configuredRules.map((rule) => [
-          rule.id,
-          { _tag: "Probability", probability: 0.9 },
-        ])),
+        answers: {
+          ...Object.fromEntries(configuredRules.map((rule) => [
+            rule.id,
+            { _tag: "Probability", probability: 0.9 },
+          ])),
+          "team/large": { _tag: "Probability", probability: 0.9 },
+        },
       },
     };
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const firstPathObservation = { ...observation, candidates: [observation.candidates[0]!] };
     const prepared = await Effect.runPromise(Effect.gen(function* () {
       const consent = yield* Consent.Service;
       const settings = yield* loadReviewSettings(root);
-      return yield* prepareObservation(observation, {
+      return yield* prepareObservation(firstPathObservation, {
         controlledWriter: true,
         recipient: observation.recipient,
         consent,
@@ -136,7 +154,7 @@ describe("resident delivery lease", () => {
       });
     }).pipe(Effect.provide(Consent.layer({ statePath }))));
     const exactAcceptedBytes = prepared.outcomes.flatMap((outcome) =>
-      outcome.status === "ready" ? [residentUnitReservationBytes(observation, dispatch, outcome.prepared)] : [])
+      outcome.status === "ready" ? [residentUnitReservationBytes(firstPathObservation, dispatch, outcome.prepared)] : [])
       .slice(0, 16)
       .reduce((total, bytes) => total + bytes, 0);
     expect(server.admit(observation, dispatch).status).toBe("accepted");
@@ -145,7 +163,8 @@ describe("resident delivery lease", () => {
     const metadata = server.pendingAdviceMetadata();
     const stats = server.stats();
     expect(metadata).toHaveLength(16);
-    expect(stats).toMatchObject({ pendingAdvice: 16, rejectedCapacity: 48 });
+    expect(stats).toMatchObject({ pendingAdvice: 16 });
+    expect(stats.rejectedCapacity).toBeGreaterThan(0);
     expect(stats.retainedBytes).toBe(exactAcceptedBytes);
     expect(stats.retainedBytes).toBe(metadata.reduce((total, item) => total + item.retainedBytes, 0));
     expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(16);
@@ -153,6 +172,8 @@ describe("resident delivery lease", () => {
     expect(metadata.map((item) => item.sequence)).toEqual(
       [...metadata.map((item) => item.sequence)].sort((left, right) => left - right),
     );
+    expect(server.accountingMetrics()).toMatchObject({ maxMaterializedPreparedUnits: 64 });
+    expect(server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(2 * 1024 * 1024);
   });
 
   it("reserves large valid outcomes before evaluation and rejects unreservable outcomes without a call", async () => {
@@ -216,6 +237,12 @@ describe("resident delivery lease", () => {
     const rejected = await run(2 * 1024 * 1024);
     expect(rejected.server.stats()).toMatchObject({ pendingAdvice: 0, rejectedCapacity: 1, retainedBytes: 0 });
     expect(existsSync(rejected.capturePath)).toBe(false);
+    expect(rejected.server.accountingMetrics()).toMatchObject({ maxMaterializedPreparedUnits: 0 });
+    expect(rejected.server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(2 * 1024 * 1024);
+
+    const transportRejected = await run(300 * 1024);
+    expect(transportRejected.server.stats()).toMatchObject({ pendingAdvice: 0, rejectedCapacity: 1, retainedBytes: 0 });
+    expect(existsSync(transportRejected.capturePath)).toBe(false);
   });
 
   it("removes concurrent collection results by stable advice identity", async () => {

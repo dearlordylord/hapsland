@@ -208,6 +208,12 @@ export const analyzeTypeFile = (path: string, source: string): TypeFileAnalysis 
   return { status: "analyzed", units: parsed.map((declaration) => unitFor(declaration, byName)) };
 };
 
+/** Bounded preflight count used before recursive ReviewUnit materialization. */
+export const typeDeclarationCount = (path: string, source: string): number | undefined => {
+  const parsed = parsedDeclarations(path, source);
+  return "status" in parsed ? undefined : parsed.length;
+};
+
 export const readyTypeUnits = (path: string, source: string): ReadonlyArray<ReviewUnit> => {
   const analysis = analyzeTypeFile(path, source);
   return analysis.status === "analyzed"
