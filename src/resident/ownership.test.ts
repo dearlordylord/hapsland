@@ -74,6 +74,25 @@ describe("portable resident ownership", () => {
     await releaseResidentOwnership(lock);
   });
 
+  it("elects one owner from an empty stale directory and crashed recovery claimant", async () => {
+    const lock = await fixture();
+    await mkdir(lock);
+    await utimes(lock, new Date(0), new Date(0));
+    const observed = await stat(lock, { bigint: true });
+    const recovery = `${lock}.recovery-${observed.dev}-${observed.ino}`;
+    await mkdir(recovery);
+    await writeFile(join(recovery, "owner.json"), '{"pid":99999998,"token":"dead-claimant"}\n');
+    const results = await Promise.all(Array.from({ length: 20 }, () => acquireResidentOwnership(lock)));
+    expect(results.filter(Boolean)).toHaveLength(1);
+    const winner = JSON.parse(await readFile(join(lock, "owner.json"), "utf8"));
+    expect(winner.pid).toBe(process.pid);
+    const retired = `${lock}.retired-${observed.dev}-${observed.ino}`;
+    expect(JSON.parse(await readFile(join(retired, "retirement.guard"), "utf8"))).toMatchObject({ pid: process.pid });
+    await expect(acquireResidentOwnership(lock)).resolves.toBe(false);
+    expect(JSON.parse(await readFile(join(lock, "owner.json"), "utf8"))).toEqual(winner);
+    await releaseResidentOwnership(lock);
+  });
+
   it("leaves a legacy regular-file lock untouched for the compatibility launcher", async () => {
     const lock = await fixture();
     await writeFile(lock, "");

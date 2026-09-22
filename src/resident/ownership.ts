@@ -67,6 +67,28 @@ export const acquireResidentOwnership = async (lock: string, hooks: OwnershipHoo
     if (!same(observed, await identity(lock))) return false;
     const current = await readOwner(lock);
     if (current !== undefined && processExists(current.pid)) return false;
+    // An interrupted owner directory may be empty. Seal it before rename so
+    // the inode-specific tombstone is nonempty from the instant it appears;
+    // POSIX rename may replace an empty directory, but cannot replace this.
+    const guardPath = `${lock}/retirement.guard`;
+    try {
+      await writeFile(guardPath, `${JSON.stringify(owner)}\n`, { flag: "wx", mode: 0o600 });
+    } catch (cause) {
+      if (code(cause) === "ENOENT") return false;
+      if (code(cause) !== "EEXIST") throw cause;
+      let guardOwner: OwnerRecord | undefined;
+      try {
+        const value: unknown = JSON.parse(await readFile(guardPath, "utf8"));
+        if (typeof value === "object" && value !== null && "pid" in value && Number.isSafeInteger(value.pid)) {
+          guardOwner = {
+            pid: value.pid as number,
+            token: "token" in value && typeof value.token === "string" ? value.token : "legacy-retirement-guard",
+          };
+        }
+      } catch { /* an interrupted guard is treated as crashed after identity revalidation */ }
+      if (guardOwner !== undefined && processExists(guardOwner.pid)) return false;
+    }
+    if (!same(observed, await identity(lock))) return false;
     const retired = `${lock}.retired-${observed.dev}-${observed.ino}`;
     try { await rename(lock, retired); }
     catch (cause) {
