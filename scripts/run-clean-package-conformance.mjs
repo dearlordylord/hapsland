@@ -331,6 +331,11 @@ try {
   };
   progress("capture-and-resident-review");
   await mustRun(cli, ["--codex-hook", "--controlled", "--controlled-writer"], { cwd: temporary, env, input: JSON.stringify(addEvent) });
+  const ownerAfterAdmission = await readFile(join(runtime, "owner.json"), "utf8").catch(() => undefined);
+  if (ownerAfterAdmission === undefined) {
+    const diagnostic = await readFile(join(runtime, "owner.lock.startup-error"), "utf8").catch(() => "no resident diagnostic was produced");
+    throw new Error(`packaged resident did not publish its endpoint: ${diagnostic.slice(-2_048)}`);
+  }
   let hookOutput = {};
   for (let attempt = 0; attempt < 20; attempt += 1) {
     await new Promise((resolveWait) => setTimeout(resolveWait, 50));
