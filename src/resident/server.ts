@@ -50,9 +50,9 @@ import { DispatchCycles } from "./dispatch.ts";
 import {
   collectionOrder,
   combinedFindingOutput,
-  fitsCombinedResponse,
   isCollectionEligible,
   isPendingAdviceExpired,
+  selectFittingFindings,
   type CollectionMode,
 } from "./collection.ts";
 
@@ -136,6 +136,7 @@ type Advice = Omit<UnitJob, "dispatch" | "kind"> & {
   revalidationActive: boolean;
   delivery?: {
     readonly token: string;
+    findings: ReadonlyArray<Finding>;
     leaseUntil: number;
     acknowledged: boolean;
   };
@@ -180,6 +181,25 @@ export const residentUnitWorstOutcomeBytes = (prepared: PreparedUnit): number =>
 
 const logicalBytes = (value: unknown): number =>
   Buffer.byteLength(canonicalValue(value), "utf8");
+
+const withoutDeliveredFindings = (
+  findings: ReadonlyArray<Finding>,
+  delivered: ReadonlyArray<Finding>,
+): ReadonlyArray<Finding> => {
+  const counts = new Map<string, number>();
+  for (const finding of delivered) {
+    const key = canonicalValue(finding);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return findings.filter((finding) => {
+    const key = canonicalValue(finding);
+    const count = counts.get(key) ?? 0;
+    if (count === 0) return true;
+    if (count === 1) counts.delete(key);
+    else counts.set(key, count - 1);
+    return false;
+  });
+};
 
 /** Exact retained logical charge, including complete input and promised outcome. */
 export const residentUnitReservationBytes = (
@@ -226,6 +246,7 @@ export class ResidentServer {
   readonly #beforeEvaluate: ((prepared: PreparedUnit) => Promise<void>) | undefined;
   readonly #afterRevalidationWorkspaceReserved: ((adviceId: string) => Promise<void>) | undefined;
   readonly #afterAdvicePending: ((adviceId: string) => Promise<void> | void) | undefined;
+  readonly #beforeFinalRevalidate: ((adviceId: string) => Promise<void>) | undefined;
   readonly paths: ResidentPaths;
 
   constructor(
@@ -237,6 +258,7 @@ export class ResidentServer {
       readonly beforeEvaluate?: (prepared: PreparedUnit) => Promise<void>;
       readonly afterRevalidationWorkspaceReserved?: (adviceId: string) => Promise<void>;
       readonly afterAdvicePending?: (adviceId: string) => Promise<void> | void;
+      readonly beforeFinalRevalidate?: (adviceId: string) => Promise<void>;
     } = {},
   ) {
     this.paths = paths;
@@ -246,6 +268,7 @@ export class ResidentServer {
     this.#beforeEvaluate = options.beforeEvaluate;
     this.#afterRevalidationWorkspaceReserved = options.afterRevalidationWorkspaceReserved;
     this.#afterAdvicePending = options.afterAdvicePending;
+    this.#beforeFinalRevalidate = options.beforeFinalRevalidate;
     this.#dispatcher = new DispatchCycles(
       BACKEND_CONCURRENCY,
       async (entry) => this.#run(entry.value, entry.cycle, entry.sequence),
@@ -313,27 +336,39 @@ export class ResidentServer {
     }
     const available = this.#advice.filter((item) =>
       item.partition === partition && item.delivery === undefined);
-    const oldestPendingAt = available.reduce(
-      (oldest, item) => Math.min(oldest, item.pendingAt),
-      Number.POSITIVE_INFINITY,
-    );
+    const cycles = new Map<number, Array<Advice>>();
     for (const item of available) {
-      if (isCollectionEligible(item, now, mode, oldestPendingAt)) item.collectionEligible = true;
+      const cohort = cycles.get(item.cycle) ?? [];
+      cohort.push(item);
+      cycles.set(item.cycle, cohort);
+    }
+    for (const cohort of cycles.values()) {
+      const oldestPendingAt = cohort.reduce(
+        (oldest, item) => Math.min(oldest, item.pendingAt),
+        Number.POSITIVE_INFINITY,
+      );
+      for (const item of cohort) {
+        if (isCollectionEligible(item, now, mode, oldestPendingAt)) item.collectionEligible = true;
+      }
     }
     const eligible = available.filter((item) => item.collectionEligible)
       .sort(collectionOrder)
       .map((item) => item.id);
     const token = randomUUID();
     const selected: Array<Advice> = [];
-    let groups: Array<ReadonlyArray<Finding>> = [];
+    let selectedFindings: Array<Finding> = [];
     for (const id of eligible) {
       const advice = this.#advice.find((item) => item.id === id && item.delivery === undefined);
       if (advice === undefined) continue;
-      // A current revalidation cannot make this immutable result smaller: a
-      // changed rule/input makes it stale instead. Scan past over-budget
-      // results so an older large item cannot starve later bounded advice.
-      if (!fitsCombinedResponse([...groups, advice.findings])) continue;
-      advice.delivery = { token, leaseUntil: Number.POSITIVE_INFINITY, acknowledged: false };
+      // Scan past individual over-budget findings so one large item cannot
+      // starve later bounded advice from the same or a later unit.
+      if (selectFittingFindings(selectedFindings, advice.findings).length === 0) continue;
+      advice.delivery = {
+        token,
+        findings: [],
+        leaseUntil: Number.POSITIVE_INFINITY,
+        acknowledged: false,
+      };
       await this.#beforeRevalidate?.(advice.id);
       const validity = await this.#revalidate(advice, dispatch);
       const retained = this.#advice.find((item) => item.id === advice.id);
@@ -353,33 +388,57 @@ export class ResidentServer {
         this.#removeAdvice(advice.id, token);
         continue;
       }
-      const nextGroups = [...groups, advice.findings];
-      if (!fitsCombinedResponse(nextGroups)) {
+      const fitting = selectFittingFindings(selectedFindings, advice.findings);
+      if (fitting.length === 0) {
         delete advice.delivery;
         continue;
       }
-      groups = nextGroups;
+      advice.delivery.findings = fitting;
+      selectedFindings = [...selectedFindings, ...fitting];
       selected.push(advice);
     }
     if (selected.length > 0) {
-      const handoffNow = this.#now();
-      const current = selected.filter((advice) => {
+      const final: Array<Advice> = [];
+      let finalFindings: Array<Finding> = [];
+      for (const advice of selected) {
+        await this.#beforeFinalRevalidate?.(advice.id);
+        const validity = await this.#revalidate(advice, dispatch);
         const retained = this.#advice.find((item) => item.id === advice.id);
-        if (retained !== advice || advice.delivery?.token !== token) return false;
-        if (!isPendingAdviceExpired(advice, handoffNow)) return true;
-        this.#removeAdvice(advice.id, token);
-        return false;
-      });
-      if (current.length > 0) {
-        for (const advice of current) advice.delivery = {
-          token,
-          leaseUntil: handoffNow + DELIVERY_LEASE_MS,
-          acknowledged: false,
-        };
+        if (retained !== advice || retained.delivery?.token !== token) continue;
+        if (validity.status === "unavailable" || validity.status === "unattributed") {
+          delete advice.delivery;
+          continue;
+        }
+        if (validity.status === "stale") {
+          this.#removeAdvice(advice.id, token);
+          continue;
+        }
+        advice.evaluations = validity.evaluations;
+        advice.findings = validity.findings;
+        const handoffNow = this.#now();
+        if (isPendingAdviceExpired(advice, handoffNow)) {
+          this.#removeAdvice(advice.id, token);
+          continue;
+        }
+        const fitting = selectFittingFindings(finalFindings, advice.findings);
+        if (fitting.length === 0) {
+          delete advice.delivery;
+          continue;
+        }
+        if (advice.delivery?.token !== token) continue;
+        advice.delivery.findings = fitting;
+        finalFindings = [...finalFindings, ...fitting];
+        final.push(advice);
+      }
+      if (final.length > 0) {
+        const leaseUntil = this.#now() + DELIVERY_LEASE_MS;
+        for (const advice of final) {
+          if (advice.delivery?.token === token) advice.delivery.leaseUntil = leaseUntil;
+        }
         return {
           status: "advice",
           token,
-          output: combinedFindingOutput(current.map((advice) => advice.findings)),
+          output: combinedFindingOutput(final.map((advice) => advice.delivery?.findings ?? [])),
         };
       }
     }
@@ -412,7 +471,20 @@ export class ResidentServer {
       for (const item of advice) delete item.delivery;
       return { status: "empty" };
     }
-    for (const item of advice) this.#removeAdvice(item.id, token);
+    for (const item of advice) {
+      const delivered = item.delivery?.findings ?? [];
+      const remaining = withoutDeliveredFindings(item.findings, delivered);
+      if (remaining.length === 0) {
+        this.#removeAdvice(item.id, token);
+        continue;
+      }
+      item.findings = remaining;
+      item.evaluations = item.evaluations.map((evaluation) => ({
+        ...evaluation,
+        findings: withoutDeliveredFindings(evaluation.findings, delivered),
+      })).filter((evaluation) => evaluation.findings.length > 0);
+      delete item.delivery;
+    }
     return { status: "finalized" };
   }
 
@@ -438,6 +510,8 @@ export class ResidentServer {
     readonly generation: number;
     readonly evaluationIdentities: ReadonlyArray<string>;
     readonly path: string;
+    readonly pendingFindings: number;
+    readonly deliveryFindings: number;
     readonly delivery: "available" | "leased-unacknowledged" | "leased-acknowledged";
   }> {
     return this.#advice.map((advice) => ({
@@ -452,6 +526,8 @@ export class ResidentServer {
       generation: advice.revision.generation,
       evaluationIdentities: advice.evaluations.map(({ prepared }) => prepared.identity),
       path: advice.prepared.input.path,
+      pendingFindings: advice.findings.length,
+      deliveryFindings: advice.delivery?.findings.length ?? 0,
       delivery: advice.delivery === undefined
         ? "available"
         : advice.delivery.acknowledged
