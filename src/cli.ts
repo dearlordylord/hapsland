@@ -26,6 +26,7 @@ import {
 import { explainPath, formatPathExplanation } from "./explanation/index.ts";
 import { decodeReviewRequest, type ReviewRequest } from "./domain/contracts.ts";
 import { ReviewBackend } from "./ports/review-backend.ts";
+import { BackendError } from "./domain/errors.ts";
 import { DedupeStore } from "./ports/dedupe-store.ts";
 import { SnapshotReader } from "./ports/snapshot-reader.ts";
 import { ReceiptStore } from "./ports/receipt-store.ts";
@@ -356,6 +357,11 @@ const noConsentResponse = (
 const runtimeLayer = (
   controlled: ControlledDecisionModelOptions | undefined,
   settings: ReviewSettings,
+  credentialCapability?: {
+    readonly generation: number;
+    readonly source: "environment" | "saved";
+    readonly statePath?: string;
+  },
 ) => {
   const decisionModel =
     controlled === undefined
@@ -366,6 +372,18 @@ const runtimeLayer = (
       : controlledDecisionModelLayer(controlled);
   const backendLayer = ReviewBackend.layerWithOptions({
     transientRetries: settings.configuration.policy.settings.transientRetries.value,
+    ...(credentialCapability === undefined ? {} : {
+      beforeDispatch: Effect.suspend(() => {
+        const current = readCredentialState(credentialCapability.statePath);
+        return current.generation === credentialCapability.generation &&
+            (credentialCapability.source === "environment" || !current.savedUseSuspended)
+          ? Effect.void
+          : Effect.fail(new BackendError({
+              reason: "review credential changed before provider dispatch",
+              retryable: false,
+            }));
+      }),
+    }),
   });
   return Layer.mergeAll(
     SnapshotReader.layer,
@@ -379,7 +397,14 @@ const runRequest = (
   controlled: ControlledDecisionModelOptions | undefined,
   settings: ReviewSettings,
   context: ReviewContext,
-) => review(request, context).pipe(Effect.provide(runtimeLayer(controlled, settings)));
+  credentialCapability?: {
+    readonly generation: number;
+    readonly source: "environment" | "saved";
+    readonly statePath?: string;
+  },
+) => review(request, context).pipe(
+  Effect.provide(runtimeLayer(controlled, settings, credentialCapability)),
+);
 
 const isCodexHook = process.argv.includes("--codex-hook");
 const isControlled = process.argv.includes("--controlled");
@@ -741,6 +766,13 @@ const runReviewRequestCore = (
         consent: authorization.success.consent,
         settings: authorization.success.settings,
       },
+      credential?.status === "present"
+        ? {
+            generation: credential.generation,
+            source: credential.source,
+            ...(credentialStatePath === undefined ? {} : { statePath: credentialStatePath }),
+          }
+        : undefined,
     );
     const credentialProvider = credential?.status === "present"
       ? ConfigProvider.layer(ConfigProvider.fromUnknown({

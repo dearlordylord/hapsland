@@ -40,6 +40,7 @@ else if (operation === "get") {
   const chunks = []; for await (const chunk of process.stdin) chunks.push(chunk);
   if (mode === "fail-set") { console.log('{"version":1,"status":"unavailable"}'); process.exit(2); }
   writeFileSync(vault, Buffer.concat(chunks), { mode: 0o600 });
+  if (mode === "fail-after-create") { console.log('{"version":1,"status":"indeterminate"}'); process.exit(2); }
   if (mode === "commit-hang-set") await new Promise(() => setInterval(() => {}, 1000));
   console.log('{"version":1,"status":"stored"}');
 } else if (operation === "delete") {
@@ -144,6 +145,15 @@ describe("Secret Service credential lifecycle", () => {
     await expect(resolveCredential({ envVar: "TYPESAFE_API_KEY", environmentOnly: false, statePath: lifecycle }))
       .resolves.toMatchObject({ status: "suspended" });
   }, 20_000);
+
+  it("maps a native create failure after possible commit to indeterminate and suspends use", async () => {
+    await saveCredential("old-marker", lifecycle);
+    process.env.TEST_SECRET_MODE = "fail-after-create";
+    const result = await saveCredential("new-marker", lifecycle);
+    expect(result.status).toBe("indeterminate");
+    expect(result.state.savedUseSuspended).toBe(true);
+    expect(readFileSync(vault, "utf8")).toBe("new-marker");
+  });
 
   it("suspends saved use and advances generation when deletion fails", async () => {
     const stored = await saveCredential("saved-marker", lifecycle);
