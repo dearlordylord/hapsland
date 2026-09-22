@@ -43,14 +43,18 @@ import {
 import { runEvaluationCommand } from "./evaluation/command.ts";
 import {
   adaptCodexAdd,
+  adaptCodexReply,
   isCodexNativeApplyPatch,
-  verifyObservationRoot,
 } from "./direct-event/adapter.ts";
-import {
-  reviewObservation,
-  type CodexDirectEventOutput,
-} from "./direct-event/pipeline.ts";
+import type { CodexDirectEventOutput } from "./direct-event/pipeline.ts";
 import { attemptCodexHostOutput } from "./direct-event/writer.ts";
+import {
+  acknowledgeAdvice,
+  admitObservation,
+  collectReady,
+  ensureResident,
+  type CollectedAdvice,
+} from "./resident/client.ts";
 
 const readStdin = Effect.try({
   try: () => readFileSync(0, "utf8"),
@@ -326,61 +330,54 @@ type DirectHookDispatch =
 
 const runDirectCodexHook = (
   nativeEvent: unknown,
-  controlled: ControlledDecisionModelOptions | undefined,
-  statePath: string,
-  userConfigPath: string | undefined,
 ): Effect.Effect<DirectHookDispatch, unknown> =>
   Effect.gen(function* () {
-    if (!isCodexNativeApplyPatch(nativeEvent)) return { handled: false } as const;
+    const record = typeof nativeEvent === "object" && nativeEvent !== null
+      ? nativeEvent as Readonly<Record<string, unknown>>
+      : undefined;
+    const isBash = record?.hook_event_name === "PostToolUse" && record.tool_name === "Bash";
+    if (!isCodexNativeApplyPatch(nativeEvent) && !isBash) return { handled: false } as const;
+    // Every mapped hook ensures the singleton, including Bash collection-only
+    // replies and installations where no initialization command was run.
+    const owner = yield* Effect.tryPromise(() => ensureResident()).pipe(Effect.option);
+    if (Option.isNone(owner)) return { handled: true, output: {} } as const;
+    const reply = yield* adaptCodexReply(nativeEvent);
+    const collected = reply === undefined
+      ? undefined
+      : yield* Effect.tryPromise(() => collectReady(reply.root, reply.recipient)).pipe(
+          Effect.catch(() => Effect.succeed(undefined)),
+        );
+    // Bash has no path adaptation and can never create backend work.
+    if (isBash) {
+      return collected === undefined
+        ? { handled: true, output: {} } as const
+        : { handled: true, output: { _tag: "DirectEventReady" as const, value: collected.output, collected } } as const;
+    }
     const observation = yield* adaptCodexAdd(nativeEvent);
     // The direct dispatcher owns every native apply_patch event. Unsupported
     // shapes remain quiet and can never reach the legacy whole-file runtime.
-    if (observation === undefined) return { handled: true, output: {} } as const;
+    if (observation === undefined) {
+      return collected === undefined
+        ? { handled: true, output: {} } as const
+        : { handled: true, output: { _tag: "DirectEventReady" as const, value: collected.output, collected } } as const;
+    }
     // Matching reads are not attribution. The hook command must explicitly be
     // installed with this controlled-writer assertion for the supported Add profile.
-    if (!isControlledWriter) return { handled: true, output: {} } as const;
-    if (!(yield* verifyObservationRoot(observation))) {
-      return { handled: true, output: {} } as const;
-    }
-    const consent = yield* Consent.Service;
-    const settings = yield* loadReviewSettings(
-      observation.root,
-      userConfigPath === undefined ? {} : { userConfigPath },
+    yield* Effect.tryPromise(() => admitObservation(observation, isControlledWriter)).pipe(
+      Effect.catch(() => Effect.void),
     );
-    if (controlled === undefined) {
-      const credential = yield* Config.option(Config.String(settings.credentialEnvVar));
-      if (Option.isNone(credential) || credential.value.length === 0) {
-        return { handled: true, output: {} } as const;
-      }
-    }
-    const decisionModel = controlled === undefined
-      ? jevDecisionModelLiveLayer({
-          apiUrl: settings.apiBase,
-          credentialEnvVar: settings.credentialEnvVar,
-        })
-      : controlledDecisionModelLayer(controlled);
-    // Recheck after configuration capture so a remapped root cannot combine
-    // another repository's settings with source from this observation.
-    if (!(yield* verifyObservationRoot(observation))) {
-      return { handled: true, output: {} } as const;
-    }
-    const result = yield* reviewObservation(observation, {
-      controlledWriter: true,
-      recipient: observation.recipient,
-      consent,
-      settings,
-    }).pipe(Effect.provide(decisionModel));
-    return result.status === "ready"
-      ? {
-          handled: true,
-          output: { _tag: "DirectEventReady" as const, value: result.output },
-        }
-      : { handled: true, output: {} } as const;
-  }).pipe(Effect.provide(Consent.layer({ statePath })));
+    return collected === undefined
+      ? { handled: true, output: {} } as const
+      : { handled: true, output: { _tag: "DirectEventReady" as const, value: collected.output, collected } } as const;
+  });
 
 const isDirectEventReady = (
   value: unknown,
-): value is { readonly _tag: "DirectEventReady"; readonly value: CodexDirectEventOutput } =>
+): value is {
+  readonly _tag: "DirectEventReady";
+  readonly value: CodexDirectEventOutput;
+  readonly collected: CollectedAdvice;
+} =>
   typeof value === "object" &&
   value !== null &&
   "_tag" in value &&
@@ -781,9 +778,6 @@ const program = Effect.gen(function* () {
     const nativeEvent = yield* decodeJson(input);
     const direct = yield* runDirectCodexHook(
       nativeEvent,
-      controlled,
-      statePath,
-      userConfigPath,
     );
     if (direct.handled) return direct.output;
     const event = yield* decodeCodexJson(input);
@@ -846,6 +840,7 @@ if (isDirectEventReady(output)) {
   attemptCodexHostOutput(output.value, (encoded) => {
     process.stdout.write(encoded);
   });
+  await acknowledgeAdvice(output.collected);
 } else {
   process.stdout.write(typeof output === "string" ? output : `${JSON.stringify(output)}\n`);
 }
