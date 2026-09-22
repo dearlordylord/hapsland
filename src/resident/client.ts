@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import * as Effect from "effect/Effect";
 import { connect } from "node:net";
 import { resolve } from "node:path";
-import { existsSync } from "node:fs";
+import { closeSync, existsSync, openSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { DirectObservation, DirectRecipient } from "../direct-event/model.ts";
 import type { CodexDirectEventOutput } from "../direct-event/pipeline.ts";
@@ -118,16 +118,27 @@ const within = async <A>(effect: Promise<A>, timeoutMs: number, message: string)
   });
 
 const launchResident = (paths: ResidentPaths, _timeoutMs: number) => {
+  const startup = `${paths.lock}.startup`;
+  let descriptor: number;
+  try {
+    descriptor = openSync(startup, "wx", 0o600);
+    closeSync(descriptor);
+  } catch (cause) {
+    if (typeof cause === "object" && cause !== null && "code" in cause && cause.code === "EEXIST") return;
+    throw cause;
+  }
   const compiled = fileURLToPath(new URL("./main.js", import.meta.url));
-  const main = existsSync(compiled)
-    ? compiled
-    : fileURLToPath(new URL("./main.ts", import.meta.url));
-  const child = spawn("flock", ["--nonblock", paths.lock, process.execPath, main, paths.directory], {
+  const source = fileURLToPath(new URL("./main.ts", import.meta.url));
+  const main = import.meta.url.endsWith(".js") && existsSync(compiled) ? compiled : source;
+  const child = spawn(process.execPath, [main, paths.directory], {
     detached: true,
     stdio: "ignore",
     env: process.env,
   });
+  child.once("error", () => rmSync(startup, { force: true }));
   child.unref();
+  const staleGuard = setTimeout(() => rmSync(startup, { force: true }), 2_000);
+  staleGuard.unref();
 };
 
 const liveEnsureDependencies: EnsureResidentDependencies = {
@@ -156,18 +167,22 @@ export const ensureResident = async (
     if (existing.status === "ready") return existing;
   } catch {
     // A failed probe is not a death determination. Contending servers use the
-    // kernel lock; only its owner may replace the socket pathname.
+    // atomic owner directory; only its live owner may replace the socket.
   }
+  let lastLaunch = Number.NEGATIVE_INFINITY;
   while (remaining() > 0) {
-    dependencies.launch(paths, remaining());
+    if (dependencies.now() - lastLaunch >= 500) {
+      dependencies.launch(paths, remaining());
+      lastLaunch = dependencies.now();
+    }
     if (remaining() <= 0) break;
     try {
       const response = await dependencies.probe(paths, Math.min(250, remaining()));
       if (response.status === "ready") return response;
     } catch {
       // Another contender may still own the lock, or its owner may have exited
-      // without publishing an endpoint. Each launch is a non-blocking lock
-      // attempt, so retrying cannot displace a live owner.
+      // without publishing an endpoint. Acquisition is non-blocking and stale
+      // recovery checks process liveness, so retries cannot displace an owner.
     }
     const backoff = Math.min(50, remaining());
     if (backoff > 0) await dependencies.wait(backoff);

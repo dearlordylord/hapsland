@@ -15,18 +15,21 @@ type Check = {
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const declaration = JSON.parse(readFileSync(join(packageRoot, "package-runtime.json"), "utf8")) as {
   runtime: { name: string; version: string };
-  operatingSystem: string;
-  architecture: string;
+  profiles: ReadonlyArray<{ operatingSystem: string; architecture: string; descriptorFacility: string }>;
+  requiredCommands: ReadonlyArray<string>;
 };
 const checks: Array<Check> = [];
 const add = (name: string, ready: boolean, observed: string, required: string, action?: string) => {
   checks.push({ name, status: ready ? "ready" : "unsupported", observed, required, ...(ready || action === undefined ? {} : { action }) });
 };
 add("runtime", process.version === `v${declaration.runtime.version}`, process.version, `Node ${declaration.runtime.version}`, `install and invoke Node ${declaration.runtime.version}`);
-add("operating-system", process.platform === declaration.operatingSystem, process.platform, declaration.operatingSystem, `run the package on ${declaration.operatingSystem}`);
-add("architecture", process.arch === declaration.architecture, process.arch, declaration.architecture, `install the ${declaration.architecture} package on a ${declaration.architecture} host`);
+const profile = declaration.profiles.find(({ operatingSystem, architecture }) =>
+  operatingSystem === process.platform && architecture === process.arch
+);
+const supported = declaration.profiles.map(({ operatingSystem, architecture }) => `${operatingSystem}/${architecture}`).join(", ");
+add("platform-profile", profile !== undefined, `${process.platform}/${process.arch}`, supported, `use one of the tested profiles: ${supported}`);
 
-for (const command of ["git", "flock"] as const) {
+for (const command of declaration.requiredCommands) {
   try {
     const observed = execFileSync(command, ["--version"], { encoding: "utf8", timeout: 2_000, stdio: ["ignore", "pipe", "pipe"] }).trim().split("\n")[0] ?? command;
     add(command, true, observed, `${command} available`);
@@ -35,8 +38,16 @@ for (const command of ["git", "flock"] as const) {
   }
 }
 
-const procFd = "/proc/self/fd";
-add("stable-capture-facility", existsSync(procFd), existsSync(procFd) ? procFd : "unavailable", procFd, "mount procfs at /proc; path-only source reads are unsupported");
+const descriptorFacility = profile?.descriptorFacility;
+add(
+  "stable-capture-facility",
+  descriptorFacility !== undefined && existsSync(descriptorFacility),
+  descriptorFacility !== undefined && existsSync(descriptorFacility) ? descriptorFacility : "unavailable",
+  descriptorFacility ?? "descriptor facility for a tested profile",
+  profile === undefined
+    ? `use one of the tested profiles: ${supported}`
+    : `make ${descriptorFacility} available; path-only source reads are unsupported`,
+);
 
 const resident = join(packageRoot, "dist", "resident", "main.js");
 try {

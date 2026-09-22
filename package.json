@@ -8,10 +8,8 @@
     "node": "24.20.0"
   },
   "os": [
-    "linux"
-  ],
-  "cpu": [
-    "arm64"
+    "linux",
+    "darwin"
   ],
   "files": [
     "dist",

@@ -4,10 +4,11 @@
     "name": "node",
     "version": "24.20.0"
   },
-  "operatingSystem": "linux",
-  "architecture": "arm64",
-  "requiredCommands": ["git", "flock"],
-  "requiredFacilities": ["/proc/self/fd"],
+  "profiles": [
+    { "operatingSystem": "linux", "architecture": "arm64", "descriptorFacility": "/proc/self/fd", "verification": "tested" },
+    { "operatingSystem": "darwin", "architecture": "x64", "descriptorFacility": "/dev/fd", "verification": "pending-runner" }
+  ],
+  "requiredCommands": ["git"],
   "parser": {
     "implementation": "tree-sitter",
     "languages": ["typescript", "tsx"]

@@ -20,3 +20,8 @@ does not edit the user's real Codex home, and removes all temporary material aft
 The ordinary command omits the real Codex arm and does not rewrite evidence. Package installation
 can resolve or compile production dependencies; individual hook invocations perform no transient
 package download.
+
+Issue 64 adds `clean-darwin-node-24.20.0-x64.json` through the branch-scoped macOS runner.
+Until that file is retained from a successful run, macOS remains unverified. The repository has
+no Actions secret for isolated Codex authentication, so the real-host macOS cell is blocked and
+must not be inferred from the controlled package path.
