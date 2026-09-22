@@ -244,13 +244,19 @@ const establishNativeTrust = (codexHome, repository, env) => new Promise((resolv
 
 const temporary = await mkdtemp(join(tmpdir(), "review-package-conformance-"));
 let residentPid;
+let separateRuntime;
 try {
   progress("pack-and-install");
   const artifacts = join(temporary, "artifacts");
   const installation = join(temporary, "installation");
   const repository = join(temporary, "repository");
   const state = join(temporary, "state", "consent");
-  const runtime = join(temporary, "state", "resident");
+  // Darwin's sockaddr_un path bound is substantially shorter than Linux's.
+  // The product default is short enough, while this deeply nested fixture is
+  // not, so keep the isolated resident endpoint in its own temporary root.
+  const runtime = process.platform === "darwin"
+    ? (separateRuntime = await mkdtemp(join(tmpdir(), "review-resident-")))
+    : join(temporary, "state", "resident");
   const calls = join(temporary, "state", "controlled-calls.txt");
   const outcomes = join(temporary, "state", "controlled-outcomes.jsonl");
   await mkdir(artifacts, { recursive: true });
@@ -470,4 +476,7 @@ try {
     }
   }
   await rm(temporary, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }).catch(() => undefined);
+  if (separateRuntime !== undefined) {
+    await rm(separateRuntime, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }).catch(() => undefined);
+  }
 }
