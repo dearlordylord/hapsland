@@ -16,6 +16,7 @@ import {
 import { verifyObservationRoot } from "../direct-event/adapter.ts";
 import type { PreparedUnit } from "../direct-event/model.ts";
 import { MAX_TYPE_DECLARATIONS } from "../direct-event/analyzer.ts";
+import type { AnalyzerMaterializationPreflight } from "../direct-event/analyzer.ts";
 import { MAX_SOURCE_BYTES } from "../direct-event/capture.ts";
 import { liveLayer as jevDecisionModelLiveLayer } from "../jev-decision.ts";
 import { Consent } from "../runtime/consent.ts";
@@ -50,6 +51,23 @@ const RESERVATION_OVERHEAD_BYTES = 1024;
 const MAX_PROBABILITY_ENCODING_BYTES = 24;
 /** Covers bounded dual capture buffers/text plus declaration-count preflight payload. */
 const CAPTURE_WORKSPACE_BYTES = 8 * MAX_SOURCE_BYTES;
+
+const captureWorkspaceBytes = (path: string): number =>
+  CAPTURE_WORKSPACE_BYTES + MAX_TYPE_DECLARATIONS * (logicalBytes(path) + 512);
+
+const analysisWorkspaceBytes = (
+  path: string,
+  sourceBytes: number,
+  preflight: AnalyzerMaterializationPreflight | undefined,
+  rules: unknown,
+): number => {
+  const declarations = preflight?.declarations ?? MAX_TYPE_DECLARATIONS;
+  return captureWorkspaceBytes(path) +
+    (preflight?.expandedUnitBytes ?? MAX_TYPE_DECLARATIONS * MAX_SOURCE_BYTES) +
+    declarations * (
+      logicalBytes(rules) + sourceBytes + 4 * logicalBytes(path) + 4096
+    );
+};
 
 const ResidentControlledOptions = Schema.Struct({
   answers: Schema.optionalKey(Schema.Record(
@@ -247,10 +265,14 @@ export class ResidentServer {
     const token = randomUUID();
     advice.delivery = { token, leaseUntil: Number.POSITIVE_INFINITY, acknowledged: false };
     await this.#beforeRevalidate?.(advice.id);
-    const valid = await this.#revalidate(advice, dispatch);
+    const validity = await this.#revalidate(advice, dispatch);
     const retained = this.#advice.find((item) => item.id === advice.id);
     if (retained !== advice || retained.delivery?.token !== token) return { status: "empty" };
-    if (!valid) {
+    if (validity === "unavailable") {
+      delete advice.delivery;
+      return { status: "empty" };
+    }
+    if (validity === "stale") {
       this.#removeAdvice(advice.id, token);
       return { status: "empty" };
     }
@@ -368,7 +390,7 @@ export class ResidentServer {
       // a time prevents a 16-path event from materializing 1,024 complete
       // inputs outside the ledger.
       for (const candidate of job.observation.candidates) {
-        const workspace = this.#reserve(job.partition, CAPTURE_WORKSPACE_BYTES);
+        const workspace = this.#reserve(job.partition, captureWorkspaceBytes(candidate.path));
         if (workspace === undefined) {
           this.#rejectedCapacity += 1;
           continue;
@@ -384,9 +406,8 @@ export class ResidentServer {
               recipient: pathObservation.recipient,
               consent,
               settings,
-              beforeAnalyze: (_path, sourceBytes, declarations) => Effect.sync(() => {
-                const required = CAPTURE_WORKSPACE_BYTES +
-                  (declarations ?? MAX_TYPE_DECLARATIONS) * (sourceBytes + logicalBytes(settings.rules));
+              beforeAnalyze: (path, sourceBytes, preflight) => Effect.sync(() => {
+                const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules);
                 const resized = server.#ledger.resize(workspace, required);
                 if (resized) {
                   server.#peakLedgerBytes = Math.max(server.#peakLedgerBytes, server.#ledger.snapshot().bytes);
@@ -515,10 +536,19 @@ export class ResidentServer {
     }
   }
 
-  async #revalidate(advice: Advice, dispatch: ResidentDispatchContext): Promise<boolean> {
+  async #revalidate(
+    advice: Advice,
+    dispatch: ResidentDispatchContext,
+  ): Promise<"current" | "stale" | "unavailable"> {
+    const candidate = advice.observation.candidates[0];
+    if (candidate === undefined) return "unavailable";
+    const workspace = this.#reserve(advice.partition, captureWorkspaceBytes(candidate.path));
+    if (workspace === undefined) return "unavailable";
+    const server = this;
+    let capacityUnavailable = false;
     try {
       const userConfigPath = dispatch.userConfigPath ?? undefined;
-      return await Effect.runPromise(Effect.gen(function* () {
+      const current = await Effect.runPromise(Effect.gen(function* () {
         const settings = yield* loadReviewSettings(
           advice.observation.root,
           userConfigPath === undefined ? {} : { userConfigPath },
@@ -529,10 +559,19 @@ export class ResidentServer {
           recipient: advice.observation.recipient,
           consent,
           settings,
+          beforeAnalyze: (path, sourceBytes, preflight) => Effect.sync(() => {
+            const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules);
+            const resized = server.#ledger.resize(workspace, required);
+            if (!resized) capacityUnavailable = true;
+            return resized;
+          }),
         });
       }).pipe(Effect.provide(Consent.layer({ statePath: dispatch.statePath }))));
+      return capacityUnavailable ? "unavailable" : current ? "current" : "stale";
     } catch {
-      return false;
+      return "unavailable";
+    } finally {
+      this.#ledger.release(workspace);
     }
   }
 

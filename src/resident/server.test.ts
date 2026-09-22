@@ -8,6 +8,7 @@ import { configuredRules } from "../policy/rules.ts";
 import { Consent } from "../runtime/consent.ts";
 import { loadReviewSettings } from "../runtime/review-config.ts";
 import { prepareObservation } from "../direct-event/pipeline.ts";
+import { analyzerMaterializationPreflight } from "../direct-event/analyzer.ts";
 import { residentPaths } from "./paths.ts";
 import { DELIVERY_LEASE_MS, type ResidentDispatchContext } from "./protocol.ts";
 import { ResidentServer, residentUnitReservationBytes } from "./server.ts";
@@ -17,6 +18,16 @@ const enable = (root: string, statePath: string) => Effect.runPromise(Effect.gen
   const proposal = yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone");
   yield* consent.enable(proposal);
 }).pipe(Effect.provide(Consent.layer({ statePath }))));
+
+const longNestedPath = `${Array.from({ length: 14 }, (_, index) =>
+  `segment-${index}-${"x".repeat(180)}`).join("/")}/types.ts`;
+
+const mutuallyReferencingTypes = () => Array.from({ length: 17 }, (_, index) => {
+  const fields = Array.from({ length: 17 }, (_unused, target) => target === index
+    ? undefined
+    : `p${target}: Type${target}`).filter((value) => value !== undefined).join("; ");
+  return `interface Type${index} { ${fields} }`;
+}).join("\n");
 
 describe("resident delivery lease", () => {
   it("reclaims disconnected collection and unfinalized acknowledgement deterministically", async () => {
@@ -115,7 +126,7 @@ describe("resident delivery lease", () => {
         question: "Does this declaration use a primitive?",
         criteria: { false: "No", true: "Yes" },
         threshold: 0.7,
-        message: "x".repeat(4 * 1024),
+        message: "x".repeat(1024),
         applicability: { includes: ["**/*.ts"] },
       }],
     }));
@@ -298,6 +309,85 @@ describe("resident delivery lease", () => {
     }
     releases.get(first.id)?.();
     await expect(collectFirst).resolves.toMatchObject({ status: "empty" });
+    expect(server.stats()).toMatchObject({ pendingAdvice: 0, retainedBytes: 0 });
+  });
+
+  it("rejects adversarial long-ID expansion before recursive unit materialization", async () => {
+    const root = await makeGitFixture();
+    const source = mutuallyReferencingTypes();
+    await put(root, longNestedPath, source);
+    const preflight = analyzerMaterializationPreflight(longNestedPath, source);
+    expect(preflight?.declarations).toBe(17);
+    expect(preflight?.expandedUnitBytes).toBeGreaterThan(8 * 1024 * 1024);
+    const statePath = join(root, "consent");
+    const capturePath = join(root, "backend-calls");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, [longNestedPath])));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    const dispatch: ResidentDispatchContext = {
+      statePath,
+      userConfigPath: null,
+      credential: null,
+      controlled: { capturePath },
+    };
+    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    expect(server.admit(observation, dispatch).status).toBe("accepted");
+    await server.whenIdle();
+    expect(server.stats()).toMatchObject({ pendingAdvice: 0, rejectedCapacity: 1, retainedBytes: 0 });
+    expect(server.accountingMetrics().maxMaterializedPreparedUnits).toBe(0);
+    expect(server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(2 * 1024 * 1024);
+    expect(existsSync(capturePath)).toBe(false);
+  });
+
+  it("retains advice when revalidation expansion cannot reserve workspace", async () => {
+    const root = await makeGitFixture();
+    const original = "type Type0 = number\n";
+    await put(root, longNestedPath, original);
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, [longNestedPath])));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    const dispatch: ResidentDispatchContext = {
+      statePath,
+      userConfigPath: null,
+      credential: null,
+      controlled: {
+        answers: Object.fromEntries(configuredRules.map((rule) => [
+          rule.id,
+          { _tag: "Probability", probability: 0.9 },
+        ])),
+      },
+    };
+    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    expect(server.admit(observation, dispatch).status).toBe("accepted");
+    await server.whenIdle();
+    const before = server.stats();
+    expect(before.pendingAdvice).toBe(1);
+
+    const expansion = mutuallyReferencingTypes();
+    expect(analyzerMaterializationPreflight(longNestedPath, expansion)?.expandedUnitBytes)
+      .toBeGreaterThan(8 * 1024 * 1024);
+    await put(root, longNestedPath, expansion);
+    await expect(server.collect(
+      root,
+      recipient({ turnId: "pressure", toolUseId: "pressure" }),
+      dispatch,
+    )).resolves.toMatchObject({ status: "empty" });
+    expect(server.stats()).toMatchObject({ pendingAdvice: 1, retainedBytes: before.retainedBytes });
+
+    await put(root, longNestedPath, original);
+    const recovered = await server.collect(
+      root,
+      recipient({ turnId: "recovered", toolUseId: "recovered" }),
+      dispatch,
+    );
+    expect(recovered.status).toBe("advice");
+    if (recovered.status === "advice") {
+      expect(server.acknowledge(recovered.token).status).toBe("acknowledged");
+      expect(server.finalize(recovered.token).status).toBe("finalized");
+    }
     expect(server.stats()).toMatchObject({ pendingAdvice: 0, retainedBytes: 0 });
   });
 });

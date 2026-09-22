@@ -209,10 +209,61 @@ export const analyzeTypeFile = (path: string, source: string): TypeFileAnalysis 
 };
 
 /** Bounded preflight count used before recursive ReviewUnit materialization. */
-export const typeDeclarationCount = (path: string, source: string): number | undefined => {
-  const parsed = parsedDeclarations(path, source);
-  return "status" in parsed ? undefined : parsed.length;
+export type AnalyzerMaterializationPreflight = {
+  readonly declarations: number;
+  readonly expandedUnitBytes: number;
 };
+
+const encodedBytes = (value: unknown): number =>
+  Buffer.byteLength(JSON.stringify(value), "utf8");
+
+/**
+ * Conservative logical bound computed without constructing recursive units.
+ * Exact artifact/id/site payload bytes are charged with ample per-node/edge
+ * structural allowance, following the same expansion and reference ceilings
+ * as unitFor.
+ */
+export const analyzerMaterializationPreflight = (
+  path: string,
+  source: string,
+): AnalyzerMaterializationPreflight | undefined => {
+  const parsed = parsedDeclarations(path, source);
+  if ("status" in parsed) return undefined;
+  const byName = new Map(parsed.map((declaration) => [declaration.artifact.name, declaration]));
+  let expandedUnitBytes = 0;
+  for (const root of parsed) {
+    const expanded = new Set<string>([root.artifact.id]);
+    const referencedNames = new Set<string>();
+    const visit = (declaration: ParsedDeclaration): number => {
+      let bytes = encodedBytes(declaration.artifact) + 512;
+      for (const reference of declaration.references) {
+        const target = reference.kind === "named" ? byName.get(reference.name) : undefined;
+        if (reference.kind === "named" && reference.name !== root.artifact.name) {
+          referencedNames.add(reference.name);
+        }
+        // Covers tagged edge keys, site/symbol, omitted target/reason, and an
+        // included target ID at its exact escaped byte length.
+        bytes += 512 + 2 * encodedBytes(reference.name) +
+          (target === undefined ? 0 : encodedBytes(target.artifact.id));
+        if (
+          reference.kind === "named" &&
+          referencedNames.size <= MAX_REFERENCED_NAMES &&
+          target !== undefined &&
+          !expanded.has(target.artifact.id)
+        ) {
+          expanded.add(target.artifact.id);
+          bytes += visit(target);
+        }
+      }
+      return bytes;
+    };
+    expandedUnitBytes += visit(root);
+  }
+  return { declarations: parsed.length, expandedUnitBytes };
+};
+
+export const typeDeclarationCount = (path: string, source: string): number | undefined =>
+  analyzerMaterializationPreflight(path, source)?.declarations;
 
 export const readyTypeUnits = (path: string, source: string): ReadonlyArray<ReviewUnit> => {
   const analysis = analyzeTypeFile(path, source);
