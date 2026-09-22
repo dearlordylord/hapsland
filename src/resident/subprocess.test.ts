@@ -170,9 +170,10 @@ describe("resident separate-process lifecycle", { timeout: 30_000 }, () => {
       cwd: process.cwd(), env, stdio: ["pipe", "pipe", "pipe"],
     });
     await waitFor(async () => existsSync(`${collectGate}.entered`) ? true : undefined);
+    const disconnected = new Promise<void>((resolve) => disconnecting.once("close", () => resolve()));
     disconnecting.kill("SIGKILL");
     await writeFile(`${collectGate}.release`, "release\n");
-    await new Promise<void>((resolve) => disconnecting.once("close", () => resolve()));
+    await disconnected;
     const advice = await waitFor(() => collectReady(
       root,
       recipient({ turnId: "later", toolUseId: "bash" }),
@@ -192,9 +193,10 @@ describe("resident separate-process lifecycle", { timeout: 30_000 }, () => {
       cwd: process.cwd(), env, stdio: ["pipe", "pipe", "pipe"],
     });
     await waitFor(async () => existsSync(`${ackGate}.entered`) ? true : undefined);
+    const acknowledgementClosed = new Promise<void>((resolve) => acknowledging.once("close", () => resolve()));
     acknowledging.kill("SIGKILL");
     await writeFile(`${ackGate}.release`, "release\n");
-    await new Promise<void>((resolve) => acknowledging.once("close", () => resolve()));
+    await acknowledgementClosed;
     await writeFile(clockPath, `${100 + DELIVERY_LEASE_MS}\n`);
     const reclaimed = await collectReady(
       root,
