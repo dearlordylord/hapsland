@@ -122,9 +122,12 @@ rejects malformed or unreadable files, duplicate owned markers, explicit hook di
 locally changed owned entries. TOML edits locate parsed table/key spans, including quoted table
 names, and ignore table-like text inside multiline strings; the resulting TOML and hooks semantic
 state are parsed again before writing. It uses a bounded 1.5-second configuration lock, digest-based
-concurrent-change checks, atomic per-file replacement, and a versioned journal. A well-formed lock
-whose recorded process is dead can be reclaimed only after a bounded stale interval; live,
-recent, or malformed locks remain conflicts. A `partial`
+concurrent-change checks, atomic per-file replacement, and a versioned journal. The lock is a
+persistent generation directory: each generation points to a unique immutable owner record, and
+release or stale recovery marks that exact owner before a contender atomically creates the next
+generation. The canonical lock directory is never removed during recovery. A generation whose
+recorded process is dead can be reclaimed only after a bounded stale interval; live, recent, or
+malformed generations remain conflicts. A `partial`
 result includes the original proposal digest and completed-file count. Rerun the same operation
 with that digest to resume. Recovery revalidates the runtime, journal targets, completed outputs,
 pending prerequisites, preexisting `features.hooks = true` state, and generated configuration.
