@@ -57,6 +57,22 @@ try {
   add("resident-entry", false, "unavailable", "readable packaged resident entry", "reinstall the package; dist/resident/main.js is missing or unreadable");
 }
 
+if (process.platform === "darwin") {
+  const captureHelper = join(packageRoot, "dist", "native", "capture-open");
+  try {
+    accessSync(captureHelper, constants.X_OK);
+    add("descriptor-capture-helper", true, captureHelper, "executable packaged openat helper");
+  } catch {
+    add(
+      "descriptor-capture-helper",
+      false,
+      "unavailable",
+      "executable packaged openat helper",
+      "install the Xcode Command Line Tools, then reinstall the package with lifecycle scripts enabled",
+    );
+  }
+}
+
 try {
   const { analyzeTypeFile } = await import("./direct-event/analyzer.ts");
   const parser = analyzeTypeFile("doctor.ts", "export interface Doctor { ready: boolean }");
