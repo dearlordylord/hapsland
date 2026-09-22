@@ -49,3 +49,21 @@ export const addEvent = (
   tool_response: {},
   ...overrides,
 });
+
+export const updateEvent = (
+  root: string,
+  path: string,
+  addedLines: ReadonlyArray<string>,
+  overrides: Readonly<Record<string, unknown>> = {},
+) => addEvent(root, [path], {
+  tool_input: {
+    command: [
+      "*** Begin Patch",
+      `*** Update File: ${path}`,
+      "@@",
+      ...addedLines.map((line) => `+${line}`),
+      "*** End Patch",
+    ].join("\n"),
+  },
+  ...overrides,
+});

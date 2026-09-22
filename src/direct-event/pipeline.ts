@@ -7,8 +7,12 @@ import type { CompiledRule } from "../rules/compiler.ts";
 import { applicableRules, configuredRules } from "../policy/rules.ts";
 import type { Consent } from "../runtime/consent.ts";
 import type { ReviewSettings } from "../runtime/review-config.ts";
-import { adaptCodexAdd, verifyObservationRoot } from "./adapter.ts";
-import { analyzeNamedType, analyzeSingleType } from "./analyzer.ts";
+import { adaptCodexDirectEvent, verifyObservationRoot } from "./adapter.ts";
+import {
+  analyzeTypeFile,
+  type TypeFileAnalysis,
+  type UnitAnalysis,
+} from "./analyzer.ts";
 import { captureStable, type CaptureHooks } from "./capture.ts";
 import {
   DIRECT_EVENT_INPUT_CONTRACT,
@@ -20,6 +24,9 @@ import {
   type DirectRecipient,
   type PreparedUnit,
   type ReviewInput,
+  type ReviewUnit,
+  type ObservationResult,
+  type PathObservationOutcome,
 } from "./model.ts";
 import {
   DEFAULT_DIRECT_FILE_POLICY,
@@ -50,6 +57,11 @@ export type DirectReviewContext = {
 export type PrepareOutcome =
   | { readonly status: "ready"; readonly path: string; readonly prepared: PreparedUnit }
   | { readonly status: "skipped"; readonly path: string };
+
+export type PreparedObservation = {
+  readonly observation: ObservationResult;
+  readonly outcomes: ReadonlyArray<PrepareOutcome>;
+};
 
 export type Finding = {
   readonly path: string;
@@ -101,19 +113,72 @@ const currentInputContract = (context: DirectReviewContext): string =>
     ? DIRECT_EVENT_INPUT_CONTRACT
     : current(context.inputContract);
 
+const linesOf = (source: string): ReadonlySet<string> =>
+  new Set(source.split(/\r?\n/u).map((line) => line.trim()).filter((line) => line.length > 0));
+
+const analysisRoot = (analysis: UnitAnalysis) =>
+  analysis.status === "ready" ? analysis.unit.root.artifact : analysis.root;
+
+const selectedAnalyses = (
+  analyses: ReadonlyArray<UnitAnalysis>,
+  operation: "add" | "update",
+  addedLines: ReadonlyArray<string>,
+): { readonly selected: ReadonlyArray<UnitAnalysis>; readonly ambiguous: boolean } => {
+  if (operation === "add") return { selected: analyses, ambiguous: false };
+  const selected = new Set<UnitAnalysis>();
+  let ambiguous = false;
+  for (const line of addedLines.map((value) => value.trim()).filter((value) => value.length > 0)) {
+    const matching = analyses.filter((analysis) => linesOf(analysisRoot(analysis).source).has(line));
+    if (matching.length === 1 && matching[0] !== undefined) selected.add(matching[0]);
+    if (matching.length > 1) ambiguous = true;
+  }
+  return { selected: [...selected], ambiguous };
+};
+
+type AnalysisFailure = Extract<
+  Extract<PathObservationOutcome, { status: "observed" }>["analysis"],
+  { status: "incomplete" }
+>["failures"][number];
+
+const extractionFailures = (analysis: TypeFileAnalysis): ReadonlyArray<AnalysisFailure> => {
+  if (analysis.status === "unsupported") {
+    return [{ root: undefined, reason: analysis.reason }];
+  }
+  return analysis.units.flatMap((outcome) => outcome.status === "unsupported"
+    ? [{ root: outcome.root.name, reason: outcome.reason }]
+    : []);
+};
+
 export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(function* (
   observation: DirectObservation,
   context: DirectReviewContext,
-  frozenNames: ReadonlyMap<string, string> | undefined = undefined,
+  frozenNames: ReadonlyMap<string, ReadonlySet<string>> | undefined = undefined,
 ) {
   const outcomes: Array<PrepareOutcome> = [];
+  const pathOutcomes: Array<PathObservationOutcome> = [];
+  const observedUnits: Array<ReviewUnit> = [];
   for (const candidate of observation.candidates) {
+    if (candidate.operation === "delete" || candidate.operation === "move") {
+      pathOutcomes.push({ status: "incomplete", path: candidate.path, reason: "unsupported-operation" });
+      outcomes.push({ status: "skipped", path: candidate.path });
+      continue;
+    }
+    if (
+      candidate.operation === "update" &&
+      !candidate.addedLines.some((line) => line.trim().length > 0)
+    ) {
+      pathOutcomes.push({ status: "incomplete", path: candidate.path, reason: "metadata-only" });
+      outcomes.push({ status: "skipped", path: candidate.path });
+      continue;
+    }
     const eligible = yield* eligibleNamedPath(
       observation.root,
       candidate.path,
       currentPolicy(context),
+      observation.rootIdentity,
     );
     if (eligible === undefined) {
+      pathOutcomes.push({ status: "incomplete", path: candidate.path, reason: "ineligible" });
       outcomes.push({ status: "skipped", path: candidate.path });
       continue;
     }
@@ -124,45 +189,80 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
       observation.rootIdentity,
     );
     if (captured === undefined) {
+      pathOutcomes.push({ status: "incomplete", path: eligible.relativePath, reason: "capture-unavailable" });
       outcomes.push({ status: "skipped", path: eligible.relativePath });
       continue;
     }
-    const frozenName = frozenNames?.get(eligible.relativePath);
-    const declaration = frozenName === undefined
-      ? analyzeSingleType(eligible.relativePath, captured.text)
-      : analyzeNamedType(eligible.relativePath, captured.text, frozenName);
-    if (declaration === undefined) {
-      outcomes.push({ status: "skipped", path: eligible.relativePath });
-      continue;
-    }
-    const rules = applicableRules(
-      declaration.source,
-      eligible.relativePath,
-      currentRules(context),
-    );
-    if (rules.length === 0) {
-      outcomes.push({ status: "skipped", path: eligible.relativePath });
-      continue;
-    }
-    const input = freezeInput({
-      contract: currentInputContract(context),
+    const analysis = analyzeTypeFile(eligible.relativePath, captured.text);
+    const analyses = analysis.status === "analyzed" ? analysis.units : [];
+    const selection = selectedAnalyses(analyses, candidate.operation, candidate.addedLines ?? []);
+    const frozen = frozenNames?.get(eligible.relativePath);
+    const selected = frozen === undefined
+      ? selection.selected
+      : selection.selected.filter((item) => frozen.has(analysisRoot(item).name));
+    const units = selected.flatMap((item) => item.status === "ready" ? [item.unit] : []);
+    const failures = [
+      ...extractionFailures(analysis),
+      ...(selection.ambiguous
+        ? [{ root: undefined, reason: "ambiguous-update" as const }]
+        : []),
+    ];
+    pathOutcomes.push({
+      status: "observed",
       path: eligible.relativePath,
-      declaration,
-      rules: freezeRules(rules),
-      interpretation: "probability-strictly-greater-than-threshold",
-    } satisfies ReviewInput);
-    outcomes.push({
-      status: "ready",
-      path: eligible.relativePath,
-      prepared: {
-        root: observation.root,
-        recipient: observation.recipient,
-        input,
-        identity: semanticIdentity(input),
+      snapshot: {
+        path: eligible.relativePath,
+        operation: candidate.operation,
+        sourceHash: captured.contentHash,
       },
+      units,
+      analysis: failures.length === 0
+        ? { status: "complete" }
+        : { status: "incomplete", failures },
     });
+    observedUnits.push(...units);
+    if (units.length === 0) {
+      outcomes.push({ status: "skipped", path: eligible.relativePath });
+      continue;
+    }
+    for (const unit of units) {
+      const declaration = unit.root.artifact;
+      const rules = applicableRules(declaration.source, eligible.relativePath, currentRules(context));
+      if (rules.length === 0) continue;
+      const input = freezeInput({
+        contract: currentInputContract(context),
+        path: eligible.relativePath,
+        declaration,
+        unit,
+        rules: freezeRules(rules),
+        interpretation: "probability-strictly-greater-than-threshold",
+      } satisfies ReviewInput);
+      outcomes.push({
+        status: "ready",
+        path: eligible.relativePath,
+        prepared: {
+          root: observation.root,
+          recipient: observation.recipient,
+          input,
+          identity: semanticIdentity(input),
+        },
+      });
+    }
   }
-  return outcomes as ReadonlyArray<PrepareOutcome>;
+  const complete = pathOutcomes.every((outcome) =>
+    outcome.status === "observed" && outcome.analysis.status === "complete");
+  const result: ObservationResult = complete
+    ? {
+        status: "complete",
+        changeSet: {
+          status: "complete",
+          changes: pathOutcomes.flatMap((outcome) => outcome.status === "observed" ? [outcome.snapshot] : []),
+          units: observedUnits,
+        },
+        outcomes: pathOutcomes,
+      }
+    : { status: "incomplete", outcomes: pathOutcomes, units: observedUnits };
+  return { observation: result, outcomes } satisfies PreparedObservation;
 });
 
 type Evaluation =
@@ -181,6 +281,11 @@ export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(functi
     artifact: {
       domain: prepared.input.path,
       source: prepared.input.declaration.source,
+    },
+    evidence: prepared.input.unit.root.references,
+    inputContract: {
+      id: prepared.input.contract,
+      evidence: "complete named direct-event unit",
     },
   }).pipe(Effect.orDie);
   const model = yield* DecisionModel.DecisionModel;
@@ -240,7 +345,7 @@ export const toCodexDirectEventOutput = (
     additionalContext: [
       "Advisory direct-event review (the edit already succeeded):",
       ...findings.map((finding) =>
-        `${finding.path} [${finding.ruleId}, p=${finding.probability.toFixed(2)}]: ${finding.message}`),
+        `${finding.path} :: ${finding.declaration} [${finding.ruleId}, p=${finding.probability.toFixed(2)}]: ${finding.message}`),
     ].join("\n"),
   },
 });
@@ -261,7 +366,7 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
   }
   yield* context.beforePrepare ?? Effect.void;
   const prepared = yield* prepareObservation(observation, context);
-  const ready = prepared.filter(
+  const ready = prepared.outcomes.filter(
     (outcome): outcome is Extract<PrepareOutcome, { status: "ready" }> =>
       outcome.status === "ready",
   );
@@ -269,6 +374,11 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
     return { status: "no-advice", output: undefined } satisfies DirectReviewResult;
   }
   const findings: Array<Finding> = [];
+  const evaluatedFindings: Array<{
+    readonly identity: string;
+    readonly findings: ReadonlyArray<Finding>;
+  }> = [];
+  let unavailable: "backend" | "timeout" | undefined;
   for (const outcome of ready) {
     yield* context.beforeDispatch ?? Effect.void;
     // Consent is mutable user authority and is checked at the actual egress edge.
@@ -280,15 +390,19 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
     }
     const evaluation = yield* evaluatePrepared(outcome.prepared);
     if (evaluation.status !== "evaluated") {
-      return {
-        status: "unavailable",
-        reason: evaluation.status,
-        output: undefined,
-      } satisfies DirectReviewResult;
+      unavailable ??= evaluation.status;
+      continue;
     }
+    evaluatedFindings.push({
+      identity: outcome.prepared.identity,
+      findings: evaluation.findings,
+    });
     findings.push(...evaluation.findings);
   }
   if (findings.length === 0) {
+    if (unavailable !== undefined) {
+      return { status: "unavailable", reason: unavailable, output: undefined } satisfies DirectReviewResult;
+    }
     return { status: "no-advice", output: undefined } satisfies DirectReviewResult;
   }
   yield* context.beforeHandoff ?? Effect.void;
@@ -300,35 +414,39 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
   if (!(yield* verifyObservationRoot(observation))) {
     return { status: "unavailable", reason: "stale", output: undefined } satisfies DirectReviewResult;
   }
-  const frozenNames = new Map(
-    ready.map((outcome) => [
-      outcome.path,
-      outcome.prepared.input.declaration.name,
-    ] as const),
-  );
+  const frozenNames = new Map<string, Set<string>>();
+  for (const outcome of ready) {
+    const names = frozenNames.get(outcome.path) ?? new Set<string>();
+    names.add(outcome.prepared.input.declaration.name);
+    frozenNames.set(outcome.path, names);
+  }
   const revalidated = yield* prepareObservation(observation, context, frozenNames);
-  const currentByPath = new Map(
-    revalidated.flatMap((outcome) =>
-      outcome.status === "ready" ? [[outcome.path, outcome.prepared.identity] as const] : []),
+  const currentIdentities = new Set(
+    revalidated.outcomes.flatMap((outcome) => outcome.status === "ready" ? [outcome.prepared.identity] : []),
   );
-  if (ready.some((outcome) => currentByPath.get(outcome.path) !== outcome.prepared.identity)) {
+  const currentFindings = evaluatedFindings.flatMap((evaluation) =>
+    currentIdentities.has(evaluation.identity) ? evaluation.findings : []);
+  if (currentFindings.length === 0) {
     return { status: "unavailable", reason: "stale", output: undefined } satisfies DirectReviewResult;
   }
   return {
     status: "ready",
-    findings,
-    output: toCodexDirectEventOutput(findings),
+    findings: currentFindings,
+    output: toCodexDirectEventOutput(currentFindings),
   } satisfies DirectReviewResult;
 });
 
 /** Convenience boundary for non-CLI callers; adaptation still occurs exactly once. */
-export const reviewCodexAdd = Effect.fn("DirectEvent.reviewCodexAdd")(function* (
+export const reviewCodexDirectEvent = Effect.fn("DirectEvent.reviewCodexDirectEvent")(function* (
   nativeEvent: unknown,
   context: DirectReviewContext,
 ) {
-  const observation = yield* adaptCodexAdd(nativeEvent);
+  const observation = yield* adaptCodexDirectEvent(nativeEvent);
   if (observation === undefined) {
     return { status: "unsupported", output: undefined } satisfies DirectReviewResult;
   }
   return yield* reviewObservation(observation, context);
 });
+
+/** Compatibility name retained for the original Add-only CLI integration. */
+export const reviewCodexAdd = reviewCodexDirectEvent;
