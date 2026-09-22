@@ -6,8 +6,14 @@ export interface InstalledReleaseManifest {
     readonly id: string;
     readonly path: string;
     readonly sha256: string;
+    readonly operatingSystem: string;
     readonly provenance: { readonly commit: string };
-    readonly assertions: ReadonlyArray<{ readonly pointer: string; readonly equals: unknown }>;
+    readonly assertions: ReadonlyArray<{ readonly pointer: string; readonly equals?: unknown; readonly greaterThan?: number }>;
+    readonly capabilityProofs: ReadonlyArray<{
+      readonly capability: string;
+      readonly operatingSystem: string;
+      readonly assertions: ReadonlyArray<{ readonly pointer: string; readonly equals?: unknown; readonly greaterThan?: number }>;
+    }>;
   }>;
   readonly compatibilityCells: ReadonlyArray<{
     readonly id: string;

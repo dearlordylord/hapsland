@@ -14,6 +14,41 @@ const pointerValue = (value, pointer) => {
   }, value);
 };
 
+const assertionMatches = (assertion, observed) =>
+  Object.hasOwn(assertion, "equals")
+    ? JSON.stringify(observed) === JSON.stringify(assertion.equals)
+    : typeof assertion.greaterThan === "number" && typeof observed === "number" && observed > assertion.greaterThan;
+
+const hasAssertion = (assertions, pointer, predicate) =>
+  assertions.some((assertion) => assertion.pointer === pointer && predicate(assertion));
+
+const validateAssertion = (assertion, label) => {
+  requireValue(assertion !== null && typeof assertion === "object" && typeof assertion.pointer === "string" && assertion.pointer.startsWith("/"),
+    `${label} has an invalid JSON assertion`);
+  const operators = Number(Object.hasOwn(assertion, "equals")) + Number(Object.hasOwn(assertion, "greaterThan"));
+  requireValue(operators === 1 && (!Object.hasOwn(assertion, "greaterThan") || typeof assertion.greaterThan === "number"),
+    `${label} must declare exactly one supported assertion operator`);
+};
+
+const requireCapabilitySemantics = (cell, proof) => {
+  if (cell.capability === "authenticated-real-host") {
+    requireValue(hasAssertion(proof.assertions, "/realCodex/status", (assertion) => assertion.equals === "passed") &&
+      hasAssertion(proof.assertions, "/realCodex/hookTrust/bypassFlag", (assertion) => assertion.equals === false) &&
+      hasAssertion(proof.assertions, "/realCodex/reviewSubmission/status", (assertion) => assertion.equals === "observed"),
+    `${cell.id} lacks authenticated-host semantic proof`);
+  }
+  if (cell.capability === "installed-first-review") {
+    requireValue(hasAssertion(proof.assertions, "/status", (assertion) => assertion.equals === "passed") &&
+      hasAssertion(proof.assertions, "/stages/completion", (assertion) => assertion.equals === "completed") &&
+      hasAssertion(proof.assertions, "/stages/submission", (assertion) => assertion.equals === "submitted") &&
+      hasAssertion(proof.assertions, "/stages/repair", (assertion) => assertion.equals === "independently-validated") &&
+      hasAssertion(proof.assertions, "/stages/followUpReview", (assertion) => assertion.equals === "completed") &&
+      hasAssertion(proof.assertions, "/stages/providerCalls", (assertion) => assertion.greaterThan === 0) &&
+      hasAssertion(proof.assertions, "/stages/sourceBytes", (assertion) => assertion.greaterThan === 0),
+    `${cell.id} lacks conclusive first-review semantic proof`);
+  }
+};
+
 export const validateInstalledReleaseManifest = (manifest) => {
   requireValue(manifest?.schemaVersion === 1, "installed-release manifest schemaVersion must be 1");
   requireValue(manifest?.subject?.assembledCommit === "f2f47e94cd2d90cf73062f07c5e61416218e2f13",
@@ -36,8 +71,22 @@ export const validateInstalledReleaseManifest = (manifest) => {
       `${evidence.id} has an unsafe evidence path`);
     requireValue(hex(64).test(evidence.sha256), `${evidence.id} must declare an exact SHA-256`);
     requireValue(hex(40).test(evidence.provenance?.commit), `${evidence.id} must declare an exact provenance commit`);
+    requireValue(["linux", "darwin"].includes(evidence.operatingSystem),
+      `${evidence.id} must bind evidence to a target operating system`);
     requireValue(Array.isArray(evidence.assertions) && evidence.assertions.length > 0,
       `${evidence.id} must declare semantic assertions`);
+    for (const assertion of evidence.assertions) validateAssertion(assertion, evidence.id);
+    requireValue(hasAssertion(evidence.assertions, "/environment/operatingSystem",
+      (assertion) => assertion.equals === evidence.operatingSystem),
+    `${evidence.id} must prove its declared operating system`);
+    requireValue(Array.isArray(evidence.capabilityProofs), `${evidence.id} must declare capability proofs`);
+    for (const proof of evidence.capabilityProofs) {
+      requireValue(typeof proof.capability === "string" && proof.operatingSystem === evidence.operatingSystem,
+        `${evidence.id} has an unbound capability proof`);
+      requireValue(Array.isArray(proof.assertions) && proof.assertions.length > 0,
+        `${evidence.id} capability ${proof.capability} needs semantic assertions`);
+      for (const assertion of proof.assertions) validateAssertion(assertion, `${evidence.id} ${proof.capability}`);
+    }
   }
   requireValue(Array.isArray(manifest?.compatibilityCells) && manifest.compatibilityCells.length > 0,
     "compatibility cells are required");
@@ -49,8 +98,31 @@ export const validateInstalledReleaseManifest = (manifest) => {
     if (cell.status === "verified") {
       requireValue(Array.isArray(cell.evidence) && cell.evidence.length > 0 && cell.evidence.every((id) => evidenceIds.has(id)),
         `${cell.id} needs retained evidence`);
+      requireValue(["linux", "darwin"].includes(cell.operatingSystem), `${cell.id} must bind verified compatibility to a platform`);
+      const citedEvidence = manifest.evidence.filter((evidence) => cell.evidence.includes(evidence.id));
+      const matchingProofs = citedEvidence.flatMap((evidence) => {
+        requireValue(evidence.operatingSystem === cell.operatingSystem,
+          `${cell.id} cites ${evidence.operatingSystem} evidence for ${cell.operatingSystem}`);
+        const proofs = evidence.capabilityProofs.filter((proof) =>
+          proof.capability === cell.capability && proof.operatingSystem === cell.operatingSystem);
+        requireValue(proofs.length > 0,
+          `${cell.id} cites ${evidence.id} without a matching capability proof`);
+        return proofs;
+      });
+      requireValue(matchingProofs.length > 0,
+        `${cell.id} has no ${cell.operatingSystem} ${cell.capability} capability proof`);
+      for (const proof of matchingProofs) requireCapabilitySemantics(cell, proof);
     } else {
       requireValue(typeof cell.reason === "string" && cell.reason.length > 0, `${cell.id} needs an explicit gap reason`);
+      if (cell.evidence !== undefined) {
+        requireValue(Array.isArray(cell.evidence) && cell.evidence.length > 0 &&
+          cell.evidence.every((id) => evidenceIds.has(id)), `${cell.id} cites unknown gap evidence`);
+        if (cell.operatingSystem !== undefined) {
+          requireValue(manifest.evidence.filter((evidence) => cell.evidence.includes(evidence.id))
+            .every((evidence) => evidence.operatingSystem === cell.operatingSystem),
+          `${cell.id} cites evidence from another platform`);
+        }
+      }
     }
   }
   for (const operatingSystem of ["linux", "darwin"]) {
@@ -77,8 +149,15 @@ export const inspectRetainedEvidence = (manifest, artifacts) => {
       `${declaration.id} checksum mismatch: expected ${declaration.sha256}, observed ${artifact.sha256}`);
     for (const assertion of declaration.assertions) {
       const observed = pointerValue(artifact.payload, assertion.pointer);
-      requireValue(JSON.stringify(observed) === JSON.stringify(assertion.equals),
-        `${declaration.id}${assertion.pointer} expected ${JSON.stringify(assertion.equals)}, observed ${JSON.stringify(observed)}`);
+      requireValue(assertionMatches(assertion, observed),
+        `${declaration.id}${assertion.pointer} did not satisfy its evidence assertion; observed ${JSON.stringify(observed)}`);
+    }
+    for (const proof of declaration.capabilityProofs) {
+      for (const assertion of proof.assertions) {
+        const observed = pointerValue(artifact.payload, assertion.pointer);
+        requireValue(assertionMatches(assertion, observed),
+          `${declaration.id} ${proof.capability}${assertion.pointer} did not satisfy its capability proof; observed ${JSON.stringify(observed)}`);
+      }
     }
     return { id: declaration.id, path: declaration.path, sha256: artifact.sha256, status: "verified" };
   });
