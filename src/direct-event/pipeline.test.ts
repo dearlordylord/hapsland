@@ -331,6 +331,165 @@ describe("direct-event vertical slice", () => {
     }).pipe(Effect.provide(Consent.testLayer())),
   );
 
+  it.effect("keeps analyzer failures incomplete with their reasons and no ChangeSet", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture);
+      const cases = [
+        ["interface Good { value: string }\ninterface Broken { missing: Missing }", "missing-evidence"],
+        ["import type { Missing } from './missing'; interface Broken { value: Missing }", "import"],
+        ["interface Merged {}\ninterface Merged { value: string }", "declaration-merge"],
+        ["const Shape = Schema.Struct({ value: Schema.String })", "no-declarations"],
+        ["interface Broken {", "parse"],
+        [
+          [
+            `interface Root { ${Array.from({ length: 17 }, (_, index) => `p${index}: T${index}`).join("; ")} }`,
+            ...Array.from({ length: 17 }, (_, index) => `interface T${index} { value: string }`),
+          ].join("\n"),
+          "reference-limit",
+        ],
+      ] as const;
+      const consent = yield* Consent.Service;
+      for (const [source, reason] of cases) {
+        yield* Effect.promise(() => put(root, "types.ts", source));
+        const observation = yield* adaptCodexAdd(addEvent(root, ["types.ts"]));
+        expect(observation).toBeDefined();
+        if (observation === undefined) continue;
+        const prepared = yield* prepareObservation(observation, {
+          controlledWriter: true,
+          recipient: recipient(),
+          consent,
+          settings,
+          rules: configuredRules,
+        });
+        expect(prepared.observation.status).toBe("incomplete");
+        expect("changeSet" in prepared.observation).toBe(false);
+        const observed = prepared.observation.outcomes.find((outcome) => outcome.status === "observed");
+        expect(observed?.status).toBe("observed");
+        if (observed?.status === "observed") {
+          expect(observed.analysis.status).toBe("incomplete");
+          if (observed.analysis.status === "incomplete") {
+            expect(observed.analysis.failures.some((failure) => failure.reason === reason)).toBe(true);
+          }
+        }
+        if (reason === "missing-evidence" && prepared.observation.status === "incomplete") {
+          expect(prepared.observation.units.map(({ root: unitRoot }) => unitRoot.artifact.name)).toEqual(["Good"]);
+        }
+      }
+    }).pipe(Effect.provide(Consent.testLayer())),
+  );
+
+  it.effect("treats an unsupported sibling as Update ambiguity before readiness filtering", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture);
+      yield* Effect.promise(() => put(root, "types.ts", [
+        "interface Account {",
+        "  value: string",
+        "}",
+        "interface Broken {",
+        "  value: string",
+        "  missing: Missing",
+        "}",
+      ].join("\n")));
+      let calls = 0;
+      const result = yield* enabledReview(root, updateEvent(root, "types.ts", ["  value: string"]), {
+        answers: findingAnswers(),
+        onRequest: Effect.sync(() => { calls += 1; }),
+      });
+      expect(result.status).toBe("no-advice");
+      expect(calls).toBe(0);
+    }),
+  );
+
+  it.effect("reruns Update ambiguity at handoff", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture);
+      const path = join(root, "types.ts");
+      yield* Effect.promise(() => put(root, "types.ts", [
+        "interface Account {",
+        "  value: string",
+        "}",
+        "interface Broken {",
+        "  other: string",
+        "  missing: Missing",
+        "}",
+      ].join("\n")));
+      let calls = 0;
+      const result = yield* enabledReview(root, updateEvent(root, "types.ts", ["  value: string"]), {
+        answers: findingAnswers(),
+        onRequest: Effect.sync(() => { calls += 1; }),
+      }, (base) => ({
+        ...base,
+        beforeHandoff: Effect.promise(() => writeFile(path, [
+          "interface Account {",
+          "  value: string",
+          "}",
+          "interface Broken {",
+          "  value: string",
+          "  missing: Missing",
+          "}",
+        ].join("\n"))),
+      }));
+      expect(result).toEqual({ status: "unavailable", reason: "stale", output: undefined });
+      expect(calls).toBe(1);
+    }),
+  );
+
+  it.effect("keeps current sibling advice when another evaluated identity changes", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture);
+      const path = join(root, "types.ts");
+      yield* Effect.promise(() => put(root, "types.ts", "type ACount = number\ntype BCount = number"));
+      let calls = 0;
+      const result = yield* enabledReview(root, addEvent(root, ["types.ts"]), {
+        answers: findingAnswers(),
+        onRequest: Effect.sync(() => { calls += 1; }),
+      }, (base) => ({
+        ...base,
+        beforeHandoff: Effect.promise(() => writeFile(path, "type ACount = number\ntype BCount = string")),
+      }));
+      expect(calls).toBe(2);
+      expect(result.status).toBe("ready");
+      if (result.status === "ready") {
+        expect(new Set(result.findings.map(({ declaration }) => declaration))).toEqual(new Set(["ACount"]));
+        expect(result.output.hookSpecificOutput.additionalContext).not.toContain("BCount");
+      }
+    }),
+  );
+
+  it.effect("reviews an independent Add without reading either move path", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture);
+      yield* Effect.promise(() => put(root, "old.ts", "type Old = number"));
+      yield* Effect.promise(() => put(root, "new.ts", "type New = number"));
+      yield* Effect.promise(() => put(root, "good.ts", "type GoodCount = number"));
+      const command = [
+        "*** Begin Patch",
+        "*** Update File: old.ts",
+        "*** Move to: new.ts",
+        "@@",
+        "-type Old = string",
+        "+type Old = number",
+        "*** Add File: good.ts",
+        "+type GoodCount = number",
+        "*** End Patch",
+      ].join("\n");
+      const reads: Array<string> = [];
+      let calls = 0;
+      const result = yield* enabledReview(root, addEvent(root, ["ignored.ts"], {
+        tool_input: { command },
+      }), {
+        answers: findingAnswers(),
+        onRequest: Effect.sync(() => { calls += 1; }),
+      }, (base) => ({
+        ...base,
+        captureHooks: { sourceRead: (path) => { reads.push(path); } },
+      }));
+      expect(result.status).toBe("ready");
+      expect(calls).toBe(1);
+      expect(new Set(reads)).toEqual(new Set(["good.ts"]));
+    }),
+  );
+
   it.effect("keeps unsupported analyzer input quiet with no backend call", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture);
