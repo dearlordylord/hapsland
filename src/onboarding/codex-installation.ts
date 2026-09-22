@@ -863,6 +863,7 @@ const sleep = (milliseconds: number) => new Promise((resolvePromise) => setTimeo
 
 const LOCK_STALE_MS = 5_000;
 const LOCK_GENERATION_WIDTH = 16;
+const LOCK_GENERATION_RETENTION = 8;
 
 interface LockRecord {
   readonly version: 1;
@@ -896,7 +897,8 @@ const processIsAlive = (pid: number) => {
 };
 
 interface LockGeneration {
-  readonly number: number;
+  readonly number: bigint;
+  readonly name: string;
   readonly ownerDirectory: string;
   readonly record: LockRecord;
   readonly released: boolean;
@@ -920,12 +922,62 @@ const readCurrentLockGeneration = (path: string): LockGeneration | undefined => 
     throw new Error("configuration lock generation has an invalid owner record");
   }
   return {
-    number: Number(name),
+    number: BigInt(name),
+    name,
     ownerDirectory,
     record,
     released: existsSync(join(ownerDirectory, "released")),
     reclaimed: existsSync(join(ownerDirectory, "reclaimed")),
   };
+};
+
+const removeOwnerDirectoryIfInactive = (ownerDirectory: string) => {
+  const released = existsSync(join(ownerDirectory, "released"));
+  const reclaimed = existsSync(join(ownerDirectory, "reclaimed"));
+  let record: LockRecord | undefined;
+  try {
+    record = decodeLockRecord(readFileSync(join(ownerDirectory, "record.json"), "utf8"));
+  } catch (cause) {
+    if (!isNodeError(cause, "ENOENT")) throw cause;
+  }
+  if (!released && !reclaimed) {
+    if (record !== undefined && processIsAlive(record.pid)) return;
+    const modifiedAt = statSync(ownerDirectory).mtimeMs;
+    const createdAt = record === undefined ? modifiedAt : Date.parse(record.createdAt);
+    if (Date.now() - createdAt < LOCK_STALE_MS) return;
+  }
+  rmSync(ownerDirectory, { recursive: true, force: true });
+};
+
+const compactLockHistory = (path: string, current: LockGeneration) => {
+  const generationsPath = join(path, "generations");
+  const names = readdirSync(generationsPath)
+    .filter((name) => /^\d{16}$/.test(name))
+    .sort();
+  const retainedNames = names.slice(-LOCK_GENERATION_RETENTION);
+  const retainedOwners = new Set<string>();
+  for (const name of retainedNames) {
+    try {
+      const target = readlinkSync(join(generationsPath, name));
+      const match = /^\.\.\/owners\/([0-9a-f-]{36})$/i.exec(target);
+      if (match?.[1] !== undefined) retainedOwners.add(match[1]);
+    } catch (cause) {
+      if (!isNodeError(cause, "ENOENT")) throw cause;
+    }
+  }
+  for (const name of names.slice(0, -LOCK_GENERATION_RETENTION)) {
+    if (name === current.name) continue;
+    try {
+      unlinkSync(join(generationsPath, name));
+    } catch (cause) {
+      if (!isNodeError(cause, "ENOENT")) throw cause;
+    }
+  }
+  const ownersPath = join(path, "owners");
+  for (const owner of readdirSync(ownersPath)) {
+    if (owner === current.record.owner || retainedOwners.has(owner)) continue;
+    removeOwnerDirectoryIfInactive(join(ownersPath, owner));
+  }
 };
 
 const claimStaleGeneration = (generation: LockGeneration, claimer: string): boolean => {
@@ -968,8 +1020,9 @@ const withLock = async <A>(path: string, use: () => Promise<A>): Promise<A> => {
           await sleep(25);
           continue;
         }
-        const next = (current?.number ?? 0) + 1;
-        if (!Number.isSafeInteger(next) || next >= 10 ** LOCK_GENERATION_WIDTH) {
+        if (Date.now() >= deadline) throw new Error("configuration lock acquisition exceeded 1500ms");
+        const next = (current?.number ?? 0n) + 1n;
+        if (next >= 10n ** BigInt(LOCK_GENERATION_WIDTH)) {
           throw new Error("configuration lock generation limit reached");
         }
         const generationName = String(next).padStart(LOCK_GENERATION_WIDTH, "0");
@@ -977,7 +1030,7 @@ const withLock = async <A>(path: string, use: () => Promise<A>): Promise<A> => {
         acquired = true;
       } catch (cause) {
         if (cause instanceof Error && cause.message === "configuration lock remained busy for 1500ms") throw cause;
-        if (!isNodeError(cause, "EEXIST")) throw cause;
+        if (!isNodeError(cause, "EEXIST") && !isNodeError(cause, "ENOENT")) throw cause;
         if (Date.now() >= deadline) throw new Error("configuration lock remained busy for 1500ms");
         await sleep(25);
       }
@@ -987,6 +1040,11 @@ const withLock = async <A>(path: string, use: () => Promise<A>): Promise<A> => {
     throw cause;
   }
   try {
+    const current = readCurrentLockGeneration(path);
+    if (current === undefined || current.record.owner !== owner) {
+      throw new Error("configuration lock generation was not published as current");
+    }
+    compactLockHistory(path, current);
     const holdMilliseconds = Number(process.env.REVIEW_INSTALL_TEST_HOLD_LOCK_MS ?? "0");
     if (Number.isFinite(holdMilliseconds) && holdMilliseconds > 0) await sleep(holdMilliseconds);
     return await use();
