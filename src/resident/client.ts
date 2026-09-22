@@ -31,45 +31,51 @@ const requestConnected = (
   paths: ResidentPaths,
   request: ResidentRequest,
   timeoutMs: number,
-): Promise<ResidentResponse> => new Promise((resolve, reject) => {
-  const socket = connect(paths.socket);
-  let settled = false;
-  let bytes = 0;
-  let encoded = "";
-  const finish = (error: Error | undefined, response?: ResidentResponse) => {
-    if (settled) return;
-    settled = true;
-    clearTimeout(timer);
-    socket.destroy();
-    if (error !== undefined) reject(error);
-    else if (response !== undefined) resolve(response);
-  };
-  const timer = setTimeout(
-    () => finish(new ResidentIpcError("resident request deadline exceeded; outcome is uncertain")),
-    timeoutMs,
-  );
-  socket.once("connect", () => socket.write(`${JSON.stringify(request)}\n`));
-  socket.on("data", (chunk: Buffer) => {
-    bytes += chunk.byteLength;
-    if (bytes > MAX_IPC_FRAME_BYTES) {
-      finish(new ResidentIpcError("resident response exceeded frame bound"));
-      return;
-    }
-    encoded += chunk.toString("utf8");
-    const newline = encoded.indexOf("\n");
-    if (newline < 0) return;
-    try {
-      const unknown: unknown = JSON.parse(encoded.slice(0, newline));
-      const decoded = decodeResidentResponse(unknown);
-      if (decoded === undefined) throw new Error("response schema mismatch");
-      finish(undefined, decoded);
-    } catch {
-      finish(new ResidentIpcError("resident response was invalid"));
-    }
+): Promise<ResidentResponse> => {
+  const frame = `${JSON.stringify(request)}\n`;
+  if (Buffer.byteLength(frame, "utf8") > MAX_IPC_FRAME_BYTES) {
+    return Promise.reject(new ResidentIpcError("resident request exceeded frame bound"));
+  }
+  return new Promise((resolve, reject) => {
+    const socket = connect(paths.socket);
+    let settled = false;
+    let bytes = 0;
+    let encoded = "";
+    const finish = (error: Error | undefined, response?: ResidentResponse) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      socket.destroy();
+      if (error !== undefined) reject(error);
+      else if (response !== undefined) resolve(response);
+    };
+    const timer = setTimeout(
+      () => finish(new ResidentIpcError("resident request deadline exceeded; outcome is uncertain")),
+      timeoutMs,
+    );
+    socket.once("connect", () => socket.write(frame));
+    socket.on("data", (chunk: Buffer) => {
+      bytes += chunk.byteLength;
+      if (bytes > MAX_IPC_FRAME_BYTES) {
+        finish(new ResidentIpcError("resident response exceeded frame bound"));
+        return;
+      }
+      encoded += chunk.toString("utf8");
+      const newline = encoded.indexOf("\n");
+      if (newline < 0) return;
+      try {
+        const unknown: unknown = JSON.parse(encoded.slice(0, newline));
+        const decoded = decodeResidentResponse(unknown);
+        if (decoded === undefined) throw new Error("response schema mismatch");
+        finish(undefined, decoded);
+      } catch {
+        finish(new ResidentIpcError("resident response was invalid"));
+      }
+    });
+    socket.once("error", () => finish(new ResidentIpcError("resident IPC unavailable")));
+    socket.once("close", () => finish(new ResidentIpcError("resident response closed before acknowledgement")));
   });
-  socket.once("error", () => finish(new ResidentIpcError("resident IPC unavailable")));
-  socket.once("close", () => finish(new ResidentIpcError("resident response closed before acknowledgement")));
-});
+};
 
 export const residentRequest = async (
   paths: ResidentPaths,

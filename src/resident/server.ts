@@ -33,11 +33,14 @@ import {
   type ResidentRequest,
   type ResidentResponse,
 } from "./protocol.ts";
+import { CapacityLedger, encodedBytesWithin, type CapacityReservation } from "./capacity.ts";
+import { DispatchCycles } from "./dispatch.ts";
 
-const MAX_RETAINED_ITEMS = 64;
-const MAX_RETAINED_BYTES = 4 * 1024 * 1024;
-const ITEM_RESERVATION_BYTES = 64 * 1024;
 const BACKEND_CONCURRENCY = 2;
+/** Includes bounded capture/extraction workspace and a promised retained outcome. */
+export const CAPTURE_EXTRACTION_RESERVATION_BYTES = 64 * 1024;
+export const MAX_RETAINED_OUTCOME_BYTES = 16 * 1024;
+const RESERVATION_OVERHEAD_BYTES = 1024;
 
 const ResidentControlledOptions = Schema.Struct({
   answers: Schema.optionalKey(Schema.Record(
@@ -66,7 +69,7 @@ const ResidentControlledOptions = Schema.Struct({
 type Job = {
   readonly observation: DirectObservation;
   readonly partition: string;
-  readonly reservation: number;
+  readonly reservation: CapacityReservation;
   readonly dispatch: ResidentDispatchContext;
 };
 
@@ -101,47 +104,56 @@ const decodeControlledOptions = (
 
 export class ResidentServer {
   readonly lifetime = randomUUID();
-  readonly #queue: Array<Job> = [];
   readonly #advice: Array<Advice> = [];
+  readonly #ledger = new CapacityLedger();
+  readonly #dispatcher: DispatchCycles<string, Job>;
   readonly #now: () => number;
-  #running = 0;
-  #retainedBytes = 0;
   #server: Server | undefined;
   #connections = 0;
-  readonly #idleWaiters: Array<() => void> = [];
+  #closed = false;
   readonly paths: ResidentPaths;
 
   constructor(paths: ResidentPaths = residentPaths(), now: () => number = () => performance.now()) {
     this.paths = paths;
     this.#now = now;
+    this.#dispatcher = new DispatchCycles(BACKEND_CONCURRENCY, async ({ value }) => {
+      await this.#evaluate(value);
+    });
   }
 
   stats(): Extract<ResidentResponse, { status: "stats" }> {
+    const dispatch = this.#dispatcher.snapshot();
+    const capacity = this.#ledger.snapshot();
     return {
       status: "stats",
-      queued: this.#queue.length,
-      running: this.#running,
+      queued: dispatch.queued,
+      running: dispatch.running,
       pendingAdvice: this.#advice.length,
-      retainedBytes: this.#retainedBytes,
+      retainedBytes: capacity.bytes,
     };
   }
 
   admit(observation: DirectObservation, dispatch: ResidentDispatchContext): ResidentResponse {
-    const items = this.#queue.length + this.#running + this.#advice.length;
-    if (
-      items >= MAX_RETAINED_ITEMS ||
-      this.#retainedBytes + ITEM_RESERVATION_BYTES > MAX_RETAINED_BYTES
-    ) return { status: "rejected-capacity" };
-    this.#retainedBytes += ITEM_RESERVATION_BYTES;
-    this.#queue.push({
+    if (this.#closed) return { status: "rejected-capacity" };
+    const partition = recipientPartition(observation.root, observation.recipient);
+    const inputBytes = Buffer.byteLength(canonicalValue({ observation, dispatch }), "utf8");
+    const reservation = this.#ledger.reserve(
+      partition,
+      inputBytes + CAPTURE_EXTRACTION_RESERVATION_BYTES + MAX_RETAINED_OUTCOME_BYTES + RESERVATION_OVERHEAD_BYTES,
+    );
+    if (reservation === undefined) return { status: "rejected-capacity" };
+    const job = {
       observation,
-      partition: recipientPartition(observation.root, observation.recipient),
-      reservation: ITEM_RESERVATION_BYTES,
+      partition,
+      reservation,
       dispatch,
-    });
+    };
+    if (!this.#dispatcher.enqueue(partition, job)) {
+      this.#ledger.release(reservation);
+      return { status: "rejected-capacity" };
+    }
     const acceptedPath = process.env.REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH;
     if (acceptedPath !== undefined) void writeFile(acceptedPath, "accepted\n").catch(() => undefined);
-    this.#pump();
     return { status: "accepted" };
   }
 
@@ -164,7 +176,7 @@ export class ResidentServer {
     const valid = await this.#revalidate(advice, dispatch);
     if (!valid) {
       this.#advice.splice(index, 1);
-      this.#retainedBytes -= advice.reservation;
+      this.#ledger.release(advice.reservation);
       return { status: "empty" };
     }
     advice.delivery.leaseUntil = this.#now() + DELIVERY_LEASE_MS;
@@ -193,7 +205,7 @@ export class ResidentServer {
     });
     if (index < 0) return { status: "empty" };
     const [advice] = this.#advice.splice(index, 1);
-    if (advice !== undefined) this.#retainedBytes -= advice.reservation;
+    if (advice !== undefined) this.#ledger.release(advice.reservation);
     return { status: "finalized" };
   }
 
@@ -202,24 +214,8 @@ export class ResidentServer {
     if (advice !== undefined && advice.delivery?.acknowledged === false) delete advice.delivery;
   }
 
-  #pump(): void {
-    while (this.#running < BACKEND_CONCURRENCY) {
-      const job = this.#queue.shift();
-      if (job === undefined) return;
-      this.#running += 1;
-      void this.#evaluate(job).finally(() => {
-        this.#running -= 1;
-        this.#pump();
-        if (this.#running === 0 && this.#queue.length === 0) {
-          for (const resolve of this.#idleWaiters.splice(0)) resolve();
-        }
-      });
-    }
-  }
-
   whenIdle(): Promise<void> {
-    if (this.#running === 0 && this.#queue.length === 0) return Promise.resolve();
-    return new Promise((resolve) => this.#idleWaiters.push(resolve));
+    return this.#dispatcher.whenIdle();
   }
 
   async #evaluate(job: Job): Promise<void> {
@@ -268,8 +264,11 @@ export class ResidentServer {
           : review.pipe(Effect.provide(credentialProvider)));
       }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))));
       if (result?.status === "ready") {
-        const encodedBytes = Buffer.byteLength(JSON.stringify(result.output), "utf8");
-        if (encodedBytes <= MAX_IPC_FRAME_BYTES - 1024) {
+        const encodedBytes = encodedBytesWithin(
+          result.output,
+          Math.min(MAX_RETAINED_OUTCOME_BYTES, MAX_IPC_FRAME_BYTES - 1024),
+        );
+        if (!this.#closed && encodedBytes !== undefined) {
           this.#advice.push({
             observation: job.observation,
             partition: job.partition,
@@ -285,7 +284,7 @@ export class ResidentServer {
       // Operational notices are owned by the later accounting slice. This
       // resident fails closed and releases its reservation.
     }
-    this.#retainedBytes -= job.reservation;
+    this.#ledger.release(job.reservation);
   }
 
   async #revalidate(advice: Advice, dispatch: ResidentDispatchContext): Promise<boolean> {
@@ -376,6 +375,9 @@ export class ResidentServer {
       const newline = encoded.indexOf("\n");
       if (newline < 0) return;
       handled = true;
+      // Stop pulling transport bytes as soon as the single bounded frame is
+      // complete. Recipient and observation decoding happens only afterward.
+      socket.pause();
       const request = decodeResidentRequest(encoded.slice(0, newline));
       if (request === undefined) {
         socket.end(`${JSON.stringify({ status: "unsupported" })}\n`);
@@ -419,6 +421,12 @@ export class ResidentServer {
   }
 
   async close(): Promise<void> {
+    this.#closed = true;
+    for (const job of this.#dispatcher.close()) this.#ledger.release(job.reservation);
+    for (const advice of this.#advice.splice(0)) this.#ledger.release(advice.reservation);
+    // Running work may be interrupted by process exit or finish later. Clear
+    // its logical ownership now; its eventual terminal release is idempotent.
+    this.#ledger.clear();
     const server = this.#server;
     if (server !== undefined) await new Promise<void>((resolve) => server.close(() => resolve()));
     await rm(this.paths.socket, { force: true });
