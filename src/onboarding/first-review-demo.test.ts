@@ -9,6 +9,7 @@ import {
   DEMO_SOURCE_BYTE_BUDGET,
   DEMO_TIME_BUDGET_MS,
   runFirstReviewDemo,
+  uninstrumentedHostEvidence,
   type DemoExecution,
   type DemoExecutor,
 } from "./first-review-demo.ts";
@@ -57,14 +58,36 @@ const completed: DemoExecution = {
     providerCalls: 2,
     submission: "submitted",
     findings: 1,
-    modelReaction: "observed",
-    followUp: "completed",
+    modelReaction: {
+      status: "observed",
+      source: "correlated-finding-reaction",
+      deliveredFindingCorrelation: true,
+    },
+    followUp: {
+      status: "completed",
+      source: "post-repair-terminal-review",
+      terminalState: "submitted",
+      afterValidatedRepair: true,
+    },
     latencyMs: 420,
   },
   repair: { changed: true, rejectsInvalidStates: true },
 };
 
 describe("installed-product first-review demo", () => {
+  it("does not infer reaction or follow-up from generic positive-looking host observations", () => {
+    expect(uninstrumentedHostEvidence({
+      messages: 3,
+      changed: true,
+      repairValidated: true,
+      terminalReviews: 2,
+      findingSubmitted: true,
+    })).toEqual({
+      modelReaction: { status: "unavailable", reason: "host-model-reaction-not-instrumented" },
+      followUp: { status: "unavailable", reason: "post-repair-review-not-instrumented" },
+    });
+  });
+
   it("does not create a demo before installation setup is complete", async () => {
     const test = fixture();
     const result = await run(test, runFirstReviewDemo({
@@ -159,6 +182,44 @@ describe("installed-product first-review demo", () => {
     expect(grants).toEqual([]);
   });
 
+  it("does not pass when either independent reaction or post-repair terminal evidence is unavailable", async () => {
+    const missingReaction = fixture();
+    const reactionProposal = await preview(missingReaction);
+    if (reactionProposal.status !== "preview") throw new Error("expected preview");
+    const reactionResult = await run(missingReaction, runFirstReviewDemo(liveRequest(reactionProposal), {
+      statePath: missingReaction.demoStatePath,
+      execute: async () => ({
+        ...completed,
+        review: {
+          ...completed.review,
+          modelReaction: {
+            status: "unavailable",
+            reason: "host-model-reaction-not-instrumented",
+          },
+        },
+      }),
+    }));
+    expect(reactionResult.status).toBe("inconclusive");
+
+    const missingFollowUp = fixture();
+    const followUpProposal = await preview(missingFollowUp);
+    if (followUpProposal.status !== "preview") throw new Error("expected preview");
+    const followUpResult = await run(missingFollowUp, runFirstReviewDemo(liveRequest(followUpProposal), {
+      statePath: missingFollowUp.demoStatePath,
+      execute: async () => ({
+        ...completed,
+        review: {
+          ...completed.review,
+          followUp: {
+            status: "unavailable",
+            reason: "post-repair-review-not-instrumented",
+          },
+        },
+      }),
+    }));
+    expect(followUpResult.status).toBe("inconclusive");
+  });
+
   it("reports stochastic misses and budget overruns as inconclusive", async () => {
     const test = fixture();
     const proposal = await preview(test);
@@ -171,8 +232,8 @@ describe("installed-product first-review demo", () => {
           providerCalls: 3,
           submission: "none",
           findings: 0,
-          modelReaction: "not-observed",
-          followUp: "not-observed",
+          modelReaction: { status: "not-observed", source: "correlated-finding-reaction" },
+          followUp: { status: "not-observed", source: "post-repair-terminal-review" },
         },
         repair: { changed: false, rejectsInvalidStates: false },
       }),
