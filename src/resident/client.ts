@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import * as Effect from "effect/Effect";
 import { connect } from "node:net";
 import { resolve } from "node:path";
-import { closeSync, existsSync, openSync, rmSync } from "node:fs";
+import { closeSync, existsSync, openSync, readFileSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { DirectObservation, DirectRecipient } from "../direct-event/model.ts";
 import type { CodexDirectEventOutput } from "../direct-event/pipeline.ts";
@@ -130,11 +130,14 @@ const launchResident = (paths: ResidentPaths, _timeoutMs: number) => {
   const compiled = fileURLToPath(new URL("./main.js", import.meta.url));
   const source = fileURLToPath(new URL("./main.ts", import.meta.url));
   const main = import.meta.url.endsWith(".js") && existsSync(compiled) ? compiled : source;
+  const diagnostic = `${paths.lock}.startup-error`;
+  const diagnosticDescriptor = openSync(diagnostic, "w", 0o600);
   const child = spawn(process.execPath, [main, paths.directory], {
     detached: true,
-    stdio: "ignore",
+    stdio: ["ignore", "ignore", diagnosticDescriptor],
     env: process.env,
   });
+  closeSync(diagnosticDescriptor);
   child.once("error", () => rmSync(startup, { force: true }));
   child.unref();
   const staleGuard = setTimeout(() => rmSync(startup, { force: true }), 2_000);
@@ -187,7 +190,12 @@ export const ensureResident = async (
     const backoff = Math.min(50, remaining());
     if (backoff > 0) await dependencies.wait(backoff);
   }
-  throw new ResidentIpcError("resident did not become ready within 10 seconds");
+  let detail = "";
+  try {
+    const diagnostic = readFileSync(`${paths.lock}.startup-error`, "utf8").trim();
+    if (diagnostic.length > 0) detail = `; resident launch failed: ${diagnostic.slice(-1_024)}`;
+  } catch { /* no launcher diagnostic was produced */ }
+  throw new ResidentIpcError(`resident did not become ready within 10 seconds${detail}`);
 };
 
 export const makeResidentDispatchContext = async (
