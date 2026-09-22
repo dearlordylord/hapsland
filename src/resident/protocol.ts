@@ -23,6 +23,7 @@ export type ResidentDispatchContext = {
   readonly statePath: string;
   readonly activityPath?: string;
   readonly userConfigPath: string | null;
+  readonly demoBudgetPath?: string | null;
   readonly credential: {
     readonly name: string;
     readonly environmentValue: string | null;
@@ -135,6 +136,8 @@ const dispatch = (value: unknown): value is ResidentDispatchContext => {
   return item !== undefined && string(item.statePath) && item.statePath.startsWith("/") &&
     (item.activityPath === undefined || (string(item.activityPath) && item.activityPath.startsWith("/"))) &&
     (item.userConfigPath === null || (string(item.userConfigPath) && item.userConfigPath.startsWith("/"))) &&
+    (item.demoBudgetPath === undefined || item.demoBudgetPath === null ||
+      (string(item.demoBudgetPath) && item.demoBudgetPath.startsWith("/"))) &&
     (credential === null || (
       typeof credential === "object" &&
       typeof credential.name === "string" && /^[A-Z_][A-Z0-9_]*$/.test(credential.name) &&

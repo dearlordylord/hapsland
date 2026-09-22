@@ -42,6 +42,34 @@ describe("resident protocol bounds", () => {
     if (decoded?.operation === "admit") expect(decoded.observation.recipient.agentId).toBe("child-7");
     expect(decodeResidentRequest(JSON.stringify({
       version: 1,
+      operation: "admit",
+      lifetime: "lifetime",
+      controlledWriter: true,
+      observation,
+      dispatch: {
+        statePath: "/tmp/consent",
+        userConfigPath: null,
+        demoBudgetPath: "/tmp/demo-budget.json",
+        credential: null,
+        controlled: {},
+      },
+    }))).toMatchObject({ operation: "admit" });
+    expect(decodeResidentRequest(JSON.stringify({
+      version: 1,
+      operation: "admit",
+      lifetime: "lifetime",
+      controlledWriter: true,
+      observation,
+      dispatch: {
+        statePath: "/tmp/consent",
+        userConfigPath: null,
+        demoBudgetPath: "relative-budget.json",
+        credential: null,
+        controlled: {},
+      },
+    }))).toBeUndefined();
+    expect(decodeResidentRequest(JSON.stringify({
+      version: 1,
       operation: "collect",
       lifetime: "lifetime",
       root,

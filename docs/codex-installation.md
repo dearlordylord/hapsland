@@ -145,3 +145,38 @@ review prompts. Managed policy or an explicit `features.hooks = false` remains a
 Uninstall removes an owned feature entry only when its recorded semantic fingerprint still
 matches `features.hooks = true`; a false, missing, or commented-out value produces a conflict and
 is preserved.
+
+## Optional first-review demo
+
+Completed setup remains offline. The optional demo is a separate two-step operation and its
+preview performs no Jev request. Preview creates a small disposable Git root containing only a
+known synthetic `session.ts`, discloses that the input deliberately permits a logged-out session
+with a user ID and a logged-in session without one, and does not tell Codex how to repair it.
+
+```sh
+printf '%s\n' '{"version":1,"operation":"demo","selection":"preview","codexHome":"/absolute/codex-home"}' \
+  | review-tool --demo
+```
+
+The preview declares a 4,096-byte source budget, at most two provider calls, and a 180-second
+wall-clock budget. It returns both a live-selection digest and an independent repository-consent
+digest for the exact disposable root. Live execution requires both values; an existing grant for
+the current project is never reused.
+
+```sh
+printf '%s\n' '{"version":1,"operation":"demo","selection":"live","demoId":"<id>","selectionDigest":"<selection-digest>","consentProposalDigest":"<consent-digest>","codexHome":"/absolute/codex-home"}' \
+  | review-tool --demo
+```
+
+The demo uses the installed hook and actual Codex 0.155.1 with its normal repository and hook
+trust. It does not pass a trust-bypass or sandbox-bypass flag. Its result reports host completion,
+finding submission, observed model reaction, independent invalid-state validation, and follow-up
+review separately. A model miss, unavailable response, absent reaction, invalid repair, missing
+follow-up, or exceeded budget is `inconclusive`; it is never replaced with a controlled backend.
+Only bounded counts, versions, timestamps and stage outcomes are returned. The provider response
+and synthetic source are not retained. The disposable grant and root are removed after every live
+attempt. To abandon a preview without a paid call, send `selection: "cancel"` with its `demoId`.
+
+The preview reports fixture setup actions and time independently from live review latency. A live
+run still requires an authenticated Codex profile, completed native trust, and a Jev credential
+available to the real hook context.

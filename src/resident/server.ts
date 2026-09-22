@@ -62,6 +62,7 @@ import { EvaluationReuse, residentEvaluationIdentity } from "./evaluation-reuse.
 import { operationalNoticeAdmission } from "./operational-notice-policy.ts";
 import { readCredentialState, resolveCredential } from "../credentials/secret-service.ts";
 import { recordActivity } from "../activity/status.ts";
+import { claimDemoBudget } from "../onboarding/demo-budget.ts";
 
 const BACKEND_CONCURRENCY = 2;
 const RESERVATION_OVERHEAD_BYTES = 1024;
@@ -1288,7 +1289,7 @@ export class ResidentServer {
         if (afterCredentialBeforeDispatch !== undefined) {
           yield* Effect.promise(afterCredentialBeforeDispatch);
         }
-        const beforeDispatch = credential?.status !== "present"
+        const credentialAuthority = credential?.status !== "present"
           ? Effect.void
           : Effect.suspend(() => {
               const current = readCredentialState(dispatchCredential?.statePath);
@@ -1297,6 +1298,14 @@ export class ResidentServer {
                 ? Effect.void
                 : Effect.fail(new Error("credential generation changed before provider dispatch"));
             });
+        const budgetAuthority = job.dispatch.demoBudgetPath == null
+          ? Effect.void
+          : Effect.try(() => claimDemoBudget(
+              job.dispatch.demoBudgetPath ?? "",
+              job.observation.root,
+              Buffer.byteLength(job.prepared.input.declaration.source, "utf8"),
+            ));
+        const beforeDispatch = credentialAuthority.pipe(Effect.andThen(budgetAuthority));
         const evaluation = evaluatePrepared(job.prepared, beforeDispatch).pipe(
           Effect.provide(decisionModel),
         );
