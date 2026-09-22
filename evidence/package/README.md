@@ -9,7 +9,9 @@ The fixture uses the packaged public preview and install operations in a custom 
 home, repeats installation to prove idempotence, and retains an independent hook before, during,
 and after scoped uninstall. It enables a canonical repository with matching-digest consent,
 verifies disable prevents a later controlled provider dispatch, and re-enables it for the native
-host run. Installation itself records no source-egress grant.
+host run. The installed CLI also reports submitted activity with model reaction unavailable,
+then a separately gated installed-hook event transitions from `pending` to `restarted/lost`
+after its resident is terminated. Installation itself records no source-egress grant.
 The fixture starts without seeded repository trust and drives Codex's native repository and hook
 review flow; it does not use the hook-trust bypass flag. The PTY reconstructs Codex's rendered
 terminal screen and waits for each native trust state instead of searching raw cursor-addressed

@@ -553,7 +553,70 @@ try {
     });
   }
   const owner = parseJson(await readFile(join(runtime, "owner.json"), "utf8"), "resident owner");
-  residentPid = owner.pid;
+  try { process.kill(owner.pid, "SIGTERM"); } catch {}
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    if (await readFile(join(runtime, "owner.json"), "utf8").catch(() => undefined) === undefined) break;
+    await new Promise((resolveWait) => setTimeout(resolveWait, 20));
+  }
+
+  progress("installed-activity-restart");
+  const restartEnvironment = {
+    ...env,
+    REVIEW_RESIDENT_BACKEND_GATE_PATH: join(temporary, "state", "hold-restart-evaluation"),
+  };
+  const restartSource = "export interface RestartPending { id: string }\n";
+  await writeFile(join(repository, "restart-pending.ts"), restartSource, { mode: 0o600 });
+  const restartEvent = {
+    ...addEvent,
+    session_id: "package-restart-session",
+    turn_id: "package-restart-turn",
+    tool_use_id: "package-restart-add",
+    tool_input: {
+      command: `*** Begin Patch\n*** Add File: restart-pending.ts\n+${restartSource.trim()}\n*** End Patch`,
+    },
+  };
+  await mustRun(cli, ["--codex-hook", "--controlled", "--controlled-writer"], {
+    cwd: temporary,
+    env: restartEnvironment,
+    input: JSON.stringify(restartEvent),
+  });
+  const pendingStatus = parseJson((await mustRun(cli, ["--status"], {
+    cwd: temporary,
+    env: restartEnvironment,
+    input: JSON.stringify({ version: 1, operation: "status", cwd: repository, sessionId: "package-restart-session" }),
+  })).stdout, "packaged pending activity");
+  if (pendingStatus.activitySource !== "resident-v1" || pendingStatus.activity?.kind !== "pending" ||
+      pendingStatus.activity?.modelReaction?.status !== "unavailable") {
+    throw new Error("packaged status did not report pending activity before restart");
+  }
+  const pendingOwner = parseJson(await readFile(join(runtime, "owner.json"), "utf8"), "pending resident owner");
+  try { process.kill(pendingOwner.pid, "SIGTERM"); } catch {}
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    if (await readFile(join(runtime, "owner.json"), "utf8").catch(() => undefined) === undefined) break;
+    await new Promise((resolveWait) => setTimeout(resolveWait, 20));
+  }
+  const lostStatus = parseJson((await mustRun(cli, ["--status"], {
+    cwd: temporary,
+    env,
+    input: JSON.stringify({ version: 1, operation: "status", cwd: repository, sessionId: "package-restart-session" }),
+  })).stdout, "packaged restarted activity");
+  if (lostStatus.activitySource !== "resident-v1" || lostStatus.activity?.kind !== "restarted/lost" ||
+      lostStatus.activity?.modelReaction?.status !== "unavailable") {
+    throw new Error("packaged status did not report restarted/lost after resident death");
+  }
+  const packagedActivity = {
+    submitted: {
+      instrumentation: activityStatus.activitySource,
+      kind: activityStatus.activity.kind,
+      submission: activityStatus.activity.submission.status,
+      modelReaction: activityStatus.activity.modelReaction.status,
+    },
+    restart: {
+      before: pendingStatus.activity.kind,
+      after: lostStatus.activity.kind,
+      modelReaction: lostStatus.activity.modelReaction.status,
+    },
+  };
 
   let realCodex = { status: "not-requested" };
   let realCodexFailure;
@@ -684,6 +747,8 @@ try {
       secretRetainedInEvidence: false,
     };
   }
+  const finalOwner = parseJson(await readFile(join(runtime, "owner.json"), "utf8").catch(() => "null"), "final resident owner");
+  if (typeof finalOwner?.pid === "number") residentPid = finalOwner.pid;
 
   const uninstallPreviewRun = await mustRun(cli, ["--uninstall"], {
     cwd: temporary, env, input: JSON.stringify({ version: 1, operation: "uninstall", codexHome }),
@@ -728,7 +793,7 @@ try {
       sourceEgressAuthorized: false,
       disableDispatchGate: "passed",
     },
-    review: { backend: "controlled-offline", submissions, adviceReturned: true },
+    review: { backend: "controlled-offline", submissions, adviceReturned: true, activity: packagedActivity },
     credentialLifecycle: credentialEvidence,
     realCodex,
     transientPackageDownloadPerEdit: false,

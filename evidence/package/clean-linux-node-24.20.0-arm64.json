@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-09-22T19:35:56.665Z",
+  "recordedAt": "2026-09-22T19:39:35.128Z",
   "package": {
     "name": "realtime-review-prototype",
     "version": "0.0.0",
@@ -36,7 +36,20 @@
   "review": {
     "backend": "controlled-offline",
     "submissions": 2,
-    "adviceReturned": true
+    "adviceReturned": true,
+    "activity": {
+      "submitted": {
+        "instrumentation": "resident-v1",
+        "kind": "submitted",
+        "submission": "submitted",
+        "modelReaction": "unavailable"
+      },
+      "restart": {
+        "before": "pending",
+        "after": "restarted/lost",
+        "modelReaction": "unavailable"
+      }
+    }
   },
   "credentialLifecycle": {
     "status": "actual-secret-service",
