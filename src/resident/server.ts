@@ -2,7 +2,7 @@ import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import { randomUUID } from "node:crypto";
-import { access, chmod, rm, writeFile } from "node:fs/promises";
+import { access, appendFile, chmod, rm, writeFile } from "node:fs/promises";
 import { createServer, type Server, type Socket } from "node:net";
 import { canonicalValue, type DirectObservation, type DirectRecipient } from "../direct-event/model.ts";
 import {
@@ -108,6 +108,7 @@ const ResidentControlledOptions = Schema.Struct({
   delayMs: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
   failure: Schema.optionalKey(Schema.String),
   capturePath: Schema.optionalKey(Schema.String),
+  outcomePath: Schema.optionalKey(Schema.String),
 });
 
 type IngressJob = {
@@ -1197,6 +1198,16 @@ export class ResidentServer {
         const evaluation = { prepared: job.prepared, findings: result.findings };
         this.#reuse.put(job.partition, job.evaluationKey, evaluation);
         this.#reuse.releaseClaim(job.evaluationKey);
+        if (controlled?.outcomePath !== undefined) {
+          const { sessionId, turnId, toolUseId, agentId } = job.observation.recipient;
+          await appendFile(controlled.outcomePath, `${JSON.stringify({
+            sessionId,
+            turnId,
+            toolUseId,
+            agentId,
+            outcome: result.findings.length === 0 ? "completed-clear" : "completed-findings",
+          })}\n`, "utf8");
+        }
         if (
           result.findings.length === 0 ||
           !this.#isCurrentWork(job.revision, job.prepared)

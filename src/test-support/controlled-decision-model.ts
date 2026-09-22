@@ -16,6 +16,8 @@ export type ControlledDecisionModelOptions = {
   readonly extraDecisionKey?: string;
   /** Test-only subprocess transcript path; never enabled by the live layer. */
   readonly capturePath?: string;
+  /** Test-only source-free terminal outcome path; consumed by the resident. */
+  readonly outcomePath?: string;
 };
 
 export const controlledDecisionModelLayer = (

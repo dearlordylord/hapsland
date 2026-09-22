@@ -15,6 +15,7 @@ export type ResidentControlledOptions = {
   readonly delayMs?: number;
   readonly failure?: string;
   readonly capturePath?: string;
+  readonly outcomePath?: string;
 };
 
 export type ResidentDispatchContext = {
@@ -110,6 +111,7 @@ const controlled = (value: unknown): value is ResidentControlledOptions => {
   if (item.delayMs !== undefined && (typeof item.delayMs !== "number" || !Number.isFinite(item.delayMs) || item.delayMs < 0)) return false;
   if (item.failure !== undefined && typeof item.failure !== "string") return false;
   if (item.capturePath !== undefined && typeof item.capturePath !== "string") return false;
+  if (item.outcomePath !== undefined && typeof item.outcomePath !== "string") return false;
   return true;
 };
 

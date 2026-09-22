@@ -190,6 +190,7 @@ export const makeResidentDispatchContext = async (
     ...(controlledOptions.delayMs === undefined ? {} : { delayMs: controlledOptions.delayMs }),
     ...(controlledOptions.failure === undefined ? {} : { failure: controlledOptions.failure }),
     ...(controlledOptions.capturePath === undefined ? {} : { capturePath: controlledOptions.capturePath }),
+    ...(controlledOptions.outcomePath === undefined ? {} : { outcomePath: controlledOptions.outcomePath }),
   };
   const credentialValue = process.env[settings.credentialEnvVar];
   return {

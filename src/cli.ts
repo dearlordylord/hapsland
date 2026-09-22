@@ -96,6 +96,7 @@ const ControlledOptions = Schema.Struct({
   delayMs: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
   failure: Schema.optionalKey(Schema.String),
   capturePath: Schema.optionalKey(Schema.String),
+  outcomePath: Schema.optionalKey(Schema.String),
 });
 
 const controlledOptions = Config.String("REVIEW_CONTROL_JSON").pipe(
