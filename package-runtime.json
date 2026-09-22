@@ -9,6 +9,12 @@
     { "operatingSystem": "darwin", "architecture": "arm64", "descriptorFacility": "/dev/fd", "verification": "tested-controlled-package" }
   ],
   "requiredCommands": ["git"],
+  "linuxCredentialStore": {
+    "implementation": "Secret Service through libsecret",
+    "buildDependency": "libsecret-1 development files",
+    "lookupDeadlineMs": 750,
+    "backgroundUnlockPrompts": false
+  },
   "parser": {
     "implementation": "tree-sitter",
     "languages": ["typescript", "tsx"]

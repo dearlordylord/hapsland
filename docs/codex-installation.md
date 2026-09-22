@@ -5,7 +5,32 @@ supported Codex CLI 0.155.1 / Node 24.20.0 / Linux arm64 profile. Every request 
 stdin and every result is a single version-1 JSON object on stdout.
 Exit code 0 covers successful previews, completed operations, and idempotent no-ops. Code 2 is
 an invalid request, 3 is an unsupported host, 4 is a configuration/digest conflict, and 5 is
-journaled partial completion that requires recovery.
+journaled partial completion that requires recovery. Credential-store failures use code 6.
+
+On Linux, login stores one product-owned default Jev credential in the session's persistent
+Secret Service collection. Interactive login reads it from `/dev/tty` with terminal echo disabled.
+Automation must opt into stdin explicitly; credential values are never accepted as arguments.
+
+```sh
+review-tool --login
+printf '%s\n' "$TYPESAFE_API_KEY" | review-tool --login --credential-stdin
+review-tool --logout
+```
+
+Login does not contact Jev. A failed or cancelled replacement preserves the prior item. Background
+hooks and the resident never ask Secret Service to unlock an item: lookup omits the unlock flag and
+runs in a disposable helper process with a 750 ms deadline. Missing, locked, unavailable, timed-out,
+invalid and administratively suspended states are reported without the value by
+`--inspect-credentials` and status output. Unlock the login keyring in the desktop session and retry
+login when storage is locked; start a Secret Service provider for the user session when unavailable.
+
+The default nonempty `TYPESAFE_API_KEY` takes precedence over the saved item. Selecting
+`credentialEnvVar` in user or project configuration is an explicit environment-only choice;
+missing, empty or invalid selected values do not fall back to the saved default. Replacement and
+logout advance a nonsecret generation file. Resident work captured under an older generation is
+dropped before a provider call. Logout deletes only the owned item and preserves repository grants.
+If deletion fails, saved-key use is suspended until a later successful login or logout. Logout
+reports when `TYPESAFE_API_KEY` remains active and cannot recall a request already sent to Jev.
 
 Installation and repository enablement are separate. Installation writes the adapter hook and
 an ownership record into the selected Codex home, but grants no permission to send repository

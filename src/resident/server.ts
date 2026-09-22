@@ -60,6 +60,7 @@ import {
 } from "./collection.ts";
 import { EvaluationReuse, residentEvaluationIdentity } from "./evaluation-reuse.ts";
 import { operationalNoticeAdmission } from "./operational-notice-policy.ts";
+import { readCredentialState, resolveCredential } from "../credentials/secret-service.ts";
 
 const BACKEND_CONCURRENCY = 2;
 const RESERVATION_OVERHEAD_BYTES = 1024;
@@ -138,6 +139,7 @@ type Advice = Omit<UnitJob, "dispatch" | "kind"> & {
   findings: ReadonlyArray<Finding>;
   readonly cycle: number;
   readonly sequence: number;
+  readonly credentialGeneration: number | null;
   readonly pendingAt: number;
   cycleComplete: boolean;
   collectionEligible: boolean;
@@ -493,6 +495,12 @@ export class ResidentServer {
     const now = this.#now();
     this.#expirePending(now);
     this.#pruneNoticeCooldowns(now);
+    const credentialGeneration = dispatch.credential?.generation ?? null;
+    for (const item of [...this.#advice]) {
+      if (item.partition === partition && item.credentialGeneration !== credentialGeneration) {
+        this.#removeAdvice(item.id);
+      }
+    }
     for (const item of this.#advice) {
       if (item.delivery !== undefined && item.delivery.leaseUntil <= now) delete item.delivery;
     }
@@ -1014,6 +1022,10 @@ export class ResidentServer {
         if (job.dispatch.controlled !== null && controlled === undefined) return undefined;
         if (controlled === undefined && job.dispatch.credential?.name !== settings.credentialEnvVar) return undefined;
         if (controlled === undefined && job.dispatch.credential === null) return undefined;
+        if (
+          controlled === undefined && job.dispatch.credential !== null &&
+          readCredentialState(job.dispatch.credential.statePath).generation !== job.dispatch.credential.generation
+        ) return undefined;
         const consent = yield* Consent.Service;
         const authorization = yield* consent.authorize(
           job.observation.root,
@@ -1075,7 +1087,8 @@ export class ResidentServer {
           return accepted;
         });
         const planned = deliverable.map((outcome) => {
-          const evaluationKey = this.#reuse.key(job.partition, outcome.prepared);
+          const generationPartition = `${job.partition}\0credential-generation:${job.dispatch.credential?.generation ?? "controlled"}`;
+          const evaluationKey = this.#reuse.key(generationPartition, outcome.prepared);
           if (this.#advice.some((advice) => advice.evaluationKey === evaluationKey)) {
             return { kind: "joined" as const, outcome, evaluationKey };
           }
@@ -1170,10 +1183,20 @@ export class ResidentServer {
         );
         if (job.dispatch.controlled !== null && controlled === undefined) return undefined;
         if (controlled === undefined && job.dispatch.credential?.name !== settings.credentialEnvVar) return undefined;
-        const credentialProvider = job.dispatch.credential === null
+        const dispatchCredential = job.dispatch.credential;
+        const credential = controlled !== undefined || dispatchCredential === null
+          ? undefined
+          : yield* Effect.promise(() => resolveCredential({
+              envVar: dispatchCredential.name,
+              environmentOnly: dispatchCredential.environmentOnly,
+              environmentValue: dispatchCredential.environmentValue,
+              expectedGeneration: dispatchCredential.generation,
+              statePath: dispatchCredential.statePath,
+            }));
+        const credentialProvider = credential?.status !== "present"
           ? undefined
           : ConfigProvider.layer(ConfigProvider.fromUnknown({
-              [job.dispatch.credential.name]: job.dispatch.credential.value,
+              [settings.credentialEnvVar]: credential.value,
             }));
         if (controlled === undefined && credentialProvider === undefined) return undefined;
         const consent = yield* Consent.Service;
@@ -1250,6 +1273,7 @@ export class ResidentServer {
       findings: evaluation.findings,
       cycle,
       sequence,
+      credentialGeneration: job.dispatch.credential?.generation ?? null,
       pendingAt: this.#now(),
       cycleComplete: false,
       collectionEligible: false,

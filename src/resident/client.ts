@@ -8,6 +8,7 @@ import type { DirectObservation, DirectRecipient } from "../direct-event/model.t
 import type { CodexDirectEventOutput } from "../direct-event/pipeline.ts";
 import { loadReviewSettings } from "../runtime/review-config.ts";
 import type { ControlledDecisionModelOptions } from "../test-support/controlled-decision-model.ts";
+import { DEFAULT_CREDENTIAL_STATE_PATH, readCredentialState } from "../credentials/secret-service.ts";
 import type { CollectionMode } from "./collection.ts";
 import {
   prepareResidentDirectory,
@@ -231,12 +232,19 @@ export const makeResidentDispatchContext = async (
     ...(controlledOptions.outcomePath === undefined ? {} : { outcomePath: controlledOptions.outcomePath }),
   };
   const credentialValue = process.env[settings.credentialEnvVar];
+  const credentialStatePath = resolve(process.env.REVIEW_CREDENTIAL_STATE_PATH ?? DEFAULT_CREDENTIAL_STATE_PATH);
+  const credentialState = readCredentialState(credentialStatePath);
+  const environmentOnly = settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in";
   return {
     statePath: resolve(statePath),
     userConfigPath: userConfigPath === undefined ? null : resolve(userConfigPath),
-    credential: controlled !== null || credentialValue === undefined || credentialValue.length === 0
-      ? null
-      : { name: settings.credentialEnvVar, value: credentialValue },
+    credential: controlled !== null ? null : {
+      name: settings.credentialEnvVar,
+      environmentValue: credentialValue === undefined ? null : credentialValue,
+      environmentOnly,
+      generation: credentialState.generation,
+      statePath: credentialStatePath,
+    },
     controlled,
   };
 };

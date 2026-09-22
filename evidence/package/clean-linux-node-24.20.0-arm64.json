@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-09-22T16:49:41.091Z",
+  "recordedAt": "2026-09-22T18:29:46.573Z",
   "package": {
     "name": "realtime-review-prototype",
     "version": "0.0.0",
@@ -37,6 +37,13 @@
     "backend": "controlled-offline",
     "submissions": 1,
     "adviceReturned": true
+  },
+  "credentialLifecycle": {
+    "login": "stored-without-paid-verification",
+    "newProcessReuse": "saved-source-present",
+    "installedHookControlledCompletion": "passed",
+    "logout": "deleted-before-future-dispatch",
+    "secretRetainedInEvidence": false
   },
   "realCodex": {
     "status": "passed",
