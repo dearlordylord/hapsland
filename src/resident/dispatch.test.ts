@@ -71,4 +71,30 @@ describe("resident finite dispatch cycles", () => {
     first.open();
     await dispatcher.whenIdle();
   });
+
+  it("carries keyed FIFO sequence metadata and reports finite cycle completion", async () => {
+    const first = gate();
+    const entries: Array<{ key: string; value: number; sequence: number; cycle: number }> = [];
+    const completed: Array<number> = [];
+    const dispatcher = new DispatchCycles<string, number>(
+      2,
+      async ({ key, value, sequence, cycle }) => {
+        entries.push({ key, value, sequence, cycle });
+        if (value === 0) await first.wait();
+      },
+      (cycle) => completed.push(cycle),
+    );
+    dispatcher.enqueue("a", 0);
+    dispatcher.enqueue("b", 1);
+    dispatcher.enqueue("a", 2);
+    first.open();
+    await dispatcher.whenIdle();
+
+    expect(entries).toEqual([
+      { key: "a", value: 0, sequence: 0, cycle: 1 },
+      { key: "b", value: 1, sequence: 1, cycle: 2 },
+      { key: "a", value: 2, sequence: 2, cycle: 2 },
+    ]);
+    expect(completed).toEqual([1, 2]);
+  });
 });

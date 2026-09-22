@@ -16,6 +16,7 @@ export class DispatchCycles<K, A> {
   readonly #pending: Array<{ readonly key: K; readonly sequence: number; readonly value: A }> = [];
   #active: Array<DispatchEntry<K, A>> = [];
   readonly #run: (entry: DispatchEntry<K, A>) => Promise<void>;
+  readonly #onCycleComplete: ((cycle: number) => void) | undefined;
   readonly #concurrency: number;
   readonly #idleWaiters: Array<() => void> = [];
   #sequence = 0;
@@ -23,10 +24,15 @@ export class DispatchCycles<K, A> {
   #running = 0;
   #closed = false;
 
-  constructor(concurrency: number, run: (entry: DispatchEntry<K, A>) => Promise<void>) {
+  constructor(
+    concurrency: number,
+    run: (entry: DispatchEntry<K, A>) => Promise<void>,
+    onCycleComplete?: (cycle: number) => void,
+  ) {
     if (!Number.isSafeInteger(concurrency) || concurrency < 1) throw new Error("concurrency must be positive");
     this.#concurrency = concurrency;
     this.#run = run;
+    this.#onCycleComplete = onCycleComplete;
   }
 
   enqueue(key: K, value: A): boolean {
@@ -66,6 +72,7 @@ export class DispatchCycles<K, A> {
       this.#running += 1;
       void this.#run(entry).catch(() => undefined).finally(() => {
         this.#running -= 1;
+        if (this.#running === 0 && this.#active.length === 0) this.#onCycleComplete?.(entry.cycle);
         this.#pump();
         this.#settleIdle();
       });
