@@ -532,17 +532,17 @@ const revalidateForPublication = Effect.fn("DirectEvent.revalidateForPublication
   if (retained.length > 0) {
     // Keep the scheduler-owned supersession check last: semantic capture does
     // not prove that a later accepted observation has not replaced this work.
-    if (authority !== undefined) {
-      for (const evaluation of retained) {
-        if (!(yield* authority.isCurrentWork(evaluation.prepared))) {
-          return { status: "stale", findings: [] };
-        }
+    const publishable: Array<EvaluatedUnit> = [];
+    for (const evaluation of retained) {
+      if (authority === undefined || (yield* authority.isCurrentWork(evaluation.prepared))) {
+        publishable.push(evaluation);
       }
     }
+    if (publishable.length === 0) return { status: "stale", findings: [] };
     return {
       status: "current",
-      evaluations: retained,
-      findings: retained.flatMap(({ findings }) => findings),
+      evaluations: publishable,
+      findings: publishable.flatMap(({ findings }) => findings),
     };
   }
   return foundChangedInput
