@@ -7,6 +7,7 @@ import type { DirectObservation, DirectRecipient } from "../direct-event/model.t
 import type { CodexDirectEventOutput } from "../direct-event/pipeline.ts";
 import { loadReviewSettings } from "../runtime/review-config.ts";
 import type { ControlledDecisionModelOptions } from "../test-support/controlled-decision-model.ts";
+import type { CollectionMode } from "./collection.ts";
 import {
   prepareResidentDirectory,
   residentPaths,
@@ -227,6 +228,7 @@ export const collectReady = async (
   recipient: DirectRecipient,
   dispatch: ResidentDispatchContext,
   paths = residentPaths(),
+  mode: CollectionMode = "ordinary",
 ): Promise<CollectedAdvice | undefined> => {
   const owner = await ensureResident(paths);
   const response = await residentRequest(paths, {
@@ -236,6 +238,7 @@ export const collectReady = async (
     root,
     recipient,
     dispatch,
+    mode,
   });
   return response.status === "advice"
     ? { output: response.output, token: response.token, lifetime: owner.lifetime, paths }

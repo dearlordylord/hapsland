@@ -47,6 +47,14 @@ import {
   type CapacityReservation,
 } from "./capacity.ts";
 import { DispatchCycles } from "./dispatch.ts";
+import {
+  collectionOrder,
+  combinedFindingOutput,
+  fitsCombinedResponse,
+  isCollectionEligible,
+  isPendingAdviceExpired,
+  type CollectionMode,
+} from "./collection.ts";
 
 const BACKEND_CONCURRENCY = 2;
 const RESERVATION_OVERHEAD_BYTES = 1024;
@@ -119,10 +127,11 @@ type Advice = Omit<UnitJob, "dispatch" | "kind"> & {
   readonly id: string;
   evaluations: ReadonlyArray<EvaluatedUnit>;
   findings: ReadonlyArray<Finding>;
-  encodedBytes: number;
   readonly cycle: number;
   readonly sequence: number;
+  readonly pendingAt: number;
   cycleComplete: boolean;
+  collectionEligible: boolean;
   retired: boolean;
   revalidationActive: boolean;
   delivery?: {
@@ -216,6 +225,7 @@ export class ResidentServer {
   readonly #afterPrepare: (() => Promise<void>) | undefined;
   readonly #beforeEvaluate: ((prepared: PreparedUnit) => Promise<void>) | undefined;
   readonly #afterRevalidationWorkspaceReserved: ((adviceId: string) => Promise<void>) | undefined;
+  readonly #afterAdvicePending: ((adviceId: string) => Promise<void> | void) | undefined;
   readonly paths: ResidentPaths;
 
   constructor(
@@ -226,6 +236,7 @@ export class ResidentServer {
       readonly afterPrepare?: () => Promise<void>;
       readonly beforeEvaluate?: (prepared: PreparedUnit) => Promise<void>;
       readonly afterRevalidationWorkspaceReserved?: (adviceId: string) => Promise<void>;
+      readonly afterAdvicePending?: (adviceId: string) => Promise<void> | void;
     } = {},
   ) {
     this.paths = paths;
@@ -234,18 +245,23 @@ export class ResidentServer {
     this.#afterPrepare = options.afterPrepare;
     this.#beforeEvaluate = options.beforeEvaluate;
     this.#afterRevalidationWorkspaceReserved = options.afterRevalidationWorkspaceReserved;
+    this.#afterAdvicePending = options.afterAdvicePending;
     this.#dispatcher = new DispatchCycles(
       BACKEND_CONCURRENCY,
       async (entry) => this.#run(entry.value, entry.cycle, entry.sequence),
       (cycle) => {
         for (const advice of this.#advice) {
-          if (advice.cycle === cycle) advice.cycleComplete = true;
+          if (advice.cycle === cycle) {
+            advice.cycleComplete = true;
+            advice.collectionEligible = true;
+          }
         }
       },
     );
   }
 
   stats(): Extract<ResidentResponse, { status: "stats" }> {
+    this.#expirePending(this.#now());
     const dispatch = this.#dispatcher.snapshot();
     const capacity = this.#ledger.snapshot();
     return {
@@ -259,6 +275,7 @@ export class ResidentServer {
   }
 
   admit(observation: DirectObservation, dispatch: ResidentDispatchContext): ResidentResponse {
+    this.#expirePending(this.#now());
     if (this.#closed) return { status: "rejected-capacity" };
     const partition = recipientPartition(observation.root, observation.recipient);
     const reservation = this.#reserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES);
@@ -286,21 +303,36 @@ export class ResidentServer {
     root: string,
     recipient: DirectRecipient,
     dispatch: ResidentDispatchContext,
+    mode: CollectionMode = "ordinary",
   ): Promise<ResidentResponse> {
     const partition = recipientPartition(root, recipient);
     const now = this.#now();
+    this.#expirePending(now);
     for (const item of this.#advice) {
       if (item.delivery !== undefined && item.delivery.leaseUntil <= now) delete item.delivery;
     }
-    const eligible = this.#advice.flatMap((item) =>
-      item.partition === partition && item.delivery === undefined &&
-        item.encodedBytes <= MAX_IPC_FRAME_BYTES - 1024
-        ? [item.id]
-        : []);
+    const available = this.#advice.filter((item) =>
+      item.partition === partition && item.delivery === undefined);
+    const oldestPendingAt = available.reduce(
+      (oldest, item) => Math.min(oldest, item.pendingAt),
+      Number.POSITIVE_INFINITY,
+    );
+    for (const item of available) {
+      if (isCollectionEligible(item, now, mode, oldestPendingAt)) item.collectionEligible = true;
+    }
+    const eligible = available.filter((item) => item.collectionEligible)
+      .sort(collectionOrder)
+      .map((item) => item.id);
+    const token = randomUUID();
+    const selected: Array<Advice> = [];
+    let groups: Array<ReadonlyArray<Finding>> = [];
     for (const id of eligible) {
       const advice = this.#advice.find((item) => item.id === id && item.delivery === undefined);
       if (advice === undefined) continue;
-      const token = randomUUID();
+      // A current revalidation cannot make this immutable result smaller: a
+      // changed rule/input makes it stale instead. Scan past over-budget
+      // results so an older large item cannot starve later bounded advice.
+      if (!fitsCombinedResponse([...groups, advice.findings])) continue;
       advice.delivery = { token, leaseUntil: Number.POSITIVE_INFINITY, acknowledged: false };
       await this.#beforeRevalidate?.(advice.id);
       const validity = await this.#revalidate(advice, dispatch);
@@ -316,37 +348,78 @@ export class ResidentServer {
       }
       advice.evaluations = validity.evaluations;
       advice.findings = validity.findings;
-      advice.encodedBytes = logicalBytes(toCodexDirectEventOutput(validity.findings));
-      advice.delivery.leaseUntil = this.#now() + DELIVERY_LEASE_MS;
-      return { status: "advice", token, output: toCodexDirectEventOutput(advice.findings) };
+      const handoffNow = this.#now();
+      if (isPendingAdviceExpired(advice, handoffNow)) {
+        this.#removeAdvice(advice.id, token);
+        continue;
+      }
+      const nextGroups = [...groups, advice.findings];
+      if (!fitsCombinedResponse(nextGroups)) {
+        delete advice.delivery;
+        continue;
+      }
+      groups = nextGroups;
+      selected.push(advice);
+    }
+    if (selected.length > 0) {
+      const handoffNow = this.#now();
+      const current = selected.filter((advice) => {
+        const retained = this.#advice.find((item) => item.id === advice.id);
+        if (retained !== advice || advice.delivery?.token !== token) return false;
+        if (!isPendingAdviceExpired(advice, handoffNow)) return true;
+        this.#removeAdvice(advice.id, token);
+        return false;
+      });
+      if (current.length > 0) {
+        for (const advice of current) advice.delivery = {
+          token,
+          leaseUntil: handoffNow + DELIVERY_LEASE_MS,
+          acknowledged: false,
+        };
+        return {
+          status: "advice",
+          token,
+          output: combinedFindingOutput(current.map((advice) => advice.findings)),
+        };
+      }
     }
     return { status: "empty" };
   }
 
   acknowledge(token: string): ResidentResponse {
-    const advice = this.#advice.find((item) => item.delivery?.token === token);
-    if (advice?.delivery === undefined) return { status: "empty" };
-    if (advice.delivery.leaseUntil <= this.#now()) {
-      delete advice.delivery;
+    const now = this.#now();
+    this.#expirePending(now);
+    const advice = this.#advice.filter((item) => item.delivery?.token === token);
+    if (advice.length === 0) return { status: "empty" };
+    if (advice.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now)) {
+      for (const item of advice) delete item.delivery;
       return { status: "empty" };
     }
-    advice.delivery.acknowledged = true;
+    for (const item of advice) {
+      if (item.delivery !== undefined) item.delivery.acknowledged = true;
+    }
     return { status: "acknowledged" };
   }
 
   finalize(token: string): ResidentResponse {
-    const advice = this.#advice.find((item) => item.delivery?.token === token);
-    if (advice?.delivery === undefined || !advice.delivery.acknowledged) return { status: "empty" };
-    if (advice.delivery.leaseUntil <= this.#now()) {
-      delete advice.delivery;
+    const now = this.#now();
+    this.#expirePending(now);
+    const advice = this.#advice.filter((item) => item.delivery?.token === token);
+    if (advice.length === 0 || advice.some((item) => item.delivery?.acknowledged !== true)) {
       return { status: "empty" };
     }
-    return this.#removeAdvice(advice.id, token) ? { status: "finalized" } : { status: "empty" };
+    if (advice.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now)) {
+      for (const item of advice) delete item.delivery;
+      return { status: "empty" };
+    }
+    for (const item of advice) this.#removeAdvice(item.id, token);
+    return { status: "finalized" };
   }
 
   releaseDelivery(token: string): void {
-    const advice = this.#advice.find((item) => item.delivery?.token === token);
-    if (advice !== undefined && advice.delivery?.acknowledged === false) delete advice.delivery;
+    for (const advice of this.#advice) {
+      if (advice.delivery?.token === token && !advice.delivery.acknowledged) delete advice.delivery;
+    }
   }
 
   whenIdle(): Promise<void> {
@@ -359,6 +432,8 @@ export class ResidentServer {
     readonly cycle: number;
     readonly sequence: number;
     readonly cycleComplete: boolean;
+    readonly pendingAt: number;
+    readonly collectionEligible: boolean;
     readonly retainedBytes: number;
     readonly generation: number;
     readonly evaluationIdentities: ReadonlyArray<string>;
@@ -371,6 +446,8 @@ export class ResidentServer {
       cycle: advice.cycle,
       sequence: advice.sequence,
       cycleComplete: advice.cycleComplete,
+      pendingAt: advice.pendingAt,
+      collectionEligible: advice.collectionEligible,
       retainedBytes: advice.reservation.bytes,
       generation: advice.revision.generation,
       evaluationIdentities: advice.evaluations.map(({ prepared }) => prepared.identity),
@@ -458,6 +535,12 @@ export class ResidentServer {
       if (!removed.revalidationActive) this.#releaseUnit(removed);
     }
     return removed !== undefined;
+  }
+
+  #expirePending(now: number): void {
+    for (const advice of [...this.#advice]) {
+      if (isPendingAdviceExpired(advice, now)) this.#removeAdvice(advice.id);
+    }
   }
 
   async #run(job: Job, cycle: number, sequence: number): Promise<void> {
@@ -618,7 +701,6 @@ export class ResidentServer {
         this.#isCurrentWork(job.revision, job.prepared)
       ) {
         const evaluations = [{ prepared: job.prepared, findings: result.findings }];
-        const output = toCodexDirectEventOutput(result.findings);
         const advice: Advice = {
           id: randomUUID(),
           observation: job.observation,
@@ -628,16 +710,18 @@ export class ResidentServer {
           revision: job.revision,
           evaluations,
           findings: result.findings,
-          encodedBytes: logicalBytes(output),
           cycle,
           sequence,
+          pendingAt: this.#now(),
           cycleComplete: false,
+          collectionEligible: false,
           retired: false,
           revalidationActive: false,
         };
         const insertion = this.#advice.findIndex((item) => item.sequence > sequence);
         if (insertion < 0) this.#advice.push(advice);
         else this.#advice.splice(insertion, 0, advice);
+        await this.#afterAdvicePending?.(advice.id);
         return;
       }
     } catch (cause) {
@@ -719,7 +803,9 @@ export class ResidentServer {
     if (request.operation === "admit") {
       return this.admit(request.observation, request.dispatch);
     }
-    if (request.operation === "collect") return this.collect(request.root, request.recipient, request.dispatch);
+    if (request.operation === "collect") {
+      return this.collect(request.root, request.recipient, request.dispatch, request.mode ?? "ordinary");
+    }
     if (request.operation === "acknowledge") return this.acknowledge(request.token);
     if (request.operation === "finalize") return this.finalize(request.token);
     if (request.operation === "stats") return this.stats();
