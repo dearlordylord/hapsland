@@ -115,6 +115,7 @@ const fillAndFinalizeCooldownTable = async (
     operationalNoticeKeys: MAX_OPERATIONAL_NOTICE_KEYS,
     pendingOperationalNotices: 0,
   });
+  return scopes;
 };
 
 describe("resident operational notices", () => {
@@ -241,6 +242,32 @@ describe("resident operational notices", () => {
     expect(await excludedServer.collect(root, excluded.recipient, capacity)).toMatchObject({ status: "empty" });
     expect(excludedServer.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 0 });
     await excludedServer.close();
+  });
+
+  it("preserves active suppression under full-table pressure from another eligible partition", async () => {
+    const { root, statePath, observation } = await fixture();
+    await installCapacityRule(root);
+    const capacity = capacityDispatch(statePath);
+    let now = 7_000;
+    const server = new ResidentServer(residentPaths(join(root, "runtime-pressure")), () => now);
+    const scopes = await fillAndFinalizeCooldownTable(server, observation, capacity);
+    const pressure = {
+      ...observation,
+      recipient: recipient({ sessionId: "pressure-session", turnId: "pressure-turn", toolUseId: "pressure-tool" }),
+    };
+    expect(server.admit(pressure, capacity).status).toBe("rejected-capacity");
+    expect(await server.collect(root, pressure.recipient, capacity)).toMatchObject({ status: "empty" });
+
+    now += OPERATIONAL_NOTICE_COOLDOWN_MS - 1;
+    const existing = scopes[0];
+    if (existing === undefined) throw new Error("missing existing cooldown fixture");
+    expect(server.admit(existing, capacity).status).toBe("rejected-capacity");
+    expect(await server.collect(root, existing.recipient, capacity)).toMatchObject({ status: "empty" });
+    expect(server.accountingMetrics()).toMatchObject({
+      operationalNoticeKeys: MAX_OPERATIONAL_NOTICE_KEYS,
+      pendingOperationalNotices: 0,
+    });
+    await server.close();
   });
 
   it("reclaims pending notice state at the exact expiry boundary", async () => {
