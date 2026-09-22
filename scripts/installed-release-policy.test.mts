@@ -53,6 +53,18 @@ const manifest: InstalledReleaseManifest = {
   limitations: { overlappingWrites: "unsupported-unattributed" },
 };
 
+const conclusiveFirstReviewAssertions = [
+  { pointer: "/status", equals: "passed" },
+  { pointer: "/stages/completion", equals: "completed" },
+  { pointer: "/stages/submission", equals: "submitted" },
+  { pointer: "/stages/findings", greaterThan: 0 },
+  { pointer: "/stages/modelReaction", equals: "observed" },
+  { pointer: "/stages/repair", equals: "independently-validated" },
+  { pointer: "/stages/followUpReview", equals: "completed" },
+  { pointer: "/stages/providerCalls", greaterThan: 0 },
+  { pointer: "/stages/sourceBytes", greaterThan: 0 },
+] as const;
+
 describe("installed release policy", () => {
   it("keeps every missing required cell machine-visible", () => {
     const result = releaseReadiness(manifest);
@@ -96,6 +108,34 @@ describe("installed release policy", () => {
         capability: "installed-first-review",
         operatingSystem: "linux",
         assertions: [{ pointer: "/status", equals: "passed" }],
+      }],
+    } : item);
+    const compatibilityCells = manifest.compatibilityCells.map((cell) =>
+      cell.id === "first-review"
+        ? { ...cell, status: "verified" as const, operatingSystem: "linux", evidence: ["linux-record"], reason: undefined }
+        : cell);
+    expect(() => validateInstalledReleaseManifest({ ...manifest, evidence, compatibilityCells }))
+      .toThrow("lacks conclusive first-review semantic proof");
+  });
+
+  it.each([
+    {
+      name: "zero findings",
+      assertions: conclusiveFirstReviewAssertions.map((assertion) =>
+        assertion.pointer === "/stages/findings" ? { pointer: assertion.pointer, equals: 0 } : assertion),
+    },
+    {
+      name: "unavailable model reaction",
+      assertions: conclusiveFirstReviewAssertions.map((assertion) =>
+        assertion.pointer === "/stages/modelReaction" ? { pointer: assertion.pointer, equals: "unavailable" } : assertion),
+    },
+  ])("rejects an otherwise conclusive first-review proof with $name", ({ assertions }) => {
+    const evidence = manifest.evidence.map((item) => item.id === "linux-record" ? {
+      ...item,
+      capabilityProofs: [...item.capabilityProofs, {
+        capability: "installed-first-review",
+        operatingSystem: "linux",
+        assertions,
       }],
     } : item);
     const compatibilityCells = manifest.compatibilityCells.map((cell) =>

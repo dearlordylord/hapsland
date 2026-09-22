@@ -41,6 +41,8 @@ const requireCapabilitySemantics = (cell, proof) => {
     requireValue(hasAssertion(proof.assertions, "/status", (assertion) => assertion.equals === "passed") &&
       hasAssertion(proof.assertions, "/stages/completion", (assertion) => assertion.equals === "completed") &&
       hasAssertion(proof.assertions, "/stages/submission", (assertion) => assertion.equals === "submitted") &&
+      hasAssertion(proof.assertions, "/stages/findings", (assertion) => assertion.greaterThan === 0) &&
+      hasAssertion(proof.assertions, "/stages/modelReaction", (assertion) => assertion.equals === "observed") &&
       hasAssertion(proof.assertions, "/stages/repair", (assertion) => assertion.equals === "independently-validated") &&
       hasAssertion(proof.assertions, "/stages/followUpReview", (assertion) => assertion.equals === "completed") &&
       hasAssertion(proof.assertions, "/stages/providerCalls", (assertion) => assertion.greaterThan === 0) &&
