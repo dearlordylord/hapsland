@@ -55,12 +55,11 @@ describe("direct-event Codex Add adapter", () => {
     });
   });
 
-  it("quietly rejects missing identity, failure, unsupported operations, and bounds", async () => {
+  it("quietly rejects missing identity, failure, and bounds", async () => {
     const root = await makeGitFixture();
     const cases = [
       addEvent(root, ["a.ts"], { session_id: "" }),
       addEvent(root, ["a.ts"], { tool_response: { success: false } }),
-      addEvent(root, ["a.ts"], { tool_input: { command: "*** Begin Patch\n*** Update File: a.ts\n+x\n*** End Patch" } }),
       addEvent(root, Array.from({ length: MAX_CODEX_CANDIDATES + 1 }, (_, index) => `${index}.ts`)),
       addEvent(root, ["a.ts"], { tool_input: { command: `*** Begin Patch\n*** Add File: a.ts\n+${"x".repeat(MAX_CODEX_COMMAND_BYTES)}\n*** End Patch` } }),
     ];
@@ -73,7 +72,6 @@ describe("direct-event Codex Add adapter", () => {
     ["unmarked body", "*** Begin Patch\n*** Add File: a.ts\ntype A = number\n*** End Patch"],
     ["nested begin", "*** Begin Patch\n*** Add File: a.ts\n*** Begin Patch\n*** End Patch"],
     ["duplicate path", "*** Begin Patch\n*** Add File: a.ts\n+x\n*** Add File: a.ts\n+y\n*** End Patch"],
-    ["mixed operation", "*** Begin Patch\n*** Add File: a.ts\n+x\n*** Update File: b.ts\n+y\n*** End Patch"],
     ["rename", "*** Begin Patch\n*** Rename File: a.ts\n+x\n*** End Patch"],
     ["early end", "*** Begin Patch\n*** Add File: a.ts\n+x\n*** End Patch\n+y\n*** End Patch"],
   ])("rejects strict Add grammar violation: %s", async (_label, command) => {
@@ -81,5 +79,51 @@ describe("direct-event Codex Add adapter", () => {
     expect(await Effect.runPromise(adaptCodexAdd(addEvent(root, ["a.ts"], {
       tool_input: { command },
     })))).toBeUndefined();
+  });
+
+  it("adapts Add, Update, Delete and move sections independently", async () => {
+    const root = await makeGitFixture();
+    const command = [
+      "*** Begin Patch",
+      "*** Add File: add.ts",
+      "+type Add = number",
+      "*** Update File: update.ts",
+      "@@",
+      "-type Update = string",
+      "+type Update = number",
+      "*** Delete File: delete.ts",
+      "*** Update File: old.ts",
+      "*** Move to: new.ts",
+      "*** End Patch",
+    ].join("\n");
+    const result = await Effect.runPromise(adaptCodexAdd(addEvent(root, ["ignored.ts"], {
+      tool_input: { command },
+    })));
+    expect(result?.candidates).toEqual([
+      { operation: "add", path: "add.ts", addedLines: ["type Add = number"] },
+      { operation: "update", path: "update.ts", addedLines: ["type Update = number"] },
+      { operation: "delete", path: "delete.ts", addedLines: [] },
+      { operation: "move", path: "old.ts", addedLines: [] },
+    ]);
+  });
+
+  it("accepts exactly 64 KiB and rejects one byte above", async () => {
+    const root = await makeGitFixture();
+    const prefix = "*** Begin Patch\n*** Add File: a.ts\n+";
+    const suffix = "\n*** End Patch";
+    const atLimit = `${prefix}${"x".repeat(MAX_CODEX_COMMAND_BYTES - Buffer.byteLength(prefix + suffix))}${suffix}`;
+    expect(Buffer.byteLength(atLimit)).toBe(MAX_CODEX_COMMAND_BYTES);
+    expect(await Effect.runPromise(adaptCodexAdd(addEvent(root, ["a.ts"], {
+      tool_input: { command: atLimit },
+    })))).toBeDefined();
+    expect(await Effect.runPromise(adaptCodexAdd(addEvent(root, ["a.ts"], {
+      tool_input: { command: `${atLimit}x` },
+    })))).toBeUndefined();
+  });
+
+  it("accepts exactly sixteen named candidates", async () => {
+    const root = await makeGitFixture();
+    const paths = Array.from({ length: MAX_CODEX_CANDIDATES }, (_, index) => `${index}.ts`);
+    expect((await Effect.runPromise(adaptCodexAdd(addEvent(root, paths))))?.candidates).toHaveLength(16);
   });
 });
