@@ -450,6 +450,13 @@ try {
     recordedAt: new Date().toISOString(),
     package: { name: installedManifest.name, version: installedManifest.version, artifact: basename(tarball) },
     environment: { node: process.version, operatingSystem: process.platform, architecture: process.arch },
+    ...(process.env.GITHUB_RUN_ID === undefined ? {} : {
+      continuousIntegration: {
+        provider: "github-actions",
+        runId: process.env.GITHUB_RUN_ID,
+        commit: process.env.GITHUB_SHA ?? "unavailable",
+      },
+    }),
     isolation: { temporaryInstallation: true, developmentDependencies: false, checkoutPathUsedAtRuntime: false, retainedSyntheticSource: false },
     entryPoints: { cli: "passed", parser: "passed", resident: "passed", hook: "passed" },
     review: { backend: "controlled-offline", submissions, adviceReturned: true },
