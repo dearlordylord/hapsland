@@ -650,4 +650,114 @@ describe("resident delivery lease", () => {
     )).resolves.toMatchObject({ status: "empty" });
     expect(server.stats()).toMatchObject({ pendingAdvice: 0, retainedBytes: 0 });
   });
+
+  it("revalidates and finalizes at the 16-item partition saturation boundary", async () => {
+    const root = await makeGitFixture();
+    const paths = Array.from({ length: 16 }, (_, index) => `type-${index}.ts`);
+    for (const [index, path] of paths.entries()) {
+      await put(root, path, `type Count${index} = number\n`);
+    }
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, paths)));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    const dispatch = findingDispatch(statePath);
+    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    expect(server.admit(observation, dispatch).status).toBe("accepted");
+    await server.whenIdle();
+    const saturated = server.stats();
+    expect(saturated).toMatchObject({ pendingAdvice: 16 });
+    const firstRetainedBytes = server.pendingAdviceMetadata()[0]?.retainedBytes;
+    expect(firstRetainedBytes).toBeDefined();
+
+    const collected = await server.collect(
+      root,
+      recipient({ turnId: "saturated", toolUseId: "saturated" }),
+      dispatch,
+    );
+    expect(collected.status).toBe("advice");
+    if (collected.status !== "advice") return;
+    expect(server.acknowledge(collected.token).status).toBe("acknowledged");
+    expect(server.finalize(collected.token).status).toBe("finalized");
+    expect(server.stats()).toMatchObject({ pendingAdvice: 15 });
+    expect(server.stats().retainedBytes).toBe(saturated.retainedBytes - (firstRetainedBytes ?? 0));
+  });
+
+  it("revalidates and finalizes at the 64-item global saturation boundary", async () => {
+    const root = await makeGitFixture();
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const dispatch = findingDispatch(statePath);
+    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    for (let partition = 0; partition < 4; partition += 1) {
+      const paths = Array.from({ length: 16 }, (_, index) => `p${partition}-${index}.ts`);
+      for (const [index, path] of paths.entries()) {
+        await put(root, path, `type Count${partition}_${index} = number\n`);
+      }
+      const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, paths, {
+        agent_id: `agent-${partition}`,
+        tool_use_id: `partition-${partition}`,
+      })));
+      expect(observation).toBeDefined();
+      if (observation === undefined) return;
+      expect(server.admit(observation, dispatch).status).toBe("accepted");
+      await server.whenIdle();
+    }
+    const saturated = server.stats();
+    expect(saturated).toMatchObject({ pendingAdvice: 64 });
+    const firstRetainedBytes = server.pendingAdviceMetadata()[0]?.retainedBytes;
+    expect(firstRetainedBytes).toBeDefined();
+
+    const collected = await server.collect(
+      root,
+      recipient({ agentId: "agent-0", turnId: "global", toolUseId: "global" }),
+      dispatch,
+    );
+    expect(collected.status).toBe("advice");
+    if (collected.status !== "advice") return;
+    expect(server.acknowledge(collected.token).status).toBe("acknowledged");
+    expect(server.finalize(collected.token).status).toBe("finalized");
+    expect(server.stats()).toMatchObject({ pendingAdvice: 63 });
+    expect(server.stats().retainedBytes).toBe(saturated.retainedBytes - (firstRetainedBytes ?? 0));
+  });
+
+  it("scans past unavailable advice to independently current advice once per collection", async () => {
+    const root = await makeGitFixture();
+    await put(root, "a.ts", "type ACount = number\n");
+    await put(root, "b.ts", "type BCount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts", "b.ts"])));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    const dispatch = findingDispatch(statePath);
+    const visits: Array<string> = [];
+    const server = new ResidentServer(
+      residentPaths(join(root, "runtime")),
+      () => 100,
+      { beforeRevalidate: async (id) => { visits.push(id); } },
+    );
+    expect(server.admit(observation, dispatch).status).toBe("accepted");
+    await server.whenIdle();
+    const before = server.pendingAdviceMetadata();
+    expect(before.map(({ path }) => path)).toEqual(["a.ts", "b.ts"]);
+    await put(root, "a.ts", "interface Broken { value: Missing }\n");
+
+    const collected = await server.collect(
+      root,
+      recipient({ turnId: "scan", toolUseId: "scan" }),
+      dispatch,
+    );
+    expect(collected.status).toBe("advice");
+    if (collected.status !== "advice") return;
+    expect(collected.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
+    expect(visits).toEqual(before.map(({ id }) => id));
+    const after = server.pendingAdviceMetadata();
+    expect(after.find(({ path }) => path === "a.ts")?.delivery).toBe("available");
+    expect(after.find(({ path }) => path === "b.ts")?.delivery).toBe("leased-unacknowledged");
+    expect(server.acknowledge(collected.token).status).toBe("acknowledged");
+    expect(server.finalize(collected.token).status).toBe("finalized");
+    expect(server.pendingAdviceMetadata()).toMatchObject([{ path: "a.ts", delivery: "available" }]);
+  });
 });
