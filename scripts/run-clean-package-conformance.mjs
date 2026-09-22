@@ -38,7 +38,7 @@ const parseJson = (text, label) => {
 };
 const jsonLines = (text) => text.split("\n").filter(Boolean).map((line) => parseJson(line, "JSONL record"));
 const quote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
-const establishNativeHookTrust = (codexHome, repository, env) => new Promise((resolveTrust, rejectTrust) => {
+const establishNativeTrust = (codexHome, repository, env) => new Promise((resolveTrust, rejectTrust) => {
   const child = spawn("script", [
     "-qefc",
     `stty rows 24 cols 80; exec ${quote("codex")} --no-alt-screen -C ${quote(repository)}`,
@@ -49,19 +49,20 @@ const establishNativeHookTrust = (codexHome, repository, env) => new Promise((re
     stdio: ["pipe", "pipe", "pipe"],
   });
   let transcript = "";
-  let selected = false;
+  let repositorySelected = false;
+  let hookSelected = false;
   let trusted = false;
   let terminalInitialized = false;
   const trustPoll = setInterval(() => {
     void readFile(join(codexHome, "config.toml"), "utf8").then((config) => {
-      if (trusted || !config.includes("trusted_hash")) return;
+      if (trusted || !config.includes('trust_level = "trusted"') || !config.includes("trusted_hash")) return;
       trusted = true;
       child.stdin.write("\u0003");
     }).catch(() => undefined);
   }, 100);
   const timer = setTimeout(() => {
     child.kill("SIGTERM");
-    rejectTrust(new Error("Codex native hook-trust review timed out"));
+    rejectTrust(new Error("Codex native repository/hook trust review timed out"));
   }, 30_000);
   const observe = (chunk) => {
     transcript = `${transcript}${chunk}`.slice(-256_000);
@@ -69,8 +70,12 @@ const establishNativeHookTrust = (codexHome, repository, env) => new Promise((re
       terminalInitialized = true;
       child.stdin.write("\u001b[24;80R\u001b]10;rgb:ffff/ffff/ffff\u001b\\\u001b]11;rgb:0000/0000/0000\u001b\\\u001b[?1;2c\u001b[?0u");
     }
-    if (!selected && transcript.includes("Hooks need review")) {
-      selected = true;
+    if (!repositorySelected && transcript.includes("Do you trust the contents of this directory")) {
+      repositorySelected = true;
+      setTimeout(() => child.stdin.write("\r"), 250);
+    }
+    if (!hookSelected && transcript.includes("Hooks need review")) {
+      hookSelected = true;
       setTimeout(() => {
         // Codex enables the Kitty keyboard protocol; its unambiguous CSI form
         // avoids a bare Escape being interpreted as "close" under PTY timing.
@@ -91,7 +96,7 @@ const establishNativeHookTrust = (codexHome, repository, env) => new Promise((re
   child.once("close", () => {
     clearTimeout(timer);
     clearInterval(trustPoll);
-    if (!trusted) rejectTrust(new Error("Codex native hook-trust review did not persist trust"));
+    if (!trusted) rejectTrust(new Error("Codex native repository/hook trust review did not persist trust"));
     else resolveTrust();
   });
 });
@@ -193,8 +198,12 @@ try {
   residentPid = owner.pid;
 
   let realCodex = { status: "not-requested" };
+  let realCodexFailure;
   if (executeRealCodex) {
-    const codexVersion = (await mustRun("codex", ["--version"], { cwd: temporary })).stdout.trim();
+    let realCodexStage = "host-version";
+    let codexVersion = "unavailable";
+    try {
+    codexVersion = (await mustRun("codex", ["--version"], { cwd: temporary })).stdout.trim();
     const codexHome = join(temporary, "codex-home");
     await mkdir(codexHome, { mode: 0o700 });
     try {
@@ -203,16 +212,18 @@ try {
     } catch {
       throw new Error("real Codex fixture requested but isolated host authentication is unavailable");
     }
-    await writeFile(join(codexHome, "config.toml"), `[features]\nhooks = true\n\n[projects.${JSON.stringify(repository)}]\ntrust_level = "trusted"\n`, { mode: 0o600 });
+    await writeFile(join(codexHome, "config.toml"), "[features]\nhooks = true\n", { mode: 0o600 });
     await writeFile(join(codexHome, "hooks.json"), `${JSON.stringify({ hooks: { PostToolUse: [{ matcher: "^(apply_patch|Bash)$", hooks: [{ type: "command", command: `${quote(cli)} --codex-hook --controlled --controlled-writer`, timeout: 20 }] }] } }, null, 2)}\n`, { mode: 0o600 });
-    await establishNativeHookTrust(codexHome, repository, env);
+    realCodexStage = "native-repository-and-hook-trust";
+    await establishNativeTrust(codexHome, repository, env);
     const trustedConfig = await readFile(join(codexHome, "config.toml"), "utf8");
-    if (!trustedConfig.includes("[hooks.state.") || !trustedConfig.includes("trusted_hash")) {
-      throw new Error("Codex native hook-trust review did not retain an exact-definition hash");
+    if (!trustedConfig.includes('trust_level = "trusted"') || !trustedConfig.includes("[hooks.state.") || !trustedConfig.includes("trusted_hash")) {
+      throw new Error("Codex native trust review did not retain repository and exact hook-definition trust");
     }
     const before = submissions;
     const outcomesBefore = jsonLines(await readFile(outcomes, "utf8").catch(() => "")).length;
     const codexEnv = { ...env, CODEX_HOME: codexHome };
+    realCodexStage = "host-execution";
     const host = await run("codex", [
       "exec", "--ephemeral", "--json",
       "--dangerously-bypass-approvals-and-sandbox", "--ignore-rules", "-C", repository,
@@ -230,6 +241,7 @@ try {
     realCodex = {
       status: host.code === 0 && providerSubmissions === 1 && completed.length === 1 ? "passed" : "failed",
       codexVersion,
+      repeatability: "unresolved-until-reliably-rerun",
       hostExitCode: host.code,
       hookTrust: {
         status: "persisted-exact-definition",
@@ -246,7 +258,24 @@ try {
         correlation: "resident-native-event-identity",
       },
     };
-    if (realCodex.status !== "passed") throw new Error(`real Codex fixture failed: ${host.stderr || host.stdout}`);
+    if (realCodex.status !== "passed") {
+      realCodexStage = "terminal-review-assertion";
+      throw new Error("real Codex fixture did not satisfy the source-free terminal assertions");
+    }
+    } catch (cause) {
+      realCodexFailure = cause;
+      realCodex = {
+        status: "failed",
+        codexVersion,
+        repeatability: "unresolved-until-reliably-rerun",
+        failedAttempt: {
+          stage: realCodexStage,
+          sanitized: true,
+          repositoryTrustSeeded: false,
+          bypassFlag: false,
+        },
+      };
+    }
   }
 
   const evidence = {
@@ -259,13 +288,16 @@ try {
     review: { backend: "controlled-offline", submissions, adviceReturned: true },
     realCodex,
     transientPackageDownloadPerEdit: false,
-    verdict: executeRealCodex ? "clean-package-and-real-host-passed" : "clean-package-passed-real-host-not-requested",
+    verdict: executeRealCodex
+      ? realCodex.status === "passed" ? "clean-package-and-real-host-observed-repeatability-unresolved" : "clean-package-passed-real-host-failed"
+      : "clean-package-passed-real-host-not-requested",
   };
   if (writeEvidence) {
     await mkdir(dirname(outputPath), { recursive: true });
     await writeFile(outputPath, `${JSON.stringify(evidence, null, 2)}\n`, { mode: 0o600 });
   }
   process.stdout.write(`${JSON.stringify(evidence, null, 2)}\n`);
+  if (realCodexFailure !== undefined) throw realCodexFailure;
 } finally {
   if (typeof residentPid === "number") {
     try { process.kill(residentPid, "SIGTERM"); } catch {}
