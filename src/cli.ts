@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 import * as Config from "effect/Config";
+import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { readFileSync } from "node:fs";
+import { closeSync, openSync, readFileSync, readSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { Consent, rootRelativePath } from "./runtime/consent.ts";
 import {
   DEFAULT_BACKEND,
@@ -62,6 +64,13 @@ import {
   previewCodexInstallation,
   uninstallCodexIntegration,
 } from "./onboarding/codex-installation.ts";
+import {
+  logoutCredential,
+  readCredentialState,
+  resolveCredential,
+  runSecretService,
+  saveCredential,
+} from "./credentials/secret-service.ts";
 
 const readStdin = Effect.try({
   try: () => readFileSync(0, "utf8"),
@@ -479,9 +488,12 @@ const runOperation = (
       const authorization = yield* consent
         .authorize(cwd, backend, destination)
         .pipe(Effect.result);
-      const credentials = yield* Config.option(Config.String(credentialEnvVar)).pipe(
-        Effect.map((value) => Option.isSome(value) && value.value.length > 0),
-      );
+      const credentialResolution = yield* Effect.promise(() => resolveCredential({
+        envVar: credentialEnvVar,
+        environmentOnly: settings !== undefined &&
+          settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in",
+      }));
+      const credentials = credentialResolution.status === "present";
       const configurationStatus = settings === undefined ? "invalid" : "ready";
       const readinessStatus =
         configurationStatus === "ready" &&
@@ -506,7 +518,12 @@ const runOperation = (
             authorization._tag === "Failure"
               ? "unavailable"
               : authorization.success.status,
-          credentials: { envVar: credentialEnvVar, present: credentials },
+          credentials: {
+            envVar: credentialEnvVar,
+            present: credentials,
+            source: credentialResolution.source,
+            status: credentialResolution.status,
+          },
         },
         activity,
         grants: grants.map((grant) => ({
@@ -586,14 +603,18 @@ const runOperation = (
         };
       }
       case "credentials": {
-        const present = yield* Config.option(Config.String(credentialEnvVar)).pipe(
-          Effect.map((value) => Option.isSome(value) && value.value.length > 0),
-        );
+        const resolution = yield* Effect.promise(() => resolveCredential({
+          envVar: credentialEnvVar,
+          environmentOnly:
+            settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in",
+        }));
         return {
           version: 1,
           operation: "credentials",
           credentialEnvVar,
-          present,
+          present: resolution.status === "present",
+          source: resolution.source,
+          status: resolution.status,
         };
       }
       case "explain": {
@@ -663,20 +684,25 @@ const runReviewRequestCore = (
         diagnosticScope,
       };
     }
-    if (controlled === undefined) {
-      const present = yield* Config.option(
-        Config.String(authorization.success.settings.credentialEnvVar),
-      ).pipe(Effect.map((value) => Option.isSome(value) && value.value.length > 0));
-      if (!present) {
+    const credential = controlled === undefined
+      ? yield* Effect.promise(() => resolveCredential({
+          envVar: authorization.success.settings.credentialEnvVar,
+          environmentOnly:
+            "configuration" in authorization.success.settings &&
+            authorization.success.settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in",
+        }))
+      : undefined;
+    if (controlled === undefined && credential?.status !== "present") {
         return {
           response: defaultResponse(
             request,
             "missing_credentials",
-            `review credential is unavailable; set ${authorization.success.settings.credentialEnvVar}`,
+            credential?.source === "environment"
+              ? `review credential is unavailable; set ${authorization.success.settings.credentialEnvVar}`
+              : `saved review credential is ${credential?.status ?? "unavailable"}; run review-tool --login`,
           ),
           diagnosticScope,
         };
-      }
     }
     if (authorization.success.root === undefined) {
       return {
@@ -688,7 +714,7 @@ const runReviewRequestCore = (
         diagnosticScope,
       };
     }
-    const response = yield* runRequest(
+    const requestEffect = runRequest(
       request,
       controlled,
       authorization.success.settings,
@@ -698,7 +724,15 @@ const runReviewRequestCore = (
         consent: authorization.success.consent,
         settings: authorization.success.settings,
       },
-    ).pipe(
+    );
+    const credentialProvider = credential?.status === "present"
+      ? ConfigProvider.layer(ConfigProvider.fromUnknown({
+          [authorization.success.settings.credentialEnvVar]: credential.value,
+        }))
+      : undefined;
+    const response = yield* (credentialProvider === undefined
+      ? requestEffect
+      : requestEffect.pipe(Effect.provide(credentialProvider))).pipe(
       Effect.catchCause(() =>
         Effect.succeed(
           defaultResponse(
@@ -925,7 +959,109 @@ const program = Effect.gen(function* () {
   ),
 );
 
-const output = await Effect.runPromise(program);
+const readMaskedCredential = (): string => {
+  const descriptor = openSync("/dev/tty", "r+");
+  const setEcho = (enabled: boolean) => spawnSync(
+    "stty",
+    ["-F", "/dev/tty", enabled ? "echo" : "-echo"],
+    { stdio: "ignore" },
+  );
+  process.stderr.write("Jev API key: ");
+  const disabled = setEcho(false);
+  if (disabled.status !== 0) {
+    closeSync(descriptor);
+    throw new Error("masked terminal input is unavailable; retry with --credential-stdin");
+  }
+  try {
+    const bytes: Array<number> = [];
+    const byte = Buffer.alloc(1);
+    while (bytes.length <= 32_768 && readSync(descriptor, byte, 0, 1, null) === 1) {
+      if (byte[0] === 0x0a || byte[0] === 0x0d) break;
+      bytes.push(byte[0] ?? 0);
+    }
+    return Buffer.from(bytes).toString("utf8");
+  } finally {
+    setEcho(true);
+    process.stderr.write("\n");
+    closeSync(descriptor);
+  }
+};
+
+const runCredentialCommand = async (): Promise<Readonly<Record<string, unknown>>> => {
+  if (process.argv.includes("--login")) {
+    const probe = await runSecretService("probe", { deadlineMs: 2_000 });
+    if (probe.status !== "available") {
+      return {
+        version: 1,
+        operation: "login",
+        status: probe.status,
+        action: probe.status === "locked"
+          ? "unlock the login keyring in the desktop session, then retry"
+          : "start a Secret Service provider in this user session, then retry",
+      };
+    }
+    let value: string;
+    try {
+      value = process.argv.includes("--credential-stdin")
+        ? readFileSync(0, "utf8").replace(/\r?\n$/, "")
+        : readMaskedCredential();
+    } catch {
+      return {
+        version: 1,
+        operation: "login",
+        status: "cancelled",
+        preservedPreviousCredential: true,
+        action: "retry in a terminal or explicitly use --credential-stdin",
+      };
+    }
+    const result = await saveCredential(value);
+    value = "";
+    return {
+      version: 1,
+      operation: "login",
+      status: result.status,
+      stored: result.status === "stored",
+      paidVerificationPerformed: false,
+      previousCredentialPreserved: result.status !== "stored",
+      generation: result.state.generation,
+    };
+  }
+  const result = await logoutCredential();
+  let environmentName = DEFAULT_CREDENTIAL_ENV_VAR;
+  try {
+    const repository = spawnSync("git", ["rev-parse", "--show-toplevel"], {
+      cwd: process.cwd(), encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 1_000,
+    });
+    const root = repository.status === 0 ? repository.stdout.trim() : "";
+    if (root.length > 0) {
+      environmentName = (await Effect.runPromise(loadReviewSettings(root))).credentialEnvVar;
+    }
+  } catch { /* The global default remains the only known environment override. */ }
+  const environmentActive = (process.env[environmentName]?.length ?? 0) > 0;
+  return {
+    version: 1,
+    operation: "logout",
+    status: result.status === "deleted" || result.status === "missing"
+      ? "logged-out"
+      : "deletion-failed",
+    savedCredentialUse: result.state.savedUseSuspended ? "suspended" : "absent",
+    generation: result.state.generation,
+    grantsPreserved: true,
+    sentRequestsRecalled: false,
+    environmentOverride: {
+      envVar: environmentName,
+      active: environmentActive,
+      warning: environmentActive
+        ? `${environmentName} remains active and takes precedence over saved storage`
+        : undefined,
+    },
+  };
+};
+
+const isCredentialCommand = process.argv.includes("--login") || process.argv.includes("--logout");
+const output = isCredentialCommand
+  ? await runCredentialCommand()
+  : await Effect.runPromise(program);
 if (!isCodexHook && typeof output === "object" && output !== null) {
   const record = output as Readonly<Record<string, unknown>>;
   process.exitCode = record.status === "unsupported"
@@ -934,6 +1070,13 @@ if (!isCodexHook && typeof output === "object" && output !== null) {
       ? 4
       : record.status === "partial"
         ? 5
+        : record.status === "deletion-failed" ||
+            record.status === "locked" ||
+            record.status === "unavailable" ||
+            record.status === "timed-out" ||
+            record.status === "cancelled" ||
+            record.status === "invalid"
+          ? 6
         : "error" in record
           ? 2
           : 0;

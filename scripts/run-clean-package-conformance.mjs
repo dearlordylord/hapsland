@@ -323,6 +323,39 @@ try {
     REVIEW_INSTALL_CONTROLLED: "1",
   };
   for (const key of ["OPENAI_API_KEY", "TYPESAFE_API_KEY"]) delete env[key];
+  const credentialVault = join(temporary, "state", "credential-vault");
+  const credentialLifecycle = join(temporary, "state", "credential-state.json");
+  const credentialHelper = join(temporary, "credential-helper.mjs");
+  await mkdir(join(temporary, "state"), { recursive: true, mode: 0o700 });
+  await writeFile(credentialHelper, `#!/usr/bin/env node
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+const operation = process.argv[2]; const vault = process.env.PACKAGE_CREDENTIAL_VAULT;
+if (operation === "probe") console.log('{"version":1,"status":"available"}');
+else if (operation === "get") { if (!existsSync(vault)) console.log('{"version":1,"status":"missing"}'); else { const value=readFileSync(vault); console.log(JSON.stringify({version:1,status:"present",length:value.length})); process.stdout.write(value); } }
+else if (operation === "set") { const chunks=[]; for await (const chunk of process.stdin) chunks.push(chunk); writeFileSync(vault,Buffer.concat(chunks),{mode:0o600}); console.log('{"version":1,"status":"stored"}'); }
+else if (operation === "delete") { const found=existsSync(vault); rmSync(vault,{force:true}); console.log(JSON.stringify({version:1,status:found?"deleted":"missing"})); }
+`, { mode: 0o700 });
+  await chmod(credentialHelper, 0o700);
+  env.REVIEW_CREDENTIAL_HELPER = credentialHelper;
+  env.REVIEW_CREDENTIAL_STATE_PATH = credentialLifecycle;
+  env.PACKAGE_CREDENTIAL_VAULT = credentialVault;
+  const syntheticCredential = "package-secret-marker-never-retained";
+  const loginRun = await mustRun(cli, ["--login", "--credential-stdin"], {
+    cwd: temporary, env, input: `${syntheticCredential}\n`,
+  });
+  const loginResult = parseJson(loginRun.stdout, "packaged credential login");
+  if (loginResult.status !== "stored" || loginResult.paidVerificationPerformed !== false ||
+      `${loginRun.stdout}${loginRun.stderr}`.includes(syntheticCredential)) {
+    throw new Error("packaged credential login did not store safely without paid verification");
+  }
+  const credentialInspection = await mustRun(cli, ["--inspect-credentials"], {
+    cwd: repository, env, input: JSON.stringify({ version: 1, operation: "credentials", cwd: repository }),
+  });
+  const credentialResult = parseJson(credentialInspection.stdout, "packaged credential inspection");
+  if (credentialResult.present !== true || credentialResult.source !== "saved" ||
+      credentialInspection.stdout.includes(syntheticCredential)) {
+    throw new Error("packaged CLI did not reuse the saved credential in a new process");
+  }
   await mkdir(codexHome, { recursive: true, mode: 0o700 });
   const fakeCodex = join(temporary, "codex-cli-fixture");
   await writeFile(fakeCodex, "#!/bin/sh\nprintf 'codex-cli 0.155.1\\n'\n", { mode: 0o700 });
@@ -406,6 +439,12 @@ try {
   const submissions = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
   if (submissions !== 1) throw new Error(`expected one controlled backend submission, observed ${submissions}`);
   if (hookOutput.hookSpecificOutput?.hookEventName !== "PostToolUse") throw new Error("packaged hook did not return review advice");
+  const logoutRun = await mustRun(cli, ["--logout"], { cwd: temporary, env });
+  const logoutResult = parseJson(logoutRun.stdout, "packaged credential logout");
+  if (logoutResult.status !== "logged-out" || logoutResult.grantsPreserved !== true ||
+      logoutResult.sentRequestsRecalled !== false || logoutRun.stdout.includes(syntheticCredential)) {
+    throw new Error("packaged credential logout did not revoke saved use safely");
+  }
   const disabledRun = await mustRun(cli, ["--disable"], {
     cwd: temporary, env, input: JSON.stringify({ version: 1, operation: "disable", cwd: repository }),
   });
@@ -564,6 +603,13 @@ try {
       disableDispatchGate: "passed",
     },
     review: { backend: "controlled-offline", submissions, adviceReturned: true },
+    credentialLifecycle: {
+      login: "stored-without-paid-verification",
+      newProcessReuse: "saved-source-present",
+      installedHookControlledCompletion: "passed",
+      logout: "deleted-before-future-dispatch",
+      secretRetainedInEvidence: false,
+    },
     realCodex,
     transientPackageDownloadPerEdit: false,
     verdict: executeRealCodex

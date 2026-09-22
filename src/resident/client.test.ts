@@ -231,7 +231,13 @@ describe("resident client trust boundary", () => {
       dispatch: {
         statePath: "/tmp/consent",
         userConfigPath: null,
-        credential: { name: "JEV_API_KEY", value: "x".repeat(300_000) },
+        credential: {
+          name: "JEV_API_KEY",
+          environmentValue: "x".repeat(300_000),
+          environmentOnly: true,
+          generation: 0,
+          statePath: "/tmp/credential-state",
+        },
         controlled: null,
       },
     }, 500)).rejects.toThrow("request exceeded frame bound");

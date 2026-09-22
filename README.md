@@ -107,8 +107,10 @@ printf '%s\n' '{"version":1,"operation":"credentials","cwd":"/absolute/repo"}' \
 ```
 
 `--inspect-credentials` reports only the configured environment-variable name and
-whether it is non-empty. The default is `TYPESAFE_API_KEY`; credential values and
-environment files are never stored or printed. Project settings are optional JSONC in
+whether the resolved source is present. On Linux, `review-tool --login` uses masked terminal
+input; `review-tool --login --credential-stdin` is the explicit headless form, and
+`review-tool --logout` removes the owned saved item. The default is `TYPESAFE_API_KEY`;
+credential values and environment files are never stored in project files or printed. Project settings are optional JSONC in
 `.review.jsonc` at the Git root. It may select the credential variable, but the Jev
 backend and `/v1/systemone` destination are fixed in this phase; arbitrary endpoint
 routing is not supported. `consent`/`enabled` fields never authorize source transmission.

@@ -21,7 +21,13 @@ export type ResidentControlledOptions = {
 export type ResidentDispatchContext = {
   readonly statePath: string;
   readonly userConfigPath: string | null;
-  readonly credential: { readonly name: string; readonly value: string } | null;
+  readonly credential: {
+    readonly name: string;
+    readonly environmentValue: string | null;
+    readonly environmentOnly: boolean;
+    readonly generation: number;
+    readonly statePath: string;
+  } | null;
   readonly controlled: ResidentControlledOptions | null;
 };
 
@@ -123,7 +129,13 @@ const dispatch = (value: unknown): value is ResidentDispatchContext => {
     (credential === null || (
       typeof credential === "object" &&
       typeof credential.name === "string" && /^[A-Z_][A-Z0-9_]*$/.test(credential.name) &&
-      typeof credential.value === "string" && Buffer.byteLength(credential.value, "utf8") <= 32_768
+      (credential.environmentValue === null || (
+        typeof credential.environmentValue === "string" &&
+        Buffer.byteLength(credential.environmentValue, "utf8") <= 32_768
+      )) &&
+      typeof credential.environmentOnly === "boolean" &&
+      typeof credential.generation === "number" && Number.isSafeInteger(credential.generation) && credential.generation >= 0 &&
+      typeof credential.statePath === "string" && credential.statePath.startsWith("/")
     )) &&
     (item.controlled === null || controlled(item.controlled));
 };
