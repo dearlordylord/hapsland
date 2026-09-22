@@ -65,8 +65,23 @@ plan and [`CONTEXT.md`](./CONTEXT.md) for the domain vocabulary.
 npx --yes bun@1.3.14 install
 npm run typecheck
 npm test
+npm run conformance:package
 npm run review -- --controlled < request.json
 ```
+
+`npm pack` builds JavaScript release entry points for the review CLI, TypeScript parser,
+resident process, and offline package doctor. The currently tested installed profile is
+exactly Node 24.20.0 on Linux arm64 with Git, `flock`, and `/proc/self/fd`; package metadata
+rejects other operating systems and architectures. After installing the tarball, run
+`review-tool-doctor` for source-free compatibility checks and recovery actions. Installation
+may acquire and build production dependencies once. Hook invocations use the installed CLI
+and resident and do not download packages per edit.
+
+`npm run conformance:package` packs into an isolated temporary prefix, installs with production
+dependencies only, and runs the parser and controlled offline review outside the checkout. Add
+`-- --real-codex --write-evidence` only for the declared real-host acceptance fixture; it uses
+an isolated Codex home and temporary Git repository, does not change the user's host, removes
+provider credentials, and retains only sanitized package/host outcomes.
 
 Review dispatch is repository opt-in. The explicit enable operation first previews the
 canonical Git working-tree root, fixed Jev backend, actual destination, and
@@ -102,7 +117,8 @@ Codex command hook invokes
 The second flag is an explicit operator assertion that the supported Add event is in the
 controlled-writer envelope; matching source reads alone never establish attribution.
 Without that assertion, supported Add input stays quiet rather than falling back to the
-superseded whole-file path. Packaged installation belongs to a later phase. Live use reads `TYPESAFE_API_KEY` through
+superseded whole-file path. A packed installation invokes the corresponding installed
+`dist/cli.js` entry and never depends on this source path. Live use reads `TYPESAFE_API_KEY` through
 the Effect provider configuration. Run the paid integration checks only with explicit
 opt-in via `npm run test:live`. The reproducible 100-call milestone additionally requires
 `RUN_LIVE_JEV_BENCHMARK=1 npm run benchmark:live`.

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-22T15:08:10.798Z",
+  "package": {
+    "name": "realtime-review-prototype",
+    "version": "0.0.0",
+    "artifact": "realtime-review-prototype-0.0.0.tgz"
+  },
+  "environment": {
+    "node": "v24.20.0",
+    "operatingSystem": "linux",
+    "architecture": "arm64"
+  },
+  "isolation": {
+    "temporaryInstallation": true,
+    "developmentDependencies": false,
+    "checkoutPathUsedAtRuntime": false,
+    "retainedSyntheticSource": false
+  },
+  "entryPoints": {
+    "cli": "passed",
+    "parser": "passed",
+    "resident": "passed",
+    "hook": "passed"
+  },
+  "review": {
+    "backend": "controlled-offline",
+    "submissions": 1,
+    "adviceReturned": true
+  },
+  "realCodex": {
+    "status": "controlled-offline-review-completed",
+    "codexVersion": "codex-cli 0.155.1",
+    "hostExitCode": 0,
+    "controlledBackendSubmissions": 1
+  },
+  "transientPackageDownloadPerEdit": false,
+  "verdict": "clean-package-and-real-host-passed"
+}

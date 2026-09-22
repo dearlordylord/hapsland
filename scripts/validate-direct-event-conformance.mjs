@@ -96,6 +96,24 @@ for (const file of evidenceFiles.filter((name) => name.endsWith(".json"))) {
   }
 }
 
+const packageEvidencePath = resolve(root, "evidence/package/clean-linux-node-24.20.0-arm64.json");
+const packageEncoded = await readFile(packageEvidencePath, "utf8").catch(() => undefined);
+if (packageEncoded === undefined) {
+  fail("installed package evidence is missing");
+} else {
+  if (forbiddenText.test(packageEncoded)) fail("installed package evidence contains secret-shaped text");
+  const packageEvidence = JSON.parse(packageEncoded);
+  inspect(packageEvidence, "clean-linux-node-24.20.0-arm64.json");
+  if (
+    packageEvidence.verdict !== "clean-package-and-real-host-passed" ||
+    packageEvidence.realCodex?.status !== "controlled-offline-review-completed" ||
+    packageEvidence.isolation?.developmentDependencies !== false ||
+    packageEvidence.isolation?.checkoutPathUsedAtRuntime !== false
+  ) {
+    fail("installed package evidence does not establish the clean real-host seam");
+  }
+}
+
 if (process.exitCode === undefined) {
   process.stdout.write(`direct-event conformance manifest valid: 12 groups, ${obligationCount} obligations, ${checkCount} unique mapped checks, ${evidenceFiles.filter((name) => name.endsWith(".json")).length} sanitized evidence records\n`);
 }

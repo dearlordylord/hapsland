@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { join } from "node:path";
 import { readFileSync } from "node:fs";
 import { ResidentServer } from "./server.ts";
