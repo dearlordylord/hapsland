@@ -1,13 +1,16 @@
 import { spawnSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import {
+  accessSync,
   closeSync,
+  constants,
   existsSync,
   mkdirSync,
   openSync,
   readFileSync,
   renameSync,
   rmSync,
+  statSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -210,6 +213,116 @@ const validateToml = (file: FileSnapshot): JsonObject => {
   }
 };
 
+interface TomlLine {
+  readonly start: number;
+  readonly contentEnd: number;
+  readonly end: number;
+  readonly text: string;
+  readonly syntactic: boolean;
+}
+
+type MultilineDelimiter = '"""' | "'''" | undefined;
+
+const advanceTomlStringState = (line: string, initial: MultilineDelimiter): MultilineDelimiter => {
+  let multiline = initial;
+  let quote: '"' | "'" | undefined;
+  for (let index = 0; index < line.length; index += 1) {
+    if (multiline !== undefined) {
+      if (line.startsWith(multiline, index) &&
+          (multiline === "'''" || index === 0 || line[index - 1] !== "\\")) {
+        index += 2;
+        multiline = undefined;
+      }
+      continue;
+    }
+    const character = line[index];
+    if (quote !== undefined) {
+      if (character === quote && (quote === "'" || index === 0 || line[index - 1] !== "\\")) quote = undefined;
+      continue;
+    }
+    if (character === "#") break;
+    if (line.startsWith('"""', index) || line.startsWith("'''", index)) {
+      multiline = line.startsWith('"""', index) ? '"""' : "'''";
+      index += 2;
+      continue;
+    }
+    if (character === '"' || character === "'") quote = character;
+  }
+  return multiline;
+};
+
+const tomlLines = (content: string): ReadonlyArray<TomlLine> => {
+  const lines: Array<TomlLine> = [];
+  let offset = 0;
+  let multiline: MultilineDelimiter;
+  while (offset < content.length) {
+    const newline = content.indexOf("\n", offset);
+    const end = newline < 0 ? content.length : newline + 1;
+    const contentEnd = newline < 0
+      ? content.length
+      : newline > offset && content[newline - 1] === "\r" ? newline - 1 : newline;
+    const text = content.slice(offset, contentEnd);
+    const syntactic = multiline === undefined;
+    lines.push({ start: offset, contentEnd, end, text, syntactic });
+    multiline = advanceTomlStringState(text, multiline);
+    offset = end;
+  }
+  return lines;
+};
+
+const tableHeader = (line: string): "features" | "other" | undefined => {
+  const trimmed = line.trimStart();
+  if (!trimmed.startsWith("[")) return undefined;
+  try {
+    const parsed = parseToml(`${line}\n__review_tool_probe__ = true\n`);
+    return isObject(parsed.features) && parsed.features.__review_tool_probe__ === true
+      ? "features"
+      : "other";
+  } catch {
+    return "other";
+  }
+};
+
+const isHooksAssignment = (line: string): boolean => {
+  try {
+    const parsed = parseToml(`["features"]\n${line}\n`);
+    return isObject(parsed.features) && "hooks" in parsed.features;
+  } catch {
+    return false;
+  }
+};
+
+const locateFeaturesSyntax = (content: string) => {
+  let inFeatures = false;
+  let header: TomlLine | undefined;
+  let hooks: TomlLine | undefined;
+  for (const line of tomlLines(content)) {
+    if (!line.syntactic) continue;
+    const table = tableHeader(line.text);
+    if (table !== undefined) {
+      inFeatures = table === "features";
+      if (inFeatures) header = line;
+      continue;
+    }
+    if (inFeatures && isHooksAssignment(line.text)) hooks = line;
+  }
+  return { header, hooks };
+};
+
+const assertHooksSemanticState = (content: string, expected: true | "absent") => {
+  let parsed: unknown;
+  try {
+    parsed = parseToml(content);
+  } catch {
+    throw new Error("generated config.toml is invalid; no configuration was written");
+  }
+  const features = isObject(parsed) ? parsed.features : undefined;
+  const hooks = isObject(features) ? features.hooks : undefined;
+  if ((expected === true && hooks !== true) || (expected === "absent" && hooks !== undefined)) {
+    throw new Error("generated config.toml does not have the required hooks feature state");
+  }
+};
+
 const enableHooksFeature = (file: FileSnapshot): string => {
   const parsed = validateToml(file);
   const features = parsed.features;
@@ -223,30 +336,25 @@ const enableHooksFeature = (file: FileSnapshot): string => {
   if (current === true) return file.content;
   if (current !== undefined) throw new Error("config.toml features.hooks must be a boolean");
   const content = file.content;
-  const header = /^\s*\[features\]\s*(?:#.*)?$/m;
-  const match = header.exec(content);
-  if (match === null) {
+  const syntax = locateFeaturesSyntax(content);
+  let next: string;
+  if (syntax.header === undefined) {
     const separator = content.length === 0 || content.endsWith("\n") ? "" : "\n";
-    return `${content}${separator}${content.length === 0 ? "" : "\n"}[features]\nhooks = true\n`;
+    next = `${content}${separator}${content.length === 0 ? "" : "\n"}[features]\nhooks = true\n`;
+  } else {
+    const newline = content.slice(syntax.header.contentEnd, syntax.header.end) || "\n";
+    next = `${content.slice(0, syntax.header.contentEnd)}${newline}hooks = true${content.slice(syntax.header.contentEnd)}`;
   }
-  const insertAt = match.index + match[0].length;
-  return `${content.slice(0, insertAt)}\nhooks = true${content.slice(insertAt)}`;
+  assertHooksSemanticState(next, true);
+  return next;
 };
 
 const disableOwnedFeature = (content: string): string => {
-  const lines = content.split("\n");
-  let inFeatures = false;
-  let removed = false;
-  const next = lines.filter((line) => {
-    if (/^\s*\[/.test(line)) inFeatures = /^\s*\[features\]\s*(?:#.*)?$/.test(line);
-    if (inFeatures && /^\s*hooks\s*=\s*true\s*(?:#.*)?$/.test(line) && !removed) {
-      removed = true;
-      return false;
-    }
-    return true;
-  });
-  if (!removed) throw new Error("owned Codex feature entry is missing or locally modified");
-  return next.join("\n");
+  const hooks = locateFeaturesSyntax(content).hooks;
+  if (hooks === undefined) throw new Error("owned Codex feature entry is missing or locally modified");
+  const next = `${content.slice(0, hooks.start)}${content.slice(hooks.end)}`;
+  assertHooksSemanticState(next, "absent");
+  return next;
 };
 
 const readOwnership = (path: string): OwnershipRecord | undefined => {
@@ -341,7 +449,7 @@ const installationDigest = (
   })),
 }));
 
-const compatibility = (codexExecutable: string) => {
+const codexCompatibility = (codexExecutable: string) => {
   const run = spawnSync(codexExecutable, ["--version"], { encoding: "utf8", timeout: 2_000 });
   const observed = run.status === 0 ? run.stdout.trim() : "unavailable";
   return {
@@ -350,6 +458,54 @@ const compatibility = (codexExecutable: string) => {
     required: "codex-cli 0.155.1",
   };
 };
+
+const pathReadiness = (path: string, executable: boolean) => {
+  try {
+    const metadata = statSync(path);
+    accessSync(path, executable ? constants.R_OK | constants.X_OK : constants.R_OK);
+    return { ready: metadata.isFile(), observed: metadata.isFile() ? "regular-file" : "not-a-regular-file" };
+  } catch (cause) {
+    return {
+      ready: false,
+      observed: isNodeError(cause, "ENOENT") ? "missing" : "unreadable",
+    };
+  }
+};
+
+const runtimeCompatibility = (inputs: ReturnType<typeof resolveInputs>) => {
+  const executable = pathReadiness(inputs.executable, true);
+  const entrypoint = pathReadiness(inputs.entrypoint, false);
+  const checks = {
+    runtime: { ...executable, path: inputs.executable },
+    entrypoint: { ...entrypoint, path: inputs.entrypoint },
+    node: { ready: process.version === "v24.20.0", observed: process.version, required: "v24.20.0" },
+    platform: { ready: process.platform === "linux", observed: process.platform, required: "linux" },
+    architecture: { ready: process.arch === "arm64", observed: process.arch, required: "arm64" },
+  };
+  return {
+    supported: Object.values(checks).every((check) => check.ready),
+    checks,
+  };
+};
+
+const compatibility = (inputs: ReturnType<typeof resolveInputs>) => {
+  const codex = codexCompatibility(inputs.codexExecutable);
+  const runtime = runtimeCompatibility(inputs);
+  return { supported: codex.supported && runtime.supported, codex, runtime };
+};
+
+const unsupportedResult = (
+  operation: "install" | "install-preview",
+  inputs: ReturnType<typeof resolveInputs>,
+  host: ReturnType<typeof compatibility>,
+) => ({
+  version: RESULT_VERSION,
+  operation,
+  status: "unsupported",
+  host: { adapter: "codex", home: inputs.home, compatibility: host },
+  completed: [],
+  pending: ["install the declared runtime, packaged entrypoint, and Codex 0.155.1 before mutation"],
+});
 
 const resolveInputs = (request: InstallationRequest) => {
   const home = resolve(request.codexHome ?? process.env.CODEX_HOME ?? join(homedir(), ".codex"));
@@ -516,6 +672,17 @@ const withLock = async <A>(path: string, use: () => Promise<A>): Promise<A> => {
 
 const applyJournal = (journalPath: string, journal: Journal) => {
   let completed = [...journal.completed];
+  for (let index = 0; index < journal.mutations.length; index += 1) {
+    const change = journal.mutations[index];
+    if (change === undefined) continue;
+    const current = snapshot(change.path);
+    if (completed.includes(index) && current.digest !== change.afterDigest) {
+      throw new Error(`completed journal step changed for ${change.path}; the unrelated edit was preserved`);
+    }
+    if (!completed.includes(index) && current.digest !== change.beforeDigest && current.digest !== change.afterDigest) {
+      throw new Error(`concurrent change detected for ${change.path}; no stale content was restored`);
+    }
+  }
   atomicWrite(journalPath, encodeJson(journal));
   const failAfter = Number(process.env.REVIEW_INSTALL_FAIL_AFTER_WRITES ?? "-1");
   for (let index = 0; index < journal.mutations.length; index += 1) {
@@ -539,6 +706,41 @@ const applyJournal = (journalPath: string, journal: Journal) => {
   atomicRemove(journalPath);
 };
 
+const validateJournalScope = (journal: Journal, inputs: ReturnType<typeof resolveInputs>) => {
+  const allowed = new Set([inputs.paths.config, inputs.paths.hooks, inputs.paths.ownership]);
+  if (journal.mutations.some((change) => !allowed.has(change.path)) ||
+      new Set(journal.mutations.map((change) => change.path)).size !== journal.mutations.length) {
+    throw new Error("recovery journal contains an unexpected or duplicate configuration target");
+  }
+  for (const change of journal.mutations) {
+    if (change.afterContent === null) continue;
+    if (change.path === inputs.paths.config) {
+      assertHooksSemanticState(change.afterContent, journal.operation === "install" ? true : "absent");
+    } else if (change.path === inputs.paths.hooks) {
+      let decoded: unknown;
+      try {
+        decoded = JSON.parse(change.afterContent);
+      } catch {
+        throw new Error("recovery journal contains malformed hooks configuration");
+      }
+      if (!isObject(decoded) || markerCount(decoded) !== (journal.operation === "install" ? 1 : 0)) {
+        throw new Error("recovery journal does not contain the required owned-hook state");
+      }
+    } else if (change.path === inputs.paths.ownership) {
+      let decoded: unknown;
+      try {
+        decoded = JSON.parse(change.afterContent);
+      } catch {
+        throw new Error("recovery journal contains a malformed ownership record");
+      }
+      if (!isObject(decoded) || decoded.version !== 1 || decoded.adapter !== "codex" ||
+          decoded.executable !== inputs.executable || decoded.entrypoint !== inputs.entrypoint) {
+        throw new Error("recovery journal ownership does not match the current packaged runtime");
+      }
+    }
+  }
+};
+
 const previewChanges = (mutations: ReadonlyArray<Mutation>) => mutations.map((change) => ({
   file: change.path,
   action: change.afterContent === null ? "remove" : change.beforeDigest === missingDigest ? "create" : "update",
@@ -547,19 +749,52 @@ const previewChanges = (mutations: ReadonlyArray<Mutation>) => mutations.map((ch
   afterDigest: change.afterDigest,
 }));
 
+const ownedChanges = (inputs: ReturnType<typeof resolveInputs>) => ({
+  runtime: {
+    executable: inputs.executable,
+    entrypoint: inputs.entrypoint,
+    nodeVersion: process.version,
+    platform: process.platform,
+    architecture: process.arch,
+  },
+  feature: {
+    file: inputs.paths.config,
+    table: "features",
+    key: "hooks",
+    value: true,
+  },
+  hook: {
+    file: inputs.paths.hooks,
+    event: "PostToolUse",
+    matcher: OWNED_MATCHER,
+    handlers: [ownedHook(inputs.executable, inputs.entrypoint)],
+  },
+  ownership: {
+    file: inputs.paths.ownership,
+    version: OWNERSHIP_VERSION,
+    adapter: "codex",
+  },
+});
+
 export const previewCodexInstallation = (request: InstallationRequest): InstallationResult => {
   const home = resolveInputs(request).home;
   try {
     const inputs = resolveInputs(request);
-    const host = compatibility(inputs.codexExecutable);
+    const host = compatibility(inputs);
+    if (!host.supported) return unsupportedResult("install-preview", inputs, host);
     const pendingJournal = readJournal(inputs.paths.journal);
     if (pendingJournal !== undefined) {
+      validateJournalScope(pendingJournal, inputs);
       return {
         version: RESULT_VERSION,
         operation: "install-preview",
         status: "partial",
         host: { adapter: "codex", home: inputs.home, compatibility: host },
-        proposal: { digest: pendingJournal.proposalDigest, changes: previewChanges(pendingJournal.mutations) },
+        proposal: {
+          digest: pendingJournal.proposalDigest,
+          changes: previewChanges(pendingJournal.mutations),
+          ownedChanges: ownedChanges(inputs),
+        },
         sourceEgressAuthorized: false,
         recovery: {
           required: true,
@@ -576,9 +811,13 @@ export const previewCodexInstallation = (request: InstallationRequest): Installa
     return {
       version: RESULT_VERSION,
       operation: "install-preview",
-      status: host.supported ? "preview" : "unsupported",
+      status: "preview",
       host: { adapter: "codex", home: plan.inputs.home, compatibility: host },
-      proposal: { digest: plan.digest, changes: previewChanges(plan.mutations) },
+      proposal: {
+        digest: plan.digest,
+        changes: previewChanges(plan.mutations),
+        ownedChanges: ownedChanges(plan.inputs),
+      },
       installed: plan.alreadyInstalled,
       sourceEgressAuthorized: false,
       recovery: { required: false },
@@ -587,7 +826,7 @@ export const previewCodexInstallation = (request: InstallationRequest): Installa
         guidance: "Start Codex normally in the repository and approve its native repository and hook review prompts. No trust record or bypass flag was changed.",
       },
       completed: [],
-      pending: host.supported ? ["install using this proposal digest", "enable each repository separately"] : ["install the supported Codex version before mutation"],
+      pending: ["install using this proposal digest", "enable each repository separately"],
     };
   } catch (cause) {
     return conflictResult("install-preview", cause instanceof Error ? cause.message : "installation preview failed", home);
@@ -596,10 +835,15 @@ export const previewCodexInstallation = (request: InstallationRequest): Installa
 
 export const installCodexIntegration = async (request: InstallationRequest): Promise<InstallationResult> => {
   const inputs = resolveInputs(request);
+  const initialCompatibility = compatibility(inputs);
+  if (!initialCompatibility.supported) return unsupportedResult("install", inputs, initialCompatibility);
   try {
     return await withLock(inputs.paths.lock, async () => {
+      const currentCompatibility = compatibility(inputs);
+      if (!currentCompatibility.supported) return unsupportedResult("install", inputs, currentCompatibility);
       const existingJournal = readJournal(inputs.paths.journal);
       if (existingJournal !== undefined) {
+        validateJournalScope(existingJournal, inputs);
         if (request.proposalDigest !== existingJournal.proposalDigest || existingJournal.operation !== "install") {
           return {
             version: RESULT_VERSION,
@@ -639,16 +883,9 @@ export const installCodexIntegration = async (request: InstallationRequest): Pro
         };
       }
       const plan = makeInstallPlan(request);
-      const host = compatibility(plan.inputs.codexExecutable);
+      const host = compatibility(plan.inputs);
       if (!host.supported) {
-        return {
-          version: RESULT_VERSION,
-          operation: "install",
-          status: "unsupported",
-          host: { adapter: "codex", home: inputs.home, compatibility: host },
-          completed: [],
-          pending: ["install codex-cli 0.155.1; no configuration was changed"],
-        };
+        return unsupportedResult("install", inputs, host);
       }
       if (request.proposalDigest === undefined || request.proposalDigest !== plan.digest) {
         return {
@@ -710,6 +947,7 @@ export const uninstallCodexIntegration = async (request: InstallationRequest): P
     return await withLock(inputs.paths.lock, async () => {
       const existingJournal = readJournal(inputs.paths.journal);
       if (existingJournal !== undefined) {
+        validateJournalScope(existingJournal, inputs);
         if (request.proposalDigest === existingJournal.proposalDigest && existingJournal.operation === "uninstall") {
           try {
             applyJournal(inputs.paths.journal, existingJournal);

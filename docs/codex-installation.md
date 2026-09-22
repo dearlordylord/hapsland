@@ -11,6 +11,9 @@ Installation and repository enablement are separate. Installation writes the ada
 an ownership record into the selected Codex home, but grants no permission to send repository
 source. Enablement separately previews the canonical Git root, Jev backend and destination, and
 eligible-source scope. Both mutations require the digest returned by their preview.
+The install preview's `proposal.ownedChanges` identifies the exact runtime executable,
+entrypoint, Node/platform/architecture, feature key, hook event, matcher, command, timeout, and
+ownership-record path. It does not echo unrelated configuration values.
 
 ```sh
 printf '%s\n' '{"version":1,"operation":"install-preview","codexHome":"/absolute/codex-home"}' \
@@ -38,13 +41,18 @@ unrelated hooks, native trust records, and settings required by remaining hooks.
 before uninstall when future review dispatch must stop; uninstall alone does not revoke them.
 Requests already sent to Jev cannot be recalled.
 
-The installer validates `config.toml` and `hooks.json`, preserves object and array order, and
+Before writing configuration, the installer requires the declared Node 24.20.0 Linux arm64
+runtime, readable executable packaged entrypoint, and Codex CLI 0.155.1 to be ready. The
+installer validates `config.toml` and `hooks.json`, preserves object and array order, and
 rejects malformed or unreadable files, duplicate owned markers, explicit hook disablement, and
-locally changed owned entries. It uses a bounded 1.5-second configuration lock, digest-based
+locally changed owned entries. TOML edits locate parsed table/key spans, including quoted table
+names, and ignore table-like text inside multiline strings; the resulting TOML and hooks semantic
+state are parsed again before writing. It uses a bounded 1.5-second configuration lock, digest-based
 concurrent-change checks, atomic per-file replacement, and a versioned journal. A `partial`
 result includes the original proposal digest and completed-file count. Rerun the same operation
-with that digest to resume. If another tool changed a pending file, recovery returns a conflict
-and leaves the newer file untouched.
+with that digest to resume. Recovery revalidates the runtime, journal targets, completed outputs,
+pending prerequisites, and generated configuration. If another tool changed a completed or
+pending file, recovery returns an actionable conflict and leaves the newer file untouched.
 
 Codex owns repository and hook trust. The installer does not edit trust records or use bypass
 flags. Start Codex normally in the enabled repository and approve the native repository and hook
