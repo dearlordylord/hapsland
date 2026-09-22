@@ -14,20 +14,20 @@ secret- or source-bearing fields in the new evidence records.
 
 | # | Product or focused external boundary | Exact policy demonstrated | Passing evidence |
 | --- | --- | --- | --- |
-| 1 | Codex native adapter and delivery-only hook | Successful native Add; Update only by a unique nonempty trimmed added line in the root declaration; 1–16 candidates; command at most 64 KiB; Delete/move/metadata-only and malformed input quiet; Bash collects only | 6 mapped checks |
-| 2 | Git-aware named-path selection | Named paths only; nested `.gitignore`; tracked-file semantics; no info/global excludes; highest include replaces; exclusions accumulate; hard floor before reads; ordinary build/generated/vendor/target names allowed | 4 mapped checks |
-| 3 | Stable capture and containment | Regular nonsymlink in-root files; two agreeing bounded reads; 32 KiB inclusive; UTF-8/BOM accepted; mutation, recreation, malformed UTF-8, NUL, cancellation contained; independent path outcomes | 5 mapped checks |
-| 4 | TypeScript analyzer and `DecisionModel` | `.ts/.tsx/.mts/.cts` applicability; unique interface/type roots; 64 declarations inclusive; exactly 16 referenced names excluding root; finite same-file evidence; imports, merging, schema-only and unresolved shapes unsupported; one request per unit | 6 mapped checks |
-| 5 | Join and reuse identity | Complete partition/path/evidence/rules/contract input; event ID excluded; pending join independent of cache; success-only 8-entry/128 KiB LRU reuse; failure/malformed non-reuse; A→B→A restoration | 5 mapped checks |
-| 6 | Revalidation and publication authority | Relevant root/reference/rule/contract changes stale; unrelated comments/siblings remain current; no whole-file fallback; late/superseded work and uncertain writer attribution do not publish | 5 mapped checks |
-| 7 | Resident dispatch and collection | Prompt lone dispatch; finite cycles; concurrency 2; completion or 50 ms collection; deterministic 5-finding/2 KiB response; overflow retained; expiry at 600,000 ms equality | 5 mapped checks |
-| 8 | Logical capacity and transport | Global 64 items/8 MiB; recipient/root 16 items/2 MiB; accounting through work/cache/outcomes/advice; bounded 256 KiB IPC before decode; explicit rejection and terminal cleanup; no RSS claim | 5 mapped checks |
-| 9 | Operational notices | First capacity/backend failure eligible; same kind/partition suppressed before 60,000 ms and eligible at equality; no timer-only notice; 64 bounded keys; restart reset; no recursive notice or finding displacement | 4 mapped checks |
-| 10 | Singleton lifecycle | 10 s readiness; 1.5 s client deadline; 100 starters/eight processes converge; timeout/disconnect does not cancel accepted work; kill/restart loses memory; old lifetime rejected; cleanup only idle; worktree roots distinct | 4 mapped checks |
-| 11 | Consent boundary | User preview plus matching digest confirmation; fixed repository/backend/destination authority; project config cannot grant; disable/revocation prevents future dispatch and is rechecked immediately before provider use | 4 mapped checks |
-| 12 | Jev request boundary | One provider-neutral `DecisionModel` request per unit; 15-second deadline; zero automatic retries; ordinary checks use a controlled model and make no paid call | 2 mapped checks |
+| 1 | Codex native adapter and delivery-only hook | Successful native Add; Update only by a unique nonempty trimmed added line in the root declaration; 1–16 candidates; command at most 64 KiB; Delete/move/metadata-only and malformed input quiet; Bash collects only | 3 obligations |
+| 2 | Git-aware named-path selection | Named paths only; nested `.gitignore`; tracked-file semantics; no info/global excludes; highest include replaces; exclusions accumulate; hard floor before reads; ordinary build/generated/vendor/target names allowed | 3 obligations |
+| 3 | Stable capture and containment | Regular nonsymlink in-root files; two agreeing bounded reads; 32 KiB inclusive; UTF-8/BOM accepted; mutation, recreation, malformed UTF-8, NUL, cancellation contained; independent path outcomes | 3 obligations |
+| 4 | TypeScript analyzer and `DecisionModel` | `.ts/.tsx/.mts/.cts` applicability; unique interface/type roots; 64 declarations inclusive; exactly 16 referenced names excluding root; finite same-file evidence; imports, merging, schema-only and unresolved shapes unsupported; one request per unit | 3 obligations |
+| 5 | Join and reuse identity | Complete partition/path/evidence/rules/contract input; event ID excluded; pending join independent of cache; success-only 8-entry/128 KiB LRU reuse; failure/malformed non-reuse; A→B→A restoration | 3 obligations |
+| 6 | Revalidation and publication authority | Relevant root/reference/rule/contract changes stale; unrelated comments/siblings remain current; no whole-file fallback; late/superseded work and uncertain writer attribution do not publish | 3 obligations |
+| 7 | Resident dispatch and collection | Prompt lone dispatch; finite cycles; concurrency 2; completion or 50 ms collection; deterministic 5-finding/2 KiB response; overflow retained; expiry at 600,000 ms equality | 4 obligations |
+| 8 | Logical capacity and transport | Global 64 items/8 MiB; recipient/root 16 items/2 MiB; accounting through work/cache/outcomes/advice; bounded 256 KiB IPC before decode; explicit rejection and terminal cleanup; no RSS claim | 4 obligations |
+| 9 | Operational notices | First capacity/backend failure eligible; same kind/partition suppressed before 60,000 ms and eligible at equality; no timer-only notice; 64 bounded keys; restart reset; no recursive notice or finding displacement | 3 obligations |
+| 10 | Singleton lifecycle | 10 s readiness; 1.5 s client deadline; 100 starters/eight processes converge; timeout/disconnect does not cancel accepted work; kill/restart loses memory; old lifetime rejected; cleanup only idle; worktree roots distinct | 4 obligations |
+| 11 | Consent boundary | User preview plus matching digest confirmation; fixed repository/backend/destination authority; project config cannot grant; disable/revocation prevents future dispatch and is rechecked immediately before provider use | 3 obligations |
+| 12 | Jev request/evidence boundary | One provider-neutral `DecisionModel` request per unit; 15-second deadline; zero automatic retries; source-free live outcome classification; admission is not a provider-call counter | 3 obligations |
 
-All 55 mapped checks pass through product boundaries or narrowly focused external
+All 39 obligations and 90 unique mapped checks pass through product boundaries or narrowly focused external
 boundaries. Ordinary `npm test` and `npm run conformance:direct-event` are deterministic
 and offline. The paid script is separate and explicit.
 
@@ -77,8 +77,9 @@ The external stages are kept separate:
 5. **Model visibility:** only an independent host observation for that run, never inferred
    from response writing.
 
-The fresh pinned run observed all five for one Add with a controlled backend. That single
-observation does not establish reliable model visibility. Update and multi-file support
+The corrected fresh pinned run observed all five for one Add with a controlled backend;
+model visibility required exact repetition of a randomized hook-only value absent from the
+prompt. That single observation does not establish reliable model visibility. Update and multi-file support
 is separately grounded in native `0.155.1` payload captures plus deterministic production
 pipeline gates; it was not rerun live in this final Add conformance. Real child-specific
 delivery is unvalidated, although child identity preservation and partition isolation are
@@ -86,11 +87,13 @@ deterministically checked.
 
 ## Bounded live Jev evidence and gaps
 
-Issue #52 made two paid calls total, both under declarations of one call maximum, a
-256-byte synthetic fixture bound, the 32 KiB profile ceiling, 15 seconds, and zero
-retries. The first was conservatively inconclusive because reviewed-clear was not yet
+Issue #52 made two paid-capable executions, both under declarations of one intended
+provider call maximum, a 256-byte synthetic fixture bound, the 32 KiB profile ceiling,
+15 seconds, and zero retries. The runner did not count at the actual provider boundary,
+so exact provider attempts are unknown and admission is not used as a proxy. The first
+execution was conservatively inconclusive because reviewed-clear was not yet
 distinguishable from incomplete using retained source-free data. The corrected run used
-only resident completion/cache counters and passed as `completed-clear-no-advice` in
+resident completion/cache plus separate pending-finding/pending-notice counters and passed as `completed-clear-no-advice` in
 7,424 ms (`5s-to-under-15s`). No raw advice, source, individual probability, provider
 usage, credential, or source-bearing backend output was retained.
 

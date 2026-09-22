@@ -3,7 +3,8 @@
   "recordedDate": "2026-09-22",
   "fixtureId": "direct-event-add-single-unit-v1",
   "policy": {
-    "paidCallCeilingPerDeclaredAttempt": 1,
+    "intendedProviderCallCeilingPerExecution": 1,
+    "providerBoundaryCounter": false,
     "sourceLimitBytesPerFile": 32768,
     "fixtureSourceBytesMaximum": 256,
     "deadlineMilliseconds": 15000,
@@ -15,17 +16,23 @@
       "contractOutcome": "inconclusive-after-admission-no-immediate-advice",
       "timingMilliseconds": 7288,
       "timingBand": "5s-to-under-15s",
-      "paidCalls": 1
+      "paidCapableExecution": true,
+      "eligibleUnitsAdmitted": 1,
+      "providerCallCount": "unknown"
     },
     {
       "sequence": 2,
       "contractOutcome": "completed-clear-no-advice",
       "timingMilliseconds": 7424,
       "timingBand": "5s-to-under-15s",
-      "paidCalls": 1
+      "paidCapableExecution": true,
+      "eligibleUnitsAdmitted": 1,
+      "providerCallCount": "unknown",
+      "sourceFreeSuccessfulEvaluation": true
     }
   ],
-  "totalPaidCalls": 2,
+  "totalPaidCapableExecutions": 2,
+  "totalProviderCallCount": "unknown",
   "totalAutomaticRetries": 0,
   "retainedRawBackendMaterial": false,
   "finalVerdict": "passed"

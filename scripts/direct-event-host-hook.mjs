@@ -30,6 +30,13 @@ const record = {
 if (process.env.REVIEW_HOST_STAGE_PATH !== undefined) {
   appendFileSync(process.env.REVIEW_HOST_STAGE_PATH, `${JSON.stringify(record)}\n`, { mode: 0o600 });
 }
-process.stdout.write(product.stdout);
+if (
+  typeof process.env.REVIEW_VISIBILITY_MARKER === "string" &&
+  output?.hookSpecificOutput?.hookEventName === "PostToolUse" &&
+  typeof output.hookSpecificOutput.additionalContext === "string"
+) {
+  output.hookSpecificOutput.additionalContext += `\nVisibility probe token: ${process.env.REVIEW_VISIBILITY_MARKER}`;
+}
+process.stdout.write(output === undefined ? product.stdout : `${JSON.stringify(output)}\n`);
 process.stderr.write(product.stderr);
 process.exitCode = product.status ?? 1;

@@ -6,17 +6,20 @@ It does not extend support to another host, version, platform, or mode.
 
 - `host-codex-0.155.1-linux-arm64.json` is a fresh isolated host run through the
   production command and resident path with a controlled `DecisionModel`. It records
-  hook entry, adapter acceptance, one backend submission, attempted/unacknowledged host
-  submission, and separately observed model visibility. The observation is evidence for
-  that run, not a reliable-visibility guarantee.
+  hook entry, adapter acceptance, one controlled-backend submission,
+  attempted/unacknowledged host submission, and exact repetition of a fresh hook-only
+  value. That observation is evidence for one run, not a reliable-visibility guarantee.
 - `live-jev-milestone.json` is the passing final bounded live run. Its declaration was
-  emitted before credential lookup or provider-capable execution: one call maximum, one
-  synthetic fixture of at most 256 bytes (inside the 32 KiB/file profile), 15-second
-  deadline, and zero automatic retries.
-- `live-jev-issue-52-execution.json` accounts for both paid calls made while landing this
+  emitted before credential lookup or provider-capable execution: one intended provider
+  call maximum, one synthetic fixture of at most 256 bytes (inside the 32 KiB/file
+  profile), 15-second deadline, and zero automatic retries. The runner had no actual
+  provider-boundary counter, so provider attempts are recorded as unknown, never inferred
+  from admission.
+- `live-jev-issue-52-execution.json` accounts for both paid-capable executions while landing this
   ticket. The first emitted no finding, but the initial runner lacked a
   source-free completion observation and therefore classified it inconclusive. The second
-  used resident completion/cache counters and established reviewed-clear. Neither record
+  used resident completion/cache counters and established reviewed-clear. Exact provider
+  call count remains unknown. Neither record
   contains source, raw advice, probabilities, provider usage, credentials, or raw
   provider responses.
 

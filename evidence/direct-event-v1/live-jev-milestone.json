@@ -5,7 +5,9 @@
     "fixtureIds": [
       "direct-event-add-single-unit-v1"
     ],
-    "paidCallCeiling": 1,
+    "intendedProviderCallCeiling": 1,
+    "providerBoundaryCounter": false,
+    "providerCallCountPolicy": "unknown-not-inferred-from-admission",
     "sourceLimitBytesPerFile": 32768,
     "fixtureSourceBytesMaximum": 256,
     "deadlineMilliseconds": 15000,
@@ -14,7 +16,9 @@
       "fixture IDs",
       "bands",
       "contract outcomes",
-      "timings"
+      "timings",
+      "source-free outcome categories",
+      "provider count policy"
     ]
   },
   "credentialLocation": "primary-worktree-env-file",
@@ -22,11 +26,14 @@
     {
       "fixtureId": "direct-event-add-single-unit-v1",
       "contractOutcome": "completed-clear-no-advice",
+      "hostOutputKind": "none",
+      "sourceFreeSuccessfulEvaluation": true,
       "timingMilliseconds": 7424,
       "timingBand": "5s-to-under-15s"
     }
   ],
-  "paidCalls": 1,
+  "paidCapableExecutions": 1,
+  "providerCallCount": "unknown",
   "automaticRetries": 0,
   "retainedRawBackendMaterial": false,
   "evidenceGaps": [],

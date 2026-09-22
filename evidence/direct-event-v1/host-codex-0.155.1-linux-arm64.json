@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-09-22T09:08:07.840Z",
+  "recordedAt": "2026-09-22T09:35:59.642Z",
   "profile": "direct-event-v1",
   "environment": {
     "codex": "codex-cli 0.155.1",
@@ -22,7 +22,7 @@
     "adaptation": "mapped",
     "backendSubmissions": 1,
     "hostSubmission": "attempted-unacknowledged",
-    "independentlyObservedModelVisibility": "observed"
+    "independentlyObservedModelVisibility": "observed-hook-only-value"
   },
   "updateAndMultiFileEvidence": {
     "status": "deterministic-and-native-payload-only",

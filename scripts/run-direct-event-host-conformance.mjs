@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -85,6 +86,7 @@ try {
     "r4_duplicate_encoding", "r5_absence_confusion", "r6_bare_domain_value",
     "r7_name_wider_than_type", "r8_name_claims_resource", "r9_body_reaches_undeclared",
   ].map((id) => [id, { _tag: "Probability", probability: 0.91 }]));
+  const visibilityMarker = `HOOK_ONLY_${randomUUID().replaceAll("-", "")}`;
   const env = {
     ...process.env,
     CODEX_HOME: home,
@@ -92,6 +94,7 @@ try {
     REVIEW_RESIDENT_DIR: runtime,
     REVIEW_HOST_STAGE_PATH: stagesPath,
     REVIEW_CONTROL_JSON: JSON.stringify({ answers, capturePath: callsPath }),
+    REVIEW_VISIBILITY_MARKER: visibilityMarker,
   };
   for (const key of ["OPENAI_API_KEY", "TYPESAFE_API_KEY"]) delete env[key];
 
@@ -109,15 +112,15 @@ try {
     host = await run("codex", [
       "exec", "--ephemeral", "--json", "--dangerously-bypass-hook-trust",
       "--dangerously-bypass-approvals-and-sandbox", "--ignore-rules", "-C", repository,
-      "Use apply_patch exactly once to add profile.ts containing one exported interface named Delivery with fields id:string and destination:string. Then use Bash exactly once to run `printf collection-ready`. If the Bash result includes advisory direct-event review context, reply exactly VISIBILITY_OBSERVED; otherwise reply exactly VISIBILITY_NOT_OBSERVED. Do not inspect files or make other tool calls.",
+      "Use apply_patch exactly once to add profile.ts containing one exported interface named Delivery with fields id:string and destination:string. Then use Bash exactly once to run `printf collection-ready`. If hook context contains a token beginning HOOK_ONLY_, repeat that exact token in your final reply; otherwise reply VISIBILITY_NOT_OBSERVED. Do not inspect files or make other tool calls.",
     ], { cwd: repository, env, timeoutMs: 120_000 });
   }
   const stages = jsonLines(await readFile(stagesPath, "utf8").catch(() => ""));
   const backendCalls = (await readFile(callsPath, "utf8").catch(() => "")).split("\n").filter(Boolean).length;
   const messages = jsonLines(host.stdout).flatMap((entry) =>
     entry?.item?.type === "agent_message" && typeof entry.item.text === "string" ? [entry.item.text] : []);
-  const visibility = messages.includes("VISIBILITY_OBSERVED")
-    ? "observed"
+  const visibility = messages.some((message) => message.includes(visibilityMarker))
+    ? "observed-hook-only-value"
     : messages.includes("VISIBILITY_NOT_OBSERVED") ? "not-observed" : "indeterminate";
   const addStage = stages.find((stage) => stage.toolName === "apply_patch");
   const submissionStage = stages.find((stage) => stage.submission === "attempted-unacknowledged");
