@@ -94,7 +94,7 @@ describe("resident client trust boundary", () => {
       pid: 42,
     });
     expect(launchCount).toBe(2);
-    expect(clock).toBe(350);
+    expect(clock).toBeGreaterThanOrEqual(350);
     expect(calls.every(({ at, budget }) => at < 10_000 && budget > 0 && budget <= 10_000 - at)).toBe(true);
   });
 

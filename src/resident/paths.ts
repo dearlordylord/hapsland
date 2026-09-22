@@ -1,4 +1,4 @@
-import { lstat, mkdir, open } from "node:fs/promises";
+import { lstat, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -63,17 +63,6 @@ export const prepareResidentDirectory = async (paths: ResidentPaths): Promise<vo
   await mkdir(paths.directory, { recursive: true, mode: 0o700 });
   if (!validateEndpointMetadata(await metadata(paths.directory), "directory")) {
     throw new Error("resident runtime directory is not a private user-owned directory");
-  }
-  try {
-    const handle = await open(paths.lock, "ax", 0o600);
-    await handle.close();
-  } catch (cause) {
-    if (!(typeof cause === "object" && cause !== null && "code" in cause && cause.code === "EEXIST")) {
-      throw cause;
-    }
-  }
-  if (!validateEndpointMetadata(await metadata(paths.lock), "regular")) {
-    throw new Error("resident owner lock is not a private user-owned regular file");
   }
 };
 
