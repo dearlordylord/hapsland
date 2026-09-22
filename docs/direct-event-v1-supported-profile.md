@@ -58,12 +58,15 @@ possible. The sanitized record is
 It establishes the clean installed-package and real-host seam in the recorded Linux arm64
 environment. It does not broaden the adapter, platform, mode, or review-semantics profile.
 
-The issue-64 runner record is
+The macOS runner record is
 [`evidence/package/clean-darwin-node-24.20.0-arm64.json`](../evidence/package/clean-darwin-node-24.20.0-arm64.json).
 It establishes the clean packaged CLI, parser, descriptor-anchored capture, portable resident,
-controlled offline submission, and advice-return path on macOS 14 arm64. The repository had no
-isolated Codex authentication secret during validation, so it does not establish real Codex host
-execution on macOS; that cell remains unverified rather than inferred from the packaged hook run.
+controlled offline submission, advice-return path, and native Keychain credential lifecycle on
+macOS 14 arm64. The Keychain cell includes separate-process persistence, fresh-resident reuse,
+production resolver/provider-boundary access, logout dispatch blocking, and a bounded
+noninteractive ACL-restricted lookup. The repository had no isolated Codex authentication secret
+during validation, so it does not establish real Codex host execution on macOS; that cell remains
+unverified rather than inferred from the packaged hook run.
 
 ## Supported limits
 

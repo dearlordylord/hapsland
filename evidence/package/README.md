@@ -30,8 +30,16 @@ The ordinary command omits the real Codex arm and does not rewrite evidence. Pac
 can resolve or compile production dependencies; individual hook invocations perform no transient
 package download.
 
-Issue 64 adds `clean-darwin-node-24.20.0-arm64.json` from the branch-scoped macOS 14 runner.
-It passed the installed CLI, parser, descriptor-anchored capture, portable resident dispatch,
-controlled offline submission, and advice-return path. The repository had no Actions secret for
-isolated Codex authentication, so the real-host macOS cell remains unverified and must not be
-inferred from the controlled package path.
+`clean-darwin-node-24.20.0-arm64.json` is the sanitized result of GitHub Actions run
+35788170262 on macOS 14 arm64. In addition to the installed CLI, parser,
+descriptor-anchored capture, portable resident dispatch, controlled offline submission, and
+advice-return path, the runner used an isolated default Keychain. It stored and resolved the
+service/account-scoped generic password in a separate process, reused it after a resident restart,
+reached the production resolver/provider boundary twice, preserved it through the local package
+update, and blocked a future provider dispatch after logout. A native ACL-restricted lookup
+returned `timed-out` after the 750 ms helper deadline (`980 ms` including CLI startup and
+shutdown), with no prompt or credential value retained. The exact result is recorded rather than
+relabelled as a locked Keychain.
+
+The repository had no Actions secret for isolated Codex authentication. The real Codex-host
+macOS cell remains unverified and is not inferred from the installed controlled hook path.
