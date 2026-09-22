@@ -14,6 +14,7 @@ import {
   requireCleanInstallationPreview,
   requireCreatedInstallation,
 } from "./first-review-live-runner-policy.mjs";
+import { stopScopedResident } from "./first-review-resident-cleanup.mjs";
 
 const projectRoot = resolve(new URL("../", import.meta.url).pathname);
 const explicitLive = process.argv.includes("--live");
@@ -55,24 +56,6 @@ const parseJson = (result, label) => {
   } catch {
     throw new Error(`${label} did not return JSON`);
   }
-};
-
-const stopScopedResident = async (stateRoot) => {
-  let owner;
-  try {
-    owner = JSON.parse(await readFile(join(stateRoot, "resident", "owner.json"), "utf8"));
-  } catch {
-    return;
-  }
-  if (!Number.isSafeInteger(owner?.pid) || owner.pid <= 0) {
-    throw new Error("scoped resident owner did not contain a valid process id");
-  }
-  try { process.kill(owner.pid, "SIGTERM"); } catch { return; }
-  for (let attempt = 0; attempt < 50; attempt += 1) {
-    try { process.kill(owner.pid, 0); } catch { return; }
-    await new Promise((resolveWait) => setTimeout(resolveWait, 100));
-  }
-  throw new Error("scoped resident did not stop during cleanup");
 };
 
 if (!explicitLive) {
