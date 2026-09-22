@@ -56,11 +56,22 @@ export type ResidentRequest =
       readonly token: string;
     }
   | { readonly version: 1; readonly operation: "stats"; readonly lifetime: string }
-  | { readonly version: 1; readonly operation: "shutdown"; readonly lifetime: string };
+  | { readonly version: 1; readonly operation: "cleanup"; readonly lifetime: string };
 
 export type ResidentResponse =
   | { readonly status: "ready"; readonly lifetime: string; readonly pid: number }
-  | { readonly status: "accepted" | "rejected-capacity" | "obsolete-lifetime" | "empty" | "acknowledged" | "finalized" | "unsupported" }
+  | {
+      readonly status:
+        | "accepted"
+        | "rejected-capacity"
+        | "obsolete-lifetime"
+        | "empty"
+        | "acknowledged"
+        | "finalized"
+        | "unsupported"
+        | "busy"
+        | "cleaned";
+    }
   | { readonly status: "advice"; readonly token: string; readonly output: CodexDirectEventOutput }
   | {
       readonly status: "stats";
@@ -69,6 +80,10 @@ export type ResidentResponse =
       readonly pendingAdvice: number;
       readonly retainedBytes: number;
       readonly rejectedCapacity: number;
+      readonly successfulCacheEntries: number;
+      readonly pendingEvaluations: number;
+      readonly noticeCooldowns: number;
+      readonly currentWork: number;
     };
 
 const record = (value: unknown): Readonly<Record<string, unknown>> | undefined =>
@@ -159,7 +174,7 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
   if ((value.operation === "acknowledge" || value.operation === "finalize") && string(value.token)) {
     return { version: 1, operation: value.operation, lifetime: value.lifetime, token: value.token };
   }
-  if (value.operation === "stats" || value.operation === "shutdown") {
+  if (value.operation === "stats" || value.operation === "cleanup") {
     return { version: 1, operation: value.operation, lifetime: value.lifetime };
   }
   return undefined;
@@ -176,6 +191,7 @@ const ResidentResponseSchema = Schema.Union([
   Schema.Struct({ status: Schema.Literal("ready"), lifetime: Schema.NonEmptyString, pid: Schema.Int }),
   Schema.Struct({ status: Schema.Literals([
     "accepted", "rejected-capacity", "obsolete-lifetime", "empty", "acknowledged", "finalized", "unsupported",
+    "busy", "cleaned",
   ]) }),
   Schema.Struct({ status: Schema.Literal("advice"), token: Schema.NonEmptyString, output: HostOutput }),
   Schema.Struct({
@@ -185,6 +201,10 @@ const ResidentResponseSchema = Schema.Union([
     pendingAdvice: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
     retainedBytes: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
     rejectedCapacity: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+    successfulCacheEntries: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+    pendingEvaluations: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+    noticeCooldowns: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+    currentWork: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
   }),
 ]);
 

@@ -72,6 +72,66 @@ const mutuallyReferencingTypes = () => Array.from({ length: 17 }, (_, index) => 
 }).join("\n");
 
 describe("resident delivery lease", () => {
+  it("commits an idle lifetime to retiring before returning cleanup success", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const statePath = join(root, "consent");
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    const dispatch = findingDispatch(statePath);
+    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+
+    expect(await server.handle({
+      version: 1,
+      operation: "cleanup",
+      lifetime: server.lifetime,
+    })).toEqual({ status: "cleaned" });
+    expect(await server.handle({ version: 1, operation: "hello" }))
+      .toEqual({ status: "obsolete-lifetime" });
+    expect(await server.handle({
+      version: 1,
+      operation: "admit",
+      lifetime: server.lifetime,
+      observation,
+      controlledWriter: true,
+      dispatch,
+    })).toEqual({ status: "obsolete-lifetime" });
+    expect(await server.handle({
+      version: 1,
+      operation: "collect",
+      lifetime: server.lifetime,
+      root,
+      recipient: recipient(),
+      dispatch,
+    })).toEqual({ status: "obsolete-lifetime" });
+    expect(await server.handle({
+      version: 1,
+      operation: "acknowledge",
+      lifetime: server.lifetime,
+      token: "old-token",
+    })).toEqual({ status: "obsolete-lifetime" });
+    expect(await server.handle({
+      version: 1,
+      operation: "finalize",
+      lifetime: server.lifetime,
+      token: "old-token",
+    })).toEqual({ status: "obsolete-lifetime" });
+    expect(await server.handle({
+      version: 1,
+      operation: "stats",
+      lifetime: server.lifetime,
+    })).toEqual({ status: "obsolete-lifetime" });
+    expect(server.stats()).toMatchObject({
+      queued: 0,
+      running: 0,
+      pendingAdvice: 0,
+      retainedBytes: 0,
+      pendingEvaluations: 0,
+      currentWork: 0,
+    });
+  });
+
   it("reclaims disconnected collection and unfinalized acknowledgement deterministically", async () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
