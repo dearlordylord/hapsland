@@ -1070,6 +1070,19 @@ describe("direct-event vertical slice", () => {
       }, currentResidentPublication);
       expect(revalidated.status).toBe("current");
       expect(reads).toEqual(["a.ts", "a.ts"]);
+
+      const partiallySuperseded = yield* revalidateEvaluations(
+        observation,
+        result.evaluations,
+        context,
+        {
+          isCurrentWork: (prepared) => Effect.succeed(prepared.input.path === "a.ts"),
+        },
+      );
+      expect(partiallySuperseded.status).toBe("current");
+      if (partiallySuperseded.status === "current") {
+        expect(new Set(partiallySuperseded.findings.map(({ path }) => path))).toEqual(new Set(["a.ts"]));
+      }
     }).pipe(Effect.provide(Layer.mergeAll(
       Consent.testLayer(),
       controlledDecisionModelLayer({ answers: findingAnswers() }),
