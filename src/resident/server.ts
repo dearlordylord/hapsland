@@ -287,20 +287,23 @@ export class ResidentServer {
     for (const item of this.#advice) {
       if (item.delivery !== undefined && item.delivery.leaseUntil <= now) delete item.delivery;
     }
-    while (true) {
-      const advice = this.#advice.find((item) =>
-        item.partition === partition && item.delivery === undefined &&
-        item.encodedBytes <= MAX_IPC_FRAME_BYTES - 1024);
-      if (advice === undefined) return { status: "empty" };
+    const eligible = this.#advice.flatMap((item) =>
+      item.partition === partition && item.delivery === undefined &&
+        item.encodedBytes <= MAX_IPC_FRAME_BYTES - 1024
+        ? [item.id]
+        : []);
+    for (const id of eligible) {
+      const advice = this.#advice.find((item) => item.id === id && item.delivery === undefined);
+      if (advice === undefined) continue;
       const token = randomUUID();
       advice.delivery = { token, leaseUntil: Number.POSITIVE_INFINITY, acknowledged: false };
       await this.#beforeRevalidate?.(advice.id);
       const validity = await this.#revalidate(advice, dispatch);
       const retained = this.#advice.find((item) => item.id === advice.id);
-      if (retained !== advice || retained.delivery?.token !== token) return { status: "empty" };
+      if (retained !== advice || retained.delivery?.token !== token) continue;
       if (validity.status === "unavailable" || validity.status === "unattributed") {
         delete advice.delivery;
-        return { status: "empty" };
+        continue;
       }
       if (validity.status === "stale") {
         this.#removeAdvice(advice.id, token);
@@ -312,6 +315,7 @@ export class ResidentServer {
       advice.delivery.leaseUntil = this.#now() + DELIVERY_LEASE_MS;
       return { status: "advice", token, output: toCodexDirectEventOutput(advice.findings) };
     }
+    return { status: "empty" };
   }
 
   acknowledge(token: string): ResidentResponse {
@@ -353,6 +357,8 @@ export class ResidentServer {
     readonly retainedBytes: number;
     readonly generation: number;
     readonly evaluationIdentities: ReadonlyArray<string>;
+    readonly path: string;
+    readonly delivery: "available" | "leased-unacknowledged" | "leased-acknowledged";
   }> {
     return this.#advice.map((advice) => ({
       id: advice.id,
@@ -363,6 +369,12 @@ export class ResidentServer {
       retainedBytes: advice.reservation.bytes,
       generation: advice.revision.generation,
       evaluationIdentities: advice.evaluations.map(({ prepared }) => prepared.identity),
+      path: advice.prepared.input.path,
+      delivery: advice.delivery === undefined
+        ? "available"
+        : advice.delivery.acknowledged
+          ? "leased-acknowledged"
+          : "leased-unacknowledged",
     }));
   }
 
@@ -643,8 +655,12 @@ export class ResidentServer {
   ): Promise<RevalidationResult> {
     const candidate = advice.observation.candidates[0];
     if (candidate === undefined) return { status: "unavailable", findings: [] };
-    const workspace = this.#reserve(advice.partition, captureWorkspaceBytes(candidate.path));
-    if (workspace === undefined) return { status: "unavailable", findings: [] };
+    const retainedBytes = advice.reservation.bytes;
+    if (!this.#ledger.resize(
+      advice.reservation,
+      retainedBytes + captureWorkspaceBytes(candidate.path),
+    )) return { status: "unavailable", findings: [] };
+    this.#peakLedgerBytes = Math.max(this.#peakLedgerBytes, this.#ledger.snapshot().bytes);
     const server = this;
     let capacityUnavailable = false;
     try {
@@ -662,8 +678,10 @@ export class ResidentServer {
           settings,
           beforeAnalyze: (path, sourceBytes, preflight) => Effect.sync(() => {
             const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules);
-            const resized = server.#ledger.resize(workspace, required);
-            if (!resized) capacityUnavailable = true;
+            const resized = server.#ledger.resize(advice.reservation, retainedBytes + required);
+            if (resized) {
+              server.#peakLedgerBytes = Math.max(server.#peakLedgerBytes, server.#ledger.snapshot().bytes);
+            } else capacityUnavailable = true;
             return resized;
           }),
         }, {
@@ -675,7 +693,7 @@ export class ResidentServer {
     } catch {
       return { status: "unavailable", findings: [] };
     } finally {
-      this.#ledger.release(workspace);
+      this.#ledger.resize(advice.reservation, retainedBytes);
     }
   }
 
