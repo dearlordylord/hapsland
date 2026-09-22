@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-09-22T16:48:33.207Z",
+  "recordedAt": "2026-09-22T16:50:34.727Z",
   "package": {
     "name": "realtime-review-prototype",
     "version": "0.0.0",
@@ -10,6 +10,11 @@
     "node": "v24.20.0",
     "operatingSystem": "darwin",
     "architecture": "arm64"
+  },
+  "continuousIntegration": {
+    "provider": "github-actions",
+    "runId": "35756736870",
+    "commit": "92101b0e6466134f2c2384eca9e1900589cdd1af"
   },
   "isolation": {
     "temporaryInstallation": true,
