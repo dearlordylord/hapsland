@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-09-22T17:28:23.658Z",
+  "recordedAt": "2026-09-22T21:42:26.126Z",
   "package": {
     "name": "realtime-review-prototype",
     "version": "0.0.0",
@@ -13,8 +13,8 @@
   },
   "continuousIntegration": {
     "provider": "github-actions",
-    "runId": "35760877449",
-    "commit": "0f00d228799df23b632954c9c85144053c15cb74"
+    "runId": "35788170262",
+    "commit": "262a9f51e5dddbc0751c967ec20ddd0ee3d168fc"
   },
   "isolation": {
     "temporaryInstallation": true,
@@ -28,10 +28,58 @@
     "resident": "passed",
     "hook": "passed"
   },
+  "installation": {
+    "preview": "passed",
+    "installed": "passed",
+    "idempotent": "passed",
+    "scopedUninstall": "passed",
+    "customQuotedHome": true,
+    "independentHookPreserved": true,
+    "sourceEgressAuthorized": false,
+    "disableDispatchGate": "passed",
+    "update": {
+      "fromVersion": "0.0.0",
+      "toVersion": "0.0.1-local",
+      "preview": "passed",
+      "protocolIncompatibility": "rejected-before-write",
+      "partialRecovery": "resumed",
+      "previousHookRetainedOnPartialFailure": true,
+      "consentPreserved": true,
+      "credentialState": "preserved-external-native-store",
+      "trustRecordsModified": false,
+      "processesStopped": false,
+      "controlledReviewAfterUpdate": "passed",
+      "independentHookAfterUpdate": "passed"
+    }
+  },
   "review": {
     "backend": "controlled-offline",
-    "submissions": 1,
-    "adviceReturned": true
+    "submissions": 2,
+    "adviceReturned": true,
+    "activity": {
+      "submitted": {
+        "instrumentation": "resident-v1",
+        "kind": "submitted",
+        "submission": "submitted",
+        "modelReaction": "unavailable"
+      },
+      "restart": {
+        "before": "pending",
+        "after": "restarted/lost",
+        "modelReaction": "unavailable"
+      }
+    }
+  },
+  "credentialLifecycle": {
+    "status": "actual-keychain",
+    "loginMs": 511,
+    "separateProcessLookupMs": 242,
+    "residentRestartPersistence": "passed",
+    "residentControlledTransportResolution": "passed",
+    "logoutBeforeFutureDispatch": "passed",
+    "restrictedNativeLookupMs": 980,
+    "restrictedNativeOutcome": "timed-out-no-prompt",
+    "secretRetainedInEvidence": false
   },
   "realCodex": {
     "status": "not-requested"
