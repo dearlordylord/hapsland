@@ -6,11 +6,11 @@ installs production dependencies into a temporary prefix, runs outside the check
 temporary product state, resident state, Codex home, and Git repository. It invokes the installed
 CLI from real Codex 0.155.1 while using the controlled offline `DecisionModel`.
 The fixture starts without seeded repository trust and drives Codex's native repository and hook
-review flow; it does not use the hook-trust bypass flag. Codex 0.155.1 did not persist both trust
-decisions repeatably under the isolated PTY fixture. The retained record therefore contains the
-sanitized failed attempt and marks repeatability unresolved. An earlier successful run observed
-provider submission separately from a terminal `completed-findings` outcome, but that result is
-not retained as proof until the native trust flow can be rerun reliably.
+review flow; it does not use the hook-trust bypass flag. The PTY reconstructs Codex's rendered
+terminal screen and waits for each native trust state instead of searching raw cursor-addressed
+output or relying on fixed startup timing. The acceptance run passed twice consecutively with a
+fresh Codex home and repository. The retained second run observes one controlled provider
+submission separately from one terminal `completed-findings` outcome.
 
 The record retains package and host versions, source-free stage outcomes, and bounded counts. It
 does not retain fixture source, advice, prompts, host output, credentials, or backend responses.

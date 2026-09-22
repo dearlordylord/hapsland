@@ -38,6 +38,139 @@ const parseJson = (text, label) => {
 };
 const jsonLines = (text) => text.split("\n").filter(Boolean).map((line) => parseJson(line, "JSONL record"));
 const quote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
+
+class TerminalScreen {
+  constructor(rows, columns) {
+    this.rows = rows;
+    this.columns = columns;
+    this.cells = Array.from({ length: rows }, () => Array(columns).fill(" "));
+    this.row = 0;
+    this.column = 0;
+    this.saved = [0, 0];
+    this.pending = "";
+  }
+
+  text() {
+    return this.cells.map((row) => row.join("").trimEnd()).join("\n");
+  }
+
+  feed(chunk) {
+    const input = this.pending + chunk;
+    this.pending = "";
+    let offset = 0;
+    while (offset < input.length) {
+      const character = input[offset];
+      if (character === "\u001b") {
+        if (offset + 1 >= input.length) {
+          this.pending = input.slice(offset);
+          break;
+        }
+        const kind = input[offset + 1];
+        if (kind === "[") {
+          let end = offset + 2;
+          while (end < input.length && !/[@-~]/.test(input[end])) end += 1;
+          if (end === input.length) {
+            this.pending = input.slice(offset);
+            break;
+          }
+          this.#csi(input.slice(offset + 2, end), input[end]);
+          offset = end + 1;
+          continue;
+        }
+        if (kind === "]") {
+          let end = offset + 2;
+          while (end < input.length && input[end] !== "\u0007" && !(input[end] === "\u001b" && input[end + 1] === "\\")) end += 1;
+          if (end === input.length) {
+            this.pending = input.slice(offset);
+            break;
+          }
+          offset = input[end] === "\u0007" ? end + 1 : end + 2;
+          continue;
+        }
+        if (kind === "7") this.saved = [this.row, this.column];
+        else if (kind === "8") [this.row, this.column] = this.saved;
+        else if (kind === "D") this.#lineFeed();
+        else if (kind === "E") { this.column = 0; this.#lineFeed(); }
+        offset += 2;
+        continue;
+      }
+      if (character === "\r") this.column = 0;
+      else if (character === "\n") this.#lineFeed();
+      else if (character === "\b") this.column = Math.max(0, this.column - 1);
+      else if (character === "\t") this.column = Math.min(this.columns - 1, (Math.floor(this.column / 8) + 1) * 8);
+      else if (character >= " " && character !== "\u007f") this.#write(character);
+      offset += 1;
+    }
+  }
+
+  #blankRow() {
+    return Array(this.columns).fill(" ");
+  }
+
+  #lineFeed() {
+    if (this.row === this.rows - 1) {
+      this.cells.shift();
+      this.cells.push(this.#blankRow());
+    } else this.row += 1;
+  }
+
+  #write(character) {
+    this.cells[this.row][this.column] = character;
+    if (this.column === this.columns - 1) {
+      this.column = 0;
+      this.#lineFeed();
+    } else this.column += 1;
+  }
+
+  #csi(rawParameters, final) {
+    const parameters = rawParameters.replace(/^[?!>]/, "").split(";").map((value) => value === "" ? 0 : Number(value));
+    const first = parameters[0] || 1;
+    if (final === "H" || final === "f") {
+      this.row = Math.max(0, Math.min(this.rows - 1, (parameters[0] || 1) - 1));
+      this.column = Math.max(0, Math.min(this.columns - 1, (parameters[1] || 1) - 1));
+    } else if (final === "A") this.row = Math.max(0, this.row - first);
+    else if (final === "B") this.row = Math.min(this.rows - 1, this.row + first);
+    else if (final === "C") this.column = Math.min(this.columns - 1, this.column + first);
+    else if (final === "D") this.column = Math.max(0, this.column - first);
+    else if (final === "E") { this.row = Math.min(this.rows - 1, this.row + first); this.column = 0; }
+    else if (final === "F") { this.row = Math.max(0, this.row - first); this.column = 0; }
+    else if (final === "G") this.column = Math.max(0, Math.min(this.columns - 1, first - 1));
+    else if (final === "d") this.row = Math.max(0, Math.min(this.rows - 1, first - 1));
+    else if (final === "J") this.#eraseDisplay(parameters[0] || 0);
+    else if (final === "K") this.#eraseLine(parameters[0] || 0);
+    else if (final === "X") this.cells[this.row].fill(" ", this.column, Math.min(this.columns, this.column + first));
+    else if (final === "S") {
+      for (let count = 0; count < first; count += 1) {
+        this.cells.shift();
+        this.cells.push(this.#blankRow());
+      }
+    } else if (final === "T") {
+      for (let count = 0; count < first; count += 1) {
+        this.cells.pop();
+        this.cells.unshift(this.#blankRow());
+      }
+    } else if (final === "s") this.saved = [this.row, this.column];
+    else if (final === "u") [this.row, this.column] = this.saved;
+  }
+
+  #eraseDisplay(mode) {
+    if (mode === 2 || mode === 3) this.cells = Array.from({ length: this.rows }, () => this.#blankRow());
+    else if (mode === 0) {
+      this.cells[this.row].fill(" ", this.column);
+      for (let row = this.row + 1; row < this.rows; row += 1) this.cells[row].fill(" ");
+    } else if (mode === 1) {
+      for (let row = 0; row < this.row; row += 1) this.cells[row].fill(" ");
+      this.cells[this.row].fill(" ", 0, this.column + 1);
+    }
+  }
+
+  #eraseLine(mode) {
+    if (mode === 0) this.cells[this.row].fill(" ", this.column);
+    else if (mode === 1) this.cells[this.row].fill(" ", 0, this.column + 1);
+    else if (mode === 2) this.cells[this.row].fill(" ");
+  }
+}
+
 const establishNativeTrust = (codexHome, repository, env) => new Promise((resolveTrust, rejectTrust) => {
   const child = spawn("script", [
     "-qefc",
@@ -48,46 +181,53 @@ const establishNativeTrust = (codexHome, repository, env) => new Promise((resolv
     env: { ...env, CODEX_HOME: codexHome, TERM: "xterm-256color" },
     stdio: ["pipe", "pipe", "pipe"],
   });
-  let transcript = "";
+  const screen = new TerminalScreen(24, 80);
   let repositorySelected = false;
   let hookSelected = false;
+  let hookChoiceSelected = false;
+  let repositoryPersisted = false;
+  let hookPersisted = false;
   let trusted = false;
   let terminalInitialized = false;
+  let terminalProbe = "";
   const trustPoll = setInterval(() => {
     void readFile(join(codexHome, "config.toml"), "utf8").then((config) => {
-      if (trusted || !config.includes('trust_level = "trusted"') || !config.includes("trusted_hash")) return;
+      repositoryPersisted = config.includes('trust_level = "trusted"');
+      hookPersisted = config.includes("trusted_hash");
+      if (trusted || !repositoryPersisted || !hookPersisted) return;
       trusted = true;
-      child.stdin.write("\u0003");
+      child.kill("SIGTERM");
     }).catch(() => undefined);
   }, 100);
   const timer = setTimeout(() => {
     child.kill("SIGTERM");
-    rejectTrust(new Error("Codex native repository/hook trust review timed out"));
+    rejectTrust(new Error(`Codex native repository/hook trust review timed out (repository prompt: ${repositorySelected ? "accepted" : "not observed"}; repository trust: ${repositoryPersisted ? "persisted" : "missing"}; hook prompt: ${hookSelected ? "observed" : "not observed"}; trust-all choice: ${hookChoiceSelected ? "confirmed" : "not confirmed"}; hook trust: ${hookPersisted ? "persisted" : "missing"})`));
   }, 30_000);
   const observe = (chunk) => {
-    transcript = `${transcript}${chunk}`.slice(-256_000);
-    if (!terminalInitialized && transcript.includes("\u001b[6n")) {
+    screen.feed(chunk);
+    terminalProbe = `${terminalProbe}${chunk}`.slice(-32);
+    if (!terminalInitialized && terminalProbe.includes("\u001b[6n")) {
       terminalInitialized = true;
       child.stdin.write("\u001b[24;80R\u001b]10;rgb:ffff/ffff/ffff\u001b\\\u001b]11;rgb:0000/0000/0000\u001b\\\u001b[?1;2c\u001b[?0u");
     }
-    if (!repositorySelected && transcript.includes("Do you trust the contents of this directory")) {
+    const rendered = screen.text();
+    if (!repositorySelected && rendered.includes("Do you trust the contents of this directory")) {
       repositorySelected = true;
-      setTimeout(() => child.stdin.write("\r"), 250);
+      setTimeout(() => child.stdin.write("\r"), 100);
     }
-    if (!hookSelected && transcript.includes("Hooks need review")) {
+    if (!hookSelected && rendered.includes("Hooks need review")) {
       hookSelected = true;
-      setTimeout(() => {
-        // Codex enables the Kitty keyboard protocol; its unambiguous CSI form
-        // avoids a bare Escape being interpreted as "close" under PTY timing.
-        child.stdin.write("\u001b[1;1B");
-        setTimeout(() => child.stdin.write("\r"), 250);
-      }, 250);
+      // Trust is selection 2 and requires a separate explicit confirmation.
+      setTimeout(() => child.stdin.write("2"), 100);
+    }
+    if (hookSelected && !hookChoiceSelected && rendered.includes("› 2. Trust all and continue")) {
+      hookChoiceSelected = true;
+      setTimeout(() => child.stdin.write("\r"), 100);
     }
   };
   child.stdout.setEncoding("utf8");
   child.stderr.setEncoding("utf8");
   child.stdout.on("data", observe);
-  child.stderr.on("data", observe);
   child.once("error", (cause) => {
     clearTimeout(timer);
     clearInterval(trustPoll);
@@ -241,11 +381,12 @@ try {
     realCodex = {
       status: host.code === 0 && providerSubmissions === 1 && completed.length === 1 ? "passed" : "failed",
       codexVersion,
-      repeatability: "unresolved-until-reliably-rerun",
       hostExitCode: host.code,
       hookTrust: {
         status: "persisted-exact-definition",
         flow: "native-interactive-review",
+        synchronization: "rendered-screen-state",
+        repositoryTrustSeeded: false,
         bypassFlag: false,
       },
       reviewSubmission: {
@@ -267,7 +408,7 @@ try {
       realCodex = {
         status: "failed",
         codexVersion,
-        repeatability: "unresolved-until-reliably-rerun",
+        repeatability: "not-established",
         failedAttempt: {
           stage: realCodexStage,
           sanitized: true,
@@ -289,7 +430,7 @@ try {
     realCodex,
     transientPackageDownloadPerEdit: false,
     verdict: executeRealCodex
-      ? realCodex.status === "passed" ? "clean-package-and-real-host-observed-repeatability-unresolved" : "clean-package-passed-real-host-failed"
+      ? realCodex.status === "passed" ? "clean-package-and-real-host-passed" : "clean-package-passed-real-host-failed"
       : "clean-package-passed-real-host-not-requested",
   };
   if (writeEvidence) {
