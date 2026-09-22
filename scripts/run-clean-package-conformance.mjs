@@ -473,6 +473,30 @@ try {
         logoutResult.sentRequestsRecalled !== false || logoutRun.stdout.includes(syntheticCredential)) {
       throw new Error("packaged credential logout did not revoke saved use safely");
     }
+    const loggedOutSource = "export interface LoggedOut { id: string; destination: string }\n";
+    await writeFile(join(repository, "logged-out.ts"), loggedOutSource, { mode: 0o600 });
+    const loggedOutEvent = {
+      ...addEvent,
+      tool_use_id: "package-logged-out",
+      tool_input: { command: `*** Begin Patch\n*** Add File: logged-out.ts\n+${loggedOutSource.trim()}\n*** End Patch` },
+    };
+    await mustRun(cli, ["--codex-hook", "--controlled", "--controlled-writer"], {
+      cwd: temporary, env, input: JSON.stringify(loggedOutEvent),
+    });
+    // The repository is still enabled here. Give the resident enough time to
+    // attempt the eligible edit, then prove the missing credential stopped the
+    // provider boundary itself.
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      await new Promise((resolveWait) => setTimeout(resolveWait, 50));
+      await mustRun(cli, ["--codex-hook", "--controlled", "--controlled-writer"], {
+        cwd: temporary, env,
+        input: JSON.stringify({ ...loggedOutEvent, tool_name: "Bash", tool_use_id: `package-logged-out-collect-${attempt}`, tool_input: { command: "printf package-logged-out" } }),
+      });
+    }
+    const submissionsAfterLogout = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
+    if (submissionsAfterLogout !== submissions) {
+      throw new Error("logged-out credential dispatched a provider request while the repository remained enabled");
+    }
   }
   const disabledRun = await mustRun(cli, ["--disable"], {
     cwd: temporary, env, input: JSON.stringify({ version: 1, operation: "disable", cwd: repository }),

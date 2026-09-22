@@ -150,6 +150,7 @@ export const runSecretService = (
       const status = header.status;
       const allowed: ReadonlyArray<SecretServiceStatus> = [
         "available", "stored", "deleted", "present", "missing", "locked", "invalid", "unavailable",
+        "indeterminate",
       ];
       if (typeof status !== "string" || !allowed.includes(status as SecretServiceStatus)) {
         return finish({ status: malformedStatus });

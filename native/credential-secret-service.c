@@ -148,7 +148,9 @@ static int set_secret(void) {
   memset(input, 0, length);
   free(input);
   if (item == NULL) {
-    failure(error); g_clear_error(&error); g_object_unref(collection); g_object_unref(svc); return 2;
+    /* The service may have committed the replacement before returning an error. */
+    json_status("indeterminate");
+    g_clear_error(&error); g_object_unref(collection); g_object_unref(svc); return 2;
   }
   json_status("stored");
   g_object_unref(item); g_object_unref(collection); g_object_unref(svc);
