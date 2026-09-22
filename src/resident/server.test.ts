@@ -290,8 +290,7 @@ describe("resident delivery lease", () => {
     expect(retained.server.stats()).toMatchObject({ pendingAdvice: 1 });
 
     const rejected = await run(2 * 1024 * 1024);
-    expect(rejected.server.stats()).toMatchObject({ pendingAdvice: 1, rejectedCapacity: 1 });
-    expect(rejected.server.stats().retainedBytes).toBe(rejected.server.accountingMetrics().operationalNoticeBytes);
+    expect(rejected.server.stats()).toMatchObject({ pendingAdvice: 0, rejectedCapacity: 1, retainedBytes: 0 });
     expect(existsSync(rejected.capturePath)).toBe(false);
     expect(rejected.server.accountingMetrics()).toMatchObject({ maxMaterializedPreparedUnits: 0 });
     expect(rejected.server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(2 * 1024 * 1024);
@@ -385,8 +384,7 @@ describe("resident delivery lease", () => {
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
-    expect(server.stats()).toMatchObject({ pendingAdvice: 1, rejectedCapacity: 1 });
-    expect(server.stats().retainedBytes).toBe(server.accountingMetrics().operationalNoticeBytes);
+    expect(server.stats()).toMatchObject({ pendingAdvice: 0, rejectedCapacity: 1, retainedBytes: 0 });
     expect(server.accountingMetrics().maxMaterializedPreparedUnits).toBe(0);
     expect(server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(2 * 1024 * 1024);
     expect(existsSync(capturePath)).toBe(false);

@@ -404,12 +404,14 @@ export class ResidentServer {
   admit(observation: DirectObservation, dispatch: ResidentDispatchContext): ResidentResponse {
     const now = this.#now();
     this.#expirePending(now);
+    // Reclaim cooldown state whose active guarantee and pending notice have
+    // both ended before it can cause an otherwise-valid admission to fail.
+    this.#pruneNoticeCooldowns(now);
     if (this.#closed) return { status: "rejected-capacity" };
     const partition = recipientPartition(observation.root, observation.recipient);
     const reservation = this.#reserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES);
     if (reservation === undefined) {
       this.#rejectedCapacity += 1;
-      this.#recordOperationalFailure(observation, "capacity", now);
       return { status: "rejected-capacity" };
     }
     const job = {
@@ -422,7 +424,6 @@ export class ResidentServer {
     if (!this.#dispatcher.enqueue(partition, job)) {
       this.#ledger.release(reservation);
       this.#rejectedCapacity += 1;
-      this.#recordOperationalFailure(observation, "capacity", now);
       return { status: "rejected-capacity" };
     }
     const acceptedPath = process.env.REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH;
@@ -975,7 +976,6 @@ export class ResidentServer {
         const workspace = this.#reserve(job.partition, captureWorkspaceBytes(candidate.path));
         if (workspace === undefined) {
           this.#rejectedCapacity += 1;
-          this.#recordOperationalFailure(job.observation, "capacity");
           continue;
         }
         const pathObservation: DirectObservation = { ...job.observation, candidates: [candidate] };
@@ -996,11 +996,6 @@ export class ResidentServer {
                   server.#peakLedgerBytes = Math.max(server.#peakLedgerBytes, server.#ledger.snapshot().bytes);
                 } else {
                   server.#rejectedCapacity += 1;
-                  // Undefined preflight covers unsupported/no-analyzer and
-                  // contained parse/applicability outcomes, which stay quiet.
-                  if (preflight !== undefined) {
-                    server.#recordOperationalFailure(job.observation, "capacity");
-                  }
                 }
                 return resized;
               }),
@@ -1012,11 +1007,12 @@ export class ResidentServer {
         }
         const ready = prepared.outcomes.filter((outcome) => outcome.status === "ready");
         this.#maxMaterializedPreparedUnits = Math.max(this.#maxMaterializedPreparedUnits, ready.length);
+        let rejectedDeliverable = false;
         const deliverable = ready.filter((outcome) => {
           const accepted = residentUnitWorstOutcomeBytes(outcome.prepared) <= MAX_IPC_FRAME_BYTES - 1024;
           if (!accepted) {
             this.#rejectedCapacity += 1;
-            this.#recordOperationalFailure(job.observation, "capacity");
+            rejectedDeliverable = true;
           }
           return accepted;
         });
@@ -1046,6 +1042,9 @@ export class ResidentServer {
             residentUnitReservationBytes(pathObservation, job.dispatch, item.outcome.prepared)),
         );
         this.#peakLedgerBytes = Math.max(this.#peakLedgerBytes, this.#ledger.snapshot().bytes);
+        // Workspace has been released and all accepted unit reservations are
+        // fixed, so best-effort notice retention cannot displace fresh work.
+        if (rejectedDeliverable) this.#recordOperationalFailure(job.observation, "capacity");
         for (const item of planned) {
           if (item.kind === "cached" && item.cached.evaluation.findings.length === 0) {
             const revision = this.#registerCurrentWork(job.partition, item.outcome.prepared);
