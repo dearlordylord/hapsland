@@ -14,13 +14,20 @@ milestone after setting `REVIEW_LIVE_CODEX_HOME`. The retained JSON contains bou
 versions, timestamps, stage outcomes and timing. It excludes the disposable path, consent
 digests, synthetic source, provider response, prompts and credentials.
 
+For future records, `package.source: "runner-packed-release-installation"` means this hardened
+runner created and hashed the tarball itself. Only those records may set
+`cliResolvedInsideInstalledArtifact: true`. The legacy value
+`package.source: "packed-release-installation"` does not establish either property: its artifact
+SHA and CLI path were supplied externally and were not independently verified by that runner.
+
 An `inconclusive` result is retained as such. The runner never changes thresholds or substitutes
 a controlled backend to make the live milestone pass.
 
 The single 2026-09-22 milestone attempt is retained in
-`live-installed-codex-0.155.1.json`. The packed release started the actual host with normal trust,
-but host completion was incomplete before any review dispatch. The sanitized observation records
-zero provider calls and zero source bytes; submission, model reaction, repair validation and
-follow-up review were therefore unavailable. Raw host output was intentionally not retained, so
-the specific unmet host prerequisite is an evidence gap rather than an attributed cause. The
-attempt was not retried.
+`live-installed-codex-0.155.1.json`. That attempt reported an externally selected packed release
+and artifact SHA, but its runner did not compute the SHA or verify that the invoked CLI resolved
+inside that artifact. The actual host ran with normal trust, but host completion was incomplete
+before any review dispatch. The sanitized observation records zero provider calls and zero source
+bytes; submission, model reaction, repair validation and follow-up review were therefore
+unavailable. Raw host output was intentionally not retained, so the specific unmet host
+prerequisite is an evidence gap rather than an attributed cause. The attempt was not retried.
