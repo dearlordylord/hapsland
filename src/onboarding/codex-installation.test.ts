@@ -396,10 +396,19 @@ responses_websockets_v2 = true`);
     writeFileSync(configPath, modified);
     const recovery = invoke({ operation: "install", codexHome: home, codexExecutable: bin, proposalDigest: digest });
     expect(recovery).toMatchObject({
-      status: "conflict",
-      error: { message: expect.stringContaining("preexisting Codex hooks feature changed") },
+      version: 1,
+      operation: "install",
+      status: "partial",
+      error: {
+        code: "recovery_conflict",
+        message: expect.stringContaining("preexisting Codex hooks feature changed"),
+      },
+      recovery: { proposalDigest: digest, completedFiles: 1, totalFiles: 2 },
+      completed: ["append the owned PostToolUse adapter hook"],
+      pending: [expect.stringContaining("preserve the current files")],
     });
     expect(readFileSync(configPath, "utf8")).toBe(modified);
+    expect(existsSync(join(home, ".realtime-review-tool", "journal-v1.json"))).toBe(true);
   });
 
   it("bounds lock acquisition and reports no mutation", () => {
