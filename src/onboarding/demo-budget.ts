@@ -35,6 +35,22 @@ export const writeDemoBudget = (path: string, options: {
   })}\n`, { mode: 0o600 });
 };
 
+/** Creates a fresh live-demo budget without replacing an existing authority. */
+export const initializeDemoBudget = (path: string, options: {
+  readonly root: string;
+  readonly expiresAt: number;
+  readonly sourceByteBudget: number;
+  readonly providerCallBudget: number;
+}): void => {
+  mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
+  writeFileSync(path, `${JSON.stringify({
+    version: 1,
+    ...options,
+    usedSourceBytes: 0,
+    usedProviderCalls: 0,
+  })}\n`, { mode: 0o600, flag: "wx" });
+};
+
 /** Atomically reserves one paid call before provider dispatch. Contention fails closed. */
 export const claimDemoBudget = (path: string, root: string, sourceBytes: number, now = Date.now()): void => {
   const lock = `${path}.lock`;

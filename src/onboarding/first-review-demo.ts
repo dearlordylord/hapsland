@@ -1,7 +1,7 @@
 import * as Effect from "effect/Effect";
 import { execFile } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { promisify } from "node:util";
@@ -10,7 +10,7 @@ import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.t
 import { readActivity } from "../activity/status.ts";
 import { inspectResident } from "../resident/client.ts";
 import { inspectCodexInstallation } from "./codex-installation.ts";
-import { readDemoBudgetUsage, writeDemoBudget } from "./demo-budget.ts";
+import { initializeDemoBudget, readDemoBudgetUsage } from "./demo-budget.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -120,6 +120,8 @@ const digestSelection = (record: Omit<DemoRecord, "selectionDigest">): string =>
   ].join("\0")).digest("hex");
 
 const recordPath = (statePath: string, id: string): string => join(statePath, `${id}.json`);
+const claimDirectory = (statePath: string, id: string): string => join(statePath, `${id}.claimed`);
+const claimedRecordPath = (statePath: string, id: string): string => join(claimDirectory(statePath, id), "record.json");
 const budgetPath = (statePath: string, id: string): string => join(statePath, `${id}.budget.json`);
 const demoParent = (): string => join(tmpdir(), "realtime-review-tool-demos");
 
@@ -165,6 +167,18 @@ const readRecord = async (statePath: string, id: string): Promise<DemoRecord | u
   }
 };
 
+/** Atomically consumes a pending preview. Only the process that creates the claim directory owns cleanup. */
+const claimRecord = async (statePath: string, record: DemoRecord): Promise<void> => {
+  const directory = claimDirectory(statePath, record.id);
+  await mkdir(directory, { mode: 0o700 });
+  try {
+    await rename(recordPath(statePath, record.id), claimedRecordPath(statePath, record.id));
+  } catch (cause) {
+    await rm(directory, { recursive: true, force: true });
+    throw cause;
+  }
+};
+
 const makeFixture = async (statePath: string): Promise<DemoRecord> => {
   await mkdir(demoParent(), { recursive: true, mode: 0o700 });
   const root = await mkdtemp(join(demoParent(), "demo-"));
@@ -201,6 +215,7 @@ const cleanFixture = async (statePath: string, record: DemoRecord): Promise<void
   if (!(await validFixture(record))) throw new Error("refusing to remove an unowned demo root");
   await rm(record.root, { recursive: true, force: true });
   await rm(recordPath(statePath, record.id), { force: true });
+  await rm(claimDirectory(statePath, record.id), { recursive: true, force: true });
   await rm(budgetPath(statePath, record.id), { force: true });
 };
 
@@ -376,6 +391,13 @@ export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
     return { version: 1 as const, operation: "demo" as const, status: "conflict" as const, reason: "demo preview is missing or invalid" };
   }
   if (request.selection === "cancel") {
+    const claimed = yield* Effect.tryPromise(() => claimRecord(options.statePath, record)).pipe(
+      Effect.as(true),
+      Effect.catch(() => Effect.succeed(false)),
+    );
+    if (!claimed) {
+      return { version: 1 as const, operation: "demo" as const, status: "conflict" as const, reason: "demo preview was already claimed" };
+    }
     yield* consent.disable(record.root, DEFAULT_BACKEND, DEFAULT_DESTINATION).pipe(Effect.ignore);
     yield* Effect.promise(() => cleanFixture(options.statePath, record));
     return { version: 1 as const, operation: "demo" as const, status: "cleaned" as const, cleaned: true as const, providerCalls: 0 as const };
@@ -388,16 +410,33 @@ export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
       action: "cancel this preview or submit both exact preview digests",
     };
   }
-  yield* consent.enable(currentProposal);
+  const claimed = yield* Effect.tryPromise(() => claimRecord(options.statePath, record)).pipe(
+    Effect.as(true),
+    Effect.catch(() => Effect.succeed(false)),
+  );
+  if (!claimed) {
+    return {
+      version: 1 as const, operation: "demo" as const, status: "conflict" as const,
+      reason: "demo preview was already claimed", liveSelected: false as const,
+      paidVerificationPerformed: false as const, providerCalls: 0 as const,
+    };
+  }
+  const consentEnabled = yield* consent.enable(currentProposal).pipe(
+    Effect.as(true),
+    Effect.catch(() => Effect.succeed(false)),
+  );
   const reviewStarted = Date.now();
   const selectedBudgetPath = budgetPath(options.statePath, record.id);
-  const budgetReady = yield* Effect.try(() => writeDemoBudget(selectedBudgetPath, {
-    root: record.root,
-    expiresAt: reviewStarted + DEMO_TIME_BUDGET_MS,
-    sourceByteBudget: DEMO_SOURCE_BYTE_BUDGET,
-    providerCallBudget: DEMO_PROVIDER_CALL_BUDGET,
-  })).pipe(Effect.result);
-  const execution = budgetReady._tag === "Failure"
+  const budgetReady = consentEnabled && (yield* Effect.try(() => initializeDemoBudget(selectedBudgetPath, {
+      root: record.root,
+      expiresAt: reviewStarted + DEMO_TIME_BUDGET_MS,
+      sourceByteBudget: DEMO_SOURCE_BYTE_BUDGET,
+      providerCallBudget: DEMO_PROVIDER_CALL_BUDGET,
+    })).pipe(
+      Effect.as(true),
+      Effect.catch(() => Effect.succeed(false)),
+    ));
+  const execution = !budgetReady
     ? { status: "incomplete" as const, value: undefined }
     : yield* Effect.tryPromise(() => (options.execute ?? executeInstalledCodexDemo)({
         root: record.root,

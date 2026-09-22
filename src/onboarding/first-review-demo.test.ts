@@ -1,7 +1,9 @@
 import * as Effect from "effect/Effect";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { execFile } from "node:child_process";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
 import { Consent } from "../runtime/consent.ts";
 import {
@@ -16,6 +18,7 @@ import {
 import { claimDemoBudget, readDemoBudgetUsage } from "./demo-budget.ts";
 
 const roots: Array<string> = [];
+const execFileAsync = promisify(execFile);
 
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
@@ -144,6 +147,41 @@ describe("installed-product first-review demo", () => {
     await run(test, runFirstReviewDemo({
       version: 1, operation: "demo", selection: "cancel", demoId: proposal.demo.id,
     }, { statePath: test.demoStatePath }));
+  });
+
+  it("atomically consumes one confirmation across processes and admits at most two calls", async () => {
+    const test = fixture();
+    const proposal = await preview(test);
+    if (proposal.status !== "preview") throw new Error("expected preview");
+    const dispatchMarkerPath = join(test.root, "dispatches.log");
+    const workerInputPath = join(test.root, "race-input.json");
+    writeFileSync(workerInputPath, JSON.stringify({
+      request: liveRequest(proposal),
+      demoStatePath: test.demoStatePath,
+      consentStatePath: test.consentStatePath,
+      dispatchMarkerPath,
+    }));
+    const worker = new URL("../../scripts/first-review-race-worker.mjs", import.meta.url).pathname;
+    const runs = await Promise.all([
+      execFileAsync(process.execPath, ["--experimental-strip-types", worker, workerInputPath]),
+      execFileAsync(process.execPath, ["--experimental-strip-types", worker, workerInputPath]),
+    ]);
+    const results = runs.map(({ stdout }) => JSON.parse(stdout) as { readonly status: string });
+    expect(results.filter(({ status }) => status === "passed")).toHaveLength(1);
+    expect(results.filter(({ status }) => status === "conflict")).toHaveLength(1);
+    const possibleCalls = readFileSync(dispatchMarkerPath, "utf8").trim().split("\n").filter(Boolean);
+    expect(possibleCalls).toHaveLength(2);
+
+    let replayExecutions = 0;
+    const replay = await run(test, runFirstReviewDemo(liveRequest(proposal), {
+      statePath: test.demoStatePath,
+      execute: async () => {
+        replayExecutions += 1;
+        return completed;
+      },
+    }));
+    expect(replay.status).toBe("conflict");
+    expect(replayExecutions).toBe(0);
   });
 
   it("retains distinct sanitized stages, validates repair independently, and cleans up", async () => {

@@ -10,6 +10,10 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve, sep } from "node:path";
+import {
+  requireCleanInstallationPreview,
+  requireCreatedInstallation,
+} from "./first-review-live-runner-policy.mjs";
 
 const projectRoot = resolve(new URL("../", import.meta.url).pathname);
 const explicitLive = process.argv.includes("--live");
@@ -146,9 +150,7 @@ try {
     input: { version: 1, operation: "install-preview", codexHome, codexExecutable: "codex" },
   }), "installed CLI install preview");
   const installPreview = parseJson(installPreviewRun, "installed CLI install preview");
-  if (installPreview.status !== "preview" || typeof installPreview.proposal?.digest !== "string") {
-    throw new Error("installed CLI did not produce a complete installation preview");
-  }
+  const installDigest = requireCleanInstallationPreview(installPreview);
   const installRun = requireExit(await run(cli, ["--install"], {
     env: runnerEnv,
     input: {
@@ -156,13 +158,11 @@ try {
       operation: "install",
       codexHome,
       codexExecutable: "codex",
-      proposalDigest: installPreview.proposal.digest,
+      proposalDigest: installDigest,
     },
   }), "installed CLI install");
   const installResult = parseJson(installRun, "installed CLI install");
-  if (installResult.status !== "installed" && installResult.status !== "already-installed") {
-    throw new Error("installed CLI did not complete installation");
-  }
+  requireCreatedInstallation(installResult);
   installed = true;
 
   preview = await invoke({
