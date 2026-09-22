@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import * as Effect from "effect/Effect";
 import { connect } from "node:net";
 import { resolve } from "node:path";
-import { closeSync, existsSync, openSync, readFileSync, rmSync } from "node:fs";
+import { closeSync, existsSync, lstatSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { DirectObservation, DirectRecipient } from "../direct-event/model.ts";
 import type { CodexDirectEventOutput } from "../direct-event/pipeline.ts";
@@ -117,31 +117,42 @@ const within = async <A>(effect: Promise<A>, timeoutMs: number, message: string)
     );
   });
 
+const launches = new Map<string, number>();
 const launchResident = (paths: ResidentPaths, _timeoutMs: number) => {
-  const startup = `${paths.lock}.startup`;
-  let descriptor: number;
-  try {
-    descriptor = openSync(startup, "wx", 0o600);
-    closeSync(descriptor);
-  } catch (cause) {
-    if (typeof cause === "object" && cause !== null && "code" in cause && cause.code === "EEXIST") return;
-    throw cause;
-  }
+  // Pre-portability versions used this file as a launch gate. It carries no
+  // ownership authority and is safe to discard inside the private runtime.
+  rmSync(`${paths.lock}.startup`, { force: true });
+  const now = Date.now();
+  if ((launches.get(paths.lock) ?? 0) > now) return;
+  const expires = now + 2_000;
+  launches.set(paths.lock, expires);
+  const expiry = setTimeout(() => {
+    if (launches.get(paths.lock) === expires) launches.delete(paths.lock);
+  }, 2_000);
+  expiry.unref();
   const compiled = fileURLToPath(new URL("./main.js", import.meta.url));
   const source = fileURLToPath(new URL("./main.ts", import.meta.url));
   const main = import.meta.url.endsWith(".js") && existsSync(compiled) ? compiled : source;
   const diagnostic = `${paths.lock}.startup-error`;
   const diagnosticDescriptor = openSync(diagnostic, "a", 0o600);
-  const child = spawn(process.execPath, [main, paths.directory], {
+  const legacy = process.platform === "linux" && (() => {
+    try { return lstatSync(paths.lock).isFile(); } catch { return false; }
+  })();
+  const command = legacy ? "flock" : process.execPath;
+  const args = legacy
+    ? ["--nonblock", paths.lock, process.execPath, main, paths.directory, "--legacy-flock"]
+    : [main, paths.directory];
+  const child = spawn(command, args, {
     detached: true,
     stdio: ["ignore", "ignore", diagnosticDescriptor],
     env: process.env,
   });
   closeSync(diagnosticDescriptor);
-  child.once("error", () => rmSync(startup, { force: true }));
+  child.once("error", (cause) => {
+    writeFileSync(diagnostic, `${String(cause)}\n`, { flag: "a", mode: 0o600 });
+    launches.delete(paths.lock);
+  });
   child.unref();
-  const staleGuard = setTimeout(() => rmSync(startup, { force: true }), 2_000);
-  staleGuard.unref();
 };
 
 const liveEnsureDependencies: EnsureResidentDependencies = {
