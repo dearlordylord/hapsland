@@ -182,6 +182,11 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
       { ...base, tool_input: {
         command: `*** Begin Patch\n*** Add File: huge.ts\n+${"x".repeat(65_536)}\n*** End Patch`,
       } },
+      { ...base, tool_input: { command: "*** Begin Patch\n*** Frobnicate File: odd.ts\n+x\n*** End Patch" } },
+      { ...base, tool_input: { command: "*** Begin Patch\n*** Add File:\n+x\n*** End Patch" } },
+      { ...base, tool_input: { command: "*** Begin Patch\n*** Add File: raw.ts\ntype Raw = number\n*** End Patch" } },
+      { ...base, tool_input: { command: "*** Begin Patch\n*** Add File: mixed.ts\n+x\n*** Update File: existing.ts\n+y\n*** End Patch" } },
+      { ...base, tool_input: { command: "*** Begin Patch\n*** Rename File: existing.ts\n+x\n*** End Patch" } },
     ];
     for (const event of events) {
       const child = spawnSync(process.execPath, [

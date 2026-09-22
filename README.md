@@ -104,6 +104,10 @@ the Effect provider configuration. Run the paid integration checks only with exp
 opt-in via `npm run test:live`. The reproducible 100-call milestone additionally requires
 `RUN_LIVE_JEV_BENCHMARK=1 npm run benchmark:live`.
 
+The initial direct-event capture profile is Linux-only. It binds the adapted working-tree
+device/inode to an open directory descriptor and traverses through `/proc/self/fd`; hosts
+without that facility are unsupported rather than falling back to path-only source reads.
+
 Headless activity inspection is documented in [`docs/status.md`](./docs/status.md). It
 uses an explicit host session ID and local source-free receipts; readiness and observed
 activity are reported separately.

@@ -42,6 +42,7 @@ export type DirectReviewContext = {
   readonly rules?: ReadonlyArray<CompiledRule> | (() => ReadonlyArray<CompiledRule>);
   readonly inputContract?: string | (() => string);
   readonly captureHooks?: CaptureHooks;
+  readonly beforePrepare?: Effect.Effect<void>;
   readonly beforeDispatch?: Effect.Effect<void>;
   readonly beforeHandoff?: Effect.Effect<void>;
 };
@@ -120,6 +121,7 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
       observation.root,
       eligible,
       context.captureHooks,
+      observation.rootIdentity,
     );
     if (captured === undefined) {
       outcomes.push({ status: "skipped", path: eligible.relativePath });
@@ -257,6 +259,7 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
   if (!(yield* authorize(observation.root, context))) {
     return { status: "unavailable", reason: "consent", output: undefined } satisfies DirectReviewResult;
   }
+  yield* context.beforePrepare ?? Effect.void;
   const prepared = yield* prepareObservation(observation, context);
   const ready = prepared.filter(
     (outcome): outcome is Extract<PrepareOutcome, { status: "ready" }> =>
@@ -271,6 +274,9 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
     // Consent is mutable user authority and is checked at the actual egress edge.
     if (!(yield* authorize(observation.root, context))) {
       return { status: "unavailable", reason: "consent", output: undefined } satisfies DirectReviewResult;
+    }
+    if (!(yield* verifyObservationRoot(observation))) {
+      return { status: "unavailable", reason: "stale", output: undefined } satisfies DirectReviewResult;
     }
     const evaluation = yield* evaluatePrepared(outcome.prepared);
     if (evaluation.status !== "evaluated") {

@@ -2,7 +2,12 @@ import { execFile } from "node:child_process";
 import { realpath, stat } from "node:fs/promises";
 import { promisify } from "node:util";
 import * as Effect from "effect/Effect";
-import type { AddCandidate, DirectObservation, DirectRecipient } from "./model.ts";
+import type {
+  AddCandidate,
+  DirectObservation,
+  DirectRecipient,
+  PhysicalRootIdentity,
+} from "./model.ts";
 
 const execFileAsync = promisify(execFile);
 export const MAX_CODEX_COMMAND_BYTES = 65_536;
@@ -26,19 +31,25 @@ const nativeAddCandidates = (command: string): ReadonlyArray<AddCandidate> | und
   const lines = command.replaceAll("\r\n", "\n").split("\n");
   if (lines[0] !== "*** Begin Patch" || lines.at(-1) !== "*** End Patch") return undefined;
   const candidates: Array<AddCandidate> = [];
-  for (const line of lines) {
-    const anyOperation = /^\*\*\* (Add|Update|Delete) File: (.+)$/.exec(line);
-    if (anyOperation !== null) {
-      if (anyOperation[1] !== "Add") return undefined;
-      const path = anyOperation[2]?.trim();
-      if (path === undefined || path.length === 0) return undefined;
+  const paths = new Set<string>();
+  let bodyOpen = false;
+  for (const line of lines.slice(1, -1)) {
+    const add = /^\*\*\* Add File: (.+)$/.exec(line);
+    if (add !== null) {
+      const path = add[1]?.trim();
+      if (path === undefined || path.length === 0 || paths.has(path)) return undefined;
+      paths.add(path);
       candidates.push({ operation: "add", path });
+      bodyOpen = true;
+      continue;
     }
-    if (line.startsWith("*** Move to:")) return undefined;
+    // Every body line in native Add syntax carries the '+' patch marker.
+    // Unknown/malformed controls and unmarked text are never treated as paths.
+    if (line.startsWith("***")) return undefined;
+    if (!bodyOpen || !line.startsWith("+")) return undefined;
   }
   if (candidates.length < 1 || candidates.length > MAX_CODEX_CANDIDATES) return undefined;
-  const unique = new Map(candidates.map((candidate) => [candidate.path, candidate]));
-  return [...unique.values()];
+  return candidates;
 };
 
 const discoverRoot = async (cwd: string) => {
@@ -63,12 +74,13 @@ const discoverRoot = async (cwd: string) => {
   ]);
   return {
     root,
-    rootIdentity: [
-      rootStatus.dev,
-      rootStatus.ino,
-      gitStatus.dev,
-      gitStatus.ino,
-    ].map(String).join(":"),
+    rootIdentity: Object.freeze({
+      rootDevice: String(rootStatus.dev),
+      rootInode: String(rootStatus.ino),
+      gitDirectory,
+      gitDevice: String(gitStatus.dev),
+      gitInode: String(gitStatus.ino),
+    } satisfies PhysicalRootIdentity),
   };
 };
 
@@ -83,7 +95,11 @@ export const verifyObservationRoot = (observation: DirectObservation) =>
     try: async () => {
       const current = await discoverRoot(observation.root);
       return current.root === observation.root &&
-        current.rootIdentity === observation.rootIdentity;
+        current.rootIdentity.rootDevice === observation.rootIdentity.rootDevice &&
+        current.rootIdentity.rootInode === observation.rootIdentity.rootInode &&
+        current.rootIdentity.gitDirectory === observation.rootIdentity.gitDirectory &&
+        current.rootIdentity.gitDevice === observation.rootIdentity.gitDevice &&
+        current.rootIdentity.gitInode === observation.rootIdentity.gitInode;
     },
     catch: () => new Error("working tree identity unavailable"),
   }).pipe(Effect.catch(() => Effect.succeed(false)));

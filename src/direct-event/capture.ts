@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { createHash } from "node:crypto";
 import * as Effect from "effect/Effect";
 import type { EligiblePath } from "./selection.ts";
+import type { PhysicalRootIdentity } from "./model.ts";
 
 export const MAX_SOURCE_BYTES = 32_768;
 
@@ -28,12 +29,30 @@ const readOnce = async (
   root: string,
   path: EligiblePath,
   hooks: CaptureHooks,
+  expectedRoot: PhysicalRootIdentity | undefined,
 ): Promise<{ readonly bytes: Buffer; readonly metadata: string; readonly hash: string }> => {
   const directoryFlags = constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW;
   const directories = [];
   let parent = await open(root, directoryFlags);
   directories.push(parent);
   try {
+    const rootStatus = await parent.stat({ bigint: true });
+    if (
+      expectedRoot !== undefined &&
+      (
+        String(rootStatus.dev) !== expectedRoot.rootDevice ||
+        String(rootStatus.ino) !== expectedRoot.rootInode
+      )
+    ) throw new Error("working tree root identity changed");
+    if (expectedRoot !== undefined) {
+      const gitDirectory = await open(expectedRoot.gitDirectory, directoryFlags);
+      directories.push(gitDirectory);
+      const gitStatus = await gitDirectory.stat({ bigint: true });
+      if (
+        String(gitStatus.dev) !== expectedRoot.gitDevice ||
+        String(gitStatus.ino) !== expectedRoot.gitInode
+      ) throw new Error("Git administration identity changed");
+    }
     const segments = path.relativePath.split("/");
     for (const segment of segments.slice(0, -1)) {
       parent = await open(`/proc/self/fd/${parent.fd}/${segment}`, directoryFlags);
@@ -83,12 +102,13 @@ export const captureStable = Effect.fn("DirectEvent.captureStable")(function* (
   root: string,
   path: EligiblePath,
   hooks: CaptureHooks = {},
+  expectedRoot: PhysicalRootIdentity | undefined = undefined,
 ) {
   const captured = yield* Effect.tryPromise({
     try: async () => {
-      const first = await readOnce(root, path, hooks);
+      const first = await readOnce(root, path, hooks, expectedRoot);
       await hooks.betweenReads?.();
-      const second = await readOnce(root, path, hooks);
+      const second = await readOnce(root, path, hooks, expectedRoot);
       if (
         first.metadata !== second.metadata ||
         first.hash !== second.hash ||
