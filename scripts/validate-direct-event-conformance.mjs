@@ -137,6 +137,9 @@ if (macPackageEncoded === undefined) {
     macPackageEvidence.environment?.node !== "v24.20.0" ||
     macPackageEvidence.environment?.operatingSystem !== "darwin" ||
     macPackageEvidence.environment?.architecture !== "arm64" ||
+    macPackageEvidence.continuousIntegration?.provider !== "github-actions" ||
+    !/^\d+$/.test(macPackageEvidence.continuousIntegration?.runId ?? "") ||
+    !/^[0-9a-f]{40}$/.test(macPackageEvidence.continuousIntegration?.commit ?? "") ||
     macPackageEvidence.isolation?.developmentDependencies !== false ||
     macPackageEvidence.isolation?.checkoutPathUsedAtRuntime !== false ||
     !["cli", "parser", "resident", "hook"].every((entry) => macPackageEvidence.entryPoints?.[entry] === "passed") ||
