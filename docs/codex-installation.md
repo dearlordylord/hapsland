@@ -75,6 +75,32 @@ printf '%s\n' '{"version":1,"operation":"uninstall","codexHome":"/absolute/codex
   | review-tool --uninstall
 ```
 
+Updates are explicit and run from the target local package. They never poll for releases or
+emit an update-available notice. Preview compares the installed package/runtime and owned hook
+with the target package, then apply the returned digest:
+
+```sh
+printf '%s\n' '{"version":1,"operation":"update-preview","codexHome":"/absolute/codex-home"}' \
+  | /path/to/target/review-tool --update-preview
+
+printf '%s\n' '{"version":1,"operation":"update","codexHome":"/absolute/codex-home","proposalDigest":"<preview-digest>"}' \
+  | /path/to/target/review-tool --update
+```
+
+The preview names both package versions, runtime and entrypoint paths, resident protocol, the
+new owned hook, and the exact files that would change. Update accepts only a compatible resident
+protocol and changes only the ownership record and owned hook group. Repository grants,
+credentials, user rules, independent hooks, current source work and running resident processes
+remain untouched. A changed hook reports that Codex must be restarted after current work finishes
+and that native hook trust may need renewal; the updater does not edit trust state or stop a
+process. A repeated update returns `already-current`.
+
+The ownership-record write precedes the hook replacement, so a failure after the first update
+step leaves the previous hook working. Every `partial` update result includes a structured
+`recovery.command` with the original digest. Rerun that exact request from the same target package.
+Recovery validates completed and pending files and preserves concurrent user edits rather than
+restoring an old whole-file snapshot. A later uninstall uses the updated fingerprint normally.
+
 The first uninstall call is a preview. Repeat it with its `proposalDigest` to remove only the
 owned hook and ownership record. Uninstall preserves repository grants, credentials, user rules,
 unrelated hooks, native trust records, and settings required by remaining hooks. Disable grants

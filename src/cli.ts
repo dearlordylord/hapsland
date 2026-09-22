@@ -64,7 +64,9 @@ import {
 import {
   installCodexIntegration,
   previewCodexInstallation,
+  previewCodexUpdate,
   uninstallCodexIntegration,
+  updateCodexIntegration,
 } from "./onboarding/codex-installation.ts";
 import {
   logoutCredential,
@@ -193,6 +195,19 @@ const InstallationOperation = Schema.Union([
   }),
   Schema.Struct({
     version: Schema.Literal(1),
+    operation: Schema.Literal("update-preview"),
+    codexHome: Schema.optionalKey(Schema.NonEmptyString),
+    codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
+  }),
+  Schema.Struct({
+    version: Schema.Literal(1),
+    operation: Schema.Literal("update"),
+    codexHome: Schema.optionalKey(Schema.NonEmptyString),
+    codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
+    proposalDigest: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)),
+  }),
+  Schema.Struct({
+    version: Schema.Literal(1),
     operation: Schema.Literal("uninstall"),
     codexHome: Schema.optionalKey(Schema.NonEmptyString),
     proposalDigest: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/))),
@@ -261,6 +276,8 @@ const forcedInstallationOperation = (): InstallationOperation["operation"] | und
   if (process.argv.includes("--doctor")) return "doctor";
   if (process.argv.includes("--install-preview")) return "install-preview";
   if (process.argv.includes("--install")) return "install";
+  if (process.argv.includes("--update-preview")) return "update-preview";
+  if (process.argv.includes("--update")) return "update";
   if (process.argv.includes("--uninstall")) return "uninstall";
   return undefined;
 };
@@ -957,7 +974,7 @@ const program = Effect.gen(function* () {
   const inputRequestsOperation = /"operation"\s*:\s*"(?:enable|enable-confirm|disable|credentials|status|explain)"/.test(
     input,
   );
-  const inputRequestsInstallation = /"operation"\s*:\s*"(?:doctor|install-preview|install|uninstall)"/.test(input);
+  const inputRequestsInstallation = /"operation"\s*:\s*"(?:doctor|install-preview|install|update-preview|update|uninstall)"/.test(input);
   const inputRequestsSetup = /"operation"\s*:\s*"setup"/.test(input);
   const inputRequestsEvaluation = /"operation"\s*:\s*"(?:plan|run|report)"/.test(input);
   if (requestedEvaluationOperation !== undefined || inputRequestsEvaluation) {
@@ -1101,6 +1118,10 @@ const program = Effect.gen(function* () {
         return previewCodexInstallation(request);
       case "install":
         return yield* Effect.promise(() => installCodexIntegration(request));
+      case "update-preview":
+        return previewCodexUpdate(request);
+      case "update":
+        return yield* Effect.promise(() => updateCodexIntegration(request));
       case "uninstall":
         return yield* Effect.promise(() => uninstallCodexIntegration(request));
     }
