@@ -39,6 +39,8 @@ export class Service extends Context.Service<Service, Interface>()(
 
 export type ReviewBackendLayerOptions = {
   readonly transientRetries?: number;
+  /** Revalidates authority immediately before every provider invocation. */
+  readonly beforeDispatch?: Effect.Effect<void, BackendError>;
 };
 
 /**
@@ -75,10 +77,7 @@ export const layerWithOptions = (layerOptions: ReviewBackendLayerOptions = {}) =
       const definition = Decision.make({ input: Schema.Json, decisions });
       const started = yield* Clock.currentTimeMillis;
       let attempts = 0;
-      const response = yield* Effect.sync(() => {
-        attempts += 1;
-      }).pipe(
-        Effect.andThen(model.decide(definition, { input })),
+      const providerDispatch = model.decide(definition, { input }).pipe(
         Effect.mapError(
           (cause) =>
             new BackendError({
@@ -89,6 +88,12 @@ export const layerWithOptions = (layerOptions: ReviewBackendLayerOptions = {}) =
                 cause.reason._tag !== "InvalidOutputError" && cause.isRetryable,
             }),
         ),
+      );
+      const response = yield* Effect.sync(() => {
+        attempts += 1;
+      }).pipe(
+        Effect.andThen(layerOptions.beforeDispatch ?? Effect.void),
+        Effect.andThen(providerDispatch),
         Effect.retry({
           times: layerOptions.transientRetries ?? DEFAULT_RUNTIME_SETTINGS.transientRetries,
           while: (error) => error.retryable,

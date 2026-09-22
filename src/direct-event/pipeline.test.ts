@@ -18,6 +18,7 @@ import {
 } from "../test-support/controlled-decision-model.ts";
 import {
   DIRECT_EVENT_DEADLINE_MS,
+  encodedPreparedProviderInputBytes,
   evaluatePrepared,
   prepareObservation,
   revalidateEvaluations,
@@ -25,6 +26,7 @@ import {
   reviewObservation,
   type DirectReviewContext,
 } from "./pipeline.ts";
+import { claimDemoBudget, readDemoBudgetUsage, writeDemoBudget } from "../onboarding/demo-budget.ts";
 import { attemptCodexHostOutput } from "./writer.ts";
 import { addEvent, makeGitFixture, put, recipient, updateEvent } from "./test-fixtures.ts";
 import { adaptCodexAdd } from "./adapter.ts";
@@ -66,6 +68,57 @@ const enabledReview = (
 );
 
 describe("direct-event vertical slice", () => {
+  it.effect("charges recursively expanded evidence and rejects over-budget input before dispatch", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture);
+      const leaves = Array.from({ length: 8 }, (_, index) =>
+        `interface Leaf${index} { ${Array.from({ length: 24 }, (_unused, field) =>
+          `field${field}: \"${"x".repeat(20)}\"`).join("; ")} }`);
+      const source = [
+        ...leaves,
+        `interface Root { ${leaves.map((_unused, index) => `leaf${index}: Leaf${index}`).join("; ")} }`,
+      ].join("\n");
+      yield* Effect.promise(() => put(root, "type.ts", source));
+      const observation = yield* adaptCodexAdd(addEvent(root));
+      expect(observation).toBeDefined();
+      if (observation === undefined) return;
+      const consent = yield* Consent.Service;
+      const proposal = yield* consent.preview(root, DEFAULT_BACKEND, DEFAULT_DESTINATION);
+      yield* consent.enable(proposal);
+      const prepared = yield* prepareObservation(observation, {
+        controlledWriter: true,
+        recipient: observation.recipient,
+        consent,
+        settings,
+        rules: configuredRules,
+      });
+      const rootUnit = prepared.outcomes.find((outcome) =>
+        outcome.status === "ready" && outcome.prepared.input.declaration.name === "Root");
+      expect(rootUnit?.status).toBe("ready");
+      if (rootUnit?.status !== "ready") return;
+      const bytes = encodedPreparedProviderInputBytes(rootUnit.prepared);
+      expect(bytes).toBeGreaterThan(4_096);
+      expect(Buffer.byteLength(rootUnit.prepared.input.declaration.source, "utf8")).toBeLessThan(4_096);
+      const budgetPath = join(root, "demo-budget.json");
+      writeDemoBudget(budgetPath, {
+        root,
+        expiresAt: Date.now() + 60_000,
+        sourceByteBudget: 4_096,
+        providerCallBudget: 2,
+      });
+      let providerCalls = 0;
+      const result = yield* evaluatePrepared(
+        rootUnit.prepared,
+        Effect.try(() => claimDemoBudget(budgetPath, root, bytes)),
+      ).pipe(Effect.provide(controlledDecisionModelLayer({
+        answers: findingAnswers(),
+        onRequest: Effect.sync(() => { providerCalls += 1; }),
+      })));
+      expect(result.status).toBe("backend");
+      expect(providerCalls).toBe(0);
+      expect(readDemoBudgetUsage(budgetPath)).toEqual({ sourceBytes: 0, providerCalls: 0 });
+    }).pipe(Effect.provide(Consent.testLayer()))),
+
   it.effect("runs one Add declaration from native adapter to attempted output", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture);

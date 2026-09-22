@@ -65,8 +65,40 @@ plan and [`CONTEXT.md`](./CONTEXT.md) for the domain vocabulary.
 npx --yes bun@1.3.14 install
 npm run typecheck
 npm test
+npm run conformance:package
 npm run review -- --controlled < request.json
 ```
+
+`npm pack` builds JavaScript release entry points for the review CLI, TypeScript parser,
+resident process, and offline package doctor. The tested installed profile is exactly Node
+24.20.0 on Linux arm64 with Git and `/proc/self/fd`, plus Node 24.20.0 on macOS arm64 with
+Git and a packaged `openat` capture helper. The macOS controlled package path is tested; its
+real Codex-host cell remains unverified. Other operating systems and architectures are
+unsupported. After installing the tarball, run
+`review-tool-doctor` for source-free compatibility checks and recovery actions. Installation
+may acquire and build production dependencies once. Hook invocations use the installed CLI
+and resident and do not download packages per edit.
+
+The packaged CLI's preview/install/enable/disable/uninstall contract, ownership rules, recovery
+behavior, and native trust handoff are documented in
+[`docs/codex-installation.md`](./docs/codex-installation.md).
+After setup completes, that guide also documents the separate `review-tool --demo` preview and
+live-confirmation flow. Its default preview is offline; the paid run requires explicit fixed
+budgets and a new consent digest for a generated disposable repository.
+
+`npm run conformance:package` packs into an isolated temporary prefix, installs with production
+dependencies only, and runs the parser and controlled offline review outside the checkout. Add
+`-- --real-codex --write-evidence` only for the declared real-host acceptance fixture; it uses
+an isolated Codex home and temporary Git repository, does not change the user's host, removes
+provider credentials, and retains only sanitized package/host outcomes.
+
+`npm run conformance:installed-release` verifies the assembled installed-product evidence and
+replays the complete offline lifecycle in isolated homes. Its compatibility verdict is currently
+blocked by the untested authenticated macOS/Codex cell and the inconclusive installed first-review
+milestone. Exact versions, checksums, setup-effort evidence, and the rule that untested cells remain
+gaps are published in
+[`docs/installed-release-compatibility.md`](./docs/installed-release-compatibility.md). The command
+does not perform paid Jev work or an authenticated Codex retry.
 
 Review dispatch is repository opt-in. The explicit enable operation first previews the
 canonical Git working-tree root, fixed Jev backend, actual destination, and
@@ -86,8 +118,11 @@ printf '%s\n' '{"version":1,"operation":"credentials","cwd":"/absolute/repo"}' \
 ```
 
 `--inspect-credentials` reports only the configured environment-variable name and
-whether it is non-empty. The default is `TYPESAFE_API_KEY`; credential values and
-environment files are never stored or printed. Project settings are optional JSONC in
+whether the resolved source is present. On Linux and macOS, `review-tool --login` uses masked
+terminal input with the platform's native credential store;
+`review-tool --login --credential-stdin` is the explicit headless form, and
+`review-tool --logout` removes the owned saved item. The default is `TYPESAFE_API_KEY`;
+credential values and environment files are never stored in project files or printed. Project settings are optional JSONC in
 `.review.jsonc` at the Git root. It may select the credential variable, but the Jev
 backend and `/v1/systemone` destination are fixed in this phase; arbitrary endpoint
 routing is not supported. `consent`/`enabled` fields never authorize source transmission.
@@ -102,7 +137,8 @@ Codex command hook invokes
 The second flag is an explicit operator assertion that the supported Add event is in the
 controlled-writer envelope; matching source reads alone never establish attribution.
 Without that assertion, supported Add input stays quiet rather than falling back to the
-superseded whole-file path. Packaged installation belongs to a later phase. Live use reads `TYPESAFE_API_KEY` through
+superseded whole-file path. A packed installation invokes the corresponding installed
+`dist/cli.js` entry and never depends on this source path. Live use reads `TYPESAFE_API_KEY` through
 the Effect provider configuration. Run the paid integration checks only with explicit
 opt-in via `npm run test:live`. The reproducible 100-call milestone additionally requires
 `RUN_LIVE_JEV_BENCHMARK=1 npm run benchmark:live`.
@@ -111,9 +147,11 @@ The initial direct-event capture profile is Linux-only. It binds the adapted wor
 device/inode to an open directory descriptor and traverses through `/proc/self/fd`; hosts
 without that facility are unsupported rather than falling back to path-only source reads.
 
-Headless activity inspection is documented in [`docs/status.md`](./docs/status.md). It
-uses an explicit host session ID and local source-free receipts; readiness and observed
-activity are reported separately.
+Offline readiness diagnosis and headless activity inspection are documented in
+[`docs/status.md`](./docs/status.md). Doctor checks the selected installed integration
+without prompts, repairs, source reads, or Jev calls. Status uses an explicit host session
+ID and bounded source-free resident activity, labels legacy receipts separately, and never
+treats silence or missing instrumentation as a clear review.
 
 The maintainer-only semantic evaluation protocol and its sanitized offline milestone
 evidence are documented in [`docs/evaluation.md`](./docs/evaluation.md) and

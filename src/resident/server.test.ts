@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import { addEvent, makeGitFixture, put, recipient } from "../direct-event/test-fixtures.ts";
@@ -9,6 +10,7 @@ import { Consent } from "../runtime/consent.ts";
 import { loadReviewSettings } from "../runtime/review-config.ts";
 import { prepareObservation } from "../direct-event/pipeline.ts";
 import { analyzerMaterializationPreflight } from "../direct-event/analyzer.ts";
+import { readActivity } from "../activity/status.ts";
 import { residentPaths } from "./paths.ts";
 import {
   DELIVERY_LEASE_MS,
@@ -71,7 +73,86 @@ const mutuallyReferencingTypes = () => Array.from({ length: 17 }, (_, index) => 
   return `interface Type${index} { ${fields} }`;
 }).join("\n");
 
+const waitUntilIdle = async (server: ResidentServer): Promise<void> => {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const stats = server.stats();
+    if (stats.queued === 0 && stats.running === 0 && stats.pendingEvaluations === 0) return;
+    await new Promise<void>((resolveImmediate) => setImmediate(resolveImmediate));
+  }
+  throw new Error("resident did not become idle");
+};
+
 describe("resident delivery lease", () => {
+  it("rejects a separate-process generation change after credential resolution at the provider boundary", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const statePath = join(root, "consent");
+    const credentialStatePath = join(root, "credential-state.json");
+    const capturePath = join(root, "provider-calls.txt");
+    writeFileSync(credentialStatePath, JSON.stringify({ version: 1, generation: 1, savedUseSuspended: false }));
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    const changed = deferred();
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+      afterCredentialBeforeDispatch: async () => {
+        const child = spawn(process.execPath, ["-e", `
+          require("node:fs").writeFileSync(process.argv[1], JSON.stringify({version:1,generation:2,savedUseSuspended:false}));
+        `, credentialStatePath], { stdio: "ignore" });
+        await new Promise<void>((resolveExit, rejectExit) => {
+          child.once("exit", () => resolveExit());
+          child.once("error", rejectExit);
+        });
+        changed.resolve();
+      },
+    });
+    const dispatch: ResidentDispatchContext = {
+      statePath,
+      userConfigPath: null,
+      credential: {
+        name: "TYPESAFE_API_KEY",
+        environmentValue: "synthetic-race-marker",
+        environmentOnly: false,
+        generation: 1,
+        statePath: credentialStatePath,
+      },
+      controlled: {
+        requireCredential: true,
+        capturePath,
+        answers: Object.fromEntries(configuredRules.map((rule) => [
+          rule.id, { _tag: "Probability", probability: 0.9 },
+        ])),
+      },
+    };
+    expect(server.admit(observation, dispatch)).toEqual({ status: "accepted" });
+    await changed.promise;
+    await waitUntilIdle(server);
+    expect(existsSync(capturePath)).toBe(false);
+    expect(server.stats()).toMatchObject({ pendingEvaluations: 0 });
+  });
+
+  it("aggregates findings from distinct production units in one event", async () => {
+    const root = await makeGitFixture();
+    await put(root, "a.ts", "type ACount = number\n");
+    await put(root, "b.ts", "type BCount = number\n");
+    const statePath = join(root, "consent");
+    const activityPath = join(root, "activity");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts", "b.ts"])));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    expect(server.admit(observation, { ...findingDispatch(statePath), activityPath }).status).toBe("accepted");
+    await server.whenIdle();
+    expect(readActivity({
+      statePath: activityPath,
+      root,
+      sessionId: observation.recipient.sessionId,
+      resident: { available: true, lifetime: server.lifetime },
+    })).toMatchObject({ kind: "findings", findings: 2, counts: { findings: 1 } });
+  });
+
   it("commits an idle lifetime to retiring before returning cleanup success", async () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
@@ -959,6 +1040,8 @@ describe("resident delivery lease", () => {
     expect(server.stats().retainedBytes).toBe(saturated.retainedBytes - firstBatchBytes);
   });
 
+  // The 64 real repository parses exercise the declared global saturation limit and
+  // take about five seconds on the supported arm64 host.
   it("revalidates and finalizes at the 64-item global saturation boundary", async () => {
     const root = await makeGitFixture();
     const statePath = join(root, "consent");
@@ -996,7 +1079,7 @@ describe("resident delivery lease", () => {
     expect(server.finalize(collected.token).status).toBe("finalized");
     expect(server.stats()).toMatchObject({ pendingAdvice: 59 });
     expect(server.stats().retainedBytes).toBe(saturated.retainedBytes - firstBatchBytes);
-  });
+  }, 10_000);
 
   it("scans past unavailable advice to independently current advice once per collection", async () => {
     const root = await makeGitFixture();
@@ -1162,6 +1245,8 @@ describe("resident delivery lease", () => {
     expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(11);
   });
 
+  // Large near-frame identities and full revalidation batches measure at 5.0-5.2
+  // seconds on the supported arm64 host, so only these stress cases get 10 seconds.
   it("charges a valid near-frame identity for every unit and rejects excess truthfully", async () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", Array.from(
@@ -1240,7 +1325,7 @@ describe("resident delivery lease", () => {
     expect(server.pendingAdviceMetadata().map(({ id, delivery }) => ({ id, delivery }))).toEqual(
       metadata.map(({ id }) => ({ id, delivery: "available" })),
     );
-  });
+  }, 10_000);
 });
 
 describe("resident bounded advice batches", () => {
@@ -1285,7 +1370,7 @@ describe("resident bounded advice batches", () => {
       pendingAdvice: 0,
       retainedBytes: server.accountingMetrics().successfulCacheBytes,
     });
-  });
+  }, 10_000);
 
   it("revalidates the final selection after later candidate work completes", async () => {
     const root = await makeGitFixture();
@@ -1329,7 +1414,7 @@ describe("resident bounded advice batches", () => {
     expect(collected.output.hookSpecificOutput.additionalContext).not.toContain("a.ts :: ACount");
     expect(collected.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
     expect(server.pendingAdviceMetadata().map(({ path }) => path)).toEqual(["b.ts"]);
-  });
+  }, 10_000);
 
   it("filters an earlier item that reaches expiry while a later final revalidation waits", async () => {
     const root = await makeGitFixture();
@@ -1379,7 +1464,7 @@ describe("resident bounded advice batches", () => {
     expect(collected.output.hookSpecificOutput.additionalContext).not.toContain("a.ts :: ACount");
     expect(collected.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
     expect(server.pendingAdviceMetadata().map(({ path }) => path)).toEqual(["b.ts"]);
-  });
+  }, 10_000);
 
   it("filters an earlier item superseded while a later final revalidation waits", async () => {
     const root = await makeGitFixture();

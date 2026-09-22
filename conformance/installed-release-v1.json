@@ -1,0 +1,261 @@
+{
+  "schemaVersion": 1,
+  "subject": {
+    "package": "realtime-review-prototype",
+    "packageVersion": "0.0.0",
+    "assembledCommit": "f2f47e94cd2d90cf73062f07c5e61416218e2f13",
+    "assembledFrom": "issues 63-71",
+    "publication": "not-selected"
+  },
+  "targetProfiles": [
+    {
+      "operatingSystem": "linux",
+      "architecture": "arm64",
+      "node": "v24.20.0",
+      "codex": "codex-cli 0.155.1"
+    },
+    {
+      "operatingSystem": "darwin",
+      "architecture": "arm64",
+      "node": "v24.20.0",
+      "codex": "codex-cli 0.155.1"
+    }
+  ],
+  "ordinaryReplay": {
+    "node": "v24.20.0",
+    "network": "no-provider-calls",
+    "backend": "controlled-offline",
+    "nativeCredentials": "retained-evidence; deterministic helper in ordinary Linux replay",
+    "authenticatedHost": false,
+    "trustBypass": false,
+    "setupJourneys": [
+      "noninteractive-handoff",
+      "interruption-resume",
+      "idempotent-repeat",
+      "offline-first-review-demo",
+      "disabled-completion",
+      "interactive-masked-terminal"
+    ],
+    "commands": [
+      "node scripts/run-setup-package-conformance.mjs",
+      "node scripts/run-clean-package-conformance.mjs --credential-fixture",
+      "vitest run src/credentials/secret-service.test.ts src/resident/server.test.ts"
+    ]
+  },
+  "evidence": [
+    {
+      "id": "linux-installed",
+      "path": "evidence/package/clean-linux-node-24.20.0-arm64.json",
+      "sha256": "7ed8ee9680c0e75778085063fb9233e9146f368c84049c6a00625fa72e0e68e6",
+      "operatingSystem": "linux",
+      "provenance": {
+        "commit": "f0dec93d72bf717fe993feb658d07b3a0e1b8f01",
+        "mechanism": "local installed-package and authenticated Codex run"
+      },
+      "assertions": [
+        { "pointer": "/environment/node", "equals": "v24.20.0" },
+        { "pointer": "/environment/operatingSystem", "equals": "linux" },
+        { "pointer": "/environment/architecture", "equals": "arm64" },
+        { "pointer": "/installation/customQuotedHome", "equals": true },
+        { "pointer": "/installation/independentHookPreserved", "equals": true },
+        { "pointer": "/credentialLifecycle/status", "equals": "actual-secret-service" },
+        { "pointer": "/realCodex/status", "equals": "passed" },
+        { "pointer": "/realCodex/hookTrust/bypassFlag", "equals": false },
+        { "pointer": "/realCodex/reviewSubmission/status", "equals": "observed" }
+      ],
+      "capabilityProofs": [
+        {
+          "capability": "installed-lifecycle",
+          "operatingSystem": "linux",
+          "assertions": [
+            { "pointer": "/installation/installed", "equals": "passed" },
+            { "pointer": "/installation/scopedUninstall", "equals": "passed" },
+            { "pointer": "/review/backend", "equals": "controlled-offline" }
+          ]
+        },
+        {
+          "capability": "native-trust",
+          "operatingSystem": "linux",
+          "assertions": [
+            { "pointer": "/realCodex/hookTrust/status", "equals": "persisted-exact-definition" },
+            { "pointer": "/realCodex/hookTrust/bypassFlag", "equals": false }
+          ]
+        },
+        {
+          "capability": "authenticated-real-host",
+          "operatingSystem": "linux",
+          "assertions": [
+            { "pointer": "/realCodex/status", "equals": "passed" },
+            { "pointer": "/realCodex/hookTrust/bypassFlag", "equals": false },
+            { "pointer": "/realCodex/reviewSubmission/status", "equals": "observed" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "darwin-installed",
+      "path": "evidence/package/clean-darwin-node-24.20.0-arm64.json",
+      "sha256": "3bebff410ade55d536f9e57a201f84230c1c4f0d34fff080141e657666ac2d93",
+      "operatingSystem": "darwin",
+      "provenance": {
+        "commit": "835e26d334c892483a014a074dccfe9e59e4004e",
+        "mechanism": "GitHub Actions run 35790230309 at 627169235725661bf603ec9163298de5d21f25f9"
+      },
+      "assertions": [
+        { "pointer": "/environment/node", "equals": "v24.20.0" },
+        { "pointer": "/environment/operatingSystem", "equals": "darwin" },
+        { "pointer": "/environment/architecture", "equals": "arm64" },
+        { "pointer": "/continuousIntegration/runId", "equals": "35790230309" },
+        { "pointer": "/installation/update/partialRecovery", "equals": "resumed" },
+        { "pointer": "/credentialLifecycle/status", "equals": "actual-keychain" },
+        { "pointer": "/credentialLifecycle/defaultKeychainIsolation", "equals": "lookup-replacement-logout-passed" },
+        { "pointer": "/realCodex/status", "equals": "not-requested" }
+      ],
+      "capabilityProofs": [
+        {
+          "capability": "installed-lifecycle",
+          "operatingSystem": "darwin",
+          "assertions": [
+            { "pointer": "/installation/installed", "equals": "passed" },
+            { "pointer": "/installation/scopedUninstall", "equals": "passed" },
+            { "pointer": "/installation/update/partialRecovery", "equals": "resumed" },
+            { "pointer": "/review/backend", "equals": "controlled-offline" }
+          ]
+        },
+        {
+          "capability": "native-trust",
+          "operatingSystem": "darwin",
+          "assertions": [
+            { "pointer": "/installation/update/trustRecordsModified", "equals": false },
+            { "pointer": "/realCodex/status", "equals": "not-requested" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "linux-first-review",
+      "path": "evidence/first-review/live-installed-codex-0.155.1.json",
+      "sha256": "4413ae4a218c59e5eda0698c84787a210d254b99249a65154c390f063f5af1d5",
+      "operatingSystem": "linux",
+      "provenance": {
+        "commit": "87453861bb17c19eab809301112daeaf0cb627df",
+        "mechanism": "authorized paid milestone; no retry authorized"
+      },
+      "assertions": [
+        { "pointer": "/environment/operatingSystem", "equals": "linux" },
+        { "pointer": "/status", "equals": "inconclusive" },
+        { "pointer": "/stages/providerCalls", "equals": 0 },
+        { "pointer": "/stages/sourceBytes", "equals": 0 },
+        { "pointer": "/reviewLatencyMs", "equals": null },
+        { "pointer": "/retained/source", "equals": false },
+        { "pointer": "/cleanup/disposableRootRemoved", "equals": true }
+      ],
+      "capabilityProofs": []
+    },
+    {
+      "id": "linux-secret-service",
+      "path": "evidence/credentials/linux-secret-service-2026-09-22.json",
+      "sha256": "5985fefed0b7f14a1019e8205c948826d67c5d96329775c709324e66c48de0b2",
+      "operatingSystem": "linux",
+      "provenance": {
+        "commit": "85f7c426a264d61180b0e280b0da2c6705279089",
+        "mechanism": "isolated Secret Service session"
+      },
+      "assertions": [
+        { "pointer": "/environment/operatingSystem", "equals": "linux" },
+        { "pointer": "/environment/architecture", "equals": "arm64" },
+        { "pointer": "/observations/separateProcessRead", "equals": "present" },
+        { "pointer": "/observations/exactOwnedDeletion", "equals": "deleted" },
+        { "pointer": "/limits/paidJevCallPerformed", "equals": false }
+      ],
+      "capabilityProofs": [
+        {
+          "capability": "saved-credential-lifecycle",
+          "operatingSystem": "linux",
+          "assertions": [
+            { "pointer": "/observations/separateProcessRead", "equals": "present" },
+            { "pointer": "/observations/exactOwnedDeletion", "equals": "deleted" }
+          ]
+        }
+      ]
+    }
+  ],
+  "compatibilityCells": [
+    {
+      "id": "linux-arm64-installed-lifecycle",
+      "operatingSystem": "linux",
+      "capability": "installed-lifecycle",
+      "required": true,
+      "status": "verified",
+      "modes": ["controlled-headless", "masked-interactive-setup"],
+      "evidence": ["linux-installed"]
+    },
+    {
+      "id": "linux-arm64-native-trust",
+      "operatingSystem": "linux",
+      "capability": "native-trust",
+      "required": true,
+      "status": "verified",
+      "modes": ["native-interactive-review"],
+      "evidence": ["linux-installed"]
+    },
+    {
+      "id": "linux-arm64-authenticated-real-host",
+      "operatingSystem": "linux",
+      "capability": "authenticated-real-host",
+      "required": true,
+      "status": "verified",
+      "modes": ["codex-exec-headless"],
+      "evidence": ["linux-installed"]
+    },
+    {
+      "id": "darwin-arm64-installed-lifecycle",
+      "operatingSystem": "darwin",
+      "capability": "installed-lifecycle",
+      "required": true,
+      "status": "verified",
+      "modes": ["controlled-headless", "masked-interactive-setup", "isolated-keychain"],
+      "evidence": ["darwin-installed"]
+    },
+    {
+      "id": "darwin-arm64-native-trust-handoff",
+      "operatingSystem": "darwin",
+      "capability": "native-trust",
+      "required": true,
+      "status": "verified",
+      "scope": "setup reports the native handoff and does not modify or bypass trust; trust completion belongs to the authenticated-host cell",
+      "evidence": ["darwin-installed"]
+    },
+    {
+      "id": "darwin-arm64-authenticated-real-host",
+      "operatingSystem": "darwin",
+      "capability": "authenticated-real-host",
+      "required": true,
+      "status": "gap",
+      "reason": "GitHub Actions had no Codex authentication; native trust completion and a real Codex installed review were not run on macOS 14 arm64."
+    },
+    {
+      "id": "installed-first-review-conclusive",
+      "operatingSystem": "linux",
+      "capability": "installed-first-review",
+      "required": true,
+      "status": "inconclusive",
+      "evidence": ["linux-first-review"],
+      "reason": "The authorized Linux run observed zero provider calls and zero source bytes; the legacy packed artifact is not bound to the assembled commit, and no paid retry is authorized."
+    }
+  ],
+  "setupEffort": {
+    "linuxFirstReviewPreviewActions": 1,
+    "linuxFirstReviewPreviewDurationMs": 31,
+    "linuxSecretServiceLoginMs": 587,
+    "linuxSecretServiceSeparateProcessLookupMs": 292,
+    "darwinKeychainLoginMs": 689,
+    "darwinKeychainSeparateProcessLookupMs": 479,
+    "qualification": "retained single-run timings are setup evidence, not performance guarantees"
+  },
+  "limitations": {
+    "overlappingWrites": "unsupported-unattributed",
+    "detail": "Overlapping invisible writes without direct host attribution cannot be assigned to an agent; uncertain observations do not publish advice."
+  },
+  "expectedVerdict": "blocked"
+}

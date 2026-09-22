@@ -15,12 +15,22 @@ export type ResidentControlledOptions = {
   readonly delayMs?: number;
   readonly failure?: string;
   readonly capturePath?: string;
+  readonly outcomePath?: string;
+  readonly requireCredential?: boolean;
 };
 
 export type ResidentDispatchContext = {
   readonly statePath: string;
+  readonly activityPath?: string;
   readonly userConfigPath: string | null;
-  readonly credential: { readonly name: string; readonly value: string } | null;
+  readonly demoBudgetPath?: string | null;
+  readonly credential: {
+    readonly name: string;
+    readonly environmentValue: string | null;
+    readonly environmentOnly: boolean;
+    readonly generation: number;
+    readonly statePath: string;
+  } | null;
   readonly controlled: ResidentControlledOptions | null;
 };
 
@@ -72,7 +82,12 @@ export type ResidentResponse =
         | "busy"
         | "cleaned";
     }
-  | { readonly status: "advice"; readonly token: string; readonly output: CodexDirectEventOutput }
+  | {
+      readonly status: "advice";
+      readonly token: string;
+      readonly findingCount: number;
+      readonly output: CodexDirectEventOutput;
+    }
   | {
       readonly status: "stats";
       readonly queued: number;
@@ -110,6 +125,8 @@ const controlled = (value: unknown): value is ResidentControlledOptions => {
   if (item.delayMs !== undefined && (typeof item.delayMs !== "number" || !Number.isFinite(item.delayMs) || item.delayMs < 0)) return false;
   if (item.failure !== undefined && typeof item.failure !== "string") return false;
   if (item.capturePath !== undefined && typeof item.capturePath !== "string") return false;
+  if (item.outcomePath !== undefined && typeof item.outcomePath !== "string") return false;
+  if (item.requireCredential !== undefined && typeof item.requireCredential !== "boolean") return false;
   return true;
 };
 
@@ -117,11 +134,20 @@ const dispatch = (value: unknown): value is ResidentDispatchContext => {
   const item = record(value);
   const credential = item?.credential === null ? null : record(item?.credential);
   return item !== undefined && string(item.statePath) && item.statePath.startsWith("/") &&
+    (item.activityPath === undefined || (string(item.activityPath) && item.activityPath.startsWith("/"))) &&
     (item.userConfigPath === null || (string(item.userConfigPath) && item.userConfigPath.startsWith("/"))) &&
+    (item.demoBudgetPath === undefined || item.demoBudgetPath === null ||
+      (string(item.demoBudgetPath) && item.demoBudgetPath.startsWith("/"))) &&
     (credential === null || (
       typeof credential === "object" &&
       typeof credential.name === "string" && /^[A-Z_][A-Z0-9_]*$/.test(credential.name) &&
-      typeof credential.value === "string" && Buffer.byteLength(credential.value, "utf8") <= 32_768
+      (credential.environmentValue === null || (
+        typeof credential.environmentValue === "string" &&
+        Buffer.byteLength(credential.environmentValue, "utf8") <= 32_768
+      )) &&
+      typeof credential.environmentOnly === "boolean" &&
+      typeof credential.generation === "number" && Number.isSafeInteger(credential.generation) && credential.generation >= 0 &&
+      typeof credential.statePath === "string" && credential.statePath.startsWith("/")
     )) &&
     (item.controlled === null || controlled(item.controlled));
 };
@@ -195,7 +221,12 @@ const ResidentResponseSchema = Schema.Union([
     "accepted", "rejected-capacity", "obsolete-lifetime", "empty", "acknowledged", "finalized", "unsupported",
     "busy", "cleaned",
   ]) }),
-  Schema.Struct({ status: Schema.Literal("advice"), token: Schema.NonEmptyString, output: HostOutput }),
+  Schema.Struct({
+    status: Schema.Literal("advice"),
+    token: Schema.NonEmptyString,
+    findingCount: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+    output: HostOutput,
+  }),
   Schema.Struct({
     status: Schema.Literal("stats"),
     queued: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),

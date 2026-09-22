@@ -1,0 +1,32 @@
+name: macOS packaged review conformance
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [task/issue-64]
+
+permissions:
+  contents: read
+
+jobs:
+  packaged-path:
+    runs-on: macos-14
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.20.0
+      - name: Install development dependencies
+        run: npm install --legacy-peer-deps
+      - name: Verify packaged bounded setup journeys
+        run: npm run conformance:setup-package
+      - name: Verify packaged CLI, parser, capture, and resident path
+        run: npm run conformance:package -- --write-evidence
+      - name: Retain sanitized exact-profile evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-package-evidence
+          path: evidence/package/clean-darwin-node-24.20.0-*.json
+          if-no-files-found: error

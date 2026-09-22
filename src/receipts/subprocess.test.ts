@@ -97,6 +97,15 @@ describe("session receipt subprocess contract", { timeout }, () => {
     expect(result.parsed).toMatchObject({
       operation: "status",
       activity: { kind: "no-observation", observed: false },
+      evidence: {
+        resident: {
+          kind: "no-observation",
+          observed: false,
+          source: "resident-v1",
+          submission: { status: "none", findings: 0 },
+          modelReaction: { status: "unavailable", reason: "host-model-reaction-not-instrumented" },
+        },
+      },
       readiness: { configuration: "ready", consent: "approved" },
     });
   });
@@ -138,6 +147,14 @@ describe("session receipt subprocess contract", { timeout }, () => {
     expect(noSession.parsed).toMatchObject({
       readiness: { status: "not-ready", configuration: "invalid" },
       activity: { kind: "limited", limitation: "session_id_required" },
+      evidence: {
+        resident: {
+          kind: "no-observation",
+          observed: false,
+          limitation: "session-id-required",
+          modelReaction: { status: "unavailable" },
+        },
+      },
     });
   });
 

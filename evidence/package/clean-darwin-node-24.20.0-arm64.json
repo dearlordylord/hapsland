@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-22T22:03:54.805Z",
+  "package": {
+    "name": "realtime-review-prototype",
+    "version": "0.0.0",
+    "artifact": "realtime-review-prototype-0.0.0.tgz"
+  },
+  "environment": {
+    "node": "v24.20.0",
+    "operatingSystem": "darwin",
+    "architecture": "arm64"
+  },
+  "continuousIntegration": {
+    "provider": "github-actions",
+    "runId": "35790230309",
+    "commit": "627169235725661bf603ec9163298de5d21f25f9"
+  },
+  "isolation": {
+    "temporaryInstallation": true,
+    "developmentDependencies": false,
+    "checkoutPathUsedAtRuntime": false,
+    "retainedSyntheticSource": false
+  },
+  "entryPoints": {
+    "cli": "passed",
+    "parser": "passed",
+    "resident": "passed",
+    "hook": "passed"
+  },
+  "installation": {
+    "preview": "passed",
+    "installed": "passed",
+    "idempotent": "passed",
+    "scopedUninstall": "passed",
+    "customQuotedHome": true,
+    "independentHookPreserved": true,
+    "sourceEgressAuthorized": false,
+    "disableDispatchGate": "passed",
+    "update": {
+      "fromVersion": "0.0.0",
+      "toVersion": "0.0.1-local",
+      "preview": "passed",
+      "protocolIncompatibility": "rejected-before-write",
+      "partialRecovery": "resumed",
+      "previousHookRetainedOnPartialFailure": true,
+      "consentPreserved": true,
+      "credentialState": "preserved-external-native-store",
+      "trustRecordsModified": false,
+      "processesStopped": false,
+      "controlledReviewAfterUpdate": "passed",
+      "independentHookAfterUpdate": "passed"
+    }
+  },
+  "review": {
+    "backend": "controlled-offline",
+    "submissions": 2,
+    "adviceReturned": true,
+    "activity": {
+      "submitted": {
+        "instrumentation": "resident-v1",
+        "kind": "submitted",
+        "submission": "submitted",
+        "modelReaction": "unavailable"
+      },
+      "restart": {
+        "before": "pending",
+        "after": "restarted/lost",
+        "modelReaction": "unavailable"
+      }
+    }
+  },
+  "credentialLifecycle": {
+    "status": "actual-keychain",
+    "loginMs": 689,
+    "separateProcessLookupMs": 479,
+    "defaultKeychainIsolation": "lookup-replacement-logout-passed",
+    "residentRestartPersistence": "passed-distinct-pid-and-lifetime",
+    "residentControlledTransportResolution": "passed",
+    "logoutBeforeFutureDispatch": "passed",
+    "restrictedNativeLookupMs": 982,
+    "restrictedNativeOutcome": "timed-out-helper-terminated",
+    "secretRetainedInEvidence": false
+  },
+  "realCodex": {
+    "status": "not-requested"
+  },
+  "transientPackageDownloadPerEdit": false,
+  "verdict": "clean-package-passed-real-host-not-requested"
+}

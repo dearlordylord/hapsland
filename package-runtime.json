@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "runtime": {
+    "name": "node",
+    "version": "24.20.0"
+  },
+  "profiles": [
+    { "operatingSystem": "linux", "architecture": "arm64", "descriptorFacility": "/proc/self/fd", "verification": "tested" },
+    { "operatingSystem": "darwin", "architecture": "arm64", "descriptorFacility": "/dev/fd", "verification": "tested-controlled-package" }
+  ],
+  "requiredCommands": ["git"],
+  "linuxCredentialStore": {
+    "implementation": "Secret Service through libsecret",
+    "buildDependency": "libsecret-1 development files",
+    "lookupDeadlineMs": 750,
+    "backgroundUnlockPrompts": false
+  },
+  "macOSCredentialStore": {
+    "implementation": "Keychain generic password through Security.framework",
+    "service": "dev.typesafe.realtime-review-tool",
+    "account": "default",
+    "lookupDeadlineMs": 750,
+    "backgroundAuthenticationUI": "fail-without-prompt"
+  },
+  "parser": {
+    "implementation": "tree-sitter",
+    "languages": ["typescript", "tsx"]
+  },
+  "residentProtocol": 1
+}
