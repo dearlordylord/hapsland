@@ -292,6 +292,7 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
       if (rules.length === 0) continue;
       const input = freezeInput({
         contract: currentInputContract(context),
+        completeness: "complete",
         path: eligible.relativePath,
         declaration,
         unit,
