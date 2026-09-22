@@ -13,11 +13,27 @@ implementation specification.
 | Artifact | An independently identifiable semantic subject extracted from source. Its kind identifies what it describes; the initial kind is `typeShape`. |
 | Type-shape artifact | An artifact describing the domain values admitted by one interface, type declaration, or schema. |
 | Change observation | Host or reconciliation evidence that eligible working-tree content may have changed. |
+| Observation origin | The kind of evidence behind a change observation: direct edit or checkpoint reconciliation. |
+| Change attribution | Host evidence that associates an exact current snapshot with an intended advice recipient and canonical working root. Root co-location or checkpoint discovery alone is not attribution. |
+| File selection | The policy decision that a candidate path may be captured. Selection is based on containment, file kind, ignore rules, and declarative includes/excludes; it does not encode language or semantic-analyzer applicability. |
+| Analysis applicability | Whether bounded captured content is understood by an available semantic analyzer and yields reviewable artifacts. No applicable analyzer is an ordinary quiet result, distinct from file exclusion. |
+| Snapshot | The exact eligible source content observed at one capture boundary, identified by its source identity. It is transient review evidence, not a backup, history, or durable replay record. |
+| Unattributed change | A checkpoint-discovered change for which the exact current snapshot cannot be associated with an advice recipient. It has unknown origin and no recipient, so it cannot produce agent-addressed advice. |
+| Direct-edit observation | Change evidence obtained at a dedicated edit boundary exposed by an agent host. |
+| Checkpoint reconciliation | Comparison of eligible working-tree content with prior observation state to discover changes not yet accounted for. |
+| Observation baseline | The bounded, source-free in-memory record of eligible file fingerprints and per-file artifact projections used by the current resident reviewer for checkpoint reconciliation. It is discarded when that reviewer restarts. |
+| Artifact index | The part of an observation baseline that groups review-projection fingerprints by eligible file so newly added or changed artifacts can be selected without retaining source. A missing entry is unknown, never evidence that an artifact is unchanged. |
+| Checkpoint trigger | A host-neutral reason to perform checkpoint reconciliation, mapped from an agent host’s lifecycle events. |
+| Turn-completion checkpoint | A catch-up checkpoint at an agent host’s attempt to finish a turn. |
 | Change set | The complete, stable source changes established by one successful observation. An incomplete or unstable capture produces no change set. |
 | Observation result | The completion, skip, or incompleteness outcome of processing one change observation before semantic review work exists. |
 | Review unit | One root artifact together with the supporting evidence evaluated independently in one review-backend request. |
 | Review work item | One review unit together with the frozen observation, rule-set, and input-contract context needed to schedule its evaluation. |
+| Review dispatch cycle | A finite group of review work items selected together for evaluation; work arriving after selection belongs to a later cycle. |
 | Review result | The operational result of evaluating one actual review work item. |
+| Advice recipient | The specific agent or subagent context eligible to receive advice for an attributable review input. A working root or the latest caller is not itself a recipient. |
+| Pending advice | Advice from a completed review that remains eligible for delivery to its intended recipient. |
+| Advice relevance expiry | The transition after which undelivered pending advice is no longer eligible for delivery because its configured relevance age has elapsed. It does not imply delivery, host closure, or loss of the observation baseline. |
 | Advice batch | The bounded collection of review results selected for delivery together through one agent-host interaction. |
 | Source fingerprint | A deterministic fingerprint of an artifact's exact source, used as equality evidence rather than as the identity of an observation. |
 | Review projection fingerprint | A deterministic fingerprint of the canonical evidence projection evaluated for a review unit. |
