@@ -1,6 +1,7 @@
 import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { spawn } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   logoutCredential,
@@ -27,16 +28,20 @@ const operation = process.argv[2];
 const mode = process.env.TEST_SECRET_MODE;
 const vault = process.env.TEST_SECRET_VAULT;
 if (mode === "hang") await new Promise(() => setInterval(() => {}, 1000));
+if (mode === "epipe") process.exit(0);
 if (mode === "unavailable") { console.log('{"version":1,"status":"unavailable"}'); process.exit(2); }
 if (mode === "locked") { console.log('{"version":1,"status":"locked"}'); process.exit(2); }
 if (operation === "probe") console.log('{"version":1,"status":"available"}');
 else if (operation === "get") {
+  if (mode === "slow-get") await new Promise((resolve) => setTimeout(resolve, 150));
   if (!existsSync(vault)) console.log('{"version":1,"status":"missing"}');
   else { const value = readFileSync(vault); console.log(JSON.stringify({version:1,status:"present",length:value.length})); process.stdout.write(value); }
 } else if (operation === "set") {
   const chunks = []; for await (const chunk of process.stdin) chunks.push(chunk);
   if (mode === "fail-set") { console.log('{"version":1,"status":"unavailable"}'); process.exit(2); }
-  writeFileSync(vault, Buffer.concat(chunks), { mode: 0o600 }); console.log('{"version":1,"status":"stored"}');
+  writeFileSync(vault, Buffer.concat(chunks), { mode: 0o600 });
+  if (mode === "commit-hang-set") await new Promise(() => setInterval(() => {}, 1000));
+  console.log('{"version":1,"status":"stored"}');
 } else if (operation === "delete") {
   if (mode === "fail-delete") { console.log('{"version":1,"status":"unavailable"}'); process.exit(2); }
   const existed = existsSync(vault); rmSync(vault, { force: true }); console.log(JSON.stringify({version:1,status:existed?"deleted":"missing"}));
@@ -62,6 +67,11 @@ describe("Secret Service credential lifecycle", () => {
     const started = Date.now();
     await expect(runSecretService("get", { deadlineMs: 40 })).resolves.toEqual({ status: "timed-out" });
     expect(Date.now() - started).toBeLessThan(500);
+  });
+
+  it("maps helper stdin EPIPE to a sanitized indeterminate result", async () => {
+    process.env.TEST_SECRET_MODE = "epipe";
+    await expect(runSecretService("set", { input: "x".repeat(32_768) })).resolves.toEqual({ status: "indeterminate" });
   });
 
   it("uses the default environment key before saved storage", async () => {
@@ -109,6 +119,31 @@ describe("Secret Service credential lifecycle", () => {
       statePath: lifecycle,
     })).resolves.toMatchObject({ status: "suspended", generation: replacement.state.generation });
   });
+
+  it("rejects a lookup whose generation changes in another process", async () => {
+    await saveCredential("saved-marker", lifecycle);
+    process.env.TEST_SECRET_MODE = "slow-get";
+    const mutation = spawn(process.execPath, ["-e", `
+      const fs = require("node:fs");
+      setTimeout(() => fs.writeFileSync(process.argv[1], JSON.stringify({version:1,generation:99,savedUseSuspended:false})), 30);
+    `, lifecycle], { stdio: "ignore" });
+    const mutationExited = new Promise<void>((resolveExit) => mutation.once("exit", () => resolveExit()));
+    await expect(resolveCredential({ envVar: "TYPESAFE_API_KEY", environmentOnly: false, statePath: lifecycle }))
+      .resolves.toMatchObject({ status: "suspended", generation: 99 });
+    await mutationExited;
+  });
+
+  it("reports commit-then-timeout replacement as indeterminate and suspends use", async () => {
+    await saveCredential("old-marker", lifecycle);
+    process.env.TEST_SECRET_MODE = "commit-hang-set";
+    const result = await saveCredential("new-marker", lifecycle);
+    expect(result.status).toBe("indeterminate");
+    expect(result.state.savedUseSuspended).toBe(true);
+    expect(readFileSync(vault, "utf8")).toBe("new-marker");
+    delete process.env.TEST_SECRET_MODE;
+    await expect(resolveCredential({ envVar: "TYPESAFE_API_KEY", environmentOnly: false, statePath: lifecycle }))
+      .resolves.toMatchObject({ status: "suspended" });
+  }, 20_000);
 
   it("suspends saved use and advances generation when deletion fails", async () => {
     const stored = await saveCredential("saved-marker", lifecycle);

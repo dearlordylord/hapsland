@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const executeRealCodex = process.argv.includes("--real-codex");
 const writeEvidence = process.argv.includes("--write-evidence");
+const exerciseSecretService = process.argv.includes("--secret-service");
 const outputPath = join(root, `evidence/package/clean-${process.platform}-node-24.20.0-${process.arch}.json`);
 const run = (command, args, options = {}) => new Promise((resolveRun, reject) => {
   const child = spawn(command, args, {
@@ -319,42 +320,44 @@ try {
     ...process.env,
     REVIEW_STATE_PATH: state,
     REVIEW_RESIDENT_DIR: runtime,
-    REVIEW_CONTROL_JSON: JSON.stringify({ answers, capturePath: calls, outcomePath: outcomes }),
+    REVIEW_CONTROL_JSON: JSON.stringify({
+      answers,
+      capturePath: calls,
+      outcomePath: outcomes,
+      ...(exerciseSecretService ? { requireCredential: true } : {}),
+    }),
     REVIEW_INSTALL_CONTROLLED: "1",
   };
   for (const key of ["OPENAI_API_KEY", "TYPESAFE_API_KEY"]) delete env[key];
-  const credentialVault = join(temporary, "state", "credential-vault");
   const credentialLifecycle = join(temporary, "state", "credential-state.json");
-  const credentialHelper = join(temporary, "credential-helper.mjs");
   await mkdir(join(temporary, "state"), { recursive: true, mode: 0o700 });
-  await writeFile(credentialHelper, `#!/usr/bin/env node
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-const operation = process.argv[2]; const vault = process.env.PACKAGE_CREDENTIAL_VAULT;
-if (operation === "probe") console.log('{"version":1,"status":"available"}');
-else if (operation === "get") { if (!existsSync(vault)) console.log('{"version":1,"status":"missing"}'); else { const value=readFileSync(vault); console.log(JSON.stringify({version:1,status:"present",length:value.length})); process.stdout.write(value); } }
-else if (operation === "set") { const chunks=[]; for await (const chunk of process.stdin) chunks.push(chunk); writeFileSync(vault,Buffer.concat(chunks),{mode:0o600}); console.log('{"version":1,"status":"stored"}'); }
-else if (operation === "delete") { const found=existsSync(vault); rmSync(vault,{force:true}); console.log(JSON.stringify({version:1,status:found?"deleted":"missing"})); }
-`, { mode: 0o700 });
-  await chmod(credentialHelper, 0o700);
-  env.REVIEW_CREDENTIAL_HELPER = credentialHelper;
   env.REVIEW_CREDENTIAL_STATE_PATH = credentialLifecycle;
-  env.PACKAGE_CREDENTIAL_VAULT = credentialVault;
   const syntheticCredential = "package-secret-marker-never-retained";
-  const loginRun = await mustRun(cli, ["--login", "--credential-stdin"], {
-    cwd: temporary, env, input: `${syntheticCredential}\n`,
-  });
-  const loginResult = parseJson(loginRun.stdout, "packaged credential login");
-  if (loginResult.status !== "stored" || loginResult.paidVerificationPerformed !== false ||
-      `${loginRun.stdout}${loginRun.stderr}`.includes(syntheticCredential)) {
-    throw new Error("packaged credential login did not store safely without paid verification");
-  }
-  const credentialInspection = await mustRun(cli, ["--inspect-credentials"], {
-    cwd: repository, env, input: JSON.stringify({ version: 1, operation: "credentials", cwd: repository }),
-  });
-  const credentialResult = parseJson(credentialInspection.stdout, "packaged credential inspection");
-  if (credentialResult.present !== true || credentialResult.source !== "saved" ||
-      credentialInspection.stdout.includes(syntheticCredential)) {
-    throw new Error("packaged CLI did not reuse the saved credential in a new process");
+  let credentialEvidence = { status: "not-requested" };
+  if (exerciseSecretService) {
+    const loginStarted = Date.now();
+    const loginRun = await mustRun(cli, ["--login", "--credential-stdin"], {
+      cwd: temporary, env, input: `${syntheticCredential}\n`,
+    });
+    const loginResult = parseJson(loginRun.stdout, "packaged credential login");
+    if (loginResult.status !== "stored" || loginResult.paidVerificationPerformed !== false ||
+        `${loginRun.stdout}${loginRun.stderr}`.includes(syntheticCredential)) {
+      throw new Error("packaged credential login did not store safely without paid verification");
+    }
+    const lookupStarted = Date.now();
+    const credentialInspection = await mustRun(cli, ["--inspect-credentials"], {
+      cwd: repository, env, input: JSON.stringify({ version: 1, operation: "credentials", cwd: repository }),
+    });
+    const credentialResult = parseJson(credentialInspection.stdout, "packaged credential inspection");
+    if (credentialResult.present !== true || credentialResult.source !== "saved" ||
+        credentialInspection.stdout.includes(syntheticCredential)) {
+      throw new Error("packaged CLI did not reuse the saved credential in a new process");
+    }
+    credentialEvidence = {
+      status: "actual-secret-service",
+      loginMs: Date.now() - loginStarted,
+      separateProcessLookupMs: Date.now() - lookupStarted,
+    };
   }
   await mkdir(codexHome, { recursive: true, mode: 0o700 });
   const fakeCodex = join(temporary, "codex-cli-fixture");
@@ -436,14 +439,40 @@ else if (operation === "delete") { const found=existsSync(vault); rmSync(vault,{
     hookOutput = parseJson(collect.stdout, "packaged hook output");
     if (hookOutput.hookSpecificOutput?.additionalContext !== undefined) break;
   }
-  const submissions = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
+  let submissions = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
   if (submissions !== 1) throw new Error(`expected one controlled backend submission, observed ${submissions}`);
   if (hookOutput.hookSpecificOutput?.hookEventName !== "PostToolUse") throw new Error("packaged hook did not return review advice");
-  const logoutRun = await mustRun(cli, ["--logout"], { cwd: temporary, env });
-  const logoutResult = parseJson(logoutRun.stdout, "packaged credential logout");
-  if (logoutResult.status !== "logged-out" || logoutResult.grantsPreserved !== true ||
-      logoutResult.sentRequestsRecalled !== false || logoutRun.stdout.includes(syntheticCredential)) {
-    throw new Error("packaged credential logout did not revoke saved use safely");
+  if (exerciseSecretService) {
+    const firstOwner = parseJson(ownerAfterAdmission, "first resident owner");
+    process.kill(firstOwner.pid, "SIGTERM");
+    await new Promise((resolveWait) => setTimeout(resolveWait, 100));
+    const restartSource = "export interface Restarted { id: string; destination: string }\n";
+    await writeFile(join(repository, "restarted.ts"), restartSource, { mode: 0o600 });
+    const restartEvent = {
+      ...addEvent,
+      tool_use_id: "package-restart-add",
+      tool_input: { command: `*** Begin Patch\n*** Add File: restarted.ts\n+${restartSource.trim()}\n*** End Patch` },
+    };
+    await mustRun(cli, ["--codex-hook", "--controlled", "--controlled-writer"], {
+      cwd: temporary, env, input: JSON.stringify(restartEvent),
+    });
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      await new Promise((resolveWait) => setTimeout(resolveWait, 50));
+      await mustRun(cli, ["--codex-hook", "--controlled", "--controlled-writer"], {
+        cwd: temporary, env,
+        input: JSON.stringify({ ...restartEvent, tool_name: "Bash", tool_use_id: `package-restart-collect-${attempt}`, tool_input: { command: "printf package-restart-ready" } }),
+      });
+      submissions = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
+      if (submissions === 2) break;
+    }
+    if (submissions !== 2) throw new Error("restarted resident did not reuse the persistent Secret Service credential");
+    credentialEvidence = { ...credentialEvidence, residentRestartPersistence: "passed" };
+    const logoutRun = await mustRun(cli, ["--logout"], { cwd: temporary, env });
+    const logoutResult = parseJson(logoutRun.stdout, "packaged credential logout");
+    if (logoutResult.status !== "logged-out" || logoutResult.grantsPreserved !== true ||
+        logoutResult.sentRequestsRecalled !== false || logoutRun.stdout.includes(syntheticCredential)) {
+      throw new Error("packaged credential logout did not revoke saved use safely");
+    }
   }
   const disabledRun = await mustRun(cli, ["--disable"], {
     cwd: temporary, env, input: JSON.stringify({ version: 1, operation: "disable", cwd: repository }),
@@ -470,6 +499,11 @@ else if (operation === "delete") { const found=existsSync(vault); rmSync(vault,{
     env,
     input: JSON.stringify({ version: 1, operation: "enable-confirm", cwd: repository, proposalDigest: parseJson(reenablePreview.stdout, "reenable preview").proposal.digest }),
   });
+  if (exerciseSecretService) {
+    await mustRun(cli, ["--login", "--credential-stdin"], {
+      cwd: temporary, env, input: `${syntheticCredential}\n`,
+    });
+  }
   const owner = parseJson(await readFile(join(runtime, "owner.json"), "utf8"), "resident owner");
   residentPid = owner.pid;
 
@@ -559,6 +593,50 @@ else if (operation === "delete") { const found=existsSync(vault); rmSync(vault,{
     }
   }
 
+  if (exerciseSecretService) {
+    const finalLogout = await mustRun(cli, ["--logout"], { cwd: temporary, env });
+    if (parseJson(finalLogout.stdout, "final credential logout").status !== "logged-out") {
+      throw new Error("final installed credential logout failed");
+    }
+    await mustRun(cli, ["--login", "--credential-stdin"], {
+      cwd: temporary, env, input: `${syntheticCredential}\n`,
+    });
+    const installedHelper = join(packageDirectory, "dist", "native", "credential-secret-service");
+    await mustRun(installedHelper, ["lock"], { cwd: temporary, env });
+    const lockedStarted = Date.now();
+    const lockedRun = await run(cli, ["--inspect-credentials"], {
+      cwd: repository, env,
+      input: JSON.stringify({ version: 1, operation: "credentials", cwd: repository }),
+      timeoutMs: 5_000,
+    });
+    const lockedResult = parseJson(lockedRun.stdout, "locked credential inspection");
+    if (lockedResult.status !== "locked" || lockedRun.code !== 6) {
+      throw new Error("installed credential inspection did not report locked storage");
+    }
+    const unreachableStarted = Date.now();
+    const unreachableRun = await run(cli, ["--inspect-credentials"], {
+      cwd: repository,
+      env: { ...env, DBUS_SESSION_BUS_ADDRESS: "unix:path=/nonexistent/review-secret-service" },
+      input: JSON.stringify({ version: 1, operation: "credentials", cwd: repository }),
+      timeoutMs: 5_000,
+    });
+    const unreachableResult = parseJson(unreachableRun.stdout, "unreachable credential inspection");
+    if (unreachableResult.status !== "unavailable" || unreachableRun.code !== 6) {
+      throw new Error("installed credential inspection did not report unreachable storage");
+    }
+    const lockedLookupMs = Date.now() - lockedStarted;
+    credentialEvidence = {
+      ...credentialEvidence,
+      residentControlledTransportResolution: "passed",
+      logoutBeforeFutureDispatch: "passed",
+      lockedLookupMs,
+      lockedOutcome: "locked-no-prompt",
+      unreachableLookupMs: Date.now() - unreachableStarted,
+      unreachableOutcome: "unavailable-bounded",
+      secretRetainedInEvidence: false,
+    };
+  }
+
   const uninstallPreviewRun = await mustRun(cli, ["--uninstall"], {
     cwd: temporary, env, input: JSON.stringify({ version: 1, operation: "uninstall", codexHome }),
   });
@@ -603,13 +681,7 @@ else if (operation === "delete") { const found=existsSync(vault); rmSync(vault,{
       disableDispatchGate: "passed",
     },
     review: { backend: "controlled-offline", submissions, adviceReturned: true },
-    credentialLifecycle: {
-      login: "stored-without-paid-verification",
-      newProcessReuse: "saved-source-present",
-      installedHookControlledCompletion: "passed",
-      logout: "deleted-before-future-dispatch",
-      secretRetainedInEvidence: false,
-    },
+    credentialLifecycle: credentialEvidence,
     realCodex,
     transientPackageDownloadPerEdit: false,
     verdict: executeRealCodex

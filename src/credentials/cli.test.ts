@@ -1,7 +1,7 @@
 import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 
 describe("public credential CLI", () => {
@@ -51,4 +51,50 @@ else if (operation === "delete") { const found=existsSync(vault); rmSync(vault,{
     });
     expect(`${logout.stdout}${logout.stderr}`).not.toContain("surviving-environment-marker");
   });
+
+  it.skipIf(process.platform !== "linux")("restores the exact terminal mode after SIGINT during masked input", async () => {
+    const root = mkdtempSync(join(tmpdir(), "credential-pty-"));
+    const helper = join(root, "helper.mjs");
+    const entrypoint = join(process.cwd(), "src", "cli.ts");
+    writeFileSync(helper, `#!/usr/bin/env node
+if (process.argv[2] === "probe") console.log('{"version":1,"status":"available"}');
+`);
+    chmodSync(helper, 0o700);
+    const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
+    const command = `before=$(stty -g); ${quote(process.execPath)} ${quote(entrypoint)} --login; code=$?; after=$(stty -g); printf '\\nMODEBEFORE:%s\\nMODEAFTER:%s\\nEXIT:%s\\n' "$before" "$after" "$code"`;
+    const child = spawn("script", ["-qfec", command, "/dev/null"], {
+      cwd: root,
+      env: {
+        ...process.env,
+        REVIEW_CREDENTIAL_HELPER: helper,
+        REVIEW_CREDENTIAL_STATE_PATH: join(root, "state.json"),
+      },
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    let output = "";
+    let interrupted = false;
+    child.stdout.on("data", (chunk: Buffer) => {
+      output += chunk.toString("utf8");
+      if (!interrupted && output.includes("Jev API key:")) {
+        const processes = spawnSync("ps", ["-eo", "pid=,args="], { encoding: "utf8" }).stdout;
+        const line = processes.split("\n").find((candidate) =>
+          /^\s*\d+\s+\S*node\s+/.test(candidate) && candidate.includes(entrypoint) && candidate.includes("--login"));
+        const pid = line?.trim().split(/\s+/, 1)[0];
+        if (pid !== undefined) {
+          interrupted = true;
+          process.kill(Number(pid), "SIGINT");
+        }
+      }
+    });
+    child.stderr.on("data", (chunk: Buffer) => { output += chunk.toString("utf8"); });
+    await new Promise<void>((resolveExit, rejectExit) => {
+      const timeout = setTimeout(() => { child.kill("SIGKILL"); rejectExit(new Error(`PTY cancellation timed out: ${output}`)); }, 3_000);
+      child.once("exit", () => { clearTimeout(timeout); resolveExit(); });
+      child.once("error", rejectExit);
+    });
+    const modes = /MODEBEFORE:([^\r\n]+)\r?\nMODEAFTER:([^\r\n]+)\r?\nEXIT:(\d+)/.exec(output);
+    expect(modes, output).not.toBeNull();
+    expect(modes?.[2]).toBe(modes?.[1]);
+    expect(Number(modes?.[3])).not.toBe(0);
+  }, 10_000);
 });

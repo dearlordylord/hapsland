@@ -10,4 +10,7 @@ The runtime adapter uses `SECRET_SEARCH_ALL | SECRET_SEARCH_LOAD_SECRETS` for ho
 It never supplies `SECRET_SEARCH_UNLOCK`, so a background lookup cannot initiate an unlock prompt.
 The parent process kills the helper at 750 ms. Deterministic tests separately cover timeout,
 unavailable/locked storage, replacement preservation, delete-failure suspension, environment
-precedence and generation invalidation.
+precedence, separate-process generation races, commit-then-timeout ambiguity, stdin transport
+failure, and generation invalidation. Installed-package evidence additionally exercises the
+production resolver through a disposable persistent Secret Service, a resident restart, the real
+Codex hook with controlled transport, and bounded locked/unreachable outcomes.

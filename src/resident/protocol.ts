@@ -16,6 +16,7 @@ export type ResidentControlledOptions = {
   readonly failure?: string;
   readonly capturePath?: string;
   readonly outcomePath?: string;
+  readonly requireCredential?: boolean;
 };
 
 export type ResidentDispatchContext = {
@@ -118,6 +119,7 @@ const controlled = (value: unknown): value is ResidentControlledOptions => {
   if (item.failure !== undefined && typeof item.failure !== "string") return false;
   if (item.capturePath !== undefined && typeof item.capturePath !== "string") return false;
   if (item.outcomePath !== undefined && typeof item.outcomePath !== "string") return false;
+  if (item.requireCredential !== undefined && typeof item.requireCredential !== "boolean") return false;
   return true;
 };
 

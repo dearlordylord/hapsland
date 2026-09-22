@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import { addEvent, makeGitFixture, put, recipient } from "../direct-event/test-fixtures.ts";
@@ -71,7 +72,65 @@ const mutuallyReferencingTypes = () => Array.from({ length: 17 }, (_, index) => 
   return `interface Type${index} { ${fields} }`;
 }).join("\n");
 
+const waitUntilIdle = async (server: ResidentServer): Promise<void> => {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const stats = server.stats();
+    if (stats.queued === 0 && stats.running === 0 && stats.pendingEvaluations === 0) return;
+    await new Promise<void>((resolveImmediate) => setImmediate(resolveImmediate));
+  }
+  throw new Error("resident did not become idle");
+};
+
 describe("resident delivery lease", () => {
+  it("rejects a separate-process generation change after authorization and before credential dispatch", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const statePath = join(root, "consent");
+    const credentialStatePath = join(root, "credential-state.json");
+    const capturePath = join(root, "provider-calls.txt");
+    writeFileSync(credentialStatePath, JSON.stringify({ version: 1, generation: 1, savedUseSuspended: false }));
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    const changed = deferred();
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+      afterAuthorizeBeforeCredential: async () => {
+        const child = spawn(process.execPath, ["-e", `
+          require("node:fs").writeFileSync(process.argv[1], JSON.stringify({version:1,generation:2,savedUseSuspended:false}));
+        `, credentialStatePath], { stdio: "ignore" });
+        await new Promise<void>((resolveExit, rejectExit) => {
+          child.once("exit", () => resolveExit());
+          child.once("error", rejectExit);
+        });
+        changed.resolve();
+      },
+    });
+    const dispatch: ResidentDispatchContext = {
+      statePath,
+      userConfigPath: null,
+      credential: {
+        name: "TYPESAFE_API_KEY",
+        environmentValue: "synthetic-race-marker",
+        environmentOnly: false,
+        generation: 1,
+        statePath: credentialStatePath,
+      },
+      controlled: {
+        requireCredential: true,
+        capturePath,
+        answers: Object.fromEntries(configuredRules.map((rule) => [
+          rule.id, { _tag: "Probability", probability: 0.9 },
+        ])),
+      },
+    };
+    expect(server.admit(observation, dispatch)).toEqual({ status: "accepted" });
+    await changed.promise;
+    await waitUntilIdle(server);
+    expect(existsSync(capturePath)).toBe(false);
+    expect(server.stats()).toMatchObject({ pendingAdvice: 0, pendingEvaluations: 0 });
+  });
+
   it("commits an idle lifetime to retiring before returning cleanup success", async () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");

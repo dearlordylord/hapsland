@@ -110,6 +110,7 @@ const ResidentControlledOptions = Schema.Struct({
   failure: Schema.optionalKey(Schema.String),
   capturePath: Schema.optionalKey(Schema.String),
   outcomePath: Schema.optionalKey(Schema.String),
+  requireCredential: Schema.optionalKey(Schema.Boolean),
 });
 
 type IngressJob = {
@@ -350,6 +351,7 @@ export class ResidentServer {
   readonly #afterRevalidationWorkspaceReserved: ((adviceId: string) => Promise<void>) | undefined;
   readonly #afterAdvicePending: ((adviceId: string) => Promise<void> | void) | undefined;
   readonly #beforeFinalRevalidate: ((adviceId: string) => Promise<void>) | undefined;
+  readonly #afterAuthorizeBeforeCredential: (() => Promise<void>) | undefined;
   readonly paths: ResidentPaths;
 
   constructor(
@@ -362,6 +364,7 @@ export class ResidentServer {
       readonly afterRevalidationWorkspaceReserved?: (adviceId: string) => Promise<void>;
       readonly afterAdvicePending?: (adviceId: string) => Promise<void> | void;
       readonly beforeFinalRevalidate?: (adviceId: string) => Promise<void>;
+      readonly afterAuthorizeBeforeCredential?: () => Promise<void>;
       readonly maximumOperationalNoticeKeys?: number;
     } = {},
   ) {
@@ -382,6 +385,7 @@ export class ResidentServer {
     this.#afterRevalidationWorkspaceReserved = options.afterRevalidationWorkspaceReserved;
     this.#afterAdvicePending = options.afterAdvicePending;
     this.#beforeFinalRevalidate = options.beforeFinalRevalidate;
+    this.#afterAuthorizeBeforeCredential = options.afterAuthorizeBeforeCredential;
     this.#reuse = new EvaluationReuse({
       reserve: (partition, bytes) => this.#reserve(partition, bytes),
       release: (reservation) => { this.#ledger.release(reservation); },
@@ -1020,12 +1024,9 @@ export class ResidentServer {
           userConfigPath === undefined ? {} : { userConfigPath },
         );
         if (job.dispatch.controlled !== null && controlled === undefined) return undefined;
-        if (controlled === undefined && job.dispatch.credential?.name !== settings.credentialEnvVar) return undefined;
-        if (controlled === undefined && job.dispatch.credential === null) return undefined;
-        if (
-          controlled === undefined && job.dispatch.credential !== null &&
-          readCredentialState(job.dispatch.credential.statePath).generation !== job.dispatch.credential.generation
-        ) return undefined;
+        const credentialRequired = controlled === undefined || controlled.requireCredential === true;
+        if (credentialRequired && job.dispatch.credential?.name !== settings.credentialEnvVar) return undefined;
+        if (credentialRequired && job.dispatch.credential === null) return undefined;
         const consent = yield* Consent.Service;
         const authorization = yield* consent.authorize(
           job.observation.root,
@@ -1033,6 +1034,10 @@ export class ResidentServer {
           settings.destination,
         ).pipe(Effect.catch(() => Effect.succeed({ status: "denied" as const })));
         if (authorization.status !== "approved" || !(yield* verifyObservationRoot(job.observation))) return undefined;
+        if (
+          credentialRequired && job.dispatch.credential !== null &&
+          readCredentialState(job.dispatch.credential.statePath).generation !== job.dispatch.credential.generation
+        ) return undefined;
         return settings;
       }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))));
       this.#ledger.release(job.reservation);
@@ -1176,15 +1181,28 @@ export class ResidentServer {
       await this.#beforeEvaluate?.(job.prepared);
       const userConfigPath = job.dispatch.userConfigPath ?? undefined;
       const controlled = decodeControlledOptions(job.dispatch.controlled);
+      const afterAuthorizeBeforeCredential = this.#afterAuthorizeBeforeCredential;
       const result = await Effect.runPromise(Effect.gen(function* () {
         const settings = yield* loadReviewSettings(
           job.observation.root,
           userConfigPath === undefined ? {} : { userConfigPath },
         );
         if (job.dispatch.controlled !== null && controlled === undefined) return undefined;
-        if (controlled === undefined && job.dispatch.credential?.name !== settings.credentialEnvVar) return undefined;
+        const credentialRequired = controlled === undefined || controlled.requireCredential === true;
+        if (credentialRequired && job.dispatch.credential?.name !== settings.credentialEnvVar) return undefined;
         const dispatchCredential = job.dispatch.credential;
-        const credential = controlled !== undefined || dispatchCredential === null
+        if (credentialRequired && dispatchCredential === null) return undefined;
+        const consent = yield* Consent.Service;
+        const authorization = yield* consent.authorize(
+          job.observation.root,
+          settings.backend,
+          settings.destination,
+        ).pipe(Effect.catch(() => Effect.succeed({ status: "denied" as const })));
+        if (authorization.status !== "approved" || !(yield* verifyObservationRoot(job.observation))) return undefined;
+        if (afterAuthorizeBeforeCredential !== undefined) {
+          yield* Effect.promise(afterAuthorizeBeforeCredential);
+        }
+        const credential = !credentialRequired || dispatchCredential === null
           ? undefined
           : yield* Effect.promise(() => resolveCredential({
               envVar: dispatchCredential.name,
@@ -1193,19 +1211,18 @@ export class ResidentServer {
               expectedGeneration: dispatchCredential.generation,
               statePath: dispatchCredential.statePath,
             }));
+        if (credentialRequired && credential?.status !== "present") return undefined;
+        if (credential?.status === "present") {
+          const current = readCredentialState(dispatchCredential?.statePath);
+          if (current.generation !== credential.generation ||
+              (credential.source === "saved" && current.savedUseSuspended)) return undefined;
+        }
         const credentialProvider = credential?.status !== "present"
           ? undefined
           : ConfigProvider.layer(ConfigProvider.fromUnknown({
               [settings.credentialEnvVar]: credential.value,
             }));
         if (controlled === undefined && credentialProvider === undefined) return undefined;
-        const consent = yield* Consent.Service;
-        const authorization = yield* consent.authorize(
-          job.observation.root,
-          settings.backend,
-          settings.destination,
-        ).pipe(Effect.catch(() => Effect.succeed({ status: "denied" as const })));
-        if (authorization.status !== "approved" || !(yield* verifyObservationRoot(job.observation))) return undefined;
         const decisionModel = controlled === undefined
           ? jevDecisionModelLiveLayer({
               apiUrl: settings.apiBase,
