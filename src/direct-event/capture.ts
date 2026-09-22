@@ -1,4 +1,4 @@
-import { constants, type BigIntStats } from "node:fs";
+import { constants, existsSync, type BigIntStats } from "node:fs";
 import { open, realpath } from "node:fs/promises";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
@@ -25,12 +25,17 @@ const signature = (status: BigIntStats): string =>
   [status.dev, status.ino, status.mode, status.size, status.mtimeNs, status.ctimeNs]
     .map(String).join(":");
 
+export const descriptorDirectory = (): string | undefined =>
+  ["/proc/self/fd", "/dev/fd"].find((candidate) => existsSync(candidate));
+
 const readOnce = async (
   root: string,
   path: EligiblePath,
   hooks: CaptureHooks,
   expectedRoot: PhysicalRootIdentity | undefined,
 ): Promise<{ readonly bytes: Buffer; readonly metadata: string; readonly hash: string }> => {
+  const descriptorRoot = descriptorDirectory();
+  if (descriptorRoot === undefined) throw new Error("descriptor-anchored capture is unavailable");
   const directoryFlags = constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW;
   const directories = [];
   let parent = await open(root, directoryFlags);
@@ -55,13 +60,13 @@ const readOnce = async (
     }
     const segments = path.relativePath.split("/");
     for (const segment of segments.slice(0, -1)) {
-      parent = await open(`/proc/self/fd/${parent.fd}/${segment}`, directoryFlags);
+      parent = await open(`${descriptorRoot}/${parent.fd}/${segment}`, directoryFlags);
       directories.push(parent);
     }
     const basename = segments.at(-1);
     if (basename === undefined) throw new Error("invalid path");
     const file = await open(
-      `/proc/self/fd/${parent.fd}/${basename}`,
+      `${descriptorRoot}/${parent.fd}/${basename}`,
       constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK,
     );
     try {

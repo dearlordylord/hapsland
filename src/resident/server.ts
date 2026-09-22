@@ -1479,10 +1479,12 @@ export class ResidentServer {
   }
 
   async listen(): Promise<void> {
-    if (process.platform !== "linux") throw new Error("resident profile supports Linux only");
+    if (process.platform !== "linux" && process.platform !== "darwin") {
+      throw new Error(`resident IPC is unsupported on ${process.platform}; use Linux or macOS`);
+    }
     await prepareResidentDirectory(this.paths);
-    // This process is launched under the live kernel lock. A socket pathname
-    // alone is never treated as ownership evidence.
+    // The launcher holds the live-owner directory. A socket pathname alone is
+    // never treated as ownership evidence.
     await verifyRemovableSocket(this.paths);
     await rm(this.paths.socket, { force: true });
     const server = createServer((socket) => this.#accept(socket));

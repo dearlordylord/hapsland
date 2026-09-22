@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const executeRealCodex = process.argv.includes("--real-codex");
 const writeEvidence = process.argv.includes("--write-evidence");
-const outputPath = join(root, "evidence/package/clean-linux-node-24.20.0-arm64.json");
+const outputPath = join(root, `evidence/package/clean-${process.platform}-node-24.20.0-${process.arch}.json`);
 const run = (command, args, options = {}) => new Promise((resolveRun, reject) => {
   const child = spawn(command, args, {
     cwd: options.cwd,
@@ -172,11 +172,11 @@ class TerminalScreen {
 }
 
 const establishNativeTrust = (codexHome, repository, env) => new Promise((resolveTrust, rejectTrust) => {
-  const child = spawn("script", [
-    "-qefc",
-    `stty rows 24 cols 80; exec ${quote("codex")} --no-alt-screen -C ${quote(repository)}`,
-    "/dev/null",
-  ], {
+  const command = `stty rows 24 cols 80; exec ${quote("codex")} --no-alt-screen -C ${quote(repository)}`;
+  const scriptArguments = process.platform === "darwin"
+    ? ["-q", "/dev/null", "/bin/sh", "-c", command]
+    : ["-qefc", command, "/dev/null"];
+  const child = spawn("script", scriptArguments, {
     cwd: repository,
     env: { ...env, CODEX_HOME: codexHome, TERM: "xterm-256color" },
     stdio: ["pipe", "pipe", "pipe"],
@@ -278,7 +278,7 @@ try {
   if (doctorResult.status !== "ready") throw new Error("package doctor did not report ready");
   const missingCommands = await run(process.execPath, [doctorSource], { cwd: temporary, env: { ...process.env, PATH: join(temporary, "missing-path") } });
   const missingCommandDiagnosis = parseJson(missingCommands.stdout, "package doctor missing-command diagnosis");
-  if (missingCommands.code !== 1 || !["git", "flock"].every((name) => missingCommandDiagnosis.checks.some((check) => check.name === name && check.status === "unsupported" && typeof check.action === "string"))) {
+  if (missingCommands.code !== 1 || !["git"].every((name) => missingCommandDiagnosis.checks.some((check) => check.name === name && check.status === "unsupported" && typeof check.action === "string"))) {
     throw new Error("package doctor did not provide actionable missing-command diagnoses");
   }
   const parserRun = await mustRun(parser, [], {
@@ -347,10 +347,15 @@ try {
     const codexHome = join(temporary, "codex-home");
     await mkdir(codexHome, { mode: 0o700 });
     try {
-      await copyFile("/home/node/.codex/auth.json", join(codexHome, "auth.json"));
-      await chmod(join(codexHome, "auth.json"), 0o600);
+      if (process.env.CODEX_AUTH_JSON !== undefined) {
+        parseJson(process.env.CODEX_AUTH_JSON, "CODEX_AUTH_JSON");
+        await writeFile(join(codexHome, "auth.json"), process.env.CODEX_AUTH_JSON, { mode: 0o600 });
+      } else {
+        await copyFile(join(process.env.HOME ?? "", ".codex", "auth.json"), join(codexHome, "auth.json"));
+        await chmod(join(codexHome, "auth.json"), 0o600);
+      }
     } catch {
-      throw new Error("real Codex fixture requested but isolated host authentication is unavailable");
+      throw new Error("real Codex fixture requested but isolated host authentication is unavailable; provide CODEX_AUTH_JSON or ~/.codex/auth.json");
     }
     await writeFile(join(codexHome, "config.toml"), "[features]\nhooks = true\n", { mode: 0o600 });
     await writeFile(join(codexHome, "hooks.json"), `${JSON.stringify({ hooks: { PostToolUse: [{ matcher: "^(apply_patch|Bash)$", hooks: [{ type: "command", command: `${quote(cli)} --codex-hook --controlled --controlled-writer`, timeout: 20 }] }] } }, null, 2)}\n`, { mode: 0o600 });
