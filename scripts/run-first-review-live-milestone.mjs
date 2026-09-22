@@ -1,23 +1,30 @@
 import { spawn } from "node:child_process";
-import { mkdir, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { createHash } from "node:crypto";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  rm,
+  writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve, sep } from "node:path";
 
 const projectRoot = resolve(new URL("../", import.meta.url).pathname);
 const explicitLive = process.argv.includes("--live");
 const writeEvidence = process.argv.includes("--write-evidence");
-const cli = process.env.REVIEW_LIVE_INSTALLED_CLI;
 const codexHome = process.env.REVIEW_LIVE_CODEX_HOME;
-const artifactSha256 = process.env.REVIEW_LIVE_ARTIFACT_SHA256;
 
-const run = (command, args, options) => new Promise((resolveRun, reject) => {
+const run = (command, args, options = {}) => new Promise((resolveRun, reject) => {
   const child = spawn(command, args, {
-    cwd: options.cwd,
-    env: options.env,
+    cwd: options.cwd ?? projectRoot,
+    env: options.env ?? process.env,
     stdio: ["pipe", "pipe", "pipe"],
   });
   let stdout = "";
   let stderr = "";
-  const timer = setTimeout(() => child.kill("SIGTERM"), options.timeoutMs);
+  const timer = setTimeout(() => child.kill("SIGTERM"), options.timeoutMs ?? 10_000);
   child.stdout.setEncoding("utf8");
   child.stderr.setEncoding("utf8");
   child.stdout.on("data", (value) => { stdout += value; });
@@ -27,26 +34,41 @@ const run = (command, args, options) => new Promise((resolveRun, reject) => {
     clearTimeout(timer);
     resolveRun({ code, signal, stdout, stderr });
   });
-  child.stdin.end(`${JSON.stringify(options.input)}\n`);
+  if (options.input === undefined) child.stdin.end();
+  else child.stdin.end(`${JSON.stringify(options.input)}\n`);
 });
 
-const invoke = async (input, timeoutMs = 10_000) => {
-  const result = await run(cli, ["--demo"], {
-    cwd: projectRoot,
-    env: process.env,
-    input,
-    timeoutMs,
-  });
-  let output;
-  try { output = JSON.parse(result.stdout); } catch { output = undefined; }
-  return { ...result, output };
+const requireExit = (result, label, expected = [0]) => {
+  if (!expected.includes(result.code)) {
+    throw new Error(`${label} exited ${String(result.code)} (${result.signal ?? "no signal"})`);
+  }
+  return result;
 };
 
-const environment = {
-  codex: "codex-cli 0.155.1",
-  node: process.version,
-  operatingSystem: process.platform,
-  architecture: process.arch,
+const parseJson = (result, label) => {
+  try {
+    return JSON.parse(result.stdout);
+  } catch {
+    throw new Error(`${label} did not return JSON`);
+  }
+};
+
+const stopScopedResident = async (stateRoot) => {
+  let owner;
+  try {
+    owner = JSON.parse(await readFile(join(stateRoot, "resident", "owner.json"), "utf8"));
+  } catch {
+    return;
+  }
+  if (!Number.isSafeInteger(owner?.pid) || owner.pid <= 0) {
+    throw new Error("scoped resident owner did not contain a valid process id");
+  }
+  try { process.kill(owner.pid, "SIGTERM"); } catch { return; }
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    try { process.kill(owner.pid, 0); } catch { return; }
+    await new Promise((resolveWait) => setTimeout(resolveWait, 100));
+  }
+  throw new Error("scoped resident did not stop during cleanup");
 };
 
 if (!explicitLive) {
@@ -58,14 +80,91 @@ if (!explicitLive) {
   }, null, 2)}\n`);
   process.exit(0);
 }
-if (cli === undefined || codexHome === undefined ||
-    artifactSha256 === undefined || !/^[a-f0-9]{64}$/.test(artifactSha256)) {
-  throw new Error("live milestone requires REVIEW_LIVE_INSTALLED_CLI, REVIEW_LIVE_CODEX_HOME, and REVIEW_LIVE_ARTIFACT_SHA256");
+if (codexHome === undefined) {
+  throw new Error("live milestone requires REVIEW_LIVE_CODEX_HOME");
 }
 
+const runnerRoot = await mkdtemp(join(tmpdir(), "review-first-live-runner-"));
+const installPrefix = join(runnerRoot, "installed-release");
+const stateRoot = join(runnerRoot, "state");
+const runnerEnv = {
+  ...process.env,
+  REVIEW_STATE_PATH: join(stateRoot, "consent"),
+  REVIEW_ACTIVITY_PATH: join(stateRoot, "activity"),
+  REVIEW_DEMO_STATE_PATH: join(stateRoot, "demo.json"),
+  REVIEW_RESIDENT_DIR: join(stateRoot, "resident"),
+};
+
+let cli;
 let preview;
 let live;
+let artifactSha256;
+let codexVersion;
+let installed = false;
+
+const invoke = async (input, timeoutMs = 10_000, expected = [0]) => {
+  const result = requireExit(await run(cli, ["--demo"], {
+    env: runnerEnv,
+    input,
+    timeoutMs,
+  }), `installed CLI ${input.selection}`, expected);
+  return { ...result, output: parseJson(result, `installed CLI ${input.selection}`) };
+};
+
 try {
+  await mkdir(installPrefix, { recursive: true });
+  const packResult = requireExit(await run("npm", ["pack", "--json", "--pack-destination", runnerRoot], {
+    timeoutMs: 120_000,
+  }), "npm pack");
+  const packEntries = parseJson(packResult, "npm pack");
+  const tarballName = packEntries[0]?.filename;
+  if (typeof tarballName !== "string") throw new Error("npm pack did not identify its tarball");
+  const tarballPath = join(runnerRoot, tarballName);
+  artifactSha256 = createHash("sha256").update(await readFile(tarballPath)).digest("hex");
+
+  requireExit(await run("npm", ["install", "--prefix", installPrefix, "--ignore-scripts", tarballPath], {
+    timeoutMs: 120_000,
+  }), "packed release installation");
+  const invokedCli = join(installPrefix, "node_modules", ".bin", "review-tool");
+  cli = await realpath(invokedCli);
+  const installedPackageRoot = await realpath(join(installPrefix, "node_modules", "realtime-review-prototype"));
+  const resolvedCli = await realpath(cli);
+  if (resolvedCli !== installedPackageRoot && !resolvedCli.startsWith(`${installedPackageRoot}${sep}`)) {
+    throw new Error("invoked CLI does not resolve inside the installed packed artifact");
+  }
+  const packageManifest = JSON.parse(await readFile(resolve(dirname(resolvedCli), "../package.json"), "utf8"));
+  if (packageManifest.name !== "realtime-review-prototype") {
+    throw new Error("installed CLI package identity did not match the packed release");
+  }
+
+  const versionResult = requireExit(await run("codex", ["--version"], { timeoutMs: 10_000 }), "codex --version");
+  codexVersion = versionResult.stdout.trim();
+  if (codexVersion.length === 0) throw new Error("codex --version returned an empty version");
+
+  const installPreviewRun = requireExit(await run(cli, ["--install-preview"], {
+    env: runnerEnv,
+    input: { version: 1, operation: "install-preview", codexHome, codexExecutable: "codex" },
+  }), "installed CLI install preview");
+  const installPreview = parseJson(installPreviewRun, "installed CLI install preview");
+  if (installPreview.status !== "preview" || typeof installPreview.proposal?.digest !== "string") {
+    throw new Error("installed CLI did not produce a complete installation preview");
+  }
+  const installRun = requireExit(await run(cli, ["--install"], {
+    env: runnerEnv,
+    input: {
+      version: 1,
+      operation: "install",
+      codexHome,
+      codexExecutable: "codex",
+      proposalDigest: installPreview.proposal.digest,
+    },
+  }), "installed CLI install");
+  const installResult = parseJson(installRun, "installed CLI install");
+  if (installResult.status !== "installed" && installResult.status !== "already-installed") {
+    throw new Error("installed CLI did not complete installation");
+  }
+  installed = true;
+
   preview = await invoke({
     version: 1,
     operation: "demo",
@@ -80,6 +179,7 @@ try {
       preview.output.budget?.timeMs !== 180_000) {
     throw new Error("demo preview did not preserve the declared offline budget contract");
   }
+
   live = await invoke({
     version: 1,
     operation: "demo",
@@ -89,16 +189,46 @@ try {
     consentProposalDigest: preview.output.authorization.consentProposalDigest,
     codexHome,
     codexExecutable: "codex",
-  }, 195_000);
+  }, 195_000, [0, 6]);
 } finally {
-  if (preview?.output?.demo?.id !== undefined && live?.output?.cleanup?.disposableRootRemoved !== true) {
+  let cleanupFailure;
+  const retainCleanupFailure = (cause) => { cleanupFailure ??= cause; };
+  if (preview?.output?.demo?.id !== undefined && live?.output?.cleanup?.disposableRootRemoved !== true && cli !== undefined) {
     await invoke({
       version: 1,
       operation: "demo",
       selection: "cancel",
       demoId: preview.output.demo.id,
-    }).catch(() => undefined);
+    }).catch(retainCleanupFailure);
   }
+  if (installed && cli !== undefined) {
+    await (async () => {
+      const uninstallPreviewRun = requireExit(await run(cli, ["--uninstall"], {
+        env: runnerEnv,
+        input: { version: 1, operation: "uninstall", codexHome },
+      }), "installed CLI uninstall preview");
+      const uninstallPreview = parseJson(uninstallPreviewRun, "installed CLI uninstall preview");
+      if (uninstallPreview.status !== "preview" || typeof uninstallPreview.proposal?.digest !== "string") {
+        throw new Error("installed CLI did not produce a scoped uninstall preview");
+      }
+      const uninstallRun = requireExit(await run(cli, ["--uninstall"], {
+        env: runnerEnv,
+        input: {
+          version: 1,
+          operation: "uninstall",
+          codexHome,
+          proposalDigest: uninstallPreview.proposal.digest,
+        },
+      }), "installed CLI uninstall");
+      const uninstallResult = parseJson(uninstallRun, "installed CLI uninstall");
+      if (uninstallResult.status !== "uninstalled") {
+        throw new Error("installed CLI did not complete scoped uninstall");
+      }
+    })().catch(retainCleanupFailure);
+  }
+  await stopScopedResident(stateRoot).catch(retainCleanupFailure);
+  await rm(runnerRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }).catch(retainCleanupFailure);
+  if (cleanupFailure !== undefined) throw cleanupFailure;
 }
 
 const result = live?.output;
@@ -106,10 +236,16 @@ const evidence = {
   schemaVersion: 1,
   recordedAt: new Date().toISOString(),
   milestone: "installed-product-first-review",
-  environment,
+  environment: {
+    codex: codexVersion,
+    node: process.version,
+    operatingSystem: process.platform,
+    architecture: process.arch,
+  },
   package: {
-    source: "packed-release-installation",
+    source: "runner-packed-release-installation",
     artifactSha256,
+    cliResolvedInsideInstalledArtifact: true,
   },
   selection: {
     explicitLive: true,

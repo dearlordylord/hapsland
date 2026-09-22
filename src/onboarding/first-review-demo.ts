@@ -80,8 +80,23 @@ export type DemoExecution = {
     readonly sourceBytes?: number;
     readonly submission: "submitted" | "none" | "unavailable";
     readonly findings: number;
-    readonly modelReaction: "observed" | "not-observed" | "unavailable";
-    readonly followUp: "completed" | "not-observed" | "unavailable";
+    readonly modelReaction:
+      | {
+          readonly status: "observed";
+          readonly source: "correlated-finding-reaction";
+          readonly deliveredFindingCorrelation: true;
+        }
+      | { readonly status: "not-observed"; readonly source: "correlated-finding-reaction" }
+      | { readonly status: "unavailable"; readonly reason: "host-model-reaction-not-instrumented" };
+    readonly followUp:
+      | {
+          readonly status: "completed";
+          readonly source: "post-repair-terminal-review";
+          readonly terminalState: "clear" | "findings" | "submitted";
+          readonly afterValidatedRepair: true;
+        }
+      | { readonly status: "not-observed"; readonly source: "post-repair-terminal-review" }
+      | { readonly status: "unavailable"; readonly reason: "post-repair-review-not-instrumented" };
     readonly latencyMs?: number;
   };
   readonly repair: { readonly changed: boolean; readonly rejectsInvalidStates: boolean };
@@ -199,11 +214,37 @@ const jsonLines = (encoded: string): ReadonlyArray<Readonly<Record<string, unkno
     }
   });
 
+/**
+ * Generic host messages, file changes, validation success and review event counts do
+ * not correlate a model action to a delivered finding or a terminal review to the
+ * validated repair. Keep both claims unavailable until the host exposes those links.
+ */
+export const uninstrumentedHostEvidence = (_observations: {
+  readonly messages: number;
+  readonly changed: boolean;
+  readonly repairValidated: boolean;
+  readonly terminalReviews: number;
+  readonly findingSubmitted: boolean;
+}) => ({
+  modelReaction: {
+    status: "unavailable" as const,
+    reason: "host-model-reaction-not-instrumented" as const,
+  },
+  followUp: {
+    status: "unavailable" as const,
+    reason: "post-repair-review-not-instrumented" as const,
+  },
+});
+
 /** Production executor. It uses normal Codex trust and never passes either bypass flag. */
 export const executeInstalledCodexDemo: DemoExecutor = async (options) => {
   const started = Date.now();
   const deadlineAt = started + options.deadlineMs;
   const before = await readFile(join(options.root, "session.ts"), "utf8");
+  const hostVersion = await execFileAsync(options.codexExecutable, ["--version"], {
+    env: process.env,
+    timeout: 10_000,
+  }).then((result) => result.stdout.trim() || "unavailable", () => "unavailable");
   const prompt = `This is an explicitly selected disposable review demo. The existing session.ts is deliberately flawed: it permits a logged-out session with a userId and a logged-in session without one. Do not use web search. Use apply_patch to add the optional field "readonly demoStarted?: true" inside Session. Then respond to any realtime review feedback as you normally would, choosing the repair yourself. Use no more than two apply_patch calls total. Finally run "node validate.mjs" and report its result.`;
   const environment = {
     ...process.env,
@@ -261,17 +302,22 @@ export const executeInstalledCodexDemo: DemoExecutor = async (options) => {
     activity.counts.clear + activity.counts.findings + activity.counts.unavailable;
   const usage = readDemoBudgetUsage(options.budgetPath);
   const submitted = activity?.submission.status === "submitted";
+  const correlation = uninstrumentedHostEvidence({
+    messages,
+    changed,
+    repairValidated: validation,
+    terminalReviews,
+    findingSubmitted: submitted,
+  });
   return {
-    host: { completed: host.completed, version: "codex-cli 0.155.1", durationMs: host.durationMs },
+    host: { completed: host.completed, version: hostVersion, durationMs: host.durationMs },
     review: {
       providerCalls: usage?.providerCalls ?? terminalReviews,
       ...(usage === undefined ? {} : { sourceBytes: usage.sourceBytes }),
       submission: activity === undefined ? "unavailable" : submitted ? "submitted" : "none",
       findings: activity?.findings ?? 0,
-      modelReaction: activity === undefined
-        ? "unavailable"
-        : submitted && changed && validation && messages > 0 ? "observed" : "not-observed",
-      followUp: activity === undefined ? "unavailable" : terminalReviews >= 2 ? "completed" : "not-observed",
+      modelReaction: correlation.modelReaction,
+      followUp: correlation.followUp,
       ...(activity?.firstObservedAt === undefined || activity.lastObservedAt === undefined
         ? {}
         : { latencyMs: Math.max(0, activity.lastObservedAt - activity.firstObservedAt) }),
@@ -378,8 +424,12 @@ export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
   const budgetObserved = calls <= DEMO_PROVIDER_CALL_BUDGET && sourceBytes <= DEMO_SOURCE_BYTE_BUDGET &&
     (Date.now() - reviewStarted) <= DEMO_TIME_BUDGET_MS;
   const passed = value !== undefined && value.host.completed && value.review.submission === "submitted" &&
-    value.review.findings > 0 && value.review.modelReaction === "observed" &&
-    value.repair.rejectsInvalidStates && value.review.followUp === "completed" && budgetObserved;
+    value.review.findings > 0 && value.review.modelReaction.status === "observed" &&
+    value.review.modelReaction.source === "correlated-finding-reaction" &&
+    value.review.modelReaction.deliveredFindingCorrelation === true &&
+    value.repair.rejectsInvalidStates && value.review.followUp.status === "completed" &&
+    value.review.followUp.source === "post-repair-terminal-review" &&
+    value.review.followUp.afterValidatedRepair === true && budgetObserved;
   return {
     version: 1 as const,
     operation: "demo" as const,
@@ -393,9 +443,9 @@ export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
       completion: value === undefined ? "incomplete" as const : value.host.completed ? "completed" as const : "incomplete" as const,
       submission: value?.review.submission ?? "unavailable",
       findings: Math.min(100, Math.max(0, value?.review.findings ?? 0)),
-      modelReaction: value?.review.modelReaction ?? "unavailable",
+      modelReaction: value?.review.modelReaction.status ?? "unavailable",
       repair: value?.repair.rejectsInvalidStates === true ? "independently-validated" as const : "not-validated" as const,
-      followUpReview: value?.review.followUp ?? "unavailable",
+      followUpReview: value?.review.followUp.status ?? "unavailable",
       providerCalls: Math.min(DEMO_PROVIDER_CALL_BUDGET + 1, Math.max(0, calls)),
       sourceBytes: Math.min(DEMO_SOURCE_BYTE_BUDGET + 1, Math.max(0, sourceBytes)),
       hostVersion: value?.host.version ?? "unavailable",

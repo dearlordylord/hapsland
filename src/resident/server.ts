@@ -7,6 +7,7 @@ import { createServer, type Server, type Socket } from "node:net";
 import { canonicalValue, type DirectObservation, type DirectRecipient } from "../direct-event/model.ts";
 import {
   evaluatePrepared,
+  encodedPreparedProviderInputBytes,
   prepareObservation,
   revalidateEvaluations,
   toCodexDirectEventOutput,
@@ -1303,7 +1304,7 @@ export class ResidentServer {
           : Effect.try(() => claimDemoBudget(
               job.dispatch.demoBudgetPath ?? "",
               job.observation.root,
-              Buffer.byteLength(job.prepared.input.declaration.source, "utf8"),
+              encodedPreparedProviderInputBytes(job.prepared),
             ));
         const beforeDispatch = credentialAuthority.pipe(Effect.andThen(budgetAuthority));
         const evaluation = evaluatePrepared(job.prepared, beforeDispatch).pipe(

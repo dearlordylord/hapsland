@@ -168,11 +168,16 @@ printf '%s\n' '{"version":1,"operation":"demo","selection":"live","demoId":"<id>
   | review-tool --demo
 ```
 
-The demo uses the installed hook and actual Codex 0.155.1 with its normal repository and hook
-trust. It does not pass a trust-bypass or sandbox-bypass flag. Its result reports host completion,
-finding submission, observed model reaction, independent invalid-state validation, and follow-up
-review separately. A model miss, unavailable response, absent reaction, invalid repair, missing
-follow-up, or exceeded budget is `inconclusive`; it is never replaced with a controlled backend.
+The demo uses the installed hook and queries the actual Codex version while retaining normal
+repository and hook trust. It does not pass a trust-bypass or sandbox-bypass flag. Its result
+reports host completion, finding submission, model reaction, independent invalid-state
+validation, and follow-up review separately. Reaction requires evidence independently correlated
+to a delivered finding. Follow-up completion requires a terminal clear, findings, or submitted
+state after the validated repair. Generic host messages, file changes, validation success, and
+event counts cannot establish either claim. When the host does not expose the required
+instrumentation, both stages remain `unavailable` and the result is `inconclusive`. A model miss,
+unavailable response, invalid repair, or exceeded budget is also `inconclusive`; it is never
+replaced with a controlled backend.
 Only bounded counts, versions, timestamps and stage outcomes are returned. The provider response
 and synthetic source are not retained. The disposable grant and root are removed after every live
 attempt. To abandon a preview without a paid call, send `selection: "cancel"` with its `demoId`.
