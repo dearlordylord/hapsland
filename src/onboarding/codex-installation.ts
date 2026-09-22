@@ -8,6 +8,7 @@ import {
   mkdirSync,
   openSync,
   readFileSync,
+  realpathSync,
   renameSync,
   rmSync,
   statSync,
@@ -25,6 +26,17 @@ const OWNED_MATCHER = "^(apply_patch|Edit|Write|Bash)$";
 const PRODUCT_DIRECTORY = ".realtime-review-tool";
 
 type JsonObject = { [key: string]: unknown };
+
+class ResidentProtocolIncompatible extends Error {
+  readonly installed: number;
+  readonly target: number;
+
+  constructor(installed: number, target: number) {
+    super(`resident protocol ${installed} is incompatible with target protocol ${target}; active work was left on the installed version`);
+    this.installed = installed;
+    this.target = target;
+  }
+}
 
 export interface InstallationRequest {
   readonly codexHome?: string;
@@ -52,6 +64,8 @@ interface OwnershipRecord {
   readonly adapter: "codex";
   readonly codexHome: string;
   readonly runtimeVersion: string;
+  readonly packageVersion: string;
+  readonly residentProtocol: number;
   readonly executable: string;
   readonly entrypoint: string;
   readonly marker: typeof OWNED_MARKER;
@@ -65,7 +79,7 @@ interface OwnershipRecord {
 
 interface Journal {
   readonly version: 1;
-  readonly operation: "install" | "uninstall";
+  readonly operation: "install" | "update" | "uninstall";
   readonly proposalDigest: string;
   readonly completed: ReadonlyArray<number>;
   readonly mutations: ReadonlyArray<Mutation>;
@@ -371,6 +385,9 @@ const readOwnership = (path: string): OwnershipRecord | undefined => {
       typeof value.hookFingerprint !== "string" || !Array.isArray(value.owned) ||
       typeof value.executable !== "string" || typeof value.entrypoint !== "string" ||
       typeof value.runtimeVersion !== "string" || typeof value.codexHome !== "string" ||
+      (value.packageVersion !== undefined && typeof value.packageVersion !== "string") ||
+      (value.residentProtocol !== undefined && (typeof value.residentProtocol !== "number" ||
+        !Number.isSafeInteger(value.residentProtocol) || value.residentProtocol <= 0)) ||
       value.marker !== OWNED_MARKER) {
     throw new Error("installation ownership record has an unsupported shape or version");
   }
@@ -387,6 +404,8 @@ const readOwnership = (path: string): OwnershipRecord | undefined => {
     adapter: "codex",
     codexHome: value.codexHome,
     runtimeVersion: value.runtimeVersion,
+    packageVersion: typeof value.packageVersion === "string" ? value.packageVersion : "legacy",
+    residentProtocol: typeof value.residentProtocol === "number" ? value.residentProtocol : 1,
     executable: value.executable,
     entrypoint: value.entrypoint,
     marker: OWNED_MARKER,
@@ -434,7 +453,7 @@ const mutation = (file: FileSnapshot, afterContent: string | null, description: 
 });
 
 const installationDigest = (
-  operation: "install" | "uninstall",
+  operation: "install" | "update" | "uninstall",
   home: string,
   mutations: ReadonlyArray<Mutation>,
 ) => sha256(stableJson({
@@ -540,7 +559,7 @@ const compatibility = (inputs: ReturnType<typeof resolveInputs>) => {
 };
 
 const unsupportedResult = (
-  operation: "install" | "install-preview",
+  operation: "install" | "install-preview" | "update" | "update-preview",
   inputs: ReturnType<typeof resolveInputs>,
   host: ReturnType<typeof compatibility>,
 ) => ({
@@ -555,10 +574,56 @@ const unsupportedResult = (
 const resolveInputs = (request: InstallationRequest) => {
   const home = resolve(request.codexHome ?? process.env.CODEX_HOME ?? join(homedir(), ".codex"));
   const executable = resolve(process.env.REVIEW_INSTALL_RUNTIME ?? process.execPath);
-  const entrypoint = resolve(process.env.REVIEW_INSTALL_ENTRYPOINT ?? process.argv[1] ?? "dist/cli.js");
+  const requestedEntrypoint = resolve(process.env.REVIEW_INSTALL_ENTRYPOINT ?? process.argv[1] ?? "dist/cli.js");
+  let entrypoint = requestedEntrypoint;
+  try {
+    entrypoint = realpathSync(requestedEntrypoint);
+  } catch {
+    // Compatibility reports the unresolved missing path without creating state.
+  }
   const codexExecutable = request.codexExecutable ?? "codex";
-  return { home, executable, entrypoint, codexExecutable, paths: pathsFor(home) };
+  const packageRoot = resolve(dirname(entrypoint), "..");
+  let packageVersion = "development";
+  let residentProtocol = 1;
+  try {
+    const manifest: unknown = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
+    if (isObject(manifest) && typeof manifest.version === "string" && manifest.version.length > 0) {
+      packageVersion = manifest.version;
+    }
+    const declaration: unknown = JSON.parse(readFileSync(join(packageRoot, "package-runtime.json"), "utf8"));
+    if (isObject(declaration) && typeof declaration.residentProtocol === "number" &&
+        Number.isSafeInteger(declaration.residentProtocol) && declaration.residentProtocol > 0) {
+      residentProtocol = declaration.residentProtocol;
+    }
+  } catch {
+    // Source-checkout and focused installer fixtures may not have packaged metadata
+    // adjacent to their synthetic entrypoint. The production package always does.
+  }
+  return { home, executable, entrypoint, codexExecutable, packageVersion, residentProtocol, paths: pathsFor(home) };
 };
+
+const makeOwnershipRecord = (
+  inputs: ReturnType<typeof resolveInputs>,
+  fingerprint: string,
+  featureOwned: boolean,
+): OwnershipRecord => ({
+  version: OWNERSHIP_VERSION,
+  adapter: "codex",
+  codexHome: inputs.home,
+  runtimeVersion: process.version,
+  packageVersion: inputs.packageVersion,
+  residentProtocol: inputs.residentProtocol,
+  executable: inputs.executable,
+  entrypoint: inputs.entrypoint,
+  marker: OWNED_MARKER,
+  hookFingerprint: fingerprint,
+  owned: [
+    ...(featureOwned
+      ? [{ file: inputs.paths.config, kind: "feature" as const, fingerprint: HOOKS_FEATURE_FINGERPRINT }]
+      : []),
+    { file: inputs.paths.hooks, kind: "hook", fingerprint },
+  ],
+});
 
 const makeInstallPlan = (request: InstallationRequest) => {
   const inputs = resolveInputs(request);
@@ -592,22 +657,7 @@ const makeInstallPlan = (request: InstallationRequest) => {
   const featureOwned = existingRecord?.owned.some((entry) =>
     entry.kind === "feature" && entry.file === inputs.paths.config
   ) ?? nextConfig !== config.content;
-  const record: OwnershipRecord = {
-    version: OWNERSHIP_VERSION,
-    adapter: "codex",
-    codexHome: inputs.home,
-    runtimeVersion: process.version,
-    executable: inputs.executable,
-    entrypoint: inputs.entrypoint,
-    marker: OWNED_MARKER,
-    hookFingerprint: fingerprint,
-    owned: [
-      ...(featureOwned
-        ? [{ file: inputs.paths.config, kind: "feature" as const, fingerprint: HOOKS_FEATURE_FINGERPRINT }]
-        : []),
-      { file: inputs.paths.hooks, kind: "hook", fingerprint },
-    ],
-  };
+  const record = makeOwnershipRecord(inputs, fingerprint, featureOwned);
   const nextOwnership = encodeJson(record);
   const mutations = [
     ...(nextConfig === config.content ? [] : [mutation(config, nextConfig, "enable Codex's native hooks feature")]),
@@ -615,6 +665,51 @@ const makeInstallPlan = (request: InstallationRequest) => {
     ...(nextOwnership === ownership.content ? [] : [mutation(ownership, nextOwnership, "write the versioned ownership record")]),
   ];
   return { inputs, mutations, digest: installationDigest("install", inputs.home, mutations), alreadyInstalled: mutations.length === 0 };
+};
+
+const makeUpdatePlan = (request: InstallationRequest) => {
+  const inputs = resolveInputs(request);
+  const record = readOwnership(inputs.paths.ownership);
+  if (record === undefined) throw new Error("no owned Codex installation exists; run install first");
+  if (record.codexHome !== inputs.home) throw new Error("ownership record targets another Codex home");
+  if (record.residentProtocol !== inputs.residentProtocol) {
+    throw new ResidentProtocolIncompatible(record.residentProtocol, inputs.residentProtocol);
+  }
+  const config = snapshot(inputs.paths.config);
+  const parsedConfig = validateToml(config);
+  const ownedFeature = record.owned.find((entry) => entry.kind === "feature" && entry.file === inputs.paths.config);
+  if (ownedFeature !== undefined) {
+    if (ownedFeature.fingerprint !== HOOKS_FEATURE_FINGERPRINT ||
+        !isObject(parsedConfig.features) || parsedConfig.features.hooks !== true) {
+      throw new Error("owned Codex feature value was locally modified; the installed version was preserved");
+    }
+  } else if (!isObject(parsedConfig.features) || parsedConfig.features.hooks !== true) {
+    throw new Error("preexisting Codex hooks feature is no longer enabled; the installed version was preserved");
+  }
+  const hooks = snapshot(inputs.paths.hooks);
+  const hookRoot = parseJsonObject(hooks);
+  const currentGroup = postToolUseGroups(hookRoot).find((candidate) => markerCount(candidate) > 0);
+  if (markerCount(hookRoot) !== 1 || hookFingerprint(currentGroup) !== record.hookFingerprint) {
+    throw new Error("owned Codex hook was locally modified; the installed version was preserved");
+  }
+  const targetGroup = ownedGroup(inputs.executable, inputs.entrypoint);
+  const targetFingerprint = hookFingerprint(targetGroup);
+  const nextHooks = encodeJson(replaceOwnedHook(hookRoot, targetGroup));
+  const ownership = snapshot(inputs.paths.ownership);
+  const nextOwnership = encodeJson(makeOwnershipRecord(inputs, targetFingerprint, ownedFeature !== undefined));
+  const mutations = [
+    // Recording the target first retains the previous working hook if a later
+    // per-file write fails. The journal reports and safely resumes this exact state.
+    ...(nextOwnership === ownership.content ? [] : [mutation(ownership, nextOwnership, "record the target packaged runtime")]),
+    ...(nextHooks === hooks.content ? [] : [mutation(hooks, nextHooks, "replace only the owned PostToolUse adapter hook")]),
+  ];
+  return {
+    inputs,
+    record,
+    mutations,
+    digest: installationDigest("update", inputs.home, mutations),
+    alreadyCurrent: mutations.length === 0,
+  };
 };
 
 const makeUninstallPlan = (request: InstallationRequest) => {
@@ -661,12 +756,33 @@ const conflictResult = (operation: string, reason: string, home?: string) => ({
   pending: ["resolve the reported conflict and preview again"],
 });
 
+const protocolConflictResult = (
+  operation: "update-preview" | "update",
+  cause: ResidentProtocolIncompatible,
+  home: string,
+) => ({
+  version: RESULT_VERSION,
+  operation,
+  status: "conflict",
+  host: { adapter: "codex", home },
+  error: {
+    code: "resident_protocol_incompatible",
+    message: cause.message,
+    installed: cause.installed,
+    target: cause.target,
+  },
+  preserved: ["installed hook", "repository grants", "credentials", "user rules", "independent hooks", "in-flight work"],
+  completed: [],
+  pending: ["choose a target package with a compatible resident protocol or finish current work before a separately supported migration"],
+});
+
 const readJournal = (path: string): Journal | undefined => {
   if (!existsSync(path)) return undefined;
   try {
     const value: unknown = JSON.parse(readFileSync(path, "utf8"));
     if (!isObject(value) || value.version !== 1 || !Array.isArray(value.mutations) || !Array.isArray(value.completed) ||
-        (value.operation !== "install" && value.operation !== "uninstall") || typeof value.proposalDigest !== "string") {
+        (value.operation !== "install" && value.operation !== "update" && value.operation !== "uninstall") ||
+        typeof value.proposalDigest !== "string") {
       throw new Error("shape");
     }
     const mutations = value.mutations.map((change) => {
@@ -772,10 +888,16 @@ const validateJournalScope = (journal: Journal, inputs: ReturnType<typeof resolv
       throw new Error("preexisting Codex hooks feature changed during recovery; the current config was preserved");
     }
   }
+  if (journal.operation === "update") {
+    const config = validateToml(snapshot(inputs.paths.config));
+    if (!isObject(config.features) || config.features.hooks !== true) {
+      throw new Error("Codex hooks feature changed during update recovery; the current config was preserved");
+    }
+  }
   for (const change of journal.mutations) {
     if (change.afterContent === null) continue;
     if (change.path === inputs.paths.config) {
-      assertHooksSemanticState(change.afterContent, journal.operation === "install" ? true : "absent");
+      assertHooksSemanticState(change.afterContent, journal.operation === "uninstall" ? "absent" : true);
     } else if (change.path === inputs.paths.hooks) {
       let decoded: unknown;
       try {
@@ -783,7 +905,7 @@ const validateJournalScope = (journal: Journal, inputs: ReturnType<typeof resolv
       } catch {
         throw new Error("recovery journal contains malformed hooks configuration");
       }
-      if (!isObject(decoded) || markerCount(decoded) !== (journal.operation === "install" ? 1 : 0)) {
+      if (!isObject(decoded) || markerCount(decoded) !== (journal.operation === "uninstall" ? 0 : 1)) {
         throw new Error("recovery journal does not contain the required owned-hook state");
       }
     } else if (change.path === inputs.paths.ownership) {
@@ -794,7 +916,8 @@ const validateJournalScope = (journal: Journal, inputs: ReturnType<typeof resolv
         throw new Error("recovery journal contains a malformed ownership record");
       }
       if (!isObject(decoded) || decoded.version !== 1 || decoded.adapter !== "codex" ||
-          decoded.executable !== inputs.executable || decoded.entrypoint !== inputs.entrypoint) {
+          decoded.executable !== inputs.executable || decoded.entrypoint !== inputs.entrypoint ||
+          (journal.operation === "update" && decoded.residentProtocol !== inputs.residentProtocol)) {
         throw new Error("recovery journal ownership does not match the current packaged runtime");
       }
     }
@@ -802,7 +925,7 @@ const validateJournalScope = (journal: Journal, inputs: ReturnType<typeof resolv
 };
 
 const recoveryConflictResult = (
-  operation: "install" | "uninstall",
+  operation: "install" | "update" | "uninstall",
   inputs: ReturnType<typeof resolveInputs>,
   journal: Journal,
   cause: unknown,
@@ -822,6 +945,11 @@ const recoveryConflictResult = (
       proposalDigest: journal.proposalDigest,
       completedFiles: completedIndexes.length,
       totalFiles: journal.mutations.length,
+      command: {
+        executable: "review-tool",
+        arguments: [`--${journal.operation}`],
+        request: { version: 1, operation: journal.operation, codexHome: inputs.home, proposalDigest: journal.proposalDigest },
+      },
     },
     completed: completedIndexes
       .map((index) => journal.mutations[index]?.description)
@@ -965,6 +1093,228 @@ export const inspectCodexInstallation = (request: InstallationRequest): Installa
       cause instanceof Error ? cause.message : "installation inspection failed",
       inputs.home,
     );
+  }
+};
+
+const updateRecoveryCommand = (
+  inputs: ReturnType<typeof resolveInputs>,
+  proposalDigest: string,
+) => ({
+  executable: "review-tool",
+  arguments: ["--update"],
+  request: { version: 1, operation: "update", codexHome: inputs.home, proposalDigest },
+});
+
+export const previewCodexUpdate = (request: InstallationRequest): InstallationResult => {
+  const home = resolveInputs(request).home;
+  try {
+    const inputs = resolveInputs(request);
+    const host = compatibility(inputs);
+    if (!host.supported) return unsupportedResult("update-preview", inputs, host);
+    const pendingJournal = readJournal(inputs.paths.journal);
+    if (pendingJournal !== undefined) {
+      validateJournalScope(pendingJournal, inputs);
+      if (pendingJournal.operation !== "update") {
+        throw new Error(`a journaled ${pendingJournal.operation} must be recovered before update`);
+      }
+      return {
+        version: RESULT_VERSION,
+        operation: "update-preview",
+        status: "partial",
+        host: { adapter: "codex", home: inputs.home, compatibility: host },
+        proposal: { digest: pendingJournal.proposalDigest, changes: previewChanges(pendingJournal.mutations) },
+        recovery: {
+          required: true,
+          proposalDigest: pendingJournal.proposalDigest,
+          completedFiles: pendingJournal.completed.length,
+          totalFiles: pendingJournal.mutations.length,
+          command: updateRecoveryCommand(inputs, pendingJournal.proposalDigest),
+        },
+        preserved: ["repository grants", "credentials", "user rules", "independent hooks", "in-flight work"],
+        completed: pendingJournal.completed
+          .map((index) => pendingJournal.mutations[index]?.description)
+          .filter((value) => value !== undefined),
+        pending: ["resume the journaled update with its original proposal digest"],
+      };
+    }
+    const plan = makeUpdatePlan(request);
+    return {
+      version: RESULT_VERSION,
+      operation: "update-preview",
+      status: "preview",
+      host: { adapter: "codex", home: inputs.home, compatibility: host },
+      proposal: {
+        digest: plan.digest,
+        changes: previewChanges(plan.mutations),
+        current: {
+          packageVersion: plan.record.packageVersion,
+          runtimeVersion: plan.record.runtimeVersion,
+          executable: plan.record.executable,
+          entrypoint: plan.record.entrypoint,
+          residentProtocol: plan.record.residentProtocol,
+        },
+        target: {
+          packageVersion: inputs.packageVersion,
+          runtimeVersion: process.version,
+          executable: inputs.executable,
+          entrypoint: inputs.entrypoint,
+          residentProtocol: inputs.residentProtocol,
+          hook: ownedChanges(inputs).hook,
+        },
+      },
+      alreadyCurrent: plan.alreadyCurrent,
+      automaticUpdate: false,
+      sourceEgressAuthorized: false,
+      preserved: ["repository grants", "credentials", "user rules", "independent hooks", "in-flight work"],
+      trust: {
+        modified: false,
+        status: plan.alreadyCurrent ? "unchanged" : "renewal-required",
+        guidance: plan.alreadyCurrent
+          ? "The exact owned hook definition is already current."
+          : "After current work completes, restart Codex normally and approve renewed native hook trust if prompted. No trust record or bypass flag was changed.",
+      },
+      restart: { required: !plan.alreadyCurrent, processesStopped: false },
+      completed: [],
+      pending: plan.alreadyCurrent ? [] : ["update using this proposal digest", "restart Codex after current work completes"],
+    };
+  } catch (cause) {
+    if (cause instanceof ResidentProtocolIncompatible) {
+      return protocolConflictResult("update-preview", cause, home);
+    }
+    return conflictResult("update-preview", cause instanceof Error ? cause.message : "update preview failed", home);
+  }
+};
+
+export const updateCodexIntegration = async (request: InstallationRequest): Promise<InstallationResult> => {
+  const inputs = resolveInputs(request);
+  const initialCompatibility = compatibility(inputs);
+  if (!initialCompatibility.supported) return unsupportedResult("update", inputs, initialCompatibility);
+  try {
+    return await withLock(inputs.paths.lock, async () => {
+      const currentCompatibility = compatibility(inputs);
+      if (!currentCompatibility.supported) return unsupportedResult("update", inputs, currentCompatibility);
+      const existingJournal = readJournal(inputs.paths.journal);
+      if (existingJournal !== undefined) {
+        try {
+          validateJournalScope(existingJournal, inputs);
+        } catch (cause) {
+          return recoveryConflictResult("update", inputs, existingJournal, cause);
+        }
+        if (request.proposalDigest !== existingJournal.proposalDigest || existingJournal.operation !== "update") {
+          return {
+            version: RESULT_VERSION,
+            operation: "update",
+            status: "partial",
+            host: { adapter: "codex", home: inputs.home },
+            error: { code: "recovery_required", message: "a prior operation is incomplete; recover it with its original operation and proposal digest" },
+            recovery: {
+              proposalDigest: existingJournal.proposalDigest,
+              completedFiles: existingJournal.completed.length,
+              totalFiles: existingJournal.mutations.length,
+              command: existingJournal.operation === "update"
+                ? updateRecoveryCommand(inputs, existingJournal.proposalDigest)
+                : {
+                    executable: "review-tool",
+                    arguments: [`--${existingJournal.operation}`],
+                    request: { version: 1, operation: existingJournal.operation, codexHome: inputs.home, proposalDigest: existingJournal.proposalDigest },
+                  },
+            },
+            completed: existingJournal.completed
+              .map((index) => existingJournal.mutations[index]?.description)
+              .filter((value) => value !== undefined),
+            pending: [`resume the journaled ${existingJournal.operation}`],
+          };
+        }
+        try {
+          applyJournal(inputs.paths.journal, existingJournal);
+        } catch (cause) {
+          return recoveryConflictResult("update", inputs, existingJournal, cause);
+        }
+        return {
+          version: RESULT_VERSION,
+          operation: "update",
+          status: "updated",
+          host: { adapter: "codex", home: inputs.home },
+          resumed: true,
+          preserved: ["repository grants", "credentials", "user rules", "independent hooks", "in-flight work"],
+          trust: { modified: false, status: "renewal-required", bypassUsed: false },
+          restart: { required: true, processesStopped: false },
+          completed: existingJournal.mutations.map((change) => change.description),
+          pending: ["restart Codex after current work completes and approve renewed hook trust if prompted"],
+        };
+      }
+      const plan = makeUpdatePlan(request);
+      if (request.proposalDigest === undefined || request.proposalDigest !== plan.digest) {
+        return {
+          version: RESULT_VERSION,
+          operation: "update",
+          status: "proposal-mismatch",
+          host: { adapter: "codex", home: inputs.home },
+          currentProposalDigest: plan.digest,
+          completed: [],
+          pending: ["preview the update again and approve the matching digest"],
+        };
+      }
+      if (plan.alreadyCurrent) {
+        return {
+          version: RESULT_VERSION,
+          operation: "update",
+          status: "already-current",
+          host: { adapter: "codex", home: inputs.home },
+          preserved: ["repository grants", "credentials", "user rules", "independent hooks", "in-flight work"],
+          trust: { modified: false, status: "unchanged", bypassUsed: false },
+          restart: { required: false, processesStopped: false },
+          completed: [],
+          pending: [],
+        };
+      }
+      const journal: Journal = {
+        version: 1,
+        operation: "update",
+        proposalDigest: plan.digest,
+        completed: [],
+        mutations: plan.mutations,
+      };
+      try {
+        applyJournal(inputs.paths.journal, journal);
+      } catch (cause) {
+        const current = readJournal(inputs.paths.journal);
+        return {
+          version: RESULT_VERSION,
+          operation: "update",
+          status: "partial",
+          host: { adapter: "codex", home: inputs.home },
+          error: { code: "partial_completion", message: cause instanceof Error ? cause.message : "update stopped after partial completion" },
+          recovery: {
+            proposalDigest: plan.digest,
+            completedFiles: current?.completed.length ?? 0,
+            totalFiles: plan.mutations.length,
+            command: updateRecoveryCommand(inputs, plan.digest),
+          },
+          preserved: ["repository grants", "credentials", "user rules", "independent hooks", "in-flight work"],
+          completed: (current?.completed ?? [])
+            .map((index) => plan.mutations[index]?.description)
+            .filter((value) => value !== undefined),
+          pending: ["rerun update with the same proposal digest to resume safely"],
+        };
+      }
+      return {
+        version: RESULT_VERSION,
+        operation: "update",
+        status: "updated",
+        host: { adapter: "codex", home: inputs.home },
+        preserved: ["repository grants", "credentials", "user rules", "independent hooks", "in-flight work"],
+        trust: { modified: false, status: "renewal-required", bypassUsed: false },
+        restart: { required: true, processesStopped: false },
+        completed: plan.mutations.map((change) => change.description),
+        pending: ["restart Codex after current work completes and approve renewed hook trust if prompted"],
+      };
+    });
+  } catch (cause) {
+    if (cause instanceof ResidentProtocolIncompatible) {
+      return protocolConflictResult("update", cause, inputs.home);
+    }
+    return conflictResult("update", cause instanceof Error ? cause.message : "update failed", inputs.home);
   }
 };
 

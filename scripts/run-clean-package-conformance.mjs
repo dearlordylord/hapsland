@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, copyFile, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -40,6 +40,43 @@ const parseJson = (text, label) => {
 const jsonLines = (text) => text.split("\n").filter(Boolean).map((line) => parseJson(line, "JSONL record"));
 const quote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
 const progress = (stage) => process.stderr.write(`[package-conformance] ${stage}\n`);
+const snapshotJsonDirectory = async (path) => {
+  const names = (await readdir(path)).filter((name) => name.endsWith(".json")).sort();
+  return Promise.all(names.map(async (name) => ({ name, content: await readFile(join(path, name), "utf8") })));
+};
+
+const installLocalPackageVariant = async ({
+  sourcePackage,
+  temporary,
+  version,
+  residentProtocol,
+}) => {
+  const variantRoot = join(temporary, `package-${version}`);
+  const artifacts = join(variantRoot, "artifacts");
+  const installation = join(variantRoot, "installation");
+  const packageSource = join(variantRoot, "source");
+  await mkdir(artifacts, { recursive: true });
+  await mkdir(installation, { recursive: true });
+  await cp(sourcePackage, packageSource, { recursive: true });
+  const manifest = parseJson(await readFile(join(packageSource, "package.json"), "utf8"), "variant manifest");
+  await writeFile(join(packageSource, "package.json"), `${JSON.stringify({ ...manifest, version }, null, 2)}\n`);
+  const runtime = parseJson(await readFile(join(packageSource, "package-runtime.json"), "utf8"), "variant runtime declaration");
+  await writeFile(join(packageSource, "package-runtime.json"), `${JSON.stringify({ ...runtime, residentProtocol }, null, 2)}\n`);
+  await mustRun("npm", ["pack", "--ignore-scripts", "--pack-destination", artifacts], { cwd: packageSource });
+  const artifactName = (await readdir(artifacts)).find((entry) => entry.endsWith(".tgz"));
+  if (artifactName === undefined) throw new Error(`npm pack did not produce the ${version} tarball`);
+  const tarball = join(artifacts, artifactName);
+  await mustRun("npm", ["install", "--prefer-offline", "--omit=dev", "--prefix", installation, tarball], {
+    cwd: temporary,
+    timeoutMs: 120_000,
+  });
+  return {
+    version,
+    residentProtocol,
+    tarball,
+    cli: join(installation, "node_modules", ".bin", "review-tool"),
+  };
+};
 
 class TerminalScreen {
   constructor(rows, columns) {
@@ -275,10 +312,23 @@ try {
   const packageDirectory = join(installation, "node_modules", "realtime-review-prototype");
   const binDirectory = join(installation, "node_modules", ".bin");
   const cli = join(binDirectory, "review-tool");
+  let activeCli = cli;
   const parser = join(binDirectory, "review-tool-parser");
   const doctor = join(binDirectory, "review-tool-doctor");
   const doctorSource = join(packageDirectory, "dist", "package-doctor.js");
   const installedManifest = parseJson(await readFile(join(packageDirectory, "package.json"), "utf8"), "installed manifest");
+  const targetPackage = await installLocalPackageVariant({
+    sourcePackage: packageDirectory,
+    temporary,
+    version: "0.0.1-local",
+    residentProtocol: 1,
+  });
+  const incompatiblePackage = await installLocalPackageVariant({
+    sourcePackage: packageDirectory,
+    temporary,
+    version: "0.0.2-incompatible-local",
+    residentProtocol: 2,
+  });
   // npm can return ELSPROBLEMS for tree-sitter's optional peer layout even
   // when the exact production dependencies are installed and loadable. The
   // JSON tree remains authoritative for the dev-dependency exclusion below;
@@ -429,6 +479,79 @@ try {
   await mustRun(cli, ["--enable-confirm"], {
     cwd: temporary, env, input: JSON.stringify({ version: 1, operation: "enable-confirm", cwd: repository, proposalDigest: digest }),
   });
+  const consentBeforeUpdate = await snapshotJsonDirectory(state);
+  progress("exercise-local-package-update");
+  const hooksBeforeIncompatible = await readFile(join(codexHome, "hooks.json"), "utf8");
+  const incompatiblePreviewRun = await run(incompatiblePackage.cli, ["--update-preview"], {
+    cwd: temporary,
+    env,
+    input: JSON.stringify({ version: 1, operation: "update-preview", codexHome, codexExecutable: fakeCodex }),
+  });
+  const incompatiblePreview = parseJson(incompatiblePreviewRun.stdout, "incompatible update preview");
+  if (incompatiblePreviewRun.code !== 4 || incompatiblePreview.status !== "conflict" ||
+      !incompatiblePreview.error?.message?.includes("protocol 1 is incompatible with target protocol 2") ||
+      await readFile(join(codexHome, "hooks.json"), "utf8") !== hooksBeforeIncompatible) {
+    throw new Error("incompatible local package update did not preserve the installed version");
+  }
+  const updatePreviewRun = await mustRun(targetPackage.cli, ["--update-preview"], {
+    cwd: temporary,
+    env,
+    input: JSON.stringify({ version: 1, operation: "update-preview", codexHome, codexExecutable: fakeCodex }),
+  });
+  const updatePreview = parseJson(updatePreviewRun.stdout, "update preview");
+  if (updatePreview.status !== "preview" || updatePreview.proposal?.current?.packageVersion !== installedManifest.version ||
+      updatePreview.proposal?.target?.packageVersion !== targetPackage.version || updatePreview.restart?.required !== true ||
+      updatePreview.trust?.status !== "renewal-required" || updatePreview.trust?.modified !== false) {
+    throw new Error("local package update preview did not expose runtime, hook, trust, and restart changes");
+  }
+  const partialUpdateRun = await run(targetPackage.cli, ["--update"], {
+    cwd: temporary,
+    env: { ...env, REVIEW_INSTALL_FAIL_AFTER_WRITES: "1" },
+    input: JSON.stringify({
+      version: 1,
+      operation: "update",
+      codexHome,
+      codexExecutable: fakeCodex,
+      proposalDigest: updatePreview.proposal.digest,
+    }),
+  });
+  const partialUpdate = parseJson(partialUpdateRun.stdout, "partial update");
+  const hooksAfterPartial = await readFile(join(codexHome, "hooks.json"), "utf8");
+  if (partialUpdateRun.code !== 5 || partialUpdate.status !== "partial" ||
+      partialUpdate.recovery?.command?.request?.proposalDigest !== updatePreview.proposal.digest ||
+      hooksAfterPartial !== hooksBeforeIncompatible) {
+    throw new Error("partial local package update did not retain the previous working hook and exact recovery request");
+  }
+  const updateRun = await mustRun(targetPackage.cli, ["--update"], {
+    cwd: temporary,
+    env,
+    input: JSON.stringify({
+      version: 1,
+      operation: "update",
+      codexHome,
+      codexExecutable: fakeCodex,
+      proposalDigest: updatePreview.proposal.digest,
+    }),
+  });
+  const updateResult = parseJson(updateRun.stdout, "update result");
+  const hooksAfterUpdate = await readFile(join(codexHome, "hooks.json"), "utf8");
+  if (updateResult.status !== "updated" || updateResult.resumed !== true ||
+      updateResult.restart?.required !== true || updateResult.restart?.processesStopped !== false ||
+      !hooksAfterUpdate.includes(updatePreview.proposal.target.entrypoint)) {
+    throw new Error("compatible local package update did not complete from the target package");
+  }
+  activeCli = targetPackage.cli;
+  if (JSON.stringify(await snapshotJsonDirectory(state)) !== JSON.stringify(consentBeforeUpdate)) {
+    throw new Error("local package update changed repository consent state");
+  }
+  await mustRun(process.execPath, [independentHook], {
+    cwd: temporary,
+    env: { ...env, INDEPENDENT_HOOK_LOG: independentLog },
+  });
+  const independentObservationsAfterUpdate = jsonLines(await readFile(independentLog, "utf8")).length;
+  if (independentObservationsAfterUpdate !== 1) {
+    throw new Error("independent hook was not effective after the local package update");
+  }
   const source = "export interface Delivery { id: string; destination: string }\n";
   await writeFile(join(repository, "profile.ts"), source, { mode: 0o600 });
   const addEvent = {
@@ -437,7 +560,7 @@ try {
     tool_input: { command: `*** Begin Patch\n*** Add File: profile.ts\n+${source.trim()}\n*** End Patch` }, tool_response: {},
   };
   progress("capture-and-resident-review");
-  await mustRun(cli, ["--codex-hook", "--controlled", "--controlled-writer"], { cwd: temporary, env, input: JSON.stringify(addEvent) });
+  await mustRun(activeCli, ["--codex-hook", "--controlled", "--controlled-writer"], { cwd: temporary, env, input: JSON.stringify(addEvent) });
   const ownerAfterAdmission = await readFile(join(runtime, "owner.json"), "utf8").catch(() => undefined);
   if (ownerAfterAdmission === undefined) {
     const diagnostic = await readFile(join(runtime, "owner.lock.startup-error"), "utf8").catch(() => "no resident diagnostic was produced");
@@ -446,7 +569,7 @@ try {
   let hookOutput = {};
   for (let attempt = 0; attempt < 20; attempt += 1) {
     await new Promise((resolveWait) => setTimeout(resolveWait, 50));
-    const collect = await mustRun(cli, ["--codex-hook", "--controlled", "--controlled-writer"], {
+    const collect = await mustRun(activeCli, ["--codex-hook", "--controlled", "--controlled-writer"], {
       cwd: temporary, env, input: JSON.stringify({ ...addEvent, tool_name: "Bash", tool_use_id: `package-collect-${attempt}`, tool_input: { command: "printf package-ready" } }),
     });
     hookOutput = parseJson(collect.stdout, "packaged hook output");
@@ -466,12 +589,12 @@ try {
       tool_use_id: "package-restart-add",
       tool_input: { command: `*** Begin Patch\n*** Add File: restarted.ts\n+${restartSource.trim()}\n*** End Patch` },
     };
-    await mustRun(cli, ["--codex-hook", "--controlled", "--controlled-writer"], {
+    await mustRun(activeCli, ["--codex-hook", "--controlled", "--controlled-writer"], {
       cwd: temporary, env, input: JSON.stringify(restartEvent),
     });
     for (let attempt = 0; attempt < 20; attempt += 1) {
       await new Promise((resolveWait) => setTimeout(resolveWait, 50));
-      await mustRun(cli, ["--codex-hook", "--controlled", "--controlled-writer"], {
+      await mustRun(activeCli, ["--codex-hook", "--controlled", "--controlled-writer"], {
         cwd: temporary, env,
         input: JSON.stringify({ ...restartEvent, tool_name: "Bash", tool_use_id: `package-restart-collect-${attempt}`, tool_input: { command: "printf package-restart-ready" } }),
       });
@@ -480,7 +603,7 @@ try {
     }
     if (submissions !== 2) throw new Error("restarted resident did not reuse the persistent Secret Service credential");
     credentialEvidence = { ...credentialEvidence, residentRestartPersistence: "passed" };
-    const logoutRun = await mustRun(cli, ["--logout"], { cwd: temporary, env });
+    const logoutRun = await mustRun(activeCli, ["--logout"], { cwd: temporary, env });
     const logoutResult = parseJson(logoutRun.stdout, "packaged credential logout");
     if (logoutResult.status !== "logged-out" || logoutResult.grantsPreserved !== true ||
         logoutResult.sentRequestsRecalled !== false || logoutRun.stdout.includes(syntheticCredential)) {
@@ -493,7 +616,7 @@ try {
       tool_use_id: "package-logged-out",
       tool_input: { command: `*** Begin Patch\n*** Add File: logged-out.ts\n+${loggedOutSource.trim()}\n*** End Patch` },
     };
-    await mustRun(cli, ["--codex-hook", "--controlled", "--controlled-writer"], {
+    await mustRun(activeCli, ["--codex-hook", "--controlled", "--controlled-writer"], {
       cwd: temporary, env, input: JSON.stringify(loggedOutEvent),
     });
     // The repository is still enabled here. Give the resident enough time to
@@ -501,7 +624,7 @@ try {
     // provider boundary itself.
     for (let attempt = 0; attempt < 10; attempt += 1) {
       await new Promise((resolveWait) => setTimeout(resolveWait, 50));
-      await mustRun(cli, ["--codex-hook", "--controlled", "--controlled-writer"], {
+      await mustRun(activeCli, ["--codex-hook", "--controlled", "--controlled-writer"], {
         cwd: temporary, env,
         input: JSON.stringify({ ...loggedOutEvent, tool_name: "Bash", tool_use_id: `package-logged-out-collect-${attempt}`, tool_input: { command: "printf package-logged-out" } }),
       });
@@ -511,7 +634,7 @@ try {
       throw new Error("logged-out credential dispatched a provider request while the repository remained enabled");
     }
   }
-  const activityRun = await mustRun(cli, ["--status"], {
+  const activityRun = await mustRun(activeCli, ["--status"], {
     cwd: temporary,
     env,
     input: JSON.stringify({ version: 1, operation: "status", cwd: repository, sessionId: "package-session" }),
@@ -522,12 +645,12 @@ try {
       activityStatus.activity?.modelReaction?.status !== "unavailable") {
     throw new Error("packaged status did not distinguish submission from unavailable model-reaction evidence");
   }
-  const disabledRun = await mustRun(cli, ["--disable"], {
+  const disabledRun = await mustRun(activeCli, ["--disable"], {
     cwd: temporary, env, input: JSON.stringify({ version: 1, operation: "disable", cwd: repository }),
   });
   if (parseJson(disabledRun.stdout, "disable result").status !== "disabled") throw new Error("packaged disable did not revoke repository dispatch");
   await writeFile(join(repository, "disabled.ts"), "export interface Disabled { id: string }\n", { mode: 0o600 });
-  await mustRun(cli, ["--codex-hook", "--controlled", "--controlled-writer"], {
+  await mustRun(activeCli, ["--codex-hook", "--controlled", "--controlled-writer"], {
     cwd: temporary,
     env,
     input: JSON.stringify({
@@ -539,16 +662,16 @@ try {
   await new Promise((resolveWait) => setTimeout(resolveWait, 100));
   const submissionsAfterDisable = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
   if (submissionsAfterDisable !== submissions) throw new Error("disabled repository dispatched a provider request");
-  const reenablePreview = await mustRun(cli, ["--enable"], {
+  const reenablePreview = await mustRun(activeCli, ["--enable"], {
     cwd: temporary, env, input: JSON.stringify({ version: 1, operation: "enable", cwd: repository }),
   });
-  await mustRun(cli, ["--enable-confirm"], {
+  await mustRun(activeCli, ["--enable-confirm"], {
     cwd: temporary,
     env,
     input: JSON.stringify({ version: 1, operation: "enable-confirm", cwd: repository, proposalDigest: parseJson(reenablePreview.stdout, "reenable preview").proposal.digest }),
   });
   if (exerciseSecretService) {
-    await mustRun(cli, ["--login", "--credential-stdin"], {
+    await mustRun(activeCli, ["--login", "--credential-stdin"], {
       cwd: temporary, env, input: `${syntheticCredential}\n`,
     });
   }
@@ -575,12 +698,12 @@ try {
       command: `*** Begin Patch\n*** Add File: restart-pending.ts\n+${restartSource.trim()}\n*** End Patch`,
     },
   };
-  await mustRun(cli, ["--codex-hook", "--controlled", "--controlled-writer"], {
+  await mustRun(activeCli, ["--codex-hook", "--controlled", "--controlled-writer"], {
     cwd: temporary,
     env: restartEnvironment,
     input: JSON.stringify(restartEvent),
   });
-  const pendingStatus = parseJson((await mustRun(cli, ["--status"], {
+  const pendingStatus = parseJson((await mustRun(activeCli, ["--status"], {
     cwd: temporary,
     env: restartEnvironment,
     input: JSON.stringify({ version: 1, operation: "status", cwd: repository, sessionId: "package-restart-session" }),
@@ -595,7 +718,7 @@ try {
     if (await readFile(join(runtime, "owner.json"), "utf8").catch(() => undefined) === undefined) break;
     await new Promise((resolveWait) => setTimeout(resolveWait, 20));
   }
-  const lostStatus = parseJson((await mustRun(cli, ["--status"], {
+  const lostStatus = parseJson((await mustRun(activeCli, ["--status"], {
     cwd: temporary,
     env,
     input: JSON.stringify({ version: 1, operation: "status", cwd: repository, sessionId: "package-restart-session" }),
@@ -645,6 +768,7 @@ try {
     }
     const before = submissions;
     const outcomesBefore = jsonLines(await readFile(outcomes, "utf8").catch(() => "")).length;
+    const independentBefore = jsonLines(await readFile(independentLog, "utf8").catch(() => "")).length;
     const codexEnv = { ...env, CODEX_HOME: codexHome, INDEPENDENT_HOOK_LOG: independentLog };
     realCodexStage = "host-execution";
     const host = await run("codex", [
@@ -661,7 +785,7 @@ try {
     }
     const completed = realHostOutcomes.filter(({ outcome }) => outcome === "completed-findings");
     const providerSubmissions = after - before;
-    const independentObservations = jsonLines(await readFile(independentLog, "utf8").catch(() => "")).length;
+    const independentObservations = jsonLines(await readFile(independentLog, "utf8").catch(() => "")).length - independentBefore;
     realCodex = {
       status: host.code === 0 && providerSubmissions === 1 && completed.length === 1 && independentObservations >= 2 ? "passed" : "failed",
       codexVersion,
@@ -705,17 +829,17 @@ try {
   }
 
   if (exerciseSecretService) {
-    const finalLogout = await mustRun(cli, ["--logout"], { cwd: temporary, env });
+    const finalLogout = await mustRun(activeCli, ["--logout"], { cwd: temporary, env });
     if (parseJson(finalLogout.stdout, "final credential logout").status !== "logged-out") {
       throw new Error("final installed credential logout failed");
     }
-    await mustRun(cli, ["--login", "--credential-stdin"], {
+    await mustRun(activeCli, ["--login", "--credential-stdin"], {
       cwd: temporary, env, input: `${syntheticCredential}\n`,
     });
     const installedHelper = join(packageDirectory, "dist", "native", "credential-secret-service");
     await mustRun(installedHelper, ["lock"], { cwd: temporary, env });
     const lockedStarted = Date.now();
-    const lockedRun = await run(cli, ["--inspect-credentials"], {
+    const lockedRun = await run(activeCli, ["--inspect-credentials"], {
       cwd: repository, env,
       input: JSON.stringify({ version: 1, operation: "credentials", cwd: repository }),
       timeoutMs: 5_000,
@@ -725,7 +849,7 @@ try {
       throw new Error("installed credential inspection did not report locked storage");
     }
     const unreachableStarted = Date.now();
-    const unreachableRun = await run(cli, ["--inspect-credentials"], {
+    const unreachableRun = await run(activeCli, ["--inspect-credentials"], {
       cwd: repository,
       env: { ...env, DBUS_SESSION_BUS_ADDRESS: "unix:path=/nonexistent/review-secret-service" },
       input: JSON.stringify({ version: 1, operation: "credentials", cwd: repository }),
@@ -750,12 +874,12 @@ try {
   const finalOwner = parseJson(await readFile(join(runtime, "owner.json"), "utf8").catch(() => "null"), "final resident owner");
   if (typeof finalOwner?.pid === "number") residentPid = finalOwner.pid;
 
-  const uninstallPreviewRun = await mustRun(cli, ["--uninstall"], {
+  const uninstallPreviewRun = await mustRun(activeCli, ["--uninstall"], {
     cwd: temporary, env, input: JSON.stringify({ version: 1, operation: "uninstall", codexHome }),
   });
   const uninstallPreview = parseJson(uninstallPreviewRun.stdout, "uninstall preview");
   if (uninstallPreview.status !== "preview") throw new Error("packaged uninstall did not preview owned removal");
-  const uninstallRun = await mustRun(cli, ["--uninstall"], {
+  const uninstallRun = await mustRun(activeCli, ["--uninstall"], {
     cwd: temporary,
     env,
     input: JSON.stringify({ version: 1, operation: "uninstall", codexHome, proposalDigest: uninstallPreview.proposal.digest }),
@@ -792,6 +916,20 @@ try {
       independentHookPreserved: true,
       sourceEgressAuthorized: false,
       disableDispatchGate: "passed",
+      update: {
+        fromVersion: installedManifest.version,
+        toVersion: targetPackage.version,
+        preview: "passed",
+        protocolIncompatibility: "rejected-before-write",
+        partialRecovery: "resumed",
+        previousHookRetainedOnPartialFailure: true,
+        consentPreserved: true,
+        credentialState: "not-configured",
+        trustRecordsModified: false,
+        processesStopped: false,
+        controlledReviewAfterUpdate: "passed",
+        independentHookAfterUpdate: "passed",
+      },
     },
     review: { backend: "controlled-offline", submissions, adviceReturned: true, activity: packagedActivity },
     credentialLifecycle: credentialEvidence,

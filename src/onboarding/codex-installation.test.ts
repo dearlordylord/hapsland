@@ -31,6 +31,27 @@ const fixture = () => {
   return { root, home, bin };
 };
 
+const localPackage = (root: string, version: string, residentProtocol = 1) => {
+  const packageRoot = join(root, `review-tool-${version}`);
+  const dist = join(packageRoot, "dist");
+  mkdirSync(join(dist, "resident"), { recursive: true });
+  writeFileSync(join(packageRoot, "package.json"), `${JSON.stringify({
+    name: "realtime-review-prototype",
+    version,
+    type: "module",
+  }, null, 2)}\n`);
+  writeFileSync(join(packageRoot, "package-runtime.json"), `${JSON.stringify({ residentProtocol }, null, 2)}\n`);
+  const entrypoint = join(dist, "cli.js");
+  writeFileSync(entrypoint, [
+    "import { appendFileSync } from 'node:fs';",
+    `appendFileSync(process.env.REVIEW_VERSION_LOG, ${JSON.stringify(`${version}\n`)});`,
+    "process.stdin.resume();",
+  ].join("\n"));
+  writeFileSync(join(dist, "parser-main.js"), "process.stdin.resume();\n");
+  writeFileSync(join(dist, "resident", "main.js"), "process.stdin.resume();\n");
+  return entrypoint;
+};
+
 const invoke = (
   operation: Record<string, unknown>,
   env: NodeJS.ProcessEnv = process.env,
@@ -409,6 +430,188 @@ responses_websockets_v2 = true`);
     });
     expect(readFileSync(configPath, "utf8")).toBe(modified);
     expect(existsSync(join(home, ".realtime-review-tool", "journal-v1.json"))).toBe(true);
+  });
+
+  it("previews and applies an explicit local-package update while preserving reusable state", () => {
+    const { root, home, bin } = fixture();
+    const firstEntrypoint = localPackage(root, "1.0.0");
+    const secondEntrypoint = localPackage(root, "1.1.0");
+    const independentLog = join(root, "independent.log");
+    const versionLog = join(root, "versions.log");
+    const independentEntrypoint = join(root, "independent.mjs");
+    writeFileSync(independentEntrypoint, "import { appendFileSync } from 'node:fs';\nappendFileSync(process.env.REVIEW_INDEPENDENT_LOG, 'observed\\n');\n");
+    const independent = {
+      matcher: "^Bash$",
+      hooks: [{ type: "command", command: `${shellQuote(process.execPath)} ${shellQuote(independentEntrypoint)}`, timeout: 5 }],
+    };
+    writeFileSync(join(home, "config.toml"), "# user setting\nmodel = 'gpt-6'\n");
+    writeFileSync(join(home, "hooks.json"), `${JSON.stringify({ hooks: { PostToolUse: [independent] } }, null, 2)}\n`);
+    writeFileSync(join(home, "grant.json"), "repository-grant\n");
+    writeFileSync(join(home, "credential-reference"), "native-store-reference\n");
+    const firstEnvironment = { ...process.env, REVIEW_INSTALL_ENTRYPOINT: firstEntrypoint };
+    previewAndInstall(home, bin, firstEnvironment);
+    const beforeConfig = readFileSync(join(home, "config.toml"), "utf8");
+
+    const targetEnvironment = { ...process.env, REVIEW_INSTALL_ENTRYPOINT: secondEntrypoint };
+    const preview = invoke({ operation: "update-preview", codexHome: home, codexExecutable: bin }, targetEnvironment);
+    expect(preview).toMatchObject({
+      version: 1,
+      operation: "update-preview",
+      status: "preview",
+      automaticUpdate: false,
+      sourceEgressAuthorized: false,
+      proposal: {
+        current: { packageVersion: "1.0.0", entrypoint: firstEntrypoint, residentProtocol: 1 },
+        target: { packageVersion: "1.1.0", entrypoint: secondEntrypoint, residentProtocol: 1 },
+        changes: [
+          { file: join(home, ".realtime-review-tool", "installation-v1.json"), description: "record the target packaged runtime" },
+          { file: join(home, "hooks.json"), description: "replace only the owned PostToolUse adapter hook" },
+        ],
+      },
+      trust: { modified: false, status: "renewal-required" },
+      restart: { required: true, processesStopped: false },
+      preserved: expect.arrayContaining(["repository grants", "credentials", "independent hooks", "in-flight work"]),
+    });
+    expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain("review-tool-1.0.0/dist/cli.js");
+
+    const digest = (preview.proposal as { digest: string }).digest;
+    const updated = invoke({ operation: "update", codexHome: home, codexExecutable: bin, proposalDigest: digest }, targetEnvironment);
+    expect(updated).toMatchObject({
+      operation: "update",
+      status: "updated",
+      trust: { modified: false, status: "renewal-required", bypassUsed: false },
+      restart: { required: true, processesStopped: false },
+    });
+    const hooks = JSON.parse(readFileSync(join(home, "hooks.json"), "utf8")) as {
+      hooks: { PostToolUse: Array<{ matcher: string; hooks: Array<{ command: string }> }> };
+    };
+    expect(hooks.hooks.PostToolUse[0]).toEqual(independent);
+    expect(hooks.hooks.PostToolUse[1]?.hooks[0]?.command).toContain("review-tool-1.1.0/dist/cli.js");
+    expect(readFileSync(join(home, "config.toml"), "utf8")).toBe(beforeConfig);
+    expect(readFileSync(join(home, "grant.json"), "utf8")).toBe("repository-grant\n");
+    expect(readFileSync(join(home, "credential-reference"), "utf8")).toBe("native-store-reference\n");
+    for (const group of hooks.hooks.PostToolUse) {
+      for (const handler of group.hooks) {
+        const run = spawnSync(handler.command, {
+          shell: true,
+          input: "{}",
+          encoding: "utf8",
+          env: { ...process.env, REVIEW_VERSION_LOG: versionLog, REVIEW_INDEPENDENT_LOG: independentLog },
+        });
+        expect(run.status).toBe(0);
+      }
+    }
+    expect(readFileSync(versionLog, "utf8")).toBe("1.1.0\n");
+    expect(readFileSync(independentLog, "utf8")).toBe("observed\n");
+
+    const repeatPreview = invoke({ operation: "update-preview", codexHome: home, codexExecutable: bin }, targetEnvironment);
+    expect(repeatPreview).toMatchObject({ status: "preview", alreadyCurrent: true, restart: { required: false } });
+    expect(invoke({
+      operation: "update",
+      codexHome: home,
+      codexExecutable: bin,
+      proposalDigest: (repeatPreview.proposal as { digest: string }).digest,
+    }, targetEnvironment)).toMatchObject({ status: "already-current" });
+
+    const uninstallPreview = invoke({ operation: "uninstall", codexHome: home });
+    expect(invoke({
+      operation: "uninstall",
+      codexHome: home,
+      proposalDigest: (uninstallPreview.proposal as { digest: string }).digest,
+    })).toMatchObject({ status: "uninstalled" });
+    expect(JSON.parse(readFileSync(join(home, "hooks.json"), "utf8"))).toEqual({ hooks: { PostToolUse: [independent] } });
+  });
+
+  it("rejects an incompatible target protocol before changing the working installation", () => {
+    const { root, home, bin } = fixture();
+    const firstEntrypoint = localPackage(root, "1.0.0", 1);
+    const incompatibleEntrypoint = localPackage(root, "2.0.0", 2);
+    previewAndInstall(home, bin, { ...process.env, REVIEW_INSTALL_ENTRYPOINT: firstEntrypoint });
+    const beforeHooks = readFileSync(join(home, "hooks.json"), "utf8");
+    const beforeOwnership = readFileSync(join(home, ".realtime-review-tool", "installation-v1.json"), "utf8");
+
+    const result = invoke(
+      { operation: "update-preview", codexHome: home, codexExecutable: bin },
+      { ...process.env, REVIEW_INSTALL_ENTRYPOINT: incompatibleEntrypoint },
+    );
+    expect(result).toMatchObject({
+      operation: "update-preview",
+      status: "conflict",
+      error: {
+        code: "resident_protocol_incompatible",
+        message: expect.stringContaining("protocol 1 is incompatible with target protocol 2"),
+        installed: 1,
+        target: 2,
+      },
+    });
+    expect(readFileSync(join(home, "hooks.json"), "utf8")).toBe(beforeHooks);
+    expect(readFileSync(join(home, ".realtime-review-tool", "installation-v1.json"), "utf8")).toBe(beforeOwnership);
+  });
+
+  it("retains the previous working hook on partial update and resumes with an exact recovery request", () => {
+    const { root, home, bin } = fixture();
+    const firstEntrypoint = localPackage(root, "1.0.0");
+    const secondEntrypoint = localPackage(root, "1.1.0");
+    previewAndInstall(home, bin, { ...process.env, REVIEW_INSTALL_ENTRYPOINT: firstEntrypoint });
+    const targetEnvironment = { ...process.env, REVIEW_INSTALL_ENTRYPOINT: secondEntrypoint };
+    const preview = invoke({ operation: "update-preview", codexHome: home, codexExecutable: bin }, targetEnvironment);
+    const digest = (preview.proposal as { digest: string }).digest;
+    const partial = invoke(
+      { operation: "update", codexHome: home, codexExecutable: bin, proposalDigest: digest },
+      { ...targetEnvironment, REVIEW_INSTALL_FAIL_AFTER_WRITES: "1" },
+    );
+    expect(partial).toMatchObject({
+      status: "partial",
+      recovery: {
+        proposalDigest: digest,
+        completedFiles: 1,
+        totalFiles: 2,
+        command: {
+          executable: "review-tool",
+          arguments: ["--update"],
+          request: { version: 1, operation: "update", codexHome: home, proposalDigest: digest },
+        },
+      },
+      completed: ["record the target packaged runtime"],
+    });
+    expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain("review-tool-1.0.0/dist/cli.js");
+    expect(readFileSync(join(home, "hooks.json"), "utf8")).not.toContain("review-tool-1.1.0/dist/cli.js");
+
+    const resumed = invoke(
+      { operation: "update", codexHome: home, codexExecutable: bin, proposalDigest: digest },
+      targetEnvironment,
+    );
+    expect(resumed).toMatchObject({ status: "updated", resumed: true });
+    expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain("review-tool-1.1.0/dist/cli.js");
+  });
+
+  it("preserves a concurrent independent-hook edit during update recovery", () => {
+    const { root, home, bin } = fixture();
+    const firstEntrypoint = localPackage(root, "1.0.0");
+    const secondEntrypoint = localPackage(root, "1.1.0");
+    previewAndInstall(home, bin, { ...process.env, REVIEW_INSTALL_ENTRYPOINT: firstEntrypoint });
+    const targetEnvironment = { ...process.env, REVIEW_INSTALL_ENTRYPOINT: secondEntrypoint };
+    const preview = invoke({ operation: "update-preview", codexHome: home, codexExecutable: bin }, targetEnvironment);
+    const digest = (preview.proposal as { digest: string }).digest;
+    expect(invoke(
+      { operation: "update", codexHome: home, codexExecutable: bin, proposalDigest: digest },
+      { ...targetEnvironment, REVIEW_INSTALL_FAIL_AFTER_WRITES: "1" },
+    ).status).toBe("partial");
+    const hooksPath = join(home, "hooks.json");
+    const concurrent = JSON.parse(readFileSync(hooksPath, "utf8")) as { hooks: { PostToolUse: Array<unknown> } };
+    concurrent.hooks.PostToolUse.unshift({ matcher: "^Read$", hooks: [{ type: "command", command: "new-user-hook" }] });
+    const concurrentContent = `${JSON.stringify(concurrent, null, 2)}\n`;
+    writeFileSync(hooksPath, concurrentContent);
+
+    const recovery = invoke(
+      { operation: "update", codexHome: home, codexExecutable: bin, proposalDigest: digest },
+      targetEnvironment,
+    );
+    expect(recovery).toMatchObject({
+      status: "partial",
+      error: { code: "recovery_conflict", message: expect.stringContaining("concurrent change detected") },
+    });
+    expect(readFileSync(hooksPath, "utf8")).toBe(concurrentContent);
   });
 
   it("bounds lock acquisition and reports no mutation", () => {
