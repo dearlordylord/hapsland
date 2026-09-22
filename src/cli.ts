@@ -41,6 +41,21 @@ import {
   type ControlledDecisionModelOptions,
 } from "./test-support/controlled-decision-model.ts";
 import { runEvaluationCommand } from "./evaluation/command.ts";
+import {
+  adaptCodexDirectEvent,
+  adaptCodexReply,
+  isCodexNativeApplyPatch,
+} from "./direct-event/adapter.ts";
+import type { CodexDirectEventOutput } from "./direct-event/pipeline.ts";
+import { attemptCodexHostOutput } from "./direct-event/writer.ts";
+import {
+  acknowledgeAdvice,
+  admitObservation,
+  collectReady,
+  ensureResident,
+  makeResidentDispatchContext,
+  type CollectedAdvice,
+} from "./resident/client.ts";
 
 const readStdin = Effect.try({
   try: () => readFileSync(0, "utf8"),
@@ -306,8 +321,81 @@ const runRequest = (
 
 const isCodexHook = process.argv.includes("--codex-hook");
 const isControlled = process.argv.includes("--controlled");
+const isControlledWriter = process.argv.includes("--controlled-writer");
 const requestedOperation = forcedOperation();
 const requestedEvaluationOperation = forcedEvaluationOperation();
+
+type DirectHookDispatch =
+  | { readonly handled: false }
+  | { readonly handled: true; readonly output: unknown };
+
+const runDirectCodexHook = (
+  nativeEvent: unknown,
+  controlled: ControlledDecisionModelOptions | undefined,
+  statePath: string,
+  userConfigPath: string | undefined,
+): Effect.Effect<DirectHookDispatch, unknown> =>
+  Effect.gen(function* () {
+    const record = typeof nativeEvent === "object" && nativeEvent !== null
+      ? nativeEvent as Readonly<Record<string, unknown>>
+      : undefined;
+    const isBash = record?.hook_event_name === "PostToolUse" && record.tool_name === "Bash";
+    if (!isCodexNativeApplyPatch(nativeEvent) && !isBash) return { handled: false } as const;
+    // Every mapped hook ensures the singleton, including Bash collection-only
+    // replies and installations where no initialization command was run.
+    const owner = yield* Effect.tryPromise(() => ensureResident()).pipe(Effect.option);
+    if (Option.isNone(owner)) return { handled: true, output: {} } as const;
+    const reply = yield* adaptCodexReply(nativeEvent);
+    const dispatch = reply === undefined
+      ? undefined
+      : yield* Effect.tryPromise(() => makeResidentDispatchContext(
+          reply.root,
+          statePath,
+          userConfigPath,
+          controlled,
+        )).pipe(Effect.catch(() => Effect.succeed(undefined)));
+    const collected = reply === undefined || dispatch === undefined
+      ? undefined
+      : yield* Effect.tryPromise(() => collectReady(reply.root, reply.recipient, dispatch)).pipe(
+          Effect.catch(() => Effect.succeed(undefined)),
+        );
+    // Bash has no path adaptation and can never create backend work.
+    if (isBash) {
+      return collected === undefined
+        ? { handled: true, output: {} } as const
+        : { handled: true, output: { _tag: "DirectEventReady" as const, value: collected.output, collected } } as const;
+    }
+    const observation = yield* adaptCodexDirectEvent(nativeEvent);
+    // The direct dispatcher owns every native apply_patch event. Unsupported
+    // shapes remain quiet and can never reach the legacy whole-file runtime.
+    if (observation === undefined) {
+      return collected === undefined
+        ? { handled: true, output: {} } as const
+        : { handled: true, output: { _tag: "DirectEventReady" as const, value: collected.output, collected } } as const;
+    }
+    // Matching reads are not attribution. The hook command must explicitly be
+    // installed with this controlled-writer assertion for the supported Add profile.
+    if (dispatch !== undefined) yield* Effect.tryPromise(() =>
+      admitObservation(observation, isControlledWriter, dispatch)).pipe(
+      Effect.catch(() => Effect.void),
+    );
+    return collected === undefined
+      ? { handled: true, output: {} } as const
+      : { handled: true, output: { _tag: "DirectEventReady" as const, value: collected.output, collected } } as const;
+  });
+
+const isDirectEventReady = (
+  value: unknown,
+): value is {
+  readonly _tag: "DirectEventReady";
+  readonly value: CodexDirectEventOutput;
+  readonly collected: CollectedAdvice;
+} =>
+  typeof value === "object" &&
+  value !== null &&
+  "_tag" in value &&
+  value._tag === "DirectEventReady" &&
+  "value" in value;
 
 const runOperation = (
   operation: ConsentOperation,
@@ -700,6 +788,14 @@ const program = Effect.gen(function* () {
   const controlled = isControlled ? yield* controlledOptions : undefined;
 
   if (isCodexHook) {
+    const nativeEvent = yield* decodeJson(input);
+    const direct = yield* runDirectCodexHook(
+      nativeEvent,
+      controlled,
+      statePath,
+      userConfigPath,
+    );
+    if (direct.handled) return direct.output;
     const event = yield* decodeCodexJson(input);
     const request = toReviewRequest(event);
     if (request === undefined) return {};
@@ -756,4 +852,11 @@ const program = Effect.gen(function* () {
 );
 
 const output = await Effect.runPromise(program);
-process.stdout.write(typeof output === "string" ? output : `${JSON.stringify(output)}\n`);
+if (isDirectEventReady(output)) {
+  attemptCodexHostOutput(output.value, (encoded) => {
+    process.stdout.write(encoded);
+  });
+  await acknowledgeAdvice(output.collected);
+} else {
+  process.stdout.write(typeof output === "string" ? output : `${JSON.stringify(output)}\n`);
+}
