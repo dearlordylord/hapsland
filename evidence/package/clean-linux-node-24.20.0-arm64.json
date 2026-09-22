@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-09-22T15:58:36.100Z",
+  "recordedAt": "2026-09-22T16:49:41.091Z",
   "package": {
     "name": "realtime-review-prototype",
     "version": "0.0.0",
@@ -22,6 +22,16 @@
     "parser": "passed",
     "resident": "passed",
     "hook": "passed"
+  },
+  "installation": {
+    "preview": "passed",
+    "installed": "passed",
+    "idempotent": "passed",
+    "scopedUninstall": "passed",
+    "customQuotedHome": true,
+    "independentHookPreserved": true,
+    "sourceEgressAuthorized": false,
+    "disableDispatchGate": "passed"
   },
   "review": {
     "backend": "controlled-offline",
@@ -47,6 +57,10 @@
       "status": "completed-findings",
       "terminalOutcomes": 1,
       "correlation": "resident-native-event-identity"
+    },
+    "independentHook": {
+      "status": "observed",
+      "observations": 2
     }
   },
   "transientPackageDownloadPerEdit": false,

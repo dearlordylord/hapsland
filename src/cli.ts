@@ -57,6 +57,11 @@ import {
   makeResidentDispatchContext,
   type CollectedAdvice,
 } from "./resident/client.ts";
+import {
+  installCodexIntegration,
+  previewCodexInstallation,
+  uninstallCodexIntegration,
+} from "./onboarding/codex-installation.ts";
 
 const readStdin = Effect.try({
   try: () => readFileSync(0, "utf8"),
@@ -150,6 +155,29 @@ const ConsentOperation = Schema.Union([
 ]);
 type ConsentOperation = typeof ConsentOperation.Type;
 
+const InstallationOperation = Schema.Union([
+  Schema.Struct({
+    version: Schema.Literal(1),
+    operation: Schema.Literal("install-preview"),
+    codexHome: Schema.optionalKey(Schema.NonEmptyString),
+    codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
+  }),
+  Schema.Struct({
+    version: Schema.Literal(1),
+    operation: Schema.Literal("install"),
+    codexHome: Schema.optionalKey(Schema.NonEmptyString),
+    codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
+    proposalDigest: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)),
+  }),
+  Schema.Struct({
+    version: Schema.Literal(1),
+    operation: Schema.Literal("uninstall"),
+    codexHome: Schema.optionalKey(Schema.NonEmptyString),
+    proposalDigest: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/))),
+  }),
+]);
+type InstallationOperation = typeof InstallationOperation.Type;
+
 const statePathConfig = Config.String("REVIEW_STATE_PATH").pipe(
   Config.orElse(() => Config.String("REVIEW_CONSENT_FILE")),
   Config.withDefault(join(homedir(), ".config", "realtime-review-tool", "consent")),
@@ -185,6 +213,28 @@ const forcedOperation = (): ConsentOperation["operation"] | undefined => {
   }
   return undefined;
 };
+
+const forcedInstallationOperation = (): InstallationOperation["operation"] | undefined => {
+  if (process.argv.includes("--install-preview")) return "install-preview";
+  if (process.argv.includes("--install")) return "install";
+  if (process.argv.includes("--uninstall")) return "uninstall";
+  return undefined;
+};
+
+const decodeInstallationOperation = (
+  input: string,
+  forced: InstallationOperation["operation"] | undefined,
+) =>
+  decodeJson(input).pipe(
+    Effect.flatMap(
+      Schema.decodeUnknownEffect(InstallationOperation, { onExcessProperty: "error" }),
+    ),
+    Effect.flatMap((operation) =>
+      forced !== undefined && operation.operation !== forced
+        ? Effect.fail(new Error("installation operation flag does not match the request"))
+        : Effect.succeed(operation),
+    ),
+  );
 
 type EvaluationOperationName = "plan" | "run" | "report";
 
@@ -325,6 +375,7 @@ const isCodexHook = process.argv.includes("--codex-hook");
 const isControlled = process.argv.includes("--controlled");
 const isControlledWriter = process.argv.includes("--controlled-writer");
 const requestedOperation = forcedOperation();
+const requestedInstallationOperation = forcedInstallationOperation();
 const requestedEvaluationOperation = forcedEvaluationOperation();
 
 type DirectHookDispatch =
@@ -752,6 +803,7 @@ const program = Effect.gen(function* () {
   const inputRequestsOperation = /"operation"\s*:\s*"(?:enable|enable-confirm|disable|credentials|status|explain)"/.test(
     input,
   );
+  const inputRequestsInstallation = /"operation"\s*:\s*"(?:install-preview|install|uninstall)"/.test(input);
   const inputRequestsEvaluation = /"operation"\s*:\s*"(?:plan|run|report)"/.test(input);
   if (requestedEvaluationOperation !== undefined || inputRequestsEvaluation) {
     const evaluationInput = yield* decodeJson(input);
@@ -775,6 +827,26 @@ const program = Effect.gen(function* () {
       credentialEnvVar: process.env.EVALUATION_CREDENTIAL_ENV ?? "TYPESAFE_API_KEY",
       ...(isControlled ? { controlled: yield* controlledOptions } : {}),
     });
+  }
+  if (requestedInstallationOperation !== undefined || inputRequestsInstallation) {
+    const operation = yield* decodeInstallationOperation(input, requestedInstallationOperation);
+    const request = {
+      ...(operation.codexHome === undefined ? {} : { codexHome: operation.codexHome }),
+      ...(!("codexExecutable" in operation) || operation.codexExecutable === undefined
+        ? {}
+        : { codexExecutable: operation.codexExecutable }),
+      ...(!("proposalDigest" in operation) || operation.proposalDigest === undefined
+        ? {}
+        : { proposalDigest: operation.proposalDigest }),
+    };
+    switch (operation.operation) {
+      case "install-preview":
+        return previewCodexInstallation(request);
+      case "install":
+        return yield* Effect.promise(() => installCodexIntegration(request));
+      case "uninstall":
+        return yield* Effect.promise(() => uninstallCodexIntegration(request));
+    }
   }
   if (requestedOperation !== undefined || inputRequestsOperation) {
     const decodedOperation = yield* decodeOperation(input, requestedOperation);
@@ -854,6 +926,18 @@ const program = Effect.gen(function* () {
 );
 
 const output = await Effect.runPromise(program);
+if (!isCodexHook && typeof output === "object" && output !== null) {
+  const record = output as Readonly<Record<string, unknown>>;
+  process.exitCode = record.status === "unsupported"
+    ? 3
+    : record.status === "conflict" || record.status === "proposal-mismatch"
+      ? 4
+      : record.status === "partial"
+        ? 5
+        : "error" in record
+          ? 2
+          : 0;
+}
 if (isDirectEventReady(output)) {
   attemptCodexHostOutput(output.value, (encoded) => {
     process.stdout.write(encoded);
