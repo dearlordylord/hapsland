@@ -42,7 +42,7 @@ import {
 } from "./test-support/controlled-decision-model.ts";
 import { runEvaluationCommand } from "./evaluation/command.ts";
 import {
-  adaptCodexAdd,
+  adaptCodexDirectEvent,
   adaptCodexReply,
   isCodexNativeApplyPatch,
 } from "./direct-event/adapter.ts";
@@ -365,7 +365,7 @@ const runDirectCodexHook = (
         ? { handled: true, output: {} } as const
         : { handled: true, output: { _tag: "DirectEventReady" as const, value: collected.output, collected } } as const;
     }
-    const observation = yield* adaptCodexAdd(nativeEvent);
+    const observation = yield* adaptCodexDirectEvent(nativeEvent);
     // The direct dispatcher owns every native apply_patch event. Unsupported
     // shapes remain quiet and can never reach the legacy whole-file runtime.
     if (observation === undefined) {

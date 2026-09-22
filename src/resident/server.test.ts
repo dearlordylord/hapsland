@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
 import { join } from "node:path";
-import { adaptCodexAdd } from "../direct-event/adapter.ts";
+import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import { addEvent, makeGitFixture, put, recipient } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { Consent } from "../runtime/consent.ts";
@@ -22,7 +22,7 @@ describe("resident delivery lease", () => {
     const statePath = join(root, "consent");
     const capturePath = join(root, "backend-called");
     await enable(root, statePath);
-    const observation = await Effect.runPromise(adaptCodexAdd(addEvent(root)));
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
     const dispatch: ResidentDispatchContext = {

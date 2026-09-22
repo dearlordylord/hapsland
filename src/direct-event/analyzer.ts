@@ -1,20 +1,52 @@
-import { extname } from "node:path";
 import { createHash } from "node:crypto";
+import { extname } from "node:path";
 import Parser from "tree-sitter";
 import TypeScript from "tree-sitter-typescript";
-import type { TypeDeclaration } from "./model.ts";
+import type { ArtifactReference, ReviewNode, ReviewUnit, TypeDeclaration } from "./model.ts";
 
 type SyntaxNode = {
   readonly type: string;
   readonly text: string;
-  readonly startIndex: number;
-  readonly endIndex: number;
   readonly namedChildren: ReadonlyArray<SyntaxNode>;
   readonly parent?: SyntaxNode | null;
   readonly hasError?: boolean;
 };
 
+type ParsedDeclaration = {
+  readonly node: SyntaxNode;
+  readonly nameNode: SyntaxNode;
+  readonly artifact: TypeDeclaration;
+  readonly references: ReadonlyArray<
+    | { readonly kind: "named"; readonly name: string }
+    | { readonly kind: "unsupported"; readonly name: string }
+  >;
+};
+
+export type UnitAnalysis =
+  | { readonly status: "ready"; readonly unit: ReviewUnit }
+  | {
+      readonly status: "unsupported";
+      readonly root: TypeDeclaration;
+      readonly unit: ReviewUnit;
+      readonly reason: "missing-evidence" | "unsupported-reference" | "reference-limit";
+    };
+
+export type TypeFileAnalysis =
+  | { readonly status: "unsupported"; readonly reason: "extension" | "parse" | "import" | "declaration-limit" | "declaration-merge" | "no-declarations"; readonly units: readonly [] }
+  | { readonly status: "analyzed"; readonly units: ReadonlyArray<UnitAnalysis> };
+
+export const MAX_TYPE_DECLARATIONS = 64;
+/** The root is deliberately excluded from this count. */
+export const MAX_REFERENCED_NAMES = 16;
+
 const supported = new Set([".ts", ".tsx", ".mts", ".cts"]);
+const importSyntax = new Set([
+  "import",
+  "import_alias",
+  "import_require_clause",
+  "import_statement",
+  "import_type",
+]);
 
 /** Iterative traversal contains adversarially deep, but byte-bounded, syntax. */
 const descendants = (node: SyntaxNode): ReadonlyArray<SyntaxNode> => {
@@ -44,88 +76,154 @@ const declarationNameNode = (node: SyntaxNode): SyntaxNode | undefined =>
     (child) => child.type === "type_identifier" || child.type === "identifier",
   );
 
-const requiredTypeReferences = (declaration: SyntaxNode, nameNode: SyntaxNode) => {
-  const parameters = new Set<string>();
-  const rootParameters = declaration.namedChildren.find(
-    (node) => node.type === "type_parameters",
-  );
-  for (const node of rootParameters?.namedChildren ?? []) {
+const rootTypeParameters = (declaration: SyntaxNode): ReadonlySet<string> => {
+  const names = new Set<string>();
+  const parameters = declaration.namedChildren.find((node) => node.type === "type_parameters");
+  for (const node of parameters?.namedChildren ?? []) {
     if (node.type !== "type_parameter") continue;
     const name = node.namedChildren.find((child) => child.type === "type_identifier");
-    if (name !== undefined) parameters.add(name.text);
+    if (name !== undefined) names.add(name.text);
   }
-  return descendants(declaration).filter((node) =>
-    node.type === "nested_type_identifier" ||
-    node.type === "type_query" ||
-    node.type === "computed_property_name" ||
-    (
-      node.type === "type_identifier" &&
-      node !== nameNode &&
-      node.parent?.type !== "type_parameter" &&
-      !parameters.has(node.text)
-    )
-  );
+  return names;
 };
 
-const parseDeclarations = (
-  path: string,
-  source: string,
-): ReadonlyArray<SyntaxNode> | undefined => {
+const referencesOf = (declaration: SyntaxNode, nameNode: SyntaxNode): ParsedDeclaration["references"] => {
+  const parameters = rootTypeParameters(declaration);
+  const result: Array<ParsedDeclaration["references"][number]> = [];
+  for (const node of descendants(declaration)) {
+    if (node.type === "nested_type_identifier" || node.type === "type_query" || node.type === "computed_property_name") {
+      result.push({ kind: "unsupported", name: node.text });
+      continue;
+    }
+    if (
+      node.type !== "type_identifier" ||
+      node === nameNode ||
+      node.parent?.type === "type_parameter" ||
+      node.parent?.type === "nested_type_identifier" ||
+      parameters.has(node.text)
+    ) continue;
+    result.push({ kind: "named", name: node.text });
+  }
+  const seen = new Set<string>();
+  return result.filter((reference) => {
+    const key = `${reference.kind}:${reference.name}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
+const parsedDeclarations = (path: string, source: string): TypeFileAnalysis | ReadonlyArray<ParsedDeclaration> => {
   const extension = extname(path).toLowerCase();
-  if (!supported.has(extension)) return undefined;
+  if (!supported.has(extension)) return { status: "unsupported", reason: "extension", units: [] };
   try {
     const parser = new Parser();
     parser.setLanguage(extension === ".tsx" ? TypeScript.tsx : TypeScript.typescript);
     const tree = parser.parse(source) as unknown as { readonly rootNode: SyntaxNode };
-    if (tree.rootNode.hasError) return undefined;
+    if (tree.rootNode.hasError) return { status: "unsupported", reason: "parse", units: [] };
     const nodes = [tree.rootNode, ...descendants(tree.rootNode)];
-    if (nodes.some((node) => node.type === "import_statement")) return undefined;
-    return nodes.filter((node) => kindOf(node) !== undefined);
+    if (nodes.some((node) => importSyntax.has(node.type))) {
+      return { status: "unsupported", reason: "import", units: [] };
+    }
+    const declarations = nodes.filter((node) => kindOf(node) !== undefined);
+    if (declarations.length === 0) return { status: "unsupported", reason: "no-declarations", units: [] };
+    if (declarations.length > MAX_TYPE_DECLARATIONS) {
+      return { status: "unsupported", reason: "declaration-limit", units: [] };
+    }
+    const parsed: Array<ParsedDeclaration> = [];
+    for (const node of declarations) {
+      const nameNode = declarationNameNode(node);
+      const kind = kindOf(node);
+      if (nameNode === undefined || kind === undefined || nameNode.text.length === 0 || node.hasError) {
+        return { status: "unsupported", reason: "parse", units: [] };
+      }
+      const sourceNode = node.parent?.type === "export_statement" ? node.parent : node;
+      const rendered = sourceNode.text;
+      const artifact: TypeDeclaration = {
+        id: `${path}:${kind}:${nameNode.text}`,
+        kind,
+        name: nameNode.text,
+        source: rendered,
+        sourceHash: createHash("sha256").update(rendered, "utf8").digest("hex"),
+      };
+      parsed.push({ node, nameNode, artifact, references: referencesOf(node, nameNode) });
+    }
+    if (new Set(parsed.map(({ artifact }) => artifact.name)).size !== parsed.length) {
+      return { status: "unsupported", reason: "declaration-merge", units: [] };
+    }
+    return parsed;
   } catch {
-    return undefined;
+    return { status: "unsupported", reason: "parse", units: [] };
   }
 };
 
-const declarationArtifact = (declaration: SyntaxNode): TypeDeclaration | undefined => {
-  if (declaration.hasError) return undefined;
-  const nameNode = declarationNameNode(declaration);
-  const kind = kindOf(declaration);
-  if (nameNode === undefined || kind === undefined || nameNode.text.length === 0) return undefined;
-  if (requiredTypeReferences(declaration, nameNode).length > 0) return undefined;
-  const rendered = declaration.text;
-  return {
-    kind,
-    name: nameNode.text,
-    source: rendered,
-    sourceHash: createHash("sha256").update(rendered, "utf8").digest("hex"),
+const unitFor = (root: ParsedDeclaration, declarations: ReadonlyMap<string, ParsedDeclaration>): UnitAnalysis => {
+  const expanded = new Set<string>([root.artifact.id]);
+  const referencedNames = new Set<string>();
+  let reason: Extract<UnitAnalysis, { status: "unsupported" }>["reason"] | undefined;
+
+  const visit = (declaration: ParsedDeclaration): ReviewNode => {
+    const references: Array<ArtifactReference> = [];
+    for (const reference of declaration.references) {
+      if (reference.kind === "unsupported") {
+        reason ??= "unsupported-reference";
+        references.push({ kind: "omitted", site: { symbol: reference.name }, target: { kind: "unresolved", symbol: reference.name }, reason: "unsupported" });
+        continue;
+      }
+      if (reference.name !== root.artifact.name) referencedNames.add(reference.name);
+      const target = declarations.get(reference.name);
+      if (referencedNames.size > MAX_REFERENCED_NAMES) {
+        reason ??= "reference-limit";
+        references.push({
+          kind: "omitted",
+          site: { symbol: reference.name },
+          target: target === undefined
+            ? { kind: "unresolved", symbol: reference.name }
+            : { kind: "known", artifactId: target.artifact.id },
+          reason: "reference-limit",
+        });
+      } else if (target === undefined) {
+        reason ??= "missing-evidence";
+        references.push({ kind: "omitted", site: { symbol: reference.name }, target: { kind: "unresolved", symbol: reference.name }, reason: "unresolved" });
+      } else if (expanded.has(target.artifact.id)) {
+        references.push({ kind: "included", site: { symbol: reference.name }, target: target.artifact.id });
+      } else {
+        expanded.add(target.artifact.id);
+        references.push({ kind: "expanded", site: { symbol: reference.name }, node: visit(target) });
+      }
+    }
+    return { artifact: declaration.artifact, references };
   };
+
+  const unit = { root: visit(root) } satisfies ReviewUnit;
+  return reason === undefined
+    ? { status: "ready", unit }
+    : { status: "unsupported", root: root.artifact, unit, reason };
 };
 
-/**
- * Initial analyzer profile: exactly one named interface/type alias in the file,
- * with no declaration merge, parse error, or required named type reference.
- */
-export const analyzeSingleType = (
-  path: string,
-  source: string,
-): TypeDeclaration | undefined => {
-  const declarations = parseDeclarations(path, source);
-  if (declarations === undefined || declarations.length !== 1) return undefined;
-  const declaration = declarations[0];
-  return declaration === undefined ? undefined : declarationArtifact(declaration);
+export const analyzeTypeFile = (path: string, source: string): TypeFileAnalysis => {
+  const parsed = parsedDeclarations(path, source);
+  if ("status" in parsed) return parsed;
+  const byName = new Map(parsed.map((declaration) => [declaration.artifact.name, declaration]));
+  return { status: "analyzed", units: parsed.map((declaration) => unitFor(declaration, byName)) };
 };
 
-/** Revalidation identifies the frozen root without requiring sibling stability. */
-export const analyzeNamedType = (
-  path: string,
-  source: string,
-  name: string,
-): TypeDeclaration | undefined => {
-  const declarations = parseDeclarations(path, source);
-  if (declarations === undefined) return undefined;
-  const matching = declarations.filter((declaration) =>
-    declarationNameNode(declaration)?.text === name);
-  if (matching.length !== 1) return undefined;
-  const declaration = matching[0];
-  return declaration === undefined ? undefined : declarationArtifact(declaration);
+export const readyTypeUnits = (path: string, source: string): ReadonlyArray<ReviewUnit> => {
+  const analysis = analyzeTypeFile(path, source);
+  return analysis.status === "analyzed"
+    ? analysis.units.flatMap((outcome) => outcome.status === "ready" ? [outcome.unit] : [])
+    : [];
 };
+
+/** Compatibility helper for the original Add-only surface. */
+export const analyzeSingleType = (path: string, source: string): TypeDeclaration | undefined => {
+  const units = readyTypeUnits(path, source);
+  return units.length === 1 ? units[0]?.root.artifact : undefined;
+};
+
+/** Revalidation returns the named root only when its complete evidence remains available. */
+export const analyzeNamedUnit = (path: string, source: string, name: string): ReviewUnit | undefined =>
+  readyTypeUnits(path, source).find(({ root }) => root.artifact.name === name);
+
+export const analyzeNamedType = (path: string, source: string, name: string): TypeDeclaration | undefined =>
+  analyzeNamedUnit(path, source, name)?.root.artifact;

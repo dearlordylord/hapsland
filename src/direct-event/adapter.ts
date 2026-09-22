@@ -3,7 +3,7 @@ import { realpath, stat } from "node:fs/promises";
 import { promisify } from "node:util";
 import * as Effect from "effect/Effect";
 import type {
-  AddCandidate,
+  DirectCandidate,
   DirectObservation,
   DirectRecipient,
   PhysicalRootIdentity,
@@ -26,30 +26,64 @@ export const isCodexNativeApplyPatch = (value: unknown): boolean => {
   return event?.hook_event_name === "PostToolUse" && event.tool_name === "apply_patch";
 };
 
-const nativeAddCandidates = (command: string): ReadonlyArray<AddCandidate> | undefined => {
+export const nativeDirectCandidates = (command: string): ReadonlyArray<DirectCandidate> | undefined => {
   if (Buffer.byteLength(command, "utf8") > MAX_CODEX_COMMAND_BYTES) return undefined;
   const lines = command.replaceAll("\r\n", "\n").split("\n");
   if (lines[0] !== "*** Begin Patch" || lines.at(-1) !== "*** End Patch") return undefined;
-  const candidates: Array<AddCandidate> = [];
+  const candidates: Array<{ operation: DirectCandidate["operation"]; path: string; addedLines: Array<string> }> = [];
   const paths = new Set<string>();
-  let bodyOpen = false;
+  let current: (typeof candidates)[number] | undefined;
   for (const line of lines.slice(1, -1)) {
-    const add = /^\*\*\* Add File: (.+)$/.exec(line);
-    if (add !== null) {
-      const path = add[1]?.trim();
+    const header = /^\*\*\* (Add|Update|Delete) File: (.+)$/.exec(line);
+    if (header !== null) {
+      const path = header[2]?.trim();
       if (path === undefined || path.length === 0 || paths.has(path)) return undefined;
       paths.add(path);
-      candidates.push({ operation: "add", path });
-      bodyOpen = true;
+      current = {
+        operation: header[1] === "Add" ? "add" : header[1] === "Update" ? "update" : "delete",
+        path,
+        addedLines: [],
+      };
+      candidates.push(current);
       continue;
     }
-    // Every body line in native Add syntax carries the '+' patch marker.
-    // Unknown/malformed controls and unmarked text are never treated as paths.
+    if (current === undefined) return undefined;
+    if (line.startsWith("*** Move to: ")) {
+      if (current.operation !== "update" || line.slice("*** Move to: ".length).trim().length === 0) return undefined;
+      current.operation = "move";
+      continue;
+    }
     if (line.startsWith("***")) return undefined;
-    if (!bodyOpen || !line.startsWith("+")) return undefined;
+    if (current.operation === "delete") return undefined;
+    if (current.operation === "move") {
+      if (line.startsWith("@@")) continue;
+      if (!line.startsWith("+") && !line.startsWith("-") && !line.startsWith(" ")) return undefined;
+      continue;
+    }
+    if (current.operation === "add") {
+      if (!line.startsWith("+")) return undefined;
+      current.addedLines.push(line.slice(1));
+      continue;
+    }
+    if (line.startsWith("@@")) continue;
+    if (!line.startsWith("+") && !line.startsWith("-") && !line.startsWith(" ")) return undefined;
+    if (line.startsWith("+")) current.addedLines.push(line.slice(1));
   }
   if (candidates.length < 1 || candidates.length > MAX_CODEX_CANDIDATES) return undefined;
-  return candidates;
+  if (!candidates.some((candidate) =>
+    candidate.operation === "add" ||
+    (candidate.operation === "update" && candidate.addedLines.some((line) => line.trim().length > 0)))) {
+    return undefined;
+  }
+  return candidates.map((candidate): DirectCandidate => {
+    if (candidate.operation === "add") {
+      return { operation: "add", path: candidate.path, addedLines: Object.freeze([...candidate.addedLines]) };
+    }
+    if (candidate.operation === "update") {
+      return { operation: "update", path: candidate.path, addedLines: Object.freeze([...candidate.addedLines]) };
+    }
+    return { operation: candidate.operation, path: candidate.path, addedLines: [] };
+  });
 };
 
 const discoverRoot = async (cwd: string) => {
@@ -104,8 +138,8 @@ export const verifyObservationRoot = (observation: DirectObservation) =>
     catch: () => new Error("working tree identity unavailable"),
   }).pipe(Effect.catch(() => Effect.succeed(false)));
 
-/** Strictly adapts the bounded, successful Codex CLI 0.155.1 native Add profile. */
-export const adaptCodexAdd = Effect.fn("DirectEvent.adaptCodexAdd")(function* (
+/** Strictly adapts the bounded, successful Codex CLI 0.155.1 native patch profile. */
+export const adaptCodexDirectEvent = Effect.fn("DirectEvent.adaptCodexDirectEvent")(function* (
   value: unknown,
 ) {
   const event = record(value);
@@ -124,7 +158,7 @@ export const adaptCodexAdd = Effect.fn("DirectEvent.adaptCodexAdd")(function* (
   // conservative when Codex explicitly reports failure, while retaining the
   // observed 0.155.1 response variants which do not expose a Boolean status.
   if (response?.success === false || response?.is_error === true) return undefined;
-  const candidates = nativeAddCandidates(input.command);
+  const candidates = nativeDirectCandidates(input.command);
   if (candidates === undefined) return undefined;
   const rootOption = yield* canonicalGitRoot(event.cwd);
   if (rootOption._tag === "None") return undefined;
@@ -169,3 +203,6 @@ export const adaptCodexReply = Effect.fn("DirectEvent.adaptCodexReply")(function
     } satisfies DirectRecipient),
   });
 });
+
+/** Compatibility name retained for callers introduced by the Add-only slice. */
+export const adaptCodexAdd = adaptCodexDirectEvent;
