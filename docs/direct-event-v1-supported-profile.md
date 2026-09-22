@@ -45,8 +45,11 @@ occurs during hook edits.
 
 The retained issue-63 fixture additionally used an isolated real Codex 0.155.1 home and temporary
 Git repository. Codex invoked the installed CLI directly and completed one controlled offline
-review. `OPENAI_API_KEY` and `TYPESAFE_API_KEY` were absent from the hook environment; no Jev call
-was possible. The sanitized record is
+review. The fixture used Codex's native interactive hook review to persist the exact-definition
+trust hash and did not bypass hook trust. It separately observed one provider submission and a
+terminal `completed-findings` resident outcome correlated by the source-free native event identity.
+`OPENAI_API_KEY` and `TYPESAFE_API_KEY` were absent from the hook environment; no Jev call was
+possible. The sanitized record is
 [`evidence/package/clean-linux-node-24.20.0-arm64.json`](../evidence/package/clean-linux-node-24.20.0-arm64.json).
 It establishes the Linux arm64 headless installed-package seam only and does not broaden the
 adapter, platform, mode, or review-semantics profile.

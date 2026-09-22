@@ -36,7 +36,65 @@ const mustRun = async (command, args, options = {}) => {
 const parseJson = (text, label) => {
   try { return JSON.parse(text); } catch { throw new Error(`${label} did not return JSON`); }
 };
+const jsonLines = (text) => text.split("\n").filter(Boolean).map((line) => parseJson(line, "JSONL record"));
 const quote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
+const establishNativeHookTrust = (codexHome, repository, env) => new Promise((resolveTrust, rejectTrust) => {
+  const child = spawn("script", [
+    "-qefc",
+    `stty rows 24 cols 80; exec ${quote("codex")} --no-alt-screen -C ${quote(repository)}`,
+    "/dev/null",
+  ], {
+    cwd: repository,
+    env: { ...env, CODEX_HOME: codexHome, TERM: "xterm-256color" },
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  let transcript = "";
+  let selected = false;
+  let trusted = false;
+  let terminalInitialized = false;
+  const trustPoll = setInterval(() => {
+    void readFile(join(codexHome, "config.toml"), "utf8").then((config) => {
+      if (trusted || !config.includes("trusted_hash")) return;
+      trusted = true;
+      child.stdin.write("\u0003");
+    }).catch(() => undefined);
+  }, 100);
+  const timer = setTimeout(() => {
+    child.kill("SIGTERM");
+    rejectTrust(new Error("Codex native hook-trust review timed out"));
+  }, 30_000);
+  const observe = (chunk) => {
+    transcript = `${transcript}${chunk}`.slice(-256_000);
+    if (!terminalInitialized && transcript.includes("\u001b[6n")) {
+      terminalInitialized = true;
+      child.stdin.write("\u001b[24;80R\u001b]10;rgb:ffff/ffff/ffff\u001b\\\u001b]11;rgb:0000/0000/0000\u001b\\\u001b[?1;2c\u001b[?0u");
+    }
+    if (!selected && transcript.includes("Hooks need review")) {
+      selected = true;
+      setTimeout(() => {
+        // Codex enables the Kitty keyboard protocol; its unambiguous CSI form
+        // avoids a bare Escape being interpreted as "close" under PTY timing.
+        child.stdin.write("\u001b[1;1B");
+        setTimeout(() => child.stdin.write("\r"), 250);
+      }, 250);
+    }
+  };
+  child.stdout.setEncoding("utf8");
+  child.stderr.setEncoding("utf8");
+  child.stdout.on("data", observe);
+  child.stderr.on("data", observe);
+  child.once("error", (cause) => {
+    clearTimeout(timer);
+    clearInterval(trustPoll);
+    rejectTrust(cause);
+  });
+  child.once("close", () => {
+    clearTimeout(timer);
+    clearInterval(trustPoll);
+    if (!trusted) rejectTrust(new Error("Codex native hook-trust review did not persist trust"));
+    else resolveTrust();
+  });
+});
 
 const temporary = await mkdtemp(join(tmpdir(), "review-package-conformance-"));
 let residentPid;
@@ -47,6 +105,7 @@ try {
   const state = join(temporary, "state", "consent");
   const runtime = join(temporary, "state", "resident");
   const calls = join(temporary, "state", "controlled-calls.txt");
+  const outcomes = join(temporary, "state", "controlled-outcomes.jsonl");
   await mkdir(artifacts, { recursive: true });
   await mkdir(installation, { recursive: true });
   await mkdir(repository, { recursive: true });
@@ -99,7 +158,7 @@ try {
     ...process.env,
     REVIEW_STATE_PATH: state,
     REVIEW_RESIDENT_DIR: runtime,
-    REVIEW_CONTROL_JSON: JSON.stringify({ answers, capturePath: calls }),
+    REVIEW_CONTROL_JSON: JSON.stringify({ answers, capturePath: calls, outcomePath: outcomes }),
   };
   for (const key of ["OPENAI_API_KEY", "TYPESAFE_API_KEY"]) delete env[key];
   const preview = await mustRun(cli, ["--enable"], {
@@ -144,23 +203,50 @@ try {
     } catch {
       throw new Error("real Codex fixture requested but isolated host authentication is unavailable");
     }
-    await writeFile(join(codexHome, "config.toml"), "[features]\nhooks = true\n", { mode: 0o600 });
+    await writeFile(join(codexHome, "config.toml"), `[features]\nhooks = true\n\n[projects.${JSON.stringify(repository)}]\ntrust_level = "trusted"\n`, { mode: 0o600 });
     await writeFile(join(codexHome, "hooks.json"), `${JSON.stringify({ hooks: { PostToolUse: [{ matcher: "^(apply_patch|Bash)$", hooks: [{ type: "command", command: `${quote(cli)} --codex-hook --controlled --controlled-writer`, timeout: 20 }] }] } }, null, 2)}\n`, { mode: 0o600 });
+    await establishNativeHookTrust(codexHome, repository, env);
+    const trustedConfig = await readFile(join(codexHome, "config.toml"), "utf8");
+    if (!trustedConfig.includes("[hooks.state.") || !trustedConfig.includes("trusted_hash")) {
+      throw new Error("Codex native hook-trust review did not retain an exact-definition hash");
+    }
     const before = submissions;
+    const outcomesBefore = jsonLines(await readFile(outcomes, "utf8").catch(() => "")).length;
     const codexEnv = { ...env, CODEX_HOME: codexHome };
     const host = await run("codex", [
-      "exec", "--ephemeral", "--json", "--dangerously-bypass-hook-trust",
+      "exec", "--ephemeral", "--json",
       "--dangerously-bypass-approvals-and-sandbox", "--ignore-rules", "-C", repository,
       "Use apply_patch exactly once to add installed.ts containing one exported interface named Installed with fields id:string and destination:string. Then use Bash exactly once to run `printf installed-package-ready`. Do not inspect files or make other tool calls.",
     ], { cwd: repository, env: codexEnv, timeoutMs: 120_000 });
     const after = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
+    let realHostOutcomes = [];
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      realHostOutcomes = jsonLines(await readFile(outcomes, "utf8").catch(() => "")).slice(outcomesBefore);
+      if (realHostOutcomes.some(({ outcome }) => outcome === "completed-findings")) break;
+      await new Promise((resolveWait) => setTimeout(resolveWait, 50));
+    }
+    const completed = realHostOutcomes.filter(({ outcome }) => outcome === "completed-findings");
+    const providerSubmissions = after - before;
     realCodex = {
-      status: host.code === 0 && after > before ? "controlled-offline-review-completed" : "failed",
+      status: host.code === 0 && providerSubmissions === 1 && completed.length === 1 ? "passed" : "failed",
       codexVersion,
       hostExitCode: host.code,
-      controlledBackendSubmissions: after - before,
+      hookTrust: {
+        status: "persisted-exact-definition",
+        flow: "native-interactive-review",
+        bypassFlag: false,
+      },
+      reviewSubmission: {
+        status: providerSubmissions === 1 ? "observed" : "failed",
+        controlledBackendSubmissions: providerSubmissions,
+      },
+      reviewCompletion: {
+        status: completed.length === 1 ? "completed-findings" : "unproved",
+        terminalOutcomes: completed.length,
+        correlation: "resident-native-event-identity",
+      },
     };
-    if (realCodex.status !== "controlled-offline-review-completed") throw new Error(`real Codex fixture failed: ${host.stderr || host.stdout}`);
+    if (realCodex.status !== "passed") throw new Error(`real Codex fixture failed: ${host.stderr || host.stdout}`);
   }
 
   const evidence = {

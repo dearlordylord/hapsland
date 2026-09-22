@@ -106,7 +106,11 @@ if (packageEncoded === undefined) {
   inspect(packageEvidence, "clean-linux-node-24.20.0-arm64.json");
   if (
     packageEvidence.verdict !== "clean-package-and-real-host-passed" ||
-    packageEvidence.realCodex?.status !== "controlled-offline-review-completed" ||
+    packageEvidence.realCodex?.status !== "passed" ||
+    packageEvidence.realCodex?.hookTrust?.flow !== "native-interactive-review" ||
+    packageEvidence.realCodex?.hookTrust?.bypassFlag !== false ||
+    packageEvidence.realCodex?.reviewSubmission?.status !== "observed" ||
+    packageEvidence.realCodex?.reviewCompletion?.status !== "completed-findings" ||
     packageEvidence.isolation?.developmentDependencies !== false ||
     packageEvidence.isolation?.checkoutPathUsedAtRuntime !== false
   ) {
