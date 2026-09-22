@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "specification": "https://github.com/dearlordylord/jevs/issues/42",
+  "profile": "direct-event v1 / Codex CLI 0.155.1 / Linux arm64 / headless command hooks / controlled writer",
+  "ordinaryTests": "deterministic-offline",
+  "groups": [
+    {
+      "group": 1,
+      "boundary": "native Codex adapter and delivery-only hook",
+      "checks": [
+        ["src/direct-event/adapter.test.ts", "adapts the pinned Codex 0.155.1 native event fixture"],
+        ["src/direct-event/adapter.test.ts", "adapts Add, Update, Delete and move sections independently"],
+        ["src/direct-event/pipeline.test.ts", "selects only an Update root uniquely corroborated by a nonempty added line"],
+        ["src/cli.test.ts", "routes a native controlled-writer Codex Add through direct-event stdout"],
+        ["src/direct-event/adapter.test.ts", "accepts exactly 64 KiB and rejects one byte above"],
+        ["src/direct-event/adapter.test.ts", "accepts exactly sixteen named candidates"]
+      ]
+    },
+    {
+      "group": 2,
+      "boundary": "Git-aware named-path selection before source access",
+      "checks": [
+        ["src/direct-event/selection-capture.test.ts", "honors nested .gitignore for untracked files and tracked semantics"],
+        ["src/direct-event/selection-capture.test.ts", "does not load .git/info/exclude or global excludes"],
+        ["src/direct-event/selection-capture.test.ts", "applies replacement includes, accumulated exclusions, and the hard floor"],
+        ["src/direct-event/selection-capture.test.ts", "applies replacement includes, accumulated exclusions, and the hard floor"]
+      ]
+    },
+    {
+      "group": 3,
+      "boundary": "descriptor-bound stable capture and analyzer containment",
+      "checks": [
+        ["src/direct-event/selection-capture.test.ts", "accepts matching reads, BOM, and the exact byte limit"],
+        ["src/direct-event/selection-capture.test.ts", "contains oversize, malformed UTF-8, and NUL input"],
+        ["src/direct-event/selection-capture.test.ts", "contains mutation and deletion/recreation between reads"],
+        ["src/direct-event/selection-capture.test.ts", "is interruptible without returning capture evidence"],
+        ["src/direct-event/pipeline.test.ts", "keeps valid work in an incomplete mixed-file observation without a ChangeSet"]
+      ]
+    },
+    {
+      "group": 4,
+      "boundary": "TypeScript named-unit extraction and one DecisionModel request per complete unit",
+      "checks": [
+        ["src/direct-event/analyzer.test.ts", "extracts independent roots with finite recursive expanded and included evidence"],
+        ["src/direct-event/analyzer.test.ts", "accepts exactly 64 declarations and rejects the 65th"],
+        ["src/direct-event/analyzer.test.ts", "accepts exactly 16 referenced names excluding the root and rejects the 17th"],
+        ["src/direct-event/analyzer.test.ts", "rejects imports, declaration merging, and unsupported schema-only files"],
+        ["src/direct-event/pipeline.test.ts", "sends one request per Add unit with recursive supporting evidence"],
+        ["src/direct-event/pipeline.test.ts", "emits no empty advice after a successful clear"]
+      ]
+    },
+    {
+      "group": 5,
+      "boundary": "complete-input join and successful-result reuse",
+      "checks": [
+        ["src/resident/server.test.ts", "joins equivalent pending complete inputs before another evaluation reservation"],
+        ["src/resident/server.test.ts", "reuses successful clear evaluations but never failures or malformed responses"],
+        ["src/resident/server.test.ts", "restores cached A after A to B to A without retaining delivery history"],
+        ["src/resident/server.test.ts", "bounds successful reuse by entry and byte limits and reevaluates evicted input"],
+        ["src/resident/evaluation-reuse.test.ts", "excludes event ids while including partition, path, evidence, contract, and immutable rules"]
+      ]
+    },
+    {
+      "group": 6,
+      "boundary": "semantic revalidation and explicit publication authority",
+      "checks": [
+        ["src/direct-event/pipeline.test.ts", "allows unrelated file-context edits but suppresses relevant semantic changes"],
+        ["src/direct-event/pipeline.test.ts", "suppresses handoff on deletion, analyzer loss, or rule identity change"],
+        ["src/direct-event/pipeline.test.ts", "retires advice when recursive supporting evidence changes"],
+        ["src/resident/server.test.ts", "does not let late A cleanup delete C after cached-clear B removes current state"],
+        ["src/direct-event/pipeline.test.ts", "requires controlled-writer authority and exact recipient association"]
+      ]
+    },
+    {
+      "group": 7,
+      "boundary": "resident scheduling and bounded host collection",
+      "checks": [
+        ["src/resident/dispatch.test.ts", "dispatches an idle lone item immediately and puts sustained later arrivals in later cycles"],
+        ["src/resident/dispatch.test.ts", "never exceeds two running backend operations"],
+        ["src/resident/collection.test.ts", "becomes eligible at cycle completion or exactly 50 ms without resetting age"],
+        ["src/resident/collection.test.ts", "enforces five items and the exact 2 KiB host encoding"],
+        ["src/resident/server.test.ts", "expires pending advice just before, at, and after the relevance boundary"]
+      ]
+    },
+    {
+      "group": 8,
+      "boundary": "logical capacity ledger and bounded IPC decoding",
+      "checks": [
+        ["src/resident/capacity.test.ts", "enforces the profile's exact 64/8MiB and 16/2MiB boundaries"],
+        ["src/resident/capacity.test.ts", "accepts exact byte boundaries, rejects one byte over, and releases idempotently"],
+        ["src/resident/server.test.ts", "reserves large valid outcomes before evaluation and rejects unreservable outcomes without a call"],
+        ["src/resident/client.test.ts", "rejects an oversized request before writing recipient-bearing bytes"],
+        ["src/resident/capacity.test.ts", "clears all reservations at a lifecycle terminal"]
+      ]
+    },
+    {
+      "group": 9,
+      "boundary": "operational notice eligibility",
+      "checks": [
+        ["src/resident/operational-notices.test.ts", "uses an exact failure-triggered cooldown and resets state on restart"],
+        ["src/resident/operational-notices.test.ts", "keeps capacity/backend and recipient partitions independent and batches with fresh findings"],
+        ["src/resident/operational-notices.test.ts", "reclaims a full cooldown table at equality before the next admission"],
+        ["src/resident/operational-notices.test.ts", "does not address unknown recipients or quiet applicability outcomes"]
+      ]
+    },
+    {
+      "group": 10,
+      "boundary": "Linux singleton lifecycle and IPC ownership",
+      "checks": [
+        ["src/resident/subprocess.test.ts", "converges 100 starters across eight clients and keeps timed-out/disconnected work resident-owned"],
+        ["src/resident/client.test.ts", "uses one absolute readiness deadline and caps every operation to remaining time"],
+        ["src/resident/subprocess.test.ts", "kills one lifetime, rejects obsolete messages, restarts empty, and cleans up only when idle"],
+        ["src/cli.test.ts", "does not inherit a grant into a separate Git worktree and makes no provider call"]
+      ]
+    },
+    {
+      "group": 11,
+      "boundary": "repository/backend consent authority",
+      "checks": [
+        ["src/cli.test.ts", "reuses a grant, ignores project authorization, and revokes future dispatch"],
+        ["src/cli.test.ts", "previews exact consent scope without writing and rejects a mismatched confirmation"],
+        ["src/resident/subprocess.test.ts", "rechecks consent after admission and before backend dispatch"],
+        ["src/resident/subprocess.test.ts", "loads current configuration at dispatch rather than freezing admission config"]
+      ]
+    },
+    {
+      "group": 12,
+      "boundary": "Jev request policy through controlled DecisionModel",
+      "checks": [
+        ["src/direct-event/pipeline.test.ts", "uses a 15-second deadline and performs zero retries"],
+        ["src/direct-event/pipeline.test.ts", "does not retry a backend failure"]
+      ]
+    }
+  ]
+}

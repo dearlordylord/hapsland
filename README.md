@@ -4,7 +4,10 @@ This private repository develops an unnamed, host-neutral integration for giving
 agents configurable feedback after edits. Jev is the first external review backend; it is
 not the product name.
 
-The first supported path targets Codex CLI with synchronous, advisory post-write review.
+The initial supported production profile targets Codex CLI 0.155.1 on Linux arm64 with
+asynchronous, advisory post-write review through headless command hooks and a controlled
+writer. Its exact limits, evidence levels, and exclusions are documented in
+[`docs/direct-event-v1-supported-profile.md`](./docs/direct-event-v1-supported-profile.md).
 The implementation uses TypeScript and the exact-matched Effect 4 RC cohort described in
 [`AGENTS.md`](./AGENTS.md).
 
