@@ -178,5 +178,31 @@ export const adaptCodexDirectEvent = Effect.fn("DirectEvent.adaptCodexDirectEven
   } satisfies DirectObservation);
 });
 
+/** Identity-only adaptation for later reply opportunities. It never supplies paths. */
+export const adaptCodexReply = Effect.fn("DirectEvent.adaptCodexReply")(function* (
+  value: unknown,
+) {
+  const event = record(value);
+  if (
+    event === undefined || event.hook_event_name !== "PostToolUse" ||
+    !nonEmpty(event.session_id) || !nonEmpty(event.turn_id) ||
+    !nonEmpty(event.tool_use_id) || !nonEmpty(event.cwd) ||
+    (event.agent_id !== undefined && !nonEmpty(event.agent_id))
+  ) return undefined;
+  const rootOption = yield* canonicalGitRoot(event.cwd);
+  if (rootOption._tag === "None") return undefined;
+  return Object.freeze({
+    root: rootOption.value.root,
+    recipient: Object.freeze({
+      host: "codex-cli",
+      hostVersion: "0.155.1",
+      sessionId: event.session_id,
+      turnId: event.turn_id,
+      toolUseId: event.tool_use_id,
+      agentId: event.agent_id ?? null,
+    } satisfies DirectRecipient),
+  });
+});
+
 /** Compatibility name retained for callers introduced by the Add-only slice. */
 export const adaptCodexAdd = adaptCodexDirectEvent;
