@@ -75,6 +75,7 @@ import {
 } from "./credentials/secret-service.ts";
 import { readActivity, formatActivityHuman, recordActivity } from "./activity/status.ts";
 import { diagnoseInstalledIntegration, type DoctorCheck } from "./onboarding/doctor.ts";
+import { runSetup } from "./onboarding/setup.ts";
 
 const readStdin = Effect.try({
   try: () => readFileSync(0, "utf8"),
@@ -199,6 +200,23 @@ const InstallationOperation = Schema.Union([
 ]);
 type InstallationOperation = typeof InstallationOperation.Type;
 
+const SetupOperation = Schema.Struct({
+  version: Schema.Literal(1),
+  operation: Schema.Literal("setup"),
+  host: Schema.Literal("codex"),
+  scope: Schema.Struct({
+    cwd: Schema.NonEmptyString,
+    review: Schema.Literals(["enabled", "disabled"]),
+  }),
+  credential: Schema.Literals(["saved", "environment", "skip"]),
+  codexHome: Schema.optionalKey(Schema.NonEmptyString),
+  codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
+  installProposalDigest: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/))),
+  consentProposalDigest: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/))),
+  interactive: Schema.optionalKey(Schema.Boolean),
+});
+type SetupOperation = typeof SetupOperation.Type;
+
 const statePathConfig = Config.String("REVIEW_STATE_PATH").pipe(
   Config.orElse(() => Config.String("REVIEW_CONSENT_FILE")),
   Config.withDefault(join(homedir(), ".config", "realtime-review-tool", "consent")),
@@ -246,6 +264,11 @@ const forcedInstallationOperation = (): InstallationOperation["operation"] | und
   if (process.argv.includes("--uninstall")) return "uninstall";
   return undefined;
 };
+
+const decodeSetupOperation = (input: string) =>
+  decodeJson(input).pipe(
+    Effect.flatMap(Schema.decodeUnknownEffect(SetupOperation, { onExcessProperty: "error" })),
+  );
 
 const decodeInstallationOperation = (
   input: string,
@@ -935,6 +958,7 @@ const program = Effect.gen(function* () {
     input,
   );
   const inputRequestsInstallation = /"operation"\s*:\s*"(?:doctor|install-preview|install|uninstall)"/.test(input);
+  const inputRequestsSetup = /"operation"\s*:\s*"setup"/.test(input);
   const inputRequestsEvaluation = /"operation"\s*:\s*"(?:plan|run|report)"/.test(input);
   if (requestedEvaluationOperation !== undefined || inputRequestsEvaluation) {
     const evaluationInput = yield* decodeJson(input);
@@ -958,6 +982,14 @@ const program = Effect.gen(function* () {
       credentialEnvVar: process.env.EVALUATION_CREDENTIAL_ENV ?? "TYPESAFE_API_KEY",
       ...(isControlled ? { controlled: yield* controlledOptions } : {}),
     });
+  }
+  if (process.argv.includes("--setup") || inputRequestsSetup) {
+    const operation: SetupOperation = yield* decodeSetupOperation(input);
+    return yield* runSetup(operation, {
+      statePath,
+      ...(userConfigPath === undefined ? {} : { userConfigPath }),
+      ...(operation.interactive === true ? { readCredential: readMaskedCredential } : {}),
+    }).pipe(Effect.provide(Consent.layer({ statePath })));
   }
   if (requestedInstallationOperation !== undefined || inputRequestsInstallation) {
     const operation = yield* decodeInstallationOperation(input, requestedInstallationOperation);
@@ -1310,6 +1342,7 @@ if (!isCodexHook && typeof output === "object" && output !== null) {
       : record.status === "partial"
         ? 5
         : record.status === "deletion-failed" ||
+            record.status === "needs-user-action" ||
             record.status === "locked" ||
             record.status === "unavailable" ||
             record.status === "timed-out" ||
