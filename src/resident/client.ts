@@ -161,13 +161,17 @@ export const ensureResident = async (
   readinessMs = STARTUP_READINESS_DEADLINE_MS,
   dependencies: EnsureResidentDependencies = liveEnsureDependencies,
 ): Promise<Extract<ResidentResponse, { status: "ready" }>> => {
+  const ready = (response: Extract<ResidentResponse, { status: "ready" }>) => {
+    rmSync(`${paths.lock}.startup-error`, { force: true });
+    return response;
+  };
   const deadline = dependencies.now() + readinessMs;
   const remaining = () => Math.max(0, deadline - dependencies.now());
   await dependencies.prepare(paths, remaining());
   if (remaining() <= 0) throw new ResidentIpcError("resident readiness deadline exceeded");
   try {
     const existing = await dependencies.probe(paths, Math.min(250, remaining()));
-    if (existing.status === "ready") return existing;
+    if (existing.status === "ready") return ready(existing);
   } catch {
     // A failed probe is not a death determination. Contending servers use the
     // atomic owner directory; only its live owner may replace the socket.
@@ -181,7 +185,7 @@ export const ensureResident = async (
     if (remaining() <= 0) break;
     try {
       const response = await dependencies.probe(paths, Math.min(250, remaining()));
-      if (response.status === "ready") return response;
+      if (response.status === "ready") return ready(response);
     } catch {
       // Another contender may still own the lock, or its owner may have exited
       // without publishing an endpoint. Acquisition is non-blocking and stale
