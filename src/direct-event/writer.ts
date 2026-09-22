@@ -1,5 +1,8 @@
 import type { CodexDirectEventOutput } from "./pipeline.ts";
 
+export const encodedCodexHostOutputBytes = (output: CodexDirectEventOutput): number =>
+  Buffer.byteLength(`${JSON.stringify(output)}\n`, "utf8");
+
 export type HostOutputAttempt = {
   readonly status: "attempted-unacknowledged";
   readonly encodedBytes: number;
@@ -20,6 +23,6 @@ export const attemptCodexHostOutput = (
   write(encoded);
   return {
     status: "attempted-unacknowledged",
-    encodedBytes: Buffer.byteLength(encoded, "utf8"),
+    encodedBytes: encodedCodexHostOutputBytes(output),
   };
 };
