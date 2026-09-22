@@ -8,7 +8,11 @@ import { applicableRules, configuredRules } from "../policy/rules.ts";
 import type { Consent } from "../runtime/consent.ts";
 import type { ReviewSettings } from "../runtime/review-config.ts";
 import { adaptCodexDirectEvent, verifyObservationRoot } from "./adapter.ts";
-import { readyTypeUnits } from "./analyzer.ts";
+import {
+  analyzeTypeFile,
+  type TypeFileAnalysis,
+  type UnitAnalysis,
+} from "./analyzer.ts";
 import { captureStable, type CaptureHooks } from "./capture.ts";
 import {
   DIRECT_EVENT_INPUT_CONTRACT,
@@ -112,18 +116,37 @@ const currentInputContract = (context: DirectReviewContext): string =>
 const linesOf = (source: string): ReadonlySet<string> =>
   new Set(source.split(/\r?\n/u).map((line) => line.trim()).filter((line) => line.length > 0));
 
-const selectedUnits = (
-  units: ReadonlyArray<ReviewUnit>,
+const analysisRoot = (analysis: UnitAnalysis) =>
+  analysis.status === "ready" ? analysis.unit.root.artifact : analysis.root;
+
+const selectedAnalyses = (
+  analyses: ReadonlyArray<UnitAnalysis>,
   operation: "add" | "update",
   addedLines: ReadonlyArray<string>,
-): ReadonlyArray<ReviewUnit> => {
-  if (operation === "add") return units;
-  const selected = new Set<ReviewUnit>();
+): { readonly selected: ReadonlyArray<UnitAnalysis>; readonly ambiguous: boolean } => {
+  if (operation === "add") return { selected: analyses, ambiguous: false };
+  const selected = new Set<UnitAnalysis>();
+  let ambiguous = false;
   for (const line of addedLines.map((value) => value.trim()).filter((value) => value.length > 0)) {
-    const matching = units.filter((unit) => linesOf(unit.root.artifact.source).has(line));
+    const matching = analyses.filter((analysis) => linesOf(analysisRoot(analysis).source).has(line));
     if (matching.length === 1 && matching[0] !== undefined) selected.add(matching[0]);
+    if (matching.length > 1) ambiguous = true;
   }
-  return [...selected];
+  return { selected: [...selected], ambiguous };
+};
+
+type AnalysisFailure = Extract<
+  Extract<PathObservationOutcome, { status: "observed" }>["analysis"],
+  { status: "incomplete" }
+>["failures"][number];
+
+const extractionFailures = (analysis: TypeFileAnalysis): ReadonlyArray<AnalysisFailure> => {
+  if (analysis.status === "unsupported") {
+    return [{ root: undefined, reason: analysis.reason }];
+  }
+  return analysis.units.flatMap((outcome) => outcome.status === "unsupported"
+    ? [{ root: outcome.root.name, reason: outcome.reason }]
+    : []);
 };
 
 export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(function* (
@@ -169,11 +192,20 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
       outcomes.push({ status: "skipped", path: eligible.relativePath });
       continue;
     }
-    const allUnits = readyTypeUnits(eligible.relativePath, captured.text);
+    const analysis = analyzeTypeFile(eligible.relativePath, captured.text);
+    const analyses = analysis.status === "analyzed" ? analysis.units : [];
+    const selection = selectedAnalyses(analyses, candidate.operation, candidate.addedLines ?? []);
     const frozen = frozenNames?.get(eligible.relativePath);
-    const units = frozen === undefined
-      ? selectedUnits(allUnits, candidate.operation, candidate.addedLines ?? [])
-      : allUnits.filter((unit) => frozen.has(unit.root.artifact.name));
+    const selected = frozen === undefined
+      ? selection.selected
+      : selection.selected.filter((item) => frozen.has(analysisRoot(item).name));
+    const units = selected.flatMap((item) => item.status === "ready" ? [item.unit] : []);
+    const failures = [
+      ...extractionFailures(analysis),
+      ...(selection.ambiguous
+        ? [{ root: undefined, reason: "ambiguous-update" as const }]
+        : []),
+    ];
     pathOutcomes.push({
       status: "observed",
       path: eligible.relativePath,
@@ -183,6 +215,9 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
         sourceHash: captured.contentHash,
       },
       units,
+      analysis: failures.length === 0
+        ? { status: "complete" }
+        : { status: "incomplete", failures },
     });
     observedUnits.push(...units);
     if (units.length === 0) {
@@ -213,7 +248,8 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
       });
     }
   }
-  const complete = pathOutcomes.every((outcome) => outcome.status === "observed");
+  const complete = pathOutcomes.every((outcome) =>
+    outcome.status === "observed" && outcome.analysis.status === "complete");
   const result: ObservationResult = complete
     ? {
         status: "complete",
@@ -337,6 +373,10 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
     return { status: "no-advice", output: undefined } satisfies DirectReviewResult;
   }
   const findings: Array<Finding> = [];
+  const evaluatedFindings: Array<{
+    readonly identity: string;
+    readonly findings: ReadonlyArray<Finding>;
+  }> = [];
   let unavailable: "backend" | "timeout" | undefined;
   for (const outcome of ready) {
     yield* context.beforeDispatch ?? Effect.void;
@@ -352,6 +392,10 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
       unavailable ??= evaluation.status;
       continue;
     }
+    evaluatedFindings.push({
+      identity: outcome.prepared.identity,
+      findings: evaluation.findings,
+    });
     findings.push(...evaluation.findings);
   }
   if (findings.length === 0) {
@@ -379,13 +423,15 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
   const currentIdentities = new Set(
     revalidated.outcomes.flatMap((outcome) => outcome.status === "ready" ? [outcome.prepared.identity] : []),
   );
-  if (ready.some((outcome) => !currentIdentities.has(outcome.prepared.identity))) {
+  const currentFindings = evaluatedFindings.flatMap((evaluation) =>
+    currentIdentities.has(evaluation.identity) ? evaluation.findings : []);
+  if (currentFindings.length === 0) {
     return { status: "unavailable", reason: "stale", output: undefined } satisfies DirectReviewResult;
   }
   return {
     status: "ready",
-    findings,
-    output: toCodexDirectEventOutput(findings),
+    findings: currentFindings,
+    output: toCodexDirectEventOutput(currentFindings),
   } satisfies DirectReviewResult;
 });
 

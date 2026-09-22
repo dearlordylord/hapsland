@@ -107,6 +107,29 @@ describe("direct-event Codex Add adapter", () => {
     ]);
   });
 
+  it("consumes an ordinary move body while retaining an independent Add", async () => {
+    const root = await makeGitFixture();
+    const command = [
+      "*** Begin Patch",
+      "*** Update File: old.ts",
+      "*** Move to: new.ts",
+      "@@",
+      "-type Old = string",
+      "+type Old = number",
+      " unchanged",
+      "*** Add File: good.ts",
+      "+type Good = number",
+      "*** End Patch",
+    ].join("\n");
+    const result = await Effect.runPromise(adaptCodexAdd(addEvent(root, ["ignored.ts"], {
+      tool_input: { command },
+    })));
+    expect(result?.candidates).toEqual([
+      { operation: "move", path: "old.ts", addedLines: [] },
+      { operation: "add", path: "good.ts", addedLines: ["type Good = number"] },
+    ]);
+  });
+
   it("accepts exactly 64 KiB and rejects one byte above", async () => {
     const root = await makeGitFixture();
     const prefix = "*** Begin Patch\n*** Add File: a.ts\n+";

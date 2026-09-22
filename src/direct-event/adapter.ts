@@ -54,7 +54,12 @@ export const nativeDirectCandidates = (command: string): ReadonlyArray<DirectCan
       continue;
     }
     if (line.startsWith("***")) return undefined;
-    if (current.operation === "delete" || current.operation === "move") return undefined;
+    if (current.operation === "delete") return undefined;
+    if (current.operation === "move") {
+      if (line.startsWith("@@")) continue;
+      if (!line.startsWith("+") && !line.startsWith("-") && !line.startsWith(" ")) return undefined;
+      continue;
+    }
     if (current.operation === "add") {
       if (!line.startsWith("+")) return undefined;
       current.addedLines.push(line.slice(1));

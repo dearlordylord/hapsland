@@ -94,6 +94,25 @@ export type PathObservationOutcome =
       readonly path: string;
       readonly snapshot: SourceSnapshot;
       readonly units: ReadonlyArray<ReviewUnit>;
+      readonly analysis:
+        | { readonly status: "complete" }
+        | {
+            readonly status: "incomplete";
+            readonly failures: ReadonlyArray<{
+              readonly root: string | undefined;
+              readonly reason:
+                | "extension"
+                | "parse"
+                | "import"
+                | "declaration-limit"
+                | "declaration-merge"
+                | "no-declarations"
+                | "missing-evidence"
+                | "unsupported-reference"
+                | "reference-limit"
+                | "ambiguous-update";
+            }>;
+          };
     }
   | {
       readonly status: "incomplete";
