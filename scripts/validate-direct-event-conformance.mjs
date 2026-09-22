@@ -105,17 +105,23 @@ if (packageEncoded === undefined) {
   const packageEvidence = JSON.parse(packageEncoded);
   inspect(packageEvidence, "clean-linux-node-24.20.0-arm64.json");
   if (
-    packageEvidence.verdict !== "clean-package-passed-real-host-failed" ||
-    packageEvidence.realCodex?.status !== "failed" ||
-    packageEvidence.realCodex?.repeatability !== "unresolved-until-reliably-rerun" ||
-    packageEvidence.realCodex?.failedAttempt?.stage !== "native-repository-and-hook-trust" ||
-    packageEvidence.realCodex?.failedAttempt?.sanitized !== true ||
-    packageEvidence.realCodex?.failedAttempt?.repositoryTrustSeeded !== false ||
-    packageEvidence.realCodex?.failedAttempt?.bypassFlag !== false ||
+    packageEvidence.verdict !== "clean-package-and-real-host-passed" ||
+    packageEvidence.realCodex?.status !== "passed" ||
+    packageEvidence.realCodex?.hostExitCode !== 0 ||
+    packageEvidence.realCodex?.hookTrust?.status !== "persisted-exact-definition" ||
+    packageEvidence.realCodex?.hookTrust?.flow !== "native-interactive-review" ||
+    packageEvidence.realCodex?.hookTrust?.synchronization !== "rendered-screen-state" ||
+    packageEvidence.realCodex?.hookTrust?.repositoryTrustSeeded !== false ||
+    packageEvidence.realCodex?.hookTrust?.bypassFlag !== false ||
+    packageEvidence.realCodex?.reviewSubmission?.status !== "observed" ||
+    packageEvidence.realCodex?.reviewSubmission?.controlledBackendSubmissions !== 1 ||
+    packageEvidence.realCodex?.reviewCompletion?.status !== "completed-findings" ||
+    packageEvidence.realCodex?.reviewCompletion?.terminalOutcomes !== 1 ||
+    packageEvidence.realCodex?.reviewCompletion?.correlation !== "resident-native-event-identity" ||
     packageEvidence.isolation?.developmentDependencies !== false ||
     packageEvidence.isolation?.checkoutPathUsedAtRuntime !== false
   ) {
-    fail("installed package evidence does not accurately record the unresolved clean real-host seam");
+    fail("installed package evidence does not establish the clean real-host seam");
   }
 }
 

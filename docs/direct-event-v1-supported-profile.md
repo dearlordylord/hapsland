@@ -45,17 +45,16 @@ occurs during hook edits.
 
 The issue-63 fixture additionally uses an isolated real Codex 0.155.1 home and temporary Git
 repository. It neither seeds repository trust nor bypasses hook trust, and drives both decisions
-through Codex's native interactive flow. That flow did not persist both decisions repeatably under
-the isolated PTY fixture, so retained evidence records the sanitized failed attempt and marks the
-real-host seam unresolved. An earlier successful run separately observed one provider submission
-and a terminal `completed-findings` resident outcome correlated by source-free native event
-identity, but it is not treated as repeatable proof.
+through Codex's native interactive flow. The bounded PTY reconstructs Codex's rendered terminal
+screen, waits for the repository and hook-review states, and confirms the native selections only
+after each state is visible. Two consecutive fresh isolated runs passed during issue acceptance.
+The retained second run separately observed one provider submission and one terminal
+`completed-findings` resident outcome correlated by source-free native event identity.
 `OPENAI_API_KEY` and `TYPESAFE_API_KEY` were absent from the hook environment; no Jev call was
 possible. The sanitized record is
 [`evidence/package/clean-linux-node-24.20.0-arm64.json`](../evidence/package/clean-linux-node-24.20.0-arm64.json).
-It establishes that the installed-package checks pass in the recorded Linux arm64 environment;
-real-host acceptance remains unresolved. It does not broaden the adapter, platform, mode, or
-review-semantics profile.
+It establishes the clean installed-package and real-host seam in the recorded Linux arm64
+environment. It does not broaden the adapter, platform, mode, or review-semantics profile.
 
 ## Supported limits
 
