@@ -59,6 +59,8 @@ const conclusiveFirstReviewAssertions = [
   { pointer: "/stages/submission", equals: "submitted" },
   { pointer: "/stages/findings", greaterThan: 0 },
   { pointer: "/stages/modelReaction", equals: "observed" },
+  { pointer: "/stages/modelReactionSource", equals: "correlated-finding-reaction" },
+  { pointer: "/stages/deliveredFindingCorrelation", equals: true },
   { pointer: "/stages/repair", equals: "independently-validated" },
   { pointer: "/stages/followUpReview", equals: "completed" },
   { pointer: "/stages/providerCalls", greaterThan: 0 },
@@ -130,6 +132,43 @@ describe("installed release policy", () => {
         assertion.pointer === "/stages/modelReaction" ? { pointer: assertion.pointer, equals: "unavailable" } : assertion),
     },
   ])("rejects an otherwise conclusive first-review proof with $name", ({ assertions }) => {
+    const evidence = manifest.evidence.map((item) => item.id === "linux-record" ? {
+      ...item,
+      capabilityProofs: [...item.capabilityProofs, {
+        capability: "installed-first-review",
+        operatingSystem: "linux",
+        assertions,
+      }],
+    } : item);
+    const compatibilityCells = manifest.compatibilityCells.map((cell) =>
+      cell.id === "first-review"
+        ? { ...cell, status: "verified" as const, operatingSystem: "linux", evidence: ["linux-record"], reason: undefined }
+        : cell);
+    expect(() => validateInstalledReleaseManifest({ ...manifest, evidence, compatibilityCells }))
+      .toThrow("lacks conclusive first-review semantic proof");
+  });
+
+  it.each([
+    {
+      name: "absent correlation fields",
+      assertions: conclusiveFirstReviewAssertions.filter((assertion) =>
+        assertion.pointer !== "/stages/modelReactionSource" && assertion.pointer !== "/stages/deliveredFindingCorrelation"),
+    },
+    {
+      name: "wrong correlation source",
+      assertions: conclusiveFirstReviewAssertions.map((assertion) =>
+        assertion.pointer === "/stages/modelReactionSource"
+          ? { pointer: assertion.pointer, equals: "generic-observation" }
+          : assertion),
+    },
+    {
+      name: "unmatched delivered finding",
+      assertions: conclusiveFirstReviewAssertions.map((assertion) =>
+        assertion.pointer === "/stages/deliveredFindingCorrelation"
+          ? { pointer: assertion.pointer, equals: false }
+          : assertion),
+    },
+  ])("rejects conclusive first-review proof with $name", ({ assertions }) => {
     const evidence = manifest.evidence.map((item) => item.id === "linux-record" ? {
       ...item,
       capabilityProofs: [...item.capabilityProofs, {
