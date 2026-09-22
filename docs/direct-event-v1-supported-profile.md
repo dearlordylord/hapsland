@@ -27,7 +27,7 @@ secret- or source-bearing fields in the new evidence records.
 | 11 | Consent boundary | User preview plus matching digest confirmation; fixed repository/backend/destination authority; project config cannot grant; disable/revocation prevents future dispatch and is rechecked immediately before provider use | 3 obligations |
 | 12 | Jev request/evidence boundary | One provider-neutral `DecisionModel` request per unit; 15-second deadline; zero automatic retries; source-free live outcome classification; admission is not a provider-call counter | 3 obligations |
 
-All 39 obligations and 90 unique mapped checks pass through product boundaries or narrowly focused external
+All 39 obligations and 93 unique mapped checks pass through product boundaries or narrowly focused external
 boundaries. Ordinary `npm test` and `npm run conformance:direct-event` are deterministic
 and offline. The paid script is separate and explicit.
 
