@@ -6,7 +6,7 @@
   },
   "profiles": [
     { "operatingSystem": "linux", "architecture": "arm64", "descriptorFacility": "/proc/self/fd", "verification": "tested" },
-    { "operatingSystem": "darwin", "architecture": "x64", "descriptorFacility": "/dev/fd", "verification": "pending-runner" }
+    { "operatingSystem": "darwin", "architecture": "arm64", "descriptorFacility": "/dev/fd", "verification": "pending-runner" }
   ],
   "requiredCommands": ["git"],
   "parser": {
