@@ -172,9 +172,29 @@ if (macPackageEncoded === undefined) {
     macPackageEvidence.isolation?.developmentDependencies !== false ||
     macPackageEvidence.isolation?.checkoutPathUsedAtRuntime !== false ||
     !["cli", "parser", "resident", "hook"].every((entry) => macPackageEvidence.entryPoints?.[entry] === "passed") ||
+    macPackageEvidence.installation?.preview !== "passed" ||
+    macPackageEvidence.installation?.installed !== "passed" ||
+    macPackageEvidence.installation?.idempotent !== "passed" ||
+    macPackageEvidence.installation?.scopedUninstall !== "passed" ||
+    macPackageEvidence.installation?.disableDispatchGate !== "passed" ||
+    macPackageEvidence.installation?.update?.protocolIncompatibility !== "rejected-before-write" ||
+    macPackageEvidence.installation?.update?.partialRecovery !== "resumed" ||
+    macPackageEvidence.installation?.update?.credentialState !== "preserved-external-native-store" ||
+    macPackageEvidence.installation?.update?.controlledReviewAfterUpdate !== "passed" ||
     macPackageEvidence.review?.backend !== "controlled-offline" ||
-    macPackageEvidence.review?.submissions !== 1 ||
+    macPackageEvidence.review?.submissions !== 2 ||
     macPackageEvidence.review?.adviceReturned !== true ||
+    macPackageEvidence.review?.activity?.submitted?.instrumentation !== "resident-v1" ||
+    macPackageEvidence.review?.activity?.submitted?.kind !== "submitted" ||
+    macPackageEvidence.review?.activity?.restart?.before !== "pending" ||
+    macPackageEvidence.review?.activity?.restart?.after !== "restarted/lost" ||
+    macPackageEvidence.credentialLifecycle?.status !== "actual-keychain" ||
+    macPackageEvidence.credentialLifecycle?.defaultKeychainIsolation !== "lookup-replacement-logout-passed" ||
+    macPackageEvidence.credentialLifecycle?.residentRestartPersistence !== "passed-distinct-pid-and-lifetime" ||
+    macPackageEvidence.credentialLifecycle?.residentControlledTransportResolution !== "passed" ||
+    macPackageEvidence.credentialLifecycle?.logoutBeforeFutureDispatch !== "passed" ||
+    macPackageEvidence.credentialLifecycle?.restrictedNativeOutcome !== "timed-out-helper-terminated" ||
+    macPackageEvidence.credentialLifecycle?.secretRetainedInEvidence !== false ||
     macPackageEvidence.realCodex?.status !== "not-requested" ||
     macPackageEvidence.verdict !== "clean-package-passed-real-host-not-requested"
   ) {
