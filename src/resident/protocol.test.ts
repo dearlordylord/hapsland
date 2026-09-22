@@ -31,6 +31,12 @@ describe("resident protocol bounds", () => {
       lifetime: "lifetime",
       controlledWriter: true,
       observation,
+      dispatch: {
+        statePath: "/tmp/consent",
+        userConfigPath: null,
+        credential: null,
+        controlled: {},
+      },
     }));
     expect(decoded?.operation).toBe("admit");
     if (decoded?.operation === "admit") expect(decoded.observation.recipient.agentId).toBe("child-7");
