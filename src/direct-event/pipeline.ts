@@ -332,26 +332,37 @@ type Evaluation =
   | { readonly status: "backend" }
   | { readonly status: "timeout" };
 
+/** Exact source-bearing `DecisionModel` input before provider serialization. */
+export const preparedProviderInput = (prepared: PreparedUnit) => ({
+  artifact: {
+    domain: prepared.input.path,
+    source: prepared.input.declaration.source,
+  },
+  evidence: prepared.input.unit.root.references,
+  inputContract: {
+    id: prepared.input.contract,
+    evidence: "complete named direct-event unit",
+  },
+});
+
+/** UTF-8 bytes in the exact JSON representation supplied as the provider input value. */
+export const encodedPreparedProviderInputBytes = (prepared: PreparedUnit): number =>
+  Buffer.byteLength(JSON.stringify(preparedProviderInput(prepared)), "utf8");
+
 /** One DecisionModel call, no retry wrapper, with a fixed total call deadline. */
 export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(function* (
   prepared: PreparedUnit,
+  beforeDispatch: Effect.Effect<void, unknown> = Effect.void,
 ) {
   const decisions: Record<string, Decision.Probability> = {};
   for (const rule of prepared.input.rules) decisions[rule.id] = rule.decision;
   const definition = Decision.make({ input: Schema.Json, decisions });
-  const input = yield* Schema.decodeUnknownEffect(Schema.Json)({
-    artifact: {
-      domain: prepared.input.path,
-      source: prepared.input.declaration.source,
-    },
-    evidence: prepared.input.unit.root.references,
-    inputContract: {
-      id: prepared.input.contract,
-      evidence: "complete named direct-event unit",
-    },
-  }).pipe(Effect.orDie);
+  const input = yield* Schema.decodeUnknownEffect(Schema.Json)(
+    preparedProviderInput(prepared),
+  ).pipe(Effect.orDie);
   const model = yield* DecisionModel.DecisionModel;
-  const evaluated = yield* model.decide(definition, { input }).pipe(
+  const evaluated = yield* beforeDispatch.pipe(
+    Effect.andThen(model.decide(definition, { input })),
     Effect.timeoutOption(`${DIRECT_EVENT_DEADLINE_MS} millis`),
     Effect.result,
   );

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
-import { symlink } from "node:fs/promises";
+import { symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import type { DirectObservation, DirectRecipient } from "../direct-event/model.ts";
@@ -121,6 +121,51 @@ const fillAndFinalizeCooldownTable = async (
 };
 
 describe("resident operational notices", () => {
+  it("returns bounded actionable advice when native credential access requires interaction", async () => {
+    const { root, statePath, observation } = await fixture();
+    const helper = join(root, "credential-helper.mjs");
+    const credentialStatePath = join(root, "credential-state.json");
+    await writeFile(helper, `#!/usr/bin/env node
+console.log('{"version":1,"status":"interaction-required"}');
+`, { mode: 0o700 });
+    await writeFile(credentialStatePath, JSON.stringify({
+      version: 1,
+      generation: 1,
+      savedUseSuspended: false,
+    }));
+    const previousHelper = process.env.REVIEW_CREDENTIAL_HELPER;
+    process.env.REVIEW_CREDENTIAL_HELPER = helper;
+    const context: ResidentDispatchContext = {
+      statePath,
+      userConfigPath: null,
+      credential: {
+        name: "TYPESAFE_API_KEY",
+        environmentValue: null,
+        environmentOnly: false,
+        generation: 1,
+        statePath: credentialStatePath,
+      },
+      controlled: { answers, requireCredential: true },
+    };
+    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    try {
+      expect(server.admit(observation, context).status).toBe("accepted");
+      await server.whenIdle();
+      const result = await collectAndFinalize(server, observation, context);
+      expect(result.status).toBe("advice");
+      if (result.status === "advice") {
+        const text = result.output.hookSpecificOutput.additionalContext;
+        expect(text).toContain("saved review credential was unavailable");
+        expect(text).toContain("Background hooks never prompt");
+        expect(Buffer.byteLength(JSON.stringify(result.output))).toBeLessThanOrEqual(2 * 1024);
+      }
+    } finally {
+      await server.close();
+      if (previousHelper === undefined) delete process.env.REVIEW_CREDENTIAL_HELPER;
+      else process.env.REVIEW_CREDENTIAL_HELPER = previousHelper;
+    }
+  });
+
   it("uses an exact failure-triggered cooldown and resets state on restart", async () => {
     const { root, statePath, observation } = await fixture();
     const failed = dispatch(statePath, { failure: "offline backend" });

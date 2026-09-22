@@ -2,11 +2,12 @@ import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import { randomUUID } from "node:crypto";
-import { access, chmod, rm, writeFile } from "node:fs/promises";
+import { access, appendFile, chmod, rm, writeFile } from "node:fs/promises";
 import { createServer, type Server, type Socket } from "node:net";
 import { canonicalValue, type DirectObservation, type DirectRecipient } from "../direct-event/model.ts";
 import {
   evaluatePrepared,
+  encodedPreparedProviderInputBytes,
   prepareObservation,
   revalidateEvaluations,
   toCodexDirectEventOutput,
@@ -60,6 +61,9 @@ import {
 } from "./collection.ts";
 import { EvaluationReuse, residentEvaluationIdentity } from "./evaluation-reuse.ts";
 import { operationalNoticeAdmission } from "./operational-notice-policy.ts";
+import { readCredentialState, resolveCredential } from "../credentials/secret-service.ts";
+import { recordActivity } from "../activity/status.ts";
+import { claimDemoBudget } from "../onboarding/demo-budget.ts";
 
 const BACKEND_CONCURRENCY = 2;
 const RESERVATION_OVERHEAD_BYTES = 1024;
@@ -108,6 +112,8 @@ const ResidentControlledOptions = Schema.Struct({
   delayMs: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
   failure: Schema.optionalKey(Schema.String),
   capturePath: Schema.optionalKey(Schema.String),
+  outcomePath: Schema.optionalKey(Schema.String),
+  requireCredential: Schema.optionalKey(Schema.Boolean),
 });
 
 type IngressJob = {
@@ -137,6 +143,7 @@ type Advice = Omit<UnitJob, "dispatch" | "kind"> & {
   findings: ReadonlyArray<Finding>;
   readonly cycle: number;
   readonly sequence: number;
+  readonly credentialGeneration: number | null;
   readonly pendingAt: number;
   cycleComplete: boolean;
   collectionEligible: boolean;
@@ -347,6 +354,8 @@ export class ResidentServer {
   readonly #afterRevalidationWorkspaceReserved: ((adviceId: string) => Promise<void>) | undefined;
   readonly #afterAdvicePending: ((adviceId: string) => Promise<void> | void) | undefined;
   readonly #beforeFinalRevalidate: ((adviceId: string) => Promise<void>) | undefined;
+  readonly #afterAuthorizeBeforeCredential: (() => Promise<void>) | undefined;
+  readonly #afterCredentialBeforeDispatch: (() => Promise<void>) | undefined;
   readonly paths: ResidentPaths;
 
   constructor(
@@ -359,6 +368,8 @@ export class ResidentServer {
       readonly afterRevalidationWorkspaceReserved?: (adviceId: string) => Promise<void>;
       readonly afterAdvicePending?: (adviceId: string) => Promise<void> | void;
       readonly beforeFinalRevalidate?: (adviceId: string) => Promise<void>;
+      readonly afterAuthorizeBeforeCredential?: () => Promise<void>;
+      readonly afterCredentialBeforeDispatch?: () => Promise<void>;
       readonly maximumOperationalNoticeKeys?: number;
     } = {},
   ) {
@@ -379,6 +390,8 @@ export class ResidentServer {
     this.#afterRevalidationWorkspaceReserved = options.afterRevalidationWorkspaceReserved;
     this.#afterAdvicePending = options.afterAdvicePending;
     this.#beforeFinalRevalidate = options.beforeFinalRevalidate;
+    this.#afterAuthorizeBeforeCredential = options.afterAuthorizeBeforeCredential;
+    this.#afterCredentialBeforeDispatch = options.afterCredentialBeforeDispatch;
     this.#reuse = new EvaluationReuse({
       reserve: (partition, bytes) => this.#reserve(partition, bytes),
       release: (reservation) => { this.#ledger.release(reservation); },
@@ -463,6 +476,7 @@ export class ResidentServer {
     const reservation = this.#reserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES);
     if (reservation === undefined) {
       this.#rejectedCapacity += 1;
+      recordActivity({ statePath: dispatch.activityPath, root: observation.root, recipient: observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
       return { status: "rejected-capacity" };
     }
     const job = {
@@ -475,10 +489,12 @@ export class ResidentServer {
     if (!this.#dispatcher.enqueue(partition, job)) {
       this.#ledger.release(reservation);
       this.#rejectedCapacity += 1;
+      recordActivity({ statePath: dispatch.activityPath, root: observation.root, recipient: observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
       return { status: "rejected-capacity" };
     }
     const acceptedPath = process.env.REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH;
     if (acceptedPath !== undefined) void writeFile(acceptedPath, "accepted\n").catch(() => undefined);
+    recordActivity({ statePath: dispatch.activityPath, root: observation.root, recipient: observation.recipient, lifetime: this.lifetime, stage: "pending" });
     return { status: "accepted" };
   }
 
@@ -492,6 +508,12 @@ export class ResidentServer {
     const now = this.#now();
     this.#expirePending(now);
     this.#pruneNoticeCooldowns(now);
+    const credentialGeneration = dispatch.credential?.generation ?? null;
+    for (const item of [...this.#advice]) {
+      if (item.partition === partition && item.credentialGeneration !== credentialGeneration) {
+        this.#removeAdvice(item.id);
+      }
+    }
     for (const item of this.#advice) {
       if (item.delivery !== undefined && item.delivery.leaseUntil <= now) delete item.delivery;
     }
@@ -627,6 +649,7 @@ export class ResidentServer {
     return {
       status: "advice",
       token,
+      findingCount: handoffFindings.length,
       output: combinedReviewOutput(handoffFindings, notices.map((notice) => notice.value)),
     };
   }
@@ -1001,6 +1024,7 @@ export class ResidentServer {
   }
 
   async #prepare(job: IngressJob, cycle: number, sequence: number): Promise<void> {
+    const expectedActivityUnits: Array<string> = [];
     try {
       await this.#awaitBackendGate();
       const userConfigPath = job.dispatch.userConfigPath ?? undefined;
@@ -1011,8 +1035,9 @@ export class ResidentServer {
           userConfigPath === undefined ? {} : { userConfigPath },
         );
         if (job.dispatch.controlled !== null && controlled === undefined) return undefined;
-        if (controlled === undefined && job.dispatch.credential?.name !== settings.credentialEnvVar) return undefined;
-        if (controlled === undefined && job.dispatch.credential === null) return undefined;
+        const credentialRequired = controlled === undefined || controlled.requireCredential === true;
+        if (credentialRequired && job.dispatch.credential?.name !== settings.credentialEnvVar) return undefined;
+        if (credentialRequired && job.dispatch.credential === null) return undefined;
         const consent = yield* Consent.Service;
         const authorization = yield* consent.authorize(
           job.observation.root,
@@ -1020,10 +1045,17 @@ export class ResidentServer {
           settings.destination,
         ).pipe(Effect.catch(() => Effect.succeed({ status: "denied" as const })));
         if (authorization.status !== "approved" || !(yield* verifyObservationRoot(job.observation))) return undefined;
+        if (
+          credentialRequired && job.dispatch.credential !== null &&
+          readCredentialState(job.dispatch.credential.statePath).generation !== job.dispatch.credential.generation
+        ) return undefined;
         return settings;
       }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))));
       this.#ledger.release(job.reservation);
-      if (settings === undefined || this.#lifecycle !== "active") return;
+      if (settings === undefined || this.#lifecycle !== "active") {
+        recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
+        return;
+      }
 
       // A candidate path is captured and analyzed only while its maximum
       // supported logical workspace is charged. Processing candidates one at
@@ -1033,6 +1065,7 @@ export class ResidentServer {
         const workspace = this.#reserve(job.partition, captureWorkspaceBytes(candidate.path));
         if (workspace === undefined) {
           this.#rejectedCapacity += 1;
+          recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
           continue;
         }
         const pathObservation: DirectObservation = { ...job.observation, candidates: [candidate] };
@@ -1063,6 +1096,15 @@ export class ResidentServer {
           throw cause;
         }
         const ready = prepared.outcomes.filter((outcome) => outcome.status === "ready");
+        if (ready.length === 0) {
+          recordActivity({
+            statePath: job.dispatch.activityPath,
+            root: job.observation.root,
+            recipient: job.observation.recipient,
+            lifetime: this.lifetime,
+            stage: prepared.observation.status === "incomplete" ? "incomplete" : "skipped",
+          });
+        }
         this.#maxMaterializedPreparedUnits = Math.max(this.#maxMaterializedPreparedUnits, ready.length);
         let rejectedDeliverable = false;
         const deliverable = ready.filter((outcome) => {
@@ -1074,7 +1116,8 @@ export class ResidentServer {
           return accepted;
         });
         const planned = deliverable.map((outcome) => {
-          const evaluationKey = this.#reuse.key(job.partition, outcome.prepared);
+          const generationPartition = `${job.partition}\0credential-generation:${job.dispatch.credential?.generation ?? "controlled"}`;
+          const evaluationKey = this.#reuse.key(generationPartition, outcome.prepared);
           if (this.#advice.some((advice) => advice.evaluationKey === evaluationKey)) {
             return { kind: "joined" as const, outcome, evaluationKey };
           }
@@ -1101,11 +1144,18 @@ export class ResidentServer {
         this.#peakLedgerBytes = Math.max(this.#peakLedgerBytes, this.#ledger.snapshot().bytes);
         // Workspace has been released and all accepted unit reservations are
         // fixed, so best-effort notice retention cannot displace fresh work.
-        if (rejectedDeliverable) this.#recordOperationalFailure(job.observation, "capacity");
+        if (rejectedDeliverable) {
+          this.#recordOperationalFailure(job.observation, "capacity");
+          recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
+        }
         for (const item of planned) {
           if (item.kind === "cached" && item.cached.evaluation.findings.length === 0) {
             const revision = this.#registerCurrentWork(job.partition, item.outcome.prepared);
             this.#releaseCurrentWork(revision);
+            expectedActivityUnits.push(item.evaluationKey);
+            recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "clear", unitIdentity: item.evaluationKey });
+          } else if (item.kind === "joined") {
+            recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
           }
         }
         for (const [index, item] of retained.entries()) {
@@ -1114,8 +1164,10 @@ export class ResidentServer {
             if (item.kind === "owner") this.#reuse.releaseClaim(item.evaluationKey);
             this.#rejectedCapacity += 1;
             this.#recordOperationalFailure(job.observation, "capacity");
+            recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
             continue;
           }
+          expectedActivityUnits.push(item.evaluationKey);
           const revision = this.#registerCurrentWork(job.partition, item.outcome.prepared);
           const unit: UnitJob = {
             kind: "unit",
@@ -1128,6 +1180,15 @@ export class ResidentServer {
             evaluationKey: item.evaluationKey,
           };
           if (item.kind === "cached") {
+            recordActivity({
+              statePath: job.dispatch.activityPath,
+              root: job.observation.root,
+              recipient: job.observation.recipient,
+              lifetime: this.lifetime,
+              stage: "findings",
+              findings: item.cached.evaluation.findings.length,
+              unitIdentity: item.evaluationKey,
+            });
             await this.#retainAdvice(unit, {
               prepared: item.outcome.prepared,
               findings: item.cached.evaluation.findings,
@@ -1140,14 +1201,26 @@ export class ResidentServer {
             this.#releaseUnit(unit);
             this.#rejectedCapacity += 1;
             this.#recordOperationalFailure(job.observation, "capacity");
+            recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", unitIdentity: item.evaluationKey });
           }
         }
+      }
+      if (expectedActivityUnits.length > 0) {
+        recordActivity({
+          statePath: job.dispatch.activityPath,
+          root: job.observation.root,
+          recipient: job.observation.recipient,
+          lifetime: this.lifetime,
+          stage: "pending",
+          expectedUnitIdentities: expectedActivityUnits,
+        });
       }
       await this.#afterPrepare?.();
       return;
     } catch (cause) {
       if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error(cause);
       this.#ledger.release(job.reservation);
+      recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
     }
   }
 
@@ -1155,6 +1228,7 @@ export class ResidentServer {
     try {
       await this.#awaitBackendGate();
       if (!this.#isCurrentWork(job.revision, job.prepared)) {
+        recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "incomplete", unitIdentity: job.evaluationKey });
         this.#reuse.releaseClaim(job.evaluationKey);
         this.#releaseUnit(job);
         return;
@@ -1162,19 +1236,18 @@ export class ResidentServer {
       await this.#beforeEvaluate?.(job.prepared);
       const userConfigPath = job.dispatch.userConfigPath ?? undefined;
       const controlled = decodeControlledOptions(job.dispatch.controlled);
+      const afterAuthorizeBeforeCredential = this.#afterAuthorizeBeforeCredential;
+      const afterCredentialBeforeDispatch = this.#afterCredentialBeforeDispatch;
       const result = await Effect.runPromise(Effect.gen(function* () {
         const settings = yield* loadReviewSettings(
           job.observation.root,
           userConfigPath === undefined ? {} : { userConfigPath },
         );
         if (job.dispatch.controlled !== null && controlled === undefined) return undefined;
-        if (controlled === undefined && job.dispatch.credential?.name !== settings.credentialEnvVar) return undefined;
-        const credentialProvider = job.dispatch.credential === null
-          ? undefined
-          : ConfigProvider.layer(ConfigProvider.fromUnknown({
-              [job.dispatch.credential.name]: job.dispatch.credential.value,
-            }));
-        if (controlled === undefined && credentialProvider === undefined) return undefined;
+        const credentialRequired = controlled === undefined || controlled.requireCredential === true;
+        if (credentialRequired && job.dispatch.credential?.name !== settings.credentialEnvVar) return undefined;
+        const dispatchCredential = job.dispatch.credential;
+        if (credentialRequired && dispatchCredential === null) return undefined;
         const consent = yield* Consent.Service;
         const authorization = yield* consent.authorize(
           job.observation.root,
@@ -1182,13 +1255,61 @@ export class ResidentServer {
           settings.destination,
         ).pipe(Effect.catch(() => Effect.succeed({ status: "denied" as const })));
         if (authorization.status !== "approved" || !(yield* verifyObservationRoot(job.observation))) return undefined;
+        if (afterAuthorizeBeforeCredential !== undefined) {
+          yield* Effect.promise(afterAuthorizeBeforeCredential);
+        }
+        const credential = !credentialRequired || dispatchCredential === null
+          ? undefined
+          : yield* Effect.promise(() => resolveCredential({
+              envVar: dispatchCredential.name,
+              environmentOnly: dispatchCredential.environmentOnly,
+              environmentValue: dispatchCredential.environmentValue,
+              expectedGeneration: dispatchCredential.generation,
+              statePath: dispatchCredential.statePath,
+            }));
+        if (credentialRequired && credential?.status !== "present") {
+          return { status: "credential" as const };
+        }
+        if (credential?.status === "present") {
+          const current = readCredentialState(dispatchCredential?.statePath);
+          if (current.generation !== credential.generation ||
+              (credential.source === "saved" && current.savedUseSuspended)) return undefined;
+        }
+        const credentialProvider = credential?.status !== "present"
+          ? undefined
+          : ConfigProvider.layer(ConfigProvider.fromUnknown({
+              [settings.credentialEnvVar]: credential.value,
+            }));
+        if (controlled === undefined && credentialProvider === undefined) return undefined;
         const decisionModel = controlled === undefined
           ? jevDecisionModelLiveLayer({
               apiUrl: settings.apiBase,
               credentialEnvVar: settings.credentialEnvVar,
             })
           : controlledDecisionModelLayer(controlled);
-        const evaluation = evaluatePrepared(job.prepared).pipe(Effect.provide(decisionModel));
+        if (afterCredentialBeforeDispatch !== undefined) {
+          yield* Effect.promise(afterCredentialBeforeDispatch);
+        }
+        const credentialAuthority = credential?.status !== "present"
+          ? Effect.void
+          : Effect.suspend(() => {
+              const current = readCredentialState(dispatchCredential?.statePath);
+              return current.generation === credential.generation &&
+                  (credential.source === "environment" || !current.savedUseSuspended)
+                ? Effect.void
+                : Effect.fail(new Error("credential generation changed before provider dispatch"));
+            });
+        const budgetAuthority = job.dispatch.demoBudgetPath == null
+          ? Effect.void
+          : Effect.try(() => claimDemoBudget(
+              job.dispatch.demoBudgetPath ?? "",
+              job.observation.root,
+              encodedPreparedProviderInputBytes(job.prepared),
+            ));
+        const beforeDispatch = credentialAuthority.pipe(Effect.andThen(budgetAuthority));
+        const evaluation = evaluatePrepared(job.prepared, beforeDispatch).pipe(
+          Effect.provide(decisionModel),
+        );
         return yield* (credentialProvider === undefined
           ? evaluation
           : evaluation.pipe(Effect.provide(credentialProvider)));
@@ -1197,6 +1318,25 @@ export class ResidentServer {
         const evaluation = { prepared: job.prepared, findings: result.findings };
         this.#reuse.put(job.partition, job.evaluationKey, evaluation);
         this.#reuse.releaseClaim(job.evaluationKey);
+        recordActivity({
+          statePath: job.dispatch.activityPath,
+          root: job.observation.root,
+          recipient: job.observation.recipient,
+          lifetime: this.lifetime,
+          stage: result.findings.length === 0 ? "clear" : "findings",
+          findings: result.findings.length,
+          unitIdentity: job.evaluationKey,
+        });
+        if (controlled?.outcomePath !== undefined) {
+          const { sessionId, turnId, toolUseId, agentId } = job.observation.recipient;
+          await appendFile(controlled.outcomePath, `${JSON.stringify({
+            sessionId,
+            turnId,
+            toolUseId,
+            agentId,
+            outcome: result.findings.length === 0 ? "completed-clear" : "completed-findings",
+          })}\n`, "utf8");
+        }
         if (
           result.findings.length === 0 ||
           !this.#isCurrentWork(job.revision, job.prepared)
@@ -1209,9 +1349,16 @@ export class ResidentServer {
       }
       if (result?.status === "backend" || result?.status === "timeout") {
         this.#recordOperationalFailure(job.observation, "backend");
+        recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
+      } else if (result?.status === "credential") {
+        this.#recordOperationalFailure(job.observation, "credential");
+        recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
+      } else if (result === undefined) {
+        recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       }
     } catch (cause) {
       if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error(cause);
+      recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
     }
     this.#reuse.releaseClaim(job.evaluationKey);
     this.#releaseUnit(job);
@@ -1239,6 +1386,7 @@ export class ResidentServer {
       findings: evaluation.findings,
       cycle,
       sequence,
+      credentialGeneration: job.dispatch.credential?.generation ?? null,
       pendingAt: this.#now(),
       cycleComplete: false,
       collectionEligible: false,
@@ -1398,6 +1546,7 @@ export class ResidentServer {
       : {
           status: "advice",
           token: response.token,
+          findingCount: findings.length,
           output: combinedReviewOutput(findings, notices.map((notice) => notice.value)),
         };
   }
@@ -1468,10 +1617,12 @@ export class ResidentServer {
   }
 
   async listen(): Promise<void> {
-    if (process.platform !== "linux") throw new Error("resident profile supports Linux only");
+    if (process.platform !== "linux" && process.platform !== "darwin") {
+      throw new Error(`resident IPC is unsupported on ${process.platform}; use Linux or macOS`);
+    }
     await prepareResidentDirectory(this.paths);
-    // This process is launched under the live kernel lock. A socket pathname
-    // alone is never treated as ownership evidence.
+    // The launcher holds the live-owner directory. A socket pathname alone is
+    // never treated as ownership evidence.
     await verifyRemovableSocket(this.paths);
     await rm(this.paths.socket, { force: true });
     const server = createServer((socket) => this.#accept(socket));

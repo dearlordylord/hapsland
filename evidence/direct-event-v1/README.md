@@ -5,10 +5,14 @@ This directory retains sanitized release evidence for the initial supported prof
 It does not extend support to another host, version, platform, or mode.
 
 - `host-codex-0.155.1-linux-arm64.json` is a fresh isolated host run through the
-  production command and resident path with a controlled `DecisionModel`. It records
+  installed package command and resident path with a controlled `DecisionModel`. Codex
+  invokes the installed hook directly; a separate temporary observer imports no checkout
+  code. The record includes the packed artifact digest, installed-hook provenance,
   hook entry, adapter acceptance, one controlled-backend submission,
-  attempted/unacknowledged host submission, and exact repetition of a fresh hook-only
-  value. That observation is evidence for one run, not a reliable-visibility guarantee.
+  attempted/unacknowledged host submission, resident status, and unavailable model-reaction
+  instrumentation. The installed product recorded submission, but the independent host
+  response did not repeat the fresh hook-only value, so the record remains explicitly
+  `inconclusive` for model visibility and makes no model-reaction claim.
 - `live-jev-milestone.json` is the passing final bounded live run. Its declaration was
   emitted before credential lookup or provider-capable execution: one intended provider
   call maximum, one synthetic fixture of at most 256 bytes (inside the 32 KiB/file
@@ -25,7 +29,9 @@ It does not extend support to another host, version, platform, or mode.
 
 Run `npm run conformance:direct-event` to validate the authoritative twelve-group
 manifest and every retained JSON record against the sanitization policy. The host and
-live runners use disposable Git repositories and state directories. `conformance:live`
+live runners use disposable Git repositories and state directories. Reproduce and retain
+the installed-package real-host record with
+`npm run conformance:host -- --write-evidence`. `conformance:live`
 refuses to run without `--execute-paid`; it is paid and must only be run at a separately
 declared milestone (`npm run conformance:live -- --execute-paid --write-evidence`).
 

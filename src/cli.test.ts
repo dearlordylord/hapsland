@@ -740,6 +740,8 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
       operation: "credentials",
       credentialEnvVar: "TYPESAFE_API_KEY",
       present: true,
+      source: "environment",
+      status: "present",
     });
     expect(child.stdout).not.toContain(secret);
   }, 20_000);

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-09-22T09:35:59.642Z",
+  "recordedAt": "2026-09-22T19:43:21.430Z",
   "profile": "direct-event-v1",
   "environment": {
     "codex": "codex-cli 0.155.1",
@@ -9,8 +9,17 @@
     "operatingSystem": "linux",
     "architecture": "arm64"
   },
-  "mode": "headless command hooks / controlled writer / controlled DecisionModel",
+  "mode": "headless installed command hook / controlled writer / controlled DecisionModel",
   "controlledWriter": true,
+  "packageProvenance": {
+    "name": "realtime-review-prototype",
+    "version": "0.0.0",
+    "artifact": "realtime-review-prototype-0.0.0.tgz",
+    "artifactSha256": "4be918d0b728a7af451b43bfba5e04f6d36a01d8adbf833ba82a5504dd6bba90",
+    "hookEntrypoint": "installed-package",
+    "checkoutSourceInHookPath": false,
+    "independentObserverImportsCheckoutSource": false
+  },
   "isolation": {
     "temporaryCodexHome": true,
     "temporaryGitRepository": true,
@@ -22,7 +31,16 @@
     "adaptation": "mapped",
     "backendSubmissions": 1,
     "hostSubmission": "attempted-unacknowledged",
-    "independentlyObservedModelVisibility": "observed-hook-only-value"
+    "activity": {
+      "instrumentation": "resident-v1",
+      "kind": "submitted",
+      "observed": true,
+      "submission": "submitted",
+      "submissionFindings": 5,
+      "modelReaction": "unavailable",
+      "limitation": "none"
+    },
+    "independentlyObservedModelVisibility": "not-observed"
   },
   "updateAndMultiFileEvidence": {
     "status": "deterministic-and-native-payload-only",
@@ -46,5 +64,5 @@
     "guaranteedFinalDrain": true
   },
   "evidenceGaps": [],
-  "verdict": "pinned-host-conformant-with-stated-gaps"
+  "verdict": "inconclusive"
 }

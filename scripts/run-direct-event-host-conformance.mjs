@@ -1,10 +1,8 @@
 import { spawn } from "node:child_process";
-import { randomUUID } from "node:crypto";
-import { chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { chmod, copyFile, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { ensureResident, residentRequest } from "../src/resident/client.ts";
-import { residentPaths } from "../src/resident/paths.ts";
 
 const root = resolve(new URL("../", import.meta.url).pathname);
 const outputPath = join(root, "evidence/direct-event-v1/host-codex-0.155.1-linux-arm64.json");
@@ -50,13 +48,31 @@ const temporary = await mkdtemp(join(tmpdir(), "direct-event-host-conformance-")
 let record;
 try {
   const repository = join(temporary, "repository");
+  const artifacts = join(temporary, "artifacts");
+  const installation = join(temporary, "installation");
   const home = join(temporary, "codex-home");
   const state = join(temporary, "consent");
   const runtime = join(temporary, "runtime");
+  const activityPath = join(temporary, "activity");
   const stagesPath = join(temporary, "stages.jsonl");
   const callsPath = join(temporary, "calls.txt");
   await mkdir(repository);
+  await mkdir(artifacts);
+  await mkdir(installation);
   await mkdir(home, { mode: 0o700 });
+  const packed = await run("npm", ["pack", "--pack-destination", artifacts], { cwd: root });
+  if (packed.code !== 0) throw new Error("npm pack failed for host conformance");
+  const artifactName = (await readdir(artifacts)).find((entry) => entry.endsWith(".tgz"));
+  if (artifactName === undefined) throw new Error("npm pack did not produce a host-conformance artifact");
+  const installed = await run("npm", [
+    "install", "--prefer-offline", "--omit=dev", "--prefix", installation, join(artifacts, artifactName),
+  ], { cwd: temporary, timeoutMs: 120_000 });
+  if (installed.code !== 0) throw new Error("host-conformance package install failed");
+  const tarball = join(artifacts, artifactName);
+  const installedCli = join(installation, "node_modules", ".bin", "review-tool");
+  const packageDirectory = join(installation, "node_modules", "realtime-review-prototype");
+  const installedManifest = JSON.parse(await readFile(join(packageDirectory, "package.json"), "utf8"));
+  const artifactSha256 = createHash("sha256").update(await readFile(tarball)).digest("hex");
   await run("git", ["init", "--quiet", "--initial-branch=master"], { cwd: repository });
   await run("git", ["config", "user.name", "Conformance Fixture"], { cwd: repository });
   await run("git", ["config", "user.email", "fixture@example.invalid"], { cwd: repository });
@@ -72,38 +88,94 @@ try {
     gaps.push("Codex host authentication unavailable");
   }
   await writeFile(join(home, "config.toml"), "[features]\nhooks = true\n", { mode: 0o600 });
-  const hook = resolve(root, "scripts/direct-event-host-hook.mjs");
+  const observer = join(temporary, "independent-hook-observer.mjs");
+  await writeFile(observer, `import { appendFileSync, readFileSync } from "node:fs";
+let event;
+try { event = JSON.parse(readFileSync(0, "utf8")); } catch { event = undefined; }
+appendFileSync(process.env.REVIEW_HOST_STAGE_PATH, JSON.stringify({
+  hookEntry: event?.hook_event_name === "PostToolUse",
+  toolName: typeof event?.tool_name === "string" ? event.tool_name : "unknown",
+  sessionId: typeof event?.session_id === "string" ? event.session_id : undefined
+}) + "\\n", { mode: 0o600 });
+`, { mode: 0o600 });
   await writeFile(join(home, "hooks.json"), `${JSON.stringify({
-    hooks: { PostToolUse: [{ matcher: "^(apply_patch|Bash)$", hooks: [{
-      type: "command",
-      command: `${shellQuote(process.execPath)} ${shellQuote(hook)}`,
-      timeout: 20,
-    }] }] },
+    description: "installed product followed by an independent source-free observer",
   }, null, 2)}\n`, { mode: 0o600 });
 
+  const visibilityMarker = `HOOK_ONLY_${randomUUID().replaceAll("-", "")}`;
+  await writeFile(join(repository, "visibility-rules.jsonc"), `${JSON.stringify({
+    schemaVersion: 1,
+    id: "host-visibility",
+    contentVersion: "1.0.0",
+    rules: [{
+      id: "marker",
+      question: "Does this declaration define a delivery-shaped interface?",
+      criteria: { false: "The declaration is not delivery-shaped.", true: "The declaration is delivery-shaped." },
+      threshold: 0.7,
+      message: `Visibility probe token: ${visibilityMarker}`,
+      applicability: { includes: ["profile.ts"] },
+    }],
+  }, null, 2)}\n`, { mode: 0o600 });
+  await writeFile(join(repository, ".review.jsonc"), '{"version":1,"packs":["visibility-rules.jsonc"]}\n', { mode: 0o600 });
   const answers = Object.fromEntries([
     "r1_inferred_case", "r2_meaningless_combinations", "r3_split_correlations",
     "r4_duplicate_encoding", "r5_absence_confusion", "r6_bare_domain_value",
     "r7_name_wider_than_type", "r8_name_claims_resource", "r9_body_reaches_undeclared",
   ].map((id) => [id, { _tag: "Probability", probability: 0.91 }]));
-  const visibilityMarker = `HOOK_ONLY_${randomUUID().replaceAll("-", "")}`;
+  answers["host-visibility/marker"] = { _tag: "Probability", probability: 0.91 };
   const env = {
     ...process.env,
     CODEX_HOME: home,
     REVIEW_STATE_PATH: state,
     REVIEW_RESIDENT_DIR: runtime,
+    REVIEW_ACTIVITY_PATH: activityPath,
     REVIEW_HOST_STAGE_PATH: stagesPath,
     REVIEW_CONTROL_JSON: JSON.stringify({ answers, capturePath: callsPath }),
-    REVIEW_VISIBILITY_MARKER: visibilityMarker,
+    REVIEW_INSTALL_CONTROLLED: "1",
   };
   for (const key of ["OPENAI_API_KEY", "TYPESAFE_API_KEY"]) delete env[key];
 
-  const preview = await run(process.execPath, [join(root, "src/cli.ts"), "--enable"], {
+  const installPreview = JSON.parse((await run(installedCli, ["--install-preview"], {
+    cwd: temporary,
+    env,
+    input: JSON.stringify({ version: 1, operation: "install-preview", codexHome: home, codexExecutable: "codex" }),
+  })).stdout);
+  if (installPreview.status !== "preview" || typeof installPreview.proposal?.digest !== "string") {
+    throw new Error("installed package did not preview the real-host hook installation");
+  }
+  const installResult = JSON.parse((await run(installedCli, ["--install"], {
+    cwd: temporary,
+    env,
+    input: JSON.stringify({
+      version: 1,
+      operation: "install",
+      codexHome: home,
+      codexExecutable: "codex",
+      proposalDigest: installPreview.proposal.digest,
+    }),
+  })).stdout);
+  if (installResult.status !== "installed") throw new Error("installed package did not install the real-host hook");
+  const hookConfiguration = JSON.parse(await readFile(join(home, "hooks.json"), "utf8"));
+  hookConfiguration.hooks.PostToolUse.push({
+    matcher: "^(apply_patch|Bash)$",
+    hooks: [{
+      type: "command",
+      command: `${shellQuote(process.execPath)} ${shellQuote(observer)}`,
+      timeout: 20,
+    }],
+  });
+  await writeFile(join(home, "hooks.json"), `${JSON.stringify(hookConfiguration, null, 2)}\n`, { mode: 0o600 });
+  const installedHooks = await readFile(join(home, "hooks.json"), "utf8");
+  if (!installedHooks.includes(installation) || installedHooks.includes(join(root, "src"))) {
+    throw new Error("real-host hook does not point exclusively at the installed package");
+  }
+
+  const preview = await run(installedCli, ["--enable"], {
     cwd: root, env, input: JSON.stringify({ version: 1, operation: "enable", cwd: repository }),
   });
   const digest = JSON.parse(preview.stdout).proposal?.digest;
   if (typeof digest !== "string") gaps.push("consent preview failed");
-  else await run(process.execPath, [join(root, "src/cli.ts"), "--enable-confirm"], {
+  else await run(installedCli, ["--enable-confirm"], {
     cwd: root, env, input: JSON.stringify({ version: 1, operation: "enable-confirm", cwd: repository, proposalDigest: digest }),
   });
 
@@ -123,21 +195,48 @@ try {
     ? "observed-hook-only-value"
     : messages.includes("VISIBILITY_NOT_OBSERVED") ? "not-observed" : "indeterminate";
   const addStage = stages.find((stage) => stage.toolName === "apply_patch");
-  const submissionStage = stages.find((stage) => stage.submission === "attempted-unacknowledged");
+  const observedSessionId = stages.find((stage) => typeof stage.sessionId === "string")?.sessionId;
+  const activity = observedSessionId === undefined
+    ? undefined
+    : JSON.parse((await run(installedCli, ["--status"], {
+        cwd: root,
+        env,
+        input: JSON.stringify({ version: 1, operation: "status", cwd: repository, sessionId: observedSessionId }),
+      })).stdout || "null");
   record = {
     schemaVersion: 1,
     recordedAt: date,
     profile: "direct-event-v1",
     environment: versions,
-    mode: "headless command hooks / controlled writer / controlled DecisionModel",
+    mode: "headless installed command hook / controlled writer / controlled DecisionModel",
     controlledWriter: true,
+    packageProvenance: {
+      name: installedManifest.name,
+      version: installedManifest.version,
+      artifact: artifactName,
+      artifactSha256,
+      hookEntrypoint: "installed-package",
+      checkoutSourceInHookPath: false,
+      independentObserverImportsCheckoutSource: false,
+    },
     isolation: { temporaryCodexHome: true, temporaryGitRepository: true, retainedSyntheticSource: false },
     addLiveEvidence: {
       hostExitCode: host.code,
       hookEntry: addStage?.hookEntry === true,
-      adaptation: addStage?.adaptation ?? "not-observed",
+      adaptation: backendCalls === 1 && activity?.activity?.observed === true ? "mapped" : "not-observed",
       backendSubmissions: backendCalls,
-      hostSubmission: submissionStage?.submission ?? "none",
+      hostSubmission: activity?.activity?.submission?.status === "submitted" ? "attempted-unacknowledged" : "none",
+      activity: activity?.activitySource === "resident-v1"
+        ? {
+            instrumentation: activity.activitySource,
+            kind: activity.activity?.kind,
+            observed: activity.activity?.observed,
+            submission: activity.activity?.submission?.status,
+            submissionFindings: activity.activity?.submission?.findings,
+            modelReaction: activity.activity?.modelReaction?.status,
+            limitation: activity.activity?.limitation ?? "none",
+          }
+        : { instrumentation: "unavailable" },
       independentlyObservedModelVisibility: visibility,
     },
     updateAndMultiFileEvidence: {
@@ -153,20 +252,16 @@ try {
     exclusions: { headful: true, otherHosts: true, otherPlatforms: true, otherVersions: true, reliableVisibility: true, guaranteedFinalDrain: true },
     evidenceGaps: gaps,
     verdict: gaps.length > 0 ? "not-run-environment-gap"
-      : addStage?.adaptation === "mapped" && backendCalls === 1 && submissionStage !== undefined
+      : addStage?.hookEntry === true && backendCalls === 1 &&
+          activity?.activitySource === "resident-v1" && activity.activity?.kind === "submitted" &&
+          activity.activity?.submission?.status === "submitted" &&
+          activity.activity?.modelReaction?.status === "unavailable" && visibility === "observed-hook-only-value"
         ? "pinned-host-conformant-with-stated-gaps" : "inconclusive",
   };
 
-  if (stages.length > 0) {
-    const paths = residentPaths(runtime);
-    const owner = await ensureResident(paths).catch(() => undefined);
-    if (owner !== undefined) {
-      await residentRequest(paths, {
-        version: 1, operation: "cleanup", lifetime: owner.lifetime,
-      }).catch(() => undefined);
-      await new Promise((resolveWait) => setTimeout(resolveWait, 100));
-      try { process.kill(owner.pid, 0); process.kill(owner.pid, "SIGTERM"); } catch { /* exited */ }
-    }
+  const owner = JSON.parse(await readFile(join(runtime, "owner.json"), "utf8").catch(() => "null"));
+  if (typeof owner?.pid === "number") {
+    try { process.kill(owner.pid, "SIGTERM"); } catch { /* exited */ }
   }
 
   if (process.argv.includes("--write-evidence")) {

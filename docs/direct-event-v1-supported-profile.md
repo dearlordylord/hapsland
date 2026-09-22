@@ -3,7 +3,12 @@
 This document describes the product's implemented support boundary. Jev is the external
 review backend. The supported adapter profile is **Codex CLI 0.155.1 / Linux arm64 /
 headless command hooks / controlled writer**. Node `v24.20.0` and Git `2.39.5` are the
-recorded conformance environment, not broader runtime guarantees.
+recorded conformance environment, not broader runtime guarantees. The installed package
+profile is narrower and exact: Node `v24.20.0`, Linux arm64, Git on `PATH`, and procfs mounted
+at `/proc`, and Node `v24.20.0` on macOS arm64 with Git, `/dev/fd`, and the packaged
+`openat` capture helper. The macOS controlled installed-package path is tested. The macOS
+real Codex-host mode remains unverified. Package metadata and `review-tool-doctor` reject
+other profiles rather than inferring support.
 
 The machine-checked authoritative mapping is
 [`conformance/direct-event-v1.json`](../conformance/direct-event-v1.json). Its validator
@@ -30,6 +35,38 @@ secret- or source-bearing fields in the new evidence records.
 All 39 obligations and 93 unique mapped checks pass through product boundaries or narrowly focused external
 boundaries. Ordinary `npm test` and `npm run conformance:direct-event` are deterministic
 and offline. The paid script is separate and explicit.
+
+## Installed package evidence
+
+The locally packed release contains compiled JavaScript entry points for the CLI, parser,
+resident, and package doctor. `npm run conformance:package` installs that tarball into a fresh
+temporary prefix with production dependencies only and runs from outside the development
+checkout. It verifies parser loading, resident launch, consent, one controlled offline backend
+submission, advice collection, and actionable missing-command diagnosis. No package acquisition
+occurs during hook edits.
+
+The issue-63 fixture additionally uses an isolated real Codex 0.155.1 home and temporary Git
+repository. It neither seeds repository trust nor bypasses hook trust, and drives both decisions
+through Codex's native interactive flow. The bounded PTY reconstructs Codex's rendered terminal
+screen, waits for the repository and hook-review states, and confirms the native selections only
+after each state is visible. Two consecutive fresh isolated runs passed during issue acceptance.
+The retained second run separately observed one provider submission and one terminal
+`completed-findings` resident outcome correlated by source-free native event identity.
+`OPENAI_API_KEY` and `TYPESAFE_API_KEY` were absent from the hook environment; no Jev call was
+possible. The sanitized record is
+[`evidence/package/clean-linux-node-24.20.0-arm64.json`](../evidence/package/clean-linux-node-24.20.0-arm64.json).
+It establishes the clean installed-package and real-host seam in the recorded Linux arm64
+environment. It does not broaden the adapter, platform, mode, or review-semantics profile.
+
+The macOS runner record is
+[`evidence/package/clean-darwin-node-24.20.0-arm64.json`](../evidence/package/clean-darwin-node-24.20.0-arm64.json).
+It establishes the clean packaged CLI, parser, descriptor-anchored capture, portable resident,
+controlled offline submission, advice-return path, and native Keychain credential lifecycle on
+macOS 14 arm64. The Keychain cell includes separate-process persistence, fresh-resident reuse,
+production resolver/provider-boundary access, logout dispatch blocking, and a bounded
+noninteractive ACL-restricted lookup. The repository had no isolated Codex authentication secret
+during validation, so it does not establish real Codex host execution on macOS; that cell remains
+unverified rather than inferred from the packaged hook run.
 
 ## Supported limits
 

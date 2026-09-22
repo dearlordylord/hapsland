@@ -10,6 +10,7 @@ import * as Option from "effect/Option";
 import * as Ref from "effect/Ref";
 import * as TestClock from "effect/testing/TestClock";
 import { configuredRules } from "../policy/rules.ts";
+import { BackendError } from "../domain/errors.ts";
 import {
   REVIEW_RETRY_BACKOFF_MS,
   ReviewBackend,
@@ -39,6 +40,84 @@ const transientError = () =>
   });
 
 describe("review backend retry policy", () => {
+  it.effect("rechecks the credential capability at each provider dispatch", () =>
+    Effect.gen(function* () {
+      const generationCurrent = yield* Ref.make(true);
+      const providerCalls = yield* Ref.make(0);
+      const modelLayer = Layer.effect(
+        DecisionModel.DecisionModel,
+        DecisionModel.make({
+          decide: (request) =>
+            Ref.update(providerCalls, (value) => value + 1).pipe(
+              Effect.as({
+                answers: providerAnswers(request.decisions),
+                usage: { inputTokens: 0, outputTokens: 0 },
+              }),
+            ),
+        }),
+      );
+      const backendLayer = ReviewBackend.layerWithOptions({
+        transientRetries: 2,
+        beforeDispatch: Ref.get(generationCurrent).pipe(
+          Effect.flatMap((current) => current
+            ? Effect.void
+            : Effect.fail(new BackendError({
+                reason: "credential generation changed after authorization",
+                retryable: false,
+              }))),
+        ),
+      }).pipe(Layer.provide(modelLayer));
+      const program = Effect.gen(function* () {
+        const backend = yield* ReviewBackend.Service;
+        yield* backend.evaluate(input);
+        // Models an invalidation in another process after the request's
+        // credential snapshot and authorization but before its next path.
+        yield* Ref.set(generationCurrent, false);
+        return yield* backend.evaluate({ ...input, path: "src/second.ts" }).pipe(Effect.result);
+      });
+
+      const result = yield* program.pipe(Effect.provide(backendLayer));
+      expect(result._tag).toBe("Failure");
+      expect(yield* Ref.get(providerCalls)).toBe(1);
+    }),
+  );
+
+  it.effect("blocks a retry when the credential is invalidated after a transient failure", () =>
+    Effect.scoped(Effect.gen(function* () {
+      const generationCurrent = yield* Ref.make(true);
+      const providerCalls = yield* Ref.make(0);
+      const firstFailed = yield* Deferred.make<void>();
+      const modelLayer = Layer.effect(
+        DecisionModel.DecisionModel,
+        DecisionModel.make({
+          decide: () => Effect.gen(function* () {
+            yield* Ref.update(providerCalls, (value) => value + 1);
+            yield* Ref.set(generationCurrent, false);
+            yield* Deferred.succeed(firstFailed, undefined);
+            return yield* Effect.fail(transientError());
+          }),
+        }),
+      );
+      const backendLayer = ReviewBackend.layerWithOptions({
+        transientRetries: 1,
+        beforeDispatch: Ref.get(generationCurrent).pipe(
+          Effect.flatMap((current) => current
+            ? Effect.void
+            : Effect.fail(new BackendError({ reason: "credential invalidated", retryable: false }))),
+        ),
+      }).pipe(Layer.provide(modelLayer));
+      const fiber = yield* Effect.gen(function* () {
+        const backend = yield* ReviewBackend.Service;
+        return yield* backend.evaluate(input).pipe(Effect.result);
+      }).pipe(Effect.provide(backendLayer), Effect.forkChild);
+      yield* Deferred.await(firstFailed);
+      yield* TestClock.adjust(`${REVIEW_RETRY_BACKOFF_MS} millis`);
+      const result = yield* Fiber.join(fiber);
+      expect(result._tag).toBe("Failure");
+      expect(yield* Ref.get(providerCalls)).toBe(1);
+    })),
+  );
+
   it.effect("uses a fixed backoff and stops after the configured retry count", () =>
     Effect.scoped(
       Effect.gen(function* () {

@@ -152,6 +152,8 @@ describe("configuration v1 subprocess contract", () => {
     expect(reviewed.advice).toHaveLength(1);
   });
 
+  // These cases intentionally start several complete CLI processes; measured full-suite
+  // runtimes are 5-8 seconds on the supported arm64 host.
   it("applies exclusions before dispatch for traversal, symlink, generated and oversized paths", () => {
     const root = mkdtempSync(join(tmpdir(), "review-config-gates-"));
     roots.push(root);
@@ -186,7 +188,7 @@ describe("configuration v1 subprocess contract", () => {
     expect(output.results).toHaveLength(7);
     expect(output.results.every((result) => result.status === "skipped")).toBe(true);
     expect(existsSync(capturePath)).toBe(false);
-  });
+  }, 10_000);
 
   it("rejects a similar-prefix sibling root before snapshot or dispatch", () => {
     const root = mkdtempSync(join(tmpdir(), "review-config-prefix-"));
@@ -250,7 +252,7 @@ describe("configuration v1 subprocess contract", () => {
     expect(empty.results[0]).toMatchObject({ status: "skipped" });
     expect(empty.results[0]?.reason).toContain("no files are selected");
     expect(existsSync(emptyCapture)).toBe(false);
-  });
+  }, 10_000);
 
   it("stops all dispatch on an invalid selected project document", () => {
     const root = mkdtempSync(join(tmpdir(), "review-config-invalid-"));
@@ -364,7 +366,7 @@ describe("configuration v1 subprocess contract", () => {
     expect(disabled.results[0]?.status).toBe("reviewed");
     expect(disabled.results[0]?.assessment).not.toHaveProperty("team/has-question");
     expect(readFileSync(disabledCapture, "utf8").trim()).toBe("called");
-  });
+  }, 10_000);
 
   it("rejects a malformed selected pack beside a valid one before dispatch", () => {
     const root = mkdtempSync(join(tmpdir(), "review-config-pack-invalid-"));
