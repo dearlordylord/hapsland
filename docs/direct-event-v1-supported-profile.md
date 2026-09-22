@@ -43,11 +43,13 @@ checkout. It verifies parser loading, resident launch, consent, one controlled o
 submission, advice collection, and actionable missing-command diagnosis. No package acquisition
 occurs during hook edits.
 
-The retained issue-63 fixture additionally used an isolated real Codex 0.155.1 home and temporary
-Git repository. Codex invoked the installed CLI directly and completed one controlled offline
-review. The fixture used Codex's native interactive hook review to persist the exact-definition
-trust hash and did not bypass hook trust. It separately observed one provider submission and a
-terminal `completed-findings` resident outcome correlated by the source-free native event identity.
+The issue-63 fixture additionally uses an isolated real Codex 0.155.1 home and temporary Git
+repository. It neither seeds repository trust nor bypasses hook trust, and drives both decisions
+through Codex's native interactive flow. That flow did not persist both decisions repeatably under
+the isolated PTY fixture, so retained evidence records the sanitized failed attempt and marks the
+real-host seam unresolved. An earlier successful run separately observed one provider submission
+and a terminal `completed-findings` resident outcome correlated by source-free native event
+identity, but it is not treated as repeatable proof.
 `OPENAI_API_KEY` and `TYPESAFE_API_KEY` were absent from the hook environment; no Jev call was
 possible. The sanitized record is
 [`evidence/package/clean-linux-node-24.20.0-arm64.json`](../evidence/package/clean-linux-node-24.20.0-arm64.json).

@@ -5,10 +5,12 @@
 installs production dependencies into a temporary prefix, runs outside the checkout, and creates
 temporary product state, resident state, Codex home, and Git repository. It invokes the installed
 CLI from real Codex 0.155.1 while using the controlled offline `DecisionModel`.
-The fixture persists the exact hook-definition hash through Codex's native interactive review
-flow; it does not use the hook-trust bypass flag. Provider submission and the terminal
-`completed-findings` resident outcome are asserted and recorded separately. The terminal record
-is correlated to the native host event using its source-free Codex recipient identity.
+The fixture starts without seeded repository trust and drives Codex's native repository and hook
+review flow; it does not use the hook-trust bypass flag. Codex 0.155.1 did not persist both trust
+decisions repeatably under the isolated PTY fixture. The retained record therefore contains the
+sanitized failed attempt and marks repeatability unresolved. An earlier successful run observed
+provider submission separately from a terminal `completed-findings` outcome, but that result is
+not retained as proof until the native trust flow can be rerun reliably.
 
 The record retains package and host versions, source-free stage outcomes, and bounded counts. It
 does not retain fixture source, advice, prompts, host output, credentials, or backend responses.

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-09-22T15:25:26.598Z",
+  "recordedAt": "2026-09-22T15:37:43.593Z",
   "package": {
     "name": "realtime-review-prototype",
     "version": "0.0.0",
@@ -29,24 +29,16 @@
     "adviceReturned": true
   },
   "realCodex": {
-    "status": "passed",
+    "status": "failed",
     "codexVersion": "codex-cli 0.155.1",
-    "hostExitCode": 0,
-    "hookTrust": {
-      "status": "persisted-exact-definition",
-      "flow": "native-interactive-review",
+    "repeatability": "unresolved-until-reliably-rerun",
+    "failedAttempt": {
+      "stage": "native-repository-and-hook-trust",
+      "sanitized": true,
+      "repositoryTrustSeeded": false,
       "bypassFlag": false
-    },
-    "reviewSubmission": {
-      "status": "observed",
-      "controlledBackendSubmissions": 1
-    },
-    "reviewCompletion": {
-      "status": "completed-findings",
-      "terminalOutcomes": 1,
-      "correlation": "resident-native-event-identity"
     }
   },
   "transientPackageDownloadPerEdit": false,
-  "verdict": "clean-package-and-real-host-passed"
+  "verdict": "clean-package-passed-real-host-failed"
 }
