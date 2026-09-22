@@ -436,6 +436,32 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
   } satisfies DirectReviewResult;
 });
 
+/** Recheck a resident result against current authority and complete semantic input. */
+export const revalidateFindings = Effect.fn("DirectEvent.revalidateFindings")(function* (
+  observation: DirectObservation,
+  findings: ReadonlyArray<Finding>,
+  context: DirectReviewContext,
+) {
+  if (
+    !context.controlledWriter ||
+    !sameRecipient(observation.recipient, context.recipient) ||
+    !(yield* verifyObservationRoot(observation)) ||
+    !(yield* authorize(observation.root, context))
+  ) return false;
+  const frozenNames = new Map<string, Set<string>>();
+  for (const finding of findings) {
+    const names = frozenNames.get(finding.path) ?? new Set<string>();
+    names.add(finding.declaration);
+    frozenNames.set(finding.path, names);
+  }
+  const currentPrepared = yield* prepareObservation(observation, context, frozenNames);
+  const identities = new Set(
+    currentPrepared.outcomes.flatMap((outcome) =>
+      outcome.status === "ready" ? [outcome.prepared.identity] : []),
+  );
+  return findings.every((finding) => identities.has(finding.semanticIdentity));
+});
+
 /** Convenience boundary for non-CLI callers; adaptation still occurs exactly once. */
 export const reviewCodexDirectEvent = Effect.fn("DirectEvent.reviewCodexDirectEvent")(function* (
   nativeEvent: unknown,
