@@ -175,6 +175,7 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
       observation.root,
       candidate.path,
       currentPolicy(context),
+      observation.rootIdentity,
     );
     if (eligible === undefined) {
       pathOutcomes.push({ status: "incomplete", path: candidate.path, reason: "ineligible" });

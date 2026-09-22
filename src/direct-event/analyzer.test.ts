@@ -129,4 +129,18 @@ describe("initial direct-event TypeScript analyzer", () => {
     expect(analyzeTypeFile("a.ts", "interface A {}\ninterface A { x: string }")).toMatchObject({ status: "unsupported", reason: "declaration-merge" });
     expect(analyzeTypeFile("a.ts", "const A = Schema.Struct({ value: Schema.String })")).toMatchObject({ status: "unsupported", reason: "no-declarations" });
   });
+
+  it.each([
+    "type A = import('./b').B",
+    "export import A = B.C",
+    "type A = typeof import('./b')",
+    "interface A { value: import('./b').B }",
+    "import A = require('./b'); type B = A.Value",
+  ])("rejects every import syntax/evidence form: %s", (source) => {
+    expect(analyzeTypeFile("a.ts", source)).toEqual({
+      status: "unsupported",
+      reason: "import",
+      units: [],
+    });
+  });
 });

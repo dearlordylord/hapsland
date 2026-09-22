@@ -337,6 +337,9 @@ describe("direct-event vertical slice", () => {
       const cases = [
         ["interface Good { value: string }\ninterface Broken { missing: Missing }", "missing-evidence"],
         ["import type { Missing } from './missing'; interface Broken { value: Missing }", "import"],
+        ["type Broken = import('./missing').Value", "import"],
+        ["export import Broken = Missing.Value", "import"],
+        ["type Broken = typeof import('./missing')", "import"],
         ["interface Merged {}\ninterface Merged { value: string }", "declaration-merge"],
         ["const Shape = Schema.Struct({ value: Schema.String })", "no-declarations"],
         ["interface Broken {", "parse"],
@@ -376,6 +379,50 @@ describe("direct-event vertical slice", () => {
         }
       }
     }).pipe(Effect.provide(Consent.testLayer())),
+  );
+
+  it.effect("makes no backend request for embedded import evidence", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture);
+      let calls = 0;
+      for (const source of [
+        "type Broken = import('./missing').Value",
+        "export import Broken = Missing.Value",
+        "type Broken = typeof import('./missing')",
+        "interface Broken { value: import('./missing').Value }",
+      ]) {
+        yield* Effect.promise(() => put(root, "types.ts", source));
+        const result = yield* enabledReview(root, addEvent(root, ["types.ts"]), {
+          answers: findingAnswers(),
+          onRequest: Effect.sync(() => { calls += 1; }),
+        });
+        expect(result.status).toBe("no-advice");
+      }
+      expect(calls).toBe(0);
+    }),
+  );
+
+  it.effect("rejects a structured in-root Git directory before source reads", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture);
+      yield* Effect.promise(async () => {
+        await rename(join(root, ".git"), join(root, "git-admin"));
+        await writeFile(join(root, ".git"), "gitdir: git-admin\n");
+        await put(root, "git-admin/recreated.ts", "type SecretCount = number");
+      });
+      let reads = 0;
+      let calls = 0;
+      const result = yield* enabledReview(root, addEvent(root, ["git-admin/recreated.ts"]), {
+        answers: findingAnswers(),
+        onRequest: Effect.sync(() => { calls += 1; }),
+      }, (base) => ({
+        ...base,
+        captureHooks: { sourceRead: () => { reads += 1; } },
+      }));
+      expect(result.status).toBe("no-advice");
+      expect(reads).toBe(0);
+      expect(calls).toBe(0);
+    }),
   );
 
   it.effect("treats an unsupported sibling as Update ambiguity before readiness filtering", () =>
