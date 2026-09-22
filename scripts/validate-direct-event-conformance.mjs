@@ -88,11 +88,23 @@ for (const file of evidenceFiles.filter((name) => name.endsWith(".json"))) {
   if (file === "live-jev-issue-52-execution.json" && evidence.totalProviderCallCount !== "unknown") {
     fail(`${file} must preserve unknown provider-attempt count`);
   }
-  if (
-    file === "host-codex-0.155.1-linux-arm64.json" &&
-    evidence.addLiveEvidence?.independentlyObservedModelVisibility !== "observed-hook-only-value"
-  ) {
-    fail(`${file} must establish visibility with a hook-only value or downgrade the claim`);
+  if (file === "host-codex-0.155.1-linux-arm64.json") {
+    if (
+      evidence.packageProvenance?.hookEntrypoint !== "installed-package" ||
+      evidence.packageProvenance?.checkoutSourceInHookPath !== false ||
+      evidence.packageProvenance?.independentObserverImportsCheckoutSource !== false ||
+      !/^[a-f0-9]{64}$/.test(evidence.packageProvenance?.artifactSha256 ?? "") ||
+      evidence.addLiveEvidence?.activity?.instrumentation !== "resident-v1" ||
+      evidence.addLiveEvidence?.activity?.kind !== "submitted" ||
+      evidence.addLiveEvidence?.activity?.submission !== "submitted" ||
+      evidence.addLiveEvidence?.activity?.modelReaction !== "unavailable"
+    ) fail(`${file} must establish installed-package activity provenance`);
+    const visibility = evidence.addLiveEvidence?.independentlyObservedModelVisibility;
+    if (visibility !== "observed-hook-only-value" &&
+        !(visibility === "not-observed" && evidence.verdict === "inconclusive" &&
+          evidence.exclusions?.reliableVisibility === true)) {
+      fail(`${file} must establish visibility or retain an explicit inconclusive downgrade`);
+    }
   }
 }
 
@@ -120,6 +132,13 @@ if (packageEncoded === undefined) {
     packageEvidence.realCodex?.reviewCompletion?.correlation !== "resident-native-event-identity" ||
     packageEvidence.realCodex?.independentHook?.status !== "observed" ||
     packageEvidence.realCodex?.independentHook?.observations < 1 ||
+    packageEvidence.review?.activity?.submitted?.instrumentation !== "resident-v1" ||
+    packageEvidence.review?.activity?.submitted?.kind !== "submitted" ||
+    packageEvidence.review?.activity?.submitted?.submission !== "submitted" ||
+    packageEvidence.review?.activity?.submitted?.modelReaction !== "unavailable" ||
+    packageEvidence.review?.activity?.restart?.before !== "pending" ||
+    packageEvidence.review?.activity?.restart?.after !== "restarted/lost" ||
+    packageEvidence.review?.activity?.restart?.modelReaction !== "unavailable" ||
     packageEvidence.installation?.preview !== "passed" ||
     packageEvidence.installation?.installed !== "passed" ||
     packageEvidence.installation?.idempotent !== "passed" ||
