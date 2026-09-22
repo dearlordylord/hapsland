@@ -11,6 +11,16 @@ Abide is a competing product at the agent-host/review boundary.
 
 ## 1. Executive answer
 
+**Lifetime follow-up:** the [Abide lifetime supplement](https://github.com/dearlordylord/jevs/blob/b738a2c/RESEARCH-ABIDE-LIFETIME-2026-09-20.md)
+records the host process/state findings and subsequent architecture discussion.
+The current direction is useful, coherent feedback for Claude Code/Codex, with
+bounded in-memory work/advice queues and permissible suggestion loss after crashes.
+Recovery concerns current state; guaranteed replay and SQLite are not requirements.
+A lazily started resident worker is a candidate, not a selected architecture.
+[Dispatch and feedback research](https://github.com/dearlordylord/jevs/blob/b4fc85d/RESEARCH-HOOK-DISPATCH-AND-FEEDBACK-2026-09-20.md)
+is complete; live conformance gaps and the process ownership/transport choice remain.
+Continue at [Choose the product process lifetime and hook transport](https://github.com/dearlordylord/jevs/issues/31).
+
 **Yes: Abide already eclipses the product in productization and breadth of the immediately useful
 workflow.** It has a published package, one-command installation, instruction-to-rubric compilation,
 post-edit and end-of-turn review, automatic repair prompts, three host adapters, audit/check/report,
