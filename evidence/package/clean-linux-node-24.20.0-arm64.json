@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-09-22T18:29:46.573Z",
+  "recordedAt": "2026-09-22T18:53:56.474Z",
   "package": {
     "name": "realtime-review-prototype",
     "version": "0.0.0",
@@ -35,14 +35,20 @@
   },
   "review": {
     "backend": "controlled-offline",
-    "submissions": 1,
+    "submissions": 2,
     "adviceReturned": true
   },
   "credentialLifecycle": {
-    "login": "stored-without-paid-verification",
-    "newProcessReuse": "saved-source-present",
-    "installedHookControlledCompletion": "passed",
-    "logout": "deleted-before-future-dispatch",
+    "status": "actual-secret-service",
+    "loginMs": 1231,
+    "separateProcessLookupMs": 612,
+    "residentRestartPersistence": "passed",
+    "residentControlledTransportResolution": "passed",
+    "logoutBeforeFutureDispatch": "passed",
+    "lockedLookupMs": 922,
+    "lockedOutcome": "locked-no-prompt",
+    "unreachableLookupMs": 420,
+    "unreachableOutcome": "unavailable-bounded",
     "secretRetainedInEvidence": false
   },
   "realCodex": {

@@ -7,7 +7,7 @@ import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { closeSync, openSync, readFileSync, readSync } from "node:fs";
+import { closeSync, constants, openSync, readFileSync, readSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { Consent, rootRelativePath } from "./runtime/consent.ts";
 import {
@@ -111,6 +111,7 @@ const ControlledOptions = Schema.Struct({
   failure: Schema.optionalKey(Schema.String),
   capturePath: Schema.optionalKey(Schema.String),
   outcomePath: Schema.optionalKey(Schema.String),
+  requireCredential: Schema.optionalKey(Schema.Boolean),
 });
 
 const controlledOptions = Config.String("REVIEW_CONTROL_JSON").pipe(
@@ -684,12 +685,14 @@ const runReviewRequestCore = (
         diagnosticScope,
       };
     }
+    const credentialStatePath = process.env.REVIEW_CREDENTIAL_STATE_PATH;
     const credential = controlled === undefined
       ? yield* Effect.promise(() => resolveCredential({
           envVar: authorization.success.settings.credentialEnvVar,
           environmentOnly:
             "configuration" in authorization.success.settings &&
             authorization.success.settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in",
+          ...(credentialStatePath === undefined ? {} : { statePath: credentialStatePath }),
         }))
       : undefined;
     if (controlled === undefined && credential?.status !== "present") {
@@ -713,6 +716,20 @@ const runReviewRequestCore = (
         ),
         diagnosticScope,
       };
+    }
+    if (credential?.status === "present") {
+      const current = readCredentialState(credentialStatePath);
+      if (current.generation !== credential.generation ||
+          (credential.source === "saved" && current.savedUseSuspended)) {
+        return {
+          response: defaultResponse(
+            request,
+            "missing_credentials",
+            "review credential changed before dispatch; retry the edit",
+          ),
+          diagnosticScope,
+        };
+      }
     }
     const requestEffect = runRequest(
       request,
@@ -959,32 +976,70 @@ const program = Effect.gen(function* () {
   ),
 );
 
-const readMaskedCredential = (): string => {
-  const descriptor = openSync("/dev/tty", "r+");
-  const setEcho = (enabled: boolean) => spawnSync(
-    "stty",
-    ["-F", "/dev/tty", enabled ? "echo" : "-echo"],
-    { stdio: "ignore" },
-  );
+const readMaskedCredential = (): Promise<string> => {
+  const descriptor = openSync("/dev/tty", constants.O_RDONLY | constants.O_NONBLOCK);
+  const original = spawnSync("stty", ["-F", "/dev/tty", "-g"], {
+    encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
+  });
+  const originalMode = original.status === 0 ? original.stdout.trim() : "";
+  let restored = false;
+  const restore = () => {
+    if (restored) return;
+    if (originalMode.length === 0) return;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      spawnSync("stty", ["-F", "/dev/tty", originalMode], { stdio: "ignore" });
+      const observed = spawnSync("stty", ["-F", "/dev/tty", "-g"], {
+        encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
+      });
+      if (observed.status === 0 && observed.stdout.trim() === originalMode) {
+        restored = true;
+        return;
+      }
+    }
+  };
   process.stderr.write("Jev API key: ");
-  const disabled = setEcho(false);
+  const disabled = spawnSync("stty", ["-F", "/dev/tty", "-echo"], { stdio: "ignore" });
   if (disabled.status !== 0) {
     closeSync(descriptor);
     throw new Error("masked terminal input is unavailable; retry with --credential-stdin");
   }
-  try {
-    const bytes: Array<number> = [];
-    const byte = Buffer.alloc(1);
-    while (bytes.length <= 32_768 && readSync(descriptor, byte, 0, 1, null) === 1) {
-      if (byte[0] === 0x0a || byte[0] === 0x0d) break;
-      bytes.push(byte[0] ?? 0);
+  return new Promise((resolveValue, rejectValue) => {
+    const signals = ["SIGINT", "SIGTERM", "SIGHUP"] as const;
+    const handlers = new Map<NodeJS.Signals, () => void>();
+    let settled = false;
+    let value = Buffer.alloc(0);
+    let poll: NodeJS.Timeout | undefined;
+    const finish = (result: { readonly value: string } | { readonly error: Error }) => {
+      if (settled) return;
+      settled = true;
+      for (const [signal, handler] of handlers) process.off(signal, handler);
+      if (poll !== undefined) clearInterval(poll);
+      closeSync(descriptor);
+      restore();
+      process.stderr.write("\n");
+      if ("value" in result) resolveValue(result.value);
+      else rejectValue(result.error);
+    };
+    for (const signal of signals) {
+      const handler = () => finish({ error: new Error("credential input cancelled") });
+      handlers.set(signal, handler);
+      process.once(signal, handler);
     }
-    return Buffer.from(bytes).toString("utf8");
-  } finally {
-    setEcho(true);
-    process.stderr.write("\n");
-    closeSync(descriptor);
-  }
+    poll = setInterval(() => {
+      try {
+        const chunk = Buffer.alloc(256);
+        const count = readSync(descriptor, chunk, 0, chunk.length, null);
+        if (count === 0) return;
+        value = Buffer.concat([value, chunk.subarray(0, count)]);
+        if (value.length > 32_768) return finish({ error: new Error("credential input is too long") });
+        const newline = value.findIndex((byte) => byte === 0x0a || byte === 0x0d);
+        if (newline >= 0) finish({ value: value.subarray(0, newline).toString("utf8") });
+      } catch (cause) {
+        if (typeof cause === "object" && cause !== null && "code" in cause && cause.code === "EAGAIN") return;
+        finish({ error: new Error("credential input unavailable") });
+      }
+    }, 10);
+  });
 };
 
 const runCredentialCommand = async (): Promise<Readonly<Record<string, unknown>>> => {
@@ -1004,7 +1059,7 @@ const runCredentialCommand = async (): Promise<Readonly<Record<string, unknown>>
     try {
       value = process.argv.includes("--credential-stdin")
         ? readFileSync(0, "utf8").replace(/\r?\n$/, "")
-        : readMaskedCredential();
+        : await readMaskedCredential();
     } catch {
       return {
         version: 1,
@@ -1022,7 +1077,12 @@ const runCredentialCommand = async (): Promise<Readonly<Record<string, unknown>>
       status: result.status,
       stored: result.status === "stored",
       paidVerificationPerformed: false,
-      previousCredentialPreserved: result.status !== "stored",
+      previousCredentialPreserved: result.status !== "stored" && result.status !== "indeterminate",
+      replacementOutcome: result.status === "indeterminate" ? "indeterminate" : result.status,
+      savedCredentialUse: result.state.savedUseSuspended ? "suspended" : "active",
+      ...(result.status === "indeterminate"
+        ? { action: "credential replacement may have committed; retry login or logout before review" }
+        : {}),
       generation: result.state.generation,
     };
   }
@@ -1074,6 +1134,7 @@ if (!isCodexHook && typeof output === "object" && output !== null) {
             record.status === "locked" ||
             record.status === "unavailable" ||
             record.status === "timed-out" ||
+            record.status === "indeterminate" ||
             record.status === "cancelled" ||
             record.status === "invalid"
           ? 6

@@ -230,6 +230,7 @@ export const makeResidentDispatchContext = async (
     ...(controlledOptions.failure === undefined ? {} : { failure: controlledOptions.failure }),
     ...(controlledOptions.capturePath === undefined ? {} : { capturePath: controlledOptions.capturePath }),
     ...(controlledOptions.outcomePath === undefined ? {} : { outcomePath: controlledOptions.outcomePath }),
+    ...(controlledOptions.requireCredential === undefined ? {} : { requireCredential: controlledOptions.requireCredential }),
   };
   const credentialValue = process.env[settings.credentialEnvVar];
   const credentialStatePath = resolve(process.env.REVIEW_CREDENTIAL_STATE_PATH ?? DEFAULT_CREDENTIAL_STATE_PATH);
@@ -238,7 +239,7 @@ export const makeResidentDispatchContext = async (
   return {
     statePath: resolve(statePath),
     userConfigPath: userConfigPath === undefined ? null : resolve(userConfigPath),
-    credential: controlled !== null ? null : {
+    credential: controlled !== null && controlled.requireCredential !== true ? null : {
       name: settings.credentialEnvVar,
       environmentValue: credentialValue === undefined ? null : credentialValue,
       environmentOnly,

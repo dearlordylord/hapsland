@@ -17,7 +17,10 @@ printf '%s\n' "$TYPESAFE_API_KEY" | review-tool --login --credential-stdin
 review-tool --logout
 ```
 
-Login does not contact Jev. A failed or cancelled replacement preserves the prior item. Background
+Login does not contact Jev. A definitively failed or cancelled replacement preserves the prior item.
+If the helper loses its transport or deadline after Secret Service may have committed, login reports
+`indeterminate`, suspends saved-key use, and requires an explicit login or logout recovery instead of
+claiming that either value won. Background
 hooks and the resident never ask Secret Service to unlock an item: lookup omits the unlock flag and
 runs in a disposable helper process with a 750 ms deadline. Missing, locked, unavailable, timed-out,
 invalid and administratively suspended states are reported without the value by

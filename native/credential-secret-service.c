@@ -176,12 +176,37 @@ static int delete_secret(void) {
   return 0;
 }
 
+/* Conformance-only operation used inside a disposable login collection. */
+static int lock_collection(void) {
+  GError *error = NULL;
+  SecretService *svc = service(&error);
+  if (svc == NULL) { failure(error); g_clear_error(&error); return 2; }
+  SecretCollection *collection = secret_collection_for_alias_sync(
+    svc, SECRET_COLLECTION_DEFAULT, SECRET_COLLECTION_NONE, NULL, &error
+  );
+  if (collection == NULL) {
+    failure(error); g_clear_error(&error); g_object_unref(svc); return 2;
+  }
+  GList one = { collection, NULL, NULL };
+  GList *locked = NULL;
+  gint count = secret_service_lock_sync(svc, &one, NULL, &locked, &error);
+  if (count < 1 || error != NULL) {
+    failure(error); g_clear_error(&error); g_list_free(locked);
+    g_object_unref(collection); g_object_unref(svc); return 2;
+  }
+  g_list_free(locked);
+  json_status("locked");
+  g_object_unref(collection); g_object_unref(svc);
+  return 0;
+}
+
 int main(int argc, char **argv) {
   if (argc != 2) { json_status("invalid"); return 2; }
   if (strcmp(argv[1], "probe") == 0) return probe();
   if (strcmp(argv[1], "get") == 0) return get_secret();
   if (strcmp(argv[1], "set") == 0) return set_secret();
   if (strcmp(argv[1], "delete") == 0) return delete_secret();
+  if (strcmp(argv[1], "lock") == 0) return lock_collection();
   json_status("invalid");
   return 2;
 }

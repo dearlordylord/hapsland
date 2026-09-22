@@ -26,6 +26,7 @@ export type SecretServiceStatus =
   | "locked"
   | "invalid"
   | "unavailable"
+  | "indeterminate"
   | "timed-out";
 
 export type SecretServiceResult = {
@@ -131,23 +132,27 @@ export const runSecretService = (
     if (total <= 65_536) chunks.push(chunk);
     else child.kill("SIGKILL");
   });
+  child.stdin.on("error", () => finish({
+    status: operation === "set" ? "indeterminate" : "unavailable",
+  }));
   child.on("error", () => finish({ status: "unavailable" }));
   child.on("close", () => {
     if (settled) return;
+    const malformedStatus = operation === "set" ? "indeterminate" as const : "unavailable" as const;
     try {
       const output = Buffer.concat(chunks);
       const newline = output.indexOf(0x0a);
-      if (newline < 0) return finish({ status: "unavailable" });
+      if (newline < 0) return finish({ status: malformedStatus });
       const header = JSON.parse(output.subarray(0, newline).toString("utf8")) as unknown;
       if (typeof header !== "object" || header === null || !("status" in header)) {
-        return finish({ status: "unavailable" });
+        return finish({ status: malformedStatus });
       }
       const status = header.status;
       const allowed: ReadonlyArray<SecretServiceStatus> = [
         "available", "stored", "deleted", "present", "missing", "locked", "invalid", "unavailable",
       ];
       if (typeof status !== "string" || !allowed.includes(status as SecretServiceStatus)) {
-        return finish({ status: "unavailable" });
+        return finish({ status: malformedStatus });
       }
       if (status === "present") {
         const value = output.subarray(newline + 1).toString("utf8");
@@ -158,7 +163,7 @@ export const runSecretService = (
       }
       return finish({ status: status as SecretServiceStatus });
     } catch {
-      return finish({ status: "unavailable" });
+      return finish({ status: malformedStatus });
     }
   });
   child.stdin.end(options.input);
@@ -179,6 +184,13 @@ export const resolveCredential = async (options: {
   const environmentValue = "environmentValue" in options
     ? options.environmentValue ?? undefined
     : process.env[options.envVar];
+  const selectedSource = options.environmentOnly ||
+      (environmentValue !== undefined && environmentValue.length > 0)
+    ? "environment" as const
+    : "saved" as const;
+  if (options.expectedGeneration !== undefined && options.expectedGeneration !== state.generation) {
+    return { status: "suspended", source: selectedSource, generation: state.generation };
+  }
   if (options.environmentOnly || (environmentValue !== undefined && environmentValue.length > 0)) {
     if (environmentValue === undefined || environmentValue.length === 0) {
       return { status: "missing", source: "environment", generation: state.generation };
@@ -186,15 +198,20 @@ export const resolveCredential = async (options: {
     if (Buffer.byteLength(environmentValue, "utf8") > 32_768) {
       return { status: "invalid", source: "environment", generation: state.generation };
     }
+    const current = readCredentialState(options.statePath);
+    if (current.generation !== state.generation) {
+      return { status: "suspended", source: "environment", generation: current.generation };
+    }
     return { status: "present", source: "environment", value: environmentValue, generation: state.generation };
-  }
-  if (options.expectedGeneration !== undefined && options.expectedGeneration !== state.generation) {
-    return { status: "suspended", source: "saved", generation: state.generation };
   }
   if (state.savedUseSuspended) {
     return { status: "suspended", source: "saved", generation: state.generation };
   }
   const saved = await runSecretService("get");
+  const current = readCredentialState(options.statePath);
+  if (current.generation !== state.generation || current.savedUseSuspended) {
+    return { status: "suspended", source: "saved", generation: current.generation };
+  }
   if (saved.status === "present" && saved.value !== undefined) {
     return { status: "present", source: "saved", value: saved.value, generation: state.generation };
   }
@@ -225,10 +242,16 @@ export const saveCredential = async (
   if (stored.status !== "stored") {
     const state = {
       ...pending,
-      savedUseSuspended: previous.savedUseSuspended || stored.status === "timed-out",
+      savedUseSuspended: previous.savedUseSuspended ||
+        stored.status === "timed-out" || stored.status === "indeterminate",
     };
     writeCredentialState(statePath, state);
-    return { status: stored.status, state };
+    return {
+      status: stored.status === "timed-out" || stored.status === "indeterminate"
+        ? "indeterminate" as const
+        : stored.status,
+      state,
+    };
   }
   const state = { ...pending, savedUseSuspended: false };
   writeCredentialState(statePath, state);

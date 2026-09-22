@@ -18,6 +18,8 @@ export type ControlledDecisionModelOptions = {
   readonly capturePath?: string;
   /** Test-only source-free terminal outcome path; consumed by the resident. */
   readonly outcomePath?: string;
+  /** Installed acceptance seam: exercise production credential resolution before the controlled transport. */
+  readonly requireCredential?: boolean;
 };
 
 export const controlledDecisionModelLayer = (
