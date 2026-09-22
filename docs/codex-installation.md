@@ -13,14 +13,19 @@ the single action reported for that stage. Doctor never prompts, launches or rep
 resident, changes Codex configuration, or calls Jev.
 
 The packaged `review-tool` CLI exposes versioned, noninteractive JSON operations for the
-supported Codex CLI 0.155.1 / Node 24.20.0 / Linux arm64 profile. Every request is supplied on
+supported Codex CLI 0.155.1 / Node 24.20.0 installed profiles on Linux arm64 and macOS arm64.
+The direct-event capture envelope remains narrower where documented. Every request is supplied on
 stdin and every result is a single version-1 JSON object on stdout.
 Exit code 0 covers successful previews, completed operations, and idempotent no-ops. Code 2 is
 an invalid request, 3 is an unsupported host, 4 is a configuration/digest conflict, and 5 is
-journaled partial completion that requires recovery. Credential-store failures use code 6.
+journaled partial completion that requires recovery. Code 6 means setup needs bounded user action;
+standalone credential-store failures also use code 6.
 
 On Linux, login stores one product-owned default Jev credential in the session's persistent
-Secret Service collection. Interactive login reads it from `/dev/tty` with terminal echo disabled.
+Secret Service collection. On macOS, it stores the owned generic password in the selected default
+Keychain and does not search, replace, or delete a matching item from another Keychain. Interactive
+login on both platforms reads from `/dev/tty` with terminal echo disabled using the platform's
+`stty` device flag.
 Automation must opt into stdin explicitly; credential values are never accepted as arguments.
 
 ```sh
@@ -33,11 +38,13 @@ Login does not contact Jev. A definitively failed or cancelled replacement prese
 If the helper loses its transport or deadline after Secret Service may have committed, login reports
 `indeterminate`, suspends saved-key use, and requires an explicit login or logout recovery instead of
 claiming that either value won. Background
-hooks and the resident never ask Secret Service to unlock an item: lookup omits the unlock flag and
-runs in a disposable helper process with a 750 ms deadline. Missing, locked, unavailable, timed-out,
+hooks and the resident never request native-store interaction: Linux lookup omits the Secret
+Service unlock flag, and macOS lookup suppresses Keychain UI. Lookup runs in a disposable helper
+process with a 750 ms deadline. Missing, locked, unavailable, timed-out,
 invalid and administratively suspended states are reported without the value by
 `--inspect-credentials` and status output. Unlock the login keyring in the desktop session and retry
-login when storage is locked; start a Secret Service provider for the user session when unavailable.
+login when Linux storage is locked; start a Secret Service provider for that user session when
+unavailable. On macOS, unlock or authorize the selected default Keychain from an explicit login.
 
 The default nonempty `TYPESAFE_API_KEY` takes precedence over the saved item. Selecting
 `credentialEnvVar` in user or project configuration is an explicit environment-only choice;
@@ -54,6 +61,39 @@ eligible-source scope. Both mutations require the digest returned by their previ
 The install preview's `proposal.ownedChanges` identifies the exact runtime executable,
 entrypoint, Node/platform/architecture, feature key, hook event, matcher, command, timeout, and
 ownership-record path. It does not echo unrelated configuration values.
+
+## Primary setup flow
+
+`--setup` composes installation, credential selection, repository enablement, execution-context
+diagnosis, and native-trust handoff without calling Jev. Start with no approval digests. A headless
+request returns `needs-user-action` with at most four ordered actions and exits 6. The installation
+and repository actions contain the exact proposal digests needed for the next request:
+
+```sh
+printf '%s\n' '{"version":1,"operation":"setup","host":"codex","scope":{"cwd":"/absolute/repository","review":"enabled"},"credential":"environment","codexHome":"/absolute/codex-home"}' \
+  | review-tool --setup
+
+printf '%s\n' '{"version":1,"operation":"setup","host":"codex","scope":{"cwd":"/absolute/repository","review":"enabled"},"credential":"environment","codexHome":"/absolute/codex-home","installProposalDigest":"<install-digest>","consentProposalDigest":"<consent-digest>"}' \
+  | TYPESAFE_API_KEY=... review-tool --setup
+```
+
+Do not substitute a digest from another preview. If installation stops after a write, setup reports
+`partial`, exits 5, and returns `resume-installation` with the original digest. Repeat the same
+request and digest; recovery revalidates completed state before continuing. Repeating completed
+setup is idempotent and does not duplicate the owned hook or repository grant.
+
+For a saved credential, set `credential` to `saved` and `interactive` to `true`. Setup reads the
+credential through the same masked `/dev/tty` path as `--login`; it never echoes the value. A
+headless caller instead performs `--login --credential-stdin` explicitly, then reruns setup. Setup
+does not claim native trust is complete: restart Codex normally after current work and accept its
+native repository and exact hook-definition review when prompted.
+
+To finish setup while keeping repository review off, set `scope.review` to `disabled` and
+`credential` to `skip`. This can complete installation and report execution context as unknown,
+but it does not revoke an existing grant until the repository-disable stage itself succeeds. A
+partial installation does not silently turn an enabled repository off.
+
+The lower-level operations below remain available for diagnosis and explicit lifecycle control.
 
 ```sh
 printf '%s\n' '{"version":1,"operation":"install-preview","codexHome":"/absolute/codex-home"}' \
@@ -114,7 +154,7 @@ before uninstall when future review dispatch must stop; uninstall alone does not
 Requests already sent to Jev cannot be recalled.
 
 Before writing configuration, the installer executes a bounded probe through the selected
-runtime and requires it to report Node 24.20.0 on Linux arm64. `/bin/true` or another merely
+runtime and requires it to report Node 24.20.0 on Linux arm64 or macOS arm64. `/bin/true` or another merely
 executable file is not accepted as a runtime. The CLI, parser, and resident packaged entrypoints
 must all be readable regular files, and Codex CLI 0.155.1 must be ready. The
 installer validates `config.toml` and `hooks.json`, preserves object and array order, and

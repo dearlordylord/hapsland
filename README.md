@@ -92,6 +92,14 @@ dependencies only, and runs the parser and controlled offline review outside the
 an isolated Codex home and temporary Git repository, does not change the user's host, removes
 provider credentials, and retains only sanitized package/host outcomes.
 
+`npm run conformance:installed-release` verifies the assembled installed-product evidence and
+replays the complete offline lifecycle in isolated homes. Its compatibility verdict is currently
+blocked by the untested authenticated macOS/Codex cell and the inconclusive installed first-review
+milestone. Exact versions, checksums, setup-effort evidence, and the rule that untested cells remain
+gaps are published in
+[`docs/installed-release-compatibility.md`](./docs/installed-release-compatibility.md). The command
+does not perform paid Jev work or an authenticated Codex retry.
+
 Review dispatch is repository opt-in. The explicit enable operation first previews the
 canonical Git working-tree root, fixed Jev backend, actual destination, and
 repository-wide eligible-source scope. Confirm that proposal with its digest to record
@@ -110,8 +118,9 @@ printf '%s\n' '{"version":1,"operation":"credentials","cwd":"/absolute/repo"}' \
 ```
 
 `--inspect-credentials` reports only the configured environment-variable name and
-whether the resolved source is present. On Linux, `review-tool --login` uses masked terminal
-input; `review-tool --login --credential-stdin` is the explicit headless form, and
+whether the resolved source is present. On Linux and macOS, `review-tool --login` uses masked
+terminal input with the platform's native credential store;
+`review-tool --login --credential-stdin` is the explicit headless form, and
 `review-tool --logout` removes the owned saved item. The default is `TYPESAFE_API_KEY`;
 credential values and environment files are never stored in project files or printed. Project settings are optional JSONC in
 `.review.jsonc` at the Git root. It may select the credential variable, but the Jev

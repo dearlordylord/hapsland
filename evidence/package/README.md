@@ -47,3 +47,10 @@ rather than relabelled as a locked Keychain.
 
 The repository had no Actions secret for isolated Codex authentication. The real Codex-host
 macOS cell remains unverified and is not inferred from the installed controlled hook path.
+
+The cross-platform release declaration is maintained separately in
+[`../../docs/installed-release-compatibility.md`](../../docs/installed-release-compatibility.md)
+and machine-readable
+[`../../conformance/installed-release-v1.json`](../../conformance/installed-release-v1.json).
+Those files checksum this evidence and preserve the authenticated macOS/Codex gap; this directory's
+controlled macOS result is not promoted to real-host evidence.

@@ -19,7 +19,11 @@
     "native/credential-secret-service.c",
     "scripts/build-capture-helper.mjs",
     "README.md",
+    "docs/codex-installation.md",
     "docs/direct-event-v1-supported-profile.md",
+    "docs/installed-release-compatibility.md",
+    "docs/status.md",
+    "conformance/installed-release-v1.json",
     "package-runtime.json"
   ],
   "bin": {
@@ -53,6 +57,7 @@
     "conformance:setup-package": "node scripts/run-setup-package-conformance.mjs",
     "conformance:first-review-package": "node scripts/run-setup-package-conformance.mjs",
     "conformance:first-review-live": "node scripts/run-first-review-live-milestone.mjs",
+    "conformance:installed-release": "node scripts/verify-installed-release.mjs",
     "conformance:live": "node scripts/run-direct-event-live-milestone.mjs",
     "experiment:extract": "node experiments/declaration-extraction/extract.ts",
     "experiment:extract:evidence": "node experiments/declaration-extraction/generate-evidence.ts",
