@@ -3,8 +3,11 @@
 This directory holds sanitized evidence from the explicitly selected paid demo milestone. The
 runner packs the current built release, computes that tarball's SHA-256, installs it into its own
 temporary prefix, verifies that the invoked CLI resolves inside that installation, and queries the
-actual Codex version. The selected Codex profile must provide normal native trust and make a
-credential available to the installed hook. The runner does not read or source `.env` files.
+actual Codex version. `REVIEW_LIVE_CODEX_HOME` must select a dedicated clean milestone profile
+that provides normal native trust and makes a credential available to the installed hook. It must
+not contain a pre-existing owned product installation: the runner stops before mutation when an
+installation is already present, and removes only the installation it created. The runner does
+not read or source `.env` files.
 
 Run `npm run conformance:first-review-live -- --live --write-evidence` only for an authorized
 milestone after setting `REVIEW_LIVE_CODEX_HOME`. The retained JSON contains bounded counts,

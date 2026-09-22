@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { claimDemoBudget, readDemoBudgetUsage, writeDemoBudget } from "./demo-budget.ts";
+import { claimDemoBudget, initializeDemoBudget, readDemoBudgetUsage, writeDemoBudget } from "./demo-budget.ts";
 
 const roots: Array<string> = [];
 afterEach(() => {
@@ -23,6 +23,22 @@ const fixture = () => {
 };
 
 describe("first-review live budget", () => {
+  it("initializes a live authority once without replacing its usage", () => {
+    const directory = mkdtempSync(join(tmpdir(), "review-demo-budget-exclusive-"));
+    roots.push(directory);
+    const path = join(directory, "budget.json");
+    const options = {
+      root: "/synthetic/repository",
+      expiresAt: 1_000,
+      sourceByteBudget: 100,
+      providerCallBudget: 2,
+    };
+    initializeDemoBudget(path, options);
+    claimDemoBudget(path, options.root, 40, 500);
+    expect(() => initializeDemoBudget(path, options)).toThrow();
+    expect(readDemoBudgetUsage(path)).toEqual({ sourceBytes: 40, providerCalls: 1 });
+  });
+
   it("claims bounded source and provider calls atomically", () => {
     const path = fixture();
     claimDemoBudget(path, "/synthetic/repository", 40, 500);

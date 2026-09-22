@@ -161,7 +161,8 @@ printf '%s\n' '{"version":1,"operation":"demo","selection":"preview","codexHome"
 The preview declares a 4,096-byte source budget, at most two provider calls, and a 180-second
 wall-clock budget. It returns both a live-selection digest and an independent repository-consent
 digest for the exact disposable root. Live execution requires both values; an existing grant for
-the current project is never reused.
+the current project is never reused. A matching confirmation is consumed atomically before consent
+or budget setup, so concurrent or replayed confirmations cannot start another live execution.
 
 ```sh
 printf '%s\n' '{"version":1,"operation":"demo","selection":"live","demoId":"<id>","selectionDigest":"<selection-digest>","consentProposalDigest":"<consent-digest>","codexHome":"/absolute/codex-home"}' \
