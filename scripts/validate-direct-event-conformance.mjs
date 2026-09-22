@@ -125,6 +125,31 @@ if (packageEncoded === undefined) {
   }
 }
 
+const macPackageEvidencePath = resolve(root, "evidence/package/clean-darwin-node-24.20.0-arm64.json");
+const macPackageEncoded = await readFile(macPackageEvidencePath, "utf8").catch(() => undefined);
+if (macPackageEncoded === undefined) {
+  fail("macOS installed package evidence is missing");
+} else {
+  if (forbiddenText.test(macPackageEncoded)) fail("macOS installed package evidence contains secret-shaped text");
+  const macPackageEvidence = JSON.parse(macPackageEncoded);
+  inspect(macPackageEvidence, "clean-darwin-node-24.20.0-arm64.json");
+  if (
+    macPackageEvidence.environment?.node !== "v24.20.0" ||
+    macPackageEvidence.environment?.operatingSystem !== "darwin" ||
+    macPackageEvidence.environment?.architecture !== "arm64" ||
+    macPackageEvidence.isolation?.developmentDependencies !== false ||
+    macPackageEvidence.isolation?.checkoutPathUsedAtRuntime !== false ||
+    !["cli", "parser", "resident", "hook"].every((entry) => macPackageEvidence.entryPoints?.[entry] === "passed") ||
+    macPackageEvidence.review?.backend !== "controlled-offline" ||
+    macPackageEvidence.review?.submissions !== 1 ||
+    macPackageEvidence.review?.adviceReturned !== true ||
+    macPackageEvidence.realCodex?.status !== "not-requested" ||
+    macPackageEvidence.verdict !== "clean-package-passed-real-host-not-requested"
+  ) {
+    fail("macOS installed package evidence does not establish the controlled package path");
+  }
+}
+
 if (process.exitCode === undefined) {
   process.stdout.write(`direct-event conformance manifest valid: 12 groups, ${obligationCount} obligations, ${checkCount} unique mapped checks, ${evidenceFiles.filter((name) => name.endsWith(".json")).length} sanitized evidence records\n`);
 }

@@ -71,9 +71,10 @@ npm run review -- --controlled < request.json
 
 `npm pack` builds JavaScript release entry points for the review CLI, TypeScript parser,
 resident process, and offline package doctor. The tested installed profile is exactly Node
-24.20.0 on Linux arm64 with Git and `/proc/self/fd`. A macOS arm64 profile using `/dev/fd` is
-declared for runner validation; until its retained evidence passes, it remains unverified.
-Other operating systems and architectures are unsupported. After installing the tarball, run
+24.20.0 on Linux arm64 with Git and `/proc/self/fd`, plus Node 24.20.0 on macOS arm64 with
+Git and a packaged `openat` capture helper. The macOS controlled package path is tested; its
+real Codex-host cell remains unverified. Other operating systems and architectures are
+unsupported. After installing the tarball, run
 `review-tool-doctor` for source-free compatibility checks and recovery actions. Installation
 may acquire and build production dependencies once. Hook invocations use the installed CLI
 and resident and do not download packages per edit.

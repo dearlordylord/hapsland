@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-22T16:48:33.207Z",
+  "package": {
+    "name": "realtime-review-prototype",
+    "version": "0.0.0",
+    "artifact": "realtime-review-prototype-0.0.0.tgz"
+  },
+  "environment": {
+    "node": "v24.20.0",
+    "operatingSystem": "darwin",
+    "architecture": "arm64"
+  },
+  "isolation": {
+    "temporaryInstallation": true,
+    "developmentDependencies": false,
+    "checkoutPathUsedAtRuntime": false,
+    "retainedSyntheticSource": false
+  },
+  "entryPoints": {
+    "cli": "passed",
+    "parser": "passed",
+    "resident": "passed",
+    "hook": "passed"
+  },
+  "review": {
+    "backend": "controlled-offline",
+    "submissions": 1,
+    "adviceReturned": true
+  },
+  "realCodex": {
+    "status": "not-requested"
+  },
+  "transientPackageDownloadPerEdit": false,
+  "verdict": "clean-package-passed-real-host-not-requested"
+}
