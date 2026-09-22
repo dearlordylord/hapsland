@@ -926,6 +926,109 @@ describe("resident bounded advice batches", () => {
     expect(server.pendingAdviceMetadata().map(({ path }) => path)).toEqual(["b.ts"]);
   });
 
+  it("filters an earlier item that reaches expiry while a later final revalidation waits", async () => {
+    const root = await makeGitFixture();
+    await put(root, "a.ts", "type ACount = number\n");
+    await put(root, "b.ts", "type BCount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const firstObservation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])));
+    const secondObservation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["b.ts"], {
+      tool_use_id: "expiry-b",
+    })));
+    expect(firstObservation).toBeDefined();
+    expect(secondObservation).toBeDefined();
+    if (firstObservation === undefined || secondObservation === undefined) return;
+    let clock = 0;
+    let bId = "";
+    const blocked = deferred();
+    const release = deferred();
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock, {
+      beforeFinalRevalidate: async (id) => {
+        if (id !== bId) return;
+        blocked.resolve();
+        await release.promise;
+      },
+    });
+    const dispatch = singleFindingDispatch(statePath);
+    expect(server.admit(firstObservation, dispatch).status).toBe("accepted");
+    await server.whenIdle();
+    clock = 1;
+    expect(server.admit(secondObservation, dispatch).status).toBe("accepted");
+    await server.whenIdle();
+    bId = server.pendingAdviceMetadata().find(({ path }) => path === "b.ts")?.id ?? "";
+    expect(bId).not.toBe("");
+
+    clock = PENDING_ADVICE_EXPIRY_MS - 1;
+    const collecting = server.collect(
+      root,
+      recipient({ turnId: "expiry", toolUseId: "expiry" }),
+      dispatch,
+    );
+    await blocked.promise;
+    clock = PENDING_ADVICE_EXPIRY_MS;
+    release.resolve();
+    const collected = await collecting;
+    expect(collected.status).toBe("advice");
+    if (collected.status !== "advice") return;
+    expect(collected.output.hookSpecificOutput.additionalContext).not.toContain("a.ts :: ACount");
+    expect(collected.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
+    expect(server.pendingAdviceMetadata().map(({ path }) => path)).toEqual(["b.ts"]);
+  });
+
+  it("filters an earlier item superseded while a later final revalidation waits", async () => {
+    const root = await makeGitFixture();
+    await put(root, "a.ts", "type ACount = number\n");
+    await put(root, "b.ts", "type BCount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts", "b.ts"])));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    let bId = "";
+    const blocked = deferred();
+    const release = deferred();
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => 100, {
+      beforeFinalRevalidate: async (id) => {
+        if (id !== bId) return;
+        blocked.resolve();
+        await release.promise;
+      },
+    });
+    const dispatch = singleFindingDispatch(statePath);
+    expect(server.admit(observation, dispatch).status).toBe("accepted");
+    await server.whenIdle();
+    const initial = server.pendingAdviceMetadata();
+    const oldAId = initial.find(({ path }) => path === "a.ts")?.id ?? "";
+    bId = initial.find(({ path }) => path === "b.ts")?.id ?? "";
+    expect(oldAId).not.toBe("");
+    expect(bId).not.toBe("");
+
+    const collecting = server.collect(
+      root,
+      recipient({ turnId: "replacement", toolUseId: "replacement" }),
+      dispatch,
+    );
+    await blocked.promise;
+    await put(root, "a.ts", "type ACount = string\n");
+    const replacement = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"], {
+      tool_use_id: "replacement-a",
+    })));
+    expect(replacement).toBeDefined();
+    if (replacement === undefined) return;
+    expect(server.admit(replacement, dispatch).status).toBe("accepted");
+    await server.whenIdle();
+    expect(server.pendingAdviceMetadata().some(({ id, path }) => path === "a.ts" && id !== oldAId)).toBe(true);
+    release.resolve();
+
+    const collected = await collecting;
+    expect(collected.status).toBe("advice");
+    if (collected.status !== "advice") return;
+    expect(collected.output.hookSpecificOutput.additionalContext).not.toContain("a.ts :: ACount");
+    expect(collected.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
+    expect(server.pendingAdviceMetadata().some(({ id }) => id === oldAId)).toBe(false);
+  });
+
   it("ages each dispatch cycle independently when older overflow remains", async () => {
     const root = await makeGitFixture();
     await put(root, "a.ts", "type ACount = number\n");
