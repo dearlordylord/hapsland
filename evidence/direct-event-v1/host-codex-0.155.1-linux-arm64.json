@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-22T09:08:07.840Z",
+  "profile": "direct-event-v1",
+  "environment": {
+    "codex": "codex-cli 0.155.1",
+    "node": "v24.20.0",
+    "git": "git version 2.39.5",
+    "operatingSystem": "linux",
+    "architecture": "arm64"
+  },
+  "mode": "headless command hooks / controlled writer / controlled DecisionModel",
+  "controlledWriter": true,
+  "isolation": {
+    "temporaryCodexHome": true,
+    "temporaryGitRepository": true,
+    "retainedSyntheticSource": false
+  },
+  "addLiveEvidence": {
+    "hostExitCode": 0,
+    "hookEntry": true,
+    "adaptation": "mapped",
+    "backendSubmissions": 1,
+    "hostSubmission": "attempted-unacknowledged",
+    "independentlyObservedModelVisibility": "observed"
+  },
+  "updateAndMultiFileEvidence": {
+    "status": "deterministic-and-native-payload-only",
+    "liveHostRun": false,
+    "checks": [
+      "src/direct-event/pipeline.test.ts: revalidates delayed Add, Update, and multi-file work through deterministic backend gates",
+      "evidence/codex/0.155.1/native-update-emission-2026-09-20.json",
+      "evidence/codex/0.155.1/post-tool-use-multi-file.json"
+    ]
+  },
+  "childSpecificDelivery": {
+    "status": "unvalidated",
+    "deterministicIdentityIsolationOnly": true
+  },
+  "exclusions": {
+    "headful": true,
+    "otherHosts": true,
+    "otherPlatforms": true,
+    "otherVersions": true,
+    "reliableVisibility": true,
+    "guaranteedFinalDrain": true
+  },
+  "evidenceGaps": [],
+  "verdict": "pinned-host-conformant-with-stated-gaps"
+}

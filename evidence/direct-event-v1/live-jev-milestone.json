@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-22T09:09:50.263Z",
+  "milestoneDeclaration": {
+    "fixtureIds": [
+      "direct-event-add-single-unit-v1"
+    ],
+    "paidCallCeiling": 1,
+    "sourceLimitBytesPerFile": 32768,
+    "fixtureSourceBytesMaximum": 256,
+    "deadlineMilliseconds": 15000,
+    "automaticRetries": 0,
+    "retainedFields": [
+      "fixture IDs",
+      "bands",
+      "contract outcomes",
+      "timings"
+    ]
+  },
+  "credentialLocation": "primary-worktree-env-file",
+  "fixtureResults": [
+    {
+      "fixtureId": "direct-event-add-single-unit-v1",
+      "contractOutcome": "completed-clear-no-advice",
+      "timingMilliseconds": 7424,
+      "timingBand": "5s-to-under-15s"
+    }
+  ],
+  "paidCalls": 1,
+  "automaticRetries": 0,
+  "retainedRawBackendMaterial": false,
+  "evidenceGaps": [],
+  "verdict": "passed"
+}
