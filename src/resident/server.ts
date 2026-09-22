@@ -431,14 +431,36 @@ export class ResidentServer {
         final.push(advice);
       }
       if (final.length > 0) {
-        const leaseUntil = this.#now() + DELIVERY_LEASE_MS;
+        // No asynchronous work may occur after this handoff barrier. Earlier
+        // members can expire or be superseded while a later member is doing
+        // its final capture, so validate ownership and authority once more
+        // using one final clock reading immediately before encoding.
+        const handoffNow = this.#now();
+        const handoff: Array<Advice> = [];
         for (const advice of final) {
-          if (advice.delivery?.token === token) advice.delivery.leaseUntil = leaseUntil;
+          const retained = this.#advice.find((item) => item.id === advice.id);
+          const delivery = retained?.delivery;
+          if (retained !== advice || delivery?.token !== token) continue;
+          if (isPendingAdviceExpired(advice, handoffNow)) {
+            this.#removeAdvice(advice.id, token);
+            continue;
+          }
+          if (!this.#isCurrentWork(advice.revision, advice.prepared)) {
+            this.#removeAdvice(advice.id, token);
+            continue;
+          }
+          if (delivery.findings.length === 0) {
+            delete advice.delivery;
+            continue;
+          }
+          delivery.leaseUntil = handoffNow + DELIVERY_LEASE_MS;
+          handoff.push(advice);
         }
+        if (handoff.length === 0) return { status: "empty" };
         return {
           status: "advice",
           token,
-          output: combinedFindingOutput(final.map((advice) => advice.delivery?.findings ?? [])),
+          output: combinedFindingOutput(handoff.map((advice) => advice.delivery?.findings ?? [])),
         };
       }
     }
@@ -916,6 +938,33 @@ export class ResidentServer {
     }
   }
 
+  /** Synchronous last barrier after response gates and immediately before encoding. */
+  #responseForHandoff(response: ResidentResponse): ResidentResponse {
+    if (response.status !== "advice") return response;
+    const now = this.#now();
+    const handoff: Array<Advice> = [];
+    for (const advice of [...this.#advice]) {
+      if (advice.delivery?.token !== response.token) continue;
+      if (isPendingAdviceExpired(advice, now) || !this.#isCurrentWork(advice.revision, advice.prepared)) {
+        this.#removeAdvice(advice.id, response.token);
+        continue;
+      }
+      if (advice.delivery.findings.length === 0) {
+        delete advice.delivery;
+        continue;
+      }
+      advice.delivery.leaseUntil = now + DELIVERY_LEASE_MS;
+      handoff.push(advice);
+    }
+    return handoff.length === 0
+      ? { status: "empty" }
+      : {
+          status: "advice",
+          token: response.token,
+          output: combinedFindingOutput(handoff.map((advice) => advice.delivery?.findings ?? [])),
+        };
+  }
+
   #accept(socket: Socket): void {
     if (this.#connections >= MAX_IPC_CONNECTIONS) {
       socket.end(`${JSON.stringify({ status: "rejected-capacity" })}\n`);
@@ -950,12 +999,13 @@ export class ResidentServer {
       }
       void this.handle(request).then(async (response) => {
         await this.#responseGate(request.operation);
+        const handoff = this.#responseForHandoff(response);
         if (socket.destroyed) {
-          if (response.status === "advice") this.releaseDelivery(response.token);
+          if (handoff.status === "advice") this.releaseDelivery(handoff.token);
           return;
         }
-        socket.end(`${JSON.stringify(response)}\n`, () => {
-          if (socket.errored !== null && response.status === "advice") this.releaseDelivery(response.token);
+        socket.end(`${JSON.stringify(handoff)}\n`, () => {
+          if (socket.errored !== null && handoff.status === "advice") this.releaseDelivery(handoff.token);
         });
       }).catch(() => {
         if (!socket.destroyed) socket.end(`${JSON.stringify({ status: "unsupported" })}\n`);
