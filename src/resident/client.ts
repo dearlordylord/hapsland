@@ -96,7 +96,7 @@ export type EnsureResidentDependencies = {
   readonly now: () => number;
   readonly prepare: (paths: ResidentPaths, timeoutMs: number) => Promise<void>;
   readonly probe: (paths: ResidentPaths, timeoutMs: number) => Promise<ResidentResponse>;
-  readonly launch: (paths: ResidentPaths) => void;
+  readonly launch: (paths: ResidentPaths, timeoutMs: number) => void;
   readonly wait: (milliseconds: number) => Promise<void>;
 };
 
@@ -109,7 +109,7 @@ const within = async <A>(effect: Promise<A>, timeoutMs: number, message: string)
     );
   });
 
-const launchResident = (paths: ResidentPaths) => {
+const launchResident = (paths: ResidentPaths, _timeoutMs: number) => {
   const main = fileURLToPath(new URL("./main.ts", import.meta.url));
   const child = spawn("flock", ["--nonblock", paths.lock, process.execPath, main, paths.directory], {
     detached: true,
@@ -147,14 +147,16 @@ export const ensureResident = async (
     // A failed probe is not a death determination. Contending servers use the
     // kernel lock; only its owner may replace the socket pathname.
   }
-  if (remaining() <= 0) throw new ResidentIpcError("resident readiness deadline exceeded");
-  dependencies.launch(paths);
   while (remaining() > 0) {
+    dependencies.launch(paths, remaining());
+    if (remaining() <= 0) break;
     try {
       const response = await dependencies.probe(paths, Math.min(250, remaining()));
       if (response.status === "ready") return response;
     } catch {
-      // Bounded readiness polling covers the winner's startup only.
+      // Another contender may still own the lock, or its owner may have exited
+      // without publishing an endpoint. Each launch is a non-blocking lock
+      // attempt, so retrying cannot displace a live owner.
     }
     const backoff = Math.min(50, remaining());
     if (backoff > 0) await dependencies.wait(backoff);

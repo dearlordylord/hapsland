@@ -32,7 +32,7 @@ describe("resident client trust boundary", () => {
   it("uses one absolute readiness deadline and caps every operation to remaining time", async () => {
     const paths = residentPaths("/not-used");
     let clock = 0;
-    let launched = 0;
+    const launchCalls: Array<{ readonly at: number; readonly budget: number }> = [];
     const probeBudgets: Array<number> = [];
     const dependencies: EnsureResidentDependencies = {
       now: () => clock,
@@ -45,16 +45,57 @@ describe("resident client trust boundary", () => {
         clock += timeoutMs;
         throw new ResidentIpcError("not ready");
       },
-      launch: () => { launched += 1; },
+      launch: (_paths, timeoutMs) => { launchCalls.push({ at: clock, budget: timeoutMs }); },
       wait: async (milliseconds) => { clock += milliseconds; },
     };
     await expect(ensureResident(paths, 10_000, dependencies)).rejects.toThrow(
       "resident did not become ready within 10 seconds",
     );
     expect(clock).toBe(10_000);
-    expect(launched).toBe(1);
+    expect(launchCalls.length).toBeGreaterThan(1);
+    expect(launchCalls.every(({ at, budget }) => at < 10_000 && budget === 10_000 - at)).toBe(true);
     expect(probeBudgets.every((budget) => budget > 0 && budget <= 250)).toBe(true);
     expect(probeBudgets.at(-1)).toBeLessThanOrEqual(250);
+  });
+
+  it("retries owner acquisition after a losing owner exits within the same deadline", async () => {
+    const paths = residentPaths("/not-used");
+    let clock = 0;
+    let launchCount = 0;
+    let endpointReady = false;
+    let ownerPresent = true;
+    const calls: Array<{ readonly operation: string; readonly at: number; readonly budget: number }> = [];
+    const dependencies: EnsureResidentDependencies = {
+      now: () => clock,
+      prepare: async (_paths, timeoutMs) => {
+        calls.push({ operation: "prepare", at: clock, budget: timeoutMs });
+      },
+      probe: async (_paths, timeoutMs) => {
+        calls.push({ operation: "probe", at: clock, budget: timeoutMs });
+        clock += Math.min(100, timeoutMs);
+        if (endpointReady) return { status: "ready", lifetime: "second-owner", pid: 42 };
+        throw new ResidentIpcError("not ready");
+      },
+      launch: (_paths, timeoutMs) => {
+        calls.push({ operation: "launch", at: clock, budget: timeoutMs });
+        launchCount += 1;
+        if (!ownerPresent) endpointReady = true;
+      },
+      wait: async (milliseconds) => {
+        calls.push({ operation: "wait", at: clock, budget: milliseconds });
+        clock += milliseconds;
+        ownerPresent = false;
+      },
+    };
+
+    await expect(ensureResident(paths, 10_000, dependencies)).resolves.toEqual({
+      status: "ready",
+      lifetime: "second-owner",
+      pid: 42,
+    });
+    expect(launchCount).toBe(2);
+    expect(clock).toBe(350);
+    expect(calls.every(({ at, budget }) => at < 10_000 && budget > 0 && budget <= 10_000 - at)).toBe(true);
   });
 
   it("rejects wrong ownership, unsafe mode, symlinks, and wrong endpoint types", () => {
