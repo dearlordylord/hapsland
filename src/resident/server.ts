@@ -6,11 +6,18 @@ import { access, chmod, rm, writeFile } from "node:fs/promises";
 import { createServer, type Server, type Socket } from "node:net";
 import { canonicalValue, type DirectObservation, type DirectRecipient } from "../direct-event/model.ts";
 import {
+  evaluatePrepared,
+  prepareObservation,
   revalidateFindings,
-  reviewObservation,
   toCodexDirectEventOutput,
   type Finding,
+  type PreparedObservation,
 } from "../direct-event/pipeline.ts";
+import { verifyObservationRoot } from "../direct-event/adapter.ts";
+import type { PreparedUnit } from "../direct-event/model.ts";
+import { MAX_TYPE_DECLARATIONS } from "../direct-event/analyzer.ts";
+import type { AnalyzerMaterializationPreflight } from "../direct-event/analyzer.ts";
+import { MAX_SOURCE_BYTES } from "../direct-event/capture.ts";
 import { liveLayer as jevDecisionModelLiveLayer } from "../jev-decision.ts";
 import { Consent } from "../runtime/consent.ts";
 import { loadReviewSettings } from "../runtime/review-config.ts";
@@ -33,11 +40,34 @@ import {
   type ResidentRequest,
   type ResidentResponse,
 } from "./protocol.ts";
+import {
+  CapacityLedger,
+  type CapacityReservation,
+} from "./capacity.ts";
+import { DispatchCycles } from "./dispatch.ts";
 
-const MAX_RETAINED_ITEMS = 64;
-const MAX_RETAINED_BYTES = 4 * 1024 * 1024;
-const ITEM_RESERVATION_BYTES = 64 * 1024;
 const BACKEND_CONCURRENCY = 2;
+const RESERVATION_OVERHEAD_BYTES = 1024;
+const MAX_PROBABILITY_ENCODING_BYTES = 24;
+/** Covers bounded dual capture buffers/text plus declaration-count preflight payload. */
+const CAPTURE_WORKSPACE_BYTES = 8 * MAX_SOURCE_BYTES;
+
+const captureWorkspaceBytes = (path: string): number =>
+  CAPTURE_WORKSPACE_BYTES + MAX_TYPE_DECLARATIONS * (logicalBytes(path) + 512);
+
+const analysisWorkspaceBytes = (
+  path: string,
+  sourceBytes: number,
+  preflight: AnalyzerMaterializationPreflight | undefined,
+  rules: unknown,
+): number => {
+  const declarations = preflight?.declarations ?? MAX_TYPE_DECLARATIONS;
+  return captureWorkspaceBytes(path) +
+    (preflight?.expandedUnitBytes ?? MAX_TYPE_DECLARATIONS * MAX_SOURCE_BYTES) +
+    declarations * (
+      logicalBytes(rules) + sourceBytes + 4 * logicalBytes(path) + 4096
+    );
+};
 
 const ResidentControlledOptions = Schema.Struct({
   answers: Schema.optionalKey(Schema.Record(
@@ -63,16 +93,32 @@ const ResidentControlledOptions = Schema.Struct({
   capturePath: Schema.optionalKey(Schema.String),
 });
 
-type Job = {
+type IngressJob = {
+  readonly kind: "ingress";
   readonly observation: DirectObservation;
   readonly partition: string;
-  readonly reservation: number;
+  readonly reservation: CapacityReservation;
   readonly dispatch: ResidentDispatchContext;
 };
 
-type Advice = Omit<Job, "dispatch"> & {
+type UnitJob = {
+  readonly kind: "unit";
+  readonly observation: DirectObservation;
+  readonly partition: string;
+  readonly reservation: CapacityReservation;
+  readonly dispatch: ResidentDispatchContext;
+  readonly prepared: PreparedUnit;
+};
+
+type Job = IngressJob | UnitJob;
+
+type Advice = Omit<UnitJob, "dispatch" | "kind"> & {
+  readonly id: string;
   readonly findings: ReadonlyArray<Finding>;
   readonly encodedBytes: number;
+  readonly cycle: number;
+  readonly sequence: number;
+  cycleComplete: boolean;
   delivery?: {
     readonly token: string;
     leaseUntil: number;
@@ -88,6 +134,38 @@ const recipientPartition = (root: string, recipient: DirectRecipient) => canonic
   agentId: recipient.agentId,
 });
 
+const worstCaseFindings = (prepared: PreparedUnit): ReadonlyArray<Finding> =>
+  prepared.input.rules.flatMap((rule) => rule.threshold < 1
+    ? [{
+        path: prepared.input.path,
+        declaration: prepared.input.declaration.name,
+        ruleId: rule.id,
+        probability: 1,
+        message: rule.message,
+        semanticIdentity: prepared.identity,
+      }]
+    : []);
+
+export const residentUnitWorstOutcomeBytes = (prepared: PreparedUnit): number => {
+  const findings = worstCaseFindings(prepared);
+  return logicalBytes({ findings, output: toCodexDirectEventOutput(findings) }) +
+    findings.length * MAX_PROBABILITY_ENCODING_BYTES;
+};
+
+const logicalBytes = (value: unknown): number =>
+  Buffer.byteLength(canonicalValue(value), "utf8");
+
+/** Exact retained logical charge, including complete input and promised outcome. */
+export const residentUnitReservationBytes = (
+  observation: DirectObservation,
+  dispatch: ResidentDispatchContext,
+  prepared: PreparedUnit,
+): number => {
+  return logicalBytes({ observation, dispatch, prepared }) +
+    residentUnitWorstOutcomeBytes(prepared) +
+    RESERVATION_OVERHEAD_BYTES;
+};
+
 const decodeControlledOptions = (
   value: ResidentDispatchContext["controlled"],
 ): ControlledDecisionModelOptions | undefined => {
@@ -101,47 +179,72 @@ const decodeControlledOptions = (
 
 export class ResidentServer {
   readonly lifetime = randomUUID();
-  readonly #queue: Array<Job> = [];
   readonly #advice: Array<Advice> = [];
+  readonly #ledger = new CapacityLedger();
+  readonly #dispatcher: DispatchCycles<string, Job>;
   readonly #now: () => number;
-  #running = 0;
-  #retainedBytes = 0;
   #server: Server | undefined;
   #connections = 0;
-  readonly #idleWaiters: Array<() => void> = [];
+  #closed = false;
+  #rejectedCapacity = 0;
+  #peakLedgerBytes = 0;
+  #maxMaterializedPreparedUnits = 0;
+  readonly #beforeRevalidate: ((adviceId: string) => Promise<void>) | undefined;
   readonly paths: ResidentPaths;
 
-  constructor(paths: ResidentPaths = residentPaths(), now: () => number = () => performance.now()) {
+  constructor(
+    paths: ResidentPaths = residentPaths(),
+    now: () => number = () => performance.now(),
+    options: { readonly beforeRevalidate?: (adviceId: string) => Promise<void> } = {},
+  ) {
     this.paths = paths;
     this.#now = now;
+    this.#beforeRevalidate = options.beforeRevalidate;
+    this.#dispatcher = new DispatchCycles(
+      BACKEND_CONCURRENCY,
+      async (entry) => this.#run(entry.value, entry.cycle, entry.sequence),
+      (cycle) => {
+        for (const advice of this.#advice) {
+          if (advice.cycle === cycle) advice.cycleComplete = true;
+        }
+      },
+    );
   }
 
   stats(): Extract<ResidentResponse, { status: "stats" }> {
+    const dispatch = this.#dispatcher.snapshot();
+    const capacity = this.#ledger.snapshot();
     return {
       status: "stats",
-      queued: this.#queue.length,
-      running: this.#running,
+      queued: dispatch.queued,
+      running: dispatch.running,
       pendingAdvice: this.#advice.length,
-      retainedBytes: this.#retainedBytes,
+      retainedBytes: capacity.bytes,
+      rejectedCapacity: this.#rejectedCapacity,
     };
   }
 
   admit(observation: DirectObservation, dispatch: ResidentDispatchContext): ResidentResponse {
-    const items = this.#queue.length + this.#running + this.#advice.length;
-    if (
-      items >= MAX_RETAINED_ITEMS ||
-      this.#retainedBytes + ITEM_RESERVATION_BYTES > MAX_RETAINED_BYTES
-    ) return { status: "rejected-capacity" };
-    this.#retainedBytes += ITEM_RESERVATION_BYTES;
-    this.#queue.push({
+    if (this.#closed) return { status: "rejected-capacity" };
+    const partition = recipientPartition(observation.root, observation.recipient);
+    const reservation = this.#reserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES);
+    if (reservation === undefined) {
+      this.#rejectedCapacity += 1;
+      return { status: "rejected-capacity" };
+    }
+    const job = {
+      kind: "ingress" as const,
       observation,
-      partition: recipientPartition(observation.root, observation.recipient),
-      reservation: ITEM_RESERVATION_BYTES,
+      partition,
+      reservation,
       dispatch,
-    });
+    };
+    if (!this.#dispatcher.enqueue(partition, job)) {
+      this.#ledger.release(reservation);
+      return { status: "rejected-capacity" };
+    }
     const acceptedPath = process.env.REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH;
     if (acceptedPath !== undefined) void writeFile(acceptedPath, "accepted\n").catch(() => undefined);
-    this.#pump();
     return { status: "accepted" };
   }
 
@@ -155,16 +258,22 @@ export class ResidentServer {
     for (const item of this.#advice) {
       if (item.delivery !== undefined && item.delivery.leaseUntil <= now) delete item.delivery;
     }
-    const index = this.#advice.findIndex((item) => item.partition === partition && item.delivery === undefined);
-    if (index < 0) return { status: "empty" };
-    const advice = this.#advice[index];
+    const advice = this.#advice.find((item) =>
+      item.partition === partition && item.delivery === undefined &&
+      item.encodedBytes <= MAX_IPC_FRAME_BYTES - 1024);
     if (advice === undefined) return { status: "empty" };
     const token = randomUUID();
     advice.delivery = { token, leaseUntil: Number.POSITIVE_INFINITY, acknowledged: false };
-    const valid = await this.#revalidate(advice, dispatch);
-    if (!valid) {
-      this.#advice.splice(index, 1);
-      this.#retainedBytes -= advice.reservation;
+    await this.#beforeRevalidate?.(advice.id);
+    const validity = await this.#revalidate(advice, dispatch);
+    const retained = this.#advice.find((item) => item.id === advice.id);
+    if (retained !== advice || retained.delivery?.token !== token) return { status: "empty" };
+    if (validity === "unavailable") {
+      delete advice.delivery;
+      return { status: "empty" };
+    }
+    if (validity === "stale") {
+      this.#removeAdvice(advice.id, token);
       return { status: "empty" };
     }
     advice.delivery.leaseUntil = this.#now() + DELIVERY_LEASE_MS;
@@ -183,18 +292,13 @@ export class ResidentServer {
   }
 
   finalize(token: string): ResidentResponse {
-    const index = this.#advice.findIndex((item) => {
-      if (item.delivery?.token !== token || !item.delivery.acknowledged) return false;
-      if (item.delivery.leaseUntil <= this.#now()) {
-        delete item.delivery;
-        return false;
-      }
-      return true;
-    });
-    if (index < 0) return { status: "empty" };
-    const [advice] = this.#advice.splice(index, 1);
-    if (advice !== undefined) this.#retainedBytes -= advice.reservation;
-    return { status: "finalized" };
+    const advice = this.#advice.find((item) => item.delivery?.token === token);
+    if (advice?.delivery === undefined || !advice.delivery.acknowledged) return { status: "empty" };
+    if (advice.delivery.leaseUntil <= this.#now()) {
+      delete advice.delivery;
+      return { status: "empty" };
+    }
+    return this.#removeAdvice(advice.id, token) ? { status: "finalized" } : { status: "empty" };
   }
 
   releaseDelivery(token: string): void {
@@ -202,39 +306,165 @@ export class ResidentServer {
     if (advice !== undefined && advice.delivery?.acknowledged === false) delete advice.delivery;
   }
 
-  #pump(): void {
-    while (this.#running < BACKEND_CONCURRENCY) {
-      const job = this.#queue.shift();
-      if (job === undefined) return;
-      this.#running += 1;
-      void this.#evaluate(job).finally(() => {
-        this.#running -= 1;
-        this.#pump();
-        if (this.#running === 0 && this.#queue.length === 0) {
-          for (const resolve of this.#idleWaiters.splice(0)) resolve();
-        }
-      });
-    }
-  }
-
   whenIdle(): Promise<void> {
-    if (this.#running === 0 && this.#queue.length === 0) return Promise.resolve();
-    return new Promise((resolve) => this.#idleWaiters.push(resolve));
+    return this.#dispatcher.whenIdle();
   }
 
-  async #evaluate(job: Job): Promise<void> {
+  pendingAdviceMetadata(): ReadonlyArray<{
+    readonly id: string;
+    readonly partition: string;
+    readonly cycle: number;
+    readonly sequence: number;
+    readonly cycleComplete: boolean;
+    readonly retainedBytes: number;
+  }> {
+    return this.#advice.map((advice) => ({
+      id: advice.id,
+      partition: advice.partition,
+      cycle: advice.cycle,
+      sequence: advice.sequence,
+      cycleComplete: advice.cycleComplete,
+      retainedBytes: advice.reservation.bytes,
+    }));
+  }
+
+  accountingMetrics(): {
+    readonly peakLedgerBytes: number;
+    readonly maxMaterializedPreparedUnits: number;
+  } {
+    return {
+      peakLedgerBytes: this.#peakLedgerBytes,
+      maxMaterializedPreparedUnits: this.#maxMaterializedPreparedUnits,
+    };
+  }
+
+  #reserve(partition: string, bytes: number): CapacityReservation | undefined {
+    const reservation = this.#ledger.reserve(partition, bytes);
+    if (reservation !== undefined) {
+      this.#peakLedgerBytes = Math.max(this.#peakLedgerBytes, this.#ledger.snapshot().bytes);
+    }
+    return reservation;
+  }
+
+  #removeAdvice(id: string, token?: string): boolean {
+    const index = this.#advice.findIndex((item) =>
+      item.id === id && (token === undefined || item.delivery?.token === token));
+    if (index < 0) return false;
+    const [removed] = this.#advice.splice(index, 1);
+    if (removed !== undefined) this.#ledger.release(removed.reservation);
+    return removed !== undefined;
+  }
+
+  async #run(job: Job, cycle: number, sequence: number): Promise<void> {
+    if (job.kind === "ingress") return this.#prepare(job);
+    return this.#evaluateUnit(job, cycle, sequence);
+  }
+
+  async #prepare(job: IngressJob): Promise<void> {
     try {
-      const backendGatePath = process.env.REVIEW_RESIDENT_BACKEND_GATE_PATH;
-      if (backendGatePath !== undefined) {
-        while (true) {
-          try {
-            await access(backendGatePath);
-            break;
-          } catch {
-            await new Promise<void>((resolve) => setTimeout(resolve, 10));
+      await this.#awaitBackendGate();
+      const userConfigPath = job.dispatch.userConfigPath ?? undefined;
+      const controlled = decodeControlledOptions(job.dispatch.controlled);
+      const settings = await Effect.runPromise(Effect.gen(function* () {
+        const settings = yield* loadReviewSettings(
+          job.observation.root,
+          userConfigPath === undefined ? {} : { userConfigPath },
+        );
+        if (job.dispatch.controlled !== null && controlled === undefined) return undefined;
+        if (controlled === undefined && job.dispatch.credential?.name !== settings.credentialEnvVar) return undefined;
+        if (controlled === undefined && job.dispatch.credential === null) return undefined;
+        const consent = yield* Consent.Service;
+        const authorization = yield* consent.authorize(
+          job.observation.root,
+          settings.backend,
+          settings.destination,
+        ).pipe(Effect.catch(() => Effect.succeed({ status: "denied" as const })));
+        if (authorization.status !== "approved" || !(yield* verifyObservationRoot(job.observation))) return undefined;
+        return settings;
+      }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))));
+      this.#ledger.release(job.reservation);
+      if (settings === undefined || this.#closed) return;
+
+      // A candidate path is captured and analyzed only while its maximum
+      // supported logical workspace is charged. Processing candidates one at
+      // a time prevents a 16-path event from materializing 1,024 complete
+      // inputs outside the ledger.
+      for (const candidate of job.observation.candidates) {
+        const workspace = this.#reserve(job.partition, captureWorkspaceBytes(candidate.path));
+        if (workspace === undefined) {
+          this.#rejectedCapacity += 1;
+          continue;
+        }
+        const pathObservation: DirectObservation = { ...job.observation, candidates: [candidate] };
+        const server = this;
+        let prepared: PreparedObservation;
+        try {
+          prepared = await Effect.runPromise(Effect.gen(function* () {
+            const consent = yield* Consent.Service;
+            return yield* prepareObservation(pathObservation, {
+              controlledWriter: true,
+              recipient: pathObservation.recipient,
+              consent,
+              settings,
+              beforeAnalyze: (path, sourceBytes, preflight) => Effect.sync(() => {
+                const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules);
+                const resized = server.#ledger.resize(workspace, required);
+                if (resized) {
+                  server.#peakLedgerBytes = Math.max(server.#peakLedgerBytes, server.#ledger.snapshot().bytes);
+                } else {
+                  server.#rejectedCapacity += 1;
+                }
+                return resized;
+              }),
+            });
+          }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))));
+        } catch (cause) {
+          this.#ledger.release(workspace);
+          throw cause;
+        }
+        const ready = prepared.outcomes.filter((outcome) => outcome.status === "ready");
+        this.#maxMaterializedPreparedUnits = Math.max(this.#maxMaterializedPreparedUnits, ready.length);
+        const deliverable = ready.filter((outcome) => {
+          const accepted = residentUnitWorstOutcomeBytes(outcome.prepared) <= MAX_IPC_FRAME_BYTES - 1024;
+          if (!accepted) this.#rejectedCapacity += 1;
+          return accepted;
+        });
+        const reservations = this.#ledger.replace(
+          workspace,
+          deliverable.map((outcome) =>
+            residentUnitReservationBytes(pathObservation, job.dispatch, outcome.prepared)),
+        );
+        this.#peakLedgerBytes = Math.max(this.#peakLedgerBytes, this.#ledger.snapshot().bytes);
+        for (const [index, outcome] of deliverable.entries()) {
+          const reservation = reservations[index];
+          if (reservation === undefined) {
+            this.#rejectedCapacity += 1;
+            continue;
+          }
+          const unit: UnitJob = {
+            kind: "unit",
+            observation: pathObservation,
+            partition: job.partition,
+            reservation,
+            dispatch: job.dispatch,
+            prepared: outcome.prepared,
+          };
+          if (!this.#dispatcher.enqueue(job.partition, unit)) {
+            this.#ledger.release(reservation);
+            this.#rejectedCapacity += 1;
           }
         }
       }
+      return;
+    } catch (cause) {
+      if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error(cause);
+      this.#ledger.release(job.reservation);
+    }
+  }
+
+  async #evaluateUnit(job: UnitJob, cycle: number, sequence: number): Promise<void> {
+    try {
+      await this.#awaitBackendGate();
       const userConfigPath = job.dispatch.userConfigPath ?? undefined;
       const controlled = decodeControlledOptions(job.dispatch.controlled);
       const result = await Effect.runPromise(Effect.gen(function* () {
@@ -250,48 +480,75 @@ export class ResidentServer {
               [job.dispatch.credential.name]: job.dispatch.credential.value,
             }));
         if (controlled === undefined && credentialProvider === undefined) return undefined;
+        const consent = yield* Consent.Service;
+        const authorization = yield* consent.authorize(
+          job.observation.root,
+          settings.backend,
+          settings.destination,
+        ).pipe(Effect.catch(() => Effect.succeed({ status: "denied" as const })));
+        if (authorization.status !== "approved" || !(yield* verifyObservationRoot(job.observation))) return undefined;
         const decisionModel = controlled === undefined
           ? jevDecisionModelLiveLayer({
               apiUrl: settings.apiBase,
               credentialEnvVar: settings.credentialEnvVar,
             })
           : controlledDecisionModelLayer(controlled);
-        const consent = yield* Consent.Service;
-        const review = reviewObservation(job.observation, {
-          controlledWriter: true,
-          recipient: job.observation.recipient,
-          consent,
-          settings,
-        }).pipe(Effect.provide(decisionModel));
+        const evaluation = evaluatePrepared(job.prepared).pipe(Effect.provide(decisionModel));
         return yield* (credentialProvider === undefined
-          ? review
-          : review.pipe(Effect.provide(credentialProvider)));
+          ? evaluation
+          : evaluation.pipe(Effect.provide(credentialProvider)));
       }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))));
-      if (result?.status === "ready") {
-        const encodedBytes = Buffer.byteLength(JSON.stringify(result.output), "utf8");
-        if (encodedBytes <= MAX_IPC_FRAME_BYTES - 1024) {
-          this.#advice.push({
-            observation: job.observation,
-            partition: job.partition,
-            reservation: job.reservation,
-            findings: result.findings,
-            encodedBytes,
-          });
-          return;
-        }
+      if (result?.status === "evaluated" && result.findings.length > 0 && !this.#closed) {
+        const output = toCodexDirectEventOutput(result.findings);
+        const advice: Advice = {
+          id: randomUUID(),
+          observation: job.observation,
+          partition: job.partition,
+          reservation: job.reservation,
+          prepared: job.prepared,
+          findings: result.findings,
+          encodedBytes: logicalBytes(output),
+          cycle,
+          sequence,
+          cycleComplete: false,
+        };
+        const insertion = this.#advice.findIndex((item) => item.sequence > sequence);
+        if (insertion < 0) this.#advice.push(advice);
+        else this.#advice.splice(insertion, 0, advice);
+        return;
       }
     } catch (cause) {
       if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error(cause);
-      // Operational notices are owned by the later accounting slice. This
-      // resident fails closed and releases its reservation.
     }
-    this.#retainedBytes -= job.reservation;
+    this.#ledger.release(job.reservation);
   }
 
-  async #revalidate(advice: Advice, dispatch: ResidentDispatchContext): Promise<boolean> {
+  async #awaitBackendGate(): Promise<void> {
+    const backendGatePath = process.env.REVIEW_RESIDENT_BACKEND_GATE_PATH;
+    if (backendGatePath === undefined) return;
+    while (true) {
+      try {
+        await access(backendGatePath);
+        return;
+      } catch {
+        await new Promise<void>((resolve) => setTimeout(resolve, 10));
+      }
+    }
+  }
+
+  async #revalidate(
+    advice: Advice,
+    dispatch: ResidentDispatchContext,
+  ): Promise<"current" | "stale" | "unavailable"> {
+    const candidate = advice.observation.candidates[0];
+    if (candidate === undefined) return "unavailable";
+    const workspace = this.#reserve(advice.partition, captureWorkspaceBytes(candidate.path));
+    if (workspace === undefined) return "unavailable";
+    const server = this;
+    let capacityUnavailable = false;
     try {
       const userConfigPath = dispatch.userConfigPath ?? undefined;
-      return await Effect.runPromise(Effect.gen(function* () {
+      const current = await Effect.runPromise(Effect.gen(function* () {
         const settings = yield* loadReviewSettings(
           advice.observation.root,
           userConfigPath === undefined ? {} : { userConfigPath },
@@ -302,10 +559,19 @@ export class ResidentServer {
           recipient: advice.observation.recipient,
           consent,
           settings,
+          beforeAnalyze: (path, sourceBytes, preflight) => Effect.sync(() => {
+            const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules);
+            const resized = server.#ledger.resize(workspace, required);
+            if (!resized) capacityUnavailable = true;
+            return resized;
+          }),
         });
       }).pipe(Effect.provide(Consent.layer({ statePath: dispatch.statePath }))));
+      return capacityUnavailable ? "unavailable" : current ? "current" : "stale";
     } catch {
-      return false;
+      return "unavailable";
+    } finally {
+      this.#ledger.release(workspace);
     }
   }
 
@@ -376,6 +642,9 @@ export class ResidentServer {
       const newline = encoded.indexOf("\n");
       if (newline < 0) return;
       handled = true;
+      // Stop pulling transport bytes as soon as the single bounded frame is
+      // complete. Recipient and observation decoding happens only afterward.
+      socket.pause();
       const request = decodeResidentRequest(encoded.slice(0, newline));
       if (request === undefined) {
         socket.end(`${JSON.stringify({ status: "unsupported" })}\n`);
@@ -419,6 +688,12 @@ export class ResidentServer {
   }
 
   async close(): Promise<void> {
+    this.#closed = true;
+    for (const job of this.#dispatcher.close()) this.#ledger.release(job.reservation);
+    for (const advice of this.#advice.splice(0)) this.#ledger.release(advice.reservation);
+    // Running work may be interrupted by process exit or finish later. Clear
+    // its logical ownership now; its eventual terminal release is idempotent.
+    this.#ledger.clear();
     const server = this.#server;
     if (server !== undefined) await new Promise<void>((resolve) => server.close(() => resolve()));
     await rm(this.paths.socket, { force: true });

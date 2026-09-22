@@ -146,9 +146,11 @@ describe("resident separate-process lifecycle", { timeout: 30_000 }, () => {
     }
     const gated = await waitFor(async () => {
       const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
-      return stats.status === "stats" && stats.running === 2 && stats.queued === 1 ? stats : undefined;
+      // The first prompt lone item is a complete finite cycle. Arrivals after
+      // its dispatch wait for the next cycle and cannot extend it.
+      return stats.status === "stats" && stats.running === 1 && stats.queued === 2 ? stats : undefined;
     });
-    expect(gated.retainedBytes).toBeLessThanOrEqual(4 * 1024 * 1024);
+    expect(gated.retainedBytes).toBeLessThanOrEqual(8 * 1024 * 1024);
     await writeFile(gate, "release\n");
     await waitFor(async () => {
       const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
