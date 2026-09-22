@@ -7,7 +7,7 @@ import type { CompiledRule } from "../rules/compiler.ts";
 import { applicableRules, configuredRules } from "../policy/rules.ts";
 import type { Consent } from "../runtime/consent.ts";
 import type { ReviewSettings } from "../runtime/review-config.ts";
-import { adaptCodexAdd } from "./adapter.ts";
+import { adaptCodexAdd, verifyObservationRoot } from "./adapter.ts";
 import { analyzeNamedType, analyzeSingleType } from "./analyzer.ts";
 import { captureStable, type CaptureHooks } from "./capture.ts";
 import {
@@ -243,13 +243,12 @@ export const toCodexDirectEventOutput = (
   },
 });
 
-/** Complete narrow adapter → capture → DecisionModel → semantic handoff slice. */
-export const reviewCodexAdd = Effect.fn("DirectEvent.reviewCodexAdd")(function* (
-  nativeEvent: unknown,
+/** Core path consumes the one immutable observation produced at the host boundary. */
+export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(function* (
+  observation: DirectObservation,
   context: DirectReviewContext,
 ) {
-  const observation = yield* adaptCodexAdd(nativeEvent);
-  if (observation === undefined) {
+  if (!(yield* verifyObservationRoot(observation))) {
     return { status: "unsupported", output: undefined } satisfies DirectReviewResult;
   }
   if (!context.controlledWriter || !sameRecipient(observation.recipient, context.recipient)) {
@@ -292,6 +291,9 @@ export const reviewCodexAdd = Effect.fn("DirectEvent.reviewCodexAdd")(function* 
   }
   // Repeat the complete preparation contract. Whole-file hashes never decide
   // freshness: only the complete re-extracted semantic ReviewInput does.
+  if (!(yield* verifyObservationRoot(observation))) {
+    return { status: "unavailable", reason: "stale", output: undefined } satisfies DirectReviewResult;
+  }
   const frozenNames = new Map(
     ready.map((outcome) => [
       outcome.path,
@@ -311,4 +313,16 @@ export const reviewCodexAdd = Effect.fn("DirectEvent.reviewCodexAdd")(function* 
     findings,
     output: toCodexDirectEventOutput(findings),
   } satisfies DirectReviewResult;
+});
+
+/** Convenience boundary for non-CLI callers; adaptation still occurs exactly once. */
+export const reviewCodexAdd = Effect.fn("DirectEvent.reviewCodexAdd")(function* (
+  nativeEvent: unknown,
+  context: DirectReviewContext,
+) {
+  const observation = yield* adaptCodexAdd(nativeEvent);
+  if (observation === undefined) {
+    return { status: "unsupported", output: undefined } satisfies DirectReviewResult;
+  }
+  return yield* reviewObservation(observation, context);
 });

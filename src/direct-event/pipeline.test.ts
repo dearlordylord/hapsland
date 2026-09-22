@@ -6,7 +6,7 @@ import * as Layer from "effect/Layer";
 import * as TestClock from "effect/testing/TestClock";
 import type * as DecisionModel from "effect/unstable/ai/DecisionModel";
 import { execFile } from "node:child_process";
-import { writeFile, rm, symlink } from "node:fs/promises";
+import { writeFile, rm, symlink, rename, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { configuredRules } from "../policy/rules.ts";
@@ -19,10 +19,12 @@ import {
 import {
   DIRECT_EVENT_DEADLINE_MS,
   reviewCodexAdd,
+  reviewObservation,
   type DirectReviewContext,
 } from "./pipeline.ts";
 import { attemptCodexHostOutput } from "./writer.ts";
 import { addEvent, makeGitFixture, put, recipient } from "./test-fixtures.ts";
+import { adaptCodexAdd } from "./adapter.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -196,6 +198,9 @@ describe("direct-event vertical slice", () => {
         "interface Root { child: NS.B }",
         "interface Root extends NS.B { count: number }",
         "type Root = typeof external",
+        "interface Root { [external]: string }",
+        "interface Root { [NS.key]: string }",
+        "interface Root { value: T; fn: <T>() => T }",
       ]) {
         yield* Effect.promise(() => put(root, "type.ts", source));
         const result = yield* enabledReview(root, addEvent(root), {
@@ -204,6 +209,44 @@ describe("direct-event vertical slice", () => {
         });
         expect(result.status).toBe("no-advice");
       }
+      expect(calls).toBe(0);
+    }),
+  );
+
+  it.effect("rejects a remapped canonical root before source or backend use", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture);
+      yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number"));
+      const observation = yield* adaptCodexAdd(addEvent(root));
+      expect(observation).toBeDefined();
+      if (observation === undefined) return;
+      const original = `${root}-original`;
+      yield* Effect.promise(() => rename(root, original));
+      yield* Effect.promise(() => mkdir(root));
+      yield* Effect.promise(() => execFileAsync("git", ["init", "-q", root]));
+      yield* Effect.promise(() => put(root, "type.ts", "type CrossRoot = string"));
+      yield* Effect.promise(() => put(root, ".review.jsonc", "{ invalid"));
+      let reads = 0;
+      let calls = 0;
+      const result = yield* Effect.gen(function* () {
+        const consent = yield* Consent.Service;
+        return yield* reviewObservation(observation, {
+          controlledWriter: true,
+          recipient: observation.recipient,
+          consent,
+          settings,
+          rules: configuredRules,
+          captureHooks: { sourceRead: () => { reads += 1; } },
+        });
+      }).pipe(Effect.provide(Layer.mergeAll(
+        Consent.testLayer(),
+        controlledDecisionModelLayer({
+          answers: findingAnswers(),
+          onRequest: Effect.sync(() => { calls += 1; }),
+        }),
+      )));
+      expect(result.status).toBe("unsupported");
+      expect(reads).toBe(0);
       expect(calls).toBe(0);
     }),
   );

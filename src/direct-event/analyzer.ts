@@ -46,7 +46,10 @@ const declarationNameNode = (node: SyntaxNode): SyntaxNode | undefined =>
 
 const requiredTypeReferences = (declaration: SyntaxNode, nameNode: SyntaxNode) => {
   const parameters = new Set<string>();
-  for (const node of descendants(declaration)) {
+  const rootParameters = declaration.namedChildren.find(
+    (node) => node.type === "type_parameters",
+  );
+  for (const node of rootParameters?.namedChildren ?? []) {
     if (node.type !== "type_parameter") continue;
     const name = node.namedChildren.find((child) => child.type === "type_identifier");
     if (name !== undefined) parameters.add(name.text);
@@ -54,6 +57,7 @@ const requiredTypeReferences = (declaration: SyntaxNode, nameNode: SyntaxNode) =
   return descendants(declaration).filter((node) =>
     node.type === "nested_type_identifier" ||
     node.type === "type_query" ||
+    node.type === "computed_property_name" ||
     (
       node.type === "type_identifier" &&
       node !== nameNode &&

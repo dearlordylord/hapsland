@@ -17,6 +17,8 @@ export type AddCandidate = { readonly operation: "add"; readonly path: string };
 
 export type DirectObservation = {
   readonly root: string;
+  /** Physical working-tree and Git-administration identity captured at adaptation. */
+  readonly rootIdentity: string;
   readonly recipient: DirectRecipient;
   readonly candidates: ReadonlyArray<AddCandidate>;
 };

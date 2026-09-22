@@ -24,6 +24,9 @@ describe("initial direct-event TypeScript analyzer", () => {
     ["qualified extension", "a.ts", "interface A extends NS.B { count: number }"],
     ["value type query", "a.ts", "type A = typeof external"],
     ["qualified value type query", "a.ts", "type A = typeof NS.external"],
+    ["computed external name", "a.ts", "interface A { [external]: string }"],
+    ["qualified computed name", "a.ts", "interface A { [NS.key]: string }"],
+    ["unsupported nested generic scope", "a.ts", "interface A { value: T; fn: <T>() => T }"],
     ["imported reference", "a.ts", "import type { B } from './b'; interface A { child: B }"],
     ["imports", "a.ts", "import './side-effect'; interface A { count: number }"],
     ["parse failure", "a.ts", "interface A {"],
@@ -36,5 +39,11 @@ describe("initial direct-event TypeScript analyzer", () => {
     const source = `type Deep = ${"(".repeat(depth)}number${")".repeat(depth)}`;
     expect(Buffer.byteLength(source)).toBeLessThan(32_768);
     expect(() => analyzeSingleType("deep.ts", source)).not.toThrow();
+  });
+
+  it("accepts references bound by the declaration's own generic scope", () => {
+    expect(analyzeSingleType("generic.ts", "interface Box<T> { value: T }")).toMatchObject({
+      name: "Box",
+    });
   });
 });

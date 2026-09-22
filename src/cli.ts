@@ -41,9 +41,13 @@ import {
   type ControlledDecisionModelOptions,
 } from "./test-support/controlled-decision-model.ts";
 import { runEvaluationCommand } from "./evaluation/command.ts";
-import { adaptCodexAdd } from "./direct-event/adapter.ts";
 import {
-  reviewCodexAdd,
+  adaptCodexAdd,
+  isCodexNativeApplyPatch,
+  verifyObservationRoot,
+} from "./direct-event/adapter.ts";
+import {
+  reviewObservation,
   type CodexDirectEventOutput,
 } from "./direct-event/pipeline.ts";
 import { attemptCodexHostOutput } from "./direct-event/writer.ts";
@@ -327,11 +331,17 @@ const runDirectCodexHook = (
   userConfigPath: string | undefined,
 ): Effect.Effect<DirectHookDispatch, unknown> =>
   Effect.gen(function* () {
+    if (!isCodexNativeApplyPatch(nativeEvent)) return { handled: false } as const;
     const observation = yield* adaptCodexAdd(nativeEvent);
-    if (observation === undefined) return { handled: false } as const;
+    // The direct dispatcher owns every native apply_patch event. Unsupported
+    // shapes remain quiet and can never reach the legacy whole-file runtime.
+    if (observation === undefined) return { handled: true, output: {} } as const;
     // Matching reads are not attribution. The hook command must explicitly be
     // installed with this controlled-writer assertion for the supported Add profile.
     if (!isControlledWriter) return { handled: true, output: {} } as const;
+    if (!(yield* verifyObservationRoot(observation))) {
+      return { handled: true, output: {} } as const;
+    }
     const consent = yield* Consent.Service;
     const settings = yield* loadReviewSettings(
       observation.root,
@@ -349,7 +359,12 @@ const runDirectCodexHook = (
           credentialEnvVar: settings.credentialEnvVar,
         })
       : controlledDecisionModelLayer(controlled);
-    const result = yield* reviewCodexAdd(nativeEvent, {
+    // Recheck after configuration capture so a remapped root cannot combine
+    // another repository's settings with source from this observation.
+    if (!(yield* verifyObservationRoot(observation))) {
+      return { handled: true, output: {} } as const;
+    }
+    const result = yield* reviewObservation(observation, {
       controlledWriter: true,
       recipient: observation.recipient,
       consent,

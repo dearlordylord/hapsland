@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { realpath } from "node:fs/promises";
+import { realpath, stat } from "node:fs/promises";
 import { promisify } from "node:util";
 import * as Effect from "effect/Effect";
 import type { AddCandidate, DirectObservation, DirectRecipient } from "./model.ts";
@@ -15,6 +15,11 @@ const record = (value: unknown): Readonly<Record<string, unknown>> | undefined =
 
 const nonEmpty = (value: unknown): value is string =>
   typeof value === "string" && value.length > 0;
+
+export const isCodexNativeApplyPatch = (value: unknown): boolean => {
+  const event = record(value);
+  return event?.hook_event_name === "PostToolUse" && event.tool_name === "apply_patch";
+};
 
 const nativeAddCandidates = (command: string): ReadonlyArray<AddCandidate> | undefined => {
   if (Buffer.byteLength(command, "utf8") > MAX_CODEX_COMMAND_BYTES) return undefined;
@@ -36,31 +41,59 @@ const nativeAddCandidates = (command: string): ReadonlyArray<AddCandidate> | und
   return [...unique.values()];
 };
 
+const discoverRoot = async (cwd: string) => {
+  const physicalCwd = await realpath(cwd);
+  const rootResult = await execFileAsync(
+    "git",
+    ["--literal-pathspecs", "-C", physicalCwd, "rev-parse", "--show-toplevel"],
+    { timeout: 2_000, maxBuffer: 65_536 },
+  );
+  const reported = rootResult.stdout.trim();
+  if (reported.length === 0) throw new Error("not a Git working tree");
+  const root = await realpath(reported);
+  const gitResult = await execFileAsync(
+    "git",
+    ["--literal-pathspecs", "-C", root, "rev-parse", "--absolute-git-dir"],
+    { timeout: 2_000, maxBuffer: 65_536 },
+  );
+  const gitDirectory = await realpath(gitResult.stdout.trim());
+  const [rootStatus, gitStatus] = await Promise.all([
+    stat(root, { bigint: true }),
+    stat(gitDirectory, { bigint: true }),
+  ]);
+  return {
+    root,
+    rootIdentity: [
+      rootStatus.dev,
+      rootStatus.ino,
+      gitStatus.dev,
+      gitStatus.ino,
+    ].map(String).join(":"),
+  };
+};
+
 const canonicalGitRoot = (cwd: string) =>
   Effect.tryPromise({
-    try: async () => {
-      const physicalCwd = await realpath(cwd);
-      const result = await execFileAsync(
-        "git",
-        ["--literal-pathspecs", "-C", physicalCwd, "rev-parse", "--show-toplevel"],
-        { timeout: 2_000, maxBuffer: 65_536 },
-      );
-      const reported = result.stdout.trim();
-      if (reported.length === 0) throw new Error("not a Git working tree");
-      return realpath(reported);
-    },
+    try: () => discoverRoot(cwd),
     catch: () => undefined,
   }).pipe(Effect.option);
+
+export const verifyObservationRoot = (observation: DirectObservation) =>
+  Effect.tryPromise({
+    try: async () => {
+      const current = await discoverRoot(observation.root);
+      return current.root === observation.root &&
+        current.rootIdentity === observation.rootIdentity;
+    },
+    catch: () => new Error("working tree identity unavailable"),
+  }).pipe(Effect.catch(() => Effect.succeed(false)));
 
 /** Strictly adapts the bounded, successful Codex CLI 0.155.1 native Add profile. */
 export const adaptCodexAdd = Effect.fn("DirectEvent.adaptCodexAdd")(function* (
   value: unknown,
 ) {
   const event = record(value);
-  if (event === undefined) return undefined;
-  if (event.hook_event_name !== "PostToolUse" || event.tool_name !== "apply_patch") {
-    return undefined;
-  }
+  if (event === undefined || !isCodexNativeApplyPatch(event)) return undefined;
   if (
     !nonEmpty(event.session_id) ||
     !nonEmpty(event.turn_id) ||
@@ -79,17 +112,18 @@ export const adaptCodexAdd = Effect.fn("DirectEvent.adaptCodexAdd")(function* (
   if (candidates === undefined) return undefined;
   const rootOption = yield* canonicalGitRoot(event.cwd);
   if (rootOption._tag === "None") return undefined;
-  const recipient: DirectRecipient = {
+  const recipient: DirectRecipient = Object.freeze({
     host: "codex-cli",
     hostVersion: "0.155.1",
     sessionId: event.session_id,
     turnId: event.turn_id,
     toolUseId: event.tool_use_id,
     agentId: event.agent_id ?? null,
-  };
-  return {
-    root: rootOption.value,
+  });
+  return Object.freeze({
+    root: rootOption.value.root,
+    rootIdentity: rootOption.value.rootIdentity,
     recipient,
-    candidates,
-  } satisfies DirectObservation;
+    candidates: Object.freeze(candidates.map((candidate) => Object.freeze(candidate))),
+  } satisfies DirectObservation);
 });
