@@ -15,6 +15,7 @@ import {
 } from "./server.ts";
 import { residentPaths } from "./paths.ts";
 import { PENDING_ADVICE_EXPIRY_MS } from "./collection.ts";
+import { operationalNoticeAdmission } from "./operational-notice-policy.ts";
 
 const enable = (root: string, statePath: string) => Effect.runPromise(Effect.gen(function* () {
   const consent = yield* Consent.Service;
@@ -115,6 +116,7 @@ const fillAndFinalizeCooldownTable = async (
     operationalNoticeKeys: MAX_OPERATIONAL_NOTICE_KEYS,
     pendingOperationalNotices: 0,
   });
+  return scopes;
 };
 
 describe("resident operational notices", () => {
@@ -241,6 +243,34 @@ describe("resident operational notices", () => {
     expect(await excludedServer.collect(root, excluded.recipient, capacity)).toMatchObject({ status: "empty" });
     expect(excludedServer.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 0 });
     await excludedServer.close();
+  });
+
+  it("preserves active suppression under full-table pressure from another eligible key", () => {
+    const nextAllowedByKey = new Map<string, number>(
+      Array.from({ length: MAX_OPERATIONAL_NOTICE_KEYS }, (_, index) => [
+        `eligible-partition-${index}`,
+        OPERATIONAL_NOTICE_COOLDOWN_MS,
+      ] as const),
+    );
+    const pressure = operationalNoticeAdmission({
+      now: 1,
+      existingNextAllowedAt: nextAllowedByKey.get("another-eligible-partition"),
+      keyCount: nextAllowedByKey.size,
+      maximumKeys: MAX_OPERATIONAL_NOTICE_KEYS,
+    });
+    expect(pressure).toEqual({ action: "reject-full", emit: false });
+    expect(nextAllowedByKey.size).toBe(MAX_OPERATIONAL_NOTICE_KEYS);
+
+    const existingKey = "eligible-partition-0";
+    const repeated = operationalNoticeAdmission({
+      now: OPERATIONAL_NOTICE_COOLDOWN_MS - 1,
+      existingNextAllowedAt: nextAllowedByKey.get(existingKey),
+      keyCount: nextAllowedByKey.size,
+      maximumKeys: MAX_OPERATIONAL_NOTICE_KEYS,
+    });
+    expect(repeated).toEqual({ action: "suppress", emit: false });
+    expect(nextAllowedByKey.get(existingKey)).toBe(OPERATIONAL_NOTICE_COOLDOWN_MS);
+    expect(nextAllowedByKey.size).toBe(MAX_OPERATIONAL_NOTICE_KEYS);
   });
 
   it("reclaims pending notice state at the exact expiry boundary", async () => {

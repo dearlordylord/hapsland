@@ -78,6 +78,8 @@ export type ResidentResponse =
       readonly queued: number;
       readonly running: number;
       readonly pendingAdvice: number;
+      readonly pendingFindingBatches: number;
+      readonly pendingOperationalNotices: number;
       readonly retainedBytes: number;
       readonly rejectedCapacity: number;
       readonly successfulCacheEntries: number;
@@ -199,6 +201,8 @@ const ResidentResponseSchema = Schema.Union([
     queued: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
     running: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
     pendingAdvice: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+    pendingFindingBatches: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+    pendingOperationalNotices: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
     retainedBytes: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
     rejectedCapacity: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
     successfulCacheEntries: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),

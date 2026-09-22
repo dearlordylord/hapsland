@@ -59,6 +59,7 @@ import {
   type OperationalNoticeKind,
 } from "./collection.ts";
 import { EvaluationReuse, residentEvaluationIdentity } from "./evaluation-reuse.ts";
+import { operationalNoticeAdmission } from "./operational-notice-policy.ts";
 
 const BACKEND_CONCURRENCY = 2;
 const RESERVATION_OVERHEAD_BYTES = 1024;
@@ -398,6 +399,8 @@ export class ResidentServer {
       queued: dispatch.queued,
       running: dispatch.running,
       pendingAdvice: this.#advice.length + this.#pendingNoticeCount(),
+      pendingFindingBatches: this.#advice.length,
+      pendingOperationalNotices: this.#pendingNoticeCount(),
       retainedBytes: capacity.bytes,
       rejectedCapacity: this.#rejectedCapacity,
       successfulCacheEntries: reuse.entries,
@@ -842,8 +845,15 @@ export class ResidentServer {
     const key = this.#noticeKey(partition, kind);
     this.#pruneNoticeCooldowns(now, key);
     const retained = this.#noticeCooldowns.get(key);
+    const admission = operationalNoticeAdmission({
+      now,
+      existingNextAllowedAt: retained?.nextAllowedAt,
+      keyCount: this.#noticeCooldowns.size,
+      maximumKeys: MAX_OPERATIONAL_NOTICE_KEYS,
+    });
+    if (admission.action === "reject-full") return;
     if (retained !== undefined) {
-      if (now < retained.nextAllowedAt) {
+      if (admission.action === "suppress") {
         retained.suppressedCount = Math.min(Number.MAX_SAFE_INTEGER, retained.suppressedCount + 1);
         return;
       }
@@ -868,7 +878,6 @@ export class ResidentServer {
       }
       return;
     }
-    if (this.#noticeCooldowns.size >= MAX_OPERATIONAL_NOTICE_KEYS) return;
     const reservation = this.#reserve(partition, noticeReservationBytes(key, partition));
     // Retention is best effort. In particular, do not recursively turn this
     // failed reservation into another capacity failure.
