@@ -19,6 +19,24 @@ const enable = (root: string, statePath: string) => Effect.runPromise(Effect.gen
   yield* consent.enable(proposal);
 }).pipe(Effect.provide(Consent.layer({ statePath }))));
 
+const deferred = <A = void>() => {
+  let resolve!: (value: A | PromiseLike<A>) => void;
+  const promise = new Promise<A>((done) => { resolve = done; });
+  return { promise, resolve };
+};
+
+const findingDispatch = (statePath: string): ResidentDispatchContext => ({
+  statePath,
+  userConfigPath: null,
+  credential: null,
+  controlled: {
+    answers: Object.fromEntries(configuredRules.map((rule) => [
+      rule.id,
+      { _tag: "Probability", probability: 0.9 },
+    ])),
+  },
+});
+
 const longNestedPath = `${Array.from({ length: 14 }, (_, index) =>
   `segment-${index}-${"x".repeat(180)}`).join("/")}/types.ts`;
 
@@ -389,5 +407,419 @@ describe("resident delivery lease", () => {
       expect(server.finalize(recovered.token).status).toBe("finalized");
     }
     expect(server.stats()).toMatchObject({ pendingAdvice: 0, retainedBytes: 0 });
+  });
+
+  it("retires A when replacement B registers before A completes", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const first = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    expect(first).toBeDefined();
+    if (first === undefined) return;
+    const dispatch = findingDispatch(statePath);
+    const firstPrepared = deferred();
+    const replacementPrepared = deferred();
+    const releaseFirstPrepare = deferred();
+    const oldEvaluationEntered = deferred();
+    const releaseOldEvaluation = deferred();
+    let preparation = 0;
+    let heldOldEvaluation = false;
+    const server = new ResidentServer(
+      residentPaths(join(root, "runtime")),
+      () => 100,
+      {
+        afterPrepare: async () => {
+          preparation += 1;
+          if (preparation === 1) {
+            firstPrepared.resolve();
+            await releaseFirstPrepare.promise;
+          }
+          if (preparation === 2) replacementPrepared.resolve();
+        },
+        beforeEvaluate: async (prepared) => {
+          if (!heldOldEvaluation && prepared.input.declaration.source.includes("number")) {
+            heldOldEvaluation = true;
+            oldEvaluationEntered.resolve();
+            await releaseOldEvaluation.promise;
+          }
+        },
+      },
+    );
+    expect(server.admit(first, dispatch).status).toBe("accepted");
+    await firstPrepared.promise;
+    await put(root, "type.ts", "type OrderCount = string\n");
+    const replacement = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["type.ts"], {
+      tool_use_id: "replacement",
+    })));
+    expect(replacement).toBeDefined();
+    if (replacement === undefined) return;
+    expect(server.admit(replacement, dispatch).status).toBe("accepted");
+    releaseFirstPrepare.resolve();
+    await oldEvaluationEntered.promise;
+    await replacementPrepared.promise;
+    releaseOldEvaluation.resolve();
+    await server.whenIdle();
+
+    const metadata = server.pendingAdviceMetadata();
+    expect(metadata).toHaveLength(1);
+    expect(metadata[0]?.generation).toBe(2);
+    const delivered = await server.collect(
+      root,
+      recipient({ turnId: "later", toolUseId: "replacement-collect" }),
+      dispatch,
+    );
+    expect(delivered.status).toBe("advice");
+  });
+
+  it("keeps equivalent complete inputs in one generation", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const first = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    const duplicate = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["type.ts"], {
+      tool_use_id: "duplicate",
+    })));
+    expect(first).toBeDefined();
+    expect(duplicate).toBeDefined();
+    if (first === undefined || duplicate === undefined) return;
+    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const dispatch = findingDispatch(statePath);
+    expect(server.admit(first, dispatch).status).toBe("accepted");
+    expect(server.admit(duplicate, dispatch).status).toBe("accepted");
+    await server.whenIdle();
+    const metadata = server.pendingAdviceMetadata();
+    expect(metadata).toHaveLength(2);
+    expect(new Set(metadata.map(({ generation }) => generation))).toEqual(new Set([1]));
+    expect(new Set(metadata.flatMap(({ evaluationIdentities }) => evaluationIdentities)).size).toBe(1);
+  });
+
+  it("uses stable advice identity when replacement arrives during collection", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const first = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    expect(first).toBeDefined();
+    if (first === undefined) return;
+    const entered = deferred();
+    const release = deferred();
+    let held = false;
+    const server = new ResidentServer(
+      residentPaths(join(root, "runtime")),
+      () => 100,
+      { beforeRevalidate: async () => {
+        if (held) return;
+        held = true;
+        entered.resolve();
+        await release.promise;
+      } },
+    );
+    const dispatch = findingDispatch(statePath);
+    expect(server.admit(first, dispatch).status).toBe("accepted");
+    await server.whenIdle();
+    const collecting = server.collect(
+      root,
+      recipient({ turnId: "collecting", toolUseId: "collecting" }),
+      dispatch,
+    );
+    await entered.promise;
+
+    await put(root, "type.ts", "type OrderCount = string\n");
+    const replacement = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["type.ts"], {
+      tool_use_id: "replacement-during-collect",
+    })));
+    expect(replacement).toBeDefined();
+    if (replacement === undefined) return;
+    expect(server.admit(replacement, dispatch).status).toBe("accepted");
+    await server.whenIdle();
+    release.resolve();
+    await expect(collecting).resolves.toMatchObject({ status: "empty" });
+
+    const metadata = server.pendingAdviceMetadata();
+    expect(metadata).toHaveLength(1);
+    expect(metadata[0]?.generation).toBe(2);
+    await expect(server.collect(
+      root,
+      recipient({ turnId: "later", toolUseId: "replacement" }),
+      dispatch,
+    )).resolves.toMatchObject({ status: "advice" });
+  });
+
+  it("keeps retired advice workspace charged until active revalidation finalizes", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const first = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    expect(first).toBeDefined();
+    if (first === undefined) return;
+    const workspaceReserved = deferred();
+    const releaseRevalidation = deferred();
+    let held = false;
+    const server = new ResidentServer(
+      residentPaths(join(root, "runtime")),
+      () => 100,
+      { afterRevalidationWorkspaceReserved: async () => {
+        if (held) return;
+        held = true;
+        workspaceReserved.resolve();
+        await releaseRevalidation.promise;
+      } },
+    );
+    const dispatch = findingDispatch(statePath);
+    expect(server.admit(first, dispatch).status).toBe("accepted");
+    await server.whenIdle();
+    const baseBytes = server.stats().retainedBytes;
+    const collecting = server.collect(
+      root,
+      recipient({ turnId: "collecting", toolUseId: "collecting" }),
+      dispatch,
+    );
+    await workspaceReserved.promise;
+    expect(server.stats().retainedBytes).toBeGreaterThan(baseBytes);
+
+    await put(root, "type.ts", "type OrderCount = string\n");
+    const replacement = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["type.ts"], {
+      tool_use_id: "replacement-during-active-revalidation",
+    })));
+    expect(replacement).toBeDefined();
+    if (replacement === undefined) return;
+    expect(server.admit(replacement, dispatch).status).toBe("accepted");
+    await server.whenIdle();
+    const replacementAdvice = server.pendingAdviceMetadata();
+    expect(replacementAdvice).toHaveLength(1);
+    expect(replacementAdvice[0]?.generation).toBe(2);
+    const replacementBytes = replacementAdvice[0]?.retainedBytes ?? 0;
+    expect(server.stats().retainedBytes).toBeGreaterThan(replacementBytes);
+
+    releaseRevalidation.resolve();
+    await expect(collecting).resolves.toMatchObject({ status: "empty" });
+    expect(server.stats()).toMatchObject({ pendingAdvice: 1, retainedBytes: replacementBytes });
+    const delivered = await server.collect(
+      root,
+      recipient({ turnId: "later", toolUseId: "replacement" }),
+      dispatch,
+    );
+    expect(delivered.status).toBe("advice");
+    if (delivered.status !== "advice") return;
+    expect(server.acknowledge(delivered.token).status).toBe("acknowledged");
+    expect(server.finalize(delivered.token).status).toBe("finalized");
+    expect(server.stats()).toMatchObject({ pendingAdvice: 0, retainedBytes: 0 });
+  });
+
+  it("skips stale unit advice and returns an independently current multi-file unit", async () => {
+    const root = await makeGitFixture();
+    await put(root, "b.ts", "type BCount = number\n");
+    await put(root, "a.ts", "type ACount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["b.ts", "a.ts"])));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const dispatch = findingDispatch(statePath);
+    expect(server.admit(observation, dispatch).status).toBe("accepted");
+    await server.whenIdle();
+    expect(server.pendingAdviceMetadata()).toHaveLength(2);
+    await put(root, "b.ts", "type BCount = string\n");
+
+    const delivered = await server.collect(
+      root,
+      recipient({ turnId: "later", toolUseId: "multi" }),
+      dispatch,
+    );
+    expect(delivered.status).toBe("advice");
+    if (delivered.status === "advice") {
+      expect(delivered.output.hookSpecificOutput.additionalContext).toContain("a.ts :: ACount");
+      expect(delivered.output.hookSpecificOutput.additionalContext).not.toContain("b.ts :: BCount");
+    }
+    expect(server.stats().pendingAdvice).toBe(1);
+  });
+
+  it("keeps addressed advice pending when current revalidation is unavailable", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const dispatch = findingDispatch(statePath);
+    expect(server.admit(observation, dispatch).status).toBe("accepted");
+    await server.whenIdle();
+    await put(root, "type.ts", "interface Broken { value: Missing }\n");
+    await expect(server.collect(
+      root,
+      recipient({ turnId: "later", toolUseId: "unavailable" }),
+      dispatch,
+    )).resolves.toMatchObject({ status: "empty" });
+    expect(server.stats().pendingAdvice).toBe(1);
+    expect(await server.collect(
+      root,
+      recipient({ agentId: "other", turnId: "other", toolUseId: "other" }),
+      dispatch,
+    )).toMatchObject({ status: "empty" });
+    expect(server.stats().pendingAdvice).toBe(1);
+  });
+
+  it("retires resident advice when complete rule input changes", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const rules = (message: string) => JSON.stringify({
+      schemaVersion: 1,
+      id: "team",
+      contentVersion: "1",
+      rules: [{
+        id: "primitive",
+        question: "Does this declaration use a primitive?",
+        criteria: { false: "No", true: "Yes" },
+        threshold: 0.7,
+        message,
+        applicability: { includes: ["**/*.ts"] },
+      }],
+    });
+    await put(root, "rules.jsonc", rules("first recommendation"));
+    await put(root, ".review.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    const dispatch: ResidentDispatchContext = {
+      ...findingDispatch(statePath),
+      controlled: {
+        answers: {
+          ...Object.fromEntries(configuredRules.map((rule) => [
+            rule.id,
+            { _tag: "Probability", probability: 0.9 },
+          ])),
+          "team/primitive": { _tag: "Probability", probability: 0.9 },
+        },
+      },
+    };
+    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    expect(server.admit(observation, dispatch).status).toBe("accepted");
+    await server.whenIdle();
+    expect(server.stats().pendingAdvice).toBe(1);
+    await put(root, "rules.jsonc", rules("changed recommendation"));
+    await expect(server.collect(
+      root,
+      recipient({ turnId: "later", toolUseId: "rules" }),
+      dispatch,
+    )).resolves.toMatchObject({ status: "empty" });
+    expect(server.stats()).toMatchObject({ pendingAdvice: 0, retainedBytes: 0 });
+  });
+
+  it("revalidates and finalizes at the 16-item partition saturation boundary", async () => {
+    const root = await makeGitFixture();
+    const paths = Array.from({ length: 16 }, (_, index) => `type-${index}.ts`);
+    for (const [index, path] of paths.entries()) {
+      await put(root, path, `type Count${index} = number\n`);
+    }
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, paths)));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    const dispatch = findingDispatch(statePath);
+    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    expect(server.admit(observation, dispatch).status).toBe("accepted");
+    await server.whenIdle();
+    const saturated = server.stats();
+    expect(saturated).toMatchObject({ pendingAdvice: 16 });
+    const firstRetainedBytes = server.pendingAdviceMetadata()[0]?.retainedBytes;
+    expect(firstRetainedBytes).toBeDefined();
+
+    const collected = await server.collect(
+      root,
+      recipient({ turnId: "saturated", toolUseId: "saturated" }),
+      dispatch,
+    );
+    expect(collected.status).toBe("advice");
+    if (collected.status !== "advice") return;
+    expect(server.acknowledge(collected.token).status).toBe("acknowledged");
+    expect(server.finalize(collected.token).status).toBe("finalized");
+    expect(server.stats()).toMatchObject({ pendingAdvice: 15 });
+    expect(server.stats().retainedBytes).toBe(saturated.retainedBytes - (firstRetainedBytes ?? 0));
+  });
+
+  it("revalidates and finalizes at the 64-item global saturation boundary", async () => {
+    const root = await makeGitFixture();
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const dispatch = findingDispatch(statePath);
+    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    for (let partition = 0; partition < 4; partition += 1) {
+      const paths = Array.from({ length: 16 }, (_, index) => `p${partition}-${index}.ts`);
+      for (const [index, path] of paths.entries()) {
+        await put(root, path, `type Count${partition}_${index} = number\n`);
+      }
+      const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, paths, {
+        agent_id: `agent-${partition}`,
+        tool_use_id: `partition-${partition}`,
+      })));
+      expect(observation).toBeDefined();
+      if (observation === undefined) return;
+      expect(server.admit(observation, dispatch).status).toBe("accepted");
+      await server.whenIdle();
+    }
+    const saturated = server.stats();
+    expect(saturated).toMatchObject({ pendingAdvice: 64 });
+    const firstRetainedBytes = server.pendingAdviceMetadata()[0]?.retainedBytes;
+    expect(firstRetainedBytes).toBeDefined();
+
+    const collected = await server.collect(
+      root,
+      recipient({ agentId: "agent-0", turnId: "global", toolUseId: "global" }),
+      dispatch,
+    );
+    expect(collected.status).toBe("advice");
+    if (collected.status !== "advice") return;
+    expect(server.acknowledge(collected.token).status).toBe("acknowledged");
+    expect(server.finalize(collected.token).status).toBe("finalized");
+    expect(server.stats()).toMatchObject({ pendingAdvice: 63 });
+    expect(server.stats().retainedBytes).toBe(saturated.retainedBytes - (firstRetainedBytes ?? 0));
+  });
+
+  it("scans past unavailable advice to independently current advice once per collection", async () => {
+    const root = await makeGitFixture();
+    await put(root, "a.ts", "type ACount = number\n");
+    await put(root, "b.ts", "type BCount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts", "b.ts"])));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    const dispatch = findingDispatch(statePath);
+    const visits: Array<string> = [];
+    const server = new ResidentServer(
+      residentPaths(join(root, "runtime")),
+      () => 100,
+      { beforeRevalidate: async (id) => { visits.push(id); } },
+    );
+    expect(server.admit(observation, dispatch).status).toBe("accepted");
+    await server.whenIdle();
+    const before = server.pendingAdviceMetadata();
+    expect(before.map(({ path }) => path)).toEqual(["a.ts", "b.ts"]);
+    await put(root, "a.ts", "interface Broken { value: Missing }\n");
+
+    const collected = await server.collect(
+      root,
+      recipient({ turnId: "scan", toolUseId: "scan" }),
+      dispatch,
+    );
+    expect(collected.status).toBe("advice");
+    if (collected.status !== "advice") return;
+    expect(collected.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
+    expect(visits).toEqual(before.map(({ id }) => id));
+    const after = server.pendingAdviceMetadata();
+    expect(after.find(({ path }) => path === "a.ts")?.delivery).toBe("available");
+    expect(after.find(({ path }) => path === "b.ts")?.delivery).toBe("leased-unacknowledged");
+    expect(server.acknowledge(collected.token).status).toBe("acknowledged");
+    expect(server.finalize(collected.token).status).toBe("finalized");
+    expect(server.pendingAdviceMetadata()).toMatchObject([{ path: "a.ts", delivery: "available" }]);
   });
 });

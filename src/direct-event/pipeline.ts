@@ -80,6 +80,26 @@ export type Finding = {
   readonly semanticIdentity: string;
 };
 
+/** Complete evaluated inputs retained until handoff; digests alone are not freshness. */
+export type EvaluatedUnit = {
+  readonly prepared: PreparedUnit;
+  readonly findings: ReadonlyArray<Finding>;
+};
+
+export type RevalidationResult =
+  | { readonly status: "current"; readonly evaluations: ReadonlyArray<EvaluatedUnit>; readonly findings: ReadonlyArray<Finding> }
+  | { readonly status: "stale"; readonly findings: readonly [] }
+  | { readonly status: "unavailable"; readonly findings: readonly [] }
+  | { readonly status: "unattributed"; readonly findings: readonly [] };
+
+/**
+ * Publication authority is explicit because semantic equality cannot prove
+ * that a later resident observation has not superseded completed work.
+ */
+export type ResidentPublicationAuthority = {
+  readonly isCurrentWork: (prepared: PreparedUnit) => Effect.Effect<boolean>;
+};
+
 export type DirectReviewResult =
   | { readonly status: "unsupported"; readonly output: undefined }
   | { readonly status: "unattributed"; readonly output: undefined }
@@ -88,6 +108,7 @@ export type DirectReviewResult =
   | {
       readonly status: "ready";
       readonly findings: ReadonlyArray<Finding>;
+      readonly evaluations: ReadonlyArray<EvaluatedUnit>;
       readonly output: CodexDirectEventOutput;
     };
 
@@ -100,6 +121,22 @@ export type CodexDirectEventOutput = {
 
 const sameRecipient = (left: DirectRecipient, right: DirectRecipient): boolean =>
   canonicalValue(left) === canonicalValue(right);
+
+const sameInput = (left: ReviewInput, right: ReviewInput): boolean =>
+  canonicalValue(left) === canonicalValue(right);
+
+const preparedBelongsTo = (
+  prepared: PreparedUnit,
+  observation: DirectObservation,
+): boolean =>
+  prepared.root === observation.root && sameRecipient(prepared.recipient, observation.recipient);
+
+const validEvaluation = (evaluation: EvaluatedUnit): boolean =>
+  evaluation.prepared.identity === semanticIdentity(evaluation.prepared.input) &&
+  evaluation.findings.every((finding) =>
+    finding.semanticIdentity === evaluation.prepared.identity &&
+    finding.path === evaluation.prepared.input.path &&
+    finding.declaration === evaluation.prepared.input.declaration.name);
 
 const current = <A>(value: A | (() => A)): A =>
   typeof value === "function" ? (value as () => A)() : value;
@@ -190,6 +227,11 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
       outcomes.push({ status: "skipped", path: candidate.path });
       continue;
     }
+    const frozen = frozenNames?.get(eligible.relativePath);
+    if (frozenNames !== undefined && frozen === undefined) {
+      outcomes.push({ status: "skipped", path: eligible.relativePath });
+      continue;
+    }
     const captured = yield* captureStable(
       observation.root,
       eligible,
@@ -212,11 +254,13 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
     }
     const analysis = analyzeTypeFile(eligible.relativePath, captured.text);
     const analyses = analysis.status === "analyzed" ? analysis.units : [];
-    const selection = selectedAnalyses(analyses, candidate.operation, candidate.addedLines ?? []);
-    const frozen = frozenNames?.get(eligible.relativePath);
-    const selected = frozen === undefined
-      ? selection.selected
-      : selection.selected.filter((item) => frozen.has(analysisRoot(item).name));
+    const selection = frozen === undefined
+      ? selectedAnalyses(analyses, candidate.operation, candidate.addedLines ?? [])
+      : {
+          selected: analyses.filter((item) => frozen.has(analysisRoot(item).name)),
+          ambiguous: false,
+        };
+    const selected = selection.selected;
     const units = selected.flatMap((item) => item.status === "ready" ? [item.unit] : []);
     const failures = [
       ...extractionFailures(analysis),
@@ -391,10 +435,7 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
     return { status: "no-advice", output: undefined } satisfies DirectReviewResult;
   }
   const findings: Array<Finding> = [];
-  const evaluatedFindings: Array<{
-    readonly identity: string;
-    readonly findings: ReadonlyArray<Finding>;
-  }> = [];
+  const evaluations: Array<EvaluatedUnit> = [];
   let unavailable: "backend" | "timeout" | undefined;
   for (const outcome of ready) {
     yield* context.beforeDispatch ?? Effect.void;
@@ -410,8 +451,8 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
       unavailable ??= evaluation.status;
       continue;
     }
-    evaluatedFindings.push({
-      identity: outcome.prepared.identity,
+    evaluations.push({
+      prepared: outcome.prepared,
       findings: evaluation.findings,
     });
     findings.push(...evaluation.findings);
@@ -426,57 +467,143 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
   if (!context.controlledWriter || !sameRecipient(observation.recipient, context.recipient)) {
     return { status: "unattributed", output: undefined } satisfies DirectReviewResult;
   }
-  // Repeat the complete preparation contract. Whole-file hashes never decide
-  // freshness: only the complete re-extracted semantic ReviewInput does.
-  if (!(yield* verifyObservationRoot(observation))) {
-    return { status: "unavailable", reason: "stale", output: undefined } satisfies DirectReviewResult;
-  }
-  const frozenNames = new Map<string, Set<string>>();
-  for (const outcome of ready) {
-    const names = frozenNames.get(outcome.path) ?? new Set<string>();
-    names.add(outcome.prepared.input.declaration.name);
-    frozenNames.set(outcome.path, names);
-  }
-  const revalidated = yield* prepareObservation(observation, context, frozenNames);
-  const currentIdentities = new Set(
-    revalidated.outcomes.flatMap((outcome) => outcome.status === "ready" ? [outcome.prepared.identity] : []),
+  const revalidated = yield* revalidateForPublication(
+    observation,
+    evaluations,
+    context,
+    undefined,
   );
-  const currentFindings = evaluatedFindings.flatMap((evaluation) =>
-    currentIdentities.has(evaluation.identity) ? evaluation.findings : []);
-  if (currentFindings.length === 0) {
+  if (revalidated.status !== "current" || revalidated.findings.length === 0) {
     return { status: "unavailable", reason: "stale", output: undefined } satisfies DirectReviewResult;
   }
   return {
     status: "ready",
-    findings: currentFindings,
-    output: toCodexDirectEventOutput(currentFindings),
+    findings: revalidated.findings,
+    evaluations: revalidated.evaluations,
+    output: toCodexDirectEventOutput(revalidated.findings),
   } satisfies DirectReviewResult;
 });
 
-/** Recheck a resident result against current authority and complete semantic input. */
+/**
+ * Recheck delayed evaluations against current authority and complete canonical
+ * inputs. A whole-file match is intentionally neither accepted nor consulted.
+ */
+const revalidateForPublication = Effect.fn("DirectEvent.revalidateForPublication")(function* (
+  observation: DirectObservation,
+  evaluations: ReadonlyArray<EvaluatedUnit>,
+  context: DirectReviewContext,
+  authority: ResidentPublicationAuthority | undefined,
+): Effect.fn.Return<RevalidationResult> {
+  if (
+    !context.controlledWriter ||
+    !sameRecipient(observation.recipient, context.recipient) ||
+    evaluations.some((evaluation) => !preparedBelongsTo(evaluation.prepared, observation))
+  ) return { status: "unattributed", findings: [] };
+  if (
+    evaluations.length === 0 ||
+    evaluations.some((evaluation) => !validEvaluation(evaluation))
+  ) return { status: "unavailable", findings: [] };
+  if (!(yield* verifyObservationRoot(observation)) || !(yield* authorize(observation.root, context))) {
+    return { status: "unavailable", findings: [] };
+  }
+  const frozenNames = new Map<string, Set<string>>();
+  for (const evaluation of evaluations) {
+    const input = evaluation.prepared.input;
+    const names = frozenNames.get(input.path) ?? new Set<string>();
+    names.add(input.declaration.name);
+    frozenNames.set(input.path, names);
+  }
+  const currentPrepared = yield* prepareObservation(observation, context, frozenNames);
+  const current = currentPrepared.outcomes.flatMap((outcome) =>
+    outcome.status === "ready" ? [outcome.prepared] : []);
+  const retained: Array<EvaluatedUnit> = [];
+  let foundChangedInput = false;
+  for (const evaluation of evaluations) {
+    const expected = evaluation.prepared.input;
+    const sameSubject = current.filter((prepared) =>
+      prepared.input.path === expected.path &&
+      prepared.input.declaration.name === expected.declaration.name);
+    const matching = sameSubject.find((prepared) =>
+      prepared.identity === evaluation.prepared.identity &&
+      sameInput(prepared.input, expected));
+    if (matching !== undefined) retained.push(evaluation);
+    else if (sameSubject.length > 0) foundChangedInput = true;
+  }
+  if (retained.length > 0) {
+    // Keep the scheduler-owned supersession check last: semantic capture does
+    // not prove that a later accepted observation has not replaced this work.
+    const publishable: Array<EvaluatedUnit> = [];
+    for (const evaluation of retained) {
+      if (authority === undefined || (yield* authority.isCurrentWork(evaluation.prepared))) {
+        publishable.push(evaluation);
+      }
+    }
+    if (publishable.length === 0) return { status: "stale", findings: [] };
+    return {
+      status: "current",
+      evaluations: publishable,
+      findings: publishable.flatMap(({ findings }) => findings),
+    };
+  }
+  return foundChangedInput
+    ? { status: "stale", findings: [] }
+    : { status: "unavailable", findings: [] };
+});
+
+/**
+ * Resident publication always requires scheduler-owned supersession authority.
+ * Immediate in-invocation review uses the private path above and cannot be
+ * mistaken for authorization to publish delayed work.
+ */
+export const revalidateEvaluations = Effect.fn("DirectEvent.revalidateEvaluations")(function* (
+  observation: DirectObservation,
+  evaluations: ReadonlyArray<EvaluatedUnit>,
+  context: DirectReviewContext,
+  authority: ResidentPublicationAuthority,
+) {
+  return yield* revalidateForPublication(observation, evaluations, context, authority);
+});
+
+/**
+ * @deprecated Findings do not retain the prior complete canonical input. This
+ * digest-only compatibility check must not authorize resident publication;
+ * retain `EvaluatedUnit` and use `revalidateEvaluations` instead.
+ */
 export const revalidateFindings = Effect.fn("DirectEvent.revalidateFindings")(function* (
   observation: DirectObservation,
   findings: ReadonlyArray<Finding>,
   context: DirectReviewContext,
 ) {
+  if (findings.length === 0) return false;
+  const grouped = new Map<string, Array<Finding>>();
+  for (const finding of findings) {
+    const key = `${finding.path}\0${finding.declaration}\0${finding.semanticIdentity}`;
+    const values = grouped.get(key) ?? [];
+    values.push(finding);
+    grouped.set(key, values);
+  }
+  const names = new Map<string, Set<string>>();
+  for (const finding of findings) {
+    const values = names.get(finding.path) ?? new Set<string>();
+    values.add(finding.declaration);
+    names.set(finding.path, values);
+  }
   if (
     !context.controlledWriter ||
     !sameRecipient(observation.recipient, context.recipient) ||
     !(yield* verifyObservationRoot(observation)) ||
     !(yield* authorize(observation.root, context))
   ) return false;
-  const frozenNames = new Map<string, Set<string>>();
-  for (const finding of findings) {
-    const names = frozenNames.get(finding.path) ?? new Set<string>();
-    names.add(finding.declaration);
-    frozenNames.set(finding.path, names);
+  const prepared = yield* prepareObservation(observation, context, names);
+  for (const [key] of grouped.entries()) {
+    const found = prepared.outcomes.find((outcome) => {
+      if (outcome.status !== "ready") return false;
+      const input = outcome.prepared.input;
+      return key === `${input.path}\0${input.declaration.name}\0${outcome.prepared.identity}`;
+    });
+    if (found?.status !== "ready") return false;
   }
-  const currentPrepared = yield* prepareObservation(observation, context, frozenNames);
-  const identities = new Set(
-    currentPrepared.outcomes.flatMap((outcome) =>
-      outcome.status === "ready" ? [outcome.prepared.identity] : []),
-  );
-  return findings.every((finding) => identities.has(finding.semanticIdentity));
+  return true;
 });
 
 /** Convenience boundary for non-CLI callers; adaptation still occurs exactly once. */

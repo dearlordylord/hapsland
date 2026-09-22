@@ -18,7 +18,9 @@ import {
 } from "../test-support/controlled-decision-model.ts";
 import {
   DIRECT_EVENT_DEADLINE_MS,
+  evaluatePrepared,
   prepareObservation,
+  revalidateEvaluations,
   reviewCodexAdd,
   reviewObservation,
   type DirectReviewContext,
@@ -36,6 +38,9 @@ const findingAnswers = (): Readonly<Record<string, DecisionModel.ProviderAnswer>
   ]));
 
 const settings = { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION };
+const currentResidentPublication = {
+  isCurrentWork: () => Effect.succeed(true),
+} as const;
 
 const enabledReview = (
   root: string,
@@ -451,7 +456,7 @@ describe("direct-event vertical slice", () => {
     }),
   );
 
-  it.effect("reruns Update ambiguity at handoff", () =>
+  it.effect("keeps the initially established Update subject despite later sibling ambiguity", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture);
       const path = join(root, "types.ts");
@@ -480,7 +485,10 @@ describe("direct-event vertical slice", () => {
           "}",
         ].join("\n"))),
       }));
-      expect(result).toEqual({ status: "unavailable", reason: "stale", output: undefined });
+      expect(result.status).toBe("ready");
+      if (result.status === "ready") {
+        expect(new Set(result.findings.map(({ declaration }) => declaration))).toEqual(new Set(["Account"]));
+      }
       expect(calls).toBe(1);
     }),
   );
@@ -868,6 +876,250 @@ describe("direct-event vertical slice", () => {
         beforeHandoff: Effect.sync(() => { contract = "direct-event/same-file-single-named-type/v2"; }),
       }));
       expect(changedContract).toEqual({ status: "unavailable", reason: "stale", output: undefined });
+    }),
+  );
+
+  it.effect("revalidates delayed Add, Update, and multi-file work through deterministic backend gates", () =>
+    Effect.scoped(Effect.gen(function* () {
+      const scenarios = [
+        {
+          name: "add",
+          paths: ["type.ts"],
+          source: "type OrderCount = number\n",
+          event: (root: string) => addEvent(root),
+          mutate: (root: string) => writeFile(join(root, "type.ts"), "type OrderCount = string\n"),
+        },
+        {
+          name: "update",
+          paths: ["type.ts"],
+          source: "interface Order { count: number }\n",
+          event: (root: string) => updateEvent(root, "type.ts", ["interface Order { count: number }"]),
+          mutate: (root: string) => writeFile(join(root, "type.ts"), "interface Order { count: string }\n"),
+        },
+        {
+          name: "multi-file",
+          paths: ["a.ts", "b.ts"],
+          source: "type OrderCount = number\n",
+          event: (root: string) => addEvent(root, ["a.ts", "b.ts"]),
+          mutate: (root: string) => writeFile(join(root, "a.ts"), "type OrderCount = string\n"),
+        },
+      ] as const;
+      for (const scenario of scenarios) {
+        const root = yield* Effect.promise(makeGitFixture);
+        for (const path of scenario.paths) yield* Effect.promise(() => put(root, path, scenario.source));
+        const entered = yield* Deferred.make<void>();
+        const release = yield* Deferred.make<void>();
+        const reviewing = yield* enabledReview(root, scenario.event(root), {
+          answers: findingAnswers(),
+          inspectRequest: () => Deferred.succeed(entered, undefined).pipe(
+            Effect.andThen(Deferred.await(release)),
+          ),
+        }).pipe(Effect.forkChild);
+        yield* Deferred.await(entered);
+        yield* Effect.promise(() => scenario.mutate(root));
+        yield* Deferred.succeed(release, undefined);
+        const result = yield* Fiber.join(reviewing);
+        if (scenario.name === "multi-file") {
+          expect(result.status).toBe("ready");
+          if (result.status === "ready") {
+            expect(new Set(result.findings.map(({ path }) => path))).toEqual(new Set(["b.ts"]));
+          }
+        } else {
+          expect(result).toEqual({ status: "unavailable", reason: "stale", output: undefined });
+        }
+      }
+    })),
+  );
+
+  it.effect("rejects late superseded and unknown evaluations at the currentness boundary", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture);
+      yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number\n"));
+      const observation = yield* adaptCodexAdd(addEvent(root));
+      expect(observation).toBeDefined();
+      if (observation === undefined) return;
+      const consent = yield* Consent.Service;
+      const proposal = yield* consent.preview(root, DEFAULT_BACKEND, DEFAULT_DESTINATION);
+      yield* consent.enable(proposal);
+      const context: DirectReviewContext = {
+        controlledWriter: true,
+        recipient: observation.recipient,
+        consent,
+        settings,
+        rules: configuredRules,
+      };
+      const result = yield* reviewObservation(observation, context);
+      expect(result.status).toBe("ready");
+      if (result.status !== "ready") return;
+
+      const superseded = yield* revalidateEvaluations(observation, result.evaluations, context, {
+        isCurrentWork: () => Effect.succeed(false),
+      });
+      expect(superseded.status).toBe("stale");
+
+      const [first] = result.evaluations;
+      expect(first).toBeDefined();
+      if (first === undefined) return;
+      const unknown = yield* revalidateEvaluations(observation, [{
+        ...first,
+        prepared: { ...first.prepared, identity: "unknown-semantic-identity" },
+      }], context, currentResidentPublication);
+      expect(unknown.status).toBe("unavailable");
+
+      const uncertain = yield* revalidateEvaluations(observation, result.evaluations, {
+        ...context,
+        controlledWriter: false,
+      }, currentResidentPublication);
+      expect(uncertain.status).toBe("unattributed");
+
+      const wrongRoot = yield* revalidateEvaluations(observation, result.evaluations.map((evaluation) => ({
+        ...evaluation,
+        prepared: { ...evaluation.prepared, root: `${root}-other` },
+      })), context, currentResidentPublication);
+      expect(wrongRoot.status).toBe("unattributed");
+
+      yield* Effect.promise(() => rm(join(root, "type.ts")));
+      const unavailable = yield* revalidateEvaluations(
+        observation,
+        result.evaluations,
+        context,
+        currentResidentPublication,
+      );
+      expect(unavailable.status).toBe("unavailable");
+    }).pipe(Effect.provide(Layer.mergeAll(
+      Consent.testLayer(),
+      controlledDecisionModelLayer({ answers: findingAnswers() }),
+    ))),
+  );
+
+  it.effect("never publishes a late completion superseded while its backend call is gated", () =>
+    Effect.scoped(Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture);
+      yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number\n"));
+      const observation = yield* adaptCodexAdd(addEvent(root));
+      expect(observation).toBeDefined();
+      if (observation === undefined) return;
+      const consent = yield* Consent.Service;
+      const proposal = yield* consent.preview(root, DEFAULT_BACKEND, DEFAULT_DESTINATION);
+      yield* consent.enable(proposal);
+      const context: DirectReviewContext = {
+        controlledWriter: true,
+        recipient: observation.recipient,
+        consent,
+        settings,
+        rules: configuredRules,
+      };
+      const prepared = yield* prepareObservation(observation, context);
+      const ready = prepared.outcomes.find((outcome) => outcome.status === "ready");
+      expect(ready?.status).toBe("ready");
+      if (ready?.status !== "ready") return;
+      const entered = yield* Deferred.make<void>();
+      const release = yield* Deferred.make<void>();
+      let isLatest = true;
+      const evaluating = yield* evaluatePrepared(ready.prepared).pipe(
+        Effect.provide(controlledDecisionModelLayer({
+          answers: findingAnswers(),
+          inspectRequest: () => Deferred.succeed(entered, undefined).pipe(
+            Effect.andThen(Deferred.await(release)),
+          ),
+        })),
+        Effect.forkChild,
+      );
+      yield* Deferred.await(entered);
+      isLatest = false;
+      yield* Deferred.succeed(release, undefined);
+      const evaluation = yield* Fiber.join(evaluating);
+      expect(evaluation.status).toBe("evaluated");
+      if (evaluation.status !== "evaluated") return;
+      const revalidated = yield* revalidateEvaluations(observation, [{
+        prepared: ready.prepared,
+        findings: evaluation.findings,
+      }], context, {
+        isCurrentWork: () => Effect.sync(() => isLatest),
+      });
+      expect(revalidated.status).toBe("stale");
+    }).pipe(Effect.provide(Consent.testLayer()))),
+  );
+
+  it.effect("recaptures only paths and units retained for publication", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture);
+      yield* Effect.promise(() => put(root, "a.ts", "type ACount = number\n"));
+      yield* Effect.promise(() => put(root, "b.ts", "type BCount = number\n"));
+      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts", "b.ts"]));
+      expect(observation).toBeDefined();
+      if (observation === undefined) return;
+      const consent = yield* Consent.Service;
+      const proposal = yield* consent.preview(root, DEFAULT_BACKEND, DEFAULT_DESTINATION);
+      yield* consent.enable(proposal);
+      const context: DirectReviewContext = {
+        controlledWriter: true,
+        recipient: observation.recipient,
+        consent,
+        settings,
+        rules: configuredRules,
+      };
+      const result = yield* reviewObservation(observation, context);
+      expect(result.status).toBe("ready");
+      if (result.status !== "ready") return;
+      const retained = result.evaluations.filter(({ prepared }) => prepared.input.path === "a.ts");
+      const reads: Array<string> = [];
+      const revalidated = yield* revalidateEvaluations(observation, retained, {
+        ...context,
+        captureHooks: { sourceRead: (path) => { reads.push(path); } },
+      }, currentResidentPublication);
+      expect(revalidated.status).toBe("current");
+      expect(reads).toEqual(["a.ts", "a.ts"]);
+
+      const partiallySuperseded = yield* revalidateEvaluations(
+        observation,
+        result.evaluations,
+        context,
+        {
+          isCurrentWork: (prepared) => Effect.succeed(prepared.input.path === "a.ts"),
+        },
+      );
+      expect(partiallySuperseded.status).toBe("current");
+      if (partiallySuperseded.status === "current") {
+        expect(new Set(partiallySuperseded.findings.map(({ path }) => path))).toEqual(new Set(["a.ts"]));
+      }
+    }).pipe(Effect.provide(Layer.mergeAll(
+      Consent.testLayer(),
+      controlledDecisionModelLayer({ answers: findingAnswers() }),
+    ))),
+  );
+
+  it.effect("retires advice when recursive supporting evidence changes", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture);
+      const path = join(root, "types.ts");
+      yield* Effect.promise(() => put(root, "types.ts", [
+        "interface Account { owner: Owner }",
+        "interface Owner { name: string }",
+      ].join("\n")));
+      const result = yield* enabledReview(root, addEvent(root, ["types.ts"]), undefined, (base) => ({
+        ...base,
+        beforeHandoff: Effect.promise(() => writeFile(path, [
+          "interface Account { owner: Owner }",
+          "interface Owner { name: number }",
+        ].join("\n"))),
+      }));
+      expect(result).toEqual({ status: "unavailable", reason: "stale", output: undefined });
+    }),
+  );
+
+  it.effect("states the handoff boundary truthfully: later edits cannot revoke returned output", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture);
+      yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number\n"));
+      const result = yield* enabledReview(root, addEvent(root));
+      expect(result.status).toBe("ready");
+      if (result.status !== "ready") return;
+      const handedOff = result.output;
+      yield* Effect.promise(() => writeFile(join(root, "type.ts"), "type OrderCount = string\n"));
+      // Revalidation is immediately before handoff. The host owns the tool loop
+      // after this value is returned; the product makes no post-handoff claim.
+      expect(handedOff.hookSpecificOutput.additionalContext).toContain("OrderCount");
     }),
   );
 });
