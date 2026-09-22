@@ -547,6 +547,68 @@ describe("resident delivery lease", () => {
     )).resolves.toMatchObject({ status: "advice" });
   });
 
+  it("keeps retired advice workspace charged until active revalidation finalizes", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const first = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    expect(first).toBeDefined();
+    if (first === undefined) return;
+    const workspaceReserved = deferred();
+    const releaseRevalidation = deferred();
+    let held = false;
+    const server = new ResidentServer(
+      residentPaths(join(root, "runtime")),
+      () => 100,
+      { afterRevalidationWorkspaceReserved: async () => {
+        if (held) return;
+        held = true;
+        workspaceReserved.resolve();
+        await releaseRevalidation.promise;
+      } },
+    );
+    const dispatch = findingDispatch(statePath);
+    expect(server.admit(first, dispatch).status).toBe("accepted");
+    await server.whenIdle();
+    const baseBytes = server.stats().retainedBytes;
+    const collecting = server.collect(
+      root,
+      recipient({ turnId: "collecting", toolUseId: "collecting" }),
+      dispatch,
+    );
+    await workspaceReserved.promise;
+    expect(server.stats().retainedBytes).toBeGreaterThan(baseBytes);
+
+    await put(root, "type.ts", "type OrderCount = string\n");
+    const replacement = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["type.ts"], {
+      tool_use_id: "replacement-during-active-revalidation",
+    })));
+    expect(replacement).toBeDefined();
+    if (replacement === undefined) return;
+    expect(server.admit(replacement, dispatch).status).toBe("accepted");
+    await server.whenIdle();
+    const replacementAdvice = server.pendingAdviceMetadata();
+    expect(replacementAdvice).toHaveLength(1);
+    expect(replacementAdvice[0]?.generation).toBe(2);
+    const replacementBytes = replacementAdvice[0]?.retainedBytes ?? 0;
+    expect(server.stats().retainedBytes).toBeGreaterThan(replacementBytes);
+
+    releaseRevalidation.resolve();
+    await expect(collecting).resolves.toMatchObject({ status: "empty" });
+    expect(server.stats()).toMatchObject({ pendingAdvice: 1, retainedBytes: replacementBytes });
+    const delivered = await server.collect(
+      root,
+      recipient({ turnId: "later", toolUseId: "replacement" }),
+      dispatch,
+    );
+    expect(delivered.status).toBe("advice");
+    if (delivered.status !== "advice") return;
+    expect(server.acknowledge(delivered.token).status).toBe("acknowledged");
+    expect(server.finalize(delivered.token).status).toBe("finalized");
+    expect(server.stats()).toMatchObject({ pendingAdvice: 0, retainedBytes: 0 });
+  });
+
   it("skips stale unit advice and returns an independently current multi-file unit", async () => {
     const root = await makeGitFixture();
     await put(root, "b.ts", "type BCount = number\n");

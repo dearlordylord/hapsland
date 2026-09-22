@@ -123,6 +123,8 @@ type Advice = Omit<UnitJob, "dispatch" | "kind"> & {
   readonly cycle: number;
   readonly sequence: number;
   cycleComplete: boolean;
+  retired: boolean;
+  revalidationActive: boolean;
   delivery?: {
     readonly token: string;
     leaseUntil: number;
@@ -213,6 +215,7 @@ export class ResidentServer {
   readonly #beforeRevalidate: ((adviceId: string) => Promise<void>) | undefined;
   readonly #afterPrepare: (() => Promise<void>) | undefined;
   readonly #beforeEvaluate: ((prepared: PreparedUnit) => Promise<void>) | undefined;
+  readonly #afterRevalidationWorkspaceReserved: ((adviceId: string) => Promise<void>) | undefined;
   readonly paths: ResidentPaths;
 
   constructor(
@@ -222,6 +225,7 @@ export class ResidentServer {
       readonly beforeRevalidate?: (adviceId: string) => Promise<void>;
       readonly afterPrepare?: () => Promise<void>;
       readonly beforeEvaluate?: (prepared: PreparedUnit) => Promise<void>;
+      readonly afterRevalidationWorkspaceReserved?: (adviceId: string) => Promise<void>;
     } = {},
   ) {
     this.paths = paths;
@@ -229,6 +233,7 @@ export class ResidentServer {
     this.#beforeRevalidate = options.beforeRevalidate;
     this.#afterPrepare = options.afterPrepare;
     this.#beforeEvaluate = options.beforeEvaluate;
+    this.#afterRevalidationWorkspaceReserved = options.afterRevalidationWorkspaceReserved;
     this.#dispatcher = new DispatchCycles(
       BACKEND_CONCURRENCY,
       async (entry) => this.#run(entry.value, entry.cycle, entry.sequence),
@@ -448,7 +453,10 @@ export class ResidentServer {
       item.id === id && (token === undefined || item.delivery?.token === token));
     if (index < 0) return false;
     const [removed] = this.#advice.splice(index, 1);
-    if (removed !== undefined) this.#releaseUnit(removed);
+    if (removed !== undefined) {
+      removed.retired = true;
+      if (!removed.revalidationActive) this.#releaseUnit(removed);
+    }
     return removed !== undefined;
   }
 
@@ -624,6 +632,8 @@ export class ResidentServer {
           cycle,
           sequence,
           cycleComplete: false,
+          retired: false,
+          revalidationActive: false,
         };
         const insertion = this.#advice.findIndex((item) => item.sequence > sequence);
         if (insertion < 0) this.#advice.push(advice);
@@ -661,9 +671,11 @@ export class ResidentServer {
       retainedBytes + captureWorkspaceBytes(candidate.path),
     )) return { status: "unavailable", findings: [] };
     this.#peakLedgerBytes = Math.max(this.#peakLedgerBytes, this.#ledger.snapshot().bytes);
+    advice.revalidationActive = true;
     const server = this;
     let capacityUnavailable = false;
     try {
+      await this.#afterRevalidationWorkspaceReserved?.(advice.id);
       const userConfigPath = dispatch.userConfigPath ?? undefined;
       const current = await Effect.runPromise(Effect.gen(function* () {
         const settings = yield* loadReviewSettings(
@@ -693,7 +705,9 @@ export class ResidentServer {
     } catch {
       return { status: "unavailable", findings: [] };
     } finally {
-      this.#ledger.resize(advice.reservation, retainedBytes);
+      advice.revalidationActive = false;
+      if (advice.retired) this.#releaseUnit(advice);
+      else this.#ledger.resize(advice.reservation, retainedBytes);
     }
   }
 
@@ -815,7 +829,10 @@ export class ResidentServer {
       if (job.kind === "unit") this.#releaseUnit(job);
       else this.#ledger.release(job.reservation);
     }
-    for (const advice of this.#advice.splice(0)) this.#releaseUnit(advice);
+    for (const advice of this.#advice.splice(0)) {
+      advice.retired = true;
+      if (!advice.revalidationActive) this.#releaseUnit(advice);
+    }
     // Running work may be interrupted by process exit or finish later. Clear
     // its logical ownership now; its eventual terminal release is idempotent.
     this.#ledger.clear();
