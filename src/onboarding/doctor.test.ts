@@ -1,4 +1,5 @@
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -48,6 +49,29 @@ describe("offline installed integration doctor", () => {
     const configBefore = readFileSync(join(codexHome, "config.toml"), "utf8");
     const hooksBefore = readFileSync(join(codexHome, "hooks.json"), "utf8");
     const secret = "doctor-secret-must-not-appear";
+    execFileSync("git", ["init", "--quiet", "--initial-branch=master", root]);
+    const publicDoctor = spawnSync(process.execPath, ["src/cli.ts", "--doctor"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({ version: 1, operation: "doctor", cwd: root, ...request }),
+      encoding: "utf8",
+      env: { ...process.env, TYPESAFE_API_KEY: secret },
+    });
+    expect(publicDoctor.status).toBe(0);
+    const publicResult = JSON.parse(publicDoctor.stdout) as { checks: Array<DoctorCheck> };
+    expect(publicResult.checks).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        stage: "credential-accessibility",
+        status: "unknown",
+        observed: {
+          inspectedContext: "doctor-process",
+          configuredEnvironmentVariable: "TYPESAFE_API_KEY",
+          doctorProcessEnvironment: "present",
+          actualHookAccessibility: "unknown",
+          savedCredentialAccessibility: "unknown-not-inspected-by-this-version",
+        },
+      }),
+    ]));
+    expect(publicDoctor.stdout).not.toContain(secret);
     const result = await diagnoseInstalledIntegration({
       installation: request,
       repository: readyCheck("repository-enablement"),
@@ -91,6 +115,17 @@ describe("offline installed integration doctor", () => {
     expect(drift).toMatchObject({
       status: "not-ready",
       checks: expect.arrayContaining([
+        expect.objectContaining({ stage: "configuration-ownership", status: "conflict" }),
+      ]),
+    });
+    const unsupportedWithDrift = await diagnoseInstalledIntegration({
+      installation: { ...request, codexExecutable: "/bin/true" },
+      repository: readyCheck("repository-enablement"),
+      credential: readyCheck("credential-accessibility"),
+    });
+    expect(unsupportedWithDrift).toMatchObject({
+      checks: expect.arrayContaining([
+        expect.objectContaining({ stage: "host", status: "unsupported" }),
         expect.objectContaining({ stage: "configuration-ownership", status: "conflict" }),
       ]),
     });

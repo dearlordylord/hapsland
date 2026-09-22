@@ -9,9 +9,11 @@ try { event = JSON.parse(input); } catch { event = undefined; }
 const adapted = event === undefined
   ? undefined
   : await Effect.runPromise(adaptCodexDirectEvent(event));
+const installedProduct = process.env.REVIEW_HOST_PRODUCT_CLI;
+if (installedProduct === undefined) throw new Error("installed product CLI is required");
 const product = spawnSync(
-  process.execPath,
-  [new URL("../src/cli.ts", import.meta.url).pathname, "--codex-hook", "--controlled", "--controlled-writer"],
+  installedProduct,
+  ["--codex-hook", "--controlled", "--controlled-writer"],
   { input, encoding: "utf8", env: process.env, maxBuffer: 1024 * 1024 },
 );
 let output;

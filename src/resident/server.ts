@@ -1022,7 +1022,7 @@ export class ResidentServer {
   }
 
   async #prepare(job: IngressJob, cycle: number, sequence: number): Promise<void> {
-    let expectedActivityUnits = 0;
+    const expectedActivityUnits: Array<string> = [];
     try {
       await this.#awaitBackendGate();
       const userConfigPath = job.dispatch.userConfigPath ?? undefined;
@@ -1150,8 +1150,8 @@ export class ResidentServer {
           if (item.kind === "cached" && item.cached.evaluation.findings.length === 0) {
             const revision = this.#registerCurrentWork(job.partition, item.outcome.prepared);
             this.#releaseCurrentWork(revision);
-            expectedActivityUnits += 1;
-            recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "clear", completedUnits: 1 });
+            expectedActivityUnits.push(item.evaluationKey);
+            recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "clear", unitIdentity: item.evaluationKey });
           } else if (item.kind === "joined") {
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
           }
@@ -1165,7 +1165,7 @@ export class ResidentServer {
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
             continue;
           }
-          expectedActivityUnits += 1;
+          expectedActivityUnits.push(item.evaluationKey);
           const revision = this.#registerCurrentWork(job.partition, item.outcome.prepared);
           const unit: UnitJob = {
             kind: "unit",
@@ -1185,7 +1185,7 @@ export class ResidentServer {
               lifetime: this.lifetime,
               stage: "findings",
               findings: item.cached.evaluation.findings.length,
-              completedUnits: 1,
+              unitIdentity: item.evaluationKey,
             });
             await this.#retainAdvice(unit, {
               prepared: item.outcome.prepared,
@@ -1199,18 +1199,18 @@ export class ResidentServer {
             this.#releaseUnit(unit);
             this.#rejectedCapacity += 1;
             this.#recordOperationalFailure(job.observation, "capacity");
-            recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", completedUnits: 1 });
+            recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", unitIdentity: item.evaluationKey });
           }
         }
       }
-      if (expectedActivityUnits > 0) {
+      if (expectedActivityUnits.length > 0) {
         recordActivity({
           statePath: job.dispatch.activityPath,
           root: job.observation.root,
           recipient: job.observation.recipient,
           lifetime: this.lifetime,
           stage: "pending",
-          expectedUnits: expectedActivityUnits,
+          expectedUnitIdentities: expectedActivityUnits,
         });
       }
       await this.#afterPrepare?.();
@@ -1226,7 +1226,7 @@ export class ResidentServer {
     try {
       await this.#awaitBackendGate();
       if (!this.#isCurrentWork(job.revision, job.prepared)) {
-        recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "incomplete", completedUnits: 1 });
+        recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "incomplete", unitIdentity: job.evaluationKey });
         this.#reuse.releaseClaim(job.evaluationKey);
         this.#releaseUnit(job);
         return;
@@ -1313,7 +1313,7 @@ export class ResidentServer {
           lifetime: this.lifetime,
           stage: result.findings.length === 0 ? "clear" : "findings",
           findings: result.findings.length,
-          completedUnits: 1,
+          unitIdentity: job.evaluationKey,
         });
         if (controlled?.outcomePath !== undefined) {
           const { sessionId, turnId, toolUseId, agentId } = job.observation.recipient;
@@ -1337,13 +1337,13 @@ export class ResidentServer {
       }
       if (result?.status === "backend" || result?.status === "timeout") {
         this.#recordOperationalFailure(job.observation, "backend");
-        recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", completedUnits: 1 });
+        recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       } else if (result === undefined) {
-        recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", completedUnits: 1 });
+        recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       }
     } catch (cause) {
       if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error(cause);
-      recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", completedUnits: 1 });
+      recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
     }
     this.#reuse.releaseClaim(job.evaluationKey);
     this.#releaseUnit(job);

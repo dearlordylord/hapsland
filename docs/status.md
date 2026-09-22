@@ -14,14 +14,17 @@ Run the offline, read-only doctor with an explicit repository and selected Codex
 The equivalent command is `review-tool --doctor`. Doctor checks the packaged runtime,
 parser and resident entry point, exact Codex version, selected configuration, the owned
 feature/hook record, duplicates and local drift, resident reachability, credential
-accessibility in the current process, and enablement for the canonical repository. It
+presence in the doctor process, and enablement for the canonical repository. The doctor
+names that inspected context; actual-hook and saved-credential accessibility remain
+`unknown` until an independent, nonprompting probe verifies them. It
 does not prompt, repair configuration, launch the resident, read source, or call Jev.
 Host trust and saved-credential accessibility are `unknown` when no bounded,
 nonprompting query exists. Every non-ready stage includes one action in `nextSteps`.
 
-The production Codex hook and resident record a bounded source-free activity marker for
-each observed event. Session, child, repository, and event identities are hashed before
-persistence. At most 256 events are retained per session. Markers contain only stage,
+The production Codex hook and resident record bounded, immutable, source-free activity
+markers for each observed event. Session, child, repository, event, and semantic unit
+identities are hashed before persistence. At most 256 events and 72 current semantic
+markers per event are retained per session. Markers contain only stage,
 timestamps, resident lifetime, bounded counts, and hashed identities; they never contain
 source, paths, credentials, advice, probabilities, or provider responses.
 
@@ -29,7 +32,10 @@ Resident activity distinguishes `no-observation`, `skipped`, `pending`, `clear`,
 `findings`, `submitted`, `unavailable`, `incomplete`, and `restarted/lost`. Pending work
 becomes `restarted/lost` when the responsible resident lifetime disappears or changes.
 `submitted` means the hook wrote controlled host output; `submission.findings` reports how
-many findings that output carried. It does not prove that the model saw or acted on it.
+many findings that output carried. Submission evidence is separate from evaluation
+completion, so newly admitted pending work and work lost across restart remain visible.
+Per-unit terminal markers aggregate findings across distinct units while repeated markers
+for the same hashed unit remain idempotent. Submission does not prove that the model saw or acted on it.
 `modelReaction` remains `unavailable` until separate host evidence
 exists. Missing instrumentation and silence are never reported as `clear`.
 

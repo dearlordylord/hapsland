@@ -10,6 +10,7 @@ import { Consent } from "../runtime/consent.ts";
 import { loadReviewSettings } from "../runtime/review-config.ts";
 import { prepareObservation } from "../direct-event/pipeline.ts";
 import { analyzerMaterializationPreflight } from "../direct-event/analyzer.ts";
+import { readActivity } from "../activity/status.ts";
 import { residentPaths } from "./paths.ts";
 import {
   DELIVERY_LEASE_MS,
@@ -129,6 +130,27 @@ describe("resident delivery lease", () => {
     await waitUntilIdle(server);
     expect(existsSync(capturePath)).toBe(false);
     expect(server.stats()).toMatchObject({ pendingEvaluations: 0 });
+  });
+
+  it("aggregates findings from distinct production units in one event", async () => {
+    const root = await makeGitFixture();
+    await put(root, "a.ts", "type ACount = number\n");
+    await put(root, "b.ts", "type BCount = number\n");
+    const statePath = join(root, "consent");
+    const activityPath = join(root, "activity");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts", "b.ts"])));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    expect(server.admit(observation, { ...findingDispatch(statePath), activityPath }).status).toBe("accepted");
+    await server.whenIdle();
+    expect(readActivity({
+      statePath: activityPath,
+      root,
+      sessionId: observation.recipient.sessionId,
+      resident: { available: true, lifetime: server.lifetime },
+    })).toMatchObject({ kind: "findings", findings: 2, counts: { findings: 1 } });
   });
 
   it("commits an idle lifetime to retiring before returning cleanup success", async () => {
@@ -1018,6 +1040,8 @@ describe("resident delivery lease", () => {
     expect(server.stats().retainedBytes).toBe(saturated.retainedBytes - firstBatchBytes);
   });
 
+  // The 64 real repository parses exercise the declared global saturation limit and
+  // take about five seconds on the supported arm64 host.
   it("revalidates and finalizes at the 64-item global saturation boundary", async () => {
     const root = await makeGitFixture();
     const statePath = join(root, "consent");
@@ -1055,7 +1079,7 @@ describe("resident delivery lease", () => {
     expect(server.finalize(collected.token).status).toBe("finalized");
     expect(server.stats()).toMatchObject({ pendingAdvice: 59 });
     expect(server.stats().retainedBytes).toBe(saturated.retainedBytes - firstBatchBytes);
-  });
+  }, 10_000);
 
   it("scans past unavailable advice to independently current advice once per collection", async () => {
     const root = await makeGitFixture();
@@ -1221,6 +1245,8 @@ describe("resident delivery lease", () => {
     expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(11);
   });
 
+  // Large near-frame identities and full revalidation batches measure at 5.0-5.2
+  // seconds on the supported arm64 host, so only these stress cases get 10 seconds.
   it("charges a valid near-frame identity for every unit and rejects excess truthfully", async () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", Array.from(
@@ -1299,7 +1325,7 @@ describe("resident delivery lease", () => {
     expect(server.pendingAdviceMetadata().map(({ id, delivery }) => ({ id, delivery }))).toEqual(
       metadata.map(({ id }) => ({ id, delivery: "available" })),
     );
-  });
+  }, 10_000);
 });
 
 describe("resident bounded advice batches", () => {
@@ -1344,7 +1370,7 @@ describe("resident bounded advice batches", () => {
       pendingAdvice: 0,
       retainedBytes: server.accountingMetrics().successfulCacheBytes,
     });
-  });
+  }, 10_000);
 
   it("revalidates the final selection after later candidate work completes", async () => {
     const root = await makeGitFixture();
@@ -1388,7 +1414,7 @@ describe("resident bounded advice batches", () => {
     expect(collected.output.hookSpecificOutput.additionalContext).not.toContain("a.ts :: ACount");
     expect(collected.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
     expect(server.pendingAdviceMetadata().map(({ path }) => path)).toEqual(["b.ts"]);
-  });
+  }, 10_000);
 
   it("filters an earlier item that reaches expiry while a later final revalidation waits", async () => {
     const root = await makeGitFixture();
@@ -1438,7 +1464,7 @@ describe("resident bounded advice batches", () => {
     expect(collected.output.hookSpecificOutput.additionalContext).not.toContain("a.ts :: ACount");
     expect(collected.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
     expect(server.pendingAdviceMetadata().map(({ path }) => path)).toEqual(["b.ts"]);
-  });
+  }, 10_000);
 
   it("filters an earlier item superseded while a later final revalidation waits", async () => {
     const root = await makeGitFixture();
