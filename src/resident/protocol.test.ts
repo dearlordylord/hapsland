@@ -47,5 +47,21 @@ describe("resident protocol bounds", () => {
       root,
       recipient: { ...observation.recipient, sessionId: "" },
     }))).toBeUndefined();
+    const collect = {
+      version: 1,
+      operation: "collect",
+      lifetime: "lifetime",
+      root,
+      recipient: observation.recipient,
+      dispatch: {
+        statePath: "/tmp/consent",
+        userConfigPath: null,
+        credential: null,
+        controlled: {},
+      },
+    };
+    expect(decodeResidentRequest(JSON.stringify({ ...collect, mode: "turn-end" })))
+      .toMatchObject({ operation: "collect", mode: "turn-end" });
+    expect(decodeResidentRequest(JSON.stringify({ ...collect, mode: "drain" }))).toBeUndefined();
   });
 });

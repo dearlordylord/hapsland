@@ -2,6 +2,7 @@ import type { DirectObservation, DirectRecipient } from "../direct-event/model.t
 import type { CodexDirectEventOutput } from "../direct-event/pipeline.ts";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
+import type { CollectionMode } from "./collection.ts";
 
 export const MAX_IPC_FRAME_BYTES = 262_144;
 export const MAX_IPC_CONNECTIONS = 32;
@@ -40,6 +41,7 @@ export type ResidentRequest =
       readonly root: string;
       readonly recipient: DirectRecipient;
       readonly dispatch: ResidentDispatchContext;
+      readonly mode?: CollectionMode;
     }
   | {
       readonly version: 1;
@@ -140,8 +142,19 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
   if (value.operation === "admit" && value.controlledWriter === true && observation(value.observation) && dispatch(value.dispatch)) {
     return { version: 1, operation: "admit", lifetime: value.lifetime, observation: value.observation, controlledWriter: true, dispatch: value.dispatch };
   }
-  if (value.operation === "collect" && string(value.root) && recipient(value.recipient) && dispatch(value.dispatch)) {
-    return { version: 1, operation: "collect", lifetime: value.lifetime, root: value.root, recipient: value.recipient, dispatch: value.dispatch };
+  if (
+    value.operation === "collect" && string(value.root) && recipient(value.recipient) && dispatch(value.dispatch) &&
+    (value.mode === undefined || value.mode === "ordinary" || value.mode === "turn-end")
+  ) {
+    return {
+      version: 1,
+      operation: "collect",
+      lifetime: value.lifetime,
+      root: value.root,
+      recipient: value.recipient,
+      dispatch: value.dispatch,
+      ...(value.mode === undefined ? {} : { mode: value.mode }),
+    };
   }
   if ((value.operation === "acknowledge" || value.operation === "finalize") && string(value.token)) {
     return { version: 1, operation: value.operation, lifetime: value.lifetime, token: value.token };

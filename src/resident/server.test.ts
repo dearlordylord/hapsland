@@ -12,6 +12,12 @@ import { analyzerMaterializationPreflight } from "../direct-event/analyzer.ts";
 import { residentPaths } from "./paths.ts";
 import { DELIVERY_LEASE_MS, type ResidentDispatchContext } from "./protocol.ts";
 import { ResidentServer, residentUnitReservationBytes } from "./server.ts";
+import {
+  ADVICE_COLLECTION_WINDOW_MS,
+  MAX_COMBINED_RESPONSE_BYTES,
+  PENDING_ADVICE_EXPIRY_MS,
+  encodedHostOutputBytes,
+} from "./collection.ts";
 
 const enable = (root: string, statePath: string) => Effect.runPromise(Effect.gen(function* () {
   const consent = yield* Consent.Service;
@@ -33,6 +39,18 @@ const findingDispatch = (statePath: string): ResidentDispatchContext => ({
     answers: Object.fromEntries(configuredRules.map((rule) => [
       rule.id,
       { _tag: "Probability", probability: 0.9 },
+    ])),
+  },
+});
+
+const singleFindingDispatch = (statePath: string): ResidentDispatchContext => ({
+  statePath,
+  userConfigPath: null,
+  credential: null,
+  controlled: {
+    answers: Object.fromEntries(configuredRules.map((rule) => [
+      rule.id,
+      { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
     ])),
   },
 });
@@ -258,10 +276,8 @@ describe("resident delivery lease", () => {
       recipient({ turnId: "later", toolUseId: "large" }),
       retained.dispatch,
     );
-    expect(delivered.status).toBe("advice");
-    if (delivered.status === "advice") {
-      expect(delivered.output.hookSpecificOutput.additionalContext.length).toBeGreaterThan(16 * 1024);
-    }
+    expect(delivered.status).toBe("empty");
+    expect(retained.server.stats()).toMatchObject({ pendingAdvice: 1 });
 
     const rejected = await run(2 * 1024 * 1024);
     expect(rejected.server.stats()).toMatchObject({ pendingAdvice: 0, rejectedCapacity: 1, retainedBytes: 0 });
@@ -401,12 +417,10 @@ describe("resident delivery lease", () => {
       recipient({ turnId: "recovered", toolUseId: "recovered" }),
       dispatch,
     );
-    expect(recovered.status).toBe("advice");
-    if (recovered.status === "advice") {
-      expect(server.acknowledge(recovered.token).status).toBe("acknowledged");
-      expect(server.finalize(recovered.token).status).toBe("finalized");
-    }
-    expect(server.stats()).toMatchObject({ pendingAdvice: 0, retainedBytes: 0 });
+    // The restored advice is current but its long path cannot fit the 2 KiB
+    // response envelope. A zero-item batch is not delivery, so it stays owned.
+    expect(recovered.status).toBe("empty");
+    expect(server.stats()).toMatchObject({ pendingAdvice: 1, retainedBytes: before.retainedBytes });
   });
 
   it("retires A when replacement B registers before A completes", async () => {
@@ -821,5 +835,208 @@ describe("resident delivery lease", () => {
     expect(server.acknowledge(collected.token).status).toBe("acknowledged");
     expect(server.finalize(collected.token).status).toBe("finalized");
     expect(server.pendingAdviceMetadata()).toMatchObject([{ path: "a.ts", delivery: "available" }]);
+  });
+});
+
+describe("resident bounded advice batches", () => {
+  it("uses finite-cycle completion, then exact oldest-result aging, without waiting for new work", async () => {
+    const root = await makeGitFixture();
+    await put(root, "a.ts", "type ACount = number\n");
+    await put(root, "b.ts", "type BCount = number\n");
+    await put(root, "c.ts", "type CCount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts", "b.ts", "c.ts"])));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    let clock = 10_000;
+    const releases = new Map<string, () => void>();
+    const entered: Array<string> = [];
+    const firstTwoEntered = deferred();
+    const allEntered = deferred();
+    const firstAdvicePending = deferred();
+    const secondAdvicePending = deferred();
+    let pending = 0;
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock, {
+      beforeEvaluate: (prepared) => new Promise<void>((resolve) => {
+        entered.push(prepared.input.path);
+        releases.set(prepared.input.path, resolve);
+        if (entered.length === 2) firstTwoEntered.resolve();
+        if (entered.length === 3) allEntered.resolve();
+      }),
+      afterAdvicePending: () => {
+        pending += 1;
+        if (pending === 1) firstAdvicePending.resolve();
+        if (pending === 2) secondAdvicePending.resolve();
+      },
+    });
+    const dispatch = findingDispatch(statePath);
+    expect(server.admit(observation, dispatch).status).toBe("accepted");
+    await firstTwoEntered.promise;
+    releases.get("a.ts")?.();
+    await firstAdvicePending.promise;
+    await allEntered.promise;
+    expect(server.pendingAdviceMetadata()).toMatchObject([{
+      path: "a.ts",
+      cycleComplete: false,
+      pendingAt: 10_000,
+    }]);
+
+    await expect(server.collect(root, recipient({ turnId: "early", toolUseId: "early" }), dispatch))
+      .resolves.toMatchObject({ status: "empty" });
+    clock += ADVICE_COLLECTION_WINDOW_MS - 1;
+    await expect(server.collect(root, recipient({ turnId: "before", toolUseId: "before" }), dispatch))
+      .resolves.toMatchObject({ status: "empty" });
+    releases.get("b.ts")?.();
+    await secondAdvicePending.promise;
+    clock += 1;
+    const aged = await server.collect(root, recipient({ turnId: "at", toolUseId: "at" }), dispatch);
+    expect(aged.status).toBe("advice");
+    if (aged.status === "advice") {
+      expect(aged.output.hookSpecificOutput.additionalContext).toContain("a.ts :: ACount");
+      expect(server.acknowledge(aged.token).status).toBe("acknowledged");
+      expect(server.finalize(aged.token).status).toBe("finalized");
+    }
+    expect(server.pendingAdviceMetadata()).toMatchObject([{
+      path: "b.ts",
+      cycleComplete: false,
+      collectionEligible: true,
+    }]);
+    const overflow = await server.collect(
+      root,
+      recipient({ turnId: "overflow", toolUseId: "overflow" }),
+      dispatch,
+    );
+    expect(overflow.status).toBe("advice");
+    if (overflow.status === "advice") {
+      expect(overflow.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
+      expect(server.acknowledge(overflow.token).status).toBe("acknowledged");
+      expect(server.finalize(overflow.token).status).toBe("finalized");
+    }
+    releases.get("c.ts")?.();
+    await server.whenIdle();
+    expect(server.pendingAdviceMetadata()).toMatchObject([{ path: "c.ts", cycleComplete: true }]);
+  });
+
+  it("returns only the ready subset for bounded turn-end collection without draining", async () => {
+    const root = await makeGitFixture();
+    await put(root, "a.ts", "type ACount = number\n");
+    await put(root, "b.ts", "type BCount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts", "b.ts"])));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    const releases = new Map<string, () => void>();
+    const bothEntered = deferred();
+    const ready = deferred();
+    let entered = 0;
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => 100, {
+      beforeEvaluate: (prepared) => new Promise<void>((resolve) => {
+        releases.set(prepared.input.path, resolve);
+        entered += 1;
+        if (entered === 2) bothEntered.resolve();
+      }),
+      afterAdvicePending: () => { ready.resolve(); },
+    });
+    const dispatch = findingDispatch(statePath);
+    expect(server.admit(observation, dispatch).status).toBe("accepted");
+    await bothEntered.promise;
+    releases.get("a.ts")?.();
+    await ready.promise;
+    await expect(server.collect(
+      root,
+      recipient({ turnId: "turn-end", toolUseId: "turn-end" }),
+      dispatch,
+      "ordinary",
+    )).resolves.toMatchObject({ status: "empty" });
+    const turnEnd = await server.collect(
+      root,
+      recipient({ turnId: "turn-end", toolUseId: "turn-end" }),
+      dispatch,
+      "turn-end",
+    );
+    expect(turnEnd.status).toBe("advice");
+    expect(server.stats()).toMatchObject({ running: 1, pendingAdvice: 1 });
+    if (turnEnd.status === "advice") server.releaseDelivery(turnEnd.token);
+    releases.get("b.ts")?.();
+    await server.whenIdle();
+  });
+
+  it("combines five deterministic items and retains count overflow for a later reply", async () => {
+    const root = await makeGitFixture();
+    const paths = Array.from({ length: 6 }, (_, index) => `type-${index}.ts`);
+    for (const [index, path] of paths.entries()) await put(root, path, `type Count${index} = number\n`);
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, paths)));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    const dispatch = singleFindingDispatch(statePath);
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => 500);
+    expect(server.admit(observation, dispatch).status).toBe("accepted");
+    await server.whenIdle();
+
+    const first = await server.collect(root, recipient({ turnId: "batch-1", toolUseId: "batch-1" }), dispatch);
+    expect(first.status).toBe("advice");
+    if (first.status !== "advice") return;
+    expect(encodedHostOutputBytes(first.output)).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
+    for (let index = 0; index < 5; index += 1) {
+      expect(first.output.hookSpecificOutput.additionalContext).toContain(`type-${index}.ts :: Count${index}`);
+    }
+    expect(first.output.hookSpecificOutput.additionalContext).not.toContain("type-5.ts :: Count5");
+    expect(server.pendingAdviceMetadata().filter(({ delivery }) => delivery !== "available")).toHaveLength(5);
+    server.releaseDelivery(first.token);
+    expect(server.pendingAdviceMetadata().every(({ delivery }) => delivery === "available")).toBe(true);
+    const retried = await server.collect(
+      root,
+      recipient({ turnId: "batch-retry", toolUseId: "batch-retry" }),
+      dispatch,
+    );
+    expect(retried.status).toBe("advice");
+    if (retried.status !== "advice") return;
+    expect(retried.output).toEqual(first.output);
+    expect(server.acknowledge(retried.token).status).toBe("acknowledged");
+    expect(server.finalize(retried.token).status).toBe("finalized");
+    expect(server.pendingAdviceMetadata()).toMatchObject([{ path: "type-5.ts", delivery: "available" }]);
+
+    const second = await server.collect(root, recipient({ turnId: "batch-2", toolUseId: "batch-2" }), dispatch);
+    expect(second.status).toBe("advice");
+    if (second.status === "advice") {
+      expect(second.output.hookSpecificOutput.additionalContext).toContain("type-5.ts :: Count5");
+    }
+  });
+
+  it("expires pending advice just before, at, and after the relevance boundary", async () => {
+    const run = async (age: number) => {
+      const root = await makeGitFixture();
+      await put(root, "type.ts", "type OrderCount = number\n");
+      const statePath = join(root, "consent");
+      await enable(root, statePath);
+      const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+      expect(observation).toBeDefined();
+      if (observation === undefined) throw new Error("fixture adaptation failed");
+      let clock = 1_000;
+      const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock);
+      const dispatch = findingDispatch(statePath);
+      expect(server.admit(observation, dispatch).status).toBe("accepted");
+      await server.whenIdle();
+      clock += age;
+      const collected = await server.collect(
+        root,
+        recipient({ turnId: `age-${age}`, toolUseId: `age-${age}` }),
+        dispatch,
+      );
+      return { collected, server };
+    };
+
+    const before = await run(PENDING_ADVICE_EXPIRY_MS - 1);
+    expect(before.collected.status).toBe("advice");
+    const at = await run(PENDING_ADVICE_EXPIRY_MS);
+    expect(at.collected.status).toBe("empty");
+    expect(at.server.stats()).toMatchObject({ pendingAdvice: 0, retainedBytes: 0 });
+    const after = await run(PENDING_ADVICE_EXPIRY_MS + 1);
+    expect(after.collected.status).toBe("empty");
+    expect(after.server.stats()).toMatchObject({ pendingAdvice: 0, retainedBytes: 0 });
   });
 });
