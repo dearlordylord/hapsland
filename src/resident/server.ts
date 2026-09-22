@@ -47,6 +47,7 @@ import {
   type CapacityReservation,
 } from "./capacity.ts";
 import { DispatchCycles } from "./dispatch.ts";
+import { EvaluationReuse } from "./evaluation-reuse.ts";
 
 const BACKEND_CONCURRENCY = 2;
 const RESERVATION_OVERHEAD_BYTES = 1024;
@@ -105,12 +106,13 @@ type IngressJob = {
 
 type UnitJob = {
   readonly kind: "unit";
-  readonly observation: DirectObservation;
+  observation: DirectObservation;
   readonly partition: string;
   readonly reservation: CapacityReservation;
   readonly dispatch: ResidentDispatchContext;
-  readonly prepared: PreparedUnit;
-  readonly revision: WorkRevision;
+  prepared: PreparedUnit;
+  revision: WorkRevision;
+  readonly evaluationKey: string;
 };
 
 type Job = IngressJob | UnitJob;
@@ -182,6 +184,7 @@ export const residentUnitReservationBytes = (
   return logicalBytes({
     observation,
     dispatch,
+    evaluationIdentity: canonicalValue(prepared.input),
     evaluation: { prepared, findings },
     output: toCodexDirectEventOutput(findings),
   }) + findings.length * MAX_PROBABILITY_ENCODING_BYTES +
@@ -204,6 +207,7 @@ export class ResidentServer {
   readonly #advice: Array<Advice> = [];
   readonly #currentWork = new Map<string, CurrentWork>();
   readonly #ledger = new CapacityLedger();
+  readonly #reuse: EvaluationReuse<UnitJob>;
   readonly #dispatcher: DispatchCycles<string, Job>;
   readonly #now: () => number;
   #server: Server | undefined;
@@ -234,6 +238,11 @@ export class ResidentServer {
     this.#afterPrepare = options.afterPrepare;
     this.#beforeEvaluate = options.beforeEvaluate;
     this.#afterRevalidationWorkspaceReserved = options.afterRevalidationWorkspaceReserved;
+    this.#reuse = new EvaluationReuse({
+      reserve: (partition, bytes) => this.#reserve(partition, bytes),
+      release: (reservation) => { this.#ledger.release(reservation); },
+      logicalBytes,
+    });
     this.#dispatcher = new DispatchCycles(
       BACKEND_CONCURRENCY,
       async (entry) => this.#run(entry.value, entry.cycle, entry.sequence),
@@ -386,10 +395,17 @@ export class ResidentServer {
   accountingMetrics(): {
     readonly peakLedgerBytes: number;
     readonly maxMaterializedPreparedUnits: number;
+    readonly successfulCacheEntries: number;
+    readonly successfulCacheBytes: number;
+    readonly pendingEvaluations: number;
   } {
+    const reuse = this.#reuse.snapshot();
     return {
       peakLedgerBytes: this.#peakLedgerBytes,
       maxMaterializedPreparedUnits: this.#maxMaterializedPreparedUnits,
+      successfulCacheEntries: reuse.entries,
+      successfulCacheBytes: reuse.bytes,
+      pendingEvaluations: reuse.pending,
     };
   }
 
@@ -420,8 +436,24 @@ export class ResidentServer {
     this.#currentWork.set(subject, {
       generation,
       input: prepared.input,
-      members: (retained?.members ?? 0) + 1,
+      members: 1,
     });
+    for (const advice of [...this.#advice]) {
+      if (advice.revision.subject === subject && advice.revision.generation !== generation) {
+        this.#removeAdvice(advice.id);
+      }
+    }
+    return { subject, generation };
+  }
+
+  #restoreCurrentWork(partition: string, prepared: PreparedUnit): WorkRevision {
+    const subject = this.#subject(partition, prepared);
+    const retained = this.#currentWork.get(subject);
+    if (retained !== undefined && canonicalValue(retained.input) === canonicalValue(prepared.input)) {
+      return { subject, generation: retained.generation };
+    }
+    const generation = (retained?.generation ?? 0) + 1;
+    this.#currentWork.set(subject, { generation, input: prepared.input, members: 1 });
     for (const advice of [...this.#advice]) {
       if (advice.revision.subject === subject && advice.revision.generation !== generation) {
         this.#removeAdvice(advice.id);
@@ -439,7 +471,7 @@ export class ResidentServer {
 
   #releaseCurrentWork(revision: WorkRevision): void {
     const retained = this.#currentWork.get(revision.subject);
-    if (retained === undefined) return;
+    if (retained === undefined || retained.generation !== revision.generation) return;
     if (retained.members <= 1) this.#currentWork.delete(revision.subject);
     else this.#currentWork.set(revision.subject, { ...retained, members: retained.members - 1 });
   }
@@ -461,11 +493,11 @@ export class ResidentServer {
   }
 
   async #run(job: Job, cycle: number, sequence: number): Promise<void> {
-    if (job.kind === "ingress") return this.#prepare(job);
+    if (job.kind === "ingress") return this.#prepare(job, cycle, sequence);
     return this.#evaluateUnit(job, cycle, sequence);
   }
 
-  async #prepare(job: IngressJob): Promise<void> {
+  async #prepare(job: IngressJob, cycle: number, sequence: number): Promise<void> {
     try {
       await this.#awaitBackendGate();
       const userConfigPath = job.dispatch.userConfigPath ?? undefined;
@@ -534,29 +566,68 @@ export class ResidentServer {
           if (!accepted) this.#rejectedCapacity += 1;
           return accepted;
         });
+        const planned = deliverable.map((outcome) => {
+          const evaluationKey = this.#reuse.key(job.partition, outcome.prepared);
+          if (this.#advice.some((advice) => advice.evaluationKey === evaluationKey)) {
+            return { kind: "joined" as const, outcome, evaluationKey };
+          }
+          const pending = this.#reuse.pending(evaluationKey);
+          if (pending !== undefined) {
+            pending.observation = pathObservation;
+            pending.prepared = outcome.prepared;
+            pending.revision = this.#restoreCurrentWork(job.partition, outcome.prepared);
+            return { kind: "joined" as const, outcome, evaluationKey };
+          }
+          if (this.#reuse.hasPending(evaluationKey)) {
+            return { kind: "joined" as const, outcome, evaluationKey };
+          }
+          const cached = this.#reuse.get(evaluationKey);
+          if (cached !== undefined) return { kind: "cached" as const, outcome, evaluationKey, cached };
+          this.#reuse.claim(evaluationKey);
+          return { kind: "owner" as const, outcome, evaluationKey };
+        });
+        const retained = planned.filter((item) =>
+          item.kind === "owner" || (item.kind === "cached" && item.cached.evaluation.findings.length > 0));
         const reservations = this.#ledger.replace(
           workspace,
-          deliverable.map((outcome) =>
-            residentUnitReservationBytes(pathObservation, job.dispatch, outcome.prepared)),
+          retained.map((item) =>
+            residentUnitReservationBytes(pathObservation, job.dispatch, item.outcome.prepared)),
         );
         this.#peakLedgerBytes = Math.max(this.#peakLedgerBytes, this.#ledger.snapshot().bytes);
-        for (const [index, outcome] of deliverable.entries()) {
+        for (const item of planned) {
+          if (item.kind === "cached" && item.cached.evaluation.findings.length === 0) {
+            const revision = this.#registerCurrentWork(job.partition, item.outcome.prepared);
+            this.#releaseCurrentWork(revision);
+          }
+        }
+        for (const [index, item] of retained.entries()) {
           const reservation = reservations[index];
           if (reservation === undefined) {
+            if (item.kind === "owner") this.#reuse.releaseClaim(item.evaluationKey);
             this.#rejectedCapacity += 1;
             continue;
           }
-          const revision = this.#registerCurrentWork(job.partition, outcome.prepared);
+          const revision = this.#registerCurrentWork(job.partition, item.outcome.prepared);
           const unit: UnitJob = {
             kind: "unit",
             observation: pathObservation,
             partition: job.partition,
             reservation,
             dispatch: job.dispatch,
-            prepared: outcome.prepared,
+            prepared: item.outcome.prepared,
             revision,
+            evaluationKey: item.evaluationKey,
           };
+          if (item.kind === "cached") {
+            this.#retainAdvice(unit, {
+              prepared: item.outcome.prepared,
+              findings: item.cached.evaluation.findings,
+            }, cycle, sequence);
+            continue;
+          }
+          this.#reuse.attachPending(item.evaluationKey, unit);
           if (!this.#dispatcher.enqueue(job.partition, unit)) {
+            this.#reuse.releaseClaim(item.evaluationKey);
             this.#releaseUnit(unit);
             this.#rejectedCapacity += 1;
           }
@@ -574,6 +645,7 @@ export class ResidentServer {
     try {
       await this.#awaitBackendGate();
       if (!this.#isCurrentWork(job.revision, job.prepared)) {
+        this.#reuse.releaseClaim(job.evaluationKey);
         this.#releaseUnit(job);
         return;
       }
@@ -611,39 +683,58 @@ export class ResidentServer {
           ? evaluation
           : evaluation.pipe(Effect.provide(credentialProvider)));
       }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))));
-      if (
-        result?.status === "evaluated" &&
-        result.findings.length > 0 &&
-        !this.#closed &&
-        this.#isCurrentWork(job.revision, job.prepared)
-      ) {
-        const evaluations = [{ prepared: job.prepared, findings: result.findings }];
-        const output = toCodexDirectEventOutput(result.findings);
-        const advice: Advice = {
-          id: randomUUID(),
-          observation: job.observation,
-          partition: job.partition,
-          reservation: job.reservation,
-          prepared: job.prepared,
-          revision: job.revision,
-          evaluations,
-          findings: result.findings,
-          encodedBytes: logicalBytes(output),
-          cycle,
-          sequence,
-          cycleComplete: false,
-          retired: false,
-          revalidationActive: false,
-        };
-        const insertion = this.#advice.findIndex((item) => item.sequence > sequence);
-        if (insertion < 0) this.#advice.push(advice);
-        else this.#advice.splice(insertion, 0, advice);
+      if (result?.status === "evaluated" && !this.#closed) {
+        const evaluation = { prepared: job.prepared, findings: result.findings };
+        this.#reuse.put(job.partition, job.evaluationKey, evaluation);
+        this.#reuse.releaseClaim(job.evaluationKey);
+        if (
+          result.findings.length === 0 ||
+          !this.#isCurrentWork(job.revision, job.prepared)
+        ) {
+          this.#releaseUnit(job);
+          return;
+        }
+        this.#retainAdvice(job, evaluation, cycle, sequence);
         return;
       }
     } catch (cause) {
       if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error(cause);
     }
+    this.#reuse.releaseClaim(job.evaluationKey);
     this.#releaseUnit(job);
+  }
+
+  #retainAdvice(
+    job: UnitJob,
+    evaluation: EvaluatedUnit,
+    cycle: number,
+    sequence: number,
+  ): void {
+    if (this.#advice.some((item) => item.evaluationKey === job.evaluationKey)) {
+      this.#releaseUnit(job);
+      return;
+    }
+    const output = toCodexDirectEventOutput(evaluation.findings);
+    const advice: Advice = {
+      id: randomUUID(),
+      observation: job.observation,
+      partition: job.partition,
+      reservation: job.reservation,
+      prepared: job.prepared,
+      revision: job.revision,
+      evaluationKey: job.evaluationKey,
+      evaluations: [evaluation],
+      findings: evaluation.findings,
+      encodedBytes: logicalBytes(output),
+      cycle,
+      sequence,
+      cycleComplete: false,
+      retired: false,
+      revalidationActive: false,
+    };
+    const insertion = this.#advice.findIndex((item) => item.sequence > sequence);
+    if (insertion < 0) this.#advice.push(advice);
+    else this.#advice.splice(insertion, 0, advice);
   }
 
   async #awaitBackendGate(): Promise<void> {
@@ -826,7 +917,10 @@ export class ResidentServer {
   async close(): Promise<void> {
     this.#closed = true;
     for (const job of this.#dispatcher.close()) {
-      if (job.kind === "unit") this.#releaseUnit(job);
+      if (job.kind === "unit") {
+        this.#reuse.releaseClaim(job.evaluationKey);
+        this.#releaseUnit(job);
+      }
       else this.#ledger.release(job.reservation);
     }
     for (const advice of this.#advice.splice(0)) {
@@ -835,6 +929,7 @@ export class ResidentServer {
     }
     // Running work may be interrupted by process exit or finish later. Clear
     // its logical ownership now; its eventual terminal release is idempotent.
+    this.#reuse.clear();
     this.#ledger.clear();
     this.#currentWork.clear();
     const server = this.#server;

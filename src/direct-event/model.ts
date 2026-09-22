@@ -157,6 +157,8 @@ export type FrozenRule = {
 
 export type ReviewInput = {
   readonly contract: string;
+  /** Only complete semantic units are eligible for evaluation or reuse. */
+  readonly completeness: "complete";
   readonly path: string;
   readonly declaration: TypeDeclaration;
   readonly unit: ReviewUnit;

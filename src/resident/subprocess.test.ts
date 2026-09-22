@@ -154,7 +154,9 @@ describe("resident separate-process lifecycle", { timeout: 30_000 }, () => {
     await writeFile(gate, "release\n");
     await waitFor(async () => {
       const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
-      return stats.status === "stats" && stats.pendingAdvice === 3 ? stats : undefined;
+      // Event/tool ids do not distinguish complete evaluation identity: the
+      // three accepted observations converge on one evaluation and advice.
+      return stats.status === "stats" && stats.pendingAdvice === 1 ? stats : undefined;
     });
 
     expect(await collectReady(root, recipient({ agentId: "other-child" }), dispatch, paths)).toBeUndefined();
