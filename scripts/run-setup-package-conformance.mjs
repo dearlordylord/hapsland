@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { access, chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -58,6 +58,17 @@ const invokeSetup = async (cli, cwd, env, request, expectedExit, label) => {
   const output = parse(result, label, expectedExit);
   expect(output.version === 1 && output.operation === "setup", `${label} did not use setup-v1`);
   expect(output.providerCalls === 0 && output.paidVerificationPerformed === false, `${label} claimed provider work`);
+  return output;
+};
+const invokeDemo = async (cli, cwd, env, request, expectedExit, label) => {
+  const result = await run(cli, ["--demo"], {
+    cwd,
+    env,
+    input: JSON.stringify(request),
+    timeoutMs: 20_000,
+  });
+  const output = parse(result, label, expectedExit);
+  expect(output.version === 1 && output.operation === "demo", `${label} did not use demo-v1`);
   return output;
 };
 
@@ -193,6 +204,55 @@ try {
   const hooks = JSON.parse(await readFile(join(codexHome, "hooks.json"), "utf8"));
   expect(hooks.hooks.PostToolUse.length === 1, "repeat setup duplicated the owned hook");
 
+  const demoPreview = await invokeDemo(cli, repository, {
+    ...authorizedEnvironment,
+    REVIEW_DEMO_STATE_PATH: join(stateRoot, "demos"),
+  }, {
+    version: 1,
+    operation: "demo",
+    selection: "preview",
+    codexHome,
+    codexExecutable,
+  }, 0, "offline first-review demo preview");
+  expect(demoPreview.status === "preview" && demoPreview.liveSelected === false &&
+    demoPreview.paidVerificationPerformed === false, "demo preview was not offline");
+  expect(demoPreview.demo?.syntheticOnly === true && demoPreview.demo.disposableRoot !== repository &&
+    demoPreview.demo.disclosure?.deliberatelyFlawed === true &&
+    demoPreview.demo.disclosure?.repairPrescribed === false &&
+    typeof demoPreview.demo.disclosure?.source === "string", "demo did not disclose its separate synthetic input");
+  expect(demoPreview.budget?.sourceBytes === 4_096 && demoPreview.budget?.providerCalls === 2 &&
+    demoPreview.budget?.timeMs === 180_000, "demo preview changed its declared budgets");
+  const mismatchedDemo = await invokeDemo(cli, repository, {
+    ...authorizedEnvironment,
+    REVIEW_DEMO_STATE_PATH: join(stateRoot, "demos"),
+  }, {
+    version: 1,
+    operation: "demo",
+    selection: "live",
+    demoId: demoPreview.demo.id,
+    selectionDigest: demoPreview.authorization.selectionDigest,
+    consentProposalDigest: "0".repeat(64),
+    codexHome,
+    codexExecutable,
+  }, 4, "mismatched disposable-root consent");
+  expect(mismatchedDemo.status === "proposal-mismatch" && mismatchedDemo.providerCalls === 0 &&
+    mismatchedDemo.paidVerificationPerformed === false, "mismatched demo consent crossed the live boundary");
+  const cancelledDemo = await invokeDemo(cli, repository, {
+    ...authorizedEnvironment,
+    REVIEW_DEMO_STATE_PATH: join(stateRoot, "demos"),
+  }, {
+    version: 1,
+    operation: "demo",
+    selection: "cancel",
+    demoId: demoPreview.demo.id,
+  }, 0, "cancelled first-review demo");
+  expect(cancelledDemo.status === "cleaned" && cancelledDemo.cleaned === true && cancelledDemo.providerCalls === 0,
+    "cancelled demo did not clean up offline");
+  await access(demoPreview.demo.disposableRoot).then(
+    () => { throw new Error("cancelled demo retained its disposable root"); },
+    () => undefined,
+  );
+
   const partialHome = join(temporary, "partial-codex-home");
   await mkdir(partialHome, { recursive: true });
   const partialDisabledRequest = {
@@ -254,7 +314,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
     operation: "setup-package-conformance",
     status: "passed",
     providerCalls: 0,
-    journeys: ["noninteractive-handoff", "interruption-resume", "idempotent-repeat", "disabled-completion", "interactive-masked-terminal"],
+    journeys: ["noninteractive-handoff", "interruption-resume", "idempotent-repeat", "offline-first-review-demo", "disabled-completion", "interactive-masked-terminal"],
   })}\n`);
 } finally {
   await rm(temporary, { recursive: true, force: true });
