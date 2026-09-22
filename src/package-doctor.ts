@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
-import { accessSync, constants, existsSync, readFileSync } from "node:fs";
+import { accessSync, constants, existsSync, lstatSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -35,6 +36,23 @@ for (const command of declaration.requiredCommands) {
     add(command, true, observed, `${command} available`);
   } catch {
     add(command, false, "unavailable", `${command} available`, `install ${command} and ensure it is on PATH`);
+  }
+}
+
+if (process.platform === "linux") {
+  const uid = typeof process.getuid === "function" ? process.getuid() : process.pid;
+  const runtime = process.env.REVIEW_RESIDENT_DIR ?? (process.env.XDG_RUNTIME_DIR === undefined
+    ? join(tmpdir(), `realtime-review-tool-${uid}`)
+    : join(process.env.XDG_RUNTIME_DIR, "realtime-review-tool"));
+  let legacyLock = false;
+  try { legacyLock = lstatSync(join(runtime, "owner.lock")).isFile(); } catch { /* no legacy state */ }
+  if (legacyLock) {
+    try {
+      const observed = execFileSync("flock", ["--version"], { encoding: "utf8", timeout: 2_000, stdio: ["ignore", "pipe", "pipe"] }).trim().split("\n")[0] ?? "flock";
+      add("legacy-resident-lock-migration", true, observed, "flock available while legacy owner.lock exists");
+    } catch {
+      add("legacy-resident-lock-migration", false, "unavailable", "flock available while legacy owner.lock exists", "install util-linux flock, stop the legacy resident, then retry once to migrate ownership safely");
+    }
   }
 }
 

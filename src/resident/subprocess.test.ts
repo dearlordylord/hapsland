@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
 import { execFile, spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -10,7 +10,7 @@ import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import { addEvent, makeGitFixture, put, recipient } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { Consent } from "../runtime/consent.ts";
-import { acknowledgeAdvice, collectReady, residentRequest } from "./client.ts";
+import { acknowledgeAdvice, collectReady, ensureResident, residentRequest } from "./client.ts";
 import { residentPaths } from "./paths.ts";
 import { DELIVERY_LEASE_MS, type ResidentDispatchContext } from "./protocol.ts";
 
@@ -74,6 +74,38 @@ const dispatchFor = (
 });
 
 describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
+  it("ignores and removes an orphaned pre-portability startup marker", async () => {
+    const temporary = await mkdtemp(join(tmpdir(), "product-resident-startup-marker-"));
+    directories.push(temporary);
+    const runtime = join(temporary, "runtime");
+    await mkdir(runtime, { mode: 0o700 });
+    const paths = residentPaths(runtime);
+    await writeFile(`${paths.lock}.startup`, "orphan\n", { mode: 0o600 });
+    const owner = await ensureResident(paths, 5_000);
+    processes.push(owner.pid);
+    expect(existsSync(`${paths.lock}.startup`)).toBe(false);
+  });
+  it("bridges a live legacy Linux flock owner before starting portable ownership", async () => {
+    if (process.platform !== "linux") return;
+    const temporary = await mkdtemp(join(tmpdir(), "product-resident-legacy-"));
+    directories.push(temporary);
+    const runtime = join(temporary, "runtime");
+    await mkdir(runtime, { mode: 0o700 });
+    const paths = residentPaths(runtime);
+    await writeFile(paths.lock, "", { mode: 0o600 });
+    const holder = spawn("flock", [paths.lock, process.execPath, "-e", "setTimeout(()=>{},30000)"], {
+      detached: true, stdio: ["ignore", "ignore", "ignore"],
+    });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await expect(ensureResident(paths, 300)).rejects.toThrow("did not become ready");
+    expect((await stat(paths.lock)).isFile()).toBe(true);
+    process.kill(-holder.pid!, "SIGTERM");
+    await new Promise<void>((resolve) => holder.once("close", () => resolve()));
+    const owner = await ensureResident(paths, 5_000);
+    processes.push(owner.pid);
+    expect((await stat(paths.lock)).isFile()).toBe(true);
+    expect((await stat(`${paths.lock}.v2`)).isDirectory()).toBe(true);
+  });
   it("converges 100 starters across eight clients and keeps timed-out/disconnected work resident-owned", async () => {
     const root = await makeGitFixture();
     const otherRoot = await makeGitFixture();
