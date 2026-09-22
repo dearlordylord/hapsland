@@ -61,6 +61,7 @@ const server = new ResidentServer({
 }, now);
 
 await server.listen();
+await rm(`${lock}.startup-error`, { force: true });
 
 const stop = () => {
   void server.close().finally(async () => {

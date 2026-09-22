@@ -38,6 +38,7 @@ const parseJson = (text, label) => {
 };
 const jsonLines = (text) => text.split("\n").filter(Boolean).map((line) => parseJson(line, "JSONL record"));
 const quote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
+const progress = (stage) => process.stderr.write(`[package-conformance] ${stage}\n`);
 
 class TerminalScreen {
   constructor(rows, columns) {
@@ -244,6 +245,7 @@ const establishNativeTrust = (codexHome, repository, env) => new Promise((resolv
 const temporary = await mkdtemp(join(tmpdir(), "review-package-conformance-"));
 let residentPid;
 try {
+  progress("pack-and-install");
   const artifacts = join(temporary, "artifacts");
   const installation = join(temporary, "installation");
   const repository = join(temporary, "repository");
@@ -293,6 +295,7 @@ try {
   const parserResult = parseJson(parserRun.stdout, "packaged parser");
   if (parserResult.status !== "analyzed") throw new Error("packaged parser did not analyze the fixture");
 
+  progress("create-isolated-repository");
   await mustRun("git", ["init", "--quiet", "--initial-branch=master"], { cwd: repository });
   await mustRun("git", ["config", "user.name", "Package Fixture"], { cwd: repository });
   await mustRun("git", ["config", "user.email", "fixture@example.invalid"], { cwd: repository });
@@ -326,6 +329,7 @@ try {
     turn_id: "package-turn", tool_use_id: "package-add", cwd: repository,
     tool_input: { command: `*** Begin Patch\n*** Add File: profile.ts\n+${source.trim()}\n*** End Patch` }, tool_response: {},
   };
+  progress("capture-and-resident-review");
   await mustRun(cli, ["--codex-hook", "--controlled", "--controlled-writer"], { cwd: temporary, env, input: JSON.stringify(addEvent) });
   let hookOutput = {};
   for (let attempt = 0; attempt < 20; attempt += 1) {
@@ -345,6 +349,7 @@ try {
   let realCodex = { status: "not-requested" };
   let realCodexFailure;
   if (executeRealCodex) {
+    progress("real-codex-host");
     let realCodexStage = "host-version";
     let codexVersion = "unavailable";
     try {
@@ -447,11 +452,17 @@ try {
     await mkdir(dirname(outputPath), { recursive: true });
     await writeFile(outputPath, `${JSON.stringify(evidence, null, 2)}\n`, { mode: 0o600 });
   }
+  progress("passed");
   process.stdout.write(`${JSON.stringify(evidence, null, 2)}\n`);
   if (realCodexFailure !== undefined) throw realCodexFailure;
 } finally {
   if (typeof residentPid === "number") {
     try { process.kill(residentPid, "SIGTERM"); } catch {}
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      try { process.kill(residentPid, 0); }
+      catch { break; }
+      await new Promise((resolveWait) => setTimeout(resolveWait, 100));
+    }
   }
-  await rm(temporary, { recursive: true, force: true });
+  await rm(temporary, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }).catch(() => undefined);
 }
