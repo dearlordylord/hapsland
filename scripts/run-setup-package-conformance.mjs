@@ -159,6 +159,17 @@ try {
   expect(handoff.actions.some((action) => action.code === "provide-credential"), "missing secret handoff was absent");
   expect(handoff.actions.some((action) => action.code === "approve-repository-consent"), "consent handoff was absent");
   expect(handoff.actions.length <= 4, "noninteractive handoff was unbounded");
+  const installationProposal = handoff.stages.find((stage) => stage.stage === "installation")?.observed?.proposal;
+  expect(Array.isArray(installationProposal?.changes) && installationProposal.changes.every((change) =>
+    typeof change.file === "string" && typeof change.beforeDigest === "string" && typeof change.afterDigest === "string"),
+  "setup omitted exact installation paths or before/after digests");
+  expect(typeof installationProposal?.ownedChanges?.runtime?.entrypoint === "string" &&
+    typeof installationProposal?.ownedChanges?.runtime?.executable === "string" &&
+    typeof installationProposal?.ownedChanges?.hook?.matcher === "string" &&
+    typeof installationProposal?.ownedChanges?.hook?.handlers?.[0]?.command === "string" &&
+    typeof installationProposal?.ownedChanges?.hook?.handlers?.[0]?.timeout === "number" &&
+    typeof installationProposal?.ownedChanges?.ownership?.file === "string",
+  "setup omitted exact owned runtime, hook, or ownership changes");
   const installProposalDigest = actionDigest(handoff, "approve-installation", "installProposalDigest");
   const consentProposalDigest = actionDigest(handoff, "approve-repository-consent", "consentProposalDigest");
   expect(typeof installProposalDigest === "string" && typeof consentProposalDigest === "string", "setup approvals were absent");
@@ -181,6 +192,24 @@ try {
   expect(repeated.stages.some((stage) => stage.stage === "repository" && stage.summary.includes("consent remains valid")), "repeat setup did not reuse consent");
   const hooks = JSON.parse(await readFile(join(codexHome, "hooks.json"), "utf8"));
   expect(hooks.hooks.PostToolUse.length === 1, "repeat setup duplicated the owned hook");
+
+  const partialHome = join(temporary, "partial-codex-home");
+  await mkdir(partialHome, { recursive: true });
+  const partialDisabledRequest = {
+    ...baseRequest,
+    scope: { cwd: repository, review: "disabled" },
+    credential: "skip",
+    codexHome: partialHome,
+  };
+  const partialPreview = await invokeSetup(cli, repository, authorizedEnvironment, partialDisabledRequest, 6, "partial-disable preview");
+  const partialDigest = actionDigest(partialPreview, "approve-installation", "installProposalDigest");
+  expect(typeof partialDigest === "string", "partial-disable preview omitted installation approval");
+  const partialDisabled = await invokeSetup(cli, repository, {
+    ...authorizedEnvironment,
+    REVIEW_INSTALL_FAIL_AFTER_WRITES: "1",
+  }, { ...partialDisabledRequest, installProposalDigest: partialDigest }, 5, "partial installation disable");
+  expect(partialDisabled.stages.some((stage) => stage.stage === "installation" && stage.status === "partial"), "partial installation was not reported");
+  expect(partialDisabled.stages.some((stage) => stage.stage === "repository" && stage.status === "complete"), "active consent survived a partial installation disable request");
 
   const disabled = await invokeSetup(cli, repository, authorizedEnvironment, {
     ...baseRequest,
