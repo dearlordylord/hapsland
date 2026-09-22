@@ -5,9 +5,10 @@ review backend. The supported adapter profile is **Codex CLI 0.155.1 / Linux arm
 headless command hooks / controlled writer**. Node `v24.20.0` and Git `2.39.5` are the
 recorded conformance environment, not broader runtime guarantees. The installed package
 profile is narrower and exact: Node `v24.20.0`, Linux arm64, Git on `PATH`, and procfs mounted
-at `/proc`. The package also declares a macOS arm64 `/dev/fd` candidate for runner validation;
-it remains unverified until sanitized evidence is retained. Package metadata and
-`review-tool-doctor` reject other profiles rather than inferring support.
+at `/proc`, and Node `v24.20.0` on macOS arm64 with Git, `/dev/fd`, and the packaged
+`openat` capture helper. The macOS controlled installed-package path is tested. The macOS
+real Codex-host mode remains unverified. Package metadata and `review-tool-doctor` reject
+other profiles rather than inferring support.
 
 The machine-checked authoritative mapping is
 [`conformance/direct-event-v1.json`](../conformance/direct-event-v1.json). Its validator
@@ -56,6 +57,13 @@ possible. The sanitized record is
 [`evidence/package/clean-linux-node-24.20.0-arm64.json`](../evidence/package/clean-linux-node-24.20.0-arm64.json).
 It establishes the clean installed-package and real-host seam in the recorded Linux arm64
 environment. It does not broaden the adapter, platform, mode, or review-semantics profile.
+
+The issue-64 runner record is
+[`evidence/package/clean-darwin-node-24.20.0-arm64.json`](../evidence/package/clean-darwin-node-24.20.0-arm64.json).
+It establishes the clean packaged CLI, parser, descriptor-anchored capture, portable resident,
+controlled offline submission, and advice-return path on macOS 14 arm64. The repository had no
+isolated Codex authentication secret during validation, so it does not establish real Codex host
+execution on macOS; that cell remains unverified rather than inferred from the packaged hook run.
 
 ## Supported limits
 
