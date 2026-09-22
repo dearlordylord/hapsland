@@ -14,17 +14,39 @@ const manifest: InstalledReleaseManifest = {
     operatingSystem, architecture: "arm64", node: "v24.20.0", codex: "codex-cli 0.155.1",
   })),
   ordinaryReplay: { node: "v24.20.0", setupJourneys: ["headless", "interactive"] },
-  evidence: [{
-    id: "record", path: "evidence/record.json", sha256: "a".repeat(64),
-    provenance: { commit: "b".repeat(40) }, assertions: [{ pointer: "/status", equals: "passed" }],
-  }],
+  evidence: ["linux", "darwin"].map((operatingSystem) => ({
+    id: `${operatingSystem}-record`, path: `evidence/${operatingSystem}-record.json`, sha256: "a".repeat(64),
+    operatingSystem,
+    provenance: { commit: "b".repeat(40) }, assertions: [
+      { pointer: "/environment/operatingSystem", equals: operatingSystem },
+      { pointer: "/status", equals: "passed" },
+    ],
+    capabilityProofs: [
+      {
+        capability: "installed-lifecycle", operatingSystem,
+        assertions: [{ pointer: "/status", equals: "passed" }],
+      },
+      {
+        capability: "native-trust", operatingSystem,
+        assertions: [{ pointer: "/status", equals: "passed" }],
+      },
+      ...(operatingSystem === "linux" ? [{
+        capability: "authenticated-real-host", operatingSystem,
+        assertions: [
+          { pointer: "/realCodex/status", equals: "passed" },
+          { pointer: "/realCodex/hookTrust/bypassFlag", equals: false },
+          { pointer: "/realCodex/reviewSubmission/status", equals: "observed" },
+        ],
+      }] : []),
+    ],
+  })),
   compatibilityCells: [
     ...["linux", "darwin"].flatMap((operatingSystem) =>
       ["installed-lifecycle", "native-trust", "authenticated-real-host"].map((capability) => ({
         id: `${operatingSystem}-${capability}`, operatingSystem, capability, required: true,
         status: operatingSystem === "darwin" && capability === "authenticated-real-host" ? "gap" : "verified",
         ...(operatingSystem === "darwin" && capability === "authenticated-real-host"
-          ? { reason: "authentication absent" } : { evidence: ["record"] }),
+          ? { reason: "authentication absent" } : { evidence: [`${operatingSystem}-record`] }),
       }))),
     { id: "first-review", capability: "installed-first-review", required: true, status: "inconclusive", reason: "zero calls" },
   ],
@@ -49,11 +71,56 @@ describe("installed release policy", () => {
       .toThrow("darwin native-trust cell cannot be omitted");
   });
 
+  it("rejects cross-platform evidence reuse for an authenticated-host cell", () => {
+    const compatibilityCells = manifest.compatibilityCells.map((cell) =>
+      cell.id === "darwin-authenticated-real-host"
+        ? { ...cell, status: "verified" as const, evidence: ["linux-record"], reason: undefined }
+        : cell);
+    expect(() => validateInstalledReleaseManifest({ ...manifest, compatibilityCells }))
+      .toThrow("cites linux evidence for darwin");
+  });
+
+  it("rejects flipping first-review to verified with unrelated Linux evidence", () => {
+    const compatibilityCells = manifest.compatibilityCells.map((cell) =>
+      cell.id === "first-review"
+        ? { ...cell, status: "verified" as const, operatingSystem: "linux", evidence: ["linux-record"], reason: undefined }
+        : cell);
+    expect(() => validateInstalledReleaseManifest({ ...manifest, compatibilityCells }))
+      .toThrow("without a matching capability proof");
+  });
+
+  it("rejects a first-review proof that lacks provider and source observations", () => {
+    const evidence = manifest.evidence.map((item) => item.id === "linux-record" ? {
+      ...item,
+      capabilityProofs: [...item.capabilityProofs, {
+        capability: "installed-first-review",
+        operatingSystem: "linux",
+        assertions: [{ pointer: "/status", equals: "passed" }],
+      }],
+    } : item);
+    const compatibilityCells = manifest.compatibilityCells.map((cell) =>
+      cell.id === "first-review"
+        ? { ...cell, status: "verified" as const, operatingSystem: "linux", evidence: ["linux-record"], reason: undefined }
+        : cell);
+    expect(() => validateInstalledReleaseManifest({ ...manifest, evidence, compatibilityCells }))
+      .toThrow("lacks conclusive first-review semantic proof");
+  });
+
   it("checks both checksum identity and semantic evidence", () => {
-    const artifacts = new Map([["record", { sha256: "a".repeat(64), payload: { status: "passed" } }]]);
-    expect(inspectRetainedEvidence(manifest, artifacts)).toEqual([expect.objectContaining({ id: "record", status: "verified" })]);
+    const payload = {
+      status: "passed",
+      realCodex: { status: "passed", hookTrust: { bypassFlag: false }, reviewSubmission: { status: "observed" } },
+    };
+    const artifacts = new Map([
+      ["linux-record", { sha256: "a".repeat(64), payload: { ...payload, environment: { operatingSystem: "linux" } } }],
+      ["darwin-record", { sha256: "a".repeat(64), payload: { ...payload, environment: { operatingSystem: "darwin" } } }],
+    ]);
+    expect(inspectRetainedEvidence(manifest, artifacts)).toHaveLength(2);
     expect(() => inspectRetainedEvidence(manifest,
-      new Map([["record", { sha256: "c".repeat(64), payload: { status: "passed" } }]])))
+      new Map([
+        ["linux-record", { sha256: "c".repeat(64), payload: { ...payload, environment: { operatingSystem: "linux" } } }],
+        ["darwin-record", { sha256: "a".repeat(64), payload: { ...payload, environment: { operatingSystem: "darwin" } } }],
+      ])))
       .toThrow("checksum mismatch");
   });
 
