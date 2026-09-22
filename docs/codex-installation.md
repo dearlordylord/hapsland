@@ -41,8 +41,10 @@ unrelated hooks, native trust records, and settings required by remaining hooks.
 before uninstall when future review dispatch must stop; uninstall alone does not revoke them.
 Requests already sent to Jev cannot be recalled.
 
-Before writing configuration, the installer requires the declared Node 24.20.0 Linux arm64
-runtime, readable executable packaged entrypoint, and Codex CLI 0.155.1 to be ready. The
+Before writing configuration, the installer executes a bounded probe through the selected
+runtime and requires it to report Node 24.20.0 on Linux arm64. `/bin/true` or another merely
+executable file is not accepted as a runtime. The CLI, parser, and resident packaged entrypoints
+must all be readable regular files, and Codex CLI 0.155.1 must be ready. The
 installer validates `config.toml` and `hooks.json`, preserves object and array order, and
 rejects malformed or unreadable files, duplicate owned markers, explicit hook disablement, and
 locally changed owned entries. TOML edits locate parsed table/key spans, including quoted table
@@ -51,9 +53,13 @@ state are parsed again before writing. It uses a bounded 1.5-second configuratio
 concurrent-change checks, atomic per-file replacement, and a versioned journal. A `partial`
 result includes the original proposal digest and completed-file count. Rerun the same operation
 with that digest to resume. Recovery revalidates the runtime, journal targets, completed outputs,
-pending prerequisites, and generated configuration. If another tool changed a completed or
+pending prerequisites, preexisting `features.hooks = true` state, and generated configuration.
+If another tool changed a completed or
 pending file, recovery returns an actionable conflict and leaves the newer file untouched.
 
 Codex owns repository and hook trust. The installer does not edit trust records or use bypass
 flags. Start Codex normally in the enabled repository and approve the native repository and hook
 review prompts. Managed policy or an explicit `features.hooks = false` remains authoritative.
+Uninstall removes an owned feature entry only when its recorded semantic fingerprint still
+matches `features.hooks = true`; a false, missing, or commented-out value produces a conflict and
+is preserved.

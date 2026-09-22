@@ -8,7 +8,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -69,6 +69,9 @@ describe("public Codex installation operations", { timeout: 30_000 }, () => {
     const quotedEntrypoint = join(root, "packaged path 'quoted'", "cli.js");
     mkdirSync(join(root, "packaged path 'quoted'"), { recursive: true });
     writeFileSync(quotedEntrypoint, "#!/usr/bin/env node\n");
+    writeFileSync(join(dirname(quotedEntrypoint), "parser-main.js"), "#!/usr/bin/env node\n");
+    mkdirSync(join(dirname(quotedEntrypoint), "resident"));
+    writeFileSync(join(dirname(quotedEntrypoint), "resident", "main.js"), "#!/usr/bin/env node\n");
     const installEnvironment = {
       ...process.env,
       REVIEW_INSTALL_ENTRYPOINT: quotedEntrypoint,
@@ -289,6 +292,20 @@ responses_websockets_v2 = true`);
     });
     expect(existsSync(join(missingRuntime.home, ".realtime-review-tool"))).toBe(false);
 
+    const nonRuntime = fixture();
+    const trueResult = invoke(
+      { operation: "install-preview", codexHome: nonRuntime.home, codexExecutable: nonRuntime.bin },
+      { ...process.env, REVIEW_INSTALL_RUNTIME: "/bin/true" },
+    );
+    expect(trueResult).toMatchObject({
+      status: "unsupported",
+      host: { compatibility: { runtime: { checks: {
+        runtime: { ready: true },
+        node: { ready: false, observed: "not-a-supported-node-runtime" },
+      } } } },
+    });
+    expect(existsSync(join(nonRuntime.home, ".realtime-review-tool"))).toBe(false);
+
     const missingEntrypoint = fixture();
     const entrypointEnvironment = { ...process.env, REVIEW_INSTALL_ENTRYPOINT: join(missingEntrypoint.root, "missing-cli.js") };
     const preview = invoke(
@@ -306,6 +323,23 @@ responses_websockets_v2 = true`);
     expect(install.status).toBe("unsupported");
     expect(existsSync(join(missingEntrypoint.home, ".realtime-review-tool"))).toBe(false);
     expect(existsSync(join(missingEntrypoint.home, "hooks.json"))).toBe(false);
+
+    const missingCompanions = fixture();
+    const loneEntrypoint = join(missingCompanions.root, "dist", "cli.js");
+    mkdirSync(dirname(loneEntrypoint), { recursive: true });
+    writeFileSync(loneEntrypoint, "#!/usr/bin/env node\n");
+    const companions = invoke(
+      { operation: "install-preview", codexHome: missingCompanions.home, codexExecutable: missingCompanions.bin },
+      { ...process.env, REVIEW_INSTALL_ENTRYPOINT: loneEntrypoint },
+    );
+    expect(companions).toMatchObject({
+      status: "unsupported",
+      host: { compatibility: { runtime: { checks: {
+        entrypoint: { ready: true },
+        parser: { ready: false, observed: "missing" },
+        resident: { ready: false, observed: "missing" },
+      } } } },
+    });
   });
 
   it("uninstalls only owned state and preserves hooks, rules, grants, and preexisting feature settings", () => {
@@ -329,6 +363,43 @@ responses_websockets_v2 = true`);
     expect(JSON.parse(readFileSync(join(home, "hooks.json"), "utf8"))).toEqual({ hooks: { PostToolUse: [independent] } });
     expect(readFileSync(join(home, "grant.json"), "utf8")).toBe("repository-grant\n");
     expect(existsSync(join(home, ".realtime-review-tool", "installation-v1.json"))).toBe(false);
+  });
+
+  it("conflicts and preserves a locally modified owned feature value", () => {
+    for (const replacement of ["hooks = false", "# hooks = true"] as const) {
+      const { home, bin } = fixture();
+      previewAndInstall(home, bin);
+      const configPath = join(home, "config.toml");
+      const modified = readFileSync(configPath, "utf8").replace("hooks = true", replacement);
+      writeFileSync(configPath, modified);
+      const result = invoke({ operation: "uninstall", codexHome: home });
+      expect(result).toMatchObject({
+        status: "conflict",
+        error: { message: expect.stringContaining("feature value was locally modified") },
+      });
+      expect(readFileSync(configPath, "utf8")).toBe(modified);
+      expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain("--review-tool-owned=codex-v1");
+    }
+  });
+
+  it("rechecks a preexisting hooks feature before journal recovery", () => {
+    const { home, bin } = fixture();
+    const configPath = join(home, "config.toml");
+    writeFileSync(configPath, "[features]\nhooks = true\n");
+    const preview = invoke({ operation: "install-preview", codexHome: home, codexExecutable: bin });
+    const digest = (preview.proposal as { digest: string }).digest;
+    expect(invoke(
+      { operation: "install", codexHome: home, codexExecutable: bin, proposalDigest: digest },
+      { ...process.env, REVIEW_INSTALL_FAIL_AFTER_WRITES: "1" },
+    ).status).toBe("partial");
+    const modified = "[features]\nhooks = false\n";
+    writeFileSync(configPath, modified);
+    const recovery = invoke({ operation: "install", codexHome: home, codexExecutable: bin, proposalDigest: digest });
+    expect(recovery).toMatchObject({
+      status: "conflict",
+      error: { message: expect.stringContaining("preexisting Codex hooks feature changed") },
+    });
+    expect(readFileSync(configPath, "utf8")).toBe(modified);
   });
 
   it("bounds lock acquisition and reports no mutation", () => {
