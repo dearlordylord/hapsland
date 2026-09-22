@@ -5,6 +5,7 @@ import { analyzeTypeFile } from "../direct-event/analyzer.ts";
 import { inspectResident } from "../resident/client.ts";
 import {
   previewCodexInstallation,
+  inspectCodexInstallation,
   type InstallationRequest,
   type InstallationResult,
 } from "./codex-installation.ts";
@@ -78,21 +79,22 @@ export const diagnoseInstalledIntegration = async (options: {
     ? { stage: "host", status: "ready", observed: { adapter: "codex", home: host?.home, version: codex.observed } }
     : { stage: "host", status: "unsupported", observed: codex?.observed ?? "unavailable", action: "select a Codex home and install Codex CLI 0.155.1" });
 
-  if (previewRecord.status === "conflict") {
+  const inspection = object(inspectCodexInstallation(options.installation)) ?? {};
+  if (inspection.status === "conflict") {
     checks.push({
       stage: "configuration-ownership",
       status: "conflict",
-      observed: object(previewRecord.error)?.message ?? "configuration conflict",
+      observed: object(inspection.error)?.message ?? "configuration conflict",
       action: "reconcile the reported malformed, duplicate, or locally modified owned entry, then rerun doctor",
     });
-  } else if (previewRecord.status === "partial") {
+  } else if (inspection.status === "partial") {
     checks.push({
       stage: "configuration-ownership",
       status: "conflict",
-      observed: previewRecord.recovery ?? "partial mutation journal",
+      observed: inspection.recovery ?? "partial mutation journal",
       action: "resume the journaled operation with its original proposal digest",
     });
-  } else if (previewRecord.installed === true) {
+  } else if (inspection.installed === true) {
     checks.push({ stage: "configuration-ownership", status: "ready", observed: "owned hook and feature match the installation record" });
   } else {
     checks.push({

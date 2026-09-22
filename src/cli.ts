@@ -596,7 +596,7 @@ const runOperation = (
         activity: primaryActivity,
         activitySource: residentActivity.observed ? "resident-v1" : "legacy-receipt-v1",
         evidence: {
-          resident: "resident-v1",
+          resident: residentActivity,
           legacyReceipt: activity,
         },
         grants: grants.map((grant) => ({
@@ -611,9 +611,7 @@ const runOperation = (
             operation.sessionId ?? "<session id required>",
             `${readinessStatus} (configuration=${configurationStatus}, consent=${output.readiness.consent}, credentials=${credentials ? "present" : "absent"})`,
             activity,
-          )}${residentActivity.observed
-            ? formatActivityHuman(operation.sessionId ?? "<session id required>", residentActivity)
-            : ""}`
+          )}${formatActivityHuman(operation.sessionId ?? "<session id required>", residentActivity)}`
         : output;
     }
     const settings = yield* loadReviewSettings(
@@ -988,7 +986,14 @@ const program = Effect.gen(function* () {
               credential: {
                 stage: "credential-accessibility",
                 status: "unknown",
-                observed: "repository configuration is unavailable",
+                observed: {
+                  inspectedContext: "doctor-process",
+                  configuredEnvironmentVariable: "unknown",
+                  doctorProcessEnvironment: "unknown-not-inspected",
+                  actualHookAccessibility: "unknown",
+                  savedCredentialAccessibility: "unknown-not-inspected-by-this-version",
+                  reason: "repository configuration is unavailable",
+                },
                 action: "fix repository discovery, then rerun doctor without passing any secret",
               } satisfies DoctorCheck,
             };
@@ -1008,7 +1013,14 @@ const program = Effect.gen(function* () {
               credential: {
                 stage: "credential-accessibility",
                 status: "unknown",
-                observed: "credential selection could not be resolved",
+                observed: {
+                  inspectedContext: "doctor-process",
+                  configuredEnvironmentVariable: "unknown",
+                  doctorProcessEnvironment: "unknown-not-inspected",
+                  actualHookAccessibility: "unknown",
+                  savedCredentialAccessibility: "unknown-not-inspected-by-this-version",
+                  reason: "credential selection could not be resolved",
+                },
                 action: "repair review configuration, then rerun doctor without passing any secret",
               } satisfies DoctorCheck,
             };
@@ -1031,18 +1043,20 @@ const program = Effect.gen(function* () {
                   observed: authorization._tag === "Failure" ? "consent state unavailable" : authorization.success.status,
                   action: "preview and explicitly enable review for this canonical repository",
                 } satisfies DoctorCheck,
-            credential: credential
-              ? {
-                  stage: "credential-accessibility",
-                  status: "ready",
-                  observed: { source: "environment", variable: settings.credentialEnvVar, accessible: true },
-                } satisfies DoctorCheck
-              : {
-                  stage: "credential-accessibility",
-                  status: "unknown",
-                  observed: { source: "saved-or-environment", variable: settings.credentialEnvVar, accessible: "unknown" },
-                  action: `make ${settings.credentialEnvVar} available to the hook context or use the supported login operation`,
-                } satisfies DoctorCheck,
+            credential: {
+              stage: "credential-accessibility",
+              status: "unknown",
+              observed: {
+                inspectedContext: "doctor-process",
+                configuredEnvironmentVariable: settings.credentialEnvVar,
+                doctorProcessEnvironment: credential ? "present" : "absent",
+                actualHookAccessibility: "unknown",
+                savedCredentialAccessibility: "unknown-not-inspected-by-this-version",
+              },
+              action: credential
+                ? "launch the selected host from this environment, then verify one controlled hook event"
+                : `make ${settings.credentialEnvVar} available to the hook context or use the supported login operation`,
+            } satisfies DoctorCheck,
           };
         }).pipe(Effect.provide(Consent.layer({ statePath })));
         return yield* Effect.promise(() => diagnoseInstalledIntegration({

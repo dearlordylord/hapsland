@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, copyFile, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { ensureResident, residentRequest } from "../src/resident/client.ts";
@@ -50,6 +50,8 @@ const temporary = await mkdtemp(join(tmpdir(), "direct-event-host-conformance-")
 let record;
 try {
   const repository = join(temporary, "repository");
+  const artifacts = join(temporary, "artifacts");
+  const installation = join(temporary, "installation");
   const home = join(temporary, "codex-home");
   const state = join(temporary, "consent");
   const runtime = join(temporary, "runtime");
@@ -57,7 +59,18 @@ try {
   const stagesPath = join(temporary, "stages.jsonl");
   const callsPath = join(temporary, "calls.txt");
   await mkdir(repository);
+  await mkdir(artifacts);
+  await mkdir(installation);
   await mkdir(home, { mode: 0o700 });
+  const packed = await run("npm", ["pack", "--pack-destination", artifacts], { cwd: root });
+  if (packed.code !== 0) throw new Error("npm pack failed for host conformance");
+  const artifactName = (await readdir(artifacts)).find((entry) => entry.endsWith(".tgz"));
+  if (artifactName === undefined) throw new Error("npm pack did not produce a host-conformance artifact");
+  const installed = await run("npm", [
+    "install", "--prefer-offline", "--omit=dev", "--prefix", installation, join(artifacts, artifactName),
+  ], { cwd: temporary, timeoutMs: 120_000 });
+  if (installed.code !== 0) throw new Error("host-conformance package install failed");
+  const installedCli = join(installation, "node_modules", ".bin", "review-tool");
   await run("git", ["init", "--quiet", "--initial-branch=master"], { cwd: repository });
   await run("git", ["config", "user.name", "Conformance Fixture"], { cwd: repository });
   await run("git", ["config", "user.email", "fixture@example.invalid"], { cwd: repository });
@@ -97,15 +110,16 @@ try {
     REVIEW_HOST_STAGE_PATH: stagesPath,
     REVIEW_CONTROL_JSON: JSON.stringify({ answers, capturePath: callsPath }),
     REVIEW_VISIBILITY_MARKER: visibilityMarker,
+    REVIEW_HOST_PRODUCT_CLI: installedCli,
   };
   for (const key of ["OPENAI_API_KEY", "TYPESAFE_API_KEY"]) delete env[key];
 
-  const preview = await run(process.execPath, [join(root, "src/cli.ts"), "--enable"], {
+  const preview = await run(installedCli, ["--enable"], {
     cwd: root, env, input: JSON.stringify({ version: 1, operation: "enable", cwd: repository }),
   });
   const digest = JSON.parse(preview.stdout).proposal?.digest;
   if (typeof digest !== "string") gaps.push("consent preview failed");
-  else await run(process.execPath, [join(root, "src/cli.ts"), "--enable-confirm"], {
+  else await run(installedCli, ["--enable-confirm"], {
     cwd: root, env, input: JSON.stringify({ version: 1, operation: "enable-confirm", cwd: repository, proposalDigest: digest }),
   });
 
@@ -129,7 +143,7 @@ try {
   const observedSessionId = stages.find((stage) => typeof stage.sessionId === "string")?.sessionId;
   const activity = observedSessionId === undefined
     ? undefined
-    : JSON.parse((await run(process.execPath, [join(root, "src/cli.ts"), "--status"], {
+    : JSON.parse((await run(installedCli, ["--status"], {
         cwd: root,
         env,
         input: JSON.stringify({ version: 1, operation: "status", cwd: repository, sessionId: observedSessionId }),
@@ -141,6 +155,7 @@ try {
     environment: versions,
     mode: "headless command hooks / controlled writer / controlled DecisionModel",
     controlledWriter: true,
+    productEntrypoint: "installed-package",
     isolation: { temporaryCodexHome: true, temporaryGitRepository: true, retainedSyntheticSource: false },
     addLiveEvidence: {
       hostExitCode: host.code,

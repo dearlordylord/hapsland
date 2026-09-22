@@ -930,6 +930,44 @@ export const previewCodexInstallation = (request: InstallationRequest): Installa
   }
 };
 
+/** Read-only ownership/configuration inspection independent of host compatibility. */
+export const inspectCodexInstallation = (request: InstallationRequest): InstallationResult => {
+  const inputs = resolveInputs(request);
+  try {
+    const pendingJournal = readJournal(inputs.paths.journal);
+    if (pendingJournal !== undefined) {
+      validateJournalScope(pendingJournal, inputs);
+      return {
+        version: RESULT_VERSION,
+        operation: "inspect-installation",
+        status: "partial",
+        installed: false,
+        host: { adapter: "codex", home: inputs.home },
+        recovery: {
+          operation: pendingJournal.operation,
+          proposalDigest: pendingJournal.proposalDigest,
+          completedFiles: pendingJournal.completed.length,
+          totalFiles: pendingJournal.mutations.length,
+        },
+      };
+    }
+    const plan = makeInstallPlan(request);
+    return {
+      version: RESULT_VERSION,
+      operation: "inspect-installation",
+      status: plan.alreadyInstalled ? "installed" : "missing",
+      installed: plan.alreadyInstalled,
+      host: { adapter: "codex", home: plan.inputs.home },
+    };
+  } catch (cause) {
+    return conflictResult(
+      "inspect-installation",
+      cause instanceof Error ? cause.message : "installation inspection failed",
+      inputs.home,
+    );
+  }
+};
+
 export const installCodexIntegration = async (request: InstallationRequest): Promise<InstallationResult> => {
   const inputs = resolveInputs(request);
   const initialCompatibility = compatibility(inputs);
@@ -1134,4 +1172,5 @@ export const codexInstallation = {
   preview: previewCodexInstallation,
   install: installCodexIntegration,
   uninstall: uninstallCodexIntegration,
+  inspect: inspectCodexInstallation,
 };
