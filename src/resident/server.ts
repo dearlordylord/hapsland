@@ -332,7 +332,8 @@ export class ResidentServer {
   readonly #now: () => number;
   #server: Server | undefined;
   #connections = 0;
-  #closed = false;
+  #lifecycle: "active" | "retiring" | "closed" = "active";
+  #retirementScheduled = false;
   #rejectedCapacity = 0;
   #peakLedgerBytes = 0;
   #maxMaterializedPreparedUnits = 0;
@@ -391,6 +392,7 @@ export class ResidentServer {
     this.#pruneNoticeCooldowns(now);
     const dispatch = this.#dispatcher.snapshot();
     const capacity = this.#ledger.snapshot();
+    const reuse = this.#reuse.snapshot();
     return {
       status: "stats",
       queued: dispatch.queued,
@@ -398,7 +400,42 @@ export class ResidentServer {
       pendingAdvice: this.#advice.length + this.#pendingNoticeCount(),
       retainedBytes: capacity.bytes,
       rejectedCapacity: this.#rejectedCapacity,
+      successfulCacheEntries: reuse.entries,
+      pendingEvaluations: reuse.pending,
+      noticeCooldowns: this.#noticeCooldowns.size,
+      currentWork: this.#currentWork.size,
     };
+  }
+
+  /**
+   * Voluntary idle cleanup is an allowed loss boundary, but only after every
+   * accepted outcome, delivery lease, pending evaluation and cooldown has
+   * reached a terminal state. Successful cache entries are then discarded as
+   * part of ending this lifetime; they never authorize source reconstruction.
+   */
+  cleanup(): "busy" | "cleaned" {
+    if (this.#lifecycle !== "active") return "busy";
+    const now = this.#now();
+    this.#expirePending(now);
+    this.#pruneNoticeCooldowns(now);
+    const dispatch = this.#dispatcher.snapshot();
+    const reuse = this.#reuse.snapshot();
+    const capacity = this.#ledger.snapshot();
+    if (
+      dispatch.queued !== 0 || dispatch.running !== 0 ||
+      this.#advice.length !== 0 || this.#pendingNoticeCount() !== 0 ||
+      reuse.pending !== 0 || this.#currentWork.size !== 0 ||
+      this.#noticeCooldowns.size !== 0 || this.#connections > 1 ||
+      capacity.items !== reuse.entries || capacity.bytes !== reuse.bytes
+    ) return "busy";
+    this.#reuse.clear();
+    if (this.#ledger.snapshot().items !== 0) return "busy";
+    // This synchronous state transition is the cleanup commit point. Node
+    // cannot interleave another handler between the idle proof above and this
+    // assignment; the response may be delayed, but this lifetime is already
+    // obsolete and can acquire no new ownership.
+    this.#lifecycle = "retiring";
+    return "cleaned";
   }
 
   admit(observation: DirectObservation, dispatch: ResidentDispatchContext): ResidentResponse {
@@ -407,7 +444,7 @@ export class ResidentServer {
     // Reclaim cooldown state whose active guarantee and pending notice have
     // both ended before it can cause an otherwise-valid admission to fail.
     this.#pruneNoticeCooldowns(now);
-    if (this.#closed) return { status: "rejected-capacity" };
+    if (this.#lifecycle !== "active") return { status: "rejected-capacity" };
     const partition = recipientPartition(observation.root, observation.recipient);
     const reservation = this.#reserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES);
     if (reservation === undefined) {
@@ -800,7 +837,7 @@ export class ResidentServer {
     kind: OperationalNoticeKind,
     now = this.#now(),
   ): void {
-    if (this.#closed || !addressableRecipient(observation.recipient)) return;
+    if (this.#lifecycle !== "active" || !addressableRecipient(observation.recipient)) return;
     const partition = recipientPartition(observation.root, observation.recipient);
     const key = this.#noticeKey(partition, kind);
     this.#pruneNoticeCooldowns(now, key);
@@ -966,7 +1003,7 @@ export class ResidentServer {
         return settings;
       }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))));
       this.#ledger.release(job.reservation);
-      if (settings === undefined || this.#closed) return;
+      if (settings === undefined || this.#lifecycle !== "active") return;
 
       // A candidate path is captured and analyzed only while its maximum
       // supported logical workspace is charged. Processing candidates one at
@@ -1136,7 +1173,7 @@ export class ResidentServer {
           ? evaluation
           : evaluation.pipe(Effect.provide(credentialProvider)));
       }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))));
-      if (result?.status === "evaluated" && !this.#closed) {
+      if (result?.status === "evaluated" && this.#lifecycle === "active") {
         const evaluation = { prepared: job.prepared, findings: result.findings };
         this.#reuse.put(job.partition, job.evaluationKey, evaluation);
         this.#reuse.releaseClaim(job.evaluationKey);
@@ -1261,9 +1298,13 @@ export class ResidentServer {
 
   async handle(request: ResidentRequest): Promise<ResidentResponse> {
     if (request.operation === "hello") {
-      return { status: "ready", lifetime: this.lifetime, pid: process.pid };
+      return this.#lifecycle === "active"
+        ? { status: "ready", lifetime: this.lifetime, pid: process.pid }
+        : { status: "obsolete-lifetime" };
     }
-    if (request.lifetime !== this.lifetime) return { status: "obsolete-lifetime" };
+    if (request.lifetime !== this.lifetime || this.#lifecycle !== "active") {
+      return { status: "obsolete-lifetime" };
+    }
     if (request.operation === "admit") {
       return this.admit(request.observation, request.dispatch);
     }
@@ -1273,19 +1314,23 @@ export class ResidentServer {
     if (request.operation === "acknowledge") return this.acknowledge(request.token);
     if (request.operation === "finalize") return this.finalize(request.token);
     if (request.operation === "stats") return this.stats();
-    if (request.operation === "shutdown") {
-      setTimeout(() => void this.close(), 10);
-      return { status: "acknowledged" };
+    if (request.operation === "cleanup") {
+      const status = this.cleanup();
+      return { status };
     }
     return { status: "unsupported" };
   }
 
   async #responseGate(operation: ResidentRequest["operation"]): Promise<void> {
-    const variable = operation === "collect"
-      ? "REVIEW_RESIDENT_COLLECT_RESPONSE_GATE_PATH"
-      : operation === "acknowledge"
-        ? "REVIEW_RESIDENT_ACK_RESPONSE_GATE_PATH"
-        : undefined;
+    const variable = operation === "admit"
+      ? "REVIEW_RESIDENT_ADMIT_RESPONSE_GATE_PATH"
+      : operation === "cleanup"
+        ? "REVIEW_RESIDENT_CLEANUP_RESPONSE_GATE_PATH"
+        : operation === "collect"
+          ? "REVIEW_RESIDENT_COLLECT_RESPONSE_GATE_PATH"
+          : operation === "acknowledge"
+            ? "REVIEW_RESIDENT_ACK_RESPONSE_GATE_PATH"
+            : undefined;
     const gate = variable === undefined ? undefined : process.env[variable];
     if (gate === undefined) return;
     try {
@@ -1346,8 +1391,16 @@ export class ResidentServer {
     let bytes = 0;
     let encoded = "";
     let handled = false;
+    let request: ResidentRequest | undefined;
     socket.setTimeout(1_500, () => socket.destroy());
-    socket.once("close", () => { this.#connections -= 1; });
+    socket.once("close", () => {
+      this.#connections -= 1;
+      const closedPath = process.env.REVIEW_RESIDENT_COLLECT_DISCONNECT_PATH;
+      if (
+        closedPath !== undefined && request?.operation === "collect" &&
+        request.recipient.toolUseId === "disconnect"
+      ) void writeFile(closedPath, "closed\n").catch(() => undefined);
+    });
     socket.on("error", () => undefined);
     socket.on("data", (chunk: Buffer) => {
       if (handled) return;
@@ -1364,25 +1417,34 @@ export class ResidentServer {
       // Stop pulling transport bytes as soon as the single bounded frame is
       // complete. Recipient and observation decoding happens only afterward.
       socket.pause();
-      const request = decodeResidentRequest(encoded.slice(0, newline));
-      if (request === undefined) {
+      const decoded = decodeResidentRequest(encoded.slice(0, newline));
+      request = decoded;
+      if (decoded === undefined) {
         socket.end(`${JSON.stringify({ status: "unsupported" })}\n`);
         return;
       }
-      void this.handle(request).then(async (response) => {
-        await this.#responseGate(request.operation);
+      void this.handle(decoded).then(async (response) => {
+        await this.#responseGate(decoded.operation);
         const handoff = this.#responseForHandoff(response);
         if (socket.destroyed) {
           if (handoff.status === "advice") this.releaseDelivery(handoff.token);
+          if (handoff.status === "cleaned") this.#scheduleRetirementClose();
           return;
         }
         socket.end(`${JSON.stringify(handoff)}\n`, () => {
           if (socket.errored !== null && handoff.status === "advice") this.releaseDelivery(handoff.token);
         });
+        if (handoff.status === "cleaned") this.#scheduleRetirementClose();
       }).catch(() => {
         if (!socket.destroyed) socket.end(`${JSON.stringify({ status: "unsupported" })}\n`);
       });
     });
+  }
+
+  #scheduleRetirementClose(): void {
+    if (this.#retirementScheduled) return;
+    this.#retirementScheduled = true;
+    setTimeout(() => void this.close(), 10);
   }
 
   async listen(): Promise<void> {
@@ -1408,7 +1470,7 @@ export class ResidentServer {
   }
 
   async close(): Promise<void> {
-    this.#closed = true;
+    this.#lifecycle = "closed";
     for (const job of this.#dispatcher.close()) {
       if (job.kind === "unit") {
         this.#reuse.releaseClaim(job.evaluationKey);
