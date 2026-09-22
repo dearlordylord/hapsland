@@ -10,7 +10,8 @@ import type { ReviewSettings } from "../runtime/review-config.ts";
 import { adaptCodexDirectEvent, verifyObservationRoot } from "./adapter.ts";
 import {
   analyzeTypeFile,
-  typeDeclarationCount,
+  analyzerMaterializationPreflight,
+  type AnalyzerMaterializationPreflight,
   type TypeFileAnalysis,
   type UnitAnalysis,
 } from "./analyzer.ts";
@@ -55,7 +56,7 @@ export type DirectReviewContext = {
   readonly beforeAnalyze?: (
     path: string,
     sourceBytes: number,
-    declarations: number | undefined,
+    preflight: AnalyzerMaterializationPreflight | undefined,
   ) => Effect.Effect<boolean>;
   readonly beforeDispatch?: Effect.Effect<void>;
   readonly beforeHandoff?: Effect.Effect<void>;
@@ -203,7 +204,7 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
     if (context.beforeAnalyze !== undefined && !(yield* context.beforeAnalyze(
       eligible.relativePath,
       captured.byteLength,
-      typeDeclarationCount(eligible.relativePath, captured.text),
+      analyzerMaterializationPreflight(eligible.relativePath, captured.text),
     ))) {
       pathOutcomes.push({ status: "incomplete", path: eligible.relativePath, reason: "capture-unavailable" });
       outcomes.push({ status: "skipped", path: eligible.relativePath });
