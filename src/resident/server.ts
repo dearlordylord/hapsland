@@ -55,6 +55,7 @@ import {
   selectFittingFindings,
   type CollectionMode,
 } from "./collection.ts";
+import { EvaluationReuse, residentEvaluationIdentity } from "./evaluation-reuse.ts";
 
 const BACKEND_CONCURRENCY = 2;
 const RESERVATION_OVERHEAD_BYTES = 1024;
@@ -118,7 +119,8 @@ type UnitJob = {
   readonly reservation: CapacityReservation;
   readonly dispatch: ResidentDispatchContext;
   readonly prepared: PreparedUnit;
-  readonly revision: WorkRevision;
+  revision: WorkRevision;
+  readonly evaluationKey: string;
 };
 
 type Job = IngressJob | UnitJob;
@@ -144,10 +146,12 @@ type Advice = Omit<UnitJob, "dispatch" | "kind"> & {
 
 type WorkRevision = {
   readonly subject: string;
+  readonly token: string;
   readonly generation: number;
 };
 
 type CurrentWork = {
+  readonly token: string;
   readonly generation: number;
   readonly input: PreparedUnit["input"];
   readonly members: number;
@@ -159,6 +163,18 @@ const recipientPartition = (root: string, recipient: DirectRecipient) => canonic
   hostVersion: recipient.hostVersion,
   sessionId: recipient.sessionId,
   agentId: recipient.agentId,
+});
+
+const workSubject = (partition: string, prepared: PreparedUnit): string => canonicalValue({
+  partition,
+  path: prepared.input.path,
+  declaration: prepared.input.declaration.name,
+});
+
+const reservedRevision = (partition: string, prepared: PreparedUnit): WorkRevision => ({
+  subject: workSubject(partition, prepared),
+  token: "00000000-0000-0000-0000-000000000000",
+  generation: Number.MAX_SAFE_INTEGER,
 });
 
 const worstCaseFindings = (prepared: PreparedUnit): ReadonlyArray<Finding> =>
@@ -208,12 +224,38 @@ export const residentUnitReservationBytes = (
   prepared: PreparedUnit,
 ): number => {
   const findings = worstCaseFindings(prepared);
-  return logicalBytes({
+  const partition = recipientPartition(observation.root, observation.recipient);
+  const evaluationKey = residentEvaluationIdentity(partition, prepared);
+  const revision = reservedRevision(partition, prepared);
+  const currentWork = {
+    subject: revision.subject,
+    token: revision.token,
+    generation: revision.generation,
+    input: prepared.input,
+    members: 1,
+  };
+  const unitBytes = logicalBytes({
+    kind: "unit",
     observation,
+    partition,
     dispatch,
-    evaluation: { prepared, findings },
-    output: toCodexDirectEventOutput(findings),
-  }) + findings.length * MAX_PROBABILITY_ENCODING_BYTES +
+    prepared,
+    revision,
+    evaluationKey,
+    currentWork,
+  });
+  const adviceBytes = logicalBytes({
+    observation,
+    partition,
+    prepared,
+    revision,
+    evaluationKey,
+    evaluations: [{ prepared, findings }],
+    findings,
+    encodedBytes: logicalBytes(toCodexDirectEventOutput(findings)),
+    currentWork,
+  }) + findings.length * MAX_PROBABILITY_ENCODING_BYTES;
+  return Math.max(unitBytes, adviceBytes) +
     RESERVATION_OVERHEAD_BYTES;
 };
 
@@ -233,6 +275,7 @@ export class ResidentServer {
   readonly #advice: Array<Advice> = [];
   readonly #currentWork = new Map<string, CurrentWork>();
   readonly #ledger = new CapacityLedger();
+  readonly #reuse: EvaluationReuse<UnitJob>;
   readonly #dispatcher: DispatchCycles<string, Job>;
   readonly #now: () => number;
   #server: Server | undefined;
@@ -241,6 +284,7 @@ export class ResidentServer {
   #rejectedCapacity = 0;
   #peakLedgerBytes = 0;
   #maxMaterializedPreparedUnits = 0;
+  #nextWorkGeneration = 1;
   readonly #beforeRevalidate: ((adviceId: string) => Promise<void>) | undefined;
   readonly #afterPrepare: (() => Promise<void>) | undefined;
   readonly #beforeEvaluate: ((prepared: PreparedUnit) => Promise<void>) | undefined;
@@ -269,6 +313,11 @@ export class ResidentServer {
     this.#afterRevalidationWorkspaceReserved = options.afterRevalidationWorkspaceReserved;
     this.#afterAdvicePending = options.afterAdvicePending;
     this.#beforeFinalRevalidate = options.beforeFinalRevalidate;
+    this.#reuse = new EvaluationReuse({
+      reserve: (partition, bytes) => this.#reserve(partition, bytes),
+      release: (reservation) => { this.#ledger.release(reservation); },
+      logicalBytes,
+    });
     this.#dispatcher = new DispatchCycles(
       BACKEND_CONCURRENCY,
       async (entry) => this.#run(entry.value, entry.cycle, entry.sequence),
@@ -561,10 +610,17 @@ export class ResidentServer {
   accountingMetrics(): {
     readonly peakLedgerBytes: number;
     readonly maxMaterializedPreparedUnits: number;
+    readonly successfulCacheEntries: number;
+    readonly successfulCacheBytes: number;
+    readonly pendingEvaluations: number;
   } {
+    const reuse = this.#reuse.snapshot();
     return {
       peakLedgerBytes: this.#peakLedgerBytes,
       maxMaterializedPreparedUnits: this.#maxMaterializedPreparedUnits,
+      successfulCacheEntries: reuse.entries,
+      successfulCacheBytes: reuse.bytes,
+      pendingEvaluations: reuse.pending,
     };
   }
 
@@ -577,11 +633,7 @@ export class ResidentServer {
   }
 
   #subject(partition: string, prepared: PreparedUnit): string {
-    return canonicalValue({
-      partition,
-      path: prepared.input.path,
-      declaration: prepared.input.declaration.name,
-    });
+    return workSubject(partition, prepared);
   }
 
   #registerCurrentWork(partition: string, prepared: PreparedUnit): WorkRevision {
@@ -589,32 +641,51 @@ export class ResidentServer {
     const retained = this.#currentWork.get(subject);
     if (retained !== undefined && canonicalValue(retained.input) === canonicalValue(prepared.input)) {
       this.#currentWork.set(subject, { ...retained, members: retained.members + 1 });
-      return { subject, generation: retained.generation };
+      return { subject, token: retained.token, generation: retained.generation };
     }
-    const generation = (retained?.generation ?? 0) + 1;
+    const generation = this.#nextWorkGeneration++;
+    const token = randomUUID();
     this.#currentWork.set(subject, {
+      token,
       generation,
       input: prepared.input,
-      members: (retained?.members ?? 0) + 1,
+      members: 1,
     });
     for (const advice of [...this.#advice]) {
-      if (advice.revision.subject === subject && advice.revision.generation !== generation) {
+      if (advice.revision.subject === subject && advice.revision.token !== token) {
         this.#removeAdvice(advice.id);
       }
     }
-    return { subject, generation };
+    return { subject, token, generation };
+  }
+
+  #restoreCurrentWork(partition: string, prepared: PreparedUnit): WorkRevision {
+    const subject = this.#subject(partition, prepared);
+    const retained = this.#currentWork.get(subject);
+    if (retained !== undefined && canonicalValue(retained.input) === canonicalValue(prepared.input)) {
+      return { subject, token: retained.token, generation: retained.generation };
+    }
+    const generation = this.#nextWorkGeneration++;
+    const token = randomUUID();
+    this.#currentWork.set(subject, { token, generation, input: prepared.input, members: 1 });
+    for (const advice of [...this.#advice]) {
+      if (advice.revision.subject === subject && advice.revision.token !== token) {
+        this.#removeAdvice(advice.id);
+      }
+    }
+    return { subject, token, generation };
   }
 
   #isCurrentWork(revision: WorkRevision, prepared: PreparedUnit): boolean {
     const retained = this.#currentWork.get(revision.subject);
     return retained !== undefined &&
-      retained.generation === revision.generation &&
+      retained.token === revision.token &&
       canonicalValue(retained.input) === canonicalValue(prepared.input);
   }
 
   #releaseCurrentWork(revision: WorkRevision): void {
     const retained = this.#currentWork.get(revision.subject);
-    if (retained === undefined) return;
+    if (retained === undefined || retained.token !== revision.token) return;
     if (retained.members <= 1) this.#currentWork.delete(revision.subject);
     else this.#currentWork.set(revision.subject, { ...retained, members: retained.members - 1 });
   }
@@ -642,11 +713,11 @@ export class ResidentServer {
   }
 
   async #run(job: Job, cycle: number, sequence: number): Promise<void> {
-    if (job.kind === "ingress") return this.#prepare(job);
+    if (job.kind === "ingress") return this.#prepare(job, cycle, sequence);
     return this.#evaluateUnit(job, cycle, sequence);
   }
 
-  async #prepare(job: IngressJob): Promise<void> {
+  async #prepare(job: IngressJob, cycle: number, sequence: number): Promise<void> {
     try {
       await this.#awaitBackendGate();
       const userConfigPath = job.dispatch.userConfigPath ?? undefined;
@@ -715,29 +786,66 @@ export class ResidentServer {
           if (!accepted) this.#rejectedCapacity += 1;
           return accepted;
         });
+        const planned = deliverable.map((outcome) => {
+          const evaluationKey = this.#reuse.key(job.partition, outcome.prepared);
+          if (this.#advice.some((advice) => advice.evaluationKey === evaluationKey)) {
+            return { kind: "joined" as const, outcome, evaluationKey };
+          }
+          const pending = this.#reuse.pending(evaluationKey);
+          if (pending !== undefined) {
+            pending.revision = this.#restoreCurrentWork(job.partition, outcome.prepared);
+            return { kind: "joined" as const, outcome, evaluationKey };
+          }
+          if (this.#reuse.hasPending(evaluationKey)) {
+            return { kind: "joined" as const, outcome, evaluationKey };
+          }
+          const cached = this.#reuse.get(evaluationKey);
+          if (cached !== undefined) return { kind: "cached" as const, outcome, evaluationKey, cached };
+          this.#reuse.claim(evaluationKey);
+          return { kind: "owner" as const, outcome, evaluationKey };
+        });
+        const retained = planned.filter((item) =>
+          item.kind === "owner" || (item.kind === "cached" && item.cached.evaluation.findings.length > 0));
         const reservations = this.#ledger.replace(
           workspace,
-          deliverable.map((outcome) =>
-            residentUnitReservationBytes(pathObservation, job.dispatch, outcome.prepared)),
+          retained.map((item) =>
+            residentUnitReservationBytes(pathObservation, job.dispatch, item.outcome.prepared)),
         );
         this.#peakLedgerBytes = Math.max(this.#peakLedgerBytes, this.#ledger.snapshot().bytes);
-        for (const [index, outcome] of deliverable.entries()) {
+        for (const item of planned) {
+          if (item.kind === "cached" && item.cached.evaluation.findings.length === 0) {
+            const revision = this.#registerCurrentWork(job.partition, item.outcome.prepared);
+            this.#releaseCurrentWork(revision);
+          }
+        }
+        for (const [index, item] of retained.entries()) {
           const reservation = reservations[index];
           if (reservation === undefined) {
+            if (item.kind === "owner") this.#reuse.releaseClaim(item.evaluationKey);
             this.#rejectedCapacity += 1;
             continue;
           }
-          const revision = this.#registerCurrentWork(job.partition, outcome.prepared);
+          const revision = this.#registerCurrentWork(job.partition, item.outcome.prepared);
           const unit: UnitJob = {
             kind: "unit",
             observation: pathObservation,
             partition: job.partition,
             reservation,
             dispatch: job.dispatch,
-            prepared: outcome.prepared,
+            prepared: item.outcome.prepared,
             revision,
+            evaluationKey: item.evaluationKey,
           };
+          if (item.kind === "cached") {
+            await this.#retainAdvice(unit, {
+              prepared: item.outcome.prepared,
+              findings: item.cached.evaluation.findings,
+            }, cycle, sequence);
+            continue;
+          }
+          this.#reuse.attachPending(item.evaluationKey, unit);
           if (!this.#dispatcher.enqueue(job.partition, unit)) {
+            this.#reuse.releaseClaim(item.evaluationKey);
             this.#releaseUnit(unit);
             this.#rejectedCapacity += 1;
           }
@@ -755,6 +863,7 @@ export class ResidentServer {
     try {
       await this.#awaitBackendGate();
       if (!this.#isCurrentWork(job.revision, job.prepared)) {
+        this.#reuse.releaseClaim(job.evaluationKey);
         this.#releaseUnit(job);
         return;
       }
@@ -792,40 +901,59 @@ export class ResidentServer {
           ? evaluation
           : evaluation.pipe(Effect.provide(credentialProvider)));
       }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))));
-      if (
-        result?.status === "evaluated" &&
-        result.findings.length > 0 &&
-        !this.#closed &&
-        this.#isCurrentWork(job.revision, job.prepared)
-      ) {
-        const evaluations = [{ prepared: job.prepared, findings: result.findings }];
-        const advice: Advice = {
-          id: randomUUID(),
-          observation: job.observation,
-          partition: job.partition,
-          reservation: job.reservation,
-          prepared: job.prepared,
-          revision: job.revision,
-          evaluations,
-          findings: result.findings,
-          cycle,
-          sequence,
-          pendingAt: this.#now(),
-          cycleComplete: false,
-          collectionEligible: false,
-          retired: false,
-          revalidationActive: false,
-        };
-        const insertion = this.#advice.findIndex((item) => item.sequence > sequence);
-        if (insertion < 0) this.#advice.push(advice);
-        else this.#advice.splice(insertion, 0, advice);
-        await this.#afterAdvicePending?.(advice.id);
+      if (result?.status === "evaluated" && !this.#closed) {
+        const evaluation = { prepared: job.prepared, findings: result.findings };
+        this.#reuse.put(job.partition, job.evaluationKey, evaluation);
+        this.#reuse.releaseClaim(job.evaluationKey);
+        if (
+          result.findings.length === 0 ||
+          !this.#isCurrentWork(job.revision, job.prepared)
+        ) {
+          this.#releaseUnit(job);
+          return;
+        }
+        await this.#retainAdvice(job, evaluation, cycle, sequence);
         return;
       }
     } catch (cause) {
       if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error(cause);
     }
+    this.#reuse.releaseClaim(job.evaluationKey);
     this.#releaseUnit(job);
+  }
+
+  #retainAdvice(
+    job: UnitJob,
+    evaluation: EvaluatedUnit,
+    cycle: number,
+    sequence: number,
+  ): Promise<void> | void {
+    if (this.#advice.some((item) => item.evaluationKey === job.evaluationKey)) {
+      this.#releaseUnit(job);
+      return;
+    }
+    const advice: Advice = {
+      id: randomUUID(),
+      observation: job.observation,
+      partition: job.partition,
+      reservation: job.reservation,
+      prepared: job.prepared,
+      revision: job.revision,
+      evaluationKey: job.evaluationKey,
+      evaluations: [evaluation],
+      findings: evaluation.findings,
+      cycle,
+      sequence,
+      pendingAt: this.#now(),
+      cycleComplete: false,
+      collectionEligible: false,
+      retired: false,
+      revalidationActive: false,
+    };
+    const insertion = this.#advice.findIndex((item) => item.sequence > sequence);
+    if (insertion < 0) this.#advice.push(advice);
+    else this.#advice.splice(insertion, 0, advice);
+    return this.#afterAdvicePending?.(advice.id);
   }
 
   async #awaitBackendGate(): Promise<void> {
@@ -1038,7 +1166,10 @@ export class ResidentServer {
   async close(): Promise<void> {
     this.#closed = true;
     for (const job of this.#dispatcher.close()) {
-      if (job.kind === "unit") this.#releaseUnit(job);
+      if (job.kind === "unit") {
+        this.#reuse.releaseClaim(job.evaluationKey);
+        this.#releaseUnit(job);
+      }
       else this.#ledger.release(job.reservation);
     }
     for (const advice of this.#advice.splice(0)) {
@@ -1047,6 +1178,7 @@ export class ResidentServer {
     }
     // Running work may be interrupted by process exit or finish later. Clear
     // its logical ownership now; its eventual terminal release is idempotent.
+    this.#reuse.clear();
     this.#ledger.clear();
     this.#currentWork.clear();
     const server = this.#server;
