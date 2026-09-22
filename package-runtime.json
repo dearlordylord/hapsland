@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "runtime": {
+    "name": "node",
+    "version": "24.20.0"
+  },
+  "operatingSystem": "linux",
+  "architecture": "arm64",
+  "requiredCommands": ["git", "flock"],
+  "requiredFacilities": ["/proc/self/fd"],
+  "parser": {
+    "implementation": "tree-sitter",
+    "languages": ["typescript", "tsx"]
+  },
+  "residentProtocol": 1
+}

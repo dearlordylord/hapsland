@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import * as Effect from "effect/Effect";
 import { connect } from "node:net";
 import { resolve } from "node:path";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { DirectObservation, DirectRecipient } from "../direct-event/model.ts";
 import type { CodexDirectEventOutput } from "../direct-event/pipeline.ts";
@@ -117,7 +118,10 @@ const within = async <A>(effect: Promise<A>, timeoutMs: number, message: string)
   });
 
 const launchResident = (paths: ResidentPaths, _timeoutMs: number) => {
-  const main = fileURLToPath(new URL("./main.ts", import.meta.url));
+  const compiled = fileURLToPath(new URL("./main.js", import.meta.url));
+  const main = existsSync(compiled)
+    ? compiled
+    : fileURLToPath(new URL("./main.ts", import.meta.url));
   const child = spawn("flock", ["--nonblock", paths.lock, process.execPath, main, paths.directory], {
     detached: true,
     stdio: "ignore",

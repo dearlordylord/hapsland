@@ -3,7 +3,10 @@
 This document describes the product's implemented support boundary. Jev is the external
 review backend. The supported adapter profile is **Codex CLI 0.155.1 / Linux arm64 /
 headless command hooks / controlled writer**. Node `v24.20.0` and Git `2.39.5` are the
-recorded conformance environment, not broader runtime guarantees.
+recorded conformance environment, not broader runtime guarantees. The installed package
+profile is narrower and exact: Node `v24.20.0`, Linux arm64, Git and `flock` on `PATH`, and
+procfs mounted at `/proc`. Package metadata and `review-tool-doctor` declare and enforce that
+boundary; unsupported profiles are not inferred to work.
 
 The machine-checked authoritative mapping is
 [`conformance/direct-event-v1.json`](../conformance/direct-event-v1.json). Its validator
@@ -30,6 +33,23 @@ secret- or source-bearing fields in the new evidence records.
 All 39 obligations and 93 unique mapped checks pass through product boundaries or narrowly focused external
 boundaries. Ordinary `npm test` and `npm run conformance:direct-event` are deterministic
 and offline. The paid script is separate and explicit.
+
+## Installed package evidence
+
+The locally packed release contains compiled JavaScript entry points for the CLI, parser,
+resident, and package doctor. `npm run conformance:package` installs that tarball into a fresh
+temporary prefix with production dependencies only and runs from outside the development
+checkout. It verifies parser loading, resident launch, consent, one controlled offline backend
+submission, advice collection, and actionable missing-command diagnosis. No package acquisition
+occurs during hook edits.
+
+The retained issue-63 fixture additionally used an isolated real Codex 0.155.1 home and temporary
+Git repository. Codex invoked the installed CLI directly and completed one controlled offline
+review. `OPENAI_API_KEY` and `TYPESAFE_API_KEY` were absent from the hook environment; no Jev call
+was possible. The sanitized record is
+[`evidence/package/clean-linux-node-24.20.0-arm64.json`](../evidence/package/clean-linux-node-24.20.0-arm64.json).
+It establishes the Linux arm64 headless installed-package seam only and does not broaden the
+adapter, platform, mode, or review-semantics profile.
 
 ## Supported limits
 
