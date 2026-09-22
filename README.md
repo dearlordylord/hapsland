@@ -135,9 +135,11 @@ The initial direct-event capture profile is Linux-only. It binds the adapted wor
 device/inode to an open directory descriptor and traverses through `/proc/self/fd`; hosts
 without that facility are unsupported rather than falling back to path-only source reads.
 
-Headless activity inspection is documented in [`docs/status.md`](./docs/status.md). It
-uses an explicit host session ID and local source-free receipts; readiness and observed
-activity are reported separately.
+Offline readiness diagnosis and headless activity inspection are documented in
+[`docs/status.md`](./docs/status.md). Doctor checks the selected installed integration
+without prompts, repairs, source reads, or Jev calls. Status uses an explicit host session
+ID and bounded source-free resident activity, labels legacy receipts separately, and never
+treats silence or missing instrumentation as a clear review.
 
 The maintainer-only semantic evaluation protocol and its sanitized offline milestone
 evidence are documented in [`docs/evaluation.md`](./docs/evaluation.md) and

@@ -21,6 +21,7 @@ export type ResidentControlledOptions = {
 
 export type ResidentDispatchContext = {
   readonly statePath: string;
+  readonly activityPath?: string;
   readonly userConfigPath: string | null;
   readonly credential: {
     readonly name: string;
@@ -80,7 +81,12 @@ export type ResidentResponse =
         | "busy"
         | "cleaned";
     }
-  | { readonly status: "advice"; readonly token: string; readonly output: CodexDirectEventOutput }
+  | {
+      readonly status: "advice";
+      readonly token: string;
+      readonly findingCount: number;
+      readonly output: CodexDirectEventOutput;
+    }
   | {
       readonly status: "stats";
       readonly queued: number;
@@ -127,6 +133,7 @@ const dispatch = (value: unknown): value is ResidentDispatchContext => {
   const item = record(value);
   const credential = item?.credential === null ? null : record(item?.credential);
   return item !== undefined && string(item.statePath) && item.statePath.startsWith("/") &&
+    (item.activityPath === undefined || (string(item.activityPath) && item.activityPath.startsWith("/"))) &&
     (item.userConfigPath === null || (string(item.userConfigPath) && item.userConfigPath.startsWith("/"))) &&
     (credential === null || (
       typeof credential === "object" &&
@@ -211,7 +218,12 @@ const ResidentResponseSchema = Schema.Union([
     "accepted", "rejected-capacity", "obsolete-lifetime", "empty", "acknowledged", "finalized", "unsupported",
     "busy", "cleaned",
   ]) }),
-  Schema.Struct({ status: Schema.Literal("advice"), token: Schema.NonEmptyString, output: HostOutput }),
+  Schema.Struct({
+    status: Schema.Literal("advice"),
+    token: Schema.NonEmptyString,
+    findingCount: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+    output: HostOutput,
+  }),
   Schema.Struct({
     status: Schema.Literal("stats"),
     queued: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),

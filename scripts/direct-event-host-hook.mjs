@@ -19,6 +19,7 @@ try { output = JSON.parse(product.stdout); } catch { output = undefined; }
 const record = {
   hookEntry: event?.hook_event_name === "PostToolUse",
   toolName: typeof event?.tool_name === "string" ? event.tool_name : "unknown",
+  sessionId: typeof event?.session_id === "string" ? event.session_id : undefined,
   adaptation: adapted === undefined ? "not-mapped" : "mapped",
   candidateCount: adapted?.candidates.length ?? 0,
   candidateOperations: adapted?.candidates.map(({ operation }) => operation) ?? [],

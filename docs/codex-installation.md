@@ -1,5 +1,17 @@
 # Codex installation lifecycle
 
+After installation, diagnose the selected host and repository without mutation or a
+provider call:
+
+```sh
+printf '%s' '{"version":1,"operation":"doctor","cwd":"/worktree","codexHome":"/home/user/.codex"}' \
+  | review-tool --doctor
+```
+
+Treat `unknown` host trust or credential accessibility as an explicit state and follow
+the single action reported for that stage. Doctor never prompts, launches or repairs the
+resident, changes Codex configuration, or calls Jev.
+
 The packaged `review-tool` CLI exposes versioned, noninteractive JSON operations for the
 supported Codex CLI 0.155.1 / Node 24.20.0 / Linux arm64 profile. Every request is supplied on
 stdin and every result is a single version-1 JSON object on stdout.

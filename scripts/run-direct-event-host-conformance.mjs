@@ -53,6 +53,7 @@ try {
   const home = join(temporary, "codex-home");
   const state = join(temporary, "consent");
   const runtime = join(temporary, "runtime");
+  const activityPath = join(temporary, "activity");
   const stagesPath = join(temporary, "stages.jsonl");
   const callsPath = join(temporary, "calls.txt");
   await mkdir(repository);
@@ -92,6 +93,7 @@ try {
     CODEX_HOME: home,
     REVIEW_STATE_PATH: state,
     REVIEW_RESIDENT_DIR: runtime,
+    REVIEW_ACTIVITY_PATH: activityPath,
     REVIEW_HOST_STAGE_PATH: stagesPath,
     REVIEW_CONTROL_JSON: JSON.stringify({ answers, capturePath: callsPath }),
     REVIEW_VISIBILITY_MARKER: visibilityMarker,
@@ -124,6 +126,14 @@ try {
     : messages.includes("VISIBILITY_NOT_OBSERVED") ? "not-observed" : "indeterminate";
   const addStage = stages.find((stage) => stage.toolName === "apply_patch");
   const submissionStage = stages.find((stage) => stage.submission === "attempted-unacknowledged");
+  const observedSessionId = stages.find((stage) => typeof stage.sessionId === "string")?.sessionId;
+  const activity = observedSessionId === undefined
+    ? undefined
+    : JSON.parse((await run(process.execPath, [join(root, "src/cli.ts"), "--status"], {
+        cwd: root,
+        env,
+        input: JSON.stringify({ version: 1, operation: "status", cwd: repository, sessionId: observedSessionId }),
+      })).stdout || "null");
   record = {
     schemaVersion: 1,
     recordedAt: date,
@@ -138,6 +148,13 @@ try {
       adaptation: addStage?.adaptation ?? "not-observed",
       backendSubmissions: backendCalls,
       hostSubmission: submissionStage?.submission ?? "none",
+      activity: activity?.activitySource === "resident-v1"
+        ? {
+            source: activity.activitySource,
+            kind: activity.activity?.kind,
+            modelReaction: activity.activity?.modelReaction?.status,
+          }
+        : { source: "unavailable" },
       independentlyObservedModelVisibility: visibility,
     },
     updateAndMultiFileEvidence: {

@@ -57,6 +57,7 @@ import {
   admitObservation,
   collectReady,
   ensureResident,
+  inspectResident,
   makeResidentDispatchContext,
   type CollectedAdvice,
 } from "./resident/client.ts";
@@ -72,6 +73,8 @@ import {
   runSecretService,
   saveCredential,
 } from "./credentials/secret-service.ts";
+import { readActivity, formatActivityHuman, recordActivity } from "./activity/status.ts";
+import { diagnoseInstalledIntegration, type DoctorCheck } from "./onboarding/doctor.ts";
 
 const readStdin = Effect.try({
   try: () => readFileSync(0, "utf8"),
@@ -169,6 +172,13 @@ type ConsentOperation = typeof ConsentOperation.Type;
 const InstallationOperation = Schema.Union([
   Schema.Struct({
     version: Schema.Literal(1),
+    operation: Schema.Literal("doctor"),
+    cwd: Schema.String,
+    codexHome: Schema.optionalKey(Schema.NonEmptyString),
+    codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
+  }),
+  Schema.Struct({
+    version: Schema.Literal(1),
     operation: Schema.Literal("install-preview"),
     codexHome: Schema.optionalKey(Schema.NonEmptyString),
     codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
@@ -204,6 +214,10 @@ const diagnosticPathConfig = Config.String("REVIEW_DIAGNOSTIC_PATH").pipe(
   Config.withDefault(join(homedir(), ".local", "state", "realtime-review-tool", "diagnostics")),
 );
 
+const activityPathConfig = Config.String("REVIEW_ACTIVITY_PATH").pipe(
+  Config.withDefault(join(homedir(), ".local", "state", "realtime-review-tool", "activity")),
+);
+
 const userConfigPathConfig = Config.option(Config.String("REVIEW_USER_CONFIG_PATH"));
 
 const forcedOperation = (): ConsentOperation["operation"] | undefined => {
@@ -226,6 +240,7 @@ const forcedOperation = (): ConsentOperation["operation"] | undefined => {
 };
 
 const forcedInstallationOperation = (): InstallationOperation["operation"] | undefined => {
+  if (process.argv.includes("--doctor")) return "doctor";
   if (process.argv.includes("--install-preview")) return "install-preview";
   if (process.argv.includes("--install")) return "install";
   if (process.argv.includes("--uninstall")) return "uninstall";
@@ -421,6 +436,7 @@ const runDirectCodexHook = (
   nativeEvent: unknown,
   controlled: ControlledDecisionModelOptions | undefined,
   statePath: string,
+  activityPath: string,
   userConfigPath: string | undefined,
 ): Effect.Effect<DirectHookDispatch, unknown> =>
   Effect.gen(function* () {
@@ -431,14 +447,20 @@ const runDirectCodexHook = (
     if (!isCodexNativeApplyPatch(nativeEvent) && !isBash) return { handled: false } as const;
     // Every mapped hook ensures the singleton, including Bash collection-only
     // replies and installations where no initialization command was run.
-    const owner = yield* Effect.tryPromise(() => ensureResident()).pipe(Effect.option);
-    if (Option.isNone(owner)) return { handled: true, output: {} } as const;
     const reply = yield* adaptCodexReply(nativeEvent);
+    const owner = yield* Effect.tryPromise(() => ensureResident()).pipe(Effect.option);
+    if (Option.isNone(owner)) {
+      if (!isBash && reply !== undefined) {
+        recordActivity({ statePath: activityPath, root: reply.root, recipient: reply.recipient, lifetime: "resident-unavailable", stage: "unavailable" });
+      }
+      return { handled: true, output: {} } as const;
+    }
     const dispatch = reply === undefined
       ? undefined
       : yield* Effect.tryPromise(() => makeResidentDispatchContext(
           reply.root,
           statePath,
+          activityPath,
           userConfigPath,
           controlled,
         )).pipe(Effect.catch(() => Effect.succeed(undefined)));
@@ -457,16 +479,27 @@ const runDirectCodexHook = (
     // The direct dispatcher owns every native apply_patch event. Unsupported
     // shapes remain quiet and can never reach the legacy whole-file runtime.
     if (observation === undefined) {
+      if (reply !== undefined) {
+        recordActivity({ statePath: activityPath, root: reply.root, recipient: reply.recipient, lifetime: owner.value.lifetime, stage: "incomplete" });
+      }
       return collected === undefined
         ? { handled: true, output: {} } as const
         : { handled: true, output: { _tag: "DirectEventReady" as const, value: collected.output, collected } } as const;
     }
     // Matching reads are not attribution. The hook command must explicitly be
     // installed with this controlled-writer assertion for the supported Add profile.
-    if (dispatch !== undefined) yield* Effect.tryPromise(() =>
-      admitObservation(observation, isControlledWriter, dispatch)).pipe(
-      Effect.catch(() => Effect.void),
-    );
+    if (dispatch === undefined) {
+      recordActivity({ statePath: activityPath, root: observation.root, recipient: observation.recipient, lifetime: owner.value.lifetime, stage: "unavailable" });
+    } else if (!isControlledWriter) {
+      recordActivity({ statePath: activityPath, root: observation.root, recipient: observation.recipient, lifetime: owner.value.lifetime, stage: "unavailable" });
+    } else {
+      yield* Effect.tryPromise(() => admitObservation(observation, true, dispatch)).pipe(
+        Effect.catch(() => {
+          recordActivity({ statePath: activityPath, root: observation.root, recipient: observation.recipient, lifetime: owner.value.lifetime, stage: "unavailable" });
+          return Effect.void;
+        }),
+      );
+    }
     return collected === undefined
       ? { handled: true, output: {} } as const
       : { handled: true, output: { _tag: "DirectEventReady" as const, value: collected.output, collected } } as const;
@@ -489,6 +522,7 @@ const runOperation = (
   operation: ConsentOperation,
   statePath: string,
   receiptPath: string,
+  activityPath: string,
   userConfigPath: string | undefined,
 ) =>
   Effect.gen(function* () {
@@ -532,6 +566,14 @@ const runOperation = (
         operation.sessionId === undefined
           ? yield* readReceiptStatus("")
           : yield* readReceiptStatus(operation.sessionId);
+      const resident = yield* Effect.promise(() => inspectResident());
+      const residentActivity = readActivity({
+        statePath: activityPath,
+        root,
+        sessionId: operation.sessionId ?? "",
+        resident,
+      });
+      const primaryActivity = residentActivity.observed ? residentActivity : activity;
       const output = {
         version: 1,
         operation: "status",
@@ -551,7 +593,12 @@ const runOperation = (
             status: credentialResolution.status,
           },
         },
-        activity,
+        activity: primaryActivity,
+        activitySource: residentActivity.observed ? "resident-v1" : "legacy-receipt-v1",
+        evidence: {
+          resident: "resident-v1",
+          legacyReceipt: activity,
+        },
         grants: grants.map((grant) => ({
           backend: grant.backend,
           destination: grant.destination,
@@ -560,11 +607,13 @@ const runOperation = (
         projectAuthorizationIgnored: settings?.projectRequestedConsent ?? false,
       };
       return operation.format === "human"
-        ? formatReceiptStatus(
+        ? `${formatReceiptStatus(
             operation.sessionId ?? "<session id required>",
             `${readinessStatus} (configuration=${configurationStatus}, consent=${output.readiness.consent}, credentials=${credentials ? "present" : "absent"})`,
             activity,
-          )
+          )}${residentActivity.observed
+            ? formatActivityHuman(operation.sessionId ?? "<session id required>", residentActivity)
+            : ""}`
         : output;
     }
     const settings = yield* loadReviewSettings(
@@ -878,6 +927,7 @@ const program = Effect.gen(function* () {
   const statePath = yield* statePathConfig;
   const receiptPath = yield* receiptPathConfig;
   const diagnosticPath = yield* diagnosticPathConfig;
+  const activityPath = yield* activityPathConfig;
   const userConfigPathOption = yield* userConfigPathConfig;
   const userConfigPath = Option.isSome(userConfigPathOption)
     ? userConfigPathOption.value
@@ -886,7 +936,7 @@ const program = Effect.gen(function* () {
   const inputRequestsOperation = /"operation"\s*:\s*"(?:enable|enable-confirm|disable|credentials|status|explain)"/.test(
     input,
   );
-  const inputRequestsInstallation = /"operation"\s*:\s*"(?:install-preview|install|uninstall)"/.test(input);
+  const inputRequestsInstallation = /"operation"\s*:\s*"(?:doctor|install-preview|install|uninstall)"/.test(input);
   const inputRequestsEvaluation = /"operation"\s*:\s*"(?:plan|run|report)"/.test(input);
   if (requestedEvaluationOperation !== undefined || inputRequestsEvaluation) {
     const evaluationInput = yield* decodeJson(input);
@@ -923,6 +973,84 @@ const program = Effect.gen(function* () {
         : { proposalDigest: operation.proposalDigest }),
     };
     switch (operation.operation) {
+      case "doctor": {
+        const repositoryResult = yield* Effect.gen(function* () {
+          const consent = yield* Consent.Service;
+          const rootResult = yield* consent.discoverRoot(operation.cwd).pipe(Effect.result);
+          if (rootResult._tag === "Failure") {
+            return {
+              repository: {
+                stage: "repository-enablement",
+                status: "unsupported",
+                observed: "working tree could not be discovered",
+                action: "run doctor from a supported Git working tree",
+              } satisfies DoctorCheck,
+              credential: {
+                stage: "credential-accessibility",
+                status: "unknown",
+                observed: "repository configuration is unavailable",
+                action: "fix repository discovery, then rerun doctor without passing any secret",
+              } satisfies DoctorCheck,
+            };
+          }
+          const settingsResult = yield* loadReviewSettings(
+            rootResult.success,
+            userConfigPath === undefined ? {} : { userConfigPath },
+          ).pipe(Effect.result);
+          if (settingsResult._tag === "Failure") {
+            return {
+              repository: {
+                stage: "repository-enablement",
+                status: "conflict",
+                observed: "review configuration is invalid",
+                action: "repair the reported review configuration, then rerun doctor",
+              } satisfies DoctorCheck,
+              credential: {
+                stage: "credential-accessibility",
+                status: "unknown",
+                observed: "credential selection could not be resolved",
+                action: "repair review configuration, then rerun doctor without passing any secret",
+              } satisfies DoctorCheck,
+            };
+          }
+          const settings = settingsResult.success;
+          const authorization = yield* consent.authorize(
+            operation.cwd,
+            settings.backend,
+            settings.destination,
+          ).pipe(Effect.result);
+          const credential = yield* Config.option(Config.String(settings.credentialEnvVar)).pipe(
+            Effect.map((value) => Option.isSome(value) && value.value.length > 0),
+          );
+          return {
+            repository: authorization._tag === "Success" && authorization.success.status === "approved"
+              ? { stage: "repository-enablement", status: "ready", observed: "enabled for the canonical repository" } satisfies DoctorCheck
+              : {
+                  stage: "repository-enablement",
+                  status: authorization._tag === "Failure" ? "unknown" : "missing",
+                  observed: authorization._tag === "Failure" ? "consent state unavailable" : authorization.success.status,
+                  action: "preview and explicitly enable review for this canonical repository",
+                } satisfies DoctorCheck,
+            credential: credential
+              ? {
+                  stage: "credential-accessibility",
+                  status: "ready",
+                  observed: { source: "environment", variable: settings.credentialEnvVar, accessible: true },
+                } satisfies DoctorCheck
+              : {
+                  stage: "credential-accessibility",
+                  status: "unknown",
+                  observed: { source: "saved-or-environment", variable: settings.credentialEnvVar, accessible: "unknown" },
+                  action: `make ${settings.credentialEnvVar} available to the hook context or use the supported login operation`,
+                } satisfies DoctorCheck,
+          };
+        }).pipe(Effect.provide(Consent.layer({ statePath })));
+        return yield* Effect.promise(() => diagnoseInstalledIntegration({
+          installation: request,
+          repository: repositoryResult.repository,
+          credential: repositoryResult.credential,
+        }));
+      }
       case "install-preview":
         return previewCodexInstallation(request);
       case "install":
@@ -938,7 +1066,7 @@ const program = Effect.gen(function* () {
         ? { ...decodedOperation, format: "human" as const }
         : decodedOperation;
     if (operation.operation !== undefined) {
-      return yield* runOperation(operation, statePath, receiptPath, userConfigPath);
+      return yield* runOperation(operation, statePath, receiptPath, activityPath, userConfigPath);
     }
   }
 
@@ -950,6 +1078,7 @@ const program = Effect.gen(function* () {
       nativeEvent,
       controlled,
       statePath,
+      activityPath,
       userConfigPath,
     );
     if (direct.handled) return direct.output;
@@ -1181,6 +1310,14 @@ if (!isCodexHook && typeof output === "object" && output !== null) {
 if (isDirectEventReady(output)) {
   attemptCodexHostOutput(output.value, (encoded) => {
     process.stdout.write(encoded);
+  });
+  recordActivity({
+    statePath: output.collected.activityPath,
+    root: output.collected.root,
+    recipient: output.collected.recipient,
+    lifetime: output.collected.lifetime,
+    stage: "submitted",
+    submittedFindings: output.collected.findingCount,
   });
   await acknowledgeAdvice(output.collected);
 } else {

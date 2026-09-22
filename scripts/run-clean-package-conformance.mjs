@@ -260,6 +260,7 @@ try {
     : join(temporary, "state", "resident");
   const calls = join(temporary, "state", "controlled-calls.txt");
   const outcomes = join(temporary, "state", "controlled-outcomes.jsonl");
+  const activity = join(temporary, "state", "activity");
   const codexHome = join(temporary, "codex home 'quoted'");
   const independentLog = join(temporary, "state", "independent-hook.jsonl");
   await mkdir(artifacts, { recursive: true });
@@ -326,6 +327,7 @@ try {
       outcomePath: outcomes,
       ...(exerciseSecretService ? { requireCredential: true } : {}),
     }),
+    REVIEW_ACTIVITY_PATH: activity,
     REVIEW_INSTALL_CONTROLLED: "1",
   };
   for (const key of ["OPENAI_API_KEY", "TYPESAFE_API_KEY"]) delete env[key];
@@ -393,6 +395,17 @@ try {
   const installResult = parseJson(installRun.stdout, "installation result");
   if (installResult.status !== "installed" || installResult.sourceEgressAuthorized !== false) {
     throw new Error("packaged installation did not complete without source consent");
+  }
+  const installedDoctorRun = await mustRun(cli, ["--doctor"], {
+    cwd: temporary,
+    env,
+    input: JSON.stringify({ version: 1, operation: "doctor", cwd: repository, codexHome, codexExecutable: fakeCodex }),
+  });
+  const installedDoctor = parseJson(installedDoctorRun.stdout, "installed integration doctor");
+  if (installedDoctor.offline !== true || installedDoctor.readOnly !== true || installedDoctor.providerCalls !== 0 ||
+      !installedDoctor.checks?.some((check) => check.stage === "configuration-ownership" && check.status === "ready") ||
+      !installedDoctor.checks?.some((check) => check.stage === "repository-enablement" && check.status === "missing")) {
+    throw new Error("packaged installed-integration doctor did not expose independent readiness stages");
   }
   const repeatPreviewRun = await mustRun(cli, ["--install-preview"], {
     cwd: temporary,
@@ -497,6 +510,17 @@ try {
     if (submissionsAfterLogout !== submissions) {
       throw new Error("logged-out credential dispatched a provider request while the repository remained enabled");
     }
+  }
+  const activityRun = await mustRun(cli, ["--status"], {
+    cwd: temporary,
+    env,
+    input: JSON.stringify({ version: 1, operation: "status", cwd: repository, sessionId: "package-session" }),
+  });
+  const activityStatus = parseJson(activityRun.stdout, "packaged resident activity");
+  if (activityStatus.activitySource !== "resident-v1" || activityStatus.activity?.kind !== "submitted" ||
+      activityStatus.activity?.submission?.findings < 1 ||
+      activityStatus.activity?.modelReaction?.status !== "unavailable") {
+    throw new Error("packaged status did not distinguish submission from unavailable model-reaction evidence");
   }
   const disabledRun = await mustRun(cli, ["--disable"], {
     cwd: temporary, env, input: JSON.stringify({ version: 1, operation: "disable", cwd: repository }),
