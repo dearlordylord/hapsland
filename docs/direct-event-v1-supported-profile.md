@@ -53,8 +53,9 @@ identity, but it is not treated as repeatable proof.
 `OPENAI_API_KEY` and `TYPESAFE_API_KEY` were absent from the hook environment; no Jev call was
 possible. The sanitized record is
 [`evidence/package/clean-linux-node-24.20.0-arm64.json`](../evidence/package/clean-linux-node-24.20.0-arm64.json).
-It establishes the Linux arm64 headless installed-package seam only and does not broaden the
-adapter, platform, mode, or review-semantics profile.
+It establishes that the installed-package checks pass in the recorded Linux arm64 environment;
+real-host acceptance remains unresolved. It does not broaden the adapter, platform, mode, or
+review-semantics profile.
 
 ## Supported limits
 
