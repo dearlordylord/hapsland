@@ -41,6 +41,12 @@ import {
   type ControlledDecisionModelOptions,
 } from "./test-support/controlled-decision-model.ts";
 import { runEvaluationCommand } from "./evaluation/command.ts";
+import { adaptCodexAdd } from "./direct-event/adapter.ts";
+import {
+  reviewCodexAdd,
+  type CodexDirectEventOutput,
+} from "./direct-event/pipeline.ts";
+import { attemptCodexHostOutput } from "./direct-event/writer.ts";
 
 const readStdin = Effect.try({
   try: () => readFileSync(0, "utf8"),
@@ -306,8 +312,65 @@ const runRequest = (
 
 const isCodexHook = process.argv.includes("--codex-hook");
 const isControlled = process.argv.includes("--controlled");
+const isControlledWriter = process.argv.includes("--controlled-writer");
 const requestedOperation = forcedOperation();
 const requestedEvaluationOperation = forcedEvaluationOperation();
+
+type DirectHookDispatch =
+  | { readonly handled: false }
+  | { readonly handled: true; readonly output: unknown };
+
+const runDirectCodexHook = (
+  nativeEvent: unknown,
+  controlled: ControlledDecisionModelOptions | undefined,
+  statePath: string,
+  userConfigPath: string | undefined,
+): Effect.Effect<DirectHookDispatch, unknown> =>
+  Effect.gen(function* () {
+    const observation = yield* adaptCodexAdd(nativeEvent);
+    if (observation === undefined) return { handled: false } as const;
+    // Matching reads are not attribution. The hook command must explicitly be
+    // installed with this controlled-writer assertion for the supported Add profile.
+    if (!isControlledWriter) return { handled: true, output: {} } as const;
+    const consent = yield* Consent.Service;
+    const settings = yield* loadReviewSettings(
+      observation.root,
+      userConfigPath === undefined ? {} : { userConfigPath },
+    );
+    if (controlled === undefined) {
+      const credential = yield* Config.option(Config.String(settings.credentialEnvVar));
+      if (Option.isNone(credential) || credential.value.length === 0) {
+        return { handled: true, output: {} } as const;
+      }
+    }
+    const decisionModel = controlled === undefined
+      ? jevDecisionModelLiveLayer({
+          apiUrl: settings.apiBase,
+          credentialEnvVar: settings.credentialEnvVar,
+        })
+      : controlledDecisionModelLayer(controlled);
+    const result = yield* reviewCodexAdd(nativeEvent, {
+      controlledWriter: true,
+      recipient: observation.recipient,
+      consent,
+      settings,
+    }).pipe(Effect.provide(decisionModel));
+    return result.status === "ready"
+      ? {
+          handled: true,
+          output: { _tag: "DirectEventReady" as const, value: result.output },
+        }
+      : { handled: true, output: {} } as const;
+  }).pipe(Effect.provide(Consent.layer({ statePath })));
+
+const isDirectEventReady = (
+  value: unknown,
+): value is { readonly _tag: "DirectEventReady"; readonly value: CodexDirectEventOutput } =>
+  typeof value === "object" &&
+  value !== null &&
+  "_tag" in value &&
+  value._tag === "DirectEventReady" &&
+  "value" in value;
 
 const runOperation = (
   operation: ConsentOperation,
@@ -700,6 +763,14 @@ const program = Effect.gen(function* () {
   const controlled = isControlled ? yield* controlledOptions : undefined;
 
   if (isCodexHook) {
+    const nativeEvent = yield* decodeJson(input);
+    const direct = yield* runDirectCodexHook(
+      nativeEvent,
+      controlled,
+      statePath,
+      userConfigPath,
+    );
+    if (direct.handled) return direct.output;
     const event = yield* decodeCodexJson(input);
     const request = toReviewRequest(event);
     if (request === undefined) return {};
@@ -756,4 +827,10 @@ const program = Effect.gen(function* () {
 );
 
 const output = await Effect.runPromise(program);
-process.stdout.write(typeof output === "string" ? output : `${JSON.stringify(output)}\n`);
+if (isDirectEventReady(output)) {
+  attemptCodexHostOutput(output.value, (encoded) => {
+    process.stdout.write(encoded);
+  });
+} else {
+  process.stdout.write(typeof output === "string" ? output : `${JSON.stringify(output)}\n`);
+}

@@ -94,6 +94,61 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
     expect(readFileSync(path, "utf8")).toBe(content);
   });
 
+  it("routes a native controlled-writer Codex Add through direct-event stdout", () => {
+    const root = mkdtempSync(join(tmpdir(), "review-cli-direct-add-"));
+    roots.push(root);
+    const statePath = initializeRepository(root);
+    const path = join(root, "pinned.ts");
+    writeFileSync(path, "type OrderCount = number\n");
+    const pinned = JSON.parse(readFileSync(
+      join(process.cwd(), "evidence/codex/0.155.1/post-tool-use-file-create.json"),
+      "utf8",
+    )) as Record<string, unknown>;
+    const input = {
+      ...pinned,
+      cwd: root,
+      session_id: "direct-session",
+      turn_id: "direct-turn",
+      tool_use_id: "direct-tool",
+      tool_input: {
+        command: "*** Begin Patch\n*** Add File: pinned.ts\n+type OrderCount = number\n*** End Patch",
+      },
+    };
+    const control = JSON.stringify({
+      answers: Object.fromEntries(configuredRules.map((rule) => [
+        rule.id,
+        { _tag: "Probability", probability: 0.9 },
+      ])),
+    });
+    const child = spawnSync(process.execPath, [
+      "src/cli.ts",
+      "--codex-hook",
+      "--controlled-writer",
+      "--controlled",
+    ], {
+      cwd: process.cwd(),
+      input: JSON.stringify(input),
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        REVIEW_CONTROL_JSON: control,
+        REVIEW_STATE_PATH: statePath,
+      },
+    });
+
+    expect(child.status).toBe(0);
+    expect(child.stderr).toBe("");
+    expect(child.stdout.trim().split("\n")).toHaveLength(1);
+    const output = JSON.parse(child.stdout) as {
+      hookSpecificOutput: { hookEventName: string; additionalContext: string };
+    };
+    expect(output.hookSpecificOutput.hookEventName).toBe("PostToolUse");
+    expect(output.hookSpecificOutput.additionalContext).toContain("pinned.ts");
+    expect(output.hookSpecificOutput.additionalContext).toContain("Advisory direct-event review");
+    expect(child.stdout).not.toContain("submission attempted");
+    expect(readFileSync(path, "utf8")).toBe("type OrderCount = number\n");
+  });
+
   it("returns a bounded protocol error for malformed input", () => {
     const child = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
       cwd: process.cwd(),

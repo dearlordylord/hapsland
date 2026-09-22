@@ -130,9 +130,18 @@ describe("stable bounded source capture", () => {
     await put(root, "cancel.ts", "type A = number");
     const eligible = await Effect.runPromise(eligibleNamedPath(root, "cancel.ts"));
     const controller = new AbortController();
+    let markStarted: (() => void) | undefined;
+    const started = new Promise<void>((resolve) => { markStarted = resolve; });
+    let reads = 0;
     const running = Effect.runPromise(captureStable(root, required(eligible), {
+      sourceRead: () => {
+        reads += 1;
+        markStarted?.();
+      },
       betweenReads: () => new Promise<void>(() => undefined),
     }), { signal: controller.signal });
+    await started;
+    expect(reads).toBe(1);
     controller.abort();
     await expect(running).rejects.toBeDefined();
   });

@@ -13,7 +13,7 @@
     "e0": "bun run src/e0.ts",
     "scan": "bun run src/scan.ts",
     "review": "node src/cli.ts",
-    "review:codex": "node src/cli.ts --codex-hook",
+    "review:codex": "node src/cli.ts --codex-hook --controlled-writer",
     "experiment:extract": "node experiments/declaration-extraction/extract.ts",
     "experiment:extract:evidence": "node experiments/declaration-extraction/generate-evidence.ts",
     "experiment:shell-write-detection": "node --experimental-strip-types experiments/shell-write-detection/run.ts",

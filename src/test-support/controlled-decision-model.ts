@@ -12,6 +12,8 @@ export type ControlledDecisionModelOptions = {
   readonly inspectRequest?: (
     request: DecisionModel.ProviderOptions,
   ) => Effect.Effect<void>;
+  /** Injected after provider normalization to exercise consumer exact-key checks. */
+  readonly extraDecisionKey?: string;
   /** Test-only subprocess transcript path; never enabled by the live layer. */
   readonly capturePath?: string;
 };
@@ -62,5 +64,23 @@ export const controlledDecisionModelLayer = (
           Effect.andThen(delayed),
         );
       },
-    }),
+    }).pipe(
+      Effect.map((model) =>
+        options.extraDecisionKey === undefined
+          ? model
+          : DecisionModel.DecisionModel.of({
+              ...model,
+              decide: (definition, decideOptions) =>
+                model.decide(definition, decideOptions).pipe(
+                  Effect.map((response) => ({
+                    ...response,
+                    answers: {
+                      ...response.answers,
+                      [options.extraDecisionKey ?? "extra"]: { probability: 0 },
+                    },
+                  })),
+                ),
+            }),
+      ),
+    ),
   );

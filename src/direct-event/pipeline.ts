@@ -1,4 +1,3 @@
-import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Result from "effect/Result";
@@ -9,7 +8,7 @@ import { applicableRules, configuredRules } from "../policy/rules.ts";
 import type { Consent } from "../runtime/consent.ts";
 import type { ReviewSettings } from "../runtime/review-config.ts";
 import { adaptCodexAdd } from "./adapter.ts";
-import { analyzeSingleType } from "./analyzer.ts";
+import { analyzeNamedType, analyzeSingleType } from "./analyzer.ts";
 import { captureStable, type CaptureHooks } from "./capture.ts";
 import {
   DIRECT_EVENT_INPUT_CONTRACT,
@@ -41,6 +40,7 @@ export type DirectReviewContext = {
     Partial<Pick<ReviewSettings, "configuration" | "rules">>;
   readonly policy?: DirectFilePolicy | (() => DirectFilePolicy);
   readonly rules?: ReadonlyArray<CompiledRule> | (() => ReadonlyArray<CompiledRule>);
+  readonly inputContract?: string | (() => string);
   readonly captureHooks?: CaptureHooks;
   readonly beforeDispatch?: Effect.Effect<void>;
   readonly beforeHandoff?: Effect.Effect<void>;
@@ -65,11 +65,17 @@ export type DirectReviewResult =
   | { readonly status: "no-advice"; readonly output: undefined }
   | { readonly status: "unavailable"; readonly reason: "consent" | "backend" | "timeout" | "stale"; readonly output: undefined }
   | {
-      readonly status: "submitted";
-      readonly submission: "attempted-unacknowledged";
+      readonly status: "ready";
       readonly findings: ReadonlyArray<Finding>;
-      readonly output: unknown;
+      readonly output: CodexDirectEventOutput;
     };
+
+export type CodexDirectEventOutput = {
+  readonly hookSpecificOutput: {
+    readonly hookEventName: "PostToolUse";
+    readonly additionalContext: string;
+  };
+};
 
 const sameRecipient = (left: DirectRecipient, right: DirectRecipient): boolean =>
   canonicalValue(left) === canonicalValue(right);
@@ -89,9 +95,15 @@ const currentRules = (context: DirectReviewContext): ReadonlyArray<CompiledRule>
     ? context.settings.rules ?? configuredRules
     : current(context.rules);
 
+const currentInputContract = (context: DirectReviewContext): string =>
+  context.inputContract === undefined
+    ? DIRECT_EVENT_INPUT_CONTRACT
+    : current(context.inputContract);
+
 export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(function* (
   observation: DirectObservation,
   context: DirectReviewContext,
+  frozenNames: ReadonlyMap<string, string> | undefined = undefined,
 ) {
   const outcomes: Array<PrepareOutcome> = [];
   for (const candidate of observation.candidates) {
@@ -113,7 +125,10 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
       outcomes.push({ status: "skipped", path: eligible.relativePath });
       continue;
     }
-    const declaration = analyzeSingleType(eligible.relativePath, captured.text);
+    const frozenName = frozenNames?.get(eligible.relativePath);
+    const declaration = frozenName === undefined
+      ? analyzeSingleType(eligible.relativePath, captured.text)
+      : analyzeNamedType(eligible.relativePath, captured.text, frozenName);
     if (declaration === undefined) {
       outcomes.push({ status: "skipped", path: eligible.relativePath });
       continue;
@@ -128,7 +143,7 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
       continue;
     }
     const input = freezeInput({
-      contract: DIRECT_EVENT_INPUT_CONTRACT,
+      contract: currentInputContract(context),
       path: eligible.relativePath,
       declaration,
       rules: freezeRules(rules),
@@ -217,11 +232,11 @@ const authorize = (
 
 export const toCodexDirectEventOutput = (
   findings: ReadonlyArray<Finding>,
-): unknown => ({
+): CodexDirectEventOutput => ({
   hookSpecificOutput: {
     hookEventName: "PostToolUse",
     additionalContext: [
-      "Advisory direct-event review (submission attempted; model visibility is unacknowledged):",
+      "Advisory direct-event review (the edit already succeeded):",
       ...findings.map((finding) =>
         `${finding.path} [${finding.ruleId}, p=${finding.probability.toFixed(2)}]: ${finding.message}`),
     ].join("\n"),
@@ -277,7 +292,13 @@ export const reviewCodexAdd = Effect.fn("DirectEvent.reviewCodexAdd")(function* 
   }
   // Repeat the complete preparation contract. Whole-file hashes never decide
   // freshness: only the complete re-extracted semantic ReviewInput does.
-  const revalidated = yield* prepareObservation(observation, context);
+  const frozenNames = new Map(
+    ready.map((outcome) => [
+      outcome.path,
+      outcome.prepared.input.declaration.name,
+    ] as const),
+  );
+  const revalidated = yield* prepareObservation(observation, context, frozenNames);
   const currentByPath = new Map(
     revalidated.flatMap((outcome) =>
       outcome.status === "ready" ? [[outcome.path, outcome.prepared.identity] as const] : []),
@@ -286,11 +307,8 @@ export const reviewCodexAdd = Effect.fn("DirectEvent.reviewCodexAdd")(function* 
     return { status: "unavailable", reason: "stale", output: undefined } satisfies DirectReviewResult;
   }
   return {
-    status: "submitted",
-    submission: "attempted-unacknowledged",
+    status: "ready",
     findings,
     output: toCodexDirectEventOutput(findings),
   } satisfies DirectReviewResult;
 });
-
-export const currentTime = Clock.currentTimeMillis;
