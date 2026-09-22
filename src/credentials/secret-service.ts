@@ -1,5 +1,5 @@
-import { spawn } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { execFileSync, spawn } from "node:child_process";
+import { createHash, randomUUID } from "node:crypto";
 import {
   existsSync,
   mkdirSync,
@@ -98,9 +98,11 @@ const writeCredentialState = (statePath: string, state: CredentialState): void =
 };
 
 type StateLockOwner = {
-  readonly version: 1;
+  readonly version: 2;
   readonly pid: number;
-  readonly host: string;
+  readonly machineIdentity: string;
+  readonly bootIdentity: string;
+  readonly processBirthIdentity: string | null;
   readonly token: string;
   readonly createdAt: number;
 };
@@ -116,14 +118,76 @@ const systemErrorCode = (cause: unknown): string | undefined =>
     ? cause.code
     : undefined;
 
+const readTrimmedFile = (path: string): string | undefined => {
+  try {
+    const value = readFileSync(path, "utf8").trim();
+    return value.length > 0 ? value : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const runIdentityCommand = (command: string, args: ReadonlyArray<string>): string | undefined => {
+  try {
+    const value = execFileSync(command, args, {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      timeout: 500,
+      env: { ...process.env, LC_ALL: "C" },
+    }).trim();
+    return value.length > 0 ? value : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const digestIdentity = (kind: string, value: string): string =>
+  createHash("sha256").update(`${kind}\0${value}`).digest("hex");
+
+const rawMachineIdentity = process.platform === "linux"
+  ? readTrimmedFile("/etc/machine-id") ?? `host:${hostname()}`
+  : process.platform === "darwin"
+    ? runIdentityCommand("/usr/sbin/sysctl", ["-n", "kern.hostuuid"]) ?? `host:${hostname()}`
+    : `host:${hostname()}`;
+
+const rawBootIdentity = process.platform === "linux"
+  ? readTrimmedFile("/proc/sys/kernel/random/boot_id") ?? `host:${hostname()}`
+  : process.platform === "darwin"
+    ? runIdentityCommand("/usr/sbin/sysctl", ["-n", "kern.boottime"]) ?? `host:${hostname()}`
+    : `host:${hostname()}`;
+
+const machineIdentity = digestIdentity("machine", rawMachineIdentity);
+const bootIdentity = digestIdentity("boot", rawBootIdentity);
+
+const processBirthIdentity = (pid: number): string | undefined => {
+  if (process.platform === "linux") {
+    const stat = readTrimmedFile(`/proc/${pid}/stat`);
+    if (stat === undefined) return undefined;
+    const commandEnd = stat.lastIndexOf(") ");
+    if (commandEnd < 0) return undefined;
+    const startTime = stat.slice(commandEnd + 2).split(" ")[19];
+    return startTime === undefined || startTime.length === 0
+      ? undefined
+      : digestIdentity("process-birth-linux", startTime);
+  }
+  if (process.platform === "darwin") {
+    const started = runIdentityCommand("/bin/ps", ["-p", String(pid), "-o", "lstart="]);
+    return started === undefined ? undefined : digestIdentity("process-birth-darwin", started);
+  }
+  return undefined;
+};
+
 const readStateLockOwner = (lock: string): StateLockOwner | undefined => {
   try {
     const value = JSON.parse(readFileSync(join(lock, "owner.json"), "utf8")) as unknown;
     if (
       typeof value === "object" && value !== null &&
-      "version" in value && value.version === 1 &&
+      "version" in value && value.version === 2 &&
       "pid" in value && typeof value.pid === "number" && Number.isSafeInteger(value.pid) && value.pid > 0 &&
-      "host" in value && typeof value.host === "string" && value.host.length > 0 &&
+      "machineIdentity" in value && typeof value.machineIdentity === "string" && value.machineIdentity.length > 0 &&
+      "bootIdentity" in value && typeof value.bootIdentity === "string" && value.bootIdentity.length > 0 &&
+      "processBirthIdentity" in value &&
+        (value.processBirthIdentity === null || typeof value.processBirthIdentity === "string") &&
       "token" in value && typeof value.token === "string" && value.token.length > 0 &&
       "createdAt" in value && typeof value.createdAt === "number" && Number.isFinite(value.createdAt)
     ) return value as StateLockOwner;
@@ -142,26 +206,43 @@ const processIsAlive = (pid: number): boolean => {
 
 const recoverStaleStateLock = (lock: string): boolean => {
   const owner = readStateLockOwner(lock);
+  let retirementIdentity: string;
   if (owner !== undefined) {
-    // User state is local. An owner from another host cannot be proven dead, so
-    // preserve it rather than risk overlapping credential mutations.
-    if (owner.host !== hostname() || processIsAlive(owner.pid)) return false;
+    // Never reclaim state from a different machine: a shared state path cannot
+    // prove the remote owner dead. A changed boot on this machine proves every
+    // process from the recorded boot has exited.
+    if (owner.machineIdentity !== machineIdentity) return false;
+    if (owner.bootIdentity === bootIdentity && processIsAlive(owner.pid)) {
+      const currentBirth = processBirthIdentity(owner.pid);
+      if (owner.processBirthIdentity === null || currentBirth === undefined ||
+          currentBirth === owner.processBirthIdentity) return false;
+    }
+    retirementIdentity = `owner-${owner.token}`;
   } else {
     try {
-      if (Date.now() - statSync(lock).mtimeMs < OWNERLESS_LOCK_GRACE_MS) return false;
+      const stat = statSync(lock);
+      if (Date.now() - stat.mtimeMs < OWNERLESS_LOCK_GRACE_MS) return false;
+      retirementIdentity = `legacy-${stat.dev.toString(36)}-${stat.ino.toString(36)}`;
+      // Make the deterministic retirement directory nonempty before rename.
+      // A delayed second reclaimer then cannot rename a successor over it.
+      try {
+        writeFileSync(join(lock, ".retired"), "", { mode: 0o600, flag: "wx" });
+      } catch (cause) {
+        if (systemErrorCode(cause) !== "EEXIST") return false;
+      }
     } catch {
       return false;
     }
   }
-  const reclaimed = `${lock}.reclaimed.${process.pid}.${randomUUID()}`;
+  // The retirement name is derived from the observed lock identity and is
+  // deliberately retained. If two reclaimers observed A, the first moves A
+  // here; a delayed second rename cannot replace this nonempty tombstone with B.
+  const reclaimed = `${lock}.retired.${retirementIdentity}`;
   try {
     renameSync(lock, reclaimed);
   } catch {
     return false;
   }
-  try {
-    rmSync(reclaimed, { recursive: true, force: true });
-  } catch { /* The renamed lock no longer blocks lifecycle progress. */ }
   return true;
 };
 
@@ -172,9 +253,11 @@ const withStateLock = async (
 ): Promise<CredentialLifecycleResult> => {
   const lock = `${statePath}.lock`;
   const owner: StateLockOwner = {
-    version: 1,
+    version: 2,
     pid: process.pid,
-    host: hostname(),
+    machineIdentity,
+    bootIdentity,
+    processBirthIdentity: processBirthIdentity(process.pid) ?? null,
     token: randomUUID(),
     createdAt: Date.now(),
   };

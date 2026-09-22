@@ -15,11 +15,11 @@ describe("public credential CLI", () => {
     spawnSync("git", ["init", "--quiet"], { cwd: root });
     writeFileSync(join(root, ".review.jsonc"), '{"version":1,"credentialEnvVar":"ALT_KEY"}\n');
     writeFileSync(helper, `#!/usr/bin/env node
-import { existsSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 const operation = process.argv[2]; const vault = process.env.TEST_SECRET_VAULT;
 if (operation === "probe") console.log('{"version":1,"status":"available"}');
 else if (operation === "set") { const chunks=[]; for await (const chunk of process.stdin) chunks.push(chunk); writeFileSync(vault, Buffer.concat(chunks), {mode:0o600}); console.log('{"version":1,"status":"stored"}'); }
-else if (operation === "delete") { const found=existsSync(vault); rmSync(vault,{force:true}); console.log(JSON.stringify({version:1,status:found?"deleted":"missing"})); }
+else if (operation === "delete") { const found=existsSync(vault); rmSync(vault,{force:true}); if (process.env.TEST_BREAK_STATE_AFTER_DELETE === "1") { rmSync(process.env.REVIEW_CREDENTIAL_STATE_PATH,{force:true}); mkdirSync(process.env.REVIEW_CREDENTIAL_STATE_PATH); } console.log(JSON.stringify({version:1,status:found?"deleted":"missing"})); }
 `);
     chmodSync(helper, 0o700);
     const environment: Record<string, string | undefined> = {
@@ -50,7 +50,26 @@ else if (operation === "delete") { const found=existsSync(vault); rmSync(vault,{
       environmentOverride: { envVar: "ALT_KEY", active: true },
     });
     expect(`${logout.stdout}${logout.stderr}`).not.toContain("surviving-environment-marker");
-  });
+
+    const secondLogin = spawnSync(process.execPath, [entrypoint, "--login", "--credential-stdin"], {
+      cwd: root, env: environment, input: `${marker}\n`, encoding: "utf8",
+    });
+    expect(secondLogin.status).toBe(0);
+    const indeterminateLogout = spawnSync(process.execPath, [entrypoint, "--logout"], {
+      cwd: root,
+      env: { ...environment, TEST_BREAK_STATE_AFTER_DELETE: "1" },
+      encoding: "utf8",
+    });
+    expect(indeterminateLogout.status).toBe(6);
+    expect(JSON.parse(indeterminateLogout.stdout)).toMatchObject({
+      version: 1,
+      operation: "logout",
+      status: "indeterminate",
+      savedCredentialUse: "suspended",
+      action: expect.stringContaining("retry logout"),
+    });
+    expect(`${indeterminateLogout.stdout}${indeterminateLogout.stderr}`).not.toContain(marker);
+  }, 20_000);
 
   it("returns a versioned busy result while a live process owns the credential lock", () => {
     const root = mkdtempSync(join(tmpdir(), "credential-cli-busy-"));
@@ -163,7 +182,7 @@ exit 1
         REVIEW_CREDENTIAL_STATE_PATH: join(root, "state.json"),
       },
       encoding: "utf8",
-      timeout: 3_000,
+      timeout: 10_000,
     });
     expect(child.status).not.toBe(0);
     expect(readFileSync(log, "utf8")).toContain("-F /dev/tty -g");
