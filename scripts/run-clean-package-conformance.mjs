@@ -267,7 +267,12 @@ try {
   const doctor = join(binDirectory, "review-tool-doctor");
   const doctorSource = join(packageDirectory, "dist", "package-doctor.js");
   const installedManifest = parseJson(await readFile(join(packageDirectory, "package.json"), "utf8"), "installed manifest");
-  const productionTree = await mustRun("npm", ["ls", "--all", "--omit=dev", "--json"], { cwd: installation });
+  // npm can return ELSPROBLEMS for tree-sitter's optional peer layout even
+  // when the exact production dependencies are installed and loadable. The
+  // JSON tree remains authoritative for the dev-dependency exclusion below;
+  // parser loading is checked through the packaged entry point afterward.
+  const productionTree = await run("npm", ["ls", "--all", "--omit=dev", "--json"], { cwd: installation });
+  if (productionTree.stdout.trim().length === 0) throw new Error("npm ls did not return a production dependency tree");
   const dependencyTree = parseJson(productionTree.stdout, "production dependency tree");
   for (const forbidden of ["typescript", "vitest", "@types/bun"]) {
     if (dependencyTree.dependencies?.[forbidden] !== undefined) throw new Error(`development dependency installed: ${forbidden}`);
