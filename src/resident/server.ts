@@ -398,6 +398,8 @@ export class ResidentServer {
       queued: dispatch.queued,
       running: dispatch.running,
       pendingAdvice: this.#advice.length + this.#pendingNoticeCount(),
+      pendingFindingBatches: this.#advice.length,
+      pendingOperationalNotices: this.#pendingNoticeCount(),
       retainedBytes: capacity.bytes,
       rejectedCapacity: this.#rejectedCapacity,
       successfulCacheEntries: reuse.entries,
