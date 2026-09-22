@@ -5,7 +5,7 @@ import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { adaptCodexAdd } from "../direct-event/adapter.ts";
+import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import { addEvent, makeGitFixture, put, recipient } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { Consent } from "../runtime/consent.ts";
@@ -110,18 +110,18 @@ describe("resident separate-process lifecycle", { timeout: 30_000 }, () => {
     expect(new Set(identities.map(({ lifetime }) => lifetime)).size).toBe(1);
     processes.push(identities[0]!.pid);
 
-    const observation = await Effect.runPromise(adaptCodexAdd(addEvent(root)));
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
     const admissionScript = [
       "import * as Effect from 'effect/Effect';",
       "import {connect} from 'node:net';",
-      "import { adaptCodexAdd } from './src/direct-event/adapter.ts';",
+      "import { adaptCodexDirectEvent } from './src/direct-event/adapter.ts';",
       `const event=${JSON.stringify(addEvent(root))};`,
       `const dispatch=${JSON.stringify(dispatchFor(statePath))};`,
       `const socketPath=${JSON.stringify(residentPaths(runtime).socket)};`,
       `const lifetime=${JSON.stringify(identities[0]!.lifetime)};`,
-      "const observation=await Effect.runPromise(adaptCodexAdd(event));",
+      "const observation=await Effect.runPromise(adaptCodexDirectEvent(event));",
       "const socket=connect(socketPath);",
       "socket.once('connect',()=>socket.write(JSON.stringify({version:1,operation:'admit',lifetime,observation,controlledWriter:true,dispatch})+'\\n',()=>process.exit(0)));",
     ].join("");
@@ -233,7 +233,7 @@ describe("resident separate-process lifecycle", { timeout: 30_000 }, () => {
     });
     const owner = JSON.parse(await childResult(child)) as { pid: number; lifetime: string };
     processes.push(owner.pid);
-    const observation = await Effect.runPromise(adaptCodexAdd(addEvent(root)));
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
     const paths = residentPaths(runtime);
@@ -279,7 +279,7 @@ describe("resident separate-process lifecycle", { timeout: 30_000 }, () => {
     });
     const owner = JSON.parse(await childResult(child)) as { pid: number; lifetime: string };
     processes.push(owner.pid);
-    const observation = await Effect.runPromise(adaptCodexAdd(addEvent(root)));
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
     const paths = residentPaths(runtime);

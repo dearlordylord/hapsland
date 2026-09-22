@@ -115,7 +115,12 @@ const observation = (value: unknown): value is DirectObservation => {
   ) return false;
   return item.candidates.length > 0 && item.candidates.length <= 16 && item.candidates.every((candidate) => {
     const entry = record(candidate);
-    return entry?.operation === "add" && string(entry.path);
+    if (entry === undefined || !string(entry.path)) return false;
+    if (entry.operation === "add" && entry.addedLines === undefined) return true;
+    if (!Array.isArray(entry.addedLines)) return false;
+    if (entry.addedLines.length > 65_536 || !entry.addedLines.every((line) => typeof line === "string")) return false;
+    if (entry.operation === "add" || entry.operation === "update") return true;
+    return (entry.operation === "delete" || entry.operation === "move") && entry.addedLines.length === 0;
   });
 };
 

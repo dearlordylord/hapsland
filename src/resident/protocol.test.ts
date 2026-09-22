@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addEvent, makeGitFixture } from "../direct-event/test-fixtures.ts";
-import { adaptCodexAdd } from "../direct-event/adapter.ts";
+import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import * as Effect from "effect/Effect";
 import {
   CLIENT_REQUEST_DEADLINE_MS,
@@ -20,7 +20,7 @@ describe("resident protocol bounds", () => {
 
   it("retains child identity and rejects malformed observations after bounded framing", async () => {
     const root = await makeGitFixture();
-    const observation = await Effect.runPromise(adaptCodexAdd(addEvent(root, ["type.ts"], {
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["type.ts"], {
       agent_id: "child-7",
     })));
     expect(observation).toBeDefined();
