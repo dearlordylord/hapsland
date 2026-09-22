@@ -68,4 +68,29 @@ describe("resident delivery lease", () => {
     expect(server.finalize(afterFailedAck.token).status).toBe("finalized");
     expect(server.stats()).toMatchObject({ pendingAdvice: 0, retainedBytes: 0 });
   });
+
+  it("releases promised outcome space after malformed backend output", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    const dispatch: ResidentDispatchContext = {
+      statePath,
+      userConfigPath: null,
+      credential: null,
+      controlled: {
+        answers: Object.fromEntries(configuredRules.map((rule) => [
+          rule.id,
+          { _tag: "Probability", probability: 9 },
+        ])),
+      },
+    };
+    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    expect(server.admit(observation, dispatch).status).toBe("accepted");
+    await server.whenIdle();
+    expect(server.stats()).toMatchObject({ queued: 0, running: 0, pendingAdvice: 0, retainedBytes: 0 });
+  });
 });
