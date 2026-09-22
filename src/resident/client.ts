@@ -1,14 +1,24 @@
 import { spawn } from "node:child_process";
-import { mkdir } from "node:fs/promises";
+import * as Effect from "effect/Effect";
 import { connect } from "node:net";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { DirectObservation, DirectRecipient } from "../direct-event/model.ts";
 import type { CodexDirectEventOutput } from "../direct-event/pipeline.ts";
-import { residentPaths, type ResidentPaths } from "./paths.ts";
+import { loadReviewSettings } from "../runtime/review-config.ts";
+import type { ControlledDecisionModelOptions } from "../test-support/controlled-decision-model.ts";
+import {
+  prepareResidentDirectory,
+  residentPaths,
+  verifyResidentSocket,
+  type ResidentPaths,
+} from "./paths.ts";
 import {
   CLIENT_REQUEST_DEADLINE_MS,
   MAX_IPC_FRAME_BYTES,
   STARTUP_READINESS_DEADLINE_MS,
+  decodeResidentResponse,
+  type ResidentDispatchContext,
   type ResidentRequest,
   type ResidentResponse,
 } from "./protocol.ts";
@@ -17,10 +27,10 @@ export class ResidentIpcError extends Error {}
 
 const delay = (milliseconds: number) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
 
-export const residentRequest = (
+const requestConnected = (
   paths: ResidentPaths,
   request: ResidentRequest,
-  timeoutMs = CLIENT_REQUEST_DEADLINE_MS,
+  timeoutMs: number,
 ): Promise<ResidentResponse> => new Promise((resolve, reject) => {
   const socket = connect(paths.socket);
   let settled = false;
@@ -49,7 +59,10 @@ export const residentRequest = (
     const newline = encoded.indexOf("\n");
     if (newline < 0) return;
     try {
-      finish(undefined, JSON.parse(encoded.slice(0, newline)) as ResidentResponse);
+      const unknown: unknown = JSON.parse(encoded.slice(0, newline));
+      const decoded = decodeResidentResponse(unknown);
+      if (decoded === undefined) throw new Error("response schema mismatch");
+      finish(undefined, decoded);
     } catch {
       finish(new ResidentIpcError("resident response was invalid"));
     }
@@ -58,39 +71,122 @@ export const residentRequest = (
   socket.once("close", () => finish(new ResidentIpcError("resident response closed before acknowledgement")));
 });
 
+export const residentRequest = async (
+  paths: ResidentPaths,
+  request: ResidentRequest,
+  timeoutMs = CLIENT_REQUEST_DEADLINE_MS,
+): Promise<ResidentResponse> => {
+  const deadline = performance.now() + timeoutMs;
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new ResidentIpcError("resident endpoint verification timed out")),
+      timeoutMs,
+    );
+    void verifyResidentSocket(paths).then(
+      () => { clearTimeout(timer); resolve(); },
+      (cause: unknown) => { clearTimeout(timer); reject(cause); },
+    );
+  });
+  const remaining = deadline - performance.now();
+  if (remaining <= 0) throw new ResidentIpcError("resident request deadline exceeded");
+  return requestConnected(paths, request, remaining);
+};
+
+export type EnsureResidentDependencies = {
+  readonly now: () => number;
+  readonly prepare: (paths: ResidentPaths, timeoutMs: number) => Promise<void>;
+  readonly probe: (paths: ResidentPaths, timeoutMs: number) => Promise<ResidentResponse>;
+  readonly launch: (paths: ResidentPaths) => void;
+  readonly wait: (milliseconds: number) => Promise<void>;
+};
+
+const within = async <A>(effect: Promise<A>, timeoutMs: number, message: string): Promise<A> =>
+  new Promise<A>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new ResidentIpcError(message)), timeoutMs);
+    void effect.then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (cause: unknown) => { clearTimeout(timer); reject(cause); },
+    );
+  });
+
+const launchResident = (paths: ResidentPaths) => {
+  const main = fileURLToPath(new URL("./main.ts", import.meta.url));
+  const child = spawn("flock", ["--nonblock", paths.lock, process.execPath, main, paths.directory], {
+    detached: true,
+    stdio: "ignore",
+    env: process.env,
+  });
+  child.unref();
+};
+
+const liveEnsureDependencies: EnsureResidentDependencies = {
+  now: () => performance.now(),
+  prepare: (paths, timeoutMs) => within(
+    prepareResidentDirectory(paths),
+    timeoutMs,
+    "resident endpoint preparation timed out",
+  ),
+  probe: (paths, timeoutMs) => residentRequest(paths, { version: 1, operation: "hello" }, timeoutMs),
+  launch: launchResident,
+  wait: delay,
+};
+
 export const ensureResident = async (
   paths = residentPaths(),
   readinessMs = STARTUP_READINESS_DEADLINE_MS,
+  dependencies: EnsureResidentDependencies = liveEnsureDependencies,
 ): Promise<Extract<ResidentResponse, { status: "ready" }>> => {
-  await mkdir(paths.directory, { recursive: true, mode: 0o700 });
+  const deadline = dependencies.now() + readinessMs;
+  const remaining = () => Math.max(0, deadline - dependencies.now());
+  await dependencies.prepare(paths, remaining());
+  if (remaining() <= 0) throw new ResidentIpcError("resident readiness deadline exceeded");
   try {
-    const existing = await residentRequest(paths, { version: 1, operation: "hello" }, 250);
+    const existing = await dependencies.probe(paths, Math.min(250, remaining()));
     if (existing.status === "ready") return existing;
   } catch {
     // A failed probe is not a death determination. Contending servers use the
     // kernel lock; only its owner may replace the socket pathname.
   }
-  const main = fileURLToPath(new URL("./main.ts", import.meta.url));
-  const child = spawn("flock", ["--nonblock", paths.lock, process.execPath, main, paths.directory], {
-    detached: true,
-    stdio: "ignore",
-    env: {
-      ...process.env,
-      ...(process.argv.includes("--controlled") ? { REVIEW_RESIDENT_CONTROLLED: "1" } : {}),
-    },
-  });
-  child.unref();
-  const deadline = Date.now() + readinessMs;
-  while (Date.now() < deadline) {
+  if (remaining() <= 0) throw new ResidentIpcError("resident readiness deadline exceeded");
+  dependencies.launch(paths);
+  while (remaining() > 0) {
     try {
-      const response = await residentRequest(paths, { version: 1, operation: "hello" }, 250);
+      const response = await dependencies.probe(paths, Math.min(250, remaining()));
       if (response.status === "ready") return response;
     } catch {
       // Bounded readiness polling covers the winner's startup only.
     }
-    await delay(50);
+    const backoff = Math.min(50, remaining());
+    if (backoff > 0) await dependencies.wait(backoff);
   }
   throw new ResidentIpcError("resident did not become ready within 10 seconds");
+};
+
+export const makeResidentDispatchContext = async (
+  root: string,
+  statePath: string,
+  userConfigPath: string | undefined,
+  controlledOptions: ControlledDecisionModelOptions | undefined,
+): Promise<ResidentDispatchContext> => {
+  const settings = await Effect.runPromise(loadReviewSettings(
+    root,
+    userConfigPath === undefined ? {} : { userConfigPath },
+  ));
+  const controlled = controlledOptions === undefined ? null : {
+    ...(controlledOptions.answers === undefined ? {} : { answers: controlledOptions.answers }),
+    ...(controlledOptions.delayMs === undefined ? {} : { delayMs: controlledOptions.delayMs }),
+    ...(controlledOptions.failure === undefined ? {} : { failure: controlledOptions.failure }),
+    ...(controlledOptions.capturePath === undefined ? {} : { capturePath: controlledOptions.capturePath }),
+  };
+  const credentialValue = process.env[settings.credentialEnvVar];
+  return {
+    statePath: resolve(statePath),
+    userConfigPath: userConfigPath === undefined ? null : resolve(userConfigPath),
+    credential: controlled !== null || credentialValue === undefined || credentialValue.length === 0
+      ? null
+      : { name: settings.credentialEnvVar, value: credentialValue },
+    controlled,
+  };
 };
 
 export type CollectedAdvice = {
@@ -103,6 +199,7 @@ export type CollectedAdvice = {
 export const admitObservation = async (
   observation: DirectObservation,
   controlledWriter: boolean,
+  dispatch: ResidentDispatchContext,
   paths = residentPaths(),
 ) => {
   const owner = await ensureResident(paths);
@@ -113,12 +210,14 @@ export const admitObservation = async (
     lifetime: owner.lifetime,
     observation,
     controlledWriter: true,
+    dispatch,
   });
 };
 
 export const collectReady = async (
   root: string,
   recipient: DirectRecipient,
+  dispatch: ResidentDispatchContext,
   paths = residentPaths(),
 ): Promise<CollectedAdvice | undefined> => {
   const owner = await ensureResident(paths);
@@ -128,16 +227,29 @@ export const collectReady = async (
     lifetime: owner.lifetime,
     root,
     recipient,
+    dispatch,
   });
   return response.status === "advice"
     ? { output: response.output, token: response.token, lifetime: owner.lifetime, paths }
     : undefined;
 };
 
-export const acknowledgeAdvice = (advice: CollectedAdvice) =>
-  residentRequest(advice.paths, {
+export const acknowledgeAdvice = async (advice: CollectedAdvice): Promise<boolean> => {
+  const deadline = performance.now() + CLIENT_REQUEST_DEADLINE_MS;
+  const acknowledged = await residentRequest(advice.paths, {
     version: 1,
     operation: "acknowledge",
     lifetime: advice.lifetime,
     token: advice.token,
   }).catch(() => undefined);
+  if (acknowledged?.status !== "acknowledged") return false;
+  const remaining = deadline - performance.now();
+  if (remaining <= 0) return false;
+  const finalized = await residentRequest(advice.paths, {
+    version: 1,
+    operation: "finalize",
+    lifetime: advice.lifetime,
+    token: advice.token,
+  }, remaining).catch(() => undefined);
+  return finalized?.status === "finalized";
+};

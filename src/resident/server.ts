@@ -1,12 +1,9 @@
-import * as Config from "effect/Config";
+import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
-import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import { randomUUID } from "node:crypto";
-import { access, chmod, mkdir, rm, writeFile } from "node:fs/promises";
+import { access, chmod, rm, writeFile } from "node:fs/promises";
 import { createServer, type Server, type Socket } from "node:net";
-import { homedir } from "node:os";
-import { join } from "node:path";
 import { canonicalValue, type DirectObservation, type DirectRecipient } from "../direct-event/model.ts";
 import {
   revalidateFindings,
@@ -21,11 +18,18 @@ import {
   controlledDecisionModelLayer,
   type ControlledDecisionModelOptions,
 } from "../test-support/controlled-decision-model.ts";
-import { residentPaths, type ResidentPaths } from "./paths.ts";
 import {
+  prepareResidentDirectory,
+  residentPaths,
+  verifyRemovableSocket,
+  type ResidentPaths,
+} from "./paths.ts";
+import {
+  DELIVERY_LEASE_MS,
   MAX_IPC_CONNECTIONS,
   MAX_IPC_FRAME_BYTES,
   decodeResidentRequest,
+  type ResidentDispatchContext,
   type ResidentRequest,
   type ResidentResponse,
 } from "./protocol.ts";
@@ -63,12 +67,17 @@ type Job = {
   readonly observation: DirectObservation;
   readonly partition: string;
   readonly reservation: number;
+  readonly dispatch: ResidentDispatchContext;
 };
 
-type Advice = Job & {
+type Advice = Omit<Job, "dispatch"> & {
   readonly findings: ReadonlyArray<Finding>;
   readonly encodedBytes: number;
-  token?: string;
+  delivery?: {
+    readonly token: string;
+    leaseUntil: number;
+    acknowledged: boolean;
+  };
 };
 
 const recipientPartition = (root: string, recipient: DirectRecipient) => canonicalValue({
@@ -79,15 +88,14 @@ const recipientPartition = (root: string, recipient: DirectRecipient) => canonic
   agentId: recipient.agentId,
 });
 
-const parseControlledOptions = (): ControlledDecisionModelOptions | undefined => {
-  if (!process.argv.includes("--controlled") && process.env.REVIEW_RESIDENT_CONTROLLED !== "1") {
-    return undefined;
-  }
+const decodeControlledOptions = (
+  value: ResidentDispatchContext["controlled"],
+): ControlledDecisionModelOptions | undefined => {
+  if (value === null) return undefined;
   try {
-    const value: unknown = JSON.parse(process.env.REVIEW_CONTROL_JSON ?? "{}");
     return Schema.decodeUnknownSync(ResidentControlledOptions, { onExcessProperty: "error" })(value);
   } catch {
-    return {};
+    return undefined;
   }
 };
 
@@ -95,18 +103,17 @@ export class ResidentServer {
   readonly lifetime = randomUUID();
   readonly #queue: Array<Job> = [];
   readonly #advice: Array<Advice> = [];
-  readonly #controlled = parseControlledOptions();
-  readonly #statePath = process.env.REVIEW_STATE_PATH ?? process.env.REVIEW_CONSENT_FILE ??
-    join(homedir(), ".config", "realtime-review-tool", "consent");
-  readonly #userConfigPath = process.env.REVIEW_USER_CONFIG_PATH;
+  readonly #now: () => number;
   #running = 0;
   #retainedBytes = 0;
   #server: Server | undefined;
   #connections = 0;
+  readonly #idleWaiters: Array<() => void> = [];
   readonly paths: ResidentPaths;
 
-  constructor(paths: ResidentPaths = residentPaths()) {
+  constructor(paths: ResidentPaths = residentPaths(), now: () => number = () => performance.now()) {
     this.paths = paths;
+    this.#now = now;
   }
 
   stats(): Extract<ResidentResponse, { status: "stats" }> {
@@ -119,7 +126,7 @@ export class ResidentServer {
     };
   }
 
-  admit(observation: DirectObservation): ResidentResponse {
+  admit(observation: DirectObservation, dispatch: ResidentDispatchContext): ResidentResponse {
     const items = this.#queue.length + this.#running + this.#advice.length;
     if (
       items >= MAX_RETAINED_ITEMS ||
@@ -130,34 +137,69 @@ export class ResidentServer {
       observation,
       partition: recipientPartition(observation.root, observation.recipient),
       reservation: ITEM_RESERVATION_BYTES,
+      dispatch,
     });
+    const acceptedPath = process.env.REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH;
+    if (acceptedPath !== undefined) void writeFile(acceptedPath, "accepted\n").catch(() => undefined);
     this.#pump();
     return { status: "accepted" };
   }
 
-  async collect(root: string, recipient: DirectRecipient): Promise<ResidentResponse> {
+  async collect(
+    root: string,
+    recipient: DirectRecipient,
+    dispatch: ResidentDispatchContext,
+  ): Promise<ResidentResponse> {
     const partition = recipientPartition(root, recipient);
-    const index = this.#advice.findIndex((item) => item.partition === partition && item.token === undefined);
+    const now = this.#now();
+    for (const item of this.#advice) {
+      if (item.delivery !== undefined && item.delivery.leaseUntil <= now) delete item.delivery;
+    }
+    const index = this.#advice.findIndex((item) => item.partition === partition && item.delivery === undefined);
     if (index < 0) return { status: "empty" };
     const advice = this.#advice[index];
     if (advice === undefined) return { status: "empty" };
-    const valid = await this.#revalidate(advice);
+    const token = randomUUID();
+    advice.delivery = { token, leaseUntil: Number.POSITIVE_INFINITY, acknowledged: false };
+    const valid = await this.#revalidate(advice, dispatch);
     if (!valid) {
       this.#advice.splice(index, 1);
       this.#retainedBytes -= advice.reservation;
       return { status: "empty" };
     }
-    const token = randomUUID();
-    advice.token = token;
+    advice.delivery.leaseUntil = this.#now() + DELIVERY_LEASE_MS;
     return { status: "advice", token, output: toCodexDirectEventOutput(advice.findings) };
   }
 
   acknowledge(token: string): ResidentResponse {
-    const index = this.#advice.findIndex((item) => item.token === token);
+    const advice = this.#advice.find((item) => item.delivery?.token === token);
+    if (advice?.delivery === undefined) return { status: "empty" };
+    if (advice.delivery.leaseUntil <= this.#now()) {
+      delete advice.delivery;
+      return { status: "empty" };
+    }
+    advice.delivery.acknowledged = true;
+    return { status: "acknowledged" };
+  }
+
+  finalize(token: string): ResidentResponse {
+    const index = this.#advice.findIndex((item) => {
+      if (item.delivery?.token !== token || !item.delivery.acknowledged) return false;
+      if (item.delivery.leaseUntil <= this.#now()) {
+        delete item.delivery;
+        return false;
+      }
+      return true;
+    });
     if (index < 0) return { status: "empty" };
     const [advice] = this.#advice.splice(index, 1);
     if (advice !== undefined) this.#retainedBytes -= advice.reservation;
-    return { status: "acknowledged" };
+    return { status: "finalized" };
+  }
+
+  releaseDelivery(token: string): void {
+    const advice = this.#advice.find((item) => item.delivery?.token === token);
+    if (advice !== undefined && advice.delivery?.acknowledged === false) delete advice.delivery;
   }
 
   #pump(): void {
@@ -168,8 +210,16 @@ export class ResidentServer {
       void this.#evaluate(job).finally(() => {
         this.#running -= 1;
         this.#pump();
+        if (this.#running === 0 && this.#queue.length === 0) {
+          for (const resolve of this.#idleWaiters.splice(0)) resolve();
+        }
       });
     }
+  }
+
+  whenIdle(): Promise<void> {
+    if (this.#running === 0 && this.#queue.length === 0) return Promise.resolve();
+    return new Promise((resolve) => this.#idleWaiters.push(resolve));
   }
 
   async #evaluate(job: Job): Promise<void> {
@@ -185,17 +235,21 @@ export class ResidentServer {
           }
         }
       }
-      const userConfigPath = this.#userConfigPath;
-      const controlled = this.#controlled;
+      const userConfigPath = job.dispatch.userConfigPath ?? undefined;
+      const controlled = decodeControlledOptions(job.dispatch.controlled);
       const result = await Effect.runPromise(Effect.gen(function* () {
         const settings = yield* loadReviewSettings(
           job.observation.root,
           userConfigPath === undefined ? {} : { userConfigPath },
         );
-        if (controlled === undefined) {
-          const credential = yield* Config.option(Config.String(settings.credentialEnvVar));
-          if (Option.isNone(credential) || credential.value.length === 0) return undefined;
-        }
+        if (job.dispatch.controlled !== null && controlled === undefined) return undefined;
+        if (controlled === undefined && job.dispatch.credential?.name !== settings.credentialEnvVar) return undefined;
+        const credentialProvider = job.dispatch.credential === null
+          ? undefined
+          : ConfigProvider.layer(ConfigProvider.fromUnknown({
+              [job.dispatch.credential.name]: job.dispatch.credential.value,
+            }));
+        if (controlled === undefined && credentialProvider === undefined) return undefined;
         const decisionModel = controlled === undefined
           ? jevDecisionModelLiveLayer({
               apiUrl: settings.apiBase,
@@ -203,17 +257,26 @@ export class ResidentServer {
             })
           : controlledDecisionModelLayer(controlled);
         const consent = yield* Consent.Service;
-        return yield* reviewObservation(job.observation, {
+        const review = reviewObservation(job.observation, {
           controlledWriter: true,
           recipient: job.observation.recipient,
           consent,
           settings,
         }).pipe(Effect.provide(decisionModel));
-      }).pipe(Effect.provide(Consent.layer({ statePath: this.#statePath }))));
+        return yield* (credentialProvider === undefined
+          ? review
+          : review.pipe(Effect.provide(credentialProvider)));
+      }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))));
       if (result?.status === "ready") {
         const encodedBytes = Buffer.byteLength(JSON.stringify(result.output), "utf8");
         if (encodedBytes <= MAX_IPC_FRAME_BYTES - 1024) {
-          this.#advice.push({ ...job, findings: result.findings, encodedBytes });
+          this.#advice.push({
+            observation: job.observation,
+            partition: job.partition,
+            reservation: job.reservation,
+            findings: result.findings,
+            encodedBytes,
+          });
           return;
         }
       }
@@ -225,9 +288,9 @@ export class ResidentServer {
     this.#retainedBytes -= job.reservation;
   }
 
-  async #revalidate(advice: Advice): Promise<boolean> {
+  async #revalidate(advice: Advice, dispatch: ResidentDispatchContext): Promise<boolean> {
     try {
-      const userConfigPath = this.#userConfigPath;
+      const userConfigPath = dispatch.userConfigPath ?? undefined;
       return await Effect.runPromise(Effect.gen(function* () {
         const settings = yield* loadReviewSettings(
           advice.observation.root,
@@ -240,7 +303,7 @@ export class ResidentServer {
           consent,
           settings,
         });
-      }).pipe(Effect.provide(Consent.layer({ statePath: this.#statePath }))));
+      }).pipe(Effect.provide(Consent.layer({ statePath: dispatch.statePath }))));
     } catch {
       return false;
     }
@@ -252,21 +315,41 @@ export class ResidentServer {
     }
     if (request.lifetime !== this.lifetime) return { status: "obsolete-lifetime" };
     if (request.operation === "admit") {
-      const response = this.admit(request.observation);
-      const delayMs = Number(process.env.REVIEW_RESIDENT_ADMISSION_RESPONSE_DELAY_MS ?? "0");
-      if (Number.isFinite(delayMs) && delayMs > 0) {
-        await new Promise<void>((resolve) => setTimeout(resolve, Math.min(delayMs, 10_000)));
-      }
-      return response;
+      return this.admit(request.observation, request.dispatch);
     }
-    if (request.operation === "collect") return this.collect(request.root, request.recipient);
+    if (request.operation === "collect") return this.collect(request.root, request.recipient, request.dispatch);
     if (request.operation === "acknowledge") return this.acknowledge(request.token);
+    if (request.operation === "finalize") return this.finalize(request.token);
     if (request.operation === "stats") return this.stats();
     if (request.operation === "shutdown") {
       setTimeout(() => void this.close(), 10);
       return { status: "acknowledged" };
     }
     return { status: "unsupported" };
+  }
+
+  async #responseGate(operation: ResidentRequest["operation"]): Promise<void> {
+    const variable = operation === "collect"
+      ? "REVIEW_RESIDENT_COLLECT_RESPONSE_GATE_PATH"
+      : operation === "acknowledge"
+        ? "REVIEW_RESIDENT_ACK_RESPONSE_GATE_PATH"
+        : undefined;
+    const gate = variable === undefined ? undefined : process.env[variable];
+    if (gate === undefined) return;
+    try {
+      await access(`${gate}.enabled`);
+    } catch {
+      return;
+    }
+    await writeFile(`${gate}.entered`, "entered\n");
+    while (true) {
+      try {
+        await access(`${gate}.release`);
+        return;
+      } catch {
+        await new Promise<void>((resolve) => setTimeout(resolve, 10));
+      }
+    }
   }
 
   #accept(socket: Socket): void {
@@ -298,8 +381,15 @@ export class ResidentServer {
         socket.end(`${JSON.stringify({ status: "unsupported" })}\n`);
         return;
       }
-      void this.handle(request).then((response) => {
-        if (!socket.destroyed) socket.end(`${JSON.stringify(response)}\n`);
+      void this.handle(request).then(async (response) => {
+        await this.#responseGate(request.operation);
+        if (socket.destroyed) {
+          if (response.status === "advice") this.releaseDelivery(response.token);
+          return;
+        }
+        socket.end(`${JSON.stringify(response)}\n`, () => {
+          if (socket.errored !== null && response.status === "advice") this.releaseDelivery(response.token);
+        });
       }).catch(() => {
         if (!socket.destroyed) socket.end(`${JSON.stringify({ status: "unsupported" })}\n`);
       });
@@ -308,10 +398,10 @@ export class ResidentServer {
 
   async listen(): Promise<void> {
     if (process.platform !== "linux") throw new Error("resident profile supports Linux only");
-    await mkdir(this.paths.directory, { recursive: true, mode: 0o700 });
-    await chmod(this.paths.directory, 0o700);
+    await prepareResidentDirectory(this.paths);
     // This process is launched under the live kernel lock. A socket pathname
     // alone is never treated as ownership evidence.
+    await verifyRemovableSocket(this.paths);
     await rm(this.paths.socket, { force: true });
     const server = createServer((socket) => this.#accept(socket));
     server.maxConnections = MAX_IPC_CONNECTIONS;

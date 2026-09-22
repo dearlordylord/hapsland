@@ -53,6 +53,7 @@ import {
   admitObservation,
   collectReady,
   ensureResident,
+  makeResidentDispatchContext,
   type CollectedAdvice,
 } from "./resident/client.ts";
 
@@ -330,6 +331,9 @@ type DirectHookDispatch =
 
 const runDirectCodexHook = (
   nativeEvent: unknown,
+  controlled: ControlledDecisionModelOptions | undefined,
+  statePath: string,
+  userConfigPath: string | undefined,
 ): Effect.Effect<DirectHookDispatch, unknown> =>
   Effect.gen(function* () {
     const record = typeof nativeEvent === "object" && nativeEvent !== null
@@ -342,9 +346,17 @@ const runDirectCodexHook = (
     const owner = yield* Effect.tryPromise(() => ensureResident()).pipe(Effect.option);
     if (Option.isNone(owner)) return { handled: true, output: {} } as const;
     const reply = yield* adaptCodexReply(nativeEvent);
-    const collected = reply === undefined
+    const dispatch = reply === undefined
       ? undefined
-      : yield* Effect.tryPromise(() => collectReady(reply.root, reply.recipient)).pipe(
+      : yield* Effect.tryPromise(() => makeResidentDispatchContext(
+          reply.root,
+          statePath,
+          userConfigPath,
+          controlled,
+        )).pipe(Effect.catch(() => Effect.succeed(undefined)));
+    const collected = reply === undefined || dispatch === undefined
+      ? undefined
+      : yield* Effect.tryPromise(() => collectReady(reply.root, reply.recipient, dispatch)).pipe(
           Effect.catch(() => Effect.succeed(undefined)),
         );
     // Bash has no path adaptation and can never create backend work.
@@ -363,7 +375,8 @@ const runDirectCodexHook = (
     }
     // Matching reads are not attribution. The hook command must explicitly be
     // installed with this controlled-writer assertion for the supported Add profile.
-    yield* Effect.tryPromise(() => admitObservation(observation, isControlledWriter)).pipe(
+    if (dispatch !== undefined) yield* Effect.tryPromise(() =>
+      admitObservation(observation, isControlledWriter, dispatch)).pipe(
       Effect.catch(() => Effect.void),
     );
     return collected === undefined
@@ -778,6 +791,9 @@ const program = Effect.gen(function* () {
     const nativeEvent = yield* decodeJson(input);
     const direct = yield* runDirectCodexHook(
       nativeEvent,
+      controlled,
+      statePath,
+      userConfigPath,
     );
     if (direct.handled) return direct.output;
     const event = yield* decodeCodexJson(input);
