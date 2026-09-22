@@ -79,6 +79,10 @@ unsupported. After installing the tarball, run
 may acquire and build production dependencies once. Hook invocations use the installed CLI
 and resident and do not download packages per edit.
 
+The packaged CLI's preview/install/enable/disable/uninstall contract, ownership rules, recovery
+behavior, and native trust handoff are documented in
+[`docs/codex-installation.md`](./docs/codex-installation.md).
+
 `npm run conformance:package` packs into an isolated temporary prefix, installs with production
 dependencies only, and runs the parser and controlled offline review outside the checkout. Add
 `-- --real-codex --write-evidence` only for the declared real-host acceptance fixture; it uses

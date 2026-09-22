@@ -118,6 +118,16 @@ if (packageEncoded === undefined) {
     packageEvidence.realCodex?.reviewCompletion?.status !== "completed-findings" ||
     packageEvidence.realCodex?.reviewCompletion?.terminalOutcomes !== 1 ||
     packageEvidence.realCodex?.reviewCompletion?.correlation !== "resident-native-event-identity" ||
+    packageEvidence.realCodex?.independentHook?.status !== "observed" ||
+    packageEvidence.realCodex?.independentHook?.observations < 1 ||
+    packageEvidence.installation?.preview !== "passed" ||
+    packageEvidence.installation?.installed !== "passed" ||
+    packageEvidence.installation?.idempotent !== "passed" ||
+    packageEvidence.installation?.disableDispatchGate !== "passed" ||
+    packageEvidence.installation?.scopedUninstall !== "passed" ||
+    packageEvidence.installation?.customQuotedHome !== true ||
+    packageEvidence.installation?.independentHookPreserved !== true ||
+    packageEvidence.installation?.sourceEgressAuthorized !== false ||
     packageEvidence.isolation?.developmentDependencies !== false ||
     packageEvidence.isolation?.checkoutPathUsedAtRuntime !== false
   ) {

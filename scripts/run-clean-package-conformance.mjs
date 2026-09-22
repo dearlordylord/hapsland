@@ -259,6 +259,8 @@ try {
     : join(temporary, "state", "resident");
   const calls = join(temporary, "state", "controlled-calls.txt");
   const outcomes = join(temporary, "state", "controlled-outcomes.jsonl");
+  const codexHome = join(temporary, "codex home 'quoted'");
+  const independentLog = join(temporary, "state", "independent-hook.jsonl");
   await mkdir(artifacts, { recursive: true });
   await mkdir(installation, { recursive: true });
   await mkdir(repository, { recursive: true });
@@ -318,8 +320,52 @@ try {
     REVIEW_STATE_PATH: state,
     REVIEW_RESIDENT_DIR: runtime,
     REVIEW_CONTROL_JSON: JSON.stringify({ answers, capturePath: calls, outcomePath: outcomes }),
+    REVIEW_INSTALL_CONTROLLED: "1",
   };
   for (const key of ["OPENAI_API_KEY", "TYPESAFE_API_KEY"]) delete env[key];
+  await mkdir(codexHome, { recursive: true, mode: 0o700 });
+  const fakeCodex = join(temporary, "codex-cli-fixture");
+  await writeFile(fakeCodex, "#!/bin/sh\nprintf 'codex-cli 0.155.1\\n'\n", { mode: 0o700 });
+  await chmod(fakeCodex, 0o700);
+  const independentHook = join(temporary, "independent-hook.mjs");
+  await writeFile(independentHook, `import { appendFileSync } from "node:fs";\nappendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify({ observed: true }) + "\\n");\n`, { mode: 0o600 });
+  await writeFile(join(codexHome, "config.toml"), "# independent setting\nmodel_reasoning_effort = 'medium'\n", { mode: 0o600 });
+  await writeFile(join(codexHome, "hooks.json"), `${JSON.stringify({
+    description: "independent fixture hook",
+    hooks: { PostToolUse: [{ matcher: "^(apply_patch|Bash)$", hooks: [{ type: "command", command: `${quote(process.execPath)} ${quote(independentHook)}`, timeout: 10 }] }] },
+  }, null, 2)}\n`, { mode: 0o600 });
+  const installPreviewRun = await mustRun(cli, ["--install-preview"], {
+    cwd: temporary,
+    env,
+    input: JSON.stringify({ version: 1, operation: "install-preview", codexHome, codexExecutable: fakeCodex }),
+  });
+  const installPreview = parseJson(installPreviewRun.stdout, "installation preview");
+  if (installPreview.status !== "preview" || installPreview.sourceEgressAuthorized !== false || !Array.isArray(installPreview.proposal?.changes)) {
+    throw new Error("packaged installation preview did not expose exact source-free changes");
+  }
+  const installRun = await mustRun(cli, ["--install"], {
+    cwd: temporary,
+    env,
+    input: JSON.stringify({ version: 1, operation: "install", codexHome, codexExecutable: fakeCodex, proposalDigest: installPreview.proposal.digest }),
+  });
+  const installResult = parseJson(installRun.stdout, "installation result");
+  if (installResult.status !== "installed" || installResult.sourceEgressAuthorized !== false) {
+    throw new Error("packaged installation did not complete without source consent");
+  }
+  const repeatPreviewRun = await mustRun(cli, ["--install-preview"], {
+    cwd: temporary,
+    env,
+    input: JSON.stringify({ version: 1, operation: "install-preview", codexHome, codexExecutable: fakeCodex }),
+  });
+  const repeatPreview = parseJson(repeatPreviewRun.stdout, "repeat installation preview");
+  const repeatInstallRun = await mustRun(cli, ["--install"], {
+    cwd: temporary,
+    env,
+    input: JSON.stringify({ version: 1, operation: "install", codexHome, codexExecutable: fakeCodex, proposalDigest: repeatPreview.proposal.digest }),
+  });
+  if (parseJson(repeatInstallRun.stdout, "repeat installation").status !== "already-installed") {
+    throw new Error("packaged repeated installation was not idempotent");
+  }
   const preview = await mustRun(cli, ["--enable"], {
     cwd: temporary, env, input: JSON.stringify({ version: 1, operation: "enable", cwd: repository }),
   });
@@ -354,6 +400,31 @@ try {
   const submissions = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
   if (submissions !== 1) throw new Error(`expected one controlled backend submission, observed ${submissions}`);
   if (hookOutput.hookSpecificOutput?.hookEventName !== "PostToolUse") throw new Error("packaged hook did not return review advice");
+  const disabledRun = await mustRun(cli, ["--disable"], {
+    cwd: temporary, env, input: JSON.stringify({ version: 1, operation: "disable", cwd: repository }),
+  });
+  if (parseJson(disabledRun.stdout, "disable result").status !== "disabled") throw new Error("packaged disable did not revoke repository dispatch");
+  await writeFile(join(repository, "disabled.ts"), "export interface Disabled { id: string }\n", { mode: 0o600 });
+  await mustRun(cli, ["--codex-hook", "--controlled", "--controlled-writer"], {
+    cwd: temporary,
+    env,
+    input: JSON.stringify({
+      ...addEvent,
+      tool_use_id: "package-disabled",
+      tool_input: { command: "*** Begin Patch\n*** Add File: disabled.ts\n+export interface Disabled { id: string }\n*** End Patch" },
+    }),
+  });
+  await new Promise((resolveWait) => setTimeout(resolveWait, 100));
+  const submissionsAfterDisable = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
+  if (submissionsAfterDisable !== submissions) throw new Error("disabled repository dispatched a provider request");
+  const reenablePreview = await mustRun(cli, ["--enable"], {
+    cwd: temporary, env, input: JSON.stringify({ version: 1, operation: "enable", cwd: repository }),
+  });
+  await mustRun(cli, ["--enable-confirm"], {
+    cwd: temporary,
+    env,
+    input: JSON.stringify({ version: 1, operation: "enable-confirm", cwd: repository, proposalDigest: parseJson(reenablePreview.stdout, "reenable preview").proposal.digest }),
+  });
   const owner = parseJson(await readFile(join(runtime, "owner.json"), "utf8"), "resident owner");
   residentPid = owner.pid;
 
@@ -365,8 +436,6 @@ try {
     let codexVersion = "unavailable";
     try {
     codexVersion = (await mustRun("codex", ["--version"], { cwd: temporary })).stdout.trim();
-    const codexHome = join(temporary, "codex-home");
-    await mkdir(codexHome, { mode: 0o700 });
     try {
       if (process.env.CODEX_AUTH_JSON !== undefined) {
         parseJson(process.env.CODEX_AUTH_JSON, "CODEX_AUTH_JSON");
@@ -378,17 +447,15 @@ try {
     } catch {
       throw new Error("real Codex fixture requested but isolated host authentication is unavailable; provide CODEX_AUTH_JSON or ~/.codex/auth.json");
     }
-    await writeFile(join(codexHome, "config.toml"), "[features]\nhooks = true\n", { mode: 0o600 });
-    await writeFile(join(codexHome, "hooks.json"), `${JSON.stringify({ hooks: { PostToolUse: [{ matcher: "^(apply_patch|Bash)$", hooks: [{ type: "command", command: `${quote(cli)} --codex-hook --controlled --controlled-writer`, timeout: 20 }] }] } }, null, 2)}\n`, { mode: 0o600 });
     realCodexStage = "native-repository-and-hook-trust";
-    await establishNativeTrust(codexHome, repository, env);
+    await establishNativeTrust(codexHome, repository, { ...env, INDEPENDENT_HOOK_LOG: independentLog });
     const trustedConfig = await readFile(join(codexHome, "config.toml"), "utf8");
     if (!trustedConfig.includes('trust_level = "trusted"') || !trustedConfig.includes("[hooks.state.") || !trustedConfig.includes("trusted_hash")) {
       throw new Error("Codex native trust review did not retain repository and exact hook-definition trust");
     }
     const before = submissions;
     const outcomesBefore = jsonLines(await readFile(outcomes, "utf8").catch(() => "")).length;
-    const codexEnv = { ...env, CODEX_HOME: codexHome };
+    const codexEnv = { ...env, CODEX_HOME: codexHome, INDEPENDENT_HOOK_LOG: independentLog };
     realCodexStage = "host-execution";
     const host = await run("codex", [
       "exec", "--ephemeral", "--json",
@@ -404,8 +471,9 @@ try {
     }
     const completed = realHostOutcomes.filter(({ outcome }) => outcome === "completed-findings");
     const providerSubmissions = after - before;
+    const independentObservations = jsonLines(await readFile(independentLog, "utf8").catch(() => "")).length;
     realCodex = {
-      status: host.code === 0 && providerSubmissions === 1 && completed.length === 1 ? "passed" : "failed",
+      status: host.code === 0 && providerSubmissions === 1 && completed.length === 1 && independentObservations >= 2 ? "passed" : "failed",
       codexVersion,
       hostExitCode: host.code,
       hookTrust: {
@@ -424,10 +492,11 @@ try {
         terminalOutcomes: completed.length,
         correlation: "resident-native-event-identity",
       },
+      independentHook: { status: independentObservations >= 2 ? "observed" : "failed", observations: independentObservations },
     };
     if (realCodex.status !== "passed") {
       realCodexStage = "terminal-review-assertion";
-      throw new Error("real Codex fixture did not satisfy the source-free terminal assertions");
+      throw new Error(`real Codex fixture did not satisfy source-free assertions (host=${host.code}, submissions=${providerSubmissions}, completions=${completed.length}, independent=${independentObservations})`);
     }
     } catch (cause) {
       realCodexFailure = cause;
@@ -445,6 +514,25 @@ try {
     }
   }
 
+  const uninstallPreviewRun = await mustRun(cli, ["--uninstall"], {
+    cwd: temporary, env, input: JSON.stringify({ version: 1, operation: "uninstall", codexHome }),
+  });
+  const uninstallPreview = parseJson(uninstallPreviewRun.stdout, "uninstall preview");
+  if (uninstallPreview.status !== "preview") throw new Error("packaged uninstall did not preview owned removal");
+  const uninstallRun = await mustRun(cli, ["--uninstall"], {
+    cwd: temporary,
+    env,
+    input: JSON.stringify({ version: 1, operation: "uninstall", codexHome, proposalDigest: uninstallPreview.proposal.digest }),
+  });
+  const uninstallResult = parseJson(uninstallRun.stdout, "uninstall result");
+  const hooksAfterUninstall = parseJson(await readFile(join(codexHome, "hooks.json"), "utf8"), "hooks after uninstall");
+  const configAfterUninstall = await readFile(join(codexHome, "config.toml"), "utf8");
+  if (uninstallResult.status !== "uninstalled" || hooksAfterUninstall.description !== "independent fixture hook" ||
+      hooksAfterUninstall.hooks?.PostToolUse?.length !== 1 || !configAfterUninstall.includes("hooks = true") ||
+      !configAfterUninstall.includes("model_reasoning_effort = 'medium'")) {
+    throw new Error("scoped uninstall did not preserve independent Codex configuration");
+  }
+
   const evidence = {
     schemaVersion: 1,
     recordedAt: new Date().toISOString(),
@@ -459,6 +547,16 @@ try {
     }),
     isolation: { temporaryInstallation: true, developmentDependencies: false, checkoutPathUsedAtRuntime: false, retainedSyntheticSource: false },
     entryPoints: { cli: "passed", parser: "passed", resident: "passed", hook: "passed" },
+    installation: {
+      preview: "passed",
+      installed: "passed",
+      idempotent: "passed",
+      scopedUninstall: "passed",
+      customQuotedHome: true,
+      independentHookPreserved: true,
+      sourceEgressAuthorized: false,
+      disableDispatchGate: "passed",
+    },
     review: { backend: "controlled-offline", submissions, adviceReturned: true },
     realCodex,
     transientPackageDownloadPerEdit: false,
