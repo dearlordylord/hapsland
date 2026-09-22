@@ -801,6 +801,37 @@ const validateJournalScope = (journal: Journal, inputs: ReturnType<typeof resolv
   }
 };
 
+const recoveryConflictResult = (
+  operation: "install" | "uninstall",
+  inputs: ReturnType<typeof resolveInputs>,
+  journal: Journal,
+  cause: unknown,
+) => {
+  const current = readJournal(inputs.paths.journal);
+  const completedIndexes = current?.completed ?? journal.completed;
+  return {
+    version: RESULT_VERSION,
+    operation,
+    status: "partial",
+    host: { adapter: "codex", home: inputs.home },
+    error: {
+      code: "recovery_conflict",
+      message: cause instanceof Error ? cause.message : "journal recovery prerequisites no longer match",
+    },
+    recovery: {
+      proposalDigest: journal.proposalDigest,
+      completedFiles: completedIndexes.length,
+      totalFiles: journal.mutations.length,
+    },
+    completed: completedIndexes
+      .map((index) => journal.mutations[index]?.description)
+      .filter((value) => value !== undefined),
+    pending: [
+      "preserve the current files, resolve the reported prerequisite conflict, then rerun with the same proposal digest",
+    ],
+  };
+};
+
 const previewChanges = (mutations: ReadonlyArray<Mutation>) => mutations.map((change) => ({
   file: change.path,
   action: change.afterContent === null ? "remove" : change.beforeDigest === missingDigest ? "create" : "update",
@@ -905,7 +936,11 @@ export const installCodexIntegration = async (request: InstallationRequest): Pro
       if (!currentCompatibility.supported) return unsupportedResult("install", inputs, currentCompatibility);
       const existingJournal = readJournal(inputs.paths.journal);
       if (existingJournal !== undefined) {
-        validateJournalScope(existingJournal, inputs);
+        try {
+          validateJournalScope(existingJournal, inputs);
+        } catch (cause) {
+          return recoveryConflictResult("install", inputs, existingJournal, cause);
+        }
         if (request.proposalDigest !== existingJournal.proposalDigest || existingJournal.operation !== "install") {
           return {
             version: RESULT_VERSION,
@@ -921,17 +956,7 @@ export const installCodexIntegration = async (request: InstallationRequest): Pro
         try {
           applyJournal(inputs.paths.journal, existingJournal);
         } catch (cause) {
-          const current = readJournal(inputs.paths.journal);
-          return {
-            version: RESULT_VERSION,
-            operation: "install",
-            status: "partial",
-            host: { adapter: "codex", home: inputs.home },
-            error: { code: "recovery_conflict", message: cause instanceof Error ? cause.message : "journal recovery could not continue" },
-            recovery: { proposalDigest: existingJournal.proposalDigest, completedFiles: current?.completed.length ?? existingJournal.completed.length, totalFiles: existingJournal.mutations.length },
-            completed: (current?.completed ?? existingJournal.completed).map((index) => existingJournal.mutations[index]?.description).filter((value) => value !== undefined),
-            pending: ["resolve the changed pending file, then rerun with the same proposal digest"],
-          };
+          return recoveryConflictResult("install", inputs, existingJournal, cause);
         }
         return {
           version: RESULT_VERSION,
@@ -1009,22 +1034,16 @@ export const uninstallCodexIntegration = async (request: InstallationRequest): P
     return await withLock(inputs.paths.lock, async () => {
       const existingJournal = readJournal(inputs.paths.journal);
       if (existingJournal !== undefined) {
-        validateJournalScope(existingJournal, inputs);
+        try {
+          validateJournalScope(existingJournal, inputs);
+        } catch (cause) {
+          return recoveryConflictResult("uninstall", inputs, existingJournal, cause);
+        }
         if (request.proposalDigest === existingJournal.proposalDigest && existingJournal.operation === "uninstall") {
           try {
             applyJournal(inputs.paths.journal, existingJournal);
           } catch (cause) {
-            const current = readJournal(inputs.paths.journal);
-            return {
-              version: RESULT_VERSION,
-              operation: "uninstall",
-              status: "partial",
-              host: { adapter: "codex", home: inputs.home },
-              error: { code: "recovery_conflict", message: cause instanceof Error ? cause.message : "journal recovery could not continue" },
-              recovery: { proposalDigest: existingJournal.proposalDigest, completedFiles: current?.completed.length ?? existingJournal.completed.length, totalFiles: existingJournal.mutations.length },
-              completed: (current?.completed ?? existingJournal.completed).map((index) => existingJournal.mutations[index]?.description).filter((value) => value !== undefined),
-              pending: ["resolve the changed pending file, then rerun with the same proposal digest"],
-            };
+            return recoveryConflictResult("uninstall", inputs, existingJournal, cause);
           }
           return {
             version: RESULT_VERSION,

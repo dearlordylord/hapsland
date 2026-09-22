@@ -56,6 +56,9 @@ with that digest to resume. Recovery revalidates the runtime, journal targets, c
 pending prerequisites, preexisting `features.hooks = true` state, and generated configuration.
 If another tool changed a completed or
 pending file, recovery returns an actionable conflict and leaves the newer file untouched.
+Recovery conflicts remain `partial` outcomes and report the original proposal digest, completed
+and total file counts, completed step descriptions, and a bounded next action; the journal stays
+in place for an explicit retry.
 
 Codex owns repository and hook trust. The installer does not edit trust records or use bypass
 flags. Start Codex normally in the enabled repository and approve the native repository and hook
