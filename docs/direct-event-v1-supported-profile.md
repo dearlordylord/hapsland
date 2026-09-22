@@ -5,7 +5,7 @@ review backend. The supported adapter profile is **Codex CLI 0.155.1 / Linux arm
 headless command hooks / controlled writer**. Node `v24.20.0` and Git `2.39.5` are the
 recorded conformance environment, not broader runtime guarantees. The installed package
 profile is narrower and exact: Node `v24.20.0`, Linux arm64, Git on `PATH`, and procfs mounted
-at `/proc`. The package also declares a macOS x64 `/dev/fd` candidate for runner validation;
+at `/proc`. The package also declares a macOS arm64 `/dev/fd` candidate for runner validation;
 it remains unverified until sanitized evidence is retained. Package metadata and
 `review-tool-doctor` reject other profiles rather than inferring support.
 
