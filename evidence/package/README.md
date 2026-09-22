@@ -31,12 +31,15 @@ can resolve or compile production dependencies; individual hook invocations perf
 package download.
 
 `clean-darwin-node-24.20.0-arm64.json` is the sanitized result of GitHub Actions run
-35788170262 on macOS 14 arm64. In addition to the installed CLI, parser,
+35790230309 at commit `627169235725661bf603ec9163298de5d21f25f9` on macOS 14 arm64. In addition to the installed CLI, parser,
 descriptor-anchored capture, portable resident dispatch, controlled offline submission, and
-advice-return path, the runner used an isolated default Keychain. It stored and resolved the
-service/account-scoped generic password in a separate process, reused it after a resident restart,
-reached the production resolver/provider boundary twice, preserved it through the local package
-update, and blocked a future provider dispatch after logout. A native ACL-restricted lookup
+advice-return path, the runner used an isolated default Keychain plus a second Keychain containing
+the same service/account. It proved that lookup, replacement, and logout affected only the selected
+default Keychain. It stored and resolved the generic password in a separate process, waited for the
+old resident process and owner lifetime to end, then required a replacement PID and lifetime before
+the second controlled submission. It reached the production resolver/provider boundary twice,
+preserved the credential through the local package update, and blocked a future provider dispatch
+after logout. A native ACL-restricted lookup
 returned `timed-out` after the 750 ms helper deadline (`980 ms` including CLI startup and
 shutdown), proving bounded helper termination with no credential value retained. A timeout alone
 does not establish whether macOS attempted or presented interaction. The exact result is recorded

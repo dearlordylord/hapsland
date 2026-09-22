@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-09-22T21:42:26.126Z",
+  "recordedAt": "2026-09-22T22:03:54.805Z",
   "package": {
     "name": "realtime-review-prototype",
     "version": "0.0.0",
@@ -13,8 +13,8 @@
   },
   "continuousIntegration": {
     "provider": "github-actions",
-    "runId": "35788170262",
-    "commit": "262a9f51e5dddbc0751c967ec20ddd0ee3d168fc"
+    "runId": "35790230309",
+    "commit": "627169235725661bf603ec9163298de5d21f25f9"
   },
   "isolation": {
     "temporaryInstallation": true,
@@ -72,13 +72,14 @@
   },
   "credentialLifecycle": {
     "status": "actual-keychain",
-    "loginMs": 511,
-    "separateProcessLookupMs": 242,
-    "residentRestartPersistence": "passed",
+    "loginMs": 689,
+    "separateProcessLookupMs": 479,
+    "defaultKeychainIsolation": "lookup-replacement-logout-passed",
+    "residentRestartPersistence": "passed-distinct-pid-and-lifetime",
     "residentControlledTransportResolution": "passed",
     "logoutBeforeFutureDispatch": "passed",
-    "restrictedNativeLookupMs": 980,
-    "restrictedNativeOutcome": "timed-out-no-prompt",
+    "restrictedNativeLookupMs": 982,
+    "restrictedNativeOutcome": "timed-out-helper-terminated",
     "secretRetainedInEvidence": false
   },
   "realCodex": {
