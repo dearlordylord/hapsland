@@ -383,6 +383,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     const statePath = join(temporary, "consent");
     const runtime = join(temporary, "runtime");
     const backendGate = join(temporary, "backend.gate");
+    const cleanupGate = join(temporary, "cleanup-response");
     await enable(root, statePath);
     await enable(otherRoot, statePath);
     await writeFile(backendGate, "release\n");
@@ -390,6 +391,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       ...process.env,
       REVIEW_RESIDENT_DIR: runtime,
       REVIEW_RESIDENT_BACKEND_GATE_PATH: backendGate,
+      REVIEW_RESIDENT_CLEANUP_RESPONSE_GATE_PATH: cleanupGate,
     };
     const ensureScript = "import {ensureResident} from './src/resident/client.ts'; console.log(JSON.stringify(await ensureResident()));";
     const start = async () => {
@@ -570,9 +572,28 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     });
     expect(beforeCleanup).toMatchObject({ status: "stats", pendingAdvice: 0 });
     if (beforeCleanup.status === "stats") expect(beforeCleanup.successfulCacheEntries).toBeGreaterThan(0);
-    expect((await residentRequest(paths, {
-      version: 1, operation: "cleanup", lifetime: second.lifetime,
-    })).status).toBe("cleaned");
+    await writeFile(`${cleanupGate}.enabled`, "enabled\n");
+    const cleanupScript = [
+      "import {residentRequest} from './src/resident/client.ts';",
+      `const paths=${JSON.stringify(paths)};`,
+      `const lifetime=${JSON.stringify(second.lifetime)};`,
+      "console.log(JSON.stringify(await residentRequest(paths,{version:1,operation:'cleanup',lifetime})));",
+    ].join("");
+    const cleaning = spawn(process.execPath, ["--input-type=module", "-e", cleanupScript], {
+      cwd: process.cwd(), env, stdio: ["pipe", "pipe", "pipe"],
+    });
+    const cleanupResult = childResult(cleaning);
+    await waitFor(async () => existsSync(`${cleanupGate}.entered`) ? true : undefined);
+    // The cleanup response is still gated, so these arrive concurrently with
+    // the retiring owner still listening. Neither can revive or reserve work.
+    expect(await residentRequest(paths, { version: 1, operation: "hello" }))
+      .toEqual({ status: "obsolete-lifetime" });
+    expect(await residentRequest(paths, {
+      version: 1, operation: "admit", lifetime: second.lifetime,
+      observation: batch, controlledWriter: true, dispatch,
+    })).toEqual({ status: "obsolete-lifetime" });
+    await writeFile(`${cleanupGate}.release`, "release\n");
+    expect(JSON.parse(await cleanupResult)).toEqual({ status: "cleaned" });
     await waitFor(async () => {
       try { process.kill(second.pid, 0); return undefined; } catch { return true; }
     });
