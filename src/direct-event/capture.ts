@@ -1,7 +1,10 @@
 import { constants, existsSync, type BigIntStats } from "node:fs";
 import { open, realpath } from "node:fs/promises";
 import { join } from "node:path";
+import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
+import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import * as Effect from "effect/Effect";
 import type { EligiblePath } from "./selection.ts";
 import type { PhysicalRootIdentity } from "./model.ts";
@@ -28,12 +31,39 @@ const signature = (status: BigIntStats): string =>
 export const descriptorDirectory = (): string | undefined =>
   ["/proc/self/fd", "/dev/fd"].find((candidate) => existsSync(candidate));
 
+const execFileAsync = promisify(execFile);
+const readOnceDarwin = async (
+  root: string,
+  path: EligiblePath,
+  hooks: CaptureHooks,
+  expectedRoot: PhysicalRootIdentity | undefined,
+): Promise<{ readonly bytes: Buffer; readonly metadata: string; readonly hash: string }> => {
+  const helper = fileURLToPath(new URL("../native/capture-open", import.meta.url));
+  if (!existsSync(helper)) throw new Error("macOS descriptor capture helper is unavailable");
+  const { stdout } = await execFileAsync(helper, [
+    root,
+    path.relativePath,
+    expectedRoot?.rootDevice ?? "-",
+    expectedRoot?.rootInode ?? "-",
+    expectedRoot?.gitDirectory ?? "-",
+    expectedRoot?.gitDevice ?? "-",
+    expectedRoot?.gitInode ?? "-",
+  ], { encoding: "buffer", maxBuffer: MAX_SOURCE_BYTES + 4_096 });
+  const newline = stdout.indexOf(0x0a);
+  if (newline <= 0) throw new Error("macOS descriptor capture helper returned an invalid frame");
+  const metadata = stdout.subarray(0, newline).toString("utf8");
+  const bytes = stdout.subarray(newline + 1);
+  hooks.sourceRead?.(path.relativePath);
+  return { bytes, metadata, hash: createHash("sha256").update(bytes).digest("hex") };
+};
+
 const readOnce = async (
   root: string,
   path: EligiblePath,
   hooks: CaptureHooks,
   expectedRoot: PhysicalRootIdentity | undefined,
 ): Promise<{ readonly bytes: Buffer; readonly metadata: string; readonly hash: string }> => {
+  if (process.platform === "darwin") return readOnceDarwin(root, path, hooks, expectedRoot);
   const descriptorRoot = descriptorDirectory();
   if (descriptorRoot === undefined) throw new Error("descriptor-anchored capture is unavailable");
   const directoryFlags = constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW;

@@ -1,0 +1,81 @@
+#define _DARWIN_C_SOURCE
+#include <errno.h>
+#include <fcntl.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#define MAX_SOURCE_BYTES 32768
+
+static int matches_identity(int fd, const char *device, const char *inode) {
+  if (strcmp(device, "-") == 0 && strcmp(inode, "-") == 0) return 1;
+  struct stat status;
+  if (fstat(fd, &status) != 0) return 0;
+  return (uint64_t)status.st_dev == strtoull(device, NULL, 10) &&
+    (uint64_t)status.st_ino == strtoull(inode, NULL, 10);
+}
+
+static int same_stat(const struct stat *left, const struct stat *right) {
+  return left->st_dev == right->st_dev && left->st_ino == right->st_ino &&
+    left->st_mode == right->st_mode && left->st_size == right->st_size &&
+    left->st_mtimespec.tv_sec == right->st_mtimespec.tv_sec &&
+    left->st_mtimespec.tv_nsec == right->st_mtimespec.tv_nsec &&
+    left->st_ctimespec.tv_sec == right->st_ctimespec.tv_sec &&
+    left->st_ctimespec.tv_nsec == right->st_ctimespec.tv_nsec;
+}
+
+int main(int argc, char **argv) {
+  if (argc != 8) return 64;
+  int root = open(argv[1], O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+  if (root < 0 || !matches_identity(root, argv[3], argv[4])) return 65;
+  if (strcmp(argv[5], "-") != 0) {
+    int git = open(argv[5], O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+    if (git < 0 || !matches_identity(git, argv[6], argv[7])) return 66;
+    close(git);
+  }
+
+  char *relative = strdup(argv[2]);
+  if (relative == NULL) return 67;
+  char *save = NULL;
+  char *segment = strtok_r(relative, "/", &save);
+  if (segment == NULL) return 68;
+  int parent = root;
+  while (1) {
+    char *next = strtok_r(NULL, "/", &save);
+    if (strcmp(segment, ".") == 0 || strcmp(segment, "..") == 0 || segment[0] == '\0') return 69;
+    if (next == NULL) break;
+    int child = openat(parent, segment, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+    if (parent != root) close(parent);
+    if (child < 0) return 70;
+    parent = child;
+    segment = next;
+  }
+  int file = openat(parent, segment, O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC);
+  if (parent != root) close(parent);
+  close(root);
+  if (file < 0) return 71;
+  struct stat before;
+  struct stat after;
+  if (fstat(file, &before) != 0 || !S_ISREG(before.st_mode) || before.st_size > MAX_SOURCE_BYTES) return 72;
+  unsigned char bytes[MAX_SOURCE_BYTES + 1];
+  ssize_t total = 0;
+  while (total < MAX_SOURCE_BYTES + 1) {
+    ssize_t amount = read(file, bytes + total, (size_t)(MAX_SOURCE_BYTES + 1 - total));
+    if (amount < 0) return 73;
+    if (amount == 0) break;
+    total += amount;
+  }
+  if (fstat(file, &after) != 0 || total > MAX_SOURCE_BYTES || total != after.st_size || !same_stat(&before, &after)) return 74;
+  close(file);
+  free(relative);
+  if (printf("%llu:%llu:%llu:%llu:%lld:%ld:%lld:%ld\n",
+      (unsigned long long)after.st_dev, (unsigned long long)after.st_ino,
+      (unsigned long long)after.st_mode, (unsigned long long)after.st_size,
+      (long long)after.st_mtimespec.tv_sec, after.st_mtimespec.tv_nsec,
+      (long long)after.st_ctimespec.tv_sec, after.st_ctimespec.tv_nsec) < 0) return 75;
+  if (fwrite(bytes, 1, (size_t)total, stdout) != (size_t)total) return 76;
+  return 0;
+}
