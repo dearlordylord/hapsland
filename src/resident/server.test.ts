@@ -150,7 +150,8 @@ describe("resident delivery lease", () => {
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
-    expect(server.stats()).toMatchObject({ queued: 0, running: 0, pendingAdvice: 0, retainedBytes: 0 });
+    expect(server.stats()).toMatchObject({ queued: 0, running: 0, pendingAdvice: 1 });
+    expect(server.stats().retainedBytes).toBe(server.accountingMetrics().operationalNoticeBytes);
   });
 
   it("bounds 16-path/64-unit preparation and accounts accepted units exactly", async () => {
@@ -295,7 +296,10 @@ describe("resident delivery lease", () => {
     expect(rejected.server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(2 * 1024 * 1024);
 
     const transportRejected = await run(300 * 1024);
-    expect(transportRejected.server.stats()).toMatchObject({ pendingAdvice: 0, rejectedCapacity: 1, retainedBytes: 0 });
+    expect(transportRejected.server.stats()).toMatchObject({ pendingAdvice: 1, rejectedCapacity: 1 });
+    expect(transportRejected.server.stats().retainedBytes).toBe(
+      transportRejected.server.accountingMetrics().operationalNoticeBytes,
+    );
     expect(existsSync(transportRejected.capturePath)).toBe(false);
   });
 
@@ -1156,7 +1160,8 @@ describe("resident delivery lease", () => {
     expect(server.stats().rejectedCapacity).toBeGreaterThan(0);
     expect(server.stats().retainedBytes).toBe(
       metadata.reduce((total, item) => total + item.retainedBytes, 0) +
-        server.accountingMetrics().successfulCacheBytes,
+        server.accountingMetrics().successfulCacheBytes +
+        server.accountingMetrics().operationalNoticeBytes,
     );
     expect(server.stats().retainedBytes).toBeLessThanOrEqual(2 * 1024 * 1024);
     expect(server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(2 * 1024 * 1024);

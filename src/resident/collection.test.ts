@@ -7,11 +7,13 @@ import {
   PENDING_ADVICE_EXPIRY_MS,
   collectionOrder,
   combinedFindingOutput,
+  combinedReviewOutput,
   encodedHostOutputBytes,
   fitsCombinedResponse,
   isCollectionEligible,
   isPendingAdviceExpired,
   selectFittingFindings,
+  selectFittingNotices,
 } from "./collection.ts";
 
 const candidate = (overrides: Partial<{
@@ -81,6 +83,17 @@ describe("resident advice collection policy", () => {
       "Count0", "Count1", "Count2", "Count3", "Count4",
     ]);
     expect(fitsCombinedResponse([selected])).toBe(true);
+  });
+
+  it("shares item and byte bounds without allowing notices to displace findings", () => {
+    const findings = Array.from({ length: MAX_COMBINED_RESPONSE_ITEMS }, (_, index) => finding(index));
+    const notice = { kind: "backend" as const, suppressedCount: 2 };
+    expect(selectFittingNotices(findings, [], [notice])).toEqual([]);
+    expect(selectFittingNotices(findings.slice(0, 4), [], [notice])).toEqual([notice]);
+    const output = combinedReviewOutput(findings.slice(0, 4), [notice]);
+    expect(output.hookSpecificOutput.additionalContext).toContain("Jev was unavailable");
+    expect(output.hookSpecificOutput.additionalContext).toContain("2 similar failures were suppressed");
+    expect(encodedHostOutputBytes(output)).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
   });
 
   it("expires at equality, but not one millisecond before", () => {

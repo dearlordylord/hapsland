@@ -7,6 +7,13 @@ export const PENDING_ADVICE_EXPIRY_MS = 600_000;
 export const MAX_COMBINED_RESPONSE_ITEMS = 5;
 export const MAX_COMBINED_RESPONSE_BYTES = 2 * 1024;
 
+export type OperationalNoticeKind = "capacity" | "backend";
+
+export type OperationalNotice = {
+  readonly kind: OperationalNoticeKind;
+  readonly suppressedCount: number;
+};
+
 export type CollectionCandidate = {
   readonly cycle: number;
   readonly sequence: number;
@@ -43,11 +50,42 @@ export const combinedFindingOutput = (
   groups: ReadonlyArray<ReadonlyArray<Finding>>,
 ): CodexDirectEventOutput => toCodexDirectEventOutput(groups.flatMap((findings) => findings));
 
+const noticeText = (notice: OperationalNotice): string => {
+  const message = notice.kind === "capacity"
+    ? "Operational notice: review capacity was unavailable; some eligible edits were not reviewed."
+    : "Operational notice: Jev was unavailable; some eligible edits were not reviewed.";
+  return notice.suppressedCount === 0
+    ? message
+    : `${message} (${notice.suppressedCount} similar ${notice.suppressedCount === 1 ? "failure was" : "failures were"} suppressed.)`;
+};
+
+/** Encode findings and operational notices into one bounded host handoff. */
+export const combinedReviewOutput = (
+  findings: ReadonlyArray<Finding>,
+  notices: ReadonlyArray<OperationalNotice>,
+): CodexDirectEventOutput => {
+  const findingOutput = toCodexDirectEventOutput(findings);
+  return {
+    hookSpecificOutput: {
+      ...findingOutput.hookSpecificOutput,
+      additionalContext: [
+        findingOutput.hookSpecificOutput.additionalContext,
+        ...notices.map(noticeText),
+      ].join("\n"),
+    },
+  };
+};
+
+export const fitsCombinedReviewResponse = (
+  findings: ReadonlyArray<Finding>,
+  notices: ReadonlyArray<OperationalNotice>,
+): boolean => findings.length + notices.length > 0 &&
+  findings.length + notices.length <= MAX_COMBINED_RESPONSE_ITEMS &&
+  encodedHostOutputBytes(combinedReviewOutput(findings, notices)) <= MAX_COMBINED_RESPONSE_BYTES;
+
 export const fitsCombinedResponse = (
   groups: ReadonlyArray<ReadonlyArray<Finding>>,
-): boolean => groups.flatMap((findings) => findings).length > 0 &&
-  groups.flatMap((findings) => findings).length <= MAX_COMBINED_RESPONSE_ITEMS &&
-  encodedHostOutputBytes(combinedFindingOutput(groups)) <= MAX_COMBINED_RESPONSE_BYTES;
+): boolean => fitsCombinedReviewResponse(groups.flatMap((findings) => findings), []);
 
 /** Selects deterministic finding items without treating one unit as one item. */
 export const selectFittingFindings = (
@@ -59,6 +97,21 @@ export const selectFittingFindings = (
     if (retained.length + selected.length >= MAX_COMBINED_RESPONSE_ITEMS) break;
     const next = [...selected, finding];
     if (fitsCombinedResponse([retained, next])) selected.push(finding);
+  }
+  return selected;
+};
+
+/** Findings are passed as already retained so notices can never displace them. */
+export const selectFittingNotices = (
+  findings: ReadonlyArray<Finding>,
+  retained: ReadonlyArray<OperationalNotice>,
+  candidates: ReadonlyArray<OperationalNotice>,
+): ReadonlyArray<OperationalNotice> => {
+  const selected: Array<OperationalNotice> = [];
+  for (const notice of candidates) {
+    const next = [...retained, ...selected, notice];
+    if (!fitsCombinedReviewResponse(findings, next)) break;
+    selected.push(notice);
   }
   return selected;
 };

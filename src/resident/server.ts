@@ -49,17 +49,22 @@ import {
 import { DispatchCycles } from "./dispatch.ts";
 import {
   collectionOrder,
-  combinedFindingOutput,
+  combinedReviewOutput,
   isCollectionEligible,
   isPendingAdviceExpired,
   selectFittingFindings,
+  selectFittingNotices,
   type CollectionMode,
+  type OperationalNotice,
+  type OperationalNoticeKind,
 } from "./collection.ts";
 import { EvaluationReuse, residentEvaluationIdentity } from "./evaluation-reuse.ts";
 
 const BACKEND_CONCURRENCY = 2;
 const RESERVATION_OVERHEAD_BYTES = 1024;
 const MAX_PROBABILITY_ENCODING_BYTES = 24;
+export const OPERATIONAL_NOTICE_COOLDOWN_MS = 60_000;
+export const MAX_OPERATIONAL_NOTICE_KEYS = 64;
 /** Covers bounded dual capture buffers/text plus declaration-count preflight payload. */
 const CAPTURE_WORKSPACE_BYTES = 8 * MAX_SOURCE_BYTES;
 
@@ -144,6 +149,28 @@ type Advice = Omit<UnitJob, "dispatch" | "kind"> & {
   };
 };
 
+type NoticeDelivery = {
+  readonly token: string;
+  leaseUntil: number;
+  acknowledged: boolean;
+};
+
+type PendingNotice = {
+  readonly id: string;
+  value: OperationalNotice;
+  readonly pendingAt: number;
+  readonly sequence: number;
+  delivery?: NoticeDelivery;
+};
+
+type NoticeCooldown = {
+  readonly partition: string;
+  readonly reservation: CapacityReservation;
+  nextAllowedAt: number;
+  suppressedCount: number;
+  pending?: PendingNotice;
+};
+
 type WorkRevision = {
   readonly subject: string;
   readonly token: string;
@@ -197,6 +224,30 @@ export const residentUnitWorstOutcomeBytes = (prepared: PreparedUnit): number =>
 
 const logicalBytes = (value: unknown): number =>
   Buffer.byteLength(canonicalValue(value), "utf8");
+
+const addressableRecipient = (recipient: DirectRecipient): boolean =>
+  recipient.host === "codex-cli" && recipient.hostVersion === "0.155.1" &&
+  recipient.sessionId.length > 0 && recipient.turnId.length > 0 && recipient.toolUseId.length > 0;
+
+const noticeReservationBytes = (key: string, partition: string): number => logicalBytes({
+  indexKey: key,
+  value: {
+    partition,
+    nextAllowedAt: Number.MAX_SAFE_INTEGER,
+    suppressedCount: Number.MAX_SAFE_INTEGER,
+    pending: {
+      id: "00000000-0000-0000-0000-000000000000",
+      value: { kind: "capacity", suppressedCount: Number.MAX_SAFE_INTEGER },
+      pendingAt: Number.MAX_SAFE_INTEGER,
+      sequence: Number.MAX_SAFE_INTEGER,
+      delivery: {
+        token: "00000000-0000-0000-0000-000000000000",
+        leaseUntil: Number.MAX_SAFE_INTEGER,
+        acknowledged: true,
+      },
+    },
+  },
+}) + RESERVATION_OVERHEAD_BYTES;
 
 const withoutDeliveredFindings = (
   findings: ReadonlyArray<Finding>,
@@ -273,6 +324,7 @@ const decodeControlledOptions = (
 export class ResidentServer {
   readonly lifetime = randomUUID();
   readonly #advice: Array<Advice> = [];
+  readonly #noticeCooldowns = new Map<string, NoticeCooldown>();
   readonly #currentWork = new Map<string, CurrentWork>();
   readonly #ledger = new CapacityLedger();
   readonly #reuse: EvaluationReuse<UnitJob>;
@@ -285,6 +337,7 @@ export class ResidentServer {
   #peakLedgerBytes = 0;
   #maxMaterializedPreparedUnits = 0;
   #nextWorkGeneration = 1;
+  #nextNoticeSequence = 1;
   readonly #beforeRevalidate: ((adviceId: string) => Promise<void>) | undefined;
   readonly #afterPrepare: (() => Promise<void>) | undefined;
   readonly #beforeEvaluate: ((prepared: PreparedUnit) => Promise<void>) | undefined;
@@ -333,21 +386,27 @@ export class ResidentServer {
   }
 
   stats(): Extract<ResidentResponse, { status: "stats" }> {
-    this.#expirePending(this.#now());
+    const now = this.#now();
+    this.#expirePending(now);
+    this.#pruneNoticeCooldowns(now);
     const dispatch = this.#dispatcher.snapshot();
     const capacity = this.#ledger.snapshot();
     return {
       status: "stats",
       queued: dispatch.queued,
       running: dispatch.running,
-      pendingAdvice: this.#advice.length,
+      pendingAdvice: this.#advice.length + this.#pendingNoticeCount(),
       retainedBytes: capacity.bytes,
       rejectedCapacity: this.#rejectedCapacity,
     };
   }
 
   admit(observation: DirectObservation, dispatch: ResidentDispatchContext): ResidentResponse {
-    this.#expirePending(this.#now());
+    const now = this.#now();
+    this.#expirePending(now);
+    // Reclaim cooldown state whose active guarantee and pending notice have
+    // both ended before it can cause an otherwise-valid admission to fail.
+    this.#pruneNoticeCooldowns(now);
     if (this.#closed) return { status: "rejected-capacity" };
     const partition = recipientPartition(observation.root, observation.recipient);
     const reservation = this.#reserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES);
@@ -364,6 +423,7 @@ export class ResidentServer {
     };
     if (!this.#dispatcher.enqueue(partition, job)) {
       this.#ledger.release(reservation);
+      this.#rejectedCapacity += 1;
       return { status: "rejected-capacity" };
     }
     const acceptedPath = process.env.REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH;
@@ -380,6 +440,7 @@ export class ResidentServer {
     const partition = recipientPartition(root, recipient);
     const now = this.#now();
     this.#expirePending(now);
+    this.#pruneNoticeCooldowns(now);
     for (const item of this.#advice) {
       if (item.delivery !== undefined && item.delivery.leaseUntil <= now) delete item.delivery;
     }
@@ -404,6 +465,7 @@ export class ResidentServer {
       .sort(collectionOrder)
       .map((item) => item.id);
     const token = randomUUID();
+    let handoffFindings: Array<Finding> = [];
     const selected: Array<Advice> = [];
     let selectedFindings: Array<Finding> = [];
     for (const id of eligible) {
@@ -505,27 +567,38 @@ export class ResidentServer {
           delivery.leaseUntil = handoffNow + DELIVERY_LEASE_MS;
           handoff.push(advice);
         }
-        if (handoff.length === 0) return { status: "empty" };
-        return {
-          status: "advice",
-          token,
-          output: combinedFindingOutput(handoff.map((advice) => advice.delivery?.findings ?? [])),
-        };
+        handoffFindings = handoff.flatMap((advice) => advice.delivery?.findings ?? []);
       }
     }
-    return { status: "empty" };
+    const handoffNow = this.#now();
+    const notices = this.#leaseNotices(partition, token, handoffFindings, handoffNow);
+    if (handoffFindings.length === 0 && notices.length === 0) return { status: "empty" };
+    return {
+      status: "advice",
+      token,
+      output: combinedReviewOutput(handoffFindings, notices.map((notice) => notice.value)),
+    };
   }
 
   acknowledge(token: string): ResidentResponse {
     const now = this.#now();
     this.#expirePending(now);
+    this.#pruneNoticeCooldowns(now);
     const advice = this.#advice.filter((item) => item.delivery?.token === token);
-    if (advice.length === 0) return { status: "empty" };
-    if (advice.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now)) {
+    const notices = this.#noticesForToken(token);
+    if (advice.length === 0 && notices.length === 0) return { status: "empty" };
+    if (
+      advice.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now) ||
+      notices.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now)
+    ) {
       for (const item of advice) delete item.delivery;
+      for (const item of notices) delete item.delivery;
       return { status: "empty" };
     }
     for (const item of advice) {
+      if (item.delivery !== undefined) item.delivery.acknowledged = true;
+    }
+    for (const item of notices) {
       if (item.delivery !== undefined) item.delivery.acknowledged = true;
     }
     return { status: "acknowledged" };
@@ -534,12 +607,22 @@ export class ResidentServer {
   finalize(token: string): ResidentResponse {
     const now = this.#now();
     this.#expirePending(now);
+    this.#pruneNoticeCooldowns(now);
     const advice = this.#advice.filter((item) => item.delivery?.token === token);
-    if (advice.length === 0 || advice.some((item) => item.delivery?.acknowledged !== true)) {
+    const notices = this.#noticesForToken(token);
+    if (
+      (advice.length === 0 && notices.length === 0) ||
+      advice.some((item) => item.delivery?.acknowledged !== true) ||
+      notices.some((item) => item.delivery?.acknowledged !== true)
+    ) {
       return { status: "empty" };
     }
-    if (advice.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now)) {
+    if (
+      advice.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now) ||
+      notices.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now)
+    ) {
       for (const item of advice) delete item.delivery;
+      for (const item of notices) delete item.delivery;
       return { status: "empty" };
     }
     for (const item of advice) {
@@ -556,12 +639,16 @@ export class ResidentServer {
       })).filter((evaluation) => evaluation.findings.length > 0);
       delete item.delivery;
     }
+    for (const item of notices) this.#removePendingNotice(item.id, token);
     return { status: "finalized" };
   }
 
   releaseDelivery(token: string): void {
     for (const advice of this.#advice) {
       if (advice.delivery?.token === token && !advice.delivery.acknowledged) delete advice.delivery;
+    }
+    for (const notice of this.#noticesForToken(token)) {
+      if (notice.delivery?.token === token && !notice.delivery.acknowledged) delete notice.delivery;
     }
   }
 
@@ -613,6 +700,9 @@ export class ResidentServer {
     readonly successfulCacheEntries: number;
     readonly successfulCacheBytes: number;
     readonly pendingEvaluations: number;
+    readonly operationalNoticeKeys: number;
+    readonly pendingOperationalNotices: number;
+    readonly operationalNoticeBytes: number;
   } {
     const reuse = this.#reuse.snapshot();
     return {
@@ -621,7 +711,143 @@ export class ResidentServer {
       successfulCacheEntries: reuse.entries,
       successfulCacheBytes: reuse.bytes,
       pendingEvaluations: reuse.pending,
+      operationalNoticeKeys: this.#noticeCooldowns.size,
+      pendingOperationalNotices: this.#pendingNoticeCount(),
+      operationalNoticeBytes: [...this.#noticeCooldowns.values()].reduce(
+        (total, cooldown) => total + cooldown.reservation.bytes,
+        0,
+      ),
     };
+  }
+
+  #pendingNoticeCount(): number {
+    let count = 0;
+    for (const cooldown of this.#noticeCooldowns.values()) {
+      if (cooldown.pending !== undefined) count += 1;
+    }
+    return count;
+  }
+
+  #noticesForToken(token: string): Array<PendingNotice> {
+    const notices: Array<PendingNotice> = [];
+    for (const cooldown of this.#noticeCooldowns.values()) {
+      if (cooldown.pending?.delivery?.token === token) notices.push(cooldown.pending);
+    }
+    return notices;
+  }
+
+  #removePendingNotice(id: string, token?: string): boolean {
+    for (const cooldown of this.#noticeCooldowns.values()) {
+      const pending = cooldown.pending;
+      if (pending?.id !== id || (token !== undefined && pending.delivery?.token !== token)) continue;
+      delete cooldown.pending;
+      return true;
+    }
+    return false;
+  }
+
+  #leaseNotices(
+    partition: string,
+    token: string,
+    findings: ReadonlyArray<Finding>,
+    now: number,
+  ): ReadonlyArray<PendingNotice> {
+    const candidates = [...this.#noticeCooldowns.values()]
+      .filter((cooldown) =>
+        cooldown.partition === partition &&
+        cooldown.pending !== undefined &&
+        cooldown.pending.delivery === undefined)
+      .flatMap((cooldown) => cooldown.pending === undefined ? [] : [cooldown.pending])
+      .sort((left, right) => left.sequence - right.sequence);
+    const selectedValues = selectFittingNotices(findings, [], candidates.map(({ value }) => value));
+    const selected = candidates.slice(0, selectedValues.length);
+    for (const notice of selected) {
+      notice.delivery = {
+        token,
+        leaseUntil: now + DELIVERY_LEASE_MS,
+        acknowledged: false,
+      };
+    }
+    return selected;
+  }
+
+  #noticeKey(partition: string, kind: OperationalNoticeKind): string {
+    return canonicalValue({ partition, kind });
+  }
+
+  #releaseNoticeCooldown(key: string): void {
+    const cooldown = this.#noticeCooldowns.get(key);
+    if (cooldown === undefined) return;
+    this.#noticeCooldowns.delete(key);
+    this.#ledger.release(cooldown.reservation);
+  }
+
+  #pruneNoticeCooldowns(now: number, exceptKey?: string): void {
+    for (const [key, cooldown] of this.#noticeCooldowns) {
+      const pending = cooldown.pending;
+      if (pending !== undefined) {
+        if (pending.delivery !== undefined && pending.delivery.leaseUntil <= now) delete pending.delivery;
+        if (isPendingAdviceExpired(pending, now)) delete cooldown.pending;
+      }
+      if (key !== exceptKey && cooldown.pending === undefined && cooldown.nextAllowedAt <= now) {
+        this.#releaseNoticeCooldown(key);
+      }
+    }
+  }
+
+  #recordOperationalFailure(
+    observation: DirectObservation,
+    kind: OperationalNoticeKind,
+    now = this.#now(),
+  ): void {
+    if (this.#closed || !addressableRecipient(observation.recipient)) return;
+    const partition = recipientPartition(observation.root, observation.recipient);
+    const key = this.#noticeKey(partition, kind);
+    this.#pruneNoticeCooldowns(now, key);
+    const retained = this.#noticeCooldowns.get(key);
+    if (retained !== undefined) {
+      if (now < retained.nextAllowedAt) {
+        retained.suppressedCount = Math.min(Number.MAX_SAFE_INTEGER, retained.suppressedCount + 1);
+        return;
+      }
+      const suppressedCount = retained.suppressedCount;
+      retained.nextAllowedAt = now + OPERATIONAL_NOTICE_COOLDOWN_MS;
+      retained.suppressedCount = 0;
+      if (retained.pending === undefined) {
+        retained.pending = {
+          id: randomUUID(),
+          value: { kind, suppressedCount },
+          pendingAt: now,
+          sequence: this.#nextNoticeSequence++,
+        };
+      } else if (retained.pending.delivery === undefined) {
+        retained.pending.value = {
+          kind,
+          suppressedCount: Math.min(
+            Number.MAX_SAFE_INTEGER,
+            retained.pending.value.suppressedCount + suppressedCount,
+          ),
+        };
+      }
+      return;
+    }
+    if (this.#noticeCooldowns.size >= MAX_OPERATIONAL_NOTICE_KEYS) return;
+    const reservation = this.#reserve(partition, noticeReservationBytes(key, partition));
+    // Retention is best effort. In particular, do not recursively turn this
+    // failed reservation into another capacity failure.
+    if (reservation === undefined) return;
+    this.#noticeCooldowns.set(key, {
+      partition,
+      reservation,
+      nextAllowedAt: now + OPERATIONAL_NOTICE_COOLDOWN_MS,
+      suppressedCount: 0,
+      pending: {
+        id: randomUUID(),
+        value: { kind, suppressedCount: 0 },
+        pendingAt: now,
+        sequence: this.#nextNoticeSequence++,
+      },
+    });
   }
 
   #reserve(partition: string, bytes: number): CapacityReservation | undefined {
@@ -781,9 +1007,13 @@ export class ResidentServer {
         }
         const ready = prepared.outcomes.filter((outcome) => outcome.status === "ready");
         this.#maxMaterializedPreparedUnits = Math.max(this.#maxMaterializedPreparedUnits, ready.length);
+        let rejectedDeliverable = false;
         const deliverable = ready.filter((outcome) => {
           const accepted = residentUnitWorstOutcomeBytes(outcome.prepared) <= MAX_IPC_FRAME_BYTES - 1024;
-          if (!accepted) this.#rejectedCapacity += 1;
+          if (!accepted) {
+            this.#rejectedCapacity += 1;
+            rejectedDeliverable = true;
+          }
           return accepted;
         });
         const planned = deliverable.map((outcome) => {
@@ -812,6 +1042,9 @@ export class ResidentServer {
             residentUnitReservationBytes(pathObservation, job.dispatch, item.outcome.prepared)),
         );
         this.#peakLedgerBytes = Math.max(this.#peakLedgerBytes, this.#ledger.snapshot().bytes);
+        // Workspace has been released and all accepted unit reservations are
+        // fixed, so best-effort notice retention cannot displace fresh work.
+        if (rejectedDeliverable) this.#recordOperationalFailure(job.observation, "capacity");
         for (const item of planned) {
           if (item.kind === "cached" && item.cached.evaluation.findings.length === 0) {
             const revision = this.#registerCurrentWork(job.partition, item.outcome.prepared);
@@ -823,6 +1056,7 @@ export class ResidentServer {
           if (reservation === undefined) {
             if (item.kind === "owner") this.#reuse.releaseClaim(item.evaluationKey);
             this.#rejectedCapacity += 1;
+            this.#recordOperationalFailure(job.observation, "capacity");
             continue;
           }
           const revision = this.#registerCurrentWork(job.partition, item.outcome.prepared);
@@ -848,6 +1082,7 @@ export class ResidentServer {
             this.#reuse.releaseClaim(item.evaluationKey);
             this.#releaseUnit(unit);
             this.#rejectedCapacity += 1;
+            this.#recordOperationalFailure(job.observation, "capacity");
           }
         }
       }
@@ -914,6 +1149,9 @@ export class ResidentServer {
         }
         await this.#retainAdvice(job, evaluation, cycle, sequence);
         return;
+      }
+      if (result?.status === "backend" || result?.status === "timeout") {
+        this.#recordOperationalFailure(job.observation, "backend");
       }
     } catch (cause) {
       if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error(cause);
@@ -1070,6 +1308,7 @@ export class ResidentServer {
   #responseForHandoff(response: ResidentResponse): ResidentResponse {
     if (response.status !== "advice") return response;
     const now = this.#now();
+    this.#pruneNoticeCooldowns(now);
     const handoff: Array<Advice> = [];
     for (const advice of [...this.#advice]) {
       if (advice.delivery?.token !== response.token) continue;
@@ -1084,12 +1323,17 @@ export class ResidentServer {
       advice.delivery.leaseUntil = now + DELIVERY_LEASE_MS;
       handoff.push(advice);
     }
-    return handoff.length === 0
+    const findings = handoff.flatMap((advice) => advice.delivery?.findings ?? []);
+    const notices = this.#noticesForToken(response.token);
+    for (const notice of notices) {
+      if (notice.delivery !== undefined) notice.delivery.leaseUntil = now + DELIVERY_LEASE_MS;
+    }
+    return findings.length === 0 && notices.length === 0
       ? { status: "empty" }
       : {
           status: "advice",
           token: response.token,
-          output: combinedFindingOutput(handoff.map((advice) => advice.delivery?.findings ?? [])),
+          output: combinedReviewOutput(findings, notices.map((notice) => notice.value)),
         };
   }
 
@@ -1176,6 +1420,7 @@ export class ResidentServer {
       advice.retired = true;
       if (!advice.revalidationActive) this.#releaseUnit(advice);
     }
+    this.#noticeCooldowns.clear();
     // Running work may be interrupted by process exit or finish later. Clear
     // its logical ownership now; its eventual terminal release is idempotent.
     this.#reuse.clear();
