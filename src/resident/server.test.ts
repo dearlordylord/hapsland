@@ -10,7 +10,11 @@ import { loadReviewSettings } from "../runtime/review-config.ts";
 import { prepareObservation } from "../direct-event/pipeline.ts";
 import { analyzerMaterializationPreflight } from "../direct-event/analyzer.ts";
 import { residentPaths } from "./paths.ts";
-import { DELIVERY_LEASE_MS, type ResidentDispatchContext } from "./protocol.ts";
+import {
+  DELIVERY_LEASE_MS,
+  decodeResidentRequest,
+  type ResidentDispatchContext,
+} from "./protocol.ts";
 import { ResidentServer, residentUnitReservationBytes } from "./server.ts";
 
 const enable = (root: string, statePath: string) => Effect.runPromise(Effect.gen(function* () {
@@ -1078,5 +1082,84 @@ describe("resident delivery lease", () => {
     expect(server.accountingMetrics().successfulCacheBytes).toBeLessThanOrEqual(128 * 1024);
     await admit(0, "restored-evicted");
     expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(11);
+  });
+
+  it("charges a valid near-frame identity for every unit and rejects excess truthfully", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", Array.from(
+      { length: 8 },
+      (_, index) => `type NearFrame${index} = number`,
+    ).join("\n"));
+    const statePath = join(root, "consent");
+    const capturePath = join(root, "backend-calls");
+    await enable(root, statePath);
+    const base = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    expect(base).toBeDefined();
+    if (base === undefined) return;
+    // Both identifiers are valid at the 16,384-code-unit protocol ceiling
+    // while their combined UTF-8 representation is 96 KiB.
+    const sessionId = "漢".repeat(16_384);
+    const agentId = "界".repeat(16_384);
+    const padding = "p".repeat(56 * 1024);
+    const observation = {
+      ...base,
+      recipient: { ...base.recipient, sessionId, agentId },
+      candidates: base.candidates.map((candidate) => candidate.operation === "add"
+        ? { ...candidate, addedLines: [padding] }
+        : candidate),
+    };
+    const dispatch: ResidentDispatchContext = {
+      statePath,
+      userConfigPath: null,
+      credential: null,
+      controlled: {
+        capturePath,
+        answers: Object.fromEntries(configuredRules.map((rule) => [
+          rule.id,
+          { _tag: "Probability", probability: 0.9 },
+        ])),
+      },
+    };
+    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const encoded = JSON.stringify({
+      version: 1,
+      operation: "admit",
+      lifetime: server.lifetime,
+      observation,
+      controlledWriter: true,
+      dispatch,
+    });
+    expect(Buffer.byteLength(encoded, "utf8")).toBeGreaterThan(150 * 1024);
+    const decoded = decodeResidentRequest(encoded);
+    expect(decoded?.operation).toBe("admit");
+    if (decoded?.operation !== "admit") return;
+    expect(server.admit(decoded.observation, decoded.dispatch).status).toBe("accepted");
+    await server.whenIdle();
+
+    const metadata = server.pendingAdviceMetadata();
+    expect(metadata.length).toBeGreaterThan(0);
+    expect(metadata.length).toBeLessThan(8);
+    expect(server.stats().rejectedCapacity).toBeGreaterThan(0);
+    expect(server.stats().retainedBytes).toBe(
+      metadata.reduce((total, item) => total + item.retainedBytes, 0) +
+        server.accountingMetrics().successfulCacheBytes,
+    );
+    expect(server.stats().retainedBytes).toBeLessThanOrEqual(2 * 1024 * 1024);
+    expect(server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(2 * 1024 * 1024);
+    expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(metadata.length);
+
+    expect(await server.collect(
+      root,
+      { ...observation.recipient, agentId: `${agentId.slice(0, -1)}z` },
+      dispatch,
+    )).toMatchObject({ status: "empty" });
+    expect(server.pendingAdviceMetadata().map(({ id, delivery }) => ({ id, delivery }))).toEqual(
+      metadata.map(({ id }) => ({ id, delivery: "available" })),
+    );
+    const otherRoot = await makeGitFixture();
+    expect(await server.collect(otherRoot, observation.recipient, dispatch)).toMatchObject({ status: "empty" });
+    expect(server.pendingAdviceMetadata().map(({ id, delivery }) => ({ id, delivery }))).toEqual(
+      metadata.map(({ id }) => ({ id, delivery: "available" })),
+    );
   });
 });

@@ -183,7 +183,7 @@ describe("resident separate-process lifecycle", { timeout: 30_000 }, () => {
       recipient({ turnId: "later", toolUseId: "bash" }),
       dispatch,
       paths,
-    ));
+    ), 10_000);
     expect(advice?.output.hookSpecificOutput.additionalContext).toContain("type.ts");
     if (advice === undefined) return;
 

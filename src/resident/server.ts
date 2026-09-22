@@ -47,7 +47,7 @@ import {
   type CapacityReservation,
 } from "./capacity.ts";
 import { DispatchCycles } from "./dispatch.ts";
-import { EvaluationReuse } from "./evaluation-reuse.ts";
+import { EvaluationReuse, residentEvaluationIdentity } from "./evaluation-reuse.ts";
 
 const BACKEND_CONCURRENCY = 2;
 const RESERVATION_OVERHEAD_BYTES = 1024;
@@ -155,6 +155,18 @@ const recipientPartition = (root: string, recipient: DirectRecipient) => canonic
   agentId: recipient.agentId,
 });
 
+const workSubject = (partition: string, prepared: PreparedUnit): string => canonicalValue({
+  partition,
+  path: prepared.input.path,
+  declaration: prepared.input.declaration.name,
+});
+
+const reservedRevision = (partition: string, prepared: PreparedUnit): WorkRevision => ({
+  subject: workSubject(partition, prepared),
+  token: "00000000-0000-0000-0000-000000000000",
+  generation: Number.MAX_SAFE_INTEGER,
+});
+
 const worstCaseFindings = (prepared: PreparedUnit): ReadonlyArray<Finding> =>
   prepared.input.rules.flatMap((rule) => rule.threshold < 1
     ? [{
@@ -183,13 +195,38 @@ export const residentUnitReservationBytes = (
   prepared: PreparedUnit,
 ): number => {
   const findings = worstCaseFindings(prepared);
-  return logicalBytes({
+  const partition = recipientPartition(observation.root, observation.recipient);
+  const evaluationKey = residentEvaluationIdentity(partition, prepared);
+  const revision = reservedRevision(partition, prepared);
+  const currentWork = {
+    subject: revision.subject,
+    token: revision.token,
+    generation: revision.generation,
+    input: prepared.input,
+    members: 1,
+  };
+  const unitBytes = logicalBytes({
+    kind: "unit",
     observation,
+    partition,
     dispatch,
-    evaluationIdentity: canonicalValue(prepared.input),
-    evaluation: { prepared, findings },
-    output: toCodexDirectEventOutput(findings),
-  }) + findings.length * MAX_PROBABILITY_ENCODING_BYTES +
+    prepared,
+    revision,
+    evaluationKey,
+    currentWork,
+  });
+  const adviceBytes = logicalBytes({
+    observation,
+    partition,
+    prepared,
+    revision,
+    evaluationKey,
+    evaluations: [{ prepared, findings }],
+    findings,
+    encodedBytes: logicalBytes(toCodexDirectEventOutput(findings)),
+    currentWork,
+  }) + findings.length * MAX_PROBABILITY_ENCODING_BYTES;
+  return Math.max(unitBytes, adviceBytes) +
     RESERVATION_OVERHEAD_BYTES;
 };
 
@@ -421,11 +458,7 @@ export class ResidentServer {
   }
 
   #subject(partition: string, prepared: PreparedUnit): string {
-    return canonicalValue({
-      partition,
-      path: prepared.input.path,
-      declaration: prepared.input.declaration.name,
-    });
+    return workSubject(partition, prepared);
   }
 
   #registerCurrentWork(partition: string, prepared: PreparedUnit): WorkRevision {
