@@ -204,6 +204,8 @@ describe("installed-product first-review demo", () => {
       submission: "submitted",
       findings: 1,
       modelReaction: "observed",
+      modelReactionSource: "correlated-finding-reaction",
+      deliveredFindingCorrelation: true,
       repair: "independently-validated",
       followUpReview: "completed",
       providerCalls: 2,
@@ -238,6 +240,12 @@ describe("installed-product first-review demo", () => {
       }),
     }));
     expect(reactionResult.status).toBe("inconclusive");
+    if (!("evidence" in reactionResult)) throw new Error("expected reaction evidence");
+    expect(reactionResult.evidence).toMatchObject({
+      modelReaction: "unavailable",
+      modelReactionSource: "unavailable",
+      deliveredFindingCorrelation: false,
+    });
 
     const missingFollowUp = fixture();
     const followUpProposal = await preview(missingFollowUp);
@@ -283,6 +291,8 @@ describe("installed-product first-review demo", () => {
       submission: "none",
       findings: 0,
       modelReaction: "not-observed",
+      modelReactionSource: "correlated-finding-reaction",
+      deliveredFindingCorrelation: false,
       repair: "not-validated",
       followUpReview: "not-observed",
       providerCalls: 3,

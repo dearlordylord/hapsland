@@ -14,6 +14,12 @@ milestone after setting `REVIEW_LIVE_CODEX_HOME`. The retained JSON contains bou
 versions, timestamps, stage outcomes and timing. It excludes the disposable path, consent
 digests, synthetic source, provider response, prompts and credentials.
 
+Future runner records retain the sanitized correlation result as
+`stages.modelReactionSource: "correlated-finding-reaction"` and
+`stages.deliveredFindingCorrelation: true` only when the observed model action is tied to a
+delivered finding. These fields contain no prompt, source, response, path, or finding text. Older
+records are not rewritten to add correlation they did not observe.
+
 For future records, `package.source: "runner-packed-release-installation"` means this hardened
 runner created and hashed the tarball itself. Only those records may set
 `cliResolvedInsideInstalledArtifact: true`. The legacy value

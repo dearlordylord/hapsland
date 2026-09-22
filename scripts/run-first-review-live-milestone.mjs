@@ -245,6 +245,8 @@ const evidence = {
     completion: "incomplete",
     submission: "unavailable",
     modelReaction: "unavailable",
+    modelReactionSource: "unavailable",
+    deliveredFindingCorrelation: false,
     repair: "not-validated",
     followUpReview: "unavailable",
   },

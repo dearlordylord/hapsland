@@ -483,6 +483,12 @@ export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
       submission: value?.review.submission ?? "unavailable",
       findings: Math.min(100, Math.max(0, value?.review.findings ?? 0)),
       modelReaction: value?.review.modelReaction.status ?? "unavailable",
+      modelReactionSource: value?.review.modelReaction.status === "observed" || value?.review.modelReaction.status === "not-observed"
+        ? value.review.modelReaction.source
+        : "unavailable" as const,
+      deliveredFindingCorrelation: value?.review.modelReaction.status === "observed"
+        ? value.review.modelReaction.deliveredFindingCorrelation
+        : false as const,
       repair: value?.repair.rejectsInvalidStates === true ? "independently-validated" as const : "not-validated" as const,
       followUpReview: value?.review.followUp.status ?? "unavailable",
       providerCalls: Math.min(DEMO_PROVIDER_CALL_BUDGET + 1, Math.max(0, calls)),
