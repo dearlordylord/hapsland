@@ -7,7 +7,7 @@ export const PENDING_ADVICE_EXPIRY_MS = 600_000;
 export const MAX_COMBINED_RESPONSE_ITEMS = 5;
 export const MAX_COMBINED_RESPONSE_BYTES = 2 * 1024;
 
-export type OperationalNoticeKind = "capacity" | "backend";
+export type OperationalNoticeKind = "capacity" | "backend" | "credential";
 
 export type OperationalNotice = {
   readonly kind: OperationalNoticeKind;
@@ -53,7 +53,9 @@ export const combinedFindingOutput = (
 const noticeText = (notice: OperationalNotice): string => {
   const message = notice.kind === "capacity"
     ? "Operational notice: review capacity was unavailable; some eligible edits were not reviewed."
-    : "Operational notice: Jev was unavailable; some eligible edits were not reviewed.";
+    : notice.kind === "credential"
+      ? "Operational notice: the saved review credential was unavailable; run review-tool --login in a user terminal to unlock or approve native access, then retry. Background hooks never prompt."
+      : "Operational notice: Jev was unavailable; some eligible edits were not reviewed.";
   return notice.suppressedCount === 0
     ? message
     : `${message} (${notice.suppressedCount} similar ${notice.suppressedCount === 1 ? "failure was" : "failures were"} suppressed.)`;

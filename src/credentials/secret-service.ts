@@ -24,10 +24,12 @@ export type SecretServiceStatus =
   | "present"
   | "missing"
   | "locked"
+  | "interaction-required"
   | "invalid"
   | "unavailable"
   | "indeterminate"
-  | "timed-out";
+  | "timed-out"
+  | "cancelled";
 
 export type SecretServiceResult = {
   readonly status: SecretServiceStatus;
@@ -108,25 +110,42 @@ const withStateLock = async <A>(statePath: string, operation: () => Promise<A>):
 
 export const runSecretService = (
   operation: "probe" | "get" | "set" | "delete",
-  options: { readonly input?: string; readonly deadlineMs?: number } = {},
+  options: {
+    readonly input?: string;
+    readonly deadlineMs?: number;
+    readonly signal?: AbortSignal;
+    readonly allowInteraction?: boolean;
+  } = {},
 ): Promise<SecretServiceResult> => new Promise((resolveResult) => {
   let settled = false;
-  const child = spawn(credentialHelperPath(), [operation], {
+  let termination: "timed-out" | "cancelled" | undefined;
+  const child = spawn(
+    credentialHelperPath(),
+    options.allowInteraction === true ? [operation, "--allow-interaction"] : [operation],
+    {
     stdio: ["pipe", "pipe", "ignore"],
     env: process.env,
-  });
+    },
+  );
   const chunks: Array<Buffer> = [];
   let total = 0;
   const finish = (result: SecretServiceResult) => {
     if (settled) return;
     settled = true;
     clearTimeout(timer);
+    options.signal?.removeEventListener("abort", abort);
     resolveResult(result);
   };
   const timer = setTimeout(() => {
+    termination = "timed-out";
     child.kill("SIGKILL");
-    finish({ status: "timed-out" });
   }, options.deadlineMs ?? CREDENTIAL_LOOKUP_DEADLINE_MS);
+  const abort = () => {
+    termination = "cancelled";
+    child.kill("SIGKILL");
+  };
+  options.signal?.addEventListener("abort", abort, { once: true });
+  if (options.signal?.aborted === true) abort();
   child.stdout.on("data", (chunk: Buffer) => {
     total += chunk.length;
     if (total <= 65_536) chunks.push(chunk);
@@ -137,9 +156,10 @@ export const runSecretService = (
     // the retained deadline) settle the sanitized result.
     child.kill("SIGKILL");
   });
-  child.on("error", () => finish({ status: "unavailable" }));
+  child.on("error", () => finish({ status: termination ?? "unavailable" }));
   child.on("close", () => {
     if (settled) return;
+    if (termination !== undefined) return finish({ status: termination });
     const malformedStatus = operation === "set" ? "indeterminate" as const : "unavailable" as const;
     try {
       const output = Buffer.concat(chunks);
@@ -151,8 +171,8 @@ export const runSecretService = (
       }
       const status = header.status;
       const allowed: ReadonlyArray<SecretServiceStatus> = [
-        "available", "stored", "deleted", "present", "missing", "locked", "invalid", "unavailable",
-        "indeterminate",
+        "available", "stored", "deleted", "present", "missing", "locked", "interaction-required",
+        "invalid", "unavailable", "indeterminate",
       ];
       if (typeof status !== "string" || !allowed.includes(status as SecretServiceStatus)) {
         return finish({ status: malformedStatus });
@@ -174,7 +194,7 @@ export const runSecretService = (
 
 export type CredentialResolution =
   | { readonly status: "present"; readonly source: "environment" | "saved"; readonly value: string; readonly generation: number }
-  | { readonly status: "missing" | "invalid" | "locked" | "unavailable" | "timed-out" | "suspended"; readonly source: "environment" | "saved"; readonly generation: number };
+  | { readonly status: "missing" | "invalid" | "locked" | "interaction-required" | "unavailable" | "timed-out" | "suspended"; readonly source: "environment" | "saved"; readonly generation: number };
 
 export const resolveCredential = async (options: {
   readonly envVar: string;
@@ -219,6 +239,7 @@ export const resolveCredential = async (options: {
     return { status: "present", source: "saved", value: saved.value, generation: state.generation };
   }
   const status = saved.status === "missing" || saved.status === "locked" ||
+      saved.status === "interaction-required" ||
       saved.status === "invalid" || saved.status === "timed-out"
     ? saved.status
     : "unavailable";

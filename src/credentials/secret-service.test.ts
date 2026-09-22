@@ -32,6 +32,7 @@ if (mode === "epipe") process.exit(0);
 if (mode === "close-stdin-hang") { (await import("node:fs")).closeSync(0); await new Promise(() => setInterval(() => {}, 1000)); }
 if (mode === "unavailable") { console.log('{"version":1,"status":"unavailable"}'); process.exit(2); }
 if (mode === "locked") { console.log('{"version":1,"status":"locked"}'); process.exit(2); }
+if (mode === "interaction-required") { console.log('{"version":1,"status":"interaction-required"}'); process.exit(2); }
 if (operation === "probe") console.log('{"version":1,"status":"available"}');
 else if (operation === "get") {
   if (mode === "slow-get") await new Promise((resolve) => setTimeout(resolve, 150));
@@ -64,7 +65,7 @@ afterEach(() => {
   Object.assign(process.env, originalEnvironment);
 });
 
-describe("Secret Service credential lifecycle", () => {
+describe("native credential lifecycle", () => {
   it("uses a non-optimizable wipe on every native set input release", () => {
     const source = readFileSync(join(process.cwd(), "native", "credential-secret-service.c"), "utf8");
     expect(source).toContain("volatile unsigned char *cursor");
@@ -77,6 +78,34 @@ describe("Secret Service credential lifecycle", () => {
     const started = Date.now();
     await expect(runSecretService("get", { deadlineMs: 40 })).resolves.toEqual({ status: "timed-out" });
     expect(Date.now() - started).toBeLessThan(500);
+  });
+
+  it("cancels a live native lookup and waits for helper termination", async () => {
+    process.env.TEST_SECRET_MODE = "hang";
+    const controller = new AbortController();
+    const lookup = runSecretService("get", { deadlineMs: 5_000, signal: controller.signal });
+    controller.abort();
+    await expect(lookup).resolves.toEqual({ status: "cancelled" });
+  });
+
+  it("preserves an interaction-required native outcome without attempting UI", async () => {
+    process.env.TEST_SECRET_MODE = "interaction-required";
+    await expect(resolveCredential({
+      envVar: "TYPESAFE_API_KEY",
+      environmentOnly: false,
+      statePath: lifecycle,
+    })).resolves.toMatchObject({ status: "interaction-required", source: "saved" });
+  });
+
+  it("keeps the macOS helper lookup noninteractive and scoped by service and account", () => {
+    const source = readFileSync(join(process.cwd(), "native", "credential-keychain.c"), "utf8");
+    expect(source).toContain('CFSTR("dev.typesafe.realtime-review-tool")');
+    expect(source).toContain('CFSTR("default")');
+    expect(source).toContain("SecKeychainCopyDefault");
+    expect(source).toContain("kSecUseKeychain");
+    expect(source).toContain("kSecUseAuthenticationUIFail");
+    expect(source).toContain("allow_interaction ? kSecUseAuthenticationUIAllow");
+    expect(source).toContain("kSecAttrAccessibleAfterFirstUnlock");
   });
 
   it("maps helper stdin EPIPE to a sanitized indeterminate result", async () => {
