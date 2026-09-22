@@ -1,12 +1,13 @@
 import { execFile } from "node:child_process";
-import { mkdir, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
 import { captureStable, MAX_SOURCE_BYTES } from "./capture.ts";
 import { eligibleNamedPath } from "./selection.ts";
-import { makeGitFixture, put } from "./test-fixtures.ts";
+import { adaptCodexAdd } from "./adapter.ts";
+import { addEvent, makeGitFixture, put } from "./test-fixtures.ts";
 
 const execFileAsync = promisify(execFile);
 const required = <A>(value: A | undefined): A => {
@@ -66,6 +67,53 @@ describe("direct-event named-path selection", () => {
     await mkdir(join(root, "directory"));
     expect(await Effect.runPromise(eligibleNamedPath(root, "link/a.ts"))).toBeUndefined();
     expect(await Effect.runPromise(eligibleNamedPath(root, "directory"))).toBeUndefined();
+  });
+
+  it("rejects the structured in-root Git directory without prefix overreach", async () => {
+    const root = await makeGitFixture();
+    const gitDirectory = join(root, "git-admin");
+    await rename(join(root, ".git"), gitDirectory);
+    await writeFile(join(root, ".git"), "gitdir: git-admin\n");
+    await put(root, "git-admin/evidence.ts", "type Secret = string");
+    await put(root, "git-admin-sibling/source.ts", "type Safe = string");
+    const observation = await Effect.runPromise(adaptCodexAdd(addEvent(root, ["git-admin/evidence.ts"])));
+    expect(observation?.rootIdentity.gitDirectory).toBe(gitDirectory);
+    expect(await Effect.runPromise(eligibleNamedPath(
+      root,
+      "git-admin/evidence.ts",
+      undefined,
+      observation?.rootIdentity,
+    ))).toBeUndefined();
+    expect(await Effect.runPromise(eligibleNamedPath(
+      root,
+      "git-admin-sibling/source.ts",
+      undefined,
+      observation?.rootIdentity,
+    ))).toBeDefined();
+  });
+
+  it("keeps an external Git directory distinct from all in-root source paths", async () => {
+    const root = await makeGitFixture();
+    const holder = await makeGitFixture();
+    const gitDirectory = join(holder, "external-admin");
+    await rename(join(root, ".git"), gitDirectory);
+    await writeFile(join(root, ".git"), `gitdir: ${gitDirectory}\n`);
+    await put(root, "source.ts", "type Safe = string");
+    await put(holder, "external-admin/secret.ts", "type Secret = string");
+    const observation = await Effect.runPromise(adaptCodexAdd(addEvent(root, ["source.ts"])));
+    expect(observation?.rootIdentity.gitDirectory).toBe(gitDirectory);
+    expect(await Effect.runPromise(eligibleNamedPath(
+      root,
+      "source.ts",
+      undefined,
+      observation?.rootIdentity,
+    ))).toBeDefined();
+    expect(await Effect.runPromise(eligibleNamedPath(
+      root,
+      join(gitDirectory, "secret.ts"),
+      undefined,
+      observation?.rootIdentity,
+    ))).toBeUndefined();
   });
 });
 
