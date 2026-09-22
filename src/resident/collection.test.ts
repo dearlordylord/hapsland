@@ -11,6 +11,7 @@ import {
   fitsCombinedResponse,
   isCollectionEligible,
   isPendingAdviceExpired,
+  selectFittingFindings,
 } from "./collection.ts";
 
 const candidate = (overrides: Partial<{
@@ -69,6 +70,17 @@ describe("resident advice collection policy", () => {
     expect(fitsCombinedResponse(oversized)).toBe(false);
     expect(encodedHostOutputBytes(combinedFindingOutput(oversized))).toBeGreaterThan(MAX_COMBINED_RESPONSE_BYTES);
     expect(fitsCombinedResponse([])).toBe(false);
+  });
+
+  it("counts and selects flattened findings rather than unit groups", () => {
+    const nineFromOneUnit = Array.from({ length: 9 }, (_, index) => finding(index));
+    expect(fitsCombinedResponse([nineFromOneUnit])).toBe(false);
+    const selected = selectFittingFindings([], nineFromOneUnit);
+    expect(selected).toHaveLength(5);
+    expect(selected.map(({ declaration }) => declaration)).toEqual([
+      "Count0", "Count1", "Count2", "Count3", "Count4",
+    ]);
+    expect(fitsCombinedResponse([selected])).toBe(true);
   });
 
   it("expires at equality, but not one millisecond before", () => {

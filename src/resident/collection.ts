@@ -45,6 +45,20 @@ export const combinedFindingOutput = (
 
 export const fitsCombinedResponse = (
   groups: ReadonlyArray<ReadonlyArray<Finding>>,
-): boolean => groups.length > 0 &&
-  groups.length <= MAX_COMBINED_RESPONSE_ITEMS &&
+): boolean => groups.flatMap((findings) => findings).length > 0 &&
+  groups.flatMap((findings) => findings).length <= MAX_COMBINED_RESPONSE_ITEMS &&
   encodedHostOutputBytes(combinedFindingOutput(groups)) <= MAX_COMBINED_RESPONSE_BYTES;
+
+/** Selects deterministic finding items without treating one unit as one item. */
+export const selectFittingFindings = (
+  retained: ReadonlyArray<Finding>,
+  candidates: ReadonlyArray<Finding>,
+): ReadonlyArray<Finding> => {
+  const selected: Array<Finding> = [];
+  for (const finding of candidates) {
+    if (retained.length + selected.length >= MAX_COMBINED_RESPONSE_ITEMS) break;
+    const next = [...selected, finding];
+    if (fitsCombinedResponse([retained, next])) selected.push(finding);
+  }
+  return selected;
+};
