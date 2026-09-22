@@ -335,6 +335,7 @@ type Evaluation =
 /** One DecisionModel call, no retry wrapper, with a fixed total call deadline. */
 export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(function* (
   prepared: PreparedUnit,
+  beforeDispatch: Effect.Effect<void, unknown> = Effect.void,
 ) {
   const decisions: Record<string, Decision.Probability> = {};
   for (const rule of prepared.input.rules) decisions[rule.id] = rule.decision;
@@ -351,7 +352,8 @@ export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(functi
     },
   }).pipe(Effect.orDie);
   const model = yield* DecisionModel.DecisionModel;
-  const evaluated = yield* model.decide(definition, { input }).pipe(
+  const evaluated = yield* beforeDispatch.pipe(
+    Effect.andThen(model.decide(definition, { input })),
     Effect.timeoutOption(`${DIRECT_EVENT_DEADLINE_MS} millis`),
     Effect.result,
   );

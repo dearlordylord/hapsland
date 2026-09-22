@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-09-22T19:21:03.120Z",
+  "recordedAt": "2026-09-22T19:35:56.665Z",
   "package": {
     "name": "realtime-review-prototype",
     "version": "0.0.0",
@@ -40,14 +40,14 @@
   },
   "credentialLifecycle": {
     "status": "actual-secret-service",
-    "loginMs": 819,
-    "separateProcessLookupMs": 440,
+    "loginMs": 587,
+    "separateProcessLookupMs": 292,
     "residentRestartPersistence": "passed",
     "residentControlledTransportResolution": "passed",
     "logoutBeforeFutureDispatch": "passed",
-    "lockedLookupMs": 1528,
+    "lockedLookupMs": 795,
     "lockedOutcome": "locked-no-prompt",
-    "unreachableLookupMs": 799,
+    "unreachableLookupMs": 446,
     "unreachableOutcome": "unavailable-bounded",
     "secretRetainedInEvidence": false
   },
