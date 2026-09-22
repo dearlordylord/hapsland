@@ -230,6 +230,10 @@ describe("direct-event vertical slice", () => {
       expect(result.status).toBe("ready");
       expect(calls).toBe(2);
       expect(states).toHaveLength(2);
+      if (result.status === "ready") {
+        expect(result.output.hookSpecificOutput.additionalContext).toContain("types.ts :: Account");
+        expect(result.output.hookSpecificOutput.additionalContext).toContain("types.ts :: Owner");
+      }
       expect(states[0]).toMatchObject({
         artifact: { domain: "types.ts", source: "interface Account { owner: Owner }" },
         evidence: [{ kind: "expanded", node: { artifact: { name: "Owner" } } }],

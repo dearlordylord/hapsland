@@ -345,7 +345,7 @@ export const toCodexDirectEventOutput = (
     additionalContext: [
       "Advisory direct-event review (the edit already succeeded):",
       ...findings.map((finding) =>
-        `${finding.path} [${finding.ruleId}, p=${finding.probability.toFixed(2)}]: ${finding.message}`),
+        `${finding.path} :: ${finding.declaration} [${finding.ruleId}, p=${finding.probability.toFixed(2)}]: ${finding.message}`),
     ].join("\n"),
   },
 });
