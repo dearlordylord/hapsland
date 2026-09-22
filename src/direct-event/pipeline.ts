@@ -52,12 +52,6 @@ export type DirectReviewContext = {
   readonly beforePrepare?: Effect.Effect<void>;
   readonly beforeDispatch?: Effect.Effect<void>;
   readonly beforeHandoff?: Effect.Effect<void>;
-  /**
-   * Resident-owned supersession authority. The direct-event layer deliberately
-   * does not keep revisions; when supplied, an older completion must pass this
-   * check as well as semantic revalidation before it can be handed off.
-   */
-  readonly isCurrentWork?: (prepared: PreparedUnit) => Effect.Effect<boolean>;
 };
 
 export type PrepareOutcome =
@@ -89,6 +83,14 @@ export type RevalidationResult =
   | { readonly status: "stale"; readonly findings: readonly [] }
   | { readonly status: "unavailable"; readonly findings: readonly [] }
   | { readonly status: "unattributed"; readonly findings: readonly [] };
+
+/**
+ * Publication authority is explicit because semantic equality cannot prove
+ * that a later resident observation has not superseded completed work.
+ */
+export type ResidentPublicationAuthority = {
+  readonly isCurrentWork: (prepared: PreparedUnit) => Effect.Effect<boolean>;
+};
 
 export type DirectReviewResult =
   | { readonly status: "unsupported"; readonly output: undefined }
@@ -217,6 +219,11 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
       outcomes.push({ status: "skipped", path: candidate.path });
       continue;
     }
+    const frozen = frozenNames?.get(eligible.relativePath);
+    if (frozenNames !== undefined && frozen === undefined) {
+      outcomes.push({ status: "skipped", path: eligible.relativePath });
+      continue;
+    }
     const captured = yield* captureStable(
       observation.root,
       eligible,
@@ -230,11 +237,13 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
     }
     const analysis = analyzeTypeFile(eligible.relativePath, captured.text);
     const analyses = analysis.status === "analyzed" ? analysis.units : [];
-    const selection = selectedAnalyses(analyses, candidate.operation, candidate.addedLines ?? []);
-    const frozen = frozenNames?.get(eligible.relativePath);
-    const selected = frozen === undefined
-      ? selection.selected
-      : selection.selected.filter((item) => frozen.has(analysisRoot(item).name));
+    const selection = frozen === undefined
+      ? selectedAnalyses(analyses, candidate.operation, candidate.addedLines ?? [])
+      : {
+          selected: analyses.filter((item) => frozen.has(analysisRoot(item).name)),
+          ambiguous: false,
+        };
+    const selected = selection.selected;
     const units = selected.flatMap((item) => item.status === "ready" ? [item.unit] : []);
     const failures = [
       ...extractionFailures(analysis),
@@ -441,7 +450,12 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
   if (!context.controlledWriter || !sameRecipient(observation.recipient, context.recipient)) {
     return { status: "unattributed", output: undefined } satisfies DirectReviewResult;
   }
-  const revalidated = yield* revalidateEvaluations(observation, evaluations, context);
+  const revalidated = yield* revalidateForPublication(
+    observation,
+    evaluations,
+    context,
+    undefined,
+  );
   if (revalidated.status !== "current" || revalidated.findings.length === 0) {
     return { status: "unavailable", reason: "stale", output: undefined } satisfies DirectReviewResult;
   }
@@ -457,10 +471,11 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
  * Recheck delayed evaluations against current authority and complete canonical
  * inputs. A whole-file match is intentionally neither accepted nor consulted.
  */
-export const revalidateEvaluations = Effect.fn("DirectEvent.revalidateEvaluations")(function* (
+const revalidateForPublication = Effect.fn("DirectEvent.revalidateForPublication")(function* (
   observation: DirectObservation,
   evaluations: ReadonlyArray<EvaluatedUnit>,
   context: DirectReviewContext,
+  authority: ResidentPublicationAuthority | undefined,
 ): Effect.fn.Return<RevalidationResult> {
   if (
     !context.controlledWriter ||
@@ -500,9 +515,9 @@ export const revalidateEvaluations = Effect.fn("DirectEvent.revalidateEvaluation
   if (retained.length > 0) {
     // Keep the scheduler-owned supersession check last: semantic capture does
     // not prove that a later accepted observation has not replaced this work.
-    if (context.isCurrentWork !== undefined) {
+    if (authority !== undefined) {
       for (const evaluation of retained) {
-        if (!(yield* context.isCurrentWork(evaluation.prepared))) {
+        if (!(yield* authority.isCurrentWork(evaluation.prepared))) {
           return { status: "stale", findings: [] };
         }
       }
@@ -518,7 +533,25 @@ export const revalidateEvaluations = Effect.fn("DirectEvent.revalidateEvaluation
     : { status: "unavailable", findings: [] };
 });
 
-/** Boolean compatibility boundary for the resident scheduler integration. */
+/**
+ * Resident publication always requires scheduler-owned supersession authority.
+ * Immediate in-invocation review uses the private path above and cannot be
+ * mistaken for authorization to publish delayed work.
+ */
+export const revalidateEvaluations = Effect.fn("DirectEvent.revalidateEvaluations")(function* (
+  observation: DirectObservation,
+  evaluations: ReadonlyArray<EvaluatedUnit>,
+  context: DirectReviewContext,
+  authority: ResidentPublicationAuthority,
+) {
+  return yield* revalidateForPublication(observation, evaluations, context, authority);
+});
+
+/**
+ * @deprecated Findings do not retain the prior complete canonical input. This
+ * digest-only compatibility check must not authorize resident publication;
+ * retain `EvaluatedUnit` and use `revalidateEvaluations` instead.
+ */
 export const revalidateFindings = Effect.fn("DirectEvent.revalidateFindings")(function* (
   observation: DirectObservation,
   findings: ReadonlyArray<Finding>,
@@ -545,7 +578,6 @@ export const revalidateFindings = Effect.fn("DirectEvent.revalidateFindings")(fu
     !(yield* authorize(observation.root, context))
   ) return false;
   const prepared = yield* prepareObservation(observation, context, names);
-  const matching: Array<PreparedUnit> = [];
   for (const [key] of grouped.entries()) {
     const found = prepared.outcomes.find((outcome) => {
       if (outcome.status !== "ready") return false;
@@ -553,10 +585,6 @@ export const revalidateFindings = Effect.fn("DirectEvent.revalidateFindings")(fu
       return key === `${input.path}\0${input.declaration.name}\0${outcome.prepared.identity}`;
     });
     if (found?.status !== "ready") return false;
-    matching.push(found.prepared);
-  }
-  if (context.isCurrentWork !== undefined) {
-    for (const item of matching) if (!(yield* context.isCurrentWork(item))) return false;
   }
   return true;
 });
