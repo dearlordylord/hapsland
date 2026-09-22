@@ -23,7 +23,7 @@ beforeEach(() => {
   vault = join(root, "vault");
   lifecycle = join(root, "state.json");
   writeFileSync(helper, `#!/usr/bin/env node
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 const operation = process.argv[2];
 const mode = process.env.TEST_SECRET_MODE;
 const vault = process.env.TEST_SECRET_VAULT;
@@ -42,14 +42,22 @@ else if (operation === "get") {
   const chunks = []; for await (const chunk of process.stdin) chunks.push(chunk);
   if (mode === "hold-set") { writeFileSync(process.env.TEST_SECRET_READY, "ready"); await new Promise(() => setInterval(() => {}, 1000)); }
   if (mode === "fail-set") { console.log('{"version":1,"status":"unavailable"}'); process.exit(2); }
+  if (mode === "detect-overlap") {
+    try { writeFileSync(process.env.TEST_SECRET_ACTIVE, "active", { flag: "wx" }); }
+    catch { writeFileSync(process.env.TEST_SECRET_OVERLAP, "overlap"); }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
   writeFileSync(vault, Buffer.concat(chunks), { mode: 0o600 });
+  if (mode === "detect-overlap") rmSync(process.env.TEST_SECRET_ACTIVE, { force: true });
   if (mode === "fail-after-create") { console.log('{"version":1,"status":"indeterminate"}'); process.exit(2); }
   if (mode === "commit-hang-set") await new Promise(() => setInterval(() => {}, 1000));
   console.log('{"version":1,"status":"stored"}');
 } else if (operation === "delete") {
   if (mode === "fail-delete") { console.log('{"version":1,"status":"unavailable"}'); process.exit(2); }
   if (mode === "slow-fail-delete") { await new Promise((resolve) => setTimeout(resolve, 150)); console.log('{"version":1,"status":"unavailable"}'); process.exit(2); }
-  const existed = existsSync(vault); rmSync(vault, { force: true }); console.log(JSON.stringify({version:1,status:existed?"deleted":"missing"}));
+  const existed = existsSync(vault); rmSync(vault, { force: true });
+  if (mode === "delete-break-state") { rmSync(process.env.REVIEW_CREDENTIAL_STATE_PATH, { force: true }); mkdirSync(process.env.REVIEW_CREDENTIAL_STATE_PATH); }
+  console.log(JSON.stringify({version:1,status:existed?"deleted":"missing"}));
 }
 `);
   chmodSync(helper, 0o700);
@@ -221,9 +229,49 @@ int main(void) {
     process.kill(-(child.pid as number), "SIGKILL");
     await childExit;
 
-    const restarted = await saveCredential("restart-marker", lifecycle);
-    expect(restarted).toMatchObject({ status: "stored", stateLock: "recovered" });
-    expect(readFileSync(vault, "utf8")).toBe("restart-marker");
+    const gate = join(root, "contender-gate");
+    const active = join(root, "mutation-active");
+    const overlap = join(root, "mutation-overlap");
+    const startContender = (name: string) => {
+      const readyPath = join(root, `${name}-ready`);
+      const resultPath = join(root, `${name}-result`);
+      const contender = spawn(process.execPath, ["--input-type=module", "-e", `
+        const { existsSync, writeFileSync } = await import("node:fs");
+        const { saveCredential } = await import(${JSON.stringify(moduleUrl)});
+        writeFileSync(${JSON.stringify(readyPath)}, "ready");
+        while (!existsSync(${JSON.stringify(gate)})) await new Promise((resolve) => setTimeout(resolve, 5));
+        const result = await saveCredential(${JSON.stringify(name)}, ${JSON.stringify(lifecycle)});
+        writeFileSync(${JSON.stringify(resultPath)}, JSON.stringify(result));
+      `], {
+        stdio: "ignore",
+        env: {
+          ...process.env,
+          TEST_SECRET_MODE: "detect-overlap",
+          TEST_SECRET_ACTIVE: active,
+          TEST_SECRET_OVERLAP: overlap,
+        },
+      });
+      return { contender, readyPath, resultPath };
+    };
+    const first = startContender("first-restart-marker");
+    const second = startContender("second-restart-marker");
+    while ((!existsSync(first.readyPath) || !existsSync(second.readyPath)) && Date.now() < deadline + 3_000) {
+      await new Promise((resolveWait) => setTimeout(resolveWait, 10));
+    }
+    expect(existsSync(first.readyPath)).toBe(true);
+    expect(existsSync(second.readyPath)).toBe(true);
+    writeFileSync(gate, "go");
+    await Promise.all([
+      new Promise<void>((resolveExit) => first.contender.once("exit", () => resolveExit())),
+      new Promise<void>((resolveExit) => second.contender.once("exit", () => resolveExit())),
+    ]);
+    const results = [first.resultPath, second.resultPath]
+      .map((path) => JSON.parse(readFileSync(path, "utf8")) as { status: string; stateLock: string });
+    expect(results).toEqual(expect.arrayContaining([
+      expect.objectContaining({ status: "stored", stateLock: "recovered" }),
+      expect.objectContaining({ status: "stored", stateLock: "acquired" }),
+    ]));
+    expect(existsSync(overlap)).toBe(false);
     expect(existsSync(`${lifecycle}.lock`)).toBe(false);
   }, 10_000);
 
@@ -314,6 +362,18 @@ int main(void) {
     delete process.env.TEST_SECRET_MODE;
     await expect(resolveCredential({ envVar: "TYPESAFE_API_KEY", environmentOnly: false, statePath: lifecycle }))
       .resolves.toMatchObject({ status: "suspended" });
+  });
+
+  it("reports indeterminate when deletion commits but the final state write fails", async () => {
+    await saveCredential("saved-marker", lifecycle);
+    process.env.TEST_SECRET_MODE = "delete-break-state";
+    const logout = await logoutCredential(lifecycle);
+    expect(logout).toMatchObject({
+      status: "indeterminate",
+      stateLock: "acquired",
+      state: { savedUseSuspended: true },
+    });
+    expect(existsSync(vault)).toBe(false);
   });
 
   it("publishes a suspended generation before native deletion completes", async () => {

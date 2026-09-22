@@ -1393,8 +1393,8 @@ const runCredentialCommand = async (): Promise<Readonly<Record<string, unknown>>
   return {
     version: 1,
     operation: "logout",
-    status: result.status === "busy"
-      ? "busy"
+    status: result.status === "busy" || result.status === "indeterminate"
+      ? result.status
       : result.status === "deleted" || result.status === "missing"
       ? "logged-out"
       : "deletion-failed",
@@ -1403,7 +1403,11 @@ const runCredentialCommand = async (): Promise<Readonly<Record<string, unknown>>
     generation: result.state.generation,
     grantsPreserved: true,
     sentRequestsRecalled: false,
-    ...(result.status === "busy" ? { action: "another credential change is still running; retry" } : {}),
+    ...(result.status === "busy"
+      ? { action: "another credential change is still running; retry" }
+      : result.status === "indeterminate"
+        ? { action: "saved credential deletion may have committed; retry logout to reconcile suspended saved use" }
+        : {}),
     environmentOverride: {
       envVar: environmentName,
       active: environmentActive,
