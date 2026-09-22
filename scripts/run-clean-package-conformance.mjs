@@ -340,7 +340,13 @@ try {
     input: JSON.stringify({ version: 1, operation: "install-preview", codexHome, codexExecutable: fakeCodex }),
   });
   const installPreview = parseJson(installPreviewRun.stdout, "installation preview");
-  if (installPreview.status !== "preview" || installPreview.sourceEgressAuthorized !== false || !Array.isArray(installPreview.proposal?.changes)) {
+  const ownedPreview = installPreview.proposal?.ownedChanges;
+  if (installPreview.status !== "preview" || installPreview.sourceEgressAuthorized !== false ||
+      !Array.isArray(installPreview.proposal?.changes) || ownedPreview?.runtime?.executable !== process.execPath ||
+      typeof ownedPreview?.runtime?.entrypoint !== "string" || ownedPreview?.feature?.key !== "hooks" ||
+      ownedPreview?.feature?.value !== true || ownedPreview?.hook?.matcher !== "^(apply_patch|Edit|Write|Bash)$" ||
+      ownedPreview?.hook?.handlers?.[0]?.timeout !== 10 ||
+      !ownedPreview?.hook?.handlers?.[0]?.command?.includes("--review-tool-owned=codex-v1")) {
     throw new Error("packaged installation preview did not expose exact source-free changes");
   }
   const installRun = await mustRun(cli, ["--install"], {

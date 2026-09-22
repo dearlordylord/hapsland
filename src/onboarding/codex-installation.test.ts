@@ -13,6 +13,7 @@ import { spawnSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 
 const roots: Array<string> = [];
+const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
 
 afterEach(() => {
   delete process.env.REVIEW_INSTALL_FAIL_AFTER_WRITES;
@@ -65,9 +66,12 @@ const previewAndInstall = (home: string, bin: string, env: NodeJS.ProcessEnv = p
 describe("public Codex installation operations", { timeout: 30_000 }, () => {
   it("previews exact changes, quotes paths, installs idempotently, and preserves unrelated configuration", () => {
     const { root, home, bin } = fixture();
+    const quotedEntrypoint = join(root, "packaged path 'quoted'", "cli.js");
+    mkdirSync(join(root, "packaged path 'quoted'"), { recursive: true });
+    writeFileSync(quotedEntrypoint, "#!/usr/bin/env node\n");
     const installEnvironment = {
       ...process.env,
-      REVIEW_INSTALL_ENTRYPOINT: join(root, "packaged path 'quoted'", "cli.js"),
+      REVIEW_INSTALL_ENTRYPOINT: quotedEntrypoint,
     };
     const independent = { type: "command", command: "independent-hook", timeout: 3 };
     writeFileSync(join(home, "config.toml"), "# keep this comment\nmodel = 'gpt-6'\n\n[features]\nresponses_websockets_v2 = true\n");
@@ -79,6 +83,32 @@ describe("public Codex installation operations", { timeout: 30_000 }, () => {
 
     const preview = invoke({ operation: "install-preview", codexHome: home, codexExecutable: bin }, installEnvironment);
     expect(preview).toMatchObject({ version: 1, status: "preview", sourceEgressAuthorized: false });
+    expect(preview.proposal).toMatchObject({
+      ownedChanges: {
+        runtime: {
+          executable: process.execPath,
+          entrypoint: quotedEntrypoint,
+          nodeVersion: process.version,
+          platform: process.platform,
+          architecture: process.arch,
+        },
+        feature: { file: join(home, "config.toml"), table: "features", key: "hooks", value: true },
+        hook: {
+          file: join(home, "hooks.json"),
+          event: "PostToolUse",
+          matcher: "^(apply_patch|Edit|Write|Bash)$",
+          handlers: [{ type: "command", timeout: 10 }],
+        },
+        ownership: { file: join(home, ".realtime-review-tool", "installation-v1.json"), version: 1, adapter: "codex" },
+      },
+    });
+    const previewCommand = ((preview.proposal as {
+      ownedChanges: { hook: { handlers: Array<{ command: string }> } };
+    }).ownedChanges.hook.handlers[0]?.command);
+    expect(previewCommand).toBe(
+      `${shellQuote(process.execPath)} ${shellQuote(quotedEntrypoint)} --codex-hook --controlled-writer --review-tool-owned=codex-v1`,
+    );
+    expect(JSON.stringify((preview.proposal as { ownedChanges: unknown }).ownedChanges)).not.toContain("keep me");
     expect(readFileSync(join(home, "config.toml"), "utf8")).not.toContain("hooks = true");
     expect(existsSync(join(home, ".realtime-review-tool", "installation-v1.json"))).toBe(false);
 
@@ -112,6 +142,35 @@ describe("public Codex installation operations", { timeout: 30_000 }, () => {
     expect(repeat.status).toBe("already-installed");
   });
 
+  it("edits quoted feature tables without matching table text inside multiline strings", () => {
+    const { home, bin } = fixture();
+    const original = `message = """
+[features]
+hooks = false
+"""
+
+["features"] # quoted table name
+responses_websockets_v2 = true
+`;
+    writeFileSync(join(home, "config.toml"), original);
+    previewAndInstall(home, bin);
+    const installed = readFileSync(join(home, "config.toml"), "utf8");
+    expect(installed).toContain(`message = """
+[features]
+hooks = false
+"""`);
+    expect(installed).toContain(`["features"] # quoted table name
+hooks = true
+responses_websockets_v2 = true`);
+    const uninstallPreview = invoke({ operation: "uninstall", codexHome: home });
+    invoke({
+      operation: "uninstall",
+      codexHome: home,
+      proposalDigest: (uninstallPreview.proposal as { digest: string }).digest,
+    });
+    expect(readFileSync(join(home, "config.toml"), "utf8")).toBe(original);
+  });
+
   it("rejects unsupported hosts and malformed, duplicate, or modified owned configuration", () => {
     const unsupported = fixture();
     writeFileSync(unsupported.bin, "#!/bin/sh\nprintf 'codex-cli 9.9.9\\n'\n", { mode: 0o700 });
@@ -121,7 +180,7 @@ describe("public Codex installation operations", { timeout: 30_000 }, () => {
       operation: "install",
       codexHome: unsupported.home,
       codexExecutable: unsupported.bin,
-      proposalDigest: (unsupportedPreview.proposal as { digest: string }).digest,
+      proposalDigest: "0".repeat(64),
     });
     expect(unsupportedInstall.status).toBe("unsupported");
     expect(existsSync(join(unsupported.home, "hooks.json"))).toBe(false);
@@ -196,6 +255,57 @@ describe("public Codex installation operations", { timeout: 30_000 }, () => {
       },
     });
     expect(readFileSync(join(concurrent.home, "hooks.json"), "utf8")).toBe(unrelatedHooks);
+
+    const completedChange = fixture();
+    const completedPreview = invoke({ operation: "install-preview", codexHome: completedChange.home, codexExecutable: completedChange.bin });
+    const completedDigest = (completedPreview.proposal as { digest: string }).digest;
+    expect(invoke(
+      { operation: "install", codexHome: completedChange.home, codexExecutable: completedChange.bin, proposalDigest: completedDigest },
+      { ...process.env, REVIEW_INSTALL_FAIL_AFTER_WRITES: "1" },
+    ).status).toBe("partial");
+    const completedConfig = `${readFileSync(join(completedChange.home, "config.toml"), "utf8")}# unrelated later edit\n`;
+    writeFileSync(join(completedChange.home, "config.toml"), completedConfig);
+    expect(invoke({
+      operation: "install",
+      codexHome: completedChange.home,
+      codexExecutable: completedChange.bin,
+      proposalDigest: completedDigest,
+    })).toMatchObject({
+      status: "partial",
+      error: { code: "recovery_conflict", message: expect.stringContaining("completed journal step changed") },
+    });
+    expect(readFileSync(join(completedChange.home, "config.toml"), "utf8")).toBe(completedConfig);
+  });
+
+  it("rejects missing runtime or packaged entrypoint before creating installation state", () => {
+    const missingRuntime = fixture();
+    const runtimeResult = invoke(
+      { operation: "install-preview", codexHome: missingRuntime.home, codexExecutable: missingRuntime.bin },
+      { ...process.env, REVIEW_INSTALL_RUNTIME: join(missingRuntime.root, "missing-node") },
+    );
+    expect(runtimeResult).toMatchObject({
+      status: "unsupported",
+      host: { compatibility: { runtime: { checks: { runtime: { ready: false, observed: "missing" } } } } },
+    });
+    expect(existsSync(join(missingRuntime.home, ".realtime-review-tool"))).toBe(false);
+
+    const missingEntrypoint = fixture();
+    const entrypointEnvironment = { ...process.env, REVIEW_INSTALL_ENTRYPOINT: join(missingEntrypoint.root, "missing-cli.js") };
+    const preview = invoke(
+      { operation: "install-preview", codexHome: missingEntrypoint.home, codexExecutable: missingEntrypoint.bin },
+      entrypointEnvironment,
+    );
+    expect(preview).toMatchObject({
+      status: "unsupported",
+      host: { compatibility: { runtime: { checks: { entrypoint: { ready: false, observed: "missing" } } } } },
+    });
+    const install = invoke(
+      { operation: "install", codexHome: missingEntrypoint.home, codexExecutable: missingEntrypoint.bin, proposalDigest: "0".repeat(64) },
+      entrypointEnvironment,
+    );
+    expect(install.status).toBe("unsupported");
+    expect(existsSync(join(missingEntrypoint.home, ".realtime-review-tool"))).toBe(false);
+    expect(existsSync(join(missingEntrypoint.home, "hooks.json"))).toBe(false);
   });
 
   it("uninstalls only owned state and preserves hooks, rules, grants, and preexisting feature settings", () => {
