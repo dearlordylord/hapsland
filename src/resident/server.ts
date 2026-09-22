@@ -331,6 +331,7 @@ export class ResidentServer {
   readonly #reuse: EvaluationReuse<UnitJob>;
   readonly #dispatcher: DispatchCycles<string, Job>;
   readonly #now: () => number;
+  readonly #maximumOperationalNoticeKeys: number;
   #server: Server | undefined;
   #connections = 0;
   #lifecycle: "active" | "retiring" | "closed" = "active";
@@ -358,10 +359,20 @@ export class ResidentServer {
       readonly afterRevalidationWorkspaceReserved?: (adviceId: string) => Promise<void>;
       readonly afterAdvicePending?: (adviceId: string) => Promise<void> | void;
       readonly beforeFinalRevalidate?: (adviceId: string) => Promise<void>;
+      readonly maximumOperationalNoticeKeys?: number;
     } = {},
   ) {
+    const maximumOperationalNoticeKeys = options.maximumOperationalNoticeKeys ?? MAX_OPERATIONAL_NOTICE_KEYS;
+    if (
+      !Number.isSafeInteger(maximumOperationalNoticeKeys) ||
+      maximumOperationalNoticeKeys < 1 ||
+      maximumOperationalNoticeKeys > MAX_OPERATIONAL_NOTICE_KEYS
+    ) {
+      throw new RangeError(`maximumOperationalNoticeKeys must be an integer from 1 to ${MAX_OPERATIONAL_NOTICE_KEYS}`);
+    }
     this.paths = paths;
     this.#now = now;
+    this.#maximumOperationalNoticeKeys = maximumOperationalNoticeKeys;
     this.#beforeRevalidate = options.beforeRevalidate;
     this.#afterPrepare = options.afterPrepare;
     this.#beforeEvaluate = options.beforeEvaluate;
@@ -849,7 +860,7 @@ export class ResidentServer {
       now,
       existingNextAllowedAt: retained?.nextAllowedAt,
       keyCount: this.#noticeCooldowns.size,
-      maximumKeys: MAX_OPERATIONAL_NOTICE_KEYS,
+      maximumKeys: this.#maximumOperationalNoticeKeys,
     });
     if (admission.action === "reject-full") return;
     if (retained !== undefined) {

@@ -89,9 +89,10 @@ const fillAndFinalizeCooldownTable = async (
   server: ResidentServer,
   observation: DirectObservation,
   context: ResidentDispatchContext,
+  maximumKeys = MAX_OPERATIONAL_NOTICE_KEYS,
 ) => {
   const scopes: Array<DirectObservation> = [];
-  for (let index = 0; index < MAX_OPERATIONAL_NOTICE_KEYS; index += 1) {
+  for (let index = 0; index < maximumKeys; index += 1) {
     const scoped = {
       ...observation,
       recipient: recipient({
@@ -105,15 +106,15 @@ const fillAndFinalizeCooldownTable = async (
     await server.whenIdle();
   }
   expect(server.accountingMetrics()).toMatchObject({
-    operationalNoticeKeys: MAX_OPERATIONAL_NOTICE_KEYS,
-    pendingOperationalNotices: MAX_OPERATIONAL_NOTICE_KEYS,
+    operationalNoticeKeys: maximumKeys,
+    pendingOperationalNotices: maximumKeys,
   });
   for (const scoped of scopes) {
     const notice = await collectAndFinalize(server, scoped, context);
     expect(notice.status).toBe("advice");
   }
   expect(server.accountingMetrics()).toMatchObject({
-    operationalNoticeKeys: MAX_OPERATIONAL_NOTICE_KEYS,
+    operationalNoticeKeys: maximumKeys,
     pendingOperationalNotices: 0,
   });
   return scopes;
@@ -210,9 +211,12 @@ describe("resident operational notices", () => {
     await installCapacityRule(root);
     const capacity = capacityDispatch(statePath);
     let now = 5_000;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => now);
+    const maximumKeys = 2;
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => now, {
+      maximumOperationalNoticeKeys: maximumKeys,
+    });
 
-    await fillAndFinalizeCooldownTable(server, observation, capacity);
+    await fillAndFinalizeCooldownTable(server, observation, capacity, maximumKeys);
 
     now += OPERATIONAL_NOTICE_COOLDOWN_MS;
     await installCapacityRule(root, 0.7, 32);
@@ -226,15 +230,17 @@ describe("resident operational notices", () => {
     const excludedServer = new ResidentServer(
       residentPaths(join(root, "runtime-excluded")),
       () => excludedNow,
+      { maximumOperationalNoticeKeys: maximumKeys },
     );
-    await fillAndFinalizeCooldownTable(excludedServer, observation, capacity);
+    await fillAndFinalizeCooldownTable(excludedServer, observation, capacity, maximumKeys);
     await put(root, ".env.local", "SECRET=not-read\n");
     const excluded = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, [".env.local"])));
     if (excluded === undefined) throw new Error("excluded fixture adaptation failed");
-    expect(excludedServer.admit(excluded, capacity).status).toBe("rejected-capacity");
+    expect(excludedServer.admit(excluded, capacity).status).toBe("accepted");
+    await excludedServer.whenIdle();
     expect(await excludedServer.collect(root, excluded.recipient, capacity)).toMatchObject({ status: "empty" });
     expect(excludedServer.accountingMetrics()).toMatchObject({
-      operationalNoticeKeys: MAX_OPERATIONAL_NOTICE_KEYS,
+      operationalNoticeKeys: maximumKeys,
       pendingOperationalNotices: 0,
     });
     excludedNow += OPERATIONAL_NOTICE_COOLDOWN_MS;
