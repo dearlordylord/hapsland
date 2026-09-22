@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import { ensureResident, residentRequest } from "../src/resident/client.ts";
 import { residentPaths } from "../src/resident/paths.ts";
 import { classifyHookOutput, classifyLiveOutcome } from "../src/conformance/live-evidence-outcome.ts";
+import { PaidExecutionNotAuthorized, assertPaidExecutionAuthorized, providerCallCountForEvidence } from "../src/conformance/live-runner-policy.ts";
 
 const root = resolve(new URL("../", import.meta.url).pathname);
 const primaryEnv = "/workspace/typescript/jev/.env";
@@ -66,7 +67,10 @@ const band = (milliseconds) => milliseconds < 1_000 ? "under-1s"
 // This declaration is printed before any credential lookup, consent mutation, or
 // provider-capable command. It is also retained verbatim in the sanitized record.
 process.stderr.write(`declared paid milestone: ${JSON.stringify(declaration)}\n`);
-if (!process.argv.includes("--execute-paid")) {
+try {
+  assertPaidExecutionAuthorized(process.argv);
+} catch (cause) {
+  if (!(cause instanceof PaidExecutionNotAuthorized)) throw cause;
   process.stderr.write("paid milestone not executed: pass --execute-paid after explicit authorization\n");
   process.exit(2);
 }
@@ -213,7 +217,7 @@ try {
       timingBand: elapsedMilliseconds === 0 ? "not-run" : band(elapsedMilliseconds),
     }],
     paidCapableExecutions: gaps.length === 0 && credential !== undefined ? 1 : 0,
-    providerCallCount: "unknown",
+    providerCallCount: providerCallCountForEvidence(contractOutcome !== "admission-failed"),
     automaticRetries: 0,
     retainedRawBackendMaterial: false,
     evidenceGaps: gaps,
