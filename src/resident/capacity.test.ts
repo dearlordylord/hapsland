@@ -67,6 +67,24 @@ describe("resident logical capacity ledger", () => {
     if (running !== undefined) expect(ledger.release(running)).toBe(false);
   });
 
+  it("resizes preparation workspace and atomically replaces it with exact units", () => {
+    const ledger = new CapacityLedger({
+      globalItems: 4,
+      globalBytes: 100,
+      partitionItems: 3,
+      partitionBytes: 80,
+    });
+    const workspace = ledger.reserve("one", 20);
+    expect(workspace).toBeDefined();
+    if (workspace === undefined) return;
+    expect(ledger.resize(workspace, 80)).toBe(true);
+    expect(ledger.resize(workspace, 81)).toBe(false);
+    const replacements = ledger.replace(workspace, [30, 30, 20, 1]);
+    expect(replacements.slice(0, 3).every((item) => item !== undefined)).toBe(true);
+    expect(replacements[3]).toBeUndefined();
+    expect(ledger.snapshot()).toMatchObject({ items: 3, bytes: 80 });
+  });
+
   it("rejects unknown, negative, and unsafe output reservations", () => {
     const ledger = new CapacityLedger();
     expect(ledger.reserve("partition", Number.NaN)).toBeUndefined();

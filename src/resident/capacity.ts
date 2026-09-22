@@ -76,6 +76,33 @@ export class CapacityLedger {
     return reservation;
   }
 
+  resize(reservation: CapacityReservation, bytes: number): boolean {
+    const retained = this.#reservations.get(reservation.id);
+    if (retained !== reservation || !Number.isSafeInteger(bytes) || bytes < 0) return false;
+    const delta = bytes - reservation.bytes;
+    const local = this.#partitions.get(reservation.partition);
+    if (local === undefined) return false;
+    if (
+      this.#bytes + delta > this.#limits.globalBytes ||
+      local.bytes + delta > this.#limits.partitionBytes
+    ) return false;
+    this.#bytes += delta;
+    this.#partitions.set(reservation.partition, { items: local.items, bytes: local.bytes + delta });
+    (reservation as { bytes: number }).bytes = bytes;
+    return true;
+  }
+
+  /** Atomically replace one workspace charge with independently retained items. */
+  replace(
+    reservation: CapacityReservation,
+    bytes: ReadonlyArray<number>,
+  ): ReadonlyArray<CapacityReservation | undefined> {
+    if (this.#reservations.get(reservation.id) !== reservation) return bytes.map(() => undefined);
+    const partition = reservation.partition;
+    this.release(reservation);
+    return bytes.map((size) => this.reserve(partition, size));
+  }
+
   release(reservation: CapacityReservation): boolean {
     const retained = this.#reservations.get(reservation.id);
     if (retained !== reservation) return false;

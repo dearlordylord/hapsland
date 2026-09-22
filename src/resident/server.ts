@@ -11,9 +11,12 @@ import {
   revalidateFindings,
   toCodexDirectEventOutput,
   type Finding,
+  type PreparedObservation,
 } from "../direct-event/pipeline.ts";
 import { verifyObservationRoot } from "../direct-event/adapter.ts";
 import type { PreparedUnit } from "../direct-event/model.ts";
+import { MAX_TYPE_DECLARATIONS } from "../direct-event/analyzer.ts";
+import { MAX_SOURCE_BYTES } from "../direct-event/capture.ts";
 import { liveLayer as jevDecisionModelLiveLayer } from "../jev-decision.ts";
 import { Consent } from "../runtime/consent.ts";
 import { loadReviewSettings } from "../runtime/review-config.ts";
@@ -36,12 +39,17 @@ import {
   type ResidentRequest,
   type ResidentResponse,
 } from "./protocol.ts";
-import { CapacityLedger, type CapacityReservation } from "./capacity.ts";
+import {
+  CapacityLedger,
+  type CapacityReservation,
+} from "./capacity.ts";
 import { DispatchCycles } from "./dispatch.ts";
 
 const BACKEND_CONCURRENCY = 2;
 const RESERVATION_OVERHEAD_BYTES = 1024;
 const MAX_PROBABILITY_ENCODING_BYTES = 24;
+/** Covers bounded dual capture buffers/text plus declaration-count preflight payload. */
+const CAPTURE_WORKSPACE_BYTES = 8 * MAX_SOURCE_BYTES;
 
 const ResidentControlledOptions = Schema.Struct({
   answers: Schema.optionalKey(Schema.Record(
@@ -120,6 +128,12 @@ const worstCaseFindings = (prepared: PreparedUnit): ReadonlyArray<Finding> =>
       }]
     : []);
 
+export const residentUnitWorstOutcomeBytes = (prepared: PreparedUnit): number => {
+  const findings = worstCaseFindings(prepared);
+  return logicalBytes({ findings, output: toCodexDirectEventOutput(findings) }) +
+    findings.length * MAX_PROBABILITY_ENCODING_BYTES;
+};
+
 const logicalBytes = (value: unknown): number =>
   Buffer.byteLength(canonicalValue(value), "utf8");
 
@@ -129,10 +143,8 @@ export const residentUnitReservationBytes = (
   dispatch: ResidentDispatchContext,
   prepared: PreparedUnit,
 ): number => {
-  const findings = worstCaseFindings(prepared);
-  const output = toCodexDirectEventOutput(findings);
   return logicalBytes({ observation, dispatch, prepared }) +
-    logicalBytes({ findings, output }) + findings.length * MAX_PROBABILITY_ENCODING_BYTES +
+    residentUnitWorstOutcomeBytes(prepared) +
     RESERVATION_OVERHEAD_BYTES;
 };
 
@@ -157,6 +169,8 @@ export class ResidentServer {
   #connections = 0;
   #closed = false;
   #rejectedCapacity = 0;
+  #peakLedgerBytes = 0;
+  #maxMaterializedPreparedUnits = 0;
   readonly #beforeRevalidate: ((adviceId: string) => Promise<void>) | undefined;
   readonly paths: ResidentPaths;
 
@@ -195,7 +209,7 @@ export class ResidentServer {
   admit(observation: DirectObservation, dispatch: ResidentDispatchContext): ResidentResponse {
     if (this.#closed) return { status: "rejected-capacity" };
     const partition = recipientPartition(observation.root, observation.recipient);
-    const reservation = this.#ledger.reserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES);
+    const reservation = this.#reserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES);
     if (reservation === undefined) {
       this.#rejectedCapacity += 1;
       return { status: "rejected-capacity" };
@@ -292,6 +306,24 @@ export class ResidentServer {
     }));
   }
 
+  accountingMetrics(): {
+    readonly peakLedgerBytes: number;
+    readonly maxMaterializedPreparedUnits: number;
+  } {
+    return {
+      peakLedgerBytes: this.#peakLedgerBytes,
+      maxMaterializedPreparedUnits: this.#maxMaterializedPreparedUnits,
+    };
+  }
+
+  #reserve(partition: string, bytes: number): CapacityReservation | undefined {
+    const reservation = this.#ledger.reserve(partition, bytes);
+    if (reservation !== undefined) {
+      this.#peakLedgerBytes = Math.max(this.#peakLedgerBytes, this.#ledger.snapshot().bytes);
+    }
+    return reservation;
+  }
+
   #removeAdvice(id: string, token?: string): boolean {
     const index = this.#advice.findIndex((item) =>
       item.id === id && (token === undefined || item.delivery?.token === token));
@@ -311,7 +343,7 @@ export class ResidentServer {
       await this.#awaitBackendGate();
       const userConfigPath = job.dispatch.userConfigPath ?? undefined;
       const controlled = decodeControlledOptions(job.dispatch.controlled);
-      const prepared = await Effect.runPromise(Effect.gen(function* () {
+      const settings = await Effect.runPromise(Effect.gen(function* () {
         const settings = yield* loadReviewSettings(
           job.observation.root,
           userConfigPath === undefined ? {} : { userConfigPath },
@@ -326,36 +358,80 @@ export class ResidentServer {
           settings.destination,
         ).pipe(Effect.catch(() => Effect.succeed({ status: "denied" as const })));
         if (authorization.status !== "approved" || !(yield* verifyObservationRoot(job.observation))) return undefined;
-        return yield* prepareObservation(job.observation, {
-          controlledWriter: true,
-          recipient: job.observation.recipient,
-          consent,
-          settings,
-        });
+        return settings;
       }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))));
       this.#ledger.release(job.reservation);
-      if (prepared === undefined || this.#closed) return;
-      for (const outcome of prepared.outcomes) {
-        if (outcome.status !== "ready") continue;
-        const reservation = this.#ledger.reserve(
-          job.partition,
-          residentUnitReservationBytes(job.observation, job.dispatch, outcome.prepared),
-        );
-        if (reservation === undefined) {
+      if (settings === undefined || this.#closed) return;
+
+      // A candidate path is captured and analyzed only while its maximum
+      // supported logical workspace is charged. Processing candidates one at
+      // a time prevents a 16-path event from materializing 1,024 complete
+      // inputs outside the ledger.
+      for (const candidate of job.observation.candidates) {
+        const workspace = this.#reserve(job.partition, CAPTURE_WORKSPACE_BYTES);
+        if (workspace === undefined) {
           this.#rejectedCapacity += 1;
           continue;
         }
-        const unit: UnitJob = {
-          kind: "unit",
-          observation: job.observation,
-          partition: job.partition,
-          reservation,
-          dispatch: job.dispatch,
-          prepared: outcome.prepared,
-        };
-        if (!this.#dispatcher.enqueue(job.partition, unit)) {
-          this.#ledger.release(reservation);
-          this.#rejectedCapacity += 1;
+        const pathObservation: DirectObservation = { ...job.observation, candidates: [candidate] };
+        const server = this;
+        let prepared: PreparedObservation;
+        try {
+          prepared = await Effect.runPromise(Effect.gen(function* () {
+            const consent = yield* Consent.Service;
+            return yield* prepareObservation(pathObservation, {
+              controlledWriter: true,
+              recipient: pathObservation.recipient,
+              consent,
+              settings,
+              beforeAnalyze: (_path, sourceBytes, declarations) => Effect.sync(() => {
+                const required = CAPTURE_WORKSPACE_BYTES +
+                  (declarations ?? MAX_TYPE_DECLARATIONS) * (sourceBytes + logicalBytes(settings.rules));
+                const resized = server.#ledger.resize(workspace, required);
+                if (resized) {
+                  server.#peakLedgerBytes = Math.max(server.#peakLedgerBytes, server.#ledger.snapshot().bytes);
+                } else {
+                  server.#rejectedCapacity += 1;
+                }
+                return resized;
+              }),
+            });
+          }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))));
+        } catch (cause) {
+          this.#ledger.release(workspace);
+          throw cause;
+        }
+        const ready = prepared.outcomes.filter((outcome) => outcome.status === "ready");
+        this.#maxMaterializedPreparedUnits = Math.max(this.#maxMaterializedPreparedUnits, ready.length);
+        const deliverable = ready.filter((outcome) => {
+          const accepted = residentUnitWorstOutcomeBytes(outcome.prepared) <= MAX_IPC_FRAME_BYTES - 1024;
+          if (!accepted) this.#rejectedCapacity += 1;
+          return accepted;
+        });
+        const reservations = this.#ledger.replace(
+          workspace,
+          deliverable.map((outcome) =>
+            residentUnitReservationBytes(pathObservation, job.dispatch, outcome.prepared)),
+        );
+        this.#peakLedgerBytes = Math.max(this.#peakLedgerBytes, this.#ledger.snapshot().bytes);
+        for (const [index, outcome] of deliverable.entries()) {
+          const reservation = reservations[index];
+          if (reservation === undefined) {
+            this.#rejectedCapacity += 1;
+            continue;
+          }
+          const unit: UnitJob = {
+            kind: "unit",
+            observation: pathObservation,
+            partition: job.partition,
+            reservation,
+            dispatch: job.dispatch,
+            prepared: outcome.prepared,
+          };
+          if (!this.#dispatcher.enqueue(job.partition, unit)) {
+            this.#ledger.release(reservation);
+            this.#rejectedCapacity += 1;
+          }
         }
       }
       return;
