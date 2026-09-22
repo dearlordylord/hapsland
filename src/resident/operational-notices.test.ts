@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
+import { symlink } from "node:fs/promises";
 import { join } from "node:path";
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import type { DirectObservation, DirectRecipient } from "../direct-event/model.ts";
@@ -13,6 +14,7 @@ import {
   ResidentServer,
 } from "./server.ts";
 import { residentPaths } from "./paths.ts";
+import { PENDING_ADVICE_EXPIRY_MS } from "./collection.ts";
 
 const enable = (root: string, statePath: string) => Effect.runPromise(Effect.gen(function* () {
   const consent = yield* Consent.Service;
@@ -45,6 +47,30 @@ const fixture = async () => {
   return { root, statePath, observation };
 };
 
+const installCapacityRule = async (root: string, threshold = 0.7, messageBytes = 300 * 1024) => {
+  await put(root, "rules.jsonc", JSON.stringify({
+    schemaVersion: 1,
+    id: "team",
+    contentVersion: "1",
+    rules: [{
+      id: "large",
+      question: "Does this declaration need review?",
+      criteria: { false: "No", true: "Yes" },
+      threshold,
+      message: "x".repeat(messageBytes),
+      applicability: { includes: ["**/*.ts"] },
+    }],
+  }));
+  await put(root, ".review.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
+};
+
+const capacityDispatch = (statePath: string): ResidentDispatchContext => dispatch(statePath, {
+  answers: {
+    ...answers,
+    "team/large": { _tag: "Probability", probability: 1 },
+  },
+});
+
 const collectAndFinalize = async (
   server: ResidentServer,
   observation: DirectObservation,
@@ -56,6 +82,39 @@ const collectAndFinalize = async (
     expect(server.finalize(response.token).status).toBe("finalized");
   }
   return response;
+};
+
+const fillAndFinalizeCooldownTable = async (
+  server: ResidentServer,
+  observation: DirectObservation,
+  context: ResidentDispatchContext,
+) => {
+  const scopes: Array<DirectObservation> = [];
+  for (let index = 0; index < MAX_OPERATIONAL_NOTICE_KEYS; index += 1) {
+    const scoped = {
+      ...observation,
+      recipient: recipient({
+        sessionId: `session-${index}`,
+        turnId: `turn-${index}`,
+        toolUseId: `tool-${index}`,
+      }),
+    };
+    scopes.push(scoped);
+    expect(server.admit(scoped, context).status).toBe("accepted");
+    await server.whenIdle();
+  }
+  expect(server.accountingMetrics()).toMatchObject({
+    operationalNoticeKeys: MAX_OPERATIONAL_NOTICE_KEYS,
+    pendingOperationalNotices: MAX_OPERATIONAL_NOTICE_KEYS,
+  });
+  for (const scoped of scopes) {
+    const notice = await collectAndFinalize(server, scoped, context);
+    expect(notice.status).toBe("advice");
+  }
+  expect(server.accountingMetrics()).toMatchObject({
+    operationalNoticeKeys: MAX_OPERATIONAL_NOTICE_KEYS,
+    pendingOperationalNotices: 0,
+  });
 };
 
 describe("resident operational notices", () => {
@@ -85,7 +144,7 @@ describe("resident operational notices", () => {
     const boundary = await collectAndFinalize(server, observation, failed);
     expect(boundary.status).toBe("advice");
     if (boundary.status === "advice") {
-      expect(boundary.output.hookSpecificOutput.additionalContext).toContain("1 similar failure was suppressed");
+      expect(boundary.output.hookSpecificOutput.additionalContext).toContain("Jev was unavailable");
     }
 
     now += OPERATIONAL_NOTICE_COOLDOWN_MS;
@@ -102,16 +161,17 @@ describe("resident operational notices", () => {
   it("keeps capacity/backend and recipient partitions independent and batches with fresh findings", async () => {
     const { root, statePath, observation } = await fixture();
     const failed = dispatch(statePath, { failure: "offline backend" });
-    const successful = dispatch(statePath, { answers });
-    const oversized = dispatch(statePath, { answers: { oversized: "x".repeat(2 * 1024 * 1024) } });
     const server = new ResidentServer(residentPaths(join(root, "runtime")), () => 1_000);
 
     expect(server.admit(observation, failed).status).toBe("accepted");
     await server.whenIdle();
-    expect(server.admit(observation, oversized).status).toBe("rejected-capacity");
-    expect(server.admit(observation, successful).status).toBe("accepted");
+    await installCapacityRule(root);
+    expect(server.admit(observation, capacityDispatch(statePath)).status).toBe("accepted");
     await server.whenIdle();
-    const combined = await server.collect(root, observation.recipient, successful);
+    await installCapacityRule(root, 0.7, 32);
+    expect(server.admit(observation, capacityDispatch(statePath)).status).toBe("accepted");
+    await server.whenIdle();
+    const combined = await server.collect(root, observation.recipient, capacityDispatch(statePath));
     expect(combined.status).toBe("advice");
     if (combined.status === "advice") {
       const text = combined.output.hookSpecificOutput.additionalContext;
@@ -143,52 +203,101 @@ describe("resident operational notices", () => {
     await server.close();
   });
 
-  it("bounds cooldown retention without evicting an active suppression key", async () => {
+  it("reclaims a full cooldown table at equality before the next admission", async () => {
     const { root, statePath, observation } = await fixture();
-    const oversized = dispatch(statePath, { answers: { oversized: "x".repeat(2 * 1024 * 1024) } });
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => 5_000);
+    await installCapacityRule(root);
+    const capacity = capacityDispatch(statePath);
+    let now = 5_000;
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => now);
 
-    for (let index = 0; index <= MAX_OPERATIONAL_NOTICE_KEYS; index += 1) {
-      const scoped = {
-        ...observation,
-        recipient: recipient({
-          sessionId: `session-${index}`,
-          turnId: `turn-${index}`,
-          toolUseId: `tool-${index}`,
-        }),
-      };
-      expect(server.admit(scoped, oversized).status).toBe("rejected-capacity");
-    }
-    expect(server.accountingMetrics()).toMatchObject({
+    await fillAndFinalizeCooldownTable(server, observation, capacity);
+
+    now += OPERATIONAL_NOTICE_COOLDOWN_MS;
+    await installCapacityRule(root, 0.7, 32);
+    expect(server.admit(observation, capacityDispatch(statePath)).status).toBe("accepted");
+    expect(server.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 0 });
+    await server.whenIdle();
+    await server.close();
+
+    await installCapacityRule(root);
+    let excludedNow = 50_000;
+    const excludedServer = new ResidentServer(
+      residentPaths(join(root, "runtime-excluded")),
+      () => excludedNow,
+    );
+    await fillAndFinalizeCooldownTable(excludedServer, observation, capacity);
+    await put(root, ".env.local", "SECRET=not-read\n");
+    const excluded = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, [".env.local"])));
+    if (excluded === undefined) throw new Error("excluded fixture adaptation failed");
+    expect(excludedServer.admit(excluded, capacity).status).toBe("rejected-capacity");
+    expect(await excludedServer.collect(root, excluded.recipient, capacity)).toMatchObject({ status: "empty" });
+    expect(excludedServer.accountingMetrics()).toMatchObject({
       operationalNoticeKeys: MAX_OPERATIONAL_NOTICE_KEYS,
-      pendingOperationalNotices: MAX_OPERATIONAL_NOTICE_KEYS,
+      pendingOperationalNotices: 0,
     });
-    const firstRecipient = recipient({ sessionId: "session-0", turnId: "again", toolUseId: "again" });
-    expect(server.admit({ ...observation, recipient: firstRecipient }, oversized).status).toBe("rejected-capacity");
-    expect(server.accountingMetrics()).toMatchObject({
-      operationalNoticeKeys: MAX_OPERATIONAL_NOTICE_KEYS,
-      pendingOperationalNotices: MAX_OPERATIONAL_NOTICE_KEYS,
-    });
-    expect(server.stats().rejectedCapacity).toBe(MAX_OPERATIONAL_NOTICE_KEYS + 2);
-    expect((await server.collect(root, firstRecipient, oversized)).status).toBe("advice");
+    excludedNow += OPERATIONAL_NOTICE_COOLDOWN_MS;
+    expect(excludedServer.admit(excluded, capacity).status).toBe("accepted");
+    await excludedServer.whenIdle();
+    expect(await excludedServer.collect(root, excluded.recipient, capacity)).toMatchObject({ status: "empty" });
+    expect(excludedServer.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 0 });
+    await excludedServer.close();
+  });
+
+  it("reclaims pending notice state at the exact expiry boundary", async () => {
+    const { root, statePath, observation } = await fixture();
+    const failed = dispatch(statePath, { failure: "offline backend" });
+    let now = 20;
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => now);
+    expect(server.admit(observation, failed).status).toBe("accepted");
+    await server.whenIdle();
+    expect(server.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 1, pendingOperationalNotices: 1 });
+
+    now += PENDING_ADVICE_EXPIRY_MS;
+    expect(server.admit(observation, dispatch(statePath, { answers })).status).toBe("accepted");
+    expect(server.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 0, pendingOperationalNotices: 0 });
+    await server.whenIdle();
     await server.close();
   });
 
   it("does not address unknown recipients or quiet applicability outcomes", async () => {
     const { root, statePath, observation } = await fixture();
-    const oversized = dispatch(statePath, { answers: { oversized: "x".repeat(2 * 1024 * 1024) } });
     const server = new ResidentServer(residentPaths(join(root, "runtime")), () => 10);
+    const oversized = dispatch(statePath, { answers: { oversized: "x".repeat(2 * 1024 * 1024) } });
     const unknown = { ...observation, recipient: { ...observation.recipient, sessionId: "" } };
     expect(server.admit(unknown, oversized).status).toBe("rejected-capacity");
     expect(server.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 0 });
 
+    await installCapacityRule(root);
+    await put(root, ".env.local", "SECRET=not-read\n");
+    await put(root, "node_modules/dependency.ts", "type Dependency = number\n");
+    await put(root, ".gitignore", "ignored.ts\n");
+    await put(root, "ignored.ts", "type Ignored = number\n");
     await put(root, "unrelated.js", "export const value = 1\n");
-    const unsupported = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["unrelated.js"])));
+    await put(root, "bad.ts", "type = ;\n");
+    await put(root, "real/type.ts", "type Linked = number\n");
+    await symlink("real", join(root, "link"));
+    await put(root, "../outside.ts", "type Outside = number\n");
+    const unsupported = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, [
+      ".env.local",
+      "node_modules/dependency.ts",
+      ".git/config",
+      "ignored.ts",
+      "../outside.ts",
+      "link/type.ts",
+      "unrelated.js",
+      "bad.ts",
+    ])));
     if (unsupported === undefined) throw new Error("unsupported fixture adaptation failed");
-    const successful = dispatch(statePath, { answers });
-    expect(server.admit(unsupported, successful).status).toBe("accepted");
+    const capacity = capacityDispatch(statePath);
+    expect(server.admit(unsupported, capacity).status).toBe("accepted");
     await server.whenIdle();
-    expect(await server.collect(root, unsupported.recipient, successful)).toMatchObject({ status: "empty" });
+    const unsupportedOperation = {
+      ...observation,
+      candidates: [{ operation: "delete" as const, path: "type.ts", addedLines: [] as const }],
+    };
+    expect(server.admit(unsupportedOperation, capacity).status).toBe("accepted");
+    await server.whenIdle();
+    expect(await server.collect(root, unsupported.recipient, capacity)).toMatchObject({ status: "empty" });
     expect(server.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 0 });
     await server.close();
   });
