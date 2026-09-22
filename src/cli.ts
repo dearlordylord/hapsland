@@ -1369,9 +1369,12 @@ const runCredentialCommand = async (): Promise<Readonly<Record<string, unknown>>
       previousCredentialPreserved: result.status !== "stored" && result.status !== "indeterminate",
       replacementOutcome: result.status === "indeterminate" ? "indeterminate" : result.status,
       savedCredentialUse: result.state.savedUseSuspended ? "suspended" : "active",
+      stateLock: result.stateLock,
       ...(result.status === "indeterminate"
         ? { action: "credential replacement may have committed; retry login or logout before review" }
-        : {}),
+        : result.status === "busy"
+          ? { action: "another credential change is still running; retry" }
+          : {}),
       generation: result.state.generation,
     };
   }
@@ -1390,13 +1393,17 @@ const runCredentialCommand = async (): Promise<Readonly<Record<string, unknown>>
   return {
     version: 1,
     operation: "logout",
-    status: result.status === "deleted" || result.status === "missing"
+    status: result.status === "busy"
+      ? "busy"
+      : result.status === "deleted" || result.status === "missing"
       ? "logged-out"
       : "deletion-failed",
+    stateLock: result.stateLock,
     savedCredentialUse: result.state.savedUseSuspended ? "suspended" : "absent",
     generation: result.state.generation,
     grantsPreserved: true,
     sentRequestsRecalled: false,
+    ...(result.status === "busy" ? { action: "another credential change is still running; retry" } : {}),
     environmentOverride: {
       envVar: environmentName,
       active: environmentActive,
@@ -1426,6 +1433,7 @@ if (!isCodexHook && typeof output === "object" && output !== null) {
             record.status === "unavailable" ||
             record.status === "timed-out" ||
             record.status === "indeterminate" ||
+            record.status === "busy" ||
             record.status === "cancelled" ||
             record.status === "invalid" ||
             record.status === "incomplete" ||

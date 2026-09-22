@@ -1,4 +1,4 @@
-import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
@@ -40,6 +40,7 @@ else if (operation === "get") {
   else { const value = readFileSync(vault); console.log(JSON.stringify({version:1,status:"present",length:value.length})); process.stdout.write(value); }
 } else if (operation === "set") {
   const chunks = []; for await (const chunk of process.stdin) chunks.push(chunk);
+  if (mode === "hold-set") { writeFileSync(process.env.TEST_SECRET_READY, "ready"); await new Promise(() => setInterval(() => {}, 1000)); }
   if (mode === "fail-set") { console.log('{"version":1,"status":"unavailable"}'); process.exit(2); }
   writeFileSync(vault, Buffer.concat(chunks), { mode: 0o600 });
   if (mode === "fail-after-create") { console.log('{"version":1,"status":"indeterminate"}'); process.exit(2); }
@@ -193,6 +194,63 @@ int main(void) {
     expect(failed.status).toBe("unavailable");
     expect(failed.state.generation).toBe(initial.state.generation + 1);
     expect(readFileSync(vault, "utf8")).toBe("old-marker");
+  });
+
+  it.skipIf(process.platform === "win32")("does not steal a live lock and reclaims it after its owner is killed", async () => {
+    const ready = join(root, "held-set-ready");
+    const moduleUrl = new URL("./secret-service.ts", import.meta.url).href;
+    const child = spawn(process.execPath, ["--input-type=module", "-e", `
+      const { saveCredential } = await import(${JSON.stringify(moduleUrl)});
+      await saveCredential("killed-owner-marker", ${JSON.stringify(lifecycle)});
+    `], {
+      detached: true,
+      stdio: "ignore",
+      env: { ...process.env, TEST_SECRET_MODE: "hold-set", TEST_SECRET_READY: ready },
+    });
+    const childExit = new Promise<void>((resolveExit) => child.once("exit", () => resolveExit()));
+    const deadline = Date.now() + 3_000;
+    while (!existsSync(ready) && Date.now() < deadline) {
+      await new Promise((resolveWait) => setTimeout(resolveWait, 10));
+    }
+    expect(existsSync(ready)).toBe(true);
+    expect(existsSync(`${lifecycle}.lock/owner.json`)).toBe(true);
+
+    const busy = await saveCredential("contending-marker", lifecycle);
+    expect(busy).toMatchObject({ status: "busy", stateLock: "busy" });
+    expect(child.pid).toBeTypeOf("number");
+    process.kill(-(child.pid as number), "SIGKILL");
+    await childExit;
+
+    const restarted = await saveCredential("restart-marker", lifecycle);
+    expect(restarted).toMatchObject({ status: "stored", stateLock: "recovered" });
+    expect(readFileSync(vault, "utf8")).toBe("restart-marker");
+    expect(existsSync(`${lifecycle}.lock`)).toBe(false);
+  }, 10_000);
+
+  it("reclaims an ownerless lock left by a crashed previous release after its safety window", async () => {
+    const legacyLock = `${lifecycle}.lock`;
+    mkdirSync(legacyLock, { mode: 0o700 });
+    const safelyStale = new Date(Date.now() - 31_000);
+    utimesSync(legacyLock, safelyStale, safelyStale);
+
+    const result = await saveCredential("legacy-recovery-marker", lifecycle);
+    expect(result).toMatchObject({ status: "stored", stateLock: "recovered" });
+    expect(readFileSync(vault, "utf8")).toBe("legacy-recovery-marker");
+  });
+
+  it("returns structured unavailable results when lock storage cannot be created", async () => {
+    const blockedParent = join(root, "not-a-directory");
+    const blockedState = join(blockedParent, "state.json");
+    writeFileSync(blockedParent, "blocked");
+
+    await expect(saveCredential("unwritten-marker", blockedState)).resolves.toMatchObject({
+      status: "unavailable",
+      stateLock: "unavailable",
+    });
+    await expect(logoutCredential(blockedState)).resolves.toMatchObject({
+      status: "unavailable",
+      stateLock: "unavailable",
+    });
   });
 
   it("invalidates old generations after replacement", async () => {

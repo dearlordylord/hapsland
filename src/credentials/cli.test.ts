@@ -1,5 +1,5 @@
-import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
@@ -50,6 +50,46 @@ else if (operation === "delete") { const found=existsSync(vault); rmSync(vault,{
       environmentOverride: { envVar: "ALT_KEY", active: true },
     });
     expect(`${logout.stdout}${logout.stderr}`).not.toContain("surviving-environment-marker");
+  });
+
+  it("returns a versioned busy result while a live process owns the credential lock", () => {
+    const root = mkdtempSync(join(tmpdir(), "credential-cli-busy-"));
+    const helper = join(root, "helper.mjs");
+    const state = join(root, "state.json");
+    const marker = "busy-cli-secret-marker";
+    const entrypoint = join(process.cwd(), "src", "cli.ts");
+    writeFileSync(helper, `#!/usr/bin/env node
+if (process.argv[2] === "probe") console.log('{"version":1,"status":"available"}');
+`);
+    chmodSync(helper, 0o700);
+    mkdirSync(`${state}.lock`, { mode: 0o700 });
+    writeFileSync(join(`${state}.lock`, "owner.json"), JSON.stringify({
+      version: 1,
+      pid: process.pid,
+      host: hostname(),
+      token: "live-test-owner",
+      createdAt: Date.now(),
+    }), { mode: 0o600 });
+    const child = spawnSync(process.execPath, [entrypoint, "--login", "--credential-stdin"], {
+      cwd: root,
+      env: {
+        ...process.env,
+        REVIEW_CREDENTIAL_HELPER: helper,
+        REVIEW_CREDENTIAL_STATE_PATH: state,
+      },
+      input: `${marker}\n`,
+      encoding: "utf8",
+    });
+    expect(child.status).toBe(6);
+    expect(JSON.parse(child.stdout)).toMatchObject({
+      version: 1,
+      operation: "login",
+      status: "busy",
+      stored: false,
+      stateLock: "busy",
+      action: expect.stringContaining("retry"),
+    });
+    expect(`${child.stdout}${child.stderr}`).not.toContain(marker);
   });
 
   it.skipIf(process.platform !== "linux")("restores the exact terminal mode after SIGINT during masked input", async () => {

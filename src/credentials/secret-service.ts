@@ -6,9 +6,10 @@ import {
   readFileSync,
   renameSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, hostname } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -40,6 +41,14 @@ export type CredentialState = {
   readonly version: 1;
   readonly generation: number;
   readonly savedUseSuspended: boolean;
+};
+
+export type CredentialStateLockStatus = "acquired" | "recovered" | "busy" | "unavailable";
+
+export type CredentialLifecycleResult = {
+  readonly status: SecretServiceStatus | "busy";
+  readonly state: CredentialState;
+  readonly stateLock: CredentialStateLockStatus;
 };
 
 const initialState: CredentialState = {
@@ -88,23 +97,140 @@ const writeCredentialState = (statePath: string, state: CredentialState): void =
   renameSync(temporary, statePath);
 };
 
-const withStateLock = async <A>(statePath: string, operation: () => Promise<A>): Promise<A> => {
+type StateLockOwner = {
+  readonly version: 1;
+  readonly pid: number;
+  readonly host: string;
+  readonly token: string;
+  readonly createdAt: number;
+};
+
+const STATE_LOCK_WAIT_MS = 1_000;
+// An ownerless directory can come from the previous release, whose native
+// mutation deadline was 15 seconds. Do not reclaim it while that process could
+// still be live; a crashed legacy lock becomes recoverable after this bound.
+const OWNERLESS_LOCK_GRACE_MS = 30_000;
+
+const systemErrorCode = (cause: unknown): string | undefined =>
+  typeof cause === "object" && cause !== null && "code" in cause && typeof cause.code === "string"
+    ? cause.code
+    : undefined;
+
+const readStateLockOwner = (lock: string): StateLockOwner | undefined => {
+  try {
+    const value = JSON.parse(readFileSync(join(lock, "owner.json"), "utf8")) as unknown;
+    if (
+      typeof value === "object" && value !== null &&
+      "version" in value && value.version === 1 &&
+      "pid" in value && typeof value.pid === "number" && Number.isSafeInteger(value.pid) && value.pid > 0 &&
+      "host" in value && typeof value.host === "string" && value.host.length > 0 &&
+      "token" in value && typeof value.token === "string" && value.token.length > 0 &&
+      "createdAt" in value && typeof value.createdAt === "number" && Number.isFinite(value.createdAt)
+    ) return value as StateLockOwner;
+  } catch { /* A creator can be between mkdir and publishing its owner record. */ }
+  return undefined;
+};
+
+const processIsAlive = (pid: number): boolean => {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (cause) {
+    return systemErrorCode(cause) !== "ESRCH";
+  }
+};
+
+const recoverStaleStateLock = (lock: string): boolean => {
+  const owner = readStateLockOwner(lock);
+  if (owner !== undefined) {
+    // User state is local. An owner from another host cannot be proven dead, so
+    // preserve it rather than risk overlapping credential mutations.
+    if (owner.host !== hostname() || processIsAlive(owner.pid)) return false;
+  } else {
+    try {
+      if (Date.now() - statSync(lock).mtimeMs < OWNERLESS_LOCK_GRACE_MS) return false;
+    } catch {
+      return false;
+    }
+  }
+  const reclaimed = `${lock}.reclaimed.${process.pid}.${randomUUID()}`;
+  try {
+    renameSync(lock, reclaimed);
+  } catch {
+    return false;
+  }
+  try {
+    rmSync(reclaimed, { recursive: true, force: true });
+  } catch { /* The renamed lock no longer blocks lifecycle progress. */ }
+  return true;
+};
+
+const withStateLock = async (
+  statePath: string,
+  unexpectedStatus: "indeterminate" | "unavailable",
+  operation: () => Promise<Omit<CredentialLifecycleResult, "stateLock">>,
+): Promise<CredentialLifecycleResult> => {
   const lock = `${statePath}.lock`;
-  mkdirSync(dirname(statePath), { recursive: true, mode: 0o700 });
+  const owner: StateLockOwner = {
+    version: 1,
+    pid: process.pid,
+    host: hostname(),
+    token: randomUUID(),
+    createdAt: Date.now(),
+  };
+  try {
+    mkdirSync(dirname(statePath), { recursive: true, mode: 0o700 });
+  } catch {
+    return { status: "unavailable", state: readCredentialState(statePath), stateLock: "unavailable" };
+  }
   const started = Date.now();
+  let recovered = false;
   for (;;) {
     try {
       mkdirSync(lock, { mode: 0o700 });
+    } catch (cause) {
+      if (systemErrorCode(cause) !== "EEXIST") {
+        return { status: "unavailable", state: readCredentialState(statePath), stateLock: "unavailable" };
+      }
+      if (recoverStaleStateLock(lock)) {
+        recovered = true;
+        continue;
+      }
+      if (Date.now() - started >= STATE_LOCK_WAIT_MS) {
+        return { status: "busy", state: readCredentialState(statePath), stateLock: "busy" };
+      }
+      await new Promise((resolveWait) => setTimeout(resolveWait, 10));
+      continue;
+    }
+    try {
+      writeFileSync(join(lock, "owner.json"), `${JSON.stringify(owner)}\n`, { mode: 0o600, flag: "wx" });
       break;
     } catch {
-      if (Date.now() - started >= 1_000) throw new Error("credential lifecycle is busy; retry");
-      await new Promise((resolveWait) => setTimeout(resolveWait, 10));
+      // We created this previously nonexistent directory and have not exposed a
+      // valid owner, so it cannot be a successfully acquired competing lock.
+      try {
+        rmSync(lock, { recursive: true, force: true });
+      } catch { /* It remains an ownerless lock with bounded legacy recovery. */ }
+      return { status: "unavailable", state: readCredentialState(statePath), stateLock: "unavailable" };
     }
   }
   try {
-    return await operation();
+    const result = await operation();
+    return { ...result, stateLock: recovered ? "recovered" : "acquired" };
+  } catch {
+    return {
+      status: unexpectedStatus,
+      state: readCredentialState(statePath),
+      stateLock: recovered ? "recovered" : "acquired",
+    };
   } finally {
-    rmSync(lock, { recursive: true, force: true });
+    // A stale owner may have been atomically moved aside. Never remove a lock
+    // subsequently acquired by another process.
+    if (readStateLockOwner(lock)?.token === owner.token) {
+      try {
+        rmSync(lock, { recursive: true, force: true });
+      } catch { /* A later invocation can reclaim this owner after process exit. */ }
+    }
   }
 };
 
@@ -249,7 +375,7 @@ export const resolveCredential = async (options: {
 export const saveCredential = async (
   value: string,
   statePath = process.env.REVIEW_CREDENTIAL_STATE_PATH ?? DEFAULT_CREDENTIAL_STATE_PATH,
-) => withStateLock(statePath, async () => {
+) => withStateLock(statePath, "indeterminate", async () => {
   if (value.length === 0 || Buffer.byteLength(value, "utf8") > 32_768) {
     return { status: "invalid" as const, state: readCredentialState(statePath) };
   }
@@ -284,7 +410,7 @@ export const saveCredential = async (
 
 export const logoutCredential = async (
   statePath = process.env.REVIEW_CREDENTIAL_STATE_PATH ?? DEFAULT_CREDENTIAL_STATE_PATH,
-) => withStateLock(statePath, async () => {
+) => withStateLock(statePath, "indeterminate", async () => {
   const previous = readCredentialState(statePath);
   const pending = {
     version: 1 as const,
