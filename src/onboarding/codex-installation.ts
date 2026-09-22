@@ -922,7 +922,11 @@ export const previewCodexInstallation = (request: InstallationRequest): Installa
       pending: ["install using this proposal digest", "enable each repository separately"],
     };
   } catch (cause) {
-    return conflictResult("install-preview", cause instanceof Error ? cause.message : "installation preview failed", home);
+    const inputs = resolveInputs(request);
+    return {
+      ...conflictResult("install-preview", cause instanceof Error ? cause.message : "installation preview failed", home),
+      host: { adapter: "codex", home, compatibility: compatibility(inputs) },
+    };
   }
 };
 

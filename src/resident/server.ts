@@ -61,6 +61,7 @@ import {
 import { EvaluationReuse, residentEvaluationIdentity } from "./evaluation-reuse.ts";
 import { operationalNoticeAdmission } from "./operational-notice-policy.ts";
 import { readCredentialState, resolveCredential } from "../credentials/secret-service.ts";
+import { recordActivity } from "../activity/status.ts";
 
 const BACKEND_CONCURRENCY = 2;
 const RESERVATION_OVERHEAD_BYTES = 1024;
@@ -473,6 +474,7 @@ export class ResidentServer {
     const reservation = this.#reserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES);
     if (reservation === undefined) {
       this.#rejectedCapacity += 1;
+      recordActivity({ statePath: dispatch.activityPath, root: observation.root, recipient: observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
       return { status: "rejected-capacity" };
     }
     const job = {
@@ -485,10 +487,12 @@ export class ResidentServer {
     if (!this.#dispatcher.enqueue(partition, job)) {
       this.#ledger.release(reservation);
       this.#rejectedCapacity += 1;
+      recordActivity({ statePath: dispatch.activityPath, root: observation.root, recipient: observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
       return { status: "rejected-capacity" };
     }
     const acceptedPath = process.env.REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH;
     if (acceptedPath !== undefined) void writeFile(acceptedPath, "accepted\n").catch(() => undefined);
+    recordActivity({ statePath: dispatch.activityPath, root: observation.root, recipient: observation.recipient, lifetime: this.lifetime, stage: "pending" });
     return { status: "accepted" };
   }
 
@@ -643,6 +647,7 @@ export class ResidentServer {
     return {
       status: "advice",
       token,
+      findingCount: handoffFindings.length,
       output: combinedReviewOutput(handoffFindings, notices.map((notice) => notice.value)),
     };
   }
@@ -1017,6 +1022,7 @@ export class ResidentServer {
   }
 
   async #prepare(job: IngressJob, cycle: number, sequence: number): Promise<void> {
+    let expectedActivityUnits = 0;
     try {
       await this.#awaitBackendGate();
       const userConfigPath = job.dispatch.userConfigPath ?? undefined;
@@ -1044,7 +1050,10 @@ export class ResidentServer {
         return settings;
       }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))));
       this.#ledger.release(job.reservation);
-      if (settings === undefined || this.#lifecycle !== "active") return;
+      if (settings === undefined || this.#lifecycle !== "active") {
+        recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
+        return;
+      }
 
       // A candidate path is captured and analyzed only while its maximum
       // supported logical workspace is charged. Processing candidates one at
@@ -1054,6 +1063,7 @@ export class ResidentServer {
         const workspace = this.#reserve(job.partition, captureWorkspaceBytes(candidate.path));
         if (workspace === undefined) {
           this.#rejectedCapacity += 1;
+          recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
           continue;
         }
         const pathObservation: DirectObservation = { ...job.observation, candidates: [candidate] };
@@ -1084,6 +1094,15 @@ export class ResidentServer {
           throw cause;
         }
         const ready = prepared.outcomes.filter((outcome) => outcome.status === "ready");
+        if (ready.length === 0) {
+          recordActivity({
+            statePath: job.dispatch.activityPath,
+            root: job.observation.root,
+            recipient: job.observation.recipient,
+            lifetime: this.lifetime,
+            stage: prepared.observation.status === "incomplete" ? "incomplete" : "skipped",
+          });
+        }
         this.#maxMaterializedPreparedUnits = Math.max(this.#maxMaterializedPreparedUnits, ready.length);
         let rejectedDeliverable = false;
         const deliverable = ready.filter((outcome) => {
@@ -1123,11 +1142,18 @@ export class ResidentServer {
         this.#peakLedgerBytes = Math.max(this.#peakLedgerBytes, this.#ledger.snapshot().bytes);
         // Workspace has been released and all accepted unit reservations are
         // fixed, so best-effort notice retention cannot displace fresh work.
-        if (rejectedDeliverable) this.#recordOperationalFailure(job.observation, "capacity");
+        if (rejectedDeliverable) {
+          this.#recordOperationalFailure(job.observation, "capacity");
+          recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
+        }
         for (const item of planned) {
           if (item.kind === "cached" && item.cached.evaluation.findings.length === 0) {
             const revision = this.#registerCurrentWork(job.partition, item.outcome.prepared);
             this.#releaseCurrentWork(revision);
+            expectedActivityUnits += 1;
+            recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "clear", completedUnits: 1 });
+          } else if (item.kind === "joined") {
+            recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
           }
         }
         for (const [index, item] of retained.entries()) {
@@ -1136,8 +1162,10 @@ export class ResidentServer {
             if (item.kind === "owner") this.#reuse.releaseClaim(item.evaluationKey);
             this.#rejectedCapacity += 1;
             this.#recordOperationalFailure(job.observation, "capacity");
+            recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
             continue;
           }
+          expectedActivityUnits += 1;
           const revision = this.#registerCurrentWork(job.partition, item.outcome.prepared);
           const unit: UnitJob = {
             kind: "unit",
@@ -1150,6 +1178,15 @@ export class ResidentServer {
             evaluationKey: item.evaluationKey,
           };
           if (item.kind === "cached") {
+            recordActivity({
+              statePath: job.dispatch.activityPath,
+              root: job.observation.root,
+              recipient: job.observation.recipient,
+              lifetime: this.lifetime,
+              stage: "findings",
+              findings: item.cached.evaluation.findings.length,
+              completedUnits: 1,
+            });
             await this.#retainAdvice(unit, {
               prepared: item.outcome.prepared,
               findings: item.cached.evaluation.findings,
@@ -1162,14 +1199,26 @@ export class ResidentServer {
             this.#releaseUnit(unit);
             this.#rejectedCapacity += 1;
             this.#recordOperationalFailure(job.observation, "capacity");
+            recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", completedUnits: 1 });
           }
         }
+      }
+      if (expectedActivityUnits > 0) {
+        recordActivity({
+          statePath: job.dispatch.activityPath,
+          root: job.observation.root,
+          recipient: job.observation.recipient,
+          lifetime: this.lifetime,
+          stage: "pending",
+          expectedUnits: expectedActivityUnits,
+        });
       }
       await this.#afterPrepare?.();
       return;
     } catch (cause) {
       if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error(cause);
       this.#ledger.release(job.reservation);
+      recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
     }
   }
 
@@ -1177,6 +1226,7 @@ export class ResidentServer {
     try {
       await this.#awaitBackendGate();
       if (!this.#isCurrentWork(job.revision, job.prepared)) {
+        recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "incomplete", completedUnits: 1 });
         this.#reuse.releaseClaim(job.evaluationKey);
         this.#releaseUnit(job);
         return;
@@ -1256,6 +1306,15 @@ export class ResidentServer {
         const evaluation = { prepared: job.prepared, findings: result.findings };
         this.#reuse.put(job.partition, job.evaluationKey, evaluation);
         this.#reuse.releaseClaim(job.evaluationKey);
+        recordActivity({
+          statePath: job.dispatch.activityPath,
+          root: job.observation.root,
+          recipient: job.observation.recipient,
+          lifetime: this.lifetime,
+          stage: result.findings.length === 0 ? "clear" : "findings",
+          findings: result.findings.length,
+          completedUnits: 1,
+        });
         if (controlled?.outcomePath !== undefined) {
           const { sessionId, turnId, toolUseId, agentId } = job.observation.recipient;
           await appendFile(controlled.outcomePath, `${JSON.stringify({
@@ -1278,9 +1337,13 @@ export class ResidentServer {
       }
       if (result?.status === "backend" || result?.status === "timeout") {
         this.#recordOperationalFailure(job.observation, "backend");
+        recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", completedUnits: 1 });
+      } else if (result === undefined) {
+        recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", completedUnits: 1 });
       }
     } catch (cause) {
       if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error(cause);
+      recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", completedUnits: 1 });
     }
     this.#reuse.releaseClaim(job.evaluationKey);
     this.#releaseUnit(job);
@@ -1468,6 +1531,7 @@ export class ResidentServer {
       : {
           status: "advice",
           token: response.token,
+          findingCount: findings.length,
           output: combinedReviewOutput(findings, notices.map((notice) => notice.value)),
         };
   }

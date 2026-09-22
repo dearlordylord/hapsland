@@ -214,9 +214,28 @@ export const ensureResident = async (
   throw new ResidentIpcError(`resident did not become ready within 10 seconds${detail}`);
 };
 
+/** Read-only bounded probe. Unlike ensureResident, this never launches or repairs a resident. */
+export const inspectResident = async (
+  paths = residentPaths(),
+): Promise<{ readonly available: boolean; readonly lifetime?: string; readonly pid?: number }> => {
+  try {
+    const response = await residentRequest(
+      paths,
+      { version: 1, operation: "hello" },
+      Math.min(250, CLIENT_REQUEST_DEADLINE_MS),
+    );
+    return response.status === "ready"
+      ? { available: true, lifetime: response.lifetime, pid: response.pid }
+      : { available: false };
+  } catch {
+    return { available: false };
+  }
+};
+
 export const makeResidentDispatchContext = async (
   root: string,
   statePath: string,
+  activityPath: string,
   userConfigPath: string | undefined,
   controlledOptions: ControlledDecisionModelOptions | undefined,
 ): Promise<ResidentDispatchContext> => {
@@ -238,6 +257,7 @@ export const makeResidentDispatchContext = async (
   const environmentOnly = settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in";
   return {
     statePath: resolve(statePath),
+    activityPath: resolve(activityPath),
     userConfigPath: userConfigPath === undefined ? null : resolve(userConfigPath),
     credential: controlled !== null && controlled.requireCredential !== true ? null : {
       name: settings.credentialEnvVar,
@@ -255,6 +275,10 @@ export type CollectedAdvice = {
   readonly token: string;
   readonly lifetime: string;
   readonly paths: ResidentPaths;
+  readonly root: string;
+  readonly recipient: DirectRecipient;
+  readonly activityPath: string | undefined;
+  readonly findingCount: number;
 };
 
 export const admitObservation = async (
@@ -293,7 +317,16 @@ export const collectReady = async (
     mode,
   });
   return response.status === "advice"
-    ? { output: response.output, token: response.token, lifetime: owner.lifetime, paths }
+    ? {
+        output: response.output,
+        token: response.token,
+        lifetime: owner.lifetime,
+        paths,
+        root,
+        recipient,
+        activityPath: dispatch.activityPath,
+        findingCount: response.findingCount,
+      }
     : undefined;
 };
 

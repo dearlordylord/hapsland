@@ -1,6 +1,41 @@
-# Session status and receipts
+# Readiness doctor and session activity
 
-The review integration records a small local receipt for a host session when the
+Run the offline, read-only doctor with an explicit repository and selected Codex home:
+
+```json
+{
+  "version": 1,
+  "operation": "doctor",
+  "cwd": "/worktree",
+  "codexHome": "/home/user/.codex"
+}
+```
+
+The equivalent command is `review-tool --doctor`. Doctor checks the packaged runtime,
+parser and resident entry point, exact Codex version, selected configuration, the owned
+feature/hook record, duplicates and local drift, resident reachability, credential
+accessibility in the current process, and enablement for the canonical repository. It
+does not prompt, repair configuration, launch the resident, read source, or call Jev.
+Host trust and saved-credential accessibility are `unknown` when no bounded,
+nonprompting query exists. Every non-ready stage includes one action in `nextSteps`.
+
+The production Codex hook and resident record a bounded source-free activity marker for
+each observed event. Session, child, repository, and event identities are hashed before
+persistence. At most 256 events are retained per session. Markers contain only stage,
+timestamps, resident lifetime, bounded counts, and hashed identities; they never contain
+source, paths, credentials, advice, probabilities, or provider responses.
+
+Resident activity distinguishes `no-observation`, `skipped`, `pending`, `clear`,
+`findings`, `submitted`, `unavailable`, `incomplete`, and `restarted/lost`. Pending work
+becomes `restarted/lost` when the responsible resident lifetime disappears or changes.
+`submitted` means the hook wrote controlled host output; `submission.findings` reports how
+many findings that output carried. It does not prove that the model saw or acted on it.
+`modelReaction` remains `unavailable` until separate host evidence
+exists. Missing instrumentation and silence are never reported as `clear`.
+
+## Legacy receipts
+
+The older whole-file review path records a small local receipt for a host session when the
 incoming event supplies `sessionId` (Codex PostToolUse events provide this identity).
 The same host session ID is reused when a host resumes, so resumed activity appears in
 the same session view. A receipt is evidence of activity observed by the integration;
@@ -32,7 +67,9 @@ Use an explicit session ID with the status operation:
 ```
 
 The JSON response keeps `readiness` (current configuration, consent, and credential
-presence) separate from `activity` (the local receipt). Activity is classified as
+presence) separate from `activity`. `activitySource` identifies `resident-v1` or the
+explicitly named `legacy-receipt-v1`; `evidence` exposes both views without claiming the
+legacy receipt observes the resident path. Legacy activity is classified as
 `no-observation`, `all-skipped`, `clean-reviewed`, `reviewed`, `unavailable`, `mixed`,
 or `incomplete`. A missing receipt is `no-observation`, never successful review. An
 observed start without a completion is `incomplete`; all-skipped activity reports its
