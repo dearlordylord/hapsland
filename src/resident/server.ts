@@ -106,11 +106,11 @@ type IngressJob = {
 
 type UnitJob = {
   readonly kind: "unit";
-  observation: DirectObservation;
+  readonly observation: DirectObservation;
   readonly partition: string;
   readonly reservation: CapacityReservation;
   readonly dispatch: ResidentDispatchContext;
-  prepared: PreparedUnit;
+  readonly prepared: PreparedUnit;
   revision: WorkRevision;
   readonly evaluationKey: string;
 };
@@ -136,10 +136,12 @@ type Advice = Omit<UnitJob, "dispatch" | "kind"> & {
 
 type WorkRevision = {
   readonly subject: string;
+  readonly token: string;
   readonly generation: number;
 };
 
 type CurrentWork = {
+  readonly token: string;
   readonly generation: number;
   readonly input: PreparedUnit["input"];
   readonly members: number;
@@ -216,6 +218,7 @@ export class ResidentServer {
   #rejectedCapacity = 0;
   #peakLedgerBytes = 0;
   #maxMaterializedPreparedUnits = 0;
+  #nextWorkGeneration = 1;
   readonly #beforeRevalidate: ((adviceId: string) => Promise<void>) | undefined;
   readonly #afterPrepare: (() => Promise<void>) | undefined;
   readonly #beforeEvaluate: ((prepared: PreparedUnit) => Promise<void>) | undefined;
@@ -430,48 +433,51 @@ export class ResidentServer {
     const retained = this.#currentWork.get(subject);
     if (retained !== undefined && canonicalValue(retained.input) === canonicalValue(prepared.input)) {
       this.#currentWork.set(subject, { ...retained, members: retained.members + 1 });
-      return { subject, generation: retained.generation };
+      return { subject, token: retained.token, generation: retained.generation };
     }
-    const generation = (retained?.generation ?? 0) + 1;
+    const generation = this.#nextWorkGeneration++;
+    const token = randomUUID();
     this.#currentWork.set(subject, {
+      token,
       generation,
       input: prepared.input,
       members: 1,
     });
     for (const advice of [...this.#advice]) {
-      if (advice.revision.subject === subject && advice.revision.generation !== generation) {
+      if (advice.revision.subject === subject && advice.revision.token !== token) {
         this.#removeAdvice(advice.id);
       }
     }
-    return { subject, generation };
+    return { subject, token, generation };
   }
 
   #restoreCurrentWork(partition: string, prepared: PreparedUnit): WorkRevision {
     const subject = this.#subject(partition, prepared);
     const retained = this.#currentWork.get(subject);
     if (retained !== undefined && canonicalValue(retained.input) === canonicalValue(prepared.input)) {
-      return { subject, generation: retained.generation };
+      return { subject, token: retained.token, generation: retained.generation };
     }
-    const generation = (retained?.generation ?? 0) + 1;
-    this.#currentWork.set(subject, { generation, input: prepared.input, members: 1 });
+    const generation = this.#nextWorkGeneration++;
+    const token = randomUUID();
+    this.#currentWork.set(subject, { token, generation, input: prepared.input, members: 1 });
     for (const advice of [...this.#advice]) {
-      if (advice.revision.subject === subject && advice.revision.generation !== generation) {
+      if (advice.revision.subject === subject && advice.revision.token !== token) {
         this.#removeAdvice(advice.id);
       }
     }
-    return { subject, generation };
+    return { subject, token, generation };
   }
 
   #isCurrentWork(revision: WorkRevision, prepared: PreparedUnit): boolean {
     const retained = this.#currentWork.get(revision.subject);
     return retained !== undefined &&
-      retained.generation === revision.generation &&
+      retained.token === revision.token &&
       canonicalValue(retained.input) === canonicalValue(prepared.input);
   }
 
   #releaseCurrentWork(revision: WorkRevision): void {
     const retained = this.#currentWork.get(revision.subject);
-    if (retained === undefined || retained.generation !== revision.generation) return;
+    if (retained === undefined || retained.token !== revision.token) return;
     if (retained.members <= 1) this.#currentWork.delete(revision.subject);
     else this.#currentWork.set(revision.subject, { ...retained, members: retained.members - 1 });
   }
@@ -573,8 +579,6 @@ export class ResidentServer {
           }
           const pending = this.#reuse.pending(evaluationKey);
           if (pending !== undefined) {
-            pending.observation = pathObservation;
-            pending.prepared = outcome.prepared;
             pending.revision = this.#restoreCurrentWork(job.partition, outcome.prepared);
             return { kind: "joined" as const, outcome, evaluationKey };
           }

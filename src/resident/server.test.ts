@@ -487,12 +487,8 @@ describe("resident delivery lease", () => {
     const statePath = join(root, "consent");
     await enable(root, statePath);
     const first = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
-    const duplicate = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["type.ts"], {
-      tool_use_id: "duplicate",
-    })));
     expect(first).toBeDefined();
-    expect(duplicate).toBeDefined();
-    if (first === undefined || duplicate === undefined) return;
+    if (first === undefined) return;
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
     const capturePath = join(root, "backend-calls");
     const dispatch: ResidentDispatchContext = {
@@ -508,7 +504,21 @@ describe("resident delivery lease", () => {
       },
     };
     expect(server.admit(first, dispatch).status).toBe("accepted");
-    expect(server.admit(duplicate, dispatch).status).toBe("accepted");
+    const huge = "x".repeat(32 * 1024);
+    for (let index = 0; index < 6; index += 1) {
+      const duplicate = {
+        ...first,
+        recipient: {
+          ...first.recipient,
+          turnId: `${index}:${huge}`,
+          toolUseId: `${index}:${huge}`,
+        },
+        candidates: first.candidates.map((candidate) => candidate.operation === "add"
+          ? { ...candidate, addedLines: [huge] }
+          : candidate),
+      };
+      expect(server.admit(duplicate, dispatch).status).toBe("accepted");
+    }
     await server.whenIdle();
     const metadata = server.pendingAdviceMetadata();
     expect(metadata).toHaveLength(1);
@@ -516,6 +526,15 @@ describe("resident delivery lease", () => {
     expect(new Set(metadata.flatMap(({ evaluationIdentities }) => evaluationIdentities)).size).toBe(1);
     expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(1);
     expect(server.accountingMetrics().pendingEvaluations).toBe(0);
+    expect(server.stats().retainedBytes).toBe(
+      (metadata[0]?.retainedBytes ?? 0) + server.accountingMetrics().successfulCacheBytes,
+    );
+    expect(server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(2 * 1024 * 1024);
+    await expect(server.collect(
+      root,
+      recipient({ turnId: "after-storm", toolUseId: "after-storm" }),
+      dispatch,
+    )).resolves.toMatchObject({ status: "advice" });
   });
 
   it("uses stable advice identity when replacement arrives during collection", async () => {
@@ -636,6 +655,87 @@ describe("resident delivery lease", () => {
       pendingAdvice: 0,
       retainedBytes: server.accountingMetrics().successfulCacheBytes,
     });
+  });
+
+  it("does not let late A cleanup delete C after cached-clear B removes current state", async () => {
+    const root = await makeGitFixture();
+    const statePath = join(root, "consent");
+    const capturePath = join(root, "backend-calls");
+    await enable(root, statePath);
+    const clearDispatch: ResidentDispatchContext = {
+      statePath,
+      userConfigPath: null,
+      credential: null,
+      controlled: { capturePath },
+    };
+    const finding: ResidentDispatchContext = {
+      ...findingDispatch(statePath),
+      controlled: {
+        capturePath,
+        answers: Object.fromEntries(configuredRules.map((rule) => [
+          rule.id,
+          { _tag: "Probability", probability: 0.9 },
+        ])),
+      },
+    };
+    const revalidationHeld = deferred();
+    const releaseRevalidation = deferred();
+    let holdNextRevalidation = true;
+    const server = new ResidentServer(
+      residentPaths(join(root, "runtime")),
+      () => 100,
+      {
+        afterRevalidationWorkspaceReserved: async () => {
+          if (!holdNextRevalidation) return;
+          holdNextRevalidation = false;
+          revalidationHeld.resolve();
+          await releaseRevalidation.promise;
+        },
+      },
+    );
+    const admitSource = async (
+      source: string,
+      toolUseId: string,
+      dispatch: ResidentDispatchContext,
+    ) => {
+      await put(root, "type.ts", source);
+      const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["type.ts"], {
+        tool_use_id: toolUseId,
+      })));
+      expect(observation).toBeDefined();
+      if (observation !== undefined) expect(server.admit(observation, dispatch).status).toBe("accepted");
+      await server.whenIdle();
+    };
+
+    await admitSource("type OrderCount = boolean\n", "seed-B-clear", clearDispatch);
+    expect(server.accountingMetrics().successfulCacheEntries).toBe(1);
+    await admitSource("type OrderCount = number\n", "A", finding);
+    expect(server.pendingAdviceMetadata()).toHaveLength(1);
+
+    const collectingA = server.collect(
+      root,
+      recipient({ turnId: "held-A", toolUseId: "held-A" }),
+      finding,
+    );
+    await revalidationHeld.promise;
+
+    await admitSource("type OrderCount = boolean\n", "cached-B", finding);
+    expect(server.pendingAdviceMetadata()).toHaveLength(0);
+    await admitSource("type OrderCount = string\n", "new-C", finding);
+    const currentC = server.pendingAdviceMetadata();
+    expect(currentC).toHaveLength(1);
+    const cGeneration = currentC[0]?.generation;
+
+    releaseRevalidation.resolve();
+    await expect(collectingA).resolves.toMatchObject({ status: "empty" });
+    expect(server.pendingAdviceMetadata()).toMatchObject([{ generation: cGeneration }]);
+    const deliveredC = await server.collect(
+      root,
+      recipient({ turnId: "C", toolUseId: "C" }),
+      finding,
+    );
+    expect(deliveredC.status).toBe("advice");
+    expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(3);
   });
 
   it("skips stale unit advice and returns an independently current multi-file unit", async () => {
