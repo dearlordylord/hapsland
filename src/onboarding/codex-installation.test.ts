@@ -4,10 +4,13 @@ import {
   mkdtempSync,
   mkdirSync,
   readFileSync,
+  readdirSync,
+  readlinkSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
@@ -115,6 +118,40 @@ const refreshJournalDigests = (journal: Record<string, unknown>, home: string) =
     })),
   }));
   return String(journal.proposalDigest);
+};
+
+const currentLockGeneration = (lockPath: string) => {
+  const names = readdirSync(join(lockPath, "generations")).filter((name) => /^\d{16}$/.test(name)).sort();
+  const name = names.at(-1);
+  if (name === undefined) return undefined;
+  const target = readlinkSync(join(lockPath, "generations", name));
+  const ownerDirectory = join(lockPath, target.replace("../", ""));
+  return {
+    number: Number(name),
+    name,
+    ownerDirectory,
+    record: JSON.parse(readFileSync(join(ownerDirectory, "record.json"), "utf8")) as { pid: number; owner: string },
+  };
+};
+
+const waitFor = async <A>(read: () => A | undefined, timeout = 5_000): Promise<A> => {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    const value = read();
+    if (value !== undefined) return value;
+    await new Promise((resolveWait) => setTimeout(resolveWait, 20));
+  }
+  throw new Error("timed out waiting for controlled lock state");
+};
+
+const spawnOperation = (operation: Record<string, unknown>, env: NodeJS.ProcessEnv) => {
+  const child = spawn(process.execPath, ["src/cli.ts", `--${String(operation.operation)}`], {
+    cwd: process.cwd(),
+    env,
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  child.stdin.end(JSON.stringify({ version: 1, ...operation }));
+  return child;
 };
 
 describe("public Codex installation operations", { timeout: 30_000 }, () => {
@@ -753,7 +790,7 @@ responses_websockets_v2 = true`);
     expect(readFileSync(join(home, "hooks.json"), "utf8")).toBe(beforeHooks);
   });
 
-  it("keeps a live old lock and reclaims it after the owning process is killed", async () => {
+  it("serializes multiple stale reclaimers, a replacement owner, and a third contender", async () => {
     const { root, home, bin } = fixture();
     const firstEntrypoint = localPackage(root, "1.0.0-killed-lock");
     const targetEntrypoint = localPackage(root, "1.1.0-killed-lock");
@@ -765,42 +802,67 @@ responses_websockets_v2 = true`);
       { operation: "update", codexHome: home, codexExecutable: bin, proposalDigest: digest },
       { ...targetEnvironment, REVIEW_INSTALL_FAIL_AFTER_WRITES: "1" },
     ).status).toBe("partial");
+    const operation = { operation: "update", codexHome: home, codexExecutable: bin, proposalDigest: digest };
     const lockPath = join(home, ".realtime-review-tool", "installation.lock");
-    const owner = spawn(process.execPath, ["-e", [
-      "const fs=require('node:fs');",
-      "const crypto=require('node:crypto');",
-      "const path=process.argv[1];",
-      "fs.writeFileSync(path,JSON.stringify({version:1,pid:process.pid,createdAt:new Date(Date.now()-10000).toISOString(),owner:crypto.randomUUID()})+'\\n',{flag:'wx'});",
-      "process.stdout.write('ready\\n');",
-      "setInterval(()=>{},1000);",
-    ].join(""), lockPath], { stdio: ["ignore", "pipe", "inherit"] });
-    await new Promise<void>((resolveReady, reject) => {
-      owner.once("error", reject);
-      owner.stdout.once("data", () => resolveReady());
+    const baseline = currentLockGeneration(lockPath)?.number ?? 0;
+    const owner = spawnOperation(operation, { ...targetEnvironment, REVIEW_INSTALL_TEST_HOLD_LOCK_MS: "10000" });
+    const deadGeneration = await waitFor(() => {
+      const current = currentLockGeneration(lockPath);
+      return current !== undefined && current.number > baseline && current.record.pid === owner.pid ? current : undefined;
     });
     const liveResult = invoke(
-      { operation: "update", codexHome: home, codexExecutable: bin, proposalDigest: digest },
+      operation,
       targetEnvironment,
     );
     expect(liveResult).toMatchObject({ status: "conflict", error: { message: expect.stringContaining("1500ms") } });
     owner.kill("SIGKILL");
     await new Promise<void>((resolveClosed) => owner.once("close", () => resolveClosed()));
+    await new Promise((resolveWait) => setTimeout(resolveWait, 5_100));
 
-    const resumed = invoke(
-      { operation: "update", codexHome: home, codexExecutable: bin, proposalDigest: digest },
-      targetEnvironment,
-    );
+    const contenderEnvironment = { ...targetEnvironment, REVIEW_INSTALL_TEST_HOLD_LOCK_MS: "10000" };
+    const first = spawnOperation(operation, contenderEnvironment);
+    const second = spawnOperation(operation, contenderEnvironment);
+    const replacement = await waitFor(() => {
+      const current = currentLockGeneration(lockPath);
+      return current !== undefined && current.number > deadGeneration.number ? current : undefined;
+    });
+    expect([first.pid, second.pid]).toContain(replacement.record.pid);
+    expect(existsSync(join(lockPath, "generations", deadGeneration.name))).toBe(true);
+    expect(existsSync(deadGeneration.ownerDirectory)).toBe(true);
+    expect(existsSync(join(deadGeneration.ownerDirectory, "reclaimed"))).toBe(true);
+
+    const third = invoke(operation, targetEnvironment);
+    expect(third).toMatchObject({ status: "conflict", error: { message: expect.stringContaining("1500ms") } });
+    expect(currentLockGeneration(lockPath)?.record.pid).toBe(replacement.record.pid);
+
+    const replacementProcess = first.pid === replacement.record.pid ? first : second;
+    const losingProcess = replacementProcess === first ? second : first;
+    await new Promise<void>((resolveClosed) => losingProcess.once("close", () => resolveClosed()));
+    replacementProcess.kill("SIGKILL");
+    await new Promise<void>((resolveClosed) => replacementProcess.once("close", () => resolveClosed()));
+    await new Promise((resolveWait) => setTimeout(resolveWait, 5_100));
+
+    const resumed = invoke(operation, targetEnvironment);
     expect(resumed).toMatchObject({ status: "updated", resumed: true });
-    expect(existsSync(lockPath)).toBe(false);
+    expect(existsSync(lockPath)).toBe(true);
     expect(existsSync(join(home, ".realtime-review-tool", "journal-v1.json"))).toBe(false);
   }, 30_000);
 
   it("bounds lock acquisition and reports no mutation", () => {
     const { home, bin } = fixture();
     const preview = invoke({ operation: "install-preview", codexHome: home, codexExecutable: bin });
-    const lockDirectory = join(home, ".realtime-review-tool");
-    mkdirSync(lockDirectory, { recursive: true });
-    writeFileSync(join(lockDirectory, "installation.lock"), "busy\n");
+    const lockPath = join(home, ".realtime-review-tool", "installation.lock");
+    const owner = randomUUID();
+    const ownerDirectory = join(lockPath, "owners", owner);
+    mkdirSync(ownerDirectory, { recursive: true });
+    mkdirSync(join(lockPath, "generations"), { recursive: true });
+    writeFileSync(join(ownerDirectory, "record.json"), `${JSON.stringify({
+      version: 1,
+      pid: process.pid,
+      createdAt: new Date(Date.now() - 10_000).toISOString(),
+      owner,
+    })}\n`);
+    symlinkSync(`../owners/${owner}`, join(lockPath, "generations", "0000000000000001"));
     const result = invoke({
       operation: "install",
       codexHome: home,
