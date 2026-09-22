@@ -75,6 +75,7 @@ import {
   runSecretService,
   saveCredential,
 } from "./credentials/secret-service.ts";
+import { terminalModeArguments } from "./credentials/terminal.ts";
 import { readActivity, formatActivityHuman, recordActivity } from "./activity/status.ts";
 import { diagnoseInstalledIntegration, type DoctorCheck } from "./onboarding/doctor.ts";
 import { runSetup } from "./onboarding/setup.ts";
@@ -1260,7 +1261,7 @@ const program = Effect.gen(function* () {
 
 const readMaskedCredential = (): Promise<string> => {
   const descriptor = openSync("/dev/tty", constants.O_RDONLY | constants.O_NONBLOCK);
-  const original = spawnSync("stty", ["-F", "/dev/tty", "-g"], {
+  const original = spawnSync("stty", terminalModeArguments(process.platform, "-g"), {
     encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
   });
   const originalMode = original.status === 0 ? original.stdout.trim() : "";
@@ -1273,8 +1274,8 @@ const readMaskedCredential = (): Promise<string> => {
     if (restored) return;
     if (originalMode.length === 0) return;
     for (let attempt = 0; attempt < 5; attempt += 1) {
-      spawnSync("stty", ["-F", "/dev/tty", originalMode], { stdio: "ignore" });
-      const observed = spawnSync("stty", ["-F", "/dev/tty", "-g"], {
+      spawnSync("stty", terminalModeArguments(process.platform, originalMode), { stdio: "ignore" });
+      const observed = spawnSync("stty", terminalModeArguments(process.platform, "-g"), {
         encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
       });
       if (observed.status === 0 && observed.stdout.trim() === originalMode) {
@@ -1283,7 +1284,7 @@ const readMaskedCredential = (): Promise<string> => {
       }
     }
   };
-  const disabled = spawnSync("stty", ["-F", "/dev/tty", "-echo"], { stdio: "ignore" });
+  const disabled = spawnSync("stty", terminalModeArguments(process.platform, "-echo"), { stdio: "ignore" });
   if (disabled.status !== 0) {
     closeSync(descriptor);
     throw new Error("masked terminal input is unavailable; retry with --credential-stdin");

@@ -8,6 +8,8 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const executeRealCodex = process.argv.includes("--real-codex");
 const writeEvidence = process.argv.includes("--write-evidence");
 const exerciseSecretService = process.argv.includes("--secret-service") || process.platform === "darwin";
+const exerciseCredentialFixture = process.argv.includes("--credential-fixture");
+const exerciseCredentialLifecycle = exerciseSecretService || exerciseCredentialFixture;
 const outputPath = join(root, `evidence/package/clean-${process.platform}-node-24.20.0-${process.arch}.json`);
 const run = (command, args, options = {}) => new Promise((resolveRun, reject) => {
   const child = spawn(command, args, {
@@ -360,6 +362,10 @@ try {
   const doctor = join(binDirectory, "review-tool-doctor");
   const doctorSource = join(packageDirectory, "dist", "package-doctor.js");
   const installedManifest = parseJson(await readFile(join(packageDirectory, "package.json"), "utf8"), "installed manifest");
+  for (const documentation of ["README.md", "docs/codex-installation.md", "docs/status.md", "docs/installed-release-compatibility.md"]) {
+    const contents = await readFile(join(packageDirectory, documentation), "utf8");
+    if (contents.trim().length === 0) throw new Error(`packaged documentation is empty: ${documentation}`);
+  }
   const targetPackage = await installLocalPackageVariant({
     sourcePackage: packageDirectory,
     temporary,
@@ -418,7 +424,7 @@ try {
       answers,
       capturePath: calls,
       outcomePath: outcomes,
-      ...(exerciseSecretService ? { requireCredential: true } : {}),
+      ...(exerciseCredentialLifecycle ? { requireCredential: true } : {}),
     }),
     REVIEW_ACTIVITY_PATH: activity,
     REVIEW_INSTALL_CONTROLLED: "1",
@@ -427,9 +433,31 @@ try {
   const credentialLifecycle = join(temporary, "state", "credential-state.json");
   await mkdir(join(temporary, "state"), { recursive: true, mode: 0o700 });
   env.REVIEW_CREDENTIAL_STATE_PATH = credentialLifecycle;
+  if (exerciseCredentialFixture) {
+    if (process.platform !== "linux") throw new Error("the deterministic credential fixture is Linux-only");
+    const helper = join(temporary, "credential-helper.mjs");
+    const vault = join(temporary, "state", "credential-vault");
+    await writeFile(helper, `#!/usr/bin/env node
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+const operation = process.argv[2]; const vault = process.env.TEST_SECRET_VAULT;
+if (operation === "probe") console.log('{"version":1,"status":"available"}');
+else if (operation === "get") {
+  if (!existsSync(vault)) console.log('{"version":1,"status":"missing"}');
+  else { const value=readFileSync(vault); console.log(JSON.stringify({version:1,status:"present",length:value.length})); process.stdout.write(value); }
+} else if (operation === "set") {
+  const chunks=[]; for await (const chunk of process.stdin) chunks.push(chunk);
+  writeFileSync(vault, Buffer.concat(chunks), {mode:0o600}); console.log('{"version":1,"status":"stored"}');
+} else if (operation === "delete") {
+  const existed=existsSync(vault); rmSync(vault,{force:true}); console.log(JSON.stringify({version:1,status:existed?"deleted":"missing"}));
+}
+`, { mode: 0o700 });
+    await chmod(helper, 0o700);
+    env.REVIEW_CREDENTIAL_HELPER = helper;
+    env.TEST_SECRET_VAULT = vault;
+  }
   const syntheticCredential = "package-secret-marker-never-retained";
   let credentialEvidence = { status: "not-requested" };
-  if (exerciseSecretService) {
+  if (exerciseCredentialLifecycle) {
     const loginStarted = Date.now();
     const loginRun = await mustRun(cli, ["--login", "--credential-stdin"], {
       cwd: temporary, env, input: `${syntheticCredential}\n`,
@@ -481,7 +509,7 @@ try {
       defaultKeychainIsolation = "lookup-and-replacement-passed";
     }
     credentialEvidence = {
-      status: process.platform === "darwin" ? "actual-keychain" : "actual-secret-service",
+      status: exerciseCredentialFixture ? "controlled-helper" : process.platform === "darwin" ? "actual-keychain" : "actual-secret-service",
       loginMs: Date.now() - loginStarted,
       separateProcessLookupMs: Date.now() - lookupStarted,
       defaultKeychainIsolation,
@@ -531,7 +559,7 @@ try {
   if (installedDoctor.offline !== true || installedDoctor.readOnly !== true || installedDoctor.providerCalls !== 0 ||
       !installedDoctor.checks?.some((check) => check.stage === "configuration-ownership" && check.status === "ready") ||
       !installedDoctor.checks?.some((check) => check.stage === "repository-enablement" && check.status === "missing") ||
-      (exerciseSecretService && !installedDoctor.checks?.some((check) =>
+      (exerciseCredentialLifecycle && !installedDoctor.checks?.some((check) =>
         check.stage === "credential-accessibility" && check.status === "ready" &&
         check.observed?.savedCredentialAccessibility === "present"))) {
     throw new Error("packaged installed-integration doctor did not expose independent readiness stages");
@@ -653,7 +681,7 @@ try {
   let submissions = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
   if (submissions !== 1) throw new Error(`expected one controlled backend submission, observed ${submissions}`);
   if (hookOutput.hookSpecificOutput?.hookEventName !== "PostToolUse") throw new Error("packaged hook did not return review advice");
-  if (exerciseSecretService) {
+  if (exerciseCredentialLifecycle) {
     const firstOwner = parseJson(ownerAfterAdmission, "first resident owner");
     process.kill(firstOwner.pid, "SIGTERM");
     let oldResidentExited = false;
@@ -719,6 +747,7 @@ try {
     credentialEvidence = {
       ...credentialEvidence,
       residentRestartPersistence: "passed-distinct-pid-and-lifetime",
+      residentControlledTransportResolution: "passed",
     };
     const logoutRun = await mustRun(activeCli, ["--logout"], { cwd: temporary, env });
     const logoutResult = parseJson(logoutRun.stdout, "packaged credential logout");
@@ -763,6 +792,7 @@ try {
     if (submissionsAfterLogout !== submissions) {
       throw new Error("logged-out credential dispatched a provider request while the repository remained enabled");
     }
+    credentialEvidence = { ...credentialEvidence, logoutBeforeFutureDispatch: "passed" };
   }
   const activityRun = await mustRun(activeCli, ["--status"], {
     cwd: temporary,
@@ -800,7 +830,7 @@ try {
     env,
     input: JSON.stringify({ version: 1, operation: "enable-confirm", cwd: repository, proposalDigest: parseJson(reenablePreview.stdout, "reenable preview").proposal.digest }),
   });
-  if (exerciseSecretService) {
+  if (exerciseCredentialLifecycle) {
     await mustRun(activeCli, ["--login", "--credential-stdin"], {
       cwd: temporary, env, input: `${syntheticCredential}\n`,
     });
@@ -1087,7 +1117,7 @@ try {
         partialRecovery: "resumed",
         previousHookRetainedOnPartialFailure: true,
         consentPreserved: true,
-        credentialState: exerciseSecretService ? "preserved-external-native-store" : "not-configured",
+        credentialState: exerciseSecretService ? "preserved-external-native-store" : exerciseCredentialFixture ? "preserved-controlled-helper" : "not-configured",
         trustRecordsModified: false,
         processesStopped: false,
         controlledReviewAfterUpdate: "passed",
