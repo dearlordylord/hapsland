@@ -198,4 +198,43 @@ describe("resident client trust boundary", () => {
       "deadline exceeded",
     );
   });
+
+  it("rejects an oversized request before writing recipient-bearing bytes", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "resident-oversized-request-"));
+    directories.push(directory);
+    await chmod(directory, 0o700);
+    const paths = residentPaths(directory);
+    let received = 0;
+    const server = createServer((socket) => socket.on("data", (chunk) => {
+      received += typeof chunk === "string" ? Buffer.byteLength(chunk, "utf8") : chunk.byteLength;
+    }));
+    server.on("connection", (socket) => sockets.push(socket));
+    servers.push(server);
+    await new Promise<void>((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(paths.socket, resolve);
+    });
+    await chmod(paths.socket, 0o600);
+    await expect(residentRequest(paths, {
+      version: 1,
+      operation: "collect",
+      lifetime: "lifetime",
+      root: "/tmp/root",
+      recipient: {
+        host: "codex-cli",
+        hostVersion: "0.155.1",
+        sessionId: "session",
+        turnId: "turn",
+        toolUseId: "tool",
+        agentId: null,
+      },
+      dispatch: {
+        statePath: "/tmp/consent",
+        userConfigPath: null,
+        credential: { name: "JEV_API_KEY", value: "x".repeat(300_000) },
+        controlled: null,
+      },
+    }, 500)).rejects.toThrow("request exceeded frame bound");
+    expect(received).toBe(0);
+  });
 });

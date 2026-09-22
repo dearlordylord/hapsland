@@ -66,6 +66,7 @@ export type ResidentResponse =
       readonly running: number;
       readonly pendingAdvice: number;
       readonly retainedBytes: number;
+      readonly rejectedCapacity: number;
     };
 
 const record = (value: unknown): Readonly<Record<string, unknown>> | undefined =>
@@ -170,6 +171,7 @@ const ResidentResponseSchema = Schema.Union([
     running: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
     pendingAdvice: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
     retainedBytes: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+    rejectedCapacity: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
   }),
 ]);
 
