@@ -94,6 +94,35 @@ describe("direct-event vertical slice", () => {
     }),
   );
 
+  it.effect("keeps malformed and mixed native Add syntax out of capture and backend", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture);
+      yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number"));
+      let reads = 0;
+      let calls = 0;
+      const commands = [
+        "*** Begin Patch\n*** Add File: type.ts\ntype Raw = number\n*** End Patch",
+        "*** Begin Patch\n*** Add File: type.ts\n+x\n*** Update File: other.ts\n+y\n*** End Patch",
+        "*** Begin Patch\n*** Add File: type.ts\n+x\n*** Unknown Control\n*** End Patch",
+        "*** Begin Patch\n*** Add File:\n+x\n*** End Patch",
+      ];
+      for (const command of commands) {
+        const result = yield* enabledReview(root, addEvent(root, ["type.ts"], {
+          tool_input: { command },
+        }), {
+          answers: findingAnswers(),
+          onRequest: Effect.sync(() => { calls += 1; }),
+        }, (base) => ({
+          ...base,
+          captureHooks: { sourceRead: () => { reads += 1; } },
+        }));
+        expect(result.status).toBe("unsupported");
+      }
+      expect(reads).toBe(0);
+      expect(calls).toBe(0);
+    }),
+  );
+
   it.effect("does zero source reads and backend calls for excluded paths", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture);
@@ -220,16 +249,12 @@ describe("direct-event vertical slice", () => {
       const observation = yield* adaptCodexAdd(addEvent(root));
       expect(observation).toBeDefined();
       if (observation === undefined) return;
-      const original = `${root}-original`;
-      yield* Effect.promise(() => rename(root, original));
-      yield* Effect.promise(() => mkdir(root));
-      yield* Effect.promise(() => execFileAsync("git", ["init", "-q", root]));
-      yield* Effect.promise(() => put(root, "type.ts", "type CrossRoot = string"));
-      yield* Effect.promise(() => put(root, ".review.jsonc", "{ invalid"));
       let reads = 0;
       let calls = 0;
       const result = yield* Effect.gen(function* () {
         const consent = yield* Consent.Service;
+        const proposal = yield* consent.preview(root, DEFAULT_BACKEND, DEFAULT_DESTINATION);
+        yield* consent.enable(proposal);
         return yield* reviewObservation(observation, {
           controlledWriter: true,
           recipient: observation.recipient,
@@ -237,6 +262,14 @@ describe("direct-event vertical slice", () => {
           settings,
           rules: configuredRules,
           captureHooks: { sourceRead: () => { reads += 1; } },
+          beforePrepare: Effect.promise(async () => {
+            const original = `${root}-original`;
+            await rename(root, original);
+            await mkdir(root);
+            await execFileAsync("git", ["init", "-q", root]);
+            await put(root, "type.ts", "type CrossRoot = string");
+            await put(root, ".review.jsonc", "{ invalid");
+          }),
         });
       }).pipe(Effect.provide(Layer.mergeAll(
         Consent.testLayer(),
@@ -245,7 +278,71 @@ describe("direct-event vertical slice", () => {
           onRequest: Effect.sync(() => { calls += 1; }),
         }),
       )));
-      expect(result.status).toBe("unsupported");
+      expect(result.status).toBe("no-advice");
+      expect(reads).toBe(0);
+      expect(calls).toBe(0);
+    }),
+  );
+
+  it.effect("rechecks physical root identity immediately before backend dispatch", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture);
+      yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number"));
+      let reads = 0;
+      let calls = 0;
+      const result = yield* enabledReview(root, addEvent(root), {
+        answers: findingAnswers(),
+        onRequest: Effect.sync(() => { calls += 1; }),
+      }, (base) => ({
+        ...base,
+        captureHooks: { sourceRead: () => { reads += 1; } },
+        beforeDispatch: Effect.promise(async () => {
+          const original = `${root}-before-dispatch`;
+          await rename(root, original);
+          await mkdir(root);
+          await execFileAsync("git", ["init", "-q", root]);
+          await put(root, "type.ts", "type CrossRoot = string");
+        }),
+      }));
+      expect(result).toEqual({ status: "unavailable", reason: "stale", output: undefined });
+      expect(reads).toBe(2);
+      expect(calls).toBe(0);
+    }),
+  );
+
+  it.effect("binds Git administration identity before the first source read", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture);
+      yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number"));
+      const observation = yield* adaptCodexAdd(addEvent(root));
+      expect(observation).toBeDefined();
+      if (observation === undefined) return;
+      let reads = 0;
+      let calls = 0;
+      const result = yield* Effect.gen(function* () {
+        const consent = yield* Consent.Service;
+        const proposal = yield* consent.preview(root, DEFAULT_BACKEND, DEFAULT_DESTINATION);
+        yield* consent.enable(proposal);
+        return yield* reviewObservation(observation, {
+          controlledWriter: true,
+          recipient: observation.recipient,
+          consent,
+          settings,
+          rules: configuredRules,
+          captureHooks: { sourceRead: () => { reads += 1; } },
+          beforePrepare: Effect.promise(async () => {
+            await rename(join(root, ".git"), join(root, ".git-original"));
+            await execFileAsync("git", ["init", "-q", root]);
+          }),
+        });
+      }).pipe(Effect.provide(Layer.mergeAll(
+        Consent.testLayer(),
+        controlledDecisionModelLayer({
+          answers: findingAnswers(),
+          onRequest: Effect.sync(() => { calls += 1; }),
+        }),
+      )));
+      expect(result.status).toBe("no-advice");
       expect(reads).toBe(0);
       expect(calls).toBe(0);
     }),

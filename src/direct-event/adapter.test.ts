@@ -66,4 +66,20 @@ describe("direct-event Codex Add adapter", () => {
     ];
     for (const value of cases) expect(await Effect.runPromise(adaptCodexAdd(value))).toBeUndefined();
   });
+
+  it.each([
+    ["unknown control", "*** Begin Patch\n*** Frobnicate File: a.ts\n+x\n*** End Patch"],
+    ["malformed header", "*** Begin Patch\n*** Add File:\n+x\n*** End Patch"],
+    ["unmarked body", "*** Begin Patch\n*** Add File: a.ts\ntype A = number\n*** End Patch"],
+    ["nested begin", "*** Begin Patch\n*** Add File: a.ts\n*** Begin Patch\n*** End Patch"],
+    ["duplicate path", "*** Begin Patch\n*** Add File: a.ts\n+x\n*** Add File: a.ts\n+y\n*** End Patch"],
+    ["mixed operation", "*** Begin Patch\n*** Add File: a.ts\n+x\n*** Update File: b.ts\n+y\n*** End Patch"],
+    ["rename", "*** Begin Patch\n*** Rename File: a.ts\n+x\n*** End Patch"],
+    ["early end", "*** Begin Patch\n*** Add File: a.ts\n+x\n*** End Patch\n+y\n*** End Patch"],
+  ])("rejects strict Add grammar violation: %s", async (_label, command) => {
+    const root = await makeGitFixture();
+    expect(await Effect.runPromise(adaptCodexAdd(addEvent(root, ["a.ts"], {
+      tool_input: { command },
+    })))).toBeUndefined();
+  });
 });
