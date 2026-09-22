@@ -53,7 +53,12 @@ const localPackage = (root: string, version: string, residentProtocol = 1) => {
     version,
     type: "module",
   }, null, 2)}\n`);
-  writeFileSync(join(packageRoot, "package-runtime.json"), `${JSON.stringify({ schemaVersion: 1, residentProtocol }, null, 2)}\n`);
+  writeFileSync(join(packageRoot, "package-runtime.json"), `${JSON.stringify({
+    schemaVersion: 1,
+    runtime: { name: "node", version: process.version.slice(1) },
+    profiles: [{ operatingSystem: process.platform, architecture: process.arch }],
+    residentProtocol,
+  }, null, 2)}\n`);
   const entrypoint = join(dist, "cli.js");
   writeFileSync(entrypoint, [
     "import { appendFileSync } from 'node:fs';",
@@ -166,6 +171,8 @@ describe("public Codex installation operations", { timeout: 30_000 }, () => {
     writeFileSync(join(dirname(quotedEntrypoint), "parser-main.js"), "#!/usr/bin/env node\n");
     mkdirSync(join(dirname(quotedEntrypoint), "resident"));
     writeFileSync(join(dirname(quotedEntrypoint), "resident", "main.js"), "#!/usr/bin/env node\n");
+    writeFileSync(join(root, "package.json"), readFileSync(join(process.cwd(), "package.json"), "utf8"));
+    writeFileSync(join(root, "package-runtime.json"), readFileSync(join(process.cwd(), "package-runtime.json"), "utf8"));
     const installEnvironment = {
       ...process.env,
       REVIEW_INSTALL_ENTRYPOINT: quotedEntrypoint,

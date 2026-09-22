@@ -212,7 +212,10 @@ static int lock_collection(void) {
 }
 
 int main(int argc, char **argv) {
-  if (argc != 2) { json_status("invalid"); return 2; }
+  if (argc < 2 || argc > 3 ||
+      (argc == 3 && strcmp(argv[2], "--allow-interaction") != 0)) {
+    json_status("invalid"); return 2;
+  }
   if (strcmp(argv[1], "probe") == 0) return probe();
   if (strcmp(argv[1], "get") == 0) return get_secret();
   if (strcmp(argv[1], "set") == 0) return set_secret();

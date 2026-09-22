@@ -1080,9 +1080,31 @@ const program = Effect.gen(function* () {
             settings.backend,
             settings.destination,
           ).pipe(Effect.result);
-          const credential = yield* Config.option(Config.String(settings.credentialEnvVar)).pipe(
+          const doctorEnvironmentCredential = yield* Config.option(Config.String(settings.credentialEnvVar)).pipe(
             Effect.map((value) => Option.isSome(value) && value.value.length > 0),
           );
+          const credential = yield* Effect.promise(() => resolveCredential({
+            envVar: settings.credentialEnvVar,
+            environmentOnly:
+              settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in",
+          }));
+          const credentialReady = credential.status === "present";
+          const credentialAction = credentialReady
+            ? undefined
+            : credential.source === "environment"
+              ? `make ${settings.credentialEnvVar} available to the installed hook environment, then rerun doctor`
+              : credential.status === "locked" || credential.status === "interaction-required"
+                ? "run review-tool --login in a user terminal and unlock or approve native credential access; background hooks never prompt"
+                : credential.status === "timed-out"
+                  ? "repair or unlock the native credential store; its noninteractive lookup exceeded the 750 ms deadline"
+                  : credential.status === "suspended"
+                    ? "reconcile the suspended credential with review-tool --login or review-tool --logout before review"
+                    : "store a credential with review-tool --login, then rerun doctor";
+          const credentialStatus = credentialReady
+            ? "ready" as const
+            : credential.status === "invalid" || credential.status === "suspended"
+              ? "conflict" as const
+              : "missing" as const;
           return {
             repository: authorization._tag === "Success" && authorization.success.status === "approved"
               ? { stage: "repository-enablement", status: "ready", observed: "enabled for the canonical repository" } satisfies DoctorCheck
@@ -1094,17 +1116,22 @@ const program = Effect.gen(function* () {
                 } satisfies DoctorCheck,
             credential: {
               stage: "credential-accessibility",
-              status: "unknown",
+              status: credentialStatus,
               observed: {
                 inspectedContext: "doctor-process",
                 configuredEnvironmentVariable: settings.credentialEnvVar,
-                doctorProcessEnvironment: credential ? "present" : "absent",
-                actualHookAccessibility: "unknown",
-                savedCredentialAccessibility: "unknown-not-inspected-by-this-version",
+                doctorProcessEnvironment: doctorEnvironmentCredential ? "present" : "absent",
+                actualHookAccessibility: credential.source === "saved" && credentialReady
+                  ? "available-via-noninteractive-native-lookup"
+                  : credential.source === "environment" && credentialReady
+                    ? "requires-host-environment-verification"
+                    : "unavailable",
+                savedCredentialAccessibility: credential.source === "saved"
+                  ? credential.status
+                  : "not-selected-environment-precedence",
+                selectedSource: credential.source,
               },
-              action: credential
-                ? "launch the selected host from this environment, then verify one controlled hook event"
-                : `make ${settings.credentialEnvVar} available to the hook context or use the supported login operation`,
+              ...(credentialAction === undefined ? {} : { action: credentialAction }),
             } satisfies DoctorCheck,
           };
         }).pipe(Effect.provide(Consent.layer({ statePath })));
@@ -1276,15 +1303,17 @@ const readMaskedCredential = (): Promise<string> => {
 
 const runCredentialCommand = async (): Promise<Readonly<Record<string, unknown>>> => {
   if (process.argv.includes("--login")) {
-    const probe = await runSecretService("probe", { deadlineMs: 2_000 });
+    const probe = await runSecretService("probe", { deadlineMs: 2_000, allowInteraction: true });
     if (probe.status !== "available") {
       return {
         version: 1,
         operation: "login",
         status: probe.status,
         action: probe.status === "locked"
-          ? "unlock the login keyring in the desktop session, then retry"
-          : "start a Secret Service provider in this user session, then retry",
+          ? "unlock the native credential store in the desktop session, then retry"
+          : probe.status === "interaction-required"
+            ? "approve native credential access from this explicit login command, then retry"
+            : "make the native credential store available in this user session, then retry",
       };
     }
     let value: string;
@@ -1365,6 +1394,7 @@ if (!isCodexHook && typeof output === "object" && output !== null) {
         : record.status === "deletion-failed" ||
             record.status === "needs-user-action" ||
             record.status === "locked" ||
+            record.status === "interaction-required" ||
             record.status === "unavailable" ||
             record.status === "timed-out" ||
             record.status === "indeterminate" ||
