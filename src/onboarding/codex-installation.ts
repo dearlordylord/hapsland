@@ -15,7 +15,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, extname, join, resolve } from "node:path";
 import { parse as parseToml } from "smol-toml";
 
 const OWNERSHIP_VERSION = 1 as const;
@@ -76,6 +76,7 @@ export type InstallationResult =
   | { readonly version: 1; readonly operation: string; readonly status: string };
 
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
+const HOOKS_FEATURE_FINGERPRINT = sha256("features.hooks=true");
 const missingDigest = sha256("installation-v1:missing");
 const digestSnapshot = (exists: boolean, content: string) =>
   exists ? sha256(`installation-v1:file\0${content}`) : missingDigest;
@@ -472,15 +473,59 @@ const pathReadiness = (path: string, executable: boolean) => {
   }
 };
 
+const packagedRuntimeEntrypoints = (entrypoint: string) => {
+  const extension = extname(entrypoint);
+  if (extension === ".js" || extension === ".ts") {
+    return {
+      parser: join(dirname(entrypoint), `parser-main${extension}`),
+      resident: join(dirname(entrypoint), "resident", `main${extension}`),
+    };
+  }
+  return {
+    parser: join(dirname(entrypoint), "review-tool-parser"),
+    resident: join(dirname(entrypoint), "review-tool-resident"),
+  };
+};
+
+const probeRuntime = (executable: string) => {
+  const probe = spawnSync(executable, [
+    "-e",
+    "process.stdout.write(JSON.stringify({version:process.version,platform:process.platform,architecture:process.arch}))",
+  ], { encoding: "utf8", timeout: 2_000, maxBuffer: 16_384 });
+  if (probe.status !== 0 || probe.error !== undefined) {
+    return { ready: false, observed: probe.error?.message.includes("timed out") ? "timed-out" : "not-a-supported-node-runtime" };
+  }
+  try {
+    const value: unknown = JSON.parse(probe.stdout);
+    if (!isObject(value) || typeof value.version !== "string" || typeof value.platform !== "string" ||
+        typeof value.architecture !== "string") throw new Error("shape");
+    return {
+      ready: value.version === "v24.20.0" && value.platform === "linux" && value.architecture === "arm64",
+      observed: { version: value.version, platform: value.platform, architecture: value.architecture },
+    };
+  } catch {
+    return { ready: false, observed: "not-a-supported-node-runtime" };
+  }
+};
+
 const runtimeCompatibility = (inputs: ReturnType<typeof resolveInputs>) => {
   const executable = pathReadiness(inputs.executable, true);
   const entrypoint = pathReadiness(inputs.entrypoint, false);
+  const runtimeProbe = executable.ready
+    ? probeRuntime(inputs.executable)
+    : { ready: false, observed: executable.observed };
+  const packaged = packagedRuntimeEntrypoints(inputs.entrypoint);
+  const parser = pathReadiness(packaged.parser, false);
+  const resident = pathReadiness(packaged.resident, false);
+  const observedRuntime = isObject(runtimeProbe.observed) ? runtimeProbe.observed : undefined;
   const checks = {
     runtime: { ...executable, path: inputs.executable },
     entrypoint: { ...entrypoint, path: inputs.entrypoint },
-    node: { ready: process.version === "v24.20.0", observed: process.version, required: "v24.20.0" },
-    platform: { ready: process.platform === "linux", observed: process.platform, required: "linux" },
-    architecture: { ready: process.arch === "arm64", observed: process.arch, required: "arm64" },
+    parser: { ...parser, path: packaged.parser },
+    resident: { ...resident, path: packaged.resident },
+    node: { ready: runtimeProbe.ready && observedRuntime?.version === "v24.20.0", observed: observedRuntime?.version ?? runtimeProbe.observed, required: "v24.20.0" },
+    platform: { ready: runtimeProbe.ready && observedRuntime?.platform === "linux", observed: observedRuntime?.platform ?? runtimeProbe.observed, required: "linux" },
+    architecture: { ready: runtimeProbe.ready && observedRuntime?.architecture === "arm64", observed: observedRuntime?.architecture ?? runtimeProbe.observed, required: "arm64" },
   };
   return {
     supported: Object.values(checks).every((check) => check.ready),
@@ -558,7 +603,7 @@ const makeInstallPlan = (request: InstallationRequest) => {
     hookFingerprint: fingerprint,
     owned: [
       ...(featureOwned
-        ? [{ file: inputs.paths.config, kind: "feature" as const, fingerprint: sha256("features.hooks=true") }]
+        ? [{ file: inputs.paths.config, kind: "feature" as const, fingerprint: HOOKS_FEATURE_FINGERPRINT }]
         : []),
       { file: inputs.paths.hooks, kind: "hook", fingerprint },
     ],
@@ -580,11 +625,19 @@ const makeUninstallPlan = (request: InstallationRequest) => {
   const config = snapshot(inputs.paths.config);
   const hooks = snapshot(inputs.paths.hooks);
   const ownership = snapshot(inputs.paths.ownership);
-  validateToml(config);
+  const parsedConfig = validateToml(config);
   const hookRoot = parseJsonObject(hooks);
   const nextHookRoot = removeOwnedHook(hookRoot, record.hookFingerprint);
   const nextHooks = encodeJson(nextHookRoot);
-  const featureWasOwned = record.owned.some((entry) => entry.kind === "feature" && entry.file === inputs.paths.config);
+  const ownedFeature = record.owned.find((entry) => entry.kind === "feature" && entry.file === inputs.paths.config);
+  const featureWasOwned = ownedFeature !== undefined;
+  if (featureWasOwned) {
+    const features = parsedConfig.features;
+    if (ownedFeature.fingerprint !== HOOKS_FEATURE_FINGERPRINT ||
+        !isObject(features) || features.hooks !== true) {
+      throw new Error("owned Codex feature value was locally modified; it was preserved");
+    }
+  }
   const unrelatedHooksRemain = markerCount(nextHookRoot) === 0 &&
     isObject(nextHookRoot.hooks) && Object.values(nextHookRoot.hooks).some((value) => Array.isArray(value) && value.length > 0);
   const nextConfig = featureWasOwned && !unrelatedHooksRemain
@@ -712,6 +765,13 @@ const validateJournalScope = (journal: Journal, inputs: ReturnType<typeof resolv
       new Set(journal.mutations.map((change) => change.path)).size !== journal.mutations.length) {
     throw new Error("recovery journal contains an unexpected or duplicate configuration target");
   }
+  if (journal.operation === "install" &&
+      !journal.mutations.some((change) => change.path === inputs.paths.config)) {
+    const config = validateToml(snapshot(inputs.paths.config));
+    if (!isObject(config.features) || config.features.hooks !== true) {
+      throw new Error("preexisting Codex hooks feature changed during recovery; the current config was preserved");
+    }
+  }
   for (const change of journal.mutations) {
     if (change.afterContent === null) continue;
     if (change.path === inputs.paths.config) {
@@ -753,6 +813,8 @@ const ownedChanges = (inputs: ReturnType<typeof resolveInputs>) => ({
   runtime: {
     executable: inputs.executable,
     entrypoint: inputs.entrypoint,
+    parserEntrypoint: packagedRuntimeEntrypoints(inputs.entrypoint).parser,
+    residentEntrypoint: packagedRuntimeEntrypoints(inputs.entrypoint).resident,
     nodeVersion: process.version,
     platform: process.platform,
     architecture: process.arch,
