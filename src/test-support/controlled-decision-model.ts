@@ -9,6 +9,11 @@ export type ControlledDecisionModelOptions = {
   readonly delayMs?: number;
   readonly failure?: string;
   readonly onRequest?: Effect.Effect<void>;
+  readonly inspectRequest?: (
+    request: DecisionModel.ProviderOptions,
+  ) => Effect.Effect<void>;
+  /** Injected after provider normalization to exercise consumer exact-key checks. */
+  readonly extraDecisionKey?: string;
   /** Test-only subprocess transcript path; never enabled by the live layer. */
   readonly capturePath?: string;
 };
@@ -45,17 +50,37 @@ export const controlledDecisionModelLayer = (
           options.delayMs === undefined || options.delayMs === 0
             ? result
             : result.pipe(Effect.delay(`${options.delayMs} millis`));
+        const capturePath = options.capturePath;
         const capture =
-          options.capturePath === undefined
+          capturePath === undefined
             ? Effect.succeed(undefined)
             : Effect.tryPromise({
-                try: () => appendFile(options.capturePath!, "called\n", "utf8"),
+                try: () => appendFile(capturePath, "called\n", "utf8"),
                 catch: () => new Error("capture unavailable"),
               }).pipe(Effect.catch(() => Effect.succeed(undefined)));
         return (options.onRequest ?? Effect.succeed(undefined)).pipe(
+          Effect.andThen(options.inspectRequest?.(request) ?? Effect.void),
           Effect.andThen(capture),
           Effect.andThen(delayed),
         );
       },
-    }),
+    }).pipe(
+      Effect.map((model) =>
+        options.extraDecisionKey === undefined
+          ? model
+          : DecisionModel.DecisionModel.of({
+              ...model,
+              decide: (definition, decideOptions) =>
+                model.decide(definition, decideOptions).pipe(
+                  Effect.map((response) => ({
+                    ...response,
+                    answers: {
+                      ...response.answers,
+                      [options.extraDecisionKey ?? "extra"]: { probability: 0 },
+                    },
+                  })),
+                ),
+            }),
+      ),
+    ),
   );

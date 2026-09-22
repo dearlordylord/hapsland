@@ -94,11 +94,19 @@ dispatches and does not claim to recall a request already sent.
 
 The product-owned JSON contract is documented in
 [`CODEX-ADAPTER-CONTRACT-v1.md`](./CODEX-ADAPTER-CONTRACT-v1.md). During development, a
-Codex command hook invokes `node /absolute/path/to/this/repo/src/cli.ts --codex-hook`;
-packaged installation belongs to a later phase. Live use reads `TYPESAFE_API_KEY` through
+Codex command hook invokes
+`node /absolute/path/to/this/repo/src/cli.ts --codex-hook --controlled-writer`.
+The second flag is an explicit operator assertion that the supported Add event is in the
+controlled-writer envelope; matching source reads alone never establish attribution.
+Without that assertion, supported Add input stays quiet rather than falling back to the
+superseded whole-file path. Packaged installation belongs to a later phase. Live use reads `TYPESAFE_API_KEY` through
 the Effect provider configuration. Run the paid integration checks only with explicit
 opt-in via `npm run test:live`. The reproducible 100-call milestone additionally requires
 `RUN_LIVE_JEV_BENCHMARK=1 npm run benchmark:live`.
+
+The initial direct-event capture profile is Linux-only. It binds the adapted working-tree
+device/inode to an open directory descriptor and traverses through `/proc/self/fd`; hosts
+without that facility are unsupported rather than falling back to path-only source reads.
 
 Headless activity inspection is documented in [`docs/status.md`](./docs/status.md). It
 uses an explicit host session ID and local source-free receipts; readiness and observed
