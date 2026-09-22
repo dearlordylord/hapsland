@@ -7,13 +7,23 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 
 const roots: Array<string> = [];
 const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
+const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
+const stableJson = (value: unknown): string => {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
+  if (typeof value === "object" && value !== null) {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${stableJson(record[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+};
 
 afterEach(() => {
   delete process.env.REVIEW_INSTALL_FAIL_AFTER_WRITES;
@@ -40,7 +50,7 @@ const localPackage = (root: string, version: string, residentProtocol = 1) => {
     version,
     type: "module",
   }, null, 2)}\n`);
-  writeFileSync(join(packageRoot, "package-runtime.json"), `${JSON.stringify({ residentProtocol }, null, 2)}\n`);
+  writeFileSync(join(packageRoot, "package-runtime.json"), `${JSON.stringify({ schemaVersion: 1, residentProtocol }, null, 2)}\n`);
   const entrypoint = join(dist, "cli.js");
   writeFileSync(entrypoint, [
     "import { appendFileSync } from 'node:fs';",
@@ -82,6 +92,29 @@ const previewAndInstall = (home: string, bin: string, env: NodeJS.ProcessEnv = p
   const digest = (preview.proposal as { digest: string }).digest;
   const installed = invoke({ operation: "install", codexHome: home, codexExecutable: bin, proposalDigest: digest }, env);
   return { preview, digest, installed };
+};
+
+const refreshJournalDigests = (journal: Record<string, unknown>, home: string) => {
+  const changes = journal.mutations as Array<Record<string, unknown>>;
+  for (const change of changes) {
+    const afterContent = change.afterContent;
+    change.afterDigest = afterContent === null
+      ? sha256("installation-v1:missing")
+      : sha256(`installation-v1:file\0${String(afterContent)}`);
+  }
+  journal.proposalDigest = sha256(stableJson({
+    version: 1,
+    operation: journal.operation,
+    adapter: "codex",
+    home,
+    changes: changes.map(({ path, beforeDigest, afterDigest, description }) => ({
+      path,
+      beforeDigest,
+      afterDigest,
+      description,
+    })),
+  }));
+  return String(journal.proposalDigest);
 };
 
 describe("public Codex installation operations", { timeout: 30_000 }, () => {
@@ -613,6 +646,154 @@ responses_websockets_v2 = true`);
     });
     expect(readFileSync(hooksPath, "utf8")).toBe(concurrentContent);
   });
+
+  it("rejects missing or malformed target package metadata before update mutation", () => {
+    for (const corruption of ["missing-runtime", "malformed-runtime", "missing-protocol", "missing-version"] as const) {
+      const { root, home, bin } = fixture();
+      const firstEntrypoint = localPackage(root, `1.0.0-${corruption}`);
+      const targetEntrypoint = localPackage(root, `1.1.0-${corruption}`);
+      previewAndInstall(home, bin, { ...process.env, REVIEW_INSTALL_ENTRYPOINT: firstEntrypoint });
+      const packageRoot = dirname(dirname(targetEntrypoint));
+      if (corruption === "missing-runtime") rmSync(join(packageRoot, "package-runtime.json"));
+      if (corruption === "malformed-runtime") writeFileSync(join(packageRoot, "package-runtime.json"), "{\n");
+      if (corruption === "missing-protocol") {
+        writeFileSync(join(packageRoot, "package-runtime.json"), '{"schemaVersion":1}\n');
+      }
+      if (corruption === "missing-version") writeFileSync(join(packageRoot, "package.json"), '{"type":"module"}\n');
+      const beforeHooks = readFileSync(join(home, "hooks.json"), "utf8");
+      const beforeOwnership = readFileSync(join(home, ".realtime-review-tool", "installation-v1.json"), "utf8");
+      const targetEnvironment = { ...process.env, REVIEW_INSTALL_ENTRYPOINT: targetEntrypoint };
+
+      for (const operation of ["update-preview", "update"] as const) {
+        const result = invoke({
+          operation,
+          codexHome: home,
+          codexExecutable: bin,
+          ...(operation === "update" ? { proposalDigest: "0".repeat(64) } : {}),
+        }, targetEnvironment);
+        expect(result).toMatchObject({
+          operation,
+          status: "conflict",
+          error: { code: "target_package_metadata_invalid" },
+          completed: [],
+        });
+      }
+      expect(readFileSync(join(home, "hooks.json"), "utf8")).toBe(beforeHooks);
+      expect(readFileSync(join(home, ".realtime-review-tool", "installation-v1.json"), "utf8")).toBe(beforeOwnership);
+      expect(existsSync(join(home, ".realtime-review-tool", "journal-v1.json"))).toBe(false);
+    }
+  });
+
+  it("rejects a self-consistent altered journal that would drop an unrelated hook", () => {
+    const { root, home, bin } = fixture();
+    const firstEntrypoint = localPackage(root, "1.0.0-tamper");
+    const targetEntrypoint = localPackage(root, "1.1.0-tamper");
+    const independent = { matcher: "^Read$", hooks: [{ type: "command", command: "keep-user-hook" }] };
+    writeFileSync(join(home, "hooks.json"), `${JSON.stringify({ hooks: { PostToolUse: [independent] } }, null, 2)}\n`);
+    previewAndInstall(home, bin, { ...process.env, REVIEW_INSTALL_ENTRYPOINT: firstEntrypoint });
+    const targetEnvironment = { ...process.env, REVIEW_INSTALL_ENTRYPOINT: targetEntrypoint };
+    const preview = invoke({ operation: "update-preview", codexHome: home, codexExecutable: bin }, targetEnvironment);
+    const originalDigest = (preview.proposal as { digest: string }).digest;
+    expect(invoke(
+      { operation: "update", codexHome: home, codexExecutable: bin, proposalDigest: originalDigest },
+      { ...targetEnvironment, REVIEW_INSTALL_FAIL_AFTER_WRITES: "1" },
+    ).status).toBe("partial");
+    const hooksPath = join(home, "hooks.json");
+    const beforeHooks = readFileSync(hooksPath, "utf8");
+    const journalPath = join(home, ".realtime-review-tool", "journal-v1.json");
+    const journal = JSON.parse(readFileSync(journalPath, "utf8")) as Record<string, unknown>;
+    const mutations = journal.mutations as Array<Record<string, unknown>>;
+    const hooksMutation = mutations.find((change) => change.path === hooksPath);
+    expect(hooksMutation).toBeDefined();
+    const altered = JSON.parse(String(hooksMutation?.afterContent)) as { hooks: { PostToolUse: Array<unknown> } };
+    altered.hooks.PostToolUse = altered.hooks.PostToolUse.filter((group) => JSON.stringify(group).includes("--review-tool-owned=codex-v1"));
+    if (hooksMutation !== undefined) hooksMutation.afterContent = `${JSON.stringify(altered, null, 2)}\n`;
+    const alteredDigest = refreshJournalDigests(journal, home);
+    writeFileSync(journalPath, `${JSON.stringify(journal, null, 2)}\n`);
+
+    const result = invoke(
+      { operation: "update", codexHome: home, codexExecutable: bin, proposalDigest: alteredDigest },
+      targetEnvironment,
+    );
+    expect(result).toMatchObject({
+      status: "partial",
+      error: { code: "recovery_conflict", message: expect.stringContaining("preserve the exact unrelated hook state") },
+    });
+    expect(readFileSync(hooksPath, "utf8")).toBe(beforeHooks);
+    expect(readFileSync(hooksPath, "utf8")).toContain("keep-user-hook");
+  });
+
+  it("binds recovery to the exact target package version", () => {
+    const { root, home, bin } = fixture();
+    const firstEntrypoint = localPackage(root, "1.0.0-binding");
+    const targetEntrypoint = localPackage(root, "1.1.0-binding");
+    previewAndInstall(home, bin, { ...process.env, REVIEW_INSTALL_ENTRYPOINT: firstEntrypoint });
+    const targetEnvironment = { ...process.env, REVIEW_INSTALL_ENTRYPOINT: targetEntrypoint };
+    const preview = invoke({ operation: "update-preview", codexHome: home, codexExecutable: bin }, targetEnvironment);
+    const digest = (preview.proposal as { digest: string }).digest;
+    expect(invoke(
+      { operation: "update", codexHome: home, codexExecutable: bin, proposalDigest: digest },
+      { ...targetEnvironment, REVIEW_INSTALL_FAIL_AFTER_WRITES: "1" },
+    ).status).toBe("partial");
+    writeFileSync(join(dirname(dirname(targetEntrypoint)), "package.json"), `${JSON.stringify({
+      name: "realtime-review-prototype",
+      version: "1.1.1-binding",
+      type: "module",
+    }, null, 2)}\n`);
+    const beforeHooks = readFileSync(join(home, "hooks.json"), "utf8");
+
+    const result = invoke(
+      { operation: "update", codexHome: home, codexExecutable: bin, proposalDigest: digest },
+      targetEnvironment,
+    );
+    expect(result).toMatchObject({
+      status: "partial",
+      error: { code: "recovery_conflict", message: expect.stringContaining("exact target package") },
+    });
+    expect(readFileSync(join(home, "hooks.json"), "utf8")).toBe(beforeHooks);
+  });
+
+  it("keeps a live old lock and reclaims it after the owning process is killed", async () => {
+    const { root, home, bin } = fixture();
+    const firstEntrypoint = localPackage(root, "1.0.0-killed-lock");
+    const targetEntrypoint = localPackage(root, "1.1.0-killed-lock");
+    previewAndInstall(home, bin, { ...process.env, REVIEW_INSTALL_ENTRYPOINT: firstEntrypoint });
+    const targetEnvironment = { ...process.env, REVIEW_INSTALL_ENTRYPOINT: targetEntrypoint };
+    const preview = invoke({ operation: "update-preview", codexHome: home, codexExecutable: bin }, targetEnvironment);
+    const digest = (preview.proposal as { digest: string }).digest;
+    expect(invoke(
+      { operation: "update", codexHome: home, codexExecutable: bin, proposalDigest: digest },
+      { ...targetEnvironment, REVIEW_INSTALL_FAIL_AFTER_WRITES: "1" },
+    ).status).toBe("partial");
+    const lockPath = join(home, ".realtime-review-tool", "installation.lock");
+    const owner = spawn(process.execPath, ["-e", [
+      "const fs=require('node:fs');",
+      "const crypto=require('node:crypto');",
+      "const path=process.argv[1];",
+      "fs.writeFileSync(path,JSON.stringify({version:1,pid:process.pid,createdAt:new Date(Date.now()-10000).toISOString(),owner:crypto.randomUUID()})+'\\n',{flag:'wx'});",
+      "process.stdout.write('ready\\n');",
+      "setInterval(()=>{},1000);",
+    ].join(""), lockPath], { stdio: ["ignore", "pipe", "inherit"] });
+    await new Promise<void>((resolveReady, reject) => {
+      owner.once("error", reject);
+      owner.stdout.once("data", () => resolveReady());
+    });
+    const liveResult = invoke(
+      { operation: "update", codexHome: home, codexExecutable: bin, proposalDigest: digest },
+      targetEnvironment,
+    );
+    expect(liveResult).toMatchObject({ status: "conflict", error: { message: expect.stringContaining("1500ms") } });
+    owner.kill("SIGKILL");
+    await new Promise<void>((resolveClosed) => owner.once("close", () => resolveClosed()));
+
+    const resumed = invoke(
+      { operation: "update", codexHome: home, codexExecutable: bin, proposalDigest: digest },
+      targetEnvironment,
+    );
+    expect(resumed).toMatchObject({ status: "updated", resumed: true });
+    expect(existsSync(lockPath)).toBe(false);
+    expect(existsSync(join(home, ".realtime-review-tool", "journal-v1.json"))).toBe(false);
+  }, 30_000);
 
   it("bounds lock acquisition and reports no mutation", () => {
     const { home, bin } = fixture();

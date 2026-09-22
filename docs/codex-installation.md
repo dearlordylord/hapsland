@@ -89,7 +89,9 @@ printf '%s\n' '{"version":1,"operation":"update","codexHome":"/absolute/codex-ho
 
 The preview names both package versions, runtime and entrypoint paths, resident protocol, the
 new owned hook, and the exact files that would change. Update accepts only a compatible resident
-protocol and changes only the ownership record and owned hook group. Repository grants,
+protocol and requires the target package to contain a nonempty package version plus valid,
+versioned runtime metadata; missing or malformed metadata is rejected before any mutation.
+Update changes only the ownership record and owned hook group. Repository grants,
 credentials, user rules, independent hooks, current source work and running resident processes
 remain untouched. A changed hook reports that Codex must be restarted after current work finishes
 and that native hook trust may need renewal; the updater does not edit trust state or stop a
@@ -98,8 +100,12 @@ process. A repeated update returns `already-current`.
 The ownership-record write precedes the hook replacement, so a failure after the first update
 step leaves the previous hook working. Every `partial` update result includes a structured
 `recovery.command` with the original digest. Rerun that exact request from the same target package.
-Recovery validates completed and pending files and preserves concurrent user edits rather than
-restoring an old whole-file snapshot. A later uninstall uses the updated fingerprint normally.
+Recovery binds the exact target package version, executable, entrypoint, and resident protocol.
+It treats the journal as untrusted input: the operation reproduces every recorded transformation
+from its recorded original content and cross-checks the before, after, and proposal digests before
+continuing. Completed and pending files are then validated against current state, preserving
+concurrent user edits rather than restoring an old whole-file snapshot. A later uninstall uses
+the updated fingerprint normally.
 
 The first uninstall call is a preview. Repeat it with its `proposalDigest` to remove only the
 owned hook and ownership record. Uninstall preserves repository grants, credentials, user rules,
@@ -116,7 +122,9 @@ rejects malformed or unreadable files, duplicate owned markers, explicit hook di
 locally changed owned entries. TOML edits locate parsed table/key spans, including quoted table
 names, and ignore table-like text inside multiline strings; the resulting TOML and hooks semantic
 state are parsed again before writing. It uses a bounded 1.5-second configuration lock, digest-based
-concurrent-change checks, atomic per-file replacement, and a versioned journal. A `partial`
+concurrent-change checks, atomic per-file replacement, and a versioned journal. A well-formed lock
+whose recorded process is dead can be reclaimed only after a bounded stale interval; live,
+recent, or malformed locks remain conflicts. A `partial`
 result includes the original proposal digest and completed-file count. Rerun the same operation
 with that digest to resume. Recovery revalidates the runtime, journal targets, completed outputs,
 pending prerequisites, preexisting `features.hooks = true` state, and generated configuration.

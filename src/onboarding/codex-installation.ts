@@ -5,6 +5,7 @@ import {
   closeSync,
   constants,
   existsSync,
+  linkSync,
   mkdirSync,
   openSync,
   readFileSync,
@@ -38,6 +39,8 @@ class ResidentProtocolIncompatible extends Error {
   }
 }
 
+class TargetPackageMetadataInvalid extends Error {}
+
 export interface InstallationRequest {
   readonly codexHome?: string;
   readonly proposalDigest?: string;
@@ -54,6 +57,7 @@ interface FileSnapshot {
 interface Mutation {
   readonly path: string;
   readonly beforeDigest: string;
+  readonly beforeContent: string | null;
   readonly afterDigest: string;
   readonly afterContent: string | null;
   readonly description: string;
@@ -447,6 +451,7 @@ const encodeJson = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
 const mutation = (file: FileSnapshot, afterContent: string | null, description: string): Mutation => ({
   path: file.path,
   beforeDigest: file.digest,
+  beforeContent: file.exists ? file.content : null,
   afterDigest: afterContent === null ? missingDigest : digestSnapshot(true, afterContent),
   afterContent,
   description,
@@ -583,23 +588,45 @@ const resolveInputs = (request: InstallationRequest) => {
   }
   const codexExecutable = request.codexExecutable ?? "codex";
   const packageRoot = resolve(dirname(entrypoint), "..");
-  let packageVersion = "development";
-  let residentProtocol = 1;
+  let packageVersion: string | undefined;
+  let residentProtocol: number | undefined;
+  let packageMetadataError: string | undefined;
   try {
     const manifest: unknown = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
-    if (isObject(manifest) && typeof manifest.version === "string" && manifest.version.length > 0) {
-      packageVersion = manifest.version;
+    if (!isObject(manifest) || typeof manifest.version !== "string" || manifest.version.length === 0) {
+      throw new Error("package.json must declare a nonempty version");
     }
+    packageVersion = manifest.version;
     const declaration: unknown = JSON.parse(readFileSync(join(packageRoot, "package-runtime.json"), "utf8"));
-    if (isObject(declaration) && typeof declaration.residentProtocol === "number" &&
-        Number.isSafeInteger(declaration.residentProtocol) && declaration.residentProtocol > 0) {
-      residentProtocol = declaration.residentProtocol;
+    if (!isObject(declaration) || declaration.schemaVersion !== 1 ||
+        typeof declaration.residentProtocol !== "number" || !Number.isSafeInteger(declaration.residentProtocol) ||
+        declaration.residentProtocol <= 0) {
+      throw new Error("package-runtime.json must declare schemaVersion 1 and a positive residentProtocol");
     }
-  } catch {
-    // Source-checkout and focused installer fixtures may not have packaged metadata
-    // adjacent to their synthetic entrypoint. The production package always does.
+    residentProtocol = declaration.residentProtocol;
+  } catch (cause) {
+    packageMetadataError = cause instanceof Error ? cause.message : "package metadata is unreadable";
   }
-  return { home, executable, entrypoint, codexExecutable, packageVersion, residentProtocol, paths: pathsFor(home) };
+  return {
+    home,
+    executable,
+    entrypoint,
+    codexExecutable,
+    packageVersion: packageVersion ?? "development",
+    residentProtocol: residentProtocol ?? 1,
+    packageMetadata: packageMetadataError === undefined
+      ? { ready: true as const }
+      : { ready: false as const, reason: packageMetadataError },
+    paths: pathsFor(home),
+  };
+};
+
+const requireTargetPackageMetadata = (inputs: ReturnType<typeof resolveInputs>) => {
+  if (!inputs.packageMetadata.ready) {
+    throw new TargetPackageMetadataInvalid(
+      `target package metadata is missing or malformed: ${inputs.packageMetadata.reason}`,
+    );
+  }
 };
 
 const makeOwnershipRecord = (
@@ -669,6 +696,7 @@ const makeInstallPlan = (request: InstallationRequest) => {
 
 const makeUpdatePlan = (request: InstallationRequest) => {
   const inputs = resolveInputs(request);
+  requireTargetPackageMetadata(inputs);
   const record = readOwnership(inputs.paths.ownership);
   if (record === undefined) throw new Error("no owned Codex installation exists; run install first");
   if (record.codexHome !== inputs.home) throw new Error("ownership record targets another Codex home");
@@ -776,6 +804,20 @@ const protocolConflictResult = (
   pending: ["choose a target package with a compatible resident protocol or finish current work before a separately supported migration"],
 });
 
+const packageMetadataConflictResult = (
+  operation: "update-preview" | "update",
+  cause: TargetPackageMetadataInvalid,
+  home: string,
+) => ({
+  version: RESULT_VERSION,
+  operation,
+  status: "conflict",
+  host: { adapter: "codex", home },
+  error: { code: "target_package_metadata_invalid", message: cause.message },
+  completed: [],
+  pending: ["use a packaged target with a declared package version and version-1 runtime metadata"],
+});
+
 const readJournal = (path: string): Journal | undefined => {
   if (!existsSync(path)) return undefined;
   try {
@@ -787,11 +829,13 @@ const readJournal = (path: string): Journal | undefined => {
     }
     const mutations = value.mutations.map((change) => {
       if (!isObject(change) || typeof change.path !== "string" || typeof change.beforeDigest !== "string" ||
+          (typeof change.beforeContent !== "string" && change.beforeContent !== null) ||
           typeof change.afterDigest !== "string" || (typeof change.afterContent !== "string" && change.afterContent !== null) ||
           typeof change.description !== "string") throw new Error("mutation shape");
       return {
         path: change.path,
         beforeDigest: change.beforeDigest,
+        beforeContent: change.beforeContent,
         afterDigest: change.afterDigest,
         afterContent: change.afterContent,
         description: change.description,
@@ -817,16 +861,82 @@ const readJournal = (path: string): Journal | undefined => {
 
 const sleep = (milliseconds: number) => new Promise((resolvePromise) => setTimeout(resolvePromise, milliseconds));
 
+const LOCK_STALE_MS = 5_000;
+
+interface LockRecord {
+  readonly version: 1;
+  readonly pid: number;
+  readonly createdAt: string;
+  readonly owner: string;
+}
+
+const decodeLockRecord = (content: string): LockRecord | undefined => {
+  try {
+    const value: unknown = JSON.parse(content);
+    if (!isObject(value) || value.version !== 1 || typeof value.pid !== "number" ||
+        !Number.isSafeInteger(value.pid) || value.pid <= 0 || typeof value.createdAt !== "string" ||
+        !Number.isFinite(Date.parse(value.createdAt)) || typeof value.owner !== "string" ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value.owner)) {
+      return undefined;
+    }
+    return { version: 1, pid: value.pid, createdAt: value.createdAt, owner: value.owner };
+  } catch {
+    return undefined;
+  }
+};
+
+const processIsAlive = (pid: number) => {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (cause) {
+    return !isNodeError(cause, "ESRCH");
+  }
+};
+
+const reclaimStaleLock = (path: string): boolean => {
+  let content: string;
+  try {
+    content = readFileSync(path, "utf8");
+  } catch (cause) {
+    if (isNodeError(cause, "ENOENT")) return true;
+    return false;
+  }
+  const record = decodeLockRecord(content);
+  if (record === undefined || Date.now() - Date.parse(record.createdAt) < LOCK_STALE_MS ||
+      processIsAlive(record.pid)) return false;
+  const quarantine = `${path}.${process.pid}.${randomUUID()}.stale`;
+  try {
+    renameSync(path, quarantine);
+  } catch (cause) {
+    return isNodeError(cause, "ENOENT");
+  }
+  const moved = readFileSync(quarantine, "utf8");
+  if (digestSnapshot(true, moved) !== digestSnapshot(true, content)) {
+    try {
+      linkSync(quarantine, path);
+      atomicRemove(quarantine);
+    } catch {
+      // Retain the quarantined evidence when the lock cannot be restored safely.
+    }
+    throw new Error("configuration lock changed during stale-owner recovery");
+  }
+  atomicRemove(quarantine);
+  return true;
+};
+
 const withLock = async <A>(path: string, use: () => Promise<A>): Promise<A> => {
   mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
   const deadline = Date.now() + 1_500;
   let descriptor: number | undefined;
+  const owner = randomUUID();
   while (descriptor === undefined) {
     try {
       descriptor = openSync(path, "wx", 0o600);
-      writeFileSync(descriptor, `${JSON.stringify({ version: 1, pid: process.pid, createdAt: new Date().toISOString() })}\n`);
+      writeFileSync(descriptor, `${JSON.stringify({ version: 1, pid: process.pid, createdAt: new Date().toISOString(), owner })}\n`);
     } catch (cause) {
       if (!isNodeError(cause, "EEXIST")) throw cause;
+      if (reclaimStaleLock(path)) continue;
       if (Date.now() >= deadline) throw new Error("configuration lock remained busy for 1500ms");
       await sleep(25);
     }
@@ -835,7 +945,12 @@ const withLock = async <A>(path: string, use: () => Promise<A>): Promise<A> => {
     return await use();
   } finally {
     closeSync(descriptor);
-    atomicRemove(path);
+    try {
+      const current = decodeLockRecord(readFileSync(path, "utf8"));
+      if (current?.owner === owner && current.pid === process.pid) atomicRemove(path);
+    } catch (cause) {
+      if (!isNodeError(cause, "ENOENT")) throw cause;
+    }
   }
 };
 
@@ -875,12 +990,155 @@ const applyJournal = (journalPath: string, journal: Journal) => {
   atomicRemove(journalPath);
 };
 
+const mutationBeforeFile = (change: Mutation): FileSnapshot => ({
+  path: change.path,
+  exists: change.beforeContent !== null,
+  content: change.beforeContent ?? "",
+  digest: change.beforeDigest,
+});
+
+const decodedOwnershipContent = (content: string | null) => {
+  if (content === null) return undefined;
+  try {
+    const value: unknown = JSON.parse(content);
+    return isObject(value) ? value : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof resolveInputs>) => {
+  if (new Set(journal.completed).size !== journal.completed.length) {
+    throw new Error("recovery journal repeats a completed step");
+  }
+  for (let index = 0; index < journal.mutations.length; index += 1) {
+    const change = journal.mutations[index];
+    if (change === undefined) continue;
+    const recomputedBefore = change.beforeContent === null
+      ? missingDigest
+      : digestSnapshot(true, change.beforeContent);
+    const recomputedAfter = change.afterContent === null
+      ? missingDigest
+      : digestSnapshot(true, change.afterContent);
+    if (change.beforeDigest !== recomputedBefore || change.afterDigest !== recomputedAfter) {
+      throw new Error("recovery journal content does not match its recorded file digests");
+    }
+    const current = snapshot(change.path);
+    if (journal.completed.includes(index)) {
+      if (current.digest !== change.afterDigest) {
+        throw new Error(`completed journal step changed for ${change.path}; the unrelated edit was preserved`);
+      }
+    } else if (current.digest !== change.beforeDigest && current.digest !== change.afterDigest) {
+      throw new Error(`concurrent change detected for ${change.path}; no stale content was restored`);
+    }
+  }
+  if (installationDigest(journal.operation, inputs.home, journal.mutations) !== journal.proposalDigest) {
+    throw new Error("recovery journal proposal digest does not match its declared changes");
+  }
+
+  const byPath = new Map(journal.mutations.map((change) => [change.path, change]));
+  const configChange = byPath.get(inputs.paths.config);
+  const hooksChange = byPath.get(inputs.paths.hooks);
+  const ownershipChange = byPath.get(inputs.paths.ownership);
+  const targetGroup = ownedGroup(inputs.executable, inputs.entrypoint);
+  const targetFingerprint = hookFingerprint(targetGroup);
+  const priorOwnership = decodedOwnershipContent(ownershipChange?.beforeContent ?? null);
+  const priorOwned = Array.isArray(priorOwnership?.owned) ? priorOwnership.owned : [];
+  const priorFeatureOwned = priorOwned.some((entry) =>
+    isObject(entry) && entry.kind === "feature" && entry.file === inputs.paths.config &&
+    entry.fingerprint === HOOKS_FEATURE_FINGERPRINT
+  );
+
+  if (journal.operation === "update") {
+    if (configChange !== undefined || ownershipChange === undefined || journal.mutations[0]?.path !== inputs.paths.ownership ||
+        ownershipChange.description !== "record the target packaged runtime" ||
+        (hooksChange !== undefined && hooksChange.description !== "replace only the owned PostToolUse adapter hook")) {
+      throw new Error("recovery journal is not an exact owned update plan");
+    }
+    const expectedOwnership = encodeJson(makeOwnershipRecord(inputs, targetFingerprint, priorFeatureOwned));
+    if (ownershipChange.afterContent !== expectedOwnership) {
+      throw new Error("recovery journal ownership does not match the exact target package");
+    }
+    if (hooksChange !== undefined) {
+      const beforeRoot = parseJsonObject(mutationBeforeFile(hooksChange));
+      const expectedHooks = encodeJson(replaceOwnedHook(beforeRoot, targetGroup));
+      if (hooksChange.afterContent !== expectedHooks) {
+        throw new Error("recovery journal hook change does not preserve the exact unrelated hook state");
+      }
+    } else {
+      const currentRoot = parseJsonObject(snapshot(inputs.paths.hooks));
+      const currentGroup = postToolUseGroups(currentRoot).find((candidate) => markerCount(candidate) > 0);
+      if (markerCount(currentRoot) !== 1 || stableJson(currentGroup) !== stableJson(targetGroup)) {
+        throw new Error("recovery journal does not bind the exact target owned hook");
+      }
+    }
+    return;
+  }
+
+  if (journal.operation === "install") {
+    if (ownershipChange === undefined) {
+      throw new Error("recovery journal install plan is missing its owned installation record");
+    }
+    if (configChange !== undefined) {
+      if (configChange.description !== "enable Codex's native hooks feature" ||
+          configChange.afterContent !== enableHooksFeature(mutationBeforeFile(configChange))) {
+        throw new Error("recovery journal contains an unexpected Codex feature change");
+      }
+    }
+    if (hooksChange !== undefined) {
+      const beforeRoot = parseJsonObject(mutationBeforeFile(hooksChange));
+      const expectedRoot = markerCount(beforeRoot) === 0
+        ? addOwnedHook(beforeRoot, targetGroup)
+        : replaceOwnedHook(beforeRoot, targetGroup);
+      if (hooksChange.description !== "append the owned PostToolUse adapter hook" ||
+          hooksChange.afterContent !== encodeJson(expectedRoot)) {
+        throw new Error("recovery journal install hook does not preserve unrelated hooks");
+      }
+    } else {
+      const currentRoot = parseJsonObject(snapshot(inputs.paths.hooks));
+      const currentGroup = postToolUseGroups(currentRoot).find((candidate) => markerCount(candidate) > 0);
+      if (markerCount(currentRoot) !== 1 || stableJson(currentGroup) !== stableJson(targetGroup)) {
+        throw new Error("recovery journal install plan does not bind the exact owned hook");
+      }
+    }
+    const featureOwned = priorFeatureOwned || configChange !== undefined;
+    if (ownershipChange.description !== "write the versioned ownership record" ||
+        ownershipChange.afterContent !== encodeJson(makeOwnershipRecord(inputs, targetFingerprint, featureOwned))) {
+      throw new Error("recovery journal contains an unexpected installation ownership record");
+    }
+    return;
+  }
+
+  if (ownershipChange === undefined || ownershipChange.afterContent !== null ||
+      ownershipChange.description !== "remove the versioned ownership record") {
+    throw new Error("recovery journal does not contain the exact owned uninstall record removal");
+  }
+  const installedFingerprint = typeof priorOwnership?.hookFingerprint === "string"
+    ? priorOwnership.hookFingerprint
+    : undefined;
+  if (hooksChange !== undefined) {
+    if (installedFingerprint === undefined || hooksChange.description !== "remove only the owned PostToolUse adapter hook" ||
+        hooksChange.afterContent !== encodeJson(removeOwnedHook(
+          parseJsonObject(mutationBeforeFile(hooksChange)),
+          installedFingerprint,
+        ))) {
+      throw new Error("recovery journal uninstall hook does not preserve unrelated hooks");
+    }
+  }
+  if (configChange !== undefined &&
+      (configChange.description !== "remove the owned Codex hooks feature entry" ||
+       configChange.afterContent !== disableOwnedFeature(configChange.beforeContent ?? ""))) {
+    throw new Error("recovery journal contains an unexpected Codex feature removal");
+  }
+};
+
 const validateJournalScope = (journal: Journal, inputs: ReturnType<typeof resolveInputs>) => {
   const allowed = new Set([inputs.paths.config, inputs.paths.hooks, inputs.paths.ownership]);
   if (journal.mutations.some((change) => !allowed.has(change.path)) ||
       new Set(journal.mutations.map((change) => change.path)).size !== journal.mutations.length) {
     throw new Error("recovery journal contains an unexpected or duplicate configuration target");
   }
+  validateJournalIntegrity(journal, inputs);
   if (journal.operation === "install" &&
       !journal.mutations.some((change) => change.path === inputs.paths.config)) {
     const config = validateToml(snapshot(inputs.paths.config));
@@ -917,7 +1175,8 @@ const validateJournalScope = (journal: Journal, inputs: ReturnType<typeof resolv
       }
       if (!isObject(decoded) || decoded.version !== 1 || decoded.adapter !== "codex" ||
           decoded.executable !== inputs.executable || decoded.entrypoint !== inputs.entrypoint ||
-          (journal.operation === "update" && decoded.residentProtocol !== inputs.residentProtocol)) {
+          (journal.operation === "update" &&
+            (decoded.residentProtocol !== inputs.residentProtocol || decoded.packageVersion !== inputs.packageVersion))) {
         throw new Error("recovery journal ownership does not match the current packaged runtime");
       }
     }
@@ -1109,6 +1368,7 @@ export const previewCodexUpdate = (request: InstallationRequest): InstallationRe
   const home = resolveInputs(request).home;
   try {
     const inputs = resolveInputs(request);
+    requireTargetPackageMetadata(inputs);
     const host = compatibility(inputs);
     if (!host.supported) return unsupportedResult("update-preview", inputs, host);
     const pendingJournal = readJournal(inputs.paths.journal);
@@ -1178,6 +1438,9 @@ export const previewCodexUpdate = (request: InstallationRequest): InstallationRe
       pending: plan.alreadyCurrent ? [] : ["update using this proposal digest", "restart Codex after current work completes"],
     };
   } catch (cause) {
+    if (cause instanceof TargetPackageMetadataInvalid) {
+      return packageMetadataConflictResult("update-preview", cause, home);
+    }
     if (cause instanceof ResidentProtocolIncompatible) {
       return protocolConflictResult("update-preview", cause, home);
     }
@@ -1187,6 +1450,14 @@ export const previewCodexUpdate = (request: InstallationRequest): InstallationRe
 
 export const updateCodexIntegration = async (request: InstallationRequest): Promise<InstallationResult> => {
   const inputs = resolveInputs(request);
+  try {
+    requireTargetPackageMetadata(inputs);
+  } catch (cause) {
+    if (cause instanceof TargetPackageMetadataInvalid) {
+      return packageMetadataConflictResult("update", cause, inputs.home);
+    }
+    return conflictResult("update", "target package metadata validation failed", inputs.home);
+  }
   const initialCompatibility = compatibility(inputs);
   if (!initialCompatibility.supported) return unsupportedResult("update", inputs, initialCompatibility);
   try {

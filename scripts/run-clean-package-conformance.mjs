@@ -13,6 +13,7 @@ const run = (command, args, options = {}) => new Promise((resolveRun, reject) =>
   const child = spawn(command, args, {
     cwd: options.cwd,
     env: options.env ?? process.env,
+    shell: options.shell ?? false,
     stdio: [options.input === undefined ? "ignore" : "pipe", "pipe", "pipe"],
   });
   let stdout = "";
@@ -76,6 +77,30 @@ const installLocalPackageVariant = async ({
     tarball,
     cli: join(installation, "node_modules", ".bin", "review-tool"),
   };
+};
+
+const runInstalledHooks = async (codexHome, event, options) => {
+  const configuration = parseJson(await readFile(join(codexHome, "hooks.json"), "utf8"), "installed hooks configuration");
+  const groups = configuration.hooks?.PostToolUse;
+  if (!Array.isArray(groups)) throw new Error("installed PostToolUse hooks are unavailable");
+  const outputs = [];
+  for (const group of groups) {
+    if (typeof group.matcher !== "string" || !new RegExp(group.matcher).test(event.tool_name)) continue;
+    if (!Array.isArray(group.hooks)) throw new Error("installed hook group is malformed");
+    for (const handler of group.hooks) {
+      if (handler?.type !== "command" || typeof handler.command !== "string") {
+        throw new Error("installed command hook is malformed");
+      }
+      const result = await mustRun(handler.command, [], {
+        cwd: options.cwd,
+        env: options.env,
+        input: JSON.stringify(event),
+        shell: true,
+      });
+      if (result.stdout.trim().length > 0) outputs.push(parseJson(result.stdout, "installed hook output"));
+    }
+  }
+  return outputs;
 };
 
 class TerminalScreen {
@@ -544,14 +569,6 @@ try {
   if (JSON.stringify(await snapshotJsonDirectory(state)) !== JSON.stringify(consentBeforeUpdate)) {
     throw new Error("local package update changed repository consent state");
   }
-  await mustRun(process.execPath, [independentHook], {
-    cwd: temporary,
-    env: { ...env, INDEPENDENT_HOOK_LOG: independentLog },
-  });
-  const independentObservationsAfterUpdate = jsonLines(await readFile(independentLog, "utf8")).length;
-  if (independentObservationsAfterUpdate !== 1) {
-    throw new Error("independent hook was not effective after the local package update");
-  }
   const source = "export interface Delivery { id: string; destination: string }\n";
   await writeFile(join(repository, "profile.ts"), source, { mode: 0o600 });
   const addEvent = {
@@ -560,7 +577,8 @@ try {
     tool_input: { command: `*** Begin Patch\n*** Add File: profile.ts\n+${source.trim()}\n*** End Patch` }, tool_response: {},
   };
   progress("capture-and-resident-review");
-  await mustRun(activeCli, ["--codex-hook", "--controlled", "--controlled-writer"], { cwd: temporary, env, input: JSON.stringify(addEvent) });
+  const installedHostEnvironment = { ...env, INDEPENDENT_HOOK_LOG: independentLog };
+  await runInstalledHooks(codexHome, addEvent, { cwd: temporary, env: installedHostEnvironment });
   const ownerAfterAdmission = await readFile(join(runtime, "owner.json"), "utf8").catch(() => undefined);
   if (ownerAfterAdmission === undefined) {
     const diagnostic = await readFile(join(runtime, "owner.lock.startup-error"), "utf8").catch(() => "no resident diagnostic was produced");
@@ -569,10 +587,13 @@ try {
   let hookOutput = {};
   for (let attempt = 0; attempt < 20; attempt += 1) {
     await new Promise((resolveWait) => setTimeout(resolveWait, 50));
-    const collect = await mustRun(activeCli, ["--codex-hook", "--controlled", "--controlled-writer"], {
-      cwd: temporary, env, input: JSON.stringify({ ...addEvent, tool_name: "Bash", tool_use_id: `package-collect-${attempt}`, tool_input: { command: "printf package-ready" } }),
-    });
-    hookOutput = parseJson(collect.stdout, "packaged hook output");
+    const outputs = await runInstalledHooks(codexHome, {
+      ...addEvent,
+      tool_name: "Bash",
+      tool_use_id: `package-collect-${attempt}`,
+      tool_input: { command: "printf package-ready" },
+    }, { cwd: temporary, env: installedHostEnvironment });
+    hookOutput = outputs.find((output) => output.hookSpecificOutput !== undefined) ?? {};
     if (hookOutput.hookSpecificOutput?.additionalContext !== undefined) break;
   }
   let submissions = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
@@ -645,20 +666,20 @@ try {
       activityStatus.activity?.modelReaction?.status !== "unavailable") {
     throw new Error("packaged status did not distinguish submission from unavailable model-reaction evidence");
   }
+  const independentObservationsAfterUpdate = jsonLines(await readFile(independentLog, "utf8")).length;
+  if (independentObservationsAfterUpdate < 2) {
+    throw new Error("independent hook was not observed through the updated installed host configuration");
+  }
   const disabledRun = await mustRun(activeCli, ["--disable"], {
     cwd: temporary, env, input: JSON.stringify({ version: 1, operation: "disable", cwd: repository }),
   });
   if (parseJson(disabledRun.stdout, "disable result").status !== "disabled") throw new Error("packaged disable did not revoke repository dispatch");
   await writeFile(join(repository, "disabled.ts"), "export interface Disabled { id: string }\n", { mode: 0o600 });
-  await mustRun(activeCli, ["--codex-hook", "--controlled", "--controlled-writer"], {
-    cwd: temporary,
-    env,
-    input: JSON.stringify({
+  await runInstalledHooks(codexHome, {
       ...addEvent,
       tool_use_id: "package-disabled",
       tool_input: { command: "*** Begin Patch\n*** Add File: disabled.ts\n+export interface Disabled { id: string }\n*** End Patch" },
-    }),
-  });
+    }, { cwd: temporary, env: installedHostEnvironment });
   await new Promise((resolveWait) => setTimeout(resolveWait, 100));
   const submissionsAfterDisable = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
   if (submissionsAfterDisable !== submissions) throw new Error("disabled repository dispatched a provider request");
