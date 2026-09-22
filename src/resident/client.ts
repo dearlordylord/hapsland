@@ -131,7 +131,7 @@ const launchResident = (paths: ResidentPaths, _timeoutMs: number) => {
   const source = fileURLToPath(new URL("./main.ts", import.meta.url));
   const main = import.meta.url.endsWith(".js") && existsSync(compiled) ? compiled : source;
   const diagnostic = `${paths.lock}.startup-error`;
-  const diagnosticDescriptor = openSync(diagnostic, "w", 0o600);
+  const diagnosticDescriptor = openSync(diagnostic, "a", 0o600);
   const child = spawn(process.execPath, [main, paths.directory], {
     detached: true,
     stdio: ["ignore", "ignore", diagnosticDescriptor],
