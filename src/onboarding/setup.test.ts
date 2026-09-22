@@ -43,9 +43,10 @@ const fixture = () => {
 type SetupOutput = {
   readonly status: string;
   readonly providerCalls: number;
-  readonly stages: ReadonlyArray<{ readonly stage: string; readonly status: string; readonly summary: string }>;
+  readonly stages: ReadonlyArray<{ readonly stage: string; readonly status: string; readonly summary: string; readonly observed?: unknown }>;
   readonly actions: ReadonlyArray<{
     readonly code: string;
+    readonly action: string;
     readonly authorization?: { readonly installProposalDigest?: string; readonly consentProposalDigest?: string };
   }>;
 };
@@ -95,6 +96,94 @@ const authorization = (output: SetupOutput) => ({
     ?.authorization?.consentProposalDigest,
 });
 
+const enableConsent = (test: ReturnType<typeof fixture>) => {
+  const entrypoint = setupEntrypoint();
+  const preview = spawnSync(process.execPath, [entrypoint, "--enable"], {
+    cwd: test.repository,
+    env: test.environment,
+    input: JSON.stringify({ version: 1, operation: "enable", cwd: test.repository }),
+    encoding: "utf8",
+  });
+  expect(preview.status).toBe(0);
+  const digest = (JSON.parse(preview.stdout) as { proposal: { digest: string } }).proposal.digest;
+  const confirmed = spawnSync(process.execPath, [entrypoint, "--enable-confirm"], {
+    cwd: test.repository,
+    env: test.environment,
+    input: JSON.stringify({ version: 1, operation: "enable-confirm", cwd: test.repository, proposalDigest: digest }),
+    encoding: "utf8",
+  });
+  expect(confirmed.status).toBe(0);
+};
+
+const installDisabled = (test: ReturnType<typeof fixture>) => {
+  const request = { scope: { cwd: test.repository, review: "disabled" }, credential: "skip" };
+  const preview = invoke(test, request);
+  const installProposalDigest = authorization(preview).installProposalDigest;
+  const completed = invoke(test, { ...request, installProposalDigest });
+  expect(completed.status).toBe("completed");
+};
+
+const credentialHelper = (test: ReturnType<typeof fixture>, setStatus: string) => {
+  const helper = join(test.root, `credential-${setStatus}.mjs`);
+  writeFileSync(helper, `#!/usr/bin/env node
+const operation = process.argv[2];
+if (operation === "get") console.log('{"status":"missing"}');
+else if (operation === "set") { for await (const chunk of process.stdin) void chunk; console.log(JSON.stringify({status:${JSON.stringify(setStatus)}})); }
+else if (operation === "probe") console.log('{"status":"available"}');
+`);
+  chmodSync(helper, 0o700);
+  return helper;
+};
+
+const invokeMaskedSetup = async (
+  test: ReturnType<typeof fixture>,
+  environment: NodeJS.ProcessEnv,
+  credential: string,
+) => {
+  const requestPath = join(test.root, `masked-${credential.length}-${Date.now()}.json`);
+  writeFileSync(requestPath, JSON.stringify({
+    version: 1,
+    operation: "setup",
+    host: "codex",
+    scope: { cwd: test.repository, review: "enabled" },
+    credential: "saved",
+    codexHome: test.codexHome,
+    codexExecutable: test.codexExecutable,
+    interactive: true,
+  }));
+  const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
+  const command = `${quote(process.execPath)} ${quote(setupEntrypoint())} --setup < ${quote(requestPath)}`;
+  const child = spawn("script", ["-qfec", command, "/dev/null"], {
+    cwd: test.repository,
+    env: environment,
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  let output = "";
+  let supplied = false;
+  child.stdout.on("data", (chunk: Buffer) => {
+    output += chunk.toString("utf8");
+    if (!supplied && output.includes("Jev API key:")) {
+      supplied = true;
+      child.stdin.write(`${credential}\n`);
+    }
+  });
+  child.stderr.on("data", (chunk: Buffer) => { output += chunk.toString("utf8"); });
+  const exit = await new Promise<number | null>((resolveExit, rejectExit) => {
+    const timeout = setTimeout(() => {
+      child.kill("SIGKILL");
+      rejectExit(new Error(`interactive setup timed out: ${output}`));
+    }, 5_000);
+    child.once("exit", (code) => { clearTimeout(timeout); resolveExit(code); });
+    child.once("error", rejectExit);
+  });
+  expect(exit).toBe(6);
+  expect(supplied).toBe(true);
+  if (credential.length > 0) expect(output).not.toContain(credential);
+  const encoded = output.split(/\r?\n/).find((line) => line.startsWith('{"version":1,"operation":"setup"'));
+  if (encoded === undefined) throw new Error(`setup JSON was not emitted: ${output}`);
+  return JSON.parse(encoded) as SetupOutput;
+};
+
 describe("public resumable setup operation", { timeout: 30_000 }, () => {
   it("installs and enables from exact approvals, then reuses completed steps without duplicate hooks or consent", () => {
     const test = fixture();
@@ -110,6 +199,24 @@ describe("public resumable setup operation", { timeout: 30_000 }, () => {
     const approvals = authorization(preview);
     expect(approvals.installProposalDigest).toMatch(/^[a-f0-9]{64}$/);
     expect(approvals.consentProposalDigest).toMatch(/^[a-f0-9]{64}$/);
+    const installationStage = preview.stages.find((stage) => stage.stage === "installation");
+    expect(installationStage?.observed).toMatchObject({
+      proposal: {
+        digest: approvals.installProposalDigest,
+        changes: expect.arrayContaining([
+          expect.objectContaining({ file: expect.any(String), beforeDigest: expect.any(String), afterDigest: expect.any(String) }),
+        ]),
+        ownedChanges: {
+          runtime: { executable: expect.any(String), entrypoint: expect.any(String) },
+          hook: {
+            file: join(test.codexHome, "hooks.json"),
+            matcher: "^(apply_patch|Edit|Write|Bash)$",
+            handlers: [expect.objectContaining({ command: expect.any(String), timeout: 10 })],
+          },
+          ownership: { file: join(test.codexHome, ".realtime-review-tool", "installation-v1.json") },
+        },
+      },
+    });
 
     const installed = invoke(test, approvals);
     expect(installed.status).toBe("needs-user-action");
@@ -157,6 +264,50 @@ describe("public resumable setup operation", { timeout: 30_000 }, () => {
       expect.objectContaining({ stage: "repository", status: "complete" }),
     ]));
     expect(existsSync(join(test.codexHome, ".realtime-review-tool", "journal-v1.json"))).toBe(false);
+  });
+
+  it("revokes existing consent even when installation is partial", () => {
+    const test = fixture();
+    enableConsent(test);
+    const preview = invoke(test, { scope: { cwd: test.repository, review: "disabled" } });
+    const installProposalDigest = authorization(preview).installProposalDigest;
+    const partial = invoke(test, {
+      scope: { cwd: test.repository, review: "disabled" },
+      installProposalDigest,
+    }, {
+      ...test.environment,
+      REVIEW_INSTALL_FAIL_AFTER_WRITES: "1",
+    });
+    expect(partial.status).toBe("partial");
+    expect(partial.stages).toEqual(expect.arrayContaining([
+      expect.objectContaining({ stage: "installation", status: "partial" }),
+      expect.objectContaining({ stage: "repository", status: "complete", summary: expect.stringContaining("disabled") }),
+    ]));
+    expect(readdirSync(join(test.root, "consent")).filter((name) => name.endsWith(".json"))).toEqual([]);
+
+    const after = invoke(test, {});
+    expect(after.stages).toEqual(expect.arrayContaining([
+      expect.objectContaining({ stage: "repository", status: "pending", summary: expect.stringContaining("requires explicit consent") }),
+    ]));
+  });
+
+  it("reports repository disable as pending when active consent cannot be removed", () => {
+    const test = fixture();
+    enableConsent(test);
+    const consentDirectory = join(test.root, "consent");
+    chmodSync(consentDirectory, 0o500);
+    try {
+      const result = invoke(test, { scope: { cwd: test.repository, review: "disabled" } });
+      expect(result.stages).toEqual(expect.arrayContaining([
+        expect.objectContaining({ stage: "repository", status: "pending", summary: expect.stringContaining("could not be revoked") }),
+      ]));
+      expect(result.actions).toEqual(expect.arrayContaining([
+        expect.objectContaining({ code: "retry-repository-disable" }),
+      ]));
+      expect(readdirSync(consentDirectory).filter((name) => name.endsWith(".json"))).toHaveLength(1);
+    } finally {
+      chmodSync(consentDirectory, 0o700);
+    }
   });
 
   it("completes with review disabled and no credential", () => {
@@ -266,4 +417,60 @@ else if (operation === "probe") console.log('{"status":"available"}');
     ]));
     expect(result.providerCalls).toBe(0);
   }, 10_000);
+
+  it("reports cancelled masked input without falling back to stale missing state", () => {
+    const test = fixture();
+    installDisabled(test);
+    const environment: NodeJS.ProcessEnv = {
+      ...test.environment,
+      REVIEW_CREDENTIAL_HELPER: credentialHelper(test, "unavailable"),
+    };
+    delete environment.TYPESAFE_API_KEY;
+    const result = invoke(test, { credential: "saved", interactive: true }, environment);
+    expect(result.stages).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        stage: "credential",
+        status: "pending",
+        observed: expect.objectContaining({ status: "cancelled", previousCredentialPreserved: true }),
+      }),
+    ]));
+    expect(result.actions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "credential-entry-cancelled", action: expect.stringContaining("review-tool --login") }),
+    ]));
+  });
+
+  it.skipIf(process.platform !== "linux")("reports invalid, unavailable, and indeterminate interactive storage outcomes", async () => {
+    const cases = [
+      { helperStatus: "unavailable", input: "", expectedStatus: "invalid", code: "replace-invalid-credential" },
+      { helperStatus: "unavailable", input: "unavailable-secret", expectedStatus: "unavailable", code: "recover-credential-storage" },
+      { helperStatus: "indeterminate", input: "indeterminate-secret", expectedStatus: "indeterminate", code: "reconcile-credential-lifecycle" },
+    ] as const;
+    for (const fixtureCase of cases) {
+      const test = fixture();
+      installDisabled(test);
+      const environment: NodeJS.ProcessEnv = {
+        ...test.environment,
+        REVIEW_CREDENTIAL_HELPER: credentialHelper(test, fixtureCase.helperStatus),
+      };
+      delete environment.TYPESAFE_API_KEY;
+      const result = await invokeMaskedSetup(test, environment, fixtureCase.input);
+      expect(result.stages).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          stage: "credential",
+          status: "pending",
+          observed: expect.objectContaining({
+            status: fixtureCase.expectedStatus,
+            ...(fixtureCase.expectedStatus === "indeterminate"
+              ? { savedCredentialUse: "suspended" }
+              : { previousCredentialPreserved: true }),
+          }),
+        }),
+      ]));
+      const recovery = result.actions.find((action) => action.code === fixtureCase.code);
+      expect(recovery?.action).toContain("review-tool --login");
+      if (fixtureCase.expectedStatus === "indeterminate") {
+        expect(recovery?.action).toContain("review-tool --logout");
+      }
+    }
+  }, 20_000);
 });

@@ -126,7 +126,13 @@ export const runSetup = Effect.fn("Setup.run")(function* (
       stage: "installation",
       status: "pending",
       summary: "installation requires approval of the exact owned changes",
-      observed: { changes: list(proposal?.changes).map((change) => record(change)?.description).filter((value) => typeof value === "string") },
+      observed: {
+        proposal: {
+          digest: installDigest,
+          changes: list(proposal?.changes),
+          ownedChanges: proposal?.ownedChanges,
+        },
+      },
     });
     actions.push({
       stage: "installation",
@@ -202,6 +208,14 @@ export const runSetup = Effect.fn("Setup.run")(function* (
         envVar: settings.credentialEnvVar,
         environmentOnly,
       }));
+      let interactiveOutcome:
+        | { readonly status: "cancelled" }
+        | {
+            readonly status: string;
+            readonly generation: number;
+            readonly savedCredentialUse: "active" | "suspended";
+          }
+        | undefined;
       if (
         request.credential === "saved" &&
         request.interactive === true &&
@@ -220,10 +234,61 @@ export const runSetup = Effect.fn("Setup.run")(function* (
               envVar: settings.credentialEnvVar,
               environmentOnly: false,
             }));
+          } else {
+            interactiveOutcome = {
+              status: saved.status,
+              generation: saved.state.generation,
+              savedCredentialUse: saved.state.savedUseSuspended ? "suspended" : "active",
+            };
           }
-        }
+        } else interactiveOutcome = { status: "cancelled" };
       }
-      if (resolution.status === "present") {
+      if (interactiveOutcome !== undefined) {
+        const indeterminate = interactiveOutcome.status === "indeterminate";
+        const cancelled = interactiveOutcome.status === "cancelled";
+        stages.push({
+          stage: "credential",
+          status: "pending",
+          summary: cancelled
+            ? "masked credential entry was cancelled"
+            : indeterminate
+              ? "credential replacement is indeterminate and saved use is suspended"
+              : `credential storage returned ${interactiveOutcome.status}`,
+          observed: {
+            source: "saved",
+            status: interactiveOutcome.status,
+            inspectedContext: "setup-process",
+            valueDisclosed: false,
+            ...("generation" in interactiveOutcome
+              ? {
+                  generation: interactiveOutcome.generation,
+                  savedCredentialUse: interactiveOutcome.savedCredentialUse,
+                  ...(indeterminate ? {} : { previousCredentialPreserved: true }),
+                }
+              : { previousCredentialPreserved: true }),
+          },
+        });
+        actions.push({
+          stage: "credential",
+          code: cancelled
+            ? "credential-entry-cancelled"
+            : indeterminate
+              ? "reconcile-credential-lifecycle"
+              : interactiveOutcome.status === "invalid"
+                ? "replace-invalid-credential"
+                : "recover-credential-storage",
+          action: cancelled
+            ? "rerun setup interactively or run review-tool --login in a user terminal"
+            : indeterminate
+              ? "run review-tool --logout to resolve the uncertain replacement, then run review-tool --login"
+              : interactiveOutcome.status === "locked"
+                ? "unlock the login keyring, then run review-tool --login"
+                : interactiveOutcome.status === "invalid"
+                  ? "run review-tool --login again and enter a nonempty credential"
+                  : "repair native credential storage, then run review-tool --login",
+        });
+        pending.push(indeterminate ? "reconcile suspended saved credential use" : "complete saved credential login");
+      } else if (resolution.status === "present") {
         stages.push({
           stage: "credential",
           status: "complete",
@@ -258,16 +323,31 @@ export const runSetup = Effect.fn("Setup.run")(function* (
       settings.destination,
     );
     if (request.scope.review === "disabled") {
-      if (authorization.status === "approved" && installed) {
-        yield* consent.disable(request.scope.cwd, settings.backend, settings.destination);
+      const disabled = authorization.status === "approved"
+        ? yield* consent.disable(request.scope.cwd, settings.backend, settings.destination).pipe(Effect.result)
+        : undefined;
+      if (disabled !== undefined && disabled._tag === "Failure") {
+        stages.push({
+          stage: "repository",
+          status: "pending",
+          summary: "repository consent could not be revoked",
+          observed: { canonicalRoot: rootResult.success, backend: settings.backend, destination: settings.destination, scope: "repository-wide eligible source files" },
+        });
+        actions.push({
+          stage: "repository",
+          code: "retry-repository-disable",
+          action: "restore access to the user consent state, then rerun setup with review disabled",
+        });
+        pending.push("revoke active repository consent");
+      } else {
+        stages.push({
+          stage: "repository",
+          status: "complete",
+          summary: "repository review is disabled as requested",
+          observed: { canonicalRoot: rootResult.success, backend: settings.backend, destination: settings.destination, scope: "repository-wide eligible source files" },
+        });
+        completed.push("repository review disabled");
       }
-      stages.push({
-        stage: "repository",
-        status: "complete",
-        summary: "repository review is disabled as requested",
-        observed: { canonicalRoot: rootResult.success, backend: settings.backend, destination: settings.destination, scope: "repository-wide eligible source files" },
-      });
-      completed.push("repository review disabled");
     } else if (authorization.status === "approved") {
       stages.push({
         stage: "repository",
@@ -328,13 +408,14 @@ export const runSetup = Effect.fn("Setup.run")(function* (
   });
 
   const blockingStage = stages.find((stage) => stage.status === "unsupported" || stage.status === "conflict" || stage.status === "partial");
+  const repositoryStage = stages.find((stage) => stage.stage === "repository");
   const status = blockingStage?.status === "unsupported"
     ? "unsupported"
     : blockingStage?.status === "conflict"
       ? "conflict"
       : blockingStage?.status === "partial"
         ? "partial"
-        : request.scope.review === "disabled" && installed
+        : request.scope.review === "disabled" && installed && repositoryStage?.status === "complete"
           ? "completed"
           : actions.length > 0
             ? "needs-user-action"
