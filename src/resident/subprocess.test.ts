@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { execFile, spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { promisify } from "node:util";
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import { addEvent, makeGitFixture, put, recipient } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
@@ -15,6 +16,7 @@ import { DELIVERY_LEASE_MS, type ResidentDispatchContext } from "./protocol.ts";
 
 const processes: Array<number> = [];
 const directories: Array<string> = [];
+const execFileAsync = promisify(execFile);
 
 afterEach(async () => {
   for (const pid of processes.splice(0)) {
@@ -31,6 +33,11 @@ const childResult = (child: ChildProcessWithoutNullStreams) => new Promise<strin
   child.once("error", reject);
   child.once("close", (code) => code === 0 ? resolve(stdout.trim()) : reject(new Error(stderr)));
 });
+
+const childClosed = (child: ChildProcessWithoutNullStreams): Promise<void> =>
+  child.exitCode !== null || child.signalCode !== null
+    ? Promise.resolve()
+    : new Promise((resolve) => child.once("close", () => resolve()));
 
 const waitFor = async <A>(read: () => Promise<A | undefined>, milliseconds = 5_000): Promise<A> => {
   const deadline = Date.now() + milliseconds;
@@ -66,8 +73,8 @@ const dispatchFor = (
   },
 });
 
-describe("resident separate-process lifecycle", { timeout: 30_000 }, () => {
-  it("converges concurrent starters and keeps timed-out client work resident-owned", async () => {
+describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
+  it("converges 100 starters across eight clients and keeps timed-out/disconnected work resident-owned", async () => {
     const root = await makeGitFixture();
     const otherRoot = await makeGitFixture();
     const temporary = await mkdtemp(join(tmpdir(), "product-resident-test-"));
@@ -78,6 +85,7 @@ describe("resident separate-process lifecycle", { timeout: 30_000 }, () => {
     const gate = join(temporary, "backend.gate");
     const acceptedPath = join(temporary, "admission.accepted");
     const collectGate = join(temporary, "collect-response");
+    const collectDisconnected = join(temporary, "collect-disconnected");
     const ackGate = join(temporary, "ack-response");
     const clockPath = join(temporary, "clock");
     await writeFile(clockPath, "100\n");
@@ -91,24 +99,67 @@ describe("resident separate-process lifecycle", { timeout: 30_000 }, () => {
       REVIEW_RESIDENT_CONTROLLED: "1",
       REVIEW_RESIDENT_BACKEND_GATE_PATH: gate,
       REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH: acceptedPath,
+      REVIEW_RESIDENT_ADMIT_RESPONSE_GATE_PATH: join(temporary, "admit-response"),
       REVIEW_RESIDENT_COLLECT_RESPONSE_GATE_PATH: collectGate,
+      REVIEW_RESIDENT_COLLECT_DISCONNECT_PATH: collectDisconnected,
       REVIEW_RESIDENT_ACK_RESPONSE_GATE_PATH: ackGate,
       REVIEW_RESIDENT_CLOCK_PATH: clockPath,
       REVIEW_CONTROL_JSON: JSON.stringify({ answers }),
     };
     const ensureScript = [
       "import { ensureResident } from './src/resident/client.ts';",
-      "const value = await ensureResident();",
-      "console.log(JSON.stringify(value));",
+      "const count=Number(process.argv[1]);",
+      "const values=await Promise.all(Array.from({length:count},()=>ensureResident()));",
+      "console.log(JSON.stringify(values));",
     ].join("");
-    const starters = Array.from({ length: 8 }, () => spawn(process.execPath, [
-      "--input-type=module", "-e", ensureScript,
+    // This retains the accepted prototype stress shape at the production
+    // process boundary: exactly 100 concurrent callers distributed over eight
+    // otherwise independent short-lived command clients.
+    const starters = Array.from({ length: 8 }, (_, index) => spawn(process.execPath, [
+      "--input-type=module", "-e", ensureScript, index < 4 ? "13" : "12",
     ], { cwd: process.cwd(), env, stdio: ["pipe", "pipe", "pipe"] }));
     const owners = await Promise.all(starters.map(childResult));
-    const identities = owners.map((encoded) => JSON.parse(encoded) as { pid: number; lifetime: string });
+    const identities = owners.flatMap((encoded) => JSON.parse(encoded) as Array<{ pid: number; lifetime: string }>);
+    expect(identities).toHaveLength(100);
     expect(new Set(identities.map(({ pid }) => pid)).size).toBe(1);
     expect(new Set(identities.map(({ lifetime }) => lifetime)).size).toBe(1);
     processes.push(identities[0]!.pid);
+
+    // Losing the pathname is not evidence that the lock owner died. A stale
+    // endpoint cannot make a contender displace that still-live owner, and
+    // the readiness attempt remains bounded.
+    const liveSocket = `${residentPaths(runtime).socket}.live`;
+    await rename(residentPaths(runtime).socket, liveSocket);
+    const staleScript = [
+      "import {createServer} from 'node:net';",
+      "import {chmodSync} from 'node:fs';",
+      `const path=${JSON.stringify(residentPaths(runtime).socket)};`,
+      "const server=createServer();server.listen(path,()=>{chmodSync(path,0o600);console.log('ready')});",
+    ].join("");
+    const stale = spawn(process.execPath, ["--input-type=module", "-e", staleScript], {
+      cwd: process.cwd(), env, stdio: ["pipe", "pipe", "pipe"],
+    });
+    await new Promise<void>((resolve, reject) => {
+      stale.once("error", reject);
+      stale.stdout.once("data", () => resolve());
+    });
+    const staleClosed = childClosed(stale);
+    stale.kill("SIGKILL");
+    await staleClosed;
+    const boundedScript = [
+      "import {ensureResident} from './src/resident/client.ts';",
+      `const paths=${JSON.stringify(residentPaths(runtime))};`,
+      "await ensureResident(paths,250);",
+    ].join("");
+    const bounded = spawn(process.execPath, ["--input-type=module", "-e", boundedScript], {
+      cwd: process.cwd(), env, stdio: ["pipe", "pipe", "pipe"],
+    });
+    const readinessStarted = performance.now();
+    await expect(childResult(bounded)).rejects.toThrow();
+    expect(performance.now() - readinessStarted).toBeLessThan(2_000);
+    expect(() => process.kill(identities[0]!.pid, 0)).not.toThrow();
+    await rm(residentPaths(runtime).socket, { force: true });
+    await rename(liveSocket, residentPaths(runtime).socket);
 
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
@@ -125,25 +176,39 @@ describe("resident separate-process lifecycle", { timeout: 30_000 }, () => {
       "const socket=connect(socketPath);",
       "socket.once('connect',()=>socket.write(JSON.stringify({version:1,operation:'admit',lifetime,observation,controlledWriter:true,dispatch})+'\\n',()=>process.exit(0)));",
     ].join("");
+    const admitGate = env.REVIEW_RESIDENT_ADMIT_RESPONSE_GATE_PATH;
+    await writeFile(`${admitGate}.enabled`, "enabled\n");
     const admitting = spawn(process.execPath, ["--input-type=module", "-e", admissionScript], {
       cwd: process.cwd(), env, stdio: ["pipe", "pipe", "pipe"],
     });
-    expect(await childResult(admitting)).toBe("");
     await waitFor(async () => existsSync(acceptedPath) ? true : undefined);
+    await waitFor(async () => existsSync(`${admitGate}.entered`) ? true : undefined);
+    const admissionClosed = childClosed(admitting);
+    admitting.kill("SIGKILL");
+    await admissionClosed;
 
     const paths = residentPaths(runtime);
     const owner = identities[0]!;
-    const dispatch = dispatchFor(statePath);
+    const dispatch: ResidentDispatchContext = {
+      ...dispatchFor(statePath),
+      controlled: {
+        answers: Object.fromEntries(configuredRules.map((rule) => [
+          rule.id,
+          { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
+        ])),
+      },
+    };
     for (let index = 0; index < 2; index++) {
-      await residentRequest(paths, {
+      await expect(residentRequest(paths, {
         version: 1,
         operation: "admit",
         lifetime: owner.lifetime,
         observation: { ...observation, recipient: { ...observation.recipient, toolUseId: `extra-${index}` } },
         controlledWriter: true,
         dispatch,
-      }, 50).catch(() => undefined);
+      }, 50)).rejects.toThrow("outcome is uncertain");
     }
+    await writeFile(`${admitGate}.release`, "release\n");
     const gated = await waitFor(async () => {
       const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
       // The first prompt lone item is a complete finite cycle. Arrivals after
@@ -174,10 +239,11 @@ describe("resident separate-process lifecycle", { timeout: 30_000 }, () => {
       cwd: process.cwd(), env, stdio: ["pipe", "pipe", "pipe"],
     });
     await waitFor(async () => existsSync(`${collectGate}.entered`) ? true : undefined);
-    const disconnected = new Promise<void>((resolve) => disconnecting.once("close", () => resolve()));
+    const disconnected = childClosed(disconnecting);
     disconnecting.kill("SIGKILL");
-    await writeFile(`${collectGate}.release`, "release\n");
     await disconnected;
+    await waitFor(async () => existsSync(collectDisconnected) ? true : undefined);
+    await writeFile(`${collectGate}.release`, "release\n");
     const advice = await waitFor(() => collectReady(
       root,
       recipient({ turnId: "later", toolUseId: "bash" }),
@@ -197,7 +263,7 @@ describe("resident separate-process lifecycle", { timeout: 30_000 }, () => {
       cwd: process.cwd(), env, stdio: ["pipe", "pipe", "pipe"],
     });
     await waitFor(async () => existsSync(`${ackGate}.entered`) ? true : undefined);
-    const acknowledgementClosed = new Promise<void>((resolve) => acknowledging.once("close", () => resolve()));
+    const acknowledgementClosed = childClosed(acknowledging);
     acknowledging.kill("SIGKILL");
     await writeFile(`${ackGate}.release`, "release\n");
     await acknowledgementClosed;
@@ -301,5 +367,224 @@ describe("resident separate-process lifecycle", { timeout: 30_000 }, () => {
     });
     expect(existsSync(capturePath)).toBe(false);
     expect(await collectReady(root, recipient(), dispatch, paths)).toBeUndefined();
+  });
+
+  it("kills one lifetime, rejects obsolete messages, restarts empty, and cleans up only when idle", async () => {
+    const root = await makeGitFixture();
+    const temporary = await mkdtemp(join(tmpdir(), "product-resident-restart-"));
+    const otherRoot = join(temporary, "other-worktree");
+    directories.push(root, temporary);
+    await put(root, "type.ts", "type OrderCount = number\n");
+    await put(root, "second.ts", "type CustomerCount = number\n");
+    await execFileAsync("git", ["-C", root, "add", "type.ts", "second.ts"]);
+    await execFileAsync("git", ["-C", root, "commit", "-qm", "resident lifecycle fixture"]);
+    await execFileAsync("git", ["-C", root, "worktree", "add", "--detach", otherRoot, "HEAD"]);
+
+    const statePath = join(temporary, "consent");
+    const runtime = join(temporary, "runtime");
+    const backendGate = join(temporary, "backend.gate");
+    await enable(root, statePath);
+    await enable(otherRoot, statePath);
+    await writeFile(backendGate, "release\n");
+    const env = {
+      ...process.env,
+      REVIEW_RESIDENT_DIR: runtime,
+      REVIEW_RESIDENT_BACKEND_GATE_PATH: backendGate,
+    };
+    const ensureScript = "import {ensureResident} from './src/resident/client.ts'; console.log(JSON.stringify(await ensureResident()));";
+    const start = async () => {
+      const child = spawn(process.execPath, ["--input-type=module", "-e", ensureScript], {
+        cwd: process.cwd(), env, stdio: ["pipe", "pipe", "pipe"],
+      });
+      return JSON.parse(await childResult(child)) as { pid: number; lifetime: string };
+    };
+    const paths = residentPaths(runtime);
+    const dispatch: ResidentDispatchContext = {
+      ...dispatchFor(statePath),
+      controlled: {
+        answers: Object.fromEntries(configuredRules.map((rule) => [
+          rule.id,
+          { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
+        ])),
+      },
+    };
+    const failingDispatch: ResidentDispatchContext = {
+      ...dispatch,
+      controlled: { failure: "fixture backend unavailable" },
+    };
+    const observe = async (
+      targetRoot: string,
+      pathsInEvent: ReadonlyArray<string>,
+      overrides: Readonly<Record<string, unknown>> = {},
+    ) => {
+      const adapted = await Effect.runPromise(adaptCodexDirectEvent(addEvent(targetRoot, pathsInEvent, overrides)));
+      expect(adapted).toBeDefined();
+      if (adapted === undefined) throw new Error("fixture did not adapt");
+      return adapted;
+    };
+
+    const first = await start();
+    processes.push(first.pid);
+    const rootObservation = await observe(root, ["type.ts"]);
+    expect((await residentRequest(paths, {
+      version: 1, operation: "admit", lifetime: first.lifetime,
+      observation: rootObservation, controlledWriter: true, dispatch,
+    })).status).toBe("accepted");
+    await waitFor(async () => {
+      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: first.lifetime });
+      return stats.status === "stats" && stats.pendingAdvice === 1 && stats.successfulCacheEntries === 1
+        ? stats
+        : undefined;
+    });
+    // An equivalent completed input joins the retained advice/cache identity.
+    expect((await residentRequest(paths, {
+      version: 1, operation: "admit", lifetime: first.lifetime,
+      observation: { ...rootObservation, recipient: { ...rootObservation.recipient, toolUseId: "joined" } },
+      controlledWriter: true, dispatch,
+    })).status).toBe("accepted");
+    await waitFor(async () => {
+      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: first.lifetime });
+      return stats.status === "stats" && stats.running === 0 && stats.queued === 0 ? stats : undefined;
+    });
+
+    const noticeObservation = await observe(root, ["type.ts"], { agent_id: "notice-child" });
+    for (const toolUseId of ["notice-1", "notice-2"]) {
+      expect((await residentRequest(paths, {
+        version: 1, operation: "admit", lifetime: first.lifetime,
+        observation: { ...noticeObservation, recipient: { ...noticeObservation.recipient, toolUseId } },
+        controlledWriter: true, dispatch: failingDispatch,
+      })).status).toBe("accepted");
+    }
+    await waitFor(async () => {
+      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: first.lifetime });
+      return stats.status === "stats" && stats.running === 0 && stats.noticeCooldowns === 1
+        ? stats
+        : undefined;
+    });
+    expect((await residentRequest(paths, {
+      version: 1, operation: "cleanup", lifetime: first.lifetime,
+    })).status).toBe("busy");
+
+    // Accepted work remains resident-owned with no client callback. Cleanup
+    // refuses it, and killing the actual owner is the explicit loss boundary.
+    await rm(backendGate, { force: true });
+    const blockedObservation = await observe(root, ["second.ts"], { tool_use_id: "blocked-before-kill" });
+    expect((await residentRequest(paths, {
+      version: 1, operation: "admit", lifetime: first.lifetime,
+      observation: blockedObservation, controlledWriter: true, dispatch,
+    })).status).toBe("accepted");
+    await waitFor(async () => {
+      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: first.lifetime });
+      return stats.status === "stats" && stats.running > 0 ? stats : undefined;
+    });
+    expect((await residentRequest(paths, {
+      version: 1, operation: "cleanup", lifetime: first.lifetime,
+    })).status).toBe("busy");
+    expect((await readdir(runtime)).sort()).toEqual(["owner.json", "owner.lock", "resident.sock"]);
+    process.kill(first.pid, "SIGKILL");
+    await waitFor(async () => {
+      try { process.kill(first.pid, 0); return undefined; } catch { return true; }
+    });
+
+    await writeFile(backendGate, "release\n");
+    const second = await start();
+    processes.push(second.pid);
+    expect(second.lifetime).not.toBe(first.lifetime);
+    expect((await residentRequest(paths, {
+      version: 1, operation: "admit", lifetime: first.lifetime,
+      observation: blockedObservation, controlledWriter: true, dispatch,
+    })).status).toBe("obsolete-lifetime");
+    expect(await residentRequest(paths, {
+      version: 1, operation: "stats", lifetime: second.lifetime,
+    })).toMatchObject({
+      status: "stats",
+      queued: 0,
+      running: 0,
+      pendingAdvice: 0,
+      retainedBytes: 0,
+      successfulCacheEntries: 0,
+      pendingEvaluations: 0,
+      noticeCooldowns: 0,
+      currentWork: 0,
+    });
+    expect(await collectReady(root, recipient(), dispatch, paths)).toBeUndefined();
+
+    // One two-unit batch, one child partition, and one distinct existing Git
+    // worktree travel through the new process. Revocation after admission keeps
+    // the other worktree from dispatching and cannot leak its advice.
+    const batch = await observe(root, ["type.ts", "second.ts"], { tool_use_id: "batch" });
+    const child = await observe(root, ["type.ts"], { agent_id: "child-2", tool_use_id: "child" });
+    const other = await observe(otherRoot, ["type.ts"], { tool_use_id: "other-worktree" });
+    await rm(backendGate, { force: true });
+    for (const observation of [batch, { ...batch, recipient: { ...batch.recipient, toolUseId: "batch-join" } }, child, other]) {
+      expect((await residentRequest(paths, {
+        version: 1, operation: "admit", lifetime: second.lifetime,
+        observation, controlledWriter: true, dispatch,
+      })).status).toBe("accepted");
+    }
+    await Effect.runPromise(Effect.gen(function* () {
+      const consent = yield* Consent.Service;
+      yield* consent.disable(otherRoot, "jev", "https://api.typesafe.ai/v1/systemone");
+    }).pipe(Effect.provide(Consent.layer({ statePath }))));
+    await writeFile(backendGate, "release\n");
+    await waitFor(async () => {
+      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: second.lifetime });
+      return stats.status === "stats" && stats.running === 0 && stats.queued === 0 && stats.pendingAdvice === 3
+        ? stats
+        : undefined;
+    });
+    expect(await collectReady(otherRoot, recipient(), dispatch, paths)).toBeUndefined();
+    const rootBatch = await collectReady(root, recipient({ turnId: "collect", toolUseId: "batch" }), dispatch, paths);
+    expect(rootBatch?.output.hookSpecificOutput.additionalContext).toContain("type.ts");
+    expect(rootBatch?.output.hookSpecificOutput.additionalContext).toContain("second.ts");
+    if (rootBatch === undefined) return;
+    expect((await residentRequest(paths, {
+      version: 1, operation: "cleanup", lifetime: second.lifetime,
+    })).status).toBe("busy");
+    expect(await acknowledgeAdvice(rootBatch)).toBe(true);
+    expect((await residentRequest(paths, {
+      version: 1, operation: "admit", lifetime: second.lifetime,
+      observation: { ...batch, recipient: { ...batch.recipient, toolUseId: "cache-reuse" } },
+      controlledWriter: true, dispatch,
+    })).status).toBe("accepted");
+    const cachedBatch = await waitFor(() => collectReady(
+      root,
+      recipient({ turnId: "collect-cache", toolUseId: "cache-reuse" }),
+      dispatch,
+      paths,
+    ));
+    expect(cachedBatch.output.hookSpecificOutput.additionalContext).toContain("type.ts");
+    expect(cachedBatch.output.hookSpecificOutput.additionalContext).toContain("second.ts");
+    expect(await acknowledgeAdvice(cachedBatch)).toBe(true);
+    const childAdvice = await collectReady(
+      root,
+      recipient({ agentId: "child-2", turnId: "collect", toolUseId: "child" }),
+      dispatch,
+      paths,
+    );
+    expect(childAdvice).toBeDefined();
+    if (childAdvice !== undefined) expect(await acknowledgeAdvice(childAdvice)).toBe(true);
+
+    const beforeCleanup = await residentRequest(paths, {
+      version: 1, operation: "stats", lifetime: second.lifetime,
+    });
+    expect(beforeCleanup).toMatchObject({ status: "stats", pendingAdvice: 0 });
+    if (beforeCleanup.status === "stats") expect(beforeCleanup.successfulCacheEntries).toBeGreaterThan(0);
+    expect((await residentRequest(paths, {
+      version: 1, operation: "cleanup", lifetime: second.lifetime,
+    })).status).toBe("cleaned");
+    await waitFor(async () => {
+      try { process.kill(second.pid, 0); return undefined; } catch { return true; }
+    });
+
+    const third = await start();
+    processes.push(third.pid);
+    expect(third.lifetime).not.toBe(second.lifetime);
+    expect(await residentRequest(paths, {
+      version: 1, operation: "stats", lifetime: third.lifetime,
+    })).toMatchObject({
+      status: "stats", queued: 0, running: 0, pendingAdvice: 0,
+      retainedBytes: 0, successfulCacheEntries: 0, noticeCooldowns: 0,
+    });
   });
 });

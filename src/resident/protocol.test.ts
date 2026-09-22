@@ -63,5 +63,15 @@ describe("resident protocol bounds", () => {
     expect(decodeResidentRequest(JSON.stringify({ ...collect, mode: "turn-end" })))
       .toMatchObject({ operation: "collect", mode: "turn-end" });
     expect(decodeResidentRequest(JSON.stringify({ ...collect, mode: "drain" }))).toBeUndefined();
+    expect(decodeResidentRequest(JSON.stringify({
+      version: 1,
+      operation: "cleanup",
+      lifetime: "lifetime",
+    }))).toEqual({ version: 1, operation: "cleanup", lifetime: "lifetime" });
+    expect(decodeResidentRequest(JSON.stringify({
+      version: 1,
+      operation: "shutdown",
+      lifetime: "lifetime",
+    }))).toBeUndefined();
   });
 });

@@ -391,6 +391,7 @@ export class ResidentServer {
     this.#pruneNoticeCooldowns(now);
     const dispatch = this.#dispatcher.snapshot();
     const capacity = this.#ledger.snapshot();
+    const reuse = this.#reuse.snapshot();
     return {
       status: "stats",
       queued: dispatch.queued,
@@ -398,7 +399,36 @@ export class ResidentServer {
       pendingAdvice: this.#advice.length + this.#pendingNoticeCount(),
       retainedBytes: capacity.bytes,
       rejectedCapacity: this.#rejectedCapacity,
+      successfulCacheEntries: reuse.entries,
+      pendingEvaluations: reuse.pending,
+      noticeCooldowns: this.#noticeCooldowns.size,
+      currentWork: this.#currentWork.size,
     };
+  }
+
+  /**
+   * Voluntary idle cleanup is an allowed loss boundary, but only after every
+   * accepted outcome, delivery lease, pending evaluation and cooldown has
+   * reached a terminal state. Successful cache entries are then discarded as
+   * part of ending this lifetime; they never authorize source reconstruction.
+   */
+  cleanup(): "busy" | "cleaned" {
+    const now = this.#now();
+    this.#expirePending(now);
+    this.#pruneNoticeCooldowns(now);
+    const dispatch = this.#dispatcher.snapshot();
+    const reuse = this.#reuse.snapshot();
+    const capacity = this.#ledger.snapshot();
+    if (
+      dispatch.queued !== 0 || dispatch.running !== 0 ||
+      this.#advice.length !== 0 || this.#pendingNoticeCount() !== 0 ||
+      reuse.pending !== 0 || this.#currentWork.size !== 0 ||
+      this.#noticeCooldowns.size !== 0 || this.#connections > 1 ||
+      capacity.items !== reuse.entries || capacity.bytes !== reuse.bytes
+    ) return "busy";
+    this.#reuse.clear();
+    if (this.#ledger.snapshot().items !== 0) return "busy";
+    return "cleaned";
   }
 
   admit(observation: DirectObservation, dispatch: ResidentDispatchContext): ResidentResponse {
@@ -1273,19 +1303,22 @@ export class ResidentServer {
     if (request.operation === "acknowledge") return this.acknowledge(request.token);
     if (request.operation === "finalize") return this.finalize(request.token);
     if (request.operation === "stats") return this.stats();
-    if (request.operation === "shutdown") {
-      setTimeout(() => void this.close(), 10);
-      return { status: "acknowledged" };
+    if (request.operation === "cleanup") {
+      const status = this.cleanup();
+      if (status === "cleaned") setTimeout(() => void this.close(), 10);
+      return { status };
     }
     return { status: "unsupported" };
   }
 
   async #responseGate(operation: ResidentRequest["operation"]): Promise<void> {
-    const variable = operation === "collect"
-      ? "REVIEW_RESIDENT_COLLECT_RESPONSE_GATE_PATH"
-      : operation === "acknowledge"
-        ? "REVIEW_RESIDENT_ACK_RESPONSE_GATE_PATH"
-        : undefined;
+    const variable = operation === "admit"
+      ? "REVIEW_RESIDENT_ADMIT_RESPONSE_GATE_PATH"
+      : operation === "collect"
+        ? "REVIEW_RESIDENT_COLLECT_RESPONSE_GATE_PATH"
+        : operation === "acknowledge"
+          ? "REVIEW_RESIDENT_ACK_RESPONSE_GATE_PATH"
+          : undefined;
     const gate = variable === undefined ? undefined : process.env[variable];
     if (gate === undefined) return;
     try {
@@ -1346,8 +1379,16 @@ export class ResidentServer {
     let bytes = 0;
     let encoded = "";
     let handled = false;
+    let request: ResidentRequest | undefined;
     socket.setTimeout(1_500, () => socket.destroy());
-    socket.once("close", () => { this.#connections -= 1; });
+    socket.once("close", () => {
+      this.#connections -= 1;
+      const closedPath = process.env.REVIEW_RESIDENT_COLLECT_DISCONNECT_PATH;
+      if (
+        closedPath !== undefined && request?.operation === "collect" &&
+        request.recipient.toolUseId === "disconnect"
+      ) void writeFile(closedPath, "closed\n").catch(() => undefined);
+    });
     socket.on("error", () => undefined);
     socket.on("data", (chunk: Buffer) => {
       if (handled) return;
@@ -1364,13 +1405,14 @@ export class ResidentServer {
       // Stop pulling transport bytes as soon as the single bounded frame is
       // complete. Recipient and observation decoding happens only afterward.
       socket.pause();
-      const request = decodeResidentRequest(encoded.slice(0, newline));
-      if (request === undefined) {
+      const decoded = decodeResidentRequest(encoded.slice(0, newline));
+      request = decoded;
+      if (decoded === undefined) {
         socket.end(`${JSON.stringify({ status: "unsupported" })}\n`);
         return;
       }
-      void this.handle(request).then(async (response) => {
-        await this.#responseGate(request.operation);
+      void this.handle(decoded).then(async (response) => {
+        await this.#responseGate(decoded.operation);
         const handoff = this.#responseForHandoff(response);
         if (socket.destroyed) {
           if (handoff.status === "advice") this.releaseDelivery(handoff.token);
