@@ -54,24 +54,29 @@ export const acquireResidentOwnership = async (lock: string, hooks: OwnershipHoo
 
   const recovery = `${lock}.recovery-${observed.dev}-${observed.ino}`;
   const claimant = { pid: process.pid, token: randomUUID() };
-  if (!await publish(recovery, claimant)) {
+  const ownsRecovery = await publish(recovery, claimant);
+  if (!ownsRecovery) {
     const existing = await readOwner(recovery);
     if (existing !== undefined && processExists(existing.pid)) return false;
-    const retiredClaim = `${recovery}.retired-${process.pid}-${randomUUID()}`;
-    try { await rename(recovery, retiredClaim); await rm(retiredClaim, { recursive: true, force: true }); }
-    catch { return false; }
-    if (!await publish(recovery, claimant)) return false;
+    // A crashed recovery claimant is never replaced. Contenders instead race
+    // for the single inode-specific tombstone below. Keeping that tombstone
+    // makes delayed contenders harmless after the new owner is published.
   }
   try {
     await hooks.beforeReplace?.();
     if (!same(observed, await identity(lock))) return false;
     const current = await readOwner(lock);
     if (current !== undefined && processExists(current.pid)) return false;
-    const retired = `${lock}.retired-${process.pid}-${owner.token}`;
-    await rename(lock, retired);
-    await rm(retired, { recursive: true, force: true });
+    const retired = `${lock}.retired-${observed.dev}-${observed.ino}`;
+    try { await rename(lock, retired); }
+    catch (cause) {
+      if (["ENOENT", "EEXIST", "ENOTEMPTY"].includes(code(cause) ?? "")) return false;
+      throw cause;
+    }
     return publish(lock, owner);
-  } finally { await rm(recovery, { recursive: true, force: true }); }
+  } finally {
+    if (ownsRecovery) await rm(recovery, { recursive: true, force: true });
+  }
 };
 
 export const releaseResidentOwnership = async (lock: string): Promise<void> => {
