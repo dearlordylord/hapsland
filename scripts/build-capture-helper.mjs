@@ -5,15 +5,27 @@ import { fileURLToPath } from "node:url";
 
 if (process.platform === "darwin") {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-  const output = resolve(root, "dist/native/capture-open");
-  mkdirSync(dirname(output), { recursive: true, mode: 0o755 });
-  const result = spawnSync("cc", ["-O2", "-std=c11", "-Wall", "-Wextra", resolve(root, "native/capture-open.c"), "-o", output], {
+  const nativeDirectory = resolve(root, "dist/native");
+  mkdirSync(nativeDirectory, { recursive: true, mode: 0o755 });
+  const captureOutput = resolve(nativeDirectory, "capture-open");
+  const capture = spawnSync("cc", ["-O2", "-std=c11", "-Wall", "-Wextra", resolve(root, "native/capture-open.c"), "-o", captureOutput], {
     stdio: "inherit",
   });
-  if (result.error !== undefined || result.status !== 0) {
+  if (capture.error !== undefined || capture.status !== 0) {
     throw new Error("macOS descriptor capture helper could not be built; install the Xcode Command Line Tools so cc is available");
   }
-  chmodSync(output, 0o755);
+  chmodSync(captureOutput, 0o755);
+  const credentialOutput = resolve(nativeDirectory, "credential-secret-service");
+  const credential = spawnSync("cc", [
+    "-O2", "-std=c11", "-Wall", "-Wextra",
+    resolve(root, "native/credential-keychain.c"),
+    "-framework", "Security", "-framework", "CoreFoundation",
+    "-o", credentialOutput,
+  ], { stdio: "inherit" });
+  if (credential.error !== undefined || credential.status !== 0) {
+    throw new Error("macOS Keychain credential helper could not be built; install the Xcode Command Line Tools so cc is available");
+  }
+  chmodSync(credentialOutput, 0o755);
 }
 
 if (process.platform === "linux") {

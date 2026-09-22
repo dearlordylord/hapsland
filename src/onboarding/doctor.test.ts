@@ -61,17 +61,47 @@ describe("offline installed integration doctor", () => {
     expect(publicResult.checks).toEqual(expect.arrayContaining([
       expect.objectContaining({
         stage: "credential-accessibility",
-        status: "unknown",
+        status: "ready",
         observed: {
           inspectedContext: "doctor-process",
           configuredEnvironmentVariable: "TYPESAFE_API_KEY",
           doctorProcessEnvironment: "present",
-          actualHookAccessibility: "unknown",
-          savedCredentialAccessibility: "unknown-not-inspected-by-this-version",
+          actualHookAccessibility: "requires-host-environment-verification",
+          savedCredentialAccessibility: "not-selected-environment-precedence",
+          selectedSource: "environment",
         },
       }),
     ]));
     expect(publicDoctor.stdout).not.toContain(secret);
+    const credentialHelper = join(root, "interaction-required-helper.mjs");
+    writeFileSync(credentialHelper, `#!/usr/bin/env node
+if (process.argv[2] === "get") console.log('{"version":1,"status":"interaction-required"}');
+else console.log('{"version":1,"status":"available"}');
+`, { mode: 0o700 });
+    const savedCredentialDoctor = spawnSync(process.execPath, ["src/cli.ts", "--doctor"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({ version: 1, operation: "doctor", cwd: root, ...request }),
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        TYPESAFE_API_KEY: undefined,
+        REVIEW_CREDENTIAL_HELPER: credentialHelper,
+        REVIEW_CREDENTIAL_STATE_PATH: join(root, "credential-state.json"),
+      },
+    });
+    const savedCredentialResult = JSON.parse(savedCredentialDoctor.stdout) as { checks: Array<DoctorCheck> };
+    expect(savedCredentialResult.checks).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        stage: "credential-accessibility",
+        status: "missing",
+        observed: expect.objectContaining({
+          selectedSource: "saved",
+          savedCredentialAccessibility: "interaction-required",
+          actualHookAccessibility: "unavailable",
+        }),
+        action: expect.stringContaining("background hooks never prompt"),
+      }),
+    ]));
     const result = await diagnoseInstalledIntegration({
       installation: request,
       repository: readyCheck("repository-enablement"),

@@ -39,20 +39,25 @@ for (const command of declaration.requiredCommands) {
   }
 }
 
-if (process.platform === "linux") {
+if (process.platform === "linux" || process.platform === "darwin") {
   const credentialHelper = join(packageRoot, "dist", "native", "credential-secret-service");
   try {
     accessSync(credentialHelper, constants.X_OK);
-    add("secret-service-helper", true, credentialHelper, "executable packaged Secret Service helper");
+    add("native-credential-helper", true, credentialHelper, "executable packaged native credential helper");
   } catch {
     add(
-      "secret-service-helper",
+      "native-credential-helper",
       false,
       "unavailable",
-      "executable packaged Secret Service helper",
-      "install cc, pkg-config and the libsecret development package, then reinstall with lifecycle scripts enabled; environment-only credentials remain available",
+      "executable packaged native credential helper",
+      process.platform === "darwin"
+        ? "install the Xcode Command Line Tools, then reinstall with lifecycle scripts enabled; environment-only credentials remain available"
+        : "install cc, pkg-config and the libsecret development package, then reinstall with lifecycle scripts enabled; environment-only credentials remain available",
     );
   }
+}
+
+if (process.platform === "linux") {
   const uid = typeof process.getuid === "function" ? process.getuid() : process.pid;
   const runtime = process.env.REVIEW_RESIDENT_DIR ?? (process.env.XDG_RUNTIME_DIR === undefined
     ? join(tmpdir(), `realtime-review-tool-${uid}`)

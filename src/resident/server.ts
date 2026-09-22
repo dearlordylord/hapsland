@@ -1265,7 +1265,9 @@ export class ResidentServer {
               expectedGeneration: dispatchCredential.generation,
               statePath: dispatchCredential.statePath,
             }));
-        if (credentialRequired && credential?.status !== "present") return undefined;
+        if (credentialRequired && credential?.status !== "present") {
+          return { status: "credential" as const };
+        }
         if (credential?.status === "present") {
           const current = readCredentialState(dispatchCredential?.statePath);
           if (current.generation !== credential.generation ||
@@ -1337,6 +1339,9 @@ export class ResidentServer {
       }
       if (result?.status === "backend" || result?.status === "timeout") {
         this.#recordOperationalFailure(job.observation, "backend");
+        recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
+      } else if (result?.status === "credential") {
+        this.#recordOperationalFailure(job.observation, "credential");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       } else if (result === undefined) {
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });

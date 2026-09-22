@@ -524,7 +524,7 @@ const probeRuntime = (executable: string) => {
     if (!isObject(value) || typeof value.version !== "string" || typeof value.platform !== "string" ||
         typeof value.architecture !== "string") throw new Error("shape");
     return {
-      ready: value.version === "v24.20.0" && value.platform === "linux" && value.architecture === "arm64",
+      ready: true,
       observed: { version: value.version, platform: value.platform, architecture: value.architecture },
     };
   } catch {
@@ -542,14 +542,20 @@ const runtimeCompatibility = (inputs: ReturnType<typeof resolveInputs>) => {
   const parser = pathReadiness(packaged.parser, false);
   const resident = pathReadiness(packaged.resident, false);
   const observedRuntime = isObject(runtimeProbe.observed) ? runtimeProbe.observed : undefined;
+  const requiredVersion = `v${inputs.runtimeVersion}`;
+  const declaredPlatforms = [...new Set(inputs.runtimeProfiles.map(({ operatingSystem }) => operatingSystem))];
+  const declaredArchitectures = [...new Set(inputs.runtimeProfiles.map(({ architecture }) => architecture))];
+  const declaredProfile = inputs.runtimeProfiles.some(({ operatingSystem, architecture }) =>
+    operatingSystem === observedRuntime?.platform && architecture === observedRuntime?.architecture
+  );
   const checks = {
     runtime: { ...executable, path: inputs.executable },
     entrypoint: { ...entrypoint, path: inputs.entrypoint },
     parser: { ...parser, path: packaged.parser },
     resident: { ...resident, path: packaged.resident },
-    node: { ready: runtimeProbe.ready && observedRuntime?.version === "v24.20.0", observed: observedRuntime?.version ?? runtimeProbe.observed, required: "v24.20.0" },
-    platform: { ready: runtimeProbe.ready && observedRuntime?.platform === "linux", observed: observedRuntime?.platform ?? runtimeProbe.observed, required: "linux" },
-    architecture: { ready: runtimeProbe.ready && observedRuntime?.architecture === "arm64", observed: observedRuntime?.architecture ?? runtimeProbe.observed, required: "arm64" },
+    node: { ready: runtimeProbe.ready && observedRuntime?.version === requiredVersion, observed: observedRuntime?.version ?? runtimeProbe.observed, required: requiredVersion },
+    platform: { ready: runtimeProbe.ready && declaredProfile, observed: observedRuntime?.platform ?? runtimeProbe.observed, required: declaredPlatforms.join(", ") },
+    architecture: { ready: runtimeProbe.ready && declaredProfile, observed: observedRuntime?.architecture ?? runtimeProbe.observed, required: declaredArchitectures.join(", ") },
   };
   return {
     supported: Object.values(checks).every((check) => check.ready),
@@ -590,6 +596,8 @@ const resolveInputs = (request: InstallationRequest) => {
   const packageRoot = resolve(dirname(entrypoint), "..");
   let packageVersion: string | undefined;
   let residentProtocol: number | undefined;
+  let runtimeVersion: string | undefined;
+  let runtimeProfiles: ReadonlyArray<{ readonly operatingSystem: string; readonly architecture: string }> | undefined;
   let packageMetadataError: string | undefined;
   try {
     const manifest: unknown = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
@@ -598,12 +606,23 @@ const resolveInputs = (request: InstallationRequest) => {
     }
     packageVersion = manifest.version;
     const declaration: unknown = JSON.parse(readFileSync(join(packageRoot, "package-runtime.json"), "utf8"));
-    if (!isObject(declaration) || declaration.schemaVersion !== 1 ||
+    if (!isObject(declaration) || declaration.schemaVersion !== 1 || !isObject(declaration.runtime) ||
+        declaration.runtime.name !== "node" || typeof declaration.runtime.version !== "string" ||
+        !Array.isArray(declaration.profiles) || declaration.profiles.length === 0 ||
         typeof declaration.residentProtocol !== "number" || !Number.isSafeInteger(declaration.residentProtocol) ||
         declaration.residentProtocol <= 0) {
-      throw new Error("package-runtime.json must declare schemaVersion 1 and a positive residentProtocol");
+      throw new Error("package-runtime.json must declare Node runtime, nonempty profiles, and a positive residentProtocol");
     }
+    const profiles = declaration.profiles.map((profile) => {
+      if (!isObject(profile) || typeof profile.operatingSystem !== "string" ||
+          typeof profile.architecture !== "string") {
+        throw new Error("package-runtime.json contains an invalid runtime profile");
+      }
+      return { operatingSystem: profile.operatingSystem, architecture: profile.architecture };
+    });
     residentProtocol = declaration.residentProtocol;
+    runtimeVersion = declaration.runtime.version;
+    runtimeProfiles = profiles;
   } catch (cause) {
     packageMetadataError = cause instanceof Error ? cause.message : "package metadata is unreadable";
   }
@@ -614,6 +633,8 @@ const resolveInputs = (request: InstallationRequest) => {
     codexExecutable,
     packageVersion: packageVersion ?? "development",
     residentProtocol: residentProtocol ?? 1,
+    runtimeVersion: runtimeVersion ?? "unsupported",
+    runtimeProfiles: runtimeProfiles ?? [],
     packageMetadata: packageMetadataError === undefined
       ? { ready: true as const }
       : { ready: false as const, reason: packageMetadataError },

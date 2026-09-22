@@ -15,6 +15,13 @@
     "lookupDeadlineMs": 750,
     "backgroundUnlockPrompts": false
   },
+  "macOSCredentialStore": {
+    "implementation": "Keychain generic password through Security.framework",
+    "service": "dev.typesafe.realtime-review-tool",
+    "account": "default",
+    "lookupDeadlineMs": 750,
+    "backgroundAuthenticationUI": "fail-without-prompt"
+  },
   "parser": {
     "implementation": "tree-sitter",
     "languages": ["typescript", "tsx"]

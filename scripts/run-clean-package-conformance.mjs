@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const executeRealCodex = process.argv.includes("--real-codex");
 const writeEvidence = process.argv.includes("--write-evidence");
-const exerciseSecretService = process.argv.includes("--secret-service");
+const exerciseSecretService = process.argv.includes("--secret-service") || process.platform === "darwin";
 const outputPath = join(root, `evidence/package/clean-${process.platform}-node-24.20.0-${process.arch}.json`);
 const run = (command, args, options = {}) => new Promise((resolveRun, reject) => {
   const child = spawn(command, args, {
@@ -308,7 +308,19 @@ const establishNativeTrust = (codexHome, repository, env) => new Promise((resolv
 const temporary = await mkdtemp(join(tmpdir(), "review-package-conformance-"));
 let residentPid;
 let separateRuntime;
+let testKeychainPath;
+let previousDefaultKeychain;
 try {
+  if (process.platform === "darwin" && exerciseSecretService) {
+    const previous = await mustRun("security", ["default-keychain", "-d", "user"], { cwd: temporary });
+    previousDefaultKeychain = previous.stdout.trim().replace(/^\"|\"$/g, "");
+    testKeychainPath = join(temporary, "review-integration.keychain-db");
+    await mustRun("security", ["create-keychain", "-p", "review-integration-test", testKeychainPath], { cwd: temporary });
+    await mustRun("security", ["default-keychain", "-s", testKeychainPath], { cwd: temporary });
+    await mustRun("security", ["unlock-keychain", "-p", "review-integration-test", testKeychainPath], { cwd: temporary });
+    await mustRun("security", ["set-keychain-settings", "-lut", "21600", testKeychainPath], { cwd: temporary });
+    process.env.REVIEW_TEST_KEYCHAIN_PATH = testKeychainPath;
+  }
   progress("pack-and-install");
   const artifacts = join(temporary, "artifacts");
   const installation = join(temporary, "installation");
@@ -431,7 +443,7 @@ try {
       throw new Error("packaged CLI did not reuse the saved credential in a new process");
     }
     credentialEvidence = {
-      status: "actual-secret-service",
+      status: process.platform === "darwin" ? "actual-keychain" : "actual-secret-service",
       loginMs: Date.now() - loginStarted,
       separateProcessLookupMs: Date.now() - lookupStarted,
     };
@@ -479,7 +491,10 @@ try {
   const installedDoctor = parseJson(installedDoctorRun.stdout, "installed integration doctor");
   if (installedDoctor.offline !== true || installedDoctor.readOnly !== true || installedDoctor.providerCalls !== 0 ||
       !installedDoctor.checks?.some((check) => check.stage === "configuration-ownership" && check.status === "ready") ||
-      !installedDoctor.checks?.some((check) => check.stage === "repository-enablement" && check.status === "missing")) {
+      !installedDoctor.checks?.some((check) => check.stage === "repository-enablement" && check.status === "missing") ||
+      (exerciseSecretService && !installedDoctor.checks?.some((check) =>
+        check.stage === "credential-accessibility" && check.status === "ready" &&
+        check.observed?.savedCredentialAccessibility === "present"))) {
     throw new Error("packaged installed-integration doctor did not expose independent readiness stages");
   }
   const repeatPreviewRun = await mustRun(cli, ["--install-preview"], {
@@ -622,7 +637,7 @@ try {
       submissions = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
       if (submissions === 2) break;
     }
-    if (submissions !== 2) throw new Error("restarted resident did not reuse the persistent Secret Service credential");
+    if (submissions !== 2) throw new Error("restarted resident did not reuse the persistent native credential");
     credentialEvidence = { ...credentialEvidence, residentRestartPersistence: "passed" };
     const logoutRun = await mustRun(activeCli, ["--logout"], { cwd: temporary, env });
     const logoutResult = parseJson(logoutRun.stdout, "packaged credential logout");
@@ -634,6 +649,8 @@ try {
     await writeFile(join(repository, "logged-out.ts"), loggedOutSource, { mode: 0o600 });
     const loggedOutEvent = {
       ...addEvent,
+      session_id: "package-logged-out-session",
+      turn_id: "package-logged-out-turn",
       tool_use_id: "package-logged-out",
       tool_input: { command: `*** Begin Patch\n*** Add File: logged-out.ts\n+${loggedOutSource.trim()}\n*** End Patch` },
     };
@@ -858,7 +875,31 @@ try {
       cwd: temporary, env, input: `${syntheticCredential}\n`,
     });
     const installedHelper = join(packageDirectory, "dist", "native", "credential-secret-service");
-    await mustRun(installedHelper, ["lock"], { cwd: temporary, env });
+    if (process.platform === "linux") {
+      await mustRun(installedHelper, ["lock"], { cwd: temporary, env });
+    } else if (process.platform === "darwin") {
+      const keychainPath = process.env.REVIEW_TEST_KEYCHAIN_PATH;
+      if (keychainPath === undefined) {
+        throw new Error("macOS credential conformance requires REVIEW_TEST_KEYCHAIN_PATH");
+      }
+      await mustRun("security", ["unlock-keychain", "-p", "review-integration-test", keychainPath], { cwd: temporary, env });
+      await mustRun("security", [
+        "delete-generic-password", "-a", "default", "-s", "dev.typesafe.realtime-review-tool", keychainPath,
+      ], { cwd: temporary, env });
+      await mustRun("security", [
+        "add-generic-password",
+        "-a", "default",
+        "-s", "dev.typesafe.realtime-review-tool",
+        "-w", `${syntheticCredential}-restricted-native-probe`,
+        // An explicit empty trusted-application entry creates an item whose
+        // secret access requires user interaction. The installed helper must
+        // fail that request through kSecUseAuthenticationUIFail.
+        "-T", "",
+        keychainPath,
+      ], { cwd: temporary, env });
+    } else {
+      throw new Error(`native credential conformance is unsupported on ${process.platform}`);
+    }
     const lockedStarted = Date.now();
     const lockedRun = await run(activeCli, ["--inspect-credentials"], {
       cwd: repository, env,
@@ -866,29 +907,35 @@ try {
       timeoutMs: 5_000,
     });
     const lockedResult = parseJson(lockedRun.stdout, "locked credential inspection");
-    if (lockedResult.status !== "locked" || lockedRun.code !== 6) {
-      throw new Error("installed credential inspection did not report locked storage");
-    }
-    const unreachableStarted = Date.now();
-    const unreachableRun = await run(activeCli, ["--inspect-credentials"], {
-      cwd: repository,
-      env: { ...env, DBUS_SESSION_BUS_ADDRESS: "unix:path=/nonexistent/review-secret-service" },
-      input: JSON.stringify({ version: 1, operation: "credentials", cwd: repository }),
-      timeoutMs: 5_000,
-    });
-    const unreachableResult = parseJson(unreachableRun.stdout, "unreachable credential inspection");
-    if (unreachableResult.status !== "unavailable" || unreachableRun.code !== 6) {
-      throw new Error("installed credential inspection did not report unreachable storage");
+    if (!(["locked", "interaction-required", "timed-out"].includes(lockedResult.status)) || lockedRun.code !== 6) {
+      throw new Error(`installed credential inspection did not report a noninteractive native access denial (status=${lockedResult.status}, exit=${lockedRun.code})`);
     }
     const lockedLookupMs = Date.now() - lockedStarted;
+    let inaccessibleEvidence = {};
+    if (process.platform === "linux") {
+      const unreachableStarted = Date.now();
+      const unreachableRun = await run(activeCli, ["--inspect-credentials"], {
+        cwd: repository,
+        env: { ...env, DBUS_SESSION_BUS_ADDRESS: "unix:path=/nonexistent/review-secret-service" },
+        input: JSON.stringify({ version: 1, operation: "credentials", cwd: repository }),
+        timeoutMs: 5_000,
+      });
+      const unreachableResult = parseJson(unreachableRun.stdout, "unreachable credential inspection");
+      if (unreachableResult.status !== "unavailable" || unreachableRun.code !== 6) {
+        throw new Error("installed credential inspection did not report unreachable storage");
+      }
+      inaccessibleEvidence = {
+        inaccessibleLookupMs: Date.now() - unreachableStarted,
+        inaccessibleOutcome: "unavailable-bounded",
+      };
+    }
     credentialEvidence = {
       ...credentialEvidence,
       residentControlledTransportResolution: "passed",
       logoutBeforeFutureDispatch: "passed",
-      lockedLookupMs,
-      lockedOutcome: "locked-no-prompt",
-      unreachableLookupMs: Date.now() - unreachableStarted,
-      unreachableOutcome: "unavailable-bounded",
+      restrictedNativeLookupMs: lockedLookupMs,
+      restrictedNativeOutcome: `${lockedResult.status}-no-prompt`,
+      ...inaccessibleEvidence,
       secretRetainedInEvidence: false,
     };
   }
@@ -945,7 +992,7 @@ try {
         partialRecovery: "resumed",
         previousHookRetainedOnPartialFailure: true,
         consentPreserved: true,
-        credentialState: "not-configured",
+        credentialState: exerciseSecretService ? "preserved-external-native-store" : "not-configured",
         trustRecordsModified: false,
         processesStopped: false,
         controlledReviewAfterUpdate: "passed",
@@ -975,6 +1022,13 @@ try {
       catch { break; }
       await new Promise((resolveWait) => setTimeout(resolveWait, 100));
     }
+  }
+  if (previousDefaultKeychain !== undefined) {
+    await run("security", ["default-keychain", "-s", previousDefaultKeychain], { cwd: temporary });
+  }
+  if (testKeychainPath !== undefined) {
+    await run("security", ["delete-keychain", testKeychainPath], { cwd: temporary });
+    delete process.env.REVIEW_TEST_KEYCHAIN_PATH;
   }
   await rm(temporary, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }).catch(() => undefined);
   if (separateRuntime !== undefined) {
