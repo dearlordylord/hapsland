@@ -29,6 +29,7 @@ const mode = process.env.TEST_SECRET_MODE;
 const vault = process.env.TEST_SECRET_VAULT;
 if (mode === "hang") await new Promise(() => setInterval(() => {}, 1000));
 if (mode === "epipe") process.exit(0);
+if (mode === "close-stdin-hang") { (await import("node:fs")).closeSync(0); await new Promise(() => setInterval(() => {}, 1000)); }
 if (mode === "unavailable") { console.log('{"version":1,"status":"unavailable"}'); process.exit(2); }
 if (mode === "locked") { console.log('{"version":1,"status":"locked"}'); process.exit(2); }
 if (operation === "probe") console.log('{"version":1,"status":"available"}');
@@ -45,6 +46,7 @@ else if (operation === "get") {
   console.log('{"version":1,"status":"stored"}');
 } else if (operation === "delete") {
   if (mode === "fail-delete") { console.log('{"version":1,"status":"unavailable"}'); process.exit(2); }
+  if (mode === "slow-fail-delete") { await new Promise((resolve) => setTimeout(resolve, 150)); console.log('{"version":1,"status":"unavailable"}'); process.exit(2); }
   const existed = existsSync(vault); rmSync(vault, { force: true }); console.log(JSON.stringify({version:1,status:existed?"deleted":"missing"}));
 }
 `);
@@ -63,6 +65,13 @@ afterEach(() => {
 });
 
 describe("Secret Service credential lifecycle", () => {
+  it("uses a non-optimizable wipe on every native set input release", () => {
+    const source = readFileSync(join(process.cwd(), "native", "credential-secret-service.c"), "utf8");
+    expect(source).toContain("volatile unsigned char *cursor");
+    expect(source).not.toContain("free(input)");
+    expect(source.match(/secure_free\(input, length\)/g)?.length).toBeGreaterThanOrEqual(5);
+  });
+
   it("bounds a nonprompting lookup by killing its helper", async () => {
     process.env.TEST_SECRET_MODE = "hang";
     const started = Date.now();
@@ -73,6 +82,21 @@ describe("Secret Service credential lifecycle", () => {
   it("maps helper stdin EPIPE to a sanitized indeterminate result", async () => {
     process.env.TEST_SECRET_MODE = "epipe";
     await expect(runSecretService("set", { input: "x".repeat(32_768) })).resolves.toEqual({ status: "indeterminate" });
+  });
+
+  it("retains the deadline for a live helper that closes credential stdin", async () => {
+    process.env.TEST_SECRET_MODE = "close-stdin-hang";
+    const started = Date.now();
+    await expect(runSecretService("set", { input: "x".repeat(32_768), deadlineMs: 200 }))
+      .resolves.toEqual({ status: "timed-out" });
+    expect(Date.now() - started).toBeLessThan(1_000);
+  });
+
+  it("treats malformed valid JSON state as suspended", () => {
+    writeFileSync(lifecycle, JSON.stringify({ version: 1, generation: "bad", savedUseSuspended: false }));
+    expect(readCredentialState(lifecycle)).toEqual({
+      version: 1, generation: 0, savedUseSuspended: true,
+    });
   });
 
   it("uses the default environment key before saved storage", async () => {
@@ -170,5 +194,19 @@ describe("Secret Service credential lifecycle", () => {
     delete process.env.TEST_SECRET_MODE;
     await expect(resolveCredential({ envVar: "TYPESAFE_API_KEY", environmentOnly: false, statePath: lifecycle }))
       .resolves.toMatchObject({ status: "suspended" });
+  });
+
+  it("publishes a suspended generation before native deletion completes", async () => {
+    const stored = await saveCredential("saved-marker", lifecycle);
+    process.env.TEST_SECRET_MODE = "slow-fail-delete";
+    const deleting = logoutCredential(lifecycle);
+    await new Promise((resolveWait) => setTimeout(resolveWait, 40));
+    expect(readCredentialState(lifecycle)).toEqual({
+      version: 1,
+      generation: stored.state.generation + 1,
+      savedUseSuspended: true,
+    });
+    const result = await deleting;
+    expect(result.state.savedUseSuspended).toBe(true);
   });
 });

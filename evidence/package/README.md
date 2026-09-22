@@ -1,7 +1,7 @@
 # Installed package evidence
 
 `clean-linux-node-24.20.0-arm64.json` is the sanitized result of
-`npm run conformance:package -- --real-codex --write-evidence`. The runner packs the release,
+`npm run conformance:package -- --secret-service --real-codex --write-evidence`. The runner packs the release,
 installs production dependencies into a temporary prefix, runs outside the checkout, and creates
 temporary product state, resident state, Codex home, and Git repository. It invokes the installed
 CLI from real Codex 0.155.1 while using the controlled offline `DecisionModel`.

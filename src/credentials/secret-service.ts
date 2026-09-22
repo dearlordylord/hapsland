@@ -64,7 +64,7 @@ const decodeState = (value: unknown): CredentialState => {
     Number.isSafeInteger(value.generation) && value.generation >= 0 &&
     "savedUseSuspended" in value && typeof value.savedUseSuspended === "boolean"
   ) return value as CredentialState;
-  return initialState;
+  return { ...initialState, savedUseSuspended: true };
 };
 
 export const readCredentialState = (
@@ -132,9 +132,11 @@ export const runSecretService = (
     if (total <= 65_536) chunks.push(chunk);
     else child.kill("SIGKILL");
   });
-  child.stdin.on("error", () => finish({
-    status: operation === "set" ? "indeterminate" : "unavailable",
-  }));
+  child.stdin.on("error", () => {
+    // A helper may close stdin yet remain alive. Terminate it and let close (or
+    // the retained deadline) settle the sanitized result.
+    child.kill("SIGKILL");
+  });
   child.on("error", () => finish({ status: "unavailable" }));
   child.on("close", () => {
     if (settled) return;
@@ -263,11 +265,17 @@ export const logoutCredential = async (
   statePath = process.env.REVIEW_CREDENTIAL_STATE_PATH ?? DEFAULT_CREDENTIAL_STATE_PATH,
 ) => withStateLock(statePath, async () => {
   const previous = readCredentialState(statePath);
+  const pending = {
+    version: 1 as const,
+    generation: previous.generation + 1,
+    savedUseSuspended: true,
+  };
+  // Revoke all outstanding capabilities before deletion can block or commit.
+  writeCredentialState(statePath, pending);
   const deleted = await runSecretService("delete", { deadlineMs: 15_000 });
   const successful = deleted.status === "deleted" || deleted.status === "missing";
   const state = {
-    version: 1 as const,
-    generation: previous.generation + 1,
+    ...pending,
     savedUseSuspended: !successful,
   };
   writeCredentialState(statePath, state);

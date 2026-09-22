@@ -1014,6 +1014,10 @@ const readMaskedCredential = (): Promise<string> => {
     encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
   });
   const originalMode = original.status === 0 ? original.stdout.trim() : "";
+  if (originalMode.length === 0) {
+    closeSync(descriptor);
+    throw new Error("masked terminal input is unavailable; retry with --credential-stdin");
+  }
   let restored = false;
   const restore = () => {
     if (restored) return;
@@ -1029,12 +1033,12 @@ const readMaskedCredential = (): Promise<string> => {
       }
     }
   };
-  process.stderr.write("Jev API key: ");
   const disabled = spawnSync("stty", ["-F", "/dev/tty", "-echo"], { stdio: "ignore" });
   if (disabled.status !== 0) {
     closeSync(descriptor);
     throw new Error("masked terminal input is unavailable; retry with --credential-stdin");
   }
+  process.stderr.write("Jev API key: ");
   return new Promise((resolveValue, rejectValue) => {
     const signals = ["SIGINT", "SIGTERM", "SIGHUP"] as const;
     const handlers = new Map<NodeJS.Signals, () => void>();

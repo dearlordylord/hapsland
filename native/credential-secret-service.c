@@ -30,6 +30,16 @@ static void failure(GError *error) {
   json_status("unavailable");
 }
 
+static void secure_clear(void *memory, size_t length) {
+  volatile unsigned char *cursor = (volatile unsigned char *)memory;
+  while (length-- > 0) *cursor++ = 0;
+}
+
+static void secure_free(char *value, size_t length) {
+  if (value != NULL) secure_clear(value, length);
+  free(value);
+}
+
 static SecretService *service(GError **error) {
   return secret_service_get_sync(
     SECRET_SERVICE_OPEN_SESSION | SECRET_SERVICE_LOAD_COLLECTIONS,
@@ -106,10 +116,10 @@ static char *read_stdin(size_t *length) {
   *length = 0;
   for (;;) {
     if (*length == capacity) {
-      if (capacity >= 32768) { free(value); return NULL; }
+      if (capacity >= 32768) { secure_free(value, *length); return NULL; }
       capacity *= 2;
       char *next = realloc(value, capacity + 1);
-      if (next == NULL) { free(value); return NULL; }
+      if (next == NULL) { secure_free(value, *length); return NULL; }
       value = next;
     }
     size_t count = fread(value + *length, 1, capacity - *length, stdin);
@@ -123,19 +133,19 @@ static char *read_stdin(size_t *length) {
 static int set_secret(void) {
   size_t length = 0;
   char *input = read_stdin(&length);
-  if (input == NULL || length == 0) { free(input); json_status("invalid"); return 2; }
+  if (input == NULL || length == 0) { secure_free(input, length); json_status("invalid"); return 2; }
   GError *error = NULL;
   SecretService *svc = service(&error);
-  if (svc == NULL) { failure(error); g_clear_error(&error); free(input); return 2; }
+  if (svc == NULL) { failure(error); g_clear_error(&error); secure_free(input, length); return 2; }
   SecretCollection *collection = secret_collection_for_alias_sync(
     svc, SECRET_COLLECTION_DEFAULT, SECRET_COLLECTION_NONE, NULL, &error
   );
   if (collection == NULL) {
-    failure(error); g_clear_error(&error); g_object_unref(svc); free(input); return 2;
+    failure(error); g_clear_error(&error); g_object_unref(svc); secure_free(input, length); return 2;
   }
   if (secret_collection_get_locked(collection)) {
     json_status("locked");
-    g_object_unref(collection); g_object_unref(svc); free(input); return 2;
+    g_object_unref(collection); g_object_unref(svc); secure_free(input, length); return 2;
   }
   GHashTable *attrs = attributes();
   SecretValue *value = secret_value_new(input, (gssize)length, "text/plain");
@@ -145,8 +155,7 @@ static int set_secret(void) {
   );
   secret_value_unref(value);
   g_hash_table_unref(attrs);
-  memset(input, 0, length);
-  free(input);
+  secure_free(input, length);
   if (item == NULL) {
     /* The service may have committed the replacement before returning an error. */
     json_status("indeterminate");

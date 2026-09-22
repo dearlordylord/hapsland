@@ -82,7 +82,7 @@ const waitUntilIdle = async (server: ResidentServer): Promise<void> => {
 };
 
 describe("resident delivery lease", () => {
-  it("rejects a separate-process generation change after authorization and before credential dispatch", async () => {
+  it("rejects a separate-process generation change after credential resolution at the provider boundary", async () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
@@ -95,7 +95,7 @@ describe("resident delivery lease", () => {
     if (observation === undefined) return;
     const changed = deferred();
     const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
-      afterAuthorizeBeforeCredential: async () => {
+      afterCredentialBeforeDispatch: async () => {
         const child = spawn(process.execPath, ["-e", `
           require("node:fs").writeFileSync(process.argv[1], JSON.stringify({version:1,generation:2,savedUseSuspended:false}));
         `, credentialStatePath], { stdio: "ignore" });
@@ -128,7 +128,7 @@ describe("resident delivery lease", () => {
     await changed.promise;
     await waitUntilIdle(server);
     expect(existsSync(capturePath)).toBe(false);
-    expect(server.stats()).toMatchObject({ pendingAdvice: 0, pendingEvaluations: 0 });
+    expect(server.stats()).toMatchObject({ pendingEvaluations: 0 });
   });
 
   it("commits an idle lifetime to retiring before returning cleanup success", async () => {

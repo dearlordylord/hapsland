@@ -1,4 +1,4 @@
-import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
@@ -97,4 +97,36 @@ if (process.argv[2] === "probe") console.log('{"version":1,"status":"available"}
     expect(modes?.[2]).toBe(modes?.[1]);
     expect(Number(modes?.[3])).not.toBe(0);
   }, 10_000);
+
+  it.skipIf(process.platform !== "linux")("does not disable echo when the original terminal mode cannot be captured", () => {
+    const root = mkdtempSync(join(tmpdir(), "credential-pty-capture-"));
+    const helper = join(root, "helper.mjs");
+    const stty = join(root, "stty");
+    const log = join(root, "stty.log");
+    const entrypoint = join(process.cwd(), "src", "cli.ts");
+    writeFileSync(helper, `#!/usr/bin/env node
+if (process.argv[2] === "probe") console.log('{"version":1,"status":"available"}');
+`);
+    writeFileSync(stty, `#!/bin/sh
+printf '%s\n' "$*" >> "$STTY_LOG"
+exit 1
+`);
+    chmodSync(helper, 0o700);
+    chmodSync(stty, 0o700);
+    const child = spawnSync("script", ["-qfec", `${JSON.stringify(process.execPath)} ${JSON.stringify(entrypoint)} --login`, "/dev/null"], {
+      cwd: root,
+      env: {
+        ...process.env,
+        PATH: `${root}:${process.env.PATH ?? ""}`,
+        STTY_LOG: log,
+        REVIEW_CREDENTIAL_HELPER: helper,
+        REVIEW_CREDENTIAL_STATE_PATH: join(root, "state.json"),
+      },
+      encoding: "utf8",
+      timeout: 3_000,
+    });
+    expect(child.status).not.toBe(0);
+    expect(readFileSync(log, "utf8")).toContain("-F /dev/tty -g");
+    expect(readFileSync(log, "utf8")).not.toContain("-echo");
+  });
 });

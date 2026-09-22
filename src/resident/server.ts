@@ -352,6 +352,7 @@ export class ResidentServer {
   readonly #afterAdvicePending: ((adviceId: string) => Promise<void> | void) | undefined;
   readonly #beforeFinalRevalidate: ((adviceId: string) => Promise<void>) | undefined;
   readonly #afterAuthorizeBeforeCredential: (() => Promise<void>) | undefined;
+  readonly #afterCredentialBeforeDispatch: (() => Promise<void>) | undefined;
   readonly paths: ResidentPaths;
 
   constructor(
@@ -365,6 +366,7 @@ export class ResidentServer {
       readonly afterAdvicePending?: (adviceId: string) => Promise<void> | void;
       readonly beforeFinalRevalidate?: (adviceId: string) => Promise<void>;
       readonly afterAuthorizeBeforeCredential?: () => Promise<void>;
+      readonly afterCredentialBeforeDispatch?: () => Promise<void>;
       readonly maximumOperationalNoticeKeys?: number;
     } = {},
   ) {
@@ -386,6 +388,7 @@ export class ResidentServer {
     this.#afterAdvicePending = options.afterAdvicePending;
     this.#beforeFinalRevalidate = options.beforeFinalRevalidate;
     this.#afterAuthorizeBeforeCredential = options.afterAuthorizeBeforeCredential;
+    this.#afterCredentialBeforeDispatch = options.afterCredentialBeforeDispatch;
     this.#reuse = new EvaluationReuse({
       reserve: (partition, bytes) => this.#reserve(partition, bytes),
       release: (reservation) => { this.#ledger.release(reservation); },
@@ -1182,6 +1185,7 @@ export class ResidentServer {
       const userConfigPath = job.dispatch.userConfigPath ?? undefined;
       const controlled = decodeControlledOptions(job.dispatch.controlled);
       const afterAuthorizeBeforeCredential = this.#afterAuthorizeBeforeCredential;
+      const afterCredentialBeforeDispatch = this.#afterCredentialBeforeDispatch;
       const result = await Effect.runPromise(Effect.gen(function* () {
         const settings = yield* loadReviewSettings(
           job.observation.root,
@@ -1229,7 +1233,21 @@ export class ResidentServer {
               credentialEnvVar: settings.credentialEnvVar,
             })
           : controlledDecisionModelLayer(controlled);
-        const evaluation = evaluatePrepared(job.prepared).pipe(Effect.provide(decisionModel));
+        if (afterCredentialBeforeDispatch !== undefined) {
+          yield* Effect.promise(afterCredentialBeforeDispatch);
+        }
+        const beforeDispatch = credential?.status !== "present"
+          ? Effect.void
+          : Effect.suspend(() => {
+              const current = readCredentialState(dispatchCredential?.statePath);
+              return current.generation === credential.generation &&
+                  (credential.source === "environment" || !current.savedUseSuspended)
+                ? Effect.void
+                : Effect.fail(new Error("credential generation changed before provider dispatch"));
+            });
+        const evaluation = evaluatePrepared(job.prepared, beforeDispatch).pipe(
+          Effect.provide(decisionModel),
+        );
         return yield* (credentialProvider === undefined
           ? evaluation
           : evaluation.pipe(Effect.provide(credentialProvider)));
