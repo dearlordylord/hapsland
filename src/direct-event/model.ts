@@ -42,7 +42,7 @@ export type FrozenRule = {
 };
 
 export type ReviewInput = {
-  readonly contract: typeof DIRECT_EVENT_INPUT_CONTRACT;
+  readonly contract: string;
   readonly path: string;
   readonly declaration: TypeDeclaration;
   readonly rules: ReadonlyArray<FrozenRule>;

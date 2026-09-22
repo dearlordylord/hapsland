@@ -5,8 +5,10 @@ import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
 import * as TestClock from "effect/testing/TestClock";
 import type * as DecisionModel from "effect/unstable/ai/DecisionModel";
-import { writeFile, rm } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { writeFile, rm, symlink } from "node:fs/promises";
 import { join } from "node:path";
+import { promisify } from "node:util";
 import { configuredRules } from "../policy/rules.ts";
 import { Consent } from "../runtime/consent.ts";
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts";
@@ -19,7 +21,10 @@ import {
   reviewCodexAdd,
   type DirectReviewContext,
 } from "./pipeline.ts";
+import { attemptCodexHostOutput } from "./writer.ts";
 import { addEvent, makeGitFixture, put, recipient } from "./test-fixtures.ts";
+
+const execFileAsync = promisify(execFile);
 
 const findingAnswers = (): Readonly<Record<string, DecisionModel.ProviderAnswer>> =>
   Object.fromEntries(configuredRules.map((rule) => [
@@ -62,9 +67,8 @@ describe("direct-event vertical slice", () => {
         answers: findingAnswers(),
         inspectRequest: (request) => Effect.sync(() => { state = request.state; }),
       });
-      expect(result.status).toBe("submitted");
-      if (result.status !== "submitted") return;
-      expect(result.submission).toBe("attempted-unacknowledged");
+      expect(result.status).toBe("ready");
+      if (result.status !== "ready") return;
       expect(result.findings.length).toBeGreaterThan(0);
       expect(result.output).toMatchObject({ hookSpecificOutput: { hookEventName: "PostToolUse" } });
       expect(state).toEqual({ artifact: { domain: "type.ts", source: "type OrderCount = number" } });
@@ -107,14 +111,64 @@ describe("direct-event vertical slice", () => {
     }),
   );
 
+  it.effect("enforces every selection gate before source reads and backend work", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture);
+      const outsideRoot = yield* Effect.promise(makeGitFixture);
+      yield* Effect.promise(() => put(root, ".gitignore", "ignored.ts\n"));
+      yield* Effect.promise(() => put(root, "ignored.ts", "type OrderCount = number"));
+      yield* Effect.promise(() => put(root, "real.ts", "type OrderCount = number"));
+      yield* Effect.promise(() => symlink(join(root, "real.ts"), join(root, "link.ts")));
+      yield* Effect.promise(() => put(root, "policy.ts", "type OrderCount = number"));
+      const outside = yield* Effect.promise(() => put(outsideRoot, "outside.ts", "type OrderCount = number"));
+      let reads = 0;
+      let calls = 0;
+      const gated: ReadonlyArray<{
+        readonly path: string;
+        readonly policy?: DirectReviewContext["policy"];
+      }> = [
+        { path: "ignored.ts" },
+        { path: "link.ts" },
+        { path: ".git/config" },
+        { path: outside },
+        { path: "policy.ts", policy: { includes: ["**/*"], excludes: ["policy.ts"] } },
+      ];
+      for (const gate of gated) {
+        const result = yield* enabledReview(root, addEvent(root, [gate.path]), {
+          answers: findingAnswers(),
+          onRequest: Effect.sync(() => { calls += 1; }),
+        }, (base) => ({
+          ...base,
+          ...(gate.policy === undefined ? {} : { policy: gate.policy }),
+          captureHooks: { sourceRead: () => { reads += 1; } },
+        }));
+        expect(result.status).toBe("no-advice");
+      }
+      expect(reads).toBe(0);
+      expect(calls).toBe(0);
+
+      yield* Effect.promise(() => execFileAsync("git", ["-C", root, "add", "-f", "ignored.ts"]));
+      const tracked = yield* enabledReview(root, addEvent(root, ["ignored.ts"]), {
+        answers: findingAnswers(),
+        onRequest: Effect.sync(() => { calls += 1; }),
+      }, (base) => ({
+        ...base,
+        captureHooks: { sourceRead: () => { reads += 1; } },
+      }));
+      expect(tracked.status).toBe("ready");
+      expect(reads).toBeGreaterThan(0);
+      expect(calls).toBe(1);
+    }),
+  );
+
   it.effect("keeps independent candidate outcomes when another path is unsupported", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture);
       yield* Effect.promise(() => put(root, "good.ts", "type OrderCount = number"));
       yield* Effect.promise(() => put(root, "bad.ts", "interface A {}\ninterface B {}"));
       const result = yield* enabledReview(root, addEvent(root, ["bad.ts", "good.ts"]));
-      expect(result.status).toBe("submitted");
-      if (result.status === "submitted") {
+      expect(result.status).toBe("ready");
+      if (result.status === "ready") {
         expect(new Set(result.findings.map(({ path }) => path))).toEqual(new Set(["good.ts"]));
       }
     }),
@@ -130,6 +184,26 @@ describe("direct-event vertical slice", () => {
         onRequest: Effect.sync(() => { calls += 1; }),
       });
       expect(result.status).toBe("no-advice");
+      expect(calls).toBe(0);
+    }),
+  );
+
+  it.effect("rejects qualified and value-query references without a backend call", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture);
+      let calls = 0;
+      for (const source of [
+        "interface Root { child: NS.B }",
+        "interface Root extends NS.B { count: number }",
+        "type Root = typeof external",
+      ]) {
+        yield* Effect.promise(() => put(root, "type.ts", source));
+        const result = yield* enabledReview(root, addEvent(root), {
+          answers: findingAnswers(),
+          onRequest: Effect.sync(() => { calls += 1; }),
+        });
+        expect(result.status).toBe("no-advice");
+      }
       expect(calls).toBe(0);
     }),
   );
@@ -156,6 +230,11 @@ describe("direct-event vertical slice", () => {
         const result = yield* enabledReview(root, addEvent(root), { answers });
         expect(result.status).toBe("unavailable");
       }
+      const extra = yield* enabledReview(root, addEvent(root), {
+        answers: findingAnswers(),
+        extraDecisionKey: "unexpected",
+      });
+      expect(extra.status).toBe("unavailable");
     }),
   );
 
@@ -224,7 +303,16 @@ describe("direct-event vertical slice", () => {
         ...base,
         beforeHandoff: Effect.promise(() => writeFile(path, "// new\ntype OrderCount = number\n")),
       }));
-      expect(unrelated.status).toBe("submitted");
+      expect(unrelated.status).toBe("ready");
+      yield* Effect.promise(() => writeFile(path, "type OrderCount = number\n"));
+      const sibling = yield* enabledReview(root, addEvent(root), undefined, (base) => ({
+        ...base,
+        beforeHandoff: Effect.promise(() => writeFile(
+          path,
+          "type OrderCount = number\ninterface Unrelated { label: string }\n",
+        )),
+      }));
+      expect(sibling.status).toBe("ready");
       yield* Effect.promise(() => writeFile(path, "type OrderCount = number\n"));
       const relevant = yield* enabledReview(root, addEvent(root), undefined, (base) => ({
         ...base,
@@ -241,6 +329,10 @@ describe("direct-event vertical slice", () => {
       const scenarios: ReadonlyArray<() => Effect.Effect<void>> = [
         () => Effect.promise(() => rm(path)),
         () => Effect.promise(() => writeFile(path, "const unrelated = true")),
+        () => Effect.promise(() => writeFile(
+          path,
+          "type OrderCount = number\ntype OrderCount = string",
+        )),
       ];
       for (const mutate of scenarios) {
         yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number"));
@@ -262,6 +354,72 @@ describe("direct-event vertical slice", () => {
         beforeHandoff: Effect.sync(() => { excludes = ["type.ts"]; }),
       }));
       expect(changedSelection).toEqual({ status: "unavailable", reason: "stale", output: undefined });
+
+      const ruleMutations: ReadonlyArray<(
+        rules: typeof configuredRules,
+      ) => typeof configuredRules> = [
+        (rulesValue) => rulesValue.map((rule, index) => index === 0
+          ? {
+              ...rule,
+              decision: {
+                ...rule.decision,
+                criteria: { ...rule.decision.criteria, true: `${rule.decision.criteria.true} changed` },
+              },
+            }
+          : rule),
+        (rulesValue) => rulesValue.map((rule, index) => index === 0
+          ? { ...rule, threshold: rule.threshold === 0.8 ? 0.81 : 0.8 }
+          : rule),
+        (rulesValue) => rulesValue.map((rule, index) => index === 0
+          ? { ...rule, message: `${rule.message} changed` }
+          : rule),
+      ];
+      for (const mutateRules of ruleMutations) {
+        yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number"));
+        let mutableRules = configuredRules;
+        const result = yield* enabledReview(root, addEvent(root), undefined, (base) => ({
+          ...base,
+          rules: () => mutableRules,
+          beforeHandoff: Effect.sync(() => { mutableRules = mutateRules(configuredRules); }),
+        }));
+        expect(result).toEqual({ status: "unavailable", reason: "stale", output: undefined });
+      }
+
+      let contract = "direct-event/same-file-single-named-type/v1";
+      const changedContract = yield* enabledReview(root, addEvent(root), undefined, (base) => ({
+        ...base,
+        inputContract: () => contract,
+        beforeHandoff: Effect.sync(() => { contract = "direct-event/same-file-single-named-type/v2"; }),
+      }));
+      expect(changedContract).toEqual({ status: "unavailable", reason: "stale", output: undefined });
     }),
   );
+});
+
+describe("controlled host writer", () => {
+  it("records attempted-unacknowledged only after the write invocation", () => {
+    const events: Array<string> = [];
+    const attempt = attemptCodexHostOutput({
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse",
+        additionalContext: "advice",
+      },
+    }, (encoded) => {
+      events.push(encoded);
+    });
+    expect(events).toHaveLength(1);
+    expect(attempt.status).toBe("attempted-unacknowledged");
+    expect(attempt.encodedBytes).toBe(Buffer.byteLength(events[0] ?? ""));
+  });
+
+  it("does not manufacture an attempt record when the writer throws", () => {
+    expect(() => attemptCodexHostOutput({
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse",
+        additionalContext: "advice",
+      },
+    }, () => {
+      throw new Error("closed writer");
+    })).toThrow("closed writer");
+  });
 });
