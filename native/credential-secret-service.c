@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "credential-input.h"
 
 static const SecretSchema schema = {
   "dev.typesafe.realtime-review-tool", SECRET_SCHEMA_NONE,
@@ -28,16 +29,6 @@ static void json_status(const char *status) {
 static void failure(GError *error) {
   (void)error;
   json_status("unavailable");
-}
-
-static void secure_clear(void *memory, size_t length) {
-  volatile unsigned char *cursor = (volatile unsigned char *)memory;
-  while (length-- > 0) *cursor++ = 0;
-}
-
-static void secure_free(char *value, size_t length) {
-  if (value != NULL) secure_clear(value, length);
-  free(value);
 }
 
 static SecretService *service(GError **error) {
@@ -109,43 +100,22 @@ static int get_secret(void) {
   return 0;
 }
 
-static char *read_stdin(size_t *length) {
-  size_t capacity = 4096;
-  char *value = malloc(capacity + 1);
-  if (value == NULL) return NULL;
-  *length = 0;
-  for (;;) {
-    if (*length == capacity) {
-      if (capacity >= 32768) { secure_free(value, *length); return NULL; }
-      capacity *= 2;
-      char *next = realloc(value, capacity + 1);
-      if (next == NULL) { secure_free(value, *length); return NULL; }
-      value = next;
-    }
-    size_t count = fread(value + *length, 1, capacity - *length, stdin);
-    *length += count;
-    if (count == 0) break;
-  }
-  value[*length] = '\0';
-  return value;
-}
-
 static int set_secret(void) {
   size_t length = 0;
-  char *input = read_stdin(&length);
-  if (input == NULL || length == 0) { secure_free(input, length); json_status("invalid"); return 2; }
+  char *input = credential_read_stdin(&length);
+  if (input == NULL || length == 0) { credential_secure_free(input, length); json_status("invalid"); return 2; }
   GError *error = NULL;
   SecretService *svc = service(&error);
-  if (svc == NULL) { failure(error); g_clear_error(&error); secure_free(input, length); return 2; }
+  if (svc == NULL) { failure(error); g_clear_error(&error); credential_secure_free(input, length); return 2; }
   SecretCollection *collection = secret_collection_for_alias_sync(
     svc, SECRET_COLLECTION_DEFAULT, SECRET_COLLECTION_NONE, NULL, &error
   );
   if (collection == NULL) {
-    failure(error); g_clear_error(&error); g_object_unref(svc); secure_free(input, length); return 2;
+    failure(error); g_clear_error(&error); g_object_unref(svc); credential_secure_free(input, length); return 2;
   }
   if (secret_collection_get_locked(collection)) {
     json_status("locked");
-    g_object_unref(collection); g_object_unref(svc); secure_free(input, length); return 2;
+    g_object_unref(collection); g_object_unref(svc); credential_secure_free(input, length); return 2;
   }
   GHashTable *attrs = attributes();
   SecretValue *value = secret_value_new(input, (gssize)length, "text/plain");
@@ -155,7 +125,7 @@ static int set_secret(void) {
   );
   secret_value_unref(value);
   g_hash_table_unref(attrs);
-  secure_free(input, length);
+  credential_secure_free(input, length);
   if (item == NULL) {
     /* The service may have committed the replacement before returning an error. */
     json_status("indeterminate");

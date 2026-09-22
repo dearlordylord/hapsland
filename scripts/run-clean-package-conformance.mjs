@@ -309,16 +309,22 @@ const temporary = await mkdtemp(join(tmpdir(), "review-package-conformance-"));
 let residentPid;
 let separateRuntime;
 let testKeychainPath;
+let secondaryTestKeychainPath;
 let previousDefaultKeychain;
 try {
   if (process.platform === "darwin" && exerciseSecretService) {
     const previous = await mustRun("security", ["default-keychain", "-d", "user"], { cwd: temporary });
     previousDefaultKeychain = previous.stdout.trim().replace(/^\"|\"$/g, "");
     testKeychainPath = join(temporary, "review-integration.keychain-db");
+    secondaryTestKeychainPath = join(temporary, "review-integration-secondary.keychain-db");
     await mustRun("security", ["create-keychain", "-p", "review-integration-test", testKeychainPath], { cwd: temporary });
+    await mustRun("security", ["create-keychain", "-p", "review-integration-test", secondaryTestKeychainPath], { cwd: temporary });
     await mustRun("security", ["default-keychain", "-s", testKeychainPath], { cwd: temporary });
     await mustRun("security", ["unlock-keychain", "-p", "review-integration-test", testKeychainPath], { cwd: temporary });
+    await mustRun("security", ["unlock-keychain", "-p", "review-integration-test", secondaryTestKeychainPath], { cwd: temporary });
     await mustRun("security", ["set-keychain-settings", "-lut", "21600", testKeychainPath], { cwd: temporary });
+    await mustRun("security", ["set-keychain-settings", "-lut", "21600", secondaryTestKeychainPath], { cwd: temporary });
+    await mustRun("security", ["list-keychains", "-d", "user", "-s", testKeychainPath, secondaryTestKeychainPath], { cwd: temporary });
     process.env.REVIEW_TEST_KEYCHAIN_PATH = testKeychainPath;
   }
   progress("pack-and-install");
@@ -442,10 +448,43 @@ try {
         credentialInspection.stdout.includes(syntheticCredential)) {
       throw new Error("packaged CLI did not reuse the saved credential in a new process");
     }
+    let defaultKeychainIsolation = "not-applicable";
+    if (process.platform === "darwin") {
+      if (secondaryTestKeychainPath === undefined) throw new Error("secondary Keychain fixture is unavailable");
+      const secondaryCredential = `${syntheticCredential}-secondary`;
+      const replacementCredential = `${syntheticCredential}-replacement`;
+      const addSecondary = await run("security", [
+        "add-generic-password", "-a", "default", "-s", "dev.typesafe.realtime-review-tool",
+        "-w", secondaryCredential, secondaryTestKeychainPath,
+      ], { cwd: temporary, env });
+      if (addSecondary.code !== 0) throw new Error("secondary Keychain fixture credential could not be created");
+      const helper = join(packageDirectory, "dist", "native", "credential-secret-service");
+      const beforeReplacement = await mustRun(helper, ["get"], { cwd: temporary, env });
+      if (!beforeReplacement.stdout.endsWith(syntheticCredential) || beforeReplacement.stdout.includes(secondaryCredential)) {
+        throw new Error("native lookup escaped the selected default Keychain");
+      }
+      const replacement = await mustRun(cli, ["--login", "--credential-stdin"], {
+        cwd: temporary, env, input: `${replacementCredential}\n`,
+      });
+      if (parseJson(replacement.stdout, "default Keychain replacement").status !== "stored") {
+        throw new Error("default Keychain replacement failed");
+      }
+      const afterReplacement = await mustRun(helper, ["get"], { cwd: temporary, env });
+      const secondaryAfterReplacement = await mustRun("security", [
+        "find-generic-password", "-a", "default", "-s", "dev.typesafe.realtime-review-tool",
+        "-w", secondaryTestKeychainPath,
+      ], { cwd: temporary, env });
+      if (!afterReplacement.stdout.endsWith(replacementCredential) ||
+          secondaryAfterReplacement.stdout.trim() !== secondaryCredential) {
+        throw new Error("native replacement touched a duplicate in another Keychain");
+      }
+      defaultKeychainIsolation = "lookup-and-replacement-passed";
+    }
     credentialEvidence = {
       status: process.platform === "darwin" ? "actual-keychain" : "actual-secret-service",
       loginMs: Date.now() - loginStarted,
       separateProcessLookupMs: Date.now() - lookupStarted,
+      defaultKeychainIsolation,
     };
   }
   await mkdir(codexHome, { recursive: true, mode: 0o700 });
@@ -617,7 +656,30 @@ try {
   if (exerciseSecretService) {
     const firstOwner = parseJson(ownerAfterAdmission, "first resident owner");
     process.kill(firstOwner.pid, "SIGTERM");
-    await new Promise((resolveWait) => setTimeout(resolveWait, 100));
+    let oldResidentExited = false;
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      try { process.kill(firstOwner.pid, 0); }
+      catch { oldResidentExited = true; break; }
+      await new Promise((resolveWait) => setTimeout(resolveWait, 20));
+    }
+    if (!oldResidentExited) throw new Error("old resident did not exit before credential restart probe");
+    let oldOwnerReleased = false;
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      const retainedOwner = await readFile(join(runtime, "owner.json"), "utf8").catch(() => undefined);
+      if (retainedOwner === undefined) { oldOwnerReleased = true; break; }
+      const retained = parseJson(retainedOwner, "retained resident owner");
+      if (retained.pid !== firstOwner.pid || retained.lifetime !== firstOwner.lifetime) {
+        oldOwnerReleased = true;
+        break;
+      }
+      await new Promise((resolveWait) => setTimeout(resolveWait, 20));
+    }
+    if (!oldOwnerReleased) throw new Error("old resident owner lifetime remained active after process exit");
+    const credentialRestartGate = join(temporary, "state", "hold-credential-restart-evaluation");
+    const credentialRestartEnvironment = {
+      ...env,
+      REVIEW_RESIDENT_BACKEND_GATE_PATH: credentialRestartGate,
+    };
     const restartSource = "export interface Restarted { id: string; destination: string }\n";
     await writeFile(join(repository, "restarted.ts"), restartSource, { mode: 0o600 });
     const restartEvent = {
@@ -626,24 +688,54 @@ try {
       tool_input: { command: `*** Begin Patch\n*** Add File: restarted.ts\n+${restartSource.trim()}\n*** End Patch` },
     };
     await mustRun(activeCli, ["--codex-hook", "--controlled", "--controlled-writer"], {
-      cwd: temporary, env, input: JSON.stringify(restartEvent),
+      cwd: temporary, env: credentialRestartEnvironment, input: JSON.stringify(restartEvent),
     });
+    let replacementOwner;
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      const encoded = await readFile(join(runtime, "owner.json"), "utf8").catch(() => undefined);
+      if (encoded !== undefined) {
+        const candidate = parseJson(encoded, "replacement resident owner");
+        if (candidate.pid !== firstOwner.pid && candidate.lifetime !== firstOwner.lifetime) {
+          replacementOwner = candidate;
+          break;
+        }
+      }
+      await new Promise((resolveWait) => setTimeout(resolveWait, 20));
+    }
+    if (replacementOwner === undefined) {
+      throw new Error("fresh resident identity was not established before the second controlled submission");
+    }
+    await writeFile(credentialRestartGate, "continue\n", { mode: 0o600 });
     for (let attempt = 0; attempt < 20; attempt += 1) {
       await new Promise((resolveWait) => setTimeout(resolveWait, 50));
       await mustRun(activeCli, ["--codex-hook", "--controlled", "--controlled-writer"], {
-        cwd: temporary, env,
+        cwd: temporary, env: credentialRestartEnvironment,
         input: JSON.stringify({ ...restartEvent, tool_name: "Bash", tool_use_id: `package-restart-collect-${attempt}`, tool_input: { command: "printf package-restart-ready" } }),
       });
       submissions = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
       if (submissions === 2) break;
     }
     if (submissions !== 2) throw new Error("restarted resident did not reuse the persistent native credential");
-    credentialEvidence = { ...credentialEvidence, residentRestartPersistence: "passed" };
+    credentialEvidence = {
+      ...credentialEvidence,
+      residentRestartPersistence: "passed-distinct-pid-and-lifetime",
+    };
     const logoutRun = await mustRun(activeCli, ["--logout"], { cwd: temporary, env });
     const logoutResult = parseJson(logoutRun.stdout, "packaged credential logout");
     if (logoutResult.status !== "logged-out" || logoutResult.grantsPreserved !== true ||
         logoutResult.sentRequestsRecalled !== false || logoutRun.stdout.includes(syntheticCredential)) {
       throw new Error("packaged credential logout did not revoke saved use safely");
+    }
+    if (process.platform === "darwin") {
+      if (secondaryTestKeychainPath === undefined) throw new Error("secondary Keychain fixture is unavailable");
+      const secondaryAfterLogout = await mustRun("security", [
+        "find-generic-password", "-a", "default", "-s", "dev.typesafe.realtime-review-tool",
+        "-w", secondaryTestKeychainPath,
+      ], { cwd: temporary, env });
+      if (secondaryAfterLogout.stdout.trim() !== `${syntheticCredential}-secondary`) {
+        throw new Error("native logout touched a duplicate in another Keychain");
+      }
+      credentialEvidence = { ...credentialEvidence, defaultKeychainIsolation: "lookup-replacement-logout-passed" };
     }
     const loggedOutSource = "export interface LoggedOut { id: string; destination: string }\n";
     await writeFile(join(repository, "logged-out.ts"), loggedOutSource, { mode: 0o600 });
@@ -886,7 +978,7 @@ try {
       await mustRun("security", [
         "delete-generic-password", "-a", "default", "-s", "dev.typesafe.realtime-review-tool", keychainPath,
       ], { cwd: temporary, env });
-      await mustRun("security", [
+      const restrictedAdd = await run("security", [
         "add-generic-password",
         "-a", "default",
         "-s", "dev.typesafe.realtime-review-tool",
@@ -897,6 +989,7 @@ try {
         "-T", "",
         keychainPath,
       ], { cwd: temporary, env });
+      if (restrictedAdd.code !== 0) throw new Error("restricted native Keychain fixture could not be created");
     } else {
       throw new Error(`native credential conformance is unsupported on ${process.platform}`);
     }
@@ -934,7 +1027,9 @@ try {
       residentControlledTransportResolution: "passed",
       logoutBeforeFutureDispatch: "passed",
       restrictedNativeLookupMs: lockedLookupMs,
-      restrictedNativeOutcome: `${lockedResult.status}-no-prompt`,
+      restrictedNativeOutcome: lockedResult.status === "timed-out"
+        ? "timed-out-helper-terminated"
+        : `${lockedResult.status}-immediate-status`,
       ...inaccessibleEvidence,
       secretRetainedInEvidence: false,
     };
@@ -1029,6 +1124,9 @@ try {
   if (testKeychainPath !== undefined) {
     await run("security", ["delete-keychain", testKeychainPath], { cwd: temporary });
     delete process.env.REVIEW_TEST_KEYCHAIN_PATH;
+  }
+  if (secondaryTestKeychainPath !== undefined) {
+    await run("security", ["delete-keychain", secondaryTestKeychainPath], { cwd: temporary });
   }
   await rm(temporary, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }).catch(() => undefined);
   if (separateRuntime !== undefined) {

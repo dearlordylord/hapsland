@@ -38,8 +38,9 @@ service/account-scoped generic password in a separate process, reused it after a
 reached the production resolver/provider boundary twice, preserved it through the local package
 update, and blocked a future provider dispatch after logout. A native ACL-restricted lookup
 returned `timed-out` after the 750 ms helper deadline (`980 ms` including CLI startup and
-shutdown), with no prompt or credential value retained. The exact result is recorded rather than
-relabelled as a locked Keychain.
+shutdown), proving bounded helper termination with no credential value retained. A timeout alone
+does not establish whether macOS attempted or presented interaction. The exact result is recorded
+rather than relabelled as a locked Keychain.
 
 The repository had no Actions secret for isolated Codex authentication. The real Codex-host
 macOS cell remains unverified and is not inferred from the installed controlled hook path.

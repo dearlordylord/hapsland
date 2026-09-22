@@ -4,22 +4,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "credential-input.h"
 
 static const CFStringRef service_name = CFSTR("dev.typesafe.realtime-review-tool");
 static const CFStringRef account_name = CFSTR("default");
 
 static void json_status(const char *status) {
   printf("{\"version\":1,\"status\":\"%s\"}\n", status);
-}
-
-static void secure_clear(void *memory, size_t length) {
-  volatile unsigned char *cursor = (volatile unsigned char *)memory;
-  while (length-- > 0) *cursor++ = 0;
-}
-
-static void secure_free(char *value, size_t length) {
-  if (value != NULL) secure_clear(value, length);
-  free(value);
 }
 
 static CFMutableDictionaryRef identity_query(void) {
@@ -32,19 +23,43 @@ static CFMutableDictionaryRef identity_query(void) {
   CFDictionarySetValue(query, kSecClass, kSecClassGenericPassword);
   CFDictionarySetValue(query, kSecAttrService, service_name);
   CFDictionarySetValue(query, kSecAttrAccount, account_name);
+  return query;
+}
+
+static SecKeychainRef default_keychain(void) {
   SecKeychainRef keychain = NULL;
   if (SecKeychainCopyDefault(&keychain) != errSecSuccess || keychain == NULL) {
-    CFRelease(query);
     return NULL;
   }
+  return keychain;
+}
+
+static Boolean scope_matching_query(CFMutableDictionaryRef query) {
+  SecKeychainRef keychain = default_keychain();
+  if (keychain == NULL) return false;
+  const void *values[] = { keychain };
+  CFArrayRef search_list = CFArrayCreate(
+    kCFAllocatorDefault, values, 1, &kCFTypeArrayCallBacks
+  );
+  CFRelease(keychain);
+  if (search_list == NULL) return false;
+  CFDictionarySetValue(query, kSecMatchSearchList, search_list);
+  CFRelease(search_list);
+  return true;
+}
+
+static Boolean scope_add_query(CFMutableDictionaryRef query) {
+  SecKeychainRef keychain = default_keychain();
+  if (keychain == NULL) return false;
   CFDictionarySetValue(query, kSecUseKeychain, keychain);
   CFRelease(keychain);
-  return query;
+  return true;
 }
 
 static const char *lookup_failure(OSStatus status) {
   if (status == errSecItemNotFound) return "missing";
-  if (status == errSecInteractionNotAllowed || status == errSecUserCanceled) {
+  if (status == errSecInteractionNotAllowed || status == errSecInteractionRequired ||
+      status == errSecUserCanceled) {
     return "interaction-required";
   }
   if (status == errSecAuthFailed) return "locked";
@@ -53,7 +68,10 @@ static const char *lookup_failure(OSStatus status) {
 
 static OSStatus copy_secret(Boolean allow_interaction, CFDataRef *secret) {
   CFMutableDictionaryRef query = identity_query();
-  if (query == NULL) return errSecAllocate;
+  if (query == NULL || !scope_matching_query(query)) {
+    if (query != NULL) CFRelease(query);
+    return errSecAllocate;
+  }
   CFDictionarySetValue(query, kSecReturnData, kCFBooleanTrue);
   CFDictionarySetValue(query, kSecMatchLimit, kSecMatchLimitOne);
   CFDictionarySetValue(
@@ -98,37 +116,17 @@ static int get_secret(void) {
   return 0;
 }
 
-static char *read_stdin(size_t *length) {
-  size_t capacity = 4096;
-  char *value = malloc(capacity);
-  if (value == NULL) return NULL;
-  *length = 0;
-  for (;;) {
-    if (*length == capacity) {
-      if (capacity >= 32768) { secure_free(value, *length); return NULL; }
-      capacity *= 2;
-      char *next = realloc(value, capacity);
-      if (next == NULL) { secure_free(value, *length); return NULL; }
-      value = next;
-    }
-    size_t count = fread(value + *length, 1, capacity - *length, stdin);
-    *length += count;
-    if (count == 0) break;
-  }
-  return value;
-}
-
 static int set_secret(void) {
   size_t length = 0;
-  char *input = read_stdin(&length);
+  char *input = credential_read_stdin(&length);
   if (input == NULL || length == 0) {
-    secure_free(input, length);
+    credential_secure_free(input, length);
     json_status("invalid");
     return 2;
   }
   CFDataRef value = CFDataCreate(kCFAllocatorDefault, (const UInt8 *)input, (CFIndex)length);
   if (value == NULL) {
-    secure_free(input, length);
+    credential_secure_free(input, length);
     json_status("unavailable");
     return 2;
   }
@@ -139,11 +137,11 @@ static int set_secret(void) {
     &kCFTypeDictionaryKeyCallBacks,
     &kCFTypeDictionaryValueCallBacks
   );
-  if (query == NULL || changes == NULL) {
+  if (query == NULL || changes == NULL || !scope_matching_query(query)) {
     if (query != NULL) CFRelease(query);
     if (changes != NULL) CFRelease(changes);
     CFRelease(value);
-    secure_free(input, length);
+    credential_secure_free(input, length);
     json_status("unavailable");
     return 2;
   }
@@ -151,18 +149,26 @@ static int set_secret(void) {
   CFDictionarySetValue(changes, kSecAttrLabel, CFSTR("Realtime review credential"));
   OSStatus status = SecItemUpdate(query, changes);
   if (status == errSecItemNotFound) {
-    CFDictionarySetValue(query, kSecValueData, value);
-    CFDictionarySetValue(query, kSecAttrLabel, CFSTR("Realtime review credential"));
-    CFDictionarySetValue(query, kSecAttrAccessible, kSecAttrAccessibleAfterFirstUnlock);
-    status = SecItemAdd(query, NULL);
+    CFMutableDictionaryRef add = identity_query();
+    if (add == NULL || !scope_add_query(add)) {
+      if (add != NULL) CFRelease(add);
+      status = errSecAllocate;
+    } else {
+      CFDictionarySetValue(add, kSecValueData, value);
+      CFDictionarySetValue(add, kSecAttrLabel, CFSTR("Realtime review credential"));
+      CFDictionarySetValue(add, kSecAttrAccessible, kSecAttrAccessibleAfterFirstUnlock);
+      status = SecItemAdd(add, NULL);
+      CFRelease(add);
+    }
   }
   CFRelease(changes);
   CFRelease(query);
   CFRelease(value);
-  secure_free(input, length);
+  credential_secure_free(input, length);
   if (status != errSecSuccess) {
     /* Update/add can commit before a transport failure becomes visible. */
-    json_status(status == errSecInteractionNotAllowed || status == errSecUserCanceled
+    json_status(status == errSecInteractionNotAllowed || status == errSecInteractionRequired ||
+      status == errSecUserCanceled
       ? "interaction-required" : "indeterminate");
     return 2;
   }
@@ -172,12 +178,16 @@ static int set_secret(void) {
 
 static int delete_secret(void) {
   CFMutableDictionaryRef query = identity_query();
-  if (query == NULL) { json_status("unavailable"); return 2; }
+  if (query == NULL || !scope_matching_query(query)) {
+    if (query != NULL) CFRelease(query);
+    json_status("unavailable"); return 2;
+  }
   OSStatus status = SecItemDelete(query);
   CFRelease(query);
   if (status == errSecSuccess) { json_status("deleted"); return 0; }
   if (status == errSecItemNotFound) { json_status("missing"); return 0; }
-  json_status(status == errSecInteractionNotAllowed || status == errSecUserCanceled
+  json_status(status == errSecInteractionNotAllowed || status == errSecInteractionRequired ||
+    status == errSecUserCanceled
     ? "interaction-required" : "unavailable");
   return 2;
 }
