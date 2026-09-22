@@ -321,6 +321,27 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
   } satisfies DirectReviewResult;
 });
 
+/** Recheck a resident result against current authority and complete semantic input. */
+export const revalidateFindings = Effect.fn("DirectEvent.revalidateFindings")(function* (
+  observation: DirectObservation,
+  findings: ReadonlyArray<Finding>,
+  context: DirectReviewContext,
+) {
+  if (
+    !context.controlledWriter ||
+    !sameRecipient(observation.recipient, context.recipient) ||
+    !(yield* verifyObservationRoot(observation)) ||
+    !(yield* authorize(observation.root, context))
+  ) return false;
+  const frozenNames = new Map(findings.map((finding) => [finding.path, finding.declaration] as const));
+  const currentPrepared = yield* prepareObservation(observation, context, frozenNames);
+  const identities = new Map(
+    currentPrepared.flatMap((outcome) =>
+      outcome.status === "ready" ? [[outcome.path, outcome.prepared.identity] as const] : []),
+  );
+  return findings.every((finding) => identities.get(finding.path) === finding.semanticIdentity);
+});
+
 /** Convenience boundary for non-CLI callers; adaptation still occurs exactly once. */
 export const reviewCodexAdd = Effect.fn("DirectEvent.reviewCodexAdd")(function* (
   nativeEvent: unknown,
