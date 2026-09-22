@@ -127,7 +127,9 @@ persistent generation directory: each generation points to a unique immutable ow
 release or stale recovery marks that exact owner before a contender atomically creates the next
 generation. The canonical lock directory is never removed during recovery. A generation whose
 recorded process is dead can be reclaimed only after a bounded stale interval; live, recent, or
-malformed generations remain conflicts. A `partial`
+malformed generations remain conflicts. After publishing a new owner, the installer retains at
+most eight generations and removes only inactive unreferenced owner directories; a live contender's
+unpublished owner directory is preserved. A `partial`
 result includes the original proposal digest and completed-file count. Rerun the same operation
 with that digest to resume. Recovery revalidates the runtime, journal targets, completed outputs,
 pending prerequisites, preexisting `features.hooks = true` state, and generated configuration.

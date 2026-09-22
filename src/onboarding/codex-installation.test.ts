@@ -127,7 +127,7 @@ const currentLockGeneration = (lockPath: string) => {
   const target = readlinkSync(join(lockPath, "generations", name));
   const ownerDirectory = join(lockPath, target.replace("../", ""));
   return {
-    number: Number(name),
+    number: BigInt(name),
     name,
     ownerDirectory,
     record: JSON.parse(readFileSync(join(ownerDirectory, "record.json"), "utf8")) as { pid: number; owner: string },
@@ -150,8 +150,11 @@ const spawnOperation = (operation: Record<string, unknown>, env: NodeJS.ProcessE
     env,
     stdio: ["pipe", "pipe", "pipe"],
   });
+  const closed = new Promise<number | null>((resolveClosed) => {
+    child.once("close", (code) => resolveClosed(code));
+  });
   child.stdin.end(JSON.stringify({ version: 1, ...operation }));
-  return child;
+  return { child, closed };
 };
 
 describe("public Codex installation operations", { timeout: 30_000 }, () => {
@@ -804,19 +807,19 @@ responses_websockets_v2 = true`);
     ).status).toBe("partial");
     const operation = { operation: "update", codexHome: home, codexExecutable: bin, proposalDigest: digest };
     const lockPath = join(home, ".realtime-review-tool", "installation.lock");
-    const baseline = currentLockGeneration(lockPath)?.number ?? 0;
+    const baseline = currentLockGeneration(lockPath)?.number ?? 0n;
     const owner = spawnOperation(operation, { ...targetEnvironment, REVIEW_INSTALL_TEST_HOLD_LOCK_MS: "10000" });
     const deadGeneration = await waitFor(() => {
       const current = currentLockGeneration(lockPath);
-      return current !== undefined && current.number > baseline && current.record.pid === owner.pid ? current : undefined;
+      return current !== undefined && current.number > baseline && current.record.pid === owner.child.pid ? current : undefined;
     });
     const liveResult = invoke(
       operation,
       targetEnvironment,
     );
     expect(liveResult).toMatchObject({ status: "conflict", error: { message: expect.stringContaining("1500ms") } });
-    owner.kill("SIGKILL");
-    await new Promise<void>((resolveClosed) => owner.once("close", () => resolveClosed()));
+    owner.child.kill("SIGKILL");
+    await owner.closed;
     await new Promise((resolveWait) => setTimeout(resolveWait, 5_100));
 
     const contenderEnvironment = { ...targetEnvironment, REVIEW_INSTALL_TEST_HOLD_LOCK_MS: "10000" };
@@ -826,7 +829,7 @@ responses_websockets_v2 = true`);
       const current = currentLockGeneration(lockPath);
       return current !== undefined && current.number > deadGeneration.number ? current : undefined;
     });
-    expect([first.pid, second.pid]).toContain(replacement.record.pid);
+    expect([first.child.pid, second.child.pid]).toContain(replacement.record.pid);
     expect(existsSync(join(lockPath, "generations", deadGeneration.name))).toBe(true);
     expect(existsSync(deadGeneration.ownerDirectory)).toBe(true);
     expect(existsSync(join(deadGeneration.ownerDirectory, "reclaimed"))).toBe(true);
@@ -835,11 +838,11 @@ responses_websockets_v2 = true`);
     expect(third).toMatchObject({ status: "conflict", error: { message: expect.stringContaining("1500ms") } });
     expect(currentLockGeneration(lockPath)?.record.pid).toBe(replacement.record.pid);
 
-    const replacementProcess = first.pid === replacement.record.pid ? first : second;
+    const replacementProcess = first.child.pid === replacement.record.pid ? first : second;
     const losingProcess = replacementProcess === first ? second : first;
-    await new Promise<void>((resolveClosed) => losingProcess.once("close", () => resolveClosed()));
-    replacementProcess.kill("SIGKILL");
-    await new Promise<void>((resolveClosed) => replacementProcess.once("close", () => resolveClosed()));
+    await losingProcess.closed;
+    replacementProcess.child.kill("SIGKILL");
+    await replacementProcess.closed;
     await new Promise((resolveWait) => setTimeout(resolveWait, 5_100));
 
     const resumed = invoke(operation, targetEnvironment);
@@ -871,5 +874,48 @@ responses_websockets_v2 = true`);
     });
     expect(result).toMatchObject({ status: "conflict", error: { message: expect.stringContaining("1500ms") } });
     expect(existsSync(join(home, "hooks.json"))).toBe(false);
+  });
+
+  it("compacts high generation history and stale orphans while retaining a live contender", () => {
+    const { home, bin } = fixture();
+    const preview = invoke({ operation: "install-preview", codexHome: home, codexExecutable: bin });
+    const lockPath = join(home, ".realtime-review-tool", "installation.lock");
+    const ownersPath = join(lockPath, "owners");
+    const generationsPath = join(lockPath, "generations");
+    mkdirSync(ownersPath, { recursive: true });
+    mkdirSync(generationsPath, { recursive: true });
+    const writeOwner = (owner: string, released: boolean) => {
+      const ownerDirectory = join(ownersPath, owner);
+      mkdirSync(ownerDirectory);
+      writeFileSync(join(ownerDirectory, "record.json"), `${JSON.stringify({
+        version: 1,
+        pid: process.pid,
+        createdAt: new Date(Date.now() - 10_000).toISOString(),
+        owner,
+      })}\n`);
+      if (released) writeFileSync(join(ownerDirectory, "released"), "\n");
+      return ownerDirectory;
+    };
+    const base = 9_000_000_000_000_000n;
+    for (let index = 0; index < 12; index += 1) {
+      const owner = randomUUID();
+      writeOwner(owner, true);
+      symlinkSync(`../owners/${owner}`, join(generationsPath, String(base + BigInt(index)).padStart(16, "0")));
+    }
+    const releasedOrphan = writeOwner(randomUUID(), true);
+    const liveOrphan = writeOwner(randomUUID(), false);
+
+    const installed = invoke({
+      operation: "install",
+      codexHome: home,
+      codexExecutable: bin,
+      proposalDigest: (preview.proposal as { digest: string }).digest,
+    });
+    expect(installed.status).toBe("installed");
+    expect(readdirSync(generationsPath).filter((name) => /^\d{16}$/.test(name))).toHaveLength(8);
+    expect(readdirSync(ownersPath)).toHaveLength(9);
+    expect(existsSync(releasedOrphan)).toBe(false);
+    expect(existsSync(liveOrphan)).toBe(true);
+    expect(currentLockGeneration(lockPath)?.number).toBe(base + 12n);
   });
 });
