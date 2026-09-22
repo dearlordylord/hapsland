@@ -4,6 +4,7 @@ import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import * as Effect from "effect/Effect";
 import { matchesAnyGlob } from "../matcher/glob.ts";
+import type { PhysicalRootIdentity } from "./model.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -47,6 +48,12 @@ const hardExcluded = (path: string): boolean => {
     /^\.env(?:\..*)?$/.test(basename);
 };
 
+const equalToOrWithin = (parent: string, candidate: string): boolean => {
+  const path = relative(parent, candidate);
+  return path.length === 0 ||
+    (path !== ".." && !path.startsWith(`..${sep}`) && !isAbsolute(path));
+};
+
 const hasSymlinkOrNonDirectoryAncestor = async (
   root: string,
   path: string,
@@ -73,9 +80,18 @@ export const eligibleNamedPath = Effect.fn("DirectEvent.eligibleNamedPath")(func
   root: string,
   candidate: string,
   policy: DirectFilePolicy = DEFAULT_DIRECT_FILE_POLICY,
+  rootIdentity: PhysicalRootIdentity | undefined = undefined,
 ) {
   const normalized = portableRelative(root, candidate);
   if (normalized === undefined || hardExcluded(normalized.relativePath)) return undefined;
+  // A linked worktree or --separate-git-dir repository need not use a literal
+  // `.git` directory. The structured Git identity is the authoritative
+  // administrative subtree, and this path-boundary check happens before lstat
+  // or any source capture.
+  if (
+    rootIdentity !== undefined &&
+    equalToOrWithin(rootIdentity.gitDirectory, normalized.absolutePath)
+  ) return undefined;
   if (policy.excludes.length > 0 && matchesAnyGlob(policy.excludes, normalized.relativePath)) {
     return undefined;
   }

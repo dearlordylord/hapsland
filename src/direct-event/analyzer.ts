@@ -40,6 +40,13 @@ export const MAX_TYPE_DECLARATIONS = 64;
 export const MAX_REFERENCED_NAMES = 16;
 
 const supported = new Set([".ts", ".tsx", ".mts", ".cts"]);
+const importSyntax = new Set([
+  "import",
+  "import_alias",
+  "import_require_clause",
+  "import_statement",
+  "import_type",
+]);
 
 /** Iterative traversal contains adversarially deep, but byte-bounded, syntax. */
 const descendants = (node: SyntaxNode): ReadonlyArray<SyntaxNode> => {
@@ -115,7 +122,7 @@ const parsedDeclarations = (path: string, source: string): TypeFileAnalysis | Re
     const tree = parser.parse(source) as unknown as { readonly rootNode: SyntaxNode };
     if (tree.rootNode.hasError) return { status: "unsupported", reason: "parse", units: [] };
     const nodes = [tree.rootNode, ...descendants(tree.rootNode)];
-    if (nodes.some((node) => node.type === "import_statement")) {
+    if (nodes.some((node) => importSyntax.has(node.type))) {
       return { status: "unsupported", reason: "import", units: [] };
     }
     const declarations = nodes.filter((node) => kindOf(node) !== undefined);
