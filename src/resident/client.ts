@@ -259,6 +259,9 @@ export const makeResidentDispatchContext = async (
     statePath: resolve(statePath),
     activityPath: resolve(activityPath),
     userConfigPath: userConfigPath === undefined ? null : resolve(userConfigPath),
+    demoBudgetPath: process.env.REVIEW_DEMO_BUDGET_PATH === undefined
+      ? null
+      : resolve(process.env.REVIEW_DEMO_BUDGET_PATH),
     credential: controlled !== null && controlled.requireCredential !== true ? null : {
       name: settings.credentialEnvVar,
       environmentValue: credentialValue === undefined ? null : credentialValue,

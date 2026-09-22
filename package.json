@@ -51,6 +51,7 @@
     "conformance:host": "node scripts/run-direct-event-host-conformance.mjs",
     "conformance:package": "node scripts/run-clean-package-conformance.mjs",
     "conformance:setup-package": "node scripts/run-setup-package-conformance.mjs",
+    "conformance:first-review-live": "node scripts/run-first-review-live-milestone.mjs",
     "conformance:live": "node scripts/run-direct-event-live-milestone.mjs",
     "experiment:extract": "node experiments/declaration-extraction/extract.ts",
     "experiment:extract:evidence": "node experiments/declaration-extraction/generate-evidence.ts",

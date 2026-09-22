@@ -435,6 +435,16 @@ export const runSetup = Effect.fn("Setup.run")(function* (
     completed,
     pending,
     actions: actions.slice(0, 4),
+    ...(status === "completed" && request.scope.review === "enabled"
+      ? {
+          optionalNextSteps: [{
+            operation: "demo" as const,
+            selection: "preview" as const,
+            paid: false as const,
+            action: "optionally preview the separate synthetic first-review demo; live execution requires another explicit selection and disposable-root consent",
+          }],
+        }
+      : {}),
   };
 });
 

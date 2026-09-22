@@ -78,6 +78,7 @@ import {
 import { readActivity, formatActivityHuman, recordActivity } from "./activity/status.ts";
 import { diagnoseInstalledIntegration, type DoctorCheck } from "./onboarding/doctor.ts";
 import { runSetup } from "./onboarding/setup.ts";
+import { runFirstReviewDemo } from "./onboarding/first-review-demo.ts";
 
 const readStdin = Effect.try({
   try: () => readFileSync(0, "utf8"),
@@ -232,6 +233,18 @@ const SetupOperation = Schema.Struct({
 });
 type SetupOperation = typeof SetupOperation.Type;
 
+const FirstReviewDemoOperation = Schema.Struct({
+  version: Schema.Literal(1),
+  operation: Schema.Literal("demo"),
+  selection: Schema.Literals(["preview", "live", "cancel"]),
+  codexHome: Schema.optionalKey(Schema.NonEmptyString),
+  codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
+  demoId: Schema.optionalKey(Schema.NonEmptyString),
+  selectionDigest: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/))),
+  consentProposalDigest: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/))),
+});
+type FirstReviewDemoOperation = typeof FirstReviewDemoOperation.Type;
+
 const statePathConfig = Config.String("REVIEW_STATE_PATH").pipe(
   Config.orElse(() => Config.String("REVIEW_CONSENT_FILE")),
   Config.withDefault(join(homedir(), ".config", "realtime-review-tool", "consent")),
@@ -285,6 +298,11 @@ const forcedInstallationOperation = (): InstallationOperation["operation"] | und
 const decodeSetupOperation = (input: string) =>
   decodeJson(input).pipe(
     Effect.flatMap(Schema.decodeUnknownEffect(SetupOperation, { onExcessProperty: "error" })),
+  );
+
+const decodeFirstReviewDemoOperation = (input: string) =>
+  decodeJson(input).pipe(
+    Effect.flatMap(Schema.decodeUnknownEffect(FirstReviewDemoOperation, { onExcessProperty: "error" })),
   );
 
 const decodeInstallationOperation = (
@@ -976,6 +994,7 @@ const program = Effect.gen(function* () {
   );
   const inputRequestsInstallation = /"operation"\s*:\s*"(?:doctor|install-preview|install|update-preview|update|uninstall)"/.test(input);
   const inputRequestsSetup = /"operation"\s*:\s*"setup"/.test(input);
+  const inputRequestsFirstReviewDemo = /"operation"\s*:\s*"demo"/.test(input);
   const inputRequestsEvaluation = /"operation"\s*:\s*"(?:plan|run|report)"/.test(input);
   if (requestedEvaluationOperation !== undefined || inputRequestsEvaluation) {
     const evaluationInput = yield* decodeJson(input);
@@ -1007,6 +1026,14 @@ const program = Effect.gen(function* () {
       ...(userConfigPath === undefined ? {} : { userConfigPath }),
       ...(operation.interactive === true ? { readCredential: readMaskedCredential } : {}),
     }).pipe(Effect.provide(Consent.layer({ statePath })));
+  }
+  if (process.argv.includes("--demo") || inputRequestsFirstReviewDemo) {
+    const operation: FirstReviewDemoOperation = yield* decodeFirstReviewDemoOperation(input);
+    const demoStatePath = process.env.REVIEW_DEMO_STATE_PATH ??
+      join(homedir(), ".local", "state", "realtime-review-tool", "demos");
+    return yield* runFirstReviewDemo(operation, { statePath: demoStatePath }).pipe(
+      Effect.provide(Consent.layer({ statePath })),
+    );
   }
   if (requestedInstallationOperation !== undefined || inputRequestsInstallation) {
     const operation = yield* decodeInstallationOperation(input, requestedInstallationOperation);
@@ -1399,7 +1426,9 @@ if (!isCodexHook && typeof output === "object" && output !== null) {
             record.status === "timed-out" ||
             record.status === "indeterminate" ||
             record.status === "cancelled" ||
-            record.status === "invalid"
+            record.status === "invalid" ||
+            record.status === "incomplete" ||
+            record.status === "inconclusive"
           ? 6
         : "error" in record
           ? 2

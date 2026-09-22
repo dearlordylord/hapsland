@@ -82,6 +82,9 @@ and resident and do not download packages per edit.
 The packaged CLI's preview/install/enable/disable/uninstall contract, ownership rules, recovery
 behavior, and native trust handoff are documented in
 [`docs/codex-installation.md`](./docs/codex-installation.md).
+After setup completes, that guide also documents the separate `review-tool --demo` preview and
+live-confirmation flow. Its default preview is offline; the paid run requires explicit fixed
+budgets and a new consent digest for a generated disposable repository.
 
 `npm run conformance:package` packs into an isolated temporary prefix, installs with production
 dependencies only, and runs the parser and controlled offline review outside the checkout. Add
