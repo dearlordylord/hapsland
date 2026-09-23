@@ -93,12 +93,15 @@ an isolated Codex home and temporary Git repository, does not change the user's 
 provider credentials, and retains only sanitized package/host outcomes.
 
 `npm run conformance:installed-release` verifies the assembled installed-product evidence and
-replays the complete offline lifecycle in isolated homes. Its compatibility verdict is currently
-blocked by the inconclusive installed first-review
-milestone. Exact versions, checksums, setup-effort evidence, and the rule that untested cells remain
+replays the complete offline lifecycle in isolated homes. Its declared compatibility cells include
+a supervised synthetic first review through real Jev on Linux arm64; that test used normal native
+hook trust and a labeled host sandbox bypass in this container. Exact versions, checksums,
+setup-effort evidence, and the rule that untested cells remain
 gaps are published in
 [`docs/installed-release-compatibility.md`](./docs/installed-release-compatibility.md). The command
 does not perform paid Jev work or an authenticated Codex retry.
+The local single-repository opt-in pilot is scoped in
+[`docs/codex-opt-in-pilot.md`](./docs/codex-opt-in-pilot.md).
 
 Review dispatch is repository opt-in. The explicit enable operation first previews the
 canonical Git working-tree root, fixed Jev backend, actual destination, and

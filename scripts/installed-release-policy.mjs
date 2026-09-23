@@ -64,7 +64,8 @@ export const validateInstalledReleaseManifest = (manifest) => {
     const profile = manifest.targetProfiles.find((candidate) => candidate.operatingSystem === operatingSystem);
     requireValue(profile?.architecture === "arm64", `${operatingSystem} target must declare arm64`);
     requireValue(profile?.node === "v24.20.0", `${operatingSystem} target must declare Node v24.20.0`);
-    requireValue(profile?.codex === "codex-cli 0.155.1", `${operatingSystem} target must declare Codex 0.155.1`);
+    const codex = operatingSystem === "darwin" ? "codex-cli 0.156.0" : "codex-cli 0.155.1";
+    requireValue(profile?.codex === codex, `${operatingSystem} target must declare ${codex}`);
   }
   requireValue(Array.isArray(manifest?.evidence) && manifest.evidence.length > 0, "retained evidence is required");
   const evidenceIds = new Set();

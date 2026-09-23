@@ -10,6 +10,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve, sep } from "node:path";
+import { createInterface } from "node:readline/promises";
 import {
   requireCleanInstallationPreview,
   requireCreatedInstallation,
@@ -19,6 +20,8 @@ import { stopScopedResident } from "./first-review-resident-cleanup.mjs";
 const projectRoot = resolve(new URL("../", import.meta.url).pathname);
 const explicitLive = process.argv.includes("--live");
 const writeEvidence = process.argv.includes("--write-evidence");
+const supervisedTrust = process.argv.includes("--supervised-trust");
+const testSandboxBypass = process.argv.includes("--test-sandbox-bypass");
 const codexHome = process.env.REVIEW_LIVE_CODEX_HOME;
 
 const run = (command, args, options = {}) => new Promise((resolveRun, reject) => {
@@ -76,6 +79,7 @@ const installPrefix = join(runnerRoot, "installed-release");
 const stateRoot = join(runnerRoot, "state");
 const runnerEnv = {
   ...process.env,
+  ...(testSandboxBypass ? { REVIEW_DEMO_TEST_SANDBOX_BYPASS: "1" } : {}),
   REVIEW_STATE_PATH: join(stateRoot, "consent"),
   REVIEW_ACTIVITY_PATH: join(stateRoot, "activity"),
   REVIEW_DEMO_STATE_PATH: join(stateRoot, "demo.json"),
@@ -109,7 +113,7 @@ try {
   const tarballPath = join(runnerRoot, tarballName);
   artifactSha256 = createHash("sha256").update(await readFile(tarballPath)).digest("hex");
 
-  requireExit(await run("npm", ["install", "--prefix", installPrefix, "--ignore-scripts", tarballPath], {
+  requireExit(await run("npm", ["install", "--global=false", "--legacy-peer-deps", "--ignore-scripts=false", "--foreground-scripts", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installPrefix, tarballPath], {
     timeoutMs: 120_000,
   }), "packed release installation");
   const invokedCli = join(installPrefix, "node_modules", ".bin", "review-tool");
@@ -161,6 +165,25 @@ try {
       preview.output.budget?.providerCalls !== 2 ||
       preview.output.budget?.timeMs !== 180_000) {
     throw new Error("demo preview did not preserve the declared offline budget contract");
+  }
+
+  if (supervisedTrust) {
+    if (!process.stdin.isTTY) throw new Error("supervised native trust requires a terminal");
+    const disposableRoot = preview.output.demo?.disposableRoot;
+    if (typeof disposableRoot !== "string") throw new Error("demo preview omitted its disposable root");
+    const trustBefore = await readFile(join(codexHome, "config.toml"), "utf8").catch(() => "");
+    process.stderr.write(`Complete Codex's native repository and hook trust review in another terminal:\n  CODEX_HOME=${codexHome} codex --no-alt-screen -C ${disposableRoot}\nThen press Enter here to run the declared live demo, or Ctrl-C to cancel.\n`);
+    const terminal = createInterface({ input: process.stdin, output: process.stderr });
+    try { await terminal.question("Native trust completed? "); }
+    finally { terminal.close(); }
+    const trustedConfig = await readFile(join(codexHome, "config.toml"), "utf8");
+    const hookHash = /trusted_hash = "(sha256:[0-9a-f]{64})"/u.exec(trustedConfig)?.[1];
+    const previousHookHash = /trusted_hash = "(sha256:[0-9a-f]{64})"/u.exec(trustBefore)?.[1];
+    if (!trustedConfig.includes(`[projects."${disposableRoot}"]`) ||
+        !trustedConfig.includes(`[hooks.state."${join(codexHome, "hooks.json")}:post_tool_use:0:0"]`) ||
+        hookHash === undefined || hookHash === previousHookHash) {
+      throw new Error("native repository and exact hook-definition trust were not persisted");
+    }
   }
 
   live = await invoke({
@@ -236,6 +259,9 @@ const evidence = {
     deliberatelyFlawed: preview.output.demo.disclosure.deliberatelyFlawed === true,
     repairPrescribed: preview.output.demo.disclosure.repairPrescribed === true,
     separateDisposableConsent: typeof preview.output.authorization.consentProposalDigest === "string",
+    supervisedNativeTrust: supervisedTrust,
+    hostSandboxMode: testSandboxBypass ? "test-bypass" : "workspace-write",
+    hostModel: process.env.REVIEW_DEMO_TEST_CODEX_MODEL ?? "Codex default",
     budgets: preview.output.budget,
   },
   setup: preview.output.setup,
@@ -259,7 +285,7 @@ if (writeEvidence) {
   await mkdir(directory, { recursive: true });
   const version = /^codex-cli (\d+\.\d+\.\d+)$/.exec(codexVersion ?? "")?.[1];
   if (version === undefined) throw new Error("installed first-review Codex version is unavailable");
-  await writeFile(resolve(directory, `live-installed-codex-${version}.json`), `${JSON.stringify(evidence, null, 2)}\n`, { mode: 0o600 });
+  await writeFile(resolve(directory, `live-installed-codex-${version}-supervised.json`), `${JSON.stringify(evidence, null, 2)}\n`, { mode: 0o600 });
 }
 process.stdout.write(`${JSON.stringify(evidence, null, 2)}\n`);
 if (evidence.status !== "passed") process.exitCode = 1;

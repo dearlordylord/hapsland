@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-23T04:00:56.181Z",
+  "milestone": "installed-product-first-review",
+  "environment": {
+    "codex": "codex-cli 0.155.1",
+    "node": "v24.20.0",
+    "operatingSystem": "linux",
+    "architecture": "arm64"
+  },
+  "package": {
+    "source": "runner-packed-release-installation",
+    "artifactSha256": "afba4d96a417776e35686878d70484e9de784f23ab54af03938172aa239c5d96",
+    "cliResolvedInsideInstalledArtifact": true
+  },
+  "selection": {
+    "explicitLive": true,
+    "syntheticOnly": true,
+    "deliberatelyFlawed": true,
+    "repairPrescribed": false,
+    "separateDisposableConsent": true,
+    "supervisedNativeTrust": true,
+    "hostSandboxMode": "test-bypass",
+    "hostModel": "gpt-6-sol",
+    "budgets": {
+      "sourceBytes": 4096,
+      "providerCalls": 2,
+      "timeMs": 180000
+    }
+  },
+  "setup": {
+    "actions": 1,
+    "durationMs": 23
+  },
+  "reviewLatencyMs": null,
+  "status": "inconclusive",
+  "stages": {
+    "completion": "incomplete",
+    "submission": "unavailable",
+    "findings": 0,
+    "modelReaction": "unavailable",
+    "modelReactionSource": "unavailable",
+    "deliveredFindingCorrelation": false,
+    "repair": "not-validated",
+    "followUpReview": "unavailable",
+    "providerCalls": 0,
+    "sourceBytes": 0,
+    "hostVersion": "codex-cli 0.155.1",
+    "hostFailure": "timeout",
+    "hostDurationMs": 170048,
+    "hostEventCounts": {
+      "threads": 0,
+      "itemsStarted": 0,
+      "itemsCompleted": 0,
+      "agentMessages": 0,
+      "errors": 0
+    },
+    "hostStdoutBytes": 0,
+    "hostStderrBytes": 240,
+    "editChanged": false,
+    "recordedAt": "2026-09-23T04:00:55.476Z",
+    "sourceRetained": false,
+    "responsesRetained": false
+  },
+  "cleanup": {
+    "disposableRootRemoved": true,
+    "consentRevoked": true
+  },
+  "retained": {
+    "source": false,
+    "providerResponse": false,
+    "credential": false,
+    "paths": false,
+    "digests": false
+  }
+}
