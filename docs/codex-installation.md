@@ -218,8 +218,10 @@ printf '%s\n' '{"version":1,"operation":"demo","selection":"preview","codexHome"
   | review-tool --demo
 ```
 
-The preview declares a 4,096-byte budget for the JSON-encoded provider input (declaration source
-plus metadata), at most two provider calls, and a 180-second wall-clock budget. It returns both a
+The preview declares a 4,096-byte limit for the JSON-encoded provider input (declaration source
+plus metadata), at most two provider calls, and a 180-second wall-clock limit. These bounds
+limit source transmission and prevent an unattended run from growing indefinitely; they are
+not a reason to avoid useful live validation. The preview returns both a
 live-selection digest and an independent repository-consent
 digest for the exact disposable root. Live execution requires both values; an existing grant for
 the current project is never reused. A matching confirmation is consumed atomically before consent
@@ -242,7 +244,7 @@ unavailable response, invalid repair, or exceeded budget is also `inconclusive`;
 replaced with a controlled backend.
 Only bounded counts, versions, timestamps and stage outcomes are returned. The provider response
 and synthetic source are not retained. The disposable grant and root are removed after every live
-attempt. To abandon a preview without a paid call, send `selection: "cancel"` with its `demoId`.
+attempt. To abandon a preview without a Jev call, send `selection: "cancel"` with its `demoId`.
 
 The preview reports fixture setup actions and time independently from live review latency. A live
 run still requires an authenticated Codex profile, completed native trust, and a Jev credential

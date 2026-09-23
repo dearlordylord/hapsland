@@ -1,11 +1,11 @@
-# npm release record: pending
+# Jevs npm release record: pending
 
-The proposed first public coordinates are `realtime-review@0.1.0` and the
-`realtime-review` command. `review-tool` remains an alias for pilot migration;
-the existing Codex ownership marker and native credential identity remain
-unchanged. These coordinates name the integration, not Jev, its external
-backend. Registry availability was observed before release preparation, but
-ownership and publication rights have not been verified.
+The selected first public coordinates are `@jevs/jevs@0.1.0` and the `jevs`
+command. No `review-tool` alias will ship. The existing Codex ownership marker,
+consent, and native credential identity still need a migration path. Jevs is the
+product; Jev is its external backend. The local candidate recorded below uses
+the superseded `realtime-review` coordinates and is **not publishable**.
+Ownership and publication rights for `@jevs/jevs` have not been verified.
 
 No public release has been published. This document is a gate and a record
 template, not a compatibility claim for a registry artifact. Do not fill in
@@ -14,9 +14,9 @@ gate; those are supporting evidence for different artifacts.
 
 | Field | Current state |
 | --- | --- |
-| Version | Proposed `0.1.0` |
+| Version | Selected `0.1.0`; public package `@jevs/jevs` |
 | Release candidate commit | `4e3bb940e0ea1c067b7b06921a80c211b95bf363` (review pending) |
-| Local candidate tarball SHA-256 | `e9596448723f4cd4eda61134d943d9c0ccdf5ece0a6016923fcb2fabd4c90216` (two packs matched) |
+| Superseded local candidate tarball SHA-256 | `e9596448723f4cd4eda61134d943d9c0ccdf5ece0a6016923fcb2fabd4c90216` (two packs matched; not registry-bound) |
 | Registry tarball SHA-256 and integrity | Pending publication and registry retrieval |
 | npm publish identity and provenance | Pending |
 | Linux arm64 local candidate installation | Passed production-only package conformance and user-prefix installation with scripts disabled and shell Node 22.22.2; packaged Node 24.20.0 reported by doctor |
@@ -24,7 +24,7 @@ gate; those are supporting evidence for different artifacts.
 | macOS arm64 local candidate conformance | Passed packaged setup and package lifecycle on [CI run 35926873063](https://github.com/dearlordylord/jevs/actions/runs/35926873063); controlled offline backend |
 | macOS arm64 published-artifact installation and native host run | Pending |
 | Exact Codex/OS/architecture/Node compatibility statement | Pending published-artifact evidence |
-| Separately budgeted real Jev first-value run | Pending exact-artifact authorization and evidence |
+| Bounded live Jev review-and-repair run | Pending exact-artifact authorization and evidence |
 | Known-good rollback version | Pending first successful release |
 | Pilot archive to local candidate migration | Passed isolated Linux arm64 rehearsal: `realtime-review-prototype@0.0.0` archive SHA-256 `b08536b98540a5e0890324afc516b9321bc81a2e67ac2205e4f9fe1dfecded69` to candidate archive; separate npm prefixes, consent and unrelated hook/config preserved |
 | Pilot archive to published registry artifact migration | Pending registry release |
@@ -61,9 +61,11 @@ Node version different from the packaged 24.20.0 runtime. Exercise offline
 doctor, guided setup, native trust, consent, observed offline review, explicit
 update, disable, logout, and scoped uninstall, preserving an unrelated hook
 and configuration. Only then update the supported profiles and quickstart with
-the artifact checksum and exact evidence. A real Jev first-value statement
-requires a separately authorized, budgeted, sanitized run of the published
-artifact. Do not retain credentials or source-bearing responses.
+the artifact checksum and exact evidence. A real Jev review-and-repair statement
+requires a separately authorized run of the published artifact with explicit
+request, source, and time limits and sanitized evidence. These limits prevent
+unbounded validation; useful runs involving hundreds of requests are acceptable
+when they answer a release question. Do not retain credentials or source-bearing responses.
 
 If validation fails after publication, stop directing users to the affected
 version, deprecate it if registry access is available, and identify a verified

@@ -1,7 +1,11 @@
 # Codex registry release 0.1.0
 
+**Draft notice:** The package and commands below describe a superseded local
+candidate. The selected release coordinates are `@jevs/jevs@0.1.0` and `jevs`;
+this guide will be revised when that artifact exists. No npm release is published.
+
 This guide applies only after `realtime-review@0.1.0` is published and its exact
-registry tarball passes the release record. The product is the review integration;
+registry tarball passes the release record. Jevs is the review integration;
 Jev is its external review backend. Installation alone does not enable source
 transmission.
 
