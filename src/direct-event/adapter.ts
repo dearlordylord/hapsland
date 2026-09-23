@@ -7,6 +7,7 @@ import type {
   DirectObservation,
   DirectRecipient,
   PhysicalRootIdentity,
+  CodexHostVersion,
 } from "./model.ts";
 
 const execFileAsync = promisify(execFile);
@@ -138,9 +139,10 @@ export const verifyObservationRoot = (observation: DirectObservation) =>
     catch: () => new Error("working tree identity unavailable"),
   }).pipe(Effect.catch(() => Effect.succeed(false)));
 
-/** Strictly adapts the bounded, successful Codex CLI 0.155.1 native patch profile. */
+/** Strictly adapts the bounded native patch profile for the selected host version. */
 export const adaptCodexDirectEvent = Effect.fn("DirectEvent.adaptCodexDirectEvent")(function* (
   value: unknown,
+  hostVersion: CodexHostVersion = "0.155.1",
 ) {
   const event = record(value);
   if (event === undefined || !isCodexNativeApplyPatch(event)) return undefined;
@@ -164,7 +166,7 @@ export const adaptCodexDirectEvent = Effect.fn("DirectEvent.adaptCodexDirectEven
   if (rootOption._tag === "None") return undefined;
   const recipient: DirectRecipient = Object.freeze({
     host: "codex-cli",
-    hostVersion: "0.155.1",
+    hostVersion,
     sessionId: event.session_id,
     turnId: event.turn_id,
     toolUseId: event.tool_use_id,
@@ -181,6 +183,7 @@ export const adaptCodexDirectEvent = Effect.fn("DirectEvent.adaptCodexDirectEven
 /** Identity-only adaptation for later reply opportunities. It never supplies paths. */
 export const adaptCodexReply = Effect.fn("DirectEvent.adaptCodexReply")(function* (
   value: unknown,
+  hostVersion: CodexHostVersion = "0.155.1",
 ) {
   const event = record(value);
   if (
@@ -195,7 +198,7 @@ export const adaptCodexReply = Effect.fn("DirectEvent.adaptCodexReply")(function
     root: rootOption.value.root,
     recipient: Object.freeze({
       host: "codex-cli",
-      hostVersion: "0.155.1",
+      hostVersion,
       sessionId: event.session_id,
       turnId: event.turn_id,
       toolUseId: event.tool_use_id,

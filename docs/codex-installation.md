@@ -13,7 +13,8 @@ the single action reported for that stage. Doctor never prompts, launches or rep
 resident, changes Codex configuration, or calls Jev.
 
 The packaged `review-tool` CLI exposes versioned, noninteractive JSON operations for the
-supported Codex CLI 0.155.1 / Node 24.20.0 installed profiles on Linux arm64 and macOS arm64.
+declared Codex CLI 0.155.1 and 0.156.0 / Node 24.20.0 installed profiles on Linux arm64 and macOS arm64.
+Codex CLI 0.156.0 is a compatibility candidate until an authenticated host run is retained.
 The direct-event capture envelope remains narrower where documented. Every request is supplied on
 stdin and every result is a single version-1 JSON object on stdout.
 Exit code 0 covers successful previews, completed operations, and idempotent no-ops. Code 2 is
@@ -156,7 +157,7 @@ Requests already sent to Jev cannot be recalled.
 Before writing configuration, the installer executes a bounded probe through the selected
 runtime and requires it to report Node 24.20.0 on Linux arm64 or macOS arm64. `/bin/true` or another merely
 executable file is not accepted as a runtime. The CLI, parser, and resident packaged entrypoints
-must all be readable regular files, and Codex CLI 0.155.1 must be ready. The
+must all be readable regular files, and a declared Codex CLI version must be ready. The
 installer validates `config.toml` and `hooks.json`, preserves object and array order, and
 rejects malformed or unreadable files, duplicate owned markers, explicit hook disablement, and
 locally changed owned entries. TOML edits locate parsed table/key spans, including quoted table

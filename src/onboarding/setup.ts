@@ -80,7 +80,7 @@ export const runSetup = Effect.fn("Setup.run")(function* (
     actions.push({
       stage: "compatibility",
       code: "select-supported-host",
-      action: "select a Codex 0.155.1 executable and the exact declared Node runtime, then rerun setup",
+      action: "select a declared Codex CLI executable and the exact declared Node runtime, then rerun setup",
     });
   } else {
     stages.push({ stage: "compatibility", status: "complete", summary: "the selected Codex host and packaged runtime are compatible", observed: compatibility });

@@ -45,6 +45,14 @@ describe("resident protocol bounds", () => {
       operation: "admit",
       lifetime: "lifetime",
       controlledWriter: true,
+      observation: { ...observation, recipient: { ...observation.recipient, hostVersion: "0.156.0" } },
+      dispatch: { statePath: "/tmp/consent", userConfigPath: null, credential: null, controlled: {} },
+    }))?.operation).toBe("admit");
+    expect(decodeResidentRequest(JSON.stringify({
+      version: 1,
+      operation: "admit",
+      lifetime: "lifetime",
+      controlledWriter: true,
       observation,
       dispatch: {
         statePath: "/tmp/consent",

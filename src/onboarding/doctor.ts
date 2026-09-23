@@ -77,7 +77,7 @@ export const diagnoseInstalledIntegration = async (options: {
     : { stage: "runtime", status: "unsupported", observed: runtime?.checks ?? "unavailable", action: "install the exact declared Node runtime and packaged resident entrypoint" });
   checks.push(codex?.supported === true
     ? { stage: "host", status: "ready", observed: { adapter: "codex", home: host?.home, version: codex.observed } }
-    : { stage: "host", status: "unsupported", observed: codex?.observed ?? "unavailable", action: "select a Codex home and install Codex CLI 0.155.1" });
+    : { stage: "host", status: "unsupported", observed: codex?.observed ?? "unavailable", action: `select a Codex home and install ${codex?.required ?? "a declared Codex CLI version"}` });
 
   const inspection = object(inspectCodexInstallation(options.installation)) ?? {};
   if (inspection.status === "conflict") {
