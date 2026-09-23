@@ -1,7 +1,6 @@
 import { execFileSync, spawn } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import {
-  existsSync,
   mkdirSync,
   readFileSync,
   renameSync,
@@ -58,14 +57,10 @@ const initialState: CredentialState = {
 };
 
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
-const helperCandidates = [
-  resolve(moduleDirectory, "../native/credential-secret-service"),
-  resolve(moduleDirectory, "../../dist/native/credential-secret-service"),
-];
+const packagedHelper = resolve(moduleDirectory, "../../native/prebuilt", `${process.platform}-${process.arch}`, "credential-secret-service");
 
 export const credentialHelperPath = (): string =>
-  process.env.REVIEW_CREDENTIAL_HELPER ?? helperCandidates.find(existsSync) ??
-  resolve(moduleDirectory, "../native/credential-secret-service");
+  process.env.REVIEW_CREDENTIAL_HELPER ?? packagedHelper;
 
 const decodeState = (value: unknown): CredentialState => {
   if (

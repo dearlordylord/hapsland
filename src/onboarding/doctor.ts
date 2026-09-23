@@ -63,7 +63,7 @@ export const diagnoseInstalledIntegration = async (options: {
       ? { stage: "parser", status: "ready", observed: "loaded-and-analyzed" }
       : { stage: "parser", status: "unsupported", observed: parser.status, action: "reinstall the package for this exact OS and architecture" });
   } catch {
-    checks.push({ stage: "parser", status: "missing", observed: "load-failed", action: "reinstall the package with lifecycle scripts enabled" });
+    checks.push({ stage: "parser", status: "missing", observed: "load-failed", action: "reinstall a release archive containing compatible parser bindings for this platform" });
   }
 
   const preview = previewCodexInstallation(options.installation) as InstallationResult;

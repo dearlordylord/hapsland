@@ -13,6 +13,7 @@
   ],
   "files": [
     "dist/**/*.js",
+    "native/prebuilt",
     "native/capture-open.c",
     "native/credential-input.h",
     "native/credential-keychain.c",
@@ -41,7 +42,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json && node scripts/build-capture-helper.mjs",
     "prepack": "npm run build",
-    "postinstall": "node scripts/build-capture-helper.mjs",
+    "verify:release-native": "node scripts/verify-native-release.mjs",
+    "pack:release": "npm run build && npm run verify:release-native && npm pack --ignore-scripts=true",
     "hello": "bun run src/hello.ts",
     "test": "vitest run --maxWorkers=1",
     "test:live": "RUN_LIVE_JEV=1 vitest run src/jev-live.test.ts",

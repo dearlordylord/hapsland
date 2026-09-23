@@ -76,7 +76,8 @@ Git and a packaged `openat` capture helper. The macOS controlled package path an
 Codex CLI 0.156.0 host cell are verified. Other operating systems and architectures are
 unsupported. After installing the tarball, run
 `review-tool-doctor` for source-free compatibility checks and recovery actions. Installation
-may acquire and build production dependencies once. Hook invocations use the installed CLI
+may fetch production dependencies once; the no-script installation does not compile native code.
+Hook invocations use the installed CLI
 and resident and do not download packages per edit.
 
 The packaged CLI's preview/install/enable/disable/uninstall contract, ownership rules, recovery

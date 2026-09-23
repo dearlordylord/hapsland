@@ -9,14 +9,13 @@ Use a declared profile: Node 24.20.0 and Codex CLI 0.155.1 on Linux arm64, or No
 Codex CLI 0.156.0 on macOS arm64. See [exact compatibility](./installed-release-compatibility.md)
 for the evidence and limits of each profile. Obtain the pilot package archive through the pilot
 distribution channel. This repository does not publish one to a registry.
-Installation also needs a C compiler for target-host native helpers: Xcode Command Line Tools on
-macOS, or `cc`, `pkg-config`, and libsecret development headers on Linux. These are install-time
-requirements; the running hook does not invoke a compiler.
+The archive carries native helpers and parser bindings for the declared profiles. Installation does not compile code
+or run a package lifecycle script. Building the release archive requires platform build hosts.
 
 1. Install the archive for your user, then enter the Git repository you want to review:
 
    ```sh
-   npm install --global --ignore-scripts=false --foreground-scripts ./realtime-review-prototype-0.0.0.tgz
+   npm install --global --ignore-scripts=true ./realtime-review-prototype-0.0.0.tgz
    cd /path/to/your/repository
    review-tool --pilot
    ```

@@ -1142,7 +1142,7 @@ const program = Effect.gen(function* () {
                   : credential.status === "suspended"
                     ? "reconcile the suspended credential with review-tool --login or review-tool --logout before review"
                     : credential.status === "unavailable"
-                      ? "reinstall with lifecycle scripts enabled if the native helper is missing, or restore native credential access; then rerun doctor"
+                      ? "reinstall an archive containing the native helper for this platform if it is missing, or restore native credential access; then rerun doctor"
                       : "store a credential with review-tool --login, then rerun doctor";
           const credentialStatus = credentialReady
             ? "ready" as const
@@ -1361,7 +1361,7 @@ const runCredentialCommand = async (): Promise<Readonly<Record<string, unknown>>
           ? "unlock the native credential store in the desktop session, then retry"
           : probe.status === "interaction-required"
             ? "approve native credential access from this explicit login command, then retry"
-            : "reinstall with lifecycle scripts enabled if the native helper is missing, or make the native credential store available; then retry",
+            : "reinstall an archive containing the native helper for this platform if it is missing, or make the native credential store available; then retry",
       };
     }
     let value: string;
@@ -1480,9 +1480,14 @@ const pilotSetup = async () => {
     ...(flagValue("--codex-home") === undefined ? {} : { codexHome: flagValue("--codex-home")! }),
     ...(flagValue("--codex-executable") === undefined ? {} : { codexExecutable: flagValue("--codex-executable")! }),
   };
+  let credentialEntered = false;
   const run = (step: SetupOperation) => Effect.runPromise(runSetup(step, {
     statePath,
-    readCredential: readMaskedCredential,
+    readCredential: async () => {
+      const value = await readMaskedCredential();
+      credentialEntered = true;
+      return value;
+    },
   }).pipe(Effect.provide(Consent.layer({ statePath }))));
   const stage = (result: Awaited<ReturnType<typeof run>>, name: string) =>
     result.stages.find((item) => item.stage === name);
@@ -1516,6 +1521,9 @@ const pilotSetup = async () => {
     }
     result = await run({ ...request, interactive: true });
     process.stderr.write(`Installation: ${stage(result, "installation")?.summary ?? "unavailable"}.\n`);
+    if (credentialEntered && stage(result, "credential")?.status === "complete") {
+      process.stderr.write(`Jev key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}.\n`);
+    }
     process.stderr.write(`Credential: ${stage(result, "credential")?.summary ?? "unavailable"}. No paid verification or review was sent.\n`);
     if (stage(result, "installation")?.status !== "complete" || stage(result, "credential")?.status !== "complete") {
       for (const item of result.actions) process.stderr.write(`Next: ${item.action}.\n`);
