@@ -47,6 +47,11 @@ handed-off rule before it credits a reaction. A terminal review must match the i
 validated repaired source. This instrumentation has passed offline tests but has not changed the
 historical live result. These are required cells, so either gap blocks a release-ready verdict.
 
+For authenticated macOS package validation, run `node scripts/run-clean-package-conformance.mjs
+--real-codex --write-evidence` with Node 24.20.0 and Codex CLI 0.155.1 selected. The runner
+checks both versions before packing or creating its isolated Keychain fixture. Other versions
+require a separate compatibility target and evidence; their runs do not fill the required cell.
+
 ## Setup-effort evidence
 
 Retained single-run measurements are descriptive rather than performance guarantees. The Linux
