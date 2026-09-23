@@ -1480,13 +1480,28 @@ export const inspectCodexInstallation = (request: InstallationRequest): Installa
         },
       };
     }
-    const plan = makeInstallPlan(request);
+    const ownership = readOwnership(inputs.paths.ownership);
+    const installed = ownership !== undefined && (() => {
+      if (ownership.codexHome !== inputs.home || ownership.entrypoint !== inputs.entrypoint ||
+          ownership.packageVersion !== inputs.packageVersion ||
+          ownership.residentProtocol !== inputs.residentProtocol) return false;
+      const config = validateToml(snapshot(inputs.paths.config));
+      if (!isObject(config.features) || config.features.hooks !== true) return false;
+      const hooks = parseJsonObject(snapshot(inputs.paths.hooks));
+      if (markerCount(hooks) !== 1) throw new Error("owned Codex hook is missing or duplicated");
+      const group = postToolUseGroups(hooks).find((candidate) => markerCount(candidate) > 0);
+      if (hookFingerprint(group) !== ownership.hookFingerprint) {
+        throw new Error("owned Codex hook was locally modified");
+      }
+      const pinnedInputs = { ...inputs, executable: ownership.executable };
+      return compatibility(pinnedInputs).supported && ownership.runtimeVersion === `v${inputs.runtimeVersion}`;
+    })();
     return {
       version: RESULT_VERSION,
       operation: "inspect-installation",
-      status: plan.alreadyInstalled ? "installed" : "missing",
-      installed: plan.alreadyInstalled,
-      host: { adapter: "codex", home: plan.inputs.home },
+      status: installed ? "installed" : "missing",
+      installed,
+      host: { adapter: "codex", home: inputs.home },
     };
   } catch (cause) {
     return conflictResult(
