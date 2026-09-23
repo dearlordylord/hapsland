@@ -18,7 +18,7 @@
       "operatingSystem": "darwin",
       "architecture": "arm64",
       "node": "v24.20.0",
-      "codex": "codex-cli 0.155.1"
+      "codex": "codex-cli 0.156.0"
     }
   ],
   "ordinaryReplay": {
@@ -201,6 +201,57 @@
       "capabilityProofs": []
     },
     {
+      "id": "linux-first-review-supervised",
+      "path": "evidence/first-review/live-installed-codex-0.155.1-supervised.json",
+      "sha256": "ede8ba43ea18071f38a6d45fdebb26a042f45ef70921504b298a3371a67f4efd",
+      "operatingSystem": "linux",
+      "provenance": {
+        "commit": "da052d7d6e98e1abb2f10fd4bbcbdfb62b020322",
+        "mechanism": "supervised Linux arm64 packed installation with native Codex trust, real Jev, and an explicitly labeled test host sandbox bypass"
+      },
+      "assertions": [
+        { "pointer": "/environment/operatingSystem", "equals": "linux" },
+        { "pointer": "/environment/architecture", "equals": "arm64" },
+        { "pointer": "/environment/node", "equals": "v24.20.0" },
+        { "pointer": "/environment/codex", "equals": "codex-cli 0.155.1" },
+        { "pointer": "/package/source", "equals": "runner-packed-release-installation" },
+        { "pointer": "/package/artifactSha256", "equals": "159027010f3dca1aacda2c5f056a366dbf651219888135aae1e1c197d180c80a" },
+        { "pointer": "/package/cliResolvedInsideInstalledArtifact", "equals": true },
+        { "pointer": "/selection/explicitLive", "equals": true },
+        { "pointer": "/selection/separateDisposableConsent", "equals": true },
+        { "pointer": "/selection/supervisedNativeTrust", "equals": true },
+        { "pointer": "/selection/hostSandboxMode", "equals": "test-bypass" },
+        { "pointer": "/selection/budgets", "equals": { "sourceBytes": 4096, "providerCalls": 2, "timeMs": 180000 } },
+        { "pointer": "/status", "equals": "passed" },
+        { "pointer": "/stages/providerCalls", "equals": 2 },
+        { "pointer": "/stages/sourceBytes", "equals": 704 },
+        { "pointer": "/retained/source", "equals": false },
+        { "pointer": "/retained/providerResponse", "equals": false },
+        { "pointer": "/retained/credential", "equals": false },
+        { "pointer": "/cleanup/disposableRootRemoved", "equals": true },
+        { "pointer": "/cleanup/consentRevoked", "equals": true }
+      ],
+      "capabilityProofs": [
+        {
+          "capability": "installed-first-review",
+          "operatingSystem": "linux",
+          "assertions": [
+            { "pointer": "/status", "equals": "passed" },
+            { "pointer": "/stages/completion", "equals": "completed" },
+            { "pointer": "/stages/submission", "equals": "submitted" },
+            { "pointer": "/stages/findings", "greaterThan": 0 },
+            { "pointer": "/stages/modelReaction", "equals": "observed" },
+            { "pointer": "/stages/modelReactionSource", "equals": "correlated-finding-reaction" },
+            { "pointer": "/stages/deliveredFindingCorrelation", "equals": true },
+            { "pointer": "/stages/repair", "equals": "independently-validated" },
+            { "pointer": "/stages/followUpReview", "equals": "completed" },
+            { "pointer": "/stages/providerCalls", "greaterThan": 0 },
+            { "pointer": "/stages/sourceBytes", "greaterThan": 0 }
+          ]
+        }
+      ]
+    },
+    {
       "id": "linux-secret-service",
       "path": "evidence/credentials/linux-secret-service-2026-09-22.json",
       "sha256": "5985fefed0b7f14a1019e8205c948826d67c5d96329775c709324e66c48de0b2",
@@ -289,9 +340,9 @@
       "operatingSystem": "linux",
       "capability": "installed-first-review",
       "required": true,
-      "status": "inconclusive",
-      "evidence": ["linux-first-review"],
-      "reason": "The authorized Linux run observed zero provider calls and zero source bytes; the legacy packed artifact is not bound to the assembled commit, and no paid retry is authorized."
+      "status": "verified",
+      "scope": "Codex CLI 0.155.1 on Linux arm64, native repository and hook trust, real Jev, synthetic fixture, explicit test sandbox bypass",
+      "evidence": ["linux-first-review-supervised"]
     }
   ],
   "setupEffort": {
@@ -307,5 +358,5 @@
     "overlappingWrites": "unsupported-unattributed",
     "detail": "Overlapping invisible writes without direct host attribution cannot be assigned to an agent; uncertain observations do not publish advice."
   },
-  "expectedVerdict": "blocked"
+  "expectedVerdict": "release-ready"
 }
