@@ -1,4 +1,4 @@
-import type { DirectObservation, DirectRecipient } from "../direct-event/model.ts";
+import { isCodexHostVersion, type DirectObservation, type DirectRecipient } from "../direct-event/model.ts";
 import type { CodexDirectEventOutput } from "../direct-event/pipeline.ts";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
@@ -113,7 +113,7 @@ const string = (value: unknown): value is string =>
 
 const recipient = (value: unknown): value is DirectRecipient => {
   const item = record(value);
-  return item?.host === "codex-cli" && item.hostVersion === "0.155.1" &&
+  return item?.host === "codex-cli" && isCodexHostVersion(item.hostVersion) &&
     string(item.sessionId) && string(item.turnId) && string(item.toolUseId) &&
     (item.agentId === null || string(item.agentId));
 };

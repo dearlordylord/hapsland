@@ -50,6 +50,7 @@ import {
   adaptCodexReply,
   isCodexNativeApplyPatch,
 } from "./direct-event/adapter.ts";
+import { isCodexHostVersion, type CodexHostVersion } from "./direct-event/model.ts";
 import type { CodexDirectEventOutput } from "./direct-event/pipeline.ts";
 import { attemptCodexHostOutput } from "./direct-event/writer.ts";
 import {
@@ -482,6 +483,12 @@ const runRequest = (
 );
 
 const isCodexHook = process.argv.includes("--codex-hook");
+const hookVersionArgument = process.argv.find((argument) => argument.startsWith("--codex-version="));
+const requestedHookVersion = hookVersionArgument?.slice("--codex-version=".length);
+if (isCodexHook && requestedHookVersion !== undefined && !isCodexHostVersion(requestedHookVersion)) {
+  throw new Error("unsupported Codex hook version");
+}
+const codexHookVersion: CodexHostVersion = isCodexHostVersion(requestedHookVersion) ? requestedHookVersion : "0.155.1";
 const isControlled = process.argv.includes("--controlled");
 const isControlledWriter = process.argv.includes("--controlled-writer");
 const requestedOperation = forcedOperation();
@@ -494,6 +501,7 @@ type DirectHookDispatch =
 
 const runDirectCodexHook = (
   nativeEvent: unknown,
+  hostVersion: CodexHostVersion,
   controlled: ControlledDecisionModelOptions | undefined,
   statePath: string,
   activityPath: string,
@@ -507,7 +515,7 @@ const runDirectCodexHook = (
     if (!isCodexNativeApplyPatch(nativeEvent) && !isBash) return { handled: false } as const;
     // Every mapped hook ensures the singleton, including Bash collection-only
     // replies and installations where no initialization command was run.
-    const reply = yield* adaptCodexReply(nativeEvent);
+    const reply = yield* adaptCodexReply(nativeEvent, hostVersion);
     const owner = yield* Effect.tryPromise(() => ensureResident()).pipe(Effect.option);
     if (Option.isNone(owner)) {
       if (!isBash && reply !== undefined) {
@@ -535,7 +543,7 @@ const runDirectCodexHook = (
         ? { handled: true, output: {} } as const
         : { handled: true, output: { _tag: "DirectEventReady" as const, value: collected.output, collected } } as const;
     }
-    const observation = yield* adaptCodexDirectEvent(nativeEvent);
+    const observation = yield* adaptCodexDirectEvent(nativeEvent, hostVersion);
     if (observation !== undefined) {
       recordDemoTrace(process.env.REVIEW_DEMO_BUDGET_PATH, observation.root, observation.recipient, { kind: "edit" });
     }
@@ -1202,12 +1210,16 @@ const program = Effect.gen(function* () {
     const nativeEvent = yield* decodeJson(input);
     const direct = yield* runDirectCodexHook(
       nativeEvent,
+      codexHookVersion,
       controlled,
       statePath,
       activityPath,
       userConfigPath,
     );
     if (direct.handled) return direct.output;
+    // The legacy whole-file adapter is evidenced only on the earlier host.
+    // A new native event shape on 0.156.0 must stay quiet until attributed.
+    if (codexHookVersion !== "0.155.1") return {};
     const event = yield* decodeCodexJson(input);
     const request = toReviewRequest(event);
     if (request === undefined) return {};
