@@ -2,29 +2,27 @@
 
 ## Product identity
 
-The repository directory may be named `jev`, but the product being designed is **not
-named Jev**. Do not call the product “Jev”.
+The repository directory may be named `jev`, but the product is **Jevs**, not Jev.
 
-**Jev** is TypeSafe's external realtime review/classification tool that the product uses
-to evaluate edits. Until the product receives an official name, refer to it as **the
-product**, **the review integration**, or **the realtime review tool** when the context
-is unambiguous.
+**Jev** is TypeSafe's external realtime review/classification tool that Jevs uses
+to evaluate edits. Refer to the product as **Jevs**, **the product**, or **the review
+integration** when the context is unambiguous.
 
 Keep these terms separate:
 
 - Jev: the external review backend/tool.
-- Product: our host-neutral integration and user-configurable review system.
+- Jevs: our host-neutral integration and user-configurable review system.
 - Agent host: Claude Code, Codex CLI, OpenCode, Kimi Code, Pi, or another runtime that
   owns the tool loop.
 - Model provider: secondary metadata about which inference service a host or review
   backend uses. It is not a first-class product target in the current phase.
 
-The product works at the agent-host boundary. Model-provider details matter only when
+Jevs works at the agent-host boundary. Model-provider details matter only when
 they change host behavior, authentication/egress, cost, or the Jev backend configuration;
 they do not define the adapter set.
 
 Historical filenames beginning with `JEV-` are retained for continuity; that filename
-prefix does not rename the product.
+prefix does not rename Jevs to Jev.
 
 ## Effect and Jev integration baseline
 
@@ -40,9 +38,11 @@ oracle, not an active workspace or production integration dependency. Runnable s
 must use the Effect integration. Preserve the vendor evidence until equivalent live
 contract fixtures and the real vertical slice are in place.
 
-Live paid Jev validation is authorized at declared project milestones when credentials are
-available. Keep ordinary tests deterministic and offline, do not print or commit credentials
-or source-bearing paid responses, and record only sanitized contract and timing evidence.
+Live Jev validation is authorized at declared project milestones when credentials are
+available. Bounded runs of hundreds of requests are acceptable when useful; avoid
+unbounded or thousands of requests. Keep ordinary tests deterministic and offline,
+do not print or commit credentials or source-bearing live responses, and record only
+sanitized contract and timing evidence.
 Ignored `.env` files are not copied into Git worktrees; check the primary `main`/`master`
 worktree when a worktree lacks credentials, without printing or automatically sourcing them.
 

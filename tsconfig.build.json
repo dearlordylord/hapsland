@@ -10,5 +10,19 @@
     "sourceMap": false
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts", "src/jev-live.test.ts"]
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/conformance/**",
+    "src/direct-event/test-fixtures.ts",
+    "src/e0.ts",
+    "src/hello.ts",
+    "src/prcheck.ts",
+    "src/questions.ts",
+    "src/r6probe.ts",
+    "src/r7alias.ts",
+    "src/r7deleg.ts",
+    "src/r7probe.ts",
+    "src/scan.ts",
+    "src/scan-files.ts"
+  ]
 }

@@ -11,7 +11,7 @@ Run the offline, read-only doctor with an explicit repository and selected Codex
 }
 ```
 
-The equivalent command is `review-tool --doctor`. Doctor checks the packaged runtime,
+The equivalent command is `jevs --doctor`. Doctor checks the packaged runtime,
 parser and resident entry point, exact Codex version, selected configuration, the owned
 feature/hook record, duplicates and local drift, resident reachability, credential
 presence in the doctor process, and enablement for the canonical repository. The doctor
@@ -79,7 +79,7 @@ legacy receipt observes the resident path. Legacy activity is classified as
 `no-observation`, `all-skipped`, `clean-reviewed`, `reviewed`, `unavailable`, `mixed`,
 or `incomplete`. A missing receipt is `no-observation`, never successful review. An
 observed start without a completion is `incomplete`; all-skipped activity reports its
-category counts. Receipt/status reads do not make a paid request.
+category counts. Receipt/status reads do not call Jev.
 
 For a human-readable response, pass `"format": "human"` in the same operation or use
 the `--status-human` flag. Corrupt, unreadable, or unwritable state is reported as a

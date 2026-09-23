@@ -23,14 +23,14 @@ describe("first-review live runner provenance policy", () => {
     expect(runner).not.toContain("REVIEW_LIVE_ARTIFACT_SHA256");
   });
 
-  it("queries the selected host version and keeps paid execution behind explicit live selection", () => {
+  it("queries the selected host version and keeps live execution behind explicit selection", () => {
     expect(runner).toContain('process.argv.includes("--live")');
     expect(runner).toContain('run("codex", ["--version"]');
     expect(runner.indexOf("if (!explicitLive)")).toBeLessThan(runner.indexOf("await mkdtemp"));
   });
 
   it("distinguishes future self-verified provenance from the externally supplied historical record", () => {
-    expect(runner).toContain('source: "runner-packed-release-installation"');
+    expect(runner).toContain('source: registryArtifact ? "npm-registry-installation" : "runner-packed-release-installation"');
     expect(runner).toContain("cliResolvedInsideInstalledArtifact: true");
     expect(historicalEvidence.package).toMatchObject({ source: "packed-release-installation" });
     expect(historicalEvidence.package.cliResolvedInsideInstalledArtifact).toBeUndefined();

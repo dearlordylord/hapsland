@@ -435,7 +435,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
       }),
     ]));
     expect(result.actions).toEqual(expect.arrayContaining([
-      expect.objectContaining({ code: "credential-entry-cancelled", action: expect.stringContaining("review-tool --login") }),
+      expect.objectContaining({ code: "credential-entry-cancelled", action: expect.stringContaining("jevs --login") }),
     ]));
   });
 
@@ -467,9 +467,9 @@ else if (operation === "probe") console.log('{"status":"available"}');
         }),
       ]));
       const recovery = result.actions.find((action) => action.code === fixtureCase.code);
-      expect(recovery?.action).toContain("review-tool --login");
+      expect(recovery?.action).toContain("jevs --login");
       if (fixtureCase.expectedStatus === "indeterminate") {
-        expect(recovery?.action).toContain("review-tool --logout");
+        expect(recovery?.action).toContain("jevs --logout");
       }
     }
   }, 20_000);

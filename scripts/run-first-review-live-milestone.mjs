@@ -20,6 +20,11 @@ import { stopScopedResident } from "./first-review-resident-cleanup.mjs";
 const projectRoot = resolve(new URL("../", import.meta.url).pathname);
 const explicitLive = process.argv.includes("--live");
 const writeEvidence = process.argv.includes("--write-evidence");
+const registryArtifact = process.argv.includes("--registry-artifact");
+const expectedSha256 = process.argv.find((argument) => argument.startsWith("--expected-sha256="))?.slice("--expected-sha256=".length);
+if (registryArtifact && !/^[0-9a-f]{64}$/.test(expectedSha256 ?? "")) {
+  throw new Error("registry live milestone requires --expected-sha256=REVIEWED_ARCHIVE_SHA256");
+}
 const supervisedTrust = process.argv.includes("--supervised-trust");
 const testSandboxBypass = process.argv.includes("--test-sandbox-bypass");
 const codexHome = process.env.REVIEW_LIVE_CODEX_HOME;
@@ -65,7 +70,7 @@ if (!explicitLive) {
   process.stdout.write(`${JSON.stringify({
     schemaVersion: 1,
     status: "not-run",
-    reason: "pass --live to explicitly select the paid synthetic milestone",
+    reason: "pass --live to explicitly select the bounded synthetic milestone",
     providerCalls: 0,
   }, null, 2)}\n`);
   process.exit(0);
@@ -104,7 +109,9 @@ const invoke = async (input, timeoutMs = 10_000, expected = [0]) => {
 
 try {
   await mkdir(installPrefix, { recursive: true });
-  const packResult = requireExit(await run("npm", ["pack", "--json", "--pack-destination", runnerRoot], {
+  const packResult = requireExit(await run("npm", registryArtifact
+    ? ["pack", "@jevs/jevs@0.1.0", "--json", "--ignore-scripts=true", "--registry=https://registry.npmjs.org/", "--pack-destination", runnerRoot]
+    : ["pack", "--json", "--pack-destination", runnerRoot], {
     timeoutMs: 120_000,
   }), "npm pack");
   const packEntries = parseJson(packResult, "npm pack");
@@ -112,19 +119,22 @@ try {
   if (typeof tarballName !== "string") throw new Error("npm pack did not identify its tarball");
   const tarballPath = join(runnerRoot, tarballName);
   artifactSha256 = createHash("sha256").update(await readFile(tarballPath)).digest("hex");
+  if (registryArtifact && artifactSha256 !== expectedSha256) {
+    throw new Error(`registry archive SHA-256 differs from reviewed artifact: ${artifactSha256}`);
+  }
 
   requireExit(await run("npm", ["install", "--global=false", "--legacy-peer-deps", "--ignore-scripts=true", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installPrefix, tarballPath], {
     timeoutMs: 120_000,
   }), "packed release installation");
-  const invokedCli = join(installPrefix, "node_modules", ".bin", "review-tool");
+  const invokedCli = join(installPrefix, "node_modules", ".bin", "jevs");
   cli = await realpath(invokedCli);
-  const installedPackageRoot = await realpath(join(installPrefix, "node_modules", "realtime-review-prototype"));
+  const installedPackageRoot = await realpath(join(installPrefix, "node_modules", "@jevs", "jevs"));
   const resolvedCli = await realpath(cli);
   if (resolvedCli !== installedPackageRoot && !resolvedCli.startsWith(`${installedPackageRoot}${sep}`)) {
     throw new Error("invoked CLI does not resolve inside the installed packed artifact");
   }
   const packageManifest = JSON.parse(await readFile(resolve(dirname(resolvedCli), "../package.json"), "utf8"));
-  if (packageManifest.name !== "realtime-review-prototype") {
+  if (packageManifest.name !== "@jevs/jevs") {
     throw new Error("installed CLI package identity did not match the packed release");
   }
 
@@ -249,7 +259,7 @@ const evidence = {
     architecture: process.arch,
   },
   package: {
-    source: "runner-packed-release-installation",
+    source: registryArtifact ? "npm-registry-installation" : "runner-packed-release-installation",
     artifactSha256,
     cliResolvedInsideInstalledArtifact: true,
   },

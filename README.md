@@ -1,8 +1,8 @@
-# Realtime review integration prototype
+# Jevs — realtime review integration
 
-This private repository develops an unnamed, host-neutral integration for giving coding
-agents configurable feedback after edits. Jev is the first external review backend; it is
-not the product name.
+This private repository develops Jevs, a host-neutral integration for giving coding
+agents configurable feedback after edits. Jev is the first external review backend;
+Jev and Jevs are distinct names.
 
 The initial supported production profile targets Codex CLI 0.155.1 on Linux arm64 with
 asynchronous, advisory post-write review through headless command hooks and a controlled
@@ -54,7 +54,7 @@ the proposed extraction composition has not yet been runtime-validated.
   full nine-rule batch, and 100 complete product-process calls. The 100-call sample had no
   unavailable or malformed result; see the sanitized latency, retry, and usage aggregates
   under [`evidence/codex/0.155.1`](./evidence/codex/0.155.1/README.md). Ordinary tests still
-  make no paid network calls.
+  make no Jev network calls.
 
 See [`PRODUCT-IMPLEMENTATION-PLAN.md`](./PRODUCT-IMPLEMENTATION-PLAN.md) for the staged
 plan and [`CONTEXT.md`](./CONTEXT.md) for the domain vocabulary.
@@ -98,7 +98,7 @@ resident process, and offline package doctor. The tested installed profile is ex
 Git and a packaged `openat` capture helper. The macOS controlled package path and authenticated
 Codex CLI 0.156.0 host cell are verified. Other operating systems and architectures are
 unsupported. After installing the tarball, run
-`review-tool-doctor` for source-free compatibility checks and recovery actions. The public commands
+`jevs-doctor` for source-free compatibility checks and recovery actions. The public commands
 use an installed, platform-specific Node 24.20.0 runtime, so the shell's Node version does not
 select the review runtime. Installation may fetch production dependencies, including that runtime,
 once; keep optional dependencies enabled. The no-script installation does not compile native code.
@@ -108,12 +108,13 @@ and resident and do not download packages per edit.
 The packaged CLI's preview/install/enable/disable/uninstall contract, ownership rules, recovery
 behavior, and native trust handoff are documented in
 [`docs/codex-installation.md`](./docs/codex-installation.md).
-For an owner-approved interactive pilot, use the one-page
-[`Codex pilot quickstart`](./docs/codex-pilot-quickstart.md). `review-tool` remains a provisional
-command; the product is unnamed and Jev is the external backend.
-After setup completes, that guide also documents the separate `review-tool --demo` preview and
-live-confirmation flow. Its default preview is offline; the paid run requires explicit fixed
-budgets and a new consent digest for a generated disposable repository.
+For the proposed registry release, use the
+[`Codex npm quickstart`](./docs/npm-quickstart.md). The public command is
+`jevs`. The product is Jevs and Jev is the external backend. The registry release is pending
+the [release record](https://github.com/dearlordylord/jevs/blob/master/docs/npm-release-record.md).
+After setup completes, the [installation guide](./docs/codex-installation.md) also documents the separate `jevs --demo` preview and
+live-confirmation flow. Its default preview is offline; a live run requires a new consent
+digest for a generated disposable repository and explicit request, source, and time limits.
 
 `npm run conformance:package` packs into an isolated temporary prefix, installs with production
 dependencies only, and runs the parser and controlled offline review outside the checkout. Add
@@ -128,7 +129,7 @@ hook trust and a labeled host sandbox bypass in this container. Exact versions, 
 setup-effort evidence, and the rule that untested cells remain
 gaps are published in
 [`docs/installed-release-compatibility.md`](./docs/installed-release-compatibility.md). The command
-does not perform paid Jev work or an authenticated Codex retry.
+does not call Jev or perform an authenticated Codex retry.
 The local single-repository opt-in pilot is scoped in
 [`docs/codex-opt-in-pilot.md`](./docs/codex-opt-in-pilot.md).
 
@@ -150,10 +151,10 @@ printf '%s\n' '{"version":1,"operation":"credentials","cwd":"/absolute/repo"}' \
 ```
 
 `--inspect-credentials` reports only the configured environment-variable name and
-whether the resolved source is present. On Linux and macOS, `review-tool --login` uses masked
+whether the resolved source is present. On Linux and macOS, `jevs --login` uses masked
 terminal input with the platform's native credential store;
-`review-tool --login --credential-stdin` is the explicit headless form, and
-`review-tool --logout` removes the owned saved item. Project configuration refers to a
+`jevs --login --credential-stdin` is the explicit headless form, and
+`jevs --logout` removes the owned saved item. Project configuration refers to a
 credential environment-variable name; secret values and environment files are never
 stored in project files or printed. The Jev backend and `/v1/systemone` destination are
 fixed in this phase; arbitrary endpoint routing is not supported. Configuration cannot
@@ -170,7 +171,7 @@ controlled-writer envelope; matching source reads alone never establish attribut
 Without that assertion, supported Add input stays quiet rather than falling back to the
 superseded whole-file path. A packed installation invokes the corresponding installed
 `dist/cli.js` entry and never depends on this source path. Live use reads `TYPESAFE_API_KEY` through
-the Effect provider configuration. Run the paid integration checks only with explicit
+the Effect provider configuration. Run the live integration checks only with explicit
 opt-in via `npm run test:live`. The reproducible 100-call milestone additionally requires
 `RUN_LIVE_JEV_BENCHMARK=1 npm run benchmark:live`.
 
@@ -187,7 +188,7 @@ treats silence or missing instrumentation as a clear review.
 The maintainer-only semantic evaluation protocol and its sanitized offline milestone
 evidence are documented in [`docs/evaluation.md`](./docs/evaluation.md) and
 [`evidence/evaluation/README.md`](./evidence/evaluation/README.md). Ordinary tests and
-the review hook never perform a paid evaluation.
+the review hook never run the maintainer evaluation suite against Jev.
 
 The historical `vendor/distilled` tree is retained as a Git submodule and migration oracle;
 it is not an active workspace or production dependency. Clone it when that evidence is

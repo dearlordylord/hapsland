@@ -30,7 +30,7 @@ or run a package lifecycle script. Building the release archive requires platfor
 
 2. The guide checks Codex and Node, shows the exact owned Codex configuration changes, and asks
    before installation. It then asks for a Jev key with terminal echo off if a saved key is
-   missing. Key storage makes no paid Jev call and does not mean review is ready. The guide shows
+   missing. Key storage makes no Jev call and does not mean review is ready. The guide shows
    the canonical repository root, destination, and eligible-source scope and asks separately
    before enabling source transmission. Decline either approval to stop; rerun `--pilot` to
    resume. No repository is enabled by package installation alone.

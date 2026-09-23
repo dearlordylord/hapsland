@@ -69,8 +69,8 @@ try {
   ], { cwd: temporary, timeoutMs: 120_000 });
   if (installed.code !== 0) throw new Error("host-conformance package install failed");
   const tarball = join(artifacts, artifactName);
-  const installedCli = join(installation, "node_modules", ".bin", "review-tool");
-  const packageDirectory = join(installation, "node_modules", "realtime-review-prototype");
+  const installedCli = join(installation, "node_modules", ".bin", "jevs");
+  const packageDirectory = join(installation, "node_modules", "@jevs", "jevs");
   const installedManifest = JSON.parse(await readFile(join(packageDirectory, "package.json"), "utf8"));
   const artifactSha256 = createHash("sha256").update(await readFile(tarball)).digest("hex");
   await run("git", ["init", "--quiet", "--initial-branch=master"], { cwd: repository });
