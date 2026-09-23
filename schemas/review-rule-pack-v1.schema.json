@@ -1,71 +1,131 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Realtime review declarative rule pack v1",
-  "description": "A local JSONC pack of binary questions. contentVersion identifies the rule meaning and is independent of schemaVersion.",
-  "type": "object",
-  "additionalProperties": false,
-  "required": ["schemaVersion", "id", "contentVersion", "rules"],
-  "properties": {
-    "schemaVersion": { "const": 1 },
-    "id": { "$ref": "#/$defs/id" },
-    "contentVersion": { "$ref": "#/$defs/id" },
-    "rules": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/rule" }
-    }
-  },
+  "$ref": "#/$defs/RulePackDocument",
   "$defs": {
-    "id": { "type": "string", "minLength": 1 },
-    "patterns": {
-      "type": "array",
-      "items": { "type": "string", "minLength": 1 }
-    },
-    "criteria": {
+    "RuleCriteria": {
       "type": "object",
-      "additionalProperties": false,
-      "required": ["false", "true"],
       "properties": {
-        "false": { "$ref": "#/$defs/criterion" },
-        "true": { "$ref": "#/$defs/criterion" }
-      }
-    },
-    "criterion": {
-      "oneOf": [
-        { "type": "string", "minLength": 1 },
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["what"],
-          "properties": {
-            "what": { "type": "string", "minLength": 1 },
-            "examples": {
-              "type": "array",
-              "items": { "type": "string" }
-            }
-          }
+        "false": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Text rendered when the evaluated criterion is false."
+        },
+        "true": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Text rendered when the evaluated criterion is true."
         }
-      ]
-    },
-    "applicability": {
-      "type": "object",
+      },
+      "required": [
+        "false",
+        "true"
+      ],
       "additionalProperties": false,
-      "properties": {
-        "includes": { "$ref": "#/$defs/patterns" },
-        "excludes": { "$ref": "#/$defs/patterns" }
-      }
+      "description": "String-valued evidence criteria for both probability outcomes."
     },
-    "rule": {
+    "RuleApplicability": {
       "type": "object",
-      "additionalProperties": false,
-      "required": ["id", "question", "criteria", "message"],
       "properties": {
-        "id": { "$ref": "#/$defs/id" },
-        "question": { "type": "string", "minLength": 1 },
-        "criteria": { "$ref": "#/$defs/criteria" },
-        "threshold": { "type": "number", "minimum": 0, "maximum": 1 },
-        "message": { "type": "string", "minLength": 1 },
-        "applicability": { "$ref": "#/$defs/applicability" }
-      }
+        "includes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A non-empty repository-relative glob pattern using forward slashes."
+          },
+          "description": "Optional repository-relative patterns a path must match for this rule to apply."
+        },
+        "excludes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A non-empty repository-relative glob pattern using forward slashes."
+          },
+          "description": "Optional repository-relative patterns that prevent this rule from applying."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Rule-level path filters, intersected with global file selection."
+    },
+    "RuleDefinition": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable rule identity within this pack; it cannot contain separators or whitespace."
+        },
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Question evaluated against the available review input."
+        },
+        "criteria": {
+          "$ref": "#/$defs/RuleCriteria"
+        },
+        "threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Probability threshold from 0 through 1. Omission uses the built-in rule threshold.",
+          "default": 0.7
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Authored advice text attached to a qualifying result."
+        },
+        "applicability": {
+          "$ref": "#/$defs/RuleApplicability"
+        }
+      },
+      "required": [
+        "id",
+        "question",
+        "criteria",
+        "message"
+      ],
+      "additionalProperties": false,
+      "description": "One declarative rule in a rule pack."
+    },
+    "RulePackDocument": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "number",
+          "enum": [
+            1
+          ],
+          "description": "Rule-pack wire-format version."
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable pack identity; it cannot contain separators or whitespace."
+        },
+        "contentVersion": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Authored content version, independent of the wire schema version."
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RuleDefinition"
+          },
+          "description": "Rules declared by this pack. Rule identities must be unique within the pack."
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "id",
+        "contentVersion",
+        "rules"
+      ],
+      "additionalProperties": false,
+      "title": "Rule pack v1",
+      "description": "Canonical JSONC wire format for a declarative rule pack."
     }
   }
 }

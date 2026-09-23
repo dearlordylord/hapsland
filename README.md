@@ -59,10 +59,33 @@ the proposed extraction composition has not yet been runtime-validated.
 See [`PRODUCT-IMPLEMENTATION-PLAN.md`](./PRODUCT-IMPLEMENTATION-PLAN.md) for the staged
 plan and [`CONTEXT.md`](./CONTEXT.md) for the domain vocabulary.
 
+<!-- configuration-readme:start -->
+
+## Configuration
+
+Configure file selection and exclusions, runtime controls, local rule packs, per-rule overrides, and the credential environment-variable reference. The product accepts layered JSONC files; repository enablement remains a separate user-owned grant.
+
+A small project configuration:
+
+```jsonc
+{
+  "version": 1,
+  "includes": [
+    "src/**"
+  ]
+}
+```
+
+See the [complete configuration guide](./docs/configuration.md) for field details, rule packs, precedence, and runtime behavior.
+
+<!-- configuration-readme:end -->
+
 ## Development
 
 ```sh
 npx --yes bun@1.3.14 install
+npm run config:generate
+npm run config:check
 npm run typecheck
 npm test
 npm run conformance:package
@@ -130,14 +153,13 @@ printf '%s\n' '{"version":1,"operation":"credentials","cwd":"/absolute/repo"}' \
 whether the resolved source is present. On Linux and macOS, `review-tool --login` uses masked
 terminal input with the platform's native credential store;
 `review-tool --login --credential-stdin` is the explicit headless form, and
-`review-tool --logout` removes the owned saved item. The default is `TYPESAFE_API_KEY`;
-credential values and environment files are never stored in project files or printed. Project settings are optional JSONC in
-`.review.jsonc` at the Git root. It may select the credential variable, but the Jev
-backend and `/v1/systemone` destination are fixed in this phase; arbitrary endpoint
-routing is not supported. `consent`/`enabled` fields never authorize source transmission.
-Hooks do not prompt: without a matching root/backend/destination grant, review returns a
-bounded `skipped` result and makes no provider request. Disabling affects future
-dispatches and does not claim to recall a request already sent.
+`review-tool --logout` removes the owned saved item. Project configuration refers to a
+credential environment-variable name; secret values and environment files are never
+stored in project files or printed. The Jev backend and `/v1/systemone` destination are
+fixed in this phase; arbitrary endpoint routing is not supported. Configuration cannot
+grant repository approval. Hooks do not prompt: without a matching root/backend/destination
+grant, review returns a bounded `skipped` result and makes no provider request. Disabling
+affects future dispatches and does not claim to recall a request already sent.
 
 The product-owned JSON contract is documented in
 [`CODEX-ADAPTER-CONTRACT-v1.md`](./CODEX-ADAPTER-CONTRACT-v1.md). During development, a

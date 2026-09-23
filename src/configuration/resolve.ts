@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import {
   BUILT_IN_INCLUDES,
   BUILT_IN_PROTECTED_EXCLUDES,
+  DEFAULT_CREDENTIAL_ENV_VAR,
   DEFAULT_RUNTIME_SETTINGS,
   type ConfigurationDocument,
   type ConfigurationLayerName,
@@ -161,7 +162,7 @@ export const resolveConfiguration = (
     }
   }
 
-  let credentialEnvVar: Originated<string> = originated("TYPESAFE_API_KEY", {
+  let credentialEnvVar: Originated<string> = originated(DEFAULT_CREDENTIAL_ENV_VAR, {
     layer: "built-in",
     source: "built-in",
     field: "credentialEnvVar",

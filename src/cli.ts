@@ -390,7 +390,6 @@ const preflight = (
           backend: DEFAULT_BACKEND,
           destination: DEFAULT_DESTINATION,
           credentialEnvVar: DEFAULT_CREDENTIAL_ENV_VAR,
-          projectRequestedConsent: false,
         },
         authorization: {
           status: "unsupported" as const,
@@ -677,7 +676,6 @@ const runOperation = (
           destination: grant.destination,
           scope: "repository-wide eligible source files",
         })),
-        projectAuthorizationIgnored: settings?.projectRequestedConsent ?? false,
       };
       return operation.format === "human"
         ? `${formatReceiptStatus(
@@ -710,7 +708,6 @@ const runOperation = (
             },
             scope: proposal.scope,
           },
-          projectAuthorizationIgnored: settings.projectRequestedConsent,
         };
       }
       case "enable-confirm": {
@@ -734,7 +731,6 @@ const runOperation = (
           repository: { canonicalRoot: identity.root },
           backend: { id: identity.backend, destination: identity.destination },
           scope: proposal.scope,
-          projectAuthorizationIgnored: settings.projectRequestedConsent,
         };
       }
       case "disable": {
@@ -1399,7 +1395,7 @@ const runCredentialCommand = async (): Promise<Readonly<Record<string, unknown>>
     };
   }
   const result = await logoutCredential();
-  let environmentName = DEFAULT_CREDENTIAL_ENV_VAR;
+  let environmentName: string = DEFAULT_CREDENTIAL_ENV_VAR;
   try {
     const repository = spawnSync("git", ["rev-parse", "--show-toplevel"], {
       cwd: process.cwd(), encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 1_000,

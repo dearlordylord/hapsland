@@ -32,7 +32,7 @@ const packText = (id = "team", version = "1.0.0") => JSON.stringify({
 });
 
 describe("rule-pack schema and identity", () => {
-  it("decodes JSONC, criteria objects, defaults and stable digests", () => {
+  it("decodes canonical JSONC, inserts defaults and creates stable digests", () => {
     const one = decodeRulePackText(`{
       // content meaning is independent from schema version
       "schemaVersion": 1,
@@ -41,10 +41,7 @@ describe("rule-pack schema and identity", () => {
       "rules": [{
         "id": "r",
         "question": "Q",
-        "criteria": {
-          "false": { "what": "No", "examples": ["clear"] },
-          "true": { "what": "Yes", "examples": ["violation"] }
-        },
+        "criteria": { "false": "No", "true": "Yes" },
         "message": "M"
       }]
     }`, "pack.jsonc");
@@ -52,7 +49,7 @@ describe("rule-pack schema and identity", () => {
       rules: [{
         id: "r",
         question: "Q",
-        criteria: { false: "No\n\nExamples:\n- clear", true: "Yes\n\nExamples:\n- violation" },
+        criteria: { false: "No", true: "Yes" },
         threshold: 0.7,
         message: "M",
       }],
@@ -66,6 +63,59 @@ describe("rule-pack schema and identity", () => {
     expect(digestRulePack(one)).toBe(one.contentDigest);
     expect(() => decodeRulePackText('{"schemaVersion":2}', "bad.jsonc")).toThrow(ConfigurationError);
     expect(() => decodeRulePackText('{"schemaVersion":1,"id":"x","contentVersion":"1","rules":[],"other":true}', "bad.jsonc")).toThrow(ConfigurationError);
+    for (const alias of [
+      '{"version":1,"id":"team","contentVersion":"1","rules":[]}',
+      '{"schemaVersion":1,"packId":"team","contentVersion":"1","rules":[]}',
+      '{"schemaVersion":1,"id":"team","packVersion":"1","rules":[]}',
+      JSON.stringify({
+        schemaVersion: 1,
+        id: "team",
+        contentVersion: "1",
+        rules: [{ id: "r", question: "Q", criteria: { false: "F", true: "T" }, defaultThreshold: 0.5, defaultMessage: "M" }],
+      }),
+      JSON.stringify({
+        schemaVersion: 1,
+        id: "team",
+        contentVersion: "1",
+        rules: [{ id: "r", question: "Q", criteria: { false: { what: "F" }, true: "T" }, message: "M" }],
+      }),
+    ]) {
+      expect(() => decodeRulePackText(alias, "noncanonical.jsonc")).toThrow(ConfigurationError);
+    }
+    try {
+      decodeRulePackText(JSON.stringify({
+        schemaVersion: 1,
+        id: "team",
+        contentVersion: "1.0.0",
+        rules: [{
+          id: "check",
+          question: "Q",
+          criteria: { false: "F", true: "T" },
+          message: 17,
+        }],
+      }), "bounded-pack.jsonc");
+      throw new Error("expected schema failure");
+    } catch (error) {
+      expect(error).toMatchObject({
+        source: "bounded-pack.jsonc",
+        field: "rules[0].message",
+      });
+    }
+    expect(() => decodeRulePackText(JSON.stringify({
+      schemaVersion: 1,
+      id: "team",
+      contentVersion: "1.0.0",
+      rules: [{
+        id: "check",
+        question: "Q",
+        criteria: { false: "F", true: "T" },
+        message: "M",
+        applicability: { includes: ["../src/**"] },
+      }],
+    }), "invalid-pattern.jsonc")).toThrowError(expect.objectContaining({
+      source: "invalid-pattern.jsonc",
+      field: "rules[0].applicability.includes[0]",
+    }));
   });
 
   it("rejects duplicate rule IDs before compilation", () => {

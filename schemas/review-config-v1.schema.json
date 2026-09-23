@@ -1,73 +1,196 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Realtime review configuration v1",
-  "description": "JSONC project or user defaults. Copy this artifact to an editor-accessible path for completion; no hosted release URL is promised in this phase.",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["version"],
   "properties": {
-    "version": { "const": 1 },
-    "$schema": { "type": "string", "description": "Editor schema metadata; ignored at runtime." },
-    "includes": { "$ref": "#/$defs/patterns" },
-    "excludes": { "$ref": "#/$defs/patterns" },
-    "privacyExcludes": { "$ref": "#/$defs/patterns" },
-    "credentialEnvVar": { "$ref": "#/$defs/envVar" },
-    "settings": { "$ref": "#/$defs/settings" },
-    "packs": { "$ref": "#/$defs/packs" },
-    "ruleOverrides": { "$ref": "#/$defs/ruleOverrides" },
-    "consent": { "type": "boolean", "description": "Ignored for source-egress authorization." },
-    "enabled": { "type": "boolean", "description": "Ignored for source-egress authorization." }
-  },
-  "$defs": {
-    "patterns": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-    "envVar": { "type": "string", "pattern": "^[A-Z_][A-Z0-9_]*$" },
+    "version": {
+      "type": "number",
+      "enum": [
+        1
+      ],
+      "description": "Configuration wire-format version."
+    },
+    "$schema": {
+      "type": "string",
+      "description": "Optional editor schema location. It does not change runtime validation."
+    },
+    "includes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "description": "A non-empty repository-relative glob pattern using forward slashes."
+      },
+      "description": "Optional repository-relative file patterns. Omission inherits the lower-precedence list; an empty array selects no paths."
+    },
+    "excludes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "description": "A non-empty repository-relative glob pattern using forward slashes."
+      },
+      "description": "Additional repository-relative exclusions. Exclusions accumulate across configuration layers and always win."
+    },
+    "privacyExcludes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "description": "A non-empty repository-relative glob pattern using forward slashes."
+      },
+      "description": "Additional protected-path exclusions. These accumulate and cannot be overridden by lower-privacy layers."
+    },
+    "credentialEnvVar": {
+      "type": "string",
+      "pattern": "^[A-Z_][A-Z0-9_]*$",
+      "description": "Name of the environment variable that supplies the review credential. Store the secret value outside configuration.",
+      "default": "TYPESAFE_API_KEY"
+    },
     "settings": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "deadlineMs": { "type": "integer", "minimum": 1, "maximum": 60000 },
-        "concurrency": { "type": "integer", "minimum": 1, "maximum": 32 },
-        "adviceBudget": { "type": "integer", "minimum": 0, "maximum": 100 },
-        "transientRetries": { "type": "integer", "minimum": 0, "maximum": 5 }
-      }
+      "$ref": "#/$defs/RuntimeSettings"
     },
     "packs": {
       "type": "array",
       "items": {
-        "oneOf": [
-          { "type": "string", "minLength": 1 },
-          {
-            "type": "object",
-            "additionalProperties": false,
-            "oneOf": [
-              { "required": ["path"], "not": { "required": ["id"] } },
-              { "required": ["id"], "not": { "required": ["path"] } }
-            ],
-            "properties": {
-              "path": { "type": "string", "minLength": 1 },
-              "id": { "type": "string", "minLength": 1 },
-              "enabled": { "type": "boolean" }
-            }
-          }
-        ]
-      }
+        "$ref": "#/$defs/RulePackReference"
+      },
+      "description": "Local rule-pack path declarations or references to packs inherited from lower-precedence layers. Bundled Noul loads independently."
     },
     "ruleOverrides": {
       "type": "object",
       "additionalProperties": {
-        "$ref": "#/$defs/ruleOverride"
-      }
-    },
-    "ruleOverride": {
+        "$ref": "#/$defs/RuleOverride"
+      },
+      "description": "Map of qualified rule IDs to layer-specific overrides. Use pack-id/rule-id for local packs."
+    }
+  },
+  "required": [
+    "version"
+  ],
+  "additionalProperties": false,
+  "title": "Review configuration v1",
+  "description": "JSONC configuration for file selection, rule packs, credential references, and whole-file JSON request settings.",
+  "$defs": {
+    "RuntimeSettings": {
       "type": "object",
-      "additionalProperties": false,
       "properties": {
-        "enabled": { "type": "boolean" },
-        "includes": { "$ref": "#/$defs/patterns" },
-        "excludes": { "$ref": "#/$defs/patterns" },
-        "threshold": { "type": "number", "minimum": 0, "maximum": 1 },
-        "message": { "type": "string", "minLength": 1 }
-      }
+        "deadlineMs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60000,
+          "description": "Per-file deadline in milliseconds for whole-file JSON requests.",
+          "default": 1000
+        },
+        "concurrency": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32,
+          "description": "Maximum concurrently reviewed files for whole-file JSON requests.",
+          "default": 4
+        },
+        "adviceBudget": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Maximum findings delivered for a whole-file JSON request event.",
+          "default": 5
+        },
+        "transientRetries": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5,
+          "description": "Additional retry attempts for transient backend failures in the whole-file JSON request path.",
+          "default": 2
+        }
+      },
+      "additionalProperties": false,
+      "description": "Optional whole-file JSON request controls. Omitted layer values inherit; built-in values apply when no layer supplies a value."
+    },
+    "RulePackReference": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "description": "Path to a local rule-pack document."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Local rule-pack path; relative paths resolve from the originating configuration file."
+            },
+            "enabled": {
+              "type": "boolean",
+              "description": "Optional enablement override. Omission inherits an existing pack's state and enables a newly declared pack."
+            }
+          },
+          "required": [
+            "path"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Identity of a rule pack declared in a lower-precedence configuration layer."
+            },
+            "enabled": {
+              "type": "boolean",
+              "description": "Optional enablement override. Omission inherits an existing pack's state and enables a newly declared pack."
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "description": "A path declaration or an inherited pack identity; object forms contain exactly one locator."
+    },
+    "RuleOverride": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether this rule is enabled in this configuration layer."
+        },
+        "includes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A non-empty repository-relative glob pattern using forward slashes."
+          },
+          "description": "Additional rule path filters; they intersect global file selection."
+        },
+        "excludes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A non-empty repository-relative glob pattern using forward slashes."
+          },
+          "description": "Rule-specific path exclusions; they cannot restore globally excluded paths."
+        },
+        "threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Probability threshold from 0 through 1. Omission inherits the rule-pack threshold."
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Advice text to use for this rule; omission keeps the rule-pack message."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Layer-specific activation, path filters, threshold, and advice message for one qualified rule ID."
     }
   }
 }

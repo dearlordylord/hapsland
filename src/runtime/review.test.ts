@@ -471,7 +471,6 @@ describe("review orchestration", () => {
             apiBase: DEFAULT_API_BASE,
             destination: DEFAULT_DESTINATION,
             credentialEnvVar: DEFAULT_CREDENTIAL_ENV_VAR,
-            projectRequestedConsent: false,
             configuration: { policy },
             rules: configuredRules,
           };
@@ -573,7 +572,6 @@ describe("review orchestration", () => {
           apiBase: DEFAULT_API_BASE,
           destination: DEFAULT_DESTINATION,
           credentialEnvVar: DEFAULT_CREDENTIAL_ENV_VAR,
-          projectRequestedConsent: false,
           configuration: { policy: resolveConfiguration([], root) },
         };
         const calls = yield* Ref.make(0);
