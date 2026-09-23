@@ -1,5 +1,9 @@
 # Single-repository Codex pilot
 
+For a person installing the reviewed pilot package, follow the
+[interactive quickstart](./codex-pilot-quickstart.md). This document records the controlled
+owner-pilot procedure and its evidence limits.
+
 This is a local, opt-in pilot for one owner-selected Git test repository. It sends no invitations,
 does not enable the product in the development checkout, and does not publish a package. Record the
 selected repository path privately; do not put it in issue comments or retained evidence.
