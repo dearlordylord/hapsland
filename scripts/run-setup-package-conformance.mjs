@@ -171,7 +171,12 @@ try {
   expect(archiveContents.code === 0, "packed archive could not be listed");
   expect(!archiveContents.stdout.split("\n").some((entry) => entry.startsWith("package/dist/native/")),
     "packed archive contains a build-machine native helper");
-  result = await run("npm", ["install", "--prefer-offline", "--omit=dev", "--prefix", installation, join(artifacts, artifact)], {
+  expect(archiveContents.stdout.includes(`package/native/prebuilt/${process.platform}-${process.arch}/credential-secret-service`),
+    "packed archive lacks the selected platform's credential helper");
+  const packedManifest = await run("tar", ["-xOf", join(artifacts, artifact), "package/package.json"], { cwd: temporary });
+  expect(packedManifest.code === 0 && !Object.hasOwn(JSON.parse(packedManifest.stdout).scripts ?? {}, "postinstall"),
+    "packed archive still depends on a postinstall script");
+  result = await run("npm", ["install", "--ignore-scripts=true", "--prefer-offline", "--omit=dev", "--prefix", installation, join(artifacts, artifact)], {
     cwd: temporary,
     timeoutMs: 120_000,
   });
@@ -375,6 +380,8 @@ else if (operation === "probe") console.log('{"status":"available"}');
     { prompt: "Jev API key:", value: pilotMarker },
     { prompt: "Enable review for this repository", value: "n" },
   ]);
+  expect(declinedPilot.includes(`Jev key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}`),
+    "guided login did not confirm credential storage");
   expect(declinedPilot.includes("No paid verification or review was sent"), "guided login overstated verification");
   expect(declinedPilot.includes("Repository review remains disabled"), "declined consent was unclear");
   expect(!declinedPilot.includes(pilotMarker), "guided credential appeared in terminal output");

@@ -109,7 +109,7 @@ const installLocalPackageVariant = async ({
   const artifactName = (await readdir(artifacts)).find((entry) => entry.endsWith(".tgz"));
   if (artifactName === undefined) throw new Error(`npm pack did not produce the ${version} tarball`);
   const tarball = join(artifacts, artifactName);
-  await mustRun("npm", ["install", "--global=false", "--legacy-peer-deps", "--ignore-scripts=false", "--foreground-scripts", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installation, tarball], {
+  await mustRun("npm", ["install", "--global=false", "--legacy-peer-deps", "--ignore-scripts=true", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installation, tarball], {
     cwd: temporary,
     timeoutMs: 120_000,
   });
@@ -396,8 +396,8 @@ try {
   await mkdir(installation, { recursive: true });
   await mkdir(repository, { recursive: true });
   const sourceManifest = parseJson(await readFile(join(root, "package.json"), "utf8"), "source manifest");
-  if (sourceManifest.scripts?.prepack !== "npm run build" || sourceManifest.scripts?.postinstall !== "node scripts/build-capture-helper.mjs") {
-    throw new Error("source package must declare prepack build and postinstall native-helper lifecycle scripts");
+  if (sourceManifest.scripts?.prepack !== "npm run build" || sourceManifest.scripts?.postinstall !== undefined) {
+    throw new Error("source package must build before packing without an install-time lifecycle script");
   }
   await mustRun("npm", ["pack", "--ignore-scripts=false", "--foreground-scripts", "--pack-destination", artifacts], { cwd: root });
   const artifactEntries = await (await import("node:fs/promises")).readdir(artifacts);
@@ -406,7 +406,7 @@ try {
   const tarball = join(artifacts, artifactName);
   // Force the local layout expected by this fixture. An effective global
   // install silently places package bins under prefix/bin instead.
-  await mustRun("npm", ["install", "--global=false", "--legacy-peer-deps", "--ignore-scripts=false", "--foreground-scripts", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installation, tarball], { cwd: temporary, timeoutMs: 120_000 });
+  await mustRun("npm", ["install", "--global=false", "--legacy-peer-deps", "--ignore-scripts=true", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installation, tarball], { cwd: temporary, timeoutMs: 120_000 });
   const packageDirectory = join(installation, "node_modules", "realtime-review-prototype");
   const binDirectory = join(installation, "node_modules", ".bin");
   const cli = join(binDirectory, "review-tool");
@@ -551,7 +551,7 @@ else if (operation === "get") {
         "-w", secondaryCredential, secondaryTestKeychainPath,
       ], { cwd: temporary, env });
       if (addSecondary.code !== 0) throw new Error("secondary Keychain fixture credential could not be created");
-      const helper = join(packageDirectory, "dist", "native", "credential-secret-service");
+      const helper = join(packageDirectory, "native", "prebuilt", `${process.platform}-${process.arch}`, "credential-secret-service");
       const beforeReplacement = await mustRun(helper, ["get"], { cwd: temporary, env });
       if (!beforeReplacement.stdout.endsWith(syntheticCredential) || beforeReplacement.stdout.includes(secondaryCredential)) {
         throw new Error("native lookup escaped the selected default Keychain");
@@ -1162,7 +1162,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
     await mustRun(activeCli, ["--login", "--credential-stdin"], {
       cwd: temporary, env, input: `${syntheticCredential}\n`,
     });
-    const installedHelper = join(packageDirectory, "dist", "native", "credential-secret-service");
+    const installedHelper = join(packageDirectory, "native", "prebuilt", `${process.platform}-${process.arch}`, "credential-secret-service");
     if (process.platform === "linux") {
       await mustRun(installedHelper, ["lock"], { cwd: temporary, env });
     } else if (process.platform === "darwin") {

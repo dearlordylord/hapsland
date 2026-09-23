@@ -29,11 +29,15 @@ const nativeArchitecture = (path: string): string => {
     const magic = bytes.subarray(0, 4).toString("hex");
     const expected = process.arch === "arm64" ? 0x0100000c : process.arch === "x64" ? 0x01000007 : undefined;
     if (expected === undefined) return "unsupported-host-architecture";
-    if (["feedface", "feedfacf", "cefaedfe", "cffaedfe"].includes(magic)) {
+    if (process.platform === "linux" && magic === "7f454c46") {
+      const machine = process.arch === "arm64" ? 183 : 62;
+      return bytes.length >= 20 && bytes.readUInt16LE(18) === machine ? process.arch : "wrong-architecture";
+    }
+    if (process.platform === "darwin" && ["feedface", "feedfacf", "cefaedfe", "cffaedfe"].includes(magic)) {
       const littleEndian = magic === "cefaedfe" || magic === "cffaedfe";
       return bytes.length >= 8 && (littleEndian ? bytes.readUInt32LE(4) : bytes.readUInt32BE(4)) === expected ? process.arch : "wrong-architecture";
     }
-    if (["cafebabe", "bebafeca"].includes(magic)) {
+    if (process.platform === "darwin" && ["cafebabe", "bebafeca"].includes(magic)) {
       const littleEndian = magic === "bebafeca";
       const count = littleEndian ? bytes.readUInt32LE(4) : bytes.readUInt32BE(4);
       for (let index = 0; index < count; index += 1) {
@@ -43,7 +47,7 @@ const nativeArchitecture = (path: string): string => {
       }
       return "wrong-architecture";
     }
-    return "not-mach-o";
+    return "wrong-native-format";
   } catch {
     return "unavailable";
   }
@@ -65,10 +69,10 @@ for (const command of declaration.requiredCommands) {
 }
 
 if (process.platform === "linux" || process.platform === "darwin") {
-  const credentialHelper = join(packageRoot, "dist", "native", "credential-secret-service");
+  const credentialHelper = join(packageRoot, "native", "prebuilt", `${process.platform}-${process.arch}`, "credential-secret-service");
   try {
     accessSync(credentialHelper, constants.X_OK);
-    const architecture = process.platform === "darwin" ? nativeArchitecture(credentialHelper) : process.arch;
+    const architecture = nativeArchitecture(credentialHelper);
     add("native-credential-helper", architecture === process.arch, `${credentialHelper} (${architecture})`, `executable packaged native credential helper for ${process.arch}`);
   } catch {
     add(
@@ -77,10 +81,20 @@ if (process.platform === "linux" || process.platform === "darwin") {
       "unavailable",
       "executable packaged native credential helper",
       process.platform === "darwin"
-        ? "install the Xcode Command Line Tools, then reinstall with lifecycle scripts enabled; environment-only credentials remain available"
-        : "install cc, pkg-config and the libsecret development package, then reinstall with lifecycle scripts enabled; environment-only credentials remain available",
+        ? "reinstall a release archive containing the macOS arm64 credential helper; environment-only credentials remain available"
+        : "reinstall a release archive containing the Linux arm64 credential helper; environment-only credentials remain available",
     );
   }
+}
+
+for (const [name, path] of [
+  ["parser-runtime-binding", "tree-sitter/build/Release/tree_sitter_runtime_binding.node"],
+  ["parser-typescript-binding", "tree-sitter-typescript/build/Release/tree_sitter_typescript_binding.node"],
+] as const) {
+  const binding = join(packageRoot, "native", "prebuilt", `${process.platform}-${process.arch}`, path);
+  const architecture = nativeArchitecture(binding);
+  add(name, architecture === process.arch, `${binding} (${architecture})`, `prebuilt ${process.arch} parser binding`,
+    "reinstall a release archive containing the parser bindings for this platform");
 }
 
 if (process.platform === "linux") {
@@ -120,19 +134,19 @@ try {
 }
 
 if (process.platform === "darwin") {
-  const captureHelper = join(packageRoot, "dist", "native", "capture-open");
+  const captureHelper = join(packageRoot, "native", "prebuilt", "darwin-arm64", "capture-open");
   try {
     accessSync(captureHelper, constants.X_OK);
     const architecture = nativeArchitecture(captureHelper);
     add("descriptor-capture-helper", architecture === process.arch, `${captureHelper} (${architecture})`, `executable packaged openat helper for ${process.arch}`,
-      "reinstall the package with lifecycle scripts enabled for this macOS architecture");
+      "reinstall a release archive containing the macOS arm64 capture helper");
   } catch {
     add(
       "descriptor-capture-helper",
       false,
       "unavailable",
       "executable packaged openat helper",
-      "install the Xcode Command Line Tools, then reinstall the package with lifecycle scripts enabled",
+      "reinstall a release archive containing the macOS arm64 capture helper",
     );
   }
 }
@@ -143,7 +157,7 @@ try {
   add("parser", parser.status === "analyzed", parser.status, "packaged TypeScript parser loads and analyzes", "reinstall the package for this exact OS/architecture; verify tree-sitter runtime dependencies were installed");
 } catch (cause) {
   const code = typeof cause === "object" && cause !== null && "code" in cause ? String(cause.code) : "load-failed";
-  add("parser", false, code, "packaged TypeScript parser loads and analyzes", "reinstall the package with lifecycle scripts enabled so tree-sitter can select or compile a compatible native module");
+  add("parser", false, code, "packaged TypeScript parser loads and analyzes", "reinstall a release archive containing compatible parser bindings for this platform");
 }
 
 const ready = checks.every(({ status }) => status === "ready");

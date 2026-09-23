@@ -19,14 +19,15 @@ resident, changes Codex configuration, or calls Jev.
 
 The packaged `review-tool` CLI exposes versioned, noninteractive JSON operations for the
 declared Codex CLI 0.155.1 and 0.156.0 / Node 24.20.0 installed profiles on Linux arm64 and macOS arm64.
-The archive contains native helper sources, not a helper compiled on the packer's OS. Installation
-must run the package `postinstall` script on the target host; use `npm install
---ignore-scripts=false --foreground-scripts` when local npm policy would otherwise skip lifecycle
-scripts. If helper startup is unavailable, setup and doctor report a recovery step instead of
-claiming credential readiness.
-The native helper build requires Xcode Command Line Tools on macOS, or a C compiler,
-`pkg-config`, and libsecret development headers on Linux. Hook invocations use the installed
-helpers and do not need a compiler.
+The archive carries prebuilt native helpers and parser bindings for each declared profile. Installation does not run
+the product's lifecycle scripts or require a compiler; `npm install --ignore-scripts=true` is a
+supported path. Release assembly uses the helper sources and platform build hosts. If a helper
+is missing or cannot start, setup and doctor report recovery instead of claiming credential
+readiness.
+Release assembly builds and probes the native helpers and parser bindings on each declared
+platform. The resulting `native/prebuilt/linux-arm64` and `native/prebuilt/darwin-arm64` trees are
+combined before running `npm run pack:release`, which rejects missing or wrong-architecture
+artifacts. The release archive is then tested with install scripts disabled on both platforms.
 Codex CLI 0.156.0 has a retained authenticated macOS arm64 host run through a controlled offline
 backend. The real Jev first-review milestone is retained for Codex CLI 0.155.1 on Linux arm64
 under the test conditions declared in the installed-release compatibility record.
