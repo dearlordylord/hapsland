@@ -15,12 +15,17 @@ already logged in to npm, use a clean `master` checkout of `dearlordylord/jevs`
 and run **one** command:
 
 ```sh
-git pull --ff-only origin master && npm run release:local
+git pull --ff-only origin master && mise exec node@24.20.0 -- npm run release:local
 ```
 
-The command requires Linux arm64 or macOS arm64, Node 24.20.0, clean `master`
-equal to `origin/master` and containing the pinned release commit, the expected
-GitHub origin, and an active npm login. It builds and audits the local archive,
+Use this exact command even if a different Node version is active. `mise exec`
+selects the certified release runtime for npm and the release script, matching
+the host flow used by Huly. Node 25 is fine for ordinary work; release
+assembly is pinned to Node 24.20.0 so npm builds the reviewed archive under the
+same toolchain used to calculate its checksum. It requires Linux arm64 or macOS
+arm64, mise with Node 24.20.0 available, clean `master` equal to `origin/master`
+and containing the pinned release commit, the expected GitHub origin, and an
+active npm login. It builds and audits the local archive,
 compares its SHA-256 with the reviewed archive, publishes that archive with
 public access to `latest`, then downloads the registry archive and confirms
 its SHA-256 and dist-tag. If the exact version is already published, it
