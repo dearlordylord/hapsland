@@ -75,6 +75,11 @@ printf '%s\n' '{"version":1,"operation":"explain","cwd":"/repo","path":"src/a.ts
   | node src/cli.ts --explain
 ```
 
+Credential selection has a user-owned exception to this precedence: a
+`credentialEnvVar` set in user configuration takes priority over a project value.
+A project value takes effect when user configuration omits the field. If both omit
+it, the built-in `TYPESAFE_API_KEY` reference applies.
+
 ## Declarative rule packs
 
 The bundled `noul` pack (nine binary Noul questions) is loaded through the same
@@ -215,7 +220,8 @@ Credentials are references only. The value is read from the named environment
 variable at dispatch and is never persisted, printed, or included in diagnostics.
 Repository consent remains a separate user-owned grant. The configuration schema
 rejects `consent` and `enabled` fields; configuration cannot authorize source
-transmission.
+transmission. The Jev destination is fixed for version 1 at
+`https://api.typesafe.ai/v1/systemone`; endpoint routing cannot be configured.
 
 The version-1 whole-file JSON request/response process contract is unchanged. A
 selected configuration failure on that path returns the existing `unavailable` result with
