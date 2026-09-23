@@ -32,3 +32,8 @@ outcomes. Do not retain source, provider responses, credentials, transcripts, or
 After the first repository completes a successful controlled edit, decide separately whether to
 extend the pilot to the second verified Codex profile. Other hosts and public distribution remain
 outside this pilot.
+
+The first owner-created local test repository completed this Linux profile on 2026-09-23. Its
+sanitized result is in [`evidence/codex-pilot`](../evidence/codex-pilot/README.md). The repository
+remains opt-in and limited to one synthetic TypeScript file. The macOS profile is still awaiting a
+separate owner-host pilot run.

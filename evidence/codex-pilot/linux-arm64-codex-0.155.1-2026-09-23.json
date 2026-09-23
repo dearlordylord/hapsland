@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-23T12:31:05.630Z",
+  "milestone": "single-repository-codex-pilot",
+  "environment": {
+    "node": "v24.20.0",
+    "codex": "codex-cli 0.155.1",
+    "operatingSystem": "linux",
+    "architecture": "arm64"
+  },
+  "package": {
+    "sha256": "159027010f3dca1aacda2c5f056a366dbf651219888135aae1e1c197d180c80a",
+    "source": "exact-first-review-artifact"
+  },
+  "selection": {
+    "syntheticRepositoryOnly": true,
+    "scopedInclude": "single-TypeScript-file",
+    "nativeTrustPersisted": true,
+    "repositoryConsentConfirmed": true,
+    "credentialSource": "explicit-environment",
+    "hostSandboxMode": "test-bypass",
+    "budgets": {
+      "providerCalls": 2,
+      "sourceBytes": 4096,
+      "timeMs": 180000
+    }
+  },
+  "host": {
+    "exitCode": 0,
+    "timedOut": false,
+    "durationMs": 45003,
+    "eventCounts": {
+      "threads": 1,
+      "itemsStarted": 10,
+      "itemsCompleted": 13,
+      "agentMessages": 3,
+      "errors": 0
+    },
+    "stderrBytes": 39
+  },
+  "backend": {
+    "providerCalls": 2,
+    "outcomes": [
+      {
+        "kind": "response",
+        "status": 200,
+        "durationMs": 315
+      },
+      {
+        "kind": "response",
+        "status": 200,
+        "durationMs": 232
+      }
+    ]
+  },
+  "review": {
+    "activityKind": "submitted",
+    "submissionStatus": "submitted",
+    "findings": 1,
+    "readiness": "ready"
+  },
+  "validation": "passed",
+  "retained": {
+    "source": false,
+    "providerResponse": false,
+    "credential": false,
+    "transcript": false,
+    "paths": false,
+    "digests": false
+  }
+}
