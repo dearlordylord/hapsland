@@ -6,11 +6,11 @@ headless command hooks / controlled writer**. Node `v24.20.0` and Git `2.39.5` a
 recorded conformance environment, not broader runtime guarantees. The installed package
 profile is narrower and exact: Node `v24.20.0`, Linux arm64, Git on `PATH`, and procfs mounted
 at `/proc`, and Node `v24.20.0` on macOS arm64 with Git, `/dev/fd`, and the packaged
-`openat` capture helper. The macOS controlled installed-package path is tested. The macOS
-real Codex-host mode remains unverified. Codex CLI 0.156.0 is now admitted as a candidate
-host version with its own hook identity, but this historical 0.155.1 profile is not thereby
-verified on 0.156.0. Package metadata and `review-tool-doctor` reject undeclared versions
-and other platform profiles rather than inferring support.
+`openat` capture helper. The macOS controlled installed-package path is tested. The real
+Codex-host path is verified on macOS arm64 with Codex CLI 0.156.0 and a controlled offline
+backend, including native interactive trust review. This does not establish a real-host run
+for Codex CLI 0.155.1 or other platform profiles. Package metadata and `review-tool-doctor`
+reject undeclared versions and other platform profiles rather than inferring support.
 
 The machine-checked authoritative mapping is
 [`conformance/direct-event-v1.json`](../conformance/direct-event-v1.json). Its validator
