@@ -64,6 +64,7 @@ import { operationalNoticeAdmission } from "./operational-notice-policy.ts";
 import { readCredentialState, resolveCredential } from "../credentials/secret-service.ts";
 import { recordActivity } from "../activity/status.ts";
 import { claimDemoBudget } from "../onboarding/demo-budget.ts";
+import { recordDemoTrace } from "../onboarding/demo-trace.ts";
 
 const BACKEND_CONCURRENCY = 2;
 const RESERVATION_OVERHEAD_BYTES = 1024;
@@ -131,6 +132,7 @@ type UnitJob = {
   readonly reservation: CapacityReservation;
   readonly dispatch: ResidentDispatchContext;
   readonly prepared: PreparedUnit;
+  readonly sourceHash?: string;
   revision: WorkRevision;
   readonly evaluationKey: string;
 };
@@ -1169,6 +1171,8 @@ export class ResidentServer {
           }
           expectedActivityUnits.push(item.evaluationKey);
           const revision = this.#registerCurrentWork(job.partition, item.outcome.prepared);
+          const sourceHash = prepared.observation.outcomes.flatMap((outcome) => outcome.status === "observed" &&
+            outcome.path === item.outcome.path ? [outcome.snapshot.sourceHash] : [])[0];
           const unit: UnitJob = {
             kind: "unit",
             observation: pathObservation,
@@ -1176,6 +1180,7 @@ export class ResidentServer {
             reservation,
             dispatch: job.dispatch,
             prepared: item.outcome.prepared,
+            ...(sourceHash === undefined ? {} : { sourceHash }),
             revision,
             evaluationKey: item.evaluationKey,
           };
@@ -1315,6 +1320,10 @@ export class ResidentServer {
           : evaluation.pipe(Effect.provide(credentialProvider)));
       }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))));
       if (result?.status === "evaluated" && this.#lifecycle === "active") {
+        recordDemoTrace(job.dispatch.demoBudgetPath, job.observation.root, job.observation.recipient, {
+          kind: "terminal", ...(job.sourceHash === undefined ? {} : { sourceHash: job.sourceHash }),
+          state: result.findings.length === 0 ? "clear" : "findings",
+        });
         const evaluation = { prepared: job.prepared, findings: result.findings };
         this.#reuse.put(job.partition, job.evaluationKey, evaluation);
         this.#reuse.releaseClaim(job.evaluationKey);

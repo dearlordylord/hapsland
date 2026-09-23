@@ -1,6 +1,6 @@
 import * as Effect from "effect/Effect";
 import { execFile } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -11,11 +11,13 @@ import {
   DEMO_SOURCE_BYTE_BUDGET,
   DEMO_TIME_BUDGET_MS,
   runFirstReviewDemo,
+  correlatedHostEvidence,
   uninstrumentedHostEvidence,
   type DemoExecution,
   type DemoExecutor,
 } from "./first-review-demo.ts";
 import { claimDemoBudget, readDemoBudgetUsage } from "./demo-budget.ts";
+import { readDemoTrace, recordDemoTrace } from "./demo-trace.ts";
 
 const roots: Array<string> = [];
 const execFileAsync = promisify(execFile);
@@ -78,6 +80,38 @@ const completed: DemoExecution = {
 };
 
 describe("installed-product first-review demo", () => {
+  it("records only source-free demo events for the budget-owned root", () => {
+    const test = fixture();
+    const budget = join(test.root, "budget.json");
+    writeFileSync(join(test.root, "session.ts"), "private synthetic source");
+    writeFileSync(budget, JSON.stringify({ root: test.root }));
+    const recipient = { host: "codex-cli" as const, hostVersion: "0.155.1" as const,
+      sessionId: "session", turnId: "turn", toolUseId: "tool", agentId: null };
+    recordDemoTrace(budget, join(test.root, "other"), recipient, { kind: "delivery", ruleIds: ["r1_inferred_case"] });
+    expect(readDemoTrace(budget, "session")).toHaveLength(0);
+    recordDemoTrace(budget, test.root, recipient, { kind: "delivery", ruleIds: ["r1_inferred_case"] });
+    expect(readDemoTrace(budget, "session")).toMatchObject([{ kind: "delivery", ruleIds: ["r1_inferred_case"] }]);
+    expect(readFileSync(join(`${budget}.trace`, readdirSync(`${budget}.trace`)[0] ?? ""), "utf8")).not.toContain("private synthetic source");
+  });
+  it("correlates delivered rule, later repair edit, final report, and terminal review of the validated source", () => {
+    const first = "a".repeat(64);
+    const repaired = "b".repeat(64);
+    const trace = [
+      { version: 1 as const, sessionId: "session", at: 1, kind: "edit" as const, sourceHash: first },
+      { version: 1 as const, sessionId: "session", at: 2, kind: "terminal" as const, sourceHash: first, state: "findings" as const },
+      { version: 1 as const, sessionId: "session", at: 3, kind: "delivery" as const, sourceHash: first, ruleIds: ["r1_inferred_case"] },
+      { version: 1 as const, sessionId: "session", at: 4, kind: "edit" as const, sourceHash: repaired },
+      { version: 1 as const, sessionId: "session", at: 5, kind: "terminal" as const, sourceHash: repaired, state: "clear" as const },
+    ];
+    expect(correlatedHostEvidence({ trace, finalSourceHash: repaired, finalMessages: ["Addressed r1_inferred_case; validation passed."], repairValidated: true })).toMatchObject({
+      modelReaction: { status: "observed", deliveredFindingCorrelation: true },
+      followUp: { status: "completed", terminalState: "clear", afterValidatedRepair: true },
+    });
+    expect(correlatedHostEvidence({ trace: trace.slice(0, 4), finalSourceHash: repaired, finalMessages: ["Addressed r1_inferred_case"], repairValidated: true }).followUp.status).toBe("not-observed");
+    expect(correlatedHostEvidence({ trace, finalSourceHash: repaired, finalMessages: ["Validation passed"], repairValidated: true }).modelReaction.status).toBe("not-observed");
+    expect(correlatedHostEvidence({ trace, finalSourceHash: repaired, finalMessages: ["Addressed r1_inferred_case"], repairValidated: false }).followUp.status).toBe("not-observed");
+    expect(correlatedHostEvidence({ trace: trace.map((entry) => entry.kind === "terminal" && entry.sourceHash === repaired ? { ...entry, sourceHash: first } : entry), finalSourceHash: repaired, finalMessages: ["Addressed r1_inferred_case"], repairValidated: true }).followUp.status).toBe("not-observed");
+  });
   it("does not infer reaction or follow-up from generic positive-looking host observations", () => {
     expect(uninstrumentedHostEvidence({
       messages: 3,
