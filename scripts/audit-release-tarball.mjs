@@ -26,7 +26,7 @@ const names = files.filter((name) => !name.endsWith("/")).map((name) => {
 });
 const allowed = (name) => name === "package.json" || name === "package-runtime.json" ||
   name === "README.md" || name === "bin/launch.sh" ||
-  ["docs/codex-installation.md", "docs/npm-quickstart.md", "docs/npm-release-record.md", "docs/direct-event-v1-supported-profile.md",
+  ["docs/codex-installation.md", "docs/npm-quickstart.md", "docs/direct-event-v1-supported-profile.md",
     "docs/installed-release-compatibility.md", "docs/status.md"].includes(name) ||
   /^dist\/(?:[a-z0-9-]+\/)*[a-z0-9-]+\.js$/i.test(name) ||
   /^native\/prebuilt\/(?:linux|darwin)-arm64\//.test(name);

@@ -112,7 +112,7 @@ For the proposed registry release, use the
 [`Codex npm quickstart`](./docs/npm-quickstart.md). The public command is
 `realtime-review`; `review-tool` remains a pilot-compatible alias. The product
 is unnamed and Jev is the external backend. The registry release is pending
-the [release record](./docs/npm-release-record.md).
+the [release record](https://github.com/dearlordylord/jevs/blob/master/docs/npm-release-record.md).
 After setup completes, the [pilot guide](./docs/codex-pilot-quickstart.md) also documents the separate `review-tool --demo` preview and
 live-confirmation flow. Its default preview is offline; the paid run requires explicit fixed
 budgets and a new consent digest for a generated disposable repository.
