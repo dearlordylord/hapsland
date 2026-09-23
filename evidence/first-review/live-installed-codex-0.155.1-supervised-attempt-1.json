@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-23T03:44:39.697Z",
+  "milestone": "installed-product-first-review",
+  "environment": {
+    "codex": "codex-cli 0.155.1",
+    "node": "v24.20.0",
+    "operatingSystem": "linux",
+    "architecture": "arm64"
+  },
+  "package": {
+    "source": "runner-packed-release-installation",
+    "artifactSha256": "ca218533ca1645834eb1f72a43d2b045f8302d154b9d14ca2f20fda805542c09",
+    "cliResolvedInsideInstalledArtifact": true
+  },
+  "selection": {
+    "explicitLive": true,
+    "syntheticOnly": true,
+    "deliberatelyFlawed": true,
+    "repairPrescribed": false,
+    "separateDisposableConsent": true,
+    "supervisedNativeTrust": true,
+    "budgets": {
+      "sourceBytes": 4096,
+      "providerCalls": 2,
+      "timeMs": 180000
+    }
+  },
+  "setup": {
+    "actions": 1,
+    "durationMs": 25
+  },
+  "reviewLatencyMs": null,
+  "status": "inconclusive",
+  "stages": {
+    "completion": "incomplete",
+    "submission": "unavailable",
+    "findings": 0,
+    "modelReaction": "unavailable",
+    "modelReactionSource": "unavailable",
+    "deliveredFindingCorrelation": false,
+    "repair": "not-validated",
+    "followUpReview": "unavailable",
+    "providerCalls": 0,
+    "sourceBytes": 0,
+    "hostVersion": "codex-cli 0.155.1",
+    "hostFailure": "sandbox",
+    "recordedAt": "2026-09-23T03:44:38.828Z",
+    "sourceRetained": false,
+    "responsesRetained": false
+  },
+  "cleanup": {
+    "disposableRootRemoved": true,
+    "consentRevoked": true
+  },
+  "retained": {
+    "source": false,
+    "providerResponse": false,
+    "credential": false,
+    "paths": false,
+    "digests": false
+  }
+}

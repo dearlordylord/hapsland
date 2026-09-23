@@ -10,6 +10,7 @@ import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.t
 import { readActivity } from "../activity/status.ts";
 import { inspectResident } from "../resident/client.ts";
 import { inspectCodexInstallation } from "./codex-installation.ts";
+import { execFileClosedStdin } from "./codex-host-process.ts";
 import { initializeDemoBudget, readDemoBudgetUsage } from "./demo-budget.ts";
 import { demoSourceHash, readDemoTrace } from "./demo-trace.ts";
 
@@ -76,7 +77,10 @@ export type FirstReviewDemoRequest = {
 
 export type DemoExecution = {
   readonly host: { readonly completed: boolean; readonly version: string; readonly durationMs: number;
-    readonly failure?: "authentication" | "trust" | "sandbox" | "timeout" | "host-error" };
+    readonly failure?: "authentication" | "trust" | "sandbox" | "timeout" | "host-error";
+    readonly eventCounts?: { readonly threads: number; readonly itemsStarted: number;
+      readonly itemsCompleted: number; readonly agentMessages: number; readonly errors: number };
+    readonly stdoutBytes?: number; readonly stderrBytes?: number };
   readonly review: {
     readonly providerCalls: number;
     readonly sourceBytes?: number;
@@ -285,7 +289,7 @@ export const correlatedHostEvidence = (observations: {
   return { modelReaction, followUp };
 };
 
-/** Production executor. It uses normal Codex trust and never passes either bypass flag. */
+/** The installed demo keeps native hook trust. A test-only environment switch can disable the host sandbox. */
 export const executeInstalledCodexDemo: DemoExecutor = async (options) => {
   const started = Date.now();
   const deadlineAt = started + options.deadlineMs;
@@ -303,13 +307,24 @@ export const executeInstalledCodexDemo: DemoExecutor = async (options) => {
     REVIEW_DEMO_DEADLINE_MS: String(options.deadlineMs),
     REVIEW_DEMO_BUDGET_PATH: options.budgetPath,
   };
-  const host = await execFileAsync(options.codexExecutable, [
-    "exec", "--ephemeral", "--json", "--approve-for-me", "--sandbox", "workspace-write", "-C", options.root, prompt,
-  ], { env: environment, timeout: Math.max(1, options.deadlineMs - 10_000), maxBuffer: 2 * 1024 * 1024 }).then(
-    (result) => ({ completed: true, stdout: result.stdout, durationMs: Date.now() - started, failure: undefined }),
+  const testSandboxBypass = process.env.REVIEW_DEMO_TEST_SANDBOX_BYPASS === "1";
+  const testModel = process.env.REVIEW_DEMO_TEST_CODEX_MODEL;
+  const hostTimeoutMs = Math.max(1, options.deadlineMs - 10_000);
+  const host = await execFileClosedStdin(options.codexExecutable, [
+    "exec", "--ephemeral", "--json",
+    ...(testSandboxBypass
+      ? ["--dangerously-bypass-approvals-and-sandbox"]
+      : ["--approve-for-me", "--sandbox", "workspace-write"]),
+    ...(testModel === undefined ? [] : ["--model", testModel]),
+    "-C", options.root, prompt,
+  ], { env: environment, timeout: hostTimeoutMs, maxBuffer: 2 * 1024 * 1024 }).then(
+    (result) => ({ completed: Date.now() - started < hostTimeoutMs - 500,
+      stdout: result.stdout, stderrBytes: result.stderr.length, durationMs: Date.now() - started,
+      failure: Date.now() - started >= hostTimeoutMs - 500 ? "timeout" as const : undefined }),
     (cause: unknown) => ({
       completed: false,
       stdout: typeof cause === "object" && cause !== null && "stdout" in cause && typeof cause.stdout === "string" ? cause.stdout : "",
+      stderrBytes: typeof cause === "object" && cause !== null && "stderr" in cause && typeof cause.stderr === "string" ? cause.stderr.length : 0,
       durationMs: Date.now() - started,
       failure: hostFailure(typeof cause === "object" && cause !== null
         ? `${"stderr" in cause && typeof cause.stderr === "string" ? cause.stderr : ""}\n${"stdout" in cause && typeof cause.stdout === "string" ? cause.stdout : ""}`
@@ -323,6 +338,15 @@ export const executeInstalledCodexDemo: DemoExecutor = async (options) => {
     env: { ...process.env, NODE_NO_WARNINGS: "1" },
   }).then(() => true, () => false);
   const events = jsonLines(host.stdout);
+  const eventCounts = {
+    threads: events.filter((event) => event.type === "thread.started").length,
+    itemsStarted: events.filter((event) => event.type === "item.started").length,
+    itemsCompleted: events.filter((event) => event.type === "item.completed").length,
+    agentMessages: events.filter((event) => event.type === "item.completed" &&
+      typeof event.item === "object" && event.item !== null &&
+      (event.item as Readonly<Record<string, unknown>>).type === "agent_message").length,
+    errors: events.filter((event) => event.type === "error" || event.type === "turn.failed").length,
+  };
   const thread = events.find((event) => event.type === "thread.started");
   const sessionId = typeof thread?.thread_id === "string" ? thread.thread_id : undefined;
   const observedSessionId = sessionId ?? "";
@@ -363,7 +387,8 @@ export const executeInstalledCodexDemo: DemoExecutor = async (options) => {
     repairValidated: validation,
   });
   return {
-    host: { completed: host.completed, version: hostVersion, durationMs: host.durationMs,
+    host: { completed: host.completed, version: hostVersion, durationMs: host.durationMs, eventCounts,
+      stdoutBytes: host.stdout.length, stderrBytes: host.stderrBytes,
       ...(host.failure === undefined ? {} : { failure: host.failure }) },
     review: {
       providerCalls: usage?.providerCalls ?? terminalReviews,
@@ -534,6 +559,11 @@ export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
       sourceBytes: Math.min(DEMO_SOURCE_BYTE_BUDGET + 1, Math.max(0, sourceBytes)),
       hostVersion: value?.host.version ?? "unavailable",
       hostFailure: value?.host.failure ?? null,
+      hostDurationMs: value?.host.durationMs ?? null,
+      hostEventCounts: value?.host.eventCounts ?? null,
+      hostStdoutBytes: value?.host.stdoutBytes ?? null,
+      hostStderrBytes: value?.host.stderrBytes ?? null,
+      editChanged: value?.repair.changed ?? false,
       recordedAt: new Date().toISOString(),
       sourceRetained: false as const,
       responsesRetained: false as const,
