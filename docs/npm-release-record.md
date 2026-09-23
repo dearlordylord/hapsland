@@ -26,7 +26,8 @@ gate; those are supporting evidence for different artifacts.
 | Exact Codex/OS/architecture/Node compatibility statement | Pending published-artifact evidence |
 | Separately budgeted real Jev first-value run | Pending exact-artifact authorization and evidence |
 | Known-good rollback version | Pending first successful release |
-| Pilot archive to registry migration | Documented; exact old-package to new-package rehearsal pending |
+| Pilot archive to local candidate migration | Passed isolated Linux arm64 rehearsal: `realtime-review-prototype@0.0.0` archive SHA-256 `b08536b98540a5e0890324afc516b9321bc81a2e67ac2205e4f9fe1dfecded69` to candidate archive; separate npm prefixes, consent and unrelated hook/config preserved |
+| Pilot archive to published registry artifact migration | Pending registry release |
 
 The local Linux package conformance replay passed parser, CLI, resident, controlled
 offline review, update recovery, disable, logout, and scoped uninstall with an
