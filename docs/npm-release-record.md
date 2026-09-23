@@ -16,7 +16,7 @@ support; GitHub Actions can add supporting evidence without delaying publish.
 | Field | Current state |
 | --- | --- |
 | Version | Selected `0.1.0`; public package `@jevs/jevs` |
-| Reviewed release commit | Pending PR review and merge to `master` |
+| Reviewed release commit | `a776ad25c0a8e7d79887d1a976629d76dcc8bb31` (PR #89, merged to `master`) |
 | Local candidate archive SHA-256 | `7f8acec0adc1c24aa57255207e499dd10ada7182666fe172d462ef96bb3de874` (105 files; seven pinned native artifacts; registry match pending) |
 | Registry tarball SHA-256 and integrity | Pending publication and registry retrieval |
 | npm publish identity | Pending maintainer-host publication; private source repo has no npm provenance attestation |

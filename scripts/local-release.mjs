@@ -4,19 +4,17 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 
-const values = Object.fromEntries(process.argv.slice(2).map((argument) => {
-  const match = /^--(expected-commit|expected-sha256)=([0-9a-f]+)$/.exec(argument);
-  if (!match) throw new Error(`unexpected release argument: ${argument}`);
-  return [match[1], match[2]];
-}));
-if (!/^[0-9a-f]{40}$/.test(values["expected-commit"] ?? "") ||
-    !/^[0-9a-f]{64}$/.test(values["expected-sha256"] ?? "")) {
-  throw new Error("usage: npm run release:local -- --expected-commit=FULL_SHA --expected-sha256=ARCHIVE_SHA256");
+if (process.argv.length > 2) throw new Error("release coordinates are pinned in scripts/npm-release-pin.json; this command takes no arguments");
+const releasePin = JSON.parse(readFileSync("scripts/npm-release-pin.json", "utf8"));
+if (releasePin.packageName !== "@jevs/jevs" || releasePin.version !== "0.1.0" ||
+    !/^[0-9a-f]{40}$/.test(releasePin.sourceCommit ?? "") ||
+    !/^[0-9a-f]{64}$/.test(releasePin.archiveSha256 ?? "")) {
+  throw new Error("scripts/npm-release-pin.json does not contain the reviewed 0.1.0 release coordinates");
 }
 
 const registry = "https://registry.npmjs.org/";
-const packageName = "@jevs/jevs";
-const version = "0.1.0";
+const packageName = releasePin.packageName;
+const version = releasePin.version;
 const run = (command, args, { stdio = "pipe" } = {}) => {
   const result = spawnSync(command, args, {
     encoding: "utf8", stdio, timeout: 300_000,
@@ -37,9 +35,9 @@ const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const clean = () => output("git", ["status", "--porcelain", "--untracked-files=normal"]) === "";
 const head = output("git", ["rev-parse", "HEAD"]);
 if (output("git", ["branch", "--show-current"]) !== "master" ||
-    head !== values["expected-commit"] ||
-    head !== output("git", ["rev-parse", "origin/master"]) || !clean()) {
-  throw new Error("release requires the reviewed commit on clean master, equal to origin/master");
+    head !== output("git", ["rev-parse", "origin/master"]) || !clean() ||
+    run("git", ["merge-base", "--is-ancestor", releasePin.sourceCommit, head]).status !== 0) {
+  throw new Error("release requires clean master equal to origin/master and containing the pinned release commit");
 }
 if (!/(?:github\.com[:/])dearlordylord\/jevs(?:\.git)?$/.test(output("git", ["remote", "get-url", "origin"]))) {
   throw new Error("origin is not the reviewed Jevs repository");
@@ -66,8 +64,8 @@ if (!Array.isArray(packed) || packed.length !== 1 || packed[0]?.name !== package
 }
 const archive = join(destination, packed[0].filename);
 const digest = sha256(readFileSync(archive));
-if (digest !== values["expected-sha256"]) {
-  throw new Error(`archive checksum differs from reviewed release: ${digest}`);
+if (digest !== releasePin.archiveSha256) {
+  throw new Error(`archive checksum differs from the reviewed release pin: ${digest}`);
 }
 checked(process.execPath, ["scripts/audit-release-tarball.mjs", archive, head], { stdio: "inherit" });
 process.stdout.write(`Release artifact: ${archive}\nSHA-256: ${digest}\n`);
