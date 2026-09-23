@@ -4,9 +4,11 @@ import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { fromJSONSchema } from "zod/v4";
+import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 import { decodeConfigurationText } from "../src/configuration/decode.ts";
 import { decodeRulePackText } from "../src/rules/schema.ts";
+import { renderConfigurationArtifacts } from "./generate-configuration.ts";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const generator = join(repositoryRoot, "scripts/generate-configuration.ts");
@@ -47,6 +49,27 @@ const codeBlocks = (markdown: string): ReadonlyArray<string> =>
   [...markdown.matchAll(/```(?:jsonc|json)\n([\s\S]*?)\n```/gu)].map((match) => match[1] ?? "");
 
 describe("configuration documentation generator", () => {
+  it("reflects a changed Effect Schema field in both generated outputs", () => {
+    const changedSchema = Schema.Struct({
+      version: Schema.Literal(1),
+      reviewWindow: Schema.Finite.check(
+        Schema.isBetween({ minimum: 2, maximum: 9 }),
+      ).annotate({
+        description: "Declared on the Effect Schema for this test.",
+      }),
+    });
+    const generated = renderConfigurationArtifacts(changedSchema);
+    const properties = generated.jsonSchema.properties as Record<string, unknown>;
+
+    expect(properties.reviewWindow).toMatchObject({
+      minimum: 2,
+      maximum: 9,
+      description: "Declared on the Effect Schema for this test.",
+    });
+    expect(generated.documentation).toContain("`reviewWindow` | number (2–9) | Required");
+    expect(generated.documentation).toContain("Declared on the Effect Schema for this test.");
+  });
+
   it("updates the four artifacts deterministically and preserves authored guide text", () => {
     withFixture((root) => {
       const first = runGenerator(root, "--update");
@@ -57,8 +80,15 @@ describe("configuration documentation generator", () => {
       const readme = initial[0] ?? "";
       const guide = initial[1] ?? "";
       expect(readme).toContain("Configure file selection");
+      expect(readme).toContain("whole-file JSON request settings");
       expect(guide).toContain("ruleOverrides.<key>.threshold");
       expect(guide).toContain("`packs[].path` | non-empty string | Required (path form)");
+      expect(guide).toContain("`includes` | array of non-empty string (may be empty)");
+      expect(guide).toContain("`includes[]` | non-empty string | Array item (array may be empty)");
+      expect(guide).toContain("`ruleOverrides` | map of object (may be empty)");
+      expect(guide).toContain("`ruleOverrides.<key>` | object | Map value (map may be empty)");
+      expect(guide).toContain("`rules` | array of object (may be empty) | Required");
+      expect(guide).toContain("`rules[]` | object | Array item (array may be empty)");
       expect(guide.match(/`packs\[\]\.enabled`/gu)).toHaveLength(1);
       expect(readme).toContain("Authored README before.");
       expect(readme).toContain("Authored README after.");
@@ -132,11 +162,24 @@ describe("configuration documentation generator", () => {
       expect(configurationValidator.safeParse({ version: 1 }).success).toBe(true);
       expect(configurationValidator.safeParse({
         version: 1,
+        includes: [],
+        excludes: [],
+        packs: [],
+        ruleOverrides: {},
+      }).success).toBe(true);
+      expect(configurationValidator.safeParse({
+        version: 1,
         settings: { deadlineMs: 1, concurrency: 32 },
         ruleOverrides: { "team/check": { threshold: 0.5 } },
         packs: [{ path: "rules.jsonc", enabled: true }],
       }).success).toBe(true);
       expect(configurationValidator.safeParse({ version: 1, consent: true }).success).toBe(false);
+      for (const identity of ["team/name", "team:name", "team\\name", "team name"]) {
+        const configuration = { version: 1, packs: [{ id: identity }] };
+        expect(configurationValidator.safeParse(configuration).success).toBe(false);
+        expect(() => decodeConfigurationText(JSON.stringify(configuration), "invalid-pack-reference.jsonc"))
+          .toThrow();
+      }
       expect(configurationValidator.safeParse({
         version: 1,
         settings: { deadlineMs: 60_001 },
@@ -149,6 +192,12 @@ describe("configuration documentation generator", () => {
         version: 1,
         packs: [{ path: "rules.jsonc", id: "team" }],
       }).success).toBe(false);
+      expect(rulePackValidator.safeParse({
+        schemaVersion: 1,
+        id: "team",
+        contentVersion: "1.0.0",
+        rules: [],
+      }).success).toBe(true);
       expect(rulePackValidator.safeParse({
         schemaVersion: 1,
         id: "team",
@@ -166,6 +215,42 @@ describe("configuration documentation generator", () => {
         packVersion: "1.0.0",
         rules: [],
       }).success).toBe(false);
+      for (const identity of ["team/name", "team:name", "team\\name", "team name"]) {
+        expect(rulePackValidator.safeParse({
+          schemaVersion: 1,
+          id: identity,
+          contentVersion: "1.0.0",
+          rules: [],
+        }).success).toBe(false);
+        expect(() => decodeRulePackText(JSON.stringify({
+          schemaVersion: 1,
+          id: identity,
+          contentVersion: "1.0.0",
+          rules: [],
+        }), "invalid-identity.jsonc")).toThrow();
+        expect(rulePackValidator.safeParse({
+          schemaVersion: 1,
+          id: "team",
+          contentVersion: "1.0.0",
+          rules: [{
+            id: identity,
+            question: "Is the rule satisfied?",
+            criteria: { false: "No", true: "Yes" },
+            message: "Check this rule.",
+          }],
+        }).success).toBe(false);
+        expect(() => decodeRulePackText(JSON.stringify({
+          schemaVersion: 1,
+          id: "team",
+          contentVersion: "1.0.0",
+          rules: [{
+            id: identity,
+            question: "Is the rule satisfied?",
+            criteria: { false: "No", true: "Yes" },
+            message: "Check this rule.",
+          }],
+        }), "invalid-rule-identity.jsonc")).toThrow();
+      }
       expect(rulePackValidator.safeParse({
         schemaVersion: 1,
         id: "team",

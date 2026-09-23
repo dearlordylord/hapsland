@@ -116,12 +116,28 @@ const typeSummary = (schema: JsonObject, definitions: JsonObject): string => {
   }
   if (resolved.type === "array") {
     const itemSchema = objectValue(resolved.items) ?? {};
-    return `array of ${typeSummary(itemSchema, definitions)}`;
+    const constraints = [
+      typeof resolved.minItems === "number" && resolved.minItems > 0
+        ? `at least ${resolved.minItems} item${resolved.minItems === 1 ? "" : "s"}`
+        : undefined,
+      typeof resolved.maxItems === "number"
+        ? `at most ${resolved.maxItems} item${resolved.maxItems === 1 ? "" : "s"}`
+        : undefined,
+    ].filter((constraint): constraint is string => constraint !== undefined);
+    return `array of ${typeSummary(itemSchema, definitions)} (${constraints.length === 0 ? "may be empty" : constraints.join(", ")})`;
   }
   if (resolved.type === "object") {
-    return objectValue(resolved.additionalProperties) === undefined || resolved.additionalProperties === false
-      ? "object"
-      : `map of ${typeSummary(objectValue(resolved.additionalProperties) ?? {}, definitions)}`;
+    const additional = objectValue(resolved.additionalProperties);
+    if (additional === undefined || resolved.additionalProperties === false) return "object";
+    const constraints = [
+      typeof resolved.minProperties === "number" && resolved.minProperties > 0
+        ? `at least ${resolved.minProperties} entr${resolved.minProperties === 1 ? "y" : "ies"}`
+        : undefined,
+      typeof resolved.maxProperties === "number"
+        ? `at most ${resolved.maxProperties} entr${resolved.maxProperties === 1 ? "y" : "ies"}`
+        : undefined,
+    ].filter((constraint): constraint is string => constraint !== undefined);
+    return `map of ${typeSummary(additional, definitions)} (${constraints.length === 0 ? "may be empty" : constraints.join(", ")})`;
   }
 
   let type = resolved.type === "integer" ? "integer" : resolved.type;
@@ -143,6 +159,7 @@ type Field = {
   readonly schema: JsonObject;
   readonly required: boolean;
   readonly requiredWhen?: string;
+  readonly collectionEntry?: "array" | "map";
 };
 
 const fieldsOf = (root: JsonObject): ReadonlyArray<Field> => {
@@ -154,8 +171,15 @@ const fieldsOf = (root: JsonObject): ReadonlyArray<Field> => {
     path: string,
     required: boolean,
     requiredWhen?: string,
+    collectionEntry?: "array" | "map",
   ): void => {
-    fields.push({ path, schema, required, ...(requiredWhen === undefined ? {} : { requiredWhen }) });
+    fields.push({
+      path,
+      schema,
+      required,
+      ...(requiredWhen === undefined ? {} : { requiredWhen }),
+      ...(collectionEntry === undefined ? {} : { collectionEntry }),
+    });
     const resolved = dereference(schema, definitions);
     const properties = objectValue(resolved.properties);
     if (properties !== undefined) {
@@ -172,12 +196,12 @@ const fieldsOf = (root: JsonObject): ReadonlyArray<Field> => {
 
     if (resolved.type === "array") {
       const item = objectValue(resolved.items);
-      if (item !== undefined) visit(item, `${path}[]`, true);
+      if (item !== undefined) visit(item, `${path}[]`, true, undefined, "array");
     }
 
     const additional = objectValue(resolved.additionalProperties);
     if (resolved.type === "object" && properties === undefined && additional !== undefined) {
-      visit(additional, `${path}.<key>`, true);
+      visit(additional, `${path}.<key>`, true, undefined, "map");
     }
 
     for (const branch of objectBranches(schema, definitions)) {
@@ -220,7 +244,8 @@ const markdownTable = (schema: JsonObject): string => {
       existing.conditions.add(field.requiredWhen);
     }
   }
-  const rows = [...byPath.values()].map(({ field: { path, schema: field, required }, conditions }) => {
+  const rows = [...byPath.values()].map(({ field: entry, conditions }) => {
+    const { path, schema: field, required, collectionEntry } = entry;
     const resolved = dereference(field, definitions);
     const description = typeof field.description === "string"
       ? field.description
@@ -228,11 +253,15 @@ const markdownTable = (schema: JsonObject): string => {
         ? resolved.description
         : "—";
     const defaultValue = Object.hasOwn(field, "default") ? JSON.stringify(field.default) : "—";
-    const presence = conditions.size === 0
-      ? required ? "Required" : "Optional"
-      : required
-        ? `Required (${[...conditions].join(" or ")})`
-        : "Optional";
+    const presence = collectionEntry === "array"
+      ? "Array item (array may be empty)"
+      : collectionEntry === "map"
+        ? "Map value (map may be empty)"
+        : conditions.size === 0
+          ? required ? "Required" : "Optional"
+          : required
+            ? `Required (${[...conditions].join(" or ")})`
+            : "Optional";
     return `| \`${markdownCell(path)}\` | ${markdownCell(typeSummary(field, definitions))} | ${markdownCell(presence)} | ${markdownCell(defaultValue)} | ${markdownCell(description)} |`;
   });
   return [
@@ -245,7 +274,7 @@ const markdownTable = (schema: JsonObject): string => {
 const shortIntroduction = (): string => [
   "## Configuration",
   "",
-  "Configure file selection and exclusions, runtime controls, local rule packs, per-rule overrides, and the credential environment-variable reference. The product accepts layered JSONC files; repository enablement remains a separate user-owned grant.",
+  "Configure file selection and exclusions, whole-file JSON request settings, local rule packs, per-rule overrides, and the credential environment-variable reference. The product accepts layered JSONC files; repository enablement remains a separate user-owned grant.",
   "",
   "A small project configuration:",
   "",
@@ -267,6 +296,14 @@ const fullConfigurationReference = (schema: JsonObject): string => [
   "",
   markdownTable(schema),
 ].join("\n");
+
+export const renderConfigurationArtifacts = (schema: Schema.Constraint) => {
+  const jsonSchema = toJsonSchema(schema);
+  return {
+    jsonSchema,
+    documentation: fullConfigurationReference(jsonSchema),
+  };
+};
 
 const fullRulePackReference = (schema: JsonObject): string => [
   "### Rule-pack example",
@@ -316,7 +353,8 @@ const readMarkdown = async (path: string): Promise<string | undefined> => {
 };
 
 const makeTargets = async (root: string): Promise<ReadonlyArray<GeneratedTarget>> => {
-  const configurationSchema = toJsonSchema(ConfigurationDocument);
+  const configurationArtifacts = renderConfigurationArtifacts(ConfigurationDocument);
+  const configurationSchema = configurationArtifacts.jsonSchema;
   const rulePackSchema = toJsonSchema(RulePack);
   const readmePath = resolve(root, "README.md");
   const guidePath = resolve(root, "docs/configuration.md");
@@ -345,7 +383,7 @@ const makeTargets = async (root: string): Promise<ReadonlyArray<GeneratedTarget>
         content: replaceDocumentSections(
           guide,
           [GUIDE_MARKERS, PACK_GUIDE_MARKERS],
-          [fullConfigurationReference(configurationSchema), fullRulePackReference(rulePackSchema)],
+          [configurationArtifacts.documentation, fullRulePackReference(rulePackSchema)],
         ),
       });
     } catch (cause) {

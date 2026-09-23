@@ -63,7 +63,7 @@ plan and [`CONTEXT.md`](./CONTEXT.md) for the domain vocabulary.
 
 ## Configuration
 
-Configure file selection and exclusions, runtime controls, local rule packs, per-rule overrides, and the credential environment-variable reference. The product accepts layered JSONC files; repository enablement remains a separate user-owned grant.
+Configure file selection and exclusions, whole-file JSON request settings, local rule packs, per-rule overrides, and the credential environment-variable reference. The product accepts layered JSONC files; repository enablement remains a separate user-owned grant.
 
 A small project configuration:
 

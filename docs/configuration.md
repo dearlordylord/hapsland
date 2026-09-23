@@ -35,30 +35,30 @@ JSONC and applies semantic glob, rule-pack, and repository-policy checks.
 |---|---|---|---|---|
 | `version` | fixed value 1 | Required | — | Configuration wire-format version. |
 | `$schema` | string | Optional | — | Optional editor schema location. It does not change runtime validation. |
-| `includes` | array of non-empty string | Optional | — | Optional repository-relative file patterns. Omission inherits the lower-precedence list; an empty array selects no paths. |
-| `includes[]` | non-empty string | Required | — | A non-empty repository-relative glob pattern using forward slashes. |
-| `excludes` | array of non-empty string | Optional | — | Additional repository-relative exclusions. Exclusions accumulate across configuration layers and always win. |
-| `excludes[]` | non-empty string | Required | — | A non-empty repository-relative glob pattern using forward slashes. |
-| `privacyExcludes` | array of non-empty string | Optional | — | Additional protected-path exclusions. These accumulate and cannot be overridden by lower-privacy layers. |
-| `privacyExcludes[]` | non-empty string | Required | — | A non-empty repository-relative glob pattern using forward slashes. |
+| `includes` | array of non-empty string (may be empty) | Optional | — | Optional repository-relative file patterns. Omission inherits the lower-precedence list; an empty array selects no paths. |
+| `includes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
+| `excludes` | array of non-empty string (may be empty) | Optional | — | Additional repository-relative exclusions. Exclusions accumulate across configuration layers and always win. |
+| `excludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
+| `privacyExcludes` | array of non-empty string (may be empty) | Optional | — | Additional protected-path exclusions. These accumulate and cannot be overridden by lower-privacy layers. |
+| `privacyExcludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
 | `credentialEnvVar` | string matching a pattern | Optional | "TYPESAFE_API_KEY" | Name of the environment variable that supplies the review credential. Store the secret value outside configuration. |
 | `settings` | object | Optional | — | Optional whole-file JSON request controls. Omitted layer values inherit; built-in values apply when no layer supplies a value. |
 | `settings.deadlineMs` | integer (1–60000) | Optional | 1000 | Per-file deadline in milliseconds for whole-file JSON requests. |
 | `settings.concurrency` | integer (1–32) | Optional | 4 | Maximum concurrently reviewed files for whole-file JSON requests. |
 | `settings.adviceBudget` | integer (0–100) | Optional | 5 | Maximum findings delivered for a whole-file JSON request event. |
 | `settings.transientRetries` | integer (0–5) | Optional | 2 | Additional retry attempts for transient backend failures in the whole-file JSON request path. |
-| `packs` | array of non-empty string or object with `path` or object with `id` | Optional | — | Local rule-pack path declarations or references to packs inherited from lower-precedence layers. Bundled Noul loads independently. |
-| `packs[]` | non-empty string or object with `path` or object with `id` | Required | — | A path declaration or an inherited pack identity; object forms contain exactly one locator. |
+| `packs` | array of non-empty string or object with `path` or object with `id` (may be empty) | Optional | — | Local rule-pack path declarations or references to packs inherited from lower-precedence layers. Bundled Noul loads independently. |
+| `packs[]` | non-empty string or object with `path` or object with `id` | Array item (array may be empty) | — | A path declaration or an inherited pack identity; object forms contain exactly one locator. |
 | `packs[].path` | non-empty string | Required (path form) | — | Local rule-pack path; relative paths resolve from the originating configuration file. |
 | `packs[].enabled` | boolean | Optional | — | Optional enablement override. Omission inherits an existing pack's state and enables a newly declared pack. |
-| `packs[].id` | non-empty string | Required (id form) | — | Identity of a rule pack declared in a lower-precedence configuration layer. |
-| `ruleOverrides` | map of object | Optional | — | Map of qualified rule IDs to layer-specific overrides. Use pack-id/rule-id for local packs. |
-| `ruleOverrides.<key>` | object | Required | — | Layer-specific activation, path filters, threshold, and advice message for one qualified rule ID. |
+| `packs[].id` | non-empty string matching a pattern | Required (id form) | — | Identity of a rule pack declared in a lower-precedence configuration layer. |
+| `ruleOverrides` | map of object (may be empty) | Optional | — | Map of qualified rule IDs to layer-specific overrides. Use pack-id/rule-id for local packs. |
+| `ruleOverrides.<key>` | object | Map value (map may be empty) | — | Layer-specific activation, path filters, threshold, and advice message for one qualified rule ID. |
 | `ruleOverrides.<key>.enabled` | boolean | Optional | — | Whether this rule is enabled in this configuration layer. |
-| `ruleOverrides.<key>.includes` | array of non-empty string | Optional | — | Additional rule path filters; they intersect global file selection. |
-| `ruleOverrides.<key>.includes[]` | non-empty string | Required | — | A non-empty repository-relative glob pattern using forward slashes. |
-| `ruleOverrides.<key>.excludes` | array of non-empty string | Optional | — | Rule-specific path exclusions; they cannot restore globally excluded paths. |
-| `ruleOverrides.<key>.excludes[]` | non-empty string | Required | — | A non-empty repository-relative glob pattern using forward slashes. |
+| `ruleOverrides.<key>.includes` | array of non-empty string (may be empty) | Optional | — | Additional rule path filters; they intersect global file selection. |
+| `ruleOverrides.<key>.includes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
+| `ruleOverrides.<key>.excludes` | array of non-empty string (may be empty) | Optional | — | Rule-specific path exclusions; they cannot restore globally excluded paths. |
+| `ruleOverrides.<key>.excludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
 | `ruleOverrides.<key>.threshold` | number (0–1) | Optional | — | Probability threshold from 0 through 1. Omission inherits the rule-pack threshold. |
 | `ruleOverrides.<key>.message` | non-empty string | Optional | — | Advice text to use for this rule; omission keeps the rule-pack message. |
 
@@ -124,11 +124,11 @@ bare for version-1 process compatibility).
 | Field | Type and bounds | Presence | Default | Description |
 |---|---|---|---|---|
 | `schemaVersion` | fixed value 1 | Required | — | Rule-pack wire-format version. |
-| `id` | non-empty string | Required | — | Stable pack identity; it cannot contain separators or whitespace. |
+| `id` | non-empty string matching a pattern | Required | — | Stable pack identity; it cannot contain separators or whitespace. |
 | `contentVersion` | non-empty string | Required | — | Authored content version, independent of the wire schema version. |
-| `rules` | array of object | Required | — | Rules declared by this pack. Rule identities must be unique within the pack. |
-| `rules[]` | object | Required | — | One declarative rule in a rule pack. |
-| `rules[].id` | non-empty string | Required | — | Stable rule identity within this pack; it cannot contain separators or whitespace. |
+| `rules` | array of object (may be empty) | Required | — | Rules declared by this pack. Rule identities must be unique within the pack. |
+| `rules[]` | object | Array item (array may be empty) | — | One declarative rule in a rule pack. |
+| `rules[].id` | non-empty string matching a pattern | Required | — | Stable rule identity within this pack; it cannot contain separators or whitespace. |
 | `rules[].question` | non-empty string | Required | — | Question evaluated against the available review input. |
 | `rules[].criteria` | object | Required | — | String-valued evidence criteria for both probability outcomes. |
 | `rules[].criteria.false` | non-empty string | Required | — | Text rendered when the evaluated criterion is false. |
@@ -136,10 +136,10 @@ bare for version-1 process compatibility).
 | `rules[].threshold` | number (0–1) | Optional | 0.7 | Probability threshold from 0 through 1. Omission uses the built-in rule threshold. |
 | `rules[].message` | non-empty string | Required | — | Authored advice text attached to a qualifying result. |
 | `rules[].applicability` | object | Optional | — | Rule-level path filters, intersected with global file selection. |
-| `rules[].applicability.includes` | array of non-empty string | Optional | — | Optional repository-relative patterns a path must match for this rule to apply. |
-| `rules[].applicability.includes[]` | non-empty string | Required | — | A non-empty repository-relative glob pattern using forward slashes. |
-| `rules[].applicability.excludes` | array of non-empty string | Optional | — | Optional repository-relative patterns that prevent this rule from applying. |
-| `rules[].applicability.excludes[]` | non-empty string | Required | — | A non-empty repository-relative glob pattern using forward slashes. |
+| `rules[].applicability.includes` | array of non-empty string (may be empty) | Optional | — | Optional repository-relative patterns a path must match for this rule to apply. |
+| `rules[].applicability.includes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
+| `rules[].applicability.excludes` | array of non-empty string (may be empty) | Optional | — | Optional repository-relative patterns that prevent this rule from applying. |
+| `rules[].applicability.excludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
 
 <!-- rule-pack-guide:end -->
 
