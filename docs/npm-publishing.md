@@ -4,30 +4,28 @@ The maintainer publishes `@jevs/jevs@0.1.0` directly to npm `latest` from a
 clean, reviewed `master` checkout. GitHub Actions is optional supporting
 evidence, not a publication gate. The source repository remains private.
 There is no npm provenance attestation for this private repository; the
-reviewed commit and SHA-256 of the exact registry archive are the release
-identity.
+release commit and SHA-256 pin in `scripts/npm-release-pin.json` identify the
+archive.
 
 ## Host command
 
-After the release commit is merged, the release handoff supplies the full
-`COMMIT_SHA` and `ARCHIVE_SHA256` values recorded in
-[the release record](./npm-release-record.md). On the host where you are
-already logged in to npm, use a clean `master` checkout of
-`dearlordylord/jevs` and run **one** command:
+After the release commit is merged, the reviewed commit and archive checksum
+are recorded in `scripts/npm-release-pin.json`. On the host where you are
+already logged in to npm, use a clean `master` checkout of `dearlordylord/jevs`
+and run **one** command:
 
 ```sh
-git pull --ff-only origin master && npm run release:local -- --expected-commit=COMMIT_SHA --expected-sha256=ARCHIVE_SHA256
+git pull --ff-only origin master && npm run release:local
 ```
 
-Replace the two uppercase values with the exact handoff values. The command
-requires Linux arm64 or macOS arm64, Node 24.20.0, `master` at that reviewed
-commit and `origin/master`, a clean worktree, the expected GitHub origin, and
-an active npm login. It builds and audits the local archive, compares its
-SHA-256 with the reviewed archive, publishes that archive with public access
-to `latest`, then downloads the registry archive and confirms its SHA-256 and
-dist-tag. If the exact version is already published, it verifies the existing
-artifact instead of trying to publish it again. Stop on any error; do not
-publish a different archive under the same version.
+The command requires Linux arm64 or macOS arm64, Node 24.20.0, clean `master`
+equal to `origin/master` and containing the pinned release commit, the expected
+GitHub origin, and an active npm login. It builds and audits the local archive,
+compares its SHA-256 with the reviewed archive, publishes that archive with
+public access to `latest`, then downloads the registry archive and confirms
+its SHA-256 and dist-tag. If the exact version is already published, it
+verifies the existing artifact instead of trying to publish it again. Stop on
+any error; do not publish a different archive under the same version.
 
 The release script prints the npm account name, archive path, and checksums.
 It does not print Jev credentials. npm may ask for an OTP or web login during
