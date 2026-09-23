@@ -32,6 +32,12 @@ its SHA-256 and dist-tag. If the exact version is already published, it
 verifies the existing artifact instead of trying to publish it again. Stop on
 any error; do not publish a different archive under the same version.
 
+The release script also installs the locked development dependencies for the
+host OS with Bun 1.3.14 through mise and scripts disabled. This repairs a
+`node_modules` tree copied from Linux, including TypeScript's Darwin arm64
+compiler package, before starting the build. The frozen install leaves the
+lockfile unchanged.
+
 The release script prints the npm account name, archive path, and checksums.
 It does not print Jev credentials. npm may ask for an OTP or web login during
 publication. Save the successful terminal output with the release record,
