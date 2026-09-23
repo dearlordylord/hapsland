@@ -133,6 +133,54 @@
       ]
     },
     {
+      "id": "darwin-authenticated-codex-0.156.0",
+      "path": "evidence/package/clean-darwin-node-24.20.0-arm64-real-codex-0.156.0.json",
+      "sha256": "f148e4a7fa97c21b7dcc4fa0761da347ef5d42c436789811fbd538363e2bf9b5",
+      "operatingSystem": "darwin",
+      "provenance": {
+        "commit": "b3d509b3800a329806739d049bcd704c93a3a711",
+        "mechanism": "local macOS arm64 packed-package run with authenticated Codex CLI 0.156.0 and a controlled offline backend"
+      },
+      "assertions": [
+        { "pointer": "/environment/node", "equals": "v24.20.0" },
+        { "pointer": "/environment/operatingSystem", "equals": "darwin" },
+        { "pointer": "/environment/architecture", "equals": "arm64" },
+        { "pointer": "/realCodex/status", "equals": "passed" },
+        { "pointer": "/realCodex/codexVersion", "equals": "codex-cli 0.156.0" },
+        { "pointer": "/realCodex/hookTrust/status", "equals": "persisted-exact-definition" },
+        { "pointer": "/realCodex/hookTrust/bypassFlag", "equals": false },
+        { "pointer": "/realCodex/reviewSubmission/status", "equals": "observed" },
+        { "pointer": "/realCodex/reviewSubmission/controlledBackendSubmissions", "equals": 1 },
+        { "pointer": "/realCodex/reviewCompletion/status", "equals": "completed-findings" },
+        { "pointer": "/realCodex/reviewCompletion/terminalOutcomes", "equals": 1 },
+        { "pointer": "/realCodex/independentHook/status", "equals": "observed" },
+        { "pointer": "/realCodex/independentHook/observations", "equals": 2 },
+        { "pointer": "/realCodex/hostActivity/status", "equals": "submitted" },
+        { "pointer": "/credentialLifecycle/status", "equals": "not-requested" }
+      ],
+      "capabilityProofs": [
+        {
+          "capability": "native-trust",
+          "operatingSystem": "darwin",
+          "assertions": [
+            { "pointer": "/realCodex/hookTrust/status", "equals": "persisted-exact-definition" },
+            { "pointer": "/realCodex/hookTrust/bypassFlag", "equals": false }
+          ]
+        },
+        {
+          "capability": "authenticated-real-host",
+          "operatingSystem": "darwin",
+          "assertions": [
+            { "pointer": "/realCodex/status", "equals": "passed" },
+            { "pointer": "/realCodex/hookTrust/bypassFlag", "equals": false },
+            { "pointer": "/realCodex/reviewSubmission/status", "equals": "observed" },
+            { "pointer": "/realCodex/reviewSubmission/controlledBackendSubmissions", "equals": 1 },
+            { "pointer": "/realCodex/reviewCompletion/status", "equals": "completed-findings" }
+          ]
+        }
+      ]
+    },
+    {
       "id": "linux-first-review",
       "path": "evidence/first-review/live-installed-codex-0.155.1.json",
       "sha256": "4413ae4a218c59e5eda0698c84787a210d254b99249a65154c390f063f5af1d5",
@@ -231,8 +279,10 @@
       "operatingSystem": "darwin",
       "capability": "authenticated-real-host",
       "required": true,
-      "status": "gap",
-      "reason": "GitHub Actions had no Codex authentication; native trust completion and a real Codex installed review were not run on macOS 14 arm64."
+      "status": "verified",
+      "scope": "Codex CLI 0.156.0 on macOS arm64; controlled offline backend; native interactive trust review",
+      "modes": ["codex-exec-headless", "native-interactive-trust-review"],
+      "evidence": ["darwin-authenticated-codex-0.156.0"]
     },
     {
       "id": "installed-first-review-conclusive",

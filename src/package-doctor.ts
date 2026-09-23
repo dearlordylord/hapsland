@@ -23,6 +23,31 @@ const checks: Array<Check> = [];
 const add = (name: string, ready: boolean, observed: string, required: string, action?: string) => {
   checks.push({ name, status: ready ? "ready" : "unsupported", observed, required, ...(ready || action === undefined ? {} : { action }) });
 };
+const nativeArchitecture = (path: string): string => {
+  try {
+    const bytes = readFileSync(path);
+    const magic = bytes.subarray(0, 4).toString("hex");
+    const expected = process.arch === "arm64" ? 0x0100000c : process.arch === "x64" ? 0x01000007 : undefined;
+    if (expected === undefined) return "unsupported-host-architecture";
+    if (["feedface", "feedfacf", "cefaedfe", "cffaedfe"].includes(magic)) {
+      const littleEndian = magic === "cefaedfe" || magic === "cffaedfe";
+      return bytes.length >= 8 && (littleEndian ? bytes.readUInt32LE(4) : bytes.readUInt32BE(4)) === expected ? process.arch : "wrong-architecture";
+    }
+    if (["cafebabe", "bebafeca"].includes(magic)) {
+      const littleEndian = magic === "bebafeca";
+      const count = littleEndian ? bytes.readUInt32LE(4) : bytes.readUInt32BE(4);
+      for (let index = 0; index < count; index += 1) {
+        const offset = 8 + index * 20;
+        if (offset + 4 > bytes.length) break;
+        if ((littleEndian ? bytes.readUInt32LE(offset) : bytes.readUInt32BE(offset)) === expected) return process.arch;
+      }
+      return "wrong-architecture";
+    }
+    return "not-mach-o";
+  } catch {
+    return "unavailable";
+  }
+};
 add("runtime", process.version === `v${declaration.runtime.version}`, process.version, `Node ${declaration.runtime.version}`, `install and invoke Node ${declaration.runtime.version}`);
 const profile = declaration.profiles.find(({ operatingSystem, architecture }) =>
   operatingSystem === process.platform && architecture === process.arch
@@ -43,7 +68,8 @@ if (process.platform === "linux" || process.platform === "darwin") {
   const credentialHelper = join(packageRoot, "dist", "native", "credential-secret-service");
   try {
     accessSync(credentialHelper, constants.X_OK);
-    add("native-credential-helper", true, credentialHelper, "executable packaged native credential helper");
+    const architecture = process.platform === "darwin" ? nativeArchitecture(credentialHelper) : process.arch;
+    add("native-credential-helper", architecture === process.arch, `${credentialHelper} (${architecture})`, `executable packaged native credential helper for ${process.arch}`);
   } catch {
     add(
       "native-credential-helper",
@@ -97,7 +123,9 @@ if (process.platform === "darwin") {
   const captureHelper = join(packageRoot, "dist", "native", "capture-open");
   try {
     accessSync(captureHelper, constants.X_OK);
-    add("descriptor-capture-helper", true, captureHelper, "executable packaged openat helper");
+    const architecture = nativeArchitecture(captureHelper);
+    add("descriptor-capture-helper", architecture === process.arch, `${captureHelper} (${architecture})`, `executable packaged openat helper for ${process.arch}`,
+      "reinstall the package with lifecycle scripts enabled for this macOS architecture");
   } catch {
     add(
       "descriptor-capture-helper",

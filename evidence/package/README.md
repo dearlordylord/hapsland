@@ -45,12 +45,18 @@ shutdown), proving bounded helper termination with no credential value retained.
 does not establish whether macOS attempted or presented interaction. The exact result is recorded
 rather than relabelled as a locked Keychain.
 
-The repository had no Actions secret for isolated Codex authentication. The real Codex-host
-macOS cell remains unverified and is not inferred from the installed controlled hook path.
+`clean-darwin-node-24.20.0-arm64-real-codex-0.156.0.json` records the local authenticated
+Codex CLI 0.156.0 run on macOS arm64. It completed the native repository and exact hook trust
+review without a bypass, observed the independent hook twice, captured and analyzed the native
+absolute-path Add event, made one controlled offline submission, and correlated one completed
+finding to the host session. Credential lifecycle was skipped in this run; the separate
+macOS installed-package evidence above records the isolated Keychain lifecycle. No paid Jev call
+was made, and the retained host record contains no source, advice, prompts, credentials, or
+backend responses.
 
 The cross-platform release declaration is maintained separately in
 [`../../docs/installed-release-compatibility.md`](../../docs/installed-release-compatibility.md)
 and machine-readable
 [`../../conformance/installed-release-v1.json`](../../conformance/installed-release-v1.json).
-Those files checksum this evidence and preserve the authenticated macOS/Codex gap; this directory's
-controlled macOS result is not promoted to real-host evidence.
+Those files checksum the retained lifecycle and authenticated-host evidence separately. The
+inconclusive Linux installed first-review result remains a release blocker.

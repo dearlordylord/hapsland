@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, symlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { adaptCodexAdd, MAX_CODEX_CANDIDATES, MAX_CODEX_COMMAND_BYTES } from "./adapter.ts";
 import { addEvent, makeGitFixture } from "./test-fixtures.ts";
@@ -31,6 +32,28 @@ describe("direct-event Codex Add adapter", () => {
     expect(parent?.recipient.agentId).toBeNull();
   });
 
+  it("normalizes an absolute patch path through the event cwd alias", async () => {
+    const root = await makeGitFixture();
+    const aliasParent = await mkdtemp(join(tmpdir(), "direct-event-alias-"));
+    const alias = join(aliasParent, "checkout");
+    await symlink(root, alias);
+    try {
+      const result = await Effect.runPromise(adaptCodexAdd(addEvent(alias, ["ignored.ts"], {
+        tool_input: {
+          command: `*** Begin Patch\n*** Add File: ${join(alias, "installed.ts")}\n+export interface Installed { id: string }\n*** End Patch`,
+        },
+      })));
+      expect(result?.root).toBe(root);
+      expect(result?.candidates).toEqual([{
+        operation: "add",
+        path: "installed.ts",
+        addedLines: ["export interface Installed { id: string }"],
+      }]);
+    } finally {
+      await rm(aliasParent, { recursive: true, force: true });
+    }
+  });
+
   it("adapts the pinned Codex 0.155.1 native event fixture", async () => {
     const root = await makeGitFixture();
     const encoded = await readFile(
@@ -58,6 +81,20 @@ describe("direct-event Codex Add adapter", () => {
       },
       candidates: [{ operation: "add", path: "pinned.ts" }],
     });
+  });
+
+  it("accepts one trailing newline after the native patch terminator", async () => {
+    const root = await makeGitFixture();
+    const command = "*** Begin Patch\n*** Add File: trailing.ts\n+type Trailing = string\n*** End Patch\n";
+    const result = await Effect.runPromise(adaptCodexAdd(addEvent(root, ["ignored.ts"], {
+      tool_input: { command },
+    })));
+    expect(result?.candidates).toEqual([
+      { operation: "add", path: "trailing.ts", addedLines: ["type Trailing = string"] },
+    ]);
+    expect(await Effect.runPromise(adaptCodexAdd(addEvent(root, ["ignored.ts"], {
+      tool_input: { command: `${command}\n` },
+    })))).toBeUndefined();
   });
 
   it("quietly rejects missing identity, failure, and bounds", async () => {

@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { realpath, stat } from "node:fs/promises";
+import { isAbsolute, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import * as Effect from "effect/Effect";
 import type {
@@ -30,6 +31,9 @@ export const isCodexNativeApplyPatch = (value: unknown): boolean => {
 export const nativeDirectCandidates = (command: string): ReadonlyArray<DirectCandidate> | undefined => {
   if (Buffer.byteLength(command, "utf8") > MAX_CODEX_COMMAND_BYTES) return undefined;
   const lines = command.replaceAll("\r\n", "\n").split("\n");
+  // Codex may include the conventional final line terminator after the patch.
+  // Keep the grammar strict: only one empty terminal line is ignored.
+  if (lines.at(-1) === "") lines.pop();
   if (lines[0] !== "*** Begin Patch" || lines.at(-1) !== "*** End Patch") return undefined;
   const candidates: Array<{ operation: DirectCandidate["operation"]; path: string; addedLines: Array<string> }> = [];
   const paths = new Set<string>();
@@ -155,6 +159,7 @@ export const adaptCodexDirectEvent = Effect.fn("DirectEvent.adaptCodexDirectEven
   ) return undefined;
   const input = record(event.tool_input);
   if (input === undefined || !nonEmpty(input.command)) return undefined;
+  const cwd = event.cwd as string;
   const response = record(event.tool_response);
   // The accepted native payload records a successful apply_patch response. Be
   // conservative when Codex explicitly reports failure, while retaining the
@@ -162,8 +167,27 @@ export const adaptCodexDirectEvent = Effect.fn("DirectEvent.adaptCodexDirectEven
   if (response?.success === false || response?.is_error === true) return undefined;
   const candidates = nativeDirectCandidates(input.command);
   if (candidates === undefined) return undefined;
-  const rootOption = yield* canonicalGitRoot(event.cwd);
+  const rootOption = yield* canonicalGitRoot(cwd);
   if (rootOption._tag === "None") return undefined;
+  // Codex can name a changed file with an absolute path based on the lexical
+  // spelling of cwd. On macOS that spelling may be `/var/...` while Git's
+  // physical root is `/private/var/...`. Convert only paths under that exact
+  // event cwd to root-relative paths; selection still checks every path
+  // component for symlinks and verifies the captured file's physical path.
+  const canonicalCwd = yield* Effect.tryPromise({
+    try: () => realpath(cwd),
+    catch: () => new Error("working directory unavailable"),
+  }).pipe(Effect.option);
+  if (canonicalCwd._tag === "None") return undefined;
+  const cwdFromRoot = relative(rootOption.value.root, canonicalCwd.value);
+  if (cwdFromRoot === ".." || cwdFromRoot.startsWith(`..${sep}`) || isAbsolute(cwdFromRoot)) return undefined;
+  const normalizedCandidates = candidates.map((candidate) => {
+    if (!isAbsolute(candidate.path)) return candidate;
+    const fromCwd = relative(resolve(cwd), resolve(candidate.path));
+    if (fromCwd === ".." || fromCwd.startsWith(`..${sep}`) || isAbsolute(fromCwd)) return candidate;
+    const path = [cwdFromRoot, fromCwd].filter(Boolean).join(sep).replaceAll(sep, "/");
+    return { ...candidate, path };
+  });
   const recipient: DirectRecipient = Object.freeze({
     host: "codex-cli",
     hostVersion,
@@ -176,7 +200,7 @@ export const adaptCodexDirectEvent = Effect.fn("DirectEvent.adaptCodexDirectEven
     root: rootOption.value.root,
     rootIdentity: rootOption.value.rootIdentity,
     recipient,
-    candidates: Object.freeze(candidates.map((candidate) => Object.freeze(candidate))),
+    candidates: Object.freeze(normalizedCandidates.map((candidate) => Object.freeze(candidate))),
   } satisfies DirectObservation);
 });
 
