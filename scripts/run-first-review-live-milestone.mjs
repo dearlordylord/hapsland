@@ -113,7 +113,7 @@ try {
   const tarballPath = join(runnerRoot, tarballName);
   artifactSha256 = createHash("sha256").update(await readFile(tarballPath)).digest("hex");
 
-  requireExit(await run("npm", ["install", "--global=false", "--legacy-peer-deps", "--ignore-scripts=false", "--foreground-scripts", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installPrefix, tarballPath], {
+  requireExit(await run("npm", ["install", "--global=false", "--legacy-peer-deps", "--ignore-scripts=true", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installPrefix, tarballPath], {
     timeoutMs: 120_000,
   }), "packed release installation");
   const invokedCli = join(installPrefix, "node_modules", ".bin", "review-tool");

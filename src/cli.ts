@@ -9,6 +9,8 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { closeSync, constants, openSync, readFileSync, readSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { createInterface } from "node:readline/promises";
+import { fileURLToPath } from "node:url";
 import { Consent, rootRelativePath } from "./runtime/consent.ts";
 import {
   DEFAULT_BACKEND,
@@ -1139,7 +1141,9 @@ const program = Effect.gen(function* () {
                   ? "repair or unlock the native credential store; its noninteractive lookup exceeded the 750 ms deadline"
                   : credential.status === "suspended"
                     ? "reconcile the suspended credential with review-tool --login or review-tool --logout before review"
-                    : "store a credential with review-tool --login, then rerun doctor";
+                    : credential.status === "unavailable"
+                      ? "reinstall an archive containing the native helper for this platform if it is missing, or restore native credential access; then rerun doctor"
+                      : "store a credential with review-tool --login, then rerun doctor";
           const credentialStatus = credentialReady
             ? "ready" as const
             : credential.status === "invalid" || credential.status === "suspended"
@@ -1357,7 +1361,7 @@ const runCredentialCommand = async (): Promise<Readonly<Record<string, unknown>>
           ? "unlock the native credential store in the desktop session, then retry"
           : probe.status === "interaction-required"
             ? "approve native credential access from this explicit login command, then retry"
-            : "make the native credential store available in this user session, then retry",
+            : "reinstall an archive containing the native helper for this platform if it is missing, or make the native credential store available; then retry",
       };
     }
     let value: string;
@@ -1435,6 +1439,146 @@ const runCredentialCommand = async (): Promise<Readonly<Record<string, unknown>>
 };
 
 const isCredentialCommand = process.argv.includes("--login") || process.argv.includes("--logout");
+const printHelp = () => {
+  process.stdout.write(`review-tool — Codex review integration pilot
+
+  review-tool --pilot                Guided opt-in setup in a terminal
+  review-tool --login                Save a Jev key with masked entry
+  review-tool --doctor               Offline readiness check (JSON request on stdin)
+  review-tool --disable              Revoke repository review (JSON request on stdin)
+  review-tool --logout               Remove the saved Jev key
+
+The product is unnamed; review-tool is a provisional pilot command. Installation
+does not permit sending source. --pilot asks separately before enabling a repository.
+For automation, use the versioned --setup operation documented in docs/codex-installation.md.
+`);
+};
+
+const flagValue = (name: string): string | undefined =>
+  process.argv.find((argument) => argument.startsWith(`${name}=`))?.slice(name.length + 1);
+
+const pilotSetup = async () => {
+  if (!process.stdin.isTTY || !process.stderr.isTTY) {
+    process.stderr.write("Guided setup needs a terminal. Run review-tool --pilot there, or use review-tool --setup with a versioned JSON request.\n");
+    process.exitCode = 6;
+    return;
+  }
+  const ask = async (question: string) => {
+    const prompt = createInterface({ input: process.stdin, output: process.stderr });
+    try { return (await prompt.question(`${question} [y/N] `)).trim().toLowerCase() === "y"; }
+    finally { prompt.close(); }
+  };
+  const statePath = process.env.REVIEW_STATE_PATH ?? process.env.REVIEW_CONSENT_FILE ??
+    join(homedir(), ".config", "realtime-review-tool", "consent");
+  const cwd = process.cwd();
+  let request: SetupOperation = {
+    version: 1,
+    operation: "setup",
+    host: "codex",
+    scope: { cwd, review: "enabled" },
+    credential: "saved",
+    ...(flagValue("--codex-home") === undefined ? {} : { codexHome: flagValue("--codex-home")! }),
+    ...(flagValue("--codex-executable") === undefined ? {} : { codexExecutable: flagValue("--codex-executable")! }),
+  };
+  let credentialEntered = false;
+  const run = (step: SetupOperation) => Effect.runPromise(runSetup(step, {
+    statePath,
+    readCredential: async () => {
+      const value = await readMaskedCredential();
+      credentialEntered = true;
+      return value;
+    },
+  }).pipe(Effect.provide(Consent.layer({ statePath }))));
+  const stage = (result: Awaited<ReturnType<typeof run>>, name: string) =>
+    result.stages.find((item) => item.stage === name);
+  const action = (result: Awaited<ReturnType<typeof run>>, code: string) =>
+    result.actions.find((item) => item.code === code);
+    process.stderr.write("Codex review integration pilot — current repository only. No Jev call is made during setup.\n");
+    let result = await run(request);
+    process.stderr.write(`Compatibility: ${stage(result, "compatibility")?.summary ?? "unavailable"}.\n`);
+    if (stage(result, "compatibility")?.status !== "complete") {
+      process.stderr.write(`${result.actions[0]?.action ?? "Use a declared Codex profile."}\n`);
+      process.exitCode = 3;
+      return;
+    }
+    if (!["complete", "pending"].includes(stage(result, "installation")?.status ?? "")) {
+      process.stderr.write(`Installation: ${stage(result, "installation")?.summary ?? "unavailable"}.\n`);
+      for (const item of result.actions) process.stderr.write(`Next: ${item.action}.\n`);
+      process.exitCode = result.status === "partial" ? 5 : 4;
+      return;
+    }
+    const install = action(result, "approve-installation");
+    if (install !== undefined) {
+      const observed = stage(result, "installation")?.observed as { proposal?: { ownedChanges?: unknown } } | undefined;
+      process.stderr.write(`Installation preview (owned changes):\n${JSON.stringify(observed?.proposal?.ownedChanges, null, 2)}\n`);
+      if (!await ask("Install these entries in the selected Codex profile?")) {
+        process.stderr.write("Installation was not changed. Run review-tool --pilot to resume.\n");
+        return;
+      }
+      const digest = install.authorization?.installProposalDigest;
+      if (digest === undefined) throw new Error("installation preview omitted its approval digest");
+      request = { ...request, installProposalDigest: digest };
+    }
+    result = await run({ ...request, interactive: true });
+    process.stderr.write(`Installation: ${stage(result, "installation")?.summary ?? "unavailable"}.\n`);
+    if (credentialEntered && stage(result, "credential")?.status === "complete") {
+      process.stderr.write(`Jev key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}.\n`);
+    }
+    process.stderr.write(`Credential: ${stage(result, "credential")?.summary ?? "unavailable"}. No paid verification or review was sent.\n`);
+    if (stage(result, "installation")?.status !== "complete" || stage(result, "credential")?.status !== "complete") {
+      for (const item of result.actions) process.stderr.write(`Next: ${item.action}.\n`);
+      process.exitCode = result.status === "partial" ? 5 : 6;
+      return;
+    }
+    const consent = action(result, "approve-repository-consent");
+    if (consent !== undefined) {
+      process.stderr.write(`Repository enablement preview: ${JSON.stringify(stage(result, "repository")?.observed, null, 2)}\n`);
+      process.stderr.write("Enabling permits eligible source from this canonical repository to be sent to Jev.\n");
+      if (!await ask("Enable review for this repository and destination?")) {
+        process.stderr.write("Repository review remains disabled. Run review-tool --pilot to resume.\n");
+        return;
+      }
+      const digest = consent.authorization?.consentProposalDigest;
+      if (digest === undefined) throw new Error("repository preview omitted its approval digest");
+      request = { ...request, consentProposalDigest: digest };
+      result = await run(request);
+    }
+    process.stderr.write(`Repository: ${stage(result, "repository")?.summary ?? "unavailable"}.\n`);
+    if (stage(result, "repository")?.status !== "complete") {
+      for (const item of result.actions) process.stderr.write(`Next: ${item.action}.\n`);
+      process.exitCode = 6;
+      return;
+    }
+    const doctor = spawnSync(process.execPath, [fileURLToPath(import.meta.url), "--doctor"], {
+      cwd,
+      input: JSON.stringify({ version: 1, operation: "doctor", cwd,
+        ...(request.codexHome === undefined ? {} : { codexHome: request.codexHome }),
+        ...(request.codexExecutable === undefined ? {} : { codexExecutable: request.codexExecutable }) }),
+      encoding: "utf8",
+      timeout: 10_000,
+    });
+    if (doctor.status !== 0) {
+      process.stderr.write("Readiness check could not complete. Run review-tool --pilot again or inspect review-tool --doctor.\n");
+      process.exitCode = 6;
+      return;
+    }
+    let diagnosis: { status: string; nextSteps: Array<{ action: string }> };
+    try { diagnosis = JSON.parse(doctor.stdout) as typeof diagnosis; }
+    catch {
+      process.stderr.write("Readiness result was unreadable. Rerun review-tool --pilot or inspect review-tool --doctor.\n");
+      process.exitCode = 6;
+      return;
+    }
+    process.stderr.write(`Offline readiness: ${diagnosis.status}.\n`);
+    for (const next of diagnosis.nextSteps) process.stderr.write(`Next: ${next.action}.\n`);
+    process.stderr.write("After native Codex repository and hook trust, make an ordinary supported edit and inspect review activity.\n");
+};
+
+if (process.argv.includes("--help") || process.argv.includes("-h")) {
+  printHelp();
+} else if (process.argv.includes("--pilot")) {
+  await pilotSetup();
+} else {
 const output = isCredentialCommand
   ? await runCredentialCommand()
   : await Effect.runPromise(program);
@@ -1481,5 +1625,28 @@ if (isDirectEventReady(output)) {
   });
   await acknowledgeAdvice(output.collected);
 } else {
-  process.stdout.write(typeof output === "string" ? output : `${JSON.stringify(output)}\n`);
+  if (isCredentialCommand && !process.argv.includes("--json") && !process.argv.includes("--credential-stdin") && process.stdin.isTTY) {
+    const result = output as Readonly<Record<string, unknown>>;
+    if (result.operation === "login" && result.status === "stored") {
+      process.stdout.write(`Jev key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}. No paid verification or review was sent.\nNext: complete Codex sign-in and native trust, then run review-tool --pilot or the offline doctor.\n`);
+    } else {
+      const next = result.action ?? (result.operation === "logout"
+        ? "Repository grants remain; disable review separately if needed."
+        : result.status === "invalid"
+          ? "Enter a nonempty Jev key and retry review-tool --login. The previous saved key was preserved."
+          : result.status === "cancelled"
+            ? "No key was changed. Run review-tool --login again when ready."
+            : result.status === "locked" || result.status === "interaction-required"
+              ? "Unlock or approve the native credential store in this session, then retry review-tool --login."
+              : "Check native credential storage in this user session, then retry review-tool --login.");
+      process.stdout.write(`${result.operation === "logout" ? "Logout" : "Login"}: ${String(result.status)}. ${String(next)}\n`);
+      if (result.operation === "logout") {
+        const environment = result.environmentOverride as { envVar?: string; active?: boolean } | undefined;
+        if (environment?.active === true) process.stdout.write(`${environment.envVar ?? "The selected environment credential"} remains active; disable repository review to stop dispatch.\n`);
+      }
+    }
+  } else {
+    process.stdout.write(typeof output === "string" ? output : `${JSON.stringify(output)}\n`);
+  }
+}
 }

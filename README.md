@@ -75,13 +75,19 @@ resident process, and offline package doctor. The tested installed profile is ex
 Git and a packaged `openat` capture helper. The macOS controlled package path and authenticated
 Codex CLI 0.156.0 host cell are verified. Other operating systems and architectures are
 unsupported. After installing the tarball, run
-`review-tool-doctor` for source-free compatibility checks and recovery actions. Installation
-may acquire and build production dependencies once. Hook invocations use the installed CLI
+`review-tool-doctor` for source-free compatibility checks and recovery actions. The public commands
+use an installed, platform-specific Node 24.20.0 runtime, so the shell's Node version does not
+select the review runtime. Installation may fetch production dependencies, including that runtime,
+once; keep optional dependencies enabled. The no-script installation does not compile native code.
+Hook invocations use the installed CLI
 and resident and do not download packages per edit.
 
 The packaged CLI's preview/install/enable/disable/uninstall contract, ownership rules, recovery
 behavior, and native trust handoff are documented in
 [`docs/codex-installation.md`](./docs/codex-installation.md).
+For an owner-approved interactive pilot, use the one-page
+[`Codex pilot quickstart`](./docs/codex-pilot-quickstart.md). `review-tool` remains a provisional
+command; the product is unnamed and Jev is the external backend.
 After setup completes, that guide also documents the separate `review-tool --demo` preview and
 live-confirmation flow. Its default preview is offline; the paid run requires explicit fixed
 budgets and a new consent digest for a generated disposable repository.

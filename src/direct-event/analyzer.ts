@@ -1,8 +1,19 @@
 import { createHash } from "node:crypto";
-import { extname } from "node:path";
-import Parser from "tree-sitter";
-import TypeScript from "tree-sitter-typescript";
+import { existsSync } from "node:fs";
+import { dirname, extname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { ArtifactReference, ReviewNode, ReviewUnit, TypeDeclaration } from "./model.ts";
+
+const nativeRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../native/prebuilt", `${process.platform}-${process.arch}`);
+const parserRuntime = resolve(nativeRoot, "tree-sitter");
+const parserLanguage = resolve(nativeRoot, "tree-sitter-typescript");
+if (existsSync(resolve(parserRuntime, "build/Release/tree_sitter_runtime_binding.node")) &&
+    existsSync(resolve(parserLanguage, "build/Release/tree_sitter_typescript_binding.node"))) {
+  process.env.TREE_SITTER_PREBUILD = parserRuntime;
+  process.env.TREE_SITTER_TYPESCRIPT_PREBUILD = parserLanguage;
+}
+const { default: Parser } = await import("tree-sitter");
+const { default: TypeScript } = await import("tree-sitter-typescript");
 
 type SyntaxNode = {
   readonly type: string;

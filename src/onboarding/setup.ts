@@ -285,7 +285,7 @@ export const runSetup = Effect.fn("Setup.run")(function* (
                 ? "unlock the login keyring, then run review-tool --login"
                 : interactiveOutcome.status === "invalid"
                   ? "run review-tool --login again and enter a nonempty credential"
-                  : "repair native credential storage, then run review-tool --login",
+                  : "reinstall an archive containing the native helper for this platform if it is missing, or repair native credential storage; then run review-tool --login",
         });
         pending.push(indeterminate ? "reconcile suspended saved credential use" : "complete saved credential login");
       } else if (resolution.status === "present") {

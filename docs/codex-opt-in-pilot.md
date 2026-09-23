@@ -1,5 +1,9 @@
 # Single-repository Codex pilot
 
+For a person installing the reviewed pilot package, follow the
+[interactive quickstart](./codex-pilot-quickstart.md). This document records the controlled
+owner-pilot procedure and its evidence limits.
+
 This is a local, opt-in pilot for one owner-selected Git test repository. It sends no invitations,
 does not enable the product in the development checkout, and does not publish a package. Record the
 selected repository path privately; do not put it in issue comments or retained evidence.
@@ -34,9 +38,11 @@ extend the pilot to the second verified Codex profile. Other hosts and public di
 outside this pilot.
 
 The first owner-created local test repository completed the Linux profile on 2026-09-23, with one
-submitted finding. The separate macOS profile completed one ordinary edit with a clear review and
-passing validator, but did not independently measure provider calls or source bytes. Both
-sanitized results and their distinct claims are in
+submitted finding. The separate macOS profile first completed an ordinary edit with a clear
+review and passing validator. A later bounded synthetic demo on macOS arm64 / Codex CLI 0.156.0
+observed one submitted finding, a correlated model reaction, an independently validated repair,
+and a completed follow-up review. An independent request guard counted two Jev HTTP 200 requests
+and 290 declaration-source bytes; the product budget counted 641 JSON-encoded provider-input
+bytes. The distinct sanitized results and their limits are in
 [`evidence/codex-pilot`](../evidence/codex-pilot/README.md). The repository remains opt-in and
-limited to one synthetic TypeScript file. A Mac positive-finding run, if desired, is a separate
-budgeted test rather than an inference from the clear outcome.
+limited to synthetic TypeScript source.

@@ -15,6 +15,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
+import { inspectCodexInstallation } from "./codex-installation.ts";
 
 const roots: Array<string> = [];
 const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
@@ -164,6 +165,25 @@ const spawnOperation = (operation: Record<string, unknown>, env: NodeJS.ProcessE
 };
 
 describe("public Codex installation operations", { timeout: 30_000 }, () => {
+  it("inspects the pinned hook runtime when the caller uses another Node path", () => {
+    const test = fixture();
+    previewAndInstall(test.home, test.bin);
+    const previousRuntime = process.env.REVIEW_INSTALL_RUNTIME;
+    const previousEntrypoint = process.env.REVIEW_INSTALL_ENTRYPOINT;
+    try {
+      process.env.REVIEW_INSTALL_RUNTIME = "/bin/true";
+      process.env.REVIEW_INSTALL_ENTRYPOINT = join(process.cwd(), "src/cli.ts");
+      expect(inspectCodexInstallation({ codexHome: test.home, codexExecutable: test.bin })).toMatchObject({
+        status: "installed",
+        installed: true,
+      });
+    } finally {
+      if (previousRuntime === undefined) delete process.env.REVIEW_INSTALL_RUNTIME;
+      else process.env.REVIEW_INSTALL_RUNTIME = previousRuntime;
+      if (previousEntrypoint === undefined) delete process.env.REVIEW_INSTALL_ENTRYPOINT;
+      else process.env.REVIEW_INSTALL_ENTRYPOINT = previousEntrypoint;
+    }
+  });
   it("accepts Codex 0.156.0 and binds its version into the owned hook", () => {
     const { root, home, bin } = fixture();
     writeFileSync(bin, "#!/bin/sh\nprintf 'codex-cli 0.156.0\\n'\n", { mode: 0o700 });
