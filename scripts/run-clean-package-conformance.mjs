@@ -1,15 +1,36 @@
 import { spawn } from "node:child_process";
-import { chmod, copyFile, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { access, chmod, copyFile, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const runtimeDeclaration = JSON.parse(await readFile(join(root, "package-runtime.json"), "utf8"));
+const releaseDeclaration = JSON.parse(await readFile(join(root, "conformance/installed-release-v1.json"), "utf8"));
 const executeRealCodex = process.argv.includes("--real-codex");
 const writeEvidence = process.argv.includes("--write-evidence");
 const exerciseSecretService = process.argv.includes("--secret-service") || process.platform === "darwin";
 const exerciseCredentialFixture = process.argv.includes("--credential-fixture");
 const exerciseCredentialLifecycle = exerciseSecretService || exerciseCredentialFixture;
+if (process.version !== `v${runtimeDeclaration.runtime.version}`) {
+  throw new Error(`package conformance requires Node v${runtimeDeclaration.runtime.version}; found ${process.version}. Select the pinned Node version before running this command.`);
+}
+if (executeRealCodex) {
+  const profile = releaseDeclaration.targetProfiles.find((item) =>
+    item.operatingSystem === process.platform && item.architecture === process.arch);
+  if (profile === undefined) throw new Error(`authenticated real Codex validation has no target profile for ${process.platform}/${process.arch}`);
+  const result = await new Promise((resolveRun, reject) => {
+    const child = spawn("codex", ["--version"], { cwd: root, stdio: ["ignore", "pipe", "pipe"] });
+    let stdout = "";
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => { stdout += chunk; });
+    child.once("error", reject);
+    child.once("close", (code) => resolveRun({ code, version: stdout.trim() }));
+  });
+  if (result.code !== 0 || result.version !== profile.codex) {
+    throw new Error(`authenticated real Codex validation requires ${profile.codex}; found ${result.version || "unavailable"}. Select the pinned Codex CLI before running this command.`);
+  }
+}
 const outputPath = join(root, `evidence/package/clean-${process.platform}-node-24.20.0-${process.arch}.json`);
 const run = (command, args, options = {}) => new Promise((resolveRun, reject) => {
   const child = spawn(command, args, {
@@ -69,7 +90,7 @@ const installLocalPackageVariant = async ({
   const artifactName = (await readdir(artifacts)).find((entry) => entry.endsWith(".tgz"));
   if (artifactName === undefined) throw new Error(`npm pack did not produce the ${version} tarball`);
   const tarball = join(artifacts, artifactName);
-  await mustRun("npm", ["install", "--prefer-offline", "--omit=dev", "--prefix", installation, tarball], {
+  await mustRun("npm", ["install", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installation, tarball], {
     cwd: temporary,
     timeoutMs: 120_000,
   });
@@ -353,7 +374,7 @@ try {
   const artifactName = artifactEntries.find((entry) => entry.endsWith(".tgz"));
   if (artifactName === undefined) throw new Error("npm pack did not produce a tarball");
   const tarball = join(artifacts, artifactName);
-  await mustRun("npm", ["install", "--prefer-offline", "--omit=dev", "--prefix", installation, tarball], { cwd: temporary, timeoutMs: 120_000 });
+  await mustRun("npm", ["install", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installation, tarball], { cwd: temporary, timeoutMs: 120_000 });
   const packageDirectory = join(installation, "node_modules", "realtime-review-prototype");
   const binDirectory = join(installation, "node_modules", ".bin");
   const cli = join(binDirectory, "review-tool");
@@ -361,6 +382,11 @@ try {
   const parser = join(binDirectory, "review-tool-parser");
   const doctor = join(binDirectory, "review-tool-doctor");
   const doctorSource = join(packageDirectory, "dist", "package-doctor.js");
+  for (const [name, path] of [["review-tool", cli], ["review-tool-parser", parser], ["review-tool-doctor", doctor]]) {
+    await access(path).catch(() => {
+      throw new Error(`packed installation is missing ${name}; npm did not create the package's bin links`);
+    });
+  }
   const installedManifest = parseJson(await readFile(join(packageDirectory, "package.json"), "utf8"), "installed manifest");
   for (const documentation of ["README.md", "docs/codex-installation.md", "docs/status.md", "docs/installed-release-compatibility.md"]) {
     const contents = await readFile(join(packageDirectory, documentation), "utf8");
