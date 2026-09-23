@@ -115,6 +115,37 @@ const runMaskedSetup = (cli, cwd, env, requestPath, marker) => new Promise((reso
   });
 });
 
+const runGuidedPilot = (cli, cwd, env, codexHome, codexExecutable, answers, commandOverride, expectedExit = 0) => new Promise((resolveRun, rejectRun) => {
+  const command = commandOverride ?? `${quote(cli)} --pilot --codex-home=${quote(codexHome)} --codex-executable=${quote(codexExecutable)}`;
+  const scriptArgs = process.platform === "darwin"
+    ? ["-q", "/dev/null", "/bin/sh", "-c", command]
+    : ["-qefc", command, "/dev/null"];
+  const child = spawn("script", scriptArgs, { cwd, env, stdio: ["pipe", "pipe", "pipe"] });
+  let output = "";
+  let answered = 0;
+  const timer = setTimeout(() => { child.kill("SIGKILL"); rejectRun(new Error("guided pilot timed out")); }, 20_000);
+  const observe = (chunk) => {
+    output += chunk;
+    while (answered < answers.length && output.includes(answers[answered].prompt)) {
+      child.stdin.write(`${answers[answered].value}\n`);
+      answered += 1;
+    }
+  };
+  child.stdout.setEncoding("utf8");
+  child.stderr.setEncoding("utf8");
+  child.stdout.on("data", observe);
+  child.stderr.on("data", observe);
+  child.once("error", (cause) => { clearTimeout(timer); rejectRun(cause); });
+  child.once("close", (code) => {
+    clearTimeout(timer);
+    try {
+      expect(code === expectedExit, `terminal command exited ${code} instead of ${expectedExit}`);
+      expect(answered === answers.length, `guided pilot answered ${answered} of ${answers.length} prompts`);
+      resolveRun(output);
+    } catch (cause) { rejectRun(cause); }
+  });
+});
+
 const temporary = await mkdtemp(join(tmpdir(), "review-setup-package-"));
 try {
   const artifacts = join(temporary, "artifacts");
@@ -308,13 +339,51 @@ else if (operation === "probe") console.log('{"status":"available"}');
   expect(interactive.stages.some((stage) => stage.stage === "host-trust" && stage.status === "unknown"), "interactive setup overstated native trust");
   expect(await readFile(vault, "utf8") === marker, "masked credential was not passed to owned storage");
 
+  const pilotRepository = join(temporary, "pilot-repository");
+  const pilotHome = join(temporary, "pilot-codex-home");
+  await mkdir(pilotRepository);
+  await mkdir(pilotHome);
+  result = await run("git", ["init", "--quiet", pilotRepository], { cwd: temporary });
+  expect(result.code === 0, "guided pilot fixture repository initialization failed");
+  const pilotVault = join(stateRoot, "pilot-vault");
+  const pilotState = join(stateRoot, "pilot-consent");
+  const pilotEnvironment = {
+    ...interactiveEnvironment,
+    TEST_SECRET_VAULT: pilotVault,
+    REVIEW_STATE_PATH: pilotState,
+    REVIEW_CREDENTIAL_STATE_PATH: join(stateRoot, "pilot-credential-state.json"),
+  };
+  const pilotMarker = "package-guided-pilot-secret";
+  const pilotCodexExecutable = process.env.REVIEW_PILOT_CODEX_EXECUTABLE ?? codexExecutable;
+  const declinedPilot = await runGuidedPilot(cli, pilotRepository, pilotEnvironment, pilotHome, pilotCodexExecutable, [
+    { prompt: "Install these entries", value: "y" },
+    { prompt: "Jev API key:", value: pilotMarker },
+    { prompt: "Enable review for this repository", value: "n" },
+  ]);
+  expect(declinedPilot.includes("No paid verification or review was sent"), "guided login overstated verification");
+  expect(declinedPilot.includes("Repository review remains disabled"), "declined consent was unclear");
+  expect(!declinedPilot.includes(pilotMarker), "guided credential appeared in terminal output");
+  expect(await readFile(pilotVault, "utf8") === pilotMarker, "guided credential was not saved");
+  const approvedPilot = await runGuidedPilot(cli, pilotRepository, pilotEnvironment, pilotHome, pilotCodexExecutable, [
+    { prompt: "Enable review for this repository", value: "y" },
+  ]);
+  expect(approvedPilot.includes("Offline readiness: unknown"), "guided pilot overstated native trust");
+  expect(approvedPilot.includes("native trust or hook review prompt"), "guided pilot omitted trust handoff");
+  expect(!approvedPilot.includes(pilotMarker), "guided rerun disclosed saved credential");
+  const pilotHooks = JSON.parse(await readFile(join(pilotHome, "hooks.json"), "utf8"));
+  expect(pilotHooks.hooks.PostToolUse.length === 1, "guided rerun duplicated the owned hook");
+  const invalidLogin = await runGuidedPilot(cli, pilotRepository, pilotEnvironment, pilotHome, pilotCodexExecutable, [
+    { prompt: "Jev API key:", value: "" },
+  ], `${quote(cli)} --login`, 6);
+  expect(invalidLogin.includes("Enter a nonempty Jev key"), "interactive invalid login omitted a concrete recovery step");
+
   await assertNoProviderCall(capturePath);
   process.stdout.write(`${JSON.stringify({
     version: 1,
     operation: "setup-package-conformance",
     status: "passed",
     providerCalls: 0,
-    journeys: ["noninteractive-handoff", "interruption-resume", "idempotent-repeat", "offline-first-review-demo", "disabled-completion", "interactive-masked-terminal"],
+    journeys: ["noninteractive-handoff", "interruption-resume", "idempotent-repeat", "offline-first-review-demo", "disabled-completion", "interactive-masked-terminal", "guided-pilot"],
   })}\n`);
 } finally {
   await rm(temporary, { recursive: true, force: true });

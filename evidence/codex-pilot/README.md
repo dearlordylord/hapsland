@@ -1,5 +1,9 @@
 # First opt-in Codex pilot
 
+The [interactive setup record](./interactive-setup-linux-arm64-2026-09-23.json) covers a packed
+installation and guided, offline, opt-in path on the declared Linux arm64 / Node 24.20.0 /
+Codex CLI 0.155.1 profile. It records zero provider calls and leaves native trust unknown.
+
 The owner authorized one new, local Git test repository containing only a synthetic TypeScript
 session-state fixture. The repository itself stays outside this product checkout and has no remote.
 Its path, source, Codex transcript, credential, provider response, and consent digests are not in
