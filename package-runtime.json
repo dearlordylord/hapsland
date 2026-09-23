@@ -12,12 +12,13 @@
   "requiredCommands": ["git"],
   "linuxCredentialStore": {
     "implementation": "Secret Service through libsecret",
-    "buildDependency": "libsecret-1 development files",
+    "buildDependency": "C compiler, pkg-config, and libsecret-1 development files at installation",
     "lookupDeadlineMs": 750,
     "backgroundUnlockPrompts": false
   },
   "macOSCredentialStore": {
     "implementation": "Keychain generic password through Security.framework",
+    "buildDependency": "Xcode Command Line Tools (cc) at installation",
     "service": "dev.typesafe.realtime-review-tool",
     "account": "default",
     "lookupDeadlineMs": 750,

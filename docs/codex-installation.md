@@ -24,6 +24,9 @@ must run the package `postinstall` script on the target host; use `npm install
 --ignore-scripts=false --foreground-scripts` when local npm policy would otherwise skip lifecycle
 scripts. If helper startup is unavailable, setup and doctor report a recovery step instead of
 claiming credential readiness.
+The native helper build requires Xcode Command Line Tools on macOS, or a C compiler,
+`pkg-config`, and libsecret development headers on Linux. Hook invocations use the installed
+helpers and do not need a compiler.
 Codex CLI 0.156.0 has a retained authenticated macOS arm64 host run through a controlled offline
 backend. The real Jev first-review milestone is retained for Codex CLI 0.155.1 on Linux arm64
 under the test conditions declared in the installed-release compatibility record.
