@@ -74,10 +74,10 @@ const invokeDemo = async (cli, cwd, env, request, expectedExit, label) => {
 
 const runMaskedSetup = (cli, cwd, env, requestPath, marker) => new Promise((resolveRun, rejectRun) => {
   const command = `${quote(cli)} --setup < ${quote(requestPath)}`;
-  const scriptArgs = process.platform === "darwin"
-    ? ["-q", "/dev/null", "/bin/sh", "-c", command]
-    : ["-qefc", command, "/dev/null"];
-  const child = spawn("script", scriptArgs, { cwd, env, stdio: ["pipe", "pipe", "pipe"] });
+  const terminal = process.platform === "darwin"
+    ? ["python3", [join(projectRoot, "scripts/pty-bridge.py"), "/bin/sh", "-c", command]]
+    : ["script", ["-qefc", command, "/dev/null"]];
+  const child = spawn(terminal[0], terminal[1], { cwd, env, stdio: ["pipe", "pipe", "pipe"] });
   let output = "";
   let supplied = false;
   const timer = setTimeout(() => {
@@ -102,7 +102,7 @@ const runMaskedSetup = (cli, cwd, env, requestPath, marker) => new Promise((reso
   child.once("close", (code) => {
     clearTimeout(timer);
     try {
-      const expectedExit = process.platform === "darwin" ? 0 : 6;
+      const expectedExit = 6;
       expect(code === expectedExit, `masked packaged setup exited ${code}: ${output}`);
       expect(supplied, "masked packaged setup never requested terminal input");
       expect(!output.includes(marker), "masked packaged setup echoed the credential");
@@ -117,10 +117,10 @@ const runMaskedSetup = (cli, cwd, env, requestPath, marker) => new Promise((reso
 
 const runGuidedPilot = (cli, cwd, env, codexHome, codexExecutable, answers, commandOverride, expectedExit = 0) => new Promise((resolveRun, rejectRun) => {
   const command = commandOverride ?? `${quote(cli)} --pilot --codex-home=${quote(codexHome)} --codex-executable=${quote(codexExecutable)}`;
-  const scriptArgs = process.platform === "darwin"
-    ? ["-q", "/dev/null", "/bin/sh", "-c", command]
-    : ["-qefc", command, "/dev/null"];
-  const child = spawn("script", scriptArgs, { cwd, env, stdio: ["pipe", "pipe", "pipe"] });
+  const terminal = process.platform === "darwin"
+    ? ["python3", [join(projectRoot, "scripts/pty-bridge.py"), "/bin/sh", "-c", command]]
+    : ["script", ["-qefc", command, "/dev/null"]];
+  const child = spawn(terminal[0], terminal[1], { cwd, env, stdio: ["pipe", "pipe", "pipe"] });
   let output = "";
   let answered = 0;
   const timer = setTimeout(() => { child.kill("SIGKILL"); rejectRun(new Error("guided pilot timed out")); }, 20_000);
