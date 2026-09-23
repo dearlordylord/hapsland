@@ -19,6 +19,7 @@ import {
 import { homedir } from "node:os";
 import { dirname, extname, join, resolve } from "node:path";
 import { parse as parseToml } from "smol-toml";
+import { isCodexHostVersion } from "../direct-event/model.ts";
 
 const OWNERSHIP_VERSION = 1 as const;
 const RESULT_VERSION = 1 as const;
@@ -131,15 +132,19 @@ const parseJsonObject = (file: FileSnapshot): JsonObject => {
 
 const quoteShell = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
 
-const ownedHook = (runtime: string, entrypoint: string) => ({
-  type: "command",
-  command: `${quoteShell(runtime)} ${quoteShell(entrypoint)} --codex-hook${process.env.REVIEW_INSTALL_CONTROLLED === "1" ? " --controlled" : ""} --controlled-writer ${OWNED_MARKER}`,
-  timeout: 10,
-});
+const ownedHook = (runtime: string, entrypoint: string, hostVersion = "0.155.1") => {
+  const controlled = process.env.REVIEW_INSTALL_CONTROLLED === "1" ? " --controlled" : "";
+  const version = hostVersion === "0.155.1" ? "" : ` --codex-version=${hostVersion}`;
+  return {
+    type: "command",
+    command: `${quoteShell(runtime)} ${quoteShell(entrypoint)} --codex-hook${controlled} --controlled-writer ${OWNED_MARKER}${version}`,
+    timeout: 10,
+  };
+};
 
-const ownedGroup = (runtime: string, entrypoint: string) => ({
+const ownedGroup = (runtime: string, entrypoint: string, hostVersion = "0.155.1") => ({
   matcher: OWNED_MATCHER,
-  hooks: [ownedHook(runtime, entrypoint)],
+  hooks: [ownedHook(runtime, entrypoint, hostVersion)],
 });
 
 const stableJson = (value: unknown): string => {
@@ -474,13 +479,15 @@ const installationDigest = (
   })),
 }));
 
-const codexCompatibility = (codexExecutable: string) => {
+const codexCompatibility = (codexExecutable: string, versions: ReadonlyArray<string>) => {
   const run = spawnSync(codexExecutable, ["--version"], { encoding: "utf8", timeout: 2_000 });
   const observed = run.status === 0 ? run.stdout.trim() : "unavailable";
+  const version = /^codex-cli (\d+\.\d+\.\d+)$/.exec(observed)?.[1] ?? "unavailable";
   return {
-    supported: /^codex-cli 0\.155\.1$/.test(observed),
+    supported: versions.includes(version),
     observed,
-    required: "codex-cli 0.155.1",
+    version,
+    required: versions.map((item) => `codex-cli ${item}`).join(" or "),
   };
 };
 
@@ -564,7 +571,7 @@ const runtimeCompatibility = (inputs: ReturnType<typeof resolveInputs>) => {
 };
 
 const compatibility = (inputs: ReturnType<typeof resolveInputs>) => {
-  const codex = codexCompatibility(inputs.codexExecutable);
+  const codex = inputs.codex;
   const runtime = runtimeCompatibility(inputs);
   return { supported: codex.supported && runtime.supported, codex, runtime };
 };
@@ -579,7 +586,7 @@ const unsupportedResult = (
   status: "unsupported",
   host: { adapter: "codex", home: inputs.home, compatibility: host },
   completed: [],
-  pending: ["install the declared runtime, packaged entrypoint, and Codex 0.155.1 before mutation"],
+  pending: ["install the declared runtime, packaged entrypoint, and a declared Codex CLI version before mutation"],
 });
 
 const resolveInputs = (request: InstallationRequest) => {
@@ -597,6 +604,7 @@ const resolveInputs = (request: InstallationRequest) => {
   let packageVersion: string | undefined;
   let residentProtocol: number | undefined;
   let runtimeVersion: string | undefined;
+  let codexVersions: ReadonlyArray<string> | undefined;
   let runtimeProfiles: ReadonlyArray<{ readonly operatingSystem: string; readonly architecture: string }> | undefined;
   let packageMetadataError: string | undefined;
   try {
@@ -622,6 +630,15 @@ const resolveInputs = (request: InstallationRequest) => {
     });
     residentProtocol = declaration.residentProtocol;
     runtimeVersion = declaration.runtime.version;
+    if (declaration.codex === undefined) {
+      codexVersions = ["0.155.1"];
+    } else if (isObject(declaration.codex) && Array.isArray(declaration.codex.compatibleVersions) &&
+        declaration.codex.compatibleVersions.length > 0 &&
+        declaration.codex.compatibleVersions.every(isCodexHostVersion)) {
+      codexVersions = declaration.codex.compatibleVersions as Array<string>;
+    } else {
+      throw new Error("package-runtime.json declares unsupported Codex versions");
+    }
     runtimeProfiles = profiles;
   } catch (cause) {
     packageMetadataError = cause instanceof Error ? cause.message : "package metadata is unreadable";
@@ -631,6 +648,7 @@ const resolveInputs = (request: InstallationRequest) => {
     executable,
     entrypoint,
     codexExecutable,
+    codex: codexCompatibility(codexExecutable, codexVersions ?? ["0.155.1"]),
     packageVersion: packageVersion ?? "development",
     residentProtocol: residentProtocol ?? 1,
     runtimeVersion: runtimeVersion ?? "unsupported",
@@ -679,7 +697,7 @@ const makeInstallPlan = (request: InstallationRequest) => {
   const hooks = snapshot(inputs.paths.hooks);
   const ownership = snapshot(inputs.paths.ownership);
   const existingRecord = readOwnership(inputs.paths.ownership);
-  const group = ownedGroup(inputs.executable, inputs.entrypoint);
+  const group = ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version);
   const fingerprint = hookFingerprint(group);
   const hookRoot = parseJsonObject(hooks);
   const count = markerCount(hookRoot);
@@ -741,7 +759,7 @@ const makeUpdatePlan = (request: InstallationRequest) => {
   if (markerCount(hookRoot) !== 1 || hookFingerprint(currentGroup) !== record.hookFingerprint) {
     throw new Error("owned Codex hook was locally modified; the installed version was preserved");
   }
-  const targetGroup = ownedGroup(inputs.executable, inputs.entrypoint);
+  const targetGroup = ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version);
   const targetFingerprint = hookFingerprint(targetGroup);
   const nextHooks = encodeJson(replaceOwnedHook(hookRoot, targetGroup));
   const ownership = snapshot(inputs.paths.ownership);
@@ -1164,7 +1182,7 @@ const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof re
   const configChange = byPath.get(inputs.paths.config);
   const hooksChange = byPath.get(inputs.paths.hooks);
   const ownershipChange = byPath.get(inputs.paths.ownership);
-  const targetGroup = ownedGroup(inputs.executable, inputs.entrypoint);
+  const targetGroup = ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version);
   const targetFingerprint = hookFingerprint(targetGroup);
   const priorOwnership = decodedOwnershipContent(ownershipChange?.beforeContent ?? null);
   const priorOwned = Array.isArray(priorOwnership?.owned) ? priorOwnership.owned : [];
@@ -1371,7 +1389,7 @@ const ownedChanges = (inputs: ReturnType<typeof resolveInputs>) => ({
     file: inputs.paths.hooks,
     event: "PostToolUse",
     matcher: OWNED_MATCHER,
-    handlers: [ownedHook(inputs.executable, inputs.entrypoint)],
+    handlers: [ownedHook(inputs.executable, inputs.entrypoint, inputs.codex.version)],
   },
   ownership: {
     file: inputs.paths.ownership,

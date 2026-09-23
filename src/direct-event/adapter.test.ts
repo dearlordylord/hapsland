@@ -6,6 +6,11 @@ import { adaptCodexAdd, MAX_CODEX_CANDIDATES, MAX_CODEX_COMMAND_BYTES } from "./
 import { addEvent, makeGitFixture } from "./test-fixtures.ts";
 
 describe("direct-event Codex Add adapter", () => {
+  it("preserves the selected 0.156.0 host identity", async () => {
+    const root = await makeGitFixture();
+    const result = await Effect.runPromise(adaptCodexAdd(addEvent(root), "0.156.0"));
+    expect(result?.recipient.hostVersion).toBe("0.156.0");
+  });
   it("preserves the complete explicit recipient and canonical Git root", async () => {
     const root = await makeGitFixture();
     const event = addEvent(root, ["a.ts"], { agent_id: "child" });
