@@ -663,15 +663,26 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   });
   const installPreview = parseJson(installPreviewRun.stdout, "installation preview");
   const ownedPreview = installPreview.proposal?.ownedChanges;
-  const packagedRuntime = join(installation, "node_modules",
-    process.platform === "darwin" ? "node-bin-darwin-arm64" : "node-linux-arm64", "bin", "node");
-  if (installPreview.status !== "preview" || installPreview.sourceEgressAuthorized !== false ||
-      !Array.isArray(installPreview.proposal?.changes) || ownedPreview?.runtime?.executable !== packagedRuntime ||
-      typeof ownedPreview?.runtime?.entrypoint !== "string" || ownedPreview?.feature?.key !== "hooks" ||
-      ownedPreview?.feature?.value !== true || ownedPreview?.hook?.matcher !== "^(apply_patch|Edit|Write|Bash)$" ||
-      ownedPreview?.hook?.handlers?.[0]?.timeout !== 10 ||
-      !ownedPreview?.hook?.handlers?.[0]?.command?.includes("--review-tool-owned=codex-v1")) {
-    throw new Error("packaged installation preview did not expose exact source-free changes");
+  const runtimePackage = process.platform === "darwin" ? "node-bin-darwin-arm64" : "node-linux-arm64";
+  const packagedRuntimes = [
+    join(installation, "node_modules", runtimePackage, "bin", "node"),
+    join(packageDirectory, "node_modules", runtimePackage, "bin", "node"),
+  ];
+  const previewChecks = {
+    preview: installPreview.status === "preview",
+    disabled: installPreview.sourceEgressAuthorized === false,
+    changes: Array.isArray(installPreview.proposal?.changes),
+    runtime: packagedRuntimes.includes(ownedPreview?.runtime?.executable),
+    entrypoint: typeof ownedPreview?.runtime?.entrypoint === "string",
+    featureKey: ownedPreview?.feature?.key === "hooks",
+    featureValue: ownedPreview?.feature?.value === true,
+    matcher: ownedPreview?.hook?.matcher === "^(apply_patch|Edit|Write|Bash)$",
+    timeout: ownedPreview?.hook?.handlers?.[0]?.timeout === 10,
+    ownership: ownedPreview?.hook?.handlers?.[0]?.command?.includes("--review-tool-owned=codex-v1") === true,
+  };
+  const failedPreviewChecks = Object.entries(previewChecks).filter(([, passed]) => !passed).map(([name]) => name);
+  if (failedPreviewChecks.length > 0) {
+    throw new Error(`packaged installation preview did not expose exact source-free changes: ${failedPreviewChecks.join(", ")}`);
   }
   const installRun = await mustRun(cli, ["--install"], {
     cwd: temporary,
