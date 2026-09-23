@@ -406,6 +406,15 @@ Phase F implementation unfinished.
 
 ### Phase G — composition and release hardening
 
+The detailed [onboarding specification](./PRODUCT-ONBOARDING-SPEC.md)
+now covers installation, activation, diagnostics, distribution, update/removal, and
+release gates. Decisions are settled and the
+[implementation handoff](https://github.com/dearlordylord/jevs/issues/62) is ready;
+platform and native-storage validation remain implementation gates. Its runtime
+baseline is the current asynchronous
+[direct-event supported profile](./docs/direct-event-v1-supported-profile.md), not
+the historical synchronous assumptions elsewhere in this plan.
+
 Test coexistence with a second dummy hook and, if practical, an existing tool such as
 Probity. Add install/doctor/uninstall flows, bounded logs, data-flow documentation, fixture
 tests, and a versioned compatibility declaration for the tested Codex release.

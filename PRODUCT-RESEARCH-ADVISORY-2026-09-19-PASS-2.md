@@ -1,5 +1,7 @@
 # Product research advisory — pass 2
 
+> Onboarding update (2026-09-22): see [the focused installation research](./PRODUCT-RESEARCH-ADVISORY-2026-09-22-ONBOARDING.md) for current installer, credential, ownership, and activation findings. This updates that scope only; other findings retain their original evidence/version boundaries.
+
 Date: 2026-09-19. Canonical path for this pass: `PRODUCT-RESEARCH-ADVISORY-2026-09-19-PASS-2.md`.
 
 This is product-specification advisory material, not a product specification or dependency approval. The product remains unnamed. Jev is TypeSafe's external review/classification backend; agent hosts own the tool loop. This pass applies [PRODUCT-RESEARCH-METHODOLOGY.md](./PRODUCT-RESEARCH-METHODOLOGY.md).

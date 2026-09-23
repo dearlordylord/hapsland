@@ -1,5 +1,7 @@
 # Abide competitor review
 
+> Onboarding update (2026-09-22): see [the focused installation research](./PRODUCT-RESEARCH-ADVISORY-2026-09-22-ONBOARDING.md) for current installer, credential, ownership, and activation findings. This updates that scope only; other findings retain their original evidence/version boundaries.
+
 **Date:** 2026-09-19 (America/Montreal)  
 **Candidate:** [coldteadotai/abide](https://github.com/coldteadotai/abide)  
 **Pinned source:** commit [`ec3352e873163b74aca1ac9cf3bd0ea69a97723a`](https://github.com/coldteadotai/abide/tree/ec3352e873163b74aca1ac9cf3bd0ea69a97723a), CLI `0.0.5`, schema `0.0.3`  
