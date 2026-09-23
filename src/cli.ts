@@ -80,6 +80,7 @@ import { readActivity, formatActivityHuman, recordActivity } from "./activity/st
 import { diagnoseInstalledIntegration, type DoctorCheck } from "./onboarding/doctor.ts";
 import { runSetup } from "./onboarding/setup.ts";
 import { runFirstReviewDemo } from "./onboarding/first-review-demo.ts";
+import { recordDemoTrace } from "./onboarding/demo-trace.ts";
 
 const readStdin = Effect.try({
   try: () => readFileSync(0, "utf8"),
@@ -535,6 +536,9 @@ const runDirectCodexHook = (
         : { handled: true, output: { _tag: "DirectEventReady" as const, value: collected.output, collected } } as const;
     }
     const observation = yield* adaptCodexDirectEvent(nativeEvent);
+    if (observation !== undefined) {
+      recordDemoTrace(process.env.REVIEW_DEMO_BUDGET_PATH, observation.root, observation.recipient, { kind: "edit" });
+    }
     // The direct dispatcher owns every native apply_patch event. Unsupported
     // shapes remain quiet and can never reach the legacy whole-file runtime.
     if (observation === undefined) {
@@ -1450,6 +1454,10 @@ if (!isCodexHook && typeof output === "object" && output !== null) {
 if (isDirectEventReady(output)) {
   attemptCodexHostOutput(output.value, (encoded) => {
     process.stdout.write(encoded);
+  });
+  recordDemoTrace(process.env.REVIEW_DEMO_BUDGET_PATH, output.collected.root, output.collected.recipient, {
+    kind: "delivery",
+    ruleIds: [...output.value.hookSpecificOutput.additionalContext.matchAll(/\[([a-z0-9_/-]+), p=/g)].map((match) => match[1] ?? ""),
   });
   recordActivity({
     statePath: output.collected.activityPath,

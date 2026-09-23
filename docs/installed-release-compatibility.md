@@ -41,8 +41,11 @@ separates `replay.status: "passed"` from `compatibility.status: "blocked"`.
 | Installed first review | Linux arm64, packed installation, Codex 0.155.1 | **Inconclusive** | The authorized run recorded 0 provider calls and 0 source bytes; its legacy tarball binding is unverified and no paid retry is authorized |
 
 The macOS controlled path does not imply authenticated Codex compatibility. The first-review record
-does not imply provider or repair success. These are required cells, so either one blocks a
-release-ready verdict.
+does not imply provider or repair success. The installed demo now records source-free edit,
+finding-handoff, and review-terminal hashes and requires the host's final report to cite the
+handed-off rule before it credits a reaction. A terminal review must match the independently
+validated repaired source. This instrumentation has passed offline tests but has not changed the
+historical live result. These are required cells, so either gap blocks a release-ready verdict.
 
 ## Setup-effort evidence
 
