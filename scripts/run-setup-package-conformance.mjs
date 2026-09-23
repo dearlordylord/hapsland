@@ -115,6 +115,37 @@ const runMaskedSetup = (cli, cwd, env, requestPath, marker) => new Promise((reso
   });
 });
 
+const runGuidedPilot = (cli, cwd, env, codexHome, codexExecutable, answers, commandOverride, expectedExit = 0) => new Promise((resolveRun, rejectRun) => {
+  const command = commandOverride ?? `${quote(cli)} --pilot --codex-home=${quote(codexHome)} --codex-executable=${quote(codexExecutable)}`;
+  const scriptArgs = process.platform === "darwin"
+    ? ["-q", "/dev/null", "/bin/sh", "-c", command]
+    : ["-qefc", command, "/dev/null"];
+  const child = spawn("script", scriptArgs, { cwd, env, stdio: ["pipe", "pipe", "pipe"] });
+  let output = "";
+  let answered = 0;
+  const timer = setTimeout(() => { child.kill("SIGKILL"); rejectRun(new Error("guided pilot timed out")); }, 20_000);
+  const observe = (chunk) => {
+    output += chunk;
+    while (answered < answers.length && output.includes(answers[answered].prompt)) {
+      child.stdin.write(`${answers[answered].value}\n`);
+      answered += 1;
+    }
+  };
+  child.stdout.setEncoding("utf8");
+  child.stderr.setEncoding("utf8");
+  child.stdout.on("data", observe);
+  child.stderr.on("data", observe);
+  child.once("error", (cause) => { clearTimeout(timer); rejectRun(cause); });
+  child.once("close", (code) => {
+    clearTimeout(timer);
+    try {
+      expect(code === expectedExit, `terminal command exited ${code} instead of ${expectedExit}`);
+      expect(answered === answers.length, `guided pilot answered ${answered} of ${answers.length} prompts`);
+      resolveRun(output);
+    } catch (cause) { rejectRun(cause); }
+  });
+});
+
 const temporary = await mkdtemp(join(tmpdir(), "review-setup-package-"));
 try {
   const artifacts = join(temporary, "artifacts");
@@ -136,7 +167,16 @@ try {
   expect(result.code === 0, `npm pack failed: ${result.stderr || result.stdout}`);
   const artifact = (await readdir(artifacts)).find((entry) => entry.endsWith(".tgz"));
   expect(artifact !== undefined, "npm pack did not produce a tarball");
-  result = await run("npm", ["install", "--prefer-offline", "--omit=dev", "--prefix", installation, join(artifacts, artifact)], {
+  const archiveContents = await run("tar", ["-tzf", join(artifacts, artifact)], { cwd: temporary });
+  expect(archiveContents.code === 0, "packed archive could not be listed");
+  expect(!archiveContents.stdout.split("\n").some((entry) => entry.startsWith("package/dist/native/")),
+    "packed archive contains a build-machine native helper");
+  expect(archiveContents.stdout.includes(`package/native/prebuilt/${process.platform}-${process.arch}/credential-secret-service`),
+    "packed archive lacks the selected platform's credential helper");
+  const packedManifest = await run("tar", ["-xOf", join(artifacts, artifact), "package/package.json"], { cwd: temporary });
+  expect(packedManifest.code === 0 && !Object.hasOwn(JSON.parse(packedManifest.stdout).scripts ?? {}, "postinstall"),
+    "packed archive still depends on a postinstall script");
+  result = await run("npm", ["install", "--ignore-scripts=true", "--prefer-offline", "--omit=dev", "--prefix", installation, join(artifacts, artifact)], {
     cwd: temporary,
     timeoutMs: 120_000,
   });
@@ -164,6 +204,17 @@ try {
     REVIEW_CONTROL_JSON: JSON.stringify({ capturePath }),
   };
   for (const name of ["TYPESAFE_API_KEY", "OPENAI_API_KEY"]) delete baseEnvironment[name];
+
+  const foreignHelper = join(temporary, "foreign-credential-helper");
+  await writeFile(foreignHelper, Buffer.from([0xcf, 0xfa, 0xed, 0xfe, 0x00, 0x00, 0x00, 0x00]), { mode: 0o700 });
+  await chmod(foreignHelper, 0o700);
+  const unavailableHelper = await invokeSetup(cli, repository, {
+    ...baseEnvironment,
+    REVIEW_CREDENTIAL_HELPER: foreignHelper,
+  }, baseRequest, 6, "foreign native credential helper");
+  expect(unavailableHelper.stages.some((entry) =>
+    entry.stage === "credential" && entry.status === "pending"),
+  "unexecutable credential helper did not produce a bounded setup result");
 
   const handoff = await invokeSetup(cli, repository, baseEnvironment, baseRequest, 6, "noninteractive handoff");
   expect(handoff.status === "needs-user-action", "missing secret/consent did not need user action");
@@ -308,13 +359,53 @@ else if (operation === "probe") console.log('{"status":"available"}');
   expect(interactive.stages.some((stage) => stage.stage === "host-trust" && stage.status === "unknown"), "interactive setup overstated native trust");
   expect(await readFile(vault, "utf8") === marker, "masked credential was not passed to owned storage");
 
+  const pilotRepository = join(temporary, "pilot-repository");
+  const pilotHome = join(temporary, "pilot-codex-home");
+  await mkdir(pilotRepository);
+  await mkdir(pilotHome);
+  result = await run("git", ["init", "--quiet", pilotRepository], { cwd: temporary });
+  expect(result.code === 0, "guided pilot fixture repository initialization failed");
+  const pilotVault = join(stateRoot, "pilot-vault");
+  const pilotState = join(stateRoot, "pilot-consent");
+  const pilotEnvironment = {
+    ...interactiveEnvironment,
+    TEST_SECRET_VAULT: pilotVault,
+    REVIEW_STATE_PATH: pilotState,
+    REVIEW_CREDENTIAL_STATE_PATH: join(stateRoot, "pilot-credential-state.json"),
+  };
+  const pilotMarker = "package-guided-pilot-secret";
+  const pilotCodexExecutable = process.env.REVIEW_PILOT_CODEX_EXECUTABLE ?? codexExecutable;
+  const declinedPilot = await runGuidedPilot(cli, pilotRepository, pilotEnvironment, pilotHome, pilotCodexExecutable, [
+    { prompt: "Install these entries", value: "y" },
+    { prompt: "Jev API key:", value: pilotMarker },
+    { prompt: "Enable review for this repository", value: "n" },
+  ]);
+  expect(declinedPilot.includes(`Jev key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}`),
+    "guided login did not confirm credential storage");
+  expect(declinedPilot.includes("No paid verification or review was sent"), "guided login overstated verification");
+  expect(declinedPilot.includes("Repository review remains disabled"), "declined consent was unclear");
+  expect(!declinedPilot.includes(pilotMarker), "guided credential appeared in terminal output");
+  expect(await readFile(pilotVault, "utf8") === pilotMarker, "guided credential was not saved");
+  const approvedPilot = await runGuidedPilot(cli, pilotRepository, pilotEnvironment, pilotHome, pilotCodexExecutable, [
+    { prompt: "Enable review for this repository", value: "y" },
+  ]);
+  expect(approvedPilot.includes("Offline readiness: unknown"), "guided pilot overstated native trust");
+  expect(approvedPilot.includes("native trust or hook review prompt"), "guided pilot omitted trust handoff");
+  expect(!approvedPilot.includes(pilotMarker), "guided rerun disclosed saved credential");
+  const pilotHooks = JSON.parse(await readFile(join(pilotHome, "hooks.json"), "utf8"));
+  expect(pilotHooks.hooks.PostToolUse.length === 1, "guided rerun duplicated the owned hook");
+  const invalidLogin = await runGuidedPilot(cli, pilotRepository, pilotEnvironment, pilotHome, pilotCodexExecutable, [
+    { prompt: "Jev API key:", value: "" },
+  ], `${quote(cli)} --login`, 6);
+  expect(invalidLogin.includes("Enter a nonempty Jev key"), "interactive invalid login omitted a concrete recovery step");
+
   await assertNoProviderCall(capturePath);
   process.stdout.write(`${JSON.stringify({
     version: 1,
     operation: "setup-package-conformance",
     status: "passed",
     providerCalls: 0,
-    journeys: ["noninteractive-handoff", "interruption-resume", "idempotent-repeat", "offline-first-review-demo", "disabled-completion", "interactive-masked-terminal"],
+    journeys: ["noninteractive-handoff", "interruption-resume", "idempotent-repeat", "offline-first-review-demo", "disabled-completion", "interactive-masked-terminal", "guided-pilot"],
   })}\n`);
 } finally {
   await rm(temporary, { recursive: true, force: true });

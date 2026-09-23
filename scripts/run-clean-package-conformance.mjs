@@ -109,7 +109,7 @@ const installLocalPackageVariant = async ({
   const artifactName = (await readdir(artifacts)).find((entry) => entry.endsWith(".tgz"));
   if (artifactName === undefined) throw new Error(`npm pack did not produce the ${version} tarball`);
   const tarball = join(artifacts, artifactName);
-  await mustRun("npm", ["install", "--global=false", "--legacy-peer-deps", "--ignore-scripts=false", "--foreground-scripts", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installation, tarball], {
+  await mustRun("npm", ["install", "--global=false", "--legacy-peer-deps", "--ignore-scripts=true", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installation, tarball], {
     cwd: temporary,
     timeoutMs: 120_000,
   });
@@ -396,8 +396,8 @@ try {
   await mkdir(installation, { recursive: true });
   await mkdir(repository, { recursive: true });
   const sourceManifest = parseJson(await readFile(join(root, "package.json"), "utf8"), "source manifest");
-  if (sourceManifest.scripts?.prepack !== "npm run build" || sourceManifest.scripts?.postinstall !== "node scripts/build-capture-helper.mjs") {
-    throw new Error("source package must declare prepack build and postinstall native-helper lifecycle scripts");
+  if (sourceManifest.scripts?.prepack !== "npm run build" || sourceManifest.scripts?.postinstall !== undefined) {
+    throw new Error("source package must build before packing without an install-time lifecycle script");
   }
   await mustRun("npm", ["pack", "--ignore-scripts=false", "--foreground-scripts", "--pack-destination", artifacts], { cwd: root });
   const artifactEntries = await (await import("node:fs/promises")).readdir(artifacts);
@@ -406,7 +406,7 @@ try {
   const tarball = join(artifacts, artifactName);
   // Force the local layout expected by this fixture. An effective global
   // install silently places package bins under prefix/bin instead.
-  await mustRun("npm", ["install", "--global=false", "--legacy-peer-deps", "--ignore-scripts=false", "--foreground-scripts", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installation, tarball], { cwd: temporary, timeoutMs: 120_000 });
+  await mustRun("npm", ["install", "--global=false", "--legacy-peer-deps", "--ignore-scripts=true", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installation, tarball], { cwd: temporary, timeoutMs: 120_000 });
   const packageDirectory = join(installation, "node_modules", "realtime-review-prototype");
   const binDirectory = join(installation, "node_modules", ".bin");
   const cli = join(binDirectory, "review-tool");
@@ -427,7 +427,7 @@ try {
     }
   }
   const installedManifest = parseJson(await readFile(join(packageDirectory, "package.json"), "utf8"), "installed manifest");
-  for (const documentation of ["README.md", "docs/codex-installation.md", "docs/status.md", "docs/installed-release-compatibility.md"]) {
+  for (const documentation of ["README.md", "docs/codex-installation.md", "docs/codex-pilot-quickstart.md", "docs/status.md", "docs/installed-release-compatibility.md"]) {
     const contents = await readFile(join(packageDirectory, documentation), "utf8");
     if (contents.trim().length === 0) throw new Error(`packaged documentation is empty: ${documentation}`);
   }
@@ -454,9 +454,17 @@ try {
     if (dependencyTree.dependencies?.[forbidden] !== undefined) throw new Error(`development dependency installed: ${forbidden}`);
   }
 
-  const doctorRun = await mustRun(doctor, [], { cwd: temporary });
+  const wrongNodeDirectory = join(temporary, "wrong-node-path");
+  await mkdir(wrongNodeDirectory);
+  await writeFile(join(wrongNodeDirectory, "node"), "#!/bin/sh\nexit 91\n", { mode: 0o700 });
+  const launcherEnvironment = { ...process.env, PATH: `${wrongNodeDirectory}:${process.env.PATH ?? ""}` };
+  const doctorRun = await mustRun(doctor, [], { cwd: temporary, env: launcherEnvironment });
   const doctorResult = parseJson(doctorRun.stdout, "package doctor");
   if (doctorResult.status !== "ready") throw new Error("package doctor did not report ready");
+  if (doctorResult.checks.find((check) => check.name === "runtime")?.observed !== process.version) {
+    throw new Error("package doctor used the shell's Node instead of the packaged runtime");
+  }
+  await mustRun(cli, ["--help"], { cwd: temporary, env: launcherEnvironment });
   const missingCommands = await run(process.execPath, [doctorSource], { cwd: temporary, env: { ...process.env, PATH: join(temporary, "missing-path") } });
   const missingCommandDiagnosis = parseJson(missingCommands.stdout, "package doctor missing-command diagnosis");
   if (missingCommands.code !== 1 || !["git"].every((name) => missingCommandDiagnosis.checks.some((check) => check.name === name && check.status === "unsupported" && typeof check.action === "string"))) {
@@ -551,7 +559,7 @@ else if (operation === "get") {
         "-w", secondaryCredential, secondaryTestKeychainPath,
       ], { cwd: temporary, env });
       if (addSecondary.code !== 0) throw new Error("secondary Keychain fixture credential could not be created");
-      const helper = join(packageDirectory, "dist", "native", "credential-secret-service");
+      const helper = join(packageDirectory, "native", "prebuilt", `${process.platform}-${process.arch}`, "credential-secret-service");
       const beforeReplacement = await mustRun(helper, ["get"], { cwd: temporary, env });
       if (!beforeReplacement.stdout.endsWith(syntheticCredential) || beforeReplacement.stdout.includes(secondaryCredential)) {
         throw new Error("native lookup escaped the selected default Keychain");
@@ -655,8 +663,10 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   });
   const installPreview = parseJson(installPreviewRun.stdout, "installation preview");
   const ownedPreview = installPreview.proposal?.ownedChanges;
+  const packagedRuntime = join(installation, "node_modules",
+    process.platform === "darwin" ? "node-bin-darwin-arm64" : "node-linux-arm64", "bin", "node");
   if (installPreview.status !== "preview" || installPreview.sourceEgressAuthorized !== false ||
-      !Array.isArray(installPreview.proposal?.changes) || ownedPreview?.runtime?.executable !== process.execPath ||
+      !Array.isArray(installPreview.proposal?.changes) || ownedPreview?.runtime?.executable !== packagedRuntime ||
       typeof ownedPreview?.runtime?.entrypoint !== "string" || ownedPreview?.feature?.key !== "hooks" ||
       ownedPreview?.feature?.value !== true || ownedPreview?.hook?.matcher !== "^(apply_patch|Edit|Write|Bash)$" ||
       ownedPreview?.hook?.handlers?.[0]?.timeout !== 10 ||
@@ -1162,7 +1172,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
     await mustRun(activeCli, ["--login", "--credential-stdin"], {
       cwd: temporary, env, input: `${syntheticCredential}\n`,
     });
-    const installedHelper = join(packageDirectory, "dist", "native", "credential-secret-service");
+    const installedHelper = join(packageDirectory, "native", "prebuilt", `${process.platform}-${process.arch}`, "credential-secret-service");
     if (process.platform === "linux") {
       await mustRun(installedHelper, ["lock"], { cwd: temporary, env });
     } else if (process.platform === "darwin") {

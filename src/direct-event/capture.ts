@@ -38,10 +38,7 @@ const readOnceDarwin = async (
   hooks: CaptureHooks,
   expectedRoot: PhysicalRootIdentity | undefined,
 ): Promise<{ readonly bytes: Buffer; readonly metadata: string; readonly hash: string }> => {
-  const sourceHelper = new URL("../native/capture-open", import.meta.url);
-  const helper = existsSync(fileURLToPath(sourceHelper))
-    ? fileURLToPath(sourceHelper)
-    : fileURLToPath(new URL("../../dist/native/capture-open", import.meta.url));
+  const helper = fileURLToPath(new URL("../../native/prebuilt/darwin-arm64/capture-open", import.meta.url));
   if (!existsSync(helper)) throw new Error("macOS descriptor capture helper is unavailable");
   const { stdout } = await execFileAsync(helper, [
     root,

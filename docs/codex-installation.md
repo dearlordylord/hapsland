@@ -1,5 +1,10 @@
 # Codex installation lifecycle
 
+For a person using a normal Codex profile, start with the
+[pilot quickstart](./codex-pilot-quickstart.md) and `review-tool --pilot`. The JSON operations
+below remain the versioned automation interface. `review-tool` is a provisional pilot command,
+not the product name or the Jev backend name.
+
 After installation, diagnose the selected host and repository without mutation or a
 provider call:
 
@@ -14,6 +19,17 @@ resident, changes Codex configuration, or calls Jev.
 
 The packaged `review-tool` CLI exposes versioned, noninteractive JSON operations for the
 declared Codex CLI 0.155.1 and 0.156.0 / Node 24.20.0 installed profiles on Linux arm64 and macOS arm64.
+Its public commands select an exact platform Node runtime from installed optional dependencies,
+independently of the shell's Node version. Install with optional dependencies enabled.
+The archive carries prebuilt native helpers and parser bindings for each declared profile. Installation does not run
+the product's lifecycle scripts or require a compiler; `npm install --ignore-scripts=true` is a
+supported path. Release assembly uses the helper sources and platform build hosts. If a helper
+is missing or cannot start, setup and doctor report recovery instead of claiming credential
+readiness.
+Release assembly builds and probes the native helpers and parser bindings on each declared
+platform. The resulting `native/prebuilt/linux-arm64` and `native/prebuilt/darwin-arm64` trees are
+combined before running `npm run pack:release`, which rejects missing or wrong-architecture
+artifacts. The release archive is then tested with install scripts disabled on both platforms.
 Codex CLI 0.156.0 has a retained authenticated macOS arm64 host run through a controlled offline
 backend. The real Jev first-review milestone is retained for Codex CLI 0.155.1 on Linux arm64
 under the test conditions declared in the installed-release compatibility record.
@@ -201,8 +217,9 @@ printf '%s\n' '{"version":1,"operation":"demo","selection":"preview","codexHome"
   | review-tool --demo
 ```
 
-The preview declares a 4,096-byte source budget, at most two provider calls, and a 180-second
-wall-clock budget. It returns both a live-selection digest and an independent repository-consent
+The preview declares a 4,096-byte budget for the JSON-encoded provider input (declaration source
+plus metadata), at most two provider calls, and a 180-second wall-clock budget. It returns both a
+live-selection digest and an independent repository-consent
 digest for the exact disposable root. Live execution requires both values; an existing grant for
 the current project is never reused. A matching confirmation is consumed atomically before consent
 or budget setup, so concurrent or replayed confirmations cannot start another live execution.

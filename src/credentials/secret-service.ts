@@ -1,7 +1,6 @@
 import { execFileSync, spawn } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import {
-  existsSync,
   mkdirSync,
   readFileSync,
   renameSync,
@@ -58,14 +57,10 @@ const initialState: CredentialState = {
 };
 
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
-const helperCandidates = [
-  resolve(moduleDirectory, "../native/credential-secret-service"),
-  resolve(moduleDirectory, "../../dist/native/credential-secret-service"),
-];
+const packagedHelper = resolve(moduleDirectory, "../../native/prebuilt", `${process.platform}-${process.arch}`, "credential-secret-service");
 
 export const credentialHelperPath = (): string =>
-  process.env.REVIEW_CREDENTIAL_HELPER ?? helperCandidates.find(existsSync) ??
-  resolve(moduleDirectory, "../native/credential-secret-service");
+  process.env.REVIEW_CREDENTIAL_HELPER ?? packagedHelper;
 
 const decodeState = (value: unknown): CredentialState => {
   if (
@@ -328,14 +323,19 @@ export const runSecretService = (
 ): Promise<SecretServiceResult> => new Promise((resolveResult) => {
   let settled = false;
   let termination: "timed-out" | "cancelled" | undefined;
-  const child = spawn(
+  const startHelper = () => spawn(
     credentialHelperPath(),
     options.allowInteraction === true ? [operation, "--allow-interaction"] : [operation],
-    {
-    stdio: ["pipe", "pipe", "ignore"],
-    env: process.env,
-    },
+    { stdio: ["pipe", "pipe", "ignore"], env: process.env },
   );
+  let child: ReturnType<typeof startHelper>;
+  try {
+    child = startHelper();
+  } catch {
+    // A foreign native binary can throw synchronously on some Node/OS pairs.
+    resolveResult({ status: "unavailable" });
+    return;
+  }
   const chunks: Array<Buffer> = [];
   let total = 0;
   const finish = (result: SecretServiceResult) => {

@@ -314,7 +314,7 @@ export const executeInstalledCodexDemo: DemoExecutor = async (options) => {
     "exec", "--ephemeral", "--json",
     ...(testSandboxBypass
       ? ["--dangerously-bypass-approvals-and-sandbox"]
-      : ["--approve-for-me", "--sandbox", "workspace-write"]),
+      : ["--approve-for-me"]),
     ...(testModel === undefined ? [] : ["--model", testModel]),
     "-C", options.root, prompt,
   ], { env: environment, timeout: hostTimeoutMs, maxBuffer: 2 * 1024 * 1024 }).then(
@@ -466,7 +466,15 @@ export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
     yield* Effect.promise(() => cleanFixture(options.statePath, record));
     return { version: 1 as const, operation: "demo" as const, status: "cleaned" as const, cleaned: true as const, providerCalls: 0 as const };
   }
-  const currentProposal = yield* consent.preview(record.root, DEFAULT_BACKEND, DEFAULT_DESTINATION);
+  const currentProposalResult = yield* consent.preview(record.root, DEFAULT_BACKEND, DEFAULT_DESTINATION).pipe(Effect.result);
+  if (currentProposalResult._tag === "Failure") {
+    return {
+      version: 1 as const, operation: "demo" as const, status: "conflict" as const,
+      reason: "demo preview is no longer available", liveSelected: false as const,
+      paidVerificationPerformed: false as const, providerCalls: 0 as const,
+    };
+  }
+  const currentProposal = currentProposalResult.success;
   if (request.selectionDigest !== record.selectionDigest || request.consentProposalDigest !== currentProposal.digest) {
     return {
       version: 1 as const, operation: "demo" as const, status: "proposal-mismatch" as const,
