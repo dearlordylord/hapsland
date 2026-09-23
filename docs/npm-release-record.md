@@ -15,14 +15,27 @@ gate; those are supporting evidence for different artifacts.
 | Field | Current state |
 | --- | --- |
 | Version | Proposed `0.1.0` |
-| Release commit | Pending clean, reviewed commit |
-| Registry tarball SHA-256 and integrity | Pending |
+| Release candidate commit | `4e3bb940e0ea1c067b7b06921a80c211b95bf363` (review pending) |
+| Local candidate tarball SHA-256 | `e9596448723f4cd4eda61134d943d9c0ccdf5ece0a6016923fcb2fabd4c90216` (two packs matched) |
+| Registry tarball SHA-256 and integrity | Pending publication and registry retrieval |
 | npm publish identity and provenance | Pending |
+| Linux arm64 local candidate installation | Passed production-only package conformance and user-prefix installation with scripts disabled and shell Node 22.22.2; packaged Node 24.20.0 reported by doctor |
 | Linux arm64 published-artifact installation and native host run | Pending |
 | macOS arm64 published-artifact installation and native host run | Pending |
 | Exact Codex/OS/architecture/Node compatibility statement | Pending published-artifact evidence |
 | Separately budgeted real Jev first-value run | Pending exact-artifact authorization and evidence |
 | Known-good rollback version | Pending first successful release |
+
+The local package conformance replay passed parser, CLI, resident, controlled
+offline review, update recovery, disable, logout, and scoped uninstall with an
+independent hook preserved. Type checking and native architecture checks passed.
+The full offline test suite had 426 passing and one timing test timeout at its
+five-second limit; the affected nine-test file passed on a targeted rerun.
+The local candidate audit found 105 tarball files and matched all seven native
+artifacts to the candidate commit. These observations do not establish macOS
+execution or a registry install. The controlled offline backend and bundled
+evaluation corpus are compiled into the CLI; release review must confirm they
+are acceptable runtime features rather than development fixtures.
 
 Release assembly must start from a clean, reviewed commit. Build native helpers
 and tree-sitter bindings on their target platforms, pin their bytes in that
