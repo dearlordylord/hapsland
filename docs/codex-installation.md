@@ -14,7 +14,9 @@ resident, changes Codex configuration, or calls Jev.
 
 The packaged `review-tool` CLI exposes versioned, noninteractive JSON operations for the
 declared Codex CLI 0.155.1 and 0.156.0 / Node 24.20.0 installed profiles on Linux arm64 and macOS arm64.
-Codex CLI 0.156.0 is a compatibility candidate until an authenticated host run is retained.
+Codex CLI 0.156.0 has a retained authenticated macOS arm64 host run through a controlled offline
+backend. The real Jev first-review milestone is retained for Codex CLI 0.155.1 on Linux arm64
+under the test conditions declared in the installed-release compatibility record.
 The direct-event capture envelope remains narrower where documented. Every request is supplied on
 stdin and every result is a single version-1 JSON object on stdout.
 Exit code 0 covers successful previews, completed operations, and idempotent no-ops. Code 2 is

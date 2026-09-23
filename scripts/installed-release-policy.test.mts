@@ -11,7 +11,8 @@ const manifest: InstalledReleaseManifest = {
   schemaVersion: 1,
   subject: { assembledCommit: "f2f47e94cd2d90cf73062f07c5e61416218e2f13", publication: "not-selected" },
   targetProfiles: ["linux", "darwin"].map((operatingSystem) => ({
-    operatingSystem, architecture: "arm64", node: "v24.20.0", codex: "codex-cli 0.155.1",
+    operatingSystem, architecture: "arm64", node: "v24.20.0",
+    codex: operatingSystem === "darwin" ? "codex-cli 0.156.0" : "codex-cli 0.155.1",
   })),
   ordinaryReplay: { node: "v24.20.0", setupJourneys: ["headless", "interactive"] },
   evidence: ["linux", "darwin"].map((operatingSystem) => ({
