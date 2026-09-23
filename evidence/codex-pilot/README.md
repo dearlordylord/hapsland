@@ -31,4 +31,12 @@ synthetic file. Resident activity completed clear with zero findings; the indepe
 passed. The retained [sanitized Mac record](./macos-arm64-codex-0.156.0-2026-09-23.json) reports
 that provider-call and source-byte counts were not independently measured. It establishes the
 observed clear-review path under those conditions, not Mac finding delivery or an independently
-metered Jev request. No second Mac edit or paid attempt was made.
+metered Jev request. No second edit or paid attempt was made in that earlier run.
+
+The later [script-free Mac pilot record](./script-free-macos-arm64-2026-09-23.json) covers a new
+archive assembled with macOS and Linux arm64 native files. The owner installed it with lifecycle
+scripts disabled, and package doctor found all ten checks ready. In the isolated Codex profile,
+the owner accepted the native hook review and made one ordinary TypeScript edit. The corrected
+status query reported repository consent and credentials ready, plus one resident `clear` event
+with zero findings. Provider-call and source-byte counts were not independently measured, and no
+positive finding or model repair is claimed for this new archive.
