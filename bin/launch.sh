@@ -2,10 +2,10 @@
 set -eu
 
 case "${0##*/}" in
-  realtime-review|review-tool) entry=dist/cli.js ;;
-  review-tool-doctor) entry=dist/package-doctor.js ;;
-  review-tool-parser) entry=dist/parser-main.js ;;
-  review-tool-resident) entry=dist/resident/main.js ;;
+  jevs) entry=dist/cli.js ;;
+  jevs-doctor) entry=dist/package-doctor.js ;;
+  jevs-parser) entry=dist/parser-main.js ;;
+  jevs-resident) entry=dist/resident/main.js ;;
   *) echo "Unknown review integration command." >&2; exit 2 ;;
 esac
 
@@ -25,9 +25,9 @@ case "$(uname -s)/$(uname -m)" in
   *) echo "This review integration package does not support this OS and architecture." >&2; exit 2 ;;
 esac
 
-runtime="$package_root/../$runtime_package/bin/node"
+runtime="$package_root/node_modules/$runtime_package/bin/node"
 if [ ! -x "$runtime" ]; then
-  runtime="$package_root/node_modules/$runtime_package/bin/node"
+  runtime="$package_root/../../$runtime_package/bin/node"
 fi
 if [ ! -x "$runtime" ]; then
   echo "The review integration runtime is missing. Reinstall the package with optional dependencies enabled." >&2

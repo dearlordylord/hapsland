@@ -278,14 +278,14 @@ export const runSetup = Effect.fn("Setup.run")(function* (
                 ? "replace-invalid-credential"
                 : "recover-credential-storage",
           action: cancelled
-            ? "rerun setup interactively or run review-tool --login in a user terminal"
+            ? "rerun setup interactively or run jevs --login in a user terminal"
             : indeterminate
-              ? "run review-tool --logout to resolve the uncertain replacement, then run review-tool --login"
+              ? "run jevs --logout to resolve the uncertain replacement, then run jevs --login"
               : interactiveOutcome.status === "locked"
-                ? "unlock the login keyring, then run review-tool --login"
+                ? "unlock the login keyring, then run jevs --login"
                 : interactiveOutcome.status === "invalid"
-                  ? "run review-tool --login again and enter a nonempty credential"
-                  : "reinstall an archive containing the native helper for this platform if it is missing, or repair native credential storage; then run review-tool --login",
+                  ? "run jevs --login again and enter a nonempty credential"
+                  : "reinstall an archive containing the native helper for this platform if it is missing, or repair native credential storage; then run jevs --login",
         });
         pending.push(indeterminate ? "reconcile suspended saved credential use" : "complete saved credential login");
       } else if (resolution.status === "present") {

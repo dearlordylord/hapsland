@@ -181,7 +181,7 @@ try {
     timeoutMs: 120_000,
   });
   expect(result.code === 0, `packed install failed: ${result.stderr || result.stdout}`);
-  const cli = join(installation, "node_modules", ".bin", "review-tool");
+  const cli = join(installation, "node_modules", ".bin", "jevs");
 
   result = await run("git", ["init", "--quiet", repository], { cwd: temporary });
   expect(result.code === 0, `fixture repository initialization failed: ${result.stderr}`);

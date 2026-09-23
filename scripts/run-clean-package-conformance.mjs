@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { access, chmod, copyFile, cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
@@ -8,6 +9,11 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const runtimeDeclaration = JSON.parse(await readFile(join(root, "package-runtime.json"), "utf8"));
 const executeRealCodex = process.argv.includes("--real-codex");
 const writeEvidence = process.argv.includes("--write-evidence");
+const registryArtifact = process.argv.includes("--registry-artifact");
+const expectedSha256 = process.argv.find((argument) => argument.startsWith("--expected-sha256="))?.slice("--expected-sha256=".length);
+if (registryArtifact && !/^[0-9a-f]{64}$/.test(expectedSha256 ?? "")) {
+  throw new Error("registry conformance requires --expected-sha256=REVIEWED_ARCHIVE_SHA256");
+}
 const exerciseSecretService = !process.argv.includes("--skip-credential-lifecycle") && (process.argv.includes("--secret-service") || process.platform === "darwin");
 const exerciseCredentialFixture = process.argv.includes("--credential-fixture");
 const exerciseCredentialLifecycle = exerciseSecretService || exerciseCredentialFixture;
@@ -27,7 +33,7 @@ if (executeRealCodex) {
     child.once("error", reject);
     child.once("close", (code) => resolveRun({ code, version: stdout.trim() }));
   });
-  const compatible = runtimeDeclaration.codex?.compatibleVersions ?? ["0.155.1"];
+  const compatible = process.platform === "linux" ? ["0.155.1"] : ["0.156.0"];
   selectedCodexVersion = /^codex-cli (\d+\.\d+\.\d+)$/.exec(result.version)?.[1];
   if (result.code !== 0 || !compatible.includes(selectedCodexVersion)) {
     throw new Error(`authenticated real Codex validation requires ${compatible.map((version) => `codex-cli ${version}`).join(" or ")}; found ${result.version || "unavailable"}. Select a declared Codex CLI version before running this command.`);
@@ -117,7 +123,7 @@ const installLocalPackageVariant = async ({
     version,
     residentProtocol,
     tarball,
-    cli: join(installation, "node_modules", ".bin", "review-tool"),
+    cli: join(installation, "node_modules", ".bin", "jevs"),
   };
 };
 
@@ -399,22 +405,28 @@ try {
   if (sourceManifest.scripts?.prepack !== "npm run build" || sourceManifest.scripts?.postinstall !== undefined) {
     throw new Error("source package must build before packing without an install-time lifecycle script");
   }
-  await mustRun("npm", ["pack", "--ignore-scripts=false", "--foreground-scripts", "--pack-destination", artifacts], { cwd: root });
+  await mustRun("npm", registryArtifact
+    ? ["pack", "@jevs/jevs@0.1.0", "--ignore-scripts=true", "--registry=https://registry.npmjs.org/", "--pack-destination", artifacts]
+    : ["pack", "--ignore-scripts=false", "--foreground-scripts", "--pack-destination", artifacts], { cwd: root });
   const artifactEntries = await (await import("node:fs/promises")).readdir(artifacts);
   const artifactName = artifactEntries.find((entry) => entry.endsWith(".tgz"));
   if (artifactName === undefined) throw new Error("npm pack did not produce a tarball");
   const tarball = join(artifacts, artifactName);
+  const artifactSha256 = createHash("sha256").update(await readFile(tarball)).digest("hex");
+  if (registryArtifact && artifactSha256 !== expectedSha256) {
+    throw new Error(`registry archive SHA-256 differs from reviewed artifact: ${artifactSha256}`);
+  }
   // Force the local layout expected by this fixture. An effective global
   // install silently places package bins under prefix/bin instead.
   await mustRun("npm", ["install", "--global=false", "--legacy-peer-deps", "--ignore-scripts=true", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installation, tarball], { cwd: temporary, timeoutMs: 120_000 });
   const packageDirectory = join(installation, "node_modules", sourceManifest.name);
   const binDirectory = join(installation, "node_modules", ".bin");
-  const cli = join(binDirectory, "review-tool");
+  const cli = join(binDirectory, "jevs");
   let activeCli = cli;
-  const parser = join(binDirectory, "review-tool-parser");
-  const doctor = join(binDirectory, "review-tool-doctor");
+  const parser = join(binDirectory, "jevs-parser");
+  const doctor = join(binDirectory, "jevs-doctor");
   const doctorSource = join(packageDirectory, "dist", "package-doctor.js");
-  for (const [name, path] of [["realtime-review", join(binDirectory, "realtime-review")], ["review-tool", cli], ["review-tool-parser", parser], ["review-tool-doctor", doctor]]) {
+  for (const [name, path] of [["jevs", cli], ["jevs-parser", parser], ["jevs-doctor", doctor]]) {
     try {
       await access(path);
     } catch {
@@ -1280,7 +1292,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   const evidence = {
     schemaVersion: 1,
     recordedAt: new Date().toISOString(),
-    package: { name: installedManifest.name, version: installedManifest.version, artifact: basename(tarball) },
+    package: { name: installedManifest.name, version: installedManifest.version, artifact: basename(tarball), source: registryArtifact ? "npm-registry" : "local-pack", sha256: artifactSha256 },
     environment: { node: process.version, operatingSystem: process.platform, architecture: process.arch },
     ...(process.env.GITHUB_RUN_ID === undefined ? {} : {
       continuousIntegration: {
