@@ -13,7 +13,7 @@ distribution channel. This repository does not publish one to a registry.
 1. Install the archive for your user, then enter the Git repository you want to review:
 
    ```sh
-   npm install --global ./realtime-review-prototype-0.0.0.tgz
+   npm install --global --ignore-scripts=false --foreground-scripts ./realtime-review-prototype-0.0.0.tgz
    cd /path/to/your/repository
    review-tool --pilot
    ```
