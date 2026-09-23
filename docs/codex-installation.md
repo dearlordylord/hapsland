@@ -1,9 +1,10 @@
 # Codex installation lifecycle
 
 For a person using a normal Codex profile, start with the
-[pilot quickstart](./codex-pilot-quickstart.md) and `review-tool --pilot`. The JSON operations
-below remain the versioned automation interface. `review-tool` is a provisional pilot command,
-not the product name or the Jev backend name.
+[npm quickstart](./npm-quickstart.md) and `realtime-review --pilot` after the
+registry release. The JSON operations below remain the versioned automation
+interface. `review-tool` remains a pilot-compatible alias; neither command
+is the Jev backend name.
 
 After installation, diagnose the selected host and repository without mutation or a
 provider call:

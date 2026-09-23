@@ -118,13 +118,13 @@ try {
   }), "packed release installation");
   const invokedCli = join(installPrefix, "node_modules", ".bin", "review-tool");
   cli = await realpath(invokedCli);
-  const installedPackageRoot = await realpath(join(installPrefix, "node_modules", "realtime-review-prototype"));
+  const installedPackageRoot = await realpath(join(installPrefix, "node_modules", "realtime-review"));
   const resolvedCli = await realpath(cli);
   if (resolvedCli !== installedPackageRoot && !resolvedCli.startsWith(`${installedPackageRoot}${sep}`)) {
     throw new Error("invoked CLI does not resolve inside the installed packed artifact");
   }
   const packageManifest = JSON.parse(await readFile(resolve(dirname(resolvedCli), "../package.json"), "utf8"));
-  if (packageManifest.name !== "realtime-review-prototype") {
+  if (packageManifest.name !== "realtime-review") {
     throw new Error("installed CLI package identity did not match the packed release");
   }
 

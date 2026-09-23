@@ -108,10 +108,12 @@ and resident and do not download packages per edit.
 The packaged CLI's preview/install/enable/disable/uninstall contract, ownership rules, recovery
 behavior, and native trust handoff are documented in
 [`docs/codex-installation.md`](./docs/codex-installation.md).
-For an owner-approved interactive pilot, use the one-page
-[`Codex pilot quickstart`](./docs/codex-pilot-quickstart.md). `review-tool` remains a provisional
-command; the product is unnamed and Jev is the external backend.
-After setup completes, that guide also documents the separate `review-tool --demo` preview and
+For the proposed registry release, use the
+[`Codex npm quickstart`](./docs/npm-quickstart.md). The public command is
+`realtime-review`; `review-tool` remains a pilot-compatible alias. The product
+is unnamed and Jev is the external backend. The registry release is pending
+the [release record](./docs/npm-release-record.md).
+After setup completes, the [pilot guide](./docs/codex-pilot-quickstart.md) also documents the separate `review-tool --demo` preview and
 live-confirmation flow. Its default preview is offline; the paid run requires explicit fixed
 budgets and a new consent digest for a generated disposable repository.
 

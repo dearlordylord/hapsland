@@ -1436,15 +1436,15 @@ const runCredentialCommand = async (): Promise<Readonly<Record<string, unknown>>
 
 const isCredentialCommand = process.argv.includes("--login") || process.argv.includes("--logout");
 const printHelp = () => {
-  process.stdout.write(`review-tool — Codex review integration pilot
+  process.stdout.write(`realtime-review — Codex review integration
 
-  review-tool --pilot                Guided opt-in setup in a terminal
-  review-tool --login                Save a Jev key with masked entry
-  review-tool --doctor               Offline readiness check (JSON request on stdin)
-  review-tool --disable              Revoke repository review (JSON request on stdin)
-  review-tool --logout               Remove the saved Jev key
+  realtime-review --pilot            Guided opt-in setup in a terminal
+  realtime-review --login            Save a Jev key with masked entry
+  realtime-review --doctor           Offline readiness check (JSON request on stdin)
+  realtime-review --disable          Revoke repository review (JSON request on stdin)
+  realtime-review --logout           Remove the saved Jev key
 
-The product is unnamed; review-tool is a provisional pilot command. Installation
+The product is unnamed; review-tool remains a pilot-compatible alias. Installation
 does not permit sending source. --pilot asks separately before enabling a repository.
 For automation, use the versioned --setup operation documented in docs/codex-installation.md.
 `);
