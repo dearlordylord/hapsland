@@ -7,31 +7,62 @@ error. User defaults are read from
 `~/.config/realtime-review-tool/config.jsonc`. There is no nested directory
 inheritance and no automatic `.gitignore` loading.
 
-Both documents have `{"version": 1}` and may contain `//` or `/* ... */` comments
+Both documents are versioned JSONC and may contain `//` or `/* ... */` comments
 and trailing commas. Unknown fields, duplicate object keys, unsupported versions,
 malformed values, absolute/traversing patterns, and negated patterns are errors.
 The editor-completion artifact is [`../schemas/review-config-v1.schema.json`](../schemas/review-config-v1.schema.json).
 This phase does not publish a hosted schema URL: copy that file into an
 editor-accessible installation/configuration directory and point `$schema` at the
-copy (the example below assumes a source checkout with `schemas/` at the project
-root).
+copy. The schema assists editors with structural JSON; the runtime also parses
+JSONC and applies semantic glob, rule-pack, and repository-policy checks.
+
+<!-- configuration-guide:start -->
+
+## Configuration example
 
 ```jsonc
 {
-  "$schema": "./schemas/review-config-v1.schema.json",
   "version": 1,
-  "includes": ["src/**"],       // omitted means inherit; [] means select none
-  "excludes": ["**/*.secret.ts"],
-  "privacyExcludes": ["private/**"],
-  "credentialEnvVar": "TYPESAFE_API_KEY",
-  "settings": {
-    "deadlineMs": 1000,
-    "concurrency": 4,
-    "adviceBudget": 5,
-    "transientRetries": 2
-  },
+  "includes": [
+    "src/**"
+  ]
 }
 ```
+
+## Configuration fields
+
+| Field | Type and bounds | Presence | Default | Description |
+|---|---|---|---|---|
+| `version` | fixed value 1 | Required | — | Configuration wire-format version. |
+| `$schema` | string | Optional | — | Optional editor schema location. It does not change runtime validation. |
+| `includes` | array of non-empty string | Optional | — | Optional repository-relative file patterns. Omission inherits the lower-precedence list; an empty array selects no paths. |
+| `includes[]` | non-empty string | Required | — | A non-empty repository-relative glob pattern using forward slashes. |
+| `excludes` | array of non-empty string | Optional | — | Additional repository-relative exclusions. Exclusions accumulate across configuration layers and always win. |
+| `excludes[]` | non-empty string | Required | — | A non-empty repository-relative glob pattern using forward slashes. |
+| `privacyExcludes` | array of non-empty string | Optional | — | Additional protected-path exclusions. These accumulate and cannot be overridden by lower-privacy layers. |
+| `privacyExcludes[]` | non-empty string | Required | — | A non-empty repository-relative glob pattern using forward slashes. |
+| `credentialEnvVar` | string matching a pattern | Optional | "TYPESAFE_API_KEY" | Name of the environment variable that supplies the review credential. Store the secret value outside configuration. |
+| `settings` | object | Optional | — | Optional whole-file JSON request controls. Omitted layer values inherit; built-in values apply when no layer supplies a value. |
+| `settings.deadlineMs` | integer (1–60000) | Optional | 1000 | Per-file deadline in milliseconds for whole-file JSON requests. |
+| `settings.concurrency` | integer (1–32) | Optional | 4 | Maximum concurrently reviewed files for whole-file JSON requests. |
+| `settings.adviceBudget` | integer (0–100) | Optional | 5 | Maximum findings delivered for a whole-file JSON request event. |
+| `settings.transientRetries` | integer (0–5) | Optional | 2 | Additional retry attempts for transient backend failures in the whole-file JSON request path. |
+| `packs` | array of non-empty string or object with `path` or object with `id` | Optional | — | Local rule-pack path declarations or references to packs inherited from lower-precedence layers. Bundled Noul loads independently. |
+| `packs[]` | non-empty string or object with `path` or object with `id` | Required | — | A path declaration or an inherited pack identity; object forms contain exactly one locator. |
+| `packs[].path` | non-empty string | Required (path form) | — | Local rule-pack path; relative paths resolve from the originating configuration file. |
+| `packs[].enabled` | boolean | Optional | — | Optional enablement override. Omission inherits an existing pack's state and enables a newly declared pack. |
+| `packs[].id` | non-empty string | Required (id form) | — | Identity of a rule pack declared in a lower-precedence configuration layer. |
+| `ruleOverrides` | map of object | Optional | — | Map of qualified rule IDs to layer-specific overrides. Use pack-id/rule-id for local packs. |
+| `ruleOverrides.<key>` | object | Required | — | Layer-specific activation, path filters, threshold, and advice message for one qualified rule ID. |
+| `ruleOverrides.<key>.enabled` | boolean | Optional | — | Whether this rule is enabled in this configuration layer. |
+| `ruleOverrides.<key>.includes` | array of non-empty string | Optional | — | Additional rule path filters; they intersect global file selection. |
+| `ruleOverrides.<key>.includes[]` | non-empty string | Required | — | A non-empty repository-relative glob pattern using forward slashes. |
+| `ruleOverrides.<key>.excludes` | array of non-empty string | Optional | — | Rule-specific path exclusions; they cannot restore globally excluded paths. |
+| `ruleOverrides.<key>.excludes[]` | non-empty string | Required | — | A non-empty repository-relative glob pattern using forward slashes. |
+| `ruleOverrides.<key>.threshold` | number (0–1) | Optional | — | Probability threshold from 0 through 1. Omission inherits the rule-pack threshold. |
+| `ruleOverrides.<key>.message` | non-empty string | Optional | — | Advice text to use for this rule; omission keeps the rule-pack message. |
+
+<!-- configuration-guide:end -->
 
 Policy layers are built-in, user, then project. A supplied include list replaces the
 lower-precedence list; exclusions accumulate, and any exclusion wins. Thus a project
@@ -54,29 +85,15 @@ any selected source is sent to Jev.
 
 Local packs use [`../schemas/review-rule-pack-v1.schema.json`](../schemas/review-rule-pack-v1.schema.json):
 
-```jsonc
-{
-  "version": 1,
-  "packs": [
-    { "path": "./review-rules.jsonc" }
-  ],
-  "ruleOverrides": {
-    "team/rule-id": {
-      "enabled": true,
-      "includes": ["src/**"],
-      "excludes": ["src/generated/**"],
-      "threshold": 0.8,
-      "message": "Explain this finding in the project vocabulary."
-    }
-  }
-}
-```
-
 The pack file declares a schema version, stable ID, exact content version, and
 binary rules. `question` and the `true`/`false` criteria are authored content;
 configuration can change only activation, path filters, threshold, and advice
 message. A rule's qualified ID is `pack-id/rule-id` (the legacy Noul keys remain
 bare for version-1 process compatibility).
+
+<!-- rule-pack-guide:start -->
+
+### Rule-pack example
 
 ```jsonc
 {
@@ -85,19 +102,46 @@ bare for version-1 process compatibility).
   "contentVersion": "1.0.0",
   "rules": [
     {
-      "id": "rule-id",
-      "question": "Does the reviewed artifact contain the named problem?",
+      "id": "meaningful-combinations",
+      "question": "Does the artifact make an invalid state representable?",
       "criteria": {
-        "false": "The problem is absent or the evidence is insufficient.",
-        "true": "The named problem is present in the artifact."
+        "false": "Every representable state has a domain meaning.",
+        "true": "The artifact admits a state with no domain meaning."
       },
-      "threshold": 0.7,
-      "message": "Review the named problem in this file.",
-      "applicability": { "includes": ["src/**"] }
+      "message": "Review this declaration's representable states.",
+      "applicability": {
+        "includes": [
+          "src/**"
+        ]
+      }
     }
   ]
 }
 ```
+
+### Rule-pack fields
+
+| Field | Type and bounds | Presence | Default | Description |
+|---|---|---|---|---|
+| `schemaVersion` | fixed value 1 | Required | — | Rule-pack wire-format version. |
+| `id` | non-empty string | Required | — | Stable pack identity; it cannot contain separators or whitespace. |
+| `contentVersion` | non-empty string | Required | — | Authored content version, independent of the wire schema version. |
+| `rules` | array of object | Required | — | Rules declared by this pack. Rule identities must be unique within the pack. |
+| `rules[]` | object | Required | — | One declarative rule in a rule pack. |
+| `rules[].id` | non-empty string | Required | — | Stable rule identity within this pack; it cannot contain separators or whitespace. |
+| `rules[].question` | non-empty string | Required | — | Question evaluated against the available review input. |
+| `rules[].criteria` | object | Required | — | String-valued evidence criteria for both probability outcomes. |
+| `rules[].criteria.false` | non-empty string | Required | — | Text rendered when the evaluated criterion is false. |
+| `rules[].criteria.true` | non-empty string | Required | — | Text rendered when the evaluated criterion is true. |
+| `rules[].threshold` | number (0–1) | Optional | 0.7 | Probability threshold from 0 through 1. Omission uses the built-in rule threshold. |
+| `rules[].message` | non-empty string | Required | — | Authored advice text attached to a qualifying result. |
+| `rules[].applicability` | object | Optional | — | Rule-level path filters, intersected with global file selection. |
+| `rules[].applicability.includes` | array of non-empty string | Optional | — | Optional repository-relative patterns a path must match for this rule to apply. |
+| `rules[].applicability.includes[]` | non-empty string | Required | — | A non-empty repository-relative glob pattern using forward slashes. |
+| `rules[].applicability.excludes` | array of non-empty string | Optional | — | Optional repository-relative patterns that prevent this rule from applying. |
+| `rules[].applicability.excludes[]` | non-empty string | Required | — | A non-empty repository-relative glob pattern using forward slashes. |
+
+<!-- rule-pack-guide:end -->
 
 Each `packs` entry is either a path that declares a local pack or an inherited pack
 `id`; an object must not provide both locators (or neither).
@@ -136,46 +180,45 @@ boundary, sensitive names (`.env`, credentials, secret/key/certificate files),
 generated/lock and vendor/build directories, configured source extensions, regular
 files, symlink containment, and the 256 KiB snapshot limit.
 
-## Runtime limits
+## Runtime behavior
 
-Runtime settings are finite integers with these inclusive bounds and defaults:
+The generated field table describes accepted settings and their bounds. The
+whole-file JSON request path in `src/runtime/review.ts` consumes these configured
+controls. The resident direct-event path uses a fixed 15,000 ms deadline and a
+dispatch capacity of 2; it does not consume the configured runtime settings.
 
-| Setting | Bounds | Default | Meaning |
-|---|---:|---:|---|
-| `deadlineMs` | 1–60,000 ms | 1,000 ms | Per-file backend deadline, including retries and retry backoff |
-| `concurrency` | 1–32 files | 4 | Maximum concurrently reviewed files in one event |
-| `adviceBudget` | 0–100 items | 5 | Maximum findings delivered for the complete edit event |
-| `transientRetries` | 0–5 retries | 2 | Additional transient backend attempts after the initial attempt |
+For whole-file JSON requests, each transient retry waits 50 ms after the preceding
+failed attempt. The retry delay is fixed. A timeout interrupts the current attempt
+or backoff, so an exhausted retry sequence cannot continue past the per-file
+deadline. Retries repeat only the captured review request; they never replay or
+undo the already-completed host edit.
 
-The retry algorithm is fixed: each retry waits 50 ms after the preceding failed
-attempt. It is intentionally not configurable. A timeout interrupts the current
-attempt or backoff, so an exhausted retry sequence cannot continue past the
-per-file deadline. Retries repeat only the captured review request; they never
-replay or undo the already-completed host edit.
+The CLI process or its host wrapper also has a process timeout. When using the
+whole-file JSON request path, configure that timeout above the selected
+`deadlineMs` with room for process startup, snapshot reads, and response delivery;
+a lower wrapper timeout can terminate the request first. The configured values
+bound waiting, parallelism, findings, and attempted requests on the whole-file
+path; they do not guarantee a monetary spend ceiling. A provider may count each
+initial request and retry independently, and the review backend can apply its own
+billing or rate limits.
 
-The product deadline is per file, while the host hook also has its own process
-timeout. Configure the host timeout above the selected `deadlineMs` with room for
-process startup, snapshot reads, and response delivery; a host timeout lower than
-the product deadline can terminate the hook first. These limits bound waiting,
-parallelism, findings, and attempted requests; they do not guarantee a monetary
-spend ceiling. A provider may count each initial request and retry independently,
-and the review backend can apply its own billing or rate limits.
-
-For each event, the resolved settings and file-selection policy are captured once.
-Consent is checked immediately before dispatch, and the file is reread before any
-finding is delivered. A changed file produces an unavailable stale-snapshot result.
-Eligible questions for one file are sent as one logical batch per attempt. Results
-from all files are combined, sorted by probability (then path and rule ID), and
-only then truncated to the single event-wide advice budget. Duplicate paths in an
-event and duplicate event/snapshot deliveries do not duplicate advice.
+For the whole-file path, resolved settings and file-selection policy are captured
+once per event. Consent is checked immediately before dispatch, and the file is
+reread before any finding is delivered. A changed file produces an unavailable
+stale-snapshot result. Eligible questions for one file are sent as one logical
+batch per attempt. Results from all files are combined, sorted by probability
+(then path and rule ID), and only then truncated to the single event-wide advice
+budget. Duplicate paths in an event and duplicate event/snapshot deliveries do
+not duplicate advice.
 
 Credentials are references only. The value is read from the named environment
 variable at dispatch and is never persisted, printed, or included in diagnostics.
-Consent remains a separate user-owned grant; `consent` and `enabled` fields are
-accepted for compatibility but cannot authorize source transmission.
+Repository consent remains a separate user-owned grant. The configuration schema
+rejects `consent` and `enabled` fields; configuration cannot authorize source
+transmission.
 
-The version-1 review request/response process contract is unchanged. A selected
-configuration failure returns the existing `unavailable` result with
+The version-1 whole-file JSON request/response process contract is unchanged. A
+selected configuration failure on that path returns the existing `unavailable` result with
 `code: "invalid_configuration"` for each requested path; it never dispatches a
 backend request and never changes the already-completed edit. Configuration capture
 and explanation use the same policy digest. Shared fixture, configuration-case,

@@ -9,6 +9,7 @@ import {
   resolveConfiguration,
 } from "../configuration/resolve.ts";
 import type { ConfigurationCapture } from "../configuration/types.ts";
+import { DEFAULT_CREDENTIAL_ENV_VAR } from "../configuration/types.ts";
 import { compileRules, type CompiledRule } from "../rules/compiler.ts";
 import { loadRulePacksEffect } from "../rules/loader.ts";
 import { configuredRules } from "../policy/rules.ts";
@@ -23,7 +24,7 @@ import {
 export const DEFAULT_BACKEND = JEV_BACKEND;
 export const DEFAULT_API_BASE = JEV_API_BASE;
 export const DEFAULT_DESTINATION = JEV_DESTINATION;
-export const DEFAULT_CREDENTIAL_ENV_VAR = "TYPESAFE_API_KEY";
+export { DEFAULT_CREDENTIAL_ENV_VAR };
 
 /** Compatibility error for callers of the pre-#10 runtime configuration API. */
 export class ReviewConfigError extends Schema.TaggedError<ReviewConfigError>()(
@@ -36,8 +37,6 @@ export interface ReviewSettings {
   readonly apiBase: typeof DEFAULT_API_BASE;
   readonly destination: Destination;
   readonly credentialEnvVar: string;
-  /** A project may request consent, but this value is never an authorization grant. */
-  readonly projectRequestedConsent: boolean;
   /** Captured once for the event and shared by explanation and runtime selection. */
   readonly configuration: ConfigurationCapture;
   /** Fully validated, captured rule set. Omitted by legacy in-memory callers. */
@@ -54,15 +53,11 @@ const settingsFrom = (
   rules: ReadonlyArray<CompiledRule> = configuredRules,
 ): ReviewSettings => {
   const policy = capture.policy;
-  const project = policy.layers.find((layer) => layer.name === "project");
-  const projectRequestedConsent =
-    Boolean(project?.document.consent) || Boolean(project?.document.enabled);
   return {
     backend: DEFAULT_BACKEND,
     apiBase: DEFAULT_API_BASE,
     destination: DEFAULT_DESTINATION,
     credentialEnvVar: policy.credentialEnvVar.value,
-    projectRequestedConsent,
     configuration: capture,
     rules,
   };

@@ -405,9 +405,10 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
       env: { ...process.env, REVIEW_STATE_PATH: statePath },
     });
     expect(JSON.parse(projectAuthorization.stdout).results[0]).toMatchObject({
-      status: "skipped",
-      code: "missing_consent",
+      status: "unavailable",
+      code: "invalid_configuration",
     });
+    rmSync(join(root, ".review.jsonc"));
     const previewAgain = spawnSync(process.execPath, ["src/cli.ts", "--enable"], {
       cwd: process.cwd(),
       input: JSON.stringify({ version: 1, operation: "enable", cwd: root }),
@@ -431,8 +432,8 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
     });
     expect(JSON.parse(enableAgain.stdout)).toMatchObject({
       backend: { destination: "https://api.typesafe.ai/v1/systemone" },
-      projectAuthorizationIgnored: true,
     });
+    expect(JSON.parse(enableAgain.stdout)).not.toHaveProperty("projectAuthorizationIgnored");
     const approvedAgain = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
       cwd: process.cwd(),
       input: request("approved-again"),

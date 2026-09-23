@@ -38,6 +38,8 @@ describe("configuration v1 decoding", () => {
   it.each([
     ["unsupported version", '{"version":2}', "version"],
     ["unknown field", '{"version":1,"nope":true}', "nope"],
+    ["configuration cannot grant consent", '{"version":1,"consent":true}', "consent"],
+    ["configuration cannot enable review", '{"version":1,"enabled":true}', "enabled"],
     ["invalid environment reference", '{"version":1,"credentialEnvVar":"secret"}', "credentialEnvVar"],
     ["undocumented credential object", '{"version":1,"credentials":{"envVar":"ALT_KEY"}}', "credentials"],
     ["credential value", '{"version":1,"credentials":{"value":"secret"}}', "credentials"],
@@ -52,6 +54,7 @@ describe("configuration v1 decoding", () => {
     ["traversal include", '{"version":1,"includes":["../src/**"]}', "includes[0]"],
     ["reversed glob range", '{"version":1,"includes":["[z-a]"]}', "includes[0]"],
     ["removed rule surface", '{"version":1,"rules":{"r2_meaningless_combinations":{"threshold":0.8}}}', "rules"],
+    ["array rule override shorthand", '{"version":1,"ruleOverrides":[{"ruleId":"team/check","enabled":true}]}', "ruleOverrides"],
   ])("reports bounded errors for %s", (_label, text, field) => {
     try {
       decodeConfigurationText(text, "project.jsonc");
@@ -84,6 +87,13 @@ describe("configuration v1 decoding", () => {
         expect.objectContaining({ field }),
       );
     }
+  });
+
+  it("accepts fractional rule-override thresholds from the Effect schema", () => {
+    expect(decodeConfigurationText(
+      '{"version":1,"ruleOverrides":{"team/check":{"threshold":0.5}}}',
+      "fractional.jsonc",
+    ).ruleOverrides).toEqual({ "team/check": { threshold: 0.5 } });
   });
 });
 
