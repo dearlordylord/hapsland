@@ -25,7 +25,9 @@
     "repair": "independently validated",
     "followUpReview": "completed after validated repair",
     "disposableRootRemoved": true,
-    "consentRevoked": true
+    "consentRevoked": true,
+    "temporaryResidentStopped": true,
+    "temporaryResidentRootRemoved": true
   },
   "independentRequestMeter": {
     "residentGuardLoads": 2,
