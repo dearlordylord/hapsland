@@ -19,6 +19,10 @@
         "vitest": "5.0.1",
         "zod": "4.6.5",
       },
+      "optionalDependencies": {
+        "node-bin-darwin-arm64": "24.20.0",
+        "node-linux-arm64": "24.20.0",
+      },
     },
   },
   "packages": {
@@ -172,7 +176,11 @@
 
     "node-addon-api": ["node-addon-api@8.9.2", "", {}, "sha512-VijLXbi3UACN69I0JVXJsX4tjACjNoQDgv2gTF6sx2wWEi8tkSg2eX8p5gSIFi8z2+DL3oHmY6OyKce38SDolg=="],
 
+    "node-bin-darwin-arm64": ["node-bin-darwin-arm64@24.20.0", "", { "os": "darwin", "cpu": "arm64", "bin": { "node": "bin/node" } }, "sha512-Val/IFAkAsPAESOcUWyBClLFvKSOCMJdZ+nBqd2uCL3Bu8R+M2RBt10hYuBadcq1VxZwt+eN1fizpY7ZDUbzOg=="],
+
     "node-gyp-build": ["node-gyp-build@4.8.4", "", { "bin": { "node-gyp-build": "bin.js", "node-gyp-build-optional": "optional.js", "node-gyp-build-test": "build-test.js" } }, "sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ=="],
+
+    "node-linux-arm64": ["node-linux-arm64@24.20.0", "", { "os": "linux", "cpu": "arm64", "bin": { "node": "bin/node" } }, "sha512-LDOiQuLlruQpQRp0ddfGZurc1xqYSlX3dYk/3shzhQfCb8IgCPwtWf1RMQCGAWGFhZNbhihhSwGeNRHA+V2pTg=="],
 
     "obug": ["obug@2.2.1", "", {}, "sha512-XrsrhT5sybtKI6wakr2SPOlGZWWYbUXZ7a0jT8/QOeAPau+1X/bSegNe5YR75oJmEZQbKningirmGOEJCIk61Q=="],
 

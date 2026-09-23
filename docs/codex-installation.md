@@ -19,6 +19,8 @@ resident, changes Codex configuration, or calls Jev.
 
 The packaged `review-tool` CLI exposes versioned, noninteractive JSON operations for the
 declared Codex CLI 0.155.1 and 0.156.0 / Node 24.20.0 installed profiles on Linux arm64 and macOS arm64.
+Its public commands select an exact platform Node runtime from installed optional dependencies,
+independently of the shell's Node version. Install with optional dependencies enabled.
 The archive carries prebuilt native helpers and parser bindings for each declared profile. Installation does not run
 the product's lifecycle scripts or require a compiler; `npm install --ignore-scripts=true` is a
 supported path. Release assembly uses the helper sources and platform build hosts. If a helper

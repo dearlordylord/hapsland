@@ -75,8 +75,10 @@ resident process, and offline package doctor. The tested installed profile is ex
 Git and a packaged `openat` capture helper. The macOS controlled package path and authenticated
 Codex CLI 0.156.0 host cell are verified. Other operating systems and architectures are
 unsupported. After installing the tarball, run
-`review-tool-doctor` for source-free compatibility checks and recovery actions. Installation
-may fetch production dependencies once; the no-script installation does not compile native code.
+`review-tool-doctor` for source-free compatibility checks and recovery actions. The public commands
+use an installed, platform-specific Node 24.20.0 runtime, so the shell's Node version does not
+select the review runtime. Installation may fetch production dependencies, including that runtime,
+once; keep optional dependencies enabled. The no-script installation does not compile native code.
 Hook invocations use the installed CLI
 and resident and do not download packages per edit.
 
