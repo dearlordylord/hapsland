@@ -34,7 +34,7 @@
     "./resident": "./dist/resident/main.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && node scripts/build-capture-helper.mjs",
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.build.json && node scripts/build-capture-helper.mjs",
     "prepack": "npm run build",
     "verify:release-native": "node scripts/verify-native-release.mjs",
     "pack:release": "npm run build && npm run verify:release-native && npm pack --ignore-scripts=true",
