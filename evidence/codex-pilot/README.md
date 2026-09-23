@@ -53,3 +53,12 @@ The first [independent-meter startup attempt](./macos-arm64-meter-startup-2026-0
 made no Jev request. Its fresh resident was placed under a test directory whose Unix socket
 path macOS rejected with `EINVAL`. A later offline probe used a shorter private directory;
 the resident started, answered its readiness request, and loaded the independent guard.
+
+The final [independently metered Mac demo](./macos-arm64-independent-positive-demo-2026-09-23.json)
+used that short resident path. The guard loaded in the resident and counted two real Jev requests,
+both returning HTTP 200. It counted 290 UTF-8 bytes in the two declaration-source fields. The
+product's 641-byte admission count covers the JSON-encoded provider input, including those source
+fields and metadata. The synthetic demo also reported a submitted finding, correlated model
+reaction, independently validated repair, completed follow-up review, and cleanup of consent
+and the disposable repository. No source, credential, response body, transcript, or private path
+is retained in the evidence record.
