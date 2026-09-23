@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "recordType": "sanitized-independent-meter-startup-check",
+  "date": "2026-09-23",
+  "profile": {
+    "platform": "darwin",
+    "architecture": "arm64",
+    "codexCli": "0.156.0",
+    "installedRuntime": "24.20.0"
+  },
+  "liveAttempt": {
+    "status": "inconclusive",
+    "paidVerificationPerformed": false,
+    "hostFailure": "host-error",
+    "providerCalls": 0,
+    "sourceBytes": 0,
+    "independentRequestsRecorded": 0,
+    "independentResidentGuardLoads": 55,
+    "residentStartupError": "Unix socket bind EINVAL under an overlong test directory",
+    "disposableRootRemoved": true,
+    "consentRevoked": true
+  },
+  "offlineProbeAfterShorteningPath": {
+    "residentReady": true,
+    "guardLoaded": true,
+    "socketPathBytes": 44,
+    "stderrBytes": 0,
+    "paidVerificationPerformed": false
+  },
+  "retained": {
+    "source": false,
+    "credential": false,
+    "providerResponse": false,
+    "privatePaths": false,
+    "consentDigests": false,
+    "codexTranscript": false
+  }
+}
