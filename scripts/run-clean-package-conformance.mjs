@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
-import { access, chmod, copyFile, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { access, chmod, copyFile, cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -664,10 +664,11 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   const installPreview = parseJson(installPreviewRun.stdout, "installation preview");
   const ownedPreview = installPreview.proposal?.ownedChanges;
   const runtimePackage = process.platform === "darwin" ? "node-bin-darwin-arm64" : "node-linux-arm64";
-  const packagedRuntimes = [
+  const runtimePaths = [
     join(installation, "node_modules", runtimePackage, "bin", "node"),
     join(packageDirectory, "node_modules", runtimePackage, "bin", "node"),
   ];
+  const packagedRuntimes = [...runtimePaths, ...await Promise.all(runtimePaths.map((path) => realpath(path).catch(() => path)))];
   const previewChecks = {
     preview: installPreview.status === "preview",
     disabled: installPreview.sourceEgressAuthorized === false,
@@ -682,7 +683,10 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   };
   const failedPreviewChecks = Object.entries(previewChecks).filter(([, passed]) => !passed).map(([name]) => name);
   if (failedPreviewChecks.length > 0) {
-    throw new Error(`packaged installation preview did not expose exact source-free changes: ${failedPreviewChecks.join(", ")}`);
+    const runtimeLocation = typeof ownedPreview?.runtime?.executable === "string"
+      ? relative(installation, ownedPreview.runtime.executable)
+      : "missing";
+    throw new Error(`packaged installation preview did not expose exact source-free changes: ${failedPreviewChecks.join(", ")} (runtime relative to installation: ${runtimeLocation})`);
   }
   const installRun = await mustRun(cli, ["--install"], {
     cwd: temporary,
