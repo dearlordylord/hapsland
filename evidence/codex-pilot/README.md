@@ -60,5 +60,6 @@ both returning HTTP 200. It counted 290 UTF-8 bytes in the two declaration-sourc
 product's 641-byte admission count covers the JSON-encoded provider input, including those source
 fields and metadata. The synthetic demo also reported a submitted finding, correlated model
 reaction, independently validated repair, completed follow-up review, and cleanup of consent
-and the disposable repository. No source, credential, response body, transcript, or private path
+and the disposable repository. The temporary measurement resident was subsequently stopped and
+removed. No source, credential, response body, transcript, or private path
 is retained in the evidence record.
