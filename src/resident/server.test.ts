@@ -63,13 +63,14 @@ const allFindingsDispatch = (statePath: string): ResidentDispatchContext => ({
 
 const singleFindingDispatch = findingDispatch;
 
-// Keep the physical path below Darwin's 1 KiB PATH_MAX while retaining enough
-// repeated identifier bytes to exercise the same materialization ceiling.
-const longNestedPath = `${Array.from({ length: 8 }, (_, index) =>
-  `segment-${index}-${"x".repeat(88)}`).join("/")}/types.ts`;
+// Darwin's PATH_MAX requires shorter real paths. Linux keeps the original
+// >2 KiB path so its response-envelope assertion still crosses that boundary.
+const longNestedPath = process.platform === "darwin"
+  ? `${Array.from({ length: 8 }, (_, index) => `segment-${index}-${"x".repeat(88)}`).join("/")}/types.ts`
+  : `${Array.from({ length: 14 }, (_, index) => `segment-${index}-${"x".repeat(180)}`).join("/")}/types.ts`;
 
 const mutuallyReferencingTypes = () => Array.from({ length: 17 }, (_, index) => {
-  const typeName = (target: number) => `Type${target}${"n".repeat(100)}`;
+  const typeName = (target: number) => `Type${target}${process.platform === "darwin" ? "n".repeat(100) : ""}`;
   const fields = Array.from({ length: 17 }, (_unused, target) => target === index
     ? undefined
     : `p${target}: ${typeName(target)}`).filter((value) => value !== undefined).join("; ");
