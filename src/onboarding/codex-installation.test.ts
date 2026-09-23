@@ -56,6 +56,7 @@ const localPackage = (root: string, version: string, residentProtocol = 1) => {
   writeFileSync(join(packageRoot, "package-runtime.json"), `${JSON.stringify({
     schemaVersion: 1,
     runtime: { name: "node", version: process.version.slice(1) },
+    codex: { compatibleVersions: ["0.155.1", "0.156.0"] },
     profiles: [{ operatingSystem: process.platform, architecture: process.arch }],
     residentProtocol,
   }, null, 2)}\n`);
@@ -163,6 +164,18 @@ const spawnOperation = (operation: Record<string, unknown>, env: NodeJS.ProcessE
 };
 
 describe("public Codex installation operations", { timeout: 30_000 }, () => {
+  it("accepts Codex 0.156.0 and binds its version into the owned hook", () => {
+    const { root, home, bin } = fixture();
+    writeFileSync(bin, "#!/bin/sh\nprintf 'codex-cli 0.156.0\\n'\n", { mode: 0o700 });
+    const entrypoint = localPackage(root, "0.0.0");
+    const environment = { ...process.env, REVIEW_INSTALL_ENTRYPOINT: entrypoint };
+    const preview = invoke({ operation: "install-preview", codexHome: home, codexExecutable: bin }, environment);
+    expect(preview.status).toBe("preview");
+    const proposal = preview.proposal as { digest: string; ownedChanges: { hook: { handlers: Array<{ command: string }> } } };
+    expect(proposal.ownedChanges.hook.handlers[0]?.command).toContain("--codex-version=0.156.0");
+    expect(invoke({ operation: "install", codexHome: home, codexExecutable: bin, proposalDigest: proposal.digest }, environment).status).toBe("installed");
+    expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain("--codex-version=0.156.0");
+  });
   it("previews exact changes, quotes paths, installs idempotently, and preserves unrelated configuration", () => {
     const { root, home, bin } = fixture();
     const quotedEntrypoint = join(root, "packaged path 'quoted'", "cli.js");

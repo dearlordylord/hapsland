@@ -257,7 +257,9 @@ const evidence = {
 if (writeEvidence) {
   const directory = resolve(projectRoot, "evidence/first-review");
   await mkdir(directory, { recursive: true });
-  await writeFile(resolve(directory, "live-installed-codex-0.155.1.json"), `${JSON.stringify(evidence, null, 2)}\n`, { mode: 0o600 });
+  const version = /^codex-cli (\d+\.\d+\.\d+)$/.exec(codexVersion ?? "")?.[1];
+  if (version === undefined) throw new Error("installed first-review Codex version is unavailable");
+  await writeFile(resolve(directory, `live-installed-codex-${version}.json`), `${JSON.stringify(evidence, null, 2)}\n`, { mode: 0o600 });
 }
 process.stdout.write(`${JSON.stringify(evidence, null, 2)}\n`);
 if (evidence.status !== "passed") process.exitCode = 1;

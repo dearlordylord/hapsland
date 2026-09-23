@@ -48,9 +48,11 @@ validated repaired source. This instrumentation has passed offline tests but has
 historical live result. These are required cells, so either gap blocks a release-ready verdict.
 
 For authenticated macOS package validation, run `node scripts/run-clean-package-conformance.mjs
---real-codex --write-evidence` with Node 24.20.0 and Codex CLI 0.155.1 selected. The runner
-checks both versions before packing or creating its isolated Keychain fixture. Other versions
-require a separate compatibility target and evidence; their runs do not fill the required cell.
+--real-codex --write-evidence` with Node 24.20.0 and a declared Codex CLI version selected.
+The runner accepts 0.155.1 and 0.156.0, checks versions before packing or creating its isolated
+Keychain fixture, and writes a separate evidence file for each real-host version. The retained
+release manifest still binds only the earlier 0.155.1 profile; a 0.156.0 result needs review
+before that required compatibility cell can be marked verified.
 
 ## Setup-effort evidence
 

@@ -102,7 +102,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
     expect(readFileSync(path, "utf8")).toBe(content);
   });
 
-  it("routes a native controlled-writer Codex Add through direct-event stdout", () => {
+  const checkNativeControlledWriterAdd = (hostVersion: "0.155.1" | "0.156.0") => {
     const root = mkdtempSync(join(tmpdir(), "review-cli-direct-add-"));
     roots.push(root);
     const statePath = initializeRepository(root);
@@ -142,6 +142,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
       "--codex-hook",
       "--controlled-writer",
       "--controlled",
+      `--codex-version=${hostVersion}`,
     ], {
       cwd: process.cwd(),
       input: JSON.stringify(input),
@@ -159,11 +160,11 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
       tool_use_id: "later-tool",
       tool_input: { command: "true" },
     };
-    let later = spawnSync(process.execPath, ["src/cli.ts", "--codex-hook", "--controlled"], {
+    let later = spawnSync(process.execPath, ["src/cli.ts", "--codex-hook", "--controlled", `--codex-version=${hostVersion}`], {
       cwd: process.cwd(), input: JSON.stringify(bash), encoding: "utf8", env: residentEnv,
     });
     for (let attempt = 0; attempt < 20 && JSON.parse(later.stdout).hookSpecificOutput === undefined; attempt++) {
-      later = spawnSync(process.execPath, ["src/cli.ts", "--codex-hook", "--controlled"], {
+      later = spawnSync(process.execPath, ["src/cli.ts", "--codex-hook", "--controlled", `--codex-version=${hostVersion}`], {
         cwd: process.cwd(), input: JSON.stringify(bash), encoding: "utf8", env: residentEnv,
       });
     }
@@ -177,6 +178,14 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
     expect(later.stdout).not.toContain("submission attempted");
     expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(1);
     expect(readFileSync(path, "utf8")).toBe("type OrderCount = number\n");
+  };
+
+  it("routes a native controlled-writer Codex Add through direct-event stdout", () => {
+    checkNativeControlledWriterAdd("0.155.1");
+  });
+
+  it("routes a native controlled-writer Codex 0.156.0 Add through direct-event stdout", () => {
+    checkNativeControlledWriterAdd("0.156.0");
   });
 
   it("claims unsupported native apply_patch events without legacy review work", () => {

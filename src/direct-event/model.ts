@@ -4,9 +4,14 @@ import type { CompiledRule } from "../rules/compiler.ts";
 export const DIRECT_EVENT_INPUT_CONTRACT =
   "direct-event/same-file-named-types/v1" as const;
 
+export const CODEX_HOST_VERSIONS = ["0.155.1", "0.156.0"] as const;
+export type CodexHostVersion = typeof CODEX_HOST_VERSIONS[number];
+export const isCodexHostVersion = (value: unknown): value is CodexHostVersion =>
+  typeof value === "string" && CODEX_HOST_VERSIONS.some((version) => version === value);
+
 export type DirectRecipient = {
   readonly host: "codex-cli";
-  readonly hostVersion: "0.155.1";
+  readonly hostVersion: CodexHostVersion;
   readonly sessionId: string;
   readonly turnId: string;
   readonly toolUseId: string;

@@ -4,7 +4,7 @@ import * as Schema from "effect/Schema";
 import { randomUUID } from "node:crypto";
 import { access, appendFile, chmod, rm, writeFile } from "node:fs/promises";
 import { createServer, type Server, type Socket } from "node:net";
-import { canonicalValue, type DirectObservation, type DirectRecipient } from "../direct-event/model.ts";
+import { canonicalValue, isCodexHostVersion, type DirectObservation, type DirectRecipient } from "../direct-event/model.ts";
 import {
   evaluatePrepared,
   encodedPreparedProviderInputBytes,
@@ -236,7 +236,7 @@ const logicalBytes = (value: unknown): number =>
   Buffer.byteLength(canonicalValue(value), "utf8");
 
 const addressableRecipient = (recipient: DirectRecipient): boolean =>
-  recipient.host === "codex-cli" && recipient.hostVersion === "0.155.1" &&
+  recipient.host === "codex-cli" && isCodexHostVersion(recipient.hostVersion) &&
   recipient.sessionId.length > 0 && recipient.turnId.length > 0 && recipient.toolUseId.length > 0;
 
 const noticeReservationBytes = (key: string, partition: string): number => logicalBytes({
