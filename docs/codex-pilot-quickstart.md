@@ -5,8 +5,10 @@ name yet; Jev is the external review backend. Keeping the existing command avoid
 installed hook and ownership fingerprints during this small pilot. A later public name can be
 chosen with an explicit migration.
 
-Use a declared profile: Node 24.20.0 and Codex CLI 0.155.1 on Linux arm64, or Node 24.20.0 and
-Codex CLI 0.156.0 on macOS arm64. See [exact compatibility](./installed-release-compatibility.md)
+Use a declared profile: Codex CLI 0.155.1 on Linux arm64 or Codex CLI 0.156.0 on macOS arm64.
+The installed command selects its own Node 24.20.0 runtime; the shell's Node version does not
+select the review runtime. Keep npm optional dependencies enabled so the platform runtime is
+installed, even when lifecycle scripts are disabled. See [exact compatibility](./installed-release-compatibility.md)
 for the evidence and limits of each profile. Obtain the pilot package archive through the pilot
 distribution channel. This repository does not publish one to a registry.
 The archive carries native helpers and parser bindings for the declared profiles. Installation does not compile code

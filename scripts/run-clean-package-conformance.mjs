@@ -454,9 +454,17 @@ try {
     if (dependencyTree.dependencies?.[forbidden] !== undefined) throw new Error(`development dependency installed: ${forbidden}`);
   }
 
-  const doctorRun = await mustRun(doctor, [], { cwd: temporary });
+  const wrongNodeDirectory = join(temporary, "wrong-node-path");
+  await mkdir(wrongNodeDirectory);
+  await writeFile(join(wrongNodeDirectory, "node"), "#!/bin/sh\nexit 91\n", { mode: 0o700 });
+  const launcherEnvironment = { ...process.env, PATH: `${wrongNodeDirectory}:${process.env.PATH ?? ""}` };
+  const doctorRun = await mustRun(doctor, [], { cwd: temporary, env: launcherEnvironment });
   const doctorResult = parseJson(doctorRun.stdout, "package doctor");
   if (doctorResult.status !== "ready") throw new Error("package doctor did not report ready");
+  if (doctorResult.checks.find((check) => check.name === "runtime")?.observed !== process.version) {
+    throw new Error("package doctor used the shell's Node instead of the packaged runtime");
+  }
+  await mustRun(cli, ["--help"], { cwd: temporary, env: launcherEnvironment });
   const missingCommands = await run(process.execPath, [doctorSource], { cwd: temporary, env: { ...process.env, PATH: join(temporary, "missing-path") } });
   const missingCommandDiagnosis = parseJson(missingCommands.stdout, "package doctor missing-command diagnosis");
   if (missingCommands.code !== 1 || !["git"].every((name) => missingCommandDiagnosis.checks.some((check) => check.name === name && check.status === "unsupported" && typeof check.action === "string"))) {
@@ -655,8 +663,10 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   });
   const installPreview = parseJson(installPreviewRun.stdout, "installation preview");
   const ownedPreview = installPreview.proposal?.ownedChanges;
+  const packagedRuntime = join(installation, "node_modules",
+    process.platform === "darwin" ? "node-bin-darwin-arm64" : "node-linux-arm64", "bin", "node");
   if (installPreview.status !== "preview" || installPreview.sourceEgressAuthorized !== false ||
-      !Array.isArray(installPreview.proposal?.changes) || ownedPreview?.runtime?.executable !== process.execPath ||
+      !Array.isArray(installPreview.proposal?.changes) || ownedPreview?.runtime?.executable !== packagedRuntime ||
       typeof ownedPreview?.runtime?.entrypoint !== "string" || ownedPreview?.feature?.key !== "hooks" ||
       ownedPreview?.feature?.value !== true || ownedPreview?.hook?.matcher !== "^(apply_patch|Edit|Write|Bash)$" ||
       ownedPreview?.hook?.handlers?.[0]?.timeout !== 10 ||
