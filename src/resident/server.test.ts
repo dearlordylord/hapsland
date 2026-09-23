@@ -63,14 +63,17 @@ const allFindingsDispatch = (statePath: string): ResidentDispatchContext => ({
 
 const singleFindingDispatch = findingDispatch;
 
-const longNestedPath = `${Array.from({ length: 14 }, (_, index) =>
-  `segment-${index}-${"x".repeat(180)}`).join("/")}/types.ts`;
+// Keep the physical path below Darwin's 1 KiB PATH_MAX while retaining enough
+// repeated identifier bytes to exercise the same materialization ceiling.
+const longNestedPath = `${Array.from({ length: 8 }, (_, index) =>
+  `segment-${index}-${"x".repeat(88)}`).join("/")}/types.ts`;
 
 const mutuallyReferencingTypes = () => Array.from({ length: 17 }, (_, index) => {
+  const typeName = (target: number) => `Type${target}${"n".repeat(100)}`;
   const fields = Array.from({ length: 17 }, (_unused, target) => target === index
     ? undefined
-    : `p${target}: Type${target}`).filter((value) => value !== undefined).join("; ");
-  return `interface Type${index} { ${fields} }`;
+    : `p${target}: ${typeName(target)}`).filter((value) => value !== undefined).join("; ");
+  return `interface ${typeName(index)} { ${fields} }`;
 }).join("\n");
 
 const waitUntilIdle = async (server: ResidentServer): Promise<void> => {
@@ -531,7 +534,9 @@ describe("resident delivery lease", () => {
     expect(existsSync(capturePath)).toBe(false);
   });
 
-  it("retains advice when revalidation expansion cannot reserve workspace", async () => {
+  // The response-envelope assertion needs a single relative path over 2 KiB;
+  // Darwin's PATH_MAX prevents creating that fixture as a real filesystem path.
+  it.skipIf(process.platform === "darwin")("retains advice when revalidation expansion cannot reserve workspace", async () => {
     const root = await makeGitFixture();
     const original = "type Type0 = number\n";
     await put(root, longNestedPath, original);

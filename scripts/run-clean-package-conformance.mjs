@@ -8,7 +8,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const runtimeDeclaration = JSON.parse(await readFile(join(root, "package-runtime.json"), "utf8"));
 const executeRealCodex = process.argv.includes("--real-codex");
 const writeEvidence = process.argv.includes("--write-evidence");
-const exerciseSecretService = process.argv.includes("--secret-service") || process.platform === "darwin";
+const exerciseSecretService = !process.argv.includes("--skip-credential-lifecycle") && (process.argv.includes("--secret-service") || process.platform === "darwin");
 const exerciseCredentialFixture = process.argv.includes("--credential-fixture");
 const exerciseCredentialLifecycle = exerciseSecretService || exerciseCredentialFixture;
 if (process.version !== `v${runtimeDeclaration.runtime.version}`) {
@@ -57,7 +57,10 @@ const run = (command, args, options = {}) => new Promise((resolveRun, reject) =>
 });
 const mustRun = async (command, args, options = {}) => {
   const result = await run(command, args, options);
-  if (result.code !== 0) throw new Error(`${command} ${args.join(" ")} failed (${result.code}): ${result.stderr || result.stdout}`);
+  if (result.code !== 0) {
+    const output = [result.stdout, result.stderr].filter((value) => value.trim().length > 0).join("\n").trim();
+    throw new Error(`${command} ${args.join(" ")} failed (${result.code}):${output.length > 0 ? `\n${output}` : " no command output"}`);
+  }
   return result;
 };
 const parseJson = (text, label) => {
@@ -69,6 +72,18 @@ const progress = (stage) => process.stderr.write(`[package-conformance] ${stage}
 const snapshotJsonDirectory = async (path) => {
   const names = (await readdir(path)).filter((name) => name.endsWith(".json")).sort();
   return Promise.all(names.map(async (name) => ({ name, content: await readFile(join(path, name), "utf8") })));
+};
+const readActivityMarkers = async (path) => {
+  const directories = await readdir(path, { withFileTypes: true }).catch(() => []);
+  const records = [];
+  for (const directory of directories.filter((entry) => entry.isDirectory())) {
+    const files = await readdir(join(path, directory.name)).catch(() => []);
+    for (const file of files.filter((name) => name.endsWith(".json"))) {
+      try { records.push(parseJson(await readFile(join(path, directory.name, file), "utf8"), "activity marker")); }
+      catch { /* Ignore partial or malformed source-free activity records. */ }
+    }
+  }
+  return records;
 };
 
 const installLocalPackageVariant = async ({
@@ -88,11 +103,13 @@ const installLocalPackageVariant = async ({
   await writeFile(join(packageSource, "package.json"), `${JSON.stringify({ ...manifest, version }, null, 2)}\n`);
   const runtime = parseJson(await readFile(join(packageSource, "package-runtime.json"), "utf8"), "variant runtime declaration");
   await writeFile(join(packageSource, "package-runtime.json"), `${JSON.stringify({ ...runtime, residentProtocol }, null, 2)}\n`);
-  await mustRun("npm", ["pack", "--ignore-scripts", "--pack-destination", artifacts], { cwd: packageSource });
+  // This is a repack of an installed artifact, which intentionally lacks the
+  // TypeScript build inputs. The primary source package below runs prepack.
+  await mustRun("npm", ["pack", "--ignore-scripts=true", "--pack-destination", artifacts], { cwd: packageSource });
   const artifactName = (await readdir(artifacts)).find((entry) => entry.endsWith(".tgz"));
   if (artifactName === undefined) throw new Error(`npm pack did not produce the ${version} tarball`);
   const tarball = join(artifacts, artifactName);
-  await mustRun("npm", ["install", "--global=false", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installation, tarball], {
+  await mustRun("npm", ["install", "--global=false", "--legacy-peer-deps", "--ignore-scripts=false", "--foreground-scripts", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installation, tarball], {
     cwd: temporary,
     timeoutMs: 120_000,
   });
@@ -261,6 +278,10 @@ class TerminalScreen {
 }
 
 const establishNativeTrust = (codexHome, repository, env) => new Promise((resolveTrust, rejectTrust) => {
+  if (!process.stdin.isTTY) {
+    rejectTrust(new Error("native Codex trust review requires a terminal; rerun real-host conformance from a TTY"));
+    return;
+  }
   const command = `stty rows 24 cols 80; exec ${quote("codex")} --no-alt-screen -C ${quote(repository)}`;
   const scriptArguments = process.platform === "darwin"
     ? ["-q", "/dev/null", "/bin/sh", "-c", command]
@@ -268,7 +289,7 @@ const establishNativeTrust = (codexHome, repository, env) => new Promise((resolv
   const child = spawn("script", scriptArguments, {
     cwd: repository,
     env: { ...env, CODEX_HOME: codexHome, TERM: "xterm-256color" },
-    stdio: ["pipe", "pipe", "pipe"],
+    stdio: ["inherit", "pipe", "pipe"],
   });
   const screen = new TerminalScreen(24, 80);
   let repositorySelected = false;
@@ -290,28 +311,31 @@ const establishNativeTrust = (codexHome, repository, env) => new Promise((resolv
   }, 100);
   const timer = setTimeout(() => {
     child.kill("SIGTERM");
-    rejectTrust(new Error(`Codex native repository/hook trust review timed out (repository prompt: ${repositorySelected ? "accepted" : "not observed"}; repository trust: ${repositoryPersisted ? "persisted" : "missing"}; hook prompt: ${hookSelected ? "observed" : "not observed"}; trust-all choice: ${hookChoiceSelected ? "confirmed" : "not confirmed"}; hook trust: ${hookPersisted ? "persisted" : "missing"})`));
+    const finalScreen = screen.text().replaceAll(repository, "<repository>").replaceAll(codexHome, "<codex-home>").slice(-500);
+    rejectTrust(new Error(`Codex native repository/hook trust review timed out (repository prompt: ${repositorySelected ? "accepted" : "not observed"}; repository trust: ${repositoryPersisted ? "persisted" : "missing"}; hook prompt: ${hookSelected ? "observed" : "not observed"}; trust-all choice: ${hookChoiceSelected ? "confirmed" : "not confirmed"}; hook trust: ${hookPersisted ? "persisted" : "missing"}; screen=${JSON.stringify(finalScreen)})`));
   }, 30_000);
   const observe = (chunk) => {
     screen.feed(chunk);
     terminalProbe = `${terminalProbe}${chunk}`.slice(-32);
     if (!terminalInitialized && terminalProbe.includes("\u001b[6n")) {
       terminalInitialized = true;
-      child.stdin.write("\u001b[24;80R\u001b]10;rgb:ffff/ffff/ffff\u001b\\\u001b]11;rgb:0000/0000/0000\u001b\\\u001b[?1;2c\u001b[?0u");
+      progress("codex-terminal-query-response-needed");
     }
     const rendered = screen.text();
-    if (!repositorySelected && rendered.includes("Do you trust the contents of this directory")) {
+    if (!repositorySelected && (
+      rendered.includes("Do you trust the contents of this directory") ||
+      rendered.includes("Trust this folder?")
+    )) {
       repositorySelected = true;
-      setTimeout(() => child.stdin.write("\r"), 100);
+      progress("native-repository-trust-ready");
     }
     if (!hookSelected && rendered.includes("Hooks need review")) {
       hookSelected = true;
-      // Trust is selection 2 and requires a separate explicit confirmation.
-      setTimeout(() => child.stdin.write("2"), 100);
+      progress("native-hook-trust-review-ready");
     }
     if (hookSelected && !hookChoiceSelected && rendered.includes("› 2. Trust all and continue")) {
       hookChoiceSelected = true;
-      setTimeout(() => child.stdin.write("\r"), 100);
+      progress("native-hook-trust-all-confirmation-ready");
     }
   };
   child.stdout.setEncoding("utf8");
@@ -322,10 +346,10 @@ const establishNativeTrust = (codexHome, repository, env) => new Promise((resolv
     clearInterval(trustPoll);
     rejectTrust(cause);
   });
-  child.once("close", () => {
+  child.once("close", (code, signal) => {
     clearTimeout(timer);
     clearInterval(trustPoll);
-    if (!trusted) rejectTrust(new Error("Codex native repository/hook trust review did not persist trust"));
+    if (!trusted) rejectTrust(new Error(`Codex native repository/hook trust review did not persist trust (exit=${code ?? "signal"}; signal=${signal ?? "none"}; repository-prompt=${repositorySelected}; hook-prompt=${hookSelected}; trust-choice=${hookChoiceSelected}; repository-persisted=${repositoryPersisted}; hook-persisted=${hookPersisted})`));
     else resolveTrust();
   });
 });
@@ -371,14 +395,18 @@ try {
   await mkdir(artifacts, { recursive: true });
   await mkdir(installation, { recursive: true });
   await mkdir(repository, { recursive: true });
-  await mustRun("npm", ["pack", "--pack-destination", artifacts], { cwd: root });
+  const sourceManifest = parseJson(await readFile(join(root, "package.json"), "utf8"), "source manifest");
+  if (sourceManifest.scripts?.prepack !== "npm run build" || sourceManifest.scripts?.postinstall !== "node scripts/build-capture-helper.mjs") {
+    throw new Error("source package must declare prepack build and postinstall native-helper lifecycle scripts");
+  }
+  await mustRun("npm", ["pack", "--ignore-scripts=false", "--foreground-scripts", "--pack-destination", artifacts], { cwd: root });
   const artifactEntries = await (await import("node:fs/promises")).readdir(artifacts);
   const artifactName = artifactEntries.find((entry) => entry.endsWith(".tgz"));
   if (artifactName === undefined) throw new Error("npm pack did not produce a tarball");
   const tarball = join(artifacts, artifactName);
   // Force the local layout expected by this fixture. An effective global
   // install silently places package bins under prefix/bin instead.
-  await mustRun("npm", ["install", "--global=false", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installation, tarball], { cwd: temporary, timeoutMs: 120_000 });
+  await mustRun("npm", ["install", "--global=false", "--legacy-peer-deps", "--ignore-scripts=false", "--foreground-scripts", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installation, tarball], { cwd: temporary, timeoutMs: 120_000 });
   const packageDirectory = join(installation, "node_modules", "realtime-review-prototype");
   const binDirectory = join(installation, "node_modules", ".bin");
   const cli = join(binDirectory, "review-tool");
@@ -557,7 +585,64 @@ else if (operation === "get") {
   await writeFile(fakeCodex, "#!/bin/sh\nprintf 'codex-cli 0.155.1\\n'\n", { mode: 0o700 });
   await chmod(fakeCodex, 0o700);
   const independentHook = join(temporary, "independent-hook.mjs");
-  await writeFile(independentHook, `import { appendFileSync } from "node:fs";\nappendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify({ observed: true }) + "\\n");\n`, { mode: 0o600 });
+  await writeFile(independentHook, `import { appendFileSync, readFileSync, realpathSync } from "node:fs";
+import { isAbsolute, relative, resolve, sep } from "node:path";
+import { pathToFileURL } from "node:url";
+const event = JSON.parse(readFileSync(0, "utf8"));
+const input = event?.tool_input && typeof event.tool_input === "object" ? event.tool_input : {};
+const command = typeof input.command === "string" ? input.command : "";
+const record = { observed: true, sessionId: typeof event?.session_id === "string" ? event.session_id : null, hookEventName: typeof event?.hook_event_name === "string" ? event.hook_event_name : null, toolName: typeof event?.tool_name === "string" ? event.tool_name : null, payloadKeys: Object.keys(event ?? {}).sort(), toolInputKeys: Object.keys(input).sort(), commandBytes: Buffer.byteLength(command), commandEndsWithNewline: command.endsWith("\\n"), parserAccepted: false, observationAccepted: false, candidateOperation: null, targetMatches: false, candidateAbsolute: false, candidateLexicallyWithinRoot: false, candidateRealpathWithinRoot: false, canonicalRootAliasesCandidateParent: false, pathEligible: false, captureAvailable: false, analysisStatus: "not-run", diagnosticError: null, patchStart: command.startsWith("*** Begin Patch\\n"), patchEnd: command.trimEnd().endsWith("*** End Patch"), patchHeaders: command.split("\\n").filter((line) => /^\\*\\*\\* (Add|Update|Delete) File: /.test(line)).length };
+try {
+  if (command.length > 0 && process.env.REVIEW_ADAPTER_MODULE !== undefined) {
+    const adapter = await import(pathToFileURL(process.env.REVIEW_ADAPTER_MODULE).href);
+    record.parserAccepted = adapter.nativeDirectCandidates(command) !== undefined;
+    const Effect = await import(pathToFileURL(process.env.REVIEW_EFFECT_MODULE).href);
+    const adapted = await Effect.runPromise(adapter.adaptCodexDirectEvent(event, "0.156.0"));
+    record.observationAccepted = adapted !== undefined;
+    if (adapted !== undefined) {
+      const candidate = adapted.candidates[0];
+      record.candidateOperation = candidate?.operation ?? null;
+      record.targetMatches = candidate?.path === "installed.ts" || candidate?.path.endsWith("/installed.ts") === true;
+      if (candidate !== undefined) {
+        const candidatePath = candidate.path;
+        const root = adapted.root;
+        record.candidateAbsolute = isAbsolute(candidatePath);
+        const lexical = resolve(root, candidatePath);
+        const lexicalRelative = relative(root, lexical);
+        record.candidateLexicallyWithinRoot = lexicalRelative !== ".." && !lexicalRelative.startsWith(".." + sep) && !isAbsolute(lexicalRelative);
+        try {
+          const canonicalRoot = realpathSync(root);
+          const canonicalCandidate = realpathSync(lexical);
+          const canonicalRelative = relative(canonicalRoot, canonicalCandidate);
+          record.candidateRealpathWithinRoot = canonicalRelative !== ".." && !canonicalRelative.startsWith(".." + sep) && !isAbsolute(canonicalRelative);
+          record.canonicalRootAliasesCandidateParent = canonicalRoot !== root && canonicalCandidate.startsWith(canonicalRoot + sep);
+        } catch {}
+        const selection = await import(pathToFileURL(process.env.REVIEW_SELECTION_MODULE).href);
+        const eligible = await Effect.runPromise(selection.eligibleNamedPath(root, candidatePath, undefined, adapted.rootIdentity));
+        record.pathEligible = eligible !== undefined;
+        if (eligible !== undefined && candidate.operation === "add") {
+          const capture = await import(pathToFileURL(process.env.REVIEW_CAPTURE_MODULE).href);
+          const captured = await Effect.runPromise(capture.captureStable(root, eligible, {}, adapted.rootIdentity));
+          record.captureAvailable = captured !== undefined;
+          if (captured !== undefined) {
+            const analyzer = await import(pathToFileURL(process.env.REVIEW_ANALYZER_MODULE).href);
+            record.analysisStatus = analyzer.analyzeTypeFile(candidatePath, captured.text).status;
+          }
+        }
+      }
+    }
+  }
+} catch (error) {
+  record.diagnosticError = error instanceof Error ? error.name : "unknown";
+}
+const response = event?.tool_response && typeof event.tool_response === "object" ? event.tool_response : {};
+record.responseKeys = Object.keys(response).sort();
+record.responseFailed = response.success === false || response.is_error === true;
+record.controlledInstall = process.env.REVIEW_INSTALL_CONTROLLED === "1";
+record.controlledReviewConfigured = process.env.REVIEW_CONTROL_JSON !== undefined;
+record.residentConfigured = process.env.REVIEW_RESIDENT_DIR !== undefined;
+appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n");
+`, { mode: 0o600 });
   await writeFile(join(codexHome, "config.toml"), "# independent setting\nmodel_reasoning_effort = 'medium'\n", { mode: 0o600 });
   await writeFile(join(codexHome, "hooks.json"), `${JSON.stringify({
     description: "independent fixture hook",
@@ -965,24 +1050,58 @@ else if (operation === "get") {
     }
     const before = submissions;
     const outcomesBefore = jsonLines(await readFile(outcomes, "utf8").catch(() => "")).length;
+    const activityBefore = await readActivityMarkers(activity);
     const independentBefore = jsonLines(await readFile(independentLog, "utf8").catch(() => "")).length;
-    const codexEnv = { ...env, CODEX_HOME: codexHome, INDEPENDENT_HOOK_LOG: independentLog };
+    const codexEnv = {
+      ...env,
+      CODEX_HOME: codexHome,
+      INDEPENDENT_HOOK_LOG: independentLog,
+      REVIEW_ADAPTER_MODULE: join(packageDirectory, "dist", "direct-event", "adapter.js"),
+      REVIEW_EFFECT_MODULE: join(installation, "node_modules", "effect", "dist", "Effect.js"),
+      REVIEW_SELECTION_MODULE: join(packageDirectory, "dist", "direct-event", "selection.js"),
+      REVIEW_CAPTURE_MODULE: join(packageDirectory, "dist", "direct-event", "capture.js"),
+      REVIEW_ANALYZER_MODULE: join(packageDirectory, "dist", "direct-event", "analyzer.js"),
+    };
     realCodexStage = "host-execution";
     const host = await run("codex", [
       "exec", "--ephemeral", "--json",
       "--dangerously-bypass-approvals-and-sandbox", "--ignore-rules", "-C", repository,
       "Use apply_patch exactly once to add installed.ts containing one exported interface named Installed with fields id:string and destination:string. Then use Bash exactly once to run `printf installed-package-ready`. Do not inspect files or make other tool calls.",
     ], { cwd: repository, env: codexEnv, timeoutMs: 120_000 });
-    const after = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
+    const codexEvents = jsonLines(host.stdout);
+    const eventTypes = codexEvents.map((event) => typeof event.type === "string" ? event.type : "unknown");
+    const toolTypes = codexEvents.flatMap((event) => {
+      const item = typeof event.item === "object" && event.item !== null ? event.item : undefined;
+      return typeof item?.type === "string" ? [item.type] : [];
+    });
     let realHostOutcomes = [];
-    for (let attempt = 0; attempt < 20; attempt += 1) {
+    let after = before;
+    for (let attempt = 0; attempt < 100; attempt += 1) {
       realHostOutcomes = jsonLines(await readFile(outcomes, "utf8").catch(() => "")).slice(outcomesBefore);
+      after = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
       if (realHostOutcomes.some(({ outcome }) => outcome === "completed-findings")) break;
-      await new Promise((resolveWait) => setTimeout(resolveWait, 50));
+      await new Promise((resolveWait) => setTimeout(resolveWait, 100));
     }
     const completed = realHostOutcomes.filter(({ outcome }) => outcome === "completed-findings");
     const providerSubmissions = after - before;
-    const independentObservations = jsonLines(await readFile(independentLog, "utf8").catch(() => "")).length - independentBefore;
+    const independentEventRecords = jsonLines(await readFile(independentLog, "utf8").catch(() => "")).slice(independentBefore);
+    const independentObservations = independentEventRecords.length;
+    const nativeSessionId = independentEventRecords.find(({ toolName }) => toolName === "apply_patch")?.sessionId;
+    const hostStatusRun = typeof nativeSessionId === "string"
+      ? await run(activeCli, ["--status"], {
+          cwd: temporary, env: codexEnv,
+          input: JSON.stringify({ version: 1, operation: "status", cwd: repository, sessionId: nativeSessionId }),
+        })
+      : undefined;
+    const hostStatus = hostStatusRun?.code === 0 ? parseJson(hostStatusRun.stdout, "real host session status") : undefined;
+    const hostActivity = hostStatus?.activity;
+    const activityStages = (await readActivityMarkers(activity)).slice(activityBefore.length)
+      .map(({ kind, stage }) => kind === "submission" ? "submitted" : typeof stage === "string" ? stage : "unknown");
+    const independentEvents = jsonLines(await readFile(independentLog, "utf8").catch(() => "")).slice(independentBefore)
+      .map(({ hookEventName, toolName, payloadKeys, toolInputKeys, commandBytes, commandEndsWithNewline, parserAccepted, observationAccepted, candidateOperation, targetMatches, candidateAbsolute, candidateLexicallyWithinRoot, candidateRealpathWithinRoot, canonicalRootAliasesCandidateParent, pathEligible, captureAvailable, analysisStatus, diagnosticError, patchStart, patchEnd, patchHeaders, responseKeys, responseFailed, controlledInstall, controlledReviewConfigured, residentConfigured }) => ({
+        hookEventName, toolName, payloadKeys, toolInputKeys, commandBytes, commandEndsWithNewline, parserAccepted, observationAccepted, candidateOperation, targetMatches, candidateAbsolute, candidateLexicallyWithinRoot, candidateRealpathWithinRoot, canonicalRootAliasesCandidateParent, pathEligible, captureAvailable, analysisStatus, diagnosticError, patchStart, patchEnd, patchHeaders,
+        responseKeys, responseFailed, controlledInstall, controlledReviewConfigured, residentConfigured,
+      }));
     realCodex = {
       status: host.code === 0 && providerSubmissions === 1 && completed.length === 1 && independentObservations >= 2 ? "passed" : "failed",
       codexVersion,
@@ -1003,15 +1122,25 @@ else if (operation === "get") {
         terminalOutcomes: completed.length,
         correlation: "resident-native-event-identity",
       },
+      hostEvents: { types: [...new Set(eventTypes)].sort(), toolItemTypes: [...new Set(toolTypes)].sort() },
+      activityStages: [...new Set(activityStages)].sort(),
+      hostActivity: hostActivity === undefined ? { status: "unavailable" } : {
+        status: hostActivity.kind,
+        counts: hostActivity.counts,
+        categories: Object.keys(hostActivity.categories ?? {}).sort(),
+        readiness: hostStatus.readiness?.status ?? "unknown",
+      },
       independentHook: { status: independentObservations >= 2 ? "observed" : "failed", observations: independentObservations },
+      nativeHookEventShape: independentEvents,
     };
     if (realCodex.status !== "passed") {
       realCodexStage = "terminal-review-assertion";
-      throw new Error(`real Codex fixture did not satisfy source-free assertions (host=${host.code}, submissions=${providerSubmissions}, completions=${completed.length}, independent=${independentObservations})`);
+      throw new Error(`real Codex fixture did not satisfy source-free assertions (host=${host.code}, submissions=${providerSubmissions}, completions=${completed.length}, independent=${independentObservations}, activity=${[...new Set(activityStages)].join(",")}, events=${[...new Set(eventTypes)].join(",")}, tools=${[...new Set(toolTypes)].join(",")})`);
     }
     } catch (cause) {
       realCodexFailure = cause;
       realCodex = {
+        ...(typeof realCodex === "object" ? realCodex : {}),
         status: "failed",
         codexVersion,
         repeatability: "not-established",

@@ -4,6 +4,7 @@ import {
   mkdtempSync,
   mkdirSync,
   readFileSync,
+  realpathSync,
   renameSync,
   rmSync,
   writeFileSync,
@@ -19,6 +20,8 @@ const roots: Array<string> = [];
 // Each case launches the real TypeScript subprocess; concurrent evaluation-suite
 // compilation can make that bounded process startup exceed Vitest's 5 s default.
 const SUBPROCESS_TEST_TIMEOUT = 30_000;
+const makeTemporaryDirectory = (prefix: string): string =>
+  realpathSync(mkdtempSync(join(tmpdir(), prefix)));
 afterEach(() => {
   for (const root of roots.splice(0)) {
     try {
@@ -63,7 +66,7 @@ const initializeRepository = (root: string, requestedStatePath?: string) => {
 
 describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () => {
   it("reviews a completed edit and reserves stdout for one protocol response", () => {
-    const root = mkdtempSync(join(tmpdir(), "review-cli-"));
+    const root = makeTemporaryDirectory("review-cli-");
     roots.push(root);
     const statePath = initializeRepository(root);
     mkdirSync(join(root, "src"));
@@ -103,7 +106,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
   });
 
   const checkNativeControlledWriterAdd = (hostVersion: "0.155.1" | "0.156.0") => {
-    const root = mkdtempSync(join(tmpdir(), "review-cli-direct-add-"));
+    const root = makeTemporaryDirectory("r-");
     roots.push(root);
     const statePath = initializeRepository(root);
     const path = join(root, "pinned.ts");
@@ -189,7 +192,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
   });
 
   it("claims unsupported native apply_patch events without legacy review work", () => {
-    const root = mkdtempSync(join(tmpdir(), "review-cli-direct-unsupported-"));
+    const root = makeTemporaryDirectory("r-");
     roots.push(root);
     const source = join(root, "existing.ts");
     writeFileSync(source, "type Existing = number\n");
@@ -263,7 +266,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
   });
 
   it("does not emit duplicate advice for the same event and snapshot", () => {
-    const root = mkdtempSync(join(tmpdir(), "review-cli-dedupe-"));
+    const root = makeTemporaryDirectory("review-cli-dedupe-");
     roots.push(root);
     const statePath = initializeRepository(root);
     mkdirSync(join(root, "src"));
@@ -304,7 +307,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
   });
 
   it("preserves the completed edit and reports unavailable without credentials", () => {
-    const root = mkdtempSync(join(tmpdir(), "review-cli-no-credential-"));
+    const root = makeTemporaryDirectory("review-cli-no-credential-");
     roots.push(root);
     const statePath = initializeRepository(root);
     mkdirSync(join(root, "src"));
@@ -340,7 +343,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
   });
 
   it("reuses a grant, ignores project authorization, and revokes future dispatch", () => {
-    const root = mkdtempSync(join(tmpdir(), "review-cli-consent-"));
+    const root = makeTemporaryDirectory("review-cli-consent-");
     roots.push(root);
     const statePath = initializeRepository(root);
     mkdirSync(join(root, "src"));
@@ -458,7 +461,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
   }, 20_000);
 
   it("previews exact consent scope without writing and rejects a mismatched confirmation", () => {
-    const root = mkdtempSync(join(tmpdir(), "review-cli-consent-preview-"));
+    const root = makeTemporaryDirectory("review-cli-consent-preview-");
     roots.push(root);
     execFileSync("git", ["init", "--quiet", root]);
     const statePath = join(root, ".consent-state.json");
@@ -506,7 +509,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
   });
 
   it("retains unrelated well-formed grants without reusing or revoking them", () => {
-    const root = mkdtempSync(join(tmpdir(), "review-cli-unrelated-grant-"));
+    const root = makeTemporaryDirectory("review-cli-unrelated-grant-");
     roots.push(root);
     execFileSync("git", ["init", "--quiet", root]);
     mkdirSync(join(root, "src"));
@@ -604,8 +607,8 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
   }, 20_000);
 
   it("does not inherit consent across working trees", () => {
-    const first = mkdtempSync(join(tmpdir(), "review-cli-root-a-"));
-    const second = mkdtempSync(join(tmpdir(), "review-cli-root-b-"));
+    const first = makeTemporaryDirectory("review-cli-root-a-");
+    const second = makeTemporaryDirectory("review-cli-root-b-");
     roots.push(first, second);
     const statePath = initializeRepository(first);
     execFileSync("git", ["init", "--quiet", second]);
@@ -634,10 +637,10 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
   });
 
   it("does not inherit a grant when a repository root moves", () => {
-    const original = mkdtempSync(join(tmpdir(), "review-cli-moved-original-"));
-    const movedParent = mkdtempSync(join(tmpdir(), "review-cli-moved-parent-"));
+    const original = makeTemporaryDirectory("review-cli-moved-original-");
+    const movedParent = makeTemporaryDirectory("review-cli-moved-parent-");
     const moved = join(movedParent, "moved");
-    const stateParent = mkdtempSync(join(tmpdir(), "review-cli-moved-state-"));
+    const stateParent = makeTemporaryDirectory("review-cli-moved-state-");
     roots.push(original, movedParent, stateParent);
     const statePath = join(stateParent, "consent");
     initializeRepository(original, statePath);
@@ -672,9 +675,9 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
   });
 
   it("does not inherit a grant into a separate Git worktree and makes no provider call", () => {
-    const source = mkdtempSync(join(tmpdir(), "review-cli-worktree-source-"));
-    const worktree = mkdtempSync(join(tmpdir(), "review-cli-worktree-target-"));
-    const stateParent = mkdtempSync(join(tmpdir(), "review-cli-worktree-state-"));
+    const source = makeTemporaryDirectory("review-cli-worktree-source-");
+    const worktree = makeTemporaryDirectory("review-cli-worktree-target-");
+    const stateParent = makeTemporaryDirectory("review-cli-worktree-state-");
     roots.push(source, worktree, stateParent);
     rmSync(worktree, { recursive: true, force: true });
     execFileSync("git", ["init", "--quiet", source]);
@@ -730,7 +733,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
   }, 20_000);
 
   it("inspects credential presence without exposing the value", () => {
-    const root = mkdtempSync(join(tmpdir(), "review-cli-credential-"));
+    const root = makeTemporaryDirectory("review-cli-credential-");
     roots.push(root);
     const statePath = initializeRepository(root);
     const secret = "CREDENTIAL-SENTINEL";
