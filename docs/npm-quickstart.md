@@ -20,7 +20,7 @@ are untested. Shared-root overlapping invisible writes remain unattributed.
    ```
 
    Ensure `~/.local/bin` is on `PATH` if you want to omit the full command path.
-   Check the registry tarball SHA-256 against the [release record](./npm-release-record.md)
+   Check the registry tarball SHA-256 against the [release record](https://github.com/dearlordylord/jevs/blob/master/docs/npm-release-record.md)
    before using it. A matching version string alone is insufficient provenance.
 
 2. Enter the Git repository you want reviewed and run `realtime-review --pilot`
@@ -55,4 +55,4 @@ If a released version fails, disable review for the affected repository and
 keep the installed package and user state for recovery. Install the known-good
 version into a separate prefix, preview and explicitly update to it, then
 recheck trust and offline review. Deprecation or distribution changes are
-recorded in the [release record](./npm-release-record.md).
+recorded in the [release record](https://github.com/dearlordylord/jevs/blob/master/docs/npm-release-record.md).
