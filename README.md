@@ -72,8 +72,8 @@ npm run review -- --controlled < request.json
 `npm pack` builds JavaScript release entry points for the review CLI, TypeScript parser,
 resident process, and offline package doctor. The tested installed profile is exactly Node
 24.20.0 on Linux arm64 with Git and `/proc/self/fd`, plus Node 24.20.0 on macOS arm64 with
-Git and a packaged `openat` capture helper. The macOS controlled package path is tested; its
-real Codex-host cell remains unverified. Other operating systems and architectures are
+Git and a packaged `openat` capture helper. The macOS controlled package path and authenticated
+Codex CLI 0.156.0 host cell are verified. Other operating systems and architectures are
 unsupported. After installing the tarball, run
 `review-tool-doctor` for source-free compatibility checks and recovery actions. Installation
 may acquire and build production dependencies once. Hook invocations use the installed CLI
@@ -94,7 +94,7 @@ provider credentials, and retains only sanitized package/host outcomes.
 
 `npm run conformance:installed-release` verifies the assembled installed-product evidence and
 replays the complete offline lifecycle in isolated homes. Its compatibility verdict is currently
-blocked by the untested authenticated macOS/Codex cell and the inconclusive installed first-review
+blocked by the inconclusive installed first-review
 milestone. Exact versions, checksums, setup-effort evidence, and the rule that untested cells remain
 gaps are published in
 [`docs/installed-release-compatibility.md`](./docs/installed-release-compatibility.md). The command
