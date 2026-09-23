@@ -17,5 +17,14 @@ For the one live edit, `scripts/pilot-provider-guard.mjs` was loaded into Node h
 request after the second. The fixture file was checked below 4,096 bytes before host execution,
 and the host had a 180-second deadline. The retained result records two HTTP 200 responses,
 one submitted finding, a passing independent state validator, and a completed host run. The pilot
-repo remains enabled, but later Codex runs need an explicitly supplied credential; no key was
-stored in that repository. No macOS live-pilot outcome is claimed.
+repo remains enabled, but later Linux Codex runs need an explicitly supplied credential; no key was
+stored in that repository.
+
+The separate macOS arm64 / Codex CLI 0.156.0 owner-host pilot used an isolated profile, saved
+Keychain credential, confirmed repository and exact-hook trust, and the user-authorized Codex
+sandbox bypass. One ordinary edit added a valid optional property to the already repaired
+synthetic file. Resident activity completed clear with zero findings; the independent validator
+passed. The retained [sanitized Mac record](./macos-arm64-codex-0.156.0-2026-09-23.json) reports
+that provider-call and source-byte counts were not independently measured. It establishes the
+observed clear-review path under those conditions, not Mac finding delivery or an independently
+metered Jev request. No second Mac edit or paid attempt was made.
