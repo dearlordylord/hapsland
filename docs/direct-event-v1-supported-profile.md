@@ -9,7 +9,7 @@ at `/proc`, and Node `v24.20.0` on macOS arm64 with Git, `/dev/fd`, and the pack
 `openat` capture helper. The macOS controlled installed-package path is tested. The real
 Codex-host path is verified on macOS arm64 with Codex CLI 0.156.0 and a controlled offline
 backend, including native interactive trust review. This does not establish a real-host run
-for Codex CLI 0.155.1 or other platform profiles. Package metadata and `review-tool-doctor`
+for Codex CLI 0.155.1 or other platform profiles. Package metadata and `jevs-doctor`
 reject undeclared versions and other platform profiles rather than inferring support.
 
 The machine-checked authoritative mapping is

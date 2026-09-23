@@ -3,7 +3,7 @@
   "configVersion": 0,
   "workspaces": {
     "": {
-      "name": "realtime-review",
+      "name": "@jevs/jevs",
       "dependencies": {
         "@effect/ai-typesafe": "4.0.0-rc.116",
         "effect": "4.0.0-rc.116",
