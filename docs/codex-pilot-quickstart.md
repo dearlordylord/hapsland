@@ -9,12 +9,18 @@ Use a declared profile: Codex CLI 0.155.1 on Linux arm64 or Codex CLI 0.156.0 on
 The installed command selects its own Node 24.20.0 runtime; the shell's Node version does not
 select the review runtime. Keep npm optional dependencies enabled so the platform runtime is
 installed, even when lifecycle scripts are disabled. See [exact compatibility](./installed-release-compatibility.md)
-for the evidence and limits of each profile. Obtain the pilot package archive through the pilot
-distribution channel. This repository does not publish one to a registry.
+for the pinned installed-release gate and its limits. The later [macOS real-Jev pilot result](../evidence/codex-pilot/macos-arm64-independent-positive-demo-2026-09-23.json)
+is recorded separately. Obtain the pilot package archive and its SHA-256 checksum through the pilot
+distribution channel, and verify that checksum before installation. The retained macOS pilot archive
+built from commit `97ea38f` has SHA-256
+`b08536b98540a5e0890324afc516b9321bc81a2e67ac2205e4f9fe1dfecded69`; a different archive
+needs its own verified checksum. This repository does not publish one to a registry.
 The archive carries native helpers and parser bindings for the declared profiles. Installation does not compile code
 or run a package lifecycle script. Building the release archive requires platform build hosts.
 
-1. Install the archive for your user, then enter the Git repository you want to review:
+1. Check the archive against its supplied SHA-256 checksum (`shasum -a 256` on macOS,
+   `sha256sum` on Linux). Install the verified archive for your user with a user-writable npm global
+   prefix, then enter the Git repository you want to review:
 
    ```sh
    npm install --global --ignore-scripts=true ./realtime-review-prototype-0.0.0.tgz
