@@ -48,3 +48,8 @@ reported one submitted finding, a correlated model reaction, an independently va
 and a completed follow-up review. Its budget record reported two calls and 641 source bytes.
 The separate request guard recorded none because the demo reused an earlier resident process;
 those call and byte counts are not independently verified in this Mac record.
+
+The first [independent-meter startup attempt](./macos-arm64-meter-startup-2026-09-23.json)
+made no Jev request. Its fresh resident was placed under a test directory whose Unix socket
+path macOS rejected with `EINVAL`. A later offline probe used a shorter private directory;
+the resident started, answered its readiness request, and loaded the independent guard.
