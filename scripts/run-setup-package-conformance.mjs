@@ -167,6 +167,10 @@ try {
   expect(result.code === 0, `npm pack failed: ${result.stderr || result.stdout}`);
   const artifact = (await readdir(artifacts)).find((entry) => entry.endsWith(".tgz"));
   expect(artifact !== undefined, "npm pack did not produce a tarball");
+  const archiveContents = await run("tar", ["-tzf", join(artifacts, artifact)], { cwd: temporary });
+  expect(archiveContents.code === 0, "packed archive could not be listed");
+  expect(!archiveContents.stdout.split("\n").some((entry) => entry.startsWith("package/dist/native/")),
+    "packed archive contains a build-machine native helper");
   result = await run("npm", ["install", "--prefer-offline", "--omit=dev", "--prefix", installation, join(artifacts, artifact)], {
     cwd: temporary,
     timeoutMs: 120_000,
@@ -195,6 +199,17 @@ try {
     REVIEW_CONTROL_JSON: JSON.stringify({ capturePath }),
   };
   for (const name of ["TYPESAFE_API_KEY", "OPENAI_API_KEY"]) delete baseEnvironment[name];
+
+  const foreignHelper = join(temporary, "foreign-credential-helper");
+  await writeFile(foreignHelper, Buffer.from([0xcf, 0xfa, 0xed, 0xfe, 0x00, 0x00, 0x00, 0x00]), { mode: 0o700 });
+  await chmod(foreignHelper, 0o700);
+  const unavailableHelper = await invokeSetup(cli, repository, {
+    ...baseEnvironment,
+    REVIEW_CREDENTIAL_HELPER: foreignHelper,
+  }, baseRequest, 6, "foreign native credential helper");
+  expect(unavailableHelper.stages.some((entry) =>
+    entry.stage === "credential" && entry.status === "pending"),
+  "unexecutable credential helper did not produce a bounded setup result");
 
   const handoff = await invokeSetup(cli, repository, baseEnvironment, baseRequest, 6, "noninteractive handoff");
   expect(handoff.status === "needs-user-action", "missing secret/consent did not need user action");

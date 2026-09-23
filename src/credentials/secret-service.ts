@@ -328,14 +328,19 @@ export const runSecretService = (
 ): Promise<SecretServiceResult> => new Promise((resolveResult) => {
   let settled = false;
   let termination: "timed-out" | "cancelled" | undefined;
-  const child = spawn(
+  const startHelper = () => spawn(
     credentialHelperPath(),
     options.allowInteraction === true ? [operation, "--allow-interaction"] : [operation],
-    {
-    stdio: ["pipe", "pipe", "ignore"],
-    env: process.env,
-    },
+    { stdio: ["pipe", "pipe", "ignore"], env: process.env },
   );
+  let child: ReturnType<typeof startHelper>;
+  try {
+    child = startHelper();
+  } catch {
+    // A foreign native binary can throw synchronously on some Node/OS pairs.
+    resolveResult({ status: "unavailable" });
+    return;
+  }
   const chunks: Array<Buffer> = [];
   let total = 0;
   const finish = (result: SecretServiceResult) => {

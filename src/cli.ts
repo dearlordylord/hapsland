@@ -1141,7 +1141,9 @@ const program = Effect.gen(function* () {
                   ? "repair or unlock the native credential store; its noninteractive lookup exceeded the 750 ms deadline"
                   : credential.status === "suspended"
                     ? "reconcile the suspended credential with review-tool --login or review-tool --logout before review"
-                    : "store a credential with review-tool --login, then rerun doctor";
+                    : credential.status === "unavailable"
+                      ? "reinstall with lifecycle scripts enabled if the native helper is missing, or restore native credential access; then rerun doctor"
+                      : "store a credential with review-tool --login, then rerun doctor";
           const credentialStatus = credentialReady
             ? "ready" as const
             : credential.status === "invalid" || credential.status === "suspended"
@@ -1359,7 +1361,7 @@ const runCredentialCommand = async (): Promise<Readonly<Record<string, unknown>>
           ? "unlock the native credential store in the desktop session, then retry"
           : probe.status === "interaction-required"
             ? "approve native credential access from this explicit login command, then retry"
-            : "make the native credential store available in this user session, then retry",
+            : "reinstall with lifecycle scripts enabled if the native helper is missing, or make the native credential store available; then retry",
       };
     }
     let value: string;

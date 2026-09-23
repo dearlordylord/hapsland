@@ -12,7 +12,7 @@
     "darwin"
   ],
   "files": [
-    "dist",
+    "dist/**/*.js",
     "native/capture-open.c",
     "native/credential-input.h",
     "native/credential-keychain.c",
