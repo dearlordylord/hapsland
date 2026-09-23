@@ -314,7 +314,7 @@ export const executeInstalledCodexDemo: DemoExecutor = async (options) => {
     "exec", "--ephemeral", "--json",
     ...(testSandboxBypass
       ? ["--dangerously-bypass-approvals-and-sandbox"]
-      : ["--approve-for-me", "--sandbox", "workspace-write"]),
+      : ["--approve-for-me"]),
     ...(testModel === undefined ? [] : ["--model", testModel]),
     "-C", options.root, prompt,
   ], { env: environment, timeout: hostTimeoutMs, maxBuffer: 2 * 1024 * 1024 }).then(
