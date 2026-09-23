@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, realpath, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { promisify } from "node:util";
@@ -12,7 +12,7 @@ export const makeGitFixture = async () => {
   await execFileAsync("git", ["init", "-q", root]);
   await execFileAsync("git", ["-C", root, "config", "user.email", "test@example.invalid"]);
   await execFileAsync("git", ["-C", root, "config", "user.name", "Test"]);
-  return root;
+  return realpath(root);
 };
 
 export const put = async (root: string, path: string, value: string | Uint8Array) => {

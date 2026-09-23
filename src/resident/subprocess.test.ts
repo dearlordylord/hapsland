@@ -75,7 +75,7 @@ const dispatchFor = (
 
 describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
   it("ignores and removes an orphaned pre-portability startup marker", async () => {
-    const temporary = await mkdtemp(join(tmpdir(), "product-resident-startup-marker-"));
+    const temporary = await mkdtemp(join(tmpdir(), "r-"));
     directories.push(temporary);
     const runtime = join(temporary, "runtime");
     await mkdir(runtime, { mode: 0o700 });
