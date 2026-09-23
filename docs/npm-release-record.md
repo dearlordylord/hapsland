@@ -27,7 +27,7 @@ support; GitHub Actions can add supporting evidence without delaying publish.
 | Exact Codex/OS/architecture/Node compatibility statement | Pending published-artifact evidence |
 | Bounded live Jev review-and-repair run | Pending exact-artifact evidence on both platforms |
 | Known-good rollback version | Pending first successful release |
-| Pilot archive to local candidate migration | Pending renamed and scoped candidate rehearsal |
+| Pilot archive to local candidate migration | Passed isolated old `realtime-review-prototype@0.0.0` install to `@jevs/jevs@0.1.0` update preview/apply across separate prefixes; owner hook and versioned record updated, source egress remained unauthorized, native trust renewal required. Independent hook and live credential preservation remain untested for this exact pair |
 | Pilot archive to published registry artifact migration | Pending registry release |
 
 Earlier evidence for the superseded `realtime-review@0.1.0` candidate includes
@@ -45,6 +45,13 @@ one source-label assertion failure after adding registry provenance, and two
 skips; the corrected four-test file passed. Build and native checks passed.
 This source-only record update does not enter the npm archive. The final
 reviewed commit still needs an audit before handoff.
+
+An isolated pilot migration rehearsal installed an archive packed from the
+current `master` prototype into a separate prefix and Codex home. The new
+package's update preview identified the old `0.0.0` and new `0.1.0` paths;
+matching-digest update replaced the owned hook and record while leaving source
+egress unauthorized. The host executable was a version-only offline Codex
+fixture, so this is migration contract evidence, not a native host run.
 
 Release assembly starts from clean, reviewed `master` equal to `origin/master`.
 The host command builds, verifies pinned native bytes, packs with scripts
