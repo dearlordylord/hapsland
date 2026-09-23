@@ -92,7 +92,7 @@ const installLocalPackageVariant = async ({
   const artifactName = (await readdir(artifacts)).find((entry) => entry.endsWith(".tgz"));
   if (artifactName === undefined) throw new Error(`npm pack did not produce the ${version} tarball`);
   const tarball = join(artifacts, artifactName);
-  await mustRun("npm", ["install", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installation, tarball], {
+  await mustRun("npm", ["install", "--global=false", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installation, tarball], {
     cwd: temporary,
     timeoutMs: 120_000,
   });
@@ -376,7 +376,9 @@ try {
   const artifactName = artifactEntries.find((entry) => entry.endsWith(".tgz"));
   if (artifactName === undefined) throw new Error("npm pack did not produce a tarball");
   const tarball = join(artifacts, artifactName);
-  await mustRun("npm", ["install", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installation, tarball], { cwd: temporary, timeoutMs: 120_000 });
+  // Force the local layout expected by this fixture. An effective global
+  // install silently places package bins under prefix/bin instead.
+  await mustRun("npm", ["install", "--global=false", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installation, tarball], { cwd: temporary, timeoutMs: 120_000 });
   const packageDirectory = join(installation, "node_modules", "realtime-review-prototype");
   const binDirectory = join(installation, "node_modules", ".bin");
   const cli = join(binDirectory, "review-tool");
@@ -385,9 +387,16 @@ try {
   const doctor = join(binDirectory, "review-tool-doctor");
   const doctorSource = join(packageDirectory, "dist", "package-doctor.js");
   for (const [name, path] of [["review-tool", cli], ["review-tool-parser", parser], ["review-tool-doctor", doctor]]) {
-    await access(path).catch(() => {
-      throw new Error(`packed installation is missing ${name}; npm did not create the package's bin links`);
-    });
+    try {
+      await access(path);
+    } catch {
+      const [prefixEntries, binEntries, packageEntries] = await Promise.all([
+        readdir(installation).catch(() => []),
+        readdir(binDirectory).catch(() => []),
+        readdir(packageDirectory).catch(() => []),
+      ]);
+      throw new Error(`packed installation is missing ${name}; npm did not create a usable package bin link (prefix: ${prefixEntries.join(", ") || "empty"}; .bin: ${binEntries.slice(0, 20).join(", ") || "empty"}; package: ${packageEntries.slice(0, 20).join(", ") || "empty"})`);
+    }
   }
   const installedManifest = parseJson(await readFile(join(packageDirectory, "package.json"), "utf8"), "installed manifest");
   for (const documentation of ["README.md", "docs/codex-installation.md", "docs/status.md", "docs/installed-release-compatibility.md"]) {
@@ -410,7 +419,7 @@ try {
   // when the exact production dependencies are installed and loadable. The
   // JSON tree remains authoritative for the dev-dependency exclusion below;
   // parser loading is checked through the packaged entry point afterward.
-  const productionTree = await run("npm", ["ls", "--all", "--omit=dev", "--json"], { cwd: installation });
+  const productionTree = await run("npm", ["ls", "--global=false", "--all", "--omit=dev", "--json"], { cwd: installation });
   if (productionTree.stdout.trim().length === 0) throw new Error("npm ls did not return a production dependency tree");
   const dependencyTree = parseJson(productionTree.stdout, "production dependency tree");
   for (const forbidden of ["typescript", "vitest", "@types/bun"]) {
