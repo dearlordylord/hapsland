@@ -36,23 +36,22 @@ separates `replay.status: "passed"` from `compatibility.status: "blocked"`.
 | Linux native trust | Codex 0.155.1; native interactive trust review | Verified | Exact hook-definition trust was persisted; no trust bypass was used |
 | Linux authenticated host | Codex 0.155.1 `exec`; installed hook | Verified | One controlled submission and one correlated completed finding were observed; the independent hook also ran |
 | macOS installed lifecycle | macOS 14 arm64, Node 24.20.0; controlled headless, masked interactive setup, isolated Keychains | Verified | GitHub Actions run 35790230309; lookup/replacement/logout stayed in the selected default Keychain |
-| macOS native-trust handoff | Codex 0.155.1 setup contract | Verified only for the handoff | Setup leaves native trust unchanged, does not bypass it, and reports completion as host-owned |
-| macOS authenticated host | macOS 14 arm64, Codex 0.155.1 | **Gap** | Actions had no Codex authentication, so native trust completion and a real installed Codex review were not run |
+| macOS native-trust handoff | Codex 0.155.1 setup contract | Verified for setup; native review separately verified on 0.156.0 | Setup leaves native trust unchanged; the authenticated-host run persisted exact native trust without bypass |
+| macOS authenticated host | macOS arm64, Node 24.20.0, Codex CLI 0.156.0 | Verified | One controlled offline submission and correlated completed finding; independent hook observed both host events |
 | Installed first review | Linux arm64, packed installation, Codex 0.155.1 | **Inconclusive** | The authorized run recorded 0 provider calls and 0 source bytes; its legacy tarball binding is unverified and no paid retry is authorized |
 
-The macOS controlled path does not imply authenticated Codex compatibility. The first-review record
-does not imply provider or repair success. The installed demo now records source-free edit,
+The macOS controlled path does not imply compatibility beyond the exact authenticated Codex
+CLI 0.156.0 cell. The first-review record does not imply provider or repair success. The installed demo now records source-free edit,
 finding-handoff, and review-terminal hashes and requires the host's final report to cite the
 handed-off rule before it credits a reaction. A terminal review must match the independently
 validated repaired source. This instrumentation has passed offline tests but has not changed the
-historical live result. These are required cells, so either gap blocks a release-ready verdict.
+historical live result. The inconclusive installed first-review cell still blocks a release-ready verdict.
 
 For authenticated macOS package validation, run `node scripts/run-clean-package-conformance.mjs
 --real-codex --write-evidence` with Node 24.20.0 and a declared Codex CLI version selected.
 The runner accepts 0.155.1 and 0.156.0, checks versions before packing or creating its isolated
 Keychain fixture, and writes a separate evidence file for each real-host version. The retained
-release manifest still binds only the earlier 0.155.1 profile; a 0.156.0 result needs review
-before that required compatibility cell can be marked verified.
+release manifest verifies the macOS arm64 real-host cell specifically for Codex CLI 0.156.0.
 
 ## Setup-effort evidence
 
