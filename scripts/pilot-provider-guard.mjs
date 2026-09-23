@@ -1,4 +1,10 @@
 import { appendFileSync, readFileSync } from "node:fs";
+import { basename } from "node:path";
+
+if (process.env.REVIEW_PILOT_LOAD_LOG !== undefined) {
+  appendFileSync(process.env.REVIEW_PILOT_LOAD_LOG,
+    `${JSON.stringify({ kind: "loaded", process: basename(process.argv[1] ?? "unknown") })}\n`, { mode: 0o600 });
+}
 
 const originalFetch = globalThis.fetch;
 globalThis.fetch = async (...args) => {

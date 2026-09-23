@@ -40,3 +40,11 @@ the owner accepted the native hook review and made one ordinary TypeScript edit.
 status query reported repository consent and credentials ready, plus one resident `clear` event
 with zero findings. Provider-call and source-byte counts were not independently measured, and no
 positive finding or model repair is claimed for this new archive.
+
+The subsequent [positive Mac demo record](./macos-arm64-positive-demo-2026-09-23.json) covers a
+script-free installation whose public commands selected the packaged Node runtime even with a
+deliberately unusable `node` first on `PATH`. After native trust, the built-in synthetic demo
+reported one submitted finding, a correlated model reaction, an independently validated repair,
+and a completed follow-up review. Its budget record reported two calls and 641 source bytes.
+The separate request guard recorded none because the demo reused an earlier resident process;
+those call and byte counts are not independently verified in this Mac record.
