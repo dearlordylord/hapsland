@@ -39,3 +39,10 @@ Update and multi-file support is not claimed from the fresh Add host run. It is 
 by the pinned native payload fixtures under `evidence/codex/0.155.1` plus deterministic
 production-pipeline checks named in the host record. Real child-specific delivery remains
 unvalidated; only deterministic identity preservation and partition isolation are tested.
+
+The subsequent [full MVP experience demonstration](./MVP-EXPERIENCE.md) combined
+real headless Codex and live Jev in one run: an initial draft received a finding,
+Codex repaired the type, independent invalid-state checks passed, and the repaired
+type's review completed without further findings. This separately authorized paid
+runner is `node scripts/run-mvp-experience.mjs --execute-paid`; it is not part of
+ordinary tests.

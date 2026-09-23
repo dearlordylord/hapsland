@@ -8,6 +8,9 @@ implementation specification.
 | Product | The still-unnamed host-neutral system we are designing around realtime coding-agent reviews. |
 | Jev | TypeSafe's external tool used by the product for typed, realtime review judgments. Jev is not the product name. |
 | Review integration | The product's integration boundary around agent hosts, rules, findings, and review backends. |
+| Host installation | The product integration made available to a particular agent host for a user. Installation does not itself authorize review of a repository. |
+| Repository enablement | The user-approved activation of review for a canonical working root and its review backend/destination, subject to source eligibility rules. |
+| Host trust | The agent host's approval to execute an installed integration. It is separate from repository enablement and credential availability. |
 | Agent host | A runtime that owns an agent's tool/edit loop and exposes lifecycle interception, such as Codex CLI or OpenCode. |
 | Model provider | Secondary metadata about the inference service selected by a host or review backend. It is not a first-class adapter target in the current phase. |
 | Artifact | An independently identifiable semantic subject extracted from source. Its kind identifies what it describes; the initial kind is `typeShape`. |
