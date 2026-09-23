@@ -2,7 +2,7 @@
 set -eu
 
 case "${0##*/}" in
-  review-tool) entry=dist/cli.js ;;
+  realtime-review|review-tool) entry=dist/cli.js ;;
   review-tool-doctor) entry=dist/package-doctor.js ;;
   review-tool-parser) entry=dist/parser-main.js ;;
   review-tool-resident) entry=dist/resident/main.js ;;

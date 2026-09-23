@@ -407,14 +407,14 @@ try {
   // Force the local layout expected by this fixture. An effective global
   // install silently places package bins under prefix/bin instead.
   await mustRun("npm", ["install", "--global=false", "--legacy-peer-deps", "--ignore-scripts=true", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installation, tarball], { cwd: temporary, timeoutMs: 120_000 });
-  const packageDirectory = join(installation, "node_modules", "realtime-review-prototype");
+  const packageDirectory = join(installation, "node_modules", sourceManifest.name);
   const binDirectory = join(installation, "node_modules", ".bin");
   const cli = join(binDirectory, "review-tool");
   let activeCli = cli;
   const parser = join(binDirectory, "review-tool-parser");
   const doctor = join(binDirectory, "review-tool-doctor");
   const doctorSource = join(packageDirectory, "dist", "package-doctor.js");
-  for (const [name, path] of [["review-tool", cli], ["review-tool-parser", parser], ["review-tool-doctor", doctor]]) {
+  for (const [name, path] of [["realtime-review", join(binDirectory, "realtime-review")], ["review-tool", cli], ["review-tool-parser", parser], ["review-tool-doctor", doctor]]) {
     try {
       await access(path);
     } catch {
@@ -427,7 +427,7 @@ try {
     }
   }
   const installedManifest = parseJson(await readFile(join(packageDirectory, "package.json"), "utf8"), "installed manifest");
-  for (const documentation of ["README.md", "docs/codex-installation.md", "docs/codex-pilot-quickstart.md", "docs/status.md", "docs/installed-release-compatibility.md"]) {
+  for (const documentation of ["README.md", "docs/codex-installation.md", "docs/npm-quickstart.md", "docs/status.md", "docs/installed-release-compatibility.md"]) {
     const contents = await readFile(join(packageDirectory, documentation), "utf8");
     if (contents.trim().length === 0) throw new Error(`packaged documentation is empty: ${documentation}`);
   }
