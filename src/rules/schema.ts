@@ -7,6 +7,7 @@ import {
 } from "../configuration/errors.ts";
 import { parseJsonc } from "../configuration/jsonc.ts";
 import { validateGlobPattern } from "../matcher/glob.ts";
+import { RuleIdentitySchema } from "../domain/rule-identity.ts";
 
 /** The first declarative pack wire schema. A pack's content version is separate. */
 export const RULE_PACK_SCHEMA_VERSION = 1 as const;
@@ -50,7 +51,7 @@ export const RuleCriteria = Schema.Struct({
 export interface RuleCriteria extends Schema.Schema.Type<typeof RuleCriteria> {}
 
 export const RuleDefinition = Schema.Struct({
-  id: NonEmpty.annotate({
+  id: RuleIdentitySchema.annotate({
     description: "Stable rule identity within this pack; it cannot contain separators or whitespace.",
   }),
   question: NonEmpty.annotate({
@@ -76,7 +77,7 @@ export const RulePack = Schema.Struct({
   schemaVersion: Schema.Literal(RULE_PACK_SCHEMA_VERSION).annotate({
     description: "Rule-pack wire-format version.",
   }),
-  id: NonEmpty.annotate({
+  id: RuleIdentitySchema.annotate({
     description: "Stable pack identity; it cannot contain separators or whitespace.",
   }),
   contentVersion: NonEmpty.annotate({
@@ -109,12 +110,6 @@ const strict = {
   errors: "all",
 } as const;
 
-const validateIdentity = (value: string, source: string, field: string): void => {
-  if (/[/:\\\s]/u.test(value)) {
-    throw configurationError(source, field, "identity must not contain separators or whitespace");
-  }
-};
-
 const validatePatterns = (
   patterns: ReadonlyArray<string> | undefined,
   source: string,
@@ -134,10 +129,8 @@ const validatePatterns = (
 };
 
 const validateRulePackSemantics = (pack: RulePack, source: string): void => {
-  validateIdentity(pack.id, source, "id");
   const ids = new Set<string>();
   for (const [index, rule] of pack.rules.entries()) {
-    validateIdentity(rule.id, source, `rules[${index}].id`);
     if (ids.has(rule.id)) {
       throw configurationError(source, `rules[${index}].id`, `duplicate rule identity '${rule.id}'`);
     }

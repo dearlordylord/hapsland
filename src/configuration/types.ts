@@ -1,4 +1,5 @@
 import * as Schema from "effect/Schema";
+import { RuleIdentitySchema } from "../domain/rule-identity.ts";
 
 /** The only configuration format accepted by the product in this phase. */
 export const CONFIGURATION_VERSION = 1 as const;
@@ -39,7 +40,7 @@ export const RulePackReference = Schema.Union([
     enabled: Schema.optionalKey(PackEnabled),
   }),
   Schema.Struct({
-    id: Schema.String.check(Schema.isMinLength(1)).annotate({
+    id: RuleIdentitySchema.annotate({
       description: "Identity of a rule pack declared in a lower-precedence configuration layer.",
     }),
     enabled: Schema.optionalKey(PackEnabled),
