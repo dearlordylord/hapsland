@@ -15,9 +15,9 @@ if (releasePin.packageName !== "@jevs/jevs" || releasePin.version !== "0.1.0" ||
 const registry = "https://registry.npmjs.org/";
 const packageName = releasePin.packageName;
 const version = releasePin.version;
-const run = (command, args, { stdio = "pipe" } = {}) => {
+const run = (command, args, { stdio = "pipe", env = process.env } = {}) => {
   const result = spawnSync(command, args, {
-    encoding: "utf8", stdio, timeout: 300_000,
+    encoding: "utf8", stdio, timeout: 300_000, env,
   });
   if (result.error) throw result.error;
   return result;
@@ -50,11 +50,17 @@ if (!(["linux", "darwin"].includes(process.platform) && process.arch === "arm64"
   ].join("\n"));
 }
 const manifest = JSON.parse(readFileSync("package.json", "utf8"));
-if (manifest.name !== packageName || manifest.version !== version || manifest.private === true) {
+if (manifest.name !== packageName || manifest.version !== version || manifest.private === true ||
+    manifest.packageManager !== "bun@1.3.14") {
   throw new Error("release manifest does not match @jevs/jevs@0.1.0");
 }
 const identity = output("npm", ["whoami", `--registry=${registry}`]);
 process.stdout.write(`npm identity: ${identity}\n`);
+checked("mise", ["exec", manifest.packageManager, "--", "bun", "install", "--frozen-lockfile", "--ignore-scripts"], {
+  stdio: "inherit",
+  env: { ...process.env, CI: "true" },
+});
+if (!clean()) throw new Error("frozen dependency installation changed tracked or untracked files");
 checked("npm", ["run", "build"], { stdio: "inherit" });
 checked("npm", ["run", "verify:release-native"], { stdio: "inherit" });
 if (!clean()) throw new Error("release build changed tracked or untracked files");
