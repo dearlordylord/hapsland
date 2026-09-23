@@ -11,6 +11,7 @@ import { readActivity } from "../activity/status.ts";
 import { inspectResident } from "../resident/client.ts";
 import { inspectCodexInstallation } from "./codex-installation.ts";
 import { initializeDemoBudget, readDemoBudgetUsage } from "./demo-budget.ts";
+import { demoSourceHash, readDemoTrace } from "./demo-trace.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -74,7 +75,8 @@ export type FirstReviewDemoRequest = {
 };
 
 export type DemoExecution = {
-  readonly host: { readonly completed: boolean; readonly version: string; readonly durationMs: number };
+  readonly host: { readonly completed: boolean; readonly version: string; readonly durationMs: number;
+    readonly failure?: "authentication" | "trust" | "sandbox" | "timeout" | "host-error" };
   readonly review: {
     readonly providerCalls: number;
     readonly sourceBytes?: number;
@@ -217,6 +219,7 @@ const cleanFixture = async (statePath: string, record: DemoRecord): Promise<void
   await rm(recordPath(statePath, record.id), { force: true });
   await rm(claimDirectory(statePath, record.id), { recursive: true, force: true });
   await rm(budgetPath(statePath, record.id), { force: true });
+  await rm(`${budgetPath(statePath, record.id)}.trace`, { recursive: true, force: true });
 };
 
 const jsonLines = (encoded: string): ReadonlyArray<Readonly<Record<string, unknown>>> =>
@@ -229,10 +232,16 @@ const jsonLines = (encoded: string): ReadonlyArray<Readonly<Record<string, unkno
     }
   });
 
+const hostFailure = (message: string): NonNullable<DemoExecution["host"]["failure"]> =>
+  /timed out|timeout|etimedout/i.test(message) ? "timeout" :
+  /auth|login|unauthorized|401|credential/i.test(message) ? "authentication" :
+  /trust|untrusted/i.test(message) ? "trust" :
+  /sandbox|operation not permitted|permission denied/i.test(message) ? "sandbox" : "host-error";
+
 /**
  * Generic host messages, file changes, validation success and review event counts do
- * not correlate a model action to a delivered finding or a terminal review to the
- * validated repair. Keep both claims unavailable until the host exposes those links.
+ * not correlate a model action to a handed-off finding or a terminal review to the
+ * validated repair. This is the fallback when the demo trace is absent.
  */
 export const uninstrumentedHostEvidence = (_observations: {
   readonly messages: number;
@@ -251,6 +260,31 @@ export const uninstrumentedHostEvidence = (_observations: {
   },
 });
 
+export const correlatedHostEvidence = (observations: {
+  readonly trace: ReturnType<typeof readDemoTrace>;
+  readonly finalSourceHash: string | undefined;
+  readonly finalMessages: ReadonlyArray<string>;
+  readonly repairValidated: boolean;
+}): Pick<DemoExecution["review"], "modelReaction" | "followUp"> => {
+  const delivery = observations.trace.find((entry) => entry.kind === "delivery" && (entry.ruleIds?.length ?? 0) > 0);
+  const reactionEdit = delivery === undefined ? undefined : observations.trace.find((entry) =>
+    entry.kind === "edit" && entry.at >= delivery.at && entry.sourceHash !== delivery.sourceHash);
+  const mentionsFinding = delivery?.ruleIds?.some((id) =>
+    observations.finalMessages.some((message) => new RegExp(`(^|[^a-z0-9_/-])${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z0-9_/-]|$)`, "i").test(message))) ?? false;
+  const modelReaction: DemoExecution["review"]["modelReaction"] = reactionEdit !== undefined && mentionsFinding
+    ? { status: "observed", source: "correlated-finding-reaction", deliveredFindingCorrelation: true }
+    : delivery === undefined ? { status: "unavailable", reason: "host-model-reaction-not-instrumented" }
+      : { status: "not-observed", source: "correlated-finding-reaction" };
+  const terminal = reactionEdit === undefined || !observations.repairValidated || observations.finalSourceHash === undefined
+    ? undefined : observations.trace.find((entry) => entry.kind === "terminal" && entry.at >= reactionEdit.at &&
+      entry.sourceHash === observations.finalSourceHash && (entry.state === "clear" || entry.state === "findings"));
+  const followUp: DemoExecution["review"]["followUp"] = terminal !== undefined
+    ? { status: "completed", source: "post-repair-terminal-review", terminalState: terminal.state ?? "findings", afterValidatedRepair: true }
+    : observations.trace.length === 0 ? { status: "unavailable", reason: "post-repair-review-not-instrumented" }
+      : { status: "not-observed", source: "post-repair-terminal-review" };
+  return { modelReaction, followUp };
+};
+
 /** Production executor. It uses normal Codex trust and never passes either bypass flag. */
 export const executeInstalledCodexDemo: DemoExecutor = async (options) => {
   const started = Date.now();
@@ -260,7 +294,7 @@ export const executeInstalledCodexDemo: DemoExecutor = async (options) => {
     env: process.env,
     timeout: 10_000,
   }).then((result) => result.stdout.trim() || "unavailable", () => "unavailable");
-  const prompt = `This is an explicitly selected disposable review demo. The existing session.ts is deliberately flawed: it permits a logged-out session with a userId and a logged-in session without one. Do not use web search. Use apply_patch to add the optional field "readonly demoStarted?: true" inside Session. Then respond to any realtime review feedback as you normally would, choosing the repair yourself. Use no more than two apply_patch calls total. Finally run "node validate.mjs" and report its result.`;
+  const prompt = `This is an explicitly selected disposable review demo. The existing session.ts is deliberately flawed: it permits a logged-out session with a userId and a logged-in session without one. Do not use web search. Use apply_patch to add the optional field "readonly demoStarted?: true" inside Session. Then respond to any realtime review feedback as you normally would, choosing the repair yourself. If review feedback affects your change, cite its exact rule ID in your final report. Use no more than two apply_patch calls total. Finally run "node validate.mjs" and report its result.`;
   const environment = {
     ...process.env,
     ...(options.codexHome === undefined ? {} : { CODEX_HOME: options.codexHome }),
@@ -272,11 +306,14 @@ export const executeInstalledCodexDemo: DemoExecutor = async (options) => {
   const host = await execFileAsync(options.codexExecutable, [
     "exec", "--ephemeral", "--json", "--approve-for-me", "--sandbox", "workspace-write", "-C", options.root, prompt,
   ], { env: environment, timeout: Math.max(1, options.deadlineMs - 10_000), maxBuffer: 2 * 1024 * 1024 }).then(
-    (result) => ({ completed: true, stdout: result.stdout, durationMs: Date.now() - started }),
+    (result) => ({ completed: true, stdout: result.stdout, durationMs: Date.now() - started, failure: undefined }),
     (cause: unknown) => ({
       completed: false,
       stdout: typeof cause === "object" && cause !== null && "stdout" in cause && typeof cause.stdout === "string" ? cause.stdout : "",
       durationMs: Date.now() - started,
+      failure: hostFailure(typeof cause === "object" && cause !== null
+        ? `${"stderr" in cause && typeof cause.stderr === "string" ? cause.stderr : ""}\n${"stdout" in cause && typeof cause.stdout === "string" ? cause.stdout : ""}`
+        : String(cause)),
     }),
   );
   const after = await readFile(join(options.root, "session.ts"), "utf8").catch(() => before);
@@ -311,21 +348,23 @@ export const executeInstalledCodexDemo: DemoExecutor = async (options) => {
   }
   const messages = events.filter((event) => event.type === "item.completed" &&
     typeof event.item === "object" && event.item !== null &&
-    (event.item as Readonly<Record<string, unknown>>).type === "agent_message").length;
+    (event.item as Readonly<Record<string, unknown>>).type === "agent_message")
+    .map((event) => (event.item as Readonly<Record<string, unknown>>).text)
+    .filter((value): value is string => typeof value === "string");
   const changed = after !== before;
   const terminalReviews = activity === undefined ? 0 :
     activity.counts.clear + activity.counts.findings + activity.counts.unavailable;
   const usage = readDemoBudgetUsage(options.budgetPath);
   const submitted = activity?.submission.status === "submitted";
-  const correlation = uninstrumentedHostEvidence({
-    messages,
-    changed,
+  const correlation = correlatedHostEvidence({
+    trace: sessionId === undefined ? [] : readDemoTrace(options.budgetPath, sessionId),
+    finalSourceHash: demoSourceHash(options.root),
+    finalMessages: messages,
     repairValidated: validation,
-    terminalReviews,
-    findingSubmitted: submitted,
   });
   return {
-    host: { completed: host.completed, version: hostVersion, durationMs: host.durationMs },
+    host: { completed: host.completed, version: hostVersion, durationMs: host.durationMs,
+      ...(host.failure === undefined ? {} : { failure: host.failure }) },
     review: {
       providerCalls: usage?.providerCalls ?? terminalReviews,
       ...(usage === undefined ? {} : { sourceBytes: usage.sourceBytes }),
@@ -494,6 +533,7 @@ export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
       providerCalls: Math.min(DEMO_PROVIDER_CALL_BUDGET + 1, Math.max(0, calls)),
       sourceBytes: Math.min(DEMO_SOURCE_BYTE_BUDGET + 1, Math.max(0, sourceBytes)),
       hostVersion: value?.host.version ?? "unavailable",
+      hostFailure: value?.host.failure ?? null,
       recordedAt: new Date().toISOString(),
       sourceRetained: false as const,
       responsesRetained: false as const,
