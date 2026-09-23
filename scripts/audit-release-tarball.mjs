@@ -32,6 +32,10 @@ const allowed = (name) => name === "package.json" || name === "package-runtime.j
   /^native\/prebuilt\/(?:linux|darwin)-arm64\//.test(name);
 for (const name of names) {
   if (!allowed(name)) throw new Error(`unexpected registry tarball file: ${name}`);
+  if (/^dist\/(?:conformance\/|direct-event\/test-fixtures\.js$|(?:e0|hello|prcheck|r[67][a-z0-9-]*|scan(?:-files)?)\.js$)/.test(name) ||
+      (name.startsWith("dist/test-support/") && name !== "dist/test-support/controlled-decision-model.js")) {
+    throw new Error(`development or conformance artifact in release tarball: ${name}`);
+  }
 }
 const manifest = JSON.parse(archiveFile("package.json"));
 if (JSON.stringify(manifest) !== JSON.stringify(JSON.parse(gitFile("package.json")))) {
