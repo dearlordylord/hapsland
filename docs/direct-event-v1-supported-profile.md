@@ -9,7 +9,7 @@ at `/proc`, and Node `v24.20.0` on macOS arm64 with Git, `/dev/fd`, and the pack
 `openat` capture helper. The macOS controlled installed-package path is tested. The real
 Codex-host path is verified on macOS arm64 with Codex CLI 0.156.0 and a controlled offline
 backend, including native interactive trust review. This does not establish a real-host run
-for Codex CLI 0.155.1 or other platform profiles. Package metadata and `review-tool-doctor`
+for Codex CLI 0.155.1 or other platform profiles. Package metadata and `jevs-doctor`
 reject undeclared versions and other platform profiles rather than inferring support.
 
 The machine-checked authoritative mapping is
@@ -36,7 +36,7 @@ secret- or source-bearing fields in the new evidence records.
 
 All 39 obligations and 93 unique mapped checks pass through product boundaries or narrowly focused external
 boundaries. Ordinary `npm test` and `npm run conformance:direct-event` are deterministic
-and offline. The paid script is separate and explicit.
+and offline. The live Jev script is separate and explicit.
 
 ## Installed package evidence
 
@@ -95,7 +95,7 @@ Enablement first previews the canonical Git root, fixed Jev backend/destination,
 repository-wide eligible-source scope. Only confirmation of that exact digest grants
 egress. Project configuration cannot grant consent. Disablement and dispatch-time
 revocation stop future calls; they do not recall a request already sent. Hooks never
-prompt and missing consent or credentials never becomes a paid call.
+prompt and missing consent or credentials never starts a Jev call.
 
 The Add hook admits work to the resident reviewer and normally returns before evaluation.
 A later mapped hook may collect current advice. Exclusions, unsupported operations, no
@@ -126,7 +126,7 @@ deterministically checked.
 
 ## Bounded live Jev evidence and gaps
 
-Issue #52 made two paid-capable executions, both under declarations of one intended
+Issue #52 made two live-capable executions, both under declarations of one intended
 provider call maximum, a 256-byte synthetic fixture bound, the 32 KiB profile ceiling,
 15 seconds, and zero retries. The runner did not count at the actual provider boundary,
 so exact provider attempts are unknown and admission is not used as a proxy. The first

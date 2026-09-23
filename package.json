@@ -1,7 +1,15 @@
 {
-  "name": "realtime-review-prototype",
-  "version": "0.0.0",
-  "private": true,
+  "name": "@jevs/jevs",
+  "version": "0.1.0",
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dearlordylord/jevs.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "latest"
+  },
   "type": "module",
   "packageManager": "bun@1.3.14",
   "os": [
@@ -12,25 +20,19 @@
     "bin/launch.sh",
     "dist/**/*.js",
     "native/prebuilt",
-    "native/capture-open.c",
-    "native/credential-input.h",
-    "native/credential-keychain.c",
-    "native/credential-secret-service.c",
-    "scripts/build-capture-helper.mjs",
     "README.md",
     "docs/codex-installation.md",
-    "docs/codex-pilot-quickstart.md",
+    "docs/npm-quickstart.md",
     "docs/direct-event-v1-supported-profile.md",
     "docs/installed-release-compatibility.md",
     "docs/status.md",
-    "conformance/installed-release-v1.json",
     "package-runtime.json"
   ],
   "bin": {
-    "review-tool": "bin/launch.sh",
-    "review-tool-doctor": "bin/launch.sh",
-    "review-tool-parser": "bin/launch.sh",
-    "review-tool-resident": "bin/launch.sh"
+    "jevs": "bin/launch.sh",
+    "jevs-doctor": "bin/launch.sh",
+    "jevs-parser": "bin/launch.sh",
+    "jevs-resident": "bin/launch.sh"
   },
   "exports": {
     ".": "./dist/cli.js",
@@ -38,10 +40,12 @@
     "./resident": "./dist/resident/main.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && node scripts/build-capture-helper.mjs",
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.build.json && node scripts/build-capture-helper.mjs",
     "prepack": "npm run build",
     "verify:release-native": "node scripts/verify-native-release.mjs",
     "pack:release": "npm run build && npm run verify:release-native && npm pack --ignore-scripts=true",
+    "audit:release": "node scripts/audit-release-tarball.mjs",
+    "release:local": "node scripts/local-release.mjs",
     "hello": "bun run src/hello.ts",
     "test": "npm run config:check && vitest run --maxWorkers=1",
     "test:live": "RUN_LIVE_JEV=1 vitest run src/jev-live.test.ts",

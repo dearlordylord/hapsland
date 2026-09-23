@@ -21,7 +21,7 @@ trusting filenames, and then creates fresh isolated homes to replay:
 The ordinary Linux replay uses a source-free controlled credential helper because this gate must run
 without assuming a desktop Secret Service session. The separately retained real Secret Service and
 macOS Keychain records remain required and checksum-bound; the helper result is not native-store
-evidence. The replay makes zero paid Jev calls and zero authenticated real-host runs. It does not set a Codex
+evidence. The replay makes zero Jev calls and zero authenticated real-host runs. It does not set a Codex
 trust bypass. A missing native credential service, wrong operating system, wrong architecture,
 wrong Node version, failed lifecycle stage, evidence mismatch, or omitted compatibility cell is a
 mechanism failure: the command stops instead of converting that failure into an untested or passing
