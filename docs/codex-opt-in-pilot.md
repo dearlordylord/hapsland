@@ -33,7 +33,10 @@ After the first repository completes a successful controlled edit, decide separa
 extend the pilot to the second verified Codex profile. Other hosts and public distribution remain
 outside this pilot.
 
-The first owner-created local test repository completed this Linux profile on 2026-09-23. Its
-sanitized result is in [`evidence/codex-pilot`](../evidence/codex-pilot/README.md). The repository
-remains opt-in and limited to one synthetic TypeScript file. The macOS profile is still awaiting a
-separate owner-host pilot run.
+The first owner-created local test repository completed the Linux profile on 2026-09-23, with one
+submitted finding. The separate macOS profile completed one ordinary edit with a clear review and
+passing validator, but did not independently measure provider calls or source bytes. Both
+sanitized results and their distinct claims are in
+[`evidence/codex-pilot`](../evidence/codex-pilot/README.md). The repository remains opt-in and
+limited to one synthetic TypeScript file. A Mac positive-finding run, if desired, is a separate
+budgeted test rather than an inference from the clear outcome.
