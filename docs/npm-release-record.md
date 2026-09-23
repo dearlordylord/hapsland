@@ -17,10 +17,10 @@ support; GitHub Actions can add supporting evidence without delaying publish.
 | --- | --- |
 | Version | Selected `0.1.0`; public package `@jevs/jevs` |
 | Reviewed release commit | Pending PR review and merge to `master` |
-| Release archive SHA-256 | Pending final reviewed commit and deterministic pack |
+| Local candidate archive SHA-256 | `7f8acec0adc1c24aa57255207e499dd10ada7182666fe172d462ef96bb3de874` (105 files; seven pinned native artifacts; registry match pending) |
 | Registry tarball SHA-256 and integrity | Pending publication and registry retrieval |
 | npm publish identity | Pending maintainer-host publication; private source repo has no npm provenance attestation |
-| Linux arm64 local candidate installation | Pending renamed and scoped candidate rehearsal |
+| Linux arm64 local candidate installation | Passed clean package conformance with production dependencies, controlled offline review, update/recovery, consent and independent hook preservation; scripts-disabled global user-prefix install under shell Node 22.22.2 selected packaged Node 24.20.0 and doctor reported ready |
 | Linux arm64 published-artifact installation and native host run | Pending |
 | macOS arm64 local candidate conformance | Pending renamed and scoped candidate rehearsal |
 | macOS arm64 published-artifact installation and native host run | Pending |
@@ -37,6 +37,14 @@ Its archive SHA-256 was
 `e9596448723f4cd4eda61134d943d9c0ccdf5ece0a6016923fcb2fabd4c90216`.
 This is supporting history only: it cannot establish the behavior or bytes of
 the renamed `@jevs/jevs` registry release.
+
+The current local `@jevs/jevs@0.1.0` archive passed a commit-bound audit at
+`d491783487b7642e47c12267457a7ad2a1eb4aaf` and a second independent
+conformance pack produced the same SHA-256. The offline suite had 426 passing,
+one source-label assertion failure after adding registry provenance, and two
+skips; the corrected four-test file passed. Build and native checks passed.
+This source-only record update does not enter the npm archive. The final
+reviewed commit still needs an audit before handoff.
 
 Release assembly starts from clean, reviewed `master` equal to `origin/master`.
 The host command builds, verifies pinned native bytes, packs with scripts
