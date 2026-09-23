@@ -21,19 +21,23 @@ gate; those are supporting evidence for different artifacts.
 | npm publish identity and provenance | Pending |
 | Linux arm64 local candidate installation | Passed production-only package conformance and user-prefix installation with scripts disabled and shell Node 22.22.2; packaged Node 24.20.0 reported by doctor |
 | Linux arm64 published-artifact installation and native host run | Pending |
+| macOS arm64 local candidate conformance | Passed packaged setup and package lifecycle on [CI run 35926873063](https://github.com/dearlordylord/jevs/actions/runs/35926873063); controlled offline backend |
 | macOS arm64 published-artifact installation and native host run | Pending |
 | Exact Codex/OS/architecture/Node compatibility statement | Pending published-artifact evidence |
 | Separately budgeted real Jev first-value run | Pending exact-artifact authorization and evidence |
 | Known-good rollback version | Pending first successful release |
+| Pilot archive to registry migration | Documented; exact old-package to new-package rehearsal pending |
 
-The local package conformance replay passed parser, CLI, resident, controlled
+The local Linux package conformance replay passed parser, CLI, resident, controlled
 offline review, update recovery, disable, logout, and scoped uninstall with an
 independent hook preserved. Type checking and native architecture checks passed.
 The full offline test suite had 426 passing and one timing test timeout at its
 five-second limit; the affected nine-test file passed on a targeted rerun.
 The local candidate audit found 105 tarball files and matched all seven native
-artifacts to the candidate commit. These observations do not establish macOS
-execution or a registry install. The controlled offline backend and bundled
+artifacts to the candidate commit. The later macOS workflow used the same
+candidate source and passed its local packed path; its tarball was not retained
+or compared byte-for-byte with the Linux candidate. These observations do not
+establish a registry install. The controlled offline backend and bundled
 evaluation corpus are compiled into the CLI; release review must confirm they
 are acceptable runtime features rather than development fixtures.
 
