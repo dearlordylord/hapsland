@@ -13,16 +13,17 @@ After the release commit is merged, the canonical source repository URL,
 reviewed commit, and archive checksum are recorded in
 `scripts/npm-release-pin.json`. On the host where you are
 already logged in to npm, use a clean `master` checkout of this repository
-and run **one** command:
+and run:
 
 ```sh
-bash scripts/publish-local.sh
+git pull --ff-only origin master
+mise exec node@24.20.0 -- npm run local-release
 ```
 
-The wrapper checks clean `master`, verifies npm login before changing the checkout,
-fast-forwards from `origin/master`, and then calls `npm run release:local` under
-`mise exec node@24.20.0`. Use it even if a different Node version is active.
-This follows the host flow used by Huly. Node 25 is fine for ordinary work; release
+`local-release` is the repository's npm script for the host publish flow.
+`mise exec` selects the certified Node runtime for npm and the release script,
+as in Huly MCP's local release flow. Use it even if a different Node version is active.
+Node 25 is fine for ordinary work; release
 assembly is pinned to Node 24.20.0 so npm builds the reviewed archive under the
 same toolchain used to calculate its checksum. It requires Linux arm64 or macOS
 arm64, mise with Node 24.20.0 available, clean `master` equal to `origin/master`

@@ -49,7 +49,7 @@ if (!(["linux", "darwin"].includes(process.platform) && process.arch === "arm64"
     process.version !== "v24.20.0") {
   throw new Error([
     "release assembly requires Linux/macOS arm64 and Node 24.20.0.",
-    `Rerun with: mise exec node@24.20.0 -- npm run release:local (current: ${process.platform}/${process.arch}, Node ${process.version}).`,
+    `Rerun with: mise exec node@24.20.0 -- npm run local-release (current: ${process.platform}/${process.arch}, Node ${process.version}).`,
   ].join("\n"));
 }
 const manifest = JSON.parse(readFileSync("package.json", "utf8"));

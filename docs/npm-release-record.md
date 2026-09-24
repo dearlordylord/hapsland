@@ -17,8 +17,8 @@ support; GitHub Actions can add supporting evidence without delaying publish.
 | Field | Current Hapsland state |
 | --- | --- |
 | Version | Selected `0.1.0`; public package `@hapsland/hapsland` |
-| Reviewed release commit | Candidate packaged source `f184c327415659472514d4fb90bc63f9e1071939`; archive audited; publication pending |
-| Local candidate archive SHA-256 | `9b8ec6b6ba928ad0e9af9741a1eb49e8096969a238908f060bd867b88a7c3cc6`; clean-worktree archive audit passed |
+| Reviewed release commit | Candidate packaged source `a5939c97c4029ab5b9b0cd336cb04ba7dbcd9856`; archive audited; publication pending |
+| Local candidate archive SHA-256 | `88475afb074e61dfd04098d87344e6bed72218fef87763be99358b04d07a8965`; clean-worktree archive audit passed |
 | Registry tarball SHA-256 and integrity | Pending publication and registry retrieval |
 | npm publish identity | Pending maintainer-host login and package ownership verification; this workspace's `npm whoami` returned E401 |
 | Linux arm64 published-artifact installation and native host run | Pending |
