@@ -1,5 +1,7 @@
 # Hapsland — realtime review integration
 
+![Constructivist-inspired scene of a worker hand slapping a bony hand away from a laptop](./assets/readme-splash.png)
+
 This private repository develops Hapsland, a host-neutral integration for giving coding
 agents configurable feedback after edits. Jev is the first external review backend;
 Jev and Hapsland are distinct names.
