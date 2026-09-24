@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "host": "opencode",
+  "exactVersion": "1.14.44",
+  "checks": {
+    "install": true,
+    "doctorOwnership": true,
+    "update": true,
+    "coexistence": true,
+    "uninstall": true,
+    "unrelatedPreserved": true
+  },
+  "rawHostOutputRetained": false,
+  "sourceOrCredentialRetained": false,
+  "status": "passed"
+}
