@@ -17,10 +17,10 @@ support; GitHub Actions can add supporting evidence without delaying publish.
 | Field | Current Hapsland state |
 | --- | --- |
 | Version | Selected `0.1.0`; public package `@hapsland/hapsland` |
-| Reviewed release commit | Pending Hapsland archive review |
-| Local candidate archive SHA-256 | Pending Hapsland archive build and audit |
+| Reviewed release commit | Candidate packaged source `f184c327415659472514d4fb90bc63f9e1071939`; archive audited; publication pending |
+| Local candidate archive SHA-256 | `9b8ec6b6ba928ad0e9af9741a1eb49e8096969a238908f060bd867b88a7c3cc6`; clean-worktree archive audit passed |
 | Registry tarball SHA-256 and integrity | Pending publication and registry retrieval |
-| npm publish identity | Pending maintainer-host publication and package ownership verification |
+| npm publish identity | Pending maintainer-host login and package ownership verification; this workspace's `npm whoami` returned E401 |
 | Linux arm64 published-artifact installation and native host run | Pending |
 | macOS arm64 published-artifact installation and native host run | Pending |
 | Exact Codex/OS/architecture/Node compatibility statement | Pending published-artifact evidence |
@@ -29,8 +29,19 @@ support; GitHub Actions can add supporting evidence without delaying publish.
 | Pilot archive to Hapsland candidate migration | Pending renamed-package rehearsal |
 | Hapsland candidate to published registry artifact migration | Pending registry release |
 
-The release pin remains incomplete until a reviewed source commit and new archive
-checksum are recorded for the renamed repository.
+The candidate source commit and archive checksum are recorded in
+[`scripts/npm-release-pin.json`](../scripts/npm-release-pin.json). The pin can be used for
+publication from clean `master` equal to `origin/master` after the branch is merged
+with its commit ancestry intact and the host release script reproduces the archive digest.
+
+The 2026-09-24 local preflight used Linux arm64 and Node 24.20.0. Typecheck, build,
+native-artifact verification, setup-package conformance, and local package conformance
+passed. The full offline suite first had one installation-recovery failure; that test
+passed alone and with its full file, and the complete suite then passed (450 passed,
+2 skipped). This intermittent result is retained for review rather than treated as
+proof that the failure cannot recur. The clean-worktree archive audit accepted 111 files, including
+seven pinned native artifacts. These checks do not establish registry or real-host
+compatibility.
 
 Release assembly starts from clean, reviewed `master` equal to `origin/master`.
 The host command builds, verifies pinned native bytes, packs with scripts

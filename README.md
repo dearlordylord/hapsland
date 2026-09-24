@@ -80,7 +80,26 @@ operate on a complete file or use the same evidence boundary.
 
 ## Installation
 
-TODO
+Hapsland supports Codex CLI 0.155.1 on Linux arm64 and Codex CLI 0.156.0 on macOS arm64.
+
+1. Install Hapsland into a user-writable prefix. Keep optional dependencies enabled; the package
+   supplies its own Node 24.20.0 runtime.
+
+   ```sh
+   npm install --global --prefix "$HOME/.local" --ignore-scripts=true --include=optional @hapsland/hapsland@0.1.0
+   "$HOME/.local/bin/hapsland-doctor"
+   ```
+
+2. In the Git repository you want reviewed, run `"$HOME/.local/bin/hapsland" --pilot`.
+   The guided setup previews the Codex hook changes, accepts a Jev key through masked terminal
+   input, and separately asks you to enable review for that repository. Installing Hapsland or
+   saving a key does not authorize sending repository source to Jev.
+3. Start Codex normally, review its repository and hook trust prompts, and make a supported
+   TypeScript edit. Follow the [status guide](./docs/status.md) to check observed review activity
+   with the host session ID; installation alone does not establish that a review ran.
+
+The [Codex installation guide](./docs/codex-installation.md) covers update, disable, logout,
+uninstall, and an optional first-review demo.
 
 <!-- configuration-readme:start -->
 
