@@ -189,73 +189,39 @@ const ConsentOperation = Schema.Union([
 ]);
 type ConsentOperation = typeof ConsentOperation.Type;
 
-const InstallationOperation = Schema.Union([
+const installationOperationsFor = <const Fields extends Schema.Struct.Fields>(fields: Fields) => Schema.Union([
+  Schema.Struct({ version: Schema.Literal(1), operation: Schema.Literal("doctor"), cwd: Schema.String, ...fields }),
+  Schema.Struct({ version: Schema.Literal(1), operation: Schema.Literal("install-preview"), ...fields }),
   Schema.Struct({
-    version: Schema.Literal(1),
-    operation: Schema.Literal("doctor"),
-    cwd: Schema.String,
-    host: Schema.optionalKey(Schema.Literals(["claude", "opencode"])),
-    claudeHome: Schema.optionalKey(Schema.NonEmptyString),
-    claudeExecutable: Schema.optionalKey(Schema.NonEmptyString),
-    opencodeConfigHome: Schema.optionalKey(Schema.NonEmptyString),
-    opencodeExecutable: Schema.optionalKey(Schema.NonEmptyString),
-    codexHome: Schema.optionalKey(Schema.NonEmptyString),
-    codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
+    version: Schema.Literal(1), operation: Schema.Literal("install"), ...fields,
+    proposalDigest: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)),
   }),
+  Schema.Struct({ version: Schema.Literal(1), operation: Schema.Literal("update-preview"), ...fields }),
   Schema.Struct({
-    version: Schema.Literal(1),
-    operation: Schema.Literal("install-preview"),
-    host: Schema.optionalKey(Schema.Literals(["claude", "opencode"])),
-    claudeHome: Schema.optionalKey(Schema.NonEmptyString),
-    claudeExecutable: Schema.optionalKey(Schema.NonEmptyString),
-    opencodeConfigHome: Schema.optionalKey(Schema.NonEmptyString),
-    opencodeExecutable: Schema.optionalKey(Schema.NonEmptyString),
-    codexHome: Schema.optionalKey(Schema.NonEmptyString),
-    codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
-  }),
-  Schema.Struct({
-    version: Schema.Literal(1),
-    operation: Schema.Literal("install"),
-    host: Schema.optionalKey(Schema.Literals(["claude", "opencode"])),
-    claudeHome: Schema.optionalKey(Schema.NonEmptyString),
-    claudeExecutable: Schema.optionalKey(Schema.NonEmptyString),
-    opencodeConfigHome: Schema.optionalKey(Schema.NonEmptyString),
-    opencodeExecutable: Schema.optionalKey(Schema.NonEmptyString),
-    codexHome: Schema.optionalKey(Schema.NonEmptyString),
-    codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
+    version: Schema.Literal(1), operation: Schema.Literal("update"), ...fields,
     proposalDigest: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)),
   }),
   Schema.Struct({
-    version: Schema.Literal(1),
-    operation: Schema.Literal("update-preview"),
-    host: Schema.optionalKey(Schema.Literals(["claude", "opencode"])),
-    claudeHome: Schema.optionalKey(Schema.NonEmptyString),
-    claudeExecutable: Schema.optionalKey(Schema.NonEmptyString),
-    opencodeConfigHome: Schema.optionalKey(Schema.NonEmptyString),
-    opencodeExecutable: Schema.optionalKey(Schema.NonEmptyString),
-    codexHome: Schema.optionalKey(Schema.NonEmptyString),
-    codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
-  }),
-  Schema.Struct({
-    version: Schema.Literal(1),
-    operation: Schema.Literal("update"),
-    host: Schema.optionalKey(Schema.Literals(["claude", "opencode"])),
-    claudeHome: Schema.optionalKey(Schema.NonEmptyString),
-    claudeExecutable: Schema.optionalKey(Schema.NonEmptyString),
-    opencodeConfigHome: Schema.optionalKey(Schema.NonEmptyString),
-    opencodeExecutable: Schema.optionalKey(Schema.NonEmptyString),
-    codexHome: Schema.optionalKey(Schema.NonEmptyString),
-    codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
-    proposalDigest: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)),
-  }),
-  Schema.Struct({
-    version: Schema.Literal(1),
-    operation: Schema.Literal("uninstall"),
-    host: Schema.optionalKey(Schema.Literals(["claude", "opencode"])),
-    claudeHome: Schema.optionalKey(Schema.NonEmptyString),
-    opencodeConfigHome: Schema.optionalKey(Schema.NonEmptyString),
-    codexHome: Schema.optionalKey(Schema.NonEmptyString),
+    version: Schema.Literal(1), operation: Schema.Literal("uninstall"), ...fields,
     proposalDigest: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/))),
+  }),
+]);
+
+const InstallationOperation = Schema.Union([
+  installationOperationsFor({
+    host: Schema.optionalKey(Schema.Literal("codex")),
+    codexHome: Schema.optionalKey(Schema.NonEmptyString),
+    codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
+  }),
+  installationOperationsFor({
+    host: Schema.Literal("claude"),
+    claudeHome: Schema.optionalKey(Schema.NonEmptyString),
+    claudeExecutable: Schema.optionalKey(Schema.NonEmptyString),
+  }),
+  installationOperationsFor({
+    host: Schema.Literal("opencode"),
+    opencodeConfigHome: Schema.optionalKey(Schema.NonEmptyString),
+    opencodeExecutable: Schema.optionalKey(Schema.NonEmptyString),
   }),
 ]);
 type InstallationOperation = typeof InstallationOperation.Type;

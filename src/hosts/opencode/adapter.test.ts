@@ -26,11 +26,11 @@ describe("OpenCode 1.14.44 direct event adaptation", () => {
     const cwd = fixture();
     writeFileSync(join(cwd, "src", "item.ts"), "export interface Item { value: number }\n");
     const result = await adapt(event(cwd, "edit", {
-      filePath: "src/item.ts", oldString: "value: string", newString: "value: number", replaceAll: false,
+      filePath: "src/item.ts", oldString: "export interface Item { value: string }", newString: "export interface Item { value: number }", replaceAll: false,
     }, { diff: "fixture diff", truncated: false }));
     expect(result?.recipient).toEqual({ host: "opencode", hostVersion: "1.14.44", sessionId: "ses-1",
       turnId: null, toolUseId: "call-1", agentId: null });
-    expect(result?.candidates).toEqual([{ operation: "update", path: "src/item.ts", addedLines: ["value: number"] }]);
+    expect(result?.candidates).toEqual([{ operation: "update", path: "src/item.ts", addedLines: ["export interface Item { value: number }"] }]);
   });
 
   it("selects a successful write and rejects unsupported or unattributed events", async () => {
@@ -71,5 +71,27 @@ describe("OpenCode 1.14.44 direct event adaptation", () => {
       betweenReads: async () => { writeFileSync(path, "export interface Item { value: string }\n"); },
     }));
     expect(result).toBeUndefined();
+  });
+
+  it("skips existing-file Write even when unchanged roots are present", async () => {
+    const cwd = fixture();
+    const content = "export interface Changed { value: number }\nexport interface Unchanged { label: string }\n";
+    writeFileSync(join(cwd, "src", "item.ts"), content);
+    expect(await adapt(event(cwd, "write", { filePath: "src/item.ts", content },
+      { exists: true }))).toBeUndefined();
+  });
+
+  it("attributes only unique changed whole lines from an Edit", async () => {
+    const cwd = fixture();
+    const old = "export interface Changed { value: string }";
+    const changed = "export interface Changed { value: number }";
+    const unchanged = "export interface Unchanged { label: string }";
+    writeFileSync(join(cwd, "src", "item.ts"), `${changed}\n${unchanged}\n`);
+    const result = await adapt(event(cwd, "edit", { filePath: "src/item.ts",
+      oldString: `${old}\n${unchanged}`, newString: `${changed}\n${unchanged}`, replaceAll: false }, { diff: "fixture" }));
+    expect(result?.candidates[0]?.addedLines).toEqual([changed]);
+    writeFileSync(join(cwd, "src", "item.ts"), `${changed}\n${changed}\n${unchanged}\n`);
+    expect(await adapt(event(cwd, "edit", { filePath: "src/item.ts",
+      oldString: old, newString: changed, replaceAll: false }, { diff: "fixture" }))).toBeUndefined();
   });
 });

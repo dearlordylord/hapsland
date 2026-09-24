@@ -2,7 +2,15 @@
 
 Hapsland's OpenCode adapter targets the exact `1.14.44` global plugin API. The plugin listens to `tool.execute.after` for direct `edit` and `write` calls. It sends an attributed event to the local Hapsland CLI, waits within the hook's 4.5 second watchdog, and appends a ready finding to that tool's output. The observed 1.14.44 probe showed appended output in the next local provider request for both tools. That probe did **not** observe a real model reacting to a finding, so this path is pending support validation.
 
-The adapter requires a session ID, call ID, named file, current file evidence, and an eligible semantic root. It skips ambiguous input quietly. The hook does not cover shell writes, `file.edited`, OpenCode v2, or `opencode run --pure` (which disables plugins). The local plugin runs with the user's filesystem privileges. Host plugin loading and per-repository source-egress consent are separate decisions.
+The adapter requires a session ID, call ID, named file, current file evidence, and an eligible semantic root. It skips ambiguous input quietly. The local plugin runs with the user's filesystem privileges. Host plugin loading and per-repository source-egress consent are separate decisions.
+
+| OpenCode 1.14.44 event | Adapter result |
+| --- | --- |
+| Direct `edit` with unique changed whole lines in the captured file | Candidate Update; unchanged lines in the edit arguments are excluded |
+| `edit` with only partial, repeated, or otherwise ambiguous changed lines | Quiet skip |
+| Direct `write` creating a file (`metadata.exists === false`) | Candidate Add |
+| `write` replacing an existing file | **Unsupported; quiet skip.** The callback does not supply trustworthy before-source, so unchanged declarations cannot be excluded. |
+| Shell write, `file.edited`, OpenCode v2, or `opencode run --pure` | Unsupported |
 
 ## Installation operations
 

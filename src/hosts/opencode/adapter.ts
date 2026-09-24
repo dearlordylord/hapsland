@@ -14,6 +14,17 @@ const nonempty = (value: unknown): value is string => typeof value === "string" 
 const MAX_ENVELOPE_TEXT = 256_000;
 const boundedSource = (value: unknown): value is string =>
   typeof value === "string" && Buffer.byteLength(value, "utf8") <= MAX_SOURCE_BYTES;
+const changedUniqueLines = (before: string, after: string, current: string): ReadonlyArray<string> | undefined => {
+  const prior = new Set(before.split(/\r?\n/u).map((line) => line.trim()));
+  const lines = after.split(/\r?\n/u).filter((line) => line.trim().length > 0 && !prior.has(line.trim()));
+  if (lines.length === 0) return undefined;
+  const counts = new Map<string, number>();
+  for (const line of current.split(/\r?\n/u)) {
+    const key = line.trim();
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return lines.every((line) => counts.get(line.trim()) === 1) ? lines : undefined;
+};
 
 const rootFor = async (cwd: string) => {
   const physicalCwd = await realpath(cwd);
@@ -72,11 +83,13 @@ export const adaptOpenCodeDirectEvent = Effect.fn("DirectEvent.adaptOpenCodeDire
       (args.replaceAll !== undefined && typeof args.replaceAll !== "boolean") ||
       current.text.includes(args.oldString) || !current.text.includes(args.newString) ||
       !nonempty(metadata.diff) && !nonempty(metadata.filediff)) return undefined;
-    candidate = { operation: "update", path: relativePath, addedLines: args.newString.split(/\r?\n/u) };
+    const addedLines = changedUniqueLines(args.oldString, args.newString, current.text);
+    if (addedLines === undefined) return undefined;
+    candidate = { operation: "update", path: relativePath, addedLines };
   } else {
     if (typeof args.content !== "string" || args.content !== current.text ||
-      typeof metadata.exists !== "boolean") return undefined;
-    candidate = { operation: metadata.exists ? "update" : "add", path: relativePath,
+      metadata.exists !== false) return undefined;
+    candidate = { operation: "add", path: relativePath,
       addedLines: args.content.split(/\r?\n/u) };
   }
   const recipient: DirectRecipient = Object.freeze({

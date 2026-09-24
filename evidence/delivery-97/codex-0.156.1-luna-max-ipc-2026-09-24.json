@@ -1,0 +1,814 @@
+{
+  "issue": 97,
+  "host": "codex-cli 0.156.1",
+  "model": "gpt-6-luna",
+  "reasoningEffort": "max",
+  "mode": "headless codex exec ephemeral",
+  "backend": "controlled offline Unix-socket service with real timers; no Jev",
+  "isolation": "temporary repositories and CODEX_HOME; raw host output and source discarded",
+  "cases": [
+    {
+      "id": "ipc-timeout",
+      "delayMs": 7500,
+      "units": 1,
+      "failure": false,
+      "exitCode": 0,
+      "durationMs": 16494,
+      "events": [
+        {
+          "kind": "service-ready",
+          "at": -4
+        },
+        {
+          "kind": "hook-entry",
+          "at": 8992
+        },
+        {
+          "kind": "edit-hook-entry",
+          "at": 8992,
+          "recipient": "<session-agent-root>"
+        },
+        {
+          "kind": "review-admitted",
+          "at": 9000,
+          "units": 1,
+          "recipient": "<session-agent-root>"
+        },
+        {
+          "kind": "edit-hook-return",
+          "at": 9001,
+          "admitted": 1,
+          "elapsedMs": 10
+        },
+        {
+          "kind": "hook-entry",
+          "at": 11053
+        },
+        {
+          "kind": "stop-entry",
+          "at": 11054,
+          "recipient": "<session-agent-root>",
+          "stopHookActive": false
+        },
+        {
+          "kind": "ipc-collect-entry",
+          "at": 11063,
+          "recipient": "<session-agent-root>"
+        },
+        {
+          "kind": "ipc-collect-result",
+          "at": 15489,
+          "recipient": "<session-agent-root>",
+          "findings": 0,
+          "unavailable": 0
+        },
+        {
+          "kind": "stop-return",
+          "at": 15504,
+          "elapsedMs": 4451,
+          "findings": 0,
+          "unavailable": 0,
+          "submitted": false
+        },
+        {
+          "kind": "hook-entry",
+          "at": 15671
+        },
+        {
+          "kind": "session-end",
+          "at": 15671
+        }
+      ],
+      "hostEventTimeline": [
+        {
+          "type": "thread.started",
+          "itemType": null,
+          "at": 2211
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 2253
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 2253
+        },
+        {
+          "type": "turn.started",
+          "itemType": null,
+          "at": 2253
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 8222
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 8938
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 8948
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 10965
+        },
+        {
+          "type": "turn.completed",
+          "itemType": null,
+          "at": 15513
+        }
+      ],
+      "finalFileState": "bad",
+      "modelClaimedRepair": false,
+      "firstStopElapsedMs": 4451,
+      "stopBudgetPass": true,
+      "backendCompleted": 0,
+      "hostSubmissions": 0,
+      "stderrClass": "other"
+    },
+    {
+      "id": "ipc-ready",
+      "delayMs": 0,
+      "units": 1,
+      "failure": false,
+      "exitCode": 0,
+      "durationMs": 23225,
+      "events": [
+        {
+          "kind": "service-ready",
+          "at": 0
+        },
+        {
+          "kind": "hook-entry",
+          "at": 10876
+        },
+        {
+          "kind": "edit-hook-entry",
+          "at": 10877,
+          "recipient": "<session-agent-root>"
+        },
+        {
+          "kind": "review-admitted",
+          "at": 10883,
+          "units": 1,
+          "recipient": "<session-agent-root>"
+        },
+        {
+          "kind": "backend-complete",
+          "at": 10883,
+          "unit": 1,
+          "outcome": "finding",
+          "recipient": "<session-agent-root>"
+        },
+        {
+          "kind": "edit-hook-return",
+          "at": 10885,
+          "admitted": 1,
+          "elapsedMs": 10
+        },
+        {
+          "kind": "hook-entry",
+          "at": 13702
+        },
+        {
+          "kind": "stop-entry",
+          "at": 13702,
+          "recipient": "<session-agent-root>",
+          "stopHookActive": false
+        },
+        {
+          "kind": "ipc-collect-entry",
+          "at": 13708,
+          "recipient": "<session-agent-root>"
+        },
+        {
+          "kind": "ipc-collect-result",
+          "at": 13708,
+          "recipient": "<session-agent-root>",
+          "findings": 1,
+          "unavailable": 0
+        },
+        {
+          "kind": "host-submission",
+          "at": 13713,
+          "recipient": "<session-agent-root>",
+          "findings": 1
+        },
+        {
+          "kind": "stop-return",
+          "at": 13713,
+          "elapsedMs": 11,
+          "findings": 1,
+          "unavailable": 0,
+          "submitted": true
+        },
+        {
+          "kind": "hook-entry",
+          "at": 17879
+        },
+        {
+          "kind": "hook-entry",
+          "at": 19017
+        },
+        {
+          "kind": "stop-entry",
+          "at": 19017,
+          "recipient": "<session-agent-root>",
+          "stopHookActive": true
+        },
+        {
+          "kind": "stop-return",
+          "at": 19017,
+          "elapsedMs": 1,
+          "submitted": false,
+          "continuationCapped": true
+        },
+        {
+          "kind": "hook-entry",
+          "at": 19610
+        },
+        {
+          "kind": "session-end",
+          "at": 19611
+        }
+      ],
+      "hostEventTimeline": [
+        {
+          "type": "thread.started",
+          "itemType": null,
+          "at": 1902
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 1928
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 1928
+        },
+        {
+          "type": "turn.started",
+          "itemType": null,
+          "at": 1928
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 10134
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 10804
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 10814
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 13530
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 16761
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 17648
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 17736
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 18749
+        },
+        {
+          "type": "turn.completed",
+          "itemType": null,
+          "at": 19026
+        }
+      ],
+      "finalFileState": "good",
+      "modelClaimedRepair": true,
+      "firstStopElapsedMs": 11,
+      "stopBudgetPass": true,
+      "backendCompleted": 1,
+      "hostSubmissions": 1,
+      "stderrClass": "other"
+    },
+    {
+      "id": "ipc-during-stop",
+      "delayMs": 4000,
+      "units": 1,
+      "failure": false,
+      "exitCode": 0,
+      "durationMs": 110011,
+      "events": [
+        {
+          "kind": "service-ready",
+          "at": -12
+        },
+        {
+          "kind": "hook-entry",
+          "at": 87269
+        },
+        {
+          "kind": "edit-hook-entry",
+          "at": 87270,
+          "recipient": "<session-agent-root>"
+        },
+        {
+          "kind": "review-admitted",
+          "at": 87291,
+          "units": 1,
+          "recipient": "<session-agent-root>"
+        },
+        {
+          "kind": "edit-hook-return",
+          "at": 87309,
+          "admitted": 1,
+          "elapsedMs": 40
+        },
+        {
+          "kind": "hook-entry",
+          "at": 91135
+        },
+        {
+          "kind": "stop-entry",
+          "at": 91135,
+          "recipient": "<session-agent-root>",
+          "stopHookActive": false
+        },
+        {
+          "kind": "ipc-collect-entry",
+          "at": 91141,
+          "recipient": "<session-agent-root>"
+        },
+        {
+          "kind": "backend-complete",
+          "at": 91292,
+          "unit": 1,
+          "outcome": "finding",
+          "recipient": "<session-agent-root>"
+        },
+        {
+          "kind": "ipc-collect-result",
+          "at": 91314,
+          "recipient": "<session-agent-root>",
+          "findings": 1,
+          "unavailable": 0
+        },
+        {
+          "kind": "host-submission",
+          "at": 91315,
+          "recipient": "<session-agent-root>",
+          "findings": 1
+        },
+        {
+          "kind": "stop-return",
+          "at": 93521,
+          "elapsedMs": 2386,
+          "findings": 1,
+          "unavailable": 0,
+          "submitted": true
+        },
+        {
+          "kind": "hook-entry",
+          "at": 100547
+        },
+        {
+          "kind": "hook-entry",
+          "at": 104305
+        },
+        {
+          "kind": "stop-entry",
+          "at": 104306,
+          "recipient": "<session-agent-root>",
+          "stopHookActive": true
+        },
+        {
+          "kind": "stop-return",
+          "at": 104306,
+          "elapsedMs": 1,
+          "submitted": false,
+          "continuationCapped": true
+        }
+      ],
+      "hostEventTimeline": [
+        {
+          "type": "thread.started",
+          "itemType": null,
+          "at": 79805
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 79877
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 79877
+        },
+        {
+          "type": "turn.started",
+          "itemType": null,
+          "at": 79877
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 86288
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 87134
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 87134
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 90948
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 96325
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 100968
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 100968
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 104194
+        },
+        {
+          "type": "turn.completed",
+          "itemType": null,
+          "at": 104309
+        }
+      ],
+      "finalFileState": "good",
+      "modelClaimedRepair": true,
+      "firstStopElapsedMs": 2386,
+      "stopBudgetPass": true,
+      "backendCompleted": 1,
+      "hostSubmissions": 1,
+      "stderrClass": "other"
+    },
+    {
+      "id": "ipc-multi",
+      "delayMs": 1500,
+      "units": 2,
+      "failure": false,
+      "exitCode": 0,
+      "durationMs": 26105,
+      "events": [
+        {
+          "kind": "service-ready",
+          "at": -17
+        },
+        {
+          "kind": "hook-entry",
+          "at": 17433
+        },
+        {
+          "kind": "edit-hook-entry",
+          "at": 17433,
+          "recipient": "<session-agent-root>"
+        },
+        {
+          "kind": "review-admitted",
+          "at": 17437,
+          "units": 2,
+          "recipient": "<session-agent-root>"
+        },
+        {
+          "kind": "edit-hook-return",
+          "at": 17438,
+          "admitted": 2,
+          "elapsedMs": 5
+        },
+        {
+          "kind": "backend-complete",
+          "at": 18944,
+          "unit": 1,
+          "outcome": "finding",
+          "recipient": "<session-agent-root>"
+        },
+        {
+          "kind": "backend-complete",
+          "at": 18967,
+          "unit": 2,
+          "outcome": "finding",
+          "recipient": "<session-agent-root>"
+        },
+        {
+          "kind": "hook-entry",
+          "at": 19739
+        },
+        {
+          "kind": "stop-entry",
+          "at": 19739,
+          "recipient": "<session-agent-root>",
+          "stopHookActive": false
+        },
+        {
+          "kind": "ipc-collect-entry",
+          "at": 19742,
+          "recipient": "<session-agent-root>"
+        },
+        {
+          "kind": "ipc-collect-result",
+          "at": 19742,
+          "recipient": "<session-agent-root>",
+          "findings": 2,
+          "unavailable": 0
+        },
+        {
+          "kind": "host-submission",
+          "at": 19749,
+          "recipient": "<session-agent-root>",
+          "findings": 2
+        },
+        {
+          "kind": "stop-return",
+          "at": 19749,
+          "elapsedMs": 10,
+          "findings": 2,
+          "unavailable": 0,
+          "submitted": true
+        },
+        {
+          "kind": "hook-entry",
+          "at": 23436
+        },
+        {
+          "kind": "hook-entry",
+          "at": 24436
+        },
+        {
+          "kind": "stop-entry",
+          "at": 24436,
+          "recipient": "<session-agent-root>",
+          "stopHookActive": true
+        },
+        {
+          "kind": "stop-return",
+          "at": 24436,
+          "elapsedMs": 1,
+          "submitted": false,
+          "continuationCapped": true
+        },
+        {
+          "kind": "hook-entry",
+          "at": 24542
+        },
+        {
+          "kind": "session-end",
+          "at": 24542
+        }
+      ],
+      "hostEventTimeline": [
+        {
+          "type": "thread.started",
+          "itemType": null,
+          "at": 9497
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 9637
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 9637
+        },
+        {
+          "type": "turn.started",
+          "itemType": null,
+          "at": 9637
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 16633
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 17379
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 17397
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 19625
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 22346
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 23321
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 23358
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 24343
+        },
+        {
+          "type": "turn.completed",
+          "itemType": null,
+          "at": 24443
+        }
+      ],
+      "finalFileState": "good",
+      "modelClaimedRepair": true,
+      "firstStopElapsedMs": 10,
+      "stopBudgetPass": true,
+      "backendCompleted": 2,
+      "hostSubmissions": 1,
+      "stderrClass": "other"
+    },
+    {
+      "id": "ipc-unavailable",
+      "delayMs": 1000,
+      "units": 1,
+      "failure": true,
+      "exitCode": 0,
+      "durationMs": 19900,
+      "events": [
+        {
+          "kind": "service-ready",
+          "at": -11
+        },
+        {
+          "kind": "hook-entry",
+          "at": 12155
+        },
+        {
+          "kind": "edit-hook-entry",
+          "at": 12155,
+          "recipient": "<session-agent-root>"
+        },
+        {
+          "kind": "review-admitted",
+          "at": 12170,
+          "units": 1,
+          "recipient": "<session-agent-root>"
+        },
+        {
+          "kind": "edit-hook-return",
+          "at": 12172,
+          "admitted": 1,
+          "elapsedMs": 18
+        },
+        {
+          "kind": "backend-complete",
+          "at": 13198,
+          "unit": 1,
+          "outcome": "unavailable",
+          "recipient": "<session-agent-root>"
+        },
+        {
+          "kind": "hook-entry",
+          "at": 18707
+        },
+        {
+          "kind": "stop-entry",
+          "at": 18707,
+          "recipient": "<session-agent-root>",
+          "stopHookActive": false
+        },
+        {
+          "kind": "ipc-collect-entry",
+          "at": 18715,
+          "recipient": "<session-agent-root>"
+        },
+        {
+          "kind": "ipc-collect-result",
+          "at": 18715,
+          "recipient": "<session-agent-root>",
+          "findings": 0,
+          "unavailable": 1
+        },
+        {
+          "kind": "stop-return",
+          "at": 18717,
+          "elapsedMs": 10,
+          "findings": 0,
+          "unavailable": 1,
+          "submitted": false
+        },
+        {
+          "kind": "hook-entry",
+          "at": 18894
+        },
+        {
+          "kind": "session-end",
+          "at": 18895
+        }
+      ],
+      "hostEventTimeline": [
+        {
+          "type": "thread.started",
+          "itemType": null,
+          "at": 3037
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 3125
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 3125
+        },
+        {
+          "type": "turn.started",
+          "itemType": null,
+          "at": 3125
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 9931
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 10551
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 10598
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 14639
+        },
+        {
+          "type": "turn.completed",
+          "itemType": null,
+          "at": 18728
+        }
+      ],
+      "finalFileState": "bad",
+      "modelClaimedRepair": false,
+      "firstStopElapsedMs": 10,
+      "stopBudgetPass": true,
+      "backendCompleted": 1,
+      "hostSubmissions": 0,
+      "stderrClass": "other"
+    }
+  ]
+}

@@ -65,6 +65,26 @@ const initializeRepository = (root: string, requestedStatePath?: string) => {
 };
 
 describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () => {
+  it("rejects mixed installation host fields and accepts the host-omitted Codex v1 form", () => {
+    const root = makeTemporaryDirectory("review-install-schema-");
+    roots.push(root);
+    const invoke = (request: unknown) => spawnSync(process.execPath, ["src/cli.ts", "--install-preview"], {
+      cwd: process.cwd(), input: JSON.stringify(request), encoding: "utf8", timeout: 10_000,
+    });
+    for (const mixed of [
+      { version: 1, operation: "install-preview", host: "claude", claudeHome: root, codexHome: root },
+      { version: 1, operation: "install-preview", host: "opencode", opencodeConfigHome: root, claudeHome: root },
+      { version: 1, operation: "install-preview", claudeHome: root },
+    ]) {
+      const result = invoke(mixed);
+      expect(result.status).toBe(2);
+      expect(JSON.parse(result.stdout)).toMatchObject({ error: { code: "invalid_request" } });
+    }
+    const codex = invoke({ version: 1, operation: "install-preview", codexHome: root });
+    expect(JSON.parse(codex.stdout).operation).toBe("install-preview");
+    expect(JSON.parse(codex.stdout).error).toBeUndefined();
+  });
+
   it("reviews a completed edit and reserves stdout for one protocol response", () => {
     const root = makeTemporaryDirectory("review-cli-");
     roots.push(root);

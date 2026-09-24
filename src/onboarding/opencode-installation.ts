@@ -102,7 +102,8 @@ const preview = (kind: Kind, request: OpenCodeInstallationRequest) => {
         timeoutMilliseconds: 4500 } },
       installed: kind !== "uninstall", sourceEgressAuthorized: false,
       trust: { status: "host-owned", guidance: "OpenCode controls plugin loading; repository source egress needs separate consent." },
-      unsupported: ["OpenCode --pure", "shell writes", "file.edited", "OpenCode v2"],
+      unsupported: ["existing-file write", "edit without unique changed whole lines", "OpenCode --pure",
+        "shell writes", "file.edited", "OpenCode v2"],
       pending: ["apply this proposal digest", "enable source egress for each repository separately"] };
   } catch (cause) { return conflict(operation, cause); }
 };
