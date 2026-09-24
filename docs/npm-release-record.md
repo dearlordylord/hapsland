@@ -17,8 +17,8 @@ support; GitHub Actions can add supporting evidence without delaying publish.
 | Field | Current Hapsland state |
 | --- | --- |
 | Version | Selected `0.1.0`; public package `@hapsland/hapsland` |
-| Reviewed release commit | Candidate packaged source `7e011aba59702fbc4b963f55cc7dc25b884834ad`; release merge and maintainer review pending |
-| Local candidate archive SHA-256 | `2f275ea126db2e8cc65a5678f6deb41fbc2c6447aac18a5ae5e39cf4233f7c04`; two matching local packs and clean-worktree archive audit |
+| Reviewed release commit | Candidate packaged source `f184c327415659472514d4fb90bc63f9e1071939`; release merge and maintainer review pending |
+| Local candidate archive SHA-256 | `9b8ec6b6ba928ad0e9af9741a1eb49e8096969a238908f060bd867b88a7c3cc6`; clean-worktree archive audit passed |
 | Registry tarball SHA-256 and integrity | Pending publication and registry retrieval |
 | npm publish identity | Pending maintainer-host login and package ownership verification; this workspace's `npm whoami` returned E401 |
 | Linux arm64 published-artifact installation and native host run | Pending |
@@ -39,8 +39,7 @@ native-artifact verification, setup-package conformance, and local package confo
 passed. The full offline suite first had one installation-recovery failure; that test
 passed alone and with its full file, and the complete suite then passed (450 passed,
 2 skipped). This intermittent result is retained for review rather than treated as
-proof that the failure cannot recur. Two independently packed candidate archives had
-the same SHA-256 above. The clean-worktree archive audit accepted 111 files, including
+proof that the failure cannot recur. The clean-worktree archive audit accepted 111 files, including
 seven pinned native artifacts. These checks do not establish registry or real-host
 compatibility.
 
