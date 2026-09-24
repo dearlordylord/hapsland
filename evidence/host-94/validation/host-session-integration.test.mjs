@@ -177,6 +177,7 @@ const runSingleControl = (host, options) => {
       TYPESAFE_API_KEY: '' };
     const result = spawnSync(process.execPath, [runner, host, 'control', '--offline-scripted'], {
       env, encoding: 'utf8', timeout: 60_000, maxBuffer: 262_144,
+      detached: process.env.HAPSLAND_94_TIMING_LOG !== undefined,
     });
     assert.equal(result.status, 0, 'runner failed (raw output withheld)');
     const summary = JSON.parse(result.stdout);
@@ -429,6 +430,11 @@ test('one bounded offline Claude control with production CLI', {
     reviewAdmissionMarkerObserved: control.reviewAdmissionMarkerObserved,
     reviewCompletedOutcome: control.reviewCompletedOutcome,
     hookDurationMs: control.hookDurationMs[0] ?? null,
+    admissionMarkerAtMs: control.admissionMarkerAtMs ?? null,
+    reviewOutcomeFileAtMs: control.reviewOutcomeFileAtMs ?? null,
+    bridgeInnerStartAtMs: control.bridgeInnerStartAtMs ?? null,
+    bridgeInnerReturnAtMs: control.bridgeInnerReturnAtMs ?? null,
+    timingHostLaunchEpochMs: control.timingHostLaunchEpochMs ?? null,
   };
   process.stdout.write(`source-free production-CLI control: ${JSON.stringify(summary)}\n`);
   assert.equal(control.nativeDirectHookCalls, 1);

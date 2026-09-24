@@ -42,9 +42,11 @@ const assertFreshProductionBuild = () => {
 };
 const restartOld = scenario === 'restart-old';
 const restartNew = scenario === 'restart-new';
-const root = restartOld || restartNew
+const timingRoot = offlineScripted ? process.env.HAPSLAND_94_TIMING_SESSION_ROOT : undefined;
+const root = timingRoot ?? (restartOld || restartNew
   ? `${resolve(ledgerDirectory)}-scratch-${host}-restart`
-  : mkdtempSync(join(tmpdir(), `hapsland-94-session-${host}-`));
+  : mkdtempSync(join(tmpdir(), `hapsland-94-session-${host}-`)));
+if (timingRoot !== undefined) mkdirSync(root, { recursive: true, mode: 0o700 });
 const repo = join(root, 'repo');
 const trace = join(root, 'trace.jsonl');
 const source = join(repo, 'order-count.ts');
@@ -198,6 +200,7 @@ try {
       '--allowedTools', 'Read,Edit,Write', '--permission-mode', 'acceptEdits', prompt]
     : ['run', '--format', 'json', '--dangerously-skip-permissions', prompt];
   const started = Date.now();
+  if (process.env.HAPSLAND_94_TIMING_LOG) evidence.timingHostLaunchEpochMs = started;
   env.HAPSLAND_94_LAUNCH_AT = String(started);
   ledgerStart = claimPassStart(ledgerDirectory, { host, scenario });
   const child = spawn(executable, args, { cwd: repo, env, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -308,6 +311,12 @@ try {
   evidence.initialNativeEditObservedAtMs = initialCallComplete ? initialNative[0].observedAtMs : null;
   evidence.initialHookFinishedAtMs = initialCallComplete ? initialHooks[0].finishedAtMs : null;
   evidence.reviewAdmissionMarkerObserved = existsSync(env.REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH);
+  if (process.env.HAPSLAND_94_TIMING_LOG) {
+    evidence.admissionMarkerAtMs = evidence.reviewAdmissionMarkerObserved
+      ? Math.round(statSync(env.REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH).mtimeMs - started) : null;
+    evidence.reviewOutcomeFileAtMs = existsSync(outcomePath)
+      ? Math.round(statSync(outcomePath).mtimeMs - started) : null;
+  }
   evidence.reviewAdmissionAttribution = evidence.reviewAdmissionMarkerObserved
     ? 'unattributed-global-marker' : 'not-observed';
   evidence.reviewCompletedOutcome = initialOutcomes.length === 1 ? initialOutcomes[0].outcome : 'not-observed';
@@ -319,6 +328,11 @@ try {
   evidence.operationalNoticeSubmissions = events.filter(x => x.noticeSubmitted).length;
   evidence.unclassifiedSubmissions = events.filter(x => x.unclassifiedSubmitted).length;
   evidence.hookDurationMs = events.map(x => x.elapsedMs);
+  if (process.env.HAPSLAND_94_TIMING_LOG) {
+    evidence.bridgeInnerReturnAtMs = events[0]?.finishedAtMs ?? null;
+    evidence.bridgeInnerStartAtMs = events[0] === undefined
+      ? null : events[0].finishedAtMs - events[0].elapsedMs;
+  }
   evidence.completedSyntheticEdit = final.includes('type OrderCount = number') ||
     final.includes('type OrderCount = string') ||
     (scenario === 'stale' && staleMutation && nativeEvents.some(item => item.initialInput) && events.length > 0);
@@ -438,7 +452,7 @@ try {
         Date.now() - ledgerStart.startedAt);
     } catch { evidence.status = 'incomplete'; evidence.acceptanceStatus = 'incomplete'; process.exitCode = 1; }
   }
-  if (rootOwned && (!restartOld || evidence.acceptanceStatus !== 'passed'))
+  if (rootOwned && timingRoot === undefined && (!restartOld || evidence.acceptanceStatus !== 'passed'))
     rmSync(root, { recursive: true, force: true });
   process.stdout.write(`${JSON.stringify(evidence, null, 2)}\n`);
 }
