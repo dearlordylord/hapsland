@@ -40,8 +40,13 @@ export const nativeEditEvents = (host, line, observedAtMs, salt) => {
 
 export const reactionEvidence = ({ host, nativeEvents, hookEvents, finalRepairObserved,
   externalStaleMutation, scenario }) => {
-  const submitted = hookEvents.find(e => e.findingSubmitted && e.key && e.tool && e.finishedAtMs);
-  const initiating = submitted && nativeEvents.find(e => e.key === submitted.key && e.initialInput);
+  const submitted = hookEvents.find(e => e.findingSubmitted && typeof e.key === 'string' &&
+    e.key.length > 0 && typeof e.tool === 'string' && e.tool.length > 0 &&
+    Number.isFinite(e.finishedAtMs) && nativeEvents.some(n => n.key === e.key &&
+      n.tool === e.tool && n.initialInput && Number.isFinite(n.observedAtMs) &&
+      e.finishedAtMs > n.observedAtMs));
+  const initiating = submitted && nativeEvents.find(e => e.key === submitted.key &&
+    e.tool === submitted.tool && e.initialInput && e.observedAtMs < submitted.finishedAtMs);
   const later = submitted && initiating && nativeEvents.find(e => e.key !== submitted.key &&
     e.observedAtMs >= submitted.finishedAtMs && e.repairInput &&
     hookEvents.some(h => h.key === e.key && h.tool === e.tool && h.finishedAtMs >= e.observedAtMs));
