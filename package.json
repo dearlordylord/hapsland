@@ -46,7 +46,6 @@
     "pack:release": "npm run build && npm run verify:release-native && npm pack --ignore-scripts=true",
     "audit:release": "node scripts/audit-release-tarball.mjs",
     "release:local": "node scripts/local-release.mjs",
-    "hello": "bun run src/hello.ts",
     "test": "npm run config:check && vitest run --maxWorkers=1",
     "test:live": "RUN_LIVE_JEV=1 vitest run src/jev-live.test.ts",
     "benchmark:live": "node evidence/codex/0.155.1/probe/benchmark-live.mjs --runs=100",
@@ -54,8 +53,6 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "config:generate": "node --experimental-strip-types scripts/generate-configuration.ts --update",
     "config:check": "node --experimental-strip-types scripts/generate-configuration.ts --check",
-    "e0": "bun run src/e0.ts",
-    "scan": "bun run src/scan.ts",
     "review": "node src/cli.ts",
     "review:codex": "node src/cli.ts --codex-hook --controlled-writer",
     "conformance:direct-event": "vitest run --maxWorkers=1 src/conformance/live-evidence-outcome.test.ts src/conformance/live-runner-policy.test.ts src/direct-event/adapter.test.ts src/direct-event/selection-capture.test.ts src/direct-event/analyzer.test.ts src/direct-event/pipeline.test.ts src/resident/capacity.test.ts src/resident/collection.test.ts src/resident/dispatch.test.ts src/resident/evaluation-reuse.test.ts src/resident/operational-notices.test.ts src/resident/client.test.ts src/resident/protocol.test.ts src/resident/server.test.ts src/resident/subprocess.test.ts src/cli.test.ts && node scripts/validate-direct-event-conformance.mjs",
@@ -65,15 +62,7 @@
     "conformance:first-review-package": "node scripts/run-setup-package-conformance.mjs",
     "conformance:first-review-live": "node scripts/run-first-review-live-milestone.mjs",
     "conformance:installed-release": "node scripts/verify-installed-release.mjs",
-    "conformance:live": "node scripts/run-direct-event-live-milestone.mjs",
-    "experiment:extract": "node experiments/declaration-extraction/extract.ts",
-    "experiment:extract:evidence": "node experiments/declaration-extraction/generate-evidence.ts",
-    "experiment:shell-write-detection": "node --experimental-strip-types experiments/shell-write-detection/run.ts",
-    "experiment:shell-write-detection:evidence": "node --experimental-strip-types experiments/shell-write-detection/run.ts --write-evidence",
-    "test:extract": "vitest run --config experiments/declaration-extraction/vitest.config.ts",
-    "test:input-contract": "vitest run --config experiments/input-contract-comparison/vitest.config.ts",
-    "typecheck:input-contract": "tsc -p experiments/input-contract-comparison/tsconfig.json --noEmit",
-    "experiment:input-contract": "node --experimental-strip-types experiments/input-contract-comparison/run.ts"
+    "conformance:live": "node scripts/run-direct-event-live-milestone.mjs"
   },
   "dependencies": {
     "@effect/ai-typesafe": "4.0.0-rc.116",

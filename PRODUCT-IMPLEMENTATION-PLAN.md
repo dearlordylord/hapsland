@@ -213,7 +213,7 @@ The product must coexist with other Codex hooks and tools.
 ## 9. Development practices and staged guarantees
 
 The cross-repository study in
-[`PRODUCT-EFFECT-PRACTICES-RESEARCH-2026-09-19.md`](./PRODUCT-EFFECT-PRACTICES-RESEARCH-2026-09-19.md)
+[`PRODUCT-EFFECT-PRACTICES-RESEARCH-2026-09-19.md`](https://github.com/dearlordylord/hapsland-research/blob/master/PRODUCT-EFFECT-PRACTICES-RESEARCH-2026-09-19.md)
 compares Dalph's Effect-heavy orchestration style with D&D's mostly pure reducer/schema
 style. Borrow the guarantees they share without copying either application's scale or
 domain machinery.
@@ -299,7 +299,7 @@ Output: a dated advisory language report, the recorded TypeScript decision, and 
 falsifiers that would justify reopening it.
 
 **Research status:** completed in
-[`PRODUCT-LANGUAGE-RESEARCH-2026-09-19.md`](./PRODUCT-LANGUAGE-RESEARCH-2026-09-19.md).
+[`PRODUCT-LANGUAGE-RESEARCH-2026-09-19.md`](https://github.com/dearlordylord/hapsland-research/blob/master/PRODUCT-LANGUAGE-RESEARCH-2026-09-19.md).
 Its recommendation of TypeScript for version one behind a versioned JSON process contract
 is now adopted. The native Effect 4 Decision/TypeSafe provider strengthens that decision.
 Cold-start and deterministic-slice measurements remain falsification tests; reconsider Rust
@@ -310,7 +310,7 @@ experiment, not a settled choice.
 ### Phase B — derive the Codex adapter specification
 
 **Status: completed for Codex CLI 0.155.1.** The versioned contract is
-[`CODEX-ADAPTER-CONTRACT-v1.md`](./CODEX-ADAPTER-CONTRACT-v1.md).
+[`CODEX-ADAPTER-CONTRACT-v1.md`](https://github.com/dearlordylord/hapsland-research/blob/master/CODEX-ADAPTER-CONTRACT-v1.md).
 
 Extract current Codex hook schemas, lifecycle behavior, output channels, sync/async
 semantics, configuration precedence, and failure rules from official sources and existing
@@ -322,7 +322,7 @@ runtime-tested, inferred, or unknown.
 ### Phase C — targeted Codex runtime probe
 
 **Status: completed for Linux Codex CLI 0.155.1.** Sanitized, reproducible evidence is under
-[`evidence/codex/0.155.1`](./evidence/codex/0.155.1/README.md).
+[`evidence/codex/0.155.1`](https://github.com/dearlordylord/hapsland-research/blob/master/evidence/codex/0.155.1/README.md).
 
 Test only propositions the live Codex process must establish:
 

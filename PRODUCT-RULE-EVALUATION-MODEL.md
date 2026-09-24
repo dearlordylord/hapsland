@@ -5,7 +5,7 @@ tests and empirical rule-quality evaluations. No runtime, test runner, or Quint 
 is implemented by this document. Formal checking with Quint and `quint-connect-ts` is
 recorded as later work; tool compatibility and integration have not been established.
 
-Related: [configuration](./PRODUCT-CONFIGURATION-SPEC-DRAFT.md) and
+Related: [Phase F configuration](./PRODUCT-PHASE-F-SPEC.md) and
 [combinatorics test specification](./PRODUCT-RULE-COMBINATORICS-TEST-SPEC.md).
 This is a specification model, not an update to CONTEXT.md.
 The implementation handoff is Phase F issue #3.

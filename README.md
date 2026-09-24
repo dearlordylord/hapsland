@@ -27,36 +27,21 @@ has no meaning in the domain. The governing invariant and review question are Ru
 This declaration-level use case is the product's origin, not a claim that every future rule must
 operate on a complete file or use the same evidence boundary.
 
-## Current research direction
+## Current scope
 
-Pause broader review-integration development while researching and prototyping declaration
-extraction. The prototype should identify each added or changed interface, type, or schema; present
-each as an independent artifact with the minimum necessary referenced context; and measure whether
-that boundary detects invalid representable states more reliably than edit- or file-level review.
-
-Whether to continue building the product or use Abide as the review integration remains open until
-that experiment is evaluated. This is a research gate, not a commitment to a particular parser,
-language set, or production architecture.
-
-The [extraction feasibility brief](./EXTRACTION-FEASIBILITY-BRIEF.md) records the current
-TypeScript 7+ scope, TypeScript/Zod/Effect Schema cases, diff-review hypothesis, and parked
-work. The [tooling research](./RESEARCH-DECLARATION-EXTRACTION-2026-09-20.md) is advisory;
-the proposed extraction composition has not yet been runtime-validated.
+The supported review path starts with completed Codex edits. Declaration extraction was
+explored, but the comparison did not authorize a production extractor. The current input
+and coverage boundaries are in the
+[supported profile](./docs/direct-event-v1-supported-profile.md).
 
 ## Current status
 
-- Research and architecture advisory material is complete for the initial comparison.
-- The Jev decision prototype uses Effect's provider-neutral `Decision` / `DecisionModel`
-  API and `@effect/ai-typesafe`.
-- The versioned Codex adapter contract and sanitized `0.155.1` runtime probes cover
-  headless, interactive, and multi-file post-write-to-advice behavior.
-- The runtime command uses the pinned Effect 4 `DecisionModel` authority for both controlled
-  tests and the live `@effect/ai-typesafe` provider.
-- The credential-gated live Jev milestones pass for the recorded representative rule, the
-  full nine-rule batch, and 100 complete product-process calls. The 100-call sample had no
-  unavailable or malformed result; see the sanitized latency, retry, and usage aggregates
-  under [`evidence/codex/0.155.1`](./evidence/codex/0.155.1/README.md). Ordinary tests still
-  make no Jev network calls.
+- The runtime uses Effect's provider-neutral `Decision` / `DecisionModel` API and
+  `@effect/ai-typesafe` for Jev review.
+- The supported Codex profile and its evidence levels are documented in the
+  [profile declaration](./docs/direct-event-v1-supported-profile.md).
+- Ordinary tests remain deterministic and make no Jev network calls. Live validation
+  requires an explicit opt-in milestone.
 
 See [`PRODUCT-IMPLEMENTATION-PLAN.md`](./PRODUCT-IMPLEMENTATION-PLAN.md) for the staged
 plan and [`CONTEXT.md`](./CONTEXT.md) for the domain vocabulary.
@@ -164,8 +149,8 @@ grant repository approval. Hooks do not prompt: without a matching root/backend/
 grant, review returns a bounded `skipped` result and makes no provider request. Disabling
 affects future dispatches and does not claim to recall a request already sent.
 
-The product-owned JSON contract is documented in
-[`CODEX-ADAPTER-CONTRACT-v1.md`](./CODEX-ADAPTER-CONTRACT-v1.md). During development, a
+The supported Codex event boundary is documented in the
+[direct-event profile](./docs/direct-event-v1-supported-profile.md). During development, a
 Codex command hook invokes
 `node /absolute/path/to/this/repo/src/cli.ts --codex-hook --controlled-writer`.
 The second flag is an explicit operator assertion that the supported Add event is in the

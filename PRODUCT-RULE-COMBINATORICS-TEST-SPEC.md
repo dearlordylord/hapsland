@@ -1,7 +1,7 @@
 # Rule combinatorics: executable specification for Phase F
 
 Status: required test design, not an implemented test suite. This accompanies
-[the configuration specification](./PRODUCT-CONFIGURATION-SPEC-DRAFT.md).
+[the Phase F specification](./PRODUCT-PHASE-F-SPEC.md).
 The user explicitly requires tests that describe the combinations of rules and settings.
 Implementation is tracked by Phase F issue #3.
 

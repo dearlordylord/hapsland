@@ -1,7 +1,7 @@
 /**
- * The E0 question set and the state it judges — JEV-TYPE-CLASSIFIER.md §2–§4,
- * verbatim. Shared by `e0.ts` (the fixture runs) and `scan.ts` (the worklist),
- * so a rewording is measured and shipped as one change.
+ * The original E0 question set and the state it judges. Historical classifier
+ * rationale and fixture runs are retained in the private Hapsland research archive.
+ * Changes here affect the bundled production Noul pack and need semantic evaluation.
  */
 import { probability } from "./jev-decision.ts";
 

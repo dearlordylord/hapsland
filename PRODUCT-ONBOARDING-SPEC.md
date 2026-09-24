@@ -80,7 +80,7 @@ undecided; `review-tool` is only a command placeholder.
 - **First-value experience.** Offer ordinary supported edits or a separate opt-in live demo in a disposable synthetic repository with its own consent and declared source/call/time limits. Use the installed release, actual host, normal trust and production provider. Disclose the intentionally flawed input without prescribing the model's repair. Keep only sanitized stage outcomes, versions, timestamps and bounded counts. Record stochastic failures/inconclusive outcomes honestly; never lower thresholds or silently substitute a fake backend to force success.
 - **Updates.** Require a user-requested update operation; omit update-available notices unless simple. No automatic upgrades or polling subsystem. Preview executable/hook changes, preserve still-applicable grants and credentials, report new trust/restart requirements, and respect resident protocol compatibility and in-flight work. Retain the previous working installation on failure where possible; otherwise report precise partial state and a recovery command.
 - **Disable and uninstall.** Disable prevents future provider dispatch for the selected repository regardless of credential source. Uninstall removes only selected owned host integration and its installation record, preserving unrelated hooks, user rules, saved keys and grants. Explain remaining reusable state and use separate logout/disable operations for removal or revocation. Do not kill another active installation's work or imply already sent requests can be recalled.
-- **Advisory adoption.** Borrow convenient staged setup, explicit ownership, preservation and actionable diagnosis patterns from the comparative research. Do not adopt a competitor installer dependency, substring ownership heuristic, destructive default rewrite, or checkout/cache-dependent runtime. Native plugin distribution is deferred; it is not required to ship this CLI contract.
+- **Advisory adoption.** Borrow convenient staged setup, explicit ownership, preservation and actionable diagnosis patterns from the comparative research. Do not adopt a third-party installer dependency, substring ownership heuristic, destructive default rewrite, or checkout/cache-dependent runtime. Native plugin distribution is deferred; it is not required to ship this CLI contract.
 
 ## Testing Decisions
 
@@ -143,6 +143,6 @@ stated here are adopted. The earlier onboarding draft is historical design input
 - Installation and activation decision (issue #57)
 - Credential research and adoption gates (issue #58)
 - Saved credential lifecycle (issue #59)
-- Disposable walkthrough (revision `525888c`; not retained locally: `experiments/onboarding-walkthrough/README.md`)
+- Disposable walkthrough (revision `525888c`; [retained in the private research archive](https://github.com/dearlordylord/hapsland-research/blob/prototype/onboarding-walkthrough/experiments/onboarding-walkthrough/README.md))
 - Direct-event review contract (issue #42)
 - Phase F configuration (issue #3)
