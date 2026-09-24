@@ -1,10 +1,11 @@
 # Issue #93: diff-selected type and function review proposal
 
-Status: **normative proposal for product review; neither branch is authorized for
-implementation or production egress.** This document specifies a possible successor
-to the [direct-event v1 supported profile](./direct-event-v1-supported-profile.md).
-The current profile remains `direct-event/same-file-named-types/v1` until the
-decisions and gates below are accepted. Jev is the external review backend.
+Status: **Owner decision (2026-09-24): accepted as the complete-evidence
+type/function contract for future prototype planning only.** This does not
+authorize implementation, live Jev evaluation, or expanded source egress. All
+prototype and adoption gates below remain open. The current profile remains
+`direct-event/same-file-named-types/v1` until implementation and adoption are
+separately decided after those gates. Jev is the external review backend.
 
 ## Decision boundary and prior evidence
 
@@ -247,9 +248,10 @@ delivery policy. Coverage is never reported as a clean semantic judgment.
 
 ## Open choices requiring review
 
-- Whether to accept the proposed narrow function scope and which capabilities
-  are sufficiently checkable for each maintained rule. Unit-wide completeness
-  is the selected policy; a rule cannot exempt an omitted edge.
+- Prototype planning adopts the proposed narrow function scope and unit-wide
+  completeness policy. The prototype must establish which capabilities are
+  sufficiently checkable for each maintained rule; a rule cannot exempt an
+  omitted edge.
 - Exact analysis deadline, depth/reference/input ceilings, and whether the
   current 32 KiB/64-declaration capture envelope is enough for useful fixtures.
 - Exact v2 schema syntax and renderer JSON shape after prototype fixtures expose
