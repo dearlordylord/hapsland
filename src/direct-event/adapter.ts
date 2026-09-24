@@ -10,6 +10,8 @@ import type {
   PhysicalRootIdentity,
   CodexHostVersion,
 } from "./model.ts";
+import { MAX_SOURCE_BYTES, captureStable } from "./capture.ts";
+import { eligibleNamedPath } from "./selection.ts";
 
 const execFileAsync = promisify(execFile);
 export const MAX_CODEX_COMMAND_BYTES = 65_536;
@@ -233,3 +235,85 @@ export const adaptCodexReply = Effect.fn("DirectEvent.adaptCodexReply")(function
 
 /** Compatibility name retained for callers introduced by the Add-only slice. */
 export const adaptCodexAdd = adaptCodexDirectEvent;
+
+const changedWholeLines = (before: string, after: string): ReadonlyArray<string> => {
+  const prior = new Set(before.split(/\r?\n/u).map((line) => line.trim()));
+  return after.split(/\r?\n/u).filter((line) => line.trim().length > 0 && !prior.has(line.trim()));
+};
+
+const boundedSource = (value: unknown): value is string =>
+  typeof value === "string" && Buffer.byteLength(value, "utf8") <= MAX_SOURCE_BYTES;
+
+/** Claude 2.1.218 has no turn or agent ID. A tool call is its entire advice lifetime. */
+export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEvent")(function* (value: unknown) {
+  const event = record(value);
+  if (event?.hook_event_name !== "PostToolUse" ||
+    (event.tool_name !== "Edit" && event.tool_name !== "Write") ||
+    !nonEmpty(event.session_id) || !nonEmpty(event.tool_use_id) || !nonEmpty(event.cwd) ||
+    event.turn_id !== undefined || event.agent_id !== undefined) return undefined;
+  const input = record(event.tool_input);
+  const response = record(event.tool_response);
+  if (input === undefined || response === undefined ||
+    !nonEmpty(input.file_path) || !isAbsolute(input.file_path) ||
+    input.file_path !== response.filePath ||
+    response.userModified !== false || response.success === false || response.is_error === true) return undefined;
+  const path = input.file_path;
+  if (Buffer.byteLength(path) > 16_384) return undefined;
+  if (event.tool_name === "Edit") {
+    if (!boundedSource(input.old_string) || !boundedSource(input.new_string) ||
+      !boundedSource(response.originalFile) ||
+      !boundedSource(response.oldString) || !boundedSource(response.newString)) return undefined;
+  } else if (!boundedSource(input.content) || !boundedSource(response.content) ||
+    (response.originalFile !== null && !boundedSource(response.originalFile))) return undefined;
+  const root = yield* canonicalGitRoot(event.cwd);
+  if (root._tag === "None") return undefined;
+  const cwd = yield* Effect.tryPromise(() => realpath(event.cwd as string)).pipe(Effect.option);
+  if (cwd._tag === "None") return undefined;
+  const fromRoot = relative(root.value.root, cwd.value);
+  if (fromRoot === ".." || fromRoot.startsWith(`..${sep}`) || isAbsolute(fromRoot)) return undefined;
+  const fromCwd = relative(resolve(event.cwd), resolve(path));
+  if (fromCwd === ".." || fromCwd.startsWith(`..${sep}`) || isAbsolute(fromCwd)) return undefined;
+  const relativePath = [fromRoot, fromCwd].filter(Boolean).join(sep).replaceAll(sep, "/");
+  const eligible = yield* eligibleNamedPath(root.value.root, relativePath, undefined, root.value.rootIdentity);
+  if (eligible === undefined) return undefined;
+  const content = yield* captureStable(root.value.root, eligible, undefined, root.value.rootIdentity);
+  if (content === undefined) return undefined;
+  let candidate: DirectCandidate;
+  if (event.tool_name === "Edit") {
+    if (!nonEmpty(input.old_string) || !nonEmpty(input.new_string) ||
+      typeof response.originalFile !== "string" ||
+      response.oldString !== input.old_string || response.newString !== input.new_string ||
+      input.replace_all !== response.replaceAll ||
+      (input.replace_all !== undefined && typeof input.replace_all !== "boolean")) return undefined;
+    const original = response.originalFile;
+    if (!original.includes(input.old_string)) return undefined;
+    if (input.replace_all === true) {
+      const occurrences = original.split(input.old_string).length - 1;
+      const estimated = Buffer.byteLength(original) + occurrences *
+        (Buffer.byteLength(input.new_string) - Buffer.byteLength(input.old_string));
+      if (estimated > MAX_SOURCE_BYTES) return undefined;
+    }
+    const expected = input.replace_all === true
+      ? original.replaceAll(input.old_string, input.new_string)
+      : original.replace(input.old_string, input.new_string);
+    if (!boundedSource(expected) || content.text !== expected || expected === original) return undefined;
+    candidate = { operation: "update", path, addedLines: changedWholeLines(original, expected) };
+  } else {
+    if (typeof input.content !== "string" || input.content !== response.content ||
+      content.text !== input.content ||
+      (response.originalFile !== null && typeof response.originalFile !== "string") ||
+      (typeof response.originalFile === "string" && response.originalFile === input.content)) return undefined;
+    candidate = response.originalFile === null
+      ? { operation: "add", path, addedLines: input.content.split(/\r?\n/u) }
+      : { operation: "update", path, addedLines: changedWholeLines(response.originalFile, input.content) };
+  }
+  return Object.freeze({
+    root: root.value.root,
+    rootIdentity: root.value.rootIdentity,
+    recipient: Object.freeze({
+      host: "claude-code", hostVersion: "2.1.218",
+      sessionId: event.session_id, turnId: null, toolUseId: event.tool_use_id, agentId: null,
+    } satisfies DirectRecipient),
+    candidates: Object.freeze([Object.freeze({ ...candidate, path: relativePath })]),
+  } satisfies DirectObservation);
+});

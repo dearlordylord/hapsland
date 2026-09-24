@@ -16,6 +16,22 @@ export type DirectRecipient = {
   readonly turnId: string;
   readonly toolUseId: string;
   readonly agentId: string | null;
+} | {
+  readonly host: "claude-code";
+  readonly hostVersion: "2.1.218";
+  readonly sessionId: string;
+  /** Claude 2.1.218 PostToolUse does not provide a turn identifier. */
+  readonly turnId: null;
+  readonly toolUseId: string;
+  /** Claude 2.1.218 PostToolUse does not provide an agent identifier. */
+  readonly agentId: null;
+} | {
+  readonly host: "opencode";
+  readonly hostVersion: "1.14.44";
+  readonly sessionId: string;
+  readonly turnId: null;
+  readonly toolUseId: string;
+  readonly agentId: null;
 };
 
 export type AddCandidate = {

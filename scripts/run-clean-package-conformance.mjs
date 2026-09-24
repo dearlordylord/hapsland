@@ -439,7 +439,8 @@ try {
     }
   }
   const installedManifest = parseJson(await readFile(join(packageDirectory, "package.json"), "utf8"), "installed manifest");
-  for (const documentation of ["README.md", "docs/codex-installation.md", "docs/npm-quickstart.md", "docs/status.md", "docs/installed-release-compatibility.md"]) {
+  for (const documentation of ["README.md", "docs/codex-installation.md", "docs/claude-installation.md",
+    "docs/opencode-installation.md", "docs/npm-quickstart.md", "docs/status.md", "docs/installed-release-compatibility.md"]) {
     const contents = await readFile(join(packageDirectory, documentation), "utf8");
     if (contents.trim().length === 0) throw new Error(`packaged documentation is empty: ${documentation}`);
   }

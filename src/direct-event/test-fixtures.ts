@@ -22,7 +22,7 @@ export const put = async (root: string, path: string, value: string | Uint8Array
   return target;
 };
 
-export const recipient = (overrides: Partial<DirectRecipient> = {}): DirectRecipient => ({
+export const recipient = (overrides: Partial<Extract<DirectRecipient, { host: "codex-cli" }>> = {}): DirectRecipient => ({
   host: "codex-cli",
   hostVersion: "0.155.1",
   sessionId: "session",

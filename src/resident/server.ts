@@ -200,6 +200,7 @@ const recipientPartition = (root: string, recipient: DirectRecipient) => canonic
   hostVersion: recipient.hostVersion,
   sessionId: recipient.sessionId,
   agentId: recipient.agentId,
+  ...(recipient.host !== "codex-cli" ? { toolUseId: recipient.toolUseId } : {}),
 });
 
 const workSubject = (partition: string, prepared: PreparedUnit): string => canonicalValue({
@@ -236,8 +237,11 @@ const logicalBytes = (value: unknown): number =>
   Buffer.byteLength(canonicalValue(value), "utf8");
 
 const addressableRecipient = (recipient: DirectRecipient): boolean =>
-  recipient.host === "codex-cli" && isCodexHostVersion(recipient.hostVersion) &&
-  recipient.sessionId.length > 0 && recipient.turnId.length > 0 && recipient.toolUseId.length > 0;
+  recipient.host !== "codex-cli"
+    ? recipient.hostVersion === (recipient.host === "claude-code" ? "2.1.218" : "1.14.44") &&
+      recipient.sessionId.length > 0 && recipient.toolUseId.length > 0
+    : isCodexHostVersion(recipient.hostVersion) &&
+      recipient.sessionId.length > 0 && recipient.turnId.length > 0 && recipient.toolUseId.length > 0;
 
 const noticeReservationBytes = (key: string, partition: string): number => logicalBytes({
   indexKey: key,

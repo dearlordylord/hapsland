@@ -50,9 +50,12 @@ import { runEvaluationCommand } from "./evaluation/command.ts";
 import {
   adaptCodexDirectEvent,
   adaptCodexReply,
+  adaptClaudeDirectEvent,
   isCodexNativeApplyPatch,
 } from "./direct-event/adapter.ts";
 import { isCodexHostVersion, type CodexHostVersion } from "./direct-event/model.ts";
+import type { DirectObservation } from "./direct-event/model.ts";
+import { adaptOpenCodeDirectEvent } from "./hosts/opencode/adapter.ts";
 import type { CodexDirectEventOutput } from "./direct-event/pipeline.ts";
 import { attemptCodexHostOutput } from "./direct-event/writer.ts";
 import {
@@ -71,6 +74,14 @@ import {
   uninstallCodexIntegration,
   updateCodexIntegration,
 } from "./onboarding/codex-installation.ts";
+import {
+  previewClaudeInstallation, installClaudeIntegration, previewClaudeUpdate,
+  updateClaudeIntegration, uninstallClaudeIntegration, diagnoseClaudeIntegration,
+} from "./onboarding/claude-installation.ts";
+import {
+  previewOpenCodeInstallation, installOpenCodeIntegration, previewOpenCodeUpdate,
+  updateOpenCodeIntegration, uninstallOpenCodeIntegration, diagnoseOpenCodeIntegration,
+} from "./onboarding/opencode-installation.ts";
 import {
   logoutCredential,
   readCredentialState,
@@ -183,18 +194,33 @@ const InstallationOperation = Schema.Union([
     version: Schema.Literal(1),
     operation: Schema.Literal("doctor"),
     cwd: Schema.String,
+    host: Schema.optionalKey(Schema.Literals(["claude", "opencode"])),
+    claudeHome: Schema.optionalKey(Schema.NonEmptyString),
+    claudeExecutable: Schema.optionalKey(Schema.NonEmptyString),
+    opencodeConfigHome: Schema.optionalKey(Schema.NonEmptyString),
+    opencodeExecutable: Schema.optionalKey(Schema.NonEmptyString),
     codexHome: Schema.optionalKey(Schema.NonEmptyString),
     codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
   }),
   Schema.Struct({
     version: Schema.Literal(1),
     operation: Schema.Literal("install-preview"),
+    host: Schema.optionalKey(Schema.Literals(["claude", "opencode"])),
+    claudeHome: Schema.optionalKey(Schema.NonEmptyString),
+    claudeExecutable: Schema.optionalKey(Schema.NonEmptyString),
+    opencodeConfigHome: Schema.optionalKey(Schema.NonEmptyString),
+    opencodeExecutable: Schema.optionalKey(Schema.NonEmptyString),
     codexHome: Schema.optionalKey(Schema.NonEmptyString),
     codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
   }),
   Schema.Struct({
     version: Schema.Literal(1),
     operation: Schema.Literal("install"),
+    host: Schema.optionalKey(Schema.Literals(["claude", "opencode"])),
+    claudeHome: Schema.optionalKey(Schema.NonEmptyString),
+    claudeExecutable: Schema.optionalKey(Schema.NonEmptyString),
+    opencodeConfigHome: Schema.optionalKey(Schema.NonEmptyString),
+    opencodeExecutable: Schema.optionalKey(Schema.NonEmptyString),
     codexHome: Schema.optionalKey(Schema.NonEmptyString),
     codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
     proposalDigest: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)),
@@ -202,12 +228,22 @@ const InstallationOperation = Schema.Union([
   Schema.Struct({
     version: Schema.Literal(1),
     operation: Schema.Literal("update-preview"),
+    host: Schema.optionalKey(Schema.Literals(["claude", "opencode"])),
+    claudeHome: Schema.optionalKey(Schema.NonEmptyString),
+    claudeExecutable: Schema.optionalKey(Schema.NonEmptyString),
+    opencodeConfigHome: Schema.optionalKey(Schema.NonEmptyString),
+    opencodeExecutable: Schema.optionalKey(Schema.NonEmptyString),
     codexHome: Schema.optionalKey(Schema.NonEmptyString),
     codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
   }),
   Schema.Struct({
     version: Schema.Literal(1),
     operation: Schema.Literal("update"),
+    host: Schema.optionalKey(Schema.Literals(["claude", "opencode"])),
+    claudeHome: Schema.optionalKey(Schema.NonEmptyString),
+    claudeExecutable: Schema.optionalKey(Schema.NonEmptyString),
+    opencodeConfigHome: Schema.optionalKey(Schema.NonEmptyString),
+    opencodeExecutable: Schema.optionalKey(Schema.NonEmptyString),
     codexHome: Schema.optionalKey(Schema.NonEmptyString),
     codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
     proposalDigest: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)),
@@ -215,6 +251,9 @@ const InstallationOperation = Schema.Union([
   Schema.Struct({
     version: Schema.Literal(1),
     operation: Schema.Literal("uninstall"),
+    host: Schema.optionalKey(Schema.Literals(["claude", "opencode"])),
+    claudeHome: Schema.optionalKey(Schema.NonEmptyString),
+    opencodeConfigHome: Schema.optionalKey(Schema.NonEmptyString),
     codexHome: Schema.optionalKey(Schema.NonEmptyString),
     proposalDigest: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/))),
   }),
@@ -484,6 +523,12 @@ const runRequest = (
 );
 
 const isCodexHook = process.argv.includes("--codex-hook");
+const isClaudeHook = process.argv.includes("--claude-hook");
+const isOpenCodeHook = process.argv.includes("--opencode-hook");
+const directHookStartedAt = performance.now();
+const directHookWatchdog = isClaudeHook || isOpenCodeHook
+  ? setTimeout(() => process.exit(0), 4_500)
+  : undefined;
 const hookVersionArgument = process.argv.find((argument) => argument.startsWith("--codex-version="));
 const requestedHookVersion = hookVersionArgument?.slice("--codex-version=".length);
 if (isCodexHook && requestedHookVersion !== undefined && !isCodexHostVersion(requestedHookVersion)) {
@@ -576,6 +621,44 @@ const runDirectCodexHook = (
       ? { handled: true, output: {} } as const
       : { handled: true, output: { _tag: "DirectEventReady" as const, value: collected.output, collected } } as const;
   });
+
+const runDirectBoundedHook = async (
+  observation: DirectObservation | undefined,
+  controlled: ControlledDecisionModelOptions | undefined,
+  statePath: string,
+  activityPath: string,
+  userConfigPath: string | undefined,
+): Promise<unknown> => {
+  const deadline = directHookStartedAt + 3_900;
+  if (observation === undefined) return {};
+  const remaining = () => Math.max(0, deadline - performance.now());
+  const bounded = async <A>(task: () => Promise<A>): Promise<A | undefined> => {
+    const time = remaining();
+    if (time <= 0) return undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        task(),
+        new Promise<undefined>((resolve) => { timer = setTimeout(() => resolve(undefined), time); }),
+      ]);
+    } catch { return undefined; }
+    finally { if (timer !== undefined) clearTimeout(timer); }
+  };
+  const dispatch = await bounded(() => makeResidentDispatchContext(
+    observation.root, statePath, activityPath, userConfigPath, controlled,
+  ));
+  if (dispatch === undefined) return {};
+  const accepted = await bounded(() => admitObservation(observation, true, dispatch));
+  if (accepted?.status !== "accepted") return {};
+  while (remaining() > 150) {
+    const collected = await bounded(() => collectReady(
+      observation.root, observation.recipient, dispatch,
+    ));
+    if (collected !== undefined) return { _tag: "DirectEventReady", value: collected.output, collected };
+    await new Promise((resolve) => setTimeout(resolve, Math.min(50, remaining())));
+  }
+  return {};
+};
 
 const isDirectEventReady = (
   value: unknown,
@@ -1048,6 +1131,40 @@ const program = Effect.gen(function* () {
   }
   if (requestedInstallationOperation !== undefined || inputRequestsInstallation) {
     const operation = yield* decodeInstallationOperation(input, requestedInstallationOperation);
+    if (operation.host === "claude") {
+      const claudeRequest = {
+        ...(operation.claudeHome === undefined ? {} : { claudeHome: operation.claudeHome }),
+        ...(!("claudeExecutable" in operation) || operation.claudeExecutable === undefined
+          ? {} : { claudeExecutable: operation.claudeExecutable }),
+        ...(!("proposalDigest" in operation) || operation.proposalDigest === undefined
+          ? {} : { proposalDigest: operation.proposalDigest }),
+      };
+      switch (operation.operation) {
+        case "doctor": return diagnoseClaudeIntegration(claudeRequest);
+        case "install-preview": return previewClaudeInstallation(claudeRequest);
+        case "install": return yield* Effect.promise(() => installClaudeIntegration(claudeRequest));
+        case "update-preview": return previewClaudeUpdate(claudeRequest);
+        case "update": return yield* Effect.promise(() => updateClaudeIntegration(claudeRequest));
+        case "uninstall": return yield* Effect.promise(() => uninstallClaudeIntegration(claudeRequest));
+      }
+    }
+    if (operation.host === "opencode") {
+      const opencodeRequest = {
+        ...(operation.opencodeConfigHome === undefined ? {} : { opencodeConfigHome: operation.opencodeConfigHome }),
+        ...(!("opencodeExecutable" in operation) || operation.opencodeExecutable === undefined
+          ? {} : { opencodeExecutable: operation.opencodeExecutable }),
+        ...(!("proposalDigest" in operation) || operation.proposalDigest === undefined
+          ? {} : { proposalDigest: operation.proposalDigest }),
+      };
+      switch (operation.operation) {
+        case "doctor": return diagnoseOpenCodeIntegration(opencodeRequest);
+        case "install-preview": return previewOpenCodeInstallation(opencodeRequest);
+        case "install": return yield* Effect.promise(() => installOpenCodeIntegration(opencodeRequest));
+        case "update-preview": return previewOpenCodeUpdate(opencodeRequest);
+        case "update": return yield* Effect.promise(() => updateOpenCodeIntegration(opencodeRequest));
+        case "uninstall": return yield* Effect.promise(() => uninstallOpenCodeIntegration(opencodeRequest));
+      }
+    }
     const request = {
       ...(operation.codexHome === undefined ? {} : { codexHome: operation.codexHome }),
       ...(!("codexExecutable" in operation) || operation.codexExecutable === undefined
@@ -1206,6 +1323,16 @@ const program = Effect.gen(function* () {
 
   const controlled = isControlled ? yield* controlledOptions : undefined;
 
+  if (isClaudeHook || isOpenCodeHook) {
+    const nativeEvent = yield* decodeJson(input);
+    const observation = isClaudeHook
+      ? yield* adaptClaudeDirectEvent(nativeEvent)
+      : yield* adaptOpenCodeDirectEvent(nativeEvent);
+    return yield* Effect.tryPromise(() => runDirectBoundedHook(
+      observation, controlled, statePath, activityPath, userConfigPath,
+    )).pipe(Effect.catch(() => Effect.succeed({})));
+  }
+
   if (isCodexHook) {
     const nativeEvent = yield* decodeJson(input);
     const direct = yield* runDirectCodexHook(
@@ -1259,7 +1386,7 @@ const program = Effect.gen(function* () {
 }).pipe(
   Effect.catchCause(() =>
     Effect.succeed(
-      isCodexHook
+      isClaudeHook || isOpenCodeHook ? {} : isCodexHook
         ? {
             systemMessage:
               "Review unavailable: invalid or unsupported Codex PostToolUse input.",
@@ -1578,7 +1705,7 @@ if (process.argv.includes("--help") || process.argv.includes("-h")) {
 const output = isCredentialCommand
   ? await runCredentialCommand()
   : await Effect.runPromise(program);
-if (!isCodexHook && typeof output === "object" && output !== null) {
+if (!isCodexHook && !isClaudeHook && !isOpenCodeHook && typeof output === "object" && output !== null) {
   const record = output as Readonly<Record<string, unknown>>;
   process.exitCode = record.status === "unsupported"
     ? 3
@@ -1604,7 +1731,8 @@ if (!isCodexHook && typeof output === "object" && output !== null) {
           : 0;
 }
 if (isDirectEventReady(output)) {
-  attemptCodexHostOutput(output.value, (encoded) => {
+  if (isOpenCodeHook) process.stdout.write(output.value.hookSpecificOutput.additionalContext);
+  else attemptCodexHostOutput(output.value, (encoded) => {
     process.stdout.write(encoded);
   });
   recordDemoTrace(process.env.REVIEW_DEMO_BUDGET_PATH, output.collected.root, output.collected.recipient, {
@@ -1621,6 +1749,9 @@ if (isDirectEventReady(output)) {
   });
   await acknowledgeAdvice(output.collected);
 } else {
+  if (isOpenCodeHook) {
+    // The plugin treats empty stdout as a quiet skip.
+  } else
   if (isCredentialCommand && !process.argv.includes("--json") && !process.argv.includes("--credential-stdin") && process.stdin.isTTY) {
     const result = output as Readonly<Record<string, unknown>>;
     if (result.operation === "login" && result.status === "stored") {
@@ -1645,4 +1776,5 @@ if (isDirectEventReady(output)) {
     process.stdout.write(typeof output === "string" ? output : `${JSON.stringify(output)}\n`);
   }
 }
+if (directHookWatchdog !== undefined) clearTimeout(directHookWatchdog);
 }

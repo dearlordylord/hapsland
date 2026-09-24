@@ -1,0 +1,137 @@
+{
+  "authenticated_profile_logged_in": false,
+  "edit_completed": true,
+  "feedback": {
+    "channel": "synchronous PostToolUse hookSpecificOutput.additionalContext",
+    "edit_note_in_next_local_provider_request": true,
+    "real_model_reaction_observed": false,
+    "write_note_in_next_local_provider_request": true
+  },
+  "hooks": [
+    {
+      "agent_id_present": false,
+      "duration_ms_type": "int",
+      "event": "PostToolUse",
+      "event_fields": [
+        "cwd",
+        "duration_ms",
+        "effort",
+        "hook_event_name",
+        "permission_mode",
+        "prompt_id",
+        "session_id",
+        "tool_input",
+        "tool_name",
+        "tool_response",
+        "tool_use_id",
+        "transcript_path"
+      ],
+      "fixture_path": "edit.txt",
+      "prompt_id_present": true,
+      "session_id_present": true,
+      "successful_synthetic_file_state_confirmed": true,
+      "tool": "Edit",
+      "tool_input_fields": [
+        "file_path",
+        "new_string",
+        "old_string",
+        "replace_all"
+      ],
+      "tool_input_types": {
+        "file_path": "str",
+        "new_string": "str",
+        "old_string": "str",
+        "replace_all": "bool"
+      },
+      "tool_response_fields": [
+        "filePath",
+        "newString",
+        "oldString",
+        "originalFile",
+        "replaceAll",
+        "structuredPatch",
+        "userModified"
+      ],
+      "tool_response_type": "dict",
+      "tool_response_types": {
+        "filePath": "str",
+        "newString": "str",
+        "oldString": "str",
+        "originalFile": "str",
+        "replaceAll": "bool",
+        "structuredPatch": "list",
+        "userModified": "bool"
+      },
+      "tool_use_id_present": true,
+      "turn_id_present": false
+    },
+    {
+      "agent_id_present": false,
+      "duration_ms_type": "int",
+      "event": "PostToolUse",
+      "event_fields": [
+        "cwd",
+        "duration_ms",
+        "effort",
+        "hook_event_name",
+        "permission_mode",
+        "prompt_id",
+        "session_id",
+        "tool_input",
+        "tool_name",
+        "tool_response",
+        "tool_use_id",
+        "transcript_path"
+      ],
+      "fixture_path": "write.txt",
+      "prompt_id_present": true,
+      "session_id_present": true,
+      "successful_synthetic_file_state_confirmed": true,
+      "tool": "Write",
+      "tool_input_fields": [
+        "content",
+        "file_path"
+      ],
+      "tool_input_types": {
+        "content": "str",
+        "file_path": "str"
+      },
+      "tool_response_fields": [
+        "content",
+        "filePath",
+        "originalFile",
+        "structuredPatch",
+        "type",
+        "userModified"
+      ],
+      "tool_response_type": "dict",
+      "tool_response_types": {
+        "content": "str",
+        "filePath": "str",
+        "originalFile": "NoneType",
+        "structuredPatch": "list",
+        "type": "str",
+        "userModified": "bool"
+      },
+      "tool_use_id_present": true,
+      "turn_id_present": false
+    }
+  ],
+  "host": "Claude Code",
+  "host_exit_code": 0,
+  "host_tool_sequence": [
+    "Read",
+    "Edit",
+    "Write"
+  ],
+  "host_version": "2.1.218",
+  "mode": "headless `claude -p --output-format stream-json --verbose --no-session-persistence`; isolated CLAUDE_CONFIG_DIR and temporary Git repository; project-local PostToolUse hook; acceptEdits",
+  "os": "Linux aarch64",
+  "provider": "localhost-only scripted Anthropic-compatible fixture; synthetic API key; no external model request",
+  "provider_request_count": 5,
+  "retained_credentials": false,
+  "retained_model_response": false,
+  "retained_source_text": false,
+  "timed_out": false,
+  "write_completed": true
+}
