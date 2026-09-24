@@ -1,0 +1,7 @@
+# One successful case
+RUN|run-42|2026-09-24T10:00:00Z
+CASE|case-1|unit|adds two values
+BEGIN|case-1|2026-09-24T10:00:01Z
+LOG|case-1|info|starting assertions
+END|case-1|pass|12|
+DONE|2026-09-24T10:00:02Z
