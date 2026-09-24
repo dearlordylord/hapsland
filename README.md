@@ -1,19 +1,70 @@
-# Hapsland — realtime review integration
+# Hapsland — reltime customisable context-aware agentic feedback with Jev. 
+
+## Slap this hand!
 
 <p align="center"><img src="./assets/readme-splash.png" alt="Constructivist-inspired scene of a worker hand slapping a bony hand away from a laptop" width="480"></p>
 
-This private repository develops Hapsland, a host-neutral integration for giving coding
-agents configurable feedback after edits. Jev is the first external review backend;
-Jev and Hapsland are distinct names.
+## What is Hapsland
 
-The initial supported production profile targets Codex CLI 0.155.1 on Linux arm64 with
-asynchronous, advisory post-write review through headless command hooks and a controlled
-writer. Its exact limits, evidence levels, and exclusions are documented in
-[`docs/direct-event-v1-supported-profile.md`](./docs/direct-event-v1-supported-profile.md).
-The implementation uses TypeScript and the exact-matched Effect 4 RC cohort described in
-[`AGENTS.md`](./AGENTS.md).
+With Jev-like AI backends, we can get real-time feedback on certain questions about our code.
 
-## Genesis use case
+We can customize and write our own questions and rules,
+and we don't have to wait for a "classic" review agent to check the codestyle with 
+a lengthy and expensive turn-around manner.
+
+Hapsland lets your agent have immediate review feedback on your code.
+
+How is it better? The agent won't go into the wrong direction and won't waste time and tokens. 
+
+> We slap its hand right away!
+
+## Defining architectural and decision
+
+Agents would often simply send a diff. Often it's enough to answer certain questions about code quality.
+
+As I found out, certain very important questions, e.g. about data model integrity, could be left unanswered if we don't enhance the diff with context.
+
+TODO privacy (context link)
+
+Context enhancement unlocks the power of Jev to answer fundamental question about API and data model decisions.
+
+Coincidentally, models are pretty bad at those decisions by default and need constant nudging.
+
+<p align="center"><img src="./assets/review-flow.gif" alt="Hapsland review flow: an agent edit is expanded into type context, reviewed, repaired, checked again, and committed" width="800"></p>
+
+### Restrictions
+
+The restriction that comes with this idea is that we have to implement context extraction per-language.
+
+Currently supported is TypeScript.
+
+TODO contribution guide
+
+## FAQ
+
+### What hand are we slapping?
+
+The agent who makes bad API and data structure decisions despite you instructing it in AGENTS.md one hundred times already.
+
+### Why are we slapping the hand?
+
+"Slap" has a nice ring to it. But also, we want to prevent certain very common agentic mistakes when it comes to interface modeling.
+
+### When are we slapping the hand?
+
+Right after the file been modified. The agent gets almost immediate *non-blocking* feedback. It makes its own decision whether to follow it.
+
+### Who's slapping the hand?
+
+The system works as agent hooks. Each agent backend has its own implementation. TODO contribution. There is a background job that manages all queuing and async communication with Jev.
+
+### Jev is slapping the hand?
+
+More backends are planned.
+
+## Rule examples and default rules
+
+TODO
 
 The product began from one specific recurring failure in current coding agents: whenever an
 agent writes or changes an interface, type, or schema, review that declaration as its own
@@ -27,24 +78,9 @@ has no meaning in the domain. The governing invariant and review question are Ru
 This declaration-level use case is the product's origin, not a claim that every future rule must
 operate on a complete file or use the same evidence boundary.
 
-## Current scope
+## Installation
 
-The supported review path starts with completed Codex edits. Declaration extraction was
-explored, but the comparison did not authorize a production extractor. The current input
-and coverage boundaries are in the
-[supported profile](./docs/direct-event-v1-supported-profile.md).
-
-## Current status
-
-- The runtime uses Effect's provider-neutral `Decision` / `DecisionModel` API and
-  `@effect/ai-typesafe` for Jev review.
-- The supported Codex profile and its evidence levels are documented in the
-  [profile declaration](./docs/direct-event-v1-supported-profile.md).
-- Ordinary tests remain deterministic and make no Jev network calls. Live validation
-  requires an explicit opt-in milestone.
-
-See [`PRODUCT-IMPLEMENTATION-PLAN.md`](./PRODUCT-IMPLEMENTATION-PLAN.md) for the staged
-plan and [`CONTEXT.md`](./CONTEXT.md) for the domain vocabulary.
+TODO
 
 <!-- configuration-readme:start -->
 
