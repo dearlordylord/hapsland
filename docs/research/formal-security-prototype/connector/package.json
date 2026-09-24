@@ -1,0 +1,13 @@
+{
+  "name": "@hapsland/security-connector-prototype",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "run": "node --experimental-strip-types run.mjs"
+  },
+  "dependencies": {
+    "@firfi/quint-connect": "file:/workspace/typescript/quint-connect-rc116-investigation",
+    "@informalsystems/quint": "0.32.0",
+    "effect": "4.0.0-rc.116"
+  }
+}

@@ -1,6 +1,8 @@
 # Formal security validation connected to Hapsland code
 
 Status: advisory pre-research; not a product specification or adoption decision.
+
+For the current investigation direction, user priorities, connector ownership and payload-authorization scope, start with [the current-state investigation note](FORMAL-SECURITY-INVESTIGATION.md). This report retains the supporting evidence; the current-state note updates its recommendations where indicated.
 Date: 2026-09-24. Canonical report for this targeted pass; no earlier report superseded.
 
 ## Research brief and change log
@@ -15,7 +17,7 @@ Baseline: use existing code-connected formal tooling with Hapsland-specific adap
 
 Discovery: official repositories and docs, package metadata, linked sources, local production source and supported-profile documentation. Queries include `quint-connect-ts`, `TLA+ trace validation implementation`, and the installed Bend project's official references. This is a targeted named-candidate pass, ending after each candidate's implementation bridge and limits are checked; it does not establish ecosystem completeness. General theorem-prover surveys, live provider retention audits, and full OS sandbox design are excluded to keep the question bounded.
 
-Change log: initial brief established before synthesis. No implementation, formal model, test execution, or live backend call is part of this pass.
+Change log: initial brief established before synthesis. The user subsequently preferred whichever exclusion guarantee is reasonably achievable. The recommended contract below applies that preference; it is advisory until adopted in the product specification. No implementation, formal model, test execution, or live backend call is part of this pass.
 
 ## Candidate inventory, evidence ledger and cards
 
@@ -48,6 +50,14 @@ The code map is SRC/SOURCE-INSPECTED, not a runtime security assessment. Source 
 - Prepared source includes the declaration, same-file reference evidence, relative path and contract information; provider encoding also includes rule questions [C5,C11]. Observing only `artifact.source` would miss part of the actual egress contract.
 - **First temporal case:** resident dispatch reloads settings and checks consent/root/credential authority, then uses `job.prepared`. No explicit current-exclusion check was found at that edge. Current policy is checked before publishing findings, after evaluation [code-map question 2]. This is an experiment target; whether queued work must obey newly restrictive config is not yet a settled requirement.
 - **First persistence case:** metadata and consent are intentionally persisted; resident stderr/debug causes lack the same demonstrated bounded schema as structured diagnostics [C9,C10]. Inject a synthetic source-bearing failure and observe the resulting files before claiming source-free persistence.
+
+## Recommended exclusion contract after user clarification
+
+The user prefers the strongest reasonably achievable guarantee. Recommend that excluded paths cannot trigger Hapsland filesystem source-content reads or source dispatch to Jev. Newly restrictive exclusions should invalidate queued source before dispatch at an explicitly defined authorization point. Already transmitted requests cannot be recalled; concurrent policy updates and dispatch need a precise ordering contract rather than a claim of instantaneous revocation.
+
+Host events can already contain excluded-path patch text before Hapsland decides eligibility. Do not promise that Hapsland never receives those bytes. Recommend discarding that content as early as practical, preferably before resident IPC, and preventing its persistence or provider dispatch. Event parsing, path metadata inspection and configuration reads must be distinguished from reading excluded file contents. Current ingress/IPC behavior needs a prototype before any stronger guarantee is advertised.
+
+This recommendation selects no-filesystem-source-read plus no-provider-egress as the initial target. It does not authorize an implementation change or establish that the existing code meets the target. The first prototype should exercise both the pre-capture gate and the prepare → exclude → dispatch interval, then test early disposal of excluded host payload content.
 
 ## Proposed verification contract
 
@@ -119,4 +129,4 @@ H1–H5 begin with the supported direct-event production profile. Additional hos
 
 The three bounded delegated investigations covered the named tools and the current supported code route. The stopping condition is met for this pre-research question; ecosystem saturation is not claimed. No model, implementation change, test execution, compatibility installation or live provider request was performed. The reported policy-timing and debug-output questions are source-inspected investigation targets, not reproduced vulnerabilities. Remote repository branch protections and Jev server-side retention were not inspected.
 
-Primary sources and claim provenance are indexed in the three linked evidence ledgers above, including immutable connector source links, documentation access dates, installed Effect RC.116 source, product ADRs and production code locations. Local source baseline: `f32acaf8cedef59cf03889f638ce83cfd4476ebb`, with pre-existing README/media changes left untouched. The final user-facing decision on exclusion semantics was not available when the report was written, so both interpretations remain explicit.
+Primary sources and claim provenance are indexed in the three linked evidence ledgers above, including immutable connector source links, documentation access dates, installed Effect RC.116 source, product ADRs and production code locations. Local source baseline: `f32acaf8cedef59cf03889f638ce83cfd4476ebb`, with pre-existing README/media changes left untouched. The subsequent user preference for whichever guarantee is reasonably achievable is reflected in the recommended exclusion contract above; exact concurrency and ingress semantics remain specification/prototype decisions.

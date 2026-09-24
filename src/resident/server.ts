@@ -21,9 +21,11 @@ import type { PreparedUnit } from "../direct-event/model.ts";
 import { MAX_TYPE_DECLARATIONS } from "../direct-event/analyzer.ts";
 import type { AnalyzerMaterializationPreflight } from "../direct-event/analyzer.ts";
 import { MAX_SOURCE_BYTES } from "../direct-event/capture.ts";
+import { resolvedDirectFilePolicy, selectedByDirectFilePolicy } from "../direct-event/selection.ts";
 import { liveLayer as jevDecisionModelLiveLayer } from "../jev-decision.ts";
 import { Consent } from "../runtime/consent.ts";
 import { loadReviewSettings } from "../runtime/review-config.ts";
+import { loadConfiguration } from "../configuration/load.ts";
 import {
   controlledDecisionModelLayer,
   type ControlledDecisionModelOptions,
@@ -1226,8 +1228,8 @@ export class ResidentServer {
       }
       await this.#afterPrepare?.();
       return;
-    } catch (cause) {
-      if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error(cause);
+    } catch {
+      if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error("resident preparation unavailable");
       this.#ledger.release(job.reservation);
       recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
     }
@@ -1284,6 +1286,32 @@ export class ResidentServer {
           if (current.generation !== credential.generation ||
               (credential.source === "saved" && current.savedUseSuspended)) return undefined;
         }
+        if (afterCredentialBeforeDispatch !== undefined) {
+          yield* Effect.promise(afterCredentialBeforeDispatch);
+        }
+        if (credential?.status === "present") {
+          const current = readCredentialState(dispatchCredential?.statePath);
+          if (current.generation !== credential.generation ||
+              (credential.source === "saved" && current.savedUseSuspended)) return undefined;
+        }
+        // Prepared source can outlive its admission policy. Read authority again
+        // after credential waits, then apply the current file policy before the
+        // provider receives the prepared unit.
+        const dispatchConfiguration = yield* loadConfiguration(
+          job.observation.root,
+          userConfigPath === undefined ? {} : { userConfigPath },
+        );
+        if (credentialRequired && dispatchCredential?.name !== dispatchConfiguration.policy.credentialEnvVar.value) return undefined;
+        const dispatchAuthorization = yield* consent.authorize(
+          job.observation.root,
+          settings.backend,
+          settings.destination,
+        ).pipe(Effect.catch(() => Effect.succeed({ status: "denied" as const })));
+        if (dispatchAuthorization.status !== "approved" || !(yield* verifyObservationRoot(job.observation))) return undefined;
+        if (!selectedByDirectFilePolicy(
+          job.prepared.input.path,
+          resolvedDirectFilePolicy(dispatchConfiguration.policy),
+        )) return undefined;
         const credentialProvider = credential?.status !== "present"
           ? undefined
           : ConfigProvider.layer(ConfigProvider.fromUnknown({
@@ -1296,9 +1324,6 @@ export class ResidentServer {
               credentialEnvVar: settings.credentialEnvVar,
             })
           : controlledDecisionModelLayer(controlled);
-        if (afterCredentialBeforeDispatch !== undefined) {
-          yield* Effect.promise(afterCredentialBeforeDispatch);
-        }
         const credentialAuthority = credential?.status !== "present"
           ? Effect.void
           : Effect.suspend(() => {
@@ -1369,8 +1394,8 @@ export class ResidentServer {
       } else if (result === undefined) {
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       }
-    } catch (cause) {
-      if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error(cause);
+    } catch {
+      if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error("resident evaluation unavailable");
       recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
     }
     this.#reuse.releaseClaim(job.evaluationKey);

@@ -48,6 +48,12 @@ const hardExcluded = (path: string): boolean => {
     /^\.env(?:\..*)?$/.test(basename);
 };
 
+/** Pure path-policy decision shared by initial capture and queued dispatch. */
+export const selectedByDirectFilePolicy = (path: string, policy: DirectFilePolicy): boolean =>
+  !hardExcluded(path) &&
+  (policy.excludes.length === 0 || !matchesAnyGlob(policy.excludes, path)) &&
+  policy.includes.length > 0 && matchesAnyGlob(policy.includes, path);
+
 const equalToOrWithin = (parent: string, candidate: string): boolean => {
   const path = relative(parent, candidate);
   return path.length === 0 ||
@@ -83,7 +89,7 @@ export const eligibleNamedPath = Effect.fn("DirectEvent.eligibleNamedPath")(func
   rootIdentity: PhysicalRootIdentity | undefined = undefined,
 ) {
   const normalized = portableRelative(root, candidate);
-  if (normalized === undefined || hardExcluded(normalized.relativePath)) return undefined;
+  if (normalized === undefined || !selectedByDirectFilePolicy(normalized.relativePath, policy)) return undefined;
   // A linked worktree or --separate-git-dir repository need not use a literal
   // `.git` directory. The structured Git identity is the authoritative
   // administrative subtree, and this path-boundary check happens before lstat
@@ -92,12 +98,6 @@ export const eligibleNamedPath = Effect.fn("DirectEvent.eligibleNamedPath")(func
     rootIdentity !== undefined &&
     equalToOrWithin(rootIdentity.gitDirectory, normalized.absolutePath)
   ) return undefined;
-  if (policy.excludes.length > 0 && matchesAnyGlob(policy.excludes, normalized.relativePath)) {
-    return undefined;
-  }
-  if (policy.includes.length === 0 || !matchesAnyGlob(policy.includes, normalized.relativePath)) {
-    return undefined;
-  }
   const safe = yield* Effect.tryPromise({
     try: async () => {
       if (await hasSymlinkOrNonDirectoryAncestor(root, normalized.relativePath)) return false;
