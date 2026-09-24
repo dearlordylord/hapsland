@@ -1,10 +1,10 @@
 # Configuration v1
 
 This is the supported configuration and rule-pack format. The
-[#96 compatibility decision](./issue-96-contract-compatibility.md) records the
-prepared version path for proposed type/function targets and Choice/Score result
-forms. Those declarations are unsupported today; v1 files retain their present
-named-type probability behavior.
+[#96 compatibility assessment](./issue-96-contract-compatibility.md) records
+the proposed v2 path for explicit type/function targets. Choice and Score
+remain separate, undecided result-form work. Those declarations are unsupported
+today; v1 files retain their present probability behavior.
 
 Project configuration is read once from the Git working-tree root. The supported
 project names are `.review.jsonc` and `.realtime-review.jsonc`; finding both is an
@@ -172,13 +172,16 @@ egress. A fork must use a distinct pack ID. Rule filters intersect global
 eligibility: they can narrow a review, but cannot re-include a globally excluded
 or protected path.
 
-Rule authors should state the available input explicitly. The current milestone
-provides one completed post-edit file and its repository-relative path. It does
-not provide a before/after diff, task or transcript context, or other files, and
-findings may describe pre-existing content. Do not author a rule that promises to
-judge evidence the request cannot contain. Advice is local authored text attached
-to the validated probability, rule ID, path, and snapshot hash; no extra model call
-generates a message.
+Rule authors should state the available input explicitly. The whole-file JSON
+request path provides one completed post-edit file and its repository-relative
+path. The supported direct-event path instead evaluates one named TypeScript
+`interface` or `type` declaration per unit, with bounded, complete same-file
+named-type reference evidence and the repository-relative path. Its Jev input
+does not contain the whole file. Neither path provides a before/after diff, task
+or transcript context, or other files; findings may describe pre-existing content.
+Do not author a rule that promises to judge evidence its request cannot contain.
+Advice is local authored text attached to the validated probability, rule ID,
+path, and snapshot hash; no extra model call generates a message.
 
 Patterns are repository-relative and use `/` separators. Matching is case-sensitive;
 `*` and `?` do not cross `/`, while `**` may cross directories. Dot-files are matched

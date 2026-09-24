@@ -1,65 +1,39 @@
 # Issue #96: contract compatibility before new review branches
 
-Status: present-day compatibility decision. The proposed branch behavior is in
-[#93](./issue-93-type-function-review-spec.md); neither document enables it.
+Status: compatibility assessment of the proposed [#93 type and function branches](./issue-93-type-function-review-spec.md). Neither branch, a rule-pack v2 reader, nor another result form is implemented or authorized for production egress.
 
-## Inventory
+## Current contract and compatibility decision
 
-| Boundary | Current contract | Compatibility consequence |
+| Boundary | Current v1 behavior | Decision for the #93 proposal |
 | --- | --- | --- |
-| Project and user configuration | `version: 1`, strict JSONC; built-in, user, project layers; includes replace and exclusions accumulate | Keep v1 fields and layer behavior. A new branch is not selected through an implicit config default. |
-| Rule packs | `schemaVersion: 1`, strict fields; omitted threshold becomes 0.7; `question`, Boolean `criteria`, and message compile to `Decision.probability` | V1 retains current probability behavior in the existing whole-file and named-type paths. Target or result-form declarations need a separately versioned pack reader. |
-| Overrides | Qualified `pack/rule` IDs; enablement, path filters, threshold, message | Existing overrides retain their identity and meaning. Threshold is specific to probability; a later Choice or Score form needs its own typed controls. |
-| Rule and finding identity | Pack content digest and rule-definition digest feed compiled identity. Whole-file `Advice` and direct-event findings contain a probability. | A future form needs a tagged result and versioned finding/process boundary; do not put a score into `probability`. Target and effective result policy must enter evaluation identity. |
-| Direct-event input | `direct-event/same-file-named-types/v1`; complete named-type units, probability interpretation | Type-shape v2 and function v1 use distinct exact input IDs, renderers, and evidence requirements. V1 bytes and interpretation stay fixed. |
-| Setup, doctor, and consent | Version-1 Codex setup/doctor responses; repository-wide eligible-source consent bound to canonical root, backend, destination, and scope | Installed consent stays valid for its existing scope. A later expansion must preview any enlarged source or host scope and obtain authorization when required. Setup/doctor must report supported host and input profiles before claiming readiness. |
-| JSON Schemas and guide | Generated config-v1 and rule-pack-v1 schemas with unknown fields rejected | Keep these artifacts unchanged. Publish a separate v2 rule-pack schema when its syntax is accepted. |
+| User and project configuration | Strict `version: 1` JSONC; built-in, user, and project layers; includes replace and exclusions accumulate | Preserve v1 fields, precedence, and effective selection. No implicit switch enables a branch. Reject unknown configuration fields and versions before source egress. |
+| Rule packs | Strict `schemaVersion: 1`; omitted threshold becomes 0.7; Boolean criteria, question, and message compile to `Decision.probability` | Preserve v1 decoding, digests, and supported whole-file and named-type behavior. V1 packs do not acquire new targets by omission. Use a separately versioned, strict reader for explicit #93 targets. |
+| Overrides | Qualified `pack/rule` IDs, enablement, path filters, probability threshold, and message | Preserve v1 identities and override meaning. Path filters only narrow global selection. Target-specific policy and non-probability controls need an explicit later contract. |
+| Review identity and findings | Pack-content and rule-definition digests identify compiled rules; existing advice/direct-event findings carry probability | Keep v1 identities and findings stable. New evaluation identity must include exact target, input/renderer contract, complete projection, selected rule definitions, and effective policy. Never encode Score as probability. |
+| Direct-event input | `direct-event/same-file-named-types/v1` and its existing capture and probability interpretation | Keep v1 input bytes and behavior fixed. Proposed `direct-event/type-shape/v2` and `direct-event/function/v1` need distinct exact IDs, complete evidence projections, renderers, and conformance evidence. |
+| Setup, doctor, and consent | Version-1 Codex setup/doctor responses; repository-wide eligible-source consent bound to canonical root, backend, destination, and scope | Installed grants remain valid for their existing scope. Before an enlarged source or host scope is used, preview it and obtain authorization when required. Setup/doctor must identify the supported host and input profile before claiming branch readiness. |
+| Published schemas and guide | Generated config-v1 and rule-pack-v1 schemas reject unknown fields | Keep v1 artifacts and [configuration guidance](./configuration.md) as the supported contract. Publish a separate v2 pack schema only after its syntax is accepted. |
 
-## Version and reader decision
+## Reader and migration boundary
 
-Configuration v1 needs no new setting for either proposed branch or result form.
-An installed v1 user/project file continues to load with the same effective
-selection, exclusions, rule overrides, and consent state. Unknown config fields
-and versions remain errors. An opt-in, if later needed, must be specified in a
-new config version or another explicit versioned contract; this readiness work
-does not expose a setting that appears to enable unsupported review.
+Configuration v1 requires no new field for the proposed branches. Existing user and project files continue to resolve the same includes, exclusions, pack references, rule overrides, and credential reference. Configuration cannot grant consent or enlarge source eligibility, host support, destination, or analysis limits. A future opt-in, if required, needs its own explicit versioned contract; the current configuration must not appear to enable unsupported review.
 
-Rule-pack v1 has *implicit* applicability to the existing review inputs and a
-binary probability question. Adding optional target/form fields to v1 would
-silently change what omission means when the new compiler arrives. Reserve
-`schemaVersion: 2` for explicit per-rule `reviewTargets` and a typed result-form
-declaration. The proposed target records in #93 name `artifactKind`, exact
-`inputContract`, and required evidence capabilities. Candidate contract IDs are
-`direct-event/type-shape/v2` and `direct-event/function/v1`; the present reader
-rejects them. Choice and Score are representative future forms, not accepted
-syntax or enabled decisions. The exact result-form shape, rule-level override
-semantics, finding shape, and setup presentation remain open specification work.
+The proposed `rule-pack/v2` makes `reviewTargets` required on each rule. Every target names `artifactKind` (`typeShape` or `function`), an exact `inputContract`, and enumerated required evidence capabilities. The #93 contract IDs are `direct-event/type-shape/v2` and `direct-event/function/v1`; no wildcard kind or unversioned contract alias is accepted. A rule shared across branches declares both targets, with branch-specific criteria/message represented by separate rule IDs or an explicitly specified target-specific definition. A v1 pack has only its existing implicit applicability; migration to either #93 branch requires an authored v2 target. Neither v1 configuration nor a v1 pack opts in silently.
 
-A future reader should dispatch on `schemaVersion` before decoding: v1 through
-the frozen v1 decoder and compiler, v2 through a strict v2 decoder and compiler.
-Unknown versions and target/form values must fail the selected configuration
-before source egress. No silent down-conversion from v2 to probability is allowed.
-Current decoding reports unsupported versions and v1 `reviewTargets`, `target`,
-or `resultForm` declarations at their source fields. The v1 digest and qualified
-IDs remain untouched.
+The #93 prototype keeps `Decision.probability` and one logical request per complete unit's selected rule batch. Choice and Score remain separate, undecided result-form work. The exact syntax, versioning, typed findings, overrides, and process boundary for those forms must be decided before use; they are not a required v2 field under the present #93 proposal. V1 probability thresholds retain their meaning and cannot act as generic controls for a future form.
 
-Every future target must still pass global selection, protected and privacy
-exclusions, repository consent, host attribution, stable capture, and its own
-required evidence gate. A rule filter can only narrow global eligibility. The
-current v1 profile and consent record must not imply support for a new function
-branch or another host. Existing whole-file review continues under its current
-consent and request contract.
+A future pack reader must dispatch on `schemaVersion` before decoding: v1 through its frozen decoder/compiler and v2 through a strict v2 decoder/compiler. Unknown versions, target IDs, capabilities, and form declarations outside an accepted schema fail the selected configuration before egress. There is no down-conversion to v1 probability. Today the decoder reports unsupported `schemaVersion`, `reviewTargets`, `target`, and `resultForm` at their source fields. V1 pack digests, rule-definition digests, qualified IDs, and bundled Noul keys remain unchanged.
 
-## Acceptance fixtures and handoff
+## Evidence gate and evaluation order
 
-`src/configuration/configuration.test.ts` exercises old mixed user/project
-documents, inherited pack references, and exclusion precedence, and rejects
-future config controls. `src/rules/rules.test.ts` locks v1 defaults/digest and
-rejects representative function target, Choice, Score, and v2 declarations.
-Existing setup, doctor, direct-event, and rule-loader tests cover installed
-consent reuse, strict pack loading, and probability findings.
+The #93 completeness decision applies to the **entire candidate review unit before any rule is selected**. The branch extractor must resolve and represent the root and every discovered outbound graph edge within the branch's bounds. Missing, unresolved, ambiguous, unsupported, capped, or unknown evidence makes the whole unit incomplete, even if one rule would not inspect the omitted edge. An incomplete unit produces no `ReviewWorkItem`, `ReviewInput`, or Jev request; it is neither a clear result nor a finding. No partial projection or omission metadata is sent to Jev, and no per-rule incomplete/irrelevant state is introduced.
 
-Before #93 implementation, settle the exact v2 JSON schema, whether rules with
-multiple targets need per-target criteria/message, the typed Choice/Score result
-and override semantics, and process/setup versioning. The [#93 branch proposal](./issue-93-type-function-review-spec.md)
-owns extraction, evidence completeness, input rendering, and acceptance gates.
+Only a complete unit can reach rule selection. Its exact artifact kind, input contract, declared capabilities, path applicability, and built-in semantic applicability select rules; a rule's required capabilities cannot waive the completeness gate. If the complete unit has no applicable rules, it makes no backend request. Each surviving unit still passes global selection, protected and privacy exclusions, repository consent, host attribution, stable capture, source-egress limits, and publication revalidation. Source-free local status may count incomplete or rule-empty skips, but must never report skipped coverage as a clean semantic judgment.
+
+The proposed semantic evaluation key includes exact contract and renderer identity, canonical path, branch/root identity, complete projection fingerprint, selected rule-definition and effective-policy identities, and complete evidence state. The exact file snapshot fingerprint remains for observation and recapture. A future result can be published only after rechecking current authority, extraction, rule selection, rendering, and that semantic key, as specified by #93. Existing whole-file and named-type contracts keep their current behavior until an accepted migration changes them.
+
+## Acceptance fixtures and remaining decisions
+
+Current offline tests in `src/configuration/configuration.test.ts` cover layered v1 files, inherited pack references, exclusion precedence, and rejection of future config controls. `src/rules/rules.test.ts` covers v1 defaults and digests and rejects representative targets, result forms, and schema v2. Existing setup, doctor, loader, direct-event, and consent tests exercise the installed contract; they do not establish v2 branch support.
+
+Before adoption, #93 must freeze complete/incomplete fixture labels, the graph boundary, exact v2 schema and capability vocabulary, renderer/wire bytes, ceilings and deadline, consent/egress preview, host profiles, and paired evaluation gates. Offline checks must prove that incomplete units skip before rule selection and make zero requests, that complete rule-empty units make zero requests, and that strict v1 isolation and v2 target validation hold. The exact v2 pack schema and any target-specific criteria/message structure remain open. Choice/Score syntax, result and override semantics, and any finding/process version change remain separate #96 follow-up decisions. No new branch readiness may be claimed from the present v1 setup or doctor response.

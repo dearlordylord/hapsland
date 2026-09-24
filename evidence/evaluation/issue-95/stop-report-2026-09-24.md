@@ -35,3 +35,11 @@ The [frozen blind scores](./blind-artifact-scores-2026-09-24.md) and [arm-aware 
 2. **Register a new prospective evaluation:** first isolate crash-prone postprocessing from the host runner, persist source-free usage and exit metadata durably before postprocessing, and instrument advice collection/revalidation/recipient decisions. Choose a new sample and ceilings before any new host run. The existing A1/B1 trees remain prior feasibility evidence and are excluded from the new sample.
 
 Neither option authorizes B2, A2, a B1 retry, or additional Jev calls under the stopped pilot.
+
+## Owner decision and closure — 2026-09-24
+
+**Decision:** Close Issue #95 Stage 2 as an incomplete fresh pilot. The accepted fresh-pilot path is closed without completing the preregistered two-pair evaluation. No B2 or A2 session, B1 retry, new pilot, or further Jev calls are authorized by this closure.
+
+The retained A1 and B1 trees and the frozen descriptive scores remain part of the record. The scores are artifact descriptions only: the arm-aware addendum maps them to A1 at 65/100 and B1 at 72/100. A1's ledger records eight backend finding outcomes (nine finding lines), zero finding submissions, and no demonstrated finding-specific model visibility. B1's source tree is complete, but the post-copy harness failure left no sanitized session record; its host status, token use, elapsed time, and visibility remain unavailable.
+
+Because B1 lacks the required runtime ledger and B2/A2 were not run, the pilot reports no pair difference, variance, or Hapsland effect estimate. These limits do not change the frozen scores or recover the missing B1 evidence. The original preregistration, accepted amendment, run artifacts, score records, and their stated limitations are preserved as written.
