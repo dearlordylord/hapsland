@@ -15,7 +15,8 @@ const check = (host, first, second) => {
     ...nativeEditEvents(host, second, 400, salt),
   ];
   const hookEvents = [
-    { key: callKey(salt, 'first'), tool: host === 'claude' ? 'Write' : 'write', submitted: true, finishedAtMs: 250 },
+    { key: callKey(salt, 'first'), tool: host === 'claude' ? 'Write' : 'write', submitted: true,
+      findingSubmitted: true, finishedAtMs: 250 },
     { key: callKey(salt, 'second'), tool: host === 'claude' ? 'Edit' : 'edit', submitted: false, finishedAtMs: 550 },
   ];
   assert.equal(reactionEvidence({ host, nativeEvents, hookEvents, scenario: 'finding',
@@ -23,6 +24,9 @@ const check = (host, first, second) => {
   assert.equal(reactionEvidence({ host, nativeEvents: nativeEvents.slice(0, 1), hookEvents,
     scenario: 'finding', finalRepairObserved: true, externalStaleMutation: false }).status, 'unproven');
   assert.equal(reactionEvidence({ host, nativeEvents, hookEvents: hookEvents.slice(1),
+    scenario: 'finding', finalRepairObserved: true, externalStaleMutation: false }).status, 'unproven');
+  assert.equal(reactionEvidence({ host, nativeEvents,
+    hookEvents: [{ ...hookEvents[0], findingSubmitted: false, noticeSubmitted: true }, hookEvents[1]],
     scenario: 'finding', finalRepairObserved: true, externalStaleMutation: false }).status, 'unproven');
   assert.equal(reactionEvidence({ host, nativeEvents, hookEvents,
     scenario: 'control', finalRepairObserved: true, externalStaleMutation: false }).status, 'unproven');
@@ -50,7 +54,7 @@ test('unknown, unmatched, and premature events stay unproven', () => {
       old_string: 'number', new_string: 'string' }), 200, salt),
   ];
   const hookEvents = [
-    { key: callKey(salt, 'first'), tool: 'Write', submitted: true, finishedAtMs: 250 },
+    { key: callKey(salt, 'first'), tool: 'Write', submitted: true, findingSubmitted: true, finishedAtMs: 250 },
     { key: callKey(salt, 'second'), tool: 'Edit', submitted: false, finishedAtMs: 550 },
   ];
   assert.equal(reactionEvidence({ host: 'claude', nativeEvents, hookEvents, scenario: 'finding',

@@ -7,6 +7,7 @@ import { randomUUID } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { configuredRules } from '../../../src/policy/rules.ts';
+import { HOST_VERSIONS, manageChildProcess, matchesKnownHostVersion } from './host-session-helpers.mjs';
 import { nativeEditEvents, reactionEvidence } from './reaction-events.mjs';
 
 const [host, scenario] = process.argv.slice(2);
@@ -23,7 +24,10 @@ const statePath = join(root, 'consent');
 const bridge = join(root, 'bridge.mjs');
 const salt = randomUUID();
 const maxSessionMs = 90_000;
-const expectedVersion = host === 'claude' ? '2.1.218' : '1.14.44';
+const expectedVersion = HOST_VERSIONS[host];
+const executable = host === 'claude'
+  ? (process.env.HAPSLAND_94_CLAUDE_EXECUTABLE ?? '/home/node/.local/share/claude/versions/2.1.218')
+  : 'opencode';
 const evidence = { schemaVersion: 1, host, hostVersion: expectedVersion, scenario,
   mode: host === 'claude' ? 'headless-print' : 'headless-run', controlledOfflineBackend: true,
   normalHostProviderAndModel: true, sessionLimit: 1, hostCallLimit: 1, sessionCeilingMs: maxSessionMs,
@@ -44,11 +48,14 @@ const env = { ...process.env, REVIEW_STATE_PATH: statePath, REVIEW_RESIDENT_DIR:
     rule.id, { _tag: 'Probability', probability: scenario !== 'control' && rule.id === 'r6_bare_domain_value' ? 0.9 : 0 },
   ])) }), HAPSLAND_94_CLI: cli, HAPSLAND_94_TRACE: trace, HAPSLAND_94_SALT: salt };
 const prompt = 'Use a native file edit or write tool to create order-count.ts with exactly one line: type OrderCount = number. Then stop unless a Hapsland review finding tells you to repair it. If such a finding arrives, use a native edit tool to change number to string, then finish. Do not use shell commands and do not repair proactively.';
+let hostLifecycle;
+let sessionTimer;
+let poll;
 
 try {
-  const version = spawnSync(host, ['--version'], { encoding: 'utf8', timeout: 2_000 });
+  const version = spawnSync(executable, ['--version'], { encoding: 'utf8', timeout: 2_000 });
   assert.equal(version.status, 0);
-  assert.ok(host === 'claude' ? version.stdout.trim().startsWith(expectedVersion) : version.stdout.trim() === expectedVersion);
+  assert.ok(matchesKnownHostVersion(host, version.stdout));
   mkdirSync(repo);
   assert.equal(spawnSync('git', ['init', '-q', repo]).status, 0);
   const preview = callCli('enable');
@@ -65,9 +72,11 @@ try {
     `const key=typeof id==='string'?createHash('sha256').update(process.env.HAPSLAND_94_SALT+':'+id).digest('hex'):null;\n` +
     `const start=Date.now(); const result=spawnSync(process.execPath,[process.env.HAPSLAND_94_CLI,'--'+process.argv[2]+'-hook','--controlled','--controlled-writer'],` +
     `{input:Buffer.concat(chunks),encoding:'utf8',env:process.env,timeout:4400,maxBuffer:262144});\n` +
-    `const body=result.status===0?result.stdout:''; let submitted=false;\n` +
-    `try { const value=JSON.parse(body); submitted=Boolean(value?.hookSpecificOutput?.additionalContext); } catch { submitted=Boolean(body.trim()); }\n` +
-    `appendFileSync(process.env.HAPSLAND_94_TRACE,JSON.stringify({key,tool,submitted,elapsedMs:Date.now()-start,` +
+    `const body=result.status===0?result.stdout:''; let context=body;\n` +
+    `try { const value=JSON.parse(body); context=value?.hookSpecificOutput?.additionalContext??''; } catch {}\n` +
+    `const submitted=Boolean(context.trim()); const findingSubmitted=/\\[r6_bare_domain_value, p=/.test(context);\n` +
+    `const noticeSubmitted=context.includes('Operational notice:');\n` +
+    `appendFileSync(process.env.HAPSLAND_94_TRACE,JSON.stringify({key,tool,submitted,findingSubmitted,noticeSubmitted,elapsedMs:Date.now()-start,` +
     `finishedAtMs:Date.now()-Number(process.env.HAPSLAND_94_LAUNCH_AT),ok:result.status===0})+'\\n');\n` +
     `if(result.status===0) process.stdout.write(body);\n`, { mode: 0o700 });
   if (host === 'claude') {
@@ -93,7 +102,7 @@ try {
     : ['run', '--format', 'json', '--dangerously-skip-permissions', prompt];
   const started = Date.now();
   env.HAPSLAND_94_LAUNCH_AT = String(started);
-  const child = spawn(host, args, { cwd: repo, env, stdio: ['ignore', 'pipe', 'pipe'] });
+  const child = spawn(executable, args, { cwd: repo, env, stdio: ['ignore', 'pipe', 'pipe'] });
   let stdoutBytes = 0; let stderrBytes = 0; let exceededOutput = false; let timedOut = false;
   let incompleteLine = '';
   const nativeEvents = [];
@@ -112,20 +121,22 @@ try {
   });
   child.stderr.on('data', chunk => { stderrBytes += chunk.length; });
   let staleMutation = false;
-  const poll = scenario === 'stale' ? setInterval(() => {
+  poll = scenario === 'stale' ? setInterval(() => {
     if (staleMutation || !existsSync(source)) return;
     try { if (readFileSync(source, 'utf8').includes('type OrderCount = number')) {
       writeFileSync(source, 'type OrderCount = string\n'); staleMutation = true;
     } } catch { /* host may have an in-progress write */ }
   }, 10) : undefined;
-  const timer = setTimeout(() => { timedOut = true; child.kill('SIGTERM'); }, maxSessionMs);
-  const exit = await new Promise(resolveExit => child.on('close', (code, signal) => resolveExit({ code, signal })));
-  clearTimeout(timer); if (poll) clearInterval(poll);
+  hostLifecycle = manageChildProcess(child);
+  sessionTimer = setTimeout(() => { timedOut = true; hostLifecycle.terminate(); }, maxSessionMs);
+  const exit = await hostLifecycle.closed;
+  if (exit.error) throw exit.error;
   if (incompleteLine) consume(incompleteLine);
   const final = existsSync(source) ? readFileSync(source, 'utf8') : '';
   const events = existsSync(trace) ? readFileSync(trace, 'utf8').trim().split('\n').filter(Boolean).map(x => JSON.parse(x)) : [];
   evidence.hostExitCode = exit.code;
   evidence.hostTerminatedBySignal = Boolean(exit.signal);
+  evidence.hostCloseForced = exit.forcedClose;
   evidence.elapsedMs = Date.now() - started;
   evidence.hostTimedOut = timedOut;
   evidence.outputCeilingExceeded = exceededOutput;
@@ -134,6 +145,8 @@ try {
   evidence.nativeDirectHookCalls = events.length;
   evidence.nativeModelEditEvents = new Set(nativeEvents.map(x => x.key)).size;
   evidence.hostSubmissions = events.filter(x => x.submitted).length;
+  evidence.findingSubmissions = events.filter(x => x.findingSubmitted).length;
+  evidence.operationalNoticeSubmissions = events.filter(x => x.noticeSubmitted).length;
   evidence.hookDurationMs = events.map(x => x.elapsedMs);
   evidence.completedSyntheticEdit = final.includes('type OrderCount = number') || final.includes('type OrderCount = string');
   evidence.finalRepairObserved = final.includes('type OrderCount = string');
@@ -144,12 +157,18 @@ try {
     ? evidence.completedSyntheticEdit && evidence.hostSubmissions === 0 && !evidence.finalRepairObserved : null;
   evidence.adviceAfterStaleMutation = scenario === 'stale' ? evidence.hostSubmissions > 0 : null;
   evidence.hostOutputParsedForSourceFreeSignalsOnly = true;
-  evidence.status = timedOut || exceededOutput ? 'incomplete' : 'recorded';
+  evidence.status = timedOut || exceededOutput || exit.forcedClose ? 'incomplete' : 'recorded';
 } catch (cause) {
   evidence.status = 'incomplete';
   evidence.failure = cause instanceof Error ? cause.message.replaceAll(root, '<fixture>') : 'unknown';
   process.exitCode = 1;
 } finally {
+  if (sessionTimer) clearTimeout(sessionTimer);
+  if (poll) clearInterval(poll);
+  if (hostLifecycle && !hostLifecycle.settled) {
+    hostLifecycle.terminate();
+    await hostLifecycle.closed;
+  }
   try {
     const owner = JSON.parse(readFileSync(join(root, 'resident', 'owner.json'), 'utf8'));
     if (Number.isInteger(owner.pid)) process.kill(owner.pid, 'SIGTERM');
