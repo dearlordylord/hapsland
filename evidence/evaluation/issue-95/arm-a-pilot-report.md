@@ -1,6 +1,6 @@
 # Issue #95 Stage 2: stopped after pair 1, Arm A
 
-**Recorded:** 2026-09-24. This is an incomplete paired evaluation. No Arm B or pair 2 session was started. The [preregistered protocol](../../../docs/issue-95-stage2.md) remains unchanged.
+**Recorded:** 2026-09-24. **Meter correction:** 2026-09-24, after supplemental review. This is an incomplete paired evaluation. No Arm B or pair 2 session was started. The [preregistered protocol](../../../docs/issue-95-stage2.md) remains unchanged.
 
 ## Observed session
 
@@ -9,13 +9,15 @@ The owner accepted the Stage 1 TraceTape prompt/tree. Pair 1 Arm A then ran in a
 | Measure | Arm A observation |
 | --- | ---: |
 | Host completion | exit 0; no timeout; 749,647 ms host wall time |
-| Jev boundary | 14 requests, 1,918 aggregate submitted source bytes, 14 HTTP 200 completions; under 80-request/2 MiB limits |
+| Jev boundary | 14 requests and 14 HTTP 200 completions; the old meter recorded 1,918 **root-source bytes only**. Full encoded request bytes, including source-bearing evidence nodes, were not recorded. The 80-request limit was met; compliance with the intended 2 MiB aggregate full-source/request bound cannot be established. |
 | Resident activity markers | 14 pending, 8 clear, 6 findings, 2 submitted, 12 incomplete; markers are stages and are not additive disjoint outcomes |
 | Hook responses | 34 hook invocations; 2 advice responses carrying 8 finding lines in total |
 | Final offline verification | Typecheck passed; test command passed (six tests) |
 | Cost | Codex and Jev dollar charges unavailable from this instrumentation |
 
 The host reported **1,336,616 input tokens**, of which **1,253,632 were cached input tokens** and **82,984 were uncached input tokens**. It reported **36,983 output tokens**, including **19,812 reasoning output tokens**. Total input plus output was **1,373,599**; uncached input plus output was **119,967**. Cached tokens are a subset of input tokens, and reasoning tokens are a subset of output tokens; neither should be added twice.
+
+The original provider guard counted only `state.artifact.source`. Review input can also contain source-bearing evidence nodes, so its byte counter was incomplete. The 1,918-byte value in the immutable [sanitized run record](./runs/pair-1-A/sanitized.json) must be read as **root-source bytes**, not total egress or total source bytes. The actual encoded request-byte total cannot be recovered because request bodies and raw responses were correctly discarded. After this finding, the guard was changed for future runs to charge every byte of the encoded request body and fail closed; the [offline meter checks](./provider-guard.test.mjs) cover evidence-node overflow and aggregate limits. No live run used the corrected guard.
 
 The preregistered stopping rule said to stop before another session when reported Codex tokens reach 250,000 in any run. On the conservative reading that includes cached input, this first session exceeded that threshold. Further runs were stopped before Arm B. Reinterpreting the limit after observing Arm A would make the original comparison post hoc. The session remains a feasibility pilot, with no A–B quality difference or variance estimate.
 

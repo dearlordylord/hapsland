@@ -279,7 +279,7 @@ try {
     hostReportedCostUsd: null,
     jevReportedCostUsd: null,
     providerRequests: calls.length,
-    providerSourceBytes: calls.reduce((sum, item) => sum + (item.sourceBytes ?? 0), 0),
+    providerRequestBytes: calls.reduce((sum, item) => sum + (item.requestBytes ?? 0), 0),
     providerEvents: completions.map((event) => ({ ...event, atMs: event.at - started, at: undefined })),
     hooks: hooks.map((event) => ({ ...event, atMs: event.at - started, at: undefined })),
     activity,

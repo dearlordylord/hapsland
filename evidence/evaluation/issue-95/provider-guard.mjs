@@ -4,12 +4,12 @@ import { appendFileSync, mkdirSync, readFileSync, rmdirSync } from "node:fs";
 
 const endpoint = "/v1/systemone";
 const maxRequests = 80;
-const maxSourceBytes = 2 * 1024 * 1024;
+const maxRequestBytes = 2 * 1024 * 1024;
 const originalFetch = globalThis.fetch;
 const pauseBuffer = new SharedArrayBuffer(4);
 const pauseView = new Int32Array(pauseBuffer);
 
-function claim(sourceBytes) {
+function claim(requestBytes) {
   const ledger = process.env.HAPSLAND_95_PROVIDER_LEDGER;
   if (!ledger) throw new Error("Issue #95 provider ledger is unavailable");
   const lock = `${ledger}.lock`;
@@ -33,14 +33,14 @@ function claim(sourceBytes) {
       if (error?.code !== "ENOENT") throw new Error("Issue #95 provider ledger unreadable");
     }
     if (previous.some((entry) => entry.kind !== "request" ||
-      !Number.isSafeInteger(entry.sourceBytes) || entry.sourceBytes < 0)) {
+      !Number.isSafeInteger(entry.requestBytes) || entry.requestBytes < 0)) {
       throw new Error("Issue #95 provider ledger invalid");
     }
-    const previousBytes = previous.reduce((total, entry) => total + entry.sourceBytes, 0);
-    if (previous.length >= maxRequests || previousBytes + sourceBytes > maxSourceBytes) {
+    const previousBytes = previous.reduce((total, entry) => total + entry.requestBytes, 0);
+    if (previous.length >= maxRequests || previousBytes + requestBytes > maxRequestBytes) {
       throw new Error("Issue #95 provider budget exhausted");
     }
-    appendFileSync(ledger, `${JSON.stringify({ kind: "request", at: Date.now(), sourceBytes })}\n`, { mode: 0o600 });
+    appendFileSync(ledger, `${JSON.stringify({ kind: "request", at: Date.now(), requestBytes })}\n`, { mode: 0o600 });
   } finally {
     rmdirSync(lock);
   }
@@ -53,12 +53,14 @@ globalThis.fetch = async (...args) => {
   const encoded = typeof body === "string" ? body
     : body instanceof Uint8Array ? Buffer.from(body).toString("utf8") : undefined;
   if (encoded === undefined) throw new Error("Issue #95 cannot meter an unreadable Jev request body");
+  const requestBytes = typeof body === "string" ? Buffer.byteLength(body, "utf8") : body.byteLength;
   let source;
   try { source = JSON.parse(encoded)?.state?.artifact?.source; }
   catch { throw new Error("Issue #95 cannot meter a malformed Jev request body"); }
   if (typeof source !== "string") throw new Error("Issue #95 Jev request has no metered source");
-  const sourceBytes = Buffer.byteLength(source, "utf8");
-  claim(sourceBytes);
+  // The review input can also carry source in evidence nodes. Charge the full
+  // encoded HTTP body so no source-bearing field escapes the aggregate bound.
+  claim(requestBytes);
   const started = Date.now();
   const events = process.env.HAPSLAND_95_PROVIDER_EVENTS;
   if (!events) throw new Error("Issue #95 provider event log is unavailable");
