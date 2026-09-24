@@ -17,7 +17,7 @@ support; GitHub Actions can add supporting evidence without delaying publish.
 | Field | Current Hapsland state |
 | --- | --- |
 | Version | Selected `0.1.0`; public package `@hapsland/hapsland` |
-| Reviewed release commit | Candidate packaged source `f184c327415659472514d4fb90bc63f9e1071939`; release merge and maintainer review pending |
+| Reviewed release commit | Candidate packaged source `f184c327415659472514d4fb90bc63f9e1071939`; archive audited; publication pending |
 | Local candidate archive SHA-256 | `9b8ec6b6ba928ad0e9af9741a1eb49e8096969a238908f060bd867b88a7c3cc6`; clean-worktree archive audit passed |
 | Registry tarball SHA-256 and integrity | Pending publication and registry retrieval |
 | npm publish identity | Pending maintainer-host login and package ownership verification; this workspace's `npm whoami` returned E401 |
@@ -31,8 +31,8 @@ support; GitHub Actions can add supporting evidence without delaying publish.
 
 The candidate source commit and archive checksum are recorded in
 [`scripts/npm-release-pin.json`](../scripts/npm-release-pin.json). The pin can be used for
-publication only after its branch is reviewed and merged to clean `master` equal to
-`origin/master`, and the host release script reproduces the exact archive digest.
+publication from clean `master` equal to `origin/master` after the branch is merged
+with its commit ancestry intact and the host release script reproduces the archive digest.
 
 The 2026-09-24 local preflight used Linux arm64 and Node 24.20.0. Typecheck, build,
 native-artifact verification, setup-package conformance, and local package conformance
