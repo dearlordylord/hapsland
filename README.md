@@ -176,11 +176,3 @@ The maintainer-only semantic evaluation protocol and its sanitized offline miles
 evidence are documented in [`docs/evaluation.md`](./docs/evaluation.md) and
 [`evidence/evaluation/README.md`](./evidence/evaluation/README.md). Ordinary tests and
 the review hook never run the maintainer evaluation suite against Jev.
-
-The historical `vendor/distilled` tree is retained as a Git submodule and migration oracle;
-it is not an active workspace or production dependency. Clone it when that evidence is
-needed:
-
-```sh
-git submodule update --init
-```

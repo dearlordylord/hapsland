@@ -31,9 +31,7 @@ successful Codex edit
   Effect and companion packages are exact-pinned together; the current selected cohort
   is `4.0.0-rc.116`.
 - Jev is integrated through `Decision` / `DecisionModel` from `effect/unstable/ai` and
-  the `@effect/ai-typesafe` provider. The current vendored
-  `@distilled.cloud/typesafe-ai` wrapper is prototype evidence, not the production
-  dependency.
+  the `@effect/ai-typesafe` provider.
 - Codex CLI is the first and only runtime-tested host in the initial environment.
 - Version one is **strictly advisory**. It never rejects, cancels, approves, or asks
   permission for an edit.
@@ -357,13 +355,11 @@ decisions.
 
 ### Phase E — real Jev vertical slice
 
-**Migration status:** the runnable prototype is now on the exact-pinned Effect 4 RC
-integration. The proven local questions use `Decision.probability`, calls go through
+**Effect integration:** the runnable implementation uses the exact-pinned Effect 4 RC
+cohort. The proven local questions use `Decision.probability`, calls go through
 `DecisionModel.decide`, and `TypeSafeDecisionModel` from `@effect/ai-typesafe` supplies the
-Jev provider. No active source, root dependency, or lockfile entry uses
-`@distilled.cloud/typesafe-ai`. A deterministic test verifies one-call batching, wording
-rendering, and typed probability answers. The migration itself made no live paid request;
-the separately authorized milestone validation below did.
+Jev provider. A deterministic test verifies one-call batching, wording
+rendering, and typed probability answers.
 
 **Vertical-slice validation status (completed 2026-09-19):** after explicit milestone
 authorization, the credential-gated Effect integration passed the recorded representative
@@ -446,7 +442,7 @@ Version one is complete when:
 - successful supported edits are reviewed synchronously after writing;
 - all applicable Noul questions for one file are issued in one Jev request;
 - the Jev request uses the exact-pinned Effect 4 `DecisionModel` and
-  `@effect/ai-typesafe` cohort rather than the prototype wrapper;
+  `@effect/ai-typesafe` cohort;
 - the assessment is validated as `Record<RuleId, Probability>`;
 - advice identifies the rule, probability, message, file, and reviewed content hash;
 - no code path rejects or reverses an edit;

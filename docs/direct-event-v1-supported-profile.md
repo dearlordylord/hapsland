@@ -138,9 +138,7 @@ usage, credential, or source-bearing backend output was retained.
 
 No evidence here supports interactive/headful Codex, another host, another Codex version,
 another platform, reliable model-visible delivery, real child-specific delivery, or a
-guaranteed final drain. The historical `vendor/distilled` evidence remains preserved: one
-clear live fixture plus the production vertical slice does not yet establish equivalent
-replacement fixtures sufficient to satisfy the migration condition.
+guaranteed final drain.
 
 Checkpoint reconciliation, shell/Stop discovery, repository scanning, filesystem
 traversal, delete/move review, schema/cross-file/language-server extraction, arbitrary

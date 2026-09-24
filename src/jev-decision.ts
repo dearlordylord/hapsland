@@ -30,10 +30,7 @@ const renderInstructions = ({ question, focus }: ProbabilityInstructions): strin
 const renderCriterion = ({ what, examples }: ProbabilityCriterion): string =>
   `${what}\n\nExamples:\n${examples.map((example) => `- ${example}`).join("\n")}`;
 
-/**
- * Preserves the prototype's structured Noul wording while adapting it to the
- * provider-neutral string contract accepted by Effect's Decision API.
- */
+/** Renders structured Noul wording for Effect's provider-neutral Decision API. */
 export const probability = (
   instructions: ProbabilityInstructions,
   criteria: ProbabilityCriteria,

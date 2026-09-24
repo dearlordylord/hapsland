@@ -31,11 +31,8 @@ not use an open prerelease range. As of 2026-09-19, that cohort is `4.0.0-rc.116
 
 New product code integrates Jev through Effect's provider-neutral `Decision` /
 `DecisionModel` API and the `@effect/ai-typesafe` provider. Use
-`Decision.probability` for the initial Noul-only rule set. The existing vendored
-`@distilled.cloud/typesafe-ai` package is historical prototype evidence and a migration
-oracle, not an active workspace or production integration dependency. Runnable scripts
-must use the Effect integration. Preserve the vendor evidence until equivalent live
-contract fixtures and the real vertical slice are in place.
+`Decision.probability` for the initial Noul-only rule set. Runnable scripts must use
+the Effect integration.
 
 Live Jev validation is authorized at declared project milestones when credentials are
 available. Bounded runs of hundreds of requests are acceptable when useful; avoid

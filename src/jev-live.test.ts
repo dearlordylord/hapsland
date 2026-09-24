@@ -24,8 +24,6 @@ describe.runIf(live)("credential-gated live Jev contract", () => {
         },
         decisions: { r6_bare_domain_value: E0.r6_bare_domain_value },
       }).pipe(Effect.provide(Live));
-      // The pre-migration E35 run recorded 0.853 for this exact synthetic cell.
-      // The migration gate preserves the qualitative violation-band behavior.
       expect(answer.answers.r6_bare_domain_value.probability).toBeGreaterThan(0.7);
       expect(answer.answers.r6_bare_domain_value.probability).toBeLessThanOrEqual(1);
     }),
