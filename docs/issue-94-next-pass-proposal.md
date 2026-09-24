@@ -1,8 +1,8 @@
 # Issue #94: proposed next host acceptance pass
 
-**Status (2026-09-24):** the selected offline ticketed terminal-clear cold control passed, closing this selected offline timing prerequisite. The result is one instrumented scripted fixture, not real-host acceptance. A real authenticated Claude Stage A still requires separate owner review and authorization; this document does not authorize sessions or claim host support. OpenCode host work is postponed at the user's direction.
+**Status (2026-09-24):** the selected offline ticketed terminal-clear cold control passed its timing prerequisite. The owner subsequently approved exactly two authenticated Claude Stage A sessions. Those sessions are complete: control passed and the finding arm failed because no later matched model repair followed its classified rule-finding submission. This document authorizes no further sessions or host support claim. OpenCode host work remains postponed.
 
-**Decision requested:** review whether to authorize the bounded authenticated Claude Stage A described below. No Jev calls are proposed.
+**Next decision:** review the failed [Stage A evidence and diagnosis](issue-94-host-validation.md) before considering any separately authorized diagnostic. No Jev call was made.
 
 ## Evidence behind the proposal
 
@@ -27,9 +27,9 @@ Any production behavior gap found during a later host run goes to the product ow
 
 **Remaining Stage B exact-admission gap:** The production-style acceptance marker is still global and unkeyed, so real-host stale and admission-triggered host-failure cases cannot prove which native call was accepted. A possible test seam is an ephemeral HMAC key supplied through a dedicated test-only environment variable, with a versioned source-free marker containing an HMAC-SHA256 alias for the accepted recipient. The bridge would independently compute the alias from the native initiating call and require exactly one match before mutating the stale file or triggering host failure. A missing, duplicate, or mismatched alias would leave the case inconclusive without mutation or termination. Keep the current `accepted\n` marker when the test variable is absent, and delete the temporary key and marker with the fixture. Neither raw identifiers nor the HMAC key belong in retained evidence. This seam still needs separate product-owner review and deterministic tests; it is not implemented.
 
-## Proposed bounded run, pending owner review and authorization
+## Bounded run contract used for completed Claude Stage A
 
-The only host run currently in scope for review is Claude Stage A. OpenCode host work is postponed; the generic per-host details below are retained for a possible later plan and do not schedule or authorize an OpenCode run.
+The approved Claude Stage A consumed its two-session allocation. OpenCode host work is postponed; the generic per-host details below are retained for a possible later plan and do not schedule or authorize an OpenCode run.
 
 Use one disposable Git repository and isolated Hapsland state per scenario, except the two restart sessions intentionally share a temporary synthetic repository and consent state. Use a normal authenticated host provider/model and a controlled offline Hapsland backend. Run sequentially, away from #95 paired runs. Each session gets one synthetic initial native edit request, a 90-second host ceiling, and a 2 MB output ceiling. Claude Code has a five-second host-enforced native hook timeout. The OpenCode 1.14.44 adapter uses a 4.5-second plugin watchdog and bounded return path; this is an adapter bound, not a native OpenCode hook timeout. No Jev calls. Stop the entire host pass on a version/auth mismatch, raw-data retention, unbounded process, output ceiling, or edit failure. The staged cap is **eight sessions per host, sixteen total**; the ledger enforces it across invocations. The owner must initialize the new ledger once before launch and retain its source-free entries; never reset it to regain slots.
 
@@ -46,7 +46,7 @@ If OpenCode work is resumed later, first use a read-only check to confirm a usab
 
 | Option | What follows |
 | --- | --- |
-| **Review and decide on authenticated Claude Stage A** | The selected offline timing prerequisite has passed. A separate owner decision is still required before the two-session Claude Stage A; a failed Stage A stops further calls, and passing Stage A does not authorize blocked Stage B cells. |
+| **Investigate the failed Claude finding offline** | The classified finding was submitted without a later matched repair. Review source-free post-hook assistant-event instrumentation and exact host delivery semantics before proposing any new host diagnostic. |
 | **Defer #94 host acceptance** | Keep both compatibility cards pending and the current evidence advisory. Resume after the delivery policy or normal host authentication changes. |
 
 Neither option changes the product support claim today. OpenCode host work remains postponed. Full Stage B still needs a separate product-owned exact-admission marker or equivalent evidence before real-host stale or admission-triggered host-failure calls. The owner should also decide whether the missing Claude reaction calls for a delivery design change before spending another authenticated session; #97 makes that a concrete possibility, not a proven diagnosis for Claude.
