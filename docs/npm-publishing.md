@@ -1,17 +1,18 @@
-# Publish Jevs 0.1.0 from a logged-in host
+# Publish Hapsland 0.1.0 from a logged-in host
 
-The maintainer publishes `@jevs/jevs@0.1.0` directly to npm `latest` from a
+The maintainer publishes `@hapsland/hapsland@0.1.0` directly to npm `latest` from a
 clean, reviewed `master` checkout. GitHub Actions is optional supporting
 evidence, not a publication gate. The source repository remains private.
 There is no npm provenance attestation for this private repository; the
-release commit and SHA-256 pin in `scripts/npm-release-pin.json` identify the
-archive.
+canonical source repository URL, release commit, and SHA-256 pin in
+`scripts/npm-release-pin.json` identify the archive.
 
 ## Host command
 
-After the release commit is merged, the reviewed commit and archive checksum
-are recorded in `scripts/npm-release-pin.json`. On the host where you are
-already logged in to npm, use a clean `master` checkout of `dearlordylord/jevs`
+After the release commit is merged, the canonical source repository URL,
+reviewed commit, and archive checksum are recorded in
+`scripts/npm-release-pin.json`. On the host where you are
+already logged in to npm, use a clean `master` checkout of this repository
 and run **one** command:
 
 ```sh
@@ -52,7 +53,7 @@ Codex CLI installed, run from the release checkout:
 npm run conformance:package -- --registry-artifact --expected-sha256=ARCHIVE_SHA256 --real-codex --write-evidence
 ```
 
-The runner downloads `@jevs/jevs@0.1.0` from npm, rejects a checksum mismatch,
+The runner downloads `@hapsland/hapsland@0.1.0` from npm, rejects a checksum mismatch,
 installs it in a fresh prefix with lifecycle scripts disabled, and exercises
 the package, setup, controlled offline review, update/recovery, and native
 Codex host path. Record the resulting source-free evidence in the release

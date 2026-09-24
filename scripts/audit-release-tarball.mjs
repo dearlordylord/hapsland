@@ -41,8 +41,8 @@ const manifest = JSON.parse(archiveFile("package.json"));
 if (JSON.stringify(manifest) !== JSON.stringify(JSON.parse(gitFile("package.json")))) {
   throw new Error("tarball manifest differs from the pinned release commit");
 }
-if (manifest.name !== "@jevs/jevs" || manifest.version !== "0.1.0" || manifest.private === true ||
-    manifest.bin?.jevs !== "bin/launch.sh" ||
+if (manifest.name !== "@hapsland/hapsland" || manifest.version !== "0.1.0" || manifest.private === true ||
+    manifest.bin?.hapsland !== "bin/launch.sh" ||
     Object.keys(manifest.bin ?? {}).some((name) => name.startsWith("review-tool")) ||
     manifest.scripts?.postinstall !== undefined ||
     manifest.optionalDependencies?.["node-bin-darwin-arm64"] !== "24.20.0" ||

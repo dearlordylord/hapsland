@@ -5,7 +5,7 @@ implementation specification.
 
 | Term | Meaning |
 |---|---|
-| Product | The still-unnamed host-neutral system we are designing around realtime coding-agent reviews. |
+| Product | Hapsland, the host-neutral system we are designing around realtime coding-agent reviews. |
 | Jev | TypeSafe's external tool used by the product for typed, realtime review judgments. Jev is not the product name. |
 | Review integration | The product's integration boundary around agent hosts, rules, findings, and review backends. |
 | Host installation | The product integration made available to a particular agent host for a user. Installation does not itself authorize review of a repository. |

@@ -1,6 +1,6 @@
 # Convenient Codex onboarding — implementation specification
 
-Implementation handoff: [Implement convenient Codex onboarding](https://github.com/dearlordylord/jevs/issues/62) (`ready-for-agent`).
+Implementation handoff: Implement convenient Codex onboarding (issue #62) (`ready-for-agent`).
 
 ## Problem Statement
 
@@ -139,10 +139,10 @@ credentials while preserving explicit environment selection, consent semantics a
 the direct-event review contract. Research remains advisory; only requirements
 stated here are adopted. The earlier onboarding draft is historical design input.
 
-- [Onboarding decision map](https://github.com/dearlordylord/jevs/issues/56)
-- [Installation and activation decision](https://github.com/dearlordylord/jevs/issues/57)
-- [Credential research and adoption gates](https://github.com/dearlordylord/jevs/issues/58)
-- [Saved credential lifecycle](https://github.com/dearlordylord/jevs/issues/59)
-- [Disposable walkthrough](https://github.com/dearlordylord/jevs/blob/525888c/experiments/onboarding-walkthrough/README.md)
-- [Direct-event review contract](https://github.com/dearlordylord/jevs/issues/42)
-- [Phase F configuration](https://github.com/dearlordylord/jevs/issues/3)
+- Onboarding decision map (issue #56)
+- Installation and activation decision (issue #57)
+- Credential research and adoption gates (issue #58)
+- Saved credential lifecycle (issue #59)
+- Disposable walkthrough (revision `525888c`; not retained locally: `experiments/onboarding-walkthrough/README.md`)
+- Direct-event review contract (issue #42)
+- Phase F configuration (issue #3)

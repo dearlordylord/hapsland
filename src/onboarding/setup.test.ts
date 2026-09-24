@@ -435,7 +435,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
       }),
     ]));
     expect(result.actions).toEqual(expect.arrayContaining([
-      expect.objectContaining({ code: "credential-entry-cancelled", action: expect.stringContaining("jevs --login") }),
+      expect.objectContaining({ code: "credential-entry-cancelled", action: expect.stringContaining("hapsland --login") }),
     ]));
   });
 
@@ -467,9 +467,9 @@ else if (operation === "probe") console.log('{"status":"available"}');
         }),
       ]));
       const recovery = result.actions.find((action) => action.code === fixtureCase.code);
-      expect(recovery?.action).toContain("jevs --login");
+      expect(recovery?.action).toContain("hapsland --login");
       if (fixtureCase.expectedStatus === "indeterminate") {
-        expect(recovery?.action).toContain("jevs --logout");
+        expect(recovery?.action).toContain("hapsland --logout");
       }
     }
   }, 20_000);

@@ -513,8 +513,8 @@ const packagedRuntimeEntrypoints = (entrypoint: string) => {
     };
   }
   return {
-    parser: join(dirname(entrypoint), "jevs-parser"),
-    resident: join(dirname(entrypoint), "jevs-resident"),
+    parser: join(dirname(entrypoint), "hapsland-parser"),
+    resident: join(dirname(entrypoint), "hapsland-resident"),
   };
 };
 
@@ -1347,7 +1347,7 @@ const recoveryConflictResult = (
       completedFiles: completedIndexes.length,
       totalFiles: journal.mutations.length,
       command: {
-        executable: "jevs",
+        executable: "hapsland",
         arguments: [`--${journal.operation}`],
         request: { version: 1, operation: journal.operation, codexHome: inputs.home, proposalDigest: journal.proposalDigest },
       },
@@ -1516,7 +1516,7 @@ const updateRecoveryCommand = (
   inputs: ReturnType<typeof resolveInputs>,
   proposalDigest: string,
 ) => ({
-  executable: "jevs",
+  executable: "hapsland",
   arguments: ["--update"],
   request: { version: 1, operation: "update", codexHome: inputs.home, proposalDigest },
 });
@@ -1642,7 +1642,7 @@ export const updateCodexIntegration = async (request: InstallationRequest): Prom
               command: existingJournal.operation === "update"
                 ? updateRecoveryCommand(inputs, existingJournal.proposalDigest)
                 : {
-                    executable: "jevs",
+                    executable: "hapsland",
                     arguments: [`--${existingJournal.operation}`],
                     request: { version: 1, operation: existingJournal.operation, codexHome: inputs.home, proposalDigest: existingJournal.proposalDigest },
                   },

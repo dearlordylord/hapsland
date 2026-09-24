@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "specification": "https://github.com/dearlordylord/jevs/issues/42",
+  "specification": "issue #42",
   "profile": "direct-event v1 / Codex CLI 0.155.1 / Linux arm64 / headless command hooks / controlled writer",
   "ordinaryTests": "deterministic-offline",
   "groups": [

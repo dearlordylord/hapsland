@@ -32,7 +32,7 @@
     {
       "class": "ISSUE",
       "verification": "DOCUMENTED",
-      "url": "https://github.com/dearlordylord/jevs/issues/4",
+      "reference": "issue #4",
       "scope": "Issue-4 lifecycle questions and prior unretained Stop observation"
     }
   ],

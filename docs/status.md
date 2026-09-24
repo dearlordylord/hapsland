@@ -11,7 +11,7 @@ Run the offline, read-only doctor with an explicit repository and selected Codex
 }
 ```
 
-The equivalent command is `jevs --doctor`. Doctor checks the packaged runtime,
+The equivalent command is `hapsland --doctor`. Doctor checks the packaged runtime,
 parser and resident entry point, exact Codex version, selected configuration, the owned
 feature/hook record, duplicates and local drift, resident reachability, credential
 presence in the doctor process, and enablement for the canonical repository. The doctor

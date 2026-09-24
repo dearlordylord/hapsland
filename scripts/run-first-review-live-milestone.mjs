@@ -110,7 +110,7 @@ const invoke = async (input, timeoutMs = 10_000, expected = [0]) => {
 try {
   await mkdir(installPrefix, { recursive: true });
   const packResult = requireExit(await run("npm", registryArtifact
-    ? ["pack", "@jevs/jevs@0.1.0", "--json", "--ignore-scripts=true", "--registry=https://registry.npmjs.org/", "--pack-destination", runnerRoot]
+    ? ["pack", "@hapsland/hapsland@0.1.0", "--json", "--ignore-scripts=true", "--registry=https://registry.npmjs.org/", "--pack-destination", runnerRoot]
     : ["pack", "--json", "--pack-destination", runnerRoot], {
     timeoutMs: 120_000,
   }), "npm pack");
@@ -126,15 +126,15 @@ try {
   requireExit(await run("npm", ["install", "--global=false", "--legacy-peer-deps", "--ignore-scripts=true", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installPrefix, tarballPath], {
     timeoutMs: 120_000,
   }), "packed release installation");
-  const invokedCli = join(installPrefix, "node_modules", ".bin", "jevs");
+  const invokedCli = join(installPrefix, "node_modules", ".bin", "hapsland");
   cli = await realpath(invokedCli);
-  const installedPackageRoot = await realpath(join(installPrefix, "node_modules", "@jevs", "jevs"));
+  const installedPackageRoot = await realpath(join(installPrefix, "node_modules", "@hapsland", "hapsland"));
   const resolvedCli = await realpath(cli);
   if (resolvedCli !== installedPackageRoot && !resolvedCli.startsWith(`${installedPackageRoot}${sep}`)) {
     throw new Error("invoked CLI does not resolve inside the installed packed artifact");
   }
   const packageManifest = JSON.parse(await readFile(resolve(dirname(resolvedCli), "../package.json"), "utf8"));
-  if (packageManifest.name !== "@jevs/jevs") {
+  if (packageManifest.name !== "@hapsland/hapsland") {
     throw new Error("installed CLI package identity did not match the packed release");
   }
 

@@ -2,27 +2,26 @@
 
 ## Product identity
 
-The repository directory may be named `jev`, but the product is **Jevs**, not Jev.
-
-**Jev** is TypeSafe's external realtime review/classification tool that Jevs uses
-to evaluate edits. Refer to the product as **Jevs**, **the product**, or **the review
+The repository checkout may still be named `jev`, but the product is **Hapsland**.
+**Jev** is TypeSafe's external realtime review/classification tool that Hapsland uses
+to evaluate edits. Refer to the product as **Hapsland**, **the product**, or **the review
 integration** when the context is unambiguous.
 
 Keep these terms separate:
 
 - Jev: the external review backend/tool.
-- Jevs: our host-neutral integration and user-configurable review system.
+- Hapsland: our host-neutral integration and user-configurable review system.
 - Agent host: Claude Code, Codex CLI, OpenCode, Kimi Code, Pi, or another runtime that
   owns the tool loop.
 - Model provider: secondary metadata about which inference service a host or review
   backend uses. It is not a first-class product target in the current phase.
 
-Jevs works at the agent-host boundary. Model-provider details matter only when
+Hapsland works at the agent-host boundary. Model-provider details matter only when
 they change host behavior, authentication/egress, cost, or the Jev backend configuration;
 they do not define the adapter set.
 
-Historical filenames beginning with `JEV-` are retained for continuity; that filename
-prefix does not rename Jevs to Jev.
+Historical filenames beginning with `JEV-` are retained for continuity and do not
+change the product name to Jev.
 
 ## Effect and Jev integration baseline
 

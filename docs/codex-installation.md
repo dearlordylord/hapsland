@@ -1,23 +1,23 @@
 # Codex installation lifecycle
 
 For a person using a normal Codex profile, start with the
-[npm quickstart](./npm-quickstart.md) and `jevs --pilot` after the
+[npm quickstart](./npm-quickstart.md) and `hapsland --pilot` after the
 registry release. The JSON operations below remain the versioned automation
-interface. `jevs` is the product command; Jev is the external backend.
+interface. `hapsland` is the product command; Jev is the external backend.
 
 After installation, diagnose the selected host and repository without mutation or a
 provider call:
 
 ```sh
 printf '%s' '{"version":1,"operation":"doctor","cwd":"/worktree","codexHome":"/home/user/.codex"}' \
-  | jevs --doctor
+  | hapsland --doctor
 ```
 
 Treat `unknown` host trust or credential accessibility as an explicit state and follow
 the single action reported for that stage. Doctor never prompts, launches or repairs the
 resident, changes Codex configuration, or calls Jev.
 
-The packaged `jevs` CLI exposes versioned, noninteractive JSON operations for the
+The packaged `hapsland` CLI exposes versioned, noninteractive JSON operations for the
 declared Codex CLI 0.155.1 and 0.156.0 / Node 24.20.0 installed profiles on Linux arm64 and macOS arm64.
 Its public commands select an exact platform Node runtime from installed optional dependencies,
 independently of the shell's Node version. Install with optional dependencies enabled.
@@ -48,9 +48,9 @@ login on both platforms reads from `/dev/tty` with terminal echo disabled using 
 Automation must opt into stdin explicitly; credential values are never accepted as arguments.
 
 ```sh
-jevs --login
-printf '%s\n' "$TYPESAFE_API_KEY" | jevs --login --credential-stdin
-jevs --logout
+hapsland --login
+printf '%s\n' "$TYPESAFE_API_KEY" | hapsland --login --credential-stdin
+hapsland --logout
 ```
 
 Login does not contact Jev. A definitively failed or cancelled replacement preserves the prior item.
@@ -90,10 +90,10 @@ and repository actions contain the exact proposal digests needed for the next re
 
 ```sh
 printf '%s\n' '{"version":1,"operation":"setup","host":"codex","scope":{"cwd":"/absolute/repository","review":"enabled"},"credential":"environment","codexHome":"/absolute/codex-home"}' \
-  | jevs --setup
+  | hapsland --setup
 
 printf '%s\n' '{"version":1,"operation":"setup","host":"codex","scope":{"cwd":"/absolute/repository","review":"enabled"},"credential":"environment","codexHome":"/absolute/codex-home","installProposalDigest":"<install-digest>","consentProposalDigest":"<consent-digest>"}' \
-  | TYPESAFE_API_KEY=... jevs --setup
+  | TYPESAFE_API_KEY=... hapsland --setup
 ```
 
 Do not substitute a digest from another preview. If installation stops after a write, setup reports
@@ -116,22 +116,22 @@ The lower-level operations below remain available for diagnosis and explicit lif
 
 ```sh
 printf '%s\n' '{"version":1,"operation":"install-preview","codexHome":"/absolute/codex-home"}' \
-  | jevs --install-preview
+  | hapsland --install-preview
 
 printf '%s\n' '{"version":1,"operation":"install","codexHome":"/absolute/codex-home","proposalDigest":"<preview-digest>"}' \
-  | jevs --install
+  | hapsland --install
 
 printf '%s\n' '{"version":1,"operation":"enable","cwd":"/absolute/repository"}' \
-  | jevs --enable
+  | hapsland --enable
 
 printf '%s\n' '{"version":1,"operation":"enable-confirm","cwd":"/absolute/repository","proposalDigest":"<enable-digest>"}' \
-  | jevs --enable-confirm
+  | hapsland --enable-confirm
 
 printf '%s\n' '{"version":1,"operation":"disable","cwd":"/absolute/repository"}' \
-  | jevs --disable
+  | hapsland --disable
 
 printf '%s\n' '{"version":1,"operation":"uninstall","codexHome":"/absolute/codex-home"}' \
-  | jevs --uninstall
+  | hapsland --uninstall
 ```
 
 Updates are explicit and run from the target local package. They never poll for releases or
@@ -140,10 +140,10 @@ with the target package, then apply the returned digest:
 
 ```sh
 printf '%s\n' '{"version":1,"operation":"update-preview","codexHome":"/absolute/codex-home"}' \
-  | /path/to/target/jevs --update-preview
+  | /path/to/target/hapsland --update-preview
 
 printf '%s\n' '{"version":1,"operation":"update","codexHome":"/absolute/codex-home","proposalDigest":"<preview-digest>"}' \
-  | /path/to/target/jevs --update
+  | /path/to/target/hapsland --update
 ```
 
 The preview names both package versions, runtime and entrypoint paths, resident protocol, the
@@ -214,7 +214,7 @@ with a user ID and a logged-in session without one, and does not tell Codex how 
 
 ```sh
 printf '%s\n' '{"version":1,"operation":"demo","selection":"preview","codexHome":"/absolute/codex-home"}' \
-  | jevs --demo
+  | hapsland --demo
 ```
 
 The preview declares a 4,096-byte limit for the JSON-encoded provider input (declaration source
@@ -228,7 +228,7 @@ or budget setup, so concurrent or replayed confirmations cannot start another li
 
 ```sh
 printf '%s\n' '{"version":1,"operation":"demo","selection":"live","demoId":"<id>","selectionDigest":"<selection-digest>","consentProposalDigest":"<consent-digest>","codexHome":"/absolute/codex-home"}' \
-  | jevs --demo
+  | hapsland --demo
 ```
 
 The demo uses the installed hook and queries the actual Codex version while retaining normal

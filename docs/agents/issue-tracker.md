@@ -1,6 +1,6 @@
 # Issue tracker: GitHub Issues
 
-Work items for this repository live in [dearlordylord/jevs Issues](https://github.com/dearlordylord/jevs/issues). This file tells agent skills where to find issues; it does not replace product specifications or make research reports normative. Run `gh` from this repository so it selects the right remote.
+Work items for this repository live in [Hapsland Issues](https://github.com/dearlordylord/hapsland/issues). This file tells agent skills where to find issues; it does not replace product specifications or make research reports normative. Run `gh` from this repository so it selects the configured remote.
 
 ## Reading an originating issue
 

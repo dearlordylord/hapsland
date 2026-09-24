@@ -8,9 +8,9 @@ recorded as later work; tool compatibility and integration have not been establi
 Related: [configuration](./PRODUCT-CONFIGURATION-SPEC-DRAFT.md) and
 [combinatorics test specification](./PRODUCT-RULE-COMBINATORICS-TEST-SPEC.md).
 This is a specification model, not an update to CONTEXT.md.
-The implementation handoff is [Phase F issue #3](https://github.com/dearlordylord/jevs/issues/3).
+The implementation handoff is Phase F issue #3.
 The separate input-contract comparison is tracked by
-[#16](https://github.com/dearlordylord/jevs/issues/16).
+issue #16.
 
 ## Core distinction
 

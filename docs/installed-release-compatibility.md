@@ -2,8 +2,9 @@
 
 The assembled installed-product gate is **release-ready for the exact declared profiles**. The declaration is intentionally
 bound to integration commit `f2f47e94cd2d90cf73062f07c5e61416218e2f13`, the exact retained
-evidence checksums, Linux Codex CLI 0.155.1, macOS Codex CLI 0.156.0, Node 24.20.0, and arm64. It selects no public product name or
-package registry.
+evidence checksums, Linux Codex CLI 0.155.1, macOS Codex CLI 0.156.0, Node 24.20.0, and arm64.
+This declaration predates the Hapsland rename and does not validate a public Hapsland package
+name or registry artifact.
 
 `npm run conformance:installed-release` is the authoritative check. It verifies each retained JSON
 record against the SHA-256 at its declared provenance commit, checks semantic fields instead of

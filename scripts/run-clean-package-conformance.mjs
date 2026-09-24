@@ -123,7 +123,7 @@ const installLocalPackageVariant = async ({
     version,
     residentProtocol,
     tarball,
-    cli: join(installation, "node_modules", ".bin", "jevs"),
+    cli: join(installation, "node_modules", ".bin", "hapsland"),
   };
 };
 
@@ -406,7 +406,7 @@ try {
     throw new Error("source package must build before packing without an install-time lifecycle script");
   }
   await mustRun("npm", registryArtifact
-    ? ["pack", "@jevs/jevs@0.1.0", "--ignore-scripts=true", "--registry=https://registry.npmjs.org/", "--pack-destination", artifacts]
+    ? ["pack", "@hapsland/hapsland@0.1.0", "--ignore-scripts=true", "--registry=https://registry.npmjs.org/", "--pack-destination", artifacts]
     : ["pack", "--ignore-scripts=false", "--foreground-scripts", "--pack-destination", artifacts], { cwd: root });
   const artifactEntries = await (await import("node:fs/promises")).readdir(artifacts);
   const artifactName = artifactEntries.find((entry) => entry.endsWith(".tgz"));
@@ -421,12 +421,12 @@ try {
   await mustRun("npm", ["install", "--global=false", "--legacy-peer-deps", "--ignore-scripts=true", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installation, tarball], { cwd: temporary, timeoutMs: 120_000 });
   const packageDirectory = join(installation, "node_modules", sourceManifest.name);
   const binDirectory = join(installation, "node_modules", ".bin");
-  const cli = join(binDirectory, "jevs");
+  const cli = join(binDirectory, "hapsland");
   let activeCli = cli;
-  const parser = join(binDirectory, "jevs-parser");
-  const doctor = join(binDirectory, "jevs-doctor");
+  const parser = join(binDirectory, "hapsland-parser");
+  const doctor = join(binDirectory, "hapsland-doctor");
   const doctorSource = join(packageDirectory, "dist", "package-doctor.js");
-  for (const [name, path] of [["jevs", cli], ["jevs-parser", parser], ["jevs-doctor", doctor]]) {
+  for (const [name, path] of [["hapsland", cli], ["hapsland-parser", parser], ["hapsland-doctor", doctor]]) {
     try {
       await access(path);
     } catch {

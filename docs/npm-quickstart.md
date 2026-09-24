@@ -1,8 +1,8 @@
-# Install Jevs for Codex
+# Install Hapsland for Codex
 
-This guide applies after `@jevs/jevs@0.1.0` is published and the exact registry
-artifact passes the [release record](https://github.com/dearlordylord/jevs/blob/master/docs/npm-release-record.md).
-Jevs is the product; Jev is its external review backend. Installing the package
+This guide applies after `@hapsland/hapsland@0.1.0` is published and the exact registry
+artifact passes the [release record](./npm-release-record.md).
+Hapsland is the product; Jev is its external review backend. Installing the package
 does not authorize source transmission.
 
 The first supported profiles are Codex CLI 0.155.1 on Linux arm64 and Codex CLI
@@ -14,8 +14,8 @@ unattributed.
 1. Compare the registry tarball SHA-256 with the value in the release record:
 
    ```sh
-   npm view @jevs/jevs@0.1.0 dist.tarball
-   curl -fsSL "$(npm view @jevs/jevs@0.1.0 dist.tarball)" | shasum -a 256
+   npm view @hapsland/hapsland@0.1.0 dist.tarball
+   curl -fsSL "$(npm view @hapsland/hapsland@0.1.0 dist.tarball)" | shasum -a 256
    ```
 
    The registry digest must match the recorded release artifact. The record also
@@ -24,8 +24,8 @@ unattributed.
 2. Install the exact version into a user-writable prefix, without install scripts:
 
    ```sh
-   npm install --global --prefix "$HOME/.local" --ignore-scripts=true --include=optional @jevs/jevs@0.1.0
-   "$HOME/.local/bin/jevs-doctor"
+   npm install --global --prefix "$HOME/.local" --ignore-scripts=true --include=optional @hapsland/hapsland@0.1.0
+   "$HOME/.local/bin/hapsland-doctor"
    ```
 
    Add `~/.local/bin` to `PATH` if you want to omit the full executable path.
@@ -33,7 +33,7 @@ unattributed.
    requirements without reading project source.
 
 3. In the Git repository you want reviewed, run
-   `"$HOME/.local/bin/jevs" --pilot` in your terminal. Jevs previews the exact
+   `"$HOME/.local/bin/hapsland" --pilot` in your terminal. Hapsland previews the exact
    Codex changes, accepts a Jev key through masked terminal entry, and asks
    separately for the canonical repository and eligible-source consent. You can
    stop and resume without enabling review.
@@ -51,11 +51,11 @@ consent; it has request, source, and time limits.
 ## Move from the pilot archive
 
 The old archive installed `realtime-review-prototype` and exposed `review-tool`.
-The public package exposes only `jevs` and `jevs-*` commands. Keep the pilot
-package in place while installing `@jevs/jevs@0.1.0`; their command names do not
-collide. Use the new `jevs` executable to preview and explicitly apply the update
+The public package exposes only `hapsland` and `hapsland-*` commands. Keep the pilot
+package in place while installing `@hapsland/hapsland@0.1.0`; their command names do not
+collide. Use the new `hapsland` executable to preview and explicitly apply the update
 from the pilot hook. The preview identifies both package versions, the owned hook
-change, and any Codex trust or restart step. Jevs keeps the existing ownership
+change, and any Codex trust or restart step. Hapsland keeps the existing ownership
 record, repository grants, and saved native credential identity. Recheck doctor
 and an observed review before removing the pilot package. If update is partial,
 use its reported recovery command while the pilot package is still installed.

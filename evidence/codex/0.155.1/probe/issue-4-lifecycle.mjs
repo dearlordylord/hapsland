@@ -573,7 +573,7 @@ const run = async () => {
     },
     primarySources: [
       { class: "DOC", verification: "DOCUMENTED", url: "https://developers.openai.com/codex/hooks", scope: "Codex hook lifecycle, Bash/PostToolUse, unified exec/write_stdin, Stop continuation, UserPromptSubmit, Interrupt, SessionEnd" },
-      { class: "ISSUE", verification: "DOCUMENTED", url: "https://github.com/dearlordylord/jevs/issues/4", scope: "Issue-4 lifecycle questions and prior unretained Stop observation" },
+      { class: "ISSUE", verification: "DOCUMENTED", reference: "issue #4", scope: "Issue-4 lifecycle questions and prior unretained Stop observation" },
     ],
     commands: {
       runner: "node evidence/codex/0.155.1/probe/issue-4-lifecycle.mjs",

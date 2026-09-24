@@ -2,7 +2,7 @@
 
 **Status:** staged execution plan after the research advisory. Issues #1 and #3 adopted
 phases B–F as normative implementation specifications, and those phases are complete;
-later phases remain proposed. The product remains unnamed; Jev is its initial review
+later phases remain proposed. The product is Hapsland; Jev is its initial review
 backend, not the product name.
 
 ## 1. Goal
@@ -386,12 +386,12 @@ finding.
 
 ### Phase F — configuration and rule packaging
 
-**Completed 2026-09-20:** [issue #3](https://github.com/dearlordylord/jevs/issues/3),
+**Completed 2026-09-20:** issue #3,
 implemented through issues #9–#15, with the consolidated local specification in
 [`PRODUCT-PHASE-F-SPEC.md`](./PRODUCT-PHASE-F-SPEC.md). This includes the agreed
 configuration explanation, session receipt, and rule-conformance test requirements.
 Directory-scoped consent is deferred to
-[issue #2](https://github.com/dearlordylord/jevs/issues/2).
+issue #2.
 
 Phase F provides project/user configuration, file selection, thresholds, messages,
 enable/disable consent, privacy exclusions, timeouts, credential references, local
@@ -409,7 +409,7 @@ Phase F implementation unfinished.
 The detailed [onboarding specification](./PRODUCT-ONBOARDING-SPEC.md)
 now covers installation, activation, diagnostics, distribution, update/removal, and
 release gates. Decisions are settled and the
-[implementation handoff](https://github.com/dearlordylord/jevs/issues/62) is ready;
+implementation handoff (issue #62) is ready;
 platform and native-storage validation remain implementation gates. Its runtime
 baseline is the current asynchronous
 [direct-event supported profile](./docs/direct-event-v1-supported-profile.md), not

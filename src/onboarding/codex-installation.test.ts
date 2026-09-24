@@ -680,7 +680,7 @@ responses_websockets_v2 = true`);
         completedFiles: 1,
         totalFiles: 2,
         command: {
-          executable: "jevs",
+          executable: "hapsland",
           arguments: ["--update"],
           request: { version: 1, operation: "update", codexHome: home, proposalDigest: digest },
         },

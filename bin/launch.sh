@@ -2,10 +2,10 @@
 set -eu
 
 case "${0##*/}" in
-  jevs) entry=dist/cli.js ;;
-  jevs-doctor) entry=dist/package-doctor.js ;;
-  jevs-parser) entry=dist/parser-main.js ;;
-  jevs-resident) entry=dist/resident/main.js ;;
+  hapsland) entry=dist/cli.js ;;
+  hapsland-doctor) entry=dist/package-doctor.js ;;
+  hapsland-parser) entry=dist/parser-main.js ;;
+  hapsland-resident) entry=dist/resident/main.js ;;
   *) echo "Unknown review integration command." >&2; exit 2 ;;
 esac
 

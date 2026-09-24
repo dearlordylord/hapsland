@@ -11,6 +11,6 @@ through configuration explanation.
 The decision adopts the bounded recommendation in
 [the file-filter research](../../PRODUCT-CONFIG-FILE-FILTER-RESEARCH-2026-09-19.md).
 
-Implementation is tracked by [Phase F issue #3](https://github.com/dearlordylord/jevs/issues/3).
-The later [directory-consent follow-up](https://github.com/dearlordylord/jevs/issues/2)
+Implementation is tracked by Phase F issue #3.
+The later directory-consent follow-up (issue #2)
 must preserve these exclusion constraints.

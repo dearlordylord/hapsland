@@ -278,14 +278,14 @@ export const runSetup = Effect.fn("Setup.run")(function* (
                 ? "replace-invalid-credential"
                 : "recover-credential-storage",
           action: cancelled
-            ? "rerun setup interactively or run jevs --login in a user terminal"
+            ? "rerun setup interactively or run hapsland --login in a user terminal"
             : indeterminate
-              ? "run jevs --logout to resolve the uncertain replacement, then run jevs --login"
+              ? "run hapsland --logout to resolve the uncertain replacement, then run hapsland --login"
               : interactiveOutcome.status === "locked"
-                ? "unlock the login keyring, then run jevs --login"
+                ? "unlock the login keyring, then run hapsland --login"
                 : interactiveOutcome.status === "invalid"
-                  ? "run jevs --login again and enter a nonempty credential"
-                  : "reinstall an archive containing the native helper for this platform if it is missing, or repair native credential storage; then run jevs --login",
+                  ? "run hapsland --login again and enter a nonempty credential"
+                  : "reinstall an archive containing the native helper for this platform if it is missing, or repair native credential storage; then run hapsland --login",
         });
         pending.push(indeterminate ? "reconcile suspended saved credential use" : "complete saved credential login");
       } else if (resolution.status === "present") {

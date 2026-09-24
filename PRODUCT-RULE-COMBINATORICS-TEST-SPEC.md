@@ -3,7 +3,7 @@
 Status: required test design, not an implemented test suite. This accompanies
 [the configuration specification](./PRODUCT-CONFIGURATION-SPEC-DRAFT.md).
 The user explicitly requires tests that describe the combinations of rules and settings.
-Implementation is tracked by [Phase F issue #3](https://github.com/dearlordylord/jevs/issues/3).
+Implementation is tracked by Phase F issue #3.
 
 ## What the suite proves
 

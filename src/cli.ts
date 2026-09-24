@@ -843,7 +843,7 @@ const runReviewRequestCore = (
             "missing_credentials",
             credential?.source === "environment"
               ? `review credential is unavailable; set ${authorization.success.settings.credentialEnvVar}`
-              : `saved review credential is ${credential?.status ?? "unavailable"}; run jevs --login`,
+              : `saved review credential is ${credential?.status ?? "unavailable"}; run hapsland --login`,
           ),
           diagnosticScope,
         };
@@ -1132,14 +1132,14 @@ const program = Effect.gen(function* () {
             : credential.source === "environment"
               ? `make ${settings.credentialEnvVar} available to the installed hook environment, then rerun doctor`
               : credential.status === "locked" || credential.status === "interaction-required"
-                ? "run jevs --login in a user terminal and unlock or approve native credential access; background hooks never prompt"
+                ? "run hapsland --login in a user terminal and unlock or approve native credential access; background hooks never prompt"
                 : credential.status === "timed-out"
                   ? "repair or unlock the native credential store; its noninteractive lookup exceeded the 750 ms deadline"
                   : credential.status === "suspended"
-                    ? "reconcile the suspended credential with jevs --login or jevs --logout before review"
+                    ? "reconcile the suspended credential with hapsland --login or hapsland --logout before review"
                     : credential.status === "unavailable"
                       ? "reinstall an archive containing the native helper for this platform if it is missing, or restore native credential access; then rerun doctor"
-                      : "store a credential with jevs --login, then rerun doctor";
+                      : "store a credential with hapsland --login, then rerun doctor";
           const credentialStatus = credentialReady
             ? "ready" as const
             : credential.status === "invalid" || credential.status === "suspended"
@@ -1436,15 +1436,15 @@ const runCredentialCommand = async (): Promise<Readonly<Record<string, unknown>>
 
 const isCredentialCommand = process.argv.includes("--login") || process.argv.includes("--logout");
 const printHelp = () => {
-  process.stdout.write(`Jevs — Codex review integration
+  process.stdout.write(`Hapsland — Codex review integration
 
-  jevs --pilot            Guided opt-in setup in a terminal
-  jevs --login            Save a Jev key with masked entry
-  jevs --doctor           Offline readiness check (JSON request on stdin)
-  jevs --disable          Revoke repository review (JSON request on stdin)
-  jevs --logout           Remove the saved Jev key
+  hapsland --pilot            Guided opt-in setup in a terminal
+  hapsland --login            Save a Jev key with masked entry
+  hapsland --doctor           Offline readiness check (JSON request on stdin)
+  hapsland --disable          Revoke repository review (JSON request on stdin)
+  hapsland --logout           Remove the saved Jev key
 
-Jevs uses Jev as its external review backend. Installation
+Hapsland uses Jev as its external review backend. Installation
 does not permit sending source. --pilot asks separately before enabling a repository.
 For automation, use the versioned --setup operation documented in docs/codex-installation.md.
 `);
@@ -1455,7 +1455,7 @@ const flagValue = (name: string): string | undefined =>
 
 const pilotSetup = async () => {
   if (!process.stdin.isTTY || !process.stderr.isTTY) {
-    process.stderr.write("Guided setup needs a terminal. Run jevs --pilot there, or use jevs --setup with a versioned JSON request.\n");
+    process.stderr.write("Guided setup needs a terminal. Run hapsland --pilot there, or use hapsland --setup with a versioned JSON request.\n");
     process.exitCode = 6;
     return;
   }
@@ -1508,7 +1508,7 @@ const pilotSetup = async () => {
       const observed = stage(result, "installation")?.observed as { proposal?: { ownedChanges?: unknown } } | undefined;
       process.stderr.write(`Installation preview (owned changes):\n${JSON.stringify(observed?.proposal?.ownedChanges, null, 2)}\n`);
       if (!await ask("Install these entries in the selected Codex profile?")) {
-        process.stderr.write("Installation was not changed. Run jevs --pilot to resume.\n");
+        process.stderr.write("Installation was not changed. Run hapsland --pilot to resume.\n");
         return;
       }
       const digest = install.authorization?.installProposalDigest;
@@ -1531,7 +1531,7 @@ const pilotSetup = async () => {
       process.stderr.write(`Repository enablement preview: ${JSON.stringify(stage(result, "repository")?.observed, null, 2)}\n`);
       process.stderr.write("Enabling permits eligible source from this canonical repository to be sent to Jev.\n");
       if (!await ask("Enable review for this repository and destination?")) {
-        process.stderr.write("Repository review remains disabled. Run jevs --pilot to resume.\n");
+        process.stderr.write("Repository review remains disabled. Run hapsland --pilot to resume.\n");
         return;
       }
       const digest = consent.authorization?.consentProposalDigest;
@@ -1554,14 +1554,14 @@ const pilotSetup = async () => {
       timeout: 10_000,
     });
     if (doctor.status !== 0) {
-      process.stderr.write("Readiness check could not complete. Run jevs --pilot again or inspect jevs --doctor.\n");
+      process.stderr.write("Readiness check could not complete. Run hapsland --pilot again or inspect hapsland --doctor.\n");
       process.exitCode = 6;
       return;
     }
     let diagnosis: { status: string; nextSteps: Array<{ action: string }> };
     try { diagnosis = JSON.parse(doctor.stdout) as typeof diagnosis; }
     catch {
-      process.stderr.write("Readiness result was unreadable. Rerun jevs --pilot or inspect jevs --doctor.\n");
+      process.stderr.write("Readiness result was unreadable. Rerun hapsland --pilot or inspect hapsland --doctor.\n");
       process.exitCode = 6;
       return;
     }
@@ -1624,17 +1624,17 @@ if (isDirectEventReady(output)) {
   if (isCredentialCommand && !process.argv.includes("--json") && !process.argv.includes("--credential-stdin") && process.stdin.isTTY) {
     const result = output as Readonly<Record<string, unknown>>;
     if (result.operation === "login" && result.status === "stored") {
-      process.stdout.write(`Jev key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}. No Jev request or review was sent.\nNext: complete Codex sign-in and native trust, then run jevs --pilot or the offline doctor.\n`);
+      process.stdout.write(`Jev key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}. No Jev request or review was sent.\nNext: complete Codex sign-in and native trust, then run hapsland --pilot or the offline doctor.\n`);
     } else {
       const next = result.action ?? (result.operation === "logout"
         ? "Repository grants remain; disable review separately if needed."
         : result.status === "invalid"
-          ? "Enter a nonempty Jev key and retry jevs --login. The previous saved key was preserved."
+          ? "Enter a nonempty Jev key and retry hapsland --login. The previous saved key was preserved."
           : result.status === "cancelled"
-            ? "No key was changed. Run jevs --login again when ready."
+            ? "No key was changed. Run hapsland --login again when ready."
             : result.status === "locked" || result.status === "interaction-required"
-              ? "Unlock or approve the native credential store in this session, then retry jevs --login."
-              : "Check native credential storage in this user session, then retry jevs --login.");
+              ? "Unlock or approve the native credential store in this session, then retry hapsland --login."
+              : "Check native credential storage in this user session, then retry hapsland --login.");
       process.stdout.write(`${result.operation === "logout" ? "Logout" : "Login"}: ${String(result.status)}. ${String(next)}\n`);
       if (result.operation === "logout") {
         const environment = result.environmentOverride as { envVar?: string; active?: boolean } | undefined;
