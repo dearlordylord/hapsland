@@ -1,0 +1,39 @@
+# Issue #97: Codex turn-end delivery measurement
+
+Status: isolated prototype evidence, 2026-09-24. No production hook or adapter change.
+
+## Tested envelope and method
+
+The installed test host was `codex-cli 0.156.1` on Linux. The agent was `gpt-6-luna` with `model_reasoning_effort="max"`, using headless `codex exec --ephemeral`. This is **outside** Hapsland's declared `codex-cli 0.155.1` direct-event profile. The earlier [0.155.1 lifecycle evidence](../evidence/codex/0.155.1/issue-4-lifecycle-2026-09-20.json) showed synchronous Stop hooks, two successful `decision: "block"` continuations, and ordinary `SessionEnd`; it did not measure the policy here. The current Codex path admits direct edits to a resident asynchronous review/work/advice queue and collects ready advice through subsequent mapped `PostToolUse` replies. It has no Stop collection path.
+
+The [runner](../evidence/delivery-97/run.mjs) creates a disposable Git repository and temporary Codex home for each case, copies Codex authentication without reading or printing it, enables the test hooks, and removes the temporary state. A synthetic `apply_patch` adds a BAD value. The [hook](../evidence/delivery-97/hook.mjs) simulates review admission and completion with a controlled clock delay. It emits a fixed, source-free finding. The test does not call Jev, measure real backend latency, implement resident IPC, or retain host JSONL, prompts, source, credentials, or raw model text. [Machine-readable evidence](../evidence/delivery-97/codex-0.156.1-luna-max-2026-09-24.json) retains event types, source-free timestamps, outcome flags, and selected synthetic fixture labels. These are selected fixtures, not a field population rate.
+
+The baseline simulates admission at the first edit and collects ready advice only on a subsequent mapped `PostToolUse`, matching the current opportunity-based delivery policy. The bounded candidate waits for the current `(session, agent, cwd)` recipient's admitted work at Stop, for at most about 4.85 seconds from the hook's post-parse entry. It submits one fixed finding through `decision: "block"` and permits only one such continuation. **This prototype does not meet #97's exact five-second budget contract**, because process launch and stdin parsing precede its timer and it has no resident IPC path. The background candidate uses Codex's native `async: true` `PostToolUse` command hook, described in the [Codex hook documentation](https://developers.openai.com/codex/hooks). It is a separate path; its output does not increment our explicit `hostSubmissions` counter.
+
+## Results
+
+There were 11 isolated sessions, each with one eligible BAD direct edit: 11 eligible edits, 12 admitted synthetic review units (one two-unit fixture), 11 finding units, zero clear units, and one simulated unavailable unit. Seven finding units were ready by the first Stop entry; four were still in flight. Eight finding units became ready before session end. These counts derive from scheduled completion timestamps; the prototype has no actual backend completion event for the bounded or baseline modes. No population frequency can be inferred.
+
+| Candidate and fixture | First Stop wait | Host delivery and independently observed reaction |
+| --- | ---: | --- |
+| Subsequent hook, no later edit | 0 ms | Ready finding remained unsubmitted; BAD remained. |
+| Subsequent hook, second mapped edit | 0 ms | `PostToolUse` submitted finding; Luna changed BAD to GOOD. |
+| Bounded Stop, ready before Stop (0 and 1.5 s delays) | 1 ms each | Stop submitted finding; Luna changed BAD to GOOD in both. |
+| Bounded Stop, ready during Stop (4 s after edit) | 2,396 ms | Stop submitted finding; Luna changed BAD to GOOD. |
+| Bounded Stop, two ready units | 2 ms | One combined message was submitted; Luna changed BAD to GOOD. The two units were not independently distinguishable to the model. |
+| Bounded Stop, 7.5 s delay | 4,859 ms | Deadline passed; no submission, BAD remained, session ended before scheduled completion. |
+| Bounded Stop, unavailable | 0 ms | No finding submitted; BAD remained. This is unavailable, not clean. |
+| Native background, 1.5 s delay | 0 ms at Stop | The background hook emitted `additionalContext`; Luna changed BAD to GOOD without our Stop submission. |
+| Native background, 4 and 7.5 s delays | 0 ms at Stop | Session ended before background output; no model repair. |
+
+Six sessions had an independently observed same-turn repair after finding output: baseline next hook, three single-unit bounded cases, bounded multi-unit, and background 1.5 s. That represents seven synthetic units in six output opportunities, but the second unit in the multi-unit case has no separate visibility proof. No later-turn session was tested, so later visibility is **unmeasured**, not zero in the population. Four finding units had no visible delivery before session end: the baseline without a later event, the bounded timeout, and the two late background cases. The one unavailable unit is excluded from finding visibility counts.
+
+For the bounded candidate, measured edit-hook entry-to-return was 0–1 ms in these cases; this clock resolution does not establish end-to-end native edit latency. The 4-second-delay Stop case spent 2,396 ms waiting; the timeout spent 4,859 ms. The other first Stop calls took 0–2 ms. Response creation/writing are inside the measured hook duration, while process launch and stdin parsing are outside it and resident IPC is absent. These figures cannot establish compliance with a five-second limit from actual hook entry through IPC and response writing. That full path needs a separate test before adopting any production ceiling.
+
+The native background hook's process returned about 1.5 seconds after entry. The Codex `file_change` completion event was already emitted just before that entry, and the next model message came after background output. This supports delivery at a later safe point in this fixture; it does **not** establish zero native edit latency or guaranteed delivery at turn end. The 4-second background case ended before completion and yielded no output. The [hook-level checks](../evidence/delivery-97/hook.test.mjs) verified recipient mismatch does not collect advice, only one continuation is emitted, changing BAD to GOOD before handoff suppresses stale advice, and a timed-out Stop attempt leaves work available for a later Stop attempt. Those are prototype checks, not host concurrency conformance.
+
+## Comparison and recommendation
+
+Subsequent-hook collection is fast when another mapped edit occurs, but has no delivery opportunity when the turn stops after the reviewed edit. Native background delivery worked when output finished early enough for another model safe point, and lost the late cases as the ephemeral session ended. Bounded Stop collection reached Luna when a finding finished during the wait, with a measured 2.396-second turn-end cost in that fixture; at the deadline it allowed completion without a feedback loop. The provisional five-second ceiling is useful enough to specify as a **candidate maximum for further compatibility testing**, not a production default or observed optimum.
+
+Recommend specifying a recipient-scoped bounded Stop collection path for the next contract, while continuing native background-hook investigation as a separate candidate. Before production adoption, validate the full path from host hook entry through resident IPC, collection, and response writing against a strict five-second ceiling; also validate failure/timeout retention for a still-open session, multi-unit response budget, stale revalidation, concurrent recipients and subagents, and exact supported host versions. Delivery remains a fire-and-forget host submission unless the model reaction is independently observed. No claim about Claude Code or OpenCode follows from this Codex result.

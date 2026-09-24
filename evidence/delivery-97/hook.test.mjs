@@ -1,0 +1,40 @@
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, unlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const hook = resolve(fileURLToPath(new URL('./hook.mjs', import.meta.url)));
+const root = mkdtempSync(join(tmpdir(), 'hapsland-97-hook-test-'));
+const dir = join(root, 'probe');
+const repo = join(root, 'repo');
+mkdirSync(dir); mkdirSync(repo);
+const env = {...process.env, HAPSLAND_PROBE_DIR:dir, HAPSLAND_PROBE_MODE:'bounded', HAPSLAND_PROBE_DELAY_MS:'0', HAPSLAND_PROBE_UNITS:'1'};
+const call = (event) => spawnSync(process.execPath,[hook],{input:JSON.stringify(event),encoding:'utf8',env});
+const base = {session_id:'s1',agent_id:'child1',cwd:repo};
+try {
+  writeFileSync(join(repo,'synthetic.ts'),'export const state = "BAD";');
+  const edit = call({...base,hook_event_name:'PostToolUse',tool_name:'apply_patch',tool_input:{command:'*** Add File: synthetic.ts\n+export const state = "BAD";'}});
+  assert.equal(edit.status,0);
+  const foreign = call({...base,session_id:'s2',hook_event_name:'Stop',stop_hook_active:false});
+  assert.equal(foreign.status,0);
+  assert.equal(foreign.stdout,'');
+  const own = call({...base,hook_event_name:'Stop',stop_hook_active:false});
+  assert.equal(JSON.parse(own.stdout).decision,'block');
+  const repeated = call({...base,hook_event_name:'Stop',stop_hook_active:true});
+  assert.equal(repeated.stdout,'');
+  unlinkSync(join(dir,'delivered'));
+  writeFileSync(join(repo,'synthetic.ts'),'export const state = "GOOD";');
+  const stale = call({...base,hook_event_name:'Stop',stop_hook_active:false});
+  assert.equal(stale.stdout,'');
+  writeFileSync(join(repo,'synthetic.ts'),'export const state = "BAD";');
+  writeFileSync(join(dir,'work.json'),JSON.stringify({recipient:`s1:child1:${repo}`,units:[{id:1,readyAt:Date.now()+5100,failure:false}]}));
+  const timedOut = call({...base,hook_event_name:'Stop',stop_hook_active:false});
+  assert.equal(timedOut.stdout,'');
+  const retained = call({...base,hook_event_name:'Stop',stop_hook_active:false});
+  assert.equal(JSON.parse(retained.stdout).decision,'block');
+  const events = readFileSync(join(dir,'events.jsonl'),'utf8').trim().split('\n').map(JSON.parse);
+  assert.equal(events.filter(e=>e.kind==='host-submission').length,2);
+  process.stdout.write('recipient isolation, continuation cap, stale suppression, and post-timeout retention: pass\n');
+} finally {rmSync(root,{recursive:true,force:true});}

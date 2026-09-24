@@ -1,0 +1,29 @@
+{
+  "name": "tracetape",
+  "version": "1.0.0",
+  "description": "Parser, formatter, and summary helpers for TraceTape run reports",
+  "type": "commonjs",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "require": "./dist/src/index.js",
+      "default": "./dist/src/index.js"
+    }
+  },
+  "files": [
+    "dist/src",
+    "README.md"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "prepack": "npm run build",
+    "test": "npm run build && node --test test/*.test.cjs",
+    "example": "npm run build && node dist/examples/basic.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}

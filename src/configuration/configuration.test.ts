@@ -20,6 +20,24 @@ const builtIn = (): ConfigurationLayer => ({
 });
 
 describe("configuration v1 decoding", () => {
+  it("keeps old layered documents valid while rejecting undeclared branch and form controls", () => {
+    const user = source("user", '{"version":1,"includes":["src/**"],"privacyExcludes":["src/private/**"],"ruleOverrides":{"team/check":{"threshold":0.5}}}');
+    const project = source("project", '{"version":1,"excludes":["src/generated/**"],"packs":[{"id":"team","enabled":false}]}');
+    const policy = resolveConfiguration([user, project], "/repo");
+    expect(selectGlobalPath(policy, "src/ok.ts").selected).toBe(true);
+    expect(selectGlobalPath(policy, "src/private/secret.ts").selected).toBe(false);
+    expect(selectGlobalPath(policy, "src/generated/a.ts").selected).toBe(false);
+    expect(project.document.packs).toEqual([{ id: "team", enabled: false }]);
+    for (const [field, value] of [
+      ["artifactKinds", ["function"]],
+      ["resultForms", ["choice"]],
+      ["ruleOverrides", { "team/check": { resultForm: "score" } }],
+    ] as const) {
+      expect(() => decodeConfigurationText(JSON.stringify({ version: 1, [field]: value }), "future-config.jsonc"))
+        .toThrow(ConfigurationError);
+    }
+  });
+
   it("accepts comments and trailing commas but rejects duplicate keys", () => {
     expect(
       decodeConfigurationText(

@@ -110,6 +110,25 @@ const strict = {
   errors: "all",
 } as const;
 
+/** Keep v1's implicit target and probability semantics fixed at the wire boundary. */
+const rejectUnsupportedDeclarations = (value: unknown, source: string): void => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return;
+  const document = value as Record<string, unknown>;
+  if (document.schemaVersion !== undefined && document.schemaVersion !== RULE_PACK_SCHEMA_VERSION) {
+    throw configurationError(source, "schemaVersion", `unsupported rule-pack schema version; supported version is ${RULE_PACK_SCHEMA_VERSION}`);
+  }
+  if (!Array.isArray(document.rules)) return;
+  for (const [index, candidate] of document.rules.entries()) {
+    if (typeof candidate !== "object" || candidate === null || Array.isArray(candidate)) continue;
+    const rule = candidate as Record<string, unknown>;
+    for (const field of ["reviewTargets", "target", "resultForm"] as const) {
+      if (Object.prototype.hasOwnProperty.call(rule, field)) {
+        throw configurationError(source, `rules[${index}].${field}`, `${field} is unsupported in rule-pack schema v1`);
+      }
+    }
+  }
+};
+
 const validatePatterns = (
   patterns: ReadonlyArray<string> | undefined,
   source: string,
@@ -175,6 +194,7 @@ export const decodeRulePackDocument = (
   source: string,
   origin?: RulePackOrigin,
 ): DecodedRulePack => {
+  rejectUnsupportedDeclarations(unknown, source);
   let decoded: RulePack;
   try {
     decoded = Schema.decodeUnknownSync(RulePack, strict)(unknown);

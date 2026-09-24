@@ -32,6 +32,26 @@ const packText = (id = "team", version = "1.0.0") => JSON.stringify({
 });
 
 describe("rule-pack schema and identity", () => {
+  it("keeps v1 identities stable and rejects future targets and result forms explicitly", () => {
+    const legacy = JSON.parse(packText()) as Record<string, unknown>;
+    const baseline = decodeRulePackText(JSON.stringify(legacy), "legacy.jsonc");
+    expect(decodeRulePackText(JSON.stringify(legacy), "legacy.jsonc").contentDigest).toBe(baseline.contentDigest);
+    expect(baseline.rules[0]?.threshold).toBe(0.7);
+    const rule = (legacy.rules as Array<Record<string, unknown>>)[0]!;
+    for (const [field, declaration] of [
+      ["reviewTargets", [{ artifactKind: "function", inputContract: "direct-event/function/v1", requiredEvidence: ["body"] }]],
+      ["resultForm", { kind: "choice", options: ["yes", "no"] }],
+      ["resultForm", { kind: "score", range: [0, 5] }],
+    ] as const) {
+      const candidate = { ...legacy, rules: [{ ...rule, [field]: declaration }] };
+      expect(() => decodeRulePackText(JSON.stringify(candidate), "future.jsonc")).toThrowError(
+        expect.objectContaining({ source: "future.jsonc", field: `rules[0].${field}` }),
+      );
+    }
+    expect(() => decodeRulePackText(JSON.stringify({ ...legacy, schemaVersion: 2 }), "future.jsonc"))
+      .toThrowError(expect.objectContaining({ source: "future.jsonc", field: "schemaVersion" }));
+  });
+
   it("decodes canonical JSONC, inserts defaults and creates stable digests", () => {
     const one = decodeRulePackText(`{
       // content meaning is independent from schema version

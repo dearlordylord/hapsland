@@ -1,5 +1,11 @@
 # Configuration v1
 
+This is the supported configuration and rule-pack format. The
+[#96 compatibility decision](./issue-96-contract-compatibility.md) records the
+prepared version path for proposed type/function targets and Choice/Score result
+forms. Those declarations are unsupported today; v1 files retain their present
+named-type probability behavior.
+
 Project configuration is read once from the Git working-tree root. The supported
 project names are `.review.jsonc` and `.realtime-review.jsonc`; finding both is an
 error. User defaults are read from
