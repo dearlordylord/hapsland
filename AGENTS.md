@@ -49,8 +49,9 @@ trade-offs, reusable patterns, candidate dependencies, and open questions. They 
 the normative product specification. Later specification, prototype, and implementation
 work must explicitly decide which advisory findings become requirements.
 
-Comparative research must use the repository methodology in
-[`PRODUCT-RESEARCH-METHODOLOGY.md`](./PRODUCT-RESEARCH-METHODOLOGY.md). Classify each
+Comparative research must use the methodology in the sibling research repository,
+[`PRODUCT-RESEARCH-METHODOLOGY.md`](https://github.com/dearlordylord/hapsland-research/blob/master/PRODUCT-RESEARCH-METHODOLOGY.md)
+(`../hapsland-research/PRODUCT-RESEARCH-METHODOLOGY.md` in this workspace). Classify each
 candidate use as `BORROW`, `DEPEND ON`, `OPTIONAL INTEGRATION`, or `REJECT`. Record source
 class separately from verification state; documentation establishes a project claim, not
 runtime behavior.
