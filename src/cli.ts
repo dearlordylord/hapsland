@@ -61,6 +61,8 @@ import { attemptCodexHostOutput } from "./direct-event/writer.ts";
 import {
   acknowledgeAdvice,
   admitObservation,
+  admitTicketedObservation,
+  collectOutcome,
   collectReady,
   ensureResident,
   inspectResident,
@@ -614,6 +616,20 @@ const runDirectBoundedHook = async (
     observation.root, statePath, activityPath, userConfigPath, controlled,
   ));
   if (dispatch === undefined) return {};
+  if (isClaudeHook) {
+    const accepted = await bounded(() => admitTicketedObservation(observation, dispatch));
+    if (accepted?.status !== "accepted") return {};
+    while (remaining() > 150) {
+      const outcome = await bounded(() => collectOutcome(accepted.admission));
+      if (outcome === undefined) return {};
+      if (outcome.status === "advice") {
+        return { _tag: "DirectEventReady", value: outcome.advice.output, collected: outcome.advice };
+      }
+      if (outcome.status !== "pending") return {};
+      await new Promise((resolve) => setTimeout(resolve, Math.min(50, remaining())));
+    }
+    return {};
+  }
   const accepted = await bounded(() => admitObservation(observation, true, dispatch));
   if (accepted?.status !== "accepted") return {};
   while (remaining() > 150) {

@@ -7,6 +7,8 @@ import { join } from "node:path";
 import {
   ResidentIpcError,
   ensureResident,
+  admitTicketedObservation,
+  collectOutcome,
   residentRequest,
   type EnsureResidentDependencies,
 } from "./client.ts";
@@ -15,6 +17,7 @@ import {
   residentPaths,
   validateEndpointMetadata,
 } from "./paths.ts";
+import type { DirectObservation } from "../direct-event/model.ts";
 
 const directories: Array<string> = [];
 const servers: Array<Server> = [];
@@ -29,6 +32,71 @@ afterEach(async () => {
 });
 
 describe("resident client trust boundary", () => {
+  it("pins ticketed Claude collection to its admitting owner and preserves terminal outcomes", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "resident-ticket-client-"));
+    directories.push(directory);
+    await chmod(directory, 0o700);
+    const paths = residentPaths(directory);
+    const observation: DirectObservation = {
+      root: "/tmp/root",
+      rootIdentity: { rootDevice: "1", rootInode: "2", gitDirectory: "/tmp/root/.git", gitDevice: "1", gitInode: "3" },
+      recipient: { host: "claude-code", hostVersion: "2.1.218", sessionId: "session", turnId: null, toolUseId: "tool", agentId: null },
+      candidates: [{ operation: "add", path: "/tmp/root/type.ts", addedLines: ["type A = number"] }],
+    };
+    const dispatch = { statePath: "/tmp/state", userConfigPath: null, credential: null, controlled: {} };
+    const requests: Array<Record<string, unknown>> = [];
+    const outcomes: Array<Record<string, unknown>> = [
+      { version: 2, status: "pending" },
+      { version: 2, status: "advice", token: "lease", findingCount: 1, output: {
+        hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "review advice" },
+      } },
+      { version: 2, status: "clear" },
+      { version: 2, status: "delivered" },
+      { version: 2, status: "no-work" },
+      { version: 2, status: "unavailable", reason: "stale" },
+      { status: "empty" }, // old resident response cannot prove clear
+    ];
+    const server = createServer((socket) => {
+      sockets.push(socket);
+      socket.once("data", (chunk) => {
+        const request = JSON.parse(chunk.toString("utf8")) as Record<string, unknown>;
+        requests.push(request);
+        const response = request.operation === "hello"
+          ? { status: "ready", lifetime: "original-owner", pid: 12 }
+          : request.operation === "admit"
+            ? { version: 2, status: "accepted", ticket: { nonce: "ticket", lifetime: "original-owner" } }
+            : outcomes.shift();
+        socket.end(`${JSON.stringify(response)}\n`);
+      });
+    });
+    servers.push(server);
+    await new Promise<void>((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(paths.socket, resolve);
+    });
+    await chmod(paths.socket, 0o600);
+    const accepted = await admitTicketedObservation(observation, dispatch, paths);
+    expect(accepted.status).toBe("accepted");
+    if (accepted.status !== "accepted") return;
+    expect(await collectOutcome(accepted.admission)).toEqual({ status: "pending" });
+    expect(await collectOutcome(accepted.admission)).toEqual({ status: "advice", advice: {
+      output: { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "review advice" } },
+      token: "lease", lifetime: "original-owner", paths, root: observation.root,
+      recipient: observation.recipient, activityPath: undefined, findingCount: 1,
+    } });
+    expect(await collectOutcome(accepted.admission)).toEqual({ status: "clear" });
+    expect(await collectOutcome(accepted.admission)).toEqual({ status: "delivered" });
+    expect(await collectOutcome(accepted.admission)).toEqual({ status: "no-work" });
+    expect(await collectOutcome(accepted.admission)).toEqual({ status: "unavailable", reason: "stale" });
+    expect(await collectOutcome(accepted.admission)).toEqual({ status: "unavailable", reason: "lost" });
+    expect(requests.map((request) => request.operation)).toEqual([
+      "hello", "admit", "collect", "collect", "collect", "collect", "collect", "collect", "collect",
+    ]);
+    expect(requests.slice(2).every((request) =>
+      request.version === 2 && request.lifetime === "original-owner" &&
+      JSON.stringify(request.ticket) === JSON.stringify({ nonce: "ticket", lifetime: "original-owner" })
+    )).toBe(true);
+  });
   it("uses one absolute readiness deadline and caps every operation to remaining time", async () => {
     const paths = residentPaths("/not-used");
     let clock = 0;

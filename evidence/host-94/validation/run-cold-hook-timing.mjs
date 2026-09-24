@@ -1,15 +1,15 @@
-// One disposable, bounded, offline scripted Claude control timing probe.
+// One disposable, bounded, offline CLAUDE ticketed terminal-clear timing probe.
 import { spawn } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { loadavg, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { cleanupTimingProcesses } from './timing-process-cleanup.mjs';
 
-const temporary = mkdtempSync(join(tmpdir(), 'hapsland-94-cold-timing-'));
+const temporary = mkdtempSync(join(tmpdir(), 'hapsland-94-terminal-clear-timing-'));
 const log = join(temporary, 'boundaries.jsonl');
 const sessionRoot = join(temporary, 'session');
-const preload = join(import.meta.dirname, 'cold-hook-timing-preload.cjs');
-const test = join(import.meta.dirname, 'host-session-integration.test.mjs');
+const preload = join(import.meta.dirname, 'terminal-clear-cold-preload.cjs');
+const test = join(import.meta.dirname, 'terminal-clear-cold-control.test.mjs');
 const beforeLoad = loadavg();
 const timeoutSessionMs = 60_000;
 const cleanupHeadroomMs = 30_000;
@@ -19,9 +19,9 @@ let runnerPid;
 try {
   const started = Date.now();
   const child = spawn(process.execPath, [
-    '--test', '--test-name-pattern=one bounded offline Claude control with production CLI', test,
+    '--test', '--test-name-pattern=one bounded offline Claude cold ticketed terminal-clear control', test,
   ], {
-    env: { ...process.env, HAPSLAND_94_SINGLE_CONTROL: '1', HAPSLAND_94_TIMING_LOG: log,
+    env: { ...process.env, HAPSLAND_94_TERMINAL_CLEAR_CONTROL: '1', HAPSLAND_94_TIMING_LOG: log,
       HAPSLAND_94_TIMING_SESSION_ROOT: sessionRoot,
       NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --require=${preload}`.trim(), TYPESAFE_API_KEY: '' },
     stdio: ['ignore', 'pipe', 'pipe'], detached: true,
@@ -29,14 +29,14 @@ try {
   let stdout = '';
   let outputBytes = 0;
   let outputExceeded = false;
+  const terminateTestGroup = () => {
+    try { process.kill(-child.pid, 'SIGTERM'); } catch { /* already closed */ }
+    setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL'); } catch { /* already closed */ } }, 350).unref();
+  };
   const collect = chunk => {
     outputBytes += chunk.length;
     if (outputBytes > 262_144) { outputExceeded = true; terminateTestGroup(); return; }
     stdout += chunk.toString();
-  };
-  const terminateTestGroup = () => {
-    try { process.kill(-child.pid, 'SIGTERM'); } catch { /* already closed */ }
-    setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL'); } catch { /* already closed */ } }, 350).unref();
   };
   child.stdout.on('data', collect);
   child.stderr.on('data', chunk => {
@@ -56,42 +56,59 @@ try {
     catch { return undefined; }
   })();
   cleanup = await cleanupTimingProcesses({ sessionRoot, log, processGroupPid: runnerPid });
-  const match = stdout.match(/source-free production-CLI control: (\{[^\n]+\})/);
+  const match = stdout.match(/source-free ticketed terminal-clear control: (\{[^\n]+\})/);
   const summary = match ? JSON.parse(match[1]) : null;
-  const boundaries = readFileSync(log, 'utf8').trim().split('\n').filter(Boolean)
-    .map(line => JSON.parse(line)).filter(item => item.role !== 'other');
+  const boundaries = (() => {
+    try { return readFileSync(log, 'utf8').trim().split('\n').filter(Boolean)
+      .map(line => JSON.parse(line)).filter(item => item.role !== 'other'); }
+    catch { return []; }
+  })();
   const origin = boundaries.find(item => item.role === 'bridge' && item.event === 'preload')?.atMs
     ?? boundaries[0]?.atMs ?? started;
-  const timeline = boundaries.map(({ role, event, operation, status, stage, atMs }) => ({
+  const timeline = boundaries.map(({ role, event, operation, version, status, stage, atMs }) => ({
     role, event, ...(operation === undefined ? {} : { operation }),
-    ...(status === undefined ? {} : { status }), ...(stage === undefined ? {} : { stage }),
-    atMs: atMs - origin,
+    ...(version === undefined ? {} : { version }), ...(status === undefined ? {} : { status }),
+    ...(stage === undefined ? {} : { stage }), atMs: atMs - origin,
   }));
-  const collections = timeline.filter(item => item.operation === 'collect');
+  const collections = timeline.filter(item => item.role === 'hook-cli' && item.operation === 'collect' &&
+    item.event === 'ipc-receive');
   const firstReady = timeline.find(item => item.operation === 'hello' && item.status === 'ready');
   const keyEvents = timeline.filter(item => item.event === 'preload' || item.event === 'first-read' ||
     item.event === 'resident-spawn' || item.event === 'activity' || item.event === 'exit' ||
-    item.operation === 'admit' || item === firstReady);
+    (item.operation === 'admit' && item.event === 'ipc-receive') || item === firstReady ||
+    (item.operation === 'collect' && item.event === 'ipc-receive' && item.status === 'clear'));
   const outputSummary = summary === null ? null : { ...summary,
+    admissionAtMs: summary.admissionAtMs === null ? null
+      : summary.timingHostLaunchEpochMs + summary.admissionAtMs - origin,
+    reviewOutcomeAtMs: summary.reviewOutcomeAtMs === null ? null
+      : summary.timingHostLaunchEpochMs + summary.reviewOutcomeAtMs - origin,
     bridgeInnerStartAtMs: summary.timingHostLaunchEpochMs + summary.bridgeInnerStartAtMs - origin,
     bridgeInnerReturnAtMs: summary.timingHostLaunchEpochMs + summary.bridgeInnerReturnAtMs - origin,
-    admissionMarkerAtMs: summary.admissionMarkerAtMs === null ? null
-      : summary.timingHostLaunchEpochMs + summary.admissionMarkerAtMs - origin,
-    reviewOutcomeFileAtMs: summary.reviewOutcomeFileAtMs === null ? null
-      : summary.timingHostLaunchEpochMs + summary.reviewOutcomeFileAtMs - origin,
+    ticketAcceptedAtMs: summary.ticketAcceptedAtMs - origin,
+    terminalClearAtMs: summary.terminalClearAtMs - origin,
   };
   if (outputSummary) delete outputSummary.timingHostLaunchEpochMs;
-  const result = { schemaVersion: 1, probe: 'one-offline-compiled-cli-cold-control',
+  const result = { schemaVersion: 2, probe: 'one-offline-compiled-claude-ticketed-terminal-clear-control',
     clock: 'Date.now() wall milliseconds; timeline relative to bridge preload',
-    observationLimit: 'Node preload adds tracing overhead; source-free process and IPC boundaries only',
-    timeoutInnerMs: 4_400, timeoutNativeFixtureMs: 5_000, timeoutSessionMs, cleanupHeadroomMs, timeoutHarnessMs,
+    observationLimit: 'Node preload adds tracing overhead; source-free process and IPC status labels only',
+    timeoutCliMs: 3_900, timeoutBridgeMs: 4_400, timeoutNativeFixtureMs: 5_000,
+    timeoutSessionMs, cleanupHeadroomMs, timeoutHarnessMs,
     processExit: run.status, processSignal: run.signal, processErrorCode: run.error?.code ?? null,
     timedOut, outputExceeded, descendantCleanup: cleanup,
     elapsedHarnessMs: Date.now() - started, loadAverageBefore: beforeLoad,
     loadAverageAfter: loadavg(), summary: outputSummary, keyEvents,
-    collection: { requests: collections.filter(item => item.event === 'ipc-send').length,
-      first: collections[0] ?? null, last: collections.at(-1) ?? null } };
+    collection: { responses: collections.length, first: collections[0] ?? null, last: collections.at(-1) ?? null,
+      terminalStatus: collections.at(-1)?.status ?? null } };
+  const acceptancePassed = run.status === 0 && !timedOut && !outputExceeded && summary?.acceptanceStatus === 'passed' &&
+    summary.nativeEditCount === 1 && summary.nativeEditMatched === true && summary.initialHookSucceeded === true &&
+    summary.acceptedTicketCount === 1 && summary.controlledOutcome === 'completed-clear' &&
+    summary.terminalCollection === 'clear' && summary.hostSubmissions === 0 && summary.finalRepairObserved === false &&
+    summary.cliDeadlineMsUnchanged === 3_900 && summary.bridgeInnerDurationMs < 4_400 &&
+    summary.nativeToHookFinishMs < 5_000 &&
+    collections.length > 0 && collections.at(-1)?.version === 2 && collections.at(-1)?.status === 'clear';
+  result.acceptanceStatus = acceptancePassed ? 'passed' : 'incomplete';
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  if (!acceptancePassed) process.exitCode = 1;
 } finally {
   cleanup ??= await cleanupTimingProcesses({ sessionRoot, log, processGroupPid: runnerPid });
   if (cleanup.supported && cleanup.ownershipKnown && cleanup.remainingResidents === 0 && !cleanup.groupStillOwned)

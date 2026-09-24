@@ -44,6 +44,8 @@ import {
   type ResidentDispatchContext,
   type ResidentRequest,
   type ResidentResponse,
+  type ResidentCollectionTicket,
+  type ResidentUnavailableReason,
 } from "./protocol.ts";
 import {
   CapacityLedger,
@@ -125,7 +127,45 @@ type IngressJob = {
   readonly partition: string;
   readonly reservation: CapacityReservation;
   readonly dispatch: ResidentDispatchContext;
+  readonly ticket?: TicketRecord;
 };
+
+type TicketUnitState =
+  | { readonly state: "pending"; readonly revision?: WorkRevision }
+  | { readonly state: "clear"; readonly revision: WorkRevision }
+  | { readonly state: "finding"; readonly revision: WorkRevision; readonly adviceId: string; readonly delivered: boolean }
+  | { readonly state: "unavailable"; readonly reason: ResidentUnavailableReason };
+type TicketUnit = { current: TicketUnitState };
+const unitUnavailable = (unit: TicketUnit, reason: ResidentUnavailableReason): void => {
+  unit.current = { state: "unavailable", reason };
+};
+const unitRevision = (unit: TicketUnit, revision: WorkRevision): void => {
+  if (unit.current.state === "pending") unit.current = { state: "pending", revision };
+};
+const unitClear = (unit: TicketUnit, revision: WorkRevision): void => {
+  if (unit.current.state !== "unavailable") unit.current = { state: "clear", revision };
+};
+const unitFinding = (unit: TicketUnit, revision: WorkRevision, adviceId: string): void => {
+  if (unit.current.state !== "unavailable") unit.current = { state: "finding", revision, adviceId, delivered: false };
+};
+type TicketRecord = { readonly ticket: ResidentCollectionTicket; readonly generation: number;
+  readonly partition: string; readonly credentialGeneration: number | null;
+  readonly credentialStatePath: string | null; readonly credentialRequired: boolean;
+  readonly credentialEnvironmentOnly: boolean;
+  readonly expiresAt: number; readonly units: Array<TicketUnit>;
+  phase: { readonly state: "preparing"; readonly failure?: ResidentUnavailableReason }
+    | { readonly state: "closed" }
+    | { readonly state: "failed"; readonly reason: ResidentUnavailableReason } };
+const ticketFail = (ticket: TicketRecord, reason: ResidentUnavailableReason): void => {
+  if (ticket.phase.state === "preparing") ticket.phase = { state: "preparing", failure: ticket.phase.failure ?? reason };
+};
+const ticketClose = (ticket: TicketRecord): void => {
+  if (ticket.phase.state !== "preparing") return;
+  ticket.phase = ticket.phase.failure === undefined ? { state: "closed" }
+    : { state: "failed", reason: ticket.phase.failure };
+};
+const TICKET_RETENTION_MS = 600_000;
+const MAX_TICKETS = 256;
 
 type UnitJob = {
   readonly kind: "unit";
@@ -137,6 +177,8 @@ type UnitJob = {
   readonly sourceHash?: string;
   revision: WorkRevision;
   readonly evaluationKey: string;
+  readonly ticketUnit?: TicketUnit;
+  readonly ticket?: TicketRecord;
 };
 
 type Job = IngressJob | UnitJob;
@@ -341,12 +383,17 @@ export class ResidentServer {
   readonly lifetime = randomUUID();
   readonly #advice: Array<Advice> = [];
   readonly #noticeCooldowns = new Map<string, NoticeCooldown>();
+  readonly #noticeOwners = new Map<string, Set<string>>();
   readonly #currentWork = new Map<string, CurrentWork>();
+  readonly #tickets = new Map<string, TicketRecord>();
+  readonly #joinedTicketUnits = new Map<string, Array<TicketUnit>>();
+  #nextAdmissionGeneration = 1;
   readonly #ledger = new CapacityLedger();
   readonly #reuse: EvaluationReuse<UnitJob>;
   readonly #dispatcher: DispatchCycles<string, Job>;
   readonly #now: () => number;
   readonly #maximumOperationalNoticeKeys: number;
+  readonly #maximumTickets: number;
   #server: Server | undefined;
   #connections = 0;
   #lifecycle: "active" | "retiring" | "closed" = "active";
@@ -364,6 +411,7 @@ export class ResidentServer {
   readonly #beforeFinalRevalidate: ((adviceId: string) => Promise<void>) | undefined;
   readonly #afterAuthorizeBeforeCredential: (() => Promise<void>) | undefined;
   readonly #afterCredentialBeforeDispatch: (() => Promise<void>) | undefined;
+  readonly #beforeResponseHandoff: (() => Promise<void>) | undefined;
   readonly paths: ResidentPaths;
 
   constructor(
@@ -378,7 +426,9 @@ export class ResidentServer {
       readonly beforeFinalRevalidate?: (adviceId: string) => Promise<void>;
       readonly afterAuthorizeBeforeCredential?: () => Promise<void>;
       readonly afterCredentialBeforeDispatch?: () => Promise<void>;
+      readonly beforeResponseHandoff?: () => Promise<void>;
       readonly maximumOperationalNoticeKeys?: number;
+      readonly maximumTickets?: number;
     } = {},
   ) {
     const maximumOperationalNoticeKeys = options.maximumOperationalNoticeKeys ?? MAX_OPERATIONAL_NOTICE_KEYS;
@@ -390,6 +440,11 @@ export class ResidentServer {
       throw new RangeError(`maximumOperationalNoticeKeys must be an integer from 1 to ${MAX_OPERATIONAL_NOTICE_KEYS}`);
     }
     this.paths = paths;
+    const maximumTickets = options.maximumTickets ?? MAX_TICKETS;
+    if (!Number.isSafeInteger(maximumTickets) || maximumTickets < 1 || maximumTickets > MAX_TICKETS) {
+      throw new RangeError(`maximumTickets must be an integer from 1 to ${MAX_TICKETS}`);
+    }
+    this.#maximumTickets = maximumTickets;
     this.#now = now;
     this.#maximumOperationalNoticeKeys = maximumOperationalNoticeKeys;
     this.#beforeRevalidate = options.beforeRevalidate;
@@ -400,6 +455,7 @@ export class ResidentServer {
     this.#beforeFinalRevalidate = options.beforeFinalRevalidate;
     this.#afterAuthorizeBeforeCredential = options.afterAuthorizeBeforeCredential;
     this.#afterCredentialBeforeDispatch = options.afterCredentialBeforeDispatch;
+    this.#beforeResponseHandoff = options.beforeResponseHandoff;
     this.#reuse = new EvaluationReuse({
       reserve: (partition, bytes) => this.#reserve(partition, bytes),
       release: (reservation) => { this.#ledger.release(reservation); },
@@ -473,37 +529,55 @@ export class ResidentServer {
     return "cleaned";
   }
 
-  admit(observation: DirectObservation, dispatch: ResidentDispatchContext): ResidentResponse {
+  admit(observation: DirectObservation, dispatch: ResidentDispatchContext, ticketed = false): ResidentResponse {
     const now = this.#now();
     this.#expirePending(now);
     // Reclaim cooldown state whose active guarantee and pending notice have
     // both ended before it can cause an otherwise-valid admission to fail.
     this.#pruneNoticeCooldowns(now);
-    if (this.#lifecycle !== "active") return { status: "rejected-capacity" };
+    if (this.#lifecycle !== "active") return ticketed ? { version: 2, status: "rejected-capacity" } : { status: "rejected-capacity" };
     const partition = recipientPartition(observation.root, observation.recipient);
     const reservation = this.#reserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES);
     if (reservation === undefined) {
       this.#rejectedCapacity += 1;
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, recipient: observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
-      return { status: "rejected-capacity" };
+      return ticketed ? { version: 2, status: "rejected-capacity" } : { status: "rejected-capacity" };
     }
+    const ticket: TicketRecord | undefined = ticketed ? {
+      ticket: { nonce: randomUUID(), lifetime: this.lifetime },
+      generation: this.#nextAdmissionGeneration++, partition,
+      credentialGeneration: dispatch.credential?.generation ?? null,
+      credentialStatePath: dispatch.credential?.statePath ?? null,
+      credentialRequired: dispatch.controlled === null || dispatch.controlled.requireCredential === true,
+      credentialEnvironmentOnly: dispatch.credential?.environmentOnly ?? false,
+      expiresAt: now + TICKET_RETENTION_MS, phase: { state: "preparing" }, units: [],
+    } : undefined;
     const job = {
       kind: "ingress" as const,
       observation,
       partition,
       reservation,
       dispatch,
+      ...(ticket === undefined ? {} : { ticket }),
     };
     if (!this.#dispatcher.enqueue(partition, job)) {
       this.#ledger.release(reservation);
       this.#rejectedCapacity += 1;
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, recipient: observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
-      return { status: "rejected-capacity" };
+      return ticketed ? { version: 2, status: "rejected-capacity" } : { status: "rejected-capacity" };
+    }
+    if (ticket !== undefined) {
+      this.#tickets.set(ticket.ticket.nonce, ticket);
+      while (this.#tickets.size > this.#maximumTickets) {
+        const oldest = this.#tickets.keys().next().value;
+        if (oldest === undefined) break;
+        this.#tickets.delete(oldest);
+      }
     }
     const acceptedPath = process.env.REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH;
     if (acceptedPath !== undefined) void writeFile(acceptedPath, "accepted\n").catch(() => undefined);
     recordActivity({ statePath: dispatch.activityPath, root: observation.root, recipient: observation.recipient, lifetime: this.lifetime, stage: "pending" });
-    return { status: "accepted" };
+    return ticket === undefined ? { status: "accepted" } : { version: 2, status: "accepted", ticket: ticket.ticket };
   }
 
   async collect(
@@ -511,6 +585,7 @@ export class ResidentServer {
     recipient: DirectRecipient,
     dispatch: ResidentDispatchContext,
     mode: CollectionMode = "ordinary",
+    ticket?: TicketRecord,
   ): Promise<ResidentResponse> {
     const partition = recipientPartition(root, recipient);
     const now = this.#now();
@@ -526,7 +601,8 @@ export class ResidentServer {
       if (item.delivery !== undefined && item.delivery.leaseUntil <= now) delete item.delivery;
     }
     const available = this.#advice.filter((item) =>
-      item.partition === partition && item.delivery === undefined);
+      item.partition === partition && item.delivery === undefined &&
+      (ticket === undefined || ticket.units.some((unit) => unit.current.state === "finding" && unit.current.adviceId === item.id)));
     const cycles = new Map<number, Array<Advice>>();
     for (const item of available) {
       const cohort = cycles.get(item.cycle) ?? [];
@@ -652,7 +728,7 @@ export class ResidentServer {
       }
     }
     const handoffNow = this.#now();
-    const notices = this.#leaseNotices(partition, token, handoffFindings, handoffNow);
+    const notices = this.#leaseNotices(partition, token, handoffFindings, handoffNow, ticket);
     if (handoffFindings.length === 0 && notices.length === 0) return { status: "empty" };
     return {
       status: "advice",
@@ -711,6 +787,13 @@ export class ResidentServer {
       const delivered = item.delivery?.findings ?? [];
       const remaining = withoutDeliveredFindings(item.findings, delivered);
       if (remaining.length === 0) {
+        for (const ticket of this.#tickets.values()) {
+          for (const unit of ticket.units) {
+            if (unit.current.state === "finding" && unit.current.adviceId === item.id) {
+              unit.current = { ...unit.current, delivered: true };
+            }
+          }
+        }
         this.#removeAdvice(item.id, token);
         continue;
       }
@@ -823,6 +906,7 @@ export class ResidentServer {
       const pending = cooldown.pending;
       if (pending?.id !== id || (token !== undefined && pending.delivery?.token !== token)) continue;
       delete cooldown.pending;
+      this.#noticeOwners.delete(id);
       return true;
     }
     return false;
@@ -833,12 +917,14 @@ export class ResidentServer {
     token: string,
     findings: ReadonlyArray<Finding>,
     now: number,
+    ticket?: TicketRecord,
   ): ReadonlyArray<PendingNotice> {
     const candidates = [...this.#noticeCooldowns.values()]
       .filter((cooldown) =>
         cooldown.partition === partition &&
         cooldown.pending !== undefined &&
-        cooldown.pending.delivery === undefined)
+        cooldown.pending.delivery === undefined &&
+        (ticket === undefined || this.#noticeOwners.get(cooldown.pending.id)?.has(ticket.ticket.nonce) === true))
       .flatMap((cooldown) => cooldown.pending === undefined ? [] : [cooldown.pending])
       .sort((left, right) => left.sequence - right.sequence);
     const selectedValues = selectFittingNotices(findings, [], candidates.map(({ value }) => value));
@@ -860,6 +946,7 @@ export class ResidentServer {
   #releaseNoticeCooldown(key: string): void {
     const cooldown = this.#noticeCooldowns.get(key);
     if (cooldown === undefined) return;
+    if (cooldown.pending !== undefined) this.#noticeOwners.delete(cooldown.pending.id);
     this.#noticeCooldowns.delete(key);
     this.#ledger.release(cooldown.reservation);
   }
@@ -869,7 +956,10 @@ export class ResidentServer {
       const pending = cooldown.pending;
       if (pending !== undefined) {
         if (pending.delivery !== undefined && pending.delivery.leaseUntil <= now) delete pending.delivery;
-        if (isPendingAdviceExpired(pending, now)) delete cooldown.pending;
+        if (isPendingAdviceExpired(pending, now)) {
+          this.#noticeOwners.delete(pending.id);
+          delete cooldown.pending;
+        }
       }
       if (key !== exceptKey && cooldown.pending === undefined && cooldown.nextAllowedAt <= now) {
         this.#releaseNoticeCooldown(key);
@@ -880,6 +970,7 @@ export class ResidentServer {
   #recordOperationalFailure(
     observation: DirectObservation,
     kind: OperationalNoticeKind,
+    ticket?: TicketRecord,
     now = this.#now(),
   ): void {
     if (this.#lifecycle !== "active" || !addressableRecipient(observation.recipient)) return;
@@ -909,6 +1000,7 @@ export class ResidentServer {
           pendingAt: now,
           sequence: this.#nextNoticeSequence++,
         };
+        if (ticket !== undefined) this.#noticeOwners.set(retained.pending.id, new Set([ticket.ticket.nonce]));
       } else if (retained.pending.delivery === undefined) {
         retained.pending.value = {
           kind,
@@ -917,6 +1009,11 @@ export class ResidentServer {
             retained.pending.value.suppressedCount + suppressedCount,
           ),
         };
+        if (ticket !== undefined) {
+          const owners = this.#noticeOwners.get(retained.pending.id) ?? new Set<string>();
+          owners.add(ticket.ticket.nonce);
+          this.#noticeOwners.set(retained.pending.id, owners);
+        }
       }
       return;
     }
@@ -936,6 +1033,8 @@ export class ResidentServer {
         sequence: this.#nextNoticeSequence++,
       },
     });
+    const pending = this.#noticeCooldowns.get(key)?.pending;
+    if (ticket !== undefined && pending !== undefined) this.#noticeOwners.set(pending.id, new Set([ticket.ticket.nonce]));
   }
 
   #reserve(partition: string, bytes: number): CapacityReservation | undefined {
@@ -965,6 +1064,14 @@ export class ResidentServer {
       input: prepared.input,
       members: 1,
     });
+    for (const ticket of this.#tickets.values()) {
+      for (const unit of ticket.units) {
+        const revision = "revision" in unit.current ? unit.current.revision : undefined;
+        if (revision?.subject === subject && revision.token !== token) {
+          unitUnavailable(unit, "stale");
+        }
+      }
+    }
     for (const advice of [...this.#advice]) {
       if (advice.revision.subject === subject && advice.revision.token !== token) {
         this.#removeAdvice(advice.id);
@@ -1014,6 +1121,13 @@ export class ResidentServer {
     if (index < 0) return false;
     const [removed] = this.#advice.splice(index, 1);
     if (removed !== undefined) {
+      for (const ticket of this.#tickets.values()) {
+        for (const unit of ticket.units) {
+          if (unit.current.state === "finding" && unit.current.adviceId === id && !unit.current.delivered) {
+            unitUnavailable(unit, isPendingAdviceExpired(removed, this.#now()) ? "expired" : "stale");
+          }
+        }
+      }
       removed.retired = true;
       if (!removed.revalidationActive) this.#releaseUnit(removed);
     }
@@ -1061,6 +1175,7 @@ export class ResidentServer {
       }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))));
       this.#ledger.release(job.reservation);
       if (settings === undefined || this.#lifecycle !== "active") {
+        if (job.ticket !== undefined) ticketFail(job.ticket, "lost");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
         return;
       }
@@ -1072,6 +1187,7 @@ export class ResidentServer {
       for (const candidate of job.observation.candidates) {
         const workspace = this.#reserve(job.partition, captureWorkspaceBytes(candidate.path));
         if (workspace === undefined) {
+          if (job.ticket !== undefined) ticketFail(job.ticket, "capacity");
           this.#rejectedCapacity += 1;
           recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
           continue;
@@ -1105,6 +1221,9 @@ export class ResidentServer {
         }
         const ready = prepared.outcomes.filter((outcome) => outcome.status === "ready");
         if (ready.length === 0) {
+          if (prepared.outcomes.some((outcome) => outcome.status !== "skipped") && job.ticket !== undefined) {
+            ticketFail(job.ticket, "lost");
+          }
           recordActivity({
             statePath: job.dispatch.activityPath,
             root: job.observation.root,
@@ -1142,6 +1261,7 @@ export class ResidentServer {
           this.#reuse.claim(evaluationKey);
           return { kind: "owner" as const, outcome, evaluationKey };
         });
+        const ticketUnitOffset = job.ticket?.units.length ?? 0;
         const retained = planned.filter((item) =>
           item.kind === "owner" || (item.kind === "cached" && item.cached.evaluation.findings.length > 0));
         const reservations = this.#ledger.replace(
@@ -1153,30 +1273,53 @@ export class ResidentServer {
         // Workspace has been released and all accepted unit reservations are
         // fixed, so best-effort notice retention cannot displace fresh work.
         if (rejectedDeliverable) {
-          this.#recordOperationalFailure(job.observation, "capacity");
+          if (job.ticket !== undefined) ticketFail(job.ticket, "capacity");
+          this.#recordOperationalFailure(job.observation, "capacity", job.ticket);
           recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
         }
         for (const item of planned) {
+          const ticketUnit: TicketUnit | undefined = job.ticket === undefined ? undefined : { current: { state: "pending" } };
+          if (ticketUnit !== undefined) job.ticket?.units.push(ticketUnit);
           if (item.kind === "cached" && item.cached.evaluation.findings.length === 0) {
             const revision = this.#registerCurrentWork(job.partition, item.outcome.prepared);
+            if (ticketUnit !== undefined) unitClear(ticketUnit, revision);
             this.#releaseCurrentWork(revision);
             expectedActivityUnits.push(item.evaluationKey);
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "clear", unitIdentity: item.evaluationKey });
           } else if (item.kind === "joined") {
+            if (ticketUnit !== undefined) {
+              const existing = this.#advice.find((advice) => advice.evaluationKey === item.evaluationKey);
+              if (existing !== undefined) {
+                unitFinding(ticketUnit, existing.revision, existing.id);
+              } else {
+                const pending = this.#reuse.pending(item.evaluationKey);
+                if (pending === undefined) {
+                  unitUnavailable(ticketUnit, "lost");
+                } else {
+                  unitRevision(ticketUnit, pending.revision);
+                  const joined = this.#joinedTicketUnits.get(item.evaluationKey) ?? [];
+                  joined.push(ticketUnit);
+                  this.#joinedTicketUnits.set(item.evaluationKey, joined);
+                }
+              }
+            }
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
           }
         }
         for (const [index, item] of retained.entries()) {
+          const ticketUnit = job.ticket?.units[ticketUnitOffset + planned.indexOf(item)];
           const reservation = reservations[index];
           if (reservation === undefined) {
+            if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "capacity");
             if (item.kind === "owner") this.#reuse.releaseClaim(item.evaluationKey);
             this.#rejectedCapacity += 1;
-            this.#recordOperationalFailure(job.observation, "capacity");
+            this.#recordOperationalFailure(job.observation, "capacity", job.ticket);
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
             continue;
           }
           expectedActivityUnits.push(item.evaluationKey);
           const revision = this.#registerCurrentWork(job.partition, item.outcome.prepared);
+          if (ticketUnit !== undefined) unitRevision(ticketUnit, revision);
           const sourceHash = prepared.observation.outcomes.flatMap((outcome) => outcome.status === "observed" &&
             outcome.path === item.outcome.path ? [outcome.snapshot.sourceHash] : [])[0];
           const unit: UnitJob = {
@@ -1189,6 +1332,8 @@ export class ResidentServer {
             ...(sourceHash === undefined ? {} : { sourceHash }),
             revision,
             evaluationKey: item.evaluationKey,
+            ...(ticketUnit === undefined ? {} : { ticketUnit }),
+            ...(job.ticket === undefined ? {} : { ticket: job.ticket }),
           };
           if (item.kind === "cached") {
             recordActivity({
@@ -1208,10 +1353,11 @@ export class ResidentServer {
           }
           this.#reuse.attachPending(item.evaluationKey, unit);
           if (!this.#dispatcher.enqueue(job.partition, unit)) {
+            if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "capacity");
             this.#reuse.releaseClaim(item.evaluationKey);
             this.#releaseUnit(unit);
             this.#rejectedCapacity += 1;
-            this.#recordOperationalFailure(job.observation, "capacity");
+            this.#recordOperationalFailure(job.observation, "capacity", job.ticket);
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", unitIdentity: item.evaluationKey });
           }
         }
@@ -1229,9 +1375,12 @@ export class ResidentServer {
       await this.#afterPrepare?.();
       return;
     } catch {
+      if (job.ticket !== undefined) ticketFail(job.ticket, "lost");
       if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error("resident preparation unavailable");
       this.#ledger.release(job.reservation);
       recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable" });
+    } finally {
+      if (job.ticket !== undefined) ticketClose(job.ticket);
     }
   }
 
@@ -1239,6 +1388,8 @@ export class ResidentServer {
     try {
       await this.#awaitBackendGate();
       if (!this.#isCurrentWork(job.revision, job.prepared)) {
+        if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "stale");
+        this.#settleJoined(job.evaluationKey, "unavailable", "stale");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "incomplete", unitIdentity: job.evaluationKey });
         this.#reuse.releaseClaim(job.evaluationKey);
         this.#releaseUnit(job);
@@ -1379,6 +1530,14 @@ export class ResidentServer {
           result.findings.length === 0 ||
           !this.#isCurrentWork(job.revision, job.prepared)
         ) {
+          if (job.ticketUnit !== undefined) {
+            if (result.findings.length === 0 && this.#isCurrentWork(job.revision, job.prepared)) {
+              unitClear(job.ticketUnit, job.revision);
+            } else unitUnavailable(job.ticketUnit, "stale");
+          }
+          this.#settleJoined(job.evaluationKey,
+            result.findings.length === 0 && this.#isCurrentWork(job.revision, job.prepared) ? "clear" : "unavailable",
+            "stale");
           this.#releaseUnit(job);
           return;
         }
@@ -1386,20 +1545,48 @@ export class ResidentServer {
         return;
       }
       if (result?.status === "backend" || result?.status === "timeout") {
-        this.#recordOperationalFailure(job.observation, "backend");
+        if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "backend");
+        this.#settleJoined(job.evaluationKey, "unavailable", "backend");
+        this.#recordOperationalFailure(job.observation, "backend", job.ticket);
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       } else if (result?.status === "credential") {
-        this.#recordOperationalFailure(job.observation, "credential");
+        if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "credential");
+        this.#settleJoined(job.evaluationKey, "unavailable", "credential");
+        this.#recordOperationalFailure(job.observation, "credential", job.ticket);
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       } else if (result === undefined) {
+        if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "lost");
+        this.#settleJoined(job.evaluationKey, "unavailable", "lost");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       }
     } catch {
+      if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "backend");
+      this.#settleJoined(job.evaluationKey, "unavailable", "backend");
       if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error("resident evaluation unavailable");
       recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, recipient: job.observation.recipient, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
     }
     this.#reuse.releaseClaim(job.evaluationKey);
     this.#releaseUnit(job);
+  }
+
+  #settleJoined(key: string, state: TicketUnitState["state"], reason?: ResidentUnavailableReason,
+    adviceId?: string): void {
+    const joined = this.#joinedTicketUnits.get(key);
+    if (joined === undefined) return;
+    this.#joinedTicketUnits.delete(key);
+    for (const unit of joined) {
+      if (unit.current.state === "unavailable" && unit.current.reason === "stale") continue;
+      if (state === "unavailable") unitUnavailable(unit, reason ?? "lost");
+      else {
+        const revision = "revision" in unit.current ? unit.current.revision : undefined;
+        if (revision === undefined) unitUnavailable(unit, "lost");
+        else if (state === "clear") unitClear(unit, revision);
+        else if (state === "finding") {
+          if (adviceId === undefined) unitUnavailable(unit, "lost");
+          else unitFinding(unit, revision, adviceId);
+        }
+      }
+    }
   }
 
   #retainAdvice(
@@ -1409,6 +1596,11 @@ export class ResidentServer {
     sequence: number,
   ): Promise<void> | void {
     if (this.#advice.some((item) => item.evaluationKey === job.evaluationKey)) {
+      const existing = this.#advice.find((item) => item.evaluationKey === job.evaluationKey);
+      if (job.ticketUnit !== undefined && existing !== undefined) {
+        unitFinding(job.ticketUnit, job.revision, existing.id);
+      }
+      if (existing !== undefined) this.#settleJoined(job.evaluationKey, "finding", undefined, existing.id);
       this.#releaseUnit(job);
       return;
     }
@@ -1434,7 +1626,16 @@ export class ResidentServer {
     const insertion = this.#advice.findIndex((item) => item.sequence > sequence);
     if (insertion < 0) this.#advice.push(advice);
     else this.#advice.splice(insertion, 0, advice);
-    return this.#afterAdvicePending?.(advice.id);
+    const afterPending = this.#afterAdvicePending?.(advice.id);
+    if (afterPending === undefined) {
+      if (job.ticketUnit !== undefined) unitFinding(job.ticketUnit, job.revision, advice.id);
+      this.#settleJoined(job.evaluationKey, "finding", undefined, advice.id);
+      return;
+    }
+    return Promise.resolve(afterPending).then(() => {
+      if (job.ticketUnit !== undefined) unitFinding(job.ticketUnit, job.revision, advice.id);
+      this.#settleJoined(job.evaluationKey, "finding", undefined, advice.id);
+    });
   }
 
   async #awaitBackendGate(): Promise<void> {
@@ -1509,12 +1710,25 @@ export class ResidentServer {
         : { status: "obsolete-lifetime" };
     }
     if (request.lifetime !== this.lifetime || this.#lifecycle !== "active") {
-      return { status: "obsolete-lifetime" };
+      return request.version === 2
+        ? request.operation === "collect" ? { version: 2, status: "unavailable", reason: "lost" }
+          : { version: 2, status: "obsolete-lifetime" }
+        : { status: "obsolete-lifetime" };
     }
     if (request.operation === "admit") {
-      return this.admit(request.observation, request.dispatch);
+      return this.admit(request.observation, request.dispatch, request.version === 2);
     }
     if (request.operation === "collect") {
+      if (request.version === 2) {
+        const ticket = this.#ticketFor(request.ticket, request.root, request.recipient, request.dispatch);
+        if (ticket === undefined) return { version: 2, status: "unavailable", reason: "lost" };
+        if (ticket.credentialGeneration !== (request.dispatch.credential?.generation ?? null)) {
+          return { version: 2, status: "unavailable", reason: "credential" };
+        }
+        if (this.#now() >= ticket.expiresAt) return { version: 2, status: "unavailable", reason: "expired" };
+        const collected = await this.collect(request.root, request.recipient, request.dispatch, request.mode ?? "ordinary", ticket);
+        return collected.status === "advice" ? { ...collected, version: 2 } : this.#terminalStatus(ticket, this.#now());
+      }
       return this.collect(request.root, request.recipient, request.dispatch, request.mode ?? "ordinary");
     }
     if (request.operation === "acknowledge") return this.acknowledge(request.token);
@@ -1525,6 +1739,44 @@ export class ResidentServer {
       return { status };
     }
     return { status: "unsupported" };
+  }
+
+  #ticketFor(ticket: ResidentCollectionTicket, root: string, recipient: DirectRecipient,
+    dispatch: ResidentDispatchContext): TicketRecord | undefined {
+    const retained = this.#tickets.get(ticket.nonce);
+    return retained?.ticket.lifetime === this.lifetime && ticket.lifetime === this.lifetime &&
+      retained.ticket.nonce === ticket.nonce && retained.generation > 0 &&
+      retained.partition === recipientPartition(root, recipient)
+      ? retained : undefined;
+  }
+
+  #terminalStatus(ticket: TicketRecord, now: number): ResidentResponse {
+    if (now >= ticket.expiresAt) return { version: 2, status: "unavailable", reason: "expired" };
+    if (!this.#credentialAuthority(ticket)) return { version: 2, status: "unavailable", reason: "credential" };
+    if (ticket.phase.state === "preparing" || ticket.units.some((unit) => unit.current.state === "pending")) return { version: 2, status: "pending" };
+    if (this.#advice.some((item) => ticket.units.some((unit) =>
+        unit.current.state === "finding" && unit.current.adviceId === item.id)) ||
+        [...this.#noticeCooldowns.values()].some((item) => item.partition === ticket.partition && item.pending !== undefined)) {
+      return { version: 2, status: "pending" };
+    }
+    const failedUnit = ticket.units.map((unit) => unit.current)
+      .find((state): state is Extract<TicketUnitState, { state: "unavailable" }> => state.state === "unavailable");
+    const unavailable = ticket.phase.state === "failed" ? ticket.phase.reason : failedUnit?.reason;
+    if (unavailable !== undefined) return { version: 2, status: "unavailable", reason: unavailable };
+    if (ticket.units.some((unit) => unit.current.state === "finding")) {
+      return ticket.units.every((unit) => unit.current.state !== "finding" || unit.current.delivered)
+        ? { version: 2, status: "delivered" }
+        : { version: 2, status: "unavailable", reason: "lost" };
+    }
+    return ticket.units.length > 0 ? { version: 2, status: "clear" } : { version: 2, status: "no-work" };
+  }
+
+  #credentialAuthority(ticket: TicketRecord): boolean {
+    if (!ticket.credentialRequired) return true;
+    const credentialState = ticket.credentialStatePath === null ? undefined : readCredentialState(ticket.credentialStatePath);
+    return credentialState !== undefined &&
+      credentialState.generation === ticket.credentialGeneration &&
+      (ticket.credentialEnvironmentOnly || !credentialState.savedUseSuspended);
   }
 
   async #responseGate(operation: ResidentRequest["operation"]): Promise<void> {
@@ -1556,9 +1808,20 @@ export class ResidentServer {
   }
 
   /** Synchronous last barrier after response gates and immediately before encoding. */
-  #responseForHandoff(response: ResidentResponse): ResidentResponse {
-    if (response.status !== "advice") return response;
+  #responseForHandoff(request: ResidentRequest, response: ResidentResponse): ResidentResponse {
+    if (response.status !== "advice") {
+      if (request.version !== 2 || request.operation !== "collect") return response;
+      const now = this.#now();
+      this.#expirePending(now);
+      this.#pruneNoticeCooldowns(now);
+      const ticket = this.#ticketFor(request.ticket, request.root, request.recipient, request.dispatch);
+      return ticket === undefined ? { version: 2, status: "unavailable", reason: "lost" }
+        : ticket.credentialGeneration !== (request.dispatch.credential?.generation ?? null)
+          ? { version: 2, status: "unavailable", reason: "credential" }
+        : this.#terminalStatus(ticket, now);
+    }
     const now = this.#now();
+    this.#expirePending(now);
     this.#pruneNoticeCooldowns(now);
     const handoff: Array<Advice> = [];
     for (const advice of [...this.#advice]) {
@@ -1579,7 +1842,7 @@ export class ResidentServer {
     for (const notice of notices) {
       if (notice.delivery !== undefined) notice.delivery.leaseUntil = now + DELIVERY_LEASE_MS;
     }
-    return findings.length === 0 && notices.length === 0
+    const selected: ResidentResponse = findings.length === 0 && notices.length === 0
       ? { status: "empty" }
       : {
           status: "advice",
@@ -1587,6 +1850,20 @@ export class ResidentServer {
           findingCount: findings.length,
           output: combinedReviewOutput(findings, notices.map((notice) => notice.value)),
         };
+    if (request.version !== 2 || request.operation !== "collect") return selected;
+    const ticket = this.#ticketFor(request.ticket, request.root, request.recipient, request.dispatch);
+    if (ticket === undefined) return { version: 2, status: "unavailable", reason: "lost" };
+    if (ticket.credentialGeneration !== (request.dispatch.credential?.generation ?? null)) {
+      if (selected.status === "advice") this.releaseDelivery(selected.token);
+      return { version: 2, status: "unavailable", reason: "credential" };
+    }
+    if (!this.#credentialAuthority(ticket)) {
+      if (selected.status === "advice") this.releaseDelivery(selected.token);
+      return { version: 2, status: "unavailable", reason: "credential" };
+    }
+    if (now >= ticket.expiresAt) return { version: 2, status: "unavailable", reason: "expired" };
+    return selected.status === "advice" ? { ...selected, version: 2 }
+      : this.#terminalStatus(ticket, now);
   }
 
   #accept(socket: Socket): void {
@@ -1632,7 +1909,8 @@ export class ResidentServer {
       }
       void this.handle(decoded).then(async (response) => {
         await this.#responseGate(decoded.operation);
-        const handoff = this.#responseForHandoff(response);
+        await this.#beforeResponseHandoff?.();
+        const handoff = this.#responseForHandoff(decoded, response);
         if (socket.destroyed) {
           if (handoff.status === "advice") this.releaseDelivery(handoff.token);
           if (handoff.status === "cleaned") this.#scheduleRetirementClose();
@@ -1692,6 +1970,7 @@ export class ResidentServer {
       if (!advice.revalidationActive) this.#releaseUnit(advice);
     }
     this.#noticeCooldowns.clear();
+    this.#noticeOwners.clear();
     // Running work may be interrupted by process exit or finish later. Clear
     // its logical ownership now; its eventual terminal release is idempotent.
     this.#reuse.clear();

@@ -34,7 +34,21 @@ export type ResidentDispatchContext = {
   readonly controlled: ResidentControlledOptions | null;
 };
 
+export type ResidentCollectionTicket = { readonly nonce: string; readonly lifetime: string };
+export type ResidentUnavailableReason = "backend" | "credential" | "capacity" | "stale" | "lost" | "expired";
+
 export type ResidentRequest =
+  | {
+      readonly version: 2; readonly operation: "admit"; readonly lifetime: string;
+      readonly observation: DirectObservation; readonly controlledWriter: true;
+      readonly dispatch: ResidentDispatchContext;
+    }
+  | {
+      readonly version: 2; readonly operation: "collect"; readonly lifetime: string;
+      readonly ticket: ResidentCollectionTicket; readonly root: string;
+      readonly recipient: DirectRecipient; readonly dispatch: ResidentDispatchContext;
+      readonly mode?: CollectionMode;
+    }
   | { readonly version: 1; readonly operation: "hello" }
   | {
       readonly version: 1;
@@ -69,6 +83,12 @@ export type ResidentRequest =
   | { readonly version: 1; readonly operation: "cleanup"; readonly lifetime: string };
 
 export type ResidentResponse =
+  | { readonly version: 2; readonly status: "accepted"; readonly ticket: ResidentCollectionTicket }
+  | { readonly version: 2; readonly status: "rejected-capacity" | "obsolete-lifetime" | "unsupported" }
+  | { readonly version: 2; readonly status: "pending" | "clear" | "delivered" | "no-work" }
+  | { readonly version: 2; readonly status: "unavailable"; readonly reason: ResidentUnavailableReason }
+  | { readonly version: 2; readonly status: "advice"; readonly token: string;
+      readonly findingCount: number; readonly output: CodexDirectEventOutput }
   | { readonly status: "ready"; readonly lifetime: string; readonly pid: number }
   | {
       readonly status:
@@ -182,7 +202,25 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
     return undefined;
   }
   const value = record(unknown);
-  if (value?.version !== 1 || typeof value.operation !== "string") return undefined;
+  if ((value?.version !== 1 && value?.version !== 2) || typeof value.operation !== "string") return undefined;
+  if (value.version === 2) {
+    if (!string(value.lifetime)) return undefined;
+    if (value.operation === "admit" && value.controlledWriter === true && observation(value.observation) &&
+        value.observation.recipient.host === "claude-code" && dispatch(value.dispatch)) {
+      return { version: 2, operation: "admit", lifetime: value.lifetime,
+        observation: value.observation, controlledWriter: true, dispatch: value.dispatch };
+    }
+    const ticket = record(value.ticket);
+    if (value.operation === "collect" && string(ticket?.nonce) && string(ticket.lifetime) &&
+        string(value.root) && recipient(value.recipient) && value.recipient.host === "claude-code" &&
+        dispatch(value.dispatch) && (value.mode === undefined || value.mode === "ordinary" || value.mode === "turn-end")) {
+      return { version: 2, operation: "collect", lifetime: value.lifetime,
+        ticket: { nonce: ticket.nonce, lifetime: ticket.lifetime }, root: value.root,
+        recipient: value.recipient, dispatch: value.dispatch,
+        ...(value.mode === undefined ? {} : { mode: value.mode }) };
+    }
+    return undefined;
+  }
   if (value.operation === "hello") return { version: 1, operation: "hello" };
   if (!string(value.lifetime)) return undefined;
   if (value.operation === "admit" && value.controlledWriter === true && observation(value.observation) && dispatch(value.dispatch)) {
@@ -219,6 +257,14 @@ const HostOutput = Schema.Struct({
 });
 
 const ResidentResponseSchema = Schema.Union([
+  Schema.Struct({ version: Schema.Literal(2), status: Schema.Literal("accepted"),
+    ticket: Schema.Struct({ nonce: Schema.NonEmptyString, lifetime: Schema.NonEmptyString }) }),
+  Schema.Struct({ version: Schema.Literal(2), status: Schema.Literals(["rejected-capacity", "obsolete-lifetime", "unsupported"])}),
+  Schema.Struct({ version: Schema.Literal(2), status: Schema.Literals(["pending", "clear", "delivered", "no-work"]) }),
+  Schema.Struct({ version: Schema.Literal(2), status: Schema.Literal("unavailable"),
+    reason: Schema.Literals(["backend", "credential", "capacity", "stale", "lost", "expired"]) }),
+  Schema.Struct({ version: Schema.Literal(2), status: Schema.Literal("advice"),
+    token: Schema.NonEmptyString, findingCount: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)), output: HostOutput }),
   Schema.Struct({ status: Schema.Literal("ready"), lifetime: Schema.NonEmptyString, pid: Schema.Int }),
   Schema.Struct({ status: Schema.Literals([
     "accepted", "rejected-capacity", "obsolete-lifetime", "empty", "acknowledged", "finalized", "unsupported",

@@ -25,6 +25,33 @@ const enable = (root: string, statePath: string) => Effect.runPromise(Effect.gen
 }).pipe(Effect.provide(Consent.layer({ statePath }))));
 
 describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
+  it("returns quietly when the admitted review finishes clear", async () => {
+    const root = await makeGitFixture();
+    roots.push(root);
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const path = await put(root, "type.ts", "type ClearCount = number\n");
+    const started = performance.now();
+    const result = spawnSync(process.execPath, ["src/cli.ts", "--claude-hook", "--controlled", "--controlled-writer"], {
+      cwd: process.cwd(),
+      input: JSON.stringify({
+        hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
+        session_id: "clear-session", tool_use_id: "clear-tool",
+        tool_input: { file_path: path, content: "type ClearCount = number\n" },
+        tool_response: { filePath: path, content: "type ClearCount = number\n", originalFile: null, userModified: false },
+      }),
+      encoding: "utf8", timeout: 7_000,
+      env: { ...process.env, REVIEW_STATE_PATH: statePath, REVIEW_RESIDENT_DIR: join(root, "runtime"),
+        REVIEW_CONTROL_JSON: JSON.stringify({ answers: Object.fromEntries(configuredRules.map((rule) => [
+          rule.id, { _tag: "Probability", probability: 0 },
+        ])) }),
+      },
+    });
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout)).toEqual({});
+    expect(performance.now() - started).toBeLessThan(3_900);
+  });
+
   it("hands ready advice through additionalContext and keeps unsupported events quiet", async () => {
     const root = await makeGitFixture();
     roots.push(root);

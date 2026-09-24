@@ -22,6 +22,7 @@ import {
   STARTUP_READINESS_DEADLINE_MS,
   decodeResidentResponse,
   type ResidentDispatchContext,
+  type ResidentCollectionTicket,
   type ResidentRequest,
   type ResidentResponse,
 } from "./protocol.ts";
@@ -300,6 +301,91 @@ export const admitObservation = async (
     controlledWriter: true,
     dispatch,
   });
+};
+
+export type TicketedAdmission = {
+  readonly ticket: ResidentCollectionTicket;
+  readonly lifetime: string;
+  readonly paths: ResidentPaths;
+  readonly root: string;
+  readonly recipient: DirectRecipient;
+  readonly dispatch: ResidentDispatchContext;
+};
+
+export type TicketedAdmissionResult =
+  | { readonly status: "accepted"; readonly admission: TicketedAdmission }
+  | { readonly status: "rejected-capacity" | "obsolete-lifetime" | "unsupported" };
+
+/** Only Claude's synchronous PostToolUse hook uses ticketed collection. */
+export const admitTicketedObservation = async (
+  observation: DirectObservation,
+  dispatch: ResidentDispatchContext,
+  paths = residentPaths(),
+): Promise<TicketedAdmissionResult> => {
+  if (observation.recipient.host !== "claude-code") return { status: "unsupported" };
+  const owner = await ensureResident(paths);
+  const response = await residentRequest(paths, {
+    version: 2,
+    operation: "admit",
+    lifetime: owner.lifetime,
+    observation,
+    controlledWriter: true,
+    dispatch,
+  });
+  if (!("version" in response) || response.version !== 2 || response.status === "unsupported") return { status: "unsupported" };
+  if (response.status === "accepted") {
+    if (response.ticket.lifetime !== owner.lifetime) return { status: "obsolete-lifetime" };
+    return { status: "accepted", admission: {
+      ticket: response.ticket,
+      lifetime: owner.lifetime,
+      paths,
+      root: observation.root,
+      recipient: observation.recipient,
+      dispatch,
+    } };
+  }
+  if (response.status === "rejected-capacity" || response.status === "obsolete-lifetime") {
+    return { status: response.status };
+  }
+  return { status: "unsupported" };
+};
+
+export type CollectionOutcome =
+  | { readonly status: "advice"; readonly advice: CollectedAdvice }
+  | { readonly status: "pending" | "clear" | "delivered" | "no-work" }
+  | { readonly status: "unavailable"; readonly reason: "backend" | "credential" | "capacity" | "stale" | "lost" | "expired" };
+
+/** Collect against the original owner. A replacement resident can never prove clear. */
+export const collectOutcome = async (
+  admission: TicketedAdmission,
+  mode: CollectionMode = "ordinary",
+): Promise<CollectionOutcome> => {
+  const response = await residentRequest(admission.paths, {
+    version: 2,
+    operation: "collect",
+    lifetime: admission.lifetime,
+    ticket: admission.ticket,
+    root: admission.root,
+    recipient: admission.recipient,
+    dispatch: admission.dispatch,
+    mode,
+  });
+  if (!("version" in response) || response.version !== 2) return { status: "unavailable", reason: "lost" };
+  if (response.status === "advice") return { status: "advice", advice: {
+    output: response.output,
+    token: response.token,
+    lifetime: admission.lifetime,
+    paths: admission.paths,
+    root: admission.root,
+    recipient: admission.recipient,
+    activityPath: admission.dispatch.activityPath,
+    findingCount: response.findingCount,
+  } };
+  if (response.status === "unavailable") return { status: "unavailable", reason: response.reason };
+  if (response.status === "pending" || response.status === "clear" || response.status === "delivered" || response.status === "no-work") {
+    return { status: response.status };
+  }
+  return { status: "unavailable", reason: "lost" };
 };
 
 export const collectReady = async (

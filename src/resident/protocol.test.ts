@@ -8,9 +8,18 @@ import {
   MAX_IPC_FRAME_BYTES,
   STARTUP_READINESS_DEADLINE_MS,
   decodeResidentRequest,
+  decodeResidentResponse,
 } from "./protocol.ts";
 
 describe("resident protocol bounds", () => {
+  it("strictly decodes source-free v2 terminal statuses", () => {
+    expect(decodeResidentResponse({ version: 2, status: "clear" })).toEqual({ version: 2, status: "clear" });
+    expect(decodeResidentResponse({ version: 2, status: "unavailable", reason: "stale" }))
+      .toEqual({ version: 2, status: "unavailable", reason: "stale" });
+    expect(decodeResidentResponse({ version: 2, status: "clear", path: "source.ts" })).toBeUndefined();
+    expect(decodeResidentResponse({ version: 2, status: "unavailable", reason: "other" })).toBeUndefined();
+    expect(decodeResidentResponse({ version: 2, status: "empty" })).toBeUndefined();
+  });
   it("publishes the fixed lifecycle and pre-decode transport limits", () => {
     expect(STARTUP_READINESS_DEADLINE_MS).toBe(10_000);
     expect(CLIENT_REQUEST_DEADLINE_MS).toBe(1_500);

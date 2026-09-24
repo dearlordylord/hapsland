@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-24",
+  "probe": "one-offline-compiled-claude-ticketed-terminal-clear-control",
+  "command": "npm run build && node evidence/host-94/validation/run-cold-hook-timing.mjs",
+  "acceptanceStatus": "passed",
+  "fixture": {
+    "host": "claude",
+    "mode": "offline scripted stand-in",
+    "freshRepository": true,
+    "freshResident": true
+  },
+  "acceptance": {
+    "nativeEditCount": 1,
+    "nativeEditMatched": true,
+    "initialHookSucceeded": true,
+    "acceptedTicketCount": 1,
+    "controlledOutcome": "completed-clear",
+    "ticketCollectionResponseCount": 3,
+    "firstCollectionStatus": "pending",
+    "terminalCollectionStatus": "clear",
+    "hostSubmissions": 0,
+    "finalRepairObserved": false
+  },
+  "timing": {
+    "clock": "Date.now() wall milliseconds, relative to bridge preload unless noted",
+    "bridgePreloadAtMs": 0,
+    "residentPreloadAtMs": 387,
+    "residentReadyAtMs": 688,
+    "ticketAcceptedAtMs": 696,
+    "controlledAdmissionMarkerAtMs": 697,
+    "reviewOutcomeAtMs": 777,
+    "terminalClearAtMs": 812,
+    "bridgeObservedCliInvocationMs": 816,
+    "bridgeCeilingMs": 4400,
+    "bridgeInvocationWithinCeiling": true,
+    "nativeEventToHookFinishMs": 845,
+    "nativeFixtureCeilingMs": 5000,
+    "nativeEventToHookFinishWithinCeiling": true,
+    "cliDeadlineMsUnchanged": 3900,
+    "cliDeadlineComparison": "not asserted: the bridge-observed duration is not compared with the CLI's independent internal deadline clock"
+  },
+  "process": {
+    "exitCode": 0,
+    "timedOut": false,
+    "outputExceeded": false,
+    "elapsedHarnessMs": 2579
+  },
+  "cleanup": {
+    "supported": true,
+    "ownershipKnown": true,
+    "remainingResidents": 0,
+    "groupStillOwned": false
+  },
+  "externalRuns": {
+    "authenticatedClaude": false,
+    "openCode": false,
+    "jev": false
+  },
+  "limitations": [
+    "This is one selected instrumented offline fixture, not a latency distribution or general guarantee.",
+    "The scripted stand-in does not establish real Claude hook launch, authenticated host behavior, or model reaction.",
+    "The pass clears this selected offline Stage A timing prerequisite only; it does not authorize an authenticated host run."
+  ],
+  "rawIpcRetained": false,
+  "sourceRetained": false,
+  "credentialsRetained": false,
+  "modelOutputRetained": false
+}
