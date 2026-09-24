@@ -17,10 +17,10 @@ and run:
 
 ```sh
 git pull --ff-only origin master
-mise exec node@24.20.0 -- npm run release:local
+mise exec node@24.20.0 -- npm run local-release
 ```
 
-`release:local` is the repository's npm script for the host publish flow.
+`local-release` is the repository's npm script for the host publish flow.
 `mise exec` selects the certified Node runtime for npm and the release script,
 as in Huly MCP's local release flow. Use it even if a different Node version is active.
 Node 25 is fine for ordinary work; release
