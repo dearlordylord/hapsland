@@ -1,0 +1,7 @@
+# A minimal run with one passing case.
+RUN|local-42|2026-09-24T14:00:00Z
+CASE|login|auth|accepts valid credentials
+BEGIN|login|2026-09-24T14:00:01Z
+LOG|login|info|submitting login form
+END|login|pass|83|
+DONE|2026-09-24T14:00:02Z

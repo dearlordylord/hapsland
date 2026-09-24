@@ -4,11 +4,14 @@ import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { chmod, copyFile, lstat, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { basename, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { analyzeTypeFile } from "../../../src/direct-event/analyzer.ts";
 import { residentRequest } from "../../../src/resident/client.ts";
 import { residentPaths } from "../../../src/resident/paths.ts";
+import { claimOutputRoot, retryOutputRoot } from "./artifact-claim.mjs";
+import { FRESH_ORDER, tokenAccounting, validateNext } from "./preflight.mjs";
+import { summarizeVisibility } from "./visibility.mjs";
 
 const directory = resolve(fileURLToPath(new URL(".", import.meta.url)));
 const project = resolve(directory, "../../..");
@@ -25,7 +28,35 @@ if (promptSha256 !== "0ec22a3c04928da18bdd48e52644eff153371acfefa92a03ea1f36af58
 }
 const instruction = "After implementing the task and running your tests, review your own changes for correctness and type/API design, make any repairs you judge necessary, and report what you verified.";
 const testedPrompt = `${prompt}\n${instruction}\n`;
-const outputRoot = join(directory, "runs", `pair-${pair}-${arm}`);
+const instructionSha256 = createHash("sha256").update(instruction).digest("hex");
+const runsRoot = join(directory, "runs");
+const firstOutputRoot = join(runsRoot, `fresh-pair-${pair}-${arm}`);
+await mkdir(runsRoot, { recursive: true });
+const existing = (await readdir(runsRoot, { withFileTypes: true }))
+  .filter((entry) => entry.isDirectory() && entry.name.startsWith("fresh-pair-"));
+const expectedIndex = FRESH_ORDER.findIndex((entry) => entry.pair === pair && entry.arm === arm);
+const previous = [];
+const failedAttempts = [];
+async function readRecord(path) {
+  try { return JSON.parse(await readFile(path, "utf8")); } catch { return undefined; }
+}
+for (const entry of FRESH_ORDER.slice(0, expectedIndex)) {
+  const base = join(runsRoot, `fresh-pair-${entry.pair}-${entry.arm}`);
+  let record = await readRecord(join(base, "sanitized.json"));
+  if (!record) {
+    const failure = await readRecord(join(base, "retry-eligibility.json"));
+    if (failure) failedAttempts.push(failure);
+    record = await readRecord(join(retryOutputRoot(base), "sanitized.json"));
+  }
+  if (!record) throw new Error(`Missing completed fresh run before ${pair}-${arm}`);
+  previous.push(record);
+}
+const currentFailure = await readRecord(join(firstOutputRoot, "retry-eligibility.json"));
+if (currentFailure) failedAttempts.push(currentFailure);
+const preflight = validateNext(previous, { pair, arm }, existing.length,
+  { promptSha256, proceduralInstructionSha256: instructionSha256 }, failedAttempts);
+const outputRoot = preflight.attempt === 1 ? retryOutputRoot(firstOutputRoot) : firstOutputRoot;
+await claimOutputRoot(outputRoot);
 const temporary = await mkdtemp(join(tmpdir(), "hapsland-95-pair-"));
 const repo = join(temporary, "repo");
 const home = join(temporary, "codex-home");
@@ -84,7 +115,7 @@ async function readJsonLines(path) {
 
 async function safeTreeCopy(from, to, depth = 0) {
   if (depth > 5) throw new Error("Generated tree is too deep");
-  await mkdir(to, { recursive: true });
+  await mkdir(to);
   for (const entry of await readdir(from, { withFileTypes: true }).catch(() => [])) {
     if (entry.name === "node_modules" || entry.name === "dist" || entry.name === ".git" ||
       entry.name.startsWith(".env") || entry.name === "auth.json") continue;
@@ -95,6 +126,15 @@ async function safeTreeCopy(from, to, depth = 0) {
     if (metadata.isDirectory()) await safeTreeCopy(source, target, depth + 1);
     else if (metadata.isFile() && metadata.size <= 128 * 1024) await copyFile(source, target);
   }
+}
+
+async function pristineGeneratedRepository(folder) {
+  for (const entry of await readdir(folder, { withFileTypes: true })) {
+    if (entry.name === ".git" && entry.isDirectory()) continue;
+    // Any generated file, directory, or link is conservatively treated as an edit.
+    return false;
+  }
+  return true;
 }
 
 async function activitySummary(path) {
@@ -203,6 +243,7 @@ try {
 
   const hostEvents = [];
   let partialLine = "";
+  let invalidHostLines = 0;
   const hostStarted = Date.now();
   const host = await command("npm", [
     "exec", "--yes", "--package=@openai/codex@0.155.1", "--", "codex", "exec",
@@ -220,14 +261,16 @@ try {
       partialLine = lines.pop() ?? "";
       for (const line of lines) {
         let event;
-        try { event = JSON.parse(line); } catch { continue; }
+        try { event = JSON.parse(line); } catch { invalidHostLines += 1; continue; }
         const message = event.item?.type === "agent_message" ? event.item.text ?? "" : "";
+        const mentionedRuleIds = [...new Set([...message.matchAll(/\br[0-9]+_[a-z0-9_]+\b/g)].map((match) => match[0]))];
         hostEvents.push({
           atMs: Date.now() - started,
           type: event.type,
           itemType: event.item?.type,
           mentionsHapsland: /Hapsland|Advisory direct-event review|Jev review/i.test(message),
           mentionsReviewFeedback: /automated review|review feedback|review finding/i.test(message),
+          mentionedRuleIds,
           usage: event.type === "turn.completed" ? event.usage : undefined,
         });
       }
@@ -235,7 +278,44 @@ try {
   });
   const hostEnded = Date.now();
 
-  await mkdir(outputRoot, { recursive: true });
+  const failureUsage = hostEvents.filter((event) => event.usage !== undefined).map((event) => event.usage);
+  let failureTokens;
+  try { failureTokens = tokenAccounting(failureUsage); } catch { failureTokens = undefined; }
+  const noToolInvocation = hostEvents.every((event) =>
+    !event.type?.startsWith("item.") || ["agent_message", "error"].includes(event.itemType));
+  const validHostEvents = invalidHostLines === 0 && partialLine.trim() === "";
+  const pristineRepository = await pristineGeneratedRepository(repo);
+  const knownInfrastructureError = {
+    bwrap: host.stderr.includes("bwrap:"),
+    modelUnavailable: /model.*not.*found|unknown model/i.test(host.stderr),
+  };
+  const failedProviderRequests = await readJsonLines(ledger);
+  if (preflight.attempt === 0 && host.code !== 0 && Number.isSafeInteger(host.code) && !host.timedOut &&
+    (knownInfrastructureError.bwrap || knownInfrastructureError.modelUnavailable) &&
+    noToolInvocation && validHostEvents && pristineRepository && failureTokens &&
+    failureTokens.uncachedPlusOutput < 250_000 && failureTokens.cachedInput < 2_000_000 &&
+    hostEnded - hostStarted <= 20 * 60_000 && failedProviderRequests.length === 0) {
+    await safeTreeCopy(repo, join(outputRoot, "tree"));
+    const failureRecord = {
+      kind: "infrastructure-failure-before-edit", pair, arm, attempt: 0,
+      recordedAt: new Date().toISOString(),
+      host: { version: "0.155.1", model: "gpt-6-luna", reasoning: "max",
+        platform: `${process.platform}-${process.arch}`, sandboxBypass: true, hookTrustBypass: true },
+      promptSha256, proceduralInstructionSha256: instructionSha256,
+      hostExitCode: host.code, hostTimedOut: host.timedOut,
+      hostElapsedMs: hostEnded - hostStarted,
+      hostKnownErrors: knownInfrastructureError,
+      hostReportedUsage: failureUsage, tokenAccounting: failureTokens,
+      hostReportedCostUsd: null, jevReportedCostUsd: null,
+      providerRequests: 0, providerRequestBytes: 0,
+      proof: { noToolInvocation, pristineRepository, validHostEvents },
+      rawHostTranscriptRetained: false, rawJevMaterialRetained: false,
+    };
+    await writeFile(join(outputRoot, "retry-eligibility.json"),
+      `${JSON.stringify(failureRecord, null, 2)}\n`, { flag: "wx" });
+    throw new Error("Pre-edit infrastructure failure recorded; one bounded retry is eligible");
+  }
+
   await safeTreeCopy(repo, join(outputRoot, "tree"));
   const analyzer = await analyzerSummary(repo);
   let packageJson;
@@ -259,6 +339,9 @@ try {
   const hooks = await readJsonLines(hookEvents);
   const activity = await activitySummary(join(state, "activity"));
   const usage = hostEvents.filter((event) => event.usage !== undefined).map((event) => event.usage);
+  let computedTokens;
+  try { computedTokens = tokenAccounting(usage); } catch { computedTokens = null; }
+  const visibility = summarizeVisibility(hooks, hostEvents, started);
   const record = {
     schemaVersion: 1,
     pair,
@@ -266,7 +349,8 @@ try {
     recordedAt: new Date().toISOString(),
     host: { version: "0.155.1", model: "gpt-6-luna", reasoning: "max", platform: `${process.platform}-${process.arch}`, sandboxBypass: true, hookTrustBypass: true },
     promptSha256,
-    proceduralInstructionSha256: createHash("sha256").update(instruction).digest("hex"),
+    proceduralInstructionSha256: instructionSha256,
+    preflight,
     hostExitCode: host.code,
     hostSignal: host.signal,
     hostTimedOut: host.timedOut,
@@ -276,19 +360,21 @@ try {
     hostKnownErrors: { bwrap: host.stderr.includes("bwrap:"), modelUnavailable: /model.*not.*found|unknown model/i.test(host.stderr) },
     hostEvents,
     hostReportedUsage: usage,
+    tokenAccounting: computedTokens,
     hostReportedCostUsd: null,
     jevReportedCostUsd: null,
     providerRequests: calls.length,
     providerRequestBytes: calls.reduce((sum, item) => sum + (item.requestBytes ?? 0), 0),
     providerEvents: completions.map((event) => ({ ...event, atMs: event.at - started, at: undefined })),
     hooks: hooks.map((event) => ({ ...event, atMs: event.at - started, at: undefined })),
+    ...visibility,
     activity,
     analyzer,
     verification,
     rawHostTranscriptRetained: false,
     rawJevMaterialRetained: false,
   };
-  await writeFile(join(outputRoot, "sanitized.json"), `${JSON.stringify(record, null, 2)}\n`);
+  await writeFile(join(outputRoot, "sanitized.json"), `${JSON.stringify(record, null, 2)}\n`, { flag: "wx" });
   process.stdout.write(`${JSON.stringify({ pair, arm, hostExitCode: host.code, hostTimedOut: host.timedOut, providerRequests: calls.length, artifact: join(outputRoot, "sanitized.json") })}\n`);
 } finally {
   try { residentOwner = JSON.parse(await readFile(residentPaths(join(state, "resident")).owner, "utf8")); } catch { residentOwner = undefined; }
