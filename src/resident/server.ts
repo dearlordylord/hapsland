@@ -1,7 +1,7 @@
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { access, appendFile, chmod, rm, writeFile } from "node:fs/promises";
 import { createServer, type Server, type Socket } from "node:net";
 import { canonicalValue, isCodexHostVersion, type DirectObservation, type DirectRecipient } from "../direct-event/model.ts";
@@ -585,6 +585,17 @@ export class ResidentServer {
     }
     const acceptedPath = process.env.REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH;
     if (acceptedPath !== undefined) void writeFile(acceptedPath, "accepted\n").catch(() => undefined);
+    const admissionTracePath = process.env.REVIEW_RESIDENT_ADMISSION_TRACE_PATH;
+    const admissionSalt = process.env.HAPSLAND_94_SALT;
+    if (admissionTracePath !== undefined && admissionSalt !== undefined) {
+      const key = (value: string) => createHash("sha256").update(`${admissionSalt}:${value}`).digest("hex");
+      const { sessionId, toolUseId } = observation.recipient;
+      if (typeof sessionId === "string" && typeof toolUseId === "string") {
+        void appendFile(admissionTracePath, `${JSON.stringify({
+          key: key(toolUseId), sessionKey: key(sessionId),
+        })}\n`, "utf8").catch(() => undefined);
+      }
+    }
     recordActivity({ statePath: dispatch.activityPath, root: observation.root, recipient: observation.recipient, lifetime: this.lifetime, stage: "pending" });
     return ticket === undefined ? { status: "accepted" } : { version: 2, status: "accepted", ticket: ticket.ticket };
   }

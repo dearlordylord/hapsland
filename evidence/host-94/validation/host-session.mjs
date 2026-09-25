@@ -18,12 +18,18 @@ assert.ok(['claude', 'opencode'].includes(host) &&
   'usage: node host-session.mjs claude|opencode control|finding|stale|timeout|failure|host-failure|restart-old|restart-new');
 const offlineScripted = process.argv.includes('--offline-scripted');
 const blockTrial = process.argv.includes('--claude-block-trial');
+const blockStageB = process.argv.includes('--claude-block-stage-b');
+assert.ok(!(blockTrial && blockStageB), 'select one Claude block pass');
 assert.ok(offlineScripted !== process.argv.includes('--auth-confirmed'),
   'select exactly one of --offline-scripted or --auth-confirmed');
 assert.ok(!blockTrial || (host === 'claude' && ['control', 'finding'].includes(scenario)),
   'Claude block trial permits only control then finding');
-assert.ok(offlineScripted || host !== 'claude' || blockTrial,
-  'authenticated Claude requires the explicit --claude-block-trial gate');
+assert.ok(!blockStageB || (host === 'claude' &&
+  ['stale', 'timeout', 'failure', 'host-failure', 'restart-old', 'restart-new'].includes(scenario)),
+  'Claude block Stage B permits only its six bounded scenarios');
+assert.ok(offlineScripted || host !== 'claude' || blockTrial || blockStageB,
+  'authenticated Claude requires an explicit block pass gate');
+const blockMode = blockTrial || blockStageB;
 const ledgerDirectory = process.env.HAPSLAND_94_PASS_LEDGER;
 assert.ok(ledgerDirectory, 'an initialized HAPSLAND_94_PASS_LEDGER is required');
 const project = resolve(import.meta.dirname, '../../..');
@@ -64,6 +70,8 @@ const bridge = join(root, 'bridge.mjs');
 const saltPath = join(root, 'correlation-salt');
 const checkpointPath = join(root, 'restart-checkpoint.json');
 const outcomePath = join(root, 'outcome.jsonl');
+const admissionTracePath = join(root, 'admission.jsonl');
+const capturePath = join(root, 'backend-calls.txt');
 const salt = restartNew ? readFileSync(saltPath, 'utf8') : randomUUID();
 const maxSessionMs = 90_000;
 const expectedVersion = HOST_VERSIONS[host];
@@ -74,7 +82,7 @@ const executable = offlineScripted
   : 'opencode';
 assert.ok(executable, 'offline scripted executable is required');
 const evidence = { schemaVersion: 1, host, hostVersion: expectedVersion, scenario,
-  ...(blockTrial ? { claudeFeedbackMode: 'block-current-findings', trial: 'claude-block' } : {}),
+  ...(blockMode ? { claudeFeedbackMode: 'block-current-findings', trial: blockStageB ? 'claude-block-stage-b' : 'claude-block' } : {}),
   mode: host === 'claude' ? 'headless-print' : 'headless-run', controlledOfflineBackend: true,
   platform: platform(), timestampSource: 'runner-wall-clock-relative-to-host-spawn',
   timestampBoundary: 'native-event-stdout-observed-to-bridge-hook-finish',
@@ -83,7 +91,7 @@ const evidence = { schemaVersion: 1, host, hostVersion: expectedVersion, scenari
 const callCli = (operation, digest) => {
   const result = spawnSync(process.execPath, [cli, `--${operation}`], {
     cwd: project, env: { ...process.env, REVIEW_STATE_PATH: statePath,
-      ...(blockTrial ? { REVIEW_USER_CONFIG_PATH: userConfigPath } : {}) },
+      ...(blockMode ? { REVIEW_USER_CONFIG_PATH: userConfigPath } : {}) },
     input: JSON.stringify({ version: 1, operation, cwd: repo, ...(digest ? { proposalDigest: digest } : {}) }),
     encoding: 'utf8', timeout: 8_000, maxBuffer: 262_144,
   });
@@ -93,17 +101,18 @@ const callCli = (operation, digest) => {
 const controlled = scenario === 'timeout' ? { delayMs: 10_000 } : scenario === 'stale' ? { delayMs: 2_000 } :
   scenario === 'failure' ? { failure: 'synthetic backend unavailable' } : {};
 const env = { ...process.env, REVIEW_STATE_PATH: statePath, REVIEW_RESIDENT_DIR: join(root, 'resident'),
-  ...(blockTrial ? { REVIEW_USER_CONFIG_PATH: userConfigPath } : {}),
-  REVIEW_CONTROL_JSON: JSON.stringify({ ...controlled, outcomePath,
-    ...(blockTrial ? { syntheticR6BrandedRepair: scenario } : { answers: Object.fromEntries(configuredRules.map(rule => [
+  ...(blockMode ? { REVIEW_USER_CONFIG_PATH: userConfigPath } : {}),
+  REVIEW_CONTROL_JSON: JSON.stringify({ ...controlled, outcomePath, capturePath,
+    ...(blockMode ? { syntheticR6BrandedRepair: scenario === 'control' || (blockStageB && restartNew) ? 'control' : 'finding' } : { answers: Object.fromEntries(configuredRules.map(rule => [
       rule.id, { _tag: 'Probability', probability: scenario !== 'control' && rule.id === 'r6_bare_domain_value' ? 0.9 : 0 },
     ])) }) }),
   HAPSLAND_94_CLI: offlineScripted && process.env.HAPSLAND_94_SCRIPTED_CLI
     ? process.env.HAPSLAND_94_SCRIPTED_CLI : cli,
   HAPSLAND_94_TRACE: trace, HAPSLAND_94_SALT: salt,
   ...(offlineScripted ? { HAPSLAND_94_FAKE_SESSION: scenario } : {}),
-  ...(offlineScripted && blockTrial ? { HAPSLAND_94_FAKE_BRANDED_REPAIR: '1' } : {}),
+  ...(offlineScripted && blockMode ? { HAPSLAND_94_FAKE_BRANDED_REPAIR: '1' } : {}),
   REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH: join(root, 'admitted'),
+  REVIEW_RESIDENT_ADMISSION_TRACE_PATH: admissionTracePath,
   ...(scenario === 'stale' || scenario === 'host-failure' || restartOld || restartNew ? {
     REVIEW_RESIDENT_BACKEND_GATE_PATH: join(root, 'backend-gate'),
   } : {}) };
@@ -118,11 +127,21 @@ let failureCategory = 'runner-exception';
 
 const checkStage = entries => {
   const prior = entries.filter(entry => entry.host === host);
+  assert.ok(!prior.some(entry => !entry.finish || entry.finish.status !== 'recorded'),
+    'a prior host scenario did not pass; stop this host pass');
+  if (blockStageB) {
+    assert.ok(entries.every(entry => entry.host === 'claude'),
+      'Claude Stage B ledger contains another host');
+    const order = ['stale', 'timeout', 'failure'].includes(scenario)
+      ? ['stale', 'timeout', 'failure']
+      : scenario === 'host-failure' ? ['host-failure'] : ['restart-old', 'restart-new'];
+    assert.deepEqual(prior.map(entry => entry.scenario), order.slice(0, order.indexOf(scenario)),
+      'Claude Stage B needs a fresh ordered ledger for this pass');
+    return;
+  }
   if (blockTrial) assert.deepEqual(prior.map(entry => entry.scenario),
     scenario === 'control' ? [] : ['control'],
     'Claude block trial requires a fresh ledger and at most two sequential sessions');
-  assert.ok(!prior.some(entry => !entry.finish || entry.finish.status !== 'recorded'),
-    'a prior host scenario did not pass; stop this host pass');
   assert.ok(!prior.some(entry => entry.scenario === scenario), 'scenario already consumed for this host');
   if (scenario === 'control') assert.equal(prior.length, 0, 'control must be first');
   else if (scenario === 'finding') assert.ok(prior.some(entry => entry.scenario === 'control'),
@@ -137,9 +156,16 @@ try {
   failureCategory = 'stale-build';
   assertFreshProductionBuild();
   failureCategory = 'blocked-stage-b-admission';
-  assert.ok(offlineScripted || (scenario !== 'stale' && scenario !== 'host-failure'),
+  assert.ok(offlineScripted || blockStageB || (scenario !== 'stale' && scenario !== 'host-failure'),
     'real-host stale and host-failure require an exact source-free admission alias');
   failureCategory = 'runner-exception';
+  if (blockStageB) {
+    const manifest = JSON.parse(readFileSync(join(ledgerDirectory, 'manifest.json'), 'utf8'));
+    const expectedPurpose = ['stale', 'timeout', 'failure'].includes(scenario)
+      ? 'claude-block-stage-b-core' : scenario === 'host-failure'
+        ? 'claude-block-stage-b-host-failure' : 'claude-block-stage-b-restart';
+    assert.equal(manifest.purpose, expectedPurpose, 'fresh scenario-specific Stage B ledger required');
+  }
   checkStage(readPassLedger(ledgerDirectory));
   const version = spawnSync(executable, ['--version'], { encoding: 'utf8', timeout: 2_000 });
   assert.equal(version.status, 0);
@@ -167,12 +193,14 @@ try {
     rootOwned = true;
     rmSync(source, { force: true });
     rmSync(trace, { force: true });
+    rmSync(admissionTracePath, { force: true });
+    rmSync(capturePath, { force: true });
     rmSync(env.REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH, { force: true });
     writeFileSync(env.REVIEW_RESIDENT_BACKEND_GATE_PATH, 'open\n');
   } else {
     mkdirSync(repo);
     assert.equal(spawnSync('git', ['init', '-q', repo]).status, 0);
-    if (blockTrial) writeFileSync(userConfigPath,
+    if (blockMode) writeFileSync(userConfigPath,
       '{"version":1,"claudeFeedbackMode":"block-current-findings"}\n', { mode: 0o600 });
     const preview = callCli('enable');
     assert.equal(preview.status, 'preview');
@@ -237,7 +265,7 @@ try {
       ? null : Date.now() - started;
     claudeStreamDiagnostics?.observe(line, observedAtMs);
     const parsed = nativeEditEvents(host, line, observedAtMs, salt);
-    if (blockTrial) {
+    if (blockMode) {
       let message;
       try { message = JSON.parse(line); } catch { message = null; }
       const parts = message?.type === 'assistant' && Array.isArray(message?.message?.content)
@@ -279,15 +307,22 @@ try {
     try { return readFileSync(trace, 'utf8').trim().split('\n').filter(Boolean).map(line => JSON.parse(line)); }
     catch { return []; }
   };
+  const admissionEvents = () => {
+    try { return readFileSync(admissionTracePath, 'utf8').trim().split('\n').filter(Boolean).map(line => JSON.parse(line)); }
+    catch { return []; }
+  };
   const matchedAdmission = () => {
     if (!existsSync(env.REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH)) return false;
     const trace = traceEvents();
     const starts = trace.filter(item => item.phase === 'start');
-    if (starts.length !== 1 || trace.some(item => item.phase === 'finish') || nativeEvents.length !== 1) return false;
+    const admissions = admissionEvents();
+    if (starts.length !== 1 || admissions.length !== 1 || trace.some(item => item.phase === 'finish') || nativeEvents.length !== 1) return false;
     return Boolean(starts[0].key && starts[0].key === nativeEvents[0].key &&
-      starts[0].tool === nativeEvents[0].tool && nativeEvents[0].initialInput);
+      starts[0].tool === nativeEvents[0].tool && nativeEvents[0].initialInput &&
+      starts[0].key === admissions[0].key && starts[0].sessionKey === admissions[0].sessionKey);
   };
   let staleMutation = false;
+  let staleGateReleased = false;
   let hostFailureTriggered = false;
   poll = scenario === 'stale' || scenario === 'host-failure' ? setInterval(() => {
     if ((staleMutation || hostFailureTriggered) ||
@@ -296,9 +331,15 @@ try {
     if (!matchedAdmission()) return;
     try { if (readFileSync(source, 'utf8').includes('type OrderCount = number')) {
       if (scenario === 'stale') {
+        if (blockStageB && !staleGateReleased) {
+          staleGateReleased = true;
+          writeFileSync(env.REVIEW_RESIDENT_BACKEND_GATE_PATH, 'open\n');
+          return;
+        }
+        if (blockStageB && !existsSync(capturePath)) return;
         writeFileSync(source, 'export const ready = true\n');
         staleMutation = true;
-        writeFileSync(env.REVIEW_RESIDENT_BACKEND_GATE_PATH, 'open\n');
+        if (!blockStageB) writeFileSync(env.REVIEW_RESIDENT_BACKEND_GATE_PATH, 'open\n');
       } else {
         hostFailureTriggered = true;
         hostLifecycle?.terminate();
@@ -312,6 +353,7 @@ try {
   if (incompleteLine) consume(incompleteLine);
   const final = existsSync(source) ? readFileSync(source, 'utf8') : '';
   const allTraceEvents = traceEvents();
+  const allAdmissions = admissionEvents();
   const events = allTraceEvents.filter(item => item.phase === 'finish');
   const initialNative = nativeEvents.filter(item => item.initialInput && item.key && item.tool &&
     Number.isFinite(item.observedAtMs) && item.observedAtMs >= 0);
@@ -322,6 +364,10 @@ try {
     candidateInitialHooks[0].finishedAtMs >= 0;
   const initialHooks = initialHookComplete ? candidateInitialHooks : [];
   const initialCallComplete = initialNative.length === 1 && initialHookComplete;
+  const initialAdmissionMatched = initialCallComplete && allAdmissions.filter(item =>
+    item.key === initialNative[0].key && item.sessionKey === initialHooks[0].sessionKey).length === 1;
+  const backendCalls = existsSync(capturePath)
+    ? readFileSync(capturePath, 'utf8').split('\n').filter(Boolean) : [];
   const reviewOutcomes = (() => {
     try { return readFileSync(outcomePath, 'utf8').trim().split('\n').filter(Boolean).map(line => JSON.parse(line)); }
     catch { return []; }
@@ -365,14 +411,18 @@ try {
   evidence.initialNativeEditObservedAtMs = initialCallComplete ? initialNative[0].observedAtMs : null;
   evidence.initialHookFinishedAtMs = initialCallComplete ? initialHooks[0].finishedAtMs : null;
   evidence.reviewAdmissionMarkerObserved = existsSync(env.REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH);
+  evidence.initialAdmissionMatched = initialAdmissionMatched;
+  evidence.admissionTraceCount = allAdmissions.length;
+  evidence.backendCallCount = backendCalls.length;
   if (process.env.HAPSLAND_94_TIMING_LOG) {
     evidence.admissionMarkerAtMs = evidence.reviewAdmissionMarkerObserved
       ? Math.round(statSync(env.REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH).mtimeMs - started) : null;
     evidence.reviewOutcomeFileAtMs = existsSync(outcomePath)
       ? Math.round(statSync(outcomePath).mtimeMs - started) : null;
   }
-  evidence.reviewAdmissionAttribution = evidence.reviewAdmissionMarkerObserved
-    ? 'unattributed-global-marker' : 'not-observed';
+  evidence.reviewAdmissionAttribution = initialAdmissionMatched
+    ? 'hashed-session-and-tool-call' : evidence.reviewAdmissionMarkerObserved
+      ? 'unattributed-global-marker' : 'not-observed';
   evidence.reviewCompletedOutcome = initialOutcomes.length === 1 ? initialOutcomes[0].outcome : 'not-observed';
   if (blockTrial && scenario === 'finding') {
     evidence.repairReviewCompletedClear = repairOutcomes.length === 1;
@@ -407,9 +457,9 @@ try {
   evidence.admissionMatchedInitialNativeCall = scenario === 'stale' || scenario === 'host-failure'
     ? Boolean(staleMutation || hostFailureTriggered) : null;
   evidence.exactAdmissionAttributionProven = scenario === 'stale' || scenario === 'host-failure'
-    ? offlineScripted && evidence.admissionMatchedInitialNativeCall : null;
+    ? evidence.admissionMatchedInitialNativeCall : null;
   evidence.admissionAttributionLimit = scenario === 'stale' || scenario === 'host-failure'
-    ? offlineScripted ? 'scripted-single-call' : 'unproven-generic-accepted-marker' : null;
+    ? evidence.exactAdmissionAttributionProven ? 'hashed-session-and-tool-call' : 'unproven-admission' : null;
   evidence.hostFailureTriggeredAfterAdmission = scenario === 'host-failure'
     ? admissionObserved && hostFailureTriggered : null;
   if (restartOld || restartNew) {
@@ -447,14 +497,20 @@ try {
       !evidence.finalRepairObserved &&
       (!blockTrial || (evidence.finalFileExact && nativeEvents.length === 1 && events.length === 1 &&
         reviewOutcomes.length === 1)) : null;
+  const stageBBounded = !blockStageB || (backendCalls.length <= 1 &&
+    allAdmissions.length === 1 && evidence.hostSubmissions <= 1 &&
+    evidence.blockFindingSubmissions === 0 && evidence.findingSubmissions === 0 &&
+    evidence.unclassifiedSubmissions === 0);
   evidence.adviceAfterStaleMutation = scenario === 'stale' ? evidence.findingSubmissions > 0 : null;
   evidence.hostOutputParsedForSourceFreeSignalsOnly = true;
   evidence.status = timedOut || exceededOutput || exit.forcedClose ? 'incomplete' : 'recorded';
   evidence.acceptanceStatus = scenario === 'host-failure'
     ? evidence.exactAdmissionAttributionProven && hostFailureTriggered && admissionObserved && evidence.completedSyntheticEdit &&
-      evidence.hostSubmissions === 0 && evidence.hostTerminatedBySignal ? 'passed' : 'incomplete'
+      evidence.hostSubmissions === 0 && evidence.hostTerminatedBySignal && stageBBounded &&
+      backendCalls.length === 0 ? 'passed' : 'incomplete'
     : evidence.status !== 'recorded' || exit.code !== 0 || !evidence.completedSyntheticEdit ||
-      !initialCallComplete || !evidence.reviewAdmissionMarkerObserved
+      !initialCallComplete || !evidence.reviewAdmissionMarkerObserved || !stageBBounded ||
+      (blockStageB && !initialAdmissionMatched)
     ? 'incomplete'
     : scenario === 'control'
       ? evidence.controlNoAdviceAndNoRepair ? 'passed' : 'failed'
@@ -470,17 +526,25 @@ try {
           && evidence.unclassifiedSubmissions === 0 ? 'passed' : 'failed'
         : scenario === 'stale'
           ? evidence.exactAdmissionAttributionProven && admissionObserved && staleMutation &&
-            evidence.hostSubmissions === 0 ? 'passed' : 'incomplete'
+            evidence.hostSubmissions === 0 && (!blockStageB || (backendCalls.length === 1 &&
+              initialOutcomes.length === 1 && initialOutcomes[0].outcome === 'completed-findings'))
+              ? 'passed' : 'incomplete'
           : restartOld
             ? evidence.restartAdmissionObserved && evidence.restartOldOutcomeAbsent &&
-              evidence.restartOldSessionAttributionPresent && evidence.hostSubmissions === 0 ? 'passed' : 'incomplete'
+              evidence.restartOldSessionAttributionPresent && evidence.hostSubmissions === 0 &&
+              (!blockStageB || backendCalls.length === 0) ? 'passed' : 'incomplete'
             : restartNew
               ? evidence.restartAdmissionObserved && evidence.restartNewRecipientDistinct &&
-                evidence.restartOutcomesOnlyNewRecipient && evidence.restartNewFindingSubmitted ? 'passed' : 'incomplete'
+              evidence.restartOutcomesOnlyNewRecipient &&
+                (blockStageB ? evidence.reviewCompletedOutcome === 'completed-clear' &&
+                  evidence.hostSubmissions === 0 && backendCalls.length === 1
+                  : evidence.restartNewFindingSubmitted) ? 'passed' : 'incomplete'
           : scenario === 'timeout'
-            ? evidence.hostSubmissions === 0 && events.every(x => x.elapsedMs < 5_000) ? 'passed' : 'failed'
+            ? evidence.hostSubmissions === 0 && events.every(x => x.elapsedMs < 5_000) &&
+              (!blockStageB || (backendCalls.length === 1 && reviewOutcomes.length === 0)) ? 'passed' : 'failed'
             : evidence.findingSubmissions === 0 && evidence.unclassifiedSubmissions === 0 &&
-              evidence.operationalNoticeSubmissions <= 1 ? 'passed' : 'failed';
+              evidence.operationalNoticeSubmissions <= 1 &&
+              (!blockStageB || (backendCalls.length === 1 && reviewOutcomes.length === 0)) ? 'passed' : 'failed';
 } catch {
   evidence.status = 'incomplete';
   evidence.acceptanceStatus = 'incomplete';

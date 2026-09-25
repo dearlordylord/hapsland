@@ -7,6 +7,11 @@ import { join } from 'node:path';
 const HOSTS = new Set(['claude', 'opencode']);
 const FINISH_STATUSES = new Set(['recorded', 'incomplete', 'failed', 'abandoned']);
 const MANIFEST = { schemaVersion: 1, purpose: 'issue-94-new-pass', perHostStartLimit: 8, totalStartLimit: 16 };
+const STAGE_B_MANIFESTS = [
+  { schemaVersion: 1, purpose: 'claude-block-stage-b-core', perHostStartLimit: 3, totalStartLimit: 3 },
+  { schemaVersion: 1, purpose: 'claude-block-stage-b-host-failure', perHostStartLimit: 1, totalStartLimit: 1 },
+  { schemaVersion: 1, purpose: 'claude-block-stage-b-restart', perHostStartLimit: 2, totalStartLimit: 2 },
+];
 const eventName = (sequence, kind) => `${String(sequence).padStart(3, '0')}-${kind}.json`;
 const assert = (condition, message) => { if (!condition) throw new Error(`pass ledger: ${message}`); };
 const sameKeys = (value, keys) => Object.keys(value).sort().join(',') === [...keys].sort().join(',');
@@ -34,11 +39,12 @@ const withLock = (directory, action) => {
 };
 const load = directory => {
   const manifest = parse(join(directory, 'manifest.json'));
-  assert(sameKeys(manifest, Object.keys(MANIFEST)) && Object.entries(MANIFEST).every(([key, value]) => manifest[key] === value), 'manifest mismatch');
+  const expected = STAGE_B_MANIFESTS.find(item => item.purpose === manifest.purpose) ?? MANIFEST;
+  assert(sameKeys(manifest, Object.keys(expected)) && Object.entries(expected).every(([key, value]) => manifest[key] === value), 'manifest mismatch');
   const names = readdirSync(directory).filter(name => name !== 'manifest.json' && name !== '.lock' && !name.startsWith('.pending-'));
   assert(names.every(name => /^\d{3}-(start|finish)\.json$/.test(name)), 'unknown ledger entry');
   const starts = names.filter(name => name.endsWith('-start.json')).sort();
-  assert(starts.length <= 16, 'total start limit exceeded');
+  assert(starts.length <= manifest.totalStartLimit, 'total start limit exceeded');
   const entries = starts.map((name, index) => {
     const sequence = index + 1;
     assert(name === eventName(sequence, 'start'), 'missing or unordered start');
@@ -57,15 +63,16 @@ const load = directory => {
     return { ...start, finish };
   });
   assert(names.length === starts.length + entries.filter(entry => entry.finish).length, 'orphan finish');
-  for (const host of HOSTS) assert(entries.filter(entry => entry.host === host).length <= 8, 'per-host start limit exceeded');
+  for (const host of HOSTS) assert(entries.filter(entry => entry.host === host).length <= manifest.perHostStartLimit, 'per-host start limit exceeded');
   assert(entries.filter(entry => !entry.finish).length <= 1, 'multiple unfinished starts');
   return entries;
 };
 
-export function initializePassLedger(directory) {
+export function initializePassLedger(directory, purpose = MANIFEST.purpose) {
+  assert(purpose === MANIFEST.purpose || STAGE_B_MANIFESTS.some(item => item.purpose === purpose), 'unknown ledger purpose');
   assert(!existsSync(directory), 'ledger already exists; never overwrite or reset a pass');
   mkdirSync(directory, { recursive: false, mode: 0o700 });
-  putImmutable(directory, 'manifest.json', MANIFEST);
+  putImmutable(directory, 'manifest.json', STAGE_B_MANIFESTS.find(item => item.purpose === purpose) ?? MANIFEST);
   return readPassLedger(directory);
 }
 
@@ -79,8 +86,9 @@ export function claimPassStart(directory, { host, scenario }) {
   return withLock(directory, () => {
     const entries = load(directory);
     assert(!entries.some(entry => !entry.finish), 'an earlier start is unfinished');
-    assert(entries.length < 16, 'total start limit exhausted');
-    assert(entries.filter(entry => entry.host === host).length < 8, 'host start limit exhausted');
+    const manifest = parse(join(directory, 'manifest.json'));
+    assert(entries.length < manifest.totalStartLimit, 'total start limit exhausted');
+    assert(entries.filter(entry => entry.host === host).length < manifest.perHostStartLimit, 'host start limit exhausted');
     const start = { schemaVersion: 1, sequence: entries.length + 1, host, scenario,
       startedAt: Date.now(), ownerPid: process.pid };
     putImmutable(directory, eventName(start.sequence, 'start'), start);
