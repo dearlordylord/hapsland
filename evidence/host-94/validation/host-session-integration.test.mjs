@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { cpSync, mkdtempSync, mkdirSync, rmSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, mkdirSync, rmSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { test } from 'node:test';
 import { initializePassLedger, readPassLedger, claimPassStart, finishPass } from './pass-ledger.mjs';
+import { cleanupAbandonedRestartScratch, restartScratchDirectory } from './restart-scratch.mjs';
 
 // The executable below is a scripted provider/host stand-in. It invokes the
 // exact generated bridge and production controlled CLI with synthetic native
@@ -445,6 +446,12 @@ test('offline Claude block Stage B requires three fresh bounded ledgers and pass
         assert.ok(summary.backendCallCount <= 1);
         if (scenario !== 'host-failure') assert.equal(summary.initialAdmissionMatched, true);
         if (scenario === 'host-failure') assert.equal(summary.exactAdmissionAttributionProven, true);
+        if (scenario === 'restart-old') {
+          const scratch = restartScratchDirectory(env.HAPSLAND_94_PASS_LEDGER);
+          assert.equal(existsSync(join(scratch, 'repo', 'order-count.ts')), false,
+            'source-bearing old file must be removed before restart-new');
+          assert.equal(existsSync(join(scratch, 'restart-checkpoint.json')), true);
+        }
       }
       for (const [suffix, count] of [['core', 3], ['host-failure', 1], ['restart', 2]])
         assert.deepEqual(readPassLedger(join(root, `stage-b-${suffix}`)).map(entry => entry.finish.status),
@@ -467,6 +474,61 @@ test('Claude block Stage B refuses an old allocation before host or ledger claim
     assert.equal(readPassLedger(ledger).length, 0);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+test('malformed admission traces cannot trigger Stage B stale mutation or host termination',
+  { timeout: 60_000 }, () => {
+    for (const [fault, scenario, expectedCount] of [
+      ['missing', 'stale', 0], ['wrong', 'host-failure', 1], ['duplicate', 'stale', 2],
+    ]) {
+      const root = mkdtempSync(join(tmpdir(), `hapsland-94-admission-${fault}-`));
+      try {
+        const executable = join(root, 'scripted-host.mjs');
+        const ledger = join(root, 'ledger');
+        writeFileSync(executable, fakeHost, { mode: 0o700 });
+        initializePassLedger(ledger, scenario === 'stale'
+          ? 'claude-block-stage-b-core' : 'claude-block-stage-b-host-failure');
+        const result = spawnSync(process.execPath,
+          [runner, 'claude', scenario, '--offline-scripted', '--claude-block-stage-b'], {
+            env: { ...process.env, HAPSLAND_94_PASS_LEDGER: ledger,
+              HAPSLAND_94_SCRIPTED_EXECUTABLE: executable, HAPSLAND_94_FAKE_HOST: 'claude',
+              HAPSLAND_94_FAKE_ADMISSION_TRACE_MODE: fault, TYPESAFE_API_KEY: '' },
+            encoding: 'utf8', timeout: 20_000, maxBuffer: 262_144,
+          });
+        const summary = JSON.parse(result.stdout);
+        assert.equal(summary.acceptanceStatus, 'incomplete', fault);
+        assert.equal(summary.admissionTraceCount, expectedCount, fault);
+        assert.equal(summary.initialAdmissionMatched, false, fault);
+        assert.equal(summary.externalStaleMutation, false, fault);
+        assert.equal(summary.hostFailureTriggeredAfterAdmission, scenario === 'host-failure' ? false : null, fault);
+        assert.equal(readPassLedger(ledger)[0].finish.status, 'incomplete', fault);
+      } finally { rmSync(root, { recursive: true, force: true }); }
+    }
+  });
+test('an abandoned passing restart-old can be explicitly cleaned without restart-new',
+  { timeout: 30_000 }, () => {
+    const root = mkdtempSync(join(tmpdir(), 'hapsland-94-abandoned-restart-'));
+    const ledger = join(root, 'ledger');
+    const scratch = restartScratchDirectory(ledger);
+    try {
+      const executable = join(root, 'scripted-host.mjs');
+      writeFileSync(executable, fakeHost, { mode: 0o700 });
+      initializePassLedger(ledger, 'claude-block-stage-b-restart');
+      const result = spawnSync(process.execPath,
+        [runner, 'claude', 'restart-old', '--offline-scripted', '--claude-block-stage-b'], {
+          env: { ...process.env, HAPSLAND_94_PASS_LEDGER: ledger,
+            HAPSLAND_94_SCRIPTED_EXECUTABLE: executable, HAPSLAND_94_FAKE_HOST: 'claude',
+            TYPESAFE_API_KEY: '' },
+          encoding: 'utf8', timeout: 20_000, maxBuffer: 262_144,
+        });
+      assert.equal(JSON.parse(result.stdout).acceptanceStatus, 'passed');
+      assert.equal(existsSync(join(scratch, 'repo', 'order-count.ts')), false);
+      assert.equal(existsSync(join(scratch, 'restart-checkpoint.json')), true);
+      cleanupAbandonedRestartScratch(ledger);
+      assert.equal(existsSync(scratch), false);
+    } finally {
+      if (existsSync(scratch)) cleanupAbandonedRestartScratch(ledger);
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 test('Claude block Stage B refuses an out-of-order pass without consuming its cap', () => {
   const root = mkdtempSync(join(tmpdir(), 'hapsland-94-order-stage-b-'));
   try {

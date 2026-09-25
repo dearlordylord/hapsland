@@ -8,9 +8,10 @@ import { platform, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { configuredRules } from '../../../src/policy/rules.ts';
-import { HOST_VERSIONS, createClaudeStreamDiagnostics, manageChildProcess, matchesKnownHostVersion } from './host-session-helpers.mjs';
+import { HOST_VERSIONS, createClaudeStreamDiagnostics, hostFailureAcceptance, manageChildProcess, matchesKnownHostVersion } from './host-session-helpers.mjs';
 import { nativeEditEvents, reactionEvidence } from './reaction-events.mjs';
 import { readPassLedger, claimPassStart, finishPass } from './pass-ledger.mjs';
+import { initializeRestartScratch, restartScratchDirectory, verifyRestartScratch } from './restart-scratch.mjs';
 
 const [host, scenario] = process.argv.slice(2);
 assert.ok(['claude', 'opencode'].includes(host) &&
@@ -30,6 +31,10 @@ assert.ok(!blockStageB || (host === 'claude' &&
 assert.ok(offlineScripted || host !== 'claude' || blockTrial || blockStageB,
   'authenticated Claude requires an explicit block pass gate');
 const blockMode = blockTrial || blockStageB;
+const admissionTraceFault = offlineScripted && blockStageB
+  ? process.env.HAPSLAND_94_FAKE_ADMISSION_TRACE_MODE : undefined;
+assert.ok(admissionTraceFault === undefined || ['missing', 'wrong', 'duplicate'].includes(admissionTraceFault),
+  'unknown offline admission trace fault');
 const ledgerDirectory = process.env.HAPSLAND_94_PASS_LEDGER;
 assert.ok(ledgerDirectory, 'an initialized HAPSLAND_94_PASS_LEDGER is required');
 const project = resolve(import.meta.dirname, '../../..');
@@ -55,7 +60,7 @@ const restartOld = scenario === 'restart-old';
 const restartNew = scenario === 'restart-new';
 const timingRoot = offlineScripted ? process.env.HAPSLAND_94_TIMING_SESSION_ROOT : undefined;
 const root = timingRoot ?? (restartOld || restartNew
-  ? `${resolve(ledgerDirectory)}-scratch-${host}-restart`
+  ? restartScratchDirectory(ledgerDirectory)
   : mkdtempSync(join(tmpdir(), `hapsland-94-session-${host}-`)));
 if (timingRoot !== undefined) mkdirSync(root, { recursive: true, mode: 0o700 });
 const repo = join(root, 'repo');
@@ -72,7 +77,7 @@ const checkpointPath = join(root, 'restart-checkpoint.json');
 const outcomePath = join(root, 'outcome.jsonl');
 const admissionTracePath = join(root, 'admission.jsonl');
 const capturePath = join(root, 'backend-calls.txt');
-const salt = restartNew ? readFileSync(saltPath, 'utf8') : randomUUID();
+let salt = randomUUID();
 const maxSessionMs = 90_000;
 const expectedVersion = HOST_VERSIONS[host];
 const executable = offlineScripted
@@ -183,13 +188,16 @@ try {
     assert.ok(ready, 'selected exact host profile is not authenticated');
   }
   if (restartOld) {
-    mkdirSync(root, { mode: 0o700 });
+    assert.equal(initializeRestartScratch(ledgerDirectory), root);
     rootOwned = true;
     writeFileSync(saltPath, salt, { mode: 0o600 });
   }
   if (restartNew) {
+    assert.equal(verifyRestartScratch(ledgerDirectory), root);
     assert.ok(existsSync(checkpointPath), 'restart-old checkpoint missing');
     assert.ok(!existsSync(outcomePath), 'old backend completed before restart-new');
+    salt = readFileSync(saltPath, 'utf8');
+    env.HAPSLAND_94_SALT = salt;
     rootOwned = true;
     rmSync(source, { force: true });
     rmSync(trace, { force: true });
@@ -308,7 +316,13 @@ try {
     catch { return []; }
   };
   const admissionEvents = () => {
-    try { return readFileSync(admissionTracePath, 'utf8').trim().split('\n').filter(Boolean).map(line => JSON.parse(line)); }
+    try {
+      const records = readFileSync(admissionTracePath, 'utf8').trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+      if (admissionTraceFault === 'missing') return [];
+      if (admissionTraceFault === 'wrong') return records.map(item => ({ ...item, key: '0'.repeat(64) }));
+      if (admissionTraceFault === 'duplicate') return records.flatMap(item => [item, item]);
+      return records;
+    }
     catch { return []; }
   };
   const matchedAdmission = () => {
@@ -505,9 +519,8 @@ try {
   evidence.hostOutputParsedForSourceFreeSignalsOnly = true;
   evidence.status = timedOut || exceededOutput || exit.forcedClose ? 'incomplete' : 'recorded';
   evidence.acceptanceStatus = scenario === 'host-failure'
-    ? evidence.exactAdmissionAttributionProven && hostFailureTriggered && admissionObserved && evidence.completedSyntheticEdit &&
-      evidence.hostSubmissions === 0 && evidence.hostTerminatedBySignal && stageBBounded &&
-      backendCalls.length === 0 ? 'passed' : 'incomplete'
+    ? hostFailureAcceptance(evidence, { stageBBounded, backendCallCount: backendCalls.length })
+      ? 'passed' : 'incomplete'
     : evidence.status !== 'recorded' || exit.code !== 0 || !evidence.completedSyntheticEdit ||
       !initialCallComplete || !evidence.reviewAdmissionMarkerObserved || !stageBBounded ||
       (blockStageB && !initialAdmissionMatched)
@@ -585,6 +598,7 @@ try {
         assert.ok(oldSessionKey, 'old recipient missing');
         writeFileSync(checkpointPath, JSON.stringify({ oldSessionKey, oldAdmissionObserved: true,
           oldOutcomeAbsent: true }), { mode: 0o600 });
+        rmSync(source, { force: true });
       } catch { evidence.acceptanceStatus = 'incomplete'; }
     }
   }

@@ -57,6 +57,20 @@ export function matchesKnownHostVersion(host, output) {
   return typeof output === 'string' && output.trim() === expectedOutput;
 }
 
+export function hostFailureAcceptance(evidence, { stageBBounded, backendCallCount }) {
+  return evidence.status === 'recorded' &&
+    evidence.hostTimedOut === false &&
+    evidence.outputCeilingExceeded === false &&
+    evidence.hostCloseForced === false &&
+    evidence.hostTerminatedBySignal === true &&
+    evidence.hostExitCode === null &&
+    evidence.exactAdmissionAttributionProven === true &&
+    evidence.hostFailureTriggeredAfterAdmission === true &&
+    evidence.completedSyntheticEdit === true &&
+    evidence.hostSubmissions === 0 &&
+    stageBBounded === true && backendCallCount === 0;
+}
+
 export function manageChildProcess(child, {
   terminationGraceMs = HOST_TERMINATION_GRACE_MS,
   killWaitMs = HOST_KILL_WAIT_MS,

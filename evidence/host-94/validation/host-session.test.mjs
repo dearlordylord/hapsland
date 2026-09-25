@@ -2,7 +2,33 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { test } from 'node:test';
-import { createClaudeStreamDiagnostics, manageChildProcess, matchesKnownHostVersion } from './host-session-helpers.mjs';
+import { createClaudeStreamDiagnostics, hostFailureAcceptance, manageChildProcess, matchesKnownHostVersion } from './host-session-helpers.mjs';
+
+test('host-failure gate rejects timeout, output cap, and forced close after attributed admission', () => {
+  const accepted = {
+    status: 'recorded', hostTimedOut: false, outputCeilingExceeded: false,
+    hostCloseForced: false, hostTerminatedBySignal: true, hostExitCode: null,
+    exactAdmissionAttributionProven: true, hostFailureTriggeredAfterAdmission: true,
+    completedSyntheticEdit: true, hostSubmissions: 0,
+  };
+  const limits = { stageBBounded: true, backendCallCount: 0 };
+  assert.equal(hostFailureAcceptance(accepted, limits), true);
+  for (const invalid of [
+    { status: 'incomplete', hostTimedOut: true },
+    { status: 'incomplete', outputCeilingExceeded: true },
+    { status: 'incomplete', hostCloseForced: true },
+    { hostTimedOut: true },
+    { outputCeilingExceeded: true },
+    { hostCloseForced: true },
+    { hostExitCode: 0 },
+    { hostTerminatedBySignal: false },
+  ]) {
+    assert.equal(hostFailureAcceptance({ ...accepted, ...invalid }, limits), false,
+      `accepted invalid host closure: ${JSON.stringify(invalid)}`);
+  }
+  assert.equal(hostFailureAcceptance(accepted, { ...limits, backendCallCount: 1 }), false);
+  assert.equal(hostFailureAcceptance(accepted, { ...limits, stageBBounded: false }), false);
+});
 
 test('Claude stream diagnostics retain only allowlisted categories and relative times', () => {
   const diagnostics = createClaudeStreamDiagnostics();
