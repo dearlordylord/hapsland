@@ -36,7 +36,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     await enable(root, statePath);
     const path = await put(root, "type.ts", "type ClearCount = number\n");
     const started = performance.now();
-    const result = spawnSync(process.execPath, ["src/cli.ts", "--claude-hook", "--controlled", "--controlled-writer"], {
+    const result = spawnSync(process.execPath, ["src/cli.ts", "--claude-hook", "--controlled-reviewer", "--controlled-writer"], {
       cwd: process.cwd(),
       input: JSON.stringify({
         hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
@@ -76,7 +76,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
         rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
       ])) }),
     };
-    const invoke = (input: unknown, selectedEnv: NodeJS.ProcessEnv = env) => spawnSync(process.execPath, ["src/cli.ts", "--claude-hook", "--controlled", "--controlled-writer"], {
+    const invoke = (input: unknown, selectedEnv: NodeJS.ProcessEnv = env) => spawnSync(process.execPath, ["src/cli.ts", "--claude-hook", "--controlled-reviewer", "--controlled-writer"], {
       cwd: process.cwd(), input: JSON.stringify(input), encoding: "utf8", env: selectedEnv, timeout: 7_000,
     });
     const result = invoke(event);
@@ -122,7 +122,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     await enable(root, statePath);
     const path = await put(root, "type.ts", "type OrderCount = number\n");
     const started = performance.now();
-    const result = spawnSync(process.execPath, ["src/cli.ts", "--claude-hook", "--controlled", "--controlled-writer"], {
+    const result = spawnSync(process.execPath, ["src/cli.ts", "--claude-hook", "--controlled-reviewer", "--controlled-writer"], {
       cwd: process.cwd(),
       input: JSON.stringify({
         hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
@@ -170,7 +170,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
       tool_response: { filePath: path, content: "type OrderCount = number\n", originalFile: null, userModified: false },
     };
     writeFileSync(`${ackGatePath}.enabled`, "enabled\n");
-    const child = spawn(process.execPath, ["src/cli.ts", "--claude-hook", "--controlled", "--controlled-writer"], {
+    const child = spawn(process.execPath, ["src/cli.ts", "--claude-hook", "--controlled-reviewer", "--controlled-writer"], {
       cwd: process.cwd(), stdio: ["pipe", "pipe", "pipe"], env,
     });
     const completed = new Promise<{ readonly code: number | null; readonly signal: NodeJS.Signals | null }>((resolve, reject) => {

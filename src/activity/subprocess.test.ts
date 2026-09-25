@@ -74,7 +74,7 @@ describe("production resident activity subprocess", { timeout: 30_000 }, () => {
       },
       tool_response: {},
     };
-    const hook = spawnSync(process.execPath, ["src/cli.ts", "--codex-hook", "--controlled", "--controlled-writer"], {
+    const hook = spawnSync(process.execPath, ["src/cli.ts", "--codex-hook", "--controlled-reviewer", "--controlled-writer"], {
       cwd: process.cwd(),
       env: environment,
       input: JSON.stringify(event),

@@ -131,8 +131,10 @@ npm run config:check
 npm run typecheck
 npm test
 npm run conformance:package
-npm run review -- --controlled < request.json
+npm run review -- --controlled-reviewer < request.json
 ```
+
+`--controlled-reviewer` selects the local test reviewer. It does not send a request to Jev.
 
 `npm pack` builds JavaScript release entry points for the review CLI, TypeScript parser,
 resident process, and offline package doctor. The tested installed profile is exactly Node

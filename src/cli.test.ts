@@ -103,7 +103,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
         paths: ["src/counter.ts"],
       },
     };
-    const child = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+    const child = spawnSync(process.execPath, ["src/cli.ts", "--controlled-reviewer"], {
       cwd: process.cwd(),
       input: JSON.stringify(input),
       encoding: "utf8",
@@ -164,7 +164,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
       "src/cli.ts",
       "--codex-hook",
       "--controlled-writer",
-      "--controlled",
+      "--controlled-reviewer",
       `--codex-version=${hostVersion}`,
     ], {
       cwd: process.cwd(),
@@ -183,11 +183,11 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
       tool_use_id: "later-tool",
       tool_input: { command: "true" },
     };
-    let later = spawnSync(process.execPath, ["src/cli.ts", "--codex-hook", "--controlled", `--codex-version=${hostVersion}`], {
+    let later = spawnSync(process.execPath, ["src/cli.ts", "--codex-hook", "--controlled-reviewer", `--codex-version=${hostVersion}`], {
       cwd: process.cwd(), input: JSON.stringify(bash), encoding: "utf8", env: residentEnv,
     });
     for (let attempt = 0; attempt < 20 && JSON.parse(later.stdout).hookSpecificOutput === undefined; attempt++) {
-      later = spawnSync(process.execPath, ["src/cli.ts", "--codex-hook", "--controlled", `--codex-version=${hostVersion}`], {
+      later = spawnSync(process.execPath, ["src/cli.ts", "--codex-hook", "--controlled-reviewer", `--codex-version=${hostVersion}`], {
         cwd: process.cwd(), input: JSON.stringify(bash), encoding: "utf8", env: residentEnv,
       });
     }
@@ -254,7 +254,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
         "src/cli.ts",
         "--codex-hook",
         "--controlled-writer",
-        "--controlled",
+        "--controlled-reviewer",
       ], {
         cwd: process.cwd(),
         input: JSON.stringify(event),
@@ -275,7 +275,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
   });
 
   it("returns a bounded protocol error for malformed input", () => {
-    const child = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+    const child = spawnSync(process.execPath, ["src/cli.ts", "--controlled-reviewer"], {
       cwd: process.cwd(),
       input: '{"version":2,"unexpected":true}',
       encoding: "utf8",
@@ -313,7 +313,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
       ),
     });
     const invoke = () =>
-      spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+      spawnSync(process.execPath, ["src/cli.ts", "--controlled-reviewer"], {
         cwd: process.cwd(),
         input,
         encoding: "utf8",
@@ -402,7 +402,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
           paths: ["src/example.ts"],
         },
       });
-    const approved = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+    const approved = spawnSync(process.execPath, ["src/cli.ts", "--controlled-reviewer"], {
       cwd: process.cwd(),
       input: request("approved"),
       encoding: "utf8",
@@ -418,7 +418,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
     });
     expect(JSON.parse(disabledBeforeProjectAuth.stdout)).toMatchObject({ status: "disabled" });
     writeFileSync(join(root, ".review.jsonc"), '{ "version": 1, "consent": true }');
-    const projectAuthorization = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+    const projectAuthorization = spawnSync(process.execPath, ["src/cli.ts", "--controlled-reviewer"], {
       cwd: process.cwd(),
       input: request("project-authorization"),
       encoding: "utf8",
@@ -454,7 +454,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
       backend: { destination: "https://api.typesafe.ai/v1/systemone" },
     });
     expect(JSON.parse(enableAgain.stdout)).not.toHaveProperty("projectAuthorizationIgnored");
-    const approvedAgain = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+    const approvedAgain = spawnSync(process.execPath, ["src/cli.ts", "--controlled-reviewer"], {
       cwd: process.cwd(),
       input: request("approved-again"),
       encoding: "utf8",
@@ -469,7 +469,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
       env: { ...process.env, REVIEW_STATE_PATH: statePath },
     });
     expect(JSON.parse(disabled.stdout)).toMatchObject({ status: "disabled" });
-    const revoked = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+    const revoked = spawnSync(process.execPath, ["src/cli.ts", "--controlled-reviewer"], {
       cwd: process.cwd(),
       input: request("revoked"),
       encoding: "utf8",
@@ -564,7 +564,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
         paths: ["src/example.ts"],
       },
     });
-    const before = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+    const before = spawnSync(process.execPath, ["src/cli.ts", "--controlled-reviewer"], {
       cwd: process.cwd(),
       input: request,
       encoding: "utf8",
@@ -635,7 +635,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
     execFileSync("git", ["init", "--quiet", second]);
     mkdirSync(join(second, "src"));
     writeFileSync(join(second, "src/example.ts"), "export type Other = string;\n");
-    const child = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+    const child = spawnSync(process.execPath, ["src/cli.ts", "--controlled-reviewer"], {
       cwd: process.cwd(),
       input: JSON.stringify({
         version: 1,
@@ -668,7 +668,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
     renameSync(original, moved);
     mkdirSync(join(moved, "src"));
     writeFileSync(join(moved, "src/example.ts"), "export type Moved = string;\n");
-    const child = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+    const child = spawnSync(process.execPath, ["src/cli.ts", "--controlled-reviewer"], {
       cwd: process.cwd(),
       input: JSON.stringify({
         version: 1,
@@ -726,7 +726,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
     mkdirSync(join(worktree, "src"), { recursive: true });
     writeFileSync(join(worktree, "src/example.ts"), "export type Worktree = string;\n");
     const calls = join(stateParent, "calls.log");
-    const child = spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+    const child = spawnSync(process.execPath, ["src/cli.ts", "--controlled-reviewer"], {
       cwd: process.cwd(),
       input: JSON.stringify({
         version: 1,

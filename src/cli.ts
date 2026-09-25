@@ -537,7 +537,7 @@ if (isCodexHook && requestedHookVersion !== undefined && !isCodexHostVersion(req
   throw new Error("unsupported Codex hook version");
 }
 const codexHookVersion: CodexHostVersion = isCodexHostVersion(requestedHookVersion) ? requestedHookVersion : "0.155.1";
-const isControlled = process.argv.includes("--controlled");
+const isControlledReviewer = process.argv.includes("--controlled-reviewer");
 const isControlledWriter = process.argv.includes("--controlled-writer");
 const requestedOperation = forcedOperation();
 const requestedInstallationOperation = forcedInstallationOperation();
@@ -1337,7 +1337,7 @@ const program = Effect.gen(function* () {
     }
   }
 
-  const controlled = isControlled ? yield* controlledOptions : undefined;
+  const controlled = isControlledReviewer ? yield* controlledOptions : undefined;
 
   if (isClaudeHook || isOpenCodeHook) {
     const nativeEvent = yield* decodeJson(input);

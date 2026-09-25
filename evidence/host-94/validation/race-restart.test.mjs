@@ -54,7 +54,7 @@ function fixture({ delayMs = 0 } = {}) {
   // from the JSON command flags used by invoke above.
   const nativeHook = event => {
     const result = spawnSync(process.execPath,
-      [cli, '--codex-hook', '--controlled', '--controlled-writer'],
+      [cli, '--codex-hook', '--controlled-reviewer', '--controlled-writer'],
       { cwd: project, env, input: JSON.stringify(event), encoding: 'utf8', timeout: 10_000,
         maxBuffer: 262_144 });
     assert.equal(result.status, 0, 'native hook failed (raw output withheld)');

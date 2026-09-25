@@ -133,7 +133,7 @@ const parseJsonObject = (file: FileSnapshot): JsonObject => {
 const quoteShell = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
 
 const ownedHook = (runtime: string, entrypoint: string, hostVersion = "0.155.1") => {
-  const controlled = process.env.REVIEW_INSTALL_CONTROLLED === "1" ? " --controlled" : "";
+  const controlled = process.env.REVIEW_INSTALL_CONTROLLED === "1" ? " --controlled-reviewer" : "";
   const version = hostVersion === "0.155.1" ? "" : ` --codex-version=${hostVersion}`;
   return {
     type: "command",

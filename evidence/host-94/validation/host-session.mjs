@@ -227,7 +227,7 @@ try {
     `const key=typeof id==='string'?createHash('sha256').update(process.env.HAPSLAND_94_SALT+':'+id).digest('hex'):null;\n` +
     `const sessionKey=typeof session==='string'?createHash('sha256').update(process.env.HAPSLAND_94_SALT+':'+session).digest('hex'):null;\n` +
     `appendFileSync(process.env.HAPSLAND_94_TRACE,JSON.stringify({phase:'start',key,sessionKey,tool})+'\\n');\n` +
-    `const start=Date.now(); const result=spawnSync(process.execPath,[process.env.HAPSLAND_94_CLI,'--'+process.argv[2]+'-hook','--controlled','--controlled-writer'],` +
+    `const start=Date.now(); const result=spawnSync(process.execPath,[process.env.HAPSLAND_94_CLI,'--'+process.argv[2]+'-hook','--controlled-reviewer','--controlled-writer'],` +
     `{input:Buffer.concat(chunks),encoding:'utf8',env:process.env,timeout:4400,maxBuffer:262144});\n` +
     `const body=result.status===0?result.stdout:'';\n` +
     `const {findingSubmitted,noticeSubmitted,blockFindingSubmitted}=classifyHookResult({host:process.argv[2],status:result.status,stdout:body});\n` +

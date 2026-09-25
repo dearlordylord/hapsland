@@ -103,7 +103,7 @@ try {
     "import {spawnSync} from 'node:child_process';",
     "import {appendFileSync} from 'node:fs';",
     'const chunks=[];for await(const c of process.stdin)chunks.push(c);',
-    `const r=spawnSync(process.execPath,[${cliPath},'--claude-hook','--controlled','--controlled-writer'],` +
+    `const r=spawnSync(process.execPath,[${cliPath},'--claude-hook','--controlled-reviewer','--controlled-writer'],` +
     '{input:Buffer.concat(chunks),env:process.env,timeout:4400,maxBuffer:262144});',
     'let valid=false,finding=false,clear=false,notice=false,ruleCount=0,repair=false;',
     "const rule='[r6_bare_domain_value, p=';",

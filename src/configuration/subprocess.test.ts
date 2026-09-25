@@ -76,7 +76,7 @@ describe("configuration v1 subprocess contract", () => {
     enable(root, statePath);
     const capturePath = join(root, "calls.log");
     const output = run(
-      ["--controlled"],
+      ["--controlled-reviewer"],
       request(subdirectory, ["../../src/example.ts"]),
       {
         REVIEW_STATE_PATH: statePath,
@@ -105,7 +105,7 @@ describe("configuration v1 subprocess contract", () => {
     enable(root, statePath);
     const input = request(root, ["src/a.ts", "src/b.ts"], `runtime-limits-timeout-${root}`);
     const delayed = run(
-      ["--controlled"],
+      ["--controlled-reviewer"],
       input,
       {
         REVIEW_STATE_PATH: statePath,
@@ -133,7 +133,7 @@ describe("configuration v1 subprocess contract", () => {
       '{"version":1,"settings":{"deadlineMs":1000,"concurrency":1,"adviceBudget":1,"transientRetries":0}}\n',
     );
     const reviewed = run(
-      ["--controlled"],
+      ["--controlled-reviewer"],
       request(root, ["src/a.ts", "src/b.ts"], `runtime-limits-budget-${root}`),
       {
         REVIEW_STATE_PATH: statePath,
@@ -169,7 +169,7 @@ describe("configuration v1 subprocess contract", () => {
     enable(root, statePath);
     const capturePath = join(root, "calls.log");
     const output = run(
-      ["--controlled"],
+      ["--controlled-reviewer"],
       request(root, [
         "src/private/secret.ts",
         "src/large.ts",
@@ -203,7 +203,7 @@ describe("configuration v1 subprocess contract", () => {
     const capturePath = join(root, "calls.log");
     const siblingName = sibling.slice(sibling.lastIndexOf("/") + 1);
     const output = run(
-      ["--controlled"],
+      ["--controlled-reviewer"],
       request(root, [`../${siblingName}/src/outside.ts`], "similar-prefix-boundary"),
       {
         REVIEW_STATE_PATH: statePath,
@@ -227,7 +227,7 @@ describe("configuration v1 subprocess contract", () => {
     enable(root, statePath);
     const inheritedCapture = join(root, "inherited-calls.log");
     const inherited = run(
-      ["--controlled"],
+      ["--controlled-reviewer"],
       request(root, ["src/example.ts"], "inherited-includes"),
       {
         REVIEW_STATE_PATH: statePath,
@@ -241,7 +241,7 @@ describe("configuration v1 subprocess contract", () => {
     writeFileSync(join(root, ".review.jsonc"), '{"version":1,"includes":[]}\n');
     const emptyCapture = join(root, "empty-calls.log");
     const empty = run(
-      ["--controlled"],
+      ["--controlled-reviewer"],
       request(root, ["src/example.ts"], "empty-includes"),
       {
         REVIEW_STATE_PATH: statePath,
@@ -267,7 +267,7 @@ describe("configuration v1 subprocess contract", () => {
     writeFileSync(join(root, ".review.jsonc"), '{"version":1,"unknown":true}\n');
     const capturePath = join(root, "calls.log");
     const output = run(
-      ["--controlled"],
+      ["--controlled-reviewer"],
       request(root, ["src/example.ts"], "invalid-configuration"),
       {
         REVIEW_STATE_PATH: statePath,
@@ -333,7 +333,7 @@ describe("configuration v1 subprocess contract", () => {
     ]);
     const capturePath = join(root, "calls.log");
     const output = run(
-      ["--controlled"],
+      ["--controlled-reviewer"],
       request(root, ["src/example.ts"], `local-pack-${Date.now()}`),
       {
         REVIEW_STATE_PATH: statePath,
@@ -355,7 +355,7 @@ describe("configuration v1 subprocess contract", () => {
     }));
     const disabledCapture = join(root, "disabled-calls.log");
     const disabled = run(
-      ["--controlled"],
+      ["--controlled-reviewer"],
       request(root, ["src/example.ts"], "local-pack-disabled"),
       {
         REVIEW_STATE_PATH: statePath,
@@ -388,7 +388,7 @@ describe("configuration v1 subprocess contract", () => {
     writeFileSync(join(root, ".review.jsonc"), '{"version":1,"packs":["valid.jsonc","invalid.jsonc"]}\n');
     const capturePath = join(root, "calls.log");
     const output = run(
-      ["--controlled"],
+      ["--controlled-reviewer"],
       request(root, ["src/example.ts"], "invalid-pack"),
       {
         REVIEW_STATE_PATH: statePath,

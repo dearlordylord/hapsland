@@ -875,7 +875,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
       tool_use_id: "package-restart-add",
       tool_input: { command: `*** Begin Patch\n*** Add File: restarted.ts\n+${restartSource.trim()}\n*** End Patch` },
     };
-    await mustRun(activeCli, ["--codex-hook", "--controlled", "--controlled-writer"], {
+    await mustRun(activeCli, ["--codex-hook", "--controlled-reviewer", "--controlled-writer"], {
       cwd: temporary, env: credentialRestartEnvironment, input: JSON.stringify(restartEvent),
     });
     let replacementOwner;
@@ -896,7 +896,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
     await writeFile(credentialRestartGate, "continue\n", { mode: 0o600 });
     for (let attempt = 0; attempt < 20; attempt += 1) {
       await new Promise((resolveWait) => setTimeout(resolveWait, 50));
-      await mustRun(activeCli, ["--codex-hook", "--controlled", "--controlled-writer"], {
+      await mustRun(activeCli, ["--codex-hook", "--controlled-reviewer", "--controlled-writer"], {
         cwd: temporary, env: credentialRestartEnvironment,
         input: JSON.stringify({ ...restartEvent, tool_name: "Bash", tool_use_id: `package-restart-collect-${attempt}`, tool_input: { command: "printf package-restart-ready" } }),
       });
@@ -935,7 +935,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
       tool_use_id: "package-logged-out",
       tool_input: { command: `*** Begin Patch\n*** Add File: logged-out.ts\n+${loggedOutSource.trim()}\n*** End Patch` },
     };
-    await mustRun(activeCli, ["--codex-hook", "--controlled", "--controlled-writer"], {
+    await mustRun(activeCli, ["--codex-hook", "--controlled-reviewer", "--controlled-writer"], {
       cwd: temporary, env, input: JSON.stringify(loggedOutEvent),
     });
     // The repository is still enabled here. Give the resident enough time to
@@ -943,7 +943,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
     // provider boundary itself.
     for (let attempt = 0; attempt < 10; attempt += 1) {
       await new Promise((resolveWait) => setTimeout(resolveWait, 50));
-      await mustRun(activeCli, ["--codex-hook", "--controlled", "--controlled-writer"], {
+      await mustRun(activeCli, ["--codex-hook", "--controlled-reviewer", "--controlled-writer"], {
         cwd: temporary, env,
         input: JSON.stringify({ ...loggedOutEvent, tool_name: "Bash", tool_use_id: `package-logged-out-collect-${attempt}`, tool_input: { command: "printf package-logged-out" } }),
       });
@@ -1018,7 +1018,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
       command: `*** Begin Patch\n*** Add File: restart-pending.ts\n+${restartSource.trim()}\n*** End Patch`,
     },
   };
-  await mustRun(activeCli, ["--codex-hook", "--controlled", "--controlled-writer"], {
+  await mustRun(activeCli, ["--codex-hook", "--controlled-reviewer", "--controlled-writer"], {
     cwd: temporary,
     env: restartEnvironment,
     input: JSON.stringify(restartEvent),

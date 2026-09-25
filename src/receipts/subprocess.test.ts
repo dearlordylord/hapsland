@@ -55,7 +55,7 @@ const review = (
   paths: ReadonlyArray<string>,
   control = "{}",
 ) =>
-  spawnSync(process.execPath, ["src/cli.ts", "--controlled"], {
+  spawnSync(process.execPath, ["src/cli.ts", "--controlled-reviewer"], {
     cwd: process.cwd(),
     input: JSON.stringify({
       version: 1,

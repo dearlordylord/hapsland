@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
   if (child == 0) {
     if (post_tool) {
       execl(node, node, "--experimental-strip-types", script,
-        "--codex-hook", "--controlled-writer", "--controlled", "--codex-version=0.155.1", (char *)NULL);
+        "--codex-hook", "--controlled-writer", "--controlled-reviewer", "--codex-version=0.155.1", (char *)NULL);
     } else {
       execl(node, node, "--experimental-strip-types", script, (char *)NULL);
     }
