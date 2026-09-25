@@ -5,6 +5,7 @@ import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import { Decision, DecisionModel } from "effect/unstable/ai";
 import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient";
+import * as HttpClient from "effect/unstable/http/HttpClient";
 import { JEV_API_BASE } from "./runtime/backend.ts";
 
 export const MODEL = "jev-latest";
@@ -64,6 +65,8 @@ export const decide = <const Decisions extends ProbabilityDecisions>(options: {
 export const liveLayer = (options: {
   readonly apiUrl: string;
   readonly credentialEnvVar: string;
+  /** Explicit offline transport for resident conformance witnesses. */
+  readonly httpClient?: HttpClient.HttpClient;
 }) => {
   const client = Layer.effect(
     TypeSafeClient.TypeSafeClient,
@@ -71,7 +74,9 @@ export const liveLayer = (options: {
       const apiKey = yield* Config.Redacted(options.credentialEnvVar);
       return yield* TypeSafeClient.make({ apiKey, apiUrl: options.apiUrl });
     }),
-  ).pipe(Layer.provide(FetchHttpClient.layer));
+  ).pipe(Layer.provide(options.httpClient === undefined
+    ? FetchHttpClient.layer
+    : Layer.succeed(HttpClient.HttpClient, options.httpClient)));
   return TypeSafeDecisionModel.model(MODEL).pipe(Layer.provide(client));
 };
 

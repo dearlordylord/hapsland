@@ -1,6 +1,7 @@
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
+import type * as HttpClient from "effect/unstable/http/HttpClient";
 import { createHash, randomUUID } from "node:crypto";
 import { access, appendFile, chmod, rm, writeFile } from "node:fs/promises";
 import { createServer, type Server, type Socket } from "node:net";
@@ -70,7 +71,11 @@ import {
 } from "./collection.ts";
 import { EvaluationReuse, residentEvaluationIdentity } from "./evaluation-reuse.ts";
 import { operationalNoticeAdmission } from "./operational-notice-policy.ts";
-import { readCredentialState, resolveCredential } from "../credentials/secret-service.ts";
+import {
+  readCredentialState,
+  resolveCredential,
+  type CredentialResolution,
+} from "../credentials/secret-service.ts";
 import { recordActivity } from "../activity/status.ts";
 import { claimDemoBudget } from "../onboarding/demo-budget.ts";
 import { recordDemoTrace } from "../onboarding/demo-trace.ts";
@@ -243,6 +248,44 @@ type CurrentWork = {
   readonly generation: number;
   readonly input: PreparedUnit["input"];
   readonly members: number;
+};
+
+type DispatchAuthorityConsentStatus =
+  | "not-checked"
+  | "unavailable"
+  | "approved"
+  | "missing-consent"
+  | "unsupported";
+
+type DispatchAuthorityCredentialStatus = CredentialResolution["status"] | "not-checked" | "not-required";
+
+type DispatchAuthorityObservation = {
+  readonly kind: "dispatchAuthority";
+  readonly sequence: number;
+  readonly evaluationId: string;
+  readonly path: string;
+  readonly decision: "allow" | "deny";
+  readonly reason: string;
+  readonly policyDigest: string;
+  readonly selected: boolean | null;
+  readonly consentStatus: DispatchAuthorityConsentStatus;
+  readonly consentIdentitySha256: string | null;
+  readonly physicalRootVerified: boolean | null;
+  readonly expectedRootIdentitySha256: string;
+  readonly credentialStatus: DispatchAuthorityCredentialStatus;
+  readonly credentialGeneration: number | null;
+};
+
+type DispatchAuthorityObservationDetails = {
+  readonly decision: DispatchAuthorityObservation["decision"];
+  readonly reason: string;
+  readonly policyDigest: string;
+  readonly selected: boolean | null;
+  readonly consentStatus: DispatchAuthorityConsentStatus;
+  readonly consentIdentity: { readonly root: string; readonly backend: string; readonly destination: string } | null;
+  readonly physicalRootVerified: boolean | null;
+  readonly credentialStatus: DispatchAuthorityCredentialStatus;
+  readonly credentialGeneration: number | null;
 };
 
 const recipientPartition = (root: string, recipient: DirectRecipient) => canonicalValue({
@@ -418,6 +461,9 @@ export class ResidentServer {
   readonly #beforeFinalRevalidate: ((adviceId: string) => Promise<void>) | undefined;
   readonly #afterAuthorizeBeforeCredential: (() => Promise<void>) | undefined;
   readonly #afterCredentialBeforeDispatch: (() => Promise<void>) | undefined;
+  readonly #dispatchAuthorityObserver: ((observation: DispatchAuthorityObservation) => void) | undefined;
+  #nextDispatchAuthoritySequence = 1;
+  readonly #offlineHttpClient: HttpClient.HttpClient | undefined;
   readonly #beforeResponseHandoff: (() => Promise<void>) | undefined;
   readonly paths: ResidentPaths;
 
@@ -433,8 +479,12 @@ export class ResidentServer {
       readonly beforeFinalRevalidate?: (adviceId: string) => Promise<void>;
       readonly afterAuthorizeBeforeCredential?: () => Promise<void>;
       readonly afterCredentialBeforeDispatch?: () => Promise<void>;
-      readonly beforeResponseHandoff?: () => Promise<void>;
+      /** Fixture-only authority observation; never supplied by resident IPC. */
+      readonly dispatchAuthorityObserver?: (observation: DispatchAuthorityObservation) => void;
       readonly maximumOperationalNoticeKeys?: number;
+      /** Fixture-only HTTP transport; never supplied by resident IPC. */
+      readonly offlineHttpClient?: HttpClient.HttpClient;
+      readonly beforeResponseHandoff?: () => Promise<void>;
       readonly maximumTickets?: number;
     } = {},
   ) {
@@ -462,6 +512,8 @@ export class ResidentServer {
     this.#beforeFinalRevalidate = options.beforeFinalRevalidate;
     this.#afterAuthorizeBeforeCredential = options.afterAuthorizeBeforeCredential;
     this.#afterCredentialBeforeDispatch = options.afterCredentialBeforeDispatch;
+    this.#dispatchAuthorityObserver = options.dispatchAuthorityObserver;
+    this.#offlineHttpClient = options.offlineHttpClient;
     this.#beforeResponseHandoff = options.beforeResponseHandoff;
     this.#reuse = new EvaluationReuse({
       reserve: (partition, bytes) => this.#reserve(partition, bytes),
@@ -1183,6 +1235,34 @@ export class ResidentServer {
     return this.#evaluateUnit(job, cycle, sequence);
   }
 
+  #observeDispatchAuthority(
+    job: UnitJob,
+    details: DispatchAuthorityObservationDetails,
+  ): void {
+    const observer = this.#dispatchAuthorityObserver;
+    if (observer === undefined) return;
+    const identity = details.consentIdentity === null
+      ? null
+      : createHash("sha256").update(canonicalValue(details.consentIdentity), "utf8").digest("hex");
+    const { consentIdentity: _consentIdentity, ...recordDetails } = details;
+    const observation: DispatchAuthorityObservation = {
+      kind: "dispatchAuthority",
+      sequence: this.#nextDispatchAuthoritySequence++,
+      evaluationId: createHash("sha256").update(job.evaluationKey, "utf8").digest("hex"),
+      path: job.prepared.input.path,
+      ...recordDetails,
+      consentIdentitySha256: identity,
+      expectedRootIdentitySha256: createHash("sha256")
+        .update(canonicalValue(job.observation.rootIdentity), "utf8")
+        .digest("hex"),
+    };
+    try {
+      observer(observation);
+    } catch {
+      // Fixture observation must not change resident dispatch behavior.
+    }
+  }
+
   async #prepare(job: IngressJob, cycle: number, sequence: number): Promise<void> {
     const expectedActivityUnits: Array<string> = [];
     try {
@@ -1438,6 +1518,9 @@ export class ResidentServer {
       const controlled = decodeControlledOptions(job.dispatch.controlled);
       const afterAuthorizeBeforeCredential = this.#afterAuthorizeBeforeCredential;
       const afterCredentialBeforeDispatch = this.#afterCredentialBeforeDispatch;
+      const offlineHttpClient = this.#offlineHttpClient;
+      const observeDispatchAuthority = (details: DispatchAuthorityObservationDetails): void =>
+        this.#observeDispatchAuthority(job, details);
       const result = await Effect.runPromise(Effect.gen(function* () {
         const settings = yield* loadReviewSettings(
           job.observation.root,
@@ -1495,12 +1578,52 @@ export class ResidentServer {
           job.observation.root,
           settings.backend,
           settings.destination,
-        ).pipe(Effect.catch(() => Effect.succeed({ status: "denied" as const })));
-        if (dispatchAuthorization.status !== "approved" || !(yield* verifyObservationRoot(job.observation))) return undefined;
-        if (!selectedByDirectFilePolicy(
+        ).pipe(Effect.catch(() => Effect.succeed({ status: "unavailable" as const })));
+        if (dispatchAuthorization.status !== "approved") {
+          observeDispatchAuthority({
+            decision: "deny",
+            reason: "consent-not-approved",
+            policyDigest: dispatchConfiguration.policy.digest,
+            selected: null,
+            consentStatus: dispatchAuthorization.status,
+            consentIdentity: "identity" in dispatchAuthorization ? dispatchAuthorization.identity : null,
+            physicalRootVerified: null,
+            credentialStatus: credential?.status ?? "not-required",
+            credentialGeneration: credential?.generation ?? null,
+          });
+          return undefined;
+        }
+        const dispatchRootVerified = yield* verifyObservationRoot(job.observation);
+        if (!dispatchRootVerified) {
+          observeDispatchAuthority({
+            decision: "deny",
+            reason: "physical-root-mismatch",
+            policyDigest: dispatchConfiguration.policy.digest,
+            selected: null,
+            consentStatus: dispatchAuthorization.status,
+            consentIdentity: "identity" in dispatchAuthorization ? dispatchAuthorization.identity : null,
+            physicalRootVerified: false,
+            credentialStatus: credential?.status ?? "not-required",
+            credentialGeneration: credential?.generation ?? null,
+          });
+          return undefined;
+        }
+        const selected = selectedByDirectFilePolicy(
           job.prepared.input.path,
           resolvedDirectFilePolicy(dispatchConfiguration.policy),
-        )) return undefined;
+        );
+        observeDispatchAuthority({
+          decision: selected ? "allow" : "deny",
+          reason: selected ? "approved-and-selected" : "excluded-by-file-policy",
+          policyDigest: dispatchConfiguration.policy.digest,
+          selected,
+          consentStatus: dispatchAuthorization.status,
+          consentIdentity: "identity" in dispatchAuthorization ? dispatchAuthorization.identity : null,
+          physicalRootVerified: true,
+          credentialStatus: credential?.status ?? "not-required",
+          credentialGeneration: credential?.generation ?? null,
+        });
+        if (!selected) return undefined;
         const credentialProvider = credential?.status !== "present"
           ? undefined
           : ConfigProvider.layer(ConfigProvider.fromUnknown({
@@ -1511,6 +1634,7 @@ export class ResidentServer {
           ? jevDecisionModelLiveLayer({
               apiUrl: settings.apiBase,
               credentialEnvVar: settings.credentialEnvVar,
+              ...(offlineHttpClient === undefined ? {} : { httpClient: offlineHttpClient }),
             })
           : controlledDecisionModelLayer(controlled);
         const credentialAuthority = credential?.status !== "present"

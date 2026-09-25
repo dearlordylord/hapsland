@@ -22,7 +22,7 @@ type Manifest = {
   readonly excluded: { readonly path: string; readonly source: string };
 };
 
-const manifest = JSON.parse(await readFile(new URL("../../docs/research/fixtures/security-wire-manifest.json", import.meta.url), "utf8")) as Manifest;
+const manifest = JSON.parse(await readFile(new URL("./fixtures/security-wire-manifest.json", import.meta.url), "utf8")) as Manifest;
 const digest = (value: string): string => createHash("sha256").update(value, "utf8").digest("hex");
 const oracleRule = {
   id: "security_wire_probe",
