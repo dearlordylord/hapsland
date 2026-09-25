@@ -1,6 +1,7 @@
 import { appendFileSync, readFileSync } from 'node:fs';
 import { realpath } from 'node:fs/promises';
 import { join } from 'node:path';
+import { controlledAnswers } from './controlled-rule-answers.mjs';
 
 const startedAt = Number(process.env.HAPSLAND_PROBE_STARTED_AT_MS ?? Date.now());
 const hookStarted = performance.now();
@@ -39,12 +40,15 @@ try {
   }
 
   const delayMs = Number(process.env.HAPSLAND_CONTROL_DELAY_MS ?? '0');
+  const controlled = process.env.HAPSLAND_PROBE_MULTI_UNIT === 'true'
+    ? { answers: controlledAnswers }
+    : { syntheticR6BrandedRepair: 'finding' };
   const dispatch = await makeResidentDispatchContext(
     root,
     statePath,
     activityPath,
     undefined,
-    { syntheticR6BrandedRepair: 'finding', outcomePath: process.env.HAPSLAND_CONTROL_OUTCOME_PATH,
+    { ...controlled, outcomePath: process.env.HAPSLAND_CONTROL_OUTCOME_PATH,
       capturePath: process.env.HAPSLAND_CONTROL_CAPTURE_PATH, delayMs },
   );
   const recipient = {
@@ -80,10 +84,13 @@ try {
     process.exit(0);
   }
 
-  let stillBad = false;
-  try {
-    stillBad = readFileSync(join(root, 'order-count.ts'), 'utf8') === 'type OrderCount = number\n';
-  } catch { /* a missing or changed file cannot be repaired from stale advice */ }
+  const checkedFiles = process.env.HAPSLAND_PROBE_MULTI_UNIT === 'true'
+    ? ['order-count.ts', 'order-total.ts']
+    : ['order-count.ts'];
+  const stillBad = checkedFiles.some((filename) => {
+    try { return readFileSync(join(root, filename), 'utf8') === `type ${filename === 'order-count.ts' ? 'OrderCount' : 'OrderTotal'} = number\n`; }
+    catch { return false; }
+  });
   if (!stillBad) {
     await quiet('stop-stale-suppressed');
     process.exit(0);

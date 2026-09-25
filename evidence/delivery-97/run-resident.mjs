@@ -3,6 +3,7 @@ import { access, copyFile, mkdir, mkdtemp, readFile, rm, stat, writeFile, chmod 
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { controlledAnswers } from './controlled-rule-answers.mjs';
 
 const here = resolve(fileURLToPath(new URL('.', import.meta.url)));
 const project = resolve(here, '../..');
@@ -13,6 +14,7 @@ const evidencePath = process.env.HAPSLAND_DELIVERY_97_EVIDENCE_FILE ??
 const cli = join(project, 'src/cli.ts');
 const stopHook = join(here, 'resident-stop-hook.mjs');
 const wrapperSource = join(here, 'resident-stop-wrapper.c');
+const commandTraceSource = join(here, 'command-trace-wrapper.c');
 const sessionEndHook = join(here, 'resident-session-end-hook.mjs');
 const quote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
 const prompt = 'Use the native apply_patch tool to add order-count.ts containing exactly `type OrderCount = number` and a final newline. Then end the turn immediately. If a Hapsland review finding arrives, repair the type as requested with apply_patch and finish by saying REVIEW_REPAIRED. Do not repair it before receiving feedback.';
@@ -20,7 +22,11 @@ const cases = [
   { id: 'resident-ready', delayMs: 0 },
   { id: 'resident-during-stop', delayMs: 4000 },
   { id: 'resident-timeout-retained', delayMs: 12000, observeAfterSessionMs: 14000 },
+  { id: 'resident-later-turn', delayMs: 12000, observeAfterSessionMs: 14000, postSessionResume: true },
+  { id: 'resident-multi-unit', delayMs: 0 },
 ];
+const multiUnitPrompt = 'Use one native apply_patch call to add order-count.ts containing exactly `type OrderCount = number` and order-total.ts containing exactly `type OrderTotal = number`, each with a final newline. End the turn immediately. Do not edit either file before review feedback. If findings arrive for both files, repair both with apply_patch and finish by saying MULTI_REPAIRED.';
+const initialPrompt = (testCase) => testCase.id === 'resident-multi-unit' ? multiUnitPrompt : prompt;
 const waitFor = async (path, timeoutMs = 3000) => {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -124,6 +130,9 @@ const parent = await mkdtemp(join(tmpdir(), 'hapsland-97-resident-'));
 const wrapper = join(parent, 'resident-stop-wrapper');
 const compile = spawnSync('cc', ['-O2', '-Wall', '-Wextra', '-Werror', wrapperSource, '-o', wrapper], { encoding: 'utf8' });
 if (compile.status !== 0) throw new Error('Could not build isolated Stop command measurement wrapper.');
+const commandTrace = join(parent, 'resident-command-trace-wrapper');
+const traceCompile = spawnSync('cc', ['-O2', '-Wall', '-Wextra', '-Werror', commandTraceSource, '-o', commandTrace], { encoding: 'utf8' });
+if (traceCompile.status !== 0) throw new Error('Could not build isolated host command launch tracer.');
 const results = [];
 const residentDirectories = [];
 try {
@@ -154,7 +163,11 @@ try {
     }));
     const init = spawnSync('git', ['init', '--quiet', '--initial-branch=main', repo], { encoding: 'utf8' });
     if (init.status !== 0) throw new Error('Could not create temporary Git repository.');
-    const control = JSON.stringify({ syntheticR6BrandedRepair: 'finding', delayMs: testCase.delayMs, outcomePath, capturePath });
+    const multiUnit = testCase.id === 'resident-multi-unit';
+    const control = JSON.stringify({
+      ...(multiUnit ? { answers: controlledAnswers } : { syntheticR6BrandedRepair: 'finding' }),
+      delayMs: testCase.delayMs, outcomePath, capturePath,
+    });
     const env = {
       ...process.env,
       CODEX_HOME: home,
@@ -166,6 +179,7 @@ try {
       HAPSLAND_CONTROL_DELAY_MS: String(testCase.delayMs),
       HAPSLAND_CONTROL_OUTCOME_PATH: outcomePath,
       HAPSLAND_CONTROL_CAPTURE_PATH: capturePath,
+      HAPSLAND_PROBE_MULTI_UNIT: multiUnit ? 'true' : 'false',
       HAPSLAND_NODE_BINARY: process.execPath,
       HAPSLAND_CLI: cli,
       HAPSLAND_STOP_HOOK_SCRIPT: stopHook,
@@ -178,22 +192,45 @@ try {
     env.HAPSLAND_PROBE_STARTED_AT_MS = String(startedAt);
     const observed = [];
     const stopMonitoring = monitorResidentEvents(outcomePath, admissionPath, startedAt, observed);
-    const args = [
-      'exec', '--ephemeral', '--json', '--ignore-user-config', '--ignore-rules',
+    const makeExecArgs = (message, ephemeral) => [
+      'exec', ...(ephemeral ? ['--ephemeral'] : []), '--json', '--ignore-user-config', '--ignore-rules',
       '--dangerously-bypass-hook-trust', '--dangerously-bypass-approvals-and-sandbox',
-      '-m', 'gpt-6-luna', '-c', 'model_reasoning_effort="max"', '-C', repo, prompt,
+      '-m', 'gpt-6-luna', '-c', 'model_reasoning_effort="max"', '-C', repo, message,
     ];
-    const host = await run(codexBinary, args, { cwd: repo, env });
+    const sessionIdFrom = (stdout) => {
+      for (const line of stdout.split('\n')) {
+        try {
+          const value = JSON.parse(line);
+          if (typeof value.thread_id === 'string') return value.thread_id;
+          if (typeof value.session_id === 'string') return value.session_id;
+        } catch { /* ignore malformed JSONL */ }
+      }
+      return undefined;
+    };
+    let host, laterHost;
+    const hostArgs = makeExecArgs(initialPrompt(testCase), !testCase.postSessionResume);
+    host = await run(commandTrace, [wrapper, eventsPath, '--', codexBinary, ...hostArgs], { cwd: repo, env });
     const hostExitedAt = Date.now();
     if (testCase.observeAfterSessionMs !== undefined) {
       await new Promise((resolvePromise) => setTimeout(resolvePromise, testCase.observeAfterSessionMs));
+    }
+    const sessionId = sessionIdFrom(host.stdout);
+    if (testCase.postSessionResume && sessionId !== undefined) {
+      const laterPrompt = 'If a Hapsland review finding for order-count.ts arrives, repair that finding with apply_patch and finish by saying LATER_REVIEW_REPAIRED. If no finding arrives, make no changes and finish by saying NO_LATE_FINDING.';
+      const resumeArgs = [
+        'exec', 'resume', '--json', '--ignore-user-config', '--ignore-rules',
+        '--dangerously-bypass-hook-trust', '--dangerously-bypass-approvals-and-sandbox',
+        '-m', 'gpt-6-luna', '-c', 'model_reasoning_effort="max"', sessionId, laterPrompt,
+      ];
+      laterHost = await run(commandTrace, [wrapper, eventsPath, '--', codexBinary, ...resumeArgs], { cwd: repo, env });
     }
     await stopMonitoring();
 
     const rawEvents = await outcomes(eventsPath);
     const safeEvents = rawEvents.map((event) => {
-      const { kind, at, entryAt, elapsedMs, elapsedUs, exitCode, signal, findingCount, acknowledged, continuationCapped } = event;
+      const { kind, mode, at, launchAt, entryAt, elapsedMs, elapsedUs, exitCode, signal, findingCount, acknowledged, continuationCapped } = event;
       return { kind, ...(at === undefined ? {} : { at }), ...(elapsedMs === undefined ? {} : { elapsedMs }),
+        ...(mode === undefined ? {} : { mode }), ...(launchAt === undefined ? {} : { launchAt }),
         ...(entryAt === undefined ? {} : { entryAt }), ...(elapsedUs === undefined ? {} : { elapsedUs }), ...(exitCode === undefined ? {} : { exitCode }),
         ...(signal === undefined ? {} : { signal }), ...(findingCount === undefined ? {} : { findingCount }),
         ...(acknowledged === undefined ? {} : { acknowledged }), ...(continuationCapped === undefined ? {} : { continuationCapped }) };
@@ -203,12 +240,24 @@ try {
       const source = await readFile(join(repo, 'order-count.ts'), 'utf8');
       sourceState = source === 'type OrderCount = number\n' ? 'original' : 'changed';
     } catch { /* no source retained */ }
-    const finalMessage = host.stdout.split('\n').filter(Boolean).flatMap((line) => {
+    const unitFileStates = {};
+    for (const filename of multiUnit
+      ? ['order-count.ts', 'order-total.ts']
+      : ['order-count.ts']) {
+      try {
+        const source = await readFile(join(repo, filename), 'utf8');
+        unitFileStates[filename] = source.endsWith(' = number\n') ? 'original' : 'changed';
+      } catch { unitFileStates[filename] = 'absent'; }
+    }
+    const finalMessage = (stdout) => stdout.split('\n').filter(Boolean).flatMap((line) => {
       try { const value = JSON.parse(line); return value.item?.type === 'agent_message' ? [value.item.text ?? ''] : []; }
       catch { return []; }
     }).join('\n');
+    const hostFinalMessage = finalMessage(host.stdout);
+    const laterFinalMessage = laterHost === undefined ? '' : finalMessage(laterHost.stdout);
     let postSessionCollectable = false, postSessionAcknowledged = false;
-    if (testCase.observeAfterSessionMs !== undefined && observed.some((event) => event.kind === 'backend-complete')) {
+    if (testCase.observeAfterSessionMs !== undefined && !testCase.postSessionResume &&
+        observed.some((event) => event.kind === 'backend-complete')) {
       const postCheck = `
         import { collectReady, makeResidentDispatchContext, acknowledgeAdvice } from ${JSON.stringify(new URL('../../src/resident/client.ts', import.meta.url).href)};
         import { residentPaths } from ${JSON.stringify(new URL('../../src/resident/paths.ts', import.meta.url).href)};
@@ -220,17 +269,6 @@ try {
         const acknowledged=advice===undefined?false:await acknowledgeAdvice(advice).catch(()=>false);
         process.stdout.write(JSON.stringify({collectable:advice!==undefined,acknowledged})+'\\n');
       `;
-      const sessionId = (() => {
-        for (const line of host.stdout.split('\n')) {
-          try {
-            const value = JSON.parse(line);
-            if (typeof value.thread_id === 'string') return value.thread_id;
-            if (typeof value.session_id === 'string') return value.session_id;
-          }
-          catch { /* ignore */ }
-        }
-        return undefined;
-      })();
       if (sessionId !== undefined) {
         const checked = await run(process.execPath, ['--experimental-strip-types', '--input-type=module', '-e', postCheck], {
           cwd: project,
@@ -244,39 +282,67 @@ try {
       }
     }
     const stopCommand = safeEvents.find((event) => event.kind === 'stop-command-return');
+    const stopHostCommand = safeEvents.find((event) => event.kind === 'host-command-window' && event.mode === 'stop');
+    const stopHostCommands = safeEvents.filter((event) => event.kind === 'host-command-window' && event.mode === 'stop');
+    const postToolHostCommands = safeEvents.filter((event) => event.kind === 'host-command-window' && event.mode === 'post-tool');
     const postToolCommandEvents = safeEvents.filter((event) => event.kind === 'post-tool-command-return');
     const responseEvent = safeEvents.find((event) => event.kind === 'stop-response-written');
-    const sessionEndEvent = safeEvents.find((event) => event.kind === 'session-end');
+    const responseCommand = responseEvent === undefined ? undefined : stopHostCommands.find((event) =>
+      responseEvent.at >= event.launchAt && responseEvent.at <= event.at);
+    const stopOutputEvent = safeEvents.find((event) => [
+      'stop-response-written', 'stop-no-advice', 'stop-collection-deadline', 'stop-quiet',
+      'stop-error', 'stop-stale-suppressed',
+    ].includes(event.kind));
+    const sessionEndEvents = safeEvents.filter((event) => event.kind === 'session-end');
     let controlledModelCalls = 0;
     try { controlledModelCalls = (await readFile(capturePath, 'utf8')).split('\n').filter(Boolean).length; } catch { /* no provider dispatch */ }
     const result = {
       id: testCase.id,
       delayMs: testCase.delayMs,
-      exitCode: host.code,
+      exitCode: laterHost?.code ?? host.code,
       durationMs: hostExitedAt - startedAt,
       hostTimeline: host.timeline,
+      laterTurnHostTimeline: laterHost?.timeline ?? [],
       events: [...observed, ...safeEvents].sort((left, right) =>
         (left.entryAt ?? left.at ?? 0) - (right.entryAt ?? right.at ?? 0)),
       backendCompletions: observed.filter((event) => event.kind === 'backend-complete').length,
       admissionAccepted: await waitFor(admissionPath, 1),
       controlledModelCalls,
       activityStages: await activityStages(activityPath),
-      stopCommandElapsedUs: stopCommand?.elapsedUs ?? null,
+      stopCommandElapsedUs: stopHostCommand?.elapsedUs ?? null,
+      stopWrapperMainElapsedUs: stopCommand?.elapsedUs ?? null,
       postToolCommandElapsedUs: postToolCommandEvents.map((event) => event.elapsedUs),
-      stopCommandUnderFiveSeconds: stopCommand !== undefined && stopCommand.exitCode === 0 && stopCommand.elapsedUs < 5_000_000,
-      responseWrittenWithinFiveSeconds: stopCommand !== undefined && stopCommand.exitCode === 0 && stopCommand.elapsedUs < 5_000_000,
+      postToolHostCommandElapsedUs: postToolHostCommands.map((event) => event.elapsedUs),
+      stopCommandUnderFiveSeconds: stopHostCommand !== undefined && stopHostCommand.exitCode === 0 && stopHostCommand.elapsedUs < 5_000_000,
+      allStopCommandsUnderFiveSeconds: stopHostCommands.length > 0 && stopHostCommands.every((event) => event.exitCode === 0 && event.elapsedUs < 5_000_000),
+      responseWrittenWithinFiveSeconds: stopOutputEvent !== undefined && stopHostCommand !== undefined &&
+        stopOutputEvent.at - stopHostCommand.launchAt < 5_000,
+      stopResponseWrittenWithinFiveSeconds: responseEvent !== undefined && responseCommand !== undefined &&
+        responseEvent.at - responseCommand.launchAt < 5_000,
       stopResponseOutcome: responseEvent !== undefined
         ? 'finding-submitted'
         : safeEvents.find((event) => ['stop-no-advice', 'stop-collection-deadline', 'stop-quiet'].includes(event.kind))?.kind ?? 'unobserved',
-      sessionEndObserved: sessionEndEvent !== undefined,
+      sessionEndObserved: sessionEndEvents.length > 0,
+      sessionEndCount: sessionEndEvents.length,
       finalFileState: sourceState,
-      modelClaimedRepair: finalMessage.includes('REVIEW_REPAIRED'),
+      unitFileStates,
+      stopResponseFindingCount: responseEvent?.findingCount ?? 0,
+      multiUnitBothRepaired: testCase.id === 'resident-multi-unit' &&
+        unitFileStates['order-count.ts'] === 'changed' && unitFileStates['order-total.ts'] === 'changed',
+      modelClaimedRepair: hostFinalMessage.includes(testCase.id === 'resident-multi-unit' ? 'MULTI_REPAIRED' : 'REVIEW_REPAIRED'),
+      laterTurnFindingVisible: laterHost !== undefined && responseEvent !== undefined &&
+        responseEvent.at > (sessionEndEvents[0]?.at ?? Number.POSITIVE_INFINITY),
+      laterTurnModelClaimedRepair: laterFinalMessage.includes('LATER_REVIEW_REPAIRED'),
       postSessionCollectable,
       postSessionAcknowledged,
       stderrClass: host.stderr.includes('Error') ? 'error' : host.stderr ? 'other' : 'empty',
     };
+    if (testCase.id === 'resident-multi-unit' &&
+        (result.stopResponseFindingCount !== 2 || !result.multiUnitBothRepaired)) {
+      throw new Error('The multi-unit host fixture did not deliver and repair both findings.');
+    }
     results.push(result);
-    process.stdout.write(`${testCase.id}: ${JSON.stringify({ exit: result.exitCode, stopUs: result.stopCommandElapsedUs, under5s: result.stopCommandUnderFiveSeconds, completions: result.backendCompletions, file: result.finalFileState, postSessionCollectable })}\n`);
+    process.stdout.write(`${testCase.id}: ${JSON.stringify({ exit: result.exitCode, stopUs: result.stopCommandElapsedUs, under5s: result.stopCommandUnderFiveSeconds, completions: result.backendCompletions, file: result.finalFileState, laterTurnVisible: result.laterTurnFindingVisible, postSessionCollectable })}\n`);
   }
 } finally {
   for (const directory of residentDirectories) {
@@ -308,9 +374,9 @@ await writeFile(evidencePath, JSON.stringify({
   node: process.version,
   model: 'gpt-6-luna',
   reasoningEffort: 'max',
-  mode: 'headless codex exec ephemeral',
+  mode: 'headless Codex exec; one later-turn case resumed inside temporary CODEX_HOME',
   backend: 'Hapsland production resident with controlled offline Effect DecisionModel; no Jev',
-  stopCommandMeasurement: 'Compiled command wrapper clocks CLOCK_MONOTONIC at main entry before forking Node and after Node exits; Node writes the Stop response before exiting.',
+  stopCommandMeasurement: 'Linux ptrace tracer timestamps the host child creation event for the configured command through final process exit; this includes executable loading and response writing. The compiled wrapper records an internal monotonic breakdown.',
   isolation: 'temporary repositories, consent state, CODEX_HOME and resident directory; raw host output, source, and backend outcome identifiers discarded',
   cases: [...previous.filter((value) => !results.some((result) => result.id === value.id)), ...results],
 }, null, 2) + '\n');

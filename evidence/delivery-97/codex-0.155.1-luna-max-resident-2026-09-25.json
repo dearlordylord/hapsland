@@ -5,170 +5,197 @@
   "node": "v24.20.0",
   "model": "gpt-6-luna",
   "reasoningEffort": "max",
-  "mode": "headless codex exec ephemeral",
+  "mode": "headless Codex exec; one later-turn case resumed inside temporary CODEX_HOME",
   "backend": "Hapsland production resident with controlled offline Effect DecisionModel; no Jev",
-  "stopCommandMeasurement": "Compiled command wrapper clocks CLOCK_MONOTONIC at main entry before forking Node and after Node exits; Node writes the Stop response before exiting.",
+  "stopCommandMeasurement": "Linux ptrace tracer timestamps the host child creation event for the configured command through final process exit; this includes executable loading and response writing. The compiled wrapper records an internal monotonic breakdown.",
   "isolation": "temporary repositories, consent state, CODEX_HOME and resident directory; raw host output, source, and backend outcome identifiers discarded",
   "cases": [
     {
       "id": "resident-ready",
       "delayMs": 0,
       "exitCode": 0,
-      "durationMs": 29568,
+      "durationMs": 25457,
       "hostTimeline": [
         {
           "type": "thread.started",
           "itemType": null,
-          "at": 644
+          "at": 1290
         },
         {
           "type": "item.completed",
           "itemType": "error",
-          "at": 664
+          "at": 1302
         },
         {
           "type": "item.completed",
           "itemType": "error",
-          "at": 664
+          "at": 1302
         },
         {
           "type": "turn.started",
           "itemType": null,
-          "at": 664
+          "at": 1302
         },
         {
           "type": "item.completed",
           "itemType": "agent_message",
-          "at": 5799
+          "at": 6670
         },
         {
           "type": "item.started",
           "itemType": "file_change",
-          "at": 7164
+          "at": 7350
         },
         {
           "type": "item.completed",
           "itemType": "file_change",
-          "at": 7170
+          "at": 7357
         },
         {
           "type": "item.completed",
           "itemType": "agent_message",
-          "at": 10121
+          "at": 9281
         },
         {
           "type": "item.completed",
           "itemType": "agent_message",
-          "at": 16387
-        },
-        {
-          "type": "item.started",
-          "itemType": "command_execution",
-          "at": 17869
-        },
-        {
-          "type": "item.completed",
-          "itemType": "command_execution",
-          "at": 17869
+          "at": 22448
         },
         {
           "type": "item.started",
           "itemType": "file_change",
-          "at": 27119
+          "at": 23455
         },
         {
           "type": "item.completed",
           "itemType": "file_change",
-          "at": 27124
+          "at": 23462
         },
         {
           "type": "item.completed",
           "itemType": "agent_message",
-          "at": 28716
+          "at": 24685
         },
         {
           "type": "turn.completed",
           "itemType": null,
-          "at": 28782
+          "at": 24763
         }
       ],
+      "laterTurnHostTimeline": [],
       "events": [
         {
           "kind": "post-tool-command-return",
-          "at": 7808,
-          "entryAt": 7171,
-          "elapsedUs": 636728,
+          "at": 7970,
+          "entryAt": 7358,
+          "elapsedUs": 612319,
           "exitCode": 0,
           "signal": 0
         },
         {
           "kind": "resident-admitted",
-          "at": 7798.0400390625
+          "at": 7958.103759765625
+        },
+        {
+          "kind": "host-command-window",
+          "at": 7971,
+          "mode": "post-tool",
+          "launchAt": 7354,
+          "elapsedUs": 616867,
+          "exitCode": 0,
+          "signal": 0
         },
         {
           "kind": "backend-complete",
           "outcome": "completed-findings",
-          "at": 7849.04052734375
+          "at": 8010.10400390625
         },
         {
           "kind": "stop-command-return",
-          "at": 10399,
-          "entryAt": 10138,
-          "elapsedUs": 261238,
+          "at": 9586,
+          "entryAt": 9322,
+          "elapsedUs": 264727,
           "exitCode": 0,
           "signal": 0
         },
         {
           "kind": "stop-entry",
-          "at": 10154,
+          "at": 9347,
           "continuationCapped": false
         },
         {
           "kind": "stop-response-written",
-          "at": 10391,
-          "elapsedMs": 237,
+          "at": 9578,
+          "elapsedMs": 232,
           "findingCount": 1
         },
         {
           "kind": "stop-advice-finalized",
-          "at": 10393,
+          "at": 9580,
           "acknowledged": true
         },
         {
+          "kind": "host-command-window",
+          "at": 9586,
+          "mode": "stop",
+          "launchAt": 9315,
+          "elapsedUs": 271656,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
           "kind": "post-tool-command-return",
-          "at": 27440,
-          "entryAt": 27126,
-          "elapsedUs": 314883,
+          "at": 23762,
+          "entryAt": 23464,
+          "elapsedUs": 297992,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "host-command-window",
+          "at": 23762,
+          "mode": "post-tool",
+          "launchAt": 23460,
+          "elapsedUs": 301943,
           "exitCode": 0,
           "signal": 0
         },
         {
           "kind": "backend-complete",
           "outcome": "completed-clear",
-          "at": 27465.208251953125
+          "at": 23784.241455078125
         },
         {
           "kind": "stop-command-return",
-          "at": 28780,
-          "entryAt": 28759,
-          "elapsedUs": 20951,
+          "at": 24763,
+          "entryAt": 24727,
+          "elapsedUs": 36053,
           "exitCode": 0,
           "signal": 0
         },
         {
           "kind": "stop-entry",
-          "at": 28778,
+          "at": 24760,
           "continuationCapped": true
         },
         {
           "kind": "stop-quiet",
-          "at": 28780,
-          "elapsedMs": 1,
+          "at": 24761,
+          "elapsedMs": 2,
           "continuationCapped": true
         },
         {
+          "kind": "host-command-window",
+          "at": 24763,
+          "mode": "stop",
+          "launchAt": 24716,
+          "elapsedUs": 47565,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
           "kind": "session-end",
-          "at": 28812
+          "at": 24801
         }
       ],
       "backendCompletions": 2,
@@ -182,17 +209,27 @@
         "pending",
         "clear"
       ],
-      "stopCommandElapsedUs": 261238,
+      "stopCommandElapsedUs": 271656,
+      "stopWrapperMainElapsedUs": 264727,
       "postToolCommandElapsedUs": [
-        636728,
-        314883
+        612319,
+        297992
+      ],
+      "postToolHostCommandElapsedUs": [
+        616867,
+        301943
       ],
       "stopCommandUnderFiveSeconds": true,
+      "allStopCommandsUnderFiveSeconds": true,
       "responseWrittenWithinFiveSeconds": true,
+      "stopResponseWrittenWithinFiveSeconds": true,
       "stopResponseOutcome": "finding-submitted",
       "sessionEndObserved": true,
+      "sessionEndCount": 1,
       "finalFileState": "changed",
       "modelClaimedRepair": true,
+      "laterTurnFindingVisible": false,
+      "laterTurnModelClaimedRepair": false,
       "postSessionCollectable": false,
       "postSessionAcknowledged": false,
       "stderrClass": "other"
@@ -201,146 +238,183 @@
       "id": "resident-during-stop",
       "delayMs": 4000,
       "exitCode": 0,
-      "durationMs": 23464,
+      "durationMs": 21540,
       "hostTimeline": [
         {
           "type": "thread.started",
           "itemType": null,
-          "at": 837
+          "at": 1087
         },
         {
           "type": "item.completed",
           "itemType": "error",
-          "at": 852
+          "at": 1096
         },
         {
           "type": "item.completed",
           "itemType": "error",
-          "at": 852
+          "at": 1096
         },
         {
           "type": "turn.started",
           "itemType": null,
-          "at": 852
+          "at": 1096
         },
         {
           "type": "item.completed",
           "itemType": "agent_message",
-          "at": 7657
+          "at": 6688
         },
         {
           "type": "item.started",
           "itemType": "file_change",
-          "at": 8156
+          "at": 7203
         },
         {
           "type": "item.completed",
           "itemType": "file_change",
-          "at": 8164
+          "at": 7214
         },
         {
           "type": "item.completed",
           "itemType": "agent_message",
-          "at": 10482
+          "at": 8816
         },
         {
           "type": "item.completed",
           "itemType": "agent_message",
-          "at": 20485
+          "at": 18556
         },
         {
           "type": "item.started",
           "itemType": "file_change",
-          "at": 21228
+          "at": 19552
         },
         {
           "type": "item.completed",
           "itemType": "file_change",
-          "at": 21242
+          "at": 19567
         },
         {
           "type": "item.completed",
           "itemType": "agent_message",
-          "at": 22584
+          "at": 20673
         },
         {
           "type": "turn.completed",
           "itemType": null,
-          "at": 22648
+          "at": 20735
         }
       ],
+      "laterTurnHostTimeline": [],
       "events": [
         {
           "kind": "post-tool-command-return",
-          "at": 8767,
-          "entryAt": 8166,
-          "elapsedUs": 601259,
+          "at": 7804,
+          "entryAt": 7215,
+          "elapsedUs": 588837,
           "exitCode": 0,
           "signal": 0
         },
         {
           "kind": "resident-admitted",
-          "at": 8759.30615234375
+          "at": 7794.329345703125
+        },
+        {
+          "kind": "host-command-window",
+          "at": 7805,
+          "mode": "post-tool",
+          "launchAt": 7209,
+          "elapsedUs": 595820,
+          "exitCode": 0,
+          "signal": 0
         },
         {
           "kind": "stop-command-return",
-          "at": 12933,
-          "entryAt": 10515,
-          "elapsedUs": 2418160,
+          "at": 11920,
+          "entryAt": 8837,
+          "elapsedUs": 3082675,
           "exitCode": 0,
           "signal": 0
         },
         {
           "kind": "stop-entry",
-          "at": 10534,
+          "at": 8859,
           "continuationCapped": false
         },
         {
           "kind": "backend-complete",
           "outcome": "completed-findings",
-          "at": 12820.3408203125
+          "at": 11847.36474609375
         },
         {
           "kind": "stop-response-written",
-          "at": 12926,
-          "elapsedMs": 2392,
+          "at": 11910,
+          "elapsedMs": 3051,
           "findingCount": 1
         },
         {
           "kind": "stop-advice-finalized",
-          "at": 12927,
+          "at": 11912,
           "acknowledged": true
         },
         {
+          "kind": "host-command-window",
+          "at": 11920,
+          "mode": "stop",
+          "launchAt": 8833,
+          "elapsedUs": 3087418,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
           "kind": "post-tool-command-return",
-          "at": 21558,
-          "entryAt": 21244,
-          "elapsedUs": 314200,
+          "at": 19887,
+          "entryAt": 19569,
+          "elapsedUs": 318102,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "host-command-window",
+          "at": 19887,
+          "mode": "post-tool",
+          "launchAt": 19560,
+          "elapsedUs": 327447,
           "exitCode": 0,
           "signal": 0
         },
         {
           "kind": "stop-command-return",
-          "at": 22648,
-          "entryAt": 22619,
-          "elapsedUs": 28952,
+          "at": 20735,
+          "entryAt": 20710,
+          "elapsedUs": 24963,
           "exitCode": 0,
           "signal": 0
         },
         {
           "kind": "stop-entry",
-          "at": 22644,
+          "at": 20731,
           "continuationCapped": true
         },
         {
           "kind": "stop-quiet",
-          "at": 22646,
+          "at": 20732,
           "elapsedMs": 2,
           "continuationCapped": true
         },
         {
+          "kind": "host-command-window",
+          "at": 20735,
+          "mode": "stop",
+          "launchAt": 20704,
+          "elapsedUs": 30959,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
           "kind": "session-end",
-          "at": 22678
+          "at": 20766
         }
       ],
       "backendCompletions": 1,
@@ -353,17 +427,27 @@
         "pending",
         "findings"
       ],
-      "stopCommandElapsedUs": 2418160,
+      "stopCommandElapsedUs": 3087418,
+      "stopWrapperMainElapsedUs": 3082675,
       "postToolCommandElapsedUs": [
-        601259,
-        314200
+        588837,
+        318102
+      ],
+      "postToolHostCommandElapsedUs": [
+        595820,
+        327447
       ],
       "stopCommandUnderFiveSeconds": true,
+      "allStopCommandsUnderFiveSeconds": true,
       "responseWrittenWithinFiveSeconds": true,
+      "stopResponseWrittenWithinFiveSeconds": true,
       "stopResponseOutcome": "finding-submitted",
       "sessionEndObserved": true,
+      "sessionEndCount": 1,
       "finalFileState": "changed",
       "modelClaimedRepair": true,
+      "laterTurnFindingVisible": false,
+      "laterTurnModelClaimedRepair": false,
       "postSessionCollectable": false,
       "postSessionAcknowledged": false,
       "stderrClass": "other"
@@ -372,93 +456,112 @@
       "id": "resident-timeout-retained",
       "delayMs": 12000,
       "exitCode": 0,
-      "durationMs": 13192,
+      "durationMs": 14377,
       "hostTimeline": [
         {
           "type": "thread.started",
           "itemType": null,
-          "at": 642
+          "at": 1261
         },
         {
           "type": "item.completed",
           "itemType": "error",
-          "at": 652
+          "at": 1268
         },
         {
           "type": "item.completed",
           "itemType": "error",
-          "at": 652
+          "at": 1268
         },
         {
           "type": "turn.started",
           "itemType": null,
-          "at": 652
+          "at": 1268
         },
         {
           "type": "item.completed",
           "itemType": "agent_message",
-          "at": 4836
+          "at": 6131
         },
         {
           "type": "item.started",
           "itemType": "file_change",
-          "at": 5467
+          "at": 6628
         },
         {
           "type": "item.completed",
           "itemType": "file_change",
-          "at": 5476
+          "at": 6632
         },
         {
           "type": "item.completed",
           "itemType": "agent_message",
-          "at": 8176
+          "at": 9393
         },
         {
           "type": "turn.completed",
           "itemType": null,
-          "at": 12478
+          "at": 13656
         }
       ],
+      "laterTurnHostTimeline": [],
       "events": [
         {
           "kind": "post-tool-command-return",
-          "at": 6103,
-          "entryAt": 5478,
-          "elapsedUs": 624894,
+          "at": 7224,
+          "entryAt": 6634,
+          "elapsedUs": 590044,
           "exitCode": 0,
           "signal": 0
         },
         {
           "kind": "resident-admitted",
-          "at": 6097.5126953125
+          "at": 7215.5185546875
+        },
+        {
+          "kind": "host-command-window",
+          "at": 7225,
+          "mode": "post-tool",
+          "launchAt": 6631,
+          "elapsedUs": 593487,
+          "exitCode": 0,
+          "signal": 0
         },
         {
           "kind": "stop-command-return",
-          "at": 12477,
-          "entryAt": 8222,
-          "elapsedUs": 4254122,
+          "at": 13656,
+          "entryAt": 9430,
+          "elapsedUs": 4225743,
           "exitCode": 0,
           "signal": 0
         },
         {
           "kind": "stop-entry",
-          "at": 8251,
+          "at": 9444,
           "continuationCapped": false
         },
         {
           "kind": "stop-no-advice",
-          "at": 12459,
-          "elapsedMs": 4208
+          "at": 13651,
+          "elapsedMs": 4207
+        },
+        {
+          "kind": "host-command-window",
+          "at": 13656,
+          "mode": "stop",
+          "launchAt": 9426,
+          "elapsedUs": 4229993,
+          "exitCode": 0,
+          "signal": 0
         },
         {
           "kind": "session-end",
-          "at": 12515
+          "at": 13685
         },
         {
           "kind": "backend-complete",
           "outcome": "completed-findings",
-          "at": 18144.61767578125
+          "at": 19268.62353515625
         }
       ],
       "backendCompletions": 1,
@@ -469,18 +572,564 @@
         "pending",
         "findings"
       ],
-      "stopCommandElapsedUs": 4254122,
+      "stopCommandElapsedUs": 4229993,
+      "stopWrapperMainElapsedUs": 4225743,
       "postToolCommandElapsedUs": [
-        624894
+        590044
+      ],
+      "postToolHostCommandElapsedUs": [
+        593487
       ],
       "stopCommandUnderFiveSeconds": true,
+      "allStopCommandsUnderFiveSeconds": true,
       "responseWrittenWithinFiveSeconds": true,
+      "stopResponseWrittenWithinFiveSeconds": false,
       "stopResponseOutcome": "stop-no-advice",
       "sessionEndObserved": true,
+      "sessionEndCount": 1,
       "finalFileState": "original",
       "modelClaimedRepair": false,
+      "laterTurnFindingVisible": false,
+      "laterTurnModelClaimedRepair": false,
       "postSessionCollectable": true,
       "postSessionAcknowledged": true,
+      "stderrClass": "other"
+    },
+    {
+      "id": "resident-later-turn",
+      "delayMs": 12000,
+      "exitCode": 0,
+      "durationMs": 16036,
+      "hostTimeline": [
+        {
+          "type": "thread.started",
+          "itemType": null,
+          "at": 1210
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 1220
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 1220
+        },
+        {
+          "type": "turn.started",
+          "itemType": null,
+          "at": 1255
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 7744
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 8266
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 8267
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 10970
+        },
+        {
+          "type": "turn.completed",
+          "itemType": null,
+          "at": 15281
+        }
+      ],
+      "laterTurnHostTimeline": [
+        {
+          "type": "thread.started",
+          "itemType": null,
+          "at": 769
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 779
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 779
+        },
+        {
+          "type": "turn.started",
+          "itemType": null,
+          "at": 789
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 12993
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 14765
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 22932
+        },
+        {
+          "type": "item.started",
+          "itemType": "command_execution",
+          "at": 24877
+        },
+        {
+          "type": "item.completed",
+          "itemType": "command_execution",
+          "at": 24878
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 35506
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 35506
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 38223
+        },
+        {
+          "type": "turn.completed",
+          "itemType": null,
+          "at": 38291
+        }
+      ],
+      "events": [
+        {
+          "kind": "post-tool-command-return",
+          "at": 8901,
+          "entryAt": 8277,
+          "elapsedUs": 623497,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "resident-admitted",
+          "at": 8887.7880859375
+        },
+        {
+          "kind": "host-command-window",
+          "at": 8901,
+          "mode": "post-tool",
+          "launchAt": 8272,
+          "elapsedUs": 628443,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "stop-command-return",
+          "at": 15260,
+          "entryAt": 11013,
+          "elapsedUs": 4247371,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "stop-entry",
+          "at": 11043,
+          "continuationCapped": false
+        },
+        {
+          "kind": "stop-collection-deadline",
+          "at": 15245,
+          "elapsedMs": 4202
+        },
+        {
+          "kind": "host-command-window",
+          "at": 15261,
+          "mode": "stop",
+          "launchAt": 11004,
+          "elapsedUs": 4257030,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "session-end",
+          "at": 15320
+        },
+        {
+          "kind": "backend-complete",
+          "outcome": "completed-findings",
+          "at": 20946.86181640625
+        },
+        {
+          "kind": "stop-command-return",
+          "at": 45089,
+          "entryAt": 44841,
+          "elapsedUs": 247799,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "stop-entry",
+          "at": 44856,
+          "continuationCapped": false
+        },
+        {
+          "kind": "stop-response-written",
+          "at": 45081,
+          "elapsedMs": 226,
+          "findingCount": 1
+        },
+        {
+          "kind": "stop-advice-finalized",
+          "at": 45083,
+          "acknowledged": true
+        },
+        {
+          "kind": "host-command-window",
+          "at": 45089,
+          "mode": "stop",
+          "launchAt": 44837,
+          "elapsedUs": 252359,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "post-tool-command-return",
+          "at": 65909,
+          "entryAt": 65554,
+          "elapsedUs": 355465,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "host-command-window",
+          "at": 65913,
+          "mode": "post-tool",
+          "launchAt": 65551,
+          "elapsedUs": 362082,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "stop-command-return",
+          "at": 68323,
+          "entryAt": 68298,
+          "elapsedUs": 25796,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "stop-entry",
+          "at": 68320,
+          "continuationCapped": true
+        },
+        {
+          "kind": "stop-quiet",
+          "at": 68321,
+          "elapsedMs": 2,
+          "continuationCapped": true
+        },
+        {
+          "kind": "host-command-window",
+          "at": 68323,
+          "mode": "stop",
+          "launchAt": 68295,
+          "elapsedUs": 28498,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "session-end",
+          "at": 68367
+        }
+      ],
+      "backendCompletions": 1,
+      "admissionAccepted": true,
+      "controlledModelCalls": 1,
+      "activityStages": [
+        "pending",
+        "pending",
+        "findings",
+        "pending",
+        "incomplete"
+      ],
+      "stopCommandElapsedUs": 4257030,
+      "stopWrapperMainElapsedUs": 4247371,
+      "postToolCommandElapsedUs": [
+        623497,
+        355465
+      ],
+      "postToolHostCommandElapsedUs": [
+        628443,
+        362082
+      ],
+      "stopCommandUnderFiveSeconds": true,
+      "allStopCommandsUnderFiveSeconds": true,
+      "responseWrittenWithinFiveSeconds": true,
+      "stopResponseWrittenWithinFiveSeconds": true,
+      "stopResponseOutcome": "finding-submitted",
+      "sessionEndObserved": true,
+      "sessionEndCount": 2,
+      "finalFileState": "changed",
+      "modelClaimedRepair": false,
+      "laterTurnFindingVisible": true,
+      "laterTurnModelClaimedRepair": true,
+      "postSessionCollectable": false,
+      "postSessionAcknowledged": false,
+      "stderrClass": "other"
+    },
+    {
+      "id": "resident-multi-unit",
+      "delayMs": 0,
+      "exitCode": 0,
+      "durationMs": 39014,
+      "hostTimeline": [
+        {
+          "type": "thread.started",
+          "itemType": null,
+          "at": 1282
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 1292
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 1292
+        },
+        {
+          "type": "turn.started",
+          "itemType": null,
+          "at": 1292
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 12093
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 12970
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 12975
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 16208
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 35637
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 37052
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 37060
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 38161
+        },
+        {
+          "type": "turn.completed",
+          "itemType": null,
+          "at": 38197
+        }
+      ],
+      "laterTurnHostTimeline": [],
+      "events": [
+        {
+          "kind": "post-tool-command-return",
+          "at": 13610,
+          "entryAt": 12976,
+          "elapsedUs": 633502,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "resident-admitted",
+          "at": 13601.4091796875
+        },
+        {
+          "kind": "host-command-window",
+          "at": 13610,
+          "mode": "post-tool",
+          "launchAt": 12973,
+          "elapsedUs": 636828,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "backend-complete",
+          "outcome": "completed-findings",
+          "at": 13661.40966796875
+        },
+        {
+          "kind": "backend-complete",
+          "outcome": "completed-findings",
+          "at": 13661.40966796875
+        },
+        {
+          "kind": "stop-command-return",
+          "at": 16563,
+          "entryAt": 16243,
+          "elapsedUs": 319136,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "stop-entry",
+          "at": 16266,
+          "continuationCapped": false
+        },
+        {
+          "kind": "stop-response-written",
+          "at": 16551,
+          "elapsedMs": 285,
+          "findingCount": 2
+        },
+        {
+          "kind": "stop-advice-finalized",
+          "at": 16556,
+          "acknowledged": true
+        },
+        {
+          "kind": "host-command-window",
+          "at": 16563,
+          "mode": "stop",
+          "launchAt": 16239,
+          "elapsedUs": 323268,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "post-tool-command-return",
+          "at": 37370,
+          "entryAt": 37062,
+          "elapsedUs": 308053,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "host-command-window",
+          "at": 37370,
+          "mode": "post-tool",
+          "launchAt": 37058,
+          "elapsedUs": 312498,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "backend-complete",
+          "outcome": "completed-findings",
+          "at": 37414.620361328125
+        },
+        {
+          "kind": "backend-complete",
+          "outcome": "completed-findings",
+          "at": 37414.620361328125
+        },
+        {
+          "kind": "stop-command-return",
+          "at": 38197,
+          "entryAt": 38176,
+          "elapsedUs": 20811,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "stop-entry",
+          "at": 38194,
+          "continuationCapped": true
+        },
+        {
+          "kind": "stop-quiet",
+          "at": 38195,
+          "elapsedMs": 1,
+          "continuationCapped": true
+        },
+        {
+          "kind": "host-command-window",
+          "at": 38197,
+          "mode": "stop",
+          "launchAt": 38172,
+          "elapsedUs": 24496,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "session-end",
+          "at": 38223
+        }
+      ],
+      "backendCompletions": 4,
+      "admissionAccepted": true,
+      "controlledModelCalls": 4,
+      "activityStages": [
+        "pending",
+        "pending",
+        "findings",
+        "findings",
+        "pending",
+        "pending",
+        "findings",
+        "findings"
+      ],
+      "stopCommandElapsedUs": 323268,
+      "stopWrapperMainElapsedUs": 319136,
+      "postToolCommandElapsedUs": [
+        633502,
+        308053
+      ],
+      "postToolHostCommandElapsedUs": [
+        636828,
+        312498
+      ],
+      "stopCommandUnderFiveSeconds": true,
+      "allStopCommandsUnderFiveSeconds": true,
+      "responseWrittenWithinFiveSeconds": true,
+      "stopResponseWrittenWithinFiveSeconds": true,
+      "stopResponseOutcome": "finding-submitted",
+      "sessionEndObserved": true,
+      "sessionEndCount": 1,
+      "finalFileState": "changed",
+      "unitFileStates": {
+        "order-count.ts": "changed",
+        "order-total.ts": "changed"
+      },
+      "stopResponseFindingCount": 2,
+      "multiUnitBothRepaired": true,
+      "modelClaimedRepair": true,
+      "laterTurnFindingVisible": false,
+      "laterTurnModelClaimedRepair": false,
+      "postSessionCollectable": false,
+      "postSessionAcknowledged": false,
       "stderrClass": "other"
     }
   ]
