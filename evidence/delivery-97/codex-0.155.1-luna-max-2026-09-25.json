@@ -1,0 +1,1465 @@
+{
+  "issue": 97,
+  "host": "codex-cli 0.155.1",
+  "platform": "linux-arm64",
+  "node": "v24.20.0",
+  "agentModel": "gpt-6-luna",
+  "reasoningEffort": "max",
+  "mode": "headless codex exec ephemeral",
+  "isolation": "disposable repos and temporary CODEX_HOME; no Jev credentials or live backend; raw host output and source discarded",
+  "cases": [
+    {
+      "id": "baseline-before-stop",
+      "mode": "baseline",
+      "delayMs": 0,
+      "units": 1,
+      "failure": false,
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 11639,
+      "hookEvents": [
+        {
+          "kind": "edit-hook-entry",
+          "at": 8423,
+          "recipientMatched": true,
+          "units": 1
+        },
+        {
+          "kind": "review-admitted",
+          "at": 8423,
+          "units": 1
+        },
+        {
+          "kind": "edit-hook-return",
+          "at": 8423
+        },
+        {
+          "kind": "stop-entry",
+          "at": 10888,
+          "stopHookActive": false
+        },
+        {
+          "kind": "stop-return",
+          "at": 10888,
+          "elapsedMs": 0,
+          "submitted": false
+        },
+        {
+          "kind": "session-end",
+          "at": 10932
+        }
+      ],
+      "hostEventTypes": [
+        "thread.started",
+        "item.completed",
+        "item.completed",
+        "item.completed",
+        "turn.started",
+        "item.completed",
+        "item.started",
+        "item.completed",
+        "item.completed",
+        "turn.completed"
+      ],
+      "hostEventTimeline": [
+        {
+          "type": "thread.started",
+          "itemType": null,
+          "at": 744
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 759
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 759
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 759
+        },
+        {
+          "type": "turn.started",
+          "itemType": null,
+          "at": 759
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 7847
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 8393
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 8402
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 10839
+        },
+        {
+          "type": "turn.completed",
+          "itemType": null,
+          "at": 10890
+        }
+      ],
+      "finalFileState": "bad",
+      "modelClaimedRepair": false,
+      "hostStderrClass": "other",
+      "eligibleDirectEdits": 1,
+      "admittedReviews": 1,
+      "hostSubmissions": 0
+    },
+    {
+      "id": "baseline-next-hook",
+      "mode": "baseline",
+      "delayMs": 0,
+      "units": 1,
+      "failure": false,
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 25689,
+      "hookEvents": [
+        {
+          "kind": "edit-hook-entry",
+          "at": 12654,
+          "recipientMatched": true,
+          "units": 1
+        },
+        {
+          "kind": "review-admitted",
+          "at": 12654,
+          "units": 1
+        },
+        {
+          "kind": "edit-hook-return",
+          "at": 12654
+        },
+        {
+          "kind": "host-submission",
+          "at": 15672,
+          "units": 1,
+          "surface": "subsequent-post-tool-use"
+        },
+        {
+          "kind": "stop-entry",
+          "at": 24922,
+          "stopHookActive": false
+        },
+        {
+          "kind": "stop-return",
+          "at": 24922,
+          "elapsedMs": 0,
+          "submitted": false
+        },
+        {
+          "kind": "session-end",
+          "at": 24960
+        }
+      ],
+      "hostEventTypes": [
+        "thread.started",
+        "item.completed",
+        "item.completed",
+        "item.completed",
+        "turn.started",
+        "item.completed",
+        "item.started",
+        "item.completed",
+        "item.started",
+        "item.completed",
+        "item.completed",
+        "item.started",
+        "item.completed",
+        "item.completed",
+        "turn.completed"
+      ],
+      "hostEventTimeline": [
+        {
+          "type": "thread.started",
+          "itemType": null,
+          "at": 665
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 679
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 680
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 680
+        },
+        {
+          "type": "turn.started",
+          "itemType": null,
+          "at": 680
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 11357
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 12627
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 12635
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 15644
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 15652
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 18545
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 19271
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 19277
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 24866
+        },
+        {
+          "type": "turn.completed",
+          "itemType": null,
+          "at": 24924
+        }
+      ],
+      "finalFileState": "good",
+      "modelClaimedRepair": true,
+      "hostStderrClass": "other",
+      "eligibleDirectEdits": 1,
+      "admittedReviews": 1,
+      "hostSubmissions": 1
+    },
+    {
+      "id": "bounded-before-stop",
+      "mode": "bounded",
+      "delayMs": 0,
+      "units": 1,
+      "failure": false,
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 12796,
+      "hookEvents": [
+        {
+          "kind": "edit-hook-entry",
+          "at": 6414,
+          "recipientMatched": true,
+          "units": 1
+        },
+        {
+          "kind": "review-admitted",
+          "at": 6414,
+          "units": 1
+        },
+        {
+          "kind": "edit-hook-return",
+          "at": 6414
+        },
+        {
+          "kind": "stop-entry",
+          "at": 8102,
+          "stopHookActive": false
+        },
+        {
+          "kind": "host-submission",
+          "at": 8104,
+          "units": 1
+        },
+        {
+          "kind": "stop-return",
+          "at": 8105,
+          "elapsedMs": 3,
+          "submitted": true
+        },
+        {
+          "kind": "stop-entry",
+          "at": 12028,
+          "stopHookActive": true
+        },
+        {
+          "kind": "stop-return",
+          "at": 12028,
+          "elapsedMs": 0,
+          "submitted": false
+        },
+        {
+          "kind": "session-end",
+          "at": 12063
+        }
+      ],
+      "hostEventTypes": [
+        "thread.started",
+        "item.completed",
+        "item.completed",
+        "item.completed",
+        "turn.started",
+        "item.completed",
+        "item.started",
+        "item.completed",
+        "item.completed",
+        "item.completed",
+        "item.started",
+        "item.completed",
+        "item.completed",
+        "turn.completed"
+      ],
+      "hostEventTimeline": [
+        {
+          "type": "thread.started",
+          "itemType": null,
+          "at": 701
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 712
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 712
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 712
+        },
+        {
+          "type": "turn.started",
+          "itemType": null,
+          "at": 712
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 5702
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 6387
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 6394
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 8055
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 10195
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 11020
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 11027
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 11982
+        },
+        {
+          "type": "turn.completed",
+          "itemType": null,
+          "at": 12028
+        }
+      ],
+      "finalFileState": "good",
+      "modelClaimedRepair": true,
+      "hostStderrClass": "other",
+      "eligibleDirectEdits": 1,
+      "admittedReviews": 1,
+      "hostSubmissions": 1
+    },
+    {
+      "id": "bounded-delayed",
+      "mode": "bounded",
+      "delayMs": 1500,
+      "units": 1,
+      "failure": false,
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 28113,
+      "hookEvents": [
+        {
+          "kind": "edit-hook-entry",
+          "at": 9534,
+          "recipientMatched": true,
+          "units": 1
+        },
+        {
+          "kind": "review-admitted",
+          "at": 9534,
+          "units": 1
+        },
+        {
+          "kind": "edit-hook-return",
+          "at": 9534
+        },
+        {
+          "kind": "stop-entry",
+          "at": 16410,
+          "stopHookActive": false
+        },
+        {
+          "kind": "host-submission",
+          "at": 16411,
+          "units": 1
+        },
+        {
+          "kind": "stop-return",
+          "at": 16411,
+          "elapsedMs": 1,
+          "submitted": true
+        },
+        {
+          "kind": "stop-entry",
+          "at": 27300,
+          "stopHookActive": true
+        },
+        {
+          "kind": "stop-return",
+          "at": 27301,
+          "elapsedMs": 1,
+          "submitted": false
+        },
+        {
+          "kind": "session-end",
+          "at": 27346
+        }
+      ],
+      "hostEventTypes": [
+        "thread.started",
+        "item.completed",
+        "item.completed",
+        "item.completed",
+        "turn.started",
+        "item.completed",
+        "item.started",
+        "item.completed",
+        "item.completed",
+        "item.completed",
+        "item.started",
+        "item.completed",
+        "item.completed",
+        "turn.completed"
+      ],
+      "hostEventTimeline": [
+        {
+          "type": "thread.started",
+          "itemType": null,
+          "at": 731
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 776
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 776
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 776
+        },
+        {
+          "type": "turn.started",
+          "itemType": null,
+          "at": 776
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 8254
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 9508
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 9515
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 16358
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 20672
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 21877
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 21893
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 27251
+        },
+        {
+          "type": "turn.completed",
+          "itemType": null,
+          "at": 27306
+        }
+      ],
+      "finalFileState": "good",
+      "modelClaimedRepair": true,
+      "hostStderrClass": "other",
+      "eligibleDirectEdits": 1,
+      "admittedReviews": 1,
+      "hostSubmissions": 1
+    },
+    {
+      "id": "bounded-during-stop",
+      "mode": "bounded",
+      "delayMs": 4000,
+      "units": 1,
+      "failure": false,
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 13433,
+      "hookEvents": [
+        {
+          "kind": "edit-hook-entry",
+          "at": 4891,
+          "recipientMatched": true,
+          "units": 1
+        },
+        {
+          "kind": "review-admitted",
+          "at": 4891,
+          "units": 1
+        },
+        {
+          "kind": "edit-hook-return",
+          "at": 4891
+        },
+        {
+          "kind": "stop-entry",
+          "at": 6660,
+          "stopHookActive": false
+        },
+        {
+          "kind": "host-submission",
+          "at": 8896,
+          "units": 1
+        },
+        {
+          "kind": "stop-return",
+          "at": 8897,
+          "elapsedMs": 2237,
+          "submitted": true
+        },
+        {
+          "kind": "stop-entry",
+          "at": 12701,
+          "stopHookActive": true
+        },
+        {
+          "kind": "stop-return",
+          "at": 12701,
+          "elapsedMs": 0,
+          "submitted": false
+        },
+        {
+          "kind": "session-end",
+          "at": 12732
+        }
+      ],
+      "hostEventTypes": [
+        "thread.started",
+        "item.completed",
+        "item.completed",
+        "item.completed",
+        "turn.started",
+        "item.completed",
+        "item.started",
+        "item.completed",
+        "item.completed",
+        "item.completed",
+        "item.started",
+        "item.completed",
+        "item.completed",
+        "turn.completed"
+      ],
+      "hostEventTimeline": [
+        {
+          "type": "thread.started",
+          "itemType": null,
+          "at": 711
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 726
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 726
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 726
+        },
+        {
+          "type": "turn.started",
+          "itemType": null,
+          "at": 726
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 4168
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 4865
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 4871
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 6612
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 10768
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 11670
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 11675
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 12644
+        },
+        {
+          "type": "turn.completed",
+          "itemType": null,
+          "at": 12702
+        }
+      ],
+      "finalFileState": "good",
+      "modelClaimedRepair": true,
+      "hostStderrClass": "other",
+      "eligibleDirectEdits": 1,
+      "admittedReviews": 1,
+      "hostSubmissions": 1
+    },
+    {
+      "id": "bounded-timeout",
+      "mode": "bounded",
+      "delayMs": 7500,
+      "units": 1,
+      "failure": false,
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 14198,
+      "hookEvents": [
+        {
+          "kind": "edit-hook-entry",
+          "at": 7126,
+          "recipientMatched": true,
+          "units": 1
+        },
+        {
+          "kind": "review-admitted",
+          "at": 7127,
+          "units": 1
+        },
+        {
+          "kind": "edit-hook-return",
+          "at": 7127
+        },
+        {
+          "kind": "stop-entry",
+          "at": 8465,
+          "stopHookActive": false
+        },
+        {
+          "kind": "stop-return",
+          "at": 13336,
+          "elapsedMs": 4871,
+          "submitted": false
+        },
+        {
+          "kind": "session-end",
+          "at": 13376
+        }
+      ],
+      "hostEventTypes": [
+        "thread.started",
+        "item.completed",
+        "item.completed",
+        "item.completed",
+        "turn.started",
+        "item.completed",
+        "item.started",
+        "item.completed",
+        "item.completed",
+        "turn.completed"
+      ],
+      "hostEventTimeline": [
+        {
+          "type": "thread.started",
+          "itemType": null,
+          "at": 770
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 785
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 785
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 785
+        },
+        {
+          "type": "turn.started",
+          "itemType": null,
+          "at": 785
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 6413
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 7101
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 7111
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 8433
+        },
+        {
+          "type": "turn.completed",
+          "itemType": null,
+          "at": 13341
+        }
+      ],
+      "finalFileState": "bad",
+      "modelClaimedRepair": false,
+      "hostStderrClass": "other",
+      "eligibleDirectEdits": 1,
+      "admittedReviews": 1,
+      "hostSubmissions": 0
+    },
+    {
+      "id": "bounded-multi",
+      "mode": "bounded",
+      "delayMs": 1000,
+      "units": 2,
+      "failure": false,
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 13334,
+      "hookEvents": [
+        {
+          "kind": "edit-hook-entry",
+          "at": 6361,
+          "recipientMatched": true,
+          "units": 2
+        },
+        {
+          "kind": "review-admitted",
+          "at": 6361,
+          "units": 2
+        },
+        {
+          "kind": "edit-hook-return",
+          "at": 6361
+        },
+        {
+          "kind": "stop-entry",
+          "at": 8454,
+          "stopHookActive": false
+        },
+        {
+          "kind": "host-submission",
+          "at": 8454,
+          "units": 2
+        },
+        {
+          "kind": "stop-return",
+          "at": 8455,
+          "elapsedMs": 1,
+          "submitted": true
+        },
+        {
+          "kind": "stop-entry",
+          "at": 12560,
+          "stopHookActive": true
+        },
+        {
+          "kind": "stop-return",
+          "at": 12560,
+          "elapsedMs": 0,
+          "submitted": false
+        },
+        {
+          "kind": "session-end",
+          "at": 12597
+        }
+      ],
+      "hostEventTypes": [
+        "thread.started",
+        "item.completed",
+        "item.completed",
+        "item.completed",
+        "turn.started",
+        "item.completed",
+        "item.started",
+        "item.completed",
+        "item.completed",
+        "item.started",
+        "item.completed",
+        "item.completed",
+        "turn.completed"
+      ],
+      "hostEventTimeline": [
+        {
+          "type": "thread.started",
+          "itemType": null,
+          "at": 729
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 738
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 738
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 738
+        },
+        {
+          "type": "turn.started",
+          "itemType": null,
+          "at": 738
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 5676
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 6339
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 6345
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 8396
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 11483
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 11483
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 12504
+        },
+        {
+          "type": "turn.completed",
+          "itemType": null,
+          "at": 12562
+        }
+      ],
+      "finalFileState": "good",
+      "modelClaimedRepair": true,
+      "hostStderrClass": "other",
+      "eligibleDirectEdits": 1,
+      "admittedReviews": 2,
+      "hostSubmissions": 1
+    },
+    {
+      "id": "bounded-failure",
+      "mode": "bounded",
+      "delayMs": 400,
+      "units": 1,
+      "failure": true,
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 10019,
+      "hookEvents": [
+        {
+          "kind": "edit-hook-entry",
+          "at": 7740,
+          "recipientMatched": true,
+          "units": 1
+        },
+        {
+          "kind": "review-admitted",
+          "at": 7741,
+          "units": 1
+        },
+        {
+          "kind": "edit-hook-return",
+          "at": 7741
+        },
+        {
+          "kind": "stop-entry",
+          "at": 9319,
+          "stopHookActive": false
+        },
+        {
+          "kind": "stop-return",
+          "at": 9319,
+          "elapsedMs": 0,
+          "submitted": false
+        },
+        {
+          "kind": "session-end",
+          "at": 9350
+        }
+      ],
+      "hostEventTypes": [
+        "thread.started",
+        "item.completed",
+        "item.completed",
+        "item.completed",
+        "turn.started",
+        "item.completed",
+        "item.started",
+        "item.completed",
+        "item.completed",
+        "turn.completed"
+      ],
+      "hostEventTimeline": [
+        {
+          "type": "thread.started",
+          "itemType": null,
+          "at": 756
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 772
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 772
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 772
+        },
+        {
+          "type": "turn.started",
+          "itemType": null,
+          "at": 772
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 7162
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 7713
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 7714
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 9269
+        },
+        {
+          "type": "turn.completed",
+          "itemType": null,
+          "at": 9320
+        }
+      ],
+      "finalFileState": "bad",
+      "modelClaimedRepair": false,
+      "hostStderrClass": "other",
+      "eligibleDirectEdits": 1,
+      "admittedReviews": 1,
+      "hostSubmissions": 0
+    },
+    {
+      "id": "background-delayed",
+      "mode": "background",
+      "delayMs": 1500,
+      "units": 1,
+      "failure": false,
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 12601,
+      "hostExitedAtMs": 12601,
+      "postSessionObservationMs": 8500,
+      "postSessionHookEvents": [],
+      "hookEvents": [
+        {
+          "kind": "edit-hook-entry",
+          "at": 5535,
+          "recipientMatched": true,
+          "units": 1
+        },
+        {
+          "kind": "review-admitted",
+          "at": 5535,
+          "units": 1
+        },
+        {
+          "kind": "backend-complete",
+          "at": 7039,
+          "units": 1,
+          "failure": false
+        },
+        {
+          "kind": "edit-hook-return",
+          "at": 7040
+        },
+        {
+          "kind": "stop-entry",
+          "at": 11229,
+          "stopHookActive": false
+        },
+        {
+          "kind": "stop-return",
+          "at": 11229,
+          "elapsedMs": 0,
+          "submitted": false
+        },
+        {
+          "kind": "session-end",
+          "at": 11265
+        }
+      ],
+      "hostEventTypes": [
+        "thread.started",
+        "item.completed",
+        "item.completed",
+        "item.completed",
+        "turn.started",
+        "item.completed",
+        "item.started",
+        "item.completed",
+        "item.completed",
+        "item.completed",
+        "item.started",
+        "item.completed",
+        "item.completed",
+        "turn.completed"
+      ],
+      "hostEventTimeline": [
+        {
+          "type": "thread.started",
+          "itemType": null,
+          "at": 934
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 943
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 943
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 943
+        },
+        {
+          "type": "turn.started",
+          "itemType": null,
+          "at": 943
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 4694
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 5507
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 5509
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 7120
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 9165
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 9981
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 9983
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 11168
+        },
+        {
+          "type": "turn.completed",
+          "itemType": null,
+          "at": 11231
+        }
+      ],
+      "finalFileState": "good",
+      "modelClaimedRepair": true,
+      "hostStderrClass": "other",
+      "eligibleDirectEdits": 1,
+      "admittedReviews": 1,
+      "hostSubmissions": 0
+    },
+    {
+      "id": "background-during-stop",
+      "mode": "background",
+      "delayMs": 4000,
+      "units": 1,
+      "failure": false,
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 8830,
+      "hostExitedAtMs": 8830,
+      "postSessionObservationMs": 8500,
+      "postSessionHookEvents": [],
+      "hookEvents": [
+        {
+          "kind": "edit-hook-entry",
+          "at": 6672,
+          "recipientMatched": true,
+          "units": 1
+        },
+        {
+          "kind": "review-admitted",
+          "at": 6673,
+          "units": 1
+        },
+        {
+          "kind": "stop-entry",
+          "at": 8068,
+          "stopHookActive": false
+        },
+        {
+          "kind": "stop-return",
+          "at": 8068,
+          "elapsedMs": 0,
+          "submitted": false
+        },
+        {
+          "kind": "session-end",
+          "at": 8113
+        }
+      ],
+      "hostEventTypes": [
+        "thread.started",
+        "item.completed",
+        "item.completed",
+        "item.completed",
+        "turn.started",
+        "item.completed",
+        "item.started",
+        "item.completed",
+        "item.completed",
+        "turn.completed"
+      ],
+      "hostEventTimeline": [
+        {
+          "type": "thread.started",
+          "itemType": null,
+          "at": 1010
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 1021
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 1021
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 1021
+        },
+        {
+          "type": "turn.started",
+          "itemType": null,
+          "at": 1021
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 5944
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 6618
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 6620
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 7998
+        },
+        {
+          "type": "turn.completed",
+          "itemType": null,
+          "at": 8070
+        }
+      ],
+      "finalFileState": "bad",
+      "modelClaimedRepair": false,
+      "hostStderrClass": "other",
+      "eligibleDirectEdits": 1,
+      "admittedReviews": 1,
+      "hostSubmissions": 0
+    },
+    {
+      "id": "background-after-end",
+      "mode": "background",
+      "delayMs": 7500,
+      "units": 1,
+      "failure": false,
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 9944,
+      "hostExitedAtMs": 9944,
+      "postSessionObservationMs": 8500,
+      "postSessionHookEvents": [],
+      "hookEvents": [
+        {
+          "kind": "edit-hook-entry",
+          "at": 7252,
+          "recipientMatched": true,
+          "units": 1
+        },
+        {
+          "kind": "review-admitted",
+          "at": 7252,
+          "units": 1
+        },
+        {
+          "kind": "stop-entry",
+          "at": 9199,
+          "stopHookActive": false
+        },
+        {
+          "kind": "stop-return",
+          "at": 9199,
+          "elapsedMs": 0,
+          "submitted": false
+        },
+        {
+          "kind": "session-end",
+          "at": 9248
+        }
+      ],
+      "hostEventTypes": [
+        "thread.started",
+        "item.completed",
+        "item.completed",
+        "item.completed",
+        "turn.started",
+        "item.completed",
+        "item.started",
+        "item.completed",
+        "item.completed",
+        "turn.completed"
+      ],
+      "hostEventTimeline": [
+        {
+          "type": "thread.started",
+          "itemType": null,
+          "at": 643
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 651
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 651
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 651
+        },
+        {
+          "type": "turn.started",
+          "itemType": null,
+          "at": 651
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 6598
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 7215
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 7219
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 9165
+        },
+        {
+          "type": "turn.completed",
+          "itemType": null,
+          "at": 9208
+        }
+      ],
+      "finalFileState": "bad",
+      "modelClaimedRepair": false,
+      "hostStderrClass": "other",
+      "eligibleDirectEdits": 1,
+      "admittedReviews": 1,
+      "hostSubmissions": 0
+    }
+  ]
+}
