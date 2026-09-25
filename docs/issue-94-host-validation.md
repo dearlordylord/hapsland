@@ -1,9 +1,22 @@
 # Issue #94 real-host acceptance plan — 2026-09-24
 
-**Status:** seven authenticated Claude Code sessions have completed across two separately bounded passes. The newly authorized two-session Stage A control passed; its finding arm submitted a classified rule finding, but no matched model repair followed. Claude support remains unproven. OpenCode and restart remain pending.
+**Status:** nine authenticated Claude Code sessions have completed across three separately bounded passes. The latest two-session pass tested the revised explicit repair wording: its control passed, and its finding arm submitted one classified rule finding but observed no later native repair. Claude support remains unproven. OpenCode and restart remain pending.
 This record supplements the [host probes](issue-94-host-probes.md), [host research](issue-94-host-research.md), and [#97 delivery baseline](issue-97-delivery.md). It does not declare either host supported.
 
 The later [offline delivery diagnosis](issue-94-delivery-diagnosis.md) confirms that a completed production finding can enter Claude `2.1.218`'s next scripted-provider request through `additionalContext`; it does not establish authenticated model reaction.
+
+## Approved revised-advice follow-up — 2026-09-24
+
+The owner approved exactly two authenticated Claude Code `2.1.218` sessions for the implemented repair advice. A read-only check of the cached exact binary confirmed its version and `loggedIn: true` under the run profile. `npm run build` passed immediately before the pass, and the runner accepted the compiled CLI and resident artifacts as fresh. The new [durable ledger](../evidence/host-94/validation/claude-repair-wording-20260924-ledger/manifest.json) was initialized once. Each headless session used Claude's normal authenticated provider/model, one requested synthetic native edit, an isolated disposable repository, Hapsland's controlled local backend, a 90-second host ceiling, and a 2 MB combined-output ceiling. No Jev call or OpenCode session occurred. Only the source-free [control](../evidence/host-94/validation/claude-repair-wording-control.json), [finding](../evidence/host-94/validation/claude-repair-wording-finding.json), and ledger records were retained.
+
+| Arm | Strict result | Host elapsed | Review and handoff | Model reaction |
+| --- | --- | ---: | --- | --- |
+| Control | **Passed:** one matched model-originated native edit and successful hook; final synthetic state remained `number`. | 13,473 ms | Controlled `completed-clear`; zero finding, notice, or unknown submissions. | No unsolicited repair. |
+| Finding | **Failed:** one matched model-originated initial native edit and successful hook; final synthetic state remained `number`. | 15,480 ms | Controlled `completed-findings`; one classified rule-finding submission, zero notices or unknown submissions. | No distinct later native repair or successful repair hook; `submitted-unreacted`, reaction `unproven`. |
+
+Both sessions exited with code 0; neither hit its time or output ceiling. Across the pass, the runner observed two matched initial native edits, two successful initiating hooks, one classified finding submission, zero notices or unknown submissions, and zero matched repairs. The finding edit event was observed 8,420 ms after launch, and the bridge finished its submitting hook at 10,575 ms. Their 2,155 ms difference includes host output buffering and scheduling uncertainty; it is not measured model-read latency. The global admission marker remains unkeyed, while the controlled completion outcome was matched to the initial call by ephemeral in-memory identifiers. The ledger contains exactly two starts, with finishes `recorded` and `failed`. The two session summaries report a combined host elapsed time of 28,953 ms. No retry or further host session followed the failed finding arm.
+
+The revised wording therefore passed the scripted-provider delivery fixture and reached an authenticated finding hook submission, but this selected real-model session did not show Claude repairing the file. The source-free record cannot distinguish whether the model read the returned context, chose not to repair, or had no further action opportunity before headless completion. It cannot support a Claude compatibility declaration or a repair-rate estimate. The approved two-session allocation is exhausted; OpenCode remains postponed.
 
 ## Approved Claude Stage A follow-up — 2026-09-24
 
