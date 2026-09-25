@@ -163,6 +163,36 @@ describe("resident delivery lease", () => {
       token: claudeReply.token, surface: "stop" })).toEqual({ status: "submitting" });
   });
 
+  it("drops Claude composed advice after credential generation rotates", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const statePath = join(root, "consent");
+    const credentialStatePath = join(root, "credential-state.json");
+    writeFileSync(credentialStatePath, JSON.stringify({ version: 1, generation: 1, savedUseSuspended: false }));
+    await enable(root, statePath);
+    const base = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    expect(base).toBeDefined();
+    if (base === undefined) return;
+    const observation = { ...base, recipient: {
+      host: "claude-code" as const, hostVersion: "2.1.218" as const,
+      sessionId: "claude-session", turnId: null, toolUseId: "write-1", agentId: null,
+    } };
+    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const dispatch: ResidentDispatchContext = { ...findingDispatch(statePath), credential: {
+      name: "TYPESAFE_API_KEY", environmentValue: "synthetic-race-marker",
+      environmentOnly: true, generation: 1, statePath: credentialStatePath,
+    } };
+    expect(server.admit(observation, dispatch)).toEqual({ status: "accepted" });
+    await server.whenIdle();
+    expect(server.pendingAdviceMetadata()).toHaveLength(1);
+    writeFileSync(credentialStatePath, JSON.stringify({ version: 1, generation: 2, savedUseSuspended: false }));
+    const rotated = { ...dispatch, credential: { ...dispatch.credential!, generation: 2 } };
+    const result = await server.handle({ version: 1, operation: "collect", lifetime: server.lifetime,
+      root, recipient: { ...observation.recipient, toolUseId: "later-tool" },
+      dispatch: rotated, mode: "turn-end", composed: true });
+    expect(result.status).toBe("empty");
+  });
+
   it("lets a later edit collect earlier advice through the same composed recipient group", async () => {
     const root = await makeGitFixture();
     await put(root, "first.ts", "type OrderCount = number\n");

@@ -8,7 +8,8 @@ and Claude Code 2.1.218. The [runner](run-matched-linux.mjs) invokes each exact
 host with temporary native hook settings and the production Hapsland CLI and
 resident. Its controlled offline Effect `DecisionModel` completes an actionable
 finding for the initial edit. The before sessions expose only the synchronous
-edit hook. The after sessions also run the shared background, Stop, and prompt
+edit hook. The after sessions set `REVIEW_ENABLE_COMPOSED_CANDIDATE=1` and run
+the shared background, Stop, and prompt
 hook commands. The fixture holds the async background command so Stop can be
 the last delivery opportunity in the headless turn. It asserts that neither
 before session receives a finding or repairs the file, while both after
@@ -43,6 +44,17 @@ after case in which background submitted a finding just before Stop, but no
 repair followed. Its Claude after case passed. The fixture now holds the
 background command longer for an isolated Stop opportunity; the missed
 submission remains an unresolved composition outcome.
+A later [post-review rerun](linux-matched-postreview-instability.json) passed
+both Codex cases but failed Claude hook admission: the before edit command
+timed out, and the after session did not record a mapped edit hook or backend
+completion. This is retained as an exact-host reproducibility failure.
+An alternate Claude [Read/Edit fixture](linux-claude-edit-fixture.json) reached
+repair and clear review in its after case, but its before case had no edit hook
+and no backend completion. Two further [before probes](linux-claude-explicit-settings-before.json)
+and [recheck](linux-claude-explicit-settings-before-recheck.json) loaded the hook
+explicitly, but the five-second edit command timed out. Neither is counted as a
+passing before case; the original matched record remains the selected passing
+pair, and repeatability remains open.
 Run with exact binaries installed at the runner's default temporary paths or
 set `HAPSLAND_105_CODEX` and `HAPSLAND_105_CLAUDE`. Set
 `HAPSLAND_105_EVIDENCE_FILE` to write a new sanitized record. Set

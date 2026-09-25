@@ -114,7 +114,7 @@ for (const entry of cases) {
         outcomePath, capturePath,
       }), HAPSLAND_105_TRACE: trace, HAPSLAND_105_CLI: cli,
       ...(candidate ? { HAPSLAND_105_BACKGROUND_DELAY_MS: entry.phase === 'background' ? '0' : '20000',
-        HAPSLAND_105_COMPOSED_EDIT: '1' } : {}) };
+        HAPSLAND_105_COMPOSED_EDIT: '1', REVIEW_ENABLE_COMPOSED_CANDIDATE: '1' } : {}) };
     for (const key of ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'TYPESAFE_API_KEY']) delete env[key];
     const enable = (operation, proposalDigest) => spawnSync(process.execPath, [cli, `--${operation}`], {
       cwd: project, env,
@@ -149,16 +149,20 @@ for (const entry of cases) {
         ...(candidate ? { UserPromptSubmit: [{ hooks: [promptHook] }], Stop: [{ hooks: [stop] }] } : {}),
       } }));
     }
-    const instruction = entry.host === 'codex' ? 'Use native apply_patch' : 'Use the native Write tool';
+    const instruction = entry.host === 'codex'
+      ? 'Use native apply_patch to create order-count.ts containing exactly one line: type OrderCount = number.'
+      : 'Use the native Write tool to create order-count.ts containing exactly one line: type OrderCount = number.';
     const prompt = entry.phase === 'background'
-      ? `${instruction} to create order-count.ts containing exactly one line: type OrderCount = number. After that edit, use the native Read tool to read README.md once. Do not make another edit before reading. If a Hapsland review finding arrives, use a native edit tool to change the type line to: type OrderCount = number & { readonly __brand: "OrderCount" }. Then finish by saying REVIEW_REPAIRED. Do not proactively repair and do not use shell commands.`
-      : `${instruction} to create order-count.ts containing exactly one line: type OrderCount = number. Stop after the edit unless a Hapsland review finding asks you to repair it. If a finding arrives, use a native edit tool to change the line to: type OrderCount = number & { readonly __brand: "OrderCount" }. Then finish by saying REVIEW_REPAIRED. Do not proactively repair and do not use shell commands.`;
+      ? `${instruction} After that edit, use the native Read tool to read README.md once. Do not make another edit before reading. If a Hapsland review finding arrives, use a native edit tool to change the type line to: type OrderCount = number & { readonly __brand: "OrderCount" }. Then finish by saying REVIEW_REPAIRED. Do not proactively repair and do not use shell commands.`
+      : `${instruction} Stop after the edit unless a Hapsland review finding asks you to repair it. If a finding arrives, use a native edit tool to change the line to: type OrderCount = number & { readonly __brand: "OrderCount" }. Then finish by saying REVIEW_REPAIRED. Do not proactively repair and do not use shell commands.`;
     const binary = entry.host === 'codex' ? codex : claude;
+    const claudeSettingsPath = join(repo, '.claude', 'settings.json');
     const args = entry.host === 'codex'
       ? ['exec', '--json', '--ephemeral', '--dangerously-bypass-hook-trust',
         '--dangerously-bypass-approvals-and-sandbox', '-m', 'gpt-6-luna', '-c',
         entry.phase === 'background' ? 'model_reasoning_effort="medium"' : 'model_reasoning_effort="max"', '-C', repo, prompt]
       : ['-p', '--output-format', 'stream-json', '--verbose', '--no-session-persistence',
+        '--setting-sources', 'user', '--settings', claudeSettingsPath,
         '--allowedTools', 'Read,Edit,Write', '--permission-mode', 'acceptEdits', prompt];
     const launchTracing = process.env.HAPSLAND_105_TRACE_LAUNCH === '1';
     let tracedCommand = binary, tracedArgs = args;
@@ -266,8 +270,14 @@ for (const result of results.filter((entry) => entry.phase === 'background')) {
     throw new Error(`${result.host} background opportunity gate failed`);
   }
 }
+for (const result of results.filter((entry) => entry.phase === 'before')) {
+  if (result.timedOut || result.backendCompletions < 1 || result.backendCompletedAfterHostExit ||
+      result.findingSubmission || result.repairedFile || !result.originalFile) {
+    throw new Error(`${result.host} before outcome gate failed`);
+  }
+}
 for (const result of results.filter((entry) => entry.phase === 'after')) {
-  if (result.timedOut || !result.findingSubmission || !result.repairedFile ||
+  if (result.timedOut || !result.findingSubmission || !result.stopBlock || !result.repairedFile ||
       !result.modelClaimedRepair || !result.clearFollowUp) {
     throw new Error(`${result.host} after outcome gate failed`);
   }

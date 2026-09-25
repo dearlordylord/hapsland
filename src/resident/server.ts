@@ -699,7 +699,8 @@ export class ResidentServer {
     this.#pruneNoticeCooldowns(now);
     const credentialGeneration = dispatch.credential?.generation ?? null;
     for (const item of [...this.#advice]) {
-      if (item.partition === partition && item.credentialGeneration !== credentialGeneration) {
+      if ((composed ? recipientGroup(item.observation.root, item.observation.recipient) === partition
+        : item.partition === partition) && item.credentialGeneration !== credentialGeneration) {
         this.#removeAdvice(item.id);
       }
     }
@@ -827,6 +828,18 @@ export class ResidentServer {
           const retained = this.#advice.find((item) => item.id === advice.id);
           const delivery = retained?.delivery;
           if (retained !== advice || delivery?.token !== token) continue;
+          if (advice.credentialGeneration !== credentialGeneration) {
+            this.#removeAdvice(advice.id, token);
+            continue;
+          }
+          if (dispatch.credential !== null) {
+            const credentialState = readCredentialState(dispatch.credential.statePath);
+            if (credentialState === undefined || credentialState.generation !== credentialGeneration ||
+                (!dispatch.credential.environmentOnly && credentialState.savedUseSuspended)) {
+              delete advice.delivery;
+              continue;
+            }
+          }
           if (isPendingAdviceExpired(advice, handoffNow)) {
             this.#removeAdvice(advice.id, token);
             continue;
