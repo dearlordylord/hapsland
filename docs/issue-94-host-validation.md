@@ -1,9 +1,20 @@
 # Issue #94 real-host acceptance plan — 2026-09-24
 
-**Status:** ten authenticated Claude Code sessions have started across four separately bounded passes. The latest optional-block trial stopped after an incomplete pre-edit control; no block finding session ran. The preceding two-session advisory pass submitted one classified finding but observed no later native repair. Claude support remains unproven. OpenCode and restart remain pending.
+**Status:** twelve authenticated Claude Code sessions have started across five separately bounded passes. The latest optional-block pass observed a classified block and distinct native repair, but failed its strict gate because the repair hook submitted a second classified block finding. Claude support remains unproven. OpenCode and restart remain pending.
 This record supplements the [host probes](issue-94-host-probes.md), [host research](issue-94-host-research.md), and [#97 delivery baseline](issue-97-delivery.md). It does not declare either host supported.
 
 The later [offline delivery diagnosis](issue-94-delivery-diagnosis.md) confirms that a completed production finding can enter Claude `2.1.218`'s next scripted-provider request through `additionalContext`; it does not establish authenticated model reaction.
+
+## Fresh approved optional-block pass — 2026-09-24
+
+The owner authorized a new allocation after the previous pre-edit control failed. Read-only preflight confirmed exact cached Claude Code `2.1.218` and same-profile login; `npm run build` passed, and a new [durable ledger](../evidence/host-94/validation/claude-block-retry-ledger-20260924/manifest.json) was initialized once. Both sessions used isolated user `block-current-findings` configuration, Claude's normal authenticated provider/model, and Hapsland's controlled local backend. Each was capped at 90 seconds and 2 MB combined output. No Jev call or OpenCode session occurred. Only source-free [control](../evidence/host-94/validation/claude-block-retry-control-20260924.json), [finding](../evidence/host-94/validation/claude-block-retry-finding-20260924.json), and ledger records were retained.
+
+| Arm | Strict result | Host elapsed/output | Review and handoff | Model reaction |
+| --- | --- | --- | --- | --- |
+| Control | **Passed:** one matched native `Write` and successful hook, exact initial final file. | 13,374 ms / 145,852 bytes | Matching `completed-clear`; zero submissions. | No unsolicited repair. |
+| Finding | **Failed the no-repeat gate:** one matched initial native `Write`, then a distinct native `Edit` with matching successful hook; exact repaired final file. | 26,314 ms / 153,959 bytes | Initial matching `completed-findings`; two classified top-level block submissions, one on each hook; zero notices or unknown submissions. | Native repair observed 3,363 ms after initial block submission. |
+
+Both sessions exited 0 without timeout, forced close, or output-ceiling overrun. The finding's initial edit event was observed at 9,591 ms process-relative; its first block hook finished at 11,607 ms, and the later repair tool event was observed at 14,970 ms. These are runner observation times, not measured model-read latency. The retained summary attributes only the initial `completed-findings` outcome; it does **not** retain a separately attributable repair-hook review outcome or the second block's content/reason. The cause of the second submission is unresolved. The ledger has exactly two starts, with `recorded` and `failed` finishes; no further session followed. This selected run establishes observed block delivery followed by model repair, while failing the strict single-finding acceptance gate. It does not establish general Claude support or a repair rate. The [trial proposal](issue-94-claude-block-host-proposal.md) records the decision boundary for the experimental code.
 
 ## Approved optional-block trial — 2026-09-24
 
@@ -92,7 +103,9 @@ First run `control`: all controlled rule probabilities are zero. Require the ini
 
 The `finding` run naturally tests the **no later event** case when the model finishes immediately after the first edit: synchronous output must be available at that edit's feedback point or the pending finding remains undelivered. Do not infer later-turn visibility from this headless session. A restart test remains manual: close a first headless session with pending delayed work, terminate its disposable resident process, then start a fresh session with a new recipient. Require no old advice in the new session. The current one-session runner does not automate that two-session authority check; leave restart **unverified** until a bounded two-session fixture and source-free correlation evidence exist. The same applies to a true host-process crash mid-hook; a controlled backend failure is not a host crash.
 
-## Acceptance ledger
+## Historical first-pass acceptance ledger (before classified block feedback)
+
+This table records only the earlier five-session pass described above. The fresh block pass is reported at the top of this document; it observed repair but failed its separate single-finding gate.
 
 | Check | Claude 2.1.218 | OpenCode 1.14.44 | Pass criterion |
 | --- | --- | --- | --- |
@@ -101,11 +114,11 @@ The `finding` run naturally tests the **no later event** case when the model fin
 | Normal host provider login | Observed with cached exact binary | Pending | Auth available for the profile used by the run. |
 | No-advice control | Passed in one selected session | Pending | Native initial edit, no advice and no unsolicited repair. |
 | Direct edit and host submission | Native edit and context submission observed; finding classification unavailable in retained run | Scripted-provider probe only | Native successful edit and current-result submission. |
-| Real model reaction | **Unproven; no repair after submission** | Pending | Later native repair attributable to submitted finding. |
+| Real model reaction | **Unproven in this earlier pass; no repair after its submission** | Pending | Later native repair attributable to submitted finding. |
 | Stale snapshot / recipient | Inconclusive race | Pending | No accepted stale finding reaches model context. |
 | No later event | Submission observed; visibility unproven | Pending | Record submitted/visible/pending separately. |
 | Review timeout / backend unavailable | Timeout bounded; failure context unclassified | Pending | Edit remains; bounded and quiet response. |
 | Host failure / restart | Pending | Pending | No stale replay or destructive edit behavior. |
 | Native trust / plugin loading | Pending | Pending | Observe normal host behavior separately from Hapsland consent. |
 
-The remaining pending cells block a support declaration. Treat a hook's success, test-only controlled decision, and doctor readiness as separate evidence classes.
+The historical pending cells and the newer block pass's failed single-finding gate block a support declaration. Treat a hook's success, test-only controlled decision, and doctor readiness as separate evidence classes.
