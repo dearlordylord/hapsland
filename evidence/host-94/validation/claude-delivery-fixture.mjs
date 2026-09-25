@@ -9,7 +9,7 @@ import { join, resolve } from 'node:path';
 import { configuredRules } from '../../../src/policy/rules.ts';
 
 const variant = process.argv[2] ?? 'context';
-assert.ok(['context', 'plain', 'block'].includes(variant), 'expected context|plain|block');
+assert.ok(['context', 'plain', 'block', 'clear'].includes(variant), 'expected context|plain|block|clear');
 const project = resolve(import.meta.dirname, '../../..');
 const binary = '/home/node/.local/share/claude/versions/2.1.218';
 const root = mkdtempSync(join(tmpdir(), 'hapsland-94-delivery-'));
@@ -26,8 +26,9 @@ const summary = { schemaVersion: 1, fixture: 'claude-delivery-envelope', variant
   markerInToolResult: false, markerInMessageHistory: false,
   markerInUserMessage: false, markerInInitialRequest: false,
   productionFindingRuleInUserMessage: false, productionFindingRuleInInitialRequest: false,
+  repairInstructionInUserMessage: false, repairInstructionInInitialRequest: false,
   actingRuleReferenceInUserMessage: false,
-  completedFinding: false, hookExitZero: false, hookOutputValid: false,
+  completedFinding: false, completedClear: false, hookExitZero: false, hookOutputValid: false,
   completedReviewOutcome: false,
   hostTimedOut: false, outputCeilingExceeded: false, hostExitCode: null,
   hookFinishedAtMs: null, postHookRequestAtMs: null, elapsedMs: null };
@@ -80,7 +81,7 @@ try {
     REVIEW_RESIDENT_DIR: join(root, 'resident'), REVIEW_CONTROL_JSON: JSON.stringify({
       outcomePath: join(root, 'outcomes.jsonl'),
       answers: Object.fromEntries(configuredRules.map(rule => [rule.id, {
-        _tag: 'Probability', probability: rule.id === 'r6_bare_domain_value' ? 0.9 : 0,
+        _tag: 'Probability', probability: variant !== 'clear' && rule.id === 'r6_bare_domain_value' ? 0.9 : 0,
       }])),
     }), ANTHROPIC_API_KEY: 'offline-fixture-key', CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1' };
   const preview = runCli(['--enable'], { version: 1, operation: 'enable', cwd: repo }, env);
@@ -93,16 +94,18 @@ try {
     `const chunks=[];for await(const c of process.stdin)chunks.push(c);\n` +
     `const r=spawnSync(process.execPath,[${JSON.stringify(join(project, 'dist/cli.js'))},'--claude-hook','--controlled','--controlled-writer'],` +
     `{input:Buffer.concat(chunks),encoding:'utf8',env:process.env,timeout:4400,maxBuffer:262144});\n` +
-    `let valid=false, finding=false, output='';\n` +
+    `let valid=false, finding=false, clear=false, output='';\n` +
     `if(r.status===0){try{const j=JSON.parse(r.stdout);` +
     `finding=typeof j.hookSpecificOutput?.additionalContext==='string'&&j.hookSpecificOutput.additionalContext.includes('[r6_bare_domain_value, p=');` +
+    `clear=process.env.HAPSLAND_DELIVERY_VARIANT==='clear'&&!finding&&r.stdout.trim()==='{}';` +
+    `if(clear)valid=true;` +
     `if(finding){valid=true;const marker=process.env.HAPSLAND_DELIVERY_MARKER;` +
     `output=process.env.HAPSLAND_DELIVERY_VARIANT==='plain'?marker:` +
     `JSON.stringify(process.env.HAPSLAND_DELIVERY_VARIANT==='block'?` +
     `{decision:'block',reason:'Act on rule r6_bare_domain_value. '+marker}:` +
     `{hookSpecificOutput:{...j.hookSpecificOutput,additionalContext:j.hookSpecificOutput.additionalContext+'\\n'+marker}});}` +
     `}catch{}}\n` +
-    `appendFileSync(process.env.HAPSLAND_DELIVERY_STATUS,JSON.stringify({exitZero:r.status===0,valid,finding,at:Date.now()})+'\\n');\n` +
+    `appendFileSync(process.env.HAPSLAND_DELIVERY_STATUS,JSON.stringify({exitZero:r.status===0,valid,finding,clear,at:Date.now()})+'\\n');\n` +
     `if(output)process.stdout.write(output);\n`);
   mkdirSync(join(repo, '.claude'));
   writeFileSync(join(repo, '.claude', 'settings.json'), JSON.stringify({ hooks: { PostToolUse: [{
@@ -120,6 +123,7 @@ try {
     if (summary.requestCount === 1) {
       summary.markerInInitialRequest = JSON.stringify(body).includes(marker);
       summary.productionFindingRuleInInitialRequest = JSON.stringify(body).includes('[r6_bare_domain_value, p=');
+      summary.repairInstructionInInitialRequest = JSON.stringify(body).includes('Please repair each finding');
     }
     const now = Date.now();
     if (hookFinishedAt !== null && now >= hookFinishedAt) {
@@ -132,6 +136,8 @@ try {
         message => message?.role === 'user' && JSON.stringify(message.content).includes(marker));
       summary.productionFindingRuleInUserMessage ||= Array.isArray(body.messages) && body.messages.some(
         message => message?.role === 'user' && JSON.stringify(message.content).includes('[r6_bare_domain_value, p='));
+      summary.repairInstructionInUserMessage ||= Array.isArray(body.messages) && body.messages.some(
+        message => message?.role === 'user' && JSON.stringify(message.content).includes('Please repair each finding'));
       summary.actingRuleReferenceInUserMessage ||= Array.isArray(body.messages) && body.messages.some(
         message => message?.role === 'user' && JSON.stringify(message.content).includes('Act on rule r6_bare_domain_value.'));
     }
@@ -157,6 +163,7 @@ try {
         summary.hookExitZero = status.exitZero;
         summary.hookOutputValid = status.valid;
         summary.completedFinding = status.finding;
+        summary.completedClear = status.clear;
       } catch { /* partial write */ }
     }
   }, 5);
@@ -181,22 +188,25 @@ try {
     hookFinishedAt = status.at; summary.hookFinishedAtMs = status.at - started;
     summary.hookExitZero = status.exitZero; summary.hookOutputValid = status.valid;
     summary.completedFinding = status.finding;
+    summary.completedClear = status.clear;
   }
   summary.outputBytes = outputBytes;
   if (existsSync(join(root, 'outcomes.jsonl'))) {
     summary.completedReviewOutcome = readFileSync(join(root, 'outcomes.jsonl'), 'utf8').trim().split('\n')
-      .some(line => { try { return JSON.parse(line).outcome === 'completed-findings'; } catch { return false; } });
+      .some(line => { try { return JSON.parse(line).outcome === (variant === 'clear' ? 'completed-clear' : 'completed-findings'); } catch { return false; } });
   }
   summary.syntheticFileCreated = existsSync(source) && readFileSync(source, 'utf8') === 'type OrderCount = number\n';
   summary.elapsedMs = Date.now() - started;
   process.stdout.write(JSON.stringify(summary, null, 2) + '\n');
-  const expectedMarker = variant !== 'plain';
-  if (summary.hostExitCode !== 0 || !summary.completedFinding || !summary.completedReviewOutcome ||
+  const expectedMarker = variant === 'context' || variant === 'block';
+  if (summary.hostExitCode !== 0 || summary.completedFinding !== (variant !== 'clear') ||
+      summary.completedClear !== (variant === 'clear') || !summary.completedReviewOutcome ||
       !summary.postHookRequest ||
       summary.markerInPostHookRequest !== expectedMarker ||
       summary.markerInUserMessage !== expectedMarker || summary.markerInInitialRequest ||
-      summary.productionFindingRuleInInitialRequest ||
+      summary.productionFindingRuleInInitialRequest || summary.repairInstructionInInitialRequest ||
       summary.productionFindingRuleInUserMessage !== (variant === 'context') ||
+      summary.repairInstructionInUserMessage !== (variant === 'context') ||
       summary.actingRuleReferenceInUserMessage !== (variant === 'block') ||
       !summary.syntheticFileCreated) process.exitCode = 1;
 } finally {
