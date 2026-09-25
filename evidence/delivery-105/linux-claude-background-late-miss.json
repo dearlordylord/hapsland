@@ -1,0 +1,104 @@
+{
+  "issue": 105,
+  "platform": "linux-arm64",
+  "node": "v24.20.0",
+  "backend": "controlled offline Effect DecisionModel",
+  "cases": [
+    {
+      "host": "claude",
+      "phase": "background",
+      "hostVersion": "2.1.218",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 34176,
+      "hookCounts": {
+        "edit": 1,
+        "background": 1,
+        "stop": 1,
+        "prompt": 1
+      },
+      "hookSequence": [
+        {
+          "mode": "prompt",
+          "at": 10790,
+          "ok": true,
+          "elapsedMs": 3324,
+          "finding": false,
+          "submitted": false,
+          "blocked": false
+        },
+        {
+          "mode": "edit",
+          "at": 23196,
+          "ok": true,
+          "elapsedMs": 2145,
+          "finding": false,
+          "submitted": false,
+          "blocked": false
+        },
+        {
+          "mode": "background",
+          "at": 28564,
+          "ok": true,
+          "elapsedMs": 7520,
+          "finding": true,
+          "submitted": true,
+          "blocked": false
+        },
+        {
+          "mode": "stop",
+          "at": 31707,
+          "ok": true,
+          "elapsedMs": 2192,
+          "finding": false,
+          "submitted": false,
+          "blocked": false
+        }
+      ],
+      "nativeHookShapes": [
+        {
+          "nativeTool": "Write",
+          "inputKeys": [
+            "content",
+            "file_path"
+          ],
+          "responseKeys": [
+            "content",
+            "filePath",
+            "originalFile",
+            "structuredPatch",
+            "type",
+            "userModified"
+          ],
+          "responseKind": "object",
+          "userModified": false,
+          "pathMatches": true,
+          "stringsMatch": null
+        }
+      ],
+      "nativeToolNames": [
+        "Write",
+        "Read"
+      ],
+      "backendCompletions": 1,
+      "backendCompletionTimes": [
+        28144
+      ],
+      "backendCompletedAfterHostExit": false,
+      "clearFollowUp": false,
+      "activityStages": [
+        "pending",
+        "pending",
+        "findings"
+      ],
+      "findingSubmission": true,
+      "stopBlock": false,
+      "originalFile": true,
+      "repairedFile": false,
+      "modelClaimedRepair": true,
+      "hookFailures": [],
+      "hostError": false
+    }
+  ]
+}

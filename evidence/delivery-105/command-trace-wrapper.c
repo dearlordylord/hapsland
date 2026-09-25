@@ -56,10 +56,8 @@ static int command_matches(pid_t pid, const char *target, const char *mode) {
   for (int offset = 0; offset < length;) {
     char *arg = line + offset;
     size_t size = strlen(arg);
-    if (strstr(arg, target) != NULL) has_target = 1;
+    if (strcmp(arg, target) == 0) has_target = 1;
     if (strcmp(arg, mode) == 0) has_mode = 1;
-    char *found = strstr(arg, target);
-    if (found != NULL && strstr(found + strlen(target), mode) != NULL) has_mode = 1;
     offset += (int)size + 1;
   }
   return has_target && has_mode;
@@ -169,6 +167,9 @@ int main(int argc, char **argv) {
       const char *mode = NULL;
       if (command_matches(pid, target, "stop")) mode = "stop";
       else if (command_matches(pid, target, "post-tool")) mode = "post-tool";
+      else if (command_matches(pid, target, "edit")) mode = "edit";
+      else if (command_matches(pid, target, "background")) mode = "background";
+      else if (command_matches(pid, target, "prompt")) mode = "prompt";
       else if (command_matches(pid, "background-hook.mjs", "--experimental-strip-types")) mode = "background";
       if (mode != NULL) {
         ChildStart *child = find_child(children, child_capacity, pid);

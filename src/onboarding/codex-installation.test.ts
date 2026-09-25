@@ -15,7 +15,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
-import { inspectCodexInstallation } from "./codex-installation.ts";
+import { inspectCodexInstallation, uninstallCodexIntegration } from "./codex-installation.ts";
 
 const roots: Array<string> = [];
 const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
@@ -196,6 +196,15 @@ describe("public Codex installation operations", { timeout: 30_000 }, () => {
     expect(invoke({ operation: "install", codexHome: home, codexExecutable: bin, proposalDigest: proposal.digest }, environment).status).toBe("installed");
     expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain("--codex-version=0.156.0");
   });
+  it("rejects a locally modified owned Stop hook", async () => {
+    const { home, bin } = fixture();
+    previewAndInstall(home, bin);
+    const path = join(home, "hooks.json");
+    const settings = JSON.parse(readFileSync(path, "utf8")) as { hooks: { Stop: Array<{ hooks: Array<{ timeout: number }> }> } };
+    settings.hooks.Stop[0]!.hooks[0]!.timeout = 3;
+    writeFileSync(path, JSON.stringify(settings));
+    expect((await uninstallCodexIntegration({ codexHome: home, codexExecutable: bin })).status).toBe("conflict");
+  });
   it("previews exact changes, quotes paths, installs idempotently, and preserves unrelated configuration", () => {
     const { root, home, bin } = fixture();
     const quotedEntrypoint = join(root, "packaged path 'quoted'", "cli.js");
@@ -243,7 +252,7 @@ describe("public Codex installation operations", { timeout: 30_000 }, () => {
       ownedChanges: { hook: { handlers: Array<{ command: string }> } };
     }).ownedChanges.hook.handlers[0]?.command);
     expect(previewCommand).toBe(
-      `${shellQuote(process.execPath)} ${shellQuote(quotedEntrypoint)} --codex-hook --controlled-writer --review-tool-owned=codex-v1`,
+      `${shellQuote(process.execPath)} ${shellQuote(quotedEntrypoint)} --codex-hook --controlled-writer --composed-edit-hook --review-tool-owned=codex-v1`,
     );
     expect(JSON.stringify((preview.proposal as { ownedChanges: unknown }).ownedChanges)).not.toContain("keep me");
     expect(readFileSync(join(home, "config.toml"), "utf8")).not.toContain("hooks = true");
@@ -600,6 +609,9 @@ responses_websockets_v2 = true`);
     };
     expect(hooks.hooks.PostToolUse[0]).toEqual(independent);
     expect(hooks.hooks.PostToolUse[1]?.hooks[0]?.command).toContain("review-tool-1.1.0/dist/cli.js");
+    expect(hooks.hooks.PostToolUse[1]?.hooks[1]?.command).toContain("--composed-background-hook");
+    expect(JSON.stringify(hooks.hooks)).toContain("--composed-stop-hook");
+    expect(JSON.stringify(hooks.hooks)).toContain("--composed-prompt-hook");
     expect(readFileSync(join(home, "config.toml"), "utf8")).toBe(beforeConfig);
     expect(readFileSync(join(home, "grant.json"), "utf8")).toBe("repository-grant\n");
     expect(readFileSync(join(home, "credential-reference"), "utf8")).toBe("native-store-reference\n");
@@ -614,7 +626,7 @@ responses_websockets_v2 = true`);
         expect(run.status).toBe(0);
       }
     }
-    expect(readFileSync(versionLog, "utf8")).toBe("1.1.0\n");
+    expect(readFileSync(versionLog, "utf8")).toBe("1.1.0\n1.1.0\n");
     expect(readFileSync(independentLog, "utf8")).toBe("observed\n");
 
     const repeatPreview = invoke({ operation: "update-preview", codexHome: home, codexExecutable: bin }, targetEnvironment);

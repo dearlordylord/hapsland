@@ -1,10 +1,11 @@
 # Issue #105: reusable composed delivery contract and adoption decision
 
-Status: **candidate contract; Linux outcome gate open on 2026-09-25**. This
-document is the proposed specification for the combined Codex and Claude Code
-paths. It does not enable a background hook or a Stop hook. The current installed Codex path
-continues to admit direct edits and collect advice on later mapped edit hooks.
-The earlier probe did not pass the revised issue's before/after outcome gate.
+Status: **candidate implementation; matched Linux outcome gate passed on 2026-09-25;
+remaining conformance gates open**. This document is the contract for the combined
+Codex and Claude Code paths. The implementation now registers background, Stop,
+and prompt hooks through each installer and shares one resident delivery module.
+The matched host probe uses the production CLI and resident with isolated native
+hook settings; the full installation and race matrix still needs validation.
 
 ## Required product outcome
 
@@ -44,8 +45,9 @@ Stop before adopting this path.
 
 The production resident is the sole owner of admitted review work, completed results,
 pending advice, collection leases, operational notices, and expiry. Each host edit
-adapter admits one attributed direct observation through `PostToolUse` and may collect
-previously ready advice. A native `async: true` background `PostToolUse` command and a
+adapter admits one attributed direct observation through `PostToolUse`. The legacy
+edit path may also collect previously ready advice. The candidate edit path returns
+after admission so that background and Stop own its collection. A native `async: true` background `PostToolUse` command and a
 synchronous `Stop` command are **delivery triggers only**. Neither may maintain a
 second review queue, reconstruct a review from the filesystem, or call Jev to obtain
 delivery output. All three collectors call the same resident collection operation.
@@ -93,8 +95,9 @@ it can collect other unhanded findings. Once an independent host continuation
 explicitly demonstrates consumption, the item may be retired. If visibility is never
 observed, a later eligible collection may retry after the lease and turn boundary,
 subject to freshness and expiry; that retry can duplicate a prior host submission.
-No exactly-once or guaranteed model-visibility claim is made. The existing edit
-collector must use this same protocol when the combined path is adopted.
+No exactly-once or guaranteed model-visibility claim is made. The legacy edit
+collector remains outside candidate registration; any future candidate edit
+collector must use this same protocol.
 
 The observable stages are separate: `review completed` (resident/backend),
 `resident collected` (lease issued), `host submitted` (write completed), and
@@ -104,8 +107,9 @@ Collection and acknowledgement alone establish neither of the last two stages.
 ## Background command
 
 The proposed registration adds a native async command for the same attributed
-`PostToolUse` event that admits the edit. The synchronous edit hook keeps its existing
-admission and ordinary collection behavior. The background command waits for its
+`PostToolUse` event that admits the edit. The candidate synchronous edit hook admits
+the observation and returns promptly; the legacy edit hook retains ordinary
+collection behavior. The background command waits for its
 exact recipient's resident work, including the admission race, and emits at most one
 bounded `additionalContext` response through the native async hook output channel.
 It exits quietly when no eligible advice becomes ready. Only one background waiter
@@ -144,7 +148,8 @@ The installed candidate therefore also needs a bounded `UserPromptSubmit` marker
 for each session to advance a source-free turn-chain generation. Stop reads and
 atomically consumes that generation in the resident before returning a block; a
 repeated or missing marker cannot reset the allowance. The marker performs no
-review or advice collection.
+review or advice collection. Codex Stop can seed a missing chain from its native
+turn ID if prompt marking was missed; this seed never advances an existing chain.
 When the allowance is exhausted, Stop may submit no second block; new repair
 findings remain resident-owned for a later eligible opportunity. Background and edit
 collection can still submit advice at their normal safe points, subject to the same
@@ -167,14 +172,14 @@ backend responses are not retained.
 
 | Gate | Required observation | 2026-09-25 state |
 | --- | --- | --- |
-| Linux exact host | Linux arm64, Codex 0.155.1, Node 24.20.0, combined hooks through production resident | **Partial**. [Seven controlled host fixtures](../evidence/delivery-105/README.md) exercised both hooks, overlap, late retention, multi-unit delivery, and backend unavailability. Isolation, stale, and lost-acknowledgement gates remain open. |
-| Claude Linux composition and outcome | Linux arm64, Claude Code 2.1.218, Node 24.20.0, background + Stop through the shared resident module; matched before/after with independently observed repair and clear follow-up | **Missing**. Existing #94 block evidence is useful prior evidence, but does not exercise the required composed path. |
+| Codex Linux outcome | Linux arm64, Codex 0.155.1, Node 24.20.0, matched before/after through the production resident | **Passed in one controlled pair; composition reliability open**. [Sanitized matched record](../evidence/delivery-105/linux-matched-before-after.json): before had one completed review, no finding submission, unchanged file; after Stop submitted a finding, the model made a second edit, the file was repaired, and a second review was clear. A separate [race run](../evidence/delivery-105/linux-matched-race-miss.json) submitted background output just before Stop without an observed repair. |
+| Claude Linux composition and outcome | Linux arm64, Claude Code 2.1.218, Node 24.20.0, background + Stop through the shared resident module; matched before/after with independently observed repair and clear follow-up | **Passed in one controlled pair; reliability gate open**. The before review completed before headless session exit with no submission or repair; after Stop submitted a finding, Claude made a second native edit, the file was repaired, and follow-up review was clear. A separate [traced run](../evidence/delivery-105/linux-host-command-timing-missed-clear.json) repaired the file but did not record a clear follow-up. The headless host canceled outstanding async background hooks at session end. |
 | macOS manual follow-up | Real installed Codex and Claude Code on the owner's macOS machine | **Deferred by issue scope**. Closure of #105 must create and link the follow-up issue; no macOS result is claimed here. |
-| Background timing | No later edit; completion during model request/tool call, final response, and after end; actual submission and model visibility | **Partial** on Linux. Early output preceded independently observed repair; output after the final model message produced no observed repair. Tool-call and after-end visibility remain unmeasured. |
+| Background timing | No later edit before delivery; completion during model request/tool call, final response, and after end; actual submission and model visibility | **Partial** on Linux. [Selected early-completion runs](../evidence/delivery-105/linux-background-opportunities.json) submitted async findings on both hosts; Claude made a repair edit and completed a clear follow-up, while Codex finished without a repair. Separate [contended](../evidence/delivery-105/linux-background-opportunities-contended.json) and [late Claude](../evidence/delivery-105/linux-claude-background-late-miss.json) runs also submitted findings without observed repair. This shows host submission does not guarantee model visibility. Exact in-flight tool-call and after-end visibility boundaries need further classification. |
 | Stop outcomes | Ready, completes during wait, deadline then later collectable, unavailable/backend failure, stale, multi-unit | **Partial** on Linux. Stop won a lease, collected during its wait, and left a later result collectable. Background delivered a multi-unit batch and a failure notice. Stale and Stop failure-notice delivery remain open. |
 | Composition races | Background/Stop overlap, submitted but unconsumed background output, edit/other collector overlap, failed collection or lost ack, repair-generated findings | **Partial** on Linux. Stop won in two fixtures while a background waiter existed; background won in other fixtures. The probes do not prove simultaneous resident collection. One background output was submitted during Stop after the final model message without observed model visibility; pre-Stop unconsumed output remains untested. Repair-generated findings were observed. Edit overlap, failed collection, and lost ack remain open. |
 | Isolation | Two concurrent recipients with distinct findings on both paths; isolated worktrees, shared-root unknown origin, supplied child identity | **Missing** as a combined host run. Existing resident subprocess tests cover partition isolation. |
-| Timing | Host command launch through response and exit on both profiles; edit, background, and added Stop latency kept distinct | **Partial**: the Linux #105 tracer recorded all three command classes through exit. macOS is unmeasured. |
+| Timing | Host command launch through response and exit on both profiles; edit, background, and added Stop latency kept distinct | **Partial**: the [new ptrace record](../evidence/delivery-105/linux-host-command-timing.json) measured native edit, background, prompt, and Stop child creation through exit on both Linux profiles. Its selected Stop calls finished below five seconds; tracing adds overhead. Background completion-to-model visibility remains an event-order observation rather than a precise latency bound. |
 
 The [#97 record](issue-97-delivery.md) is useful prior evidence, but its isolated
 prototypes and Stop-only production-resident run cannot satisfy the combined gates.
@@ -183,11 +188,8 @@ model visibility. The new Linux probe used a locally cached exact 0.155.1 binary
 with Node 24.20.0. The existing macOS GitHub Actions workflow covers package
 conformance and does not run this combined matrix.
 
-**Present decision:** do not register the proposed background or Stop hooks on
-either host yet. Retain current delivery policies while the Linux
-outcome and composition gates remain open. A rejection of adoption alone no
-longer completes #105: its revised success criterion requires the observed
-before/after repair outcome for both Linux hosts. Adoption requires the
-resident submitted/uncertain lifecycle, passing Linux evidence, sanitized
-retained evidence, and a new support declaration. No live Jev validation is
-needed for this controlled delivery gate.
+**Present decision:** the candidate hooks are registered in the installer code.
+Keep #105 open until the remaining race, failure, isolation, installer, and
+timing gates pass. A background response submitted near session end remains
+visibility unknown even when the resident records a successful write. No live
+Jev validation is needed for this controlled delivery gate.

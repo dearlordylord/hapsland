@@ -1,10 +1,14 @@
 # Installed release compatibility
 
-The combined Codex background and bounded Stop delivery proposal in
-[issue #105](issue-105-composed-delivery.md) is **not part of this release support
-declaration**. Its exact Linux and macOS composition gates remain open, and the
-installed integration continues to collect ready advice on subsequent mapped edit
-hooks. The existing verified cells below cover their stated earlier behavior only.
+The candidate combined Codex and Claude background plus bounded Stop delivery
+in [issue #105](issue-105-composed-delivery.md) is **not part of the pinned release
+support declaration below**. One matched headless before/after pair per host
+passed on Linux arm64 with Node 24.20.0, Codex CLI 0.155.1, and Claude Code
+2.1.218 through the production resident and controlled offline Effect backend.
+The candidate source now registers the composed hooks, but its remaining race,
+isolation, failure, and installed-package gates are open. The verified release
+cells below apply to the earlier pinned commit and delivery behavior only; they
+do not establish installed-release or macOS support for #105.
 
 The assembled installed-product gate is **release-ready for the exact declared profiles**. The declaration is intentionally
 bound to integration commit `f2f47e94cd2d90cf73062f07c5e61416218e2f13`, the exact retained

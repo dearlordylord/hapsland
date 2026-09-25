@@ -1,0 +1,222 @@
+{
+  "issue": 105,
+  "platform": "linux-arm64",
+  "node": "v24.20.0",
+  "backend": "controlled offline Effect DecisionModel",
+  "cases": [
+    {
+      "host": "codex",
+      "phase": "background",
+      "hostVersion": "0.155.1",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 35791,
+      "hookCounts": {
+        "edit": 2,
+        "background": 2,
+        "stop": 1,
+        "prompt": 1
+      },
+      "hookSequence": [
+        {
+          "mode": "prompt",
+          "at": 8826,
+          "ok": true,
+          "elapsedMs": 3361,
+          "finding": false,
+          "submitted": false,
+          "blocked": false
+        },
+        {
+          "mode": "edit",
+          "at": 20060,
+          "ok": true,
+          "elapsedMs": 1962,
+          "finding": false,
+          "submitted": false,
+          "blocked": false
+        },
+        {
+          "mode": "background",
+          "at": 21799,
+          "ok": true,
+          "elapsedMs": 3672,
+          "finding": true,
+          "submitted": true,
+          "blocked": false
+        },
+        {
+          "mode": "edit",
+          "at": 30458,
+          "ok": true,
+          "elapsedMs": 3064,
+          "finding": false,
+          "submitted": false,
+          "blocked": false
+        },
+        {
+          "mode": "background",
+          "at": 32706,
+          "ok": true,
+          "elapsedMs": 5308,
+          "finding": false,
+          "submitted": false,
+          "blocked": false
+        },
+        {
+          "mode": "stop",
+          "at": 34660,
+          "ok": true,
+          "elapsedMs": 3075,
+          "finding": false,
+          "submitted": false,
+          "blocked": false
+        }
+      ],
+      "nativeHookShapes": [
+        {
+          "nativeTool": "apply_patch",
+          "inputKeys": [
+            "command"
+          ],
+          "responseKeys": [],
+          "responseKind": "string",
+          "userModified": null,
+          "pathMatches": null,
+          "stringsMatch": null
+        },
+        {
+          "nativeTool": "apply_patch",
+          "inputKeys": [
+            "command"
+          ],
+          "responseKeys": [],
+          "responseKind": "string",
+          "userModified": null,
+          "pathMatches": null,
+          "stringsMatch": null
+        }
+      ],
+      "nativeToolNames": [],
+      "backendCompletions": 2,
+      "backendCompletionTimes": [
+        21506,
+        32183
+      ],
+      "backendCompletedAfterHostExit": false,
+      "clearFollowUp": true,
+      "activityStages": [
+        "pending",
+        "pending",
+        "findings",
+        "pending",
+        "pending",
+        "clear"
+      ],
+      "findingSubmission": true,
+      "stopBlock": false,
+      "originalFile": false,
+      "repairedFile": true,
+      "modelClaimedRepair": true,
+      "hookFailures": [],
+      "hostError": false
+    },
+    {
+      "host": "claude",
+      "phase": "background",
+      "hostVersion": "2.1.218",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 38325,
+      "hookCounts": {
+        "edit": 1,
+        "background": 1,
+        "stop": 1,
+        "prompt": 1
+      },
+      "hookSequence": [
+        {
+          "mode": "prompt",
+          "at": 13171,
+          "ok": true,
+          "elapsedMs": 3791,
+          "finding": false,
+          "submitted": false,
+          "blocked": false
+        },
+        {
+          "mode": "edit",
+          "at": 25943,
+          "ok": true,
+          "elapsedMs": 3267,
+          "finding": false,
+          "submitted": false,
+          "blocked": false
+        },
+        {
+          "mode": "background",
+          "at": 31357,
+          "ok": true,
+          "elapsedMs": 8660,
+          "finding": true,
+          "submitted": true,
+          "blocked": false
+        },
+        {
+          "mode": "stop",
+          "at": 37000,
+          "ok": true,
+          "elapsedMs": 2855,
+          "finding": false,
+          "submitted": false,
+          "blocked": false
+        }
+      ],
+      "nativeHookShapes": [
+        {
+          "nativeTool": "Write",
+          "inputKeys": [
+            "content",
+            "file_path"
+          ],
+          "responseKeys": [
+            "content",
+            "filePath",
+            "originalFile",
+            "structuredPatch",
+            "type",
+            "userModified"
+          ],
+          "responseKind": "object",
+          "userModified": false,
+          "pathMatches": true,
+          "stringsMatch": null
+        }
+      ],
+      "nativeToolNames": [
+        "Write",
+        "Read"
+      ],
+      "backendCompletions": 1,
+      "backendCompletionTimes": [
+        30861
+      ],
+      "backendCompletedAfterHostExit": false,
+      "clearFollowUp": false,
+      "activityStages": [
+        "pending",
+        "pending",
+        "findings"
+      ],
+      "findingSubmission": true,
+      "stopBlock": false,
+      "originalFile": true,
+      "repairedFile": false,
+      "modelClaimedRepair": false,
+      "hookFailures": [],
+      "hostError": false
+    }
+  ]
+}

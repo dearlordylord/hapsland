@@ -52,11 +52,16 @@ describe("Claude installation lifecycle", () => {
     expect((await installClaudeIntegration({ ...request, proposalDigest: digestOf(preview) })).status).toBe("complete");
     const installed = settings(home);
     expect(installed.permissions).toEqual(original.permissions);
-    expect((installed.hooks as typeof original.hooks).Stop).toEqual(original.hooks.Stop);
+    const installedHooks = installed.hooks as typeof original.hooks & { UserPromptSubmit: unknown[] };
+    expect(installedHooks.Stop[0]).toEqual(original.hooks.Stop[0]);
+    expect(installedHooks.Stop).toHaveLength(2);
+    expect(JSON.stringify(installedHooks.Stop[1])).toContain("--composed-stop-hook");
+    expect(JSON.stringify(installedHooks.UserPromptSubmit)).toContain("--composed-prompt-hook");
     const post = (installed.hooks as typeof original.hooks).PostToolUse;
     expect(post[0]).toEqual(original.hooks.PostToolUse[0]);
     expect(post).toHaveLength(2);
     expect(JSON.stringify(post[1])).toContain("--claude-hook");
+    expect(JSON.stringify(post[1])).toContain("--composed-background-hook");
     expect(JSON.stringify(post[1])).toContain("--review-tool-owned=claude-v1");
     expect((inspectClaudeInstallation(request) as { installed?: boolean }).installed).toBe(true);
     const removal = await uninstallClaudeIntegration(request);
@@ -90,6 +95,18 @@ describe("Claude installation lifecycle", () => {
     expect(inspectClaudeInstallation(request).status).toBe("conflict");
     expect((await uninstallClaudeIntegration(request)).status).toBe("conflict");
     expect(settings(home)).toEqual(changed);
+  });
+
+  it("rejects a locally modified owned Stop hook", async () => {
+    const { home, claudeExecutable } = fixture();
+    const request = { claudeHome: home, claudeExecutable };
+    await installClaudeIntegration({ ...request, proposalDigest: digestOf(previewClaudeInstallation(request)) });
+    const changed = settings(home);
+    const stop = (changed.hooks as { Stop: Array<{ hooks: Array<{ timeout: number }> }> }).Stop;
+    stop[0]!.hooks[0]!.timeout = 3;
+    writeFileSync(join(home, "settings.json"), JSON.stringify(changed));
+    expect(inspectClaudeInstallation(request).status).toBe("conflict");
+    expect((await uninstallClaudeIntegration(request)).status).toBe("conflict");
   });
 
   it("updates only the owned hook and keeps host trust separate from source egress", async () => {

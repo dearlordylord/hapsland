@@ -3,10 +3,28 @@ import * as Effect from "effect/Effect";
 import { mkdtemp, readFile, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { adaptCodexAdd, MAX_CODEX_CANDIDATES, MAX_CODEX_COMMAND_BYTES } from "./adapter.ts";
+import { adaptCodexAdd, adaptComposedHookIdentity, MAX_CODEX_CANDIDATES, MAX_CODEX_COMMAND_BYTES } from "./adapter.ts";
 import { addEvent, makeGitFixture } from "./test-fixtures.ts";
 
 describe("direct-event Codex Add adapter", () => {
+  it("maps background and Stop identities for both hosts without inferring a child", async () => {
+    const root = await makeGitFixture();
+    const codex = await Effect.runPromise(adaptComposedHookIdentity({
+      hook_event_name: "Stop", cwd: root, session_id: "codex", turn_id: "turn",
+    }, "codex-cli", "Stop"));
+    expect(codex).toMatchObject({ root, recipient: { host: "codex-cli",
+      sessionId: "codex", agentId: null } });
+    const claude = await Effect.runPromise(adaptComposedHookIdentity({
+      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
+      session_id: "claude", tool_use_id: "tool", agent_id: "child",
+    }, "claude-code", "PostToolUse"));
+    expect(claude).toMatchObject({ root, recipient: { host: "claude-code",
+      sessionId: "claude", toolUseId: "tool", agentId: "child" } });
+    expect(await Effect.runPromise(adaptComposedHookIdentity({
+      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
+      session_id: "claude", tool_use_id: "tool", agent_id: "",
+    }, "claude-code", "PostToolUse"))).toBeUndefined();
+  });
   it("preserves the selected 0.156.0 host identity", async () => {
     const root = await makeGitFixture();
     const result = await Effect.runPromise(adaptCodexAdd(addEvent(root), "0.156.0"));

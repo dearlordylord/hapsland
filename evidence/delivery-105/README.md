@@ -1,5 +1,53 @@
 # Issue #105 Linux composed delivery probe
 
+## Matched Codex and Claude outcome gate
+
+The [new sanitized record](linux-matched-before-after.json) contains matched
+before/after headless sessions on Linux arm64, Node 24.20.0, Codex CLI 0.155.1,
+and Claude Code 2.1.218. The [runner](run-matched-linux.mjs) invokes each exact
+host with temporary native hook settings and the production Hapsland CLI and
+resident. Its controlled offline Effect `DecisionModel` completes an actionable
+finding for the initial edit. The before sessions expose only the synchronous
+edit hook. The after sessions also run the shared background, Stop, and prompt
+hook commands. The fixture holds the async background command so Stop can be
+the last delivery opportunity in the headless turn. It asserts that neither
+before session receives a finding or repairs the file, while both after
+sessions receive a Stop block, make a second native edit, repair the file,
+and complete a clear follow-up review. This is one matched pair per host, not a
+population estimate. The early-background visibility edge remains open.
+
+The record contains only event kinds, counts, timing, and outcome flags. Raw
+host output, source, credentials, and backend responses are not retained.
+The [background opportunity record](linux-background-opportunities.json) adds
+one selected early-completion run per host. Both native async hooks submitted a
+finding. Claude then made a native repair edit and its follow-up review was clear;
+Codex finished without repair. Claude's sanitized native tool sequence shows
+`Write`, `Read`, then `Edit`; the Codex stream did not expose comparable tool
+names in this probe. A separate [contended run](linux-background-opportunities-contended.json)
+and [late Claude run](linux-claude-background-late-miss.json) also retain
+submissions that did not lead to repair. Host submission alone did not establish
+model visibility. The [Linux command timing record](linux-host-command-timing.json)
+uses a ptrace wrapper to measure native hook child creation through exit,
+including process startup. Tracing adds overhead. It also records Claude's
+pending async command termination at headless teardown.
+The [isolated installer record](linux-installed-registration.json) verifies
+install, inspect, and scoped uninstall against both exact Linux host binaries
+and the compiled Hapsland CLI. It makes no model or Jev request.
+One traced Claude run repaired the file but did not record a completed clear
+follow-up review within the probe window. That source-free
+[missed-clear record](linux-host-command-timing-missed-clear.json) is retained
+separately. Subsequent selected runs did record clear follow-ups; the cause of
+the miss is not established, so it is an open reliability gate.
+A [matched race record](linux-matched-race-miss.json) preserves a later Codex
+after case in which background submitted a finding just before Stop, but no
+repair followed. Its Claude after case passed. The fixture now holds the
+background command longer for an isolated Stop opportunity; the missed
+submission remains an unresolved composition outcome.
+Run with exact binaries installed at the runner's default temporary paths or
+set `HAPSLAND_105_CODEX` and `HAPSLAND_105_CLAUDE`. Set
+`HAPSLAND_105_EVIDENCE_FILE` to write a new sanitized record. Set
+`HAPSLAND_105_TRACE_LAUNCH=1` to collect launch-to-exit command windows.
+
 The [sanitized record](linux-arm64-codex-0.155.1.json) contains seven selected
 headless Codex sessions on Linux arm64, Codex CLI 0.155.1, and Node 24.20.0. The
 [runner](run-linux.mjs) creates a temporary Git repository, Codex home, repository
@@ -47,12 +95,14 @@ controlled overlap fixture.
 
 ## Contract gaps exposed
 
-The current resident client finalizes advice after a completed stdout write.
+At the time of the earlier seven-case probe, the resident client finalized
+advice after a completed stdout write.
 `combined-background-before-stop` demonstrates the resulting uncertainty: Stop
 could not offer a final delivery opportunity for advice already submitted by the
 background hook, while no independent model visibility occurred. The proposed
 resident submitted/uncertain state in the [contract](../../docs/issue-105-composed-delivery.md)
-is therefore still required. The test-only Stop hook also waits about 4.2 seconds
+was subsequently implemented in the candidate shared resident path. The
+test-only Stop hook also waited about 4.2 seconds
 when no finding can be collected, including after a clear or unavailable outcome;
 the proposed production wait policy needs an explicit recipient work-state signal
 to return promptly. The zero-finding failure notice was sent by background; the
@@ -62,4 +112,4 @@ These runs establish one exact Linux host subset only. They do not validate the
 macOS arm64 / Codex CLI 0.156.0 profile, concurrent distinct host recipients,
 shared-root unknown-origin attribution, stale handoff, lost acknowledgement,
 simultaneous resident collection, pre-Stop unconsumed output, collector crash, or the complete background lifecycle around tool calls and
-session end. The proposed hooks remain unregistered in the product.
+session end. Those seven cases predate the candidate installer registration.

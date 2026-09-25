@@ -54,6 +54,7 @@ import {
   type CapacityReservation,
 } from "./capacity.ts";
 import { DispatchCycles } from "./dispatch.ts";
+import { ComposedDelivery } from "./composed-delivery.ts";
 import {
   collectionOrder,
   combinedClaudeOutput,
@@ -231,6 +232,7 @@ type PendingNotice = {
 
 type NoticeCooldown = {
   readonly partition: string;
+  readonly deliveryGroup: string;
   readonly reservation: CapacityReservation;
   nextAllowedAt: number;
   suppressedCount: number;
@@ -295,6 +297,15 @@ const recipientPartition = (root: string, recipient: DirectRecipient) => canonic
   sessionId: recipient.sessionId,
   agentId: recipient.agentId,
   ...(recipient.host !== "codex-cli" ? { toolUseId: recipient.toolUseId } : {}),
+});
+
+/** Delivery opportunities span a host session's attributed edits, not tool calls. */
+const recipientGroup = (root: string, recipient: DirectRecipient) => canonicalValue({
+  root,
+  host: recipient.host,
+  hostVersion: recipient.hostVersion,
+  sessionId: recipient.sessionId,
+  agentId: recipient.agentId,
 });
 
 const workSubject = (partition: string, prepared: PreparedUnit): string => canonicalValue({
@@ -441,6 +452,7 @@ export class ResidentServer {
   readonly #ledger = new CapacityLedger();
   readonly #reuse: EvaluationReuse<UnitJob>;
   readonly #dispatcher: DispatchCycles<string, Job>;
+  readonly #composedDelivery = new ComposedDelivery();
   readonly #now: () => number;
   readonly #maximumOperationalNoticeKeys: number;
   readonly #maximumTickets: number;
@@ -663,6 +675,14 @@ export class ResidentServer {
     recipient: DirectRecipient,
     dispatch: ResidentDispatchContext,
     mode: CollectionMode,
+    ticket: undefined,
+    composed: true,
+  ): Promise<Exclude<ResidentResponse, { readonly version: 2 }>>;
+  collect(
+    root: string,
+    recipient: DirectRecipient,
+    dispatch: ResidentDispatchContext,
+    mode: CollectionMode,
     ticket: TicketRecord,
   ): Promise<ResidentResponse>;
   async collect(
@@ -671,8 +691,9 @@ export class ResidentServer {
     dispatch: ResidentDispatchContext,
     mode: CollectionMode = "ordinary",
     ticket?: TicketRecord,
+    composed = false,
   ): Promise<ResidentResponse> {
-    const partition = recipientPartition(root, recipient);
+    const partition = composed ? recipientGroup(root, recipient) : recipientPartition(root, recipient);
     const now = this.#now();
     this.#expirePending(now);
     this.#pruneNoticeCooldowns(now);
@@ -686,7 +707,10 @@ export class ResidentServer {
       if (item.delivery !== undefined && item.delivery.leaseUntil <= now) delete item.delivery;
     }
     const available = this.#advice.filter((item) =>
-      item.partition === partition && item.delivery === undefined &&
+      (composed ? recipientGroup(item.observation.root, item.observation.recipient) === partition
+        : item.partition === partition) && item.delivery === undefined &&
+      item.findings.some((finding) => !this.#composedDelivery.suppresses(
+        item.id, recipientGroup(item.observation.root, item.observation.recipient), finding)) &&
       (ticket === undefined || ticket.units.some((unit) => unit.current.state === "finding" && unit.current.adviceId === item.id)));
     const cycles = new Map<number, Array<Advice>>();
     for (const item of available) {
@@ -718,7 +742,9 @@ export class ResidentServer {
       if (advice === undefined) continue;
       // Scan past individual over-budget findings so one large item cannot
       // starve later bounded advice from the same or a later unit.
-      if (fittingFindings(selectedFindings, advice.findings).length === 0) continue;
+      if (fittingFindings(selectedFindings, advice.findings.filter((finding) =>
+          !this.#composedDelivery.suppresses(advice.id,
+            recipientGroup(advice.observation.root, advice.observation.recipient), finding))).length === 0) continue;
       advice.delivery = {
         token,
         findings: [],
@@ -744,7 +770,9 @@ export class ResidentServer {
         this.#removeAdvice(advice.id, token);
         continue;
       }
-      const fitting = fittingFindings(selectedFindings, advice.findings);
+      const fitting = fittingFindings(selectedFindings, advice.findings.filter((finding) =>
+        !this.#composedDelivery.suppresses(advice.id,
+          recipientGroup(advice.observation.root, advice.observation.recipient), finding)));
       if (fitting.length === 0) {
         delete advice.delivery;
         continue;
@@ -776,7 +804,9 @@ export class ResidentServer {
           this.#removeAdvice(advice.id, token);
           continue;
         }
-        const fitting = fittingFindings(finalFindings, advice.findings);
+        const fitting = fittingFindings(finalFindings, advice.findings.filter((finding) =>
+          !this.#composedDelivery.suppresses(advice.id,
+            recipientGroup(advice.observation.root, advice.observation.recipient), finding)));
         if (fitting.length === 0) {
           delete advice.delivery;
           continue;
@@ -816,7 +846,7 @@ export class ResidentServer {
       }
     }
     const handoffNow = this.#now();
-    const notices = this.#leaseNotices(partition, token, handoffFindings, handoffNow, ticket);
+    const notices = this.#leaseNotices(partition, token, handoffFindings, handoffNow, ticket, composed);
     if (handoffFindings.length === 0 && notices.length === 0) return { status: "empty" };
     return ticket === undefined
       ? { status: "advice", token, findingCount: handoffFindings.length,
@@ -846,6 +876,7 @@ export class ResidentServer {
     for (const item of notices) {
       if (item.delivery !== undefined) item.delivery.acknowledged = true;
     }
+    this.#composedDelivery.markSubmitted(token);
     return { status: "acknowledged" };
   }
 
@@ -870,7 +901,12 @@ export class ResidentServer {
       for (const item of notices) delete item.delivery;
       return { status: "empty" };
     }
+    const composed = this.#composedDelivery.hasToken(token);
     for (const item of advice) {
+      if (composed) {
+        delete item.delivery;
+        continue;
+      }
       const delivered = item.delivery?.findings ?? [];
       const remaining = withoutDeliveredFindings(item.findings, delivered);
       if (remaining.length === 0) {
@@ -902,6 +938,41 @@ export class ResidentServer {
     for (const notice of this.#noticesForToken(token)) {
       if (notice.delivery?.token === token && !notice.delivery.acknowledged) delete notice.delivery;
     }
+  }
+
+  beginComposedSubmission(token: string, surface: "edit" | "background" | "stop"): ResidentResponse {
+    const now = this.#now();
+    this.#expirePending(now);
+    const advice = this.#advice.filter((item) =>
+      item.delivery?.token === token && item.delivery.leaseUntil > now &&
+      item.delivery.findings.length > 0);
+    if (advice.length === 0) return { status: "empty" };
+    for (const item of advice) {
+      this.#composedDelivery.beginSubmission(
+        item.id, recipientGroup(item.observation.root, item.observation.recipient),
+        token, item.delivery?.findings ?? [], surface, now,
+      );
+    }
+    return { status: "submitting" };
+  }
+
+  releaseComposedSubmission(token: string): ResidentResponse {
+    this.#composedDelivery.release(token);
+    this.releaseDelivery(token);
+    return { status: "released" };
+  }
+
+  #collectionWorkState(root: string, recipient: DirectRecipient, composed = false): { readonly status: "pending" | "empty" } {
+    const partition = composed ? recipientGroup(root, recipient) : recipientPartition(root, recipient);
+    return (composed
+      ? this.#dispatcher.hasWorkWhere(({ value }) =>
+          recipientGroup(value.observation.root, value.observation.recipient) === partition)
+      : this.#dispatcher.hasWork(partition)) ||
+      this.#advice.some((item) =>
+        (composed ? recipientGroup(item.observation.root, item.observation.recipient) === partition
+          : item.partition === partition) && item.delivery !== undefined)
+      ? { status: "pending" }
+      : { status: "empty" };
   }
 
   whenIdle(): Promise<void> {
@@ -1005,10 +1076,11 @@ export class ResidentServer {
     findings: ReadonlyArray<Finding>,
     now: number,
     ticket?: TicketRecord,
+    composed = false,
   ): ReadonlyArray<PendingNotice> {
     const candidates = [...this.#noticeCooldowns.values()]
       .filter((cooldown) =>
-        cooldown.partition === partition &&
+        (composed ? cooldown.deliveryGroup === partition : cooldown.partition === partition) &&
         cooldown.pending !== undefined &&
         cooldown.pending.delivery === undefined &&
         (ticket === undefined || this.#noticeOwners.get(cooldown.pending.id)?.has(ticket.ticket.nonce) === true))
@@ -1113,6 +1185,7 @@ export class ResidentServer {
     if (reservation === undefined) return;
     this.#noticeCooldowns.set(key, {
       partition,
+      deliveryGroup: recipientGroup(observation.root, observation.recipient),
       reservation,
       nextAllowedAt: now + OPERATIONAL_NOTICE_COOLDOWN_MS,
       suppressedCount: 0,
@@ -1211,6 +1284,7 @@ export class ResidentServer {
     if (index < 0) return false;
     const [removed] = this.#advice.splice(index, 1);
     if (removed !== undefined) {
+      this.#composedDelivery.forget(id);
       for (const ticket of this.#tickets.values()) {
         for (const unit of ticket.units) {
           if (unit.current.state === "finding" && unit.current.adviceId === id && !unit.current.delivered) {
@@ -1225,6 +1299,7 @@ export class ResidentServer {
   }
 
   #expirePending(now: number): void {
+    this.#composedDelivery.expire(now);
     for (const advice of [...this.#advice]) {
       if (isPendingAdviceExpired(advice, now)) this.#removeAdvice(advice.id);
     }
@@ -1877,6 +1952,35 @@ export class ResidentServer {
           : { version: 2, status: "obsolete-lifetime" }
         : { status: "obsolete-lifetime" };
     }
+    if (request.operation === "prompt-marker") {
+      const group = recipientGroup(request.root, request.recipient);
+      return (request.onlyIfMissing === true
+        ? this.#composedDelivery.ensureFromHostTurn(group, request.marker, this.#now())
+        : this.#composedDelivery.advance(group, request.marker, this.#now(), request.promptDigest))
+        ? { status: "advanced" } : { status: "rejected-capacity" };
+    }
+    if (request.operation === "consume-stop") {
+      return this.#composedDelivery.consumeStop(
+        recipientGroup(request.root, request.recipient), request.continuationDigest,
+      )
+        ? { status: "continuation-allowed" }
+        : { status: "continuation-denied" };
+    }
+    if (request.operation === "claim-background") {
+      return this.#composedDelivery.claimBackground(
+        recipientGroup(request.root, request.recipient), request.token, this.#now(),
+      ) ? { status: "background-claimed" } : { status: "busy" };
+    }
+    if (request.operation === "release-background") {
+      this.#composedDelivery.releaseBackground(
+        recipientGroup(request.root, request.recipient), request.token,
+      );
+      return { status: "released" };
+    }
+    if (request.operation === "begin-submission") {
+      return this.beginComposedSubmission(request.token, request.surface);
+    }
+    if (request.operation === "release") return this.releaseComposedSubmission(request.token);
     if (request.operation === "admit") {
       return this.admit(request.observation, request.dispatch, request.version === 2);
     }
@@ -1891,7 +1995,12 @@ export class ResidentServer {
         const collected = await this.collect(request.root, request.recipient, request.dispatch, request.mode ?? "ordinary", ticket);
         return collected.status === "advice" ? { ...collected, version: 2 } : this.#terminalStatus(ticket, this.#now());
       }
-      return this.collect(request.root, request.recipient, request.dispatch, request.mode ?? "ordinary");
+      const collected = request.composed === true
+        ? await this.collect(request.root, request.recipient, request.dispatch, request.mode ?? "ordinary", undefined, true)
+        : await this.collect(request.root, request.recipient, request.dispatch, request.mode ?? "ordinary");
+      return request.reportWorkState === true && collected.status === "empty"
+        ? this.#collectionWorkState(request.root, request.recipient, request.composed === true)
+        : collected;
     }
     if (request.operation === "acknowledge") return this.acknowledge(request.token);
     if (request.operation === "finalize") return this.finalize(request.token);
@@ -1977,6 +2086,10 @@ export class ResidentServer {
   /** Synchronous last barrier after response gates and immediately before encoding. */
   #responseForHandoff(request: ResidentRequest, response: ResidentResponse): ResidentResponse {
     if (response.status !== "advice") {
+      if (request.version === 1 && request.operation === "collect" && request.reportWorkState === true &&
+          (response.status === "empty" || response.status === "pending")) {
+        return this.#collectionWorkState(request.root, request.recipient, request.composed === true);
+      }
       if (request.version !== 2 || request.operation !== "collect") return response;
       const now = this.#now();
       this.#expirePending(now);

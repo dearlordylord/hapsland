@@ -15,6 +15,22 @@ const eventually = async (predicate: () => boolean) => {
 };
 
 describe("resident finite dispatch cycles", () => {
+  it("reports work only for the recipient with queued or running entries", async () => {
+    const first = gate();
+    const dispatcher = new DispatchCycles<string, number>(1, async ({ value }) => {
+      if (value === 1) await first.wait();
+    });
+    dispatcher.enqueue("a", 1);
+    dispatcher.enqueue("b", 2);
+    expect(dispatcher.hasWork("a")).toBe(true);
+    expect(dispatcher.hasWork("b")).toBe(true);
+    expect(dispatcher.hasWork("c")).toBe(false);
+    first.open();
+    await dispatcher.whenIdle();
+    expect(dispatcher.hasWork("a")).toBe(false);
+    expect(dispatcher.hasWork("b")).toBe(false);
+  });
+
   it("dispatches an idle lone item immediately and puts sustained later arrivals in later cycles", async () => {
     const first = gate();
     const started: Array<{ value: number; cycle: number }> = [];

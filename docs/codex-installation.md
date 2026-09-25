@@ -77,6 +77,12 @@ Installation and repository enablement are separate. Installation writes the ada
 an ownership record into the selected Codex home, but grants no permission to send repository
 source. Enablement separately previews the canonical Git root, Jev backend and destination, and
 eligible-source scope. Both mutations require the digest returned by their preview.
+The #105 candidate installation adds an async background command to the owned
+`PostToolUse` group and separately owned `Stop` and `UserPromptSubmit` groups.
+All delivery triggers collect from the same resident work and advice state.
+The matched Linux headless outcome is recorded in
+[the #105 evidence](../evidence/delivery-105/README.md); remaining conformance
+gates are open, so this is not a new installed-release support declaration.
 The install preview's `proposal.ownedChanges` identifies the exact runtime executable,
 entrypoint, Node/platform/architecture, feature key, hook event, matcher, command, timeout, and
 ownership-record path. It does not echo unrelated configuration values.

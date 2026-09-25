@@ -15,6 +15,7 @@ export type DispatchSnapshot = {
 export class DispatchCycles<K, A> {
   readonly #pending: Array<{ readonly key: K; readonly sequence: number; readonly value: A }> = [];
   #active: Array<DispatchEntry<K, A>> = [];
+  readonly #runningEntries = new Set<DispatchEntry<K, A>>();
   readonly #run: (entry: DispatchEntry<K, A>) => Promise<void>;
   readonly #onCycleComplete: ((cycle: number) => void) | undefined;
   readonly #concurrency: number;
@@ -46,6 +47,18 @@ export class DispatchCycles<K, A> {
     return { queued: this.#pending.length + this.#active.length, running: this.#running, cycle: this.#cycle };
   }
 
+  /** Recipient-scoped work includes pending, active, and currently executing entries. */
+  hasWork(key: K): boolean {
+    return this.#pending.some((entry) => entry.key === key) ||
+      this.#active.some((entry) => entry.key === key) ||
+      [...this.#runningEntries].some((entry) => entry.key === key);
+  }
+
+  hasWorkWhere(predicate: (entry: { readonly key: K; readonly value: A }) => boolean): boolean {
+    return this.#pending.some(predicate) || this.#active.some(predicate) ||
+      [...this.#runningEntries].some(predicate);
+  }
+
   whenIdle(): Promise<void> {
     if (this.#running === 0 && this.#active.length === 0 && this.#pending.length === 0) return Promise.resolve();
     return new Promise((resolve) => this.#idleWaiters.push(resolve));
@@ -70,8 +83,10 @@ export class DispatchCycles<K, A> {
       const entry = this.#active.shift();
       if (entry === undefined) break;
       this.#running += 1;
+      this.#runningEntries.add(entry);
       void this.#run(entry).catch(() => undefined).finally(() => {
         this.#running -= 1;
+        this.#runningEntries.delete(entry);
         if (this.#running === 0 && this.#active.length === 0) this.#onCycleComplete?.(entry.cycle);
         this.#pump();
         this.#settleIdle();

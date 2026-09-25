@@ -51,6 +51,18 @@ export type ResidentRequest =
       readonly mode?: CollectionMode;
     }
   | { readonly version: 1; readonly operation: "hello" }
+  | { readonly version: 1; readonly operation: "prompt-marker"; readonly lifetime: string;
+      readonly root: string; readonly recipient: DirectRecipient; readonly marker: string;
+      readonly promptDigest?: string; readonly onlyIfMissing?: true }
+  | { readonly version: 1; readonly operation: "consume-stop"; readonly lifetime: string;
+      readonly root: string; readonly recipient: DirectRecipient; readonly continuationDigest?: string }
+  | { readonly version: 1; readonly operation: "claim-background" | "release-background";
+      readonly lifetime: string; readonly root: string; readonly recipient: DirectRecipient;
+      readonly token: string }
+  | { readonly version: 1; readonly operation: "begin-submission"; readonly lifetime: string;
+      readonly token: string; readonly surface: "edit" | "background" | "stop" }
+  | { readonly version: 1; readonly operation: "release"; readonly lifetime: string;
+      readonly token: string }
   | {
       readonly version: 1;
       readonly operation: "admit";
@@ -67,6 +79,8 @@ export type ResidentRequest =
       readonly recipient: DirectRecipient;
       readonly dispatch: ResidentDispatchContext;
       readonly mode?: CollectionMode;
+      readonly reportWorkState?: true;
+      readonly composed?: true;
     }
   | {
       readonly version: 1;
@@ -97,6 +111,13 @@ export type ResidentResponse =
         | "rejected-capacity"
         | "obsolete-lifetime"
         | "empty"
+        | "pending"
+        | "advanced"
+        | "continuation-allowed"
+        | "continuation-denied"
+        | "background-claimed"
+        | "submitting"
+        | "released"
         | "acknowledged"
         | "finalized"
         | "unsupported"
@@ -136,7 +157,8 @@ const recipient = (value: unknown): value is DirectRecipient => {
   const item = record(value);
   if (item?.host === "claude-code" || item?.host === "opencode") return item.hostVersion ===
     (item.host === "claude-code" ? "2.1.218" : "1.14.44") &&
-    string(item.sessionId) && item.turnId === null && string(item.toolUseId) && item.agentId === null;
+    string(item.sessionId) && item.turnId === null && string(item.toolUseId) &&
+    (item.agentId === null || (item.host === "claude-code" && string(item.agentId)));
   return item?.host === "codex-cli" && isCodexHostVersion(item.hostVersion) &&
     string(item.sessionId) && string(item.turnId) && string(item.toolUseId) &&
     (item.agentId === null || string(item.agentId));
@@ -226,12 +248,44 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
   }
   if (value.operation === "hello") return { version: 1, operation: "hello" };
   if (!string(value.lifetime)) return undefined;
+  if (value.operation === "prompt-marker" && string(value.root) && recipient(value.recipient) &&
+      typeof value.marker === "string" && /^[a-f0-9]{64}$/.test(value.marker) &&
+      (value.promptDigest === undefined || (typeof value.promptDigest === "string" && /^[a-f0-9]{64}$/.test(value.promptDigest))) &&
+      (value.onlyIfMissing === undefined || value.onlyIfMissing === true)) {
+    return { version: 1, operation: "prompt-marker", lifetime: value.lifetime,
+      root: value.root, recipient: value.recipient, marker: value.marker,
+      ...(typeof value.promptDigest === "string" ? { promptDigest: value.promptDigest } : {}),
+      ...(value.onlyIfMissing === true ? { onlyIfMissing: true as const } : {}) };
+  }
+  if (value.operation === "consume-stop" && string(value.root) && recipient(value.recipient) &&
+      (value.continuationDigest === undefined ||
+        (typeof value.continuationDigest === "string" && /^[a-f0-9]{64}$/.test(value.continuationDigest)))) {
+    return { version: 1, operation: "consume-stop", lifetime: value.lifetime,
+      root: value.root, recipient: value.recipient,
+      ...(typeof value.continuationDigest === "string" ? { continuationDigest: value.continuationDigest } : {}) };
+  }
+  if ((value.operation === "claim-background" || value.operation === "release-background") &&
+      string(value.root) && recipient(value.recipient) &&
+      typeof value.token === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value.token)) {
+    return { version: 1, operation: value.operation, lifetime: value.lifetime,
+      root: value.root, recipient: value.recipient, token: value.token };
+  }
+  if (value.operation === "begin-submission" && string(value.token) &&
+      (value.surface === "edit" || value.surface === "background" || value.surface === "stop")) {
+    return { version: 1, operation: "begin-submission", lifetime: value.lifetime,
+      token: value.token, surface: value.surface };
+  }
+  if (value.operation === "release" && string(value.token)) {
+    return { version: 1, operation: "release", lifetime: value.lifetime, token: value.token };
+  }
   if (value.operation === "admit" && value.controlledWriter === true && observation(value.observation) && dispatch(value.dispatch)) {
     return { version: 1, operation: "admit", lifetime: value.lifetime, observation: value.observation, controlledWriter: true, dispatch: value.dispatch };
   }
   if (
     value.operation === "collect" && string(value.root) && recipient(value.recipient) && dispatch(value.dispatch) &&
-    (value.mode === undefined || value.mode === "ordinary" || value.mode === "turn-end")
+    (value.mode === undefined || value.mode === "ordinary" || value.mode === "turn-end") &&
+    (value.reportWorkState === undefined || value.reportWorkState === true) &&
+    (value.composed === undefined || value.composed === true)
   ) {
     return {
       version: 1,
@@ -241,6 +295,8 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
       recipient: value.recipient,
       dispatch: value.dispatch,
       ...(value.mode === undefined ? {} : { mode: value.mode }),
+      ...(value.reportWorkState === true ? { reportWorkState: true } : {}),
+      ...(value.composed === true ? { composed: true } : {}),
     };
   }
   if ((value.operation === "acknowledge" || value.operation === "finalize") && string(value.token)) {
@@ -279,7 +335,9 @@ const ResidentResponseSchema = Schema.Union([
     output: ClaudeBlockHostOutput }),
   Schema.Struct({ status: Schema.Literal("ready"), lifetime: Schema.NonEmptyString, pid: Schema.Int }),
   Schema.Struct({ status: Schema.Literals([
-    "accepted", "rejected-capacity", "obsolete-lifetime", "empty", "acknowledged", "finalized", "unsupported",
+    "accepted", "rejected-capacity", "obsolete-lifetime", "empty", "pending", "advanced",
+    "continuation-allowed", "continuation-denied", "background-claimed", "submitting", "released",
+    "acknowledged", "finalized", "unsupported",
     "busy", "cleaned",
   ]) }),
   Schema.Struct({

@@ -422,6 +422,127 @@ export const collectReady = async (
     : undefined;
 };
 
+export type RecipientCollectionOutcome =
+  | { readonly status: "advice"; readonly advice: CollectedAdvice & { readonly output: CodexDirectEventOutput } }
+  | { readonly status: "pending" | "empty" };
+
+/** Shared background/Stop collection probe for any supported host recipient. */
+export const collectRecipientOutcome = async (
+  root: string,
+  recipient: DirectRecipient,
+  dispatch: ResidentDispatchContext,
+  paths = residentPaths(),
+  mode: CollectionMode = "ordinary",
+  deadlineAt = Number.POSITIVE_INFINITY,
+): Promise<RecipientCollectionOutcome> => {
+  const owner = await inspectResident(paths);
+  if (!owner.available || owner.lifetime === undefined) return { status: "empty" };
+  const remaining = deadlineAt - performance.now() - 100;
+  if (remaining <= 0) return { status: "empty" };
+  const response = await residentRequest(paths, {
+    version: 1,
+    operation: "collect",
+    lifetime: owner.lifetime,
+    root,
+    recipient,
+    dispatch,
+    mode,
+    reportWorkState: true,
+    composed: true,
+  }, Math.min(CLIENT_REQUEST_DEADLINE_MS, remaining));
+  if (response.status === "advice" && !("version" in response)) {
+    return { status: "advice", advice: {
+      output: response.output,
+      token: response.token,
+      lifetime: owner.lifetime,
+      paths,
+      root,
+      recipient,
+      activityPath: dispatch.activityPath,
+      findingCount: response.findingCount,
+    } };
+  }
+  return { status: response.status === "pending" ? "pending" : "empty" };
+};
+
+export const markComposedUserPrompt = async (
+  root: string,
+  recipient: DirectRecipient,
+  marker: string,
+  paths = residentPaths(),
+  promptDigest?: string,
+  onlyIfMissing?: true,
+): Promise<boolean> => {
+  const owner = await ensureResident(paths, 1_500);
+  const response = await residentRequest(paths, {
+    version: 1, operation: "prompt-marker", lifetime: owner.lifetime,
+    root, recipient, marker,
+    ...(promptDigest === undefined ? {} : { promptDigest }),
+    ...(onlyIfMissing === true ? { onlyIfMissing: true as const } : {}),
+  });
+  return response.status === "advanced";
+};
+
+export const consumeComposedStopAllowance = async (
+  root: string,
+  recipient: DirectRecipient,
+  paths = residentPaths(),
+  continuationDigest?: string,
+): Promise<boolean> => {
+  const owner = await inspectResident(paths);
+  if (!owner.available || owner.lifetime === undefined) return false;
+  const response = await residentRequest(paths, {
+    version: 1, operation: "consume-stop", lifetime: owner.lifetime,
+    root, recipient,
+    ...(continuationDigest === undefined ? {} : { continuationDigest }),
+  });
+  return response.status === "continuation-allowed";
+};
+
+export const claimComposedBackground = async (
+  root: string, recipient: DirectRecipient, token: string,
+  paths = residentPaths(),
+): Promise<boolean> => {
+  const owner = await ensureResident(paths, 1_500);
+  const response = await residentRequest(paths, {
+    version: 1, operation: "claim-background", lifetime: owner.lifetime,
+    root, recipient, token,
+  });
+  return response.status === "background-claimed";
+};
+
+export const releaseComposedBackground = async (
+  root: string, recipient: DirectRecipient, token: string,
+  paths = residentPaths(),
+): Promise<boolean> => {
+  const owner = await inspectResident(paths);
+  if (!owner.available || owner.lifetime === undefined) return false;
+  const response = await residentRequest(paths, {
+    version: 1, operation: "release-background", lifetime: owner.lifetime,
+    root, recipient, token,
+  });
+  return response.status === "released";
+};
+
+export const beginComposedSubmission = async (
+  advice: CollectedAdvice,
+  surface: "edit" | "background" | "stop",
+): Promise<boolean> => {
+  const response = await residentRequest(advice.paths, {
+    version: 1, operation: "begin-submission", lifetime: advice.lifetime,
+    token: advice.token, surface,
+  });
+  return response.status === "submitting";
+};
+
+export const releaseComposedSubmission = async (advice: CollectedAdvice): Promise<boolean> => {
+  const response = await residentRequest(advice.paths, {
+    version: 1, operation: "release", lifetime: advice.lifetime,
+    token: advice.token,
+  });
+  return response.status === "released";
+};
+
 export const acknowledgeAdvice = async (advice: CollectedAdvice): Promise<boolean> => {
   const deadline = performance.now() + CLIENT_REQUEST_DEADLINE_MS;
   const acknowledged = await residentRequest(advice.paths, {

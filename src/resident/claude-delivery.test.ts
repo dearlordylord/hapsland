@@ -18,6 +18,34 @@ const enable = (root: string, statePath: string) => Effect.runPromise(Effect.gen
 }).pipe(Effect.provide(Consent.layer({ statePath }))));
 
 describe("Claude recipient scoped resident delivery", () => {
+  it("lets composed Stop collect session advice without crossing child or session identity", async () => {
+    const root = await makeGitFixture();
+    const path = await put(root, "type.ts", "type OrderCount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptClaudeDirectEvent({
+      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
+      session_id: "session", tool_use_id: "tool-one",
+      tool_input: { file_path: path, content: "type OrderCount = number\n" },
+      tool_response: { filePath: path, content: "type OrderCount = number\n", originalFile: null, userModified: false },
+    }));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    const dispatch: ResidentDispatchContext = { statePath, userConfigPath: null, credential: null,
+      controlled: { syntheticR6BrandedRepair: "finding" } };
+    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    expect(server.admit(observation, dispatch)).toEqual({ status: "accepted" });
+    await server.whenIdle();
+    const collect = (recipient: typeof observation.recipient, composed: true) => server.handle({
+      version: 1, operation: "collect", lifetime: server.lifetime,
+      root, recipient, dispatch, mode: "turn-end", composed,
+    });
+    const stopRecipient = { ...observation.recipient, toolUseId: "stop" };
+    expect((await collect(stopRecipient, true)).status).toBe("advice");
+    expect((await collect({ ...stopRecipient, agentId: "child" }, true)).status).toBe("empty");
+    expect((await collect({ ...stopRecipient, sessionId: "other" }, true)).status).toBe("empty");
+  });
+
   it("delivers only to the initiating tool call and drops stale content", async () => {
     const root = await makeGitFixture();
     const path = await put(root, "type.ts", "type OrderCount = number\n");
