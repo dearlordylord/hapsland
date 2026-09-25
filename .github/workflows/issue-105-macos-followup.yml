@@ -1,0 +1,53 @@
+name: Create issue 105 macOS follow-up
+
+on:
+  issues:
+    types: [closed]
+
+permissions:
+  issues: write
+
+jobs:
+  create-follow-up:
+    if: github.event.issue.number == 105
+    runs-on: ubuntu-latest
+    concurrency:
+      group: issue-105-macos-follow-up
+      cancel-in-progress: false
+    steps:
+      - name: Create and link manual macOS validation issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const marker = '<!-- hapsland-issue-105-macos-follow-up -->';
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner, repo, state: 'all', per_page: 100,
+            });
+            let followUp = issues.find(issue =>
+              !issue.pull_request && issue.body?.includes(marker));
+            if (!followUp) {
+              const created = await github.rest.issues.create({
+                owner, repo,
+                title: 'Manually validate Codex and Claude delivery on macOS after #105',
+                body: `${marker}
+            Follow-up to #105. Run this manually on the owner's macOS machine with real installed Codex and Claude Code; record exact macOS, Node.js, host and Hapsland versions.
+
+            For each host, reproduce the #105 before case: an attributable edit yields an actionable finding, but no suggestion reaches the agent before it finishes and the defect remains. Then reproduce the after case on the same fixture: record the suggestion's host handoff, a subsequent model action that follows it, the repaired file state, and a clear follow-up review. Record timing, failure or timeout behavior, and any support limits. Keep only sanitized evidence; do not publish prompts, source, credentials, or source-bearing backend responses.
+
+            - [ ] Codex macOS before/after and follow-up review
+            - [ ] Claude Code macOS before/after and follow-up review
+            - [ ] Evidence and support decision linked back to #105`,
+              });
+              followUp = created.data;
+            }
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number: 105, per_page: 100,
+            });
+            const linkMarker = `macOS follow-up: #${followUp.number}`;
+            if (!comments.some(comment => comment.body?.includes(linkMarker))) {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: 105,
+                body: `${linkMarker} was created at closure for manual Codex and Claude Code validation on the owner's machine.`,
+              });
+            }

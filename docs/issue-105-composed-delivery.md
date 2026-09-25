@@ -1,10 +1,26 @@
 # Issue #105: composed Codex delivery contract and adoption decision
 
-Status: **candidate contract; production adoption rejected on 2026-09-25**. This
-document is the proposed specification for the combined path. It does not enable a
-background hook or a Stop hook. The current installed Codex path continues to admit
-direct edits and collect advice on later mapped edit hooks. The required combined
-host and resident gates below have not passed.
+Status: **candidate contract; Linux outcome gate open on 2026-09-25**. This
+document is the proposed specification for the combined Codex path. It does not
+enable a background hook or a Stop hook. The current installed Codex path
+continues to admit direct edits and collect advice on later mapped edit hooks.
+The earlier probe did not pass the revised issue's before/after outcome gate.
+
+## Required product outcome
+
+The revised [issue #105](https://github.com/dearlordylord/hapsland/issues/105)
+requires matched, headless Linux before/after observations. In the **before**
+case, an attributable edit produces an actionable review finding, but the
+current delivery policy gives the agent no suggestion before it finishes; the
+defect remains. In the **after** case, a bounded host response carries the
+current suggestion to that recipient, a later model action follows it, the file
+is repaired, and a subsequent review is clear. Review completion, host
+submission, model action, and final file state are separate observations.
+Run this gate first with Codex, then with Claude Code on Linux. Claude may use
+its existing opted-in block hook for its own outcome gate; the background and
+Stop composition contract below is specific to Codex. macOS manual testing
+with real installed Codex and Claude Code belongs to a follow-up issue created
+when #105 closes.
 
 ## Authority and identity
 
@@ -134,7 +150,8 @@ backend responses are not retained.
 | Gate | Required observation | 2026-09-25 state |
 | --- | --- | --- |
 | Linux exact host | Linux arm64, Codex 0.155.1, Node 24.20.0, combined hooks through production resident | **Partial**. [Seven controlled host fixtures](../evidence/delivery-105/README.md) exercised both hooks, overlap, late retention, multi-unit delivery, and backend unavailability. Isolation, stale, and lost-acknowledgement gates remain open. |
-| macOS exact host | macOS arm64, Codex 0.156.0, Node 24.20.0, same combined matrix | **Missing**. No macOS #105 run. |
+| Claude Linux outcome | Linux arm64, Claude Code 2.1.218, Node 24.20.0, matched before/after with independently observed repair and clear follow-up | **Missing**. Existing #94 block evidence is useful prior evidence, but is not a matched #105 before/after run. |
+| macOS manual follow-up | Real installed Codex and Claude Code on the owner's macOS machine | **Deferred by issue scope**. Closure of #105 must create and link the follow-up issue; no macOS result is claimed here. |
 | Background timing | No later edit; completion during model request/tool call, final response, and after end; actual submission and model visibility | **Partial** on Linux. Early output preceded independently observed repair; output after the final model message produced no observed repair. Tool-call and after-end visibility remain unmeasured. |
 | Stop outcomes | Ready, completes during wait, deadline then later collectable, unavailable/backend failure, stale, multi-unit | **Partial** on Linux. Stop won a lease, collected during its wait, and left a later result collectable. Background delivered a multi-unit batch and a failure notice. Stale and Stop failure-notice delivery remain open. |
 | Composition races | Background/Stop overlap, submitted but unconsumed background output, edit/other collector overlap, failed collection or lost ack, repair-generated findings | **Partial** on Linux. Stop won in two fixtures while a background waiter existed; background won in other fixtures. The probes do not prove simultaneous resident collection. One background output was submitted during Stop after the final model message without observed model visibility; pre-Stop unconsumed output remains untested. Repair-generated findings were observed. Edit overlap, failed collection, and lost ack remain open. |
@@ -148,8 +165,11 @@ model visibility. The new Linux probe used a locally cached exact 0.155.1 binary
 with Node 24.20.0. The existing macOS GitHub Actions workflow covers package
 conformance and does not run this combined matrix.
 
-**Decision:** reject production registration of both proposed hooks at this time.
-Retain subsequent-edit collection as the supported delivery policy. Adoption requires
-the resident submitted/uncertain lifecycle, the conformance matrix above on both
-exact installed profiles, sanitized retained evidence, and a new support declaration.
-No live Jev validation is needed for this controlled delivery gate.
+**Present decision:** do not register either proposed Codex hook yet. Retain
+subsequent-edit collection as the supported delivery policy while the Linux
+outcome and composition gates remain open. A rejection of adoption alone no
+longer completes #105: its revised success criterion requires the observed
+before/after repair outcome for both Linux hosts. Adoption requires the
+resident submitted/uncertain lifecycle, passing Linux evidence, sanitized
+retained evidence, and a new support declaration. No live Jev validation is
+needed for this controlled delivery gate.
