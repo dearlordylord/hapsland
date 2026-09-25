@@ -26,6 +26,7 @@ import { liveLayer as jevDecisionModelLiveLayer } from "../jev-decision.ts";
 import { Consent } from "../runtime/consent.ts";
 import { loadReviewSettings } from "../runtime/review-config.ts";
 import { loadConfiguration } from "../configuration/load.ts";
+import { readCurrentClaudeFeedbackAuthority } from "../configuration/current-claude-authority.ts";
 import {
   controlledDecisionModelLayer,
   type ControlledDecisionModelOptions,
@@ -54,11 +55,15 @@ import {
 import { DispatchCycles } from "./dispatch.ts";
 import {
   collectionOrder,
+  combinedClaudeOutput,
   combinedReviewOutput,
   isCollectionEligible,
   isPendingAdviceExpired,
   selectFittingFindings,
+  selectFittingClaudeFindings,
+  selectFittingClaudeNotices,
   selectFittingNotices,
+  type ClaudeOutputMode,
   type CollectionMode,
   type OperationalNotice,
   type OperationalNoticeKind,
@@ -150,6 +155,7 @@ const unitFinding = (unit: TicketUnit, revision: WorkRevision, adviceId: string)
 };
 type TicketRecord = { readonly ticket: ResidentCollectionTicket; readonly generation: number;
   readonly partition: string; readonly credentialGeneration: number | null;
+  readonly root: string; readonly userConfigPath: string | null; readonly claudeFeedbackMode: ClaudeOutputMode;
   readonly credentialStatePath: string | null; readonly credentialRequired: boolean;
   readonly credentialEnvironmentOnly: boolean;
   readonly expiresAt: number; readonly units: Array<TicketUnit>;
@@ -546,6 +552,8 @@ export class ResidentServer {
     const ticket: TicketRecord | undefined = ticketed ? {
       ticket: { nonce: randomUUID(), lifetime: this.lifetime },
       generation: this.#nextAdmissionGeneration++, partition,
+      root: observation.root, userConfigPath: dispatch.userConfigPath,
+      claudeFeedbackMode: this.#currentClaudeFeedbackMode(observation.root, dispatch.userConfigPath),
       credentialGeneration: dispatch.credential?.generation ?? null,
       credentialStatePath: dispatch.credential?.statePath ?? null,
       credentialRequired: dispatch.controlled === null || dispatch.controlled.requireCredential === true,
@@ -580,6 +588,19 @@ export class ResidentServer {
     return ticket === undefined ? { status: "accepted" } : { version: 2, status: "accepted", ticket: ticket.ticket };
   }
 
+  collect(
+    root: string,
+    recipient: DirectRecipient,
+    dispatch: ResidentDispatchContext,
+    mode?: CollectionMode,
+  ): Promise<Exclude<ResidentResponse, { readonly version: 2 }>>;
+  collect(
+    root: string,
+    recipient: DirectRecipient,
+    dispatch: ResidentDispatchContext,
+    mode: CollectionMode,
+    ticket: TicketRecord,
+  ): Promise<ResidentResponse>;
   async collect(
     root: string,
     recipient: DirectRecipient,
@@ -622,6 +643,9 @@ export class ResidentServer {
       .sort(collectionOrder)
       .map((item) => item.id);
     const token = randomUUID();
+    const fittingFindings = (retained: ReadonlyArray<Finding>, candidates: ReadonlyArray<Finding>) =>
+      ticket === undefined ? selectFittingFindings(retained, candidates)
+        : selectFittingClaudeFindings(retained, candidates, ticket.claudeFeedbackMode);
     let handoffFindings: Array<Finding> = [];
     const selected: Array<Advice> = [];
     let selectedFindings: Array<Finding> = [];
@@ -630,7 +654,7 @@ export class ResidentServer {
       if (advice === undefined) continue;
       // Scan past individual over-budget findings so one large item cannot
       // starve later bounded advice from the same or a later unit.
-      if (selectFittingFindings(selectedFindings, advice.findings).length === 0) continue;
+      if (fittingFindings(selectedFindings, advice.findings).length === 0) continue;
       advice.delivery = {
         token,
         findings: [],
@@ -656,7 +680,7 @@ export class ResidentServer {
         this.#removeAdvice(advice.id, token);
         continue;
       }
-      const fitting = selectFittingFindings(selectedFindings, advice.findings);
+      const fitting = fittingFindings(selectedFindings, advice.findings);
       if (fitting.length === 0) {
         delete advice.delivery;
         continue;
@@ -688,7 +712,7 @@ export class ResidentServer {
           this.#removeAdvice(advice.id, token);
           continue;
         }
-        const fitting = selectFittingFindings(finalFindings, advice.findings);
+        const fitting = fittingFindings(finalFindings, advice.findings);
         if (fitting.length === 0) {
           delete advice.delivery;
           continue;
@@ -730,12 +754,11 @@ export class ResidentServer {
     const handoffNow = this.#now();
     const notices = this.#leaseNotices(partition, token, handoffFindings, handoffNow, ticket);
     if (handoffFindings.length === 0 && notices.length === 0) return { status: "empty" };
-    return {
-      status: "advice",
-      token,
-      findingCount: handoffFindings.length,
-      output: combinedReviewOutput(handoffFindings, notices.map((notice) => notice.value)),
-    };
+    return ticket === undefined
+      ? { status: "advice", token, findingCount: handoffFindings.length,
+          output: combinedReviewOutput(handoffFindings, notices.map((notice) => notice.value)) }
+      : { version: 2, status: "advice", token, findingCount: handoffFindings.length,
+          output: combinedClaudeOutput(handoffFindings, notices.map((notice) => notice.value), ticket.claudeFeedbackMode) };
   }
 
   acknowledge(token: string): ResidentResponse {
@@ -927,8 +950,11 @@ export class ResidentServer {
         (ticket === undefined || this.#noticeOwners.get(cooldown.pending.id)?.has(ticket.ticket.nonce) === true))
       .flatMap((cooldown) => cooldown.pending === undefined ? [] : [cooldown.pending])
       .sort((left, right) => left.sequence - right.sequence);
-    const selectedValues = selectFittingNotices(findings, [], candidates.map(({ value }) => value));
-    const selected = candidates.slice(0, selectedValues.length);
+    const candidateValues = candidates.map(({ value }) => value);
+    const selectedValues = ticket === undefined
+      ? selectFittingNotices(findings, [], candidateValues)
+      : selectFittingClaudeNotices(findings, candidateValues, ticket.claudeFeedbackMode);
+    const selected = candidates.filter((candidate) => selectedValues.includes(candidate.value));
     for (const notice of selected) {
       notice.delivery = {
         token,
@@ -1750,6 +1776,11 @@ export class ResidentServer {
       ? retained : undefined;
   }
 
+  #currentClaudeFeedbackMode(root: string, userConfigPath: string | null): ClaudeOutputMode {
+    const authority = readCurrentClaudeFeedbackAuthority(root, userConfigPath ?? undefined);
+    return authority.valid ? authority.mode : "advisory";
+  }
+
   #terminalStatus(ticket: TicketRecord, now: number): ResidentResponse {
     if (now >= ticket.expiresAt) return { version: 2, status: "unavailable", reason: "expired" };
     if (!this.#credentialAuthority(ticket)) return { version: 2, status: "unavailable", reason: "credential" };
@@ -1842,16 +1873,27 @@ export class ResidentServer {
     for (const notice of notices) {
       if (notice.delivery !== undefined) notice.delivery.leaseUntil = now + DELIVERY_LEASE_MS;
     }
+    const ticket = request.version === 2 && request.operation === "collect"
+      ? this.#ticketFor(request.ticket, request.root, request.recipient, request.dispatch)
+      : undefined;
+    if (request.version === 2 && request.operation === "collect" && ticket === undefined) {
+      this.releaseDelivery(response.token);
+      return { version: 2, status: "unavailable", reason: "lost" };
+    }
+    if (ticket !== undefined && ticket.claudeFeedbackMode === "block-current-findings" &&
+        this.#currentClaudeFeedbackMode(ticket.root, ticket.userConfigPath) !== "block-current-findings") {
+      // A revoked opt-in cannot turn the old selection into an advisory lease.
+      this.releaseDelivery(response.token);
+      return this.#terminalStatus(ticket, now);
+    }
     const selected: ResidentResponse = findings.length === 0 && notices.length === 0
       ? { status: "empty" }
-      : {
-          status: "advice",
-          token: response.token,
-          findingCount: findings.length,
-          output: combinedReviewOutput(findings, notices.map((notice) => notice.value)),
-        };
+      : ticket === undefined
+        ? { status: "advice", token: response.token, findingCount: findings.length,
+            output: combinedReviewOutput(findings, notices.map((notice) => notice.value)) }
+        : { version: 2, status: "advice", token: response.token, findingCount: findings.length,
+            output: combinedClaudeOutput(findings, notices.map((notice) => notice.value), ticket.claudeFeedbackMode) };
     if (request.version !== 2 || request.operation !== "collect") return selected;
-    const ticket = this.#ticketFor(request.ticket, request.root, request.recipient, request.dispatch);
     if (ticket === undefined) return { version: 2, status: "unavailable", reason: "lost" };
     if (ticket.credentialGeneration !== (request.dispatch.credential?.generation ?? null)) {
       if (selected.status === "advice") this.releaseDelivery(selected.token);

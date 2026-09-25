@@ -46,6 +46,15 @@
       "description": "Name of the environment variable that supplies the review credential. Store the secret value outside configuration.",
       "default": "TYPESAFE_API_KEY"
     },
+    "claudeFeedbackMode": {
+      "type": "string",
+      "enum": [
+        "advisory",
+        "block-current-findings"
+      ],
+      "description": "Claude PostToolUse feedback. Blocking current findings requires an explicit user configuration opt-in; a project may only restrict it to advisory.",
+      "default": "advisory"
+    },
     "settings": {
       "$ref": "#/$defs/RuntimeSettings"
     },

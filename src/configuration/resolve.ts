@@ -8,6 +8,7 @@ import {
   type ConfigurationLayerName,
   type ConfigurationOrigin,
   type ConfigurationCapture,
+  type ClaudeFeedbackMode,
   type Originated,
   type PatternOrigin,
   type ResolvedPolicy,
@@ -179,6 +180,24 @@ export const resolveConfiguration = (
     }
   }
 
+  let claudeFeedbackMode: Originated<ClaudeFeedbackMode> = originated("advisory", {
+    layer: "built-in",
+    source: "built-in",
+    field: "claudeFeedbackMode",
+  });
+  for (const layer of layers) {
+    const value = layer.document.claudeFeedbackMode;
+    if (value === undefined) continue;
+    if (value === "block-current-findings" && layer.name !== "user") {
+      throw new ConfigurationError({
+        source: layer.source,
+        field: "claudeFeedbackMode",
+        reason: "only user configuration may enable Claude block feedback",
+      });
+    }
+    claudeFeedbackMode = originated(value, origin(layer, "claudeFeedbackMode"));
+  }
+
   const policyWithoutDigest = {
     root,
     includes,
@@ -186,6 +205,7 @@ export const resolveConfiguration = (
     excludes,
     protectedExcludes: dedupePatterns(protectedExcludes),
     credentialEnvVar,
+    claudeFeedbackMode,
     settings: {
       deadlineMs: effectiveSetting(layers, "deadlineMs", DEFAULT_RUNTIME_SETTINGS.deadlineMs),
       concurrency: effectiveSetting(layers, "concurrency", DEFAULT_RUNTIME_SETTINGS.concurrency),
@@ -223,6 +243,7 @@ export const validateCapturedPolicy = (policy: ResolvedPolicy): void => {
     excludes: policy.excludes,
     protectedExcludes: policy.protectedExcludes,
     credentialEnvVar: policy.credentialEnvVar,
+    claudeFeedbackMode: policy.claudeFeedbackMode,
     settings: policy.settings,
     layers: policy.layers,
   })) {

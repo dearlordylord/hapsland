@@ -6,6 +6,10 @@ import { resolveConfiguration, stableConfigurationValue } from "./resolve.ts";
 import type { ConfigurationLayer } from "./resolve.ts";
 import { selectGlobalPath } from "../policy/file-policy.ts";
 import { explainPath } from "../explanation/index.ts";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { readCurrentClaudeFeedbackAuthority } from "./current-claude-authority.ts";
 
 const source = (name: string, value: string): ConfigurationLayer => ({
   name: name as ConfigurationLayer["name"],
@@ -116,6 +120,46 @@ describe("configuration v1 decoding", () => {
 });
 
 describe("layered selection and provenance", () => {
+  it("requires a user owned Claude opt-in and lets a project restrict it", () => {
+    const user = source("user", '{"version":1,"claudeFeedbackMode":"block-current-findings"}');
+    expect(resolveConfiguration([], "/repo").claudeFeedbackMode).toMatchObject({ value: "advisory", origin: { layer: "built-in" } });
+    expect(resolveConfiguration([user], "/repo").claudeFeedbackMode).toMatchObject({ value: "block-current-findings", origin: { layer: "user" } });
+    expect(resolveConfiguration([user, source("project", '{"version":1,"claudeFeedbackMode":"advisory"}')], "/repo").claudeFeedbackMode).toMatchObject({ value: "advisory", origin: { layer: "project" } });
+    expect(resolveConfiguration([source("user", '{"version":1,"claudeFeedbackMode":"advisory"}')], "/repo").claudeFeedbackMode.value).toBe("advisory");
+    expect(() => resolveConfiguration([source("project", '{"version":1,"claudeFeedbackMode":"block-current-findings"}')], "/repo")).toThrow(ConfigurationError);
+  });
+
+  it("strictly rejects malformed Claude feedback modes", () => {
+    for (const mode of ["block", "BLOCK-CURRENT-FINDINGS", true, null, 1]) {
+      expect(() => decodeConfigurationText(JSON.stringify({ version: 1, claudeFeedbackMode: mode }), "user.jsonc")).toThrow(ConfigurationError);
+    }
+  });
+
+  it("rechecks current user and project mode synchronously and fails closed", () => {
+    const root = mkdtempSync(join(tmpdir(), "hapsland-claude-mode-"));
+    const userPath = join(root, "user.jsonc");
+    const projectPath = join(root, ".review.jsonc");
+    try {
+      expect(readCurrentClaudeFeedbackAuthority(root, userPath)).toMatchObject({ valid: true, mode: "advisory", origin: { layer: "built-in" } });
+      writeFileSync(userPath, '{"version":1,"claudeFeedbackMode":"block-current-findings"}');
+      expect(readCurrentClaudeFeedbackAuthority(root, userPath)).toMatchObject({ valid: true, mode: "block-current-findings", origin: { layer: "user" } });
+      writeFileSync(projectPath, '{"version":1,"claudeFeedbackMode":"advisory"}');
+      expect(readCurrentClaudeFeedbackAuthority(root, userPath)).toMatchObject({ valid: true, mode: "advisory", origin: { layer: "project" } });
+      writeFileSync(projectPath, '{"version":1,"claudeFeedbackMode":"block-current-findings"}');
+      expect(readCurrentClaudeFeedbackAuthority(root, userPath)).toEqual({ valid: false });
+      rmSync(projectPath);
+      writeFileSync(userPath, '{"version":1,"claudeFeedbackMode":');
+      expect(readCurrentClaudeFeedbackAuthority(root, userPath)).toEqual({ valid: false });
+      rmSync(userPath);
+      expect(readCurrentClaudeFeedbackAuthority(root, userPath)).toMatchObject({ valid: true, mode: "advisory" });
+      writeFileSync(projectPath, '{"version":1}');
+      writeFileSync(join(root, ".realtime-review.jsonc"), '{"version":1}');
+      expect(readCurrentClaudeFeedbackAuthority(root, userPath)).toEqual({ valid: false });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("replaces includes at the highest supplied layer and accumulates exclusions", () => {
     const policy = resolveConfiguration(
       [

@@ -2,7 +2,7 @@ import { isCodexHostVersion, type DirectObservation, type DirectRecipient } from
 import type { CodexDirectEventOutput } from "../direct-event/pipeline.ts";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
-import type { CollectionMode } from "./collection.ts";
+import type { ClaudeHostOutput, CollectionMode } from "./collection.ts";
 
 export const MAX_IPC_FRAME_BYTES = 262_144;
 export const MAX_IPC_CONNECTIONS = 32;
@@ -88,7 +88,7 @@ export type ResidentResponse =
   | { readonly version: 2; readonly status: "pending" | "clear" | "delivered" | "no-work" }
   | { readonly version: 2; readonly status: "unavailable"; readonly reason: ResidentUnavailableReason }
   | { readonly version: 2; readonly status: "advice"; readonly token: string;
-      readonly findingCount: number; readonly output: CodexDirectEventOutput }
+      readonly findingCount: number; readonly output: ClaudeHostOutput }
   | { readonly status: "ready"; readonly lifetime: string; readonly pid: number }
   | {
       readonly status:
@@ -256,6 +256,11 @@ const HostOutput = Schema.Struct({
   }),
 });
 
+const ClaudeBlockHostOutput = Schema.Struct({
+  decision: Schema.Literal("block"),
+  reason: Schema.NonEmptyString.check(Schema.isMaxLength(MAX_IPC_FRAME_BYTES)),
+});
+
 const ResidentResponseSchema = Schema.Union([
   Schema.Struct({ version: Schema.Literal(2), status: Schema.Literal("accepted"),
     ticket: Schema.Struct({ nonce: Schema.NonEmptyString, lifetime: Schema.NonEmptyString }) }),
@@ -264,7 +269,11 @@ const ResidentResponseSchema = Schema.Union([
   Schema.Struct({ version: Schema.Literal(2), status: Schema.Literal("unavailable"),
     reason: Schema.Literals(["backend", "credential", "capacity", "stale", "lost", "expired"]) }),
   Schema.Struct({ version: Schema.Literal(2), status: Schema.Literal("advice"),
-    token: Schema.NonEmptyString, findingCount: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)), output: HostOutput }),
+    token: Schema.NonEmptyString, findingCount: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+    output: HostOutput }),
+  Schema.Struct({ version: Schema.Literal(2), status: Schema.Literal("advice"),
+    token: Schema.NonEmptyString, findingCount: Schema.Int.check(Schema.isGreaterThan(0)),
+    output: ClaudeBlockHostOutput }),
   Schema.Struct({ status: Schema.Literal("ready"), lifetime: Schema.NonEmptyString, pid: Schema.Int }),
   Schema.Struct({ status: Schema.Literals([
     "accepted", "rejected-capacity", "obsolete-lifetime", "empty", "acknowledged", "finalized", "unsupported",

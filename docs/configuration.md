@@ -48,6 +48,7 @@ JSONC and applies semantic glob, rule-pack, and repository-policy checks.
 | `privacyExcludes` | array of non-empty string (may be empty) | Optional | — | Additional protected-path exclusions. These accumulate and cannot be overridden by lower-privacy layers. |
 | `privacyExcludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
 | `credentialEnvVar` | string matching a pattern | Optional | "TYPESAFE_API_KEY" | Name of the environment variable that supplies the review credential. Store the secret value outside configuration. |
+| `claudeFeedbackMode` | string | Optional | "advisory" | Claude PostToolUse feedback. Blocking current findings requires an explicit user configuration opt-in; a project may only restrict it to advisory. |
 | `settings` | object | Optional | — | Optional whole-file JSON request controls. Omitted layer values inherit; built-in values apply when no layer supplies a value. |
 | `settings.deadlineMs` | integer (1–60000) | Optional | 1000 | Per-file deadline in milliseconds for whole-file JSON requests. |
 | `settings.concurrency` | integer (1–32) | Optional | 4 | Maximum concurrently reviewed files for whole-file JSON requests. |
@@ -85,6 +86,15 @@ Credential selection has a user-owned exception to this precedence: a
 `credentialEnvVar` set in user configuration takes priority over a project value.
 A project value takes effect when user configuration omits the field. If both omit
 it, the built-in `TYPESAFE_API_KEY` reference applies.
+
+Claude Code feedback defaults to `advisory`. To try the experimental stronger
+feedback after a successful direct edit, put
+`"claudeFeedbackMode": "block-current-findings"` in the **user** configuration
+file. A project configuration may set `"claudeFeedbackMode": "advisory"` to
+restrict that repository. A project cannot enable block feedback; its attempt
+is an invalid configuration. The resident rechecks the current files before
+handing off a block response. This hook runs after the edit and cannot undo it
+or guarantee that Claude will repair the finding.
 
 ## Declarative rule packs
 

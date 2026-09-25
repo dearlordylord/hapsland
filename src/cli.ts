@@ -56,8 +56,11 @@ import {
 import { isCodexHostVersion, type CodexHostVersion } from "./direct-event/model.ts";
 import type { DirectObservation } from "./direct-event/model.ts";
 import { adaptOpenCodeDirectEvent } from "./hosts/opencode/adapter.ts";
-import type { CodexDirectEventOutput } from "./direct-event/pipeline.ts";
-import { toClaudeFindingOutput } from "./direct-event/claude-output.ts";
+import {
+  claudeHostOutputText,
+  encodeClaudeHostOutputLine,
+  type ClaudeHostOutput,
+} from "./direct-event/claude-output.ts";
 import { attemptCodexHostOutput } from "./direct-event/writer.ts";
 import {
   acknowledgeAdvice,
@@ -495,9 +498,38 @@ const isCodexHook = process.argv.includes("--codex-hook");
 const isClaudeHook = process.argv.includes("--claude-hook");
 const isOpenCodeHook = process.argv.includes("--opencode-hook");
 const directHookStartedAt = performance.now();
+const directHookDeadline = directHookStartedAt + 3_900;
 const directHookWatchdog = isClaudeHook || isOpenCodeHook
   ? setTimeout(() => process.exit(0), 4_500)
   : undefined;
+let keepDirectHookWatchdog = false;
+
+type ClaudeOutputWriteResult = "written" | "error" | "timed-out";
+
+const writeClaudeOutputWithinHookBudget = (encoded: string): Promise<ClaudeOutputWriteResult> => {
+  const remaining = directHookDeadline - performance.now();
+  if (remaining <= 0) return Promise.resolve("timed-out");
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (result: ClaudeOutputWriteResult, keepErrorListener = false) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (!keepErrorListener) process.stdout.removeListener("error", onError);
+      resolve(result);
+    };
+    const onError = () => finish("error");
+    const timer = setTimeout(() => finish("timed-out", true), remaining);
+    process.stdout.once("error", onError);
+    try {
+      process.stdout.write(encoded, (error?: Error | null) => {
+        finish(error === undefined || error === null ? "written" : "error", error !== undefined && error !== null);
+      });
+    } catch {
+      finish("error", true);
+    }
+  });
+};
 const hookVersionArgument = process.argv.find((argument) => argument.startsWith("--codex-version="));
 const requestedHookVersion = hookVersionArgument?.slice("--codex-version=".length);
 if (isCodexHook && requestedHookVersion !== undefined && !isCodexHostVersion(requestedHookVersion)) {
@@ -598,7 +630,7 @@ const runDirectBoundedHook = async (
   activityPath: string,
   userConfigPath: string | undefined,
 ): Promise<unknown> => {
-  const deadline = directHookStartedAt + 3_900;
+  const deadline = directHookDeadline;
   if (observation === undefined) return {};
   const remaining = () => Math.max(0, deadline - performance.now());
   const bounded = async <A>(task: () => Promise<A>): Promise<A | undefined> => {
@@ -647,7 +679,7 @@ const isDirectEventReady = (
   value: unknown,
 ): value is {
   readonly _tag: "DirectEventReady";
-  readonly value: CodexDirectEventOutput;
+  readonly value: ClaudeHostOutput;
   readonly collected: CollectedAdvice;
 } =>
   typeof value === "object" &&
@@ -1714,26 +1746,32 @@ if (!isCodexHook && !isClaudeHook && !isOpenCodeHook && typeof output === "objec
           : 0;
 }
 if (isDirectEventReady(output)) {
-  const hostOutput = isClaudeHook
-    ? toClaudeFindingOutput(output.value, output.collected.findingCount)
-    : output.value;
-  if (isOpenCodeHook) process.stdout.write(hostOutput.hookSpecificOutput.additionalContext);
-  else attemptCodexHostOutput(hostOutput, (encoded) => {
-    process.stdout.write(encoded);
-  });
-  recordDemoTrace(process.env.REVIEW_DEMO_BUDGET_PATH, output.collected.root, output.collected.recipient, {
-    kind: "delivery",
-    ruleIds: [...output.value.hookSpecificOutput.additionalContext.matchAll(/\[([a-z0-9_/-]+), p=/g)].map((match) => match[1] ?? ""),
-  });
-  recordActivity({
-    statePath: output.collected.activityPath,
-    root: output.collected.root,
-    recipient: output.collected.recipient,
-    lifetime: output.collected.lifetime,
-    stage: "submitted",
-    submittedFindings: output.collected.findingCount,
-  });
-  await acknowledgeAdvice(output.collected);
+  const hostWriteResult = isClaudeHook
+    ? await writeClaudeOutputWithinHookBudget(encodeClaudeHostOutputLine(output.value))
+    : "written";
+  if (hostWriteResult === "timed-out") keepDirectHookWatchdog = true;
+  if (!isClaudeHook || hostWriteResult === "written") {
+    if (!isClaudeHook && isOpenCodeHook) {
+      if ("hookSpecificOutput" in output.value) {
+        process.stdout.write(output.value.hookSpecificOutput.additionalContext);
+      }
+    } else if (!isClaudeHook && "hookSpecificOutput" in output.value) attemptCodexHostOutput(output.value, (encoded) => {
+      process.stdout.write(encoded);
+    });
+    recordDemoTrace(process.env.REVIEW_DEMO_BUDGET_PATH, output.collected.root, output.collected.recipient, {
+      kind: "delivery",
+      ruleIds: [...claudeHostOutputText(output.value).matchAll(/\[([a-z0-9_/-]+), p=/g)].map((match) => match[1] ?? ""),
+    });
+    recordActivity({
+      statePath: output.collected.activityPath,
+      root: output.collected.root,
+      recipient: output.collected.recipient,
+      lifetime: output.collected.lifetime,
+      stage: "submitted",
+      submittedFindings: output.collected.findingCount,
+    });
+    await acknowledgeAdvice(output.collected);
+  }
 } else {
   if (isOpenCodeHook) {
     // The plugin treats empty stdout as a quiet skip.
@@ -1762,5 +1800,5 @@ if (isDirectEventReady(output)) {
     process.stdout.write(typeof output === "string" ? output : `${JSON.stringify(output)}\n`);
   }
 }
-if (directHookWatchdog !== undefined) clearTimeout(directHookWatchdog);
+if (directHookWatchdog !== undefined && !keepDirectHookWatchdog) clearTimeout(directHookWatchdog);
 }

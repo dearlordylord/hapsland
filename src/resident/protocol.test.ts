@@ -20,6 +20,19 @@ describe("resident protocol bounds", () => {
     expect(decodeResidentResponse({ version: 2, status: "unavailable", reason: "other" })).toBeUndefined();
     expect(decodeResidentResponse({ version: 2, status: "empty" })).toBeUndefined();
   });
+  it("accepts only the exact Claude block envelope in v2 advice", () => {
+    const advice = { version: 2, status: "advice", token: "lease", findingCount: 1,
+      output: { decision: "block", reason: "Repair the current finding." } };
+    expect(decodeResidentResponse(advice)).toEqual(advice);
+    expect(decodeResidentResponse({ ...advice, findingCount: 0 })).toBeUndefined();
+    expect(decodeResidentResponse({ ...advice, findingCount: -1 })).toBeUndefined();
+    expect(decodeResidentResponse({ ...advice, findingCount: 0,
+      output: { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "Operational notice" } } }))
+      .toBeDefined();
+    expect(decodeResidentResponse({ ...advice, output: { ...advice.output, hookSpecificOutput: {} } })).toBeUndefined();
+    expect(decodeResidentResponse({ ...advice, output: { decision: "block", reason: "" } })).toBeUndefined();
+    expect(decodeResidentResponse({ ...advice, version: 1 })).toBeUndefined();
+  });
   it("publishes the fixed lifecycle and pre-decode transport limits", () => {
     expect(STARTUP_READINESS_DEADLINE_MS).toBe(10_000);
     expect(CLIENT_REQUEST_DEADLINE_MS).toBe(1_500);

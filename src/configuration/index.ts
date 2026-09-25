@@ -4,3 +4,4 @@ export * from "./jsonc.ts";
 export * from "./decode.ts";
 export * from "./resolve.ts";
 export * from "./load.ts";
+export * from "./current-claude-authority.ts";

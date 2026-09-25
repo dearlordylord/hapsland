@@ -9,7 +9,7 @@ import type { CodexDirectEventOutput } from "../direct-event/pipeline.ts";
 import { loadReviewSettings } from "../runtime/review-config.ts";
 import type { ControlledDecisionModelOptions } from "../test-support/controlled-decision-model.ts";
 import { DEFAULT_CREDENTIAL_STATE_PATH, readCredentialState } from "../credentials/secret-service.ts";
-import type { CollectionMode } from "./collection.ts";
+import type { ClaudeHostOutput, CollectionMode } from "./collection.ts";
 import {
   prepareResidentDirectory,
   residentPaths,
@@ -275,7 +275,7 @@ export const makeResidentDispatchContext = async (
 };
 
 export type CollectedAdvice = {
-  readonly output: CodexDirectEventOutput;
+  readonly output: ClaudeHostOutput;
   readonly token: string;
   readonly lifetime: string;
   readonly paths: ResidentPaths;
@@ -394,7 +394,7 @@ export const collectReady = async (
   dispatch: ResidentDispatchContext,
   paths = residentPaths(),
   mode: CollectionMode = "ordinary",
-): Promise<CollectedAdvice | undefined> => {
+): Promise<(CollectedAdvice & { readonly output: CodexDirectEventOutput }) | undefined> => {
   const owner = await ensureResident(paths);
   const response = await residentRequest(paths, {
     version: 1,
@@ -405,7 +405,7 @@ export const collectReady = async (
     dispatch,
     mode,
   });
-  return response.status === "advice"
+  return response.status === "advice" && !("version" in response)
     ? {
         output: response.output,
         token: response.token,

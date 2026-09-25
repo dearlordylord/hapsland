@@ -1,6 +1,8 @@
 import type { CodexDirectEventOutput, Finding } from "../direct-event/pipeline.ts";
-import { toCodexDirectEventOutput } from "../direct-event/pipeline.ts";
+import { DIRECT_EVENT_ADVISORY_HEADING, toCodexDirectEventOutput } from "../direct-event/pipeline.ts";
 import { encodedCodexHostOutputBytes } from "../direct-event/writer.ts";
+import { encodeClaudeHostOutputLine, type ClaudeHostOutput } from "../direct-event/claude-output.ts";
+export type { ClaudeBlockOutput, ClaudeHostOutput } from "../direct-event/claude-output.ts";
 
 export const ADVICE_COLLECTION_WINDOW_MS = 50;
 export const PENDING_ADVICE_EXPIRY_MS = 600_000;
@@ -13,6 +15,12 @@ export type OperationalNotice = {
   readonly kind: OperationalNoticeKind;
   readonly suppressedCount: number;
 };
+
+export type ClaudeOutputMode = "advisory" | "block-current-findings";
+
+const CLAUDE_ADVISORY_HEADING = "Advisory: Edit succeeded. Please repair each finding.";
+const CLAUDE_BLOCK_HEADING =
+  "Hapsland found a current rule finding after this edit succeeded. Repair the listed finding(s) in the file, then continue.";
 
 export type CollectionCandidate = {
   readonly cycle: number;
@@ -76,6 +84,69 @@ export const combinedReviewOutput = (
       ].join("\n"),
     },
   };
+};
+
+/** Final Claude envelope. The resident budgets this exact serialized line before leasing. */
+export const combinedClaudeOutput = (
+  findings: ReadonlyArray<Finding>,
+  notices: ReadonlyArray<OperationalNotice>,
+  mode: ClaudeOutputMode,
+): ClaudeHostOutput => {
+  const formatted = toCodexDirectEventOutput(findings).hookSpecificOutput.additionalContext;
+  if (mode === "block-current-findings" && findings.length > 0) {
+    return {
+      decision: "block",
+      reason: [
+        CLAUDE_BLOCK_HEADING + formatted.slice(DIRECT_EVENT_ADVISORY_HEADING.length),
+        ...(notices.length === 0 ? [] : ["Informational notices:", ...notices.map(noticeText)]),
+      ].join("\n"),
+    };
+  }
+  const context = findings.length > 0
+    ? CLAUDE_ADVISORY_HEADING + formatted.slice(DIRECT_EVENT_ADVISORY_HEADING.length)
+    : formatted;
+  return {
+    hookSpecificOutput: {
+      hookEventName: "PostToolUse",
+      additionalContext: [context, ...notices.map(noticeText)].join("\n"),
+    },
+  };
+};
+
+export const encodedClaudeHostOutputBytes = (output: ClaudeHostOutput): number =>
+  Buffer.byteLength(encodeClaudeHostOutputLine(output), "utf8");
+
+export const fitsClaudeReviewResponse = (
+  findings: ReadonlyArray<Finding>,
+  notices: ReadonlyArray<OperationalNotice>,
+  mode: ClaudeOutputMode,
+): boolean => findings.length + notices.length > 0 &&
+  findings.length + notices.length <= MAX_COMBINED_RESPONSE_ITEMS &&
+  encodedClaudeHostOutputBytes(combinedClaudeOutput(findings, notices, mode)) <= MAX_COMBINED_RESPONSE_BYTES;
+
+export const selectFittingClaudeFindings = (
+  retained: ReadonlyArray<Finding>,
+  candidates: ReadonlyArray<Finding>,
+  mode: ClaudeOutputMode,
+): ReadonlyArray<Finding> => {
+  const selected: Array<Finding> = [];
+  for (const finding of candidates) {
+    if (retained.length + selected.length >= MAX_COMBINED_RESPONSE_ITEMS) break;
+    if (fitsClaudeReviewResponse([...retained, ...selected, finding], [], mode)) selected.push(finding);
+  }
+  return selected;
+};
+
+export const selectFittingClaudeNotices = (
+  findings: ReadonlyArray<Finding>,
+  candidates: ReadonlyArray<OperationalNotice>,
+  mode: ClaudeOutputMode,
+): ReadonlyArray<OperationalNotice> => {
+  const selected: Array<OperationalNotice> = [];
+  for (const notice of candidates) {
+    if (fitsClaudeReviewResponse(findings, [...selected, notice], mode)) selected.push(notice);
+  }
+  return selected;
 };
 
 export const fitsCombinedReviewResponse = (

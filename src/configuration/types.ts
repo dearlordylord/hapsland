@@ -4,6 +4,11 @@ import { RuleIdentitySchema } from "../domain/rule-identity.ts";
 /** The only configuration format accepted by the product in this phase. */
 export const CONFIGURATION_VERSION = 1 as const;
 export const DEFAULT_CREDENTIAL_ENV_VAR = "TYPESAFE_API_KEY" as const;
+export const ClaudeFeedbackMode = Schema.Literals(["advisory", "block-current-findings"]).annotate({
+  description: "Claude PostToolUse feedback. Blocking current findings requires an explicit user configuration opt-in; a project may only restrict it to advisory.",
+  default: "advisory",
+});
+export type ClaudeFeedbackMode = typeof ClaudeFeedbackMode.Type;
 export const DEFAULT_RUNTIME_SETTINGS = {
   deadlineMs: 1_000,
   concurrency: 4,
@@ -130,6 +135,7 @@ export const ConfigurationDocument = Schema.Struct({
     description: "Additional protected-path exclusions. These accumulate and cannot be overridden by lower-privacy layers.",
   })),
   credentialEnvVar: Schema.optionalKey(EnvironmentVariableName),
+  claudeFeedbackMode: Schema.optionalKey(ClaudeFeedbackMode),
   settings: Schema.optionalKey(RuntimeSettings),
   /** Explicit local pack references. Bundled Noul is loaded independently. */
   packs: Schema.optionalKey(Schema.Array(RulePackReference).annotate({
@@ -170,6 +176,7 @@ export type ResolvedPolicy = {
   readonly excludes: ReadonlyArray<PatternOrigin>;
   readonly protectedExcludes: ReadonlyArray<PatternOrigin>;
   readonly credentialEnvVar: Originated<string>;
+  readonly claudeFeedbackMode: Originated<ClaudeFeedbackMode>;
   readonly settings: {
     readonly deadlineMs: Originated<number>;
     readonly concurrency: Originated<number>;

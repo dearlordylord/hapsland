@@ -7,12 +7,17 @@ import {
   PENDING_ADVICE_EXPIRY_MS,
   collectionOrder,
   combinedFindingOutput,
+  combinedClaudeOutput,
   combinedReviewOutput,
   encodedHostOutputBytes,
+  encodedClaudeHostOutputBytes,
+  fitsClaudeReviewResponse,
   fitsCombinedResponse,
   isCollectionEligible,
   isPendingAdviceExpired,
   selectFittingFindings,
+  selectFittingClaudeFindings,
+  selectFittingClaudeNotices,
   selectFittingNotices,
 } from "./collection.ts";
 
@@ -101,5 +106,34 @@ describe("resident advice collection policy", () => {
     expect(isPendingAdviceExpired(pending, 25 + PENDING_ADVICE_EXPIRY_MS - 1)).toBe(false);
     expect(isPendingAdviceExpired(pending, 25 + PENDING_ADVICE_EXPIRY_MS)).toBe(true);
     expect(isPendingAdviceExpired(pending, 25 + PENDING_ADVICE_EXPIRY_MS + 1)).toBe(true);
+  });
+
+  it("selects whole Claude findings against the exact serialized block line", () => {
+    const five = Array.from({ length: MAX_COMBINED_RESPONSE_ITEMS }, (_, index) => finding(index));
+    expect(selectFittingClaudeFindings([], [...five, finding(5)], "block-current-findings")).toEqual(five);
+    const output = combinedClaudeOutput(five, [], "block-current-findings");
+    expect(output).toMatchObject({ decision: "block" });
+    expect(encodedClaudeHostOutputBytes(output)).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
+    const smallest = encodedClaudeHostOutputBytes(combinedClaudeOutput([finding(0, "")], [], "block-current-findings"));
+    const exact = finding(0, "x".repeat(MAX_COMBINED_RESPONSE_BYTES - smallest));
+    expect(encodedClaudeHostOutputBytes(combinedClaudeOutput([exact], [], "block-current-findings"))).toBe(MAX_COMBINED_RESPONSE_BYTES);
+    expect(fitsClaudeReviewResponse([exact], [], "block-current-findings")).toBe(true);
+    expect(fitsClaudeReviewResponse([{ ...exact, message: `${exact.message}x` }], [], "block-current-findings")).toBe(false);
+    const oversized = { ...exact, message: `${exact.message}x` };
+    expect(selectFittingClaudeFindings([], [oversized, finding(1)], "block-current-findings")).toEqual([finding(1)]);
+  });
+
+  it("keeps notices informational and uses advisory output when no finding fits", () => {
+    const notice = { kind: "backend" as const, suppressedCount: 0 };
+    const findingOutput = combinedClaudeOutput([finding(0)], [notice], "block-current-findings");
+    expect(findingOutput).toMatchObject({ decision: "block" });
+    if (!("decision" in findingOutput)) throw new Error("expected block output");
+    expect(findingOutput.reason).toContain("Informational notices:");
+    expect(findingOutput.reason).toContain("Jev was unavailable");
+    const tooLarge = finding(0, "x".repeat(MAX_COMBINED_RESPONSE_BYTES));
+    const selected = selectFittingClaudeFindings([], [tooLarge], "block-current-findings");
+    expect(selected).toEqual([]);
+    expect(selectFittingClaudeNotices(selected, [notice], "block-current-findings")).toEqual([notice]);
+    expect(combinedClaudeOutput([], [notice], "block-current-findings")).not.toHaveProperty("decision");
   });
 });
