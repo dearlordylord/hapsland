@@ -1,6 +1,6 @@
 # Issue #94: Claude Code product-scope decision package
 
-**Review state, 2026-09-25:** The experimental Claude block branch is ready for an owner decision about a **preview merge**, not a general Claude support declaration or closure of #94. The comparison is this branch at `6d7533f` against master baseline `14b5118`. The branch adds a user-opted-in `block-current-findings` mode to Claude's existing direct-edit integration, keeps `advisory` as the default, and adds mode-aware resident collection, authority checks, bounded output, deterministic tests, and selected host evidence. The later installer refactor shares atomic file mutation with OpenCode without changing its intended behavior.
+**Review state, 2026-09-25:** The experimental Claude block branch is ready for an owner decision about a **preview merge**, not a general Claude support declaration or closure of #94. The comparison is this branch at `cc0f3c6` against master baseline `1701b65`. The branch adds a user-opted-in `block-current-findings` mode to Claude's existing direct-edit integration, keeps `advisory` as the default, and adds mode-aware resident collection, authority checks, bounded output, deterministic tests, and selected host evidence. The later installer refactor shares atomic file mutation with OpenCode without changing its intended behavior.
 
 ## Exact evidence boundary
 
@@ -27,7 +27,7 @@ The selected authenticated profile is cached Claude Code **2.1.218**, Linux/aarc
 
 ## Review findings and disposition
 
-The standards review found documentation that blurred source class with runtime verification; commit `6d7533f` corrected that distinction. The duplicated installer mutation logic was consolidated in `ec1cac2`; offline installer tests remain the acceptance evidence for behavior. Repeated CLI host dispatch was reviewed as host-specific and left in place. The independent spec review found one **partial #97 timing requirement**: the local Stop IPC clock starts after Node launch and module loading, so its exact five-second host hook-entry-to-return bound remains unproven. [The #97 report](issue-97-delivery.md) records this gap and makes no production Stop adoption claim. It does not invalidate the selected Claude `PostToolUse` block trial, which uses its own five-second native hook ceiling.
+The standards review found documentation that blurred source class with runtime verification; commit `cc0f3c6` corrected that distinction. The duplicated installer mutation logic was consolidated in `c7a3197`; offline installer tests remain the acceptance evidence for behavior. Repeated CLI host dispatch was reviewed as host-specific and left in place. The independent spec review found one **partial #97 timing requirement**: the local Stop IPC clock starts after Node launch and module loading, so its exact five-second host hook-entry-to-return bound remains unproven. [The #97 report](issue-97-delivery.md) records this gap and makes no production Stop adoption claim. It does not invalidate the selected Claude `PostToolUse` block trial, which uses its own five-second native hook ceiling.
 
 ## Decision requested
 

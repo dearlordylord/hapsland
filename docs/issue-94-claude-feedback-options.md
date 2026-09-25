@@ -4,9 +4,9 @@
 
 ## What is already implemented and observed
 
-Commit `0b05c71` adds the short Claude finding heading, “Advisory: Edit succeeded. Please repair each finding.” It preserves the existing finding text and advisory envelope. It requests repair only for current rule findings; operational notices and quiet results do not ask for repair. This is still advisory behavior: the hook does not block or undo the edit.
+Commit `fc6804f` adds the short Claude finding heading, “Advisory: Edit succeeded. Please repair each finding.” It preserves the existing finding text and advisory envelope. It requests repair only for current rule findings; operational notices and quiet results do not ask for repair. This is still advisory behavior: the hook does not block or undo the edit.
 
-Commit `30a87cd` records the offline delivery check. Four deterministic arms passed **4/4** with the exact cached Claude Code `2.1.218` binary, compiled Hapsland CLI, and a scripted loopback provider:
+Commit `03fb06b` records the offline delivery check. Four deterministic arms passed **4/4** with the exact cached Claude Code `2.1.218` binary, compiled Hapsland CLI, and a scripted loopback provider:
 
 | Arm | Observed in the second provider request |
 | --- | --- |
