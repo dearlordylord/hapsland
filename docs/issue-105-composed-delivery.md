@@ -133,21 +133,20 @@ backend responses are not retained.
 
 | Gate | Required observation | 2026-09-25 state |
 | --- | --- | --- |
-| Linux exact host | Linux arm64, Codex 0.155.1, Node 24.20.0, combined hooks through production resident | **Missing**. #97 measured Stop alone on this profile. |
+| Linux exact host | Linux arm64, Codex 0.155.1, Node 24.20.0, combined hooks through production resident | **Partial**. [Seven controlled host fixtures](../evidence/delivery-105/README.md) exercised both hooks, overlap, late retention, multi-unit delivery, and backend unavailability. Isolation, stale, and lost-acknowledgement gates remain open. |
 | macOS exact host | macOS arm64, Codex 0.156.0, Node 24.20.0, same combined matrix | **Missing**. No macOS #105 run. |
-| Background timing | No later edit; completion during model request/tool call, final response, and after end; actual submission and model visibility | **Missing** through production resident. #97 used a disposable background simulation. |
-| Stop outcomes | Ready, completes during wait, deadline then later collectable, unavailable/backend failure, stale, multi-unit | **Partial** in #97: ready, during, late, and multi-unit through resident; failure and stale not host validated. |
-| Composition races | Background/Stop overlap, submitted but unconsumed background output, edit/other collector overlap, failed collection or lost ack, repair-generated findings | **Missing** through combined host path. Existing resident tests cover some two-collector and lease cases, not the combined visibility contract. |
+| Background timing | No later edit; completion during model request/tool call, final response, and after end; actual submission and model visibility | **Partial** on Linux. Early output preceded independently observed repair; output after the final model message produced no observed repair. Tool-call and after-end visibility remain unmeasured. |
+| Stop outcomes | Ready, completes during wait, deadline then later collectable, unavailable/backend failure, stale, multi-unit | **Partial** on Linux. Stop won a lease, collected during its wait, and left a later result collectable. Background delivered a multi-unit batch and a failure notice. Stale and Stop failure-notice delivery remain open. |
+| Composition races | Background/Stop overlap, submitted but unconsumed background output, edit/other collector overlap, failed collection or lost ack, repair-generated findings | **Partial** on Linux. Either collector won in different fixtures; output submitted during Stop after the final model message was not independently visible. Repair-generated findings were observed. Edit overlap, failed collection, and lost ack remain open. |
 | Isolation | Two concurrent recipients with distinct findings on both paths; isolated worktrees, shared-root unknown origin, supplied child identity | **Missing** as a combined host run. Existing resident subprocess tests cover partition isolation. |
-| Timing | Host command launch through response and exit on both profiles; edit, background, and added Stop latency kept distinct | **Partial**: #97 traced Linux edit and Stop alone, not background composition or macOS. |
+| Timing | Host command launch through response and exit on both profiles; edit, background, and added Stop latency kept distinct | **Partial**: the Linux #105 tracer recorded all three command classes through exit. macOS is unmeasured. |
 
 The [#97 record](issue-97-delivery.md) is useful prior evidence, but its isolated
 prototypes and Stop-only production-resident run cannot satisfy the combined gates.
 Existing resident tests establish current deterministic collection behavior, not
-model visibility. The default CLI in this workspace is Codex 0.156.1 on Linux arm64
-with Node 24.20.0; an exact 0.155.1 binary is cached locally, but no combined
-production-resident harness has been run against it. The existing macOS GitHub
-Actions workflow covers package conformance and does not run this combined matrix.
+model visibility. The new Linux probe used a locally cached exact 0.155.1 binary
+with Node 24.20.0. The existing macOS GitHub Actions workflow covers package
+conformance and does not run this combined matrix.
 
 **Decision:** reject production registration of both proposed hooks at this time.
 Retain subsequent-edit collection as the supported delivery policy. Adoption requires
