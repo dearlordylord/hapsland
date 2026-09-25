@@ -2,7 +2,45 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { test } from 'node:test';
-import { manageChildProcess, matchesKnownHostVersion } from './host-session-helpers.mjs';
+import { createClaudeStreamDiagnostics, manageChildProcess, matchesKnownHostVersion } from './host-session-helpers.mjs';
+
+test('Claude stream diagnostics retain only allowlisted categories and relative times', () => {
+  const diagnostics = createClaudeStreamDiagnostics();
+  diagnostics.observe(JSON.stringify({ type: 'system', subtype: 'init', secret: 'system-secret' }), 2);
+  diagnostics.observe(JSON.stringify({ type: 'assistant', message: { content: [
+    { type: 'text', text: 'assistant-secret' },
+    { type: 'tool_use', name: 'Read', input: { file_path: 'secret-path' } },
+    { type: 'tool_use', name: 'Write', input: { content: 'source-secret' } },
+    { type: 'tool_use', name: 'Bash', input: { command: 'command-secret' } },
+  ] } }), 5);
+  diagnostics.observe(JSON.stringify({ type: 'result', subtype: 'error_during_execution',
+    is_error: true, result: 'error-secret' }), 8);
+  diagnostics.observe(JSON.stringify({ type: 'invented-secret', subtype: 'subtype-secret' }), 9);
+  diagnostics.observe('{"type":"assistant","message":"parse-secret"', 10);
+  const summary = diagnostics.snapshot();
+  assert.deepEqual(summary.eventTypeCounts, {
+    system: 1, assistant: 1, user: 0, result: 1, stream_event: 0, unknown: 1,
+  });
+  assert.equal(summary.resultSubtypeCounts.error_during_execution, 1);
+  assert.deepEqual(summary.assistantNativeToolCounts, { read: 1, edit: 0, write: 1, unknown: 1 });
+  assert.equal(summary.resultIsError, true);
+  assert.equal(summary.parseFailureCount, 1);
+  assert.equal(summary.firstEventAtMs, 2);
+  assert.equal(summary.lastEventAtMs, 9);
+  assert.doesNotMatch(JSON.stringify(summary), /secret|Bash|invented/);
+});
+
+test('unknown Claude result values and missing timestamps stay source-free', () => {
+  const diagnostics = createClaudeStreamDiagnostics();
+  diagnostics.observe(JSON.stringify({ type: 'result', subtype: 'private-subtype',
+    is_error: 'private-error', result: 'private-result' }), null);
+  const summary = diagnostics.snapshot();
+  assert.equal(summary.resultSubtypeCounts.unknown, 1);
+  assert.equal(summary.resultIsError, null);
+  assert.equal(summary.firstEventAtMs, null);
+  assert.equal(summary.lastEventAtMs, null);
+  assert.doesNotMatch(JSON.stringify(summary), /private/);
+});
 
 test('host version output must match the exact known version', () => {
   assert.equal(matchesKnownHostVersion('claude', '2.1.218 (Claude Code)\n'), true);

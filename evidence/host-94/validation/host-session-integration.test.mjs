@@ -17,6 +17,17 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 const host=process.env.HAPSLAND_94_FAKE_HOST;
 if(process.argv.includes('--version')) { process.stdout.write(host==='claude'?'2.1.218 (Claude Code)\\n':'1.14.44\\n'); process.exit(0); }
+if(process.env.HAPSLAND_94_FAKE_PRE_EDIT_EXIT==='1'){
+  writeSync(1,JSON.stringify({type:'system',subtype:'init',secret:'system-private'})+'\\n');
+  writeSync(1,JSON.stringify({type:'assistant',message:{content:[
+    {type:'text',text:'assistant-private'},
+    {type:'tool_use',name:'Read',input:{file_path:'source-private'}},
+    {type:'tool_use',name:'Bash',input:{command:'command-private'}}]}})+'\\n');
+  writeSync(1,'invalid-private-json\\n');
+  writeSync(1,JSON.stringify({type:'result',subtype:'error_during_execution',is_error:true,
+    result:'error-private'})+'\\n');
+  process.exit(1);
+}
 if(process.env.HAPSLAND_94_FAKE_FLOOD==='1'){
   writeSync(1,JSON.stringify({type:'noise',value:'x'.repeat(1100000)})+'\\n');
   writeSync(2,Buffer.alloc(1100000,120));
@@ -80,6 +91,9 @@ if(first.includes('[r6_bare_domain_value, p=') && process.env.HAPSLAND_94_FAKE_R
   writeFileSync(path,repaired);
   await call('second',host==='claude'?'Edit':'edit',input,{exists:true});
 }
+if(process.env.HAPSLAND_94_FAKE_DIAGNOSTICS==='1')
+  writeSync(1,JSON.stringify({type:'result',subtype:'success',is_error:false,
+    result:'success-private'})+'\\n');
 `;
 
 const genericAfterReviewCli = `#!/usr/bin/env node
@@ -132,7 +146,7 @@ test('base TypeScript config freshness blocks before host, auth, or ledger claim
     const ledger = join(root, 'ledger');
     initializePassLedger(ledger);
     const result = spawnSync(process.execPath, [join(fixture, 'evidence/host-94/validation/host-session.mjs'),
-      'claude', 'control', '--auth-confirmed'], {
+      'claude', 'control', '--auth-confirmed', '--claude-block-trial'], {
       env: { ...process.env, HAPSLAND_94_PASS_LEDGER: ledger,
         HAPSLAND_94_CLAUDE_EXECUTABLE: join(root, 'absent-host') },
       encoding: 'utf8', timeout: 10_000, maxBuffer: 262_144,
@@ -140,7 +154,36 @@ test('base TypeScript config freshness blocks before host, auth, or ledger claim
     const summary = JSON.parse(result.stdout);
     assert.equal(result.status, 1);
     assert.equal(summary.acceptanceStatus, 'incomplete');
-    assert.match(summary.failure, /production CLI artifacts stale/);
+    assert.equal(summary.failure, 'stale-build');
+    assert.equal(readPassLedger(ledger).length, 0);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+test('runner exception does not retain a sensitive path from a thrown error', () => {
+  const root = mkdtempSync(join(tmpdir(), 'hapsland-94-secret-path-'));
+  try {
+    const fixture = join(root, 'credential-marker-project');
+    cpSync(join(projectRoot, 'evidence/host-94/validation'),
+      join(fixture, 'evidence/host-94/validation'), { recursive: true });
+    cpSync(join(projectRoot, 'src'), join(fixture, 'src'), { recursive: true });
+    for (const file of ['package.json', 'bun.lock', 'tsconfig.json', 'tsconfig.build.json'])
+      cpSync(join(projectRoot, file), join(fixture, file));
+    symlinkSync(join(projectRoot, 'node_modules'), join(fixture, 'node_modules'), 'dir');
+    mkdirSync(join(fixture, 'dist/resident'), { recursive: true });
+    writeFileSync(join(fixture, 'dist/cli.js'), '');
+    writeFileSync(join(fixture, 'dist/resident/main.js'), '');
+    rmSync(join(fixture, 'tsconfig.json'));
+    const ledger = join(root, 'ledger');
+    initializePassLedger(ledger);
+    const result = spawnSync(process.execPath, [join(fixture, 'evidence/host-94/validation/host-session.mjs'),
+      'claude', 'control', '--offline-scripted'], {
+      env: { ...process.env, HAPSLAND_94_PASS_LEDGER: ledger,
+        HAPSLAND_94_SCRIPTED_EXECUTABLE: join(root, 'absent-host') },
+      encoding: 'utf8', timeout: 10_000, maxBuffer: 262_144,
+    });
+    const summary = JSON.parse(result.stdout);
+    assert.equal(result.status, 1);
+    assert.equal(summary.failure, 'stale-build');
+    assert.doesNotMatch(result.stdout, /credential-marker|ENOENT|tsconfig\.json/);
     assert.equal(readPassLedger(ledger).length, 0);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
@@ -150,15 +193,14 @@ test('real-host stale and host-failure stop before version, auth, or ledger clai
     const ledger = join(root, 'ledger');
     initializePassLedger(ledger);
     for (const scenario of ['stale', 'host-failure']) {
-      const result = spawnSync(process.execPath, [runner, 'claude', scenario, '--auth-confirmed'], {
-        env: { ...process.env, HAPSLAND_94_PASS_LEDGER: ledger,
-          HAPSLAND_94_CLAUDE_EXECUTABLE: join(root, 'absent-host') },
+      const result = spawnSync(process.execPath, [runner, 'opencode', scenario, '--auth-confirmed'], {
+        env: { ...process.env, HAPSLAND_94_PASS_LEDGER: ledger },
         encoding: 'utf8', timeout: 10_000, maxBuffer: 262_144,
       });
       const summary = JSON.parse(result.stdout);
       assert.equal(result.status, 1);
       assert.equal(summary.acceptanceStatus, 'incomplete');
-      assert.match(summary.failure, /exact source-free admission alias/);
+      assert.equal(summary.failure, 'blocked-stage-b-admission');
       assert.equal(readPassLedger(ledger).length, 0);
     }
   } finally { rmSync(root, { recursive: true, force: true }); }
@@ -181,6 +223,8 @@ const runSingleControl = (host, options) => {
       ...(options.eventShape ? { HAPSLAND_94_FAKE_EVENT_SHAPE: options.eventShape } : {}),
       ...(options.duplicateInitialFinish ? { HAPSLAND_94_FAKE_DUPLICATE_INITIAL_FINISH: '1' } : {}),
       ...(options.missingTimestamp ? { HAPSLAND_94_FAKE_MISSING_TIMESTAMP: '1' } : {}),
+      ...(options.preEditExit ? { HAPSLAND_94_FAKE_PRE_EDIT_EXIT: '1' } : {}),
+      ...(options.diagnostics ? { HAPSLAND_94_FAKE_DIAGNOSTICS: '1' } : {}),
       TYPESAFE_API_KEY: '' };
     const result = spawnSync(process.execPath, [runner, host, 'control', '--offline-scripted'], {
       env, encoding: 'utf8', timeout: 60_000, maxBuffer: 262_144,
@@ -384,6 +428,38 @@ test('combined stdout and stderr ceiling stops a scripted host', { timeout: 120_
   assert.ok(result.hostOutputBytes > 2_000_000);
   assert.equal(result.outputCeilingExceeded, true);
   assert.equal(result.acceptanceStatus, 'incomplete');
+});
+test('source-free Claude diagnostics classify a scripted exit before any edit', { timeout: 120_000 }, () => {
+  const result = runSingleControl('claude', { preEditExit: true });
+  assert.equal(result.hostExitCode, 1);
+  assert.equal(result.acceptanceStatus, 'incomplete');
+  assert.equal(result.nativeModelEditEvents, 0);
+  assert.equal(result.nativeDirectHookCalls, 0);
+  assert.equal(result.claudeStreamDiagnostics.eventTypeCounts.system, 1);
+  assert.equal(result.claudeStreamDiagnostics.eventTypeCounts.assistant, 1);
+  assert.equal(result.claudeStreamDiagnostics.eventTypeCounts.result, 1);
+  assert.equal(result.claudeStreamDiagnostics.resultSubtypeCounts.error_during_execution, 1);
+  assert.equal(result.claudeStreamDiagnostics.resultIsError, true);
+  assert.deepEqual(result.claudeStreamDiagnostics.assistantNativeToolCounts,
+    { read: 1, edit: 0, write: 0, unknown: 1 });
+  assert.equal(result.claudeStreamDiagnostics.parseFailureCount, 1);
+  assert.ok(result.claudeStreamDiagnostics.firstEventAtMs >= 0);
+  assert.ok(result.claudeStreamDiagnostics.lastEventAtMs >=
+    result.claudeStreamDiagnostics.firstEventAtMs);
+  assert.doesNotMatch(JSON.stringify(result), /private|Bash/);
+});
+test('source-free Claude diagnostics classify a successful scripted edit', { timeout: 120_000 }, () => {
+  const result = runSingleControl('claude', { diagnostics: true });
+  assert.equal(result.hostExitCode, 0);
+  assert.equal(result.acceptanceStatus, 'passed');
+  assert.equal(result.claudeStreamDiagnostics.eventTypeCounts.assistant, 1);
+  assert.equal(result.claudeStreamDiagnostics.eventTypeCounts.result, 1);
+  assert.equal(result.claudeStreamDiagnostics.resultSubtypeCounts.success, 1);
+  assert.equal(result.claudeStreamDiagnostics.resultIsError, false);
+  assert.deepEqual(result.claudeStreamDiagnostics.assistantNativeToolCounts,
+    { read: 0, edit: 0, write: 1, unknown: 0 });
+  assert.equal(result.claudeStreamDiagnostics.parseFailureCount, 0);
+  assert.doesNotMatch(JSON.stringify(result), /success-private/);
 });
 test('generic Claude context fails the no-advice control', { timeout: 120_000 }, () => {
   const result = runSingleControl('claude', { generic: true });

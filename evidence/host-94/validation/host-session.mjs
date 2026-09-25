@@ -8,7 +8,7 @@ import { platform, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { configuredRules } from '../../../src/policy/rules.ts';
-import { HOST_VERSIONS, manageChildProcess, matchesKnownHostVersion } from './host-session-helpers.mjs';
+import { HOST_VERSIONS, createClaudeStreamDiagnostics, manageChildProcess, matchesKnownHostVersion } from './host-session-helpers.mjs';
 import { nativeEditEvents, reactionEvidence } from './reaction-events.mjs';
 import { readPassLedger, claimPassStart, finishPass } from './pass-ledger.mjs';
 
@@ -109,6 +109,7 @@ let poll;
 let ledgerStart;
 let admissionObserved = false;
 let rootOwned = !restartOld && !restartNew;
+let failureCategory = 'runner-exception';
 
 const checkStage = entries => {
   const prior = entries.filter(entry => entry.host === host);
@@ -128,9 +129,12 @@ const checkStage = entries => {
 };
 
 try {
+  failureCategory = 'stale-build';
   assertFreshProductionBuild();
+  failureCategory = 'blocked-stage-b-admission';
   assert.ok(offlineScripted || (scenario !== 'stale' && scenario !== 'host-failure'),
     'real-host stale and host-failure require an exact source-free admission alias');
+  failureCategory = 'runner-exception';
   checkStage(readPassLedger(ledgerDirectory));
   const version = spawnSync(executable, ['--version'], { encoding: 'utf8', timeout: 2_000 });
   assert.equal(version.status, 0);
@@ -222,9 +226,11 @@ try {
   let stdoutBytes = 0; let stderrBytes = 0; let exceededOutput = false; let timedOut = false;
   let incompleteLine = '';
   const nativeEvents = [];
+  const claudeStreamDiagnostics = host === 'claude' ? createClaudeStreamDiagnostics() : null;
   const consume = line => {
     const observedAtMs = offlineScripted && env.HAPSLAND_94_FAKE_MISSING_TIMESTAMP === '1'
       ? null : Date.now() - started;
+    claudeStreamDiagnostics?.observe(line, observedAtMs);
     const parsed = nativeEditEvents(host, line, observedAtMs, salt);
     if (blockTrial) {
       let message;
@@ -331,6 +337,7 @@ try {
   evidence.hostStdoutBytes = stdoutBytes;
   evidence.hostStderrBytes = stderrBytes;
   evidence.hostOutputBytes = stdoutBytes + stderrBytes;
+  if (claudeStreamDiagnostics) evidence.claudeStreamDiagnostics = claudeStreamDiagnostics.snapshot();
   evidence.nativeDirectHookCalls = events.length;
   evidence.nativeModelEditEvents = new Set(nativeEvents.map(x => x.key)).size;
   evidence.initialNativeEditMatched = initialCallComplete;
@@ -444,10 +451,10 @@ try {
             ? evidence.hostSubmissions === 0 && events.every(x => x.elapsedMs < 5_000) ? 'passed' : 'failed'
             : evidence.findingSubmissions === 0 && evidence.unclassifiedSubmissions === 0 &&
               evidence.operationalNoticeSubmissions <= 1 ? 'passed' : 'failed';
-} catch (cause) {
+} catch {
   evidence.status = 'incomplete';
   evidence.acceptanceStatus = 'incomplete';
-  evidence.failure = cause instanceof Error ? cause.message.replaceAll(root, '<fixture>') : 'unknown';
+  evidence.failure = failureCategory;
   process.exitCode = 1;
 } finally {
   if (sessionTimer) clearTimeout(sessionTimer);

@@ -1,9 +1,17 @@
 # Issue #94 real-host acceptance plan — 2026-09-24
 
-**Status:** nine authenticated Claude Code sessions have completed across three separately bounded passes. The latest two-session pass tested the revised explicit repair wording: its control passed, and its finding arm submitted one classified rule finding but observed no later native repair. Claude support remains unproven. OpenCode and restart remain pending.
+**Status:** ten authenticated Claude Code sessions have started across four separately bounded passes. The latest optional-block trial stopped after an incomplete pre-edit control; no block finding session ran. The preceding two-session advisory pass submitted one classified finding but observed no later native repair. Claude support remains unproven. OpenCode and restart remain pending.
 This record supplements the [host probes](issue-94-host-probes.md), [host research](issue-94-host-research.md), and [#97 delivery baseline](issue-97-delivery.md). It does not declare either host supported.
 
 The later [offline delivery diagnosis](issue-94-delivery-diagnosis.md) confirms that a completed production finding can enter Claude `2.1.218`'s next scripted-provider request through `additionalContext`; it does not establish authenticated model reaction.
+
+## Approved optional-block trial — 2026-09-24
+
+The owner approved at most two sequential Claude Code `2.1.218` sessions, using Hapsland's isolated user `block-current-findings` setting in both arms. Exact cached version, same-profile login, fresh production build, and one fresh [durable ledger](../evidence/host-94/validation/claude-block-trial-ledger-20260924/manifest.json) passed preflight. The controlled local backend made no Jev call. Each host session had a 90-second and 2 MB combined-output ceiling. Only the [source-free control summary](../evidence/host-94/validation/claude-block-control-20260924.json) and ledger were retained; raw host output, model text, source, prompts, responses, and credentials were not retained.
+
+The **control was incomplete before any observed edit**. Claude exited with code 1 after 34,135 ms and 141,036 combined output bytes, without a timeout or forced close. The runner observed zero native edit events, zero hook calls, no review admission or outcome, and zero finding, block, notice, or unknown submissions. It established neither a completed synthetic edit nor the expected final file state. The ledger records one `control` start with an `incomplete` finish and no `finding` start. It records 34,133 ms from its own claim boundary. The runner did not produce a source-free host error category beyond exit code and flags, so this record does not explain the host exit.
+
+The finding arm was not launched because the control gate failed. **Authenticated block behavior and model repair remain untested**, so this is not evidence that block mode failed to induce repair. The consumed control cannot be retried under this ledger. The next gate, if pursued, is a separately reviewed and authorized bounded pass with a passing control before any finding arm. This trial provides no support declaration, repair-rate estimate, or authority to run another session. OpenCode remains postponed. The precise [trial contract and scratch policy](issue-94-claude-block-host-proposal.md) remain recorded separately.
 
 ## Approved revised-advice follow-up — 2026-09-24
 

@@ -1,6 +1,14 @@
 # Issue #94: bounded Claude block host trial proposal
 
-**Status, 2026-09-24:** Prepared for review. No authenticated Claude session is authorized by this document or has been run for this trial. OpenCode remains postponed. The previous two-session advisory allocation is exhausted.
+**Status, 2026-09-24:** The owner approved this exact two-session trial. Its first, no-finding control session was incomplete before any observed edit, so the finding arm was not run. The block response and model repair remain untested in an authenticated session. OpenCode remains postponed. The earlier advisory allocation is exhausted.
+
+## Authenticated trial result
+
+The exact cached Claude Code `2.1.218` version and same-profile `loggedIn: true` status passed a read-only preflight. `npm run build` passed, and a fresh [durable ledger](../evidence/host-94/validation/claude-block-trial-ledger-20260924/manifest.json) was initialized once. The sole [source-free control summary](../evidence/host-94/validation/claude-block-control-20260924.json) records the real host session with Hapsland's controlled local backend and user block opt-in. No Jev call or OpenCode session occurred.
+
+Claude exited with code 1 after 34,135 ms, below the 90,000 ms ceiling. Combined output was 141,036 bytes, below 2 MB; there was no timeout, signal termination, or forced close. The runner observed zero native edit events, zero hook calls, no review admission, no completed review outcome, and no host submission. It established neither a completed synthetic edit nor the expected final file state. The control acceptance status is `incomplete`. The ledger has exactly one `control` start with an `incomplete` finish (ledger elapsed 34,133 ms) and no `finding` start. The two elapsed measurements use different boundaries. The runner retained no source-free host error category beyond exit code and these flags; it did not retain or inspect raw output to infer an exit reason.
+
+The first gate failed before the block mechanism could be exercised. This result is **not a block repair failure** and gives no evidence about whether Claude would respond to a production block finding. The runner now records allowlisted Claude stream result, event, and native tool categories for future sessions, but those diagnostics cannot recover the consumed control's unretained output or explain its exit retrospectively. The approved sequence stops here: the finding arm cannot run after this control, and the consumed control cannot be retried under this ledger. Any next authenticated gate would need a separately reviewed and authorized plan for a passing control, with a fresh bounded ledger. This record authorizes no further host session.
 
 ## Purpose and exact scope
 
@@ -20,6 +28,6 @@ The scripted offline tests must pass first, including the negative case where an
 
 ## Review and decision
 
-The runner's trial invocation adds `--claude-block-trial` to `host-session.mjs` and `--auth-confirmed`; the ledger path must point to a fresh initialized directory. The offline path uses `--offline-scripted` and never touches host auth. Run commands and sanitized results are to be recorded only after separate user approval of this concrete trial. Approval of the offline implementation does **not** approve authenticated sessions.
+The runner's trial invocation adds `--claude-block-trial` to `host-session.mjs` and `--auth-confirmed`; the ledger path points to the fresh initialized directory above. The offline path uses `--offline-scripted` and never touches host auth. The owner separately approved this concrete trial; that approval is now consumed by the incomplete control and did not produce a finding session.
 
-If the bounded authenticated block trial fails the repair gate, **scratch the experiment from product code and tests**: do not merge this experiment branch into master, or remove its product implementation and tests if already merged. Keep only sanitized trial evidence and a conclusion that Claude block mode did not demonstrate repair in this trial. Do not retry the failed allocation or run OpenCode under it.
+If a bounded authenticated block finding trial fails the repair gate, **scratch the experiment from product code and tests**: do not merge this experiment branch into master, or remove its product implementation and tests if already merged. Keep only sanitized trial evidence and a conclusion that Claude block mode did not demonstrate repair in that trial. This control stopped before the block repair gate; it does not establish that failure or trigger that conclusion. Do not retry this allocation or run OpenCode under it.
