@@ -3,6 +3,8 @@
 **Status:** seven authenticated Claude Code sessions have completed across two separately bounded passes. The newly authorized two-session Stage A control passed; its finding arm submitted a classified rule finding, but no matched model repair followed. Claude support remains unproven. OpenCode and restart remain pending.
 This record supplements the [host probes](issue-94-host-probes.md), [host research](issue-94-host-research.md), and [#97 delivery baseline](issue-97-delivery.md). It does not declare either host supported.
 
+The later [offline delivery diagnosis](issue-94-delivery-diagnosis.md) confirms that a completed production finding can enter Claude `2.1.218`'s next scripted-provider request through `additionalContext`; it does not establish authenticated model reaction.
+
 ## Approved Claude Stage A follow-up — 2026-09-24
 
 The owner approved **Claude Stage A only**. A read-only check of the cached exact `2.1.218` binary reported both version match and `loggedIn: true` for the profile used by the run. `npm run build` completed immediately before the pass; the runner required fresh compiled CLI and resident artifacts. A new [durable ledger](../evidence/host-94/validation/claude-stage-a-20260924-ledger/manifest.json) was initialized once. The two headless sessions ran sequentially with Claude's normal authenticated provider/model and Hapsland's controlled local backend. Each had one requested synthetic native edit, a 90-second host ceiling, and a 2 MB combined stdout/stderr ceiling. No Jev call or OpenCode session occurred. Only source-free [control](../evidence/host-94/validation/claude-stage-a-control.json) and [finding](../evidence/host-94/validation/claude-stage-a-finding.json) JSON summaries and ledger entries were retained.
