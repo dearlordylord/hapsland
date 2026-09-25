@@ -1,0 +1,487 @@
+{
+  "issue": 97,
+  "host": "codex-cli 0.155.1",
+  "platform": "linux-arm64",
+  "node": "v24.20.0",
+  "model": "gpt-6-luna",
+  "reasoningEffort": "max",
+  "mode": "headless codex exec ephemeral",
+  "backend": "Hapsland production resident with controlled offline Effect DecisionModel; no Jev",
+  "stopCommandMeasurement": "Compiled command wrapper clocks CLOCK_MONOTONIC at main entry before forking Node and after Node exits; Node writes the Stop response before exiting.",
+  "isolation": "temporary repositories, consent state, CODEX_HOME and resident directory; raw host output, source, and backend outcome identifiers discarded",
+  "cases": [
+    {
+      "id": "resident-ready",
+      "delayMs": 0,
+      "exitCode": 0,
+      "durationMs": 29568,
+      "hostTimeline": [
+        {
+          "type": "thread.started",
+          "itemType": null,
+          "at": 644
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 664
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 664
+        },
+        {
+          "type": "turn.started",
+          "itemType": null,
+          "at": 664
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 5799
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 7164
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 7170
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 10121
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 16387
+        },
+        {
+          "type": "item.started",
+          "itemType": "command_execution",
+          "at": 17869
+        },
+        {
+          "type": "item.completed",
+          "itemType": "command_execution",
+          "at": 17869
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 27119
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 27124
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 28716
+        },
+        {
+          "type": "turn.completed",
+          "itemType": null,
+          "at": 28782
+        }
+      ],
+      "events": [
+        {
+          "kind": "post-tool-command-return",
+          "at": 7808,
+          "entryAt": 7171,
+          "elapsedUs": 636728,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "resident-admitted",
+          "at": 7798.0400390625
+        },
+        {
+          "kind": "backend-complete",
+          "outcome": "completed-findings",
+          "at": 7849.04052734375
+        },
+        {
+          "kind": "stop-command-return",
+          "at": 10399,
+          "entryAt": 10138,
+          "elapsedUs": 261238,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "stop-entry",
+          "at": 10154,
+          "continuationCapped": false
+        },
+        {
+          "kind": "stop-response-written",
+          "at": 10391,
+          "elapsedMs": 237,
+          "findingCount": 1
+        },
+        {
+          "kind": "stop-advice-finalized",
+          "at": 10393,
+          "acknowledged": true
+        },
+        {
+          "kind": "post-tool-command-return",
+          "at": 27440,
+          "entryAt": 27126,
+          "elapsedUs": 314883,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "backend-complete",
+          "outcome": "completed-clear",
+          "at": 27465.208251953125
+        },
+        {
+          "kind": "stop-command-return",
+          "at": 28780,
+          "entryAt": 28759,
+          "elapsedUs": 20951,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "stop-entry",
+          "at": 28778,
+          "continuationCapped": true
+        },
+        {
+          "kind": "stop-quiet",
+          "at": 28780,
+          "elapsedMs": 1,
+          "continuationCapped": true
+        },
+        {
+          "kind": "session-end",
+          "at": 28812
+        }
+      ],
+      "backendCompletions": 2,
+      "admissionAccepted": true,
+      "controlledModelCalls": 2,
+      "activityStages": [
+        "pending",
+        "pending",
+        "findings",
+        "pending",
+        "pending",
+        "clear"
+      ],
+      "stopCommandElapsedUs": 261238,
+      "postToolCommandElapsedUs": [
+        636728,
+        314883
+      ],
+      "stopCommandUnderFiveSeconds": true,
+      "responseWrittenWithinFiveSeconds": true,
+      "stopResponseOutcome": "finding-submitted",
+      "sessionEndObserved": true,
+      "finalFileState": "changed",
+      "modelClaimedRepair": true,
+      "postSessionCollectable": false,
+      "postSessionAcknowledged": false,
+      "stderrClass": "other"
+    },
+    {
+      "id": "resident-during-stop",
+      "delayMs": 4000,
+      "exitCode": 0,
+      "durationMs": 23464,
+      "hostTimeline": [
+        {
+          "type": "thread.started",
+          "itemType": null,
+          "at": 837
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 852
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 852
+        },
+        {
+          "type": "turn.started",
+          "itemType": null,
+          "at": 852
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 7657
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 8156
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 8164
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 10482
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 20485
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 21228
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 21242
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 22584
+        },
+        {
+          "type": "turn.completed",
+          "itemType": null,
+          "at": 22648
+        }
+      ],
+      "events": [
+        {
+          "kind": "post-tool-command-return",
+          "at": 8767,
+          "entryAt": 8166,
+          "elapsedUs": 601259,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "resident-admitted",
+          "at": 8759.30615234375
+        },
+        {
+          "kind": "stop-command-return",
+          "at": 12933,
+          "entryAt": 10515,
+          "elapsedUs": 2418160,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "stop-entry",
+          "at": 10534,
+          "continuationCapped": false
+        },
+        {
+          "kind": "backend-complete",
+          "outcome": "completed-findings",
+          "at": 12820.3408203125
+        },
+        {
+          "kind": "stop-response-written",
+          "at": 12926,
+          "elapsedMs": 2392,
+          "findingCount": 1
+        },
+        {
+          "kind": "stop-advice-finalized",
+          "at": 12927,
+          "acknowledged": true
+        },
+        {
+          "kind": "post-tool-command-return",
+          "at": 21558,
+          "entryAt": 21244,
+          "elapsedUs": 314200,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "stop-command-return",
+          "at": 22648,
+          "entryAt": 22619,
+          "elapsedUs": 28952,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "stop-entry",
+          "at": 22644,
+          "continuationCapped": true
+        },
+        {
+          "kind": "stop-quiet",
+          "at": 22646,
+          "elapsedMs": 2,
+          "continuationCapped": true
+        },
+        {
+          "kind": "session-end",
+          "at": 22678
+        }
+      ],
+      "backendCompletions": 1,
+      "admissionAccepted": true,
+      "controlledModelCalls": 2,
+      "activityStages": [
+        "pending",
+        "pending",
+        "pending",
+        "pending",
+        "findings"
+      ],
+      "stopCommandElapsedUs": 2418160,
+      "postToolCommandElapsedUs": [
+        601259,
+        314200
+      ],
+      "stopCommandUnderFiveSeconds": true,
+      "responseWrittenWithinFiveSeconds": true,
+      "stopResponseOutcome": "finding-submitted",
+      "sessionEndObserved": true,
+      "finalFileState": "changed",
+      "modelClaimedRepair": true,
+      "postSessionCollectable": false,
+      "postSessionAcknowledged": false,
+      "stderrClass": "other"
+    },
+    {
+      "id": "resident-timeout-retained",
+      "delayMs": 12000,
+      "exitCode": 0,
+      "durationMs": 13192,
+      "hostTimeline": [
+        {
+          "type": "thread.started",
+          "itemType": null,
+          "at": 642
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 652
+        },
+        {
+          "type": "item.completed",
+          "itemType": "error",
+          "at": 652
+        },
+        {
+          "type": "turn.started",
+          "itemType": null,
+          "at": 652
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 4836
+        },
+        {
+          "type": "item.started",
+          "itemType": "file_change",
+          "at": 5467
+        },
+        {
+          "type": "item.completed",
+          "itemType": "file_change",
+          "at": 5476
+        },
+        {
+          "type": "item.completed",
+          "itemType": "agent_message",
+          "at": 8176
+        },
+        {
+          "type": "turn.completed",
+          "itemType": null,
+          "at": 12478
+        }
+      ],
+      "events": [
+        {
+          "kind": "post-tool-command-return",
+          "at": 6103,
+          "entryAt": 5478,
+          "elapsedUs": 624894,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "resident-admitted",
+          "at": 6097.5126953125
+        },
+        {
+          "kind": "stop-command-return",
+          "at": 12477,
+          "entryAt": 8222,
+          "elapsedUs": 4254122,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "kind": "stop-entry",
+          "at": 8251,
+          "continuationCapped": false
+        },
+        {
+          "kind": "stop-no-advice",
+          "at": 12459,
+          "elapsedMs": 4208
+        },
+        {
+          "kind": "session-end",
+          "at": 12515
+        },
+        {
+          "kind": "backend-complete",
+          "outcome": "completed-findings",
+          "at": 18144.61767578125
+        }
+      ],
+      "backendCompletions": 1,
+      "admissionAccepted": true,
+      "controlledModelCalls": 1,
+      "activityStages": [
+        "pending",
+        "pending",
+        "findings"
+      ],
+      "stopCommandElapsedUs": 4254122,
+      "postToolCommandElapsedUs": [
+        624894
+      ],
+      "stopCommandUnderFiveSeconds": true,
+      "responseWrittenWithinFiveSeconds": true,
+      "stopResponseOutcome": "stop-no-advice",
+      "sessionEndObserved": true,
+      "finalFileState": "original",
+      "modelClaimedRepair": false,
+      "postSessionCollectable": true,
+      "postSessionAcknowledged": true,
+      "stderrClass": "other"
+    }
+  ]
+}
