@@ -57,6 +57,7 @@ import { isCodexHostVersion, type CodexHostVersion } from "./direct-event/model.
 import type { DirectObservation } from "./direct-event/model.ts";
 import { adaptOpenCodeDirectEvent } from "./hosts/opencode/adapter.ts";
 import type { CodexDirectEventOutput } from "./direct-event/pipeline.ts";
+import { toClaudeFindingOutput } from "./direct-event/claude-output.ts";
 import { attemptCodexHostOutput } from "./direct-event/writer.ts";
 import {
   acknowledgeAdvice,
@@ -1713,8 +1714,11 @@ if (!isCodexHook && !isClaudeHook && !isOpenCodeHook && typeof output === "objec
           : 0;
 }
 if (isDirectEventReady(output)) {
-  if (isOpenCodeHook) process.stdout.write(output.value.hookSpecificOutput.additionalContext);
-  else attemptCodexHostOutput(output.value, (encoded) => {
+  const hostOutput = isClaudeHook
+    ? toClaudeFindingOutput(output.value, output.collected.findingCount)
+    : output.value;
+  if (isOpenCodeHook) process.stdout.write(hostOutput.hookSpecificOutput.additionalContext);
+  else attemptCodexHostOutput(hostOutput, (encoded) => {
     process.stdout.write(encoded);
   });
   recordDemoTrace(process.env.REVIEW_DEMO_BUDGET_PATH, output.collected.root, output.collected.recipient, {

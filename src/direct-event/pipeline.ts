@@ -410,13 +410,16 @@ const authorize = (
   Effect.catch(() => Effect.succeed(false)),
 );
 
+export const DIRECT_EVENT_ADVISORY_HEADING =
+  "Advisory direct-event review (the edit already succeeded):";
+
 export const toCodexDirectEventOutput = (
   findings: ReadonlyArray<Finding>,
 ): CodexDirectEventOutput => ({
   hookSpecificOutput: {
     hookEventName: "PostToolUse",
     additionalContext: [
-      "Advisory direct-event review (the edit already succeeded):",
+      DIRECT_EVENT_ADVISORY_HEADING,
       ...findings.map((finding) =>
         `${finding.path} :: ${finding.declaration} [${finding.ruleId}, p=${finding.probability.toFixed(2)}]: ${finding.message}`),
     ].join("\n"),

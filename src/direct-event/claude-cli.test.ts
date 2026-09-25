@@ -77,9 +77,17 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     });
     const result = invoke(event);
     expect(result.status).toBe(0);
-    expect(JSON.parse(result.stdout)).toMatchObject({ hookSpecificOutput: {
+    const advice = JSON.parse(result.stdout) as {
+      hookSpecificOutput?: { hookEventName: string; additionalContext: string };
+      decision?: string;
+    };
+    expect(advice).toMatchObject({ hookSpecificOutput: {
       hookEventName: "PostToolUse", additionalContext: expect.stringContaining("OrderCount"),
     } });
+    expect(advice.decision).toBeUndefined();
+    expect(advice.hookSpecificOutput?.additionalContext).toContain("Please repair each finding");
+    expect(advice.hookSpecificOutput?.additionalContext).toContain("r6_bare_domain_value");
+    expect(Buffer.byteLength(result.stdout, "utf8")).toBeLessThanOrEqual(2 * 1024);
     const unsupported = invoke({ ...event, tool_name: "Bash" });
     expect(unsupported.status).toBe(0);
     expect(JSON.parse(unsupported.stdout)).toEqual({});
