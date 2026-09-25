@@ -17,8 +17,13 @@ assert.ok(['claude', 'opencode'].includes(host) &&
   ['control', 'finding', 'stale', 'timeout', 'failure', 'host-failure', 'restart-old', 'restart-new'].includes(scenario),
   'usage: node host-session.mjs claude|opencode control|finding|stale|timeout|failure|host-failure|restart-old|restart-new');
 const offlineScripted = process.argv.includes('--offline-scripted');
+const blockTrial = process.argv.includes('--claude-block-trial');
 assert.ok(offlineScripted !== process.argv.includes('--auth-confirmed'),
   'select exactly one of --offline-scripted or --auth-confirmed');
+assert.ok(!blockTrial || (host === 'claude' && ['control', 'finding'].includes(scenario)),
+  'Claude block trial permits only control then finding');
+assert.ok(offlineScripted || host !== 'claude' || blockTrial,
+  'authenticated Claude requires the explicit --claude-block-trial gate');
 const ledgerDirectory = process.env.HAPSLAND_94_PASS_LEDGER;
 assert.ok(ledgerDirectory, 'an initialized HAPSLAND_94_PASS_LEDGER is required');
 const project = resolve(import.meta.dirname, '../../..');
@@ -51,6 +56,7 @@ const repo = join(root, 'repo');
 const trace = join(root, 'trace.jsonl');
 const source = join(repo, 'order-count.ts');
 const statePath = join(root, 'consent');
+const userConfigPath = join(root, 'user-config.jsonc');
 const bridge = join(root, 'bridge.mjs');
 const saltPath = join(root, 'correlation-salt');
 const checkpointPath = join(root, 'restart-checkpoint.json');
@@ -65,6 +71,7 @@ const executable = offlineScripted
   : 'opencode';
 assert.ok(executable, 'offline scripted executable is required');
 const evidence = { schemaVersion: 1, host, hostVersion: expectedVersion, scenario,
+  ...(blockTrial ? { claudeFeedbackMode: 'block-current-findings', trial: 'claude-block' } : {}),
   mode: host === 'claude' ? 'headless-print' : 'headless-run', controlledOfflineBackend: true,
   platform: platform(), timestampSource: 'runner-wall-clock-relative-to-host-spawn',
   timestampBoundary: 'native-event-stdout-observed-to-bridge-hook-finish',
@@ -72,7 +79,8 @@ const evidence = { schemaVersion: 1, host, hostVersion: expectedVersion, scenari
   rawHostOutputRetained: false, nativePayloadRetained: false, credentialRetained: false };
 const callCli = (operation, digest) => {
   const result = spawnSync(process.execPath, [cli, `--${operation}`], {
-    cwd: project, env: { ...process.env, REVIEW_STATE_PATH: statePath },
+    cwd: project, env: { ...process.env, REVIEW_STATE_PATH: statePath,
+      ...(blockTrial ? { REVIEW_USER_CONFIG_PATH: userConfigPath } : {}) },
     input: JSON.stringify({ version: 1, operation, cwd: repo, ...(digest ? { proposalDigest: digest } : {}) }),
     encoding: 'utf8', timeout: 8_000, maxBuffer: 262_144,
   });
@@ -82,6 +90,7 @@ const callCli = (operation, digest) => {
 const controlled = scenario === 'timeout' ? { delayMs: 10_000 } : scenario === 'stale' ? { delayMs: 2_000 } :
   scenario === 'failure' ? { failure: 'synthetic backend unavailable' } : {};
 const env = { ...process.env, REVIEW_STATE_PATH: statePath, REVIEW_RESIDENT_DIR: join(root, 'resident'),
+  ...(blockTrial ? { REVIEW_USER_CONFIG_PATH: userConfigPath } : {}),
   REVIEW_CONTROL_JSON: JSON.stringify({ ...controlled, outcomePath, answers: Object.fromEntries(configuredRules.map(rule => [
     rule.id, { _tag: 'Probability', probability: scenario !== 'control' && rule.id === 'r6_bare_domain_value' ? 0.9 : 0 },
   ])) }),
@@ -103,6 +112,9 @@ let rootOwned = !restartOld && !restartNew;
 
 const checkStage = entries => {
   const prior = entries.filter(entry => entry.host === host);
+  if (blockTrial) assert.deepEqual(prior.map(entry => entry.scenario),
+    scenario === 'control' ? [] : ['control'],
+    'Claude block trial requires a fresh ledger and at most two sequential sessions');
   assert.ok(!prior.some(entry => !entry.finish || entry.finish.status !== 'recorded'),
     'a prior host scenario did not pass; stop this host pass');
   assert.ok(!prior.some(entry => entry.scenario === scenario), 'scenario already consumed for this host');
@@ -151,6 +163,8 @@ try {
   } else {
     mkdirSync(repo);
     assert.equal(spawnSync('git', ['init', '-q', repo]).status, 0);
+    if (blockTrial) writeFileSync(userConfigPath,
+      '{"version":1,"claudeFeedbackMode":"block-current-findings"}\n', { mode: 0o600 });
     const preview = callCli('enable');
     assert.equal(preview.status, 'preview');
     assert.equal(callCli('enable-confirm', preview.proposal.digest).status, 'enabled');
@@ -171,10 +185,10 @@ try {
     `const start=Date.now(); const result=spawnSync(process.execPath,[process.env.HAPSLAND_94_CLI,'--'+process.argv[2]+'-hook','--controlled','--controlled-writer'],` +
     `{input:Buffer.concat(chunks),encoding:'utf8',env:process.env,timeout:4400,maxBuffer:262144});\n` +
     `const body=result.status===0?result.stdout:'';\n` +
-    `const {findingSubmitted,noticeSubmitted}=classifyHookResult({host:process.argv[2],status:result.status,stdout:body});\n` +
+    `const {findingSubmitted,noticeSubmitted,blockFindingSubmitted}=classifyHookResult({host:process.argv[2],status:result.status,stdout:body});\n` +
     `const handoffNonempty=Boolean(body.trim())&&(process.argv[2]==='opencode'||body.trim()!=='{}');\n` +
     `const submitted=handoffNonempty||findingSubmitted||noticeSubmitted;\n` +
-    `appendFileSync(process.env.HAPSLAND_94_TRACE,JSON.stringify({phase:'finish',key,sessionKey,tool,submitted,findingSubmitted,noticeSubmitted,` +
+    `appendFileSync(process.env.HAPSLAND_94_TRACE,JSON.stringify({phase:'finish',key,sessionKey,tool,submitted,findingSubmitted,blockFindingSubmitted,noticeSubmitted,` +
     `unclassifiedSubmitted:submitted&&!findingSubmitted&&!noticeSubmitted,elapsedMs:Date.now()-start,` +
     `finishedAtMs:Date.now()-Number(process.env.HAPSLAND_94_LAUNCH_AT),ok:result.status===0})+'\\n');\n` +
     `if(result.status===0) process.stdout.write(body);\n`, { mode: 0o700 });
@@ -211,7 +225,21 @@ try {
   const consume = line => {
     const observedAtMs = offlineScripted && env.HAPSLAND_94_FAKE_MISSING_TIMESTAMP === '1'
       ? null : Date.now() - started;
-    for (const event of nativeEditEvents(host, line, observedAtMs, salt)) nativeEvents.push(event);
+    const parsed = nativeEditEvents(host, line, observedAtMs, salt);
+    if (blockTrial) {
+      let message;
+      try { message = JSON.parse(line); } catch { message = null; }
+      const parts = message?.type === 'assistant' && Array.isArray(message?.message?.content)
+        ? message.message.content : [];
+      for (const event of parsed) {
+        const exact = parts.some(part => part?.type === 'tool_use' &&
+          typeof part.id === 'string' &&
+          createHash('sha256').update(`${salt}:${part.id}`).digest('hex') === event.key &&
+          typeof part.input?.content === 'string' &&
+          /^type OrderCount = number\r?\n?$/.test(part.input.content));
+        nativeEvents.push({ ...event, initialInput: event.initialInput && exact });
+      }
+    } else nativeEvents.push(...parsed);
   };
   child.stdout.on('data', chunk => {
     stdoutBytes += chunk.length;
@@ -325,6 +353,7 @@ try {
   evidence.editToSubmissionIncludesHostOutputDelay = true;
   evidence.hostSubmissions = events.filter(x => x.submitted).length;
   evidence.findingSubmissions = events.filter(x => x.findingSubmitted).length;
+  evidence.blockFindingSubmissions = events.filter(x => x.blockFindingSubmitted).length;
   evidence.operationalNoticeSubmissions = events.filter(x => x.noticeSubmitted).length;
   evidence.unclassifiedSubmissions = events.filter(x => x.unclassifiedSubmitted).length;
   evidence.hookDurationMs = events.map(x => x.elapsedMs);
@@ -337,6 +366,9 @@ try {
     final.includes('type OrderCount = string') ||
     (scenario === 'stale' && staleMutation && nativeEvents.some(item => item.initialInput) && events.length > 0);
   evidence.finalRepairObserved = final.includes('type OrderCount = string');
+  evidence.finalFileExact = scenario === 'control'
+    ? /^type OrderCount = number\r?\n?$/.test(final)
+    : scenario === 'finding' ? /^type OrderCount = string\r?\n?$/.test(final) : null;
   evidence.externalStaleMutation = staleMutation;
   evidence.staleAdmissionObservedBeforeMutation = scenario === 'stale' ? admissionObserved && staleMutation : null;
   evidence.admissionMatchedInitialNativeCall = scenario === 'stale' || scenario === 'host-failure'
@@ -366,14 +398,21 @@ try {
   }
   evidence.modelReaction = reactionEvidence({ host, nativeEvents, hookEvents: events,
     finalRepairObserved: evidence.finalRepairObserved, externalStaleMutation: staleMutation, scenario });
+  if (blockTrial && initialCallComplete && initialHooks[0].blockFindingSubmitted === true &&
+      evidence.modelReaction.status === 'observed-native-repair-after-advice') {
+    evidence.modelReaction.status = 'observed-native-repair-after-block';
+  }
   evidence.noLaterEventOutcome = scenario === 'finding' || scenario === 'timeout'
-    ? evidence.modelReaction.status === 'observed-native-repair-after-advice' ? 'observed-reaction'
+    ? ['observed-native-repair-after-advice', 'observed-native-repair-after-block']
+      .includes(evidence.modelReaction.status) ? 'observed-reaction'
       : evidence.findingSubmissions > 0 ? 'submitted-unreacted' : 'undelivered'
     : null;
   evidence.controlNoAdviceAndNoRepair = scenario === 'control'
     ? initialCallComplete && evidence.reviewAdmissionMarkerObserved &&
       evidence.reviewCompletedOutcome === 'completed-clear' && evidence.completedSyntheticEdit &&
-      evidence.hostSubmissions === 0 && !evidence.finalRepairObserved : null;
+      evidence.hostSubmissions === 0 && evidence.blockFindingSubmissions === 0 &&
+      !evidence.finalRepairObserved &&
+      (!blockTrial || evidence.finalFileExact) : null;
   evidence.adviceAfterStaleMutation = scenario === 'stale' ? evidence.findingSubmissions > 0 : null;
   evidence.hostOutputParsedForSourceFreeSignalsOnly = true;
   evidence.status = timedOut || exceededOutput || exit.forcedClose ? 'incomplete' : 'recorded';
@@ -387,7 +426,10 @@ try {
       ? evidence.controlNoAdviceAndNoRepair ? 'passed' : 'failed'
       : scenario === 'finding'
         ? evidence.reviewCompletedOutcome === 'completed-findings' && evidence.findingSubmissions === 1 &&
-          evidence.modelReaction.status === 'observed-native-repair-after-advice'
+          (!blockTrial || (evidence.blockFindingSubmissions === 1 && evidence.hostSubmissions === 1 &&
+            evidence.operationalNoticeSubmissions === 0 && evidence.finalFileExact)) &&
+          evidence.modelReaction.status === (blockTrial
+            ? 'observed-native-repair-after-block' : 'observed-native-repair-after-advice')
           && evidence.unclassifiedSubmissions === 0 ? 'passed' : 'failed'
         : scenario === 'stale'
           ? evidence.exactAdmissionAttributionProven && admissionObserved && staleMutation &&

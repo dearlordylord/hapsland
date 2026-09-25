@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { classifyHookResult } from './handoff-classification.mjs';
 
-const neither = { findingSubmitted: false, noticeSubmitted: false };
+const neither = { findingSubmitted: false, noticeSubmitted: false, blockFindingSubmitted: false };
 const hook = additionalContext => JSON.stringify({ hookSpecificOutput: {
   hookEventName: 'PostToolUse', additionalContext,
 } });
@@ -18,18 +18,18 @@ test('clear and generic nonempty handoffs classify as neither', () => {
 
 test('explicit operational unavailability notice is classified without retaining text', () => {
   assert.deepEqual(classifyHookResult({ host: 'opencode', status: 0, stdout: unavailable }), {
-    findingSubmitted: false, noticeSubmitted: true,
+    findingSubmitted: false, noticeSubmitted: true, blockFindingSubmitted: false,
   });
   assert.deepEqual(classifyHookResult({ host: 'claude', status: 0, stdout: hook(
     'Advisory direct-event review (the edit already succeeded):\n' +
     'Operational notice: review capacity was unavailable; some eligible edits were not reviewed. (2 similar failures were suppressed.)',
-  ) }), { findingSubmitted: false, noticeSubmitted: true });
+  ) }), { findingSubmitted: false, noticeSubmitted: true, blockFindingSubmitted: false });
 });
 
 test('the exact synthetic rule marker classifies a finding', () => {
   assert.deepEqual(classifyHookResult({ host: 'claude', status: 0,
     stdout: hook(`Advisory direct-event review (the edit already succeeded):\n${finding}`) }), {
-    findingSubmitted: true, noticeSubmitted: false,
+    findingSubmitted: true, noticeSubmitted: false, blockFindingSubmitted: false,
   });
 });
 
@@ -52,5 +52,20 @@ test('malformed, failed, and unknown results stay neither', () => {
 test('duplicate known lines are idempotent and combined handoffs preserve both signals', () => {
   const duplicateContext = `${finding}\n${finding}\n${unavailable}\n${unavailable}`;
   assert.deepEqual(classifyHookResult({ host: 'claude', status: 0,
-    stdout: hook(duplicateContext) }), { findingSubmitted: true, noticeSubmitted: true });
+    stdout: hook(duplicateContext) }), { findingSubmitted: true, noticeSubmitted: true, blockFindingSubmitted: false });
+});
+
+test('top-level Claude block classifies only a known rule finding in reason', () => {
+  assert.deepEqual(classifyHookResult({ host: 'claude', status: 0,
+    stdout: JSON.stringify({ decision: 'block', reason: `Repair this edit.\n${finding}` }) }), {
+    findingSubmitted: true, noticeSubmitted: false, blockFindingSubmitted: true,
+  });
+  assert.deepEqual(classifyHookResult({ host: 'claude', status: 0,
+    stdout: JSON.stringify({ decision: 'block', reason: unavailable }) }), {
+    findingSubmitted: false, noticeSubmitted: true, blockFindingSubmitted: false,
+  });
+  assert.deepEqual(classifyHookResult({ host: 'claude', status: 0,
+    stdout: JSON.stringify({ decision: 'block', reason: finding, hookSpecificOutput: {
+      hookEventName: 'PostToolUse', additionalContext: finding,
+    } }) }), neither);
 });

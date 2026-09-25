@@ -94,6 +94,18 @@ process.stdout.write(process.env.HAPSLAND_94_FAKE_HOST==='claude'
   : context);
 `;
 
+const advisoryDowngradeCli = `#!/usr/bin/env node
+import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+const result=spawnSync(process.execPath,[process.env.HAPSLAND_94_REAL_CLI,...process.argv.slice(2)],
+  {input:readFileSync(0),encoding:'utf8',env:process.env,timeout:4300,maxBuffer:262144});
+if(result.status!==0)process.exit(2);
+let output;try{output=JSON.parse(result.stdout)}catch{process.exit(3)}
+if(output.decision==='block')process.stdout.write(JSON.stringify({hookSpecificOutput:{
+  hookEventName:'PostToolUse',additionalContext:output.reason}})+'\\n');
+else process.stdout.write(result.stdout);
+`;
+
 const runner = join(import.meta.dirname, 'host-session.mjs');
 const projectRoot = resolve(import.meta.dirname, '../../..');
 test('base TypeScript config freshness blocks before host, auth, or ledger claim', () => {
@@ -206,7 +218,7 @@ const runNoHookStageB = (host, scenario) => {
     assert.equal(summary.acceptanceStatus, 'incomplete');
   } finally { rmSync(root, { recursive: true, force: true }); }
 };
-const run = (host, shape, stageB = null) => {
+const run = (host, shape, stageB = null, blockTrial = false, advisoryDowngrade = false) => {
   const root = mkdtempSync(join(tmpdir(), 'hapsland-94-integration-'));
   try {
     const executable = join(root, 'scripted-host.mjs');
@@ -217,8 +229,15 @@ const run = (host, shape, stageB = null) => {
       HAPSLAND_94_SCRIPTED_EXECUTABLE: executable, HAPSLAND_94_FAKE_HOST: host,
       HAPSLAND_94_FAKE_REACT: '1', HAPSLAND_94_FAKE_EVENT_SHAPE: shape,
       TYPESAFE_API_KEY: '' };
+    if (advisoryDowngrade) {
+      const override = join(root, 'advisory-downgrade.mjs');
+      writeFileSync(override, advisoryDowngradeCli, { mode: 0o700 });
+      env.HAPSLAND_94_SCRIPTED_CLI = override;
+      env.HAPSLAND_94_REAL_CLI = resolve(import.meta.dirname, '../../../dist/cli.js');
+    }
     const invoke = scenario => {
-      const result = spawnSync(process.execPath, [runner, host, scenario, '--offline-scripted'], {
+      const result = spawnSync(process.execPath, [runner, host, scenario, '--offline-scripted',
+        ...(blockTrial ? ['--claude-block-trial'] : [])], {
         env, encoding: 'utf8', timeout: 60_000, maxBuffer: 262_144,
       });
       const summary = JSON.parse(result.stdout);
@@ -245,6 +264,7 @@ const run = (host, shape, stageB = null) => {
     assert.equal(finding.reviewCompletedOutcome, 'completed-findings');
     assert.ok(Number.isFinite(finding.editObservedToSubmissionMs));
     assert.equal(finding.findingSubmissions, 1);
+    if (blockTrial) assert.equal(finding.blockFindingSubmissions, advisoryDowngrade ? 0 : 1);
     assert.equal(finding.operationalNoticeSubmissions, 0);
     assert.equal(finding.hostSubmissions, 1);
     if (shape === 'unknown') {
@@ -256,12 +276,19 @@ const run = (host, shape, stageB = null) => {
       assert.equal(finding.noLaterEventOutcome, 'submitted-unreacted');
       assert.equal(finding.acceptanceStatus, 'failed');
     } else {
-      assert.equal(finding.modelReaction.status, 'observed-native-repair-after-advice');
+      assert.equal(finding.modelReaction.status, blockTrial && !advisoryDowngrade
+        ? 'observed-native-repair-after-block' : 'observed-native-repair-after-advice');
+      if (advisoryDowngrade) {
+        assert.equal(finding.modelReaction.initiatingNativeEditMatched, true);
+        assert.equal(finding.modelReaction.laterNativeRepairMatched, true);
+        assert.equal(finding.blockFindingSubmissions, 0);
+      }
       assert.equal(finding.noLaterEventOutcome, 'observed-reaction');
-      assert.equal(finding.acceptanceStatus, 'passed');
+      assert.equal(finding.acceptanceStatus, advisoryDowngrade ? 'failed' : 'passed');
     }
     assert.equal(readPassLedger(ledger).length, 2);
-    assert.equal(readPassLedger(ledger)[1].finish.status, shape === 'unknown' ? 'failed' : 'recorded');
+    assert.equal(readPassLedger(ledger)[1].finish.status,
+      shape === 'unknown' || advisoryDowngrade ? 'failed' : 'recorded');
     if (stageB === 'stale') {
       const stale = invoke('stale');
       assert.equal(stale.acceptanceStatus, 'passed');
@@ -325,6 +352,10 @@ const run = (host, shape, stageB = null) => {
 };
 
 test('offline Claude scripted bridge classifies finding and matched reaction', { timeout: 120_000 }, () => run('claude', 'known'));
+test('offline Claude block trial requires production block and matched repair', { timeout: 120_000 },
+  () => run('claude', 'known', null, true));
+test('advisory finding and repair cannot pass a Claude block trial', { timeout: 120_000 },
+  () => run('claude', 'known', null, true, true));
 test('offline OpenCode scripted bridge classifies finding and matched reaction', { timeout: 120_000 }, () => run('opencode', 'known'));
 test('unknown Claude host event remains unproven despite classified finding and repair', { timeout: 120_000 },
   () => run('claude', 'unknown'));

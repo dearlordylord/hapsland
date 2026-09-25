@@ -27,16 +27,22 @@ const classifyContext = context => {
  * Claude emits a PostToolUse JSON envelope; OpenCode emits plain context text.
  */
 export const classifyHookResult = input => {
-  const neither = { findingSubmitted: false, noticeSubmitted: false };
+  const neither = { findingSubmitted: false, noticeSubmitted: false, blockFindingSubmitted: false };
   const { host, status, stdout } = input ?? {};
   if (status !== 0 || typeof stdout !== 'string') return neither;
 
   if (host === 'claude') {
     let output;
     try { output = JSON.parse(stdout); } catch { return neither; }
+    if (output?.decision === 'block' && output.hookSpecificOutput !== undefined) return neither;
+    if (output?.decision === 'block' && typeof output.reason === 'string' &&
+      output.hookSpecificOutput === undefined) {
+      const classified = classifyContext(output.reason);
+      return { ...classified, blockFindingSubmitted: classified.findingSubmitted };
+    }
     const hook = output?.hookSpecificOutput;
     if (hook?.hookEventName !== 'PostToolUse' || typeof hook.additionalContext !== 'string') return neither;
-    return classifyContext(hook.additionalContext);
+    return { ...classifyContext(hook.additionalContext), blockFindingSubmitted: false };
   }
 
   if (host === 'opencode') {
@@ -44,7 +50,7 @@ export const classifyHookResult = input => {
     // This host path emits context directly. JSON-looking output is an unknown
     // plugin/CLI result and must not be interpreted as a handoff.
     if (context.length === 0 || context.startsWith('{') || context.startsWith('[')) return neither;
-    return classifyContext(context);
+    return { ...classifyContext(context), blockFindingSubmitted: false };
   }
 
   return neither;
