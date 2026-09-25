@@ -1,9 +1,20 @@
 # Issue #94 real-host acceptance plan — 2026-09-24
 
-**Status:** twelve authenticated Claude Code sessions have started across five separately bounded passes. The latest optional-block pass observed a classified block and distinct native repair, but failed its strict gate because the repair hook submitted a second classified block finding. Claude support remains unproven. OpenCode and restart remain pending.
+**Status:** fourteen authenticated Claude Code sessions have started across six separately bounded passes. The latest branded-repair optional-block trial passed its strict control and finding gates. General Claude support remains unproven; OpenCode and restart remain pending.
 This record supplements the [host probes](issue-94-host-probes.md), [host research](issue-94-host-research.md), and [#97 delivery baseline](issue-97-delivery.md). It does not declare either host supported.
 
 The later [offline delivery diagnosis](issue-94-delivery-diagnosis.md) confirms that a completed production finding can enter Claude `2.1.218`'s next scripted-provider request through `additionalContext`; it does not establish authenticated model reaction.
+
+## Branded-repair optional-block pass — 2026-09-24
+
+The owner authorized one fresh allocation of at most two sequential authenticated Claude Code `2.1.218` sessions. Read-only preflight confirmed the exact cached version and same-profile `loggedIn: true`; `npm run build` and the offline runner integration suite passed (34 passed, two skipped). A new [durable ledger](../evidence/host-94/validation/claude-block-branded-ledger-20260924/manifest.json) was initialized once. Both sessions used isolated user `block-current-findings` configuration, Claude's normal authenticated provider/model, and Hapsland's controlled local backend. Each was capped at 90 seconds and 2 MB combined output. No Jev call or OpenCode session occurred. Only source-free [control](../evidence/host-94/validation/claude-block-branded-control-20260924.json), [finding](../evidence/host-94/validation/claude-block-branded-finding-20260924.json), and ledger records were retained; raw host output, model text, source, prompts, review responses, and credentials were not retained.
+
+| Arm | Strict result | Host elapsed/output | Review and handoff | Model reaction |
+| --- | --- | --- | --- | --- |
+| Control | **Passed:** one matched native `Write` and successful hook; exact initial final file. | 10,683 ms / 144,585 bytes | Matching `completed-clear`; zero submissions. | No unsolicited repair. |
+| Finding | **Passed:** one matched initial native `Write`, then a distinct native `Edit` with a matching successful hook; exact branded final file. | 12,835 ms / 148,180 bytes | Initial `completed-findings` and repair `completed-clear` attributed to their tool uses; exactly one classified top-level block submission, zero notices or unknown submissions. | Native repair observed 3,326 ms after initial block submission. |
+
+Both sessions exited 0 without timeout, forced close, or output-ceiling overrun. The finding's initial edit event was observed at 5,611 ms process-relative; its block hook finished at 6,539 ms, and the later repair tool event was observed at 9,865 ms. These are runner observation times, not model-read latency. The global admission marker remains unkeyed, while both controlled completion outcomes were attributed to their respective calls by ephemeral in-memory identifiers. The ledger has exactly two starts with `recorded` finishes; no further session followed. This selected fixture and exact host version passed the block and repair gates. It does not establish general Claude support, a repair rate, stale or failure-path authority, restart isolation, or OpenCode behavior. The [trial proposal](issue-94-claude-block-host-proposal.md) records the contract and earlier failed allocations.
 
 ## Fresh approved optional-block pass — 2026-09-24
 
