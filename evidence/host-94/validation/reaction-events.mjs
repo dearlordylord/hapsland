@@ -49,7 +49,8 @@ export const reactionEvidence = ({ host, nativeEvents, hookEvents, finalRepairOb
     e.tool === submitted.tool && e.initialInput && e.observedAtMs < submitted.finishedAtMs);
   const later = submitted && initiating && nativeEvents.find(e => e.key !== submitted.key &&
     e.observedAtMs >= submitted.finishedAtMs && e.repairInput &&
-    hookEvents.some(h => h.key === e.key && h.tool === e.tool && h.finishedAtMs >= e.observedAtMs));
+    hookEvents.some(h => h.key === e.key && h.tool === e.tool && h.ok === true &&
+      h.finishedAtMs >= e.observedAtMs));
   const observed = scenario === 'finding' && Boolean(submitted && initiating && later &&
     finalRepairObserved && !externalStaleMutation);
   return {

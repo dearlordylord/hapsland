@@ -27,7 +27,8 @@ const session=process.env.HAPSLAND_94_FAKE_SESSION||'scripted-session';
 const initial='type OrderCount = number\\n';
 const repaired='type OrderCount = string\\n';
 const print=(id,tool,input)=>{
-  if(process.env.HAPSLAND_94_FAKE_EVENT_SHAPE==='unknown') return writeSync(1,JSON.stringify({type:'unknown'})+'\\n');
+  if(process.env.HAPSLAND_94_FAKE_EVENT_SHAPE==='unknown' && id==='second')
+    return writeSync(1,JSON.stringify({type:'unknown'})+'\\n');
   if(process.env.HAPSLAND_94_FAKE_EVENT_SHAPE==='mismatch') id='different-call';
   const event=host==='claude'
     ? {type:'assistant',message:{content:[{type:'tool_use',id,name:tool,input}]}}
@@ -81,13 +82,6 @@ if(first.includes('[r6_bare_domain_value, p=') && process.env.HAPSLAND_94_FAKE_R
 }
 `;
 
-const genericCli = `#!/usr/bin/env node
-const host=process.env.HAPSLAND_94_FAKE_HOST;
-const context='Generic unclassified host message';
-process.stdout.write(host==='claude'
-  ? JSON.stringify({hookSpecificOutput:{hookEventName:'PostToolUse',additionalContext:context}})
-  : context);
-`;
 const genericAfterReviewCli = `#!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -165,10 +159,11 @@ const runSingleControl = (host, options) => {
     writeFileSync(executable, fakeHost, { mode: 0o700 });
     initializePassLedger(ledger);
     const scriptedCli = join(root, 'generic-cli.mjs');
-    if (options.generic) writeFileSync(scriptedCli, genericCli, { mode: 0o700 });
+    if (options.generic) writeFileSync(scriptedCli, genericAfterReviewCli, { mode: 0o700 });
     const env = { ...process.env, HAPSLAND_94_PASS_LEDGER: ledger,
       HAPSLAND_94_SCRIPTED_EXECUTABLE: executable, HAPSLAND_94_FAKE_HOST: host,
-      ...(options.generic ? { HAPSLAND_94_SCRIPTED_CLI: scriptedCli } : {}),
+      ...(options.generic ? { HAPSLAND_94_SCRIPTED_CLI: scriptedCli,
+        HAPSLAND_94_REAL_CLI: resolve(import.meta.dirname, '../../../dist/cli.js') } : {}),
       ...(options.flood ? { HAPSLAND_94_FAKE_FLOOD: '1' } : {}),
       ...(options.noHook ? { HAPSLAND_94_FAKE_NO_HOOK: options.noHook } : {}),
       ...(options.eventShape ? { HAPSLAND_94_FAKE_EVENT_SHAPE: options.eventShape } : {}),
@@ -253,6 +248,10 @@ const run = (host, shape, stageB = null) => {
     assert.equal(finding.operationalNoticeSubmissions, 0);
     assert.equal(finding.hostSubmissions, 1);
     if (shape === 'unknown') {
+      assert.equal(finding.initialNativeEditMatched, true);
+      assert.equal(finding.nativeModelEditEvents, 1);
+      assert.equal(finding.finalRepairObserved, true);
+      assert.equal(finding.modelReaction.laterNativeRepairMatched, false);
       assert.equal(finding.modelReaction.status, 'unproven');
       assert.equal(finding.noLaterEventOutcome, 'submitted-unreacted');
       assert.equal(finding.acceptanceStatus, 'failed');
@@ -361,6 +360,8 @@ test('generic Claude context fails the no-advice control', { timeout: 120_000 },
   assert.equal(result.operationalNoticeSubmissions, 0);
   assert.equal(result.unclassifiedSubmissions, 1);
   assert.equal(result.hostSubmissions, 1);
+  assert.equal(result.reviewAdmissionMarkerObserved, true);
+  assert.equal(result.reviewCompletedOutcome, 'completed-clear');
   assert.equal(result.acceptanceStatus, 'failed');
 });
 test('generic OpenCode context fails the no-advice control', { timeout: 120_000 }, () => {
@@ -369,6 +370,8 @@ test('generic OpenCode context fails the no-advice control', { timeout: 120_000 
   assert.equal(result.operationalNoticeSubmissions, 0);
   assert.equal(result.unclassifiedSubmissions, 1);
   assert.equal(result.hostSubmissions, 1);
+  assert.equal(result.reviewAdmissionMarkerObserved, true);
+  assert.equal(result.reviewCompletedOutcome, 'completed-clear');
   assert.equal(result.acceptanceStatus, 'failed');
 });
 test('shell-authored file with no native edit or hook cannot pass control', { timeout: 120_000 }, () => {
