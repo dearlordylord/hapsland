@@ -1,5 +1,11 @@
 # Installed release compatibility
 
+The combined Codex background and bounded Stop delivery proposal in
+[issue #105](issue-105-composed-delivery.md) is **not part of this release support
+declaration**. Its exact Linux and macOS composition gates remain open, and the
+installed integration continues to collect ready advice on subsequent mapped edit
+hooks. The existing verified cells below cover their stated earlier behavior only.
+
 The assembled installed-product gate is **release-ready for the exact declared profiles**. The declaration is intentionally
 bound to integration commit `f2f47e94cd2d90cf73062f07c5e61416218e2f13`, the exact retained
 evidence checksums, Linux Codex CLI 0.155.1, macOS Codex CLI 0.156.0, Node 24.20.0, and arm64.
