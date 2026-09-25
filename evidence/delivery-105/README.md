@@ -29,9 +29,9 @@ HAPSLAND_DELIVERY_105_CODEX_BIN=/path/to/codex-0.155.1 \
 | Controlled case | Observed first handoff and host behavior |
 | --- | --- |
 | `combined-background-ready` | Async background submitted one finding with no intervening edit. A later model message repaired the file. |
-| `combined-stop-wins` | Stop collected one finding while the background waiter was active; it blocked once and the model repaired. Reentered Stop was capped. The waiter made no competing finding submission. |
+| `combined-stop-wins` | Stop collected one finding while the background command was active but held before collection; it blocked once and the model repaired. Reentered Stop was capped. The background command made no finding submission. This fixture does not prove simultaneous resident collection. |
 | `combined-stop-during` | The result completed during Stop's wait; Stop submitted one finding, followed by model repair. |
-| `combined-background-before-stop` | The final model message completed before the background finding was submitted during Stop's wait. Stop saw no remaining advice. No repair was observed before session end. The background write and resident acknowledgement did not prove model visibility. |
+| `combined-background-before-stop` | Despite the fixture name, Stop had already started when the background finding was submitted during its wait. The final model message had completed. Stop saw no remaining advice and no repair was observed before session end. The background write and resident acknowledgement did not prove model visibility. |
 | `combined-timeout-retained` | Neither hook submitted a finding before session end. The result completed later and a post-session client collected and acknowledged it from the same resident. No model reaction was observed. |
 | `combined-multi-unit` | One background response carried two findings and the model repaired both files. The static controlled map generated new findings on subsequent edits, causing two additional two-finding background responses; those are distinct review work, not a repeat of the first lease. |
 | `combined-backend-unavailable` | The controlled backend failure left resident activity `unavailable`, generated a zero-finding informational background response, and produced no repair. No clean result was claimed. |
@@ -61,5 +61,5 @@ prototype Stop path does not yet hand off such a notice.
 These runs establish one exact Linux host subset only. They do not validate the
 macOS arm64 / Codex CLI 0.156.0 profile, concurrent distinct host recipients,
 shared-root unknown-origin attribution, stale handoff, lost acknowledgement,
-collector crash, or the complete background lifecycle around tool calls and
+simultaneous resident collection, pre-Stop unconsumed output, collector crash, or the complete background lifecycle around tool calls and
 session end. The proposed hooks remain unregistered in the product.
