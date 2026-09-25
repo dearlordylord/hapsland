@@ -1,8 +1,8 @@
-# Issue #105: composed Codex delivery contract and adoption decision
+# Issue #105: reusable composed delivery contract and adoption decision
 
 Status: **candidate contract; Linux outcome gate open on 2026-09-25**. This
-document is the proposed specification for the combined Codex path. It does not
-enable a background hook or a Stop hook. The current installed Codex path
+document is the proposed specification for the combined Codex and Claude Code
+paths. It does not enable a background hook or a Stop hook. The current installed Codex path
 continues to admit direct edits and collect advice on later mapped edit hooks.
 The earlier probe did not pass the revised issue's before/after outcome gate.
 
@@ -16,23 +16,41 @@ defect remains. In the **after** case, a bounded host response carries the
 current suggestion to that recipient, a later model action follows it, the file
 is repaired, and a subsequent review is clear. Review completion, host
 submission, model action, and final file state are separate observations.
-Run this gate first with Codex, then with Claude Code on Linux. Claude may use
-its existing opted-in block hook for its own outcome gate; the background and
-Stop composition contract below is specific to Codex. macOS manual testing
+Run this gate first with Codex, then with Claude Code on Linux. Both after
+cases must use background delivery composed with bounded Stop collection
+through the same reusable resident module. Existing Claude block-only evidence
+does not pass this gate. macOS manual testing
 with real installed Codex and Claude Code belongs to a follow-up issue created
 when #105 closes.
+
+## Host-neutral implementation boundary
+
+One resident delivery module owns review work, advice, bounded wait state,
+recipient partitions, collection leases, submitted/uncertain handoff state,
+freshness checks, batching, failure outcomes, expiry, and Stop continuation
+allowances. Codex and Claude Code adapters map native hook inputs and outputs
+to that module. They may have host-specific registration and lifecycle rules,
+but cannot create separate review queues or duplicate the delivery state
+machine. Shared contract tests must exercise both adapters against one module.
+
+The current [Claude hook reference](https://code.claude.com/docs/en/hooks)
+documents async command hooks and Stop feedback. It says async output is
+delivered on a later conversation turn and pending async hooks are cancelled
+at headless `-p` teardown. Those are documentation claims; #105 must measure
+the exact installed Claude Code 2.1.218 behavior and its composition with
+Stop before adopting this path.
 
 ## Authority and identity
 
 The production resident is the sole owner of admitted review work, completed results,
-pending advice, collection leases, operational notices, and expiry. The Codex edit
+pending advice, collection leases, operational notices, and expiry. Each host edit
 adapter admits one attributed direct observation through `PostToolUse` and may collect
 previously ready advice. A native `async: true` background `PostToolUse` command and a
 synchronous `Stop` command are **delivery triggers only**. Neither may maintain a
 second review queue, reconstruct a review from the filesystem, or call Jev to obtain
 delivery output. All three collectors call the same resident collection operation.
 
-The partition key is the tuple `(canonical physical working root, host = codex-cli,
+The partition key is the tuple `(canonical physical working root, agent host,
 exact supported host version, session_id, supplied agent_id or null)`. It is created
 from the attributed edit and must be supplied unchanged by each collector. `turn_id`
 and `tool_use_id` identify events and continuation attempts; they do not replace the
@@ -150,7 +168,7 @@ backend responses are not retained.
 | Gate | Required observation | 2026-09-25 state |
 | --- | --- | --- |
 | Linux exact host | Linux arm64, Codex 0.155.1, Node 24.20.0, combined hooks through production resident | **Partial**. [Seven controlled host fixtures](../evidence/delivery-105/README.md) exercised both hooks, overlap, late retention, multi-unit delivery, and backend unavailability. Isolation, stale, and lost-acknowledgement gates remain open. |
-| Claude Linux outcome | Linux arm64, Claude Code 2.1.218, Node 24.20.0, matched before/after with independently observed repair and clear follow-up | **Missing**. Existing #94 block evidence is useful prior evidence, but is not a matched #105 before/after run. |
+| Claude Linux composition and outcome | Linux arm64, Claude Code 2.1.218, Node 24.20.0, background + Stop through the shared resident module; matched before/after with independently observed repair and clear follow-up | **Missing**. Existing #94 block evidence is useful prior evidence, but does not exercise the required composed path. |
 | macOS manual follow-up | Real installed Codex and Claude Code on the owner's macOS machine | **Deferred by issue scope**. Closure of #105 must create and link the follow-up issue; no macOS result is claimed here. |
 | Background timing | No later edit; completion during model request/tool call, final response, and after end; actual submission and model visibility | **Partial** on Linux. Early output preceded independently observed repair; output after the final model message produced no observed repair. Tool-call and after-end visibility remain unmeasured. |
 | Stop outcomes | Ready, completes during wait, deadline then later collectable, unavailable/backend failure, stale, multi-unit | **Partial** on Linux. Stop won a lease, collected during its wait, and left a later result collectable. Background delivered a multi-unit batch and a failure notice. Stale and Stop failure-notice delivery remain open. |
@@ -165,8 +183,8 @@ model visibility. The new Linux probe used a locally cached exact 0.155.1 binary
 with Node 24.20.0. The existing macOS GitHub Actions workflow covers package
 conformance and does not run this combined matrix.
 
-**Present decision:** do not register either proposed Codex hook yet. Retain
-subsequent-edit collection as the supported delivery policy while the Linux
+**Present decision:** do not register the proposed background or Stop hooks on
+either host yet. Retain current delivery policies while the Linux
 outcome and composition gates remain open. A rejection of adoption alone no
 longer completes #105: its revised success criterion requires the observed
 before/after repair outcome for both Linux hosts. Adoption requires the
