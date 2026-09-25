@@ -1126,7 +1126,7 @@ const program = Effect.gen(function* () {
     return yield* runEvaluationCommand(evaluationInput, {
       allowLive: process.argv.includes("--evaluation-live"),
       credentialEnvVar: process.env.EVALUATION_CREDENTIAL_ENV ?? "TYPESAFE_API_KEY",
-      ...(isControlled ? { controlled: yield* controlledOptions } : {}),
+      ...(isControlledReviewer ? { controlled: yield* controlledOptions } : {}),
     });
   }
   if (process.argv.includes("--setup") || inputRequestsSetup) {
