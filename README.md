@@ -56,7 +56,7 @@ Right after the file been modified. The agent gets almost immediate *non-blockin
 
 ### Who's slapping the hand?
 
-The system works as agent hooks. Each agent backend has its own implementation. TODO contribution. There is a background job that manages all queuing and async communication with Jev.
+The system works as agent hooks. Each agent host has its own implementation. TODO contribution. There is a background job that manages all queuing and async communication with Jev.
 
 ### Jev is slapping the hand?
 

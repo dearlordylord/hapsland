@@ -176,4 +176,4 @@ This table records only the earlier five-session pass described above. The later
 | Host failure / restart | Pending | Pending | No stale replay or destructive edit behavior. |
 | Native trust / plugin loading | Pending | Pending | Observe normal host behavior separately from Hapsland consent. |
 
-The branded block pass closed the selected block and repair gates, but the stale, failure-path, restart, and broader host-behavior cells remain open for a general Claude support declaration. Treat a hook's success, test-only controlled decision, and doctor readiness as separate evidence classes.
+The Stage B core allocation passed its stale, timeout, and backend-failure cases; the amended host-failure closure gate passed in a fresh allocation; and both restart arms passed. These selected fixtures establish stale-result rejection, edit-preserving timeout and backend-failure handling, host-failure closure, and restart recipient isolation under the tested conditions. They do not establish a repair rate or general Claude support, and OpenCode remains pending. Treat a hook's success, test-only controlled decision, and doctor readiness as separate evidence classes.
