@@ -1,8 +1,9 @@
 import { spawnSync } from "node:child_process";
-import { createHash, randomUUID } from "node:crypto";
-import { lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { lstatSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { atomicInstallationFile } from "./atomic-installation-file.ts";
 
 const MARKER = "--review-tool-owned=claude-v1";
 const PROFILE = "2.1.218";
@@ -100,16 +101,6 @@ const withGroups = (settings: JsonObject, next: ReadonlyArray<unknown>): JsonObj
   if (Object.keys(hooks).length === 0) delete result.hooks;
   else result.hooks = hooks;
   return result;
-};
-
-const atomic = (path: string, content: string | undefined) => {
-  if (content === undefined) { rmSync(path, { force: true }); return; }
-  mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
-  const temporary = `${path}.${process.pid}.${randomUUID()}.tmp`;
-  try {
-    writeFileSync(temporary, content, { encoding: "utf8", mode: 0o600, flag: "wx" });
-    renameSync(temporary, path);
-  } finally { rmSync(temporary, { force: true }); }
 };
 
 const host = (request: ClaudeInstallationRequest) => {
@@ -219,11 +210,11 @@ const apply = (kind: Kind, request: ClaudeInstallationRequest) => {
       if (next.noChange) return { version: 1 as const, operation, status: "already-current" as const };
       // Settings is applied last so a failed record write cannot enable a new hook.
       try {
-        atomic(input.paths.ownership, next.afterRecord);
-        atomic(input.paths.settings, next.afterSettings);
+        atomicInstallationFile(input.paths.ownership, next.afterRecord);
+        atomicInstallationFile(input.paths.settings, next.afterSettings);
       } catch (cause) {
         try {
-          if (file(input.paths.settings) === next.beforeSettings) atomic(input.paths.ownership, next.beforeRecord);
+          if (file(input.paths.settings) === next.beforeSettings) atomicInstallationFile(input.paths.ownership, next.beforeRecord);
         } catch { /* preserve the original error and expose the partial state to inspection */ }
         throw cause;
       }

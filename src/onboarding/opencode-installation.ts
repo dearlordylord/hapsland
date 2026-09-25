@@ -1,9 +1,10 @@
 import { spawnSync } from "node:child_process";
-import { createHash, randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { renderOpenCodePlugin } from "../hosts/opencode/plugin.ts";
+import { atomicInstallationFile } from "./atomic-installation-file.ts";
 
 const PROFILE = "1.14.44";
 const ADAPTER = "opencode";
@@ -42,15 +43,6 @@ const record = (content: string | undefined): OwnedRecord | undefined => {
     throw new Error("OpenCode ownership record has an unsupported shape");
   }
   return r as OwnedRecord;
-};
-const atomic = (path: string, content: string | undefined) => {
-  if (content === undefined) { rmSync(path, { force: true }); return; }
-  mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
-  const temporary = `${path}.${process.pid}.${randomUUID()}.tmp`;
-  try {
-    writeFileSync(temporary, content, { encoding: "utf8", mode: 0o600, flag: "wx" });
-    renameSync(temporary, path);
-  } finally { rmSync(temporary, { force: true }); }
 };
 const inputs = (request: OpenCodeInstallationRequest) => {
   const home = resolve(request.opencodeConfigHome ?? join(process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"), "opencode"));
@@ -122,14 +114,14 @@ const apply = (kind: Kind, request: OpenCodeInstallationRequest) => {
       if (next.noChange) return { version: 1 as const, operation: kind, status: "already-current" as const };
       try {
         if (kind === "uninstall") {
-          atomic(input.paths.plugin, undefined);
-          atomic(input.paths.ownership, undefined);
+          atomicInstallationFile(input.paths.plugin, undefined);
+          atomicInstallationFile(input.paths.ownership, undefined);
         } else {
-          atomic(input.paths.ownership, next.afterRecord);
-          atomic(input.paths.plugin, next.afterPlugin);
+          atomicInstallationFile(input.paths.ownership, next.afterRecord);
+          atomicInstallationFile(input.paths.plugin, next.afterPlugin);
         }
       } catch (cause) {
-        if (read(input.paths.plugin) === next.beforePlugin) atomic(input.paths.ownership, next.beforeRecord);
+        if (read(input.paths.plugin) === next.beforePlugin) atomicInstallationFile(input.paths.ownership, next.beforeRecord);
         throw cause;
       }
       return { version: 1 as const, operation: kind, status: "complete" as const, sourceEgressAuthorized: false };
