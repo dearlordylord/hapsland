@@ -8,14 +8,23 @@ and Claude Code 2.1.218. The [runner](run-matched-linux.mjs) invokes each exact
 host with temporary native hook settings and the production Hapsland CLI and
 resident. Its controlled offline Effect `DecisionModel` completes an actionable
 finding for the initial edit. The before sessions expose only the synchronous
-edit hook. The after sessions set `REVIEW_ENABLE_COMPOSED_CANDIDATE=1` and run
-the shared background, Stop, and prompt
+edit hook. The after sessions run the shared background, Stop, and prompt
 hook commands. The fixture holds the async background command so Stop can be
 the last delivery opportunity in the headless turn. It asserts that neither
 before session receives a finding or repairs the file, while both after
 sessions receive a Stop block, make a second native edit, repair the file,
 and complete a clear follow-up review. This is one matched pair per host, not a
 population estimate. The early-background visibility edge remains open.
+
+After removing the runtime activation flag, three consecutive full matched
+attempts on the same exact Linux host and Node versions passed all four cases:
+[attempt 1](linux-repeatability-1.json), [attempt 2](linux-repeatability-2.json),
+and [attempt 3](linux-repeatability-3.json). Each before review completed before
+host exit without handoff or repair; each after Stop response led to a second
+native edit, repaired file, and clear follow-up review. These are three selected
+controlled attempts, not a population reliability estimate. Earlier retained
+misses remain relevant to the unresolved background opportunity and host
+lifecycle gates.
 
 The record contains only event kinds, counts, timing, and outcome flags. Raw
 host output, source, credentials, and backend responses are not retained.

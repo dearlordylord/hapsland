@@ -1,14 +1,14 @@
 # Issue #105: reusable composed delivery contract and adoption decision
 
-Status: **candidate implementation; matched Linux outcome gate passed on 2026-09-25;
+Status: **candidate implementation; three consecutive matched Linux attempts passed on 2026-09-25;
 remaining conformance gates open**. This document is the contract for the combined
 Codex and Claude Code paths. The implementation now registers background, Stop,
 and prompt hooks through each installer and shares one resident delivery module.
 The matched host probe uses the production CLI and resident with isolated native
 hook settings; the full installation and race matrix still needs validation.
-The candidate commands are inert unless an isolated validation environment
-sets `REVIEW_ENABLE_COMPOSED_CANDIDATE=1`. Normal installed sessions retain the
-current synchronous edit collection policy while the remaining gates are open.
+The installed Codex and Claude definitions in this branch have one composed
+delivery behavior. The branch must not be adopted on the default release line
+until the evidence gates and the owner's final rollout decision are complete.
 
 ## Required product outcome
 
@@ -175,8 +175,9 @@ backend responses are not retained.
 
 | Gate | Required observation | 2026-09-25 state |
 | --- | --- | --- |
-| Codex Linux outcome | Linux arm64, Codex 0.155.1, Node 24.20.0, matched before/after through the production resident | **Passed in one controlled pair; composition reliability open**. [Sanitized matched record](../evidence/delivery-105/linux-matched-before-after.json): before had one completed review, no finding submission, unchanged file; after Stop submitted a finding, the model made a second edit, the file was repaired, and a second review was clear. A separate [race run](../evidence/delivery-105/linux-matched-race-miss.json) submitted background output just before Stop without an observed repair. |
-| Claude Linux composition and outcome | Linux arm64, Claude Code 2.1.218, Node 24.20.0, background + Stop through the shared resident module; matched before/after with independently observed repair and clear follow-up | **Passed in one controlled pair; reproducibility gate open**. The before review completed before headless session exit with no submission or repair; after Stop submitted a finding, Claude made a second native edit, the file was repaired, and follow-up review was clear. A separate [traced run](../evidence/delivery-105/linux-host-command-timing-missed-clear.json) repaired the file but did not record a clear follow-up. A later [rerun](../evidence/delivery-105/linux-matched-postreview-instability.json) failed Claude hook admission. The headless host canceled outstanding async background hooks at session end. |
+| Codex Linux outcome | Linux arm64, Codex 0.155.1, Node 24.20.0, matched before/after through the production resident | **Passed in three consecutive controlled attempts** after the runtime flag was removed: [1](../evidence/delivery-105/linux-repeatability-1.json), [2](../evidence/delivery-105/linux-repeatability-2.json), [3](../evidence/delivery-105/linux-repeatability-3.json). Each before review completed without handoff or repair; each after Stop finding led to a second edit, repaired file, and clear follow-up. A separate [race run](../evidence/delivery-105/linux-matched-race-miss.json) submitted background output just before Stop without observed repair; composition reliability remains open. |
+| Claude Linux composition and outcome | Linux arm64, Claude Code 2.1.218, Node 24.20.0, background + Stop through the shared resident module; matched before/after with independently observed repair and clear follow-up | **Passed in the same three consecutive controlled attempts**. Earlier [missed-clear](../evidence/delivery-105/linux-host-command-timing-missed-clear.json) and [hook-admission](../evidence/delivery-105/linux-matched-postreview-instability.json) failures remain retained; the broader lifecycle gate is open. The headless host canceled outstanding async background hooks at session end. |
+| Single installed behavior and owner review | No selectable legacy mode; owner considers repeatability, limitations, and rollout before closure | **Implementation passed; final owner decision pending.** This branch installs composed delivery as the sole mode. The owner directed one mode in the session; the issue now requires a separate evidence-backed owner review before adoption. |
 | macOS manual follow-up | Real installed Codex and Claude Code on the owner's macOS machine | **Deferred by issue scope**. Closure of #105 must create and link the follow-up issue; no macOS result is claimed here. |
 | Background timing | No later edit before delivery; completion during model request/tool call, final response, and after end; actual submission and model visibility | **Partial** on Linux. [Selected early-completion runs](../evidence/delivery-105/linux-background-opportunities.json) submitted async findings on both hosts; Claude made a repair edit and completed a clear follow-up, while Codex finished without a repair. Separate [contended](../evidence/delivery-105/linux-background-opportunities-contended.json) and [late Claude](../evidence/delivery-105/linux-claude-background-late-miss.json) runs also submitted findings without observed repair. This shows host submission does not guarantee model visibility. Exact in-flight tool-call and after-end visibility boundaries need further classification. |
 | Stop outcomes | Ready, completes during wait, deadline then later collectable, unavailable/backend failure, stale, multi-unit | **Partial** on Linux. Stop won a lease, collected during its wait, and left a later result collectable. Background delivered a multi-unit batch and a failure notice. Stale and Stop failure-notice delivery remain open. |

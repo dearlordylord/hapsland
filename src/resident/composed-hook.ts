@@ -78,10 +78,6 @@ export const runComposedHook = async (input: {
   readonly userConfigPath?: string;
   readonly controlled?: ControlledDecisionModelOptions;
 }): Promise<void> => {
-  if (process.env.REVIEW_ENABLE_COMPOSED_CANDIDATE !== "1") {
-    if (input.kind !== "background") process.stdout.write("{}\n");
-    return;
-  }
   const deadlineAt = input.kind === "background" ? 20_000 : input.kind === "stop" ? 4_200 : 2_500;
   const quiet = async () => {
     if (input.kind !== "background") await writeJson({}, deadlineAt);

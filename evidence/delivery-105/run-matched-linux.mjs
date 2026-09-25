@@ -114,7 +114,7 @@ for (const entry of cases) {
         outcomePath, capturePath,
       }), HAPSLAND_105_TRACE: trace, HAPSLAND_105_CLI: cli,
       ...(candidate ? { HAPSLAND_105_BACKGROUND_DELAY_MS: entry.phase === 'background' ? '0' : '20000',
-        HAPSLAND_105_COMPOSED_EDIT: '1', REVIEW_ENABLE_COMPOSED_CANDIDATE: '1' } : {}) };
+        HAPSLAND_105_COMPOSED_EDIT: '1' } : {}) };
     for (const key of ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'TYPESAFE_API_KEY']) delete env[key];
     const enable = (operation, proposalDigest) => spawnSync(process.execPath, [cli, `--${operation}`], {
       cwd: project, env,

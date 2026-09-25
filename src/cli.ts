@@ -502,8 +502,7 @@ const runRequest = (
 const isCodexHook = process.argv.includes("--codex-hook");
 const isClaudeHook = process.argv.includes("--claude-hook");
 const isOpenCodeHook = process.argv.includes("--opencode-hook");
-const isComposedEditHook = process.argv.includes("--composed-edit-hook") &&
-  process.env.REVIEW_ENABLE_COMPOSED_CANDIDATE === "1";
+const isComposedEditHook = process.argv.includes("--composed-edit-hook");
 const composedKind: ComposedHookKind | undefined = process.argv.includes("--composed-background-hook")
   ? "background" : process.argv.includes("--composed-stop-hook")
     ? "stop" : process.argv.includes("--composed-prompt-hook") ? "prompt" : undefined;

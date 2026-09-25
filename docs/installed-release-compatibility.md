@@ -5,8 +5,8 @@ in [issue #105](issue-105-composed-delivery.md) is **not part of the pinned rele
 support declaration below**. One matched headless before/after pair per host
 passed on Linux arm64 with Node 24.20.0, Codex CLI 0.155.1, and Claude Code
 2.1.218 through the production resident and controlled offline Effect backend.
-The candidate source registers inert composed hooks; the validation path requires
-`REVIEW_ENABLE_COMPOSED_CANDIDATE=1`. Its remaining race,
+The candidate source registers composed hooks as its only installed delivery
+behavior. Its remaining race,
 isolation, failure, and installed-package gates are open. The verified release
 cells below apply to the earlier pinned commit and delivery behavior only; they
 do not establish installed-release or macOS support for #105.
