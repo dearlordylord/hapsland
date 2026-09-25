@@ -34,7 +34,9 @@ The runner uses a temporary Git repository, controlled local review backend, a s
 
 At most two sessions run sequentially, with control first and finding only after the control passes. Each session has a 90-second wall ceiling and a 2 MB combined stdout/stderr ceiling. The ledger prevents rerunning a consumed or failed stage. Both sessions use native `Edit`/`Write` hook delivery, with a 5-second hook, 4.4-second bridge, and production CLI. The runner retains only source-free counts, booleans, relative times, and status; host JSONL, native payloads, source, hook output, prompts, and profile credentials remain in memory or a deleted temporary fixture. No raw host output is printed or committed.
 
-## Acceptance gates
+## Original acceptance gates (superseded repair fixture)
+
+These gates governed the earlier `number` to `string` allocations. The branded trial used the corrected fixture and stricter repair-review gate described below.
 
 1. **Control:** Claude makes exactly one attributed native initial edit with `type OrderCount = number` as the complete one-line content. The matching hook succeeds. Hapsland admits and completes a clear review. The host gets no advice, no block, and no operational notice; the final file still has exactly that initial line.
 2. **Finding:** Under the same user block mode, Claude makes the same exact initial native edit and its matching hook succeeds. Hapsland admits and completes one current controlled `r6_bare_domain_value` finding. The initial hook submits exactly one classified **top-level** `{ "decision": "block", "reason": "..." }` response containing that rule marker; an advisory `additionalContext` response cannot satisfy this gate. No unknown or unclassified host submission is allowed.
@@ -42,7 +44,7 @@ At most two sessions run sequentially, with control first and finding only after
 
 The scripted offline tests must pass first, including the negative case where an advisory finding is delivered and a scripted repair occurs: that case must still fail the block gate. The host trial cannot establish stale and failure-path authority by itself, and success would not declare general Claude support without the remaining host validation gates.
 
-## Prospective corrected fixture after the failed finding arm
+## Corrected fixture used in the passing branded trial
 
 The completed finding arm above remains **failed** under its original strict gate. Its controlled backend returned `r6_bare_domain_value = 0.90` for every reviewed snapshot, while the requested `number` to `string` edit left `OrderCount` a bare primitive. The second classified block is therefore consistent with that fixture defect. The retained source-free record alone cannot prove the second hook's exact review reason, and this correction does not change that record or count it as a pass.
 

@@ -116,7 +116,7 @@ The `finding` run naturally tests the **no later event** case when the model fin
 
 ## Historical first-pass acceptance ledger (before classified block feedback)
 
-This table records only the earlier five-session pass described above. The fresh block pass is reported at the top of this document; it observed repair but failed its separate single-finding gate.
+This table records only the earlier five-session pass described above. The later branded block pass reported at the top passed its separate single-finding and repair gates.
 
 | Check | Claude 2.1.218 | OpenCode 1.14.44 | Pass criterion |
 | --- | --- | --- | --- |
@@ -132,4 +132,4 @@ This table records only the earlier five-session pass described above. The fresh
 | Host failure / restart | Pending | Pending | No stale replay or destructive edit behavior. |
 | Native trust / plugin loading | Pending | Pending | Observe normal host behavior separately from Hapsland consent. |
 
-The historical pending cells and the newer block pass's failed single-finding gate block a support declaration. Treat a hook's success, test-only controlled decision, and doctor readiness as separate evidence classes.
+The branded block pass closed the selected block and repair gates, but the stale, failure-path, restart, and broader host-behavior cells remain open for a general Claude support declaration. Treat a hook's success, test-only controlled decision, and doctor readiness as separate evidence classes.
