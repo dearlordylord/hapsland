@@ -61,6 +61,13 @@ describe("resident protocol bounds", () => {
       },
     }));
     expect(decoded?.operation).toBe("admit");
+    if (decoded?.operation !== "admit") throw new Error("expected admission");
+    const synthetic = { ...decoded, dispatch: { ...decoded.dispatch,
+      controlled: { syntheticR6BrandedRepair: "finding" } } };
+    expect(decodeResidentRequest(JSON.stringify(synthetic))?.operation).toBe("admit");
+    expect(decodeResidentRequest(JSON.stringify({ ...synthetic, dispatch: {
+      ...synthetic.dispatch, controlled: { syntheticR6BrandedRepair: "unknown" },
+    } }))).toBeUndefined();
     if (decoded?.operation === "admit") expect(decoded.observation.recipient.agentId).toBe("child-7");
     expect(decodeResidentRequest(JSON.stringify({
       version: 1,

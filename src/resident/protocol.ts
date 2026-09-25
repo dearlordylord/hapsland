@@ -17,6 +17,7 @@ export type ResidentControlledOptions = {
   readonly capturePath?: string;
   readonly outcomePath?: string;
   readonly requireCredential?: boolean;
+  readonly syntheticR6BrandedRepair?: "control" | "finding";
 };
 
 export type ResidentDispatchContext = {
@@ -150,6 +151,8 @@ const controlled = (value: unknown): value is ResidentControlledOptions => {
   if (item.capturePath !== undefined && typeof item.capturePath !== "string") return false;
   if (item.outcomePath !== undefined && typeof item.outcomePath !== "string") return false;
   if (item.requireCredential !== undefined && typeof item.requireCredential !== "boolean") return false;
+  if (item.syntheticR6BrandedRepair !== undefined &&
+    item.syntheticR6BrandedRepair !== "control" && item.syntheticR6BrandedRepair !== "finding") return false;
   return true;
 };
 

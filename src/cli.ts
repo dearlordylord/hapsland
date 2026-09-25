@@ -142,6 +142,7 @@ const ControlledOptions = Schema.Struct({
   capturePath: Schema.optionalKey(Schema.String),
   outcomePath: Schema.optionalKey(Schema.String),
   requireCredential: Schema.optionalKey(Schema.Boolean),
+  syntheticR6BrandedRepair: Schema.optionalKey(Schema.Literals(["control", "finding"])),
 });
 
 const controlledOptions = Config.String("REVIEW_CONTROL_JSON").pipe(

@@ -36,7 +36,9 @@ if(process.env.HAPSLAND_94_FAKE_FLOOD==='1'){
 const repo=process.cwd(), path=join(repo,'order-count.ts');
 const session=process.env.HAPSLAND_94_FAKE_SESSION||'scripted-session';
 const initial='type OrderCount = number\\n';
-const repaired='type OrderCount = string\\n';
+const repaired=process.env.HAPSLAND_94_FAKE_BRANDED_REPAIR==='1'
+  ? 'type OrderCount = number & { readonly __brand: "OrderCount" }\\n'
+  : 'type OrderCount = string\\n';
 const print=(id,tool,input)=>{
   if(process.env.HAPSLAND_94_FAKE_EVENT_SHAPE==='unknown' && id==='second')
     return writeSync(1,JSON.stringify({type:'unknown'})+'\\n');
@@ -52,9 +54,14 @@ const call=async(id,tool,input,metadata)=>{
   if(host==='claude'){
     const settings=JSON.parse(readFileSync(join(repo,'.claude','settings.json'),'utf8'));
     const command=settings.hooks.PostToolUse[0].hooks[0].command;
+    const response=tool==='Edit' && process.env.HAPSLAND_94_FAKE_BRANDED_REPAIR==='1' &&
+      process.env.HAPSLAND_94_FAKE_BAD_REPAIR_RESPONSE!=='1'
+      ? {filePath:path,oldString:input.old_string,newString:input.new_string,
+          originalFile:initial,replaceAll:false,userModified:false}
+      : {filePath:path,content:input.content,
+          originalFile:metadata?.exists===false?null:initial,userModified:false};
     const event={hook_event_name:'PostToolUse',tool_name:tool,cwd:repo,session_id:session,
-      tool_use_id:id,tool_input:input,tool_response:{filePath:path,content:input.content,
-        originalFile:metadata?.exists===false?null:'type OrderCount = number\\n',userModified:false}};
+      tool_use_id:id,tool_input:input,tool_response:response};
     const result=spawnSync(command,{shell:true,input:JSON.stringify(event),encoding:'utf8',env:process.env,timeout:6000});
     if(result.status!==0) process.exit(20);
     return result.stdout;
@@ -85,9 +92,12 @@ if(process.env.HAPSLAND_94_FAKE_DUPLICATE_INITIAL_FINISH==='1'){
     finishedAtMs:Date.now()-Number(process.env.HAPSLAND_94_LAUNCH_AT),ok:false})+'\\n');
 }
 if(first.includes('[r6_bare_domain_value, p=') && process.env.HAPSLAND_94_FAKE_REACT==='1'){
+  const oldString=process.env.HAPSLAND_94_FAKE_BRANDED_REPAIR==='1'?'type OrderCount = number':'number';
+  const newString=process.env.HAPSLAND_94_FAKE_BRANDED_REPAIR==='1'
+    ? 'type OrderCount = number & { readonly __brand: "OrderCount" }':'string';
   const input=host==='claude'
-    ? {file_path:path,old_string:'number',new_string:'string'}
-    : {filePath:path,oldString:'number',newString:'string',replaceAll:false};
+    ? {file_path:path,old_string:oldString,new_string:newString,replace_all:false}
+    : {filePath:path,oldString,newString,replaceAll:false};
   writeFileSync(path,repaired);
   await call('second',host==='claude'?'Edit':'edit',input,{exists:true});
 }
@@ -262,7 +272,8 @@ const runNoHookStageB = (host, scenario) => {
     assert.equal(summary.acceptanceStatus, 'incomplete');
   } finally { rmSync(root, { recursive: true, force: true }); }
 };
-const run = (host, shape, stageB = null, blockTrial = false, advisoryDowngrade = false) => {
+const run = (host, shape, stageB = null, blockTrial = false, advisoryDowngrade = false,
+  badRepairResponse = false) => {
   const root = mkdtempSync(join(tmpdir(), 'hapsland-94-integration-'));
   try {
     const executable = join(root, 'scripted-host.mjs');
@@ -272,6 +283,7 @@ const run = (host, shape, stageB = null, blockTrial = false, advisoryDowngrade =
     const env = { ...process.env, HAPSLAND_94_PASS_LEDGER: ledger,
       HAPSLAND_94_SCRIPTED_EXECUTABLE: executable, HAPSLAND_94_FAKE_HOST: host,
       HAPSLAND_94_FAKE_REACT: '1', HAPSLAND_94_FAKE_EVENT_SHAPE: shape,
+      ...(badRepairResponse ? { HAPSLAND_94_FAKE_BAD_REPAIR_RESPONSE: '1' } : {}),
       TYPESAFE_API_KEY: '' };
     if (advisoryDowngrade) {
       const override = join(root, 'advisory-downgrade.mjs');
@@ -309,6 +321,11 @@ const run = (host, shape, stageB = null, blockTrial = false, advisoryDowngrade =
     assert.ok(Number.isFinite(finding.editObservedToSubmissionMs));
     assert.equal(finding.findingSubmissions, 1);
     if (blockTrial) assert.equal(finding.blockFindingSubmissions, advisoryDowngrade ? 0 : 1);
+    if (blockTrial) {
+      assert.equal(finding.nativeModelEditEvents, 2);
+      assert.equal(finding.nativeDirectHookCalls, 2);
+      assert.equal(finding.repairReviewCompletedClear, !badRepairResponse);
+    }
     assert.equal(finding.operationalNoticeSubmissions, 0);
     assert.equal(finding.hostSubmissions, 1);
     if (shape === 'unknown') {
@@ -328,11 +345,11 @@ const run = (host, shape, stageB = null, blockTrial = false, advisoryDowngrade =
         assert.equal(finding.blockFindingSubmissions, 0);
       }
       assert.equal(finding.noLaterEventOutcome, 'observed-reaction');
-      assert.equal(finding.acceptanceStatus, advisoryDowngrade ? 'failed' : 'passed');
+      assert.equal(finding.acceptanceStatus, advisoryDowngrade || badRepairResponse ? 'failed' : 'passed');
     }
     assert.equal(readPassLedger(ledger).length, 2);
     assert.equal(readPassLedger(ledger)[1].finish.status,
-      shape === 'unknown' || advisoryDowngrade ? 'failed' : 'recorded');
+      shape === 'unknown' || advisoryDowngrade || badRepairResponse ? 'failed' : 'recorded');
     if (stageB === 'stale') {
       const stale = invoke('stale');
       assert.equal(stale.acceptanceStatus, 'passed');
@@ -400,6 +417,8 @@ test('offline Claude block trial requires production block and matched repair', 
   () => run('claude', 'known', null, true));
 test('advisory finding and repair cannot pass a Claude block trial', { timeout: 120_000 },
   () => run('claude', 'known', null, true, true));
+test('native repair without an attributed clear review cannot pass a Claude block trial', { timeout: 120_000 },
+  () => run('claude', 'known', null, true, false, true));
 test('offline OpenCode scripted bridge classifies finding and matched reaction', { timeout: 120_000 }, () => run('opencode', 'known'));
 test('unknown Claude host event remains unproven despite classified finding and repair', { timeout: 120_000 },
   () => run('claude', 'unknown'));

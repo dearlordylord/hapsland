@@ -55,6 +55,9 @@ if (timingRoot !== undefined) mkdirSync(root, { recursive: true, mode: 0o700 });
 const repo = join(root, 'repo');
 const trace = join(root, 'trace.jsonl');
 const source = join(repo, 'order-count.ts');
+const initialSource = 'type OrderCount = number';
+const repairedSource = 'type OrderCount = number & { readonly __brand: "OrderCount" }';
+const exactLine = (content, line) => content === line || content === `${line}\n` || content === `${line}\r\n`;
 const statePath = join(root, 'consent');
 const userConfigPath = join(root, 'user-config.jsonc');
 const bridge = join(root, 'bridge.mjs');
@@ -91,18 +94,20 @@ const controlled = scenario === 'timeout' ? { delayMs: 10_000 } : scenario === '
   scenario === 'failure' ? { failure: 'synthetic backend unavailable' } : {};
 const env = { ...process.env, REVIEW_STATE_PATH: statePath, REVIEW_RESIDENT_DIR: join(root, 'resident'),
   ...(blockTrial ? { REVIEW_USER_CONFIG_PATH: userConfigPath } : {}),
-  REVIEW_CONTROL_JSON: JSON.stringify({ ...controlled, outcomePath, answers: Object.fromEntries(configuredRules.map(rule => [
-    rule.id, { _tag: 'Probability', probability: scenario !== 'control' && rule.id === 'r6_bare_domain_value' ? 0.9 : 0 },
-  ])) }),
+  REVIEW_CONTROL_JSON: JSON.stringify({ ...controlled, outcomePath,
+    ...(blockTrial ? { syntheticR6BrandedRepair: scenario } : { answers: Object.fromEntries(configuredRules.map(rule => [
+      rule.id, { _tag: 'Probability', probability: scenario !== 'control' && rule.id === 'r6_bare_domain_value' ? 0.9 : 0 },
+    ])) }) }),
   HAPSLAND_94_CLI: offlineScripted && process.env.HAPSLAND_94_SCRIPTED_CLI
     ? process.env.HAPSLAND_94_SCRIPTED_CLI : cli,
   HAPSLAND_94_TRACE: trace, HAPSLAND_94_SALT: salt,
   ...(offlineScripted ? { HAPSLAND_94_FAKE_SESSION: scenario } : {}),
+  ...(offlineScripted && blockTrial ? { HAPSLAND_94_FAKE_BRANDED_REPAIR: '1' } : {}),
   REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH: join(root, 'admitted'),
   ...(scenario === 'stale' || scenario === 'host-failure' || restartOld || restartNew ? {
     REVIEW_RESIDENT_BACKEND_GATE_PATH: join(root, 'backend-gate'),
   } : {}) };
-const prompt = 'Use a native file edit or write tool to create order-count.ts with exactly one line: type OrderCount = number. Then stop unless a Hapsland review finding tells you to repair it. If such a finding arrives, use a native edit tool to change number to string, then finish. Do not use shell commands and do not repair proactively.';
+const prompt = `Use a native file edit or write tool to create order-count.ts with exactly one line: ${initialSource}. Then stop unless a Hapsland review finding tells you to repair it. If such a finding arrives, use a native edit tool to replace the entire line with exactly: ${repairedSource}. Then finish. Do not use shell commands and do not repair proactively.`;
 let hostLifecycle;
 let sessionTimer;
 let poll;
@@ -238,12 +243,14 @@ try {
       const parts = message?.type === 'assistant' && Array.isArray(message?.message?.content)
         ? message.message.content : [];
       for (const event of parsed) {
-        const exact = parts.some(part => part?.type === 'tool_use' &&
+        const part = parts.find(part => part?.type === 'tool_use' &&
           typeof part.id === 'string' &&
-          createHash('sha256').update(`${salt}:${part.id}`).digest('hex') === event.key &&
-          typeof part.input?.content === 'string' &&
-          /^type OrderCount = number\r?\n?$/.test(part.input.content));
-        nativeEvents.push({ ...event, initialInput: event.initialInput && exact });
+          createHash('sha256').update(`${salt}:${part.id}`).digest('hex') === event.key);
+        const initial = part?.name === 'Write' && exactLine(part.input?.content, initialSource);
+        const repaired = part?.name === 'Edit'
+          ? part.input?.old_string === initialSource && part.input?.new_string === repairedSource
+          : part?.name === 'Write' && exactLine(part.input?.content, repairedSource);
+        nativeEvents.push({ ...event, initialInput: Boolean(initial), repairInput: Boolean(repaired) });
       }
     } else nativeEvents.push(...parsed);
   };
@@ -325,6 +332,18 @@ try {
     typeof item.sessionId === 'string' &&
     createHash('sha256').update(`${salt}:${item.sessionId}`).digest('hex') === initialHooks[0].sessionKey &&
     ['completed-clear', 'completed-findings'].includes(item.outcome)) : [];
+  const repairNative = blockTrial && scenario === 'finding' && initialCallComplete
+    ? nativeEvents.filter(item => item.key !== initialNative[0].key && item.repairInput && item.key && item.tool &&
+      Number.isFinite(item.observedAtMs) && item.observedAtMs >= 0) : [];
+  const repairHooks = repairNative.length === 1 ? events.filter(item =>
+    item.key === repairNative[0].key && item.tool === repairNative[0].tool && item.ok === true &&
+    Number.isFinite(item.finishedAtMs) && item.finishedAtMs >= repairNative[0].observedAtMs) : [];
+  const repairOutcomes = repairHooks.length === 1 ? reviewOutcomes.filter(item =>
+    typeof item.toolUseId === 'string' &&
+    createHash('sha256').update(`${salt}:${item.toolUseId}`).digest('hex') === repairNative[0].key &&
+    typeof item.sessionId === 'string' &&
+    createHash('sha256').update(`${salt}:${item.sessionId}`).digest('hex') === repairHooks[0].sessionKey &&
+    item.outcome === 'completed-clear') : [];
   const initialSubmission = initialCallComplete && initialHooks[0].submitted ? initialHooks[0] : null;
   const submissionInterval = initialSubmission
     ? initialSubmission.finishedAtMs - initialNative[0].observedAtMs : null;
@@ -355,6 +374,13 @@ try {
   evidence.reviewAdmissionAttribution = evidence.reviewAdmissionMarkerObserved
     ? 'unattributed-global-marker' : 'not-observed';
   evidence.reviewCompletedOutcome = initialOutcomes.length === 1 ? initialOutcomes[0].outcome : 'not-observed';
+  if (blockTrial && scenario === 'finding') {
+    evidence.repairReviewCompletedClear = repairOutcomes.length === 1;
+    evidence.reviewOutcomeCount = reviewOutcomes.length;
+    evidence.repairNativeCount = repairNative.length;
+    evidence.repairHookCount = repairHooks.length;
+    evidence.repairOutcomeCount = repairOutcomes.length;
+  }
   evidence.editObservedToSubmissionMs = Number.isFinite(submissionInterval) && submissionInterval >= 0
     ? submissionInterval : null;
   evidence.editToSubmissionIncludesHostOutputDelay = true;
@@ -369,13 +395,13 @@ try {
     evidence.bridgeInnerStartAtMs = events[0] === undefined
       ? null : events[0].finishedAtMs - events[0].elapsedMs;
   }
-  evidence.completedSyntheticEdit = final.includes('type OrderCount = number') ||
-    final.includes('type OrderCount = string') ||
+  evidence.completedSyntheticEdit = final.includes(initialSource) ||
+    final.includes(blockTrial ? repairedSource : 'type OrderCount = string') ||
     (scenario === 'stale' && staleMutation && nativeEvents.some(item => item.initialInput) && events.length > 0);
-  evidence.finalRepairObserved = final.includes('type OrderCount = string');
+  evidence.finalRepairObserved = final.includes(blockTrial ? repairedSource : 'type OrderCount = string');
   evidence.finalFileExact = scenario === 'control'
-    ? /^type OrderCount = number\r?\n?$/.test(final)
-    : scenario === 'finding' ? /^type OrderCount = string\r?\n?$/.test(final) : null;
+    ? exactLine(final, initialSource)
+    : scenario === 'finding' ? exactLine(final, blockTrial ? repairedSource : 'type OrderCount = string') : null;
   evidence.externalStaleMutation = staleMutation;
   evidence.staleAdmissionObservedBeforeMutation = scenario === 'stale' ? admissionObserved && staleMutation : null;
   evidence.admissionMatchedInitialNativeCall = scenario === 'stale' || scenario === 'host-failure'
@@ -419,7 +445,8 @@ try {
       evidence.reviewCompletedOutcome === 'completed-clear' && evidence.completedSyntheticEdit &&
       evidence.hostSubmissions === 0 && evidence.blockFindingSubmissions === 0 &&
       !evidence.finalRepairObserved &&
-      (!blockTrial || evidence.finalFileExact) : null;
+      (!blockTrial || (evidence.finalFileExact && nativeEvents.length === 1 && events.length === 1 &&
+        reviewOutcomes.length === 1)) : null;
   evidence.adviceAfterStaleMutation = scenario === 'stale' ? evidence.findingSubmissions > 0 : null;
   evidence.hostOutputParsedForSourceFreeSignalsOnly = true;
   evidence.status = timedOut || exceededOutput || exit.forcedClose ? 'incomplete' : 'recorded';
@@ -434,7 +461,10 @@ try {
       : scenario === 'finding'
         ? evidence.reviewCompletedOutcome === 'completed-findings' && evidence.findingSubmissions === 1 &&
           (!blockTrial || (evidence.blockFindingSubmissions === 1 && evidence.hostSubmissions === 1 &&
-            evidence.operationalNoticeSubmissions === 0 && evidence.finalFileExact)) &&
+            evidence.operationalNoticeSubmissions === 0 && nativeEvents.length === 2 &&
+            events.length === 2 && evidence.nativeModelEditEvents === 2 &&
+            reviewOutcomes.length === 2 && evidence.repairReviewCompletedClear &&
+            evidence.finalFileExact)) &&
           evidence.modelReaction.status === (blockTrial
             ? 'observed-native-repair-after-block' : 'observed-native-repair-after-advice')
           && evidence.unclassifiedSubmissions === 0 ? 'passed' : 'failed'

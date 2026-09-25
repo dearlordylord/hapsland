@@ -20,6 +20,40 @@ export type ControlledDecisionModelOptions = {
   readonly outcomePath?: string;
   /** Installed acceptance seam: exercise production credential resolution before the controlled transport. */
   readonly requireCredential?: boolean;
+  /** Exact, source-sensitive #94 offline fixture. Unknown snapshots fail closed. */
+  readonly syntheticR6BrandedRepair?: "control" | "finding";
+};
+
+const syntheticBefore = "type OrderCount = number";
+const syntheticAfter = 'type OrderCount = number & { readonly __brand: "OrderCount" }';
+const exactLine = (source: unknown, line: string): boolean =>
+  typeof source === "string" &&
+  (source === line || source === `${line}\n` || source === `${line}\r\n`);
+
+const syntheticAnswers = (
+  request: DecisionModel.ProviderOptions,
+  scenario: "control" | "finding",
+): Effect.Effect<Readonly<Record<string, DecisionModel.ProviderAnswer>>, AiError.AiError> => {
+  const state = request.state;
+  const artifact = typeof state === "object" && state !== null && !Array.isArray(state)
+    ? (state as Record<string, unknown>).artifact : undefined;
+  const artifactRecord = typeof artifact === "object" && artifact !== null && !Array.isArray(artifact)
+    ? artifact as Record<string, unknown> : undefined;
+  const source = artifactRecord?.source;
+  const before = exactLine(source, syntheticBefore);
+  const expected = artifactRecord?.domain === "order-count.ts" &&
+    (before || (scenario === "finding" && exactLine(source, syntheticAfter)));
+  if (!expected || !Object.hasOwn(request.decisions, "r6_bare_domain_value")) {
+    return Effect.fail(AiError.make({
+      module: "ControlledDecisionModel",
+      method: "decide",
+      reason: new AiError.InvalidOutputError({ description: "unknown synthetic review snapshot" }),
+    }));
+  }
+  return Effect.succeed(Object.fromEntries(Object.keys(request.decisions).map((key) => [
+    key, { _tag: "Probability", probability: scenario === "finding" &&
+      before && key === "r6_bare_domain_value" ? 0.9 : 0 },
+  ])));
 };
 
 export const controlledDecisionModelLayer = (
@@ -29,20 +63,20 @@ export const controlledDecisionModelLayer = (
     DecisionModel.DecisionModel,
     DecisionModel.make({
       decide: (request) => {
-        const answers =
-          options.answers ??
-          Object.fromEntries(
+        const answers = options.syntheticR6BrandedRepair === undefined
+          ? Effect.succeed(options.answers ?? Object.fromEntries(
             Object.keys(request.decisions).map((key) => [
               key,
-              { _tag: "Probability", probability: 0 },
+              { _tag: "Probability" as const, probability: 0 },
             ]),
-          );
+          ))
+          : syntheticAnswers(request, options.syntheticR6BrandedRepair);
         const result =
           options.failure === undefined
-            ? Effect.succeed({
+            ? answers.pipe(Effect.map((answers) => ({
                 answers,
                 usage: { inputTokens: 0, outputTokens: 0 },
-              })
+              })))
             : Effect.fail(
                 AiError.make({
                   module: "ControlledDecisionModel",

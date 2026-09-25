@@ -251,6 +251,9 @@ export const makeResidentDispatchContext = async (
     ...(controlledOptions.capturePath === undefined ? {} : { capturePath: controlledOptions.capturePath }),
     ...(controlledOptions.outcomePath === undefined ? {} : { outcomePath: controlledOptions.outcomePath }),
     ...(controlledOptions.requireCredential === undefined ? {} : { requireCredential: controlledOptions.requireCredential }),
+    ...(controlledOptions.syntheticR6BrandedRepair === undefined ? {} : {
+      syntheticR6BrandedRepair: controlledOptions.syntheticR6BrandedRepair,
+    }),
   };
   const credentialValue = process.env[settings.credentialEnvVar];
   const credentialStatePath = resolve(process.env.REVIEW_CREDENTIAL_STATE_PATH ?? DEFAULT_CREDENTIAL_STATE_PATH);
