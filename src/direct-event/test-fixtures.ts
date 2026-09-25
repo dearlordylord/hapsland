@@ -8,7 +8,10 @@ import type { DirectRecipient } from "./model.ts";
 const execFileAsync = promisify(execFile);
 
 export const makeGitFixture = async () => {
-  const root = await mkdtemp(join(tmpdir(), "product-direct-event-"));
+  // These fixtures place the resident socket under `root/runtime`. macOS
+  // limits AF_UNIX socket paths to 104 bytes, so keep the temporary root short
+  // enough that nested runtime paths remain bindable after realpath canonicalization.
+  const root = await mkdtemp(join(tmpdir(), "haps-"));
   await execFileAsync("git", ["init", "-q", root]);
   await execFileAsync("git", ["-C", root, "config", "user.email", "test@example.invalid"]);
   await execFileAsync("git", ["-C", root, "config", "user.name", "Test"]);
