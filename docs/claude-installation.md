@@ -1,6 +1,6 @@
 # Claude Code installation lifecycle
 
-This adapter targets the exact Claude Code `2.1.218` profile. Installation alone does not establish host compatibility or advice reaction; the #94 real-host run must prove those separately before Hapsland declares Claude Code support.
+This adapter targets the exact Claude Code `2.1.218` profile. Selected headless native `Edit|Write` trials with a controlled local backend passed an opted-in block-and-repair fixture and bounded stale, failure, and restart fixtures. They do not establish live Jev end-to-end behavior, interactive compatibility, a reaction rate, or general Claude Code support. Installation alone does not establish host compatibility or advice reaction; see the [#94 scope decision package](issue-94-claude-support-decision.md).
 
 The versioned JSON operations use `host: "claude"`, `claudeHome` (default `~/.claude`), and optionally `claudeExecutable` (default `claude`). Preview is read-only and returns `proposal.digest`. Apply that digest to install or update. The first uninstall call is also a preview; pass its digest to remove the owned entry.
 
