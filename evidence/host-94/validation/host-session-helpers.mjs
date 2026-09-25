@@ -58,12 +58,19 @@ export function matchesKnownHostVersion(host, output) {
 }
 
 export function hostFailureAcceptance(evidence, { stageBBounded, backendCallCount }) {
+  const expectedExit = evidence.hostExitCode === null && evidence.hostExitSignal === 'SIGTERM' &&
+      evidence.hostTerminatedBySignal === true ||
+    evidence.hostExitCode === 143 && evidence.hostExitSignal === null &&
+      evidence.hostTerminatedBySignal === false;
   return evidence.status === 'recorded' &&
     evidence.hostTimedOut === false &&
     evidence.outputCeilingExceeded === false &&
     evidence.hostCloseForced === false &&
-    evidence.hostTerminatedBySignal === true &&
-    evidence.hostExitCode === null &&
+    evidence.runnerTerminationReason === 'host-failure' &&
+    evidence.runnerSigtermSent === true &&
+    evidence.runnerCloseAfterSigterm === true &&
+    evidence.runnerSigkillAttempted === false &&
+    expectedExit &&
     evidence.exactAdmissionAttributionProven === true &&
     evidence.hostFailureTriggeredAfterAdmission === true &&
     evidence.completedSyntheticEdit === true &&
@@ -77,6 +84,10 @@ export function manageChildProcess(child, {
 } = {}) {
   let settled = false;
   let terminationRequested = false;
+  let terminationReason = null;
+  let sigtermSent = false;
+  let closeAfterSigterm = false;
+  let sigkillAttempted = false;
   let escalationTimer;
   let fallbackTimer;
   let resolveClosed;
@@ -85,6 +96,7 @@ export function manageChildProcess(child, {
   const settle = result => {
     if (settled) return;
     settled = true;
+    closeAfterSigterm = sigtermSent;
     clearTimeout(escalationTimer);
     clearTimeout(fallbackTimer);
     resolveClosed(result);
@@ -93,12 +105,14 @@ export function manageChildProcess(child, {
   child.once('close', (code, signal) => settle({ code, signal, forcedClose: false }));
   child.once('error', error => settle({ code: null, signal: null, error, forcedClose: false }));
 
-  const terminate = () => {
+  const terminate = (reason = 'cleanup') => {
     if (settled || terminationRequested) return;
     terminationRequested = true;
-    try { child.kill('SIGTERM'); } catch { /* escalation below still runs */ }
+    terminationReason = reason;
+    try { sigtermSent = child.kill('SIGTERM') === true; } catch { /* escalation below still runs */ }
     escalationTimer = setTimeout(() => {
       if (settled) return;
+      sigkillAttempted = true;
       try { child.kill('SIGKILL'); } catch { /* bounded fallback still runs */ }
       fallbackTimer = setTimeout(() => {
         if (settled) return;
@@ -109,5 +123,7 @@ export function manageChildProcess(child, {
     }, terminationGraceMs);
   };
 
-  return { closed, terminate, get settled() { return settled; } };
+  return { closed, terminate, get settled() { return settled; },
+    get termination() { return { reason: terminationReason, sigtermSent,
+      closeAfterSigterm, sigkillAttempted }; } };
 }

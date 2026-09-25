@@ -294,7 +294,7 @@ try {
     stdoutBytes += chunk.length;
     if (stdoutBytes + stderrBytes > outputCeilingBytes) {
       exceededOutput = true;
-      hostLifecycle?.terminate();
+      hostLifecycle?.terminate('output-cap');
       return;
     }
     incompleteLine += chunk.toString();
@@ -308,7 +308,7 @@ try {
     stderrBytes += chunk.length;
     if (stdoutBytes + stderrBytes > outputCeilingBytes) {
       exceededOutput = true;
-      hostLifecycle?.terminate();
+      hostLifecycle?.terminate('output-cap');
     }
   });
   const traceEvents = () => {
@@ -356,12 +356,12 @@ try {
         if (!blockStageB) writeFileSync(env.REVIEW_RESIDENT_BACKEND_GATE_PATH, 'open\n');
       } else {
         hostFailureTriggered = true;
-        hostLifecycle?.terminate();
+        hostLifecycle?.terminate('host-failure');
       }
     } } catch { /* host may have an in-progress write */ }
   }, 10) : undefined;
   hostLifecycle = manageChildProcess(child);
-  sessionTimer = setTimeout(() => { timedOut = true; hostLifecycle.terminate(); }, maxSessionMs);
+  sessionTimer = setTimeout(() => { timedOut = true; hostLifecycle.terminate('session-timeout'); }, maxSessionMs);
   const exit = await hostLifecycle.closed;
   if (exit.error) throw exit.error;
   if (incompleteLine) consume(incompleteLine);
@@ -408,8 +408,13 @@ try {
   const submissionInterval = initialSubmission
     ? initialSubmission.finishedAtMs - initialNative[0].observedAtMs : null;
   evidence.hostExitCode = exit.code;
+  evidence.hostExitSignal = exit.signal;
   evidence.hostTerminatedBySignal = Boolean(exit.signal);
   evidence.hostCloseForced = exit.forcedClose;
+  evidence.runnerTerminationReason = hostLifecycle.termination.reason;
+  evidence.runnerSigtermSent = hostLifecycle.termination.sigtermSent;
+  evidence.runnerCloseAfterSigterm = hostLifecycle.termination.closeAfterSigterm;
+  evidence.runnerSigkillAttempted = hostLifecycle.termination.sigkillAttempted;
   evidence.elapsedMs = Date.now() - started;
   evidence.hostTimedOut = timedOut;
   evidence.outputCeilingExceeded = exceededOutput;
@@ -567,7 +572,7 @@ try {
   if (sessionTimer) clearTimeout(sessionTimer);
   if (poll) clearInterval(poll);
   if (hostLifecycle && !hostLifecycle.settled) {
-    hostLifecycle.terminate();
+    hostLifecycle.terminate('cleanup');
     await hostLifecycle.closed;
   }
   if (evidence.hostFailureTriggeredAfterAdmission) {

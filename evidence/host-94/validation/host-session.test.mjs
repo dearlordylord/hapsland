@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { createClaudeStreamDiagnostics, hostFailureAcceptance, manageChildProcess, matchesKnownHostVersion } from './host-session-helpers.mjs';
 
@@ -8,11 +9,15 @@ test('host-failure gate rejects timeout, output cap, and forced close after attr
   const accepted = {
     status: 'recorded', hostTimedOut: false, outputCeilingExceeded: false,
     hostCloseForced: false, hostTerminatedBySignal: true, hostExitCode: null,
+    hostExitSignal: 'SIGTERM', runnerTerminationReason: 'host-failure', runnerSigtermSent: true,
+    runnerCloseAfterSigterm: true, runnerSigkillAttempted: false,
     exactAdmissionAttributionProven: true, hostFailureTriggeredAfterAdmission: true,
     completedSyntheticEdit: true, hostSubmissions: 0,
   };
   const limits = { stageBBounded: true, backendCallCount: 0 };
   assert.equal(hostFailureAcceptance(accepted, limits), true);
+  assert.equal(hostFailureAcceptance({ ...accepted, hostExitCode: 143,
+    hostExitSignal: null, hostTerminatedBySignal: false }, limits), true);
   for (const invalid of [
     { status: 'incomplete', hostTimedOut: true },
     { status: 'incomplete', outputCeilingExceeded: true },
@@ -21,13 +26,60 @@ test('host-failure gate rejects timeout, output cap, and forced close after attr
     { outputCeilingExceeded: true },
     { hostCloseForced: true },
     { hostExitCode: 0 },
-    { hostTerminatedBySignal: false },
+    { hostExitSignal: 'SIGKILL' },
+    { runnerTerminationReason: 'session-timeout' },
+    { runnerTerminationReason: 'output-cap' },
+    { runnerTerminationReason: 'cleanup' },
+    { runnerSigtermSent: false },
+    { runnerCloseAfterSigterm: false },
+    { runnerSigkillAttempted: true },
   ]) {
     assert.equal(hostFailureAcceptance({ ...accepted, ...invalid }, limits), false,
       `accepted invalid host closure: ${JSON.stringify(invalid)}`);
   }
   assert.equal(hostFailureAcceptance(accepted, { ...limits, backendCallCount: 1 }), false);
   assert.equal(hostFailureAcceptance(accepted, { ...limits, stageBBounded: false }), false);
+  assert.equal(hostFailureAcceptance({ ...accepted, hostExitCode: 143,
+    hostExitSignal: null, hostTerminatedBySignal: false, runnerTerminationReason: null,
+    runnerSigtermSent: false }, limits), false,
+  'independent host exit 143 is not evidence of runner termination');
+});
+
+test('offline child handling SIGTERM exits 143 without a signal while runner records delivery order', async () => {
+  const child = spawn(process.execPath, ['-e',
+    "process.on('SIGTERM',()=>process.exit(143));process.stdout.write('ready');setInterval(()=>{},1000)"],
+  { stdio: ['ignore', 'pipe', 'pipe'] });
+  const lifecycle = manageChildProcess(child);
+  await new Promise(resolve => child.stdout.once('data', resolve));
+  lifecycle.terminate('host-failure');
+  const exit = await lifecycle.closed;
+  assert.deepEqual({ code: exit.code, signal: exit.signal, forcedClose: exit.forcedClose },
+    { code: 143, signal: null, forcedClose: false });
+  assert.deepEqual(lifecycle.termination, {
+    reason: 'host-failure', sigtermSent: true, closeAfterSigterm: true, sigkillAttempted: false,
+  });
+});
+
+test('offline child independently exiting 143 has no runner termination trace', async () => {
+  const child = spawn(process.execPath, ['-e', 'process.exit(143)'],
+    { stdio: ['ignore', 'pipe', 'pipe'] });
+  const lifecycle = manageChildProcess(child);
+  const exit = await lifecycle.closed;
+  assert.equal(exit.code, 143);
+  assert.equal(exit.signal, null);
+  assert.deepEqual(lifecycle.termination, {
+    reason: null, sigtermSent: false, closeAfterSigterm: false, sigkillAttempted: false,
+  });
+});
+
+test('previous incomplete Claude 143 evidence cannot be reclassified without send trace', () => {
+  const prior = JSON.parse(readFileSync(
+    new URL('./claude-block-stage-b-host-failure-20260924.json', import.meta.url), 'utf8'));
+  assert.equal(prior.hostExitCode, 143);
+  assert.equal(prior.hostTerminatedBySignal, false);
+  assert.equal(hostFailureAcceptance(prior, {
+    stageBBounded: true, backendCallCount: prior.backendCallCount,
+  }), false);
 });
 
 test('Claude stream diagnostics retain only allowlisted categories and relative times', () => {
