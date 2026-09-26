@@ -145,9 +145,10 @@ const ownedHook = (runtime: string, entrypoint: string, hostVersion = "0.155.1")
 };
 
 const composedCommand = (runtime: string, entrypoint: string, hostVersion: string, kind: "background" | "stop" | "prompt" | "before-edit") => {
+  const controlled = process.env.REVIEW_INSTALL_CONTROLLED === "1" ? " --controlled-reviewer" : "";
   const version = hostVersion === "0.155.1" ? "" : ` --codex-version=${hostVersion}`;
   const exec = kind === "before-edit" ? "exec " : "";
-  return `${exec}${quoteShell(runtime)} ${quoteShell(entrypoint)} --composed-${kind}-hook --composed-host=codex-cli ${COMPOSED_MARKER}${version}`;
+  return `${exec}${quoteShell(runtime)} ${quoteShell(entrypoint)} --composed-${kind}-hook --composed-host=codex-cli${controlled} ${COMPOSED_MARKER}${version}`;
 };
 
 const composedGroups = (runtime: string, entrypoint: string, hostVersion: string) => ({

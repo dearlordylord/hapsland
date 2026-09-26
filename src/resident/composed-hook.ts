@@ -3,6 +3,7 @@ import { hookProcessStartedAt } from "./hook-clock.ts";
 import { createHash, randomUUID } from "node:crypto";
 import { stat } from "node:fs/promises";
 import * as Effect from "effect/Effect";
+import { recordActivity } from "../activity/status.ts";
 import { adaptComposedHookIdentity } from "../direct-event/adapter.ts";
 import type { CodexHostVersion } from "../direct-event/model.ts";
 import type { ControlledDecisionModelOptions } from "../test-support/controlled-decision-model.ts";
@@ -185,7 +186,11 @@ export const runComposedHook = async (input: {
         const written = await writeJson(output, deadlineAt);
         if (written === "failed") closeReason = "output-failed";
         if (input.kind === "stop" && advice.findingCount > 0 && written !== "failed") continued = true;
-        if (written === "written") await acknowledgeAdvice(advice).catch(() => false);
+        if (written === "written") {
+          recordActivity({ statePath: input.activityPath, root, advicee, lifetime: advice.lifetime,
+            stage: "submitted", submittedFindings: advice.findingCount });
+          await acknowledgeAdvice(advice).catch(() => false);
+        }
         else if (written === "failed") await releaseComposedSubmission(advice).catch(() => false);
         return;
       }

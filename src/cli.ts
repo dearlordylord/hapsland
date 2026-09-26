@@ -685,6 +685,7 @@ const runDirectBoundedHook = async (
   }
   const accepted = await bounded(() => admitObservation(observation, true, dispatch, undefined, isComposedEditHook));
   if (accepted?.status !== "accepted") return {};
+  if (isComposedEditHook) return {};
   while (remaining() > 150) {
     const collected = await bounded(() => collectReady(
       observation.root, observation.advicee, dispatch,

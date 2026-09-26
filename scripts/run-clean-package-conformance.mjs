@@ -129,11 +129,11 @@ const installLocalPackageVariant = async ({
 
 const runInstalledHooks = async (codexHome, event, options) => {
   const configuration = parseJson(await readFile(join(codexHome, "hooks.json"), "utf8"), "installed hooks configuration");
-  const groups = configuration.hooks?.PostToolUse;
-  if (!Array.isArray(groups)) throw new Error("installed PostToolUse hooks are unavailable");
+  const groups = configuration.hooks?.[event.hook_event_name];
+  if (!Array.isArray(groups)) throw new Error(`installed ${event.hook_event_name} hooks are unavailable`);
   const outputs = [];
   for (const group of groups) {
-    if (typeof group.matcher !== "string" || !new RegExp(group.matcher).test(event.tool_name)) continue;
+    if (typeof group.matcher === "string" && !new RegExp(group.matcher).test(event.tool_name ?? "")) continue;
     if (!Array.isArray(group.hooks)) throw new Error("installed hook group is malformed");
     for (const handler of group.hooks) {
       if (handler?.type !== "command" || typeof handler.command !== "string") {
@@ -820,27 +820,31 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   };
   progress("capture-and-resident-review");
   const installedHostEnvironment = { ...env, INDEPENDENT_HOOK_LOG: independentLog };
+  await runInstalledHooks(codexHome, { ...addEvent, hook_event_name: "PreToolUse" },
+    { cwd: temporary, env: installedHostEnvironment });
   await runInstalledHooks(codexHome, addEvent, { cwd: temporary, env: installedHostEnvironment });
   const ownerAfterAdmission = await readFile(join(runtime, "owner.json"), "utf8").catch(() => undefined);
   if (ownerAfterAdmission === undefined) {
     const diagnostic = await readFile(join(runtime, "owner.lock.startup-error"), "utf8").catch(() => "no resident diagnostic was produced");
     throw new Error(`packaged resident did not publish its endpoint: ${diagnostic.slice(-2_048)}`);
   }
-  let hookOutput = {};
-  for (let attempt = 0; attempt < 20; attempt += 1) {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    if (await readFile(calls, "utf8").catch(() => "")) break;
     await new Promise((resolveWait) => setTimeout(resolveWait, 50));
-    const outputs = await runInstalledHooks(codexHome, {
-      ...addEvent,
-      tool_name: "Bash",
-      tool_use_id: `package-collect-${attempt}`,
-      tool_input: { command: "printf package-ready" },
-    }, { cwd: temporary, env: installedHostEnvironment });
-    hookOutput = outputs.find((output) => output.hookSpecificOutput !== undefined) ?? {};
-    if (hookOutput.hookSpecificOutput?.additionalContext !== undefined) break;
   }
+  const stopOutputs = await runInstalledHooks(codexHome, {
+    ...addEvent, hook_event_name: "Stop", stop_hook_active: false,
+  }, { cwd: temporary, env: installedHostEnvironment });
+  const hookOutput = stopOutputs.find((output) => output.decision === "block") ?? {};
   let submissions = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
   if (submissions !== 1) throw new Error(`expected one controlled backend submission, observed ${submissions}`);
-  if (hookOutput.hookSpecificOutput?.hookEventName !== "PostToolUse") throw new Error("packaged hook did not return review advice");
+  if (hookOutput.decision !== "block" || typeof hookOutput.reason !== "string") {
+    throw new Error(`packaged Stop hook did not return review advice; outputs=${JSON.stringify(stopOutputs.map((output) => ({
+      keys: Object.keys(output), decision: output.decision ?? null,
+    })))}`);
+  }
+  await runInstalledHooks(codexHome, { ...addEvent, tool_name: "Bash", tool_use_id: "package-independent-check",
+    tool_input: { command: "printf package-ready" } }, { cwd: temporary, env: installedHostEnvironment });
   if (exerciseCredentialLifecycle) {
     const firstOwner = parseJson(ownerAfterAdmission, "first resident owner");
     process.kill(firstOwner.pid, "SIGTERM");
@@ -963,7 +967,10 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   if (activityStatus.activitySource !== "resident-v1" || activityStatus.activity?.kind !== "submitted" ||
       activityStatus.activity?.submission?.findings < 1 ||
       activityStatus.activity?.modelReaction?.status !== "unavailable") {
-    throw new Error("packaged status did not distinguish submission from unavailable model-reaction evidence");
+    throw new Error(`packaged status did not distinguish submission from unavailable model-reaction evidence: ${JSON.stringify({
+      source: activityStatus.activitySource, kind: activityStatus.activity?.kind,
+      submission: activityStatus.activity?.submission, reaction: activityStatus.activity?.modelReaction,
+    })}`);
   }
   const independentObservationsAfterUpdate = jsonLines(await readFile(independentLog, "utf8")).length;
   if (independentObservationsAfterUpdate < 2) {
