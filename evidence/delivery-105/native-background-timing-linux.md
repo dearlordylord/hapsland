@@ -49,6 +49,10 @@ remain in the records.
   invocation also exited 1 with a structured `is_error: true` result. The cause
   is **not established**; no authentication, quota or product-failure cause is
   inferred.
+  Follow-up: `claude-runtime-diagnosis.md` records the same failure with all
+  user/project/local settings excluded and no custom Hapsland hooks. The
+  minimal diagnostics returned limit/reset information; no quota/account
+  cause or guaranteed recovery time is established. No product retry followed.
 - The session attempted 15 timing cases, four background-isolation pairs
   (two per runtime), and one minimal Claude diagnostic. The first two-pair
   isolation run reached a scratch cleanup race (`ENOTEMPTY`) and did not retain
