@@ -18,6 +18,7 @@ export const Model = Schema.Struct({
   cursor: Schema.Number,
   flow: FlowStateSchema,
   guidedBindings: Schema.Array(Schema.Struct({ plannedId: Schema.Number, actualId: Schema.Number })),
+  historyPosition: Schema.Number,
   history: Schema.Array(Schema.Struct({
     event: Schema.Literals(EVENT_IDS), itemId: Schema.Union([Schema.Null, Schema.Number]),
     origin: Schema.Literals(["guided", "manual"]),
@@ -37,6 +38,7 @@ export const Message = defineMessageUnion({
   SelectedTimeline: { index: Schema.Number },
   Advanced: {},
   Rewound: {},
+  Redid: {},
   TriggeredEvent: { event: Schema.Literals(EVENT_IDS), itemId: Schema.Union([Schema.Null, Schema.Number]) },
   JumpedToHistory: { count: Schema.Number },
   Reset: {},
@@ -44,7 +46,8 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type;
 
 const reset = (trace: number): Model => ({
-  trace, timeline: 0, cursor: 0, flow: initialFlow(), guidedBindings: [], history: [], lastEvent: null, emissions: [],
+  trace, timeline: 0, cursor: 0, flow: initialFlow(), guidedBindings: [], historyPosition: 0,
+  history: [], lastEvent: null, emissions: [],
   feedback: "No live virtual round or review work yet. Events are example inputs; no agent runtime or Jev connection is attached.",
 });
 export const init: Runtime.ApplicationInit<Model, Message> = () => ({ model: reset(0) });
@@ -78,13 +81,18 @@ const applyEvent = (model: Model, event: EventId, origin: EventOrigin, itemId?: 
     : REJECTION_LABELS[result.reason] };
   const actualId = result.changes.find((change) => change.kind === "transition")?.itemId ?? null;
   const plannedId = origin === "guided" && event === "EditObserved" ? plannedItemAt(model) : null;
+  const recorded = { event, itemId: actualId, origin };
+  const nextRecorded = model.history[model.historyPosition];
+  const followsTail = nextRecorded !== undefined && nextRecorded.event === recorded.event &&
+    nextRecorded.itemId === recorded.itemId && nextRecorded.origin === recorded.origin;
   const emitted = result.changes.flatMap((change) => change.kind === "emitted"
     ? [{ event: change.event, at: change.at, itemId: change.itemId }] : []);
   return {
     ...model, flow: result.state, lastEvent: event,
     guidedBindings: plannedId === null || actualId === null ? model.guidedBindings
       : [...model.guidedBindings, { plannedId, actualId }],
-    history: [...model.history, { event, itemId: actualId, origin }],
+    history: followsTail ? model.history : [...model.history.slice(0, model.historyPosition), recorded],
+    historyPosition: model.historyPosition + 1,
     cursor: model.cursor + (origin === "guided" ? 1 : 0),
     emissions: [...model.emissions, ...emitted],
     feedback: `${describeAccepted(model.flow, result.state, event, routeFor(event))}${actualId === null ? "" : ` Item #${actualId}.`}`,
@@ -92,13 +100,14 @@ const applyEvent = (model: Model, event: EventId, origin: EventOrigin, itemId?: 
 };
 
 const replayHistory = (model: Model, count: number): Model => {
+  const position = Math.max(0, Math.min(model.history.length, count));
   let replayed = { ...reset(model.trace), timeline: model.timeline };
-  for (const step of model.history.slice(0, count)) {
+  for (const step of model.history.slice(0, position)) {
     const input = step.origin === "guided" ? guidedInput(replayed) : null;
     replayed = applyEvent(replayed, step.event, step.origin,
       step.origin === "manual" ? step.itemId ?? undefined : input?.itemId);
   }
-  return replayed;
+  return { ...replayed, history: model.history, historyPosition: position };
 };
 
 export const update = (model: Model, message: Message) =>
@@ -114,8 +123,9 @@ export const update = (model: Model, message: Message) =>
       return { model: applyEvent(model, input.event, "guided", input.itemId) };
     },
     Rewound: () => {
-      return { model: model.history.length === 0 ? model : replayHistory(model, model.history.length - 1) };
+      return { model: model.historyPosition === 0 ? model : replayHistory(model, model.historyPosition - 1) };
     },
+    Redid: () => ({ model: model.historyPosition === model.history.length ? model : replayHistory(model, model.historyPosition + 1) }),
     TriggeredEvent: ({ event, itemId }) => ({ model: applyEvent(model, event, "manual", itemId ?? undefined) }),
     JumpedToHistory: ({ count }) => ({ model: replayHistory(model, count) }),
   });
@@ -251,7 +261,8 @@ const eventLabel = (event: EventId): string => {
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const trace = TRACES[model.trace];
   const next = trace?.events[model.cursor];
-  const previous = model.history.at(-1);
+  const previous = model.history[model.historyPosition - 1];
+  const redo = model.history[model.historyPosition];
   const blocked = guidedBlock(model);
   const liveItems = model.flow.packets;
   return {
@@ -286,6 +297,9 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
             h.button([h.OnClick(Message.Rewound()), h.Disabled(previous === undefined)], [
               previous === undefined ? "Previous" : `Previous ${previous.origin}: ${EVENT_LABELS[previous.event]}`,
             ]),
+            h.button([h.OnClick(Message.Redid()), h.Disabled(redo === undefined)], [
+              redo === undefined ? "Redo" : `Redo ${redo.origin}: ${EVENT_LABELS[redo.event]}`,
+            ]),
             h.button([h.OnClick(Message.Advanced()), h.Class("primary"), h.Disabled(next === undefined)], [
               next === undefined ? "Trace complete" : `Next: ${EVENT_LABELS[next]}`,
             ]),
@@ -293,14 +307,16 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
             h.span([h.Class("key-hint")], ["← / → keys"]),
           ]),
           h.p([h.Class("progress")], [trace
-            ? `Guided step ${model.cursor} of ${trace.events.length} · ${model.history.filter((entry) => entry.origin === "manual").length} manual events`
+            ? `Guided step ${model.cursor} of ${trace.events.length} · ${model.history.slice(0, model.historyPosition).filter((entry) => entry.origin === "manual").length} manual events · history ${model.historyPosition}/${model.history.length}`
             : "Free play"]),
           h.h3([], ["Event history"]),
-          h.p([h.Class("description")], ["Select a completed step to return to its resulting state; later steps are then discarded."]),
+          h.p([h.Class("description")], ["Select any recorded step to move there. Future steps remain available for redo until a different event replaces that tail."]),
           h.div([h.Class("history")], [
-            h.button([h.OnClick(Message.JumpedToHistory({ count: 0 }))], ["Initial state"]),
+            h.button([h.OnClick(Message.JumpedToHistory({ count: 0 })),
+              h.Class(model.historyPosition === 0 ? "current" : "past")], ["Initial state"]),
             ...model.history.map((step, index) => h.button([
               h.OnClick(Message.JumpedToHistory({ count: index + 1 })),
+              h.Class(index + 1 === model.historyPosition ? "current" : index + 1 < model.historyPosition ? "past" : "future"),
             ], [`${index + 1}. ${step.origin === "guided" ? "Guided" : "Manual"}: ${EVENT_LABELS[step.event]}${step.itemId === null ? "" : ` · #${step.itemId}`}`])),
           ]),
           h.p([h.Class("status")], [model.feedback]),

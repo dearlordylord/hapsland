@@ -31,6 +31,8 @@ p { line-height: 1.5; }
 .history { display: flex; flex-wrap: wrap; gap: 5px; max-height: 150px; overflow: auto; }
 .history button { border: 1px solid #cad7e7; border-radius: 6px; padding: 5px 8px; background: #f8fbff; color: #294b75; font-size: .74rem; text-align: left; }
 .history button:hover { background: #eaf1ff; }
+.history button.current { border-color: #245bb8; background: #245bb8; color: #fff; }
+.history button.future { border-style: dashed; background: #fff; color: #66778e; }
 .status { background: #eef4ff; border-left: 3px solid #537ac5; border-radius: 4px; padding: 11px 13px; font-size: .9rem; }
 .status.blocked { background: #fff5dd; border-left-color: #bd7f2b; color: #684c21; }
 .packets { display: grid; gap: 7px; max-height: 360px; overflow: auto; }
