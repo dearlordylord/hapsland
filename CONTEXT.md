@@ -14,6 +14,8 @@ implementation specification.
 | Agent runtime | A program that runs an agent's tool and edit loop and reports its events, such as Codex CLI or Claude Code. |
 | Agent | A coding assistant that edits source in an agent runtime and can receive advice from Hapsland. |
 | Subagent | An agent started by another agent within an agent runtime. It remains an agent for review and advice. |
+| Agent round | Work by one agent in response to a request from a user or another agent, ending when the agent runtime accepts completion or cancellation. A Stop continuation stays in the same round; a request after completion starts another round. |
+| Runtime turn | A unit of conversation identified by an agent runtime. Its boundary need not match an agent round. |
 | Model provider | Secondary metadata about the inference service selected by an agent runtime or review backend. It is not a first-class adapter target in the current phase. |
 | Artifact | An independently identifiable semantic subject extracted from source. Its kind identifies what it describes; the initial kind is `typeShape`. |
 | Type-shape artifact | An artifact describing the domain values admitted by one interface, type declaration, or schema. |
@@ -29,7 +31,7 @@ implementation specification.
 | Observation baseline | The bounded, source-free in-memory record of eligible file fingerprints and per-file artifact projections used by the current resident reviewer for checkpoint reconciliation. It is discarded when that reviewer restarts. |
 | Artifact index | The part of an observation baseline that groups review-projection fingerprints by eligible file so newly added or changed artifacts can be selected without retaining source. A missing entry is unknown, never evidence that an artifact is unchanged. |
 | Checkpoint trigger | A runtime-neutral reason to perform checkpoint reconciliation, mapped from an agent runtime’s lifecycle events. |
-| Turn-completion checkpoint | A catch-up checkpoint at an agent runtime’s attempt to finish a turn. |
+| Turn-completion checkpoint | A catch-up checkpoint when an agent runtime attempts to finish one of its turns. |
 | Change set | The complete, stable source changes established by one successful observation. An incomplete or unstable capture produces no change set. |
 | Observation result | The completion, skip, or incompleteness outcome of processing one change observation before semantic review work exists. |
 | Review unit | One root artifact together with the supporting evidence evaluated independently in one review-backend request. |

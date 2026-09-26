@@ -194,11 +194,12 @@ from #97's bounded fixtures, not established production defaults. They require b
 exact-profile launch-to-exit measurements and race validation before adoption.
 
 The owner is reviewing the Stop continuation policy. One continuation per
-agent assignment was proposed on 2026-09-26, but the owner has **not** accepted
-that as the final rule. The meaning and boundary of an assignment also remain
-open. The current candidate tracks a per-agent in-memory allowance; it has no
-assignment identity, and it cannot tell when a resumed subagent receives new
-work. The record can expire or disappear on resident restart. Do not treat this
+agent round was proposed on 2026-09-26, but the owner has **not** accepted
+that as the final count. An agent round starts with a request and ends when the
+agent runtime accepts completion or cancellation; Stop feedback stays in that
+round. The current candidate tracks a per-agent in-memory allowance, but it
+does not identify rounds reliably, especially when a subagent resumes. The
+record can expire or disappear on resident restart. Do not treat this
 candidate behavior as an approved product limit.
 
 A Stop request does not empty the resident by construction. It waits for at
