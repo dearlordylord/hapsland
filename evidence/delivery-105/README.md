@@ -54,12 +54,12 @@ background hook, while no independent model visibility occurred. The proposed
 resident submitted/uncertain state in the [contract](../../docs/issue-105-composed-delivery.md)
 is therefore still required. The test-only Stop hook also waits about 4.2 seconds
 when no finding can be collected, including after a clear or unavailable outcome;
-the proposed production wait policy needs an explicit recipient work-state signal
+the proposed production wait policy needs an explicit advicee work-state signal
 to return promptly. The zero-finding failure notice was sent by background; the
 prototype Stop path does not yet hand off such a notice.
 
 These runs establish one exact Linux host subset only. They do not validate the
-macOS arm64 / Codex CLI 0.156.0 profile, concurrent distinct host recipients,
+macOS arm64 / Codex CLI 0.156.0 profile, concurrent distinct host advicees,
 shared-root unknown-origin attribution, stale handoff, lost acknowledgement,
 simultaneous resident collection, pre-Stop unconsumed output, collector crash, or the complete background lifecycle around tool calls and
 session end. The proposed hooks remain unregistered in the product.

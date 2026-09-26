@@ -21,21 +21,21 @@ const rpc=(payload)=>new Promise((resolvePromise,reject)=>{
 try {
   for(let i=0;i<100&&!existsSync(socket);i++)await sleep(20);
   assert.ok(existsSync(socket));
-  assert.equal((await rpc({op:'admit',recipient:'child-a:root',units:1,delayMs:100})).admitted,1);
+  assert.equal((await rpc({op:'admit',advicee:'child-a:root',units:1,delayMs:100})).admitted,1);
   await sleep(140);
-  assert.equal((await rpc({op:'collect',recipient:'child-b:root',deadline:Date.now()+100})).findings,0);
-  assert.equal((await rpc({op:'collect',recipient:'child-a:root',deadline:Date.now()+100})).findings,1);
-  assert.equal((await rpc({op:'collect',recipient:'child-a:root',deadline:Date.now()+100})).findings,0);
-  assert.equal((await rpc({op:'admit',recipient:'multi:root',units:2,delayMs:100})).admitted,2);
+  assert.equal((await rpc({op:'collect',advicee:'child-b:root',deadline:Date.now()+100})).findings,0);
+  assert.equal((await rpc({op:'collect',advicee:'child-a:root',deadline:Date.now()+100})).findings,1);
+  assert.equal((await rpc({op:'collect',advicee:'child-a:root',deadline:Date.now()+100})).findings,0);
+  assert.equal((await rpc({op:'admit',advicee:'multi:root',units:2,delayMs:100})).admitted,2);
   await sleep(160);
-  assert.equal((await rpc({op:'collect',recipient:'multi:root',deadline:Date.now()+100})).findings,2);
-  assert.equal((await rpc({op:'admit',recipient:'failure:root',units:1,delayMs:100,failure:true})).admitted,1);
+  assert.equal((await rpc({op:'collect',advicee:'multi:root',deadline:Date.now()+100})).findings,2);
+  assert.equal((await rpc({op:'admit',advicee:'failure:root',units:1,delayMs:100,failure:true})).admitted,1);
   await sleep(120);
-  const unavailable=await rpc({op:'collect',recipient:'failure:root',deadline:Date.now()+100});
+  const unavailable=await rpc({op:'collect',advicee:'failure:root',deadline:Date.now()+100});
   assert.equal(unavailable.findings,0);assert.equal(unavailable.unavailable,1);
-  assert.equal((await rpc({op:'admit',recipient:'late:root',units:1,delayMs:400})).admitted,1);
-  assert.equal((await rpc({op:'collect',recipient:'late:root',deadline:Date.now()+120})).findings,0);
+  assert.equal((await rpc({op:'admit',advicee:'late:root',units:1,delayMs:400})).admitted,1);
+  assert.equal((await rpc({op:'collect',advicee:'late:root',deadline:Date.now()+120})).findings,0);
   await sleep(450);
-  assert.equal((await rpc({op:'collect',recipient:'late:root',deadline:Date.now()+100})).findings,1);
-  process.stdout.write('IPC recipient isolation, once-only collection, multi-unit, failure, and post-timeout retention: pass\n');
+  assert.equal((await rpc({op:'collect',advicee:'late:root',deadline:Date.now()+100})).findings,1);
+  process.stdout.write('IPC advicee isolation, once-only collection, multi-unit, failure, and post-timeout retention: pass\n');
 } finally {child.kill('SIGTERM');await new Promise(r=>child.once('close',r));rmSync(root,{recursive:true,force:true});}

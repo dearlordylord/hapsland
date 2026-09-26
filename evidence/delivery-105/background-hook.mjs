@@ -38,14 +38,14 @@ try {
       capturePath: process.env.HAPSLAND_CONTROL_CAPTURE_PATH,
       delayMs: Number(process.env.HAPSLAND_CONTROL_DELAY_MS ?? '0') },
   );
-  const recipient = {
+  const advicee = {
     host: 'codex-cli', hostVersion: '0.155.1', sessionId: input.session_id,
     turnId: input.turn_id, toolUseId: input.tool_use_id, agentId: input.agent_id ?? null,
   };
   const deadline = enteredAt + Number(process.env.HAPSLAND_BACKGROUND_WAIT_MS ?? '10000');
   await sleep(Number(process.env.HAPSLAND_BACKGROUND_INITIAL_MS ?? '0'));
   while (performance.now() < deadline) {
-    const advice = await collectReady(root, recipient, dispatch, residentPaths(), 'ordinary').catch(() => undefined);
+    const advice = await collectReady(root, advicee, dispatch, residentPaths(), 'ordinary').catch(() => undefined);
     if (advice !== undefined) {
       log('background-collected', { findingCount: advice.findingCount });
       await writeOutput(advice.output);

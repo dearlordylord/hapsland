@@ -59,7 +59,7 @@ try {
       const hostExitedAt=Date.now();
       const postSessionObservationMs=c.id==='ipc-late-after-stop'?6500:0;
       if(postSessionObservationMs>0)await sleep(postSessionObservationMs);
-      const events=(await loadLines(eventsPath)).map(e=>({...e,at:e.at-start,...(e.recipient===undefined?{}:{recipient:'<session-agent-root>'})}));
+      const events=(await loadLines(eventsPath)).map(e=>({...e,at:e.at-start,...(e.advicee===undefined?{}:{advicee:'<session-agent-root>'})}));
       let file='absent';try{const source=await readFile(join(repo,'synthetic.ts'),'utf8');file=source.includes('GOOD')?'good':source.includes('BAD')?'bad':'other';}catch{}
       const finalText=host.out.split('\n').filter(Boolean).flatMap(line=>{try{const x=JSON.parse(line);return x.item?.type==='agent_message'?[x.item.text??'']:[];}catch{return [];}}).join('\n');
       const stops=events.filter(e=>e.kind==='stop-return');

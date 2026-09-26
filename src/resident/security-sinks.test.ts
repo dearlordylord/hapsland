@@ -122,7 +122,7 @@ describe("security sink prototype", { timeout: 15_000 }, () => {
     });
     const response = await residentRequest(paths, {
       version: 1, operation: "collect", lifetime: owner.lifetime,
-      root, recipient: observation.recipient, dispatch,
+      root, advicee: observation.advicee, dispatch,
     });
     expect(JSON.stringify(response)).not.toContain(marker);
     const files = await allFileContents(temporary);

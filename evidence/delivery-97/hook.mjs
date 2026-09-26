@@ -10,14 +10,14 @@ const record = (kind, fields = {}) => appendFileSync(`${dir}/events.jsonl`, `${J
 const read = (name) => { try { return JSON.parse(readFileSync(`${dir}/${name}`, 'utf8')); } catch { return undefined; } };
 const write = (name, value) => writeFileSync(`${dir}/${name}`, JSON.stringify(value));
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const recipient = `${input.session_id ?? ''}:${input.agent_id ?? 'root'}:${input.cwd ?? ''}`;
+const advicee = `${input.session_id ?? ''}:${input.agent_id ?? 'root'}:${input.cwd ?? ''}`;
 
 if (event === 'PostToolUse') {
   if (input.tool_name !== 'apply_patch') process.exit(0);
   const command = input.tool_input?.command;
   if (mode === 'baseline' && typeof command === 'string' && command.includes('note.ts')) {
     const work = read('work.json');
-    if (work?.recipient === recipient && work.units.some((unit) => !unit.failure && Date.now() >= unit.readyAt) && !existsSync(`${dir}/delivered`)) {
+    if (work?.advicee === advicee && work.units.some((unit) => !unit.failure && Date.now() >= unit.readyAt) && !existsSync(`${dir}/delivered`)) {
       writeFileSync(`${dir}/delivered`, '1');
       record('host-submission', {units:1, surface:'subsequent-post-tool-use'});
       process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:'PostToolUse',additionalContext:'Synthetic review finding: change the value in synthetic.ts from BAD to GOOD before finishing.'}}));
@@ -28,9 +28,9 @@ if (event === 'PostToolUse') {
   const unitCount = Number(process.env.HAPSLAND_PROBE_UNITS ?? '1');
   const delayMs = Number(process.env.HAPSLAND_PROBE_DELAY_MS ?? '0');
   const failure = process.env.HAPSLAND_PROBE_FAILURE === '1';
-  const work = {recipient, admittedAt: now, units: Array.from({length: unitCount}, (_, i) => ({id: i + 1, readyAt: now + delayMs + i * 30, failure}))};
+  const work = {advicee, admittedAt: now, units: Array.from({length: unitCount}, (_, i) => ({id: i + 1, readyAt: now + delayMs + i * 30, failure}))};
   write('work.json', work);
-  record('edit-hook-entry', {recipientMatched: true, units: unitCount});
+  record('edit-hook-entry', {adviceeMatched: true, units: unitCount});
   record('review-admitted', {units: unitCount});
   if (mode === 'background') {
     await sleep(delayMs);
@@ -48,13 +48,13 @@ if (event === 'Stop') {
   if (mode === 'bounded') {
     while (Date.now() - start < 4850) {
       const work = read('work.json');
-      if (work?.recipient === recipient && work.units.some((unit) => !unit.failure && Date.now() >= unit.readyAt)) { matched = work; break; }
-      if (work?.recipient !== recipient || input.stop_hook_active === true || work?.units.every((unit) => unit.failure)) break;
+      if (work?.advicee === advicee && work.units.some((unit) => !unit.failure && Date.now() >= unit.readyAt)) { matched = work; break; }
+      if (work?.advicee !== advicee || input.stop_hook_active === true || work?.units.every((unit) => unit.failure)) break;
       await sleep(25);
     }
   } else if (mode !== 'baseline' && mode !== 'background') {
     const work = read('work.json');
-    if (work?.recipient === recipient && work.units.some((unit) => !unit.failure && Date.now() >= unit.readyAt)) matched = work;
+    if (work?.advicee === advicee && work.units.some((unit) => !unit.failure && Date.now() >= unit.readyAt)) matched = work;
   }
   let currentBad = false;
   try { currentBad = readFileSync(`${input.cwd}/synthetic.ts`, 'utf8').includes('"BAD"'); } catch {}

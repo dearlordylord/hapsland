@@ -22,13 +22,13 @@ const event = (cwd: string, tool: string, args: unknown, metadata: unknown) => (
 afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }); });
 
 describe("OpenCode 1.14.44 direct event adaptation", () => {
-  it("selects a direct edit with tool-call recipient and current file evidence", async () => {
+  it("selects a direct edit with tool-call advicee and current file evidence", async () => {
     const cwd = fixture();
     writeFileSync(join(cwd, "src", "item.ts"), "export interface Item { value: number }\n");
     const result = await adapt(event(cwd, "edit", {
       filePath: "src/item.ts", oldString: "export interface Item { value: string }", newString: "export interface Item { value: number }", replaceAll: false,
     }, { diff: "fixture diff", truncated: false }));
-    expect(result?.recipient).toEqual({ host: "opencode", hostVersion: "1.14.44", sessionId: "ses-1",
+    expect(result?.advicee).toEqual({ host: "opencode", hostVersion: "1.14.44", sessionId: "ses-1",
       turnId: null, toolUseId: "call-1", agentId: null });
     expect(result?.candidates).toEqual([{ operation: "update", path: "src/item.ts", addedLines: ["export interface Item { value: number }"] }]);
   });

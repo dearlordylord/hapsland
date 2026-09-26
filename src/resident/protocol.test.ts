@@ -68,13 +68,13 @@ describe("resident protocol bounds", () => {
     expect(decodeResidentRequest(JSON.stringify({ ...synthetic, dispatch: {
       ...synthetic.dispatch, controlled: { syntheticR6BrandedRepair: "unknown" },
     } }))).toBeUndefined();
-    if (decoded?.operation === "admit") expect(decoded.observation.recipient.agentId).toBe("child-7");
+    if (decoded?.operation === "admit") expect(decoded.observation.advicee.agentId).toBe("child-7");
     expect(decodeResidentRequest(JSON.stringify({
       version: 1,
       operation: "admit",
       lifetime: "lifetime",
       controlledWriter: true,
-      observation: { ...observation, recipient: { ...observation.recipient, hostVersion: "0.156.0" } },
+      observation: { ...observation, advicee: { ...observation.advicee, hostVersion: "0.156.0" } },
       dispatch: { statePath: "/tmp/consent", userConfigPath: null, credential: null, controlled: {} },
     }))?.operation).toBe("admit");
     expect(decodeResidentRequest(JSON.stringify({
@@ -110,14 +110,14 @@ describe("resident protocol bounds", () => {
       operation: "collect",
       lifetime: "lifetime",
       root,
-      recipient: { ...observation.recipient, sessionId: "" },
+      advicee: { ...observation.advicee, sessionId: "" },
     }))).toBeUndefined();
     const collect = {
       version: 1,
       operation: "collect",
       lifetime: "lifetime",
       root,
-      recipient: observation.recipient,
+      advicee: observation.advicee,
       dispatch: {
         statePath: "/tmp/consent",
         userConfigPath: null,

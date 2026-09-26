@@ -4,7 +4,7 @@ import { connect } from "node:net";
 import { resolve } from "node:path";
 import { closeSync, existsSync, lstatSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import type { DirectObservation, DirectRecipient } from "../direct-event/model.ts";
+import type { DirectObservation, DirectAdvicee } from "../direct-event/model.ts";
 import type { CodexDirectEventOutput } from "../direct-event/pipeline.ts";
 import { loadReviewSettings } from "../runtime/review-config.ts";
 import type { ControlledDecisionModelOptions } from "../test-support/controlled-decision-model.ts";
@@ -283,7 +283,7 @@ export type CollectedAdvice = {
   readonly lifetime: string;
   readonly paths: ResidentPaths;
   readonly root: string;
-  readonly recipient: DirectRecipient;
+  readonly advicee: DirectAdvicee;
   readonly activityPath: string | undefined;
   readonly findingCount: number;
 };
@@ -311,7 +311,7 @@ export type TicketedAdmission = {
   readonly lifetime: string;
   readonly paths: ResidentPaths;
   readonly root: string;
-  readonly recipient: DirectRecipient;
+  readonly advicee: DirectAdvicee;
   readonly dispatch: ResidentDispatchContext;
 };
 
@@ -325,7 +325,7 @@ export const admitTicketedObservation = async (
   dispatch: ResidentDispatchContext,
   paths = residentPaths(),
 ): Promise<TicketedAdmissionResult> => {
-  if (observation.recipient.host !== "claude-code") return { status: "unsupported" };
+  if (observation.advicee.host !== "claude-code") return { status: "unsupported" };
   const owner = await ensureResident(paths);
   const response = await residentRequest(paths, {
     version: 2,
@@ -343,7 +343,7 @@ export const admitTicketedObservation = async (
       lifetime: owner.lifetime,
       paths,
       root: observation.root,
-      recipient: observation.recipient,
+      advicee: observation.advicee,
       dispatch,
     } };
   }
@@ -369,7 +369,7 @@ export const collectOutcome = async (
     lifetime: admission.lifetime,
     ticket: admission.ticket,
     root: admission.root,
-    recipient: admission.recipient,
+    advicee: admission.advicee,
     dispatch: admission.dispatch,
     mode,
   });
@@ -380,7 +380,7 @@ export const collectOutcome = async (
     lifetime: admission.lifetime,
     paths: admission.paths,
     root: admission.root,
-    recipient: admission.recipient,
+    advicee: admission.advicee,
     activityPath: admission.dispatch.activityPath,
     findingCount: response.findingCount,
   } };
@@ -393,7 +393,7 @@ export const collectOutcome = async (
 
 export const collectReady = async (
   root: string,
-  recipient: DirectRecipient,
+  advicee: DirectAdvicee,
   dispatch: ResidentDispatchContext,
   paths = residentPaths(),
   mode: CollectionMode = "ordinary",
@@ -404,7 +404,7 @@ export const collectReady = async (
     operation: "collect",
     lifetime: owner.lifetime,
     root,
-    recipient,
+    advicee,
     dispatch,
     mode,
   });
@@ -415,7 +415,7 @@ export const collectReady = async (
         lifetime: owner.lifetime,
         paths,
         root,
-        recipient,
+        advicee,
         activityPath: dispatch.activityPath,
         findingCount: response.findingCount,
       }

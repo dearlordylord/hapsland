@@ -85,11 +85,11 @@ describe("installed-product first-review demo", () => {
     const budget = join(test.root, "budget.json");
     writeFileSync(join(test.root, "session.ts"), "private synthetic source");
     writeFileSync(budget, JSON.stringify({ root: test.root }));
-    const recipient = { host: "codex-cli" as const, hostVersion: "0.155.1" as const,
+    const advicee = { host: "codex-cli" as const, hostVersion: "0.155.1" as const,
       sessionId: "session", turnId: "turn", toolUseId: "tool", agentId: null };
-    recordDemoTrace(budget, join(test.root, "other"), recipient, { kind: "delivery", ruleIds: ["r1_inferred_case"] });
+    recordDemoTrace(budget, join(test.root, "other"), advicee, { kind: "delivery", ruleIds: ["r1_inferred_case"] });
     expect(readDemoTrace(budget, "session")).toHaveLength(0);
-    recordDemoTrace(budget, test.root, recipient, { kind: "delivery", ruleIds: ["r1_inferred_case"] });
+    recordDemoTrace(budget, test.root, advicee, { kind: "delivery", ruleIds: ["r1_inferred_case"] });
     expect(readDemoTrace(budget, "session")).toMatchObject([{ kind: "delivery", ruleIds: ["r1_inferred_case"] }]);
     expect(readFileSync(join(`${budget}.trace`, readdirSync(`${budget}.trace`)[0] ?? ""), "utf8")).not.toContain("private synthetic source");
   });

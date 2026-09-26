@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, realpath, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { promisify } from "node:util";
-import type { DirectRecipient } from "./model.ts";
+import type { DirectAdvicee } from "./model.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -25,7 +25,7 @@ export const put = async (root: string, path: string, value: string | Uint8Array
   return target;
 };
 
-export const recipient = (overrides: Partial<Extract<DirectRecipient, { host: "codex-cli" }>> = {}): DirectRecipient => ({
+export const advicee = (overrides: Partial<Extract<DirectAdvicee, { host: "codex-cli" }>> = {}): DirectAdvicee => ({
   host: "codex-cli",
   hostVersion: "0.155.1",
   sessionId: "session",

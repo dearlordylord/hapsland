@@ -4,7 +4,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
-import { addEvent, makeGitFixture, put, recipient } from "../direct-event/test-fixtures.ts";
+import { addEvent, makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { Consent } from "../runtime/consent.ts";
 import { loadReviewSettings } from "../runtime/review-config.ts";
@@ -152,7 +152,7 @@ describe("resident delivery lease", () => {
     expect(readActivity({
       statePath: activityPath,
       root,
-      sessionId: observation.recipient.sessionId,
+      sessionId: observation.advicee.sessionId,
       resident: { available: true, lifetime: server.lifetime },
     })).toMatchObject({ kind: "findings", findings: 2, counts: { findings: 1 } });
   });
@@ -187,7 +187,7 @@ describe("resident delivery lease", () => {
       operation: "collect",
       lifetime: server.lifetime,
       root,
-      recipient: recipient(),
+      advicee: advicee(),
       dispatch,
     })).toEqual({ status: "obsolete-lifetime" });
     expect(await server.handle({
@@ -244,13 +244,13 @@ describe("resident delivery lease", () => {
     await server.whenIdle();
     expect(server.stats()).toMatchObject({ pendingAdvice: 1, running: 0 });
 
-    const first = await server.collect(root, recipient({ turnId: "later", toolUseId: "collect-1" }), dispatch);
+    const first = await server.collect(root, advicee({ turnId: "later", toolUseId: "collect-1" }), dispatch);
     expect(first.status).toBe("advice");
     if (first.status !== "advice") return;
     server.releaseDelivery(first.token);
     const afterDisconnect = await server.collect(
       root,
-      recipient({ turnId: "later", toolUseId: "collect-2" }),
+      advicee({ turnId: "later", toolUseId: "collect-2" }),
       dispatch,
     );
     expect(afterDisconnect.status).toBe("advice");
@@ -260,7 +260,7 @@ describe("resident delivery lease", () => {
     clock += DELIVERY_LEASE_MS;
     const afterFailedAck = await server.collect(
       root,
-      recipient({ turnId: "later", toolUseId: "collect-3" }),
+      advicee({ turnId: "later", toolUseId: "collect-3" }),
       dispatch,
     );
     expect(afterFailedAck.status).toBe("advice");
@@ -350,7 +350,7 @@ describe("resident delivery lease", () => {
       const settings = yield* loadReviewSettings(root);
       return yield* prepareObservation(firstPathObservation, {
         controlledWriter: true,
-        recipient: observation.recipient,
+        advicee: observation.advicee,
         consent,
         settings,
       });
@@ -428,7 +428,7 @@ describe("resident delivery lease", () => {
     expect(readFileSync(retained.capturePath, "utf8").trim()).toBe("called");
     const delivered = await retained.server.collect(
       retained.root,
-      recipient({ turnId: "later", toolUseId: "large" }),
+      advicee({ turnId: "later", toolUseId: "large" }),
       retained.dispatch,
     );
     expect(delivered.status).toBe("empty");
@@ -486,9 +486,9 @@ describe("resident delivery lease", () => {
     if (first === undefined || second === undefined) return;
     await put(root, "a.ts", "type FirstShape = string\n");
 
-    const collectFirst = server.collect(root, recipient({ turnId: "c1", toolUseId: "c1" }), dispatch);
+    const collectFirst = server.collect(root, advicee({ turnId: "c1", toolUseId: "c1" }), dispatch);
     while (entered.length < 1) await Promise.resolve();
-    const collectSecond = server.collect(root, recipient({ turnId: "c2", toolUseId: "c2" }), dispatch);
+    const collectSecond = server.collect(root, advicee({ turnId: "c2", toolUseId: "c2" }), dispatch);
     while (entered.length < 2) await Promise.resolve();
     expect(entered).toEqual([first.id, second.id]);
 
@@ -569,7 +569,7 @@ describe("resident delivery lease", () => {
     await put(root, longNestedPath, expansion);
     await expect(server.collect(
       root,
-      recipient({ turnId: "pressure", toolUseId: "pressure" }),
+      advicee({ turnId: "pressure", toolUseId: "pressure" }),
       dispatch,
     )).resolves.toMatchObject({ status: "empty" });
     expect(server.stats()).toMatchObject({ pendingAdvice: 1, retainedBytes: before.retainedBytes });
@@ -577,7 +577,7 @@ describe("resident delivery lease", () => {
     await put(root, longNestedPath, original);
     const recovered = await server.collect(
       root,
-      recipient({ turnId: "recovered", toolUseId: "recovered" }),
+      advicee({ turnId: "recovered", toolUseId: "recovered" }),
       dispatch,
     );
     // The restored advice is current but its long path cannot fit the 2 KiB
@@ -643,7 +643,7 @@ describe("resident delivery lease", () => {
     expect(metadata[0]?.generation).toBe(2);
     const delivered = await server.collect(
       root,
-      recipient({ turnId: "later", toolUseId: "replacement-collect" }),
+      advicee({ turnId: "later", toolUseId: "replacement-collect" }),
       dispatch,
     );
     expect(delivered.status).toBe("advice");
@@ -676,8 +676,8 @@ describe("resident delivery lease", () => {
     for (let index = 0; index < 6; index += 1) {
       const duplicate = {
         ...first,
-        recipient: {
-          ...first.recipient,
+        advicee: {
+          ...first.advicee,
           turnId: `${index}:${huge}`,
           toolUseId: `${index}:${huge}`,
         },
@@ -700,7 +700,7 @@ describe("resident delivery lease", () => {
     expect(server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(2 * 1024 * 1024);
     await expect(server.collect(
       root,
-      recipient({ turnId: "after-storm", toolUseId: "after-storm" }),
+      advicee({ turnId: "after-storm", toolUseId: "after-storm" }),
       dispatch,
     )).resolves.toMatchObject({ status: "advice" });
   });
@@ -731,7 +731,7 @@ describe("resident delivery lease", () => {
     await server.whenIdle();
     const collecting = server.collect(
       root,
-      recipient({ turnId: "collecting", toolUseId: "collecting" }),
+      advicee({ turnId: "collecting", toolUseId: "collecting" }),
       dispatch,
     );
     await entered.promise;
@@ -752,7 +752,7 @@ describe("resident delivery lease", () => {
     expect(metadata[0]?.generation).toBe(2);
     await expect(server.collect(
       root,
-      recipient({ turnId: "later", toolUseId: "replacement" }),
+      advicee({ turnId: "later", toolUseId: "replacement" }),
       dispatch,
     )).resolves.toMatchObject({ status: "advice" });
   });
@@ -784,7 +784,7 @@ describe("resident delivery lease", () => {
     const baseBytes = server.stats().retainedBytes;
     const collecting = server.collect(
       root,
-      recipient({ turnId: "collecting", toolUseId: "collecting" }),
+      advicee({ turnId: "collecting", toolUseId: "collecting" }),
       dispatch,
     );
     await workspaceReserved.promise;
@@ -812,7 +812,7 @@ describe("resident delivery lease", () => {
     });
     const delivered = await server.collect(
       root,
-      recipient({ turnId: "later", toolUseId: "replacement" }),
+      advicee({ turnId: "later", toolUseId: "replacement" }),
       dispatch,
     );
     expect(delivered.status).toBe("advice");
@@ -882,7 +882,7 @@ describe("resident delivery lease", () => {
 
     const collectingA = server.collect(
       root,
-      recipient({ turnId: "held-A", toolUseId: "held-A" }),
+      advicee({ turnId: "held-A", toolUseId: "held-A" }),
       finding,
     );
     await revalidationHeld.promise;
@@ -899,7 +899,7 @@ describe("resident delivery lease", () => {
     expect(server.pendingAdviceMetadata()).toMatchObject([{ generation: cGeneration }]);
     const deliveredC = await server.collect(
       root,
-      recipient({ turnId: "C", toolUseId: "C" }),
+      advicee({ turnId: "C", toolUseId: "C" }),
       finding,
     );
     expect(deliveredC.status).toBe("advice");
@@ -924,7 +924,7 @@ describe("resident delivery lease", () => {
 
     const delivered = await server.collect(
       root,
-      recipient({ turnId: "later", toolUseId: "multi" }),
+      advicee({ turnId: "later", toolUseId: "multi" }),
       dispatch,
     );
     expect(delivered.status).toBe("advice");
@@ -950,13 +950,13 @@ describe("resident delivery lease", () => {
     await put(root, "type.ts", "interface Broken { value: Missing }\n");
     await expect(server.collect(
       root,
-      recipient({ turnId: "later", toolUseId: "unavailable" }),
+      advicee({ turnId: "later", toolUseId: "unavailable" }),
       dispatch,
     )).resolves.toMatchObject({ status: "empty" });
     expect(server.stats().pendingAdvice).toBe(1);
     expect(await server.collect(
       root,
-      recipient({ agentId: "other", turnId: "other", toolUseId: "other" }),
+      advicee({ agentId: "other", turnId: "other", toolUseId: "other" }),
       dispatch,
     )).toMatchObject({ status: "empty" });
     expect(server.stats().pendingAdvice).toBe(1);
@@ -1004,7 +1004,7 @@ describe("resident delivery lease", () => {
     await put(root, "rules.jsonc", rules("changed recommendation"));
     await expect(server.collect(
       root,
-      recipient({ turnId: "later", toolUseId: "rules" }),
+      advicee({ turnId: "later", toolUseId: "rules" }),
       dispatch,
     )).resolves.toMatchObject({ status: "empty" });
     expect(server.stats()).toMatchObject({
@@ -1035,7 +1035,7 @@ describe("resident delivery lease", () => {
 
     const collected = await server.collect(
       root,
-      recipient({ turnId: "saturated", toolUseId: "saturated" }),
+      advicee({ turnId: "saturated", toolUseId: "saturated" }),
       dispatch,
     );
     expect(collected.status).toBe("advice");
@@ -1076,7 +1076,7 @@ describe("resident delivery lease", () => {
 
     const collected = await server.collect(
       root,
-      recipient({ agentId: "agent-0", turnId: "global", toolUseId: "global" }),
+      advicee({ agentId: "agent-0", turnId: "global", toolUseId: "global" }),
       dispatch,
     );
     expect(collected.status).toBe("advice");
@@ -1111,7 +1111,7 @@ describe("resident delivery lease", () => {
 
     const collected = await server.collect(
       root,
-      recipient({ turnId: "scan", toolUseId: "scan" }),
+      advicee({ turnId: "scan", toolUseId: "scan" }),
       dispatch,
     );
     expect(collected.status).toBe("advice");
@@ -1207,7 +1207,7 @@ describe("resident delivery lease", () => {
     };
     await admitSource("type OrderCount = number\n", "A-1");
     const firstAIdentity = server.pendingAdviceMetadata()[0]?.evaluationIdentities[0];
-    const deliveredA = await server.collect(root, recipient({ turnId: "A", toolUseId: "A" }), dispatch);
+    const deliveredA = await server.collect(root, advicee({ turnId: "A", toolUseId: "A" }), dispatch);
     expect(deliveredA.status).toBe("advice");
     if (deliveredA.status === "advice") {
       expect(server.acknowledge(deliveredA.token).status).toBe("acknowledged");
@@ -1272,7 +1272,7 @@ describe("resident delivery lease", () => {
     const padding = "p".repeat(56 * 1024);
     const observation = {
       ...base,
-      recipient: { ...base.recipient, sessionId, agentId },
+      advicee: { ...base.advicee, sessionId, agentId },
       candidates: base.candidates.map((candidate) => candidate.operation === "add"
         ? { ...candidate, addedLines: [padding] }
         : candidate),
@@ -1320,14 +1320,14 @@ describe("resident delivery lease", () => {
 
     expect(await server.collect(
       root,
-      { ...observation.recipient, agentId: `${agentId.slice(0, -1)}z` },
+      { ...observation.advicee, agentId: `${agentId.slice(0, -1)}z` },
       dispatch,
     )).toMatchObject({ status: "empty" });
     expect(server.pendingAdviceMetadata().map(({ id, delivery }) => ({ id, delivery }))).toEqual(
       metadata.map(({ id }) => ({ id, delivery: "available" })),
     );
     const otherRoot = await makeGitFixture();
-    expect(await server.collect(otherRoot, observation.recipient, dispatch)).toMatchObject({ status: "empty" });
+    expect(await server.collect(otherRoot, observation.advicee, dispatch)).toMatchObject({ status: "empty" });
     expect(server.pendingAdviceMetadata().map(({ id, delivery }) => ({ id, delivery }))).toEqual(
       metadata.map(({ id }) => ({ id, delivery: "available" })),
     );
@@ -1349,7 +1349,7 @@ describe("resident bounded advice batches", () => {
     await server.whenIdle();
     const retainedBytes = server.stats().retainedBytes;
 
-    const first = await server.collect(root, recipient({ turnId: "first", toolUseId: "first" }), dispatch);
+    const first = await server.collect(root, advicee({ turnId: "first", toolUseId: "first" }), dispatch);
     expect(first.status).toBe("advice");
     if (first.status !== "advice") return;
     expect(first.output.hookSpecificOutput.additionalContext.split("\n").slice(1)).toHaveLength(5);
@@ -1366,7 +1366,7 @@ describe("resident bounded advice batches", () => {
       delivery: "available",
     }]);
 
-    const second = await server.collect(root, recipient({ turnId: "second", toolUseId: "second" }), dispatch);
+    const second = await server.collect(root, advicee({ turnId: "second", toolUseId: "second" }), dispatch);
     expect(second.status).toBe("advice");
     if (second.status !== "advice") return;
     expect(second.output.hookSpecificOutput.additionalContext.split("\n").slice(1)).toHaveLength(4);
@@ -1406,7 +1406,7 @@ describe("resident bounded advice batches", () => {
 
     const collecting = server.collect(
       root,
-      recipient({ turnId: "collect", toolUseId: "collect" }),
+      advicee({ turnId: "collect", toolUseId: "collect" }),
       dispatch,
     );
     await blocked.promise;
@@ -1458,7 +1458,7 @@ describe("resident bounded advice batches", () => {
     clock = PENDING_ADVICE_EXPIRY_MS - 1;
     const collecting = server.collect(
       root,
-      recipient({ turnId: "expiry", toolUseId: "expiry" }),
+      advicee({ turnId: "expiry", toolUseId: "expiry" }),
       dispatch,
     );
     await blocked.promise;
@@ -1502,7 +1502,7 @@ describe("resident bounded advice batches", () => {
 
     const collecting = server.collect(
       root,
-      recipient({ turnId: "replacement", toolUseId: "replacement" }),
+      advicee({ turnId: "replacement", toolUseId: "replacement" }),
       dispatch,
     );
     await blocked.promise;
@@ -1559,7 +1559,7 @@ describe("resident bounded advice batches", () => {
     await server.whenIdle();
     const first = await server.collect(
       root,
-      recipient({ turnId: "cycle-1", toolUseId: "cycle-1" }),
+      advicee({ turnId: "cycle-1", toolUseId: "cycle-1" }),
       allFindingsDispatch(statePath),
     );
     expect(first.status).toBe("advice");
@@ -1577,7 +1577,7 @@ describe("resident bounded advice batches", () => {
     await bPending.promise;
     const overflow = await server.collect(
       root,
-      recipient({ turnId: "overlap", toolUseId: "overlap" }),
+      advicee({ turnId: "overlap", toolUseId: "overlap" }),
       singleFindingDispatch(statePath),
     );
     expect(overflow.status).toBe("advice");
@@ -1588,14 +1588,14 @@ describe("resident bounded advice batches", () => {
     expect(server.finalize(overflow.token).status).toBe("finalized");
     await expect(server.collect(
       root,
-      recipient({ turnId: "too-early", toolUseId: "too-early" }),
+      advicee({ turnId: "too-early", toolUseId: "too-early" }),
       singleFindingDispatch(statePath),
     )).resolves.toMatchObject({ status: "empty" });
 
     clock += ADVICE_COLLECTION_WINDOW_MS;
     const aged = await server.collect(
       root,
-      recipient({ turnId: "aged", toolUseId: "aged" }),
+      advicee({ turnId: "aged", toolUseId: "aged" }),
       singleFindingDispatch(statePath),
     );
     expect(aged.status).toBe("advice");
@@ -1649,15 +1649,15 @@ describe("resident bounded advice batches", () => {
       pendingAt: 10_000,
     }]);
 
-    await expect(server.collect(root, recipient({ turnId: "early", toolUseId: "early" }), dispatch))
+    await expect(server.collect(root, advicee({ turnId: "early", toolUseId: "early" }), dispatch))
       .resolves.toMatchObject({ status: "empty" });
     clock += ADVICE_COLLECTION_WINDOW_MS - 1;
-    await expect(server.collect(root, recipient({ turnId: "before", toolUseId: "before" }), dispatch))
+    await expect(server.collect(root, advicee({ turnId: "before", toolUseId: "before" }), dispatch))
       .resolves.toMatchObject({ status: "empty" });
     releases.get("b.ts")?.();
     await secondAdvicePending.promise;
     clock += 1;
-    const aged = await server.collect(root, recipient({ turnId: "at", toolUseId: "at" }), dispatch);
+    const aged = await server.collect(root, advicee({ turnId: "at", toolUseId: "at" }), dispatch);
     expect(aged.status).toBe("advice");
     if (aged.status === "advice") {
       expect(aged.output.hookSpecificOutput.additionalContext).toContain("a.ts :: ACount");
@@ -1699,13 +1699,13 @@ describe("resident bounded advice batches", () => {
     await ready.promise;
     await expect(server.collect(
       root,
-      recipient({ turnId: "turn-end", toolUseId: "turn-end" }),
+      advicee({ turnId: "turn-end", toolUseId: "turn-end" }),
       dispatch,
       "ordinary",
     )).resolves.toMatchObject({ status: "empty" });
     const turnEnd = await server.collect(
       root,
-      recipient({ turnId: "turn-end", toolUseId: "turn-end" }),
+      advicee({ turnId: "turn-end", toolUseId: "turn-end" }),
       dispatch,
       "turn-end",
     );
@@ -1730,7 +1730,7 @@ describe("resident bounded advice batches", () => {
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
 
-    const first = await server.collect(root, recipient({ turnId: "batch-1", toolUseId: "batch-1" }), dispatch);
+    const first = await server.collect(root, advicee({ turnId: "batch-1", toolUseId: "batch-1" }), dispatch);
     expect(first.status).toBe("advice");
     if (first.status !== "advice") return;
     expect(encodedHostOutputBytes(first.output)).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
@@ -1743,7 +1743,7 @@ describe("resident bounded advice batches", () => {
     expect(server.pendingAdviceMetadata().every(({ delivery }) => delivery === "available")).toBe(true);
     const retried = await server.collect(
       root,
-      recipient({ turnId: "batch-retry", toolUseId: "batch-retry" }),
+      advicee({ turnId: "batch-retry", toolUseId: "batch-retry" }),
       dispatch,
     );
     expect(retried.status).toBe("advice");
@@ -1753,7 +1753,7 @@ describe("resident bounded advice batches", () => {
     expect(server.finalize(retried.token).status).toBe("finalized");
     expect(server.pendingAdviceMetadata()).toMatchObject([{ path: "type-5.ts", delivery: "available" }]);
 
-    const second = await server.collect(root, recipient({ turnId: "batch-2", toolUseId: "batch-2" }), dispatch);
+    const second = await server.collect(root, advicee({ turnId: "batch-2", toolUseId: "batch-2" }), dispatch);
     expect(second.status).toBe("advice");
     if (second.status === "advice") {
       expect(second.output.hookSpecificOutput.additionalContext).toContain("type-5.ts :: Count5");
@@ -1777,7 +1777,7 @@ describe("resident bounded advice batches", () => {
       clock += age;
       const collected = await server.collect(
         root,
-        recipient({ turnId: `age-${age}`, toolUseId: `age-${age}` }),
+        advicee({ turnId: `age-${age}`, toolUseId: `age-${age}` }),
         dispatch,
       );
       return { collected, server };

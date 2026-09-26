@@ -17,7 +17,7 @@ const enable = (root: string, statePath: string) => Effect.runPromise(Effect.gen
   yield* consent.enable(proposal);
 }).pipe(Effect.provide(Consent.layer({ statePath }))));
 
-describe("Claude recipient scoped resident delivery", () => {
+describe("Claude advicee scoped resident delivery", () => {
   it("delivers only to the initiating tool call and drops stale content", async () => {
     const root = await makeGitFixture();
     const path = await put(root, "type.ts", "type OrderCount = number\n");
@@ -41,15 +41,15 @@ describe("Claude recipient scoped resident delivery", () => {
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
     expect(server.stats().pendingAdvice).toBe(1);
-    expect(await server.collect(root, { ...observation.recipient, toolUseId: "tool-two" }, dispatch)).toMatchObject({ status: "empty" });
-    const delivered = await server.collect(root, observation.recipient, dispatch);
+    expect(await server.collect(root, { ...observation.advicee, toolUseId: "tool-two" }, dispatch)).toMatchObject({ status: "empty" });
+    const delivered = await server.collect(root, observation.advicee, dispatch);
     expect(delivered.status).toBe("advice");
     if (delivered.status === "advice") expect(delivered.output.hookSpecificOutput.additionalContext).toContain("OrderCount");
     await put(root, "type.ts", "type OrderCount = string\n");
-    expect(await server.collect(root, observation.recipient, dispatch)).toMatchObject({ status: "empty" });
+    expect(await server.collect(root, observation.advicee, dispatch)).toMatchObject({ status: "empty" });
   });
 
-  it("returns a bounded production block only for an opted-in ticket and its original recipient", async () => {
+  it("returns a bounded production block only for an opted-in ticket and its original advicee", async () => {
     const root = await makeGitFixture();
     const path = await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
@@ -76,10 +76,10 @@ describe("Claude recipient scoped resident delivery", () => {
     if (accepted.status !== "accepted" || !("version" in accepted) || accepted.version !== 2) return;
     await server.whenIdle();
     const wrong = await server.handle({ version: 2, operation: "collect", lifetime: server.lifetime,
-      ticket: accepted.ticket, root, recipient: { ...observation.recipient, toolUseId: "other" }, dispatch });
+      ticket: accepted.ticket, root, advicee: { ...observation.advicee, toolUseId: "other" }, dispatch });
     expect(wrong).toMatchObject({ version: 2, status: "unavailable", reason: "lost" });
     const delivered = await server.handle({ version: 2, operation: "collect", lifetime: server.lifetime,
-      ticket: accepted.ticket, root, recipient: observation.recipient, dispatch });
+      ticket: accepted.ticket, root, advicee: observation.advicee, dispatch });
     expect(delivered).toMatchObject({ version: 2, status: "advice", findingCount: 1,
       output: { decision: "block" } });
     if (delivered.status !== "advice" || !("version" in delivered) || delivered.version !== 2) return;
@@ -88,14 +88,14 @@ describe("Claude recipient scoped resident delivery", () => {
     expect(JSON.stringify(delivered.output)).not.toContain(accepted.ticket.nonce);
     server.releaseDelivery(delivered.token);
     writeFileSync(userConfigPath, '{"version":1,"claudeFeedbackMode":"advisory"}');
-    const laterObservation = { ...observation, recipient: { ...observation.recipient, toolUseId: "tool-two" } };
+    const laterObservation = { ...observation, advicee: { ...observation.advicee, toolUseId: "tool-two" } };
     const later = await server.handle({ version: 2, operation: "admit", lifetime: server.lifetime,
       observation: laterObservation, controlledWriter: true, dispatch });
     if (later.status !== "accepted" || !("version" in later) || later.version !== 2) throw new Error("expected later ticket");
     await server.whenIdle();
     writeFileSync(userConfigPath, '{"version":1,"claudeFeedbackMode":"block-current-findings"}');
     const laterOutput = await server.handle({ version: 2, operation: "collect", lifetime: server.lifetime,
-      ticket: later.ticket, root, recipient: laterObservation.recipient, dispatch });
+      ticket: later.ticket, root, advicee: laterObservation.advicee, dispatch });
     expect(laterOutput).toMatchObject({ version: 2, status: "advice",
       output: { hookSpecificOutput: { hookEventName: "PostToolUse" } } });
     if (laterOutput.status === "advice") expect(laterOutput.output).not.toHaveProperty("decision");
@@ -136,7 +136,7 @@ describe("Claude recipient scoped resident delivery", () => {
       await server.whenIdle();
       revoke = true;
       const response = await residentRequest(paths, { version: 2, operation: "collect", lifetime: server.lifetime,
-        ticket: accepted.ticket, root, recipient: observation.recipient, dispatch });
+        ticket: accepted.ticket, root, advicee: observation.advicee, dispatch });
       expect(response).toMatchObject({ version: 2, status: "pending" });
       expect(server.stats().pendingAdvice).toBe(1);
     } finally {

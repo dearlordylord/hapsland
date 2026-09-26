@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import type { DirectRecipient } from "../direct-event/model.ts";
+import type { DirectAdvicee } from "../direct-event/model.ts";
 import {
   MAX_ACTIVITY_EVENTS_PER_SESSION,
   MAX_ACTIVITY_MARKERS_PER_EVENT,
@@ -18,7 +18,7 @@ const makeRoot = () => {
   roots.push(root);
   return root;
 };
-const recipient = (sessionId: string, toolUseId: string, agentId: string | null = null): DirectRecipient => ({
+const advicee = (sessionId: string, toolUseId: string, agentId: string | null = null): DirectAdvicee => ({
   host: "codex-cli",
   hostVersion: "0.155.1",
   sessionId,
@@ -43,19 +43,19 @@ describe("resident activity status", () => {
       recordActivity({
         statePath,
         root,
-        recipient: recipient("session", `event-${stage}`, index === 0 ? "child-a" : null),
+        advicee: advicee("session", `event-${stage}`, index === 0 ? "child-a" : null),
         lifetime,
         stage,
         findings: stage === "findings" ? 2 : 0,
         now: 100 + index,
       });
     }
-    const submitted = recipient("session", "event-submitted");
-    recordActivity({ statePath, root, recipient: submitted, lifetime, stage: "findings", findings: 1, now: 200 });
+    const submitted = advicee("session", "event-submitted");
+    recordActivity({ statePath, root, advicee: submitted, lifetime, stage: "findings", findings: 1, now: 200 });
     recordActivity({
       statePath,
       root,
-      recipient: submitted,
+      advicee: submitted,
       lifetime,
       stage: "submitted",
       submittedFindings: 1,
@@ -99,7 +99,7 @@ describe("resident activity status", () => {
     recordActivity({
       statePath,
       root,
-      recipient: recipient("restart-session", "event"),
+      advicee: advicee("restart-session", "event"),
       lifetime: "resident-before-restart",
       stage: "pending",
     });
@@ -126,17 +126,17 @@ describe("resident activity status", () => {
   it("keeps submission separate from pending work and sums unique unit findings", () => {
     const statePath = makeRoot();
     const root = "/synthetic/repository";
-    const event = recipient("multi-session", "event");
+    const event = advicee("multi-session", "event");
     recordActivity({
       statePath,
       root,
-      recipient: event,
+      advicee: event,
       lifetime: "resident",
       stage: "pending",
       expectedUnitIdentities: ["unit-a", "unit-b"],
     });
-    recordActivity({ statePath, root, recipient: event, lifetime: "resident", stage: "findings", findings: 2, unitIdentity: "unit-a" });
-    recordActivity({ statePath, root, recipient: event, lifetime: "resident", stage: "submitted", submittedFindings: 4 });
+    recordActivity({ statePath, root, advicee: event, lifetime: "resident", stage: "findings", findings: 2, unitIdentity: "unit-a" });
+    recordActivity({ statePath, root, advicee: event, lifetime: "resident", stage: "submitted", submittedFindings: 4 });
     expect(readActivity({
       statePath,
       root,
@@ -145,8 +145,8 @@ describe("resident activity status", () => {
     })).toMatchObject({ kind: "pending", submission: { status: "submitted", findings: 4 } });
 
     // A retry for the same semantic unit is idempotent; the second unit adds.
-    recordActivity({ statePath, root, recipient: event, lifetime: "resident", stage: "findings", findings: 2, unitIdentity: "unit-a" });
-    recordActivity({ statePath, root, recipient: event, lifetime: "resident", stage: "findings", findings: 3, unitIdentity: "unit-b" });
+    recordActivity({ statePath, root, advicee: event, lifetime: "resident", stage: "findings", findings: 2, unitIdentity: "unit-a" });
+    recordActivity({ statePath, root, advicee: event, lifetime: "resident", stage: "findings", findings: 3, unitIdentity: "unit-b" });
     expect(readActivity({
       statePath,
       root,
@@ -158,12 +158,12 @@ describe("resident activity status", () => {
   it("retains concurrent markers from separate hook processes without lost updates", async () => {
     const statePath = makeRoot();
     const root = "/synthetic/repository";
-    const event = recipient("concurrent-session", "event");
+    const event = advicee("concurrent-session", "event");
     const units = Array.from({ length: 12 }, (_, index) => `unit-${index}`);
     recordActivity({
       statePath,
       root,
-      recipient: event,
+      advicee: event,
       lifetime: "resident",
       stage: "pending",
       expectedUnitIdentities: units,
@@ -180,7 +180,7 @@ describe("resident activity status", () => {
           ACTIVITY_INPUT: JSON.stringify({
             statePath,
             root,
-            recipient: event,
+            advicee: event,
             lifetime: "resident",
             stage: "findings",
             findings: 1,
@@ -209,7 +209,7 @@ describe("resident activity status", () => {
       recordActivity({
         statePath,
         root,
-        recipient: recipient(sessionId, `tool-${index}`, agentId),
+        advicee: advicee(sessionId, `tool-${index}`, agentId),
         lifetime: "resident",
         stage: "clear",
         now: index,
@@ -224,12 +224,12 @@ describe("resident activity status", () => {
       expect(persisted).not.toContain(forbidden);
     }
 
-    const retried = recipient(sessionId, "retry-event", agentId);
+    const retried = advicee(sessionId, "retry-event", agentId);
     for (let index = 0; index < MAX_ACTIVITY_MARKERS_PER_EVENT + 8; index += 1) {
       recordActivity({
         statePath,
         root,
-        recipient: retried,
+        advicee: retried,
         lifetime: "resident",
         stage: "findings",
         findings: 1,

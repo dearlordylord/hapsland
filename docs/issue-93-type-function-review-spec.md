@@ -34,7 +34,7 @@ turn #16's outcome into approval of the broader branches proposed here.
 - One selected root with complete evidence yields one review unit and at most one
   logical Jev evaluation for its selected rule batch. Several complete changed
   roots yield independent units.
-- Stable eligible capture, exact recipient attribution, repository consent at
+- Stable eligible capture, exact advicee attribution, repository consent at
   dispatch, bounded source egress, and publication revalidation are mandatory.
 - Unsupported analysis, uncertain attribution, any incomplete candidate graph,
   and clear assessments yield no agent-facing advice. Human status retains only
@@ -166,9 +166,9 @@ snapshot fingerprint, root span/identity, artifact source fingerprints, canonica
 projection fingerprint, `complete` evidence state, and evidence capabilities. The
 snapshot fingerprint identifies exact captured file bytes; each artifact source fingerprint
 identifies its exact declaration source; the projection fingerprint identifies the
-sorted, canonical root/edge/source projection. Neither event ID nor recipient is part of
+sorted, canonical root/edge/source projection. Neither event ID nor advicee is part of
 semantic reuse identity. `ReviewWorkItem` additionally freezes observation and
-recipient, selected rule identities, and exact input contract.
+advicee, selected rule identities, and exact input contract.
 
 `ReviewInput` is versioned separately for each branch. The proposed Jev payload is
 a JSON value containing `artifact` (`kind`, `name`, repository-relative `domain`,
@@ -189,11 +189,11 @@ path, branch/root identity, projection fingerprint, selected rule-definition and
 effective-policy identities, and the complete evidence state. The exact file fingerprint
 is retained for observation and revalidation even if a harmless unrelated edit
 leaves the projection unchanged. Before backend dispatch, recheck consent,
-recipient/working-root authority, and captured snapshot validity. Before advice
+advicee/working-root authority, and captured snapshot validity. Before advice
 publication, recapture the named path and re-run selection, extraction, rule
 selection, and rendering under current configuration. Publish only if the same
 root remains attributable and the semantic evaluation key matches. A changed
-root, referenced evidence, rule, renderer, contract, consent, or recipient makes
+root, referenced evidence, rule, renderer, contract, consent, or advicee makes
 the result stale. An unrelated comment or sibling edit may retain a result only
 when the canonical projection and all authority checks still match. An uncertain
 recapture or root mapping suppresses publication. No whole-file equality shortcut

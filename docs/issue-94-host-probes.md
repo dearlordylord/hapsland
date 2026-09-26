@@ -107,7 +107,7 @@ real model reacting to a finding. Keep the compatibility claim scoped to the exa
 versions and modes until an authenticated paired run verifies reaction.
 
 Not tested here: interactive mode; an authenticated provider or real model reaction;
-edit-to-visible latency; late or idle delivery; a stale snapshot or recipient; restart;
+edit-to-visible latency; late or idle delivery; a stale snapshot or advicee; restart;
 hook/plugin timeout or crash; unavailable review backend; installation, coexistence,
 disablement, update, or removal; shell or external writes; and behavior outside the
 specific versions above. No adapter support is declared by this report.

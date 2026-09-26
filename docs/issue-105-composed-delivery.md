@@ -20,12 +20,12 @@ The partition key is the tuple `(canonical physical working root, host = codex-c
 exact supported host version, session_id, supplied agent_id or null)`. It is created
 from the attributed edit and must be supplied unchanged by each collector. `turn_id`
 and `tool_use_id` identify events and continuation attempts; they do not replace the
-recipient partition. Do not infer a missing agent from the latest caller, root
+advicee partition. Do not infer a missing agent from the latest caller, root
 co-location, or a checkpoint. A direct edit with a supplied child `agent_id` remains
-child-owned. A shared-root checkpoint change with unknown origin has no recipient and
+child-owned. A shared-root checkpoint change with unknown origin has no advicee and
 cannot yield addressed advice. Isolated worktrees have distinct canonical roots.
 
-Every collection checks root identity, recipient identity, enablement, credential
+Every collection checks root identity, advicee identity, enablement, credential
 generation, source selection, current work revision, current snapshot, and advice age
 at the final handoff barrier. A stale or unattributed result is suppressed. A transient
 revalidation failure leaves its advice available until a later valid attempt or normal
@@ -51,7 +51,7 @@ restart loses the in-memory work and cannot claim delivery success.
 
 For this combined path, the present `acknowledge` + `finalize` behavior is insufficient:
 `finalize` removes advice immediately after the write. The resident must instead
-retain a bounded, source-free submitted record (advice identity, recipient, turn
+retain a bounded, source-free submitted record (advice identity, advicee, turn
 chain, output surface, timestamp and token) through the relevant turn boundary. A
 background submission immediately before Stop is therefore **submitted/visibility
 unknown**. Stop must not race to submit the same advice again during that turn chain;
@@ -72,10 +72,10 @@ Collection and acknowledgement alone establish neither of the last two stages.
 The proposed registration adds a native async command for the same attributed
 `PostToolUse` event that admits the edit. The synchronous edit hook keeps its existing
 admission and ordinary collection behavior. The background command waits for its
-exact recipient's resident work, including the admission race, and emits at most one
+exact advicee's resident work, including the admission race, and emits at most one
 bounded `additionalContext` response through the native async hook output channel.
 It exits quietly when no eligible advice becomes ready. Only one background waiter
-may be active per recipient; later triggers coalesce against that waiter. A waiter
+may be active per advicee; later triggers coalesce against that waiter. A waiter
 holds no advice lease while waiting. It has a 20-second wall-clock cap from command
 launch to exit and a corresponding host command timeout; the resident's existing
 item and byte capacity limits remain authoritative. A canceled hook releases any
@@ -86,13 +86,13 @@ still bound later collectability.
 Async completion is only an output opportunity at a Codex safe point. It does not
 interrupt an in-flight model request or tool call, and it does not start a new turn.
 Output during the final model response or after turn/session end may have no model
-recipient. Host submission and model visibility must be measured independently.
+advicee. Host submission and model visibility must be measured independently.
 
 ## Stop command and continuation
 
 The candidate Stop policy starts its budget at native command launch. It first checks
-the exact recipient and turn-chain continuation state, then collects ready advice.
-If eligible work is still in flight, it polls that recipient's resident state at no
+the exact advicee and turn-chain continuation state, then collects ready advice.
+If eligible work is still in flight, it polls that advicee's resident state at no
 more than 50 ms intervals until a finding becomes available or the internal 4.2-second
 deadline expires. The internal deadline includes startup, parsing, resident startup
 if needed, IPC, collection, encoding, writing, and process exit; the native command
@@ -138,7 +138,7 @@ backend responses are not retained.
 | Background timing | No later edit; completion during model request/tool call, final response, and after end; actual submission and model visibility | **Partial** on Linux. Early output preceded independently observed repair; output after the final model message produced no observed repair. Tool-call and after-end visibility remain unmeasured. |
 | Stop outcomes | Ready, completes during wait, deadline then later collectable, unavailable/backend failure, stale, multi-unit | **Partial** on Linux. Stop won a lease, collected during its wait, and left a later result collectable. Background delivered a multi-unit batch and a failure notice. Stale and Stop failure-notice delivery remain open. |
 | Composition races | Background/Stop overlap, submitted but unconsumed background output, edit/other collector overlap, failed collection or lost ack, repair-generated findings | **Partial** on Linux. Stop won in two fixtures while a background waiter existed; background won in other fixtures. The probes do not prove simultaneous resident collection. One background output was submitted during Stop after the final model message without observed model visibility; pre-Stop unconsumed output remains untested. Repair-generated findings were observed. Edit overlap, failed collection, and lost ack remain open. |
-| Isolation | Two concurrent recipients with distinct findings on both paths; isolated worktrees, shared-root unknown origin, supplied child identity | **Missing** as a combined host run. Existing resident subprocess tests cover partition isolation. |
+| Isolation | Two concurrent advicees with distinct findings on both paths; isolated worktrees, shared-root unknown origin, supplied child identity | **Missing** as a combined host run. Existing resident subprocess tests cover partition isolation. |
 | Timing | Host command launch through response and exit on both profiles; edit, background, and added Stop latency kept distinct | **Partial**: the Linux #105 tracer recorded all three command classes through exit. macOS is unmeasured. |
 
 The [#97 record](issue-97-delivery.md) is useful prior evidence, but its isolated

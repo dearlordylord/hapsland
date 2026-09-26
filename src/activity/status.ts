@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { DirectRecipient } from "../direct-event/model.ts";
+import type { DirectAdvicee } from "../direct-event/model.ts";
 
 export const MAX_ACTIVITY_EVENTS_PER_SESSION = 256;
 export const MAX_ACTIVITY_MARKERS_PER_EVENT = 72;
@@ -48,7 +48,7 @@ const hash = (value: string) => createHash("sha256").update(value).digest("hex")
 const sessionKey = (value: string) => hash(`activity-v1:session\0${value}`);
 const childKey = (value: string | null) => hash(`activity-v1:child\0${value ?? "root"}`);
 const repositoryKey = (value: string) => hash(`activity-v1:repository\0${value}`);
-const eventKey = (value: DirectRecipient) => hash(`activity-v1:event\0${value.sessionId}\0${value.agentId ?? "root"}\0${value.turnId}\0${value.toolUseId}`);
+const eventKey = (value: DirectAdvicee) => hash(`activity-v1:event\0${value.sessionId}\0${value.agentId ?? "root"}\0${value.turnId}\0${value.toolUseId}`);
 const unitKey = (value: string) => hash(`activity-v1:unit\0${value}`);
 const digest = (value: unknown): value is string => typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
 const count = (value: unknown): value is number => typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 65_536;
@@ -142,7 +142,7 @@ const prune = (directory: string): void => {
 export const recordActivity = (options: {
   readonly statePath: string | undefined;
   readonly root: string;
-  readonly recipient: DirectRecipient;
+  readonly advicee: DirectAdvicee;
   readonly lifetime: string;
   readonly stage: ActivityStage;
   readonly findings?: number;
@@ -153,13 +153,13 @@ export const recordActivity = (options: {
 }): void => {
   if (options.statePath === undefined) return;
   try {
-    const directory = join(options.statePath, sessionKey(options.recipient.sessionId));
+    const directory = join(options.statePath, sessionKey(options.advicee.sessionId));
     const base: BaseMarker = {
       version: ACTIVITY_VERSION,
-      sessionKey: sessionKey(options.recipient.sessionId),
-      childKey: childKey(options.recipient.agentId),
+      sessionKey: sessionKey(options.advicee.sessionId),
+      childKey: childKey(options.advicee.agentId),
       repositoryKey: repositoryKey(options.root),
-      eventKey: eventKey(options.recipient),
+      eventKey: eventKey(options.advicee),
       lifetime: options.lifetime,
       observedAt: options.now ?? Date.now(),
     };

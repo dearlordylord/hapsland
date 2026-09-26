@@ -28,7 +28,7 @@ import {
 } from "./pipeline.ts";
 import { claimDemoBudget, readDemoBudgetUsage, writeDemoBudget } from "../onboarding/demo-budget.ts";
 import { attemptCodexHostOutput } from "./writer.ts";
-import { addEvent, makeGitFixture, put, recipient, updateEvent } from "./test-fixtures.ts";
+import { addEvent, makeGitFixture, put, advicee, updateEvent } from "./test-fixtures.ts";
 import { adaptCodexAdd } from "./adapter.ts";
 
 const execFileAsync = promisify(execFile);
@@ -55,7 +55,7 @@ const enabledReview = (
   yield* consent.enable(proposal);
   return yield* reviewCodexAdd(event, extend({
     controlledWriter: true,
-    recipient: recipient(),
+    advicee: advicee(),
     consent,
     settings,
     rules: configuredRules,
@@ -87,7 +87,7 @@ describe("direct-event vertical slice", () => {
       yield* consent.enable(proposal);
       const prepared = yield* prepareObservation(observation, {
         controlledWriter: true,
-        recipient: observation.recipient,
+        advicee: observation.advicee,
         consent,
         settings,
         rules: configuredRules,
@@ -143,19 +143,19 @@ describe("direct-event vertical slice", () => {
     }),
   );
 
-  it.effect("requires controlled-writer authority and exact recipient association", () =>
+  it.effect("requires controlled-writer authority and exact advicee association", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture);
       yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number"));
       let calls = 0;
       const model = { answers: findingAnswers(), onRequest: Effect.sync(() => { calls += 1; }) };
       const uncontrolled = yield* enabledReview(root, addEvent(root), model, (base) => ({ ...base, controlledWriter: false }));
-      const wrongRecipient = yield* enabledReview(root, addEvent(root), model, (base) => ({
+      const wrongAdvicee = yield* enabledReview(root, addEvent(root), model, (base) => ({
         ...base,
-        recipient: recipient({ sessionId: "someone-else" }),
+        advicee: advicee({ sessionId: "someone-else" }),
       }));
       expect(uncontrolled.status).toBe("unattributed");
-      expect(wrongRecipient.status).toBe("unattributed");
+      expect(wrongAdvicee.status).toBe("unattributed");
       expect(calls).toBe(0);
     }),
   );
@@ -379,7 +379,7 @@ describe("direct-event vertical slice", () => {
       const consent = yield* Consent.Service;
       const prepared = yield* prepareObservation(observation, {
         controlledWriter: true,
-        recipient: recipient(),
+        advicee: advicee(),
         consent,
         settings,
         rules: configuredRules,
@@ -421,7 +421,7 @@ describe("direct-event vertical slice", () => {
         if (observation === undefined) continue;
         const prepared = yield* prepareObservation(observation, {
           controlledWriter: true,
-          recipient: recipient(),
+          advicee: advicee(),
           consent,
           settings,
           rules: configuredRules,
@@ -654,7 +654,7 @@ describe("direct-event vertical slice", () => {
         yield* consent.enable(proposal);
         return yield* reviewObservation(observation, {
           controlledWriter: true,
-          recipient: observation.recipient,
+          advicee: observation.advicee,
           consent,
           settings,
           rules: configuredRules,
@@ -722,7 +722,7 @@ describe("direct-event vertical slice", () => {
         yield* consent.enable(proposal);
         return yield* reviewObservation(observation, {
           controlledWriter: true,
-          recipient: observation.recipient,
+          advicee: observation.advicee,
           consent,
           settings,
           rules: configuredRules,
@@ -996,7 +996,7 @@ describe("direct-event vertical slice", () => {
       yield* consent.enable(proposal);
       const context: DirectReviewContext = {
         controlledWriter: true,
-        recipient: observation.recipient,
+        advicee: observation.advicee,
         consent,
         settings,
         rules: configuredRules,
@@ -1057,7 +1057,7 @@ describe("direct-event vertical slice", () => {
       yield* consent.enable(proposal);
       const context: DirectReviewContext = {
         controlledWriter: true,
-        recipient: observation.recipient,
+        advicee: observation.advicee,
         consent,
         settings,
         rules: configuredRules,
@@ -1107,7 +1107,7 @@ describe("direct-event vertical slice", () => {
       yield* consent.enable(proposal);
       const context: DirectReviewContext = {
         controlledWriter: true,
-        recipient: observation.recipient,
+        advicee: observation.advicee,
         consent,
         settings,
         rules: configuredRules,

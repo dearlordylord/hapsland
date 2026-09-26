@@ -567,7 +567,7 @@ const runDirectCodexHook = (
     const owner = yield* Effect.tryPromise(() => ensureResident()).pipe(Effect.option);
     if (Option.isNone(owner)) {
       if (!isBash && reply !== undefined) {
-        recordActivity({ statePath: activityPath, root: reply.root, recipient: reply.recipient, lifetime: "resident-unavailable", stage: "unavailable" });
+        recordActivity({ statePath: activityPath, root: reply.root, advicee: reply.advicee, lifetime: "resident-unavailable", stage: "unavailable" });
       }
       return { handled: true, output: {} } as const;
     }
@@ -582,7 +582,7 @@ const runDirectCodexHook = (
         )).pipe(Effect.catch(() => Effect.succeed(undefined)));
     const collected = reply === undefined || dispatch === undefined
       ? undefined
-      : yield* Effect.tryPromise(() => collectReady(reply.root, reply.recipient, dispatch)).pipe(
+      : yield* Effect.tryPromise(() => collectReady(reply.root, reply.advicee, dispatch)).pipe(
           Effect.catch(() => Effect.succeed(undefined)),
         );
     // Bash has no path adaptation and can never create backend work.
@@ -593,13 +593,13 @@ const runDirectCodexHook = (
     }
     const observation = yield* adaptCodexDirectEvent(nativeEvent, hostVersion);
     if (observation !== undefined) {
-      recordDemoTrace(process.env.REVIEW_DEMO_BUDGET_PATH, observation.root, observation.recipient, { kind: "edit" });
+      recordDemoTrace(process.env.REVIEW_DEMO_BUDGET_PATH, observation.root, observation.advicee, { kind: "edit" });
     }
     // The direct dispatcher owns every native apply_patch event. Unsupported
     // shapes remain quiet and can never reach the legacy whole-file runtime.
     if (observation === undefined) {
       if (reply !== undefined) {
-        recordActivity({ statePath: activityPath, root: reply.root, recipient: reply.recipient, lifetime: owner.value.lifetime, stage: "incomplete" });
+        recordActivity({ statePath: activityPath, root: reply.root, advicee: reply.advicee, lifetime: owner.value.lifetime, stage: "incomplete" });
       }
       return collected === undefined
         ? { handled: true, output: {} } as const
@@ -608,13 +608,13 @@ const runDirectCodexHook = (
     // Matching reads are not attribution. The hook command must explicitly be
     // installed with this controlled-writer assertion for the supported Add profile.
     if (dispatch === undefined) {
-      recordActivity({ statePath: activityPath, root: observation.root, recipient: observation.recipient, lifetime: owner.value.lifetime, stage: "unavailable" });
+      recordActivity({ statePath: activityPath, root: observation.root, advicee: observation.advicee, lifetime: owner.value.lifetime, stage: "unavailable" });
     } else if (!isControlledWriter) {
-      recordActivity({ statePath: activityPath, root: observation.root, recipient: observation.recipient, lifetime: owner.value.lifetime, stage: "unavailable" });
+      recordActivity({ statePath: activityPath, root: observation.root, advicee: observation.advicee, lifetime: owner.value.lifetime, stage: "unavailable" });
     } else {
       yield* Effect.tryPromise(() => admitObservation(observation, true, dispatch)).pipe(
         Effect.catch(() => {
-          recordActivity({ statePath: activityPath, root: observation.root, recipient: observation.recipient, lifetime: owner.value.lifetime, stage: "unavailable" });
+          recordActivity({ statePath: activityPath, root: observation.root, advicee: observation.advicee, lifetime: owner.value.lifetime, stage: "unavailable" });
           return Effect.void;
         }),
       );
@@ -668,7 +668,7 @@ const runDirectBoundedHook = async (
   if (accepted?.status !== "accepted") return {};
   while (remaining() > 150) {
     const collected = await bounded(() => collectReady(
-      observation.root, observation.recipient, dispatch,
+      observation.root, observation.advicee, dispatch,
     ));
     if (collected !== undefined) return { _tag: "DirectEventReady", value: collected.output, collected };
     await new Promise((resolve) => setTimeout(resolve, Math.min(50, remaining())));
@@ -1759,14 +1759,14 @@ if (isDirectEventReady(output)) {
     } else if (!isClaudeHook && "hookSpecificOutput" in output.value) attemptCodexHostOutput(output.value, (encoded) => {
       process.stdout.write(encoded);
     });
-    recordDemoTrace(process.env.REVIEW_DEMO_BUDGET_PATH, output.collected.root, output.collected.recipient, {
+    recordDemoTrace(process.env.REVIEW_DEMO_BUDGET_PATH, output.collected.root, output.collected.advicee, {
       kind: "delivery",
       ruleIds: [...claudeHostOutputText(output.value).matchAll(/\[([a-z0-9_/-]+), p=/g)].map((match) => match[1] ?? ""),
     });
     recordActivity({
       statePath: output.collected.activityPath,
       root: output.collected.root,
-      recipient: output.collected.recipient,
+      advicee: output.collected.advicee,
       lifetime: output.collected.lifetime,
       stage: "submitted",
       submittedFindings: output.collected.findingCount,

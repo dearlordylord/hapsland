@@ -1,4 +1,4 @@
-import { isCodexHostVersion, type DirectObservation, type DirectRecipient } from "../direct-event/model.ts";
+import { isCodexHostVersion, type DirectObservation, type DirectAdvicee } from "../direct-event/model.ts";
 import type { CodexDirectEventOutput } from "../direct-event/pipeline.ts";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
@@ -47,7 +47,7 @@ export type ResidentRequest =
   | {
       readonly version: 2; readonly operation: "collect"; readonly lifetime: string;
       readonly ticket: ResidentCollectionTicket; readonly root: string;
-      readonly recipient: DirectRecipient; readonly dispatch: ResidentDispatchContext;
+      readonly advicee: DirectAdvicee; readonly dispatch: ResidentDispatchContext;
       readonly mode?: CollectionMode;
     }
   | { readonly version: 1; readonly operation: "hello" }
@@ -64,7 +64,7 @@ export type ResidentRequest =
       readonly operation: "collect";
       readonly lifetime: string;
       readonly root: string;
-      readonly recipient: DirectRecipient;
+      readonly advicee: DirectAdvicee;
       readonly dispatch: ResidentDispatchContext;
       readonly mode?: CollectionMode;
     }
@@ -132,7 +132,7 @@ const record = (value: unknown): Readonly<Record<string, unknown>> | undefined =
 const string = (value: unknown): value is string =>
   typeof value === "string" && value.length > 0 && value.length <= 16_384;
 
-const recipient = (value: unknown): value is DirectRecipient => {
+const advicee = (value: unknown): value is DirectAdvicee => {
   const item = record(value);
   if (item?.host === "claude-code" || item?.host === "opencode") return item.hostVersion ===
     (item.host === "claude-code" ? "2.1.218" : "1.14.44") &&
@@ -180,7 +180,7 @@ const dispatch = (value: unknown): value is ResidentDispatchContext => {
 const observation = (value: unknown): value is DirectObservation => {
   const item = record(value);
   const identity = record(item?.rootIdentity);
-  if (!string(item?.root) || !recipient(item?.recipient) || !Array.isArray(item?.candidates)) return false;
+  if (!string(item?.root) || !advicee(item?.advicee) || !Array.isArray(item?.candidates)) return false;
   if (
     !string(identity?.rootDevice) || !string(identity.rootInode) ||
     !string(identity.gitDirectory) || !string(identity.gitDevice) || !string(identity.gitInode)
@@ -209,17 +209,17 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
   if (value.version === 2) {
     if (!string(value.lifetime)) return undefined;
     if (value.operation === "admit" && value.controlledWriter === true && observation(value.observation) &&
-        value.observation.recipient.host === "claude-code" && dispatch(value.dispatch)) {
+        value.observation.advicee.host === "claude-code" && dispatch(value.dispatch)) {
       return { version: 2, operation: "admit", lifetime: value.lifetime,
         observation: value.observation, controlledWriter: true, dispatch: value.dispatch };
     }
     const ticket = record(value.ticket);
     if (value.operation === "collect" && string(ticket?.nonce) && string(ticket.lifetime) &&
-        string(value.root) && recipient(value.recipient) && value.recipient.host === "claude-code" &&
+        string(value.root) && advicee(value.advicee) && value.advicee.host === "claude-code" &&
         dispatch(value.dispatch) && (value.mode === undefined || value.mode === "ordinary" || value.mode === "turn-end")) {
       return { version: 2, operation: "collect", lifetime: value.lifetime,
         ticket: { nonce: ticket.nonce, lifetime: ticket.lifetime }, root: value.root,
-        recipient: value.recipient, dispatch: value.dispatch,
+        advicee: value.advicee, dispatch: value.dispatch,
         ...(value.mode === undefined ? {} : { mode: value.mode }) };
     }
     return undefined;
@@ -230,7 +230,7 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
     return { version: 1, operation: "admit", lifetime: value.lifetime, observation: value.observation, controlledWriter: true, dispatch: value.dispatch };
   }
   if (
-    value.operation === "collect" && string(value.root) && recipient(value.recipient) && dispatch(value.dispatch) &&
+    value.operation === "collect" && string(value.root) && advicee(value.advicee) && dispatch(value.dispatch) &&
     (value.mode === undefined || value.mode === "ordinary" || value.mode === "turn-end")
   ) {
     return {
@@ -238,7 +238,7 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
       operation: "collect",
       lifetime: value.lifetime,
       root: value.root,
-      recipient: value.recipient,
+      advicee: value.advicee,
       dispatch: value.dispatch,
       ...(value.mode === undefined ? {} : { mode: value.mode }),
     };
