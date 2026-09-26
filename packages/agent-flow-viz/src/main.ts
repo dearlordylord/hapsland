@@ -307,7 +307,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           h.div([h.Class("packet")], [h.strong([], ["Batch reserved for"]), h.span([], [model.flow.leaseSurface ?? "no caller"])]),
           h.div([h.Class("packet")], [h.strong([], ["Last response written through"]), h.span([], [model.flow.lastSubmissionSurface ?? "none"])]),
         ]),
-        h.p([], ["Fresh edit → open a round if closed. Stop selection → reserve one continuation before writing. Stop advice → continue the same round. Stop allow → cancel and discard all round resources. The adapter rejects old and duplicate events; runtime turn IDs never identify these rounds. Restart and transport failure are outside this example."]),
+        h.p([], ["Fresh edit → open a round if closed. Selecting advice for a Stop response reserves one continuation before writing. A Stop block response asks the runtime to continue the same round. Stop allow closes the Hapsland round and cancels or discards its resources. The adapter rejects old and duplicate events; runtime turn IDs never identify these rounds. Restart and transport failure are outside this example."]),
       ]),
       timelineView(h, model.timeline, (index) => Message.SelectedTimeline({ index })),
     ]),

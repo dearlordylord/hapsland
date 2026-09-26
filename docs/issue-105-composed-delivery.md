@@ -157,6 +157,15 @@ advicee. Host submission and model visibility must be measured independently.
 
 ## Stop command and continuation
 
+**Stop vocabulary:** `Stop` and `SubagentStop` are agent-runtime hooks fired when
+an agent tries to finish. Hapsland may wait **inside that hook attempt** for
+review work. If actionable advice is ready, Hapsland returns a Stop **block**
+response carrying ordinary review advice and asks the runtime to continue the
+same Hapsland round. There is no separate kind of "Stop advice" and no Jev
+Stop API call. If Hapsland returns **allow**, it closes its round and cleans up
+owned work even if another hook keeps the runtime active. The hook invocation,
+bounded wait, block/allow response, and Hapsland round boundary are distinct.
+
 The candidate Stop policy starts its budget at native command launch. It first checks
 the exact advicee and turn-chain continuation state, then collects ready advice.
 If eligible work is still in flight, it polls that advicee's resident state at no
@@ -485,7 +494,7 @@ backend responses are not retained.
 
 | Gate | Required observation | Current candidate evidence (2026-09-26) |
 | --- | --- | --- |
-| Codex Linux outcome | Linux arm64, Codex 0.155.1, Node 24.20.0, matched before/after through the production resident | **Passed in three consecutive renewed controlled attempts:** [1](../evidence/delivery-105/linux-repeatability-final-1.json), [2](../evidence/delivery-105/linux-repeatability-final-2.json), [3](../evidence/delivery-105/linux-repeatability-final-3.json). Each before completed review without finding handoff or repair; each after delivered Stop advice, observed a repair edit, independently checked the repaired file, and completed a clear follow-up. Each resident was ready before runtime launch. Background was registered but deliberately delayed; these are Stop outcome checks, not simultaneous collection proof. |
+| Codex Linux outcome | Linux arm64, Codex 0.155.1, Node 24.20.0, matched before/after through the production resident | **Passed in three consecutive renewed controlled attempts:** [1](../evidence/delivery-105/linux-repeatability-final-1.json), [2](../evidence/delivery-105/linux-repeatability-final-2.json), [3](../evidence/delivery-105/linux-repeatability-final-3.json). Each before completed review without finding handoff or repair; each after delivered advice through a Stop block response, observed a repair edit, independently checked the repaired file, and completed a clear follow-up. Each resident was ready before runtime launch. Background was registered but deliberately delayed; these are Stop outcome checks, not simultaneous collection proof. |
 | Claude Linux composition and outcome | Linux arm64, Claude Code 2.1.218, Node 24.20.0, background + Stop through the shared resident module; matched before/after with independently observed repair and clear follow-up | **The matched outcome passed in the same three renewed attempts**, with the same before/after observations and controlled ready-resident setup. Broader composition remains open. The [cold miss](../evidence/delivery-105/linux-repeatability-round-cold-miss.json) had no Claude baseline backend completion, so it is not a valid before case. In the [fast-baseline miss](../evidence/delivery-105/linux-repeatability-round-fast-baseline-miss.json), the baseline itself delivered and repaired, also invalidating the intended before case. Both records are retained; selected passing runs do not erase these setup/timing limits. |
 | Round implementation and regression | Shared round admission, four-request policy, cleanup/fencing, same-round reoffer; deterministic tests and build | **Implemented in candidate `b36b879`, with Codex edit-hook correction `bc50725`; after merging current master in `98298a4`, final full suite passed 535 tests / 2 skipped and build passed. Direct-event conformance passed 231/231; clean package, setup-package, and pinned installed-host conformance passed.** Native matched runs exercise one Stop continuation and repair, not four-request exhaustion or every cleanup race. The source-free resident-contract harness passed **14/14** on candidate `44d3992`, recorded in `a67be55`. |
 | Single installed behavior and owner review | No selectable legacy mode; owner considers repeatability, limitations, and rollout before closure | **Candidate installer implementation verified; final owner decision pending.** Both [Codex](../src/onboarding/codex-installation.ts) and [Claude](../src/onboarding/claude-installation.ts) unconditionally generate composed admission/background/Stop hooks; no installed legacy/composed selector or former environment gate remains. The [CLI](../src/cli.ts) returns after composed edit admission for both runtimes; legacy CLI entry points remain for before-case probes. This branch installs composed delivery as the sole mode. The owner directed one mode in the session; the issue now requires a separate evidence-backed owner review before adoption. |
@@ -577,3 +586,8 @@ review and final adoption work before closure. Closing #105 must still create
 and link the manual macOS follow-up. A background response submitted near session end
 remains visibility unknown even when the resident records a successful write. No live
 Jev validation is needed for this controlled delivery gate.
+
+The observed Codex case in which actionable advice completed and background output
+was submitted during a foreground Bash call is preserved as a later native recheck
+and candidate conditional Law in [#111](https://github.com/dearlordylord/hapsland/issues/111).
+That follow-up is not a #105 closure gate.

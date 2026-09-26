@@ -39,6 +39,10 @@ implementation specification.
 | Review dispatch cycle | A finite group of review work items selected together for evaluation; work arriving after selection belongs to a later cycle. |
 | Review result | The operational result of evaluating one actual review work item. |
 | Advicee | The agent that Hapsland can advise about an attributed edit. A working root or the latest caller does not identify that agent by itself. |
+| Stop hook attempt | An agent runtime's request to Hapsland when an agent tries to finish. It is a runtime event, not a Jev review operation. |
+| Stop wait | The bounded period within a Stop hook attempt during which Hapsland waits for eligible advice. The attempt has not yet been allowed or blocked. |
+| Stop block response | Hapsland's response to a Stop hook attempt that carries advice and asks the runtime to let the agent continue the same Hapsland round. |
+| Stop allow response | Hapsland's response that permits the finish attempt and closes its own round. Another runtime hook may still keep the agent working. |
 | Stop continuation | More work that Hapsland asks an agent to do when it tries to finish, so it can act on advice. |
 | Stop allowance | Permission for Hapsland to request a Stop continuation from an agent. |
 | Pending advice | Advice from a completed review that remains eligible for delivery to its intended advicee. |

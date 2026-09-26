@@ -25,7 +25,7 @@ resident lifetime and one review item at a time, not concurrent agents or tabs.
 
 A proven fresh edit opens a Hapsland round. Further edits stay in that round.
 Stop means the agent tries to finish: waiting does not close the round. Selecting
-Stop advice reserves one of four continuation requests before the output write.
+Advice selected for the Stop response reserves one of four continuation requests before the output write.
 That advice continues the same round. Allowing Stop closes the Hapsland round,
 cancels modeled Jev work, and removes every live packet, reservation and delivery
 record. The round number and count remain as a source-free display summary.
@@ -64,7 +64,7 @@ Use the prominent “Jump to timing diagrams” link at the top, or open
 of the same demo.
 
 The lower timeline defaults to matched before/after Stop repair runs on Codex and
-Claude. Seven selectable cases retain successful background opportunities,
+Claude. Eight selectable cases retain successful background opportunities,
 Stop reoffer, Codex foreground Bash, Claude streamed messages, all three unproven
 Claude foreground-tool attempts, and the bounded observation after runtime exit.
 Required product behavior and exploratory timing probes have separate labels

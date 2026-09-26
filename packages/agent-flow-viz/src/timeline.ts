@@ -56,21 +56,21 @@ const backgroundFlow: readonly EventId[] = [...review, "BackgroundHookFired", "A
 
 export const TIMELINE_CASES: readonly TimelineCase[] = [
   {
-    title: "Before / after: Stop advice leads to repair",
+    title: "Before / after: advice via Stop leads to repair",
     requirement: "REQUIRED PRODUCT BEHAVIOR",
-    summary: "Matched controlled runs on both runtimes. Before: review completed but no finding was handed off and the file stayed unchanged. After: Stop advice was written, a repair edit followed, the repaired file was checked, and review cleared. Three consecutive renewed runs passed; this chart shows the first.",
+    summary: "Matched controlled runs on both runtimes. Before: review completed but no finding was handed off and the file stayed unchanged. After: Hapsland returned advice through the Stop hook and blocked finish; a repair edit followed, the repaired file was checked, and review cleared. Three consecutive renewed runs passed; this chart shows the first.",
     panels: [
       { title: "Codex · before", status: "OBSERVED", outcome: "No finding handoff; no repair. Original file confirmed after exit.", entries: [
         native(matched, "runtime", "Edit hook returned", 6106), native(matched, "review", "Review completed", 7344), native(matched, "runtime", "Runtime exited", 8875),
       ] },
-      { title: "Codex · after", status: "OBSERVED", outcome: "Stop advice submitted; repair and clear follow-up confirmed.", entries: [
+      { title: "Codex · after", status: "OBSERVED", outcome: "Advice sent through Stop; repair and clear follow-up confirmed.", entries: [
         native(matched, "runtime", "UserPromptSubmit hook returned", 2276), native(matched, "runtime", "PreToolUse hook returned", 10582), native(matched, "runtime", "Edit hook returned", 10906), native(matched, "review", "Finding review completed", 14446), native(matched, "delivery", "Advice via Stop hook; block finish", 14504),
         unknown(14504, 18912), native(matched, "runtime", "Repair PreToolUse hook returned", 18912), native(matched, "result", "Repair edit hook returned", 19238), native(matched, "review", "Clear follow-up completed", 22765), native(matched, "delivery", "Allow finish; Hapsland round closes", 22792), native(matched, "runtime", "Runtime exited", 23325),
       ] },
       { title: "Claude · before", status: "OBSERVED", outcome: "No finding handoff; no repair. Original file confirmed after exit.", entries: [
         native(matched, "runtime", "Edit hook returned", 10084), native(matched, "review", "Review completed", 12376), native(matched, "runtime", "Runtime exited", 13381),
       ] },
-      { title: "Claude · after", status: "OBSERVED", outcome: "Stop advice submitted; repair and clear follow-up confirmed.", entries: [
+      { title: "Claude · after", status: "OBSERVED", outcome: "Advice sent through Stop; repair and clear follow-up confirmed.", entries: [
         native(matched, "runtime", "UserPromptSubmit hook returned", 1089), native(matched, "runtime", "PreToolUse hook returned", 6487), native(matched, "runtime", "Edit hook returned", 6832), native(matched, "review", "Finding review completed", 11874), native(matched, "delivery", "Advice via Stop hook; block finish", 11963),
         unknown(11963, 16157), native(matched, "runtime", "Repair PreToolUse hook returned", 16157), native(matched, "result", "Repair edit hook returned", 16478), native(matched, "review", "Clear follow-up completed", 21501), native(matched, "delivery", "Allow finish; Hapsland round closes", 21520), native(matched, "runtime", "Runtime exited", 21615),
       ] },
@@ -136,13 +136,22 @@ export const TIMELINE_CASES: readonly TimelineCase[] = [
     ], reducerEvents: [], reducerScope: "Native probe evidence only. The reducer has no tool scheduler, model timing or timeout-process lifecycle and cannot validate whether this target interval occurred.", sources: [recovery, "linux-claude-tool-reset-attempt-1.json", "linux-claude-tool-reset-attempt-2.json", "linux-claude-tool-reset-attempt-3.json"],
   },
   {
+    title: "Stop wait expires → allow and clean up",
+    requirement: "REQUIRED PRODUCT BEHAVIOR",
+    summary: "The review has not produced actionable advice by Hapsland’s Stop deadline. Hapsland allows finish and closes its round. The native trace shows the allow response; the separate resident contract establishes cancellation/discard of round-owned work and fences late results. Another plugin may continue the runtime, but this Hapsland round stays closed.",
+    panels: [
+      { title: "Codex · delayed review", status: "OBSERVED", outcome: "Stop allowed completion. Round-owned cleanup is established by the separate deterministic contract, not by this native timestamp alone.", entries: [native(remaining, "runtime", "Edit hook returned", 4855), native(remaining, "delivery", "Allow finish; Hapsland round closes", 10295)] },
+      { title: "Claude · delayed review", status: "OBSERVED", outcome: "Stop allowed completion. The native trace does not observe every cancelled or discarded resource.", entries: [native(remaining, "runtime", "Edit hook returned", 6316), native(remaining, "delivery", "Allow finish; Hapsland round closes", 12901)] },
+    ], reducerEvents: cleanup, reducerTitle: "Stop wait expires → allow finish → discard owned work", reducerScope: "Deadline expiry is an input assumption; this reducer has no clock. Stop allow removes modeled work while review is running. The resident contract separately checks cancellation/discard and fencing. The native allow timestamps do not by themselves prove those internal effects.", sources: [remaining, "native-background-timing-linux.md", "round-contract-linux.md"],
+  },
+  {
     title: "After exit: bounded observation of no late output",
     requirement: "EXPLORATORY TIMING PROBE",
-    summary: "A 30-second review delay outlasted the Stop wait. Neither run completed review, submitted advice, repaired or restarted during the retained observation. Two seconds after exit is a finite observation, not a universal cancellation proof. Cleanup itself remains required product behavior.",
+    summary: "After the required Stop allow and round cleanup, these native probes watched for two seconds beyond runtime exit. Neither run completed review, submitted advice, repaired or restarted during that window. This finite observation is not a universal cancellation proof.",
     panels: [
       { title: "Codex · delayed review", status: "OBSERVED", outcome: "No late output observed for two seconds after exit. Cancellation and late-callback rules also have separate deterministic evidence.", entries: [native(remaining, "runtime", "Edit hook returned", 4855), native(remaining, "delivery", "Allow finish; Hapsland round closes", 10295), native(remaining, "runtime", "Runtime exited", 10865)] },
       { title: "Claude · delayed review", status: "OBSERVED", outcome: "No late output observed for two seconds after exit. No claim about all possible later external responses.", entries: [native(remaining, "runtime", "Edit hook returned", 6316), native(remaining, "delivery", "Allow finish; Hapsland round closes", 12901), native(remaining, "runtime", "Runtime exited", 13326)] },
-    ], reducerEvents: cleanup, reducerTitle: "Stop wait expires → allow finish → discard owned work", reducerScope: "Deadline expiry is an input assumption; this reducer has no clock. Stop allow removes modeled work while review is running. It does not prove external cancellation, late-callback fencing after a new round, or native behavior beyond the observation window.", sources: [remaining, "native-background-timing-linux.md", "round-contract-linux.md"],
+    ], reducerEvents: [], reducerTitle: "Native observation only", reducerScope: "The two-second window is a native observation, not a reducer-checked duration. The preceding required cleanup has its own case and separate deterministic resident contract. No finite observation proves absence of every possible late external response.", sources: [remaining, "native-background-timing-linux.md"],
   },
 ];
 
