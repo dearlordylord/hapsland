@@ -59,6 +59,7 @@ export const REJECTION_LABELS = {
   leaseBusy: "Another collector already holds the advice lease.",
   noLease: "No delivery lease exists.",
   missingPacket: "The required data item is not at this step.",
+  workSlotOccupied: "The review work slot already holds an item.",
 } as const satisfies Record<RejectionCode, string>;
 
 export const describeAccepted = (before: FlowState, after: FlowState, event: EventId, route: Transition): string => {

@@ -164,7 +164,8 @@ export const reducerSegment = (scenario: TimelineCase) => {
     const route = step.changes.find((change) => change.kind === "transition")?.route;
     if (route === undefined) throw new Error(`Timeline ${scenario.title}: no emitted route for ${step.event}`);
     return { kind: "reducer event" as const, event: step.event, order, label: EVENT_LABELS[step.event],
-      virtualRoundActive: step.state.virtualRoundActive, packets: step.state.packets.length,
+      virtualRoundActive: step.state.virtualRoundActive,
+      packets: step.state.packets.length + (step.state.workSlot === null ? 0 : 1),
       changes: step.changes };
   });
 };

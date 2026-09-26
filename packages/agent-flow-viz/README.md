@@ -32,6 +32,10 @@ a valid interval. It cannot prove that a transcribed time matches its source.
 The sidecar model follows one agent at a time. Runtime adapters handle session and
 subagent identifiers; the reducer carries no agent identifier or root/child branches. It models one
 resident lifetime and one review item at a time, not concurrent agents or tabs.
+Its `workSlot` is explicitly empty, a capture job, or a review work item.
+The separate `packets` array holds data at other locations, such as pending
+advice and an active lease; its type excludes the work slot. No agent-ID map is
+needed for this one-agent model.
 
 A round is an episode of agent work whose actual end is controlled by the agent
 runtime. Hapsland may not observe that end. A virtual round is Hapsland's own

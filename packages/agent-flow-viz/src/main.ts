@@ -147,7 +147,7 @@ const nodeView = (h: HtmlBuilder<Message>, id: NodeId, model: Model) => {
     : id === "agentEdit" ? "fresh edit enters through adapter"
     : id === "collector" ? (flow.leaseSurface ? `${flow.leaseSurface} batch reserved` : flow.opportunity ? `${flow.opportunity} request received` : "waiting for an agent runtime request")
     : id === "hostOutput" ? (flow.lastSubmissionSurface ? "written; no payload stored here" : "no response written yet")
-    : id === "workSlot" ? (packets[0] ? `${packets[0].flavor} present` : "slot empty")
+    : id === "workSlot" ? (flow.workSlot === null ? "slot empty" : `${flow.workSlot} present`)
     : id === "adviceStore" ? (packets[0] ? "finding available for selection" : "no pending advice")
     : id === "outcomeStore" ? (model.emissions.some((item) => item.at === id) ? "updated; no payload stored here" : "no completed review yet")
     : packets.length ? packets.map((packet) => packet.flavor).join(", ") : "idle in this example";
@@ -204,6 +204,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const trace = TRACES[model.trace];
   const next = trace?.events[model.cursor];
   const previous = model.cursor > 0 ? trace?.events[model.cursor - 1] : undefined;
+  const liveItems = model.flow.workSlot === null ? model.flow.packets
+    : [{ at: "workSlot" as const, flavor: model.flow.workSlot }, ...model.flow.packets];
   return {
     title: "Hapsland · agent flow visualization",
     body: h.main([h.Class("page")], [
@@ -245,7 +247,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           h.p([h.Class("progress")], [trace ? `Step ${model.cursor} of ${trace.events.length}` : "Free play"]),
           h.p([h.Class("status")], [model.feedback]),
           h.h3([], ["Live review data in this virtual round"]),
-          h.div([h.Class("packets")], model.flow.packets.map((packet) =>
+          h.div([h.Class("packets")], liveItems.map((packet) =>
             h.div([h.Class("packet")], [
               h.strong([], [packet.flavor]),
               h.span([], [NODES[packet.at].label]),
