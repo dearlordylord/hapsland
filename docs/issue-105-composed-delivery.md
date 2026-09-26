@@ -1,7 +1,8 @@
 # Issue #105: reusable composed delivery contract and adoption decision
 
-Status: **candidate implementation; three consecutive matched Linux attempts passed on 2026-09-25;
-remaining conformance gates open**. This document is the contract for the combined
+Status: **accepted contract updated on 2026-09-26; implementation and conformance gates open**.
+Three consecutive matched Linux attempts passed for the earlier candidate on 2026-09-25;
+those runs do not validate the round, cleanup, four-request, or reoffer rules below. This document is the contract for the combined
 Codex and Claude Code paths. The implementation now registers background, Stop,
 and prompt hooks through each installer and shares one resident delivery module.
 The matched host probe uses the production CLI and resident with isolated native
@@ -243,8 +244,7 @@ uncertain handoff records; and Stop continuation state. Closing a round must
 fence late admissions and late completions before it cancels or releases
 resources. No old callback may create new work or advice for that round.
 Shared state needed by another round must remain owned by that other round.
-Any dropped or cancelled review is **incomplete**, never clean. The exact
-record of discarded counts and reasons remains to be specified.
+Any dropped or cancelled review is **incomplete**, never clean. The source-free closure summary specified below records discarded counts and reasons.
 
 Other Stop hooks can continue the agent after Hapsland allows completion. The
 closure rule above intentionally needs only Hapsland's own Stop response, not
@@ -253,9 +253,9 @@ fence late callbacks; already written host output cannot be recalled. The
 current resident has no Hapsland round identifier or round-scoped cancellation
 path, so this cleanup direction is not implemented. A future implementation
 must distinguish fresh attributed edits from delayed or duplicate events and
-must preserve the four-request limit across uncertain writes, expiry, and
-resident restart. These are specification gaps before further conformance
-validation, not claims that the candidate already enforces the rule.
+must preserve the four-request limit across uncertain writes and expiry within
+one resident lifetime. Durable enforcement across restart is a separate follow-up. The normative rules below resolve these specification gaps. They are requirements,
+not claims that the candidate already enforces them.
 The closure, fencing, and late-result rules are candidates for later formal
 verification.
 
@@ -272,6 +272,154 @@ The required round-close properties are:
    or a later round of the same agent.
 5. **Truthful outcome:** dropped or interrupted review work is recorded as
    incomplete or discarded; it is never reported as a clear review.
+
+## Normative round and recovery rules (2026-09-26)
+
+This section resolves the remaining specification details. It takes precedence over
+paragraphs above that describe the earlier candidate. The implementation evidence
+must state which of these rules it enforces before Linux conformance resumes.
+
+### Round identity and admission
+
+The resident assigns an opaque round ID within the complete advicee partition.
+Every admitted observation, queue entry, preparation result, review unit, Jev
+request, advice item, lease, waiter, and output reservation carries that ID.
+Native `turn_id` is runtime metadata; it neither creates a new Hapsland round nor
+restores its continuation count. Prompts, background polls, Stop calls, and
+subagent lifecycle notifications cannot reset an active round. A fresh attributed
+edit stays in the current active round, including an edit made to repair advice.
+A new instruction alone need not have a special policy for #105.
+
+The first attributable edit can open the first round for an advicee. Its native
+edit identity is the advicee partition plus native tool-use ID and edit event
+kind. Store a source-free digest; do not use source equality as event identity.
+Reject duplicate identities without recapture or another Jev call. Bind the edit
+to a round before asynchronous preparation begins. All subsequent messages carry
+that binding and the resident lifetime; an old callback cannot ask to join whichever
+round happens to be current.
+
+After a round closes, opening another requires evidence that the edit happened
+after closure. A previously unseen tool-use ID or a later arrival time alone is
+insufficient: an old hook can be delayed before its first admission. Accept a
+runtime transcript ordering marker only when the adapter can establish that the
+corresponding edit starts after the recorded closure position in that same agent's
+transcript. A trusted adapter admission token created after closure can serve the
+same purpose only if it also proves the native edit occurred after closure;
+issuing a new token for an old payload is insufficient. When that ordering evidence
+is unavailable, reject the ambiguous edit as incomplete and report a bounded
+source-free limitation. Do not silently open a round. Both Codex and Claude require
+adapter evidence for this gate; neither native `turn_id` nor `tool_use_id` alone
+passes it. Support for reopening within the same runtime session remains conditional
+on implementing and validating that evidence. A newly identified runtime session
+has its own advicee partition and can open its first round normally.
+
+### Stop reservation, output, and reoffer
+
+At most one Stop collector owns an advicee's active Stop attempt. Overlapping
+collectors return without an independent continuation output; they cannot consume
+or renew its deadline. Select and revalidate eligible advice under resident ownership,
+then atomically reserve a continuation number from one through four in resident
+state before authorizing output. The output permit binds the advice IDs, round, collector,
+and attempt. Reusing a permit never authorizes a second write. A repeated Stop
+notification cannot replay an old block response. A later continuation may present distinct eligible advice from earlier work, including
+late results or batch overflow, without requiring another edit. The same advice cannot
+spend another slot through repeated Stop presentation.
+
+A completed stdout write means submitted, not seen or followed. Once a permit may
+have reached a writer, acknowledgement loss, process death, and partial or uncertain
+writes consume the reserved slot. A failure proven to occur before output authorization
+may release a provisional reservation; no timeout or missing acknowledgement proves
+that no output occurred. A lost Stop writer leaves the round active with its count
+preserved; it does not authorize another collector to replay that attempt. A later
+Stop can allow and close it. The resident reservation precedes external side effects.
+
+Background advice submitted before Stop begins **or during its wait** is eligible
+for one Stop reoffer in the same round if consumption is unproven. Uncertain background
+output is treated the same way. This uses the same advice ID and current eligibility
+checks, without a Jev request. A live background lease cannot be stolen: Stop may
+wait within its existing deadline for that write to resolve, or safely revoke an
+output permit that has not been released to its writer. At the final Stop selection
+barrier, include only advice whose handoff state is resolved or explicitly uncertain;
+a still-authorized concurrent writer retains ownership. Atomically reserve each
+advice item's one Stop reoffer with the Stop output permit. Uncertain Stop output
+consumes that reoffer too. Stop-submitted advice is not repeatedly reoffered at later
+Stops. New repair-generated findings are new advice and can use remaining slots.
+No advice crosses a closed round boundary.
+
+When no actionable advice can be presented before the deadline, or all four slots
+are used, Hapsland chooses allow and closes its round. Backend failure or unavailable
+review is never encoded as a clean result. Operational notices do not by themselves
+justify a repair continuation. At exhaustion, do not wait for advice that Hapsland
+cannot present. A bounded batch may leave advice behind while a continuation keeps
+the round active; every remaining item is discarded when the round closes.
+
+### Closure ordering and resource ownership
+
+Closure is a resident transition, performed before the hook emits its allow response:
+
+1. Mark the round closed and atomically stop admission, collection, output
+   permits, and new queue transitions. New callbacks check this fence first.
+2. Resolve background waiters quietly; revoke leases and unreleased output permits.
+   Already authorized or written output cannot be recalled and must be recorded as
+   submitted or uncertain, never model-visible by inference.
+3. Remove queued observations and review units; interrupt owned preparation and Jev
+   evaluation tasks and abort their owned network operations. Each task checks the
+   same round fence before publishing or scheduling further work. Cancellation is
+   best effort at the remote backend; late results are discarded locally.
+4. Release captured source, artifacts, work references, pending advice, notices,
+   and submitted/uncertain delivery records. Reference-count shared resources or
+   retain independent ownership so another round is unaffected.
+5. Retain only the source-free closure marker, identity digests needed to reject
+   old events, and aggregate counts/reasons. Emit the allow response within the
+   original hook deadline; cleanup may finish asynchronously after the fence is
+   effective, but cannot produce review or delivery work.
+
+Record the reason (`no-actionable-advice`, `deadline`, `continuation-limit`,
+`disabled`, `recovery`, or `cancelled`), reserved continuation count, and numbers of
+queued, running, pending, submitted, and uncertain items discarded. Categories
+must identify lifecycle stages so the same item is not falsely reported as multiple
+completed reviews. Zero discarded items does not imply a clean review. Never retain
+source, advice text, raw runtime messages, or Jev payloads in this ledger.
+
+An output permit already released to a separate process cannot be atomically recalled
+by resident closure. The collector must recheck the fence immediately before writing;
+if closure races after that check, classify its output as uncertain. No exactly-once
+output or physical recall claim is made. The strong invariant is no *new authorization*
+after closure, plus rejection of late review results. Conformance must exercise this
+race and report the remaining external-write uncertainty explicitly.
+
+### Restart and expiry scope
+
+The four-request bound and closed-round event fence apply within one resident
+lifetime. Keep source-free round identity, phase, reserved count, output reservation,
+and event digests in resident memory. Advice relevance expiry can remove advice but
+must not reset an active round's count or reopen a closed round. If capacity requires
+removing detailed event history, retain a source-free session denial marker and refuse
+ambiguous admissions for that partition until a new runtime session supplies a new
+partition. Eviction must not become permission within that resident lifetime.
+
+The owner explicitly deferred durable count enforcement across resident restarts to
+[#107](https://github.com/dearlordylord/hapsland/issues/107), labeled `priority:low`.
+A restart loses round state and can create a fresh
+allowance; repeated restarts can therefore exceed four continuations over the runtime's
+continued work. Unbounded repeated restarts may yield unbounded aggregate requests;
+this is explicitly accepted for #105, which does not promise a durable cap. All old review data and leases
+are discarded on restart, and IPC lifetime checks reject messages addressed to the
+old resident. No recovered work or output is claimed successful. Raw runtime events
+that first arrive after restart have no retained prior-round history; their attribution
+limitation must be explicit. This is the accepted restart limitation, not a reason to
+reset the count on ordinary expiry, polling, or native turn changes.
+
+### Implementation and evidence scope
+
+The production default branch, the #105 candidate, and the Foldkit backbone prototype
+are separate artifacts. The prototype models these transitions and data ownership; it
+does not prove that production interrupts Jev or that native hooks deliver output.
+The candidate must implement the contract before new Linux repeatability claims count.
+Earlier Linux outcome evidence remains valid evidence for that earlier implementation,
+with no claim that it validates the four-request or cleanup rules. No new owner product
+decision is needed to implement these conservative failure rules. Adapter ordering
+support and runtime output races must remain explicit implementation/support limits.
 
 ## Required conformance and present evidence
 
@@ -290,7 +438,7 @@ backend responses are not retained.
 | Single installed behavior and owner review | No selectable legacy mode; owner considers repeatability, limitations, and rollout before closure | **Implementation passed; final owner decision pending.** This branch installs composed delivery as the sole mode. The owner directed one mode in the session; the issue now requires a separate evidence-backed owner review before adoption. |
 | macOS manual follow-up | Real installed Codex and Claude Code on the owner's macOS machine | **Deferred by issue scope**. Closure of #105 must create and link the follow-up issue; no macOS result is claimed here. |
 | Background timing | No later edit before delivery; completion during model request/tool call, final response, and after end; actual submission and model visibility | **Partial** on Linux. [Selected early-completion runs](../evidence/delivery-105/linux-background-opportunities.json) submitted async findings on both hosts; Claude made a repair edit and completed a clear follow-up, while Codex finished without a repair. Separate [contended](../evidence/delivery-105/linux-background-opportunities-contended.json) and [late Claude](../evidence/delivery-105/linux-claude-background-late-miss.json) runs also submitted findings without observed repair. This shows host submission does not guarantee model visibility. Exact in-flight tool-call and after-end visibility boundaries need further classification. |
-| Stop outcomes | Ready, completes during wait, deadline then later collectable, unavailable/backend failure, stale, multi-unit | **Partial** on Linux. Stop won a lease, collected during its wait, and left a later result collectable. Background delivered a multi-unit batch and a failure notice. Stale and Stop failure-notice delivery remain open. |
+| Stop outcomes | Ready, completes during wait, deadline then round cleanup, unavailable/backend failure, stale, multi-unit | **Partial** on Linux. The earlier candidate won a lease and collected during its wait; its later-collectable result is evidence of behavior the accepted cleanup rule now forbids. Background delivered a multi-unit batch and a failure notice. Stale and Stop failure-notice delivery remain open. |
 | Composition races | Background/Stop overlap, submitted but unconsumed background output, edit/other collector overlap, failed collection or lost ack, repair-generated findings | **Partial** on Linux. Stop won in two fixtures while a background waiter existed; background won in other fixtures. The probes do not prove simultaneous resident collection. One background output was submitted during Stop after the final model message without observed model visibility; pre-Stop unconsumed output remains untested. Repair-generated findings were observed. Edit overlap, failed collection, and lost ack remain open. |
 | Isolation | Two concurrent advicees with distinct findings on both paths; isolated worktrees, shared-root unknown origin, supplied child identity | **Missing** as a combined host run. Existing resident subprocess tests cover partition isolation. |
 | Timing | Host command launch through response and exit on both profiles; edit, background, and added Stop latency kept distinct | **Partial**: the [new ptrace record](../evidence/delivery-105/linux-host-command-timing.json) measured native edit, background, prompt, and Stop child creation through exit on both Linux profiles. Its selected Stop calls finished below five seconds; tracing adds overhead. Background completion-to-model visibility remains an event-order observation rather than a precise latency bound. |
