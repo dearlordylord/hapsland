@@ -35,3 +35,10 @@ fixed-pattern matches and the runtime's clock text. A later successful minimal
 invocation would justify spending the two authorized targeted retries on the
 missing product cases; the reported clock alone is insufficient evidence of
 recovery.
+
+## Later control
+
+After the user reported reset, the settings-excluded control succeeded
+(exit 0, `is_error: false`, 3.818 seconds). See `claude-reset-rerun-linux.md`
+for the bounded product reruns and remaining gap. This later observation
+does not establish the earlier error’s account or quota cause.

@@ -12,18 +12,18 @@ contain timing, event types, marker booleans and hashed lease tokens.
 | Case | Codex | Claude |
 | --- | --- | --- |
 | Background submission followed by repair | Observed without a Stop block in the initial tool and final-response cases. | Observed without a Stop block in the initial tool case. |
-| Review completion inside a native tool call | **Observed:** Bash PreToolUse 9.081 s, review completion 17.169 s, background submission 17.223 s, Bash PostToolUse 34.143 s. A native repair followed without a Stop block. | **Unproven:** successful attempts completed before the shell call. The final attempt failed before editing. |
+| Review completion inside a native tool call | **Observed:** Bash PreToolUse 9.081 s, review completion 17.169 s, background submission 17.223 s, Bash PostToolUse 34.143 s. A native repair followed without a Stop block. | **Unproven:** three post-reset attempts still did not produce a successful actionable-finding/tool-window case; see `claude-reset-rerun-linux.md`. |
 | Background output during a final response | Runtime exposes completed assistant items, so an in-progress final response or model request is not established. Background submission preceded a later repair. | Submission at 8.454 s occurred inside the native streamed message interval 8.404–30.478 s. Review completed at 8.352 s, just before that interval. Stop reoffered at 30.810 s; repair followed. This does not prove the earlier output was unseen. |
 | Delayed backend work after the round closes | A 30-second injected review produced no completion, submission, repair or restart within the bounded observation. | Same observation. |
 | Background and Stop collectors overlap | Stop began before review completion, acquired the only observed finding lease, submitted it and caused repair. Background did not acquire a finding lease. | Stop began before completion; background acquired and submitted a finding lease, then Stop acquired a **different** reoffer lease after background acknowledgment/finalization. Repair followed. |
-| Concurrent background routing through one resident | Two native sessions in separate Git worktrees received only their own distinct background finding; both later received only their own Stop reoffer. | **Unproven:** both native processes exited 1 before edits. |
+| Concurrent background routing through one resident | Two native sessions in separate Git worktrees received only their own distinct background finding; both later received only their own Stop reoffer. | **Passed after runtime recovery:** both concurrent worktrees received only their own background finding and Stop reoffer; see `claude-reset-rerun-linux.md`. |
 
 The race traces show overlapping collectors, followed by exclusive lease use
 and, for Claude, intentional sequential reoffer. They do not demonstrate two
 writers simultaneously owning one lease. No raw agent thought or visibility
 signal is available: submission and subsequent repair are separate observations.
 
-Nine instrumented PreToolUse commands had Linux ptrace launch-to-exit times of
+The initial nine instrumented PreToolUse commands had Linux ptrace launch-to-exit times of
 294.16–356.35 ms, below the configured five-second deadline. These include
 probe wrapper/IPC-observer overhead; they are not universal latency bounds.
 
@@ -97,3 +97,11 @@ node evidence/delivery-105/run-native-isolation-linux.mjs \
 The IPC observer records collection responses and submission boundaries. It
 never retains request bodies or response/advice content. Repeated identical
 records may be compressed into `at`, `lastAt`, and `count`.
+
+## Post-reset follow-up
+
+`claude-reset-rerun-linux.md` retains the successful minimal control, the
+passing concurrent background-isolation pair, and all three tool-window
+attempts. Runtime availability recovered; the actionable tool-window case
+remains unproven. One attempt hit the timeout and returned after its signal
+ceiling; the follow-up records that overrun and the probe cleanup fix.

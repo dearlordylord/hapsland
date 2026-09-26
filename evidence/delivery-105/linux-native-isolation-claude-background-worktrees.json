@@ -1,0 +1,268 @@
+{
+  "schema": "hapsland-105-native-isolation-v1",
+  "recordedAt": "2026-09-26T13:09:59.635Z",
+  "candidateCommit": "2b2a70c3eafb6e0b9f8071a1ee317340b3a1989e",
+  "platform": "linux",
+  "architecture": "arm64",
+  "node": "v24.20.0",
+  "boundary": "Pinned native headless runtimes; production composed hooks and shared resident; controlled Effect reviewer; fixture source and advice markers",
+  "limitations": [
+    "No live Jev requests",
+    "Finding-marker routing is observed at native hook output; raw model/source output is not retained",
+    "Child isolation is established only when native supplied child identities and both distinct finding destinations are observed",
+    "Concurrent native runs do not by themselves prove simultaneous backend evaluations",
+    "Background delivery is only exercised by explicit background-worktrees cases"
+  ],
+  "results": [
+    {
+      "host": "claude",
+      "kind": "background-worktrees",
+      "hostVersion": "2.1.218",
+      "status": "observed-isolated-deliveries",
+      "distinctPhysicalWorktrees": true,
+      "backgroundDestinations": [
+        "a",
+        "b"
+      ],
+      "sharedResident": true,
+      "concurrentNativeRuns": true,
+      "distinctEditSessions": 2,
+      "suppliedChildIdentities": 0,
+      "expectedDestinationsObserved": [
+        "a",
+        "b"
+      ],
+      "foreignFindingDeliveries": 0,
+      "parentReceivedChildFinding": false,
+      "hookFailures": [],
+      "runs": [
+        {
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "ackTextFields": [
+            {
+              "path": "system.output",
+              "recordSubtype": "hook_response",
+              "a": false,
+              "b": true
+            },
+            {
+              "path": "system.stdout",
+              "recordSubtype": "hook_response",
+              "a": false,
+              "b": true
+            },
+            {
+              "path": "assistant.message.content.0.text",
+              "recordSubtype": null,
+              "a": true,
+              "b": false
+            },
+            {
+              "path": "assistant.message.content.0.text",
+              "recordSubtype": null,
+              "a": true,
+              "b": false
+            },
+            {
+              "path": "result.result",
+              "recordSubtype": "success",
+              "a": true,
+              "b": false
+            }
+          ],
+          "reportedNoSubagent": false,
+          "reportedAckA": true,
+          "reportedAckB": true,
+          "stderrCategories": [],
+          "elapsedMs": 24874
+        },
+        {
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "ackTextFields": [
+            {
+              "path": "system.output",
+              "recordSubtype": "hook_response",
+              "a": false,
+              "b": true
+            },
+            {
+              "path": "system.stdout",
+              "recordSubtype": "hook_response",
+              "a": false,
+              "b": true
+            },
+            {
+              "path": "assistant.message.content.0.text",
+              "recordSubtype": null,
+              "a": false,
+              "b": true
+            },
+            {
+              "path": "assistant.message.content.0.text",
+              "recordSubtype": null,
+              "a": false,
+              "b": true
+            },
+            {
+              "path": "result.result",
+              "recordSubtype": "success",
+              "a": false,
+              "b": true
+            }
+          ],
+          "reportedNoSubagent": false,
+          "reportedAckA": false,
+          "reportedAckB": true,
+          "stderrCategories": [],
+          "elapsedMs": 29079
+        }
+      ],
+      "events": [
+        {
+          "mode": "prompt",
+          "event": "UserPromptSubmit",
+          "destination": "b",
+          "sessionKey": "a79ecddb8a10f335058862c1ad437aa17c301e1b40e5022cd7a99d2b1a3cddfc",
+          "childKey": null,
+          "suppliedChildIdentity": false,
+          "startedAt": 9897,
+          "elapsedMs": 651,
+          "ok": true,
+          "blocked": false,
+          "expectedFinding": false,
+          "foreignFinding": false
+        },
+        {
+          "mode": "prompt",
+          "event": "UserPromptSubmit",
+          "destination": "a",
+          "sessionKey": "6d3450ad4d9e4c97c1975f4ffc8908515b4eda0a51a63103058fd6d852d00b36",
+          "childKey": null,
+          "suppliedChildIdentity": false,
+          "startedAt": 9867,
+          "elapsedMs": 701,
+          "ok": true,
+          "blocked": false,
+          "expectedFinding": false,
+          "foreignFinding": false
+        },
+        {
+          "mode": "edit",
+          "event": "PostToolUse",
+          "destination": "a",
+          "sessionKey": "6d3450ad4d9e4c97c1975f4ffc8908515b4eda0a51a63103058fd6d852d00b36",
+          "childKey": null,
+          "suppliedChildIdentity": false,
+          "startedAt": 16886,
+          "elapsedMs": 654,
+          "ok": true,
+          "blocked": false,
+          "expectedFinding": false,
+          "foreignFinding": false
+        },
+        {
+          "mode": "background",
+          "event": "PostToolUse",
+          "destination": "a",
+          "sessionKey": "6d3450ad4d9e4c97c1975f4ffc8908515b4eda0a51a63103058fd6d852d00b36",
+          "childKey": null,
+          "suppliedChildIdentity": false,
+          "startedAt": 16892,
+          "elapsedMs": 3311,
+          "ok": true,
+          "blocked": false,
+          "expectedFinding": true,
+          "foreignFinding": false
+        },
+        {
+          "mode": "edit",
+          "event": "PostToolUse",
+          "destination": "b",
+          "sessionKey": "a79ecddb8a10f335058862c1ad437aa17c301e1b40e5022cd7a99d2b1a3cddfc",
+          "childKey": null,
+          "suppliedChildIdentity": false,
+          "startedAt": 20287,
+          "elapsedMs": 460,
+          "ok": true,
+          "blocked": false,
+          "expectedFinding": false,
+          "foreignFinding": false
+        },
+        {
+          "mode": "background",
+          "event": "PostToolUse",
+          "destination": "b",
+          "sessionKey": "a79ecddb8a10f335058862c1ad437aa17c301e1b40e5022cd7a99d2b1a3cddfc",
+          "childKey": null,
+          "suppliedChildIdentity": false,
+          "startedAt": 20285,
+          "elapsedMs": 3183,
+          "ok": true,
+          "blocked": false,
+          "expectedFinding": true,
+          "foreignFinding": false
+        },
+        {
+          "mode": "stop",
+          "event": "Stop",
+          "destination": "a",
+          "sessionKey": "6d3450ad4d9e4c97c1975f4ffc8908515b4eda0a51a63103058fd6d852d00b36",
+          "childKey": null,
+          "suppliedChildIdentity": false,
+          "startedAt": 28845,
+          "elapsedMs": 464,
+          "ok": true,
+          "blocked": true,
+          "expectedFinding": true,
+          "foreignFinding": false
+        },
+        {
+          "mode": "stop",
+          "event": "Stop",
+          "destination": "a",
+          "sessionKey": "6d3450ad4d9e4c97c1975f4ffc8908515b4eda0a51a63103058fd6d852d00b36",
+          "childKey": null,
+          "suppliedChildIdentity": false,
+          "startedAt": 30877,
+          "elapsedMs": 447,
+          "ok": true,
+          "blocked": false,
+          "expectedFinding": false,
+          "foreignFinding": false
+        },
+        {
+          "mode": "stop",
+          "event": "Stop",
+          "destination": "b",
+          "sessionKey": "a79ecddb8a10f335058862c1ad437aa17c301e1b40e5022cd7a99d2b1a3cddfc",
+          "childKey": null,
+          "suppliedChildIdentity": false,
+          "startedAt": 33284,
+          "elapsedMs": 436,
+          "ok": true,
+          "blocked": true,
+          "expectedFinding": true,
+          "foreignFinding": false
+        },
+        {
+          "mode": "stop",
+          "event": "Stop",
+          "destination": "b",
+          "sessionKey": "a79ecddb8a10f335058862c1ad437aa17c301e1b40e5022cd7a99d2b1a3cddfc",
+          "childKey": null,
+          "suppliedChildIdentity": false,
+          "startedAt": 35323,
+          "elapsedMs": 414,
+          "ok": true,
+          "blocked": false,
+          "expectedFinding": false,
+          "foreignFinding": false
+        }
+      ]
+    }
+  ]
+}

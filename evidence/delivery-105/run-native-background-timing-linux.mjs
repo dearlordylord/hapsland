@@ -17,12 +17,12 @@ const cases = ['codex', 'claude'].flatMap(host => ['tool', 'final', 'after-end',
 const quote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
 const run = (command, args, options) => new Promise((resolveRun, reject) => {
   const started = Date.now();
-  const child = spawn(command, args, { ...options, stdio: ['ignore', 'pipe', 'pipe'] });
+  const child = spawn(command, args, { ...options, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
   let stdout = '', stderr = '', pending = ''; const nativeEvents = [];
   const inspect = (line) => { let r; try { r=JSON.parse(line); } catch { return; }
     const item=r.item, event=r.event; nativeEvents.push({at:Date.now()-started,type:r.type, subtype:r.subtype??null,itemType:item?.type??null,eventType:event?.type??null,deltaType:event?.delta?.type??null, hasText:typeof event?.delta?.text==='string'}); };
   let timedOut = false;
-  const timer = setTimeout(() => { timedOut = true; child.kill('SIGTERM'); }, 100_000);
+  const timer = setTimeout(() => { timedOut = true; try { process.kill(-child.pid, 'SIGKILL'); } catch {} child.stdout.destroy(); child.stderr.destroy(); }, 100_000);
   child.stdout.on('data', (chunk) => { stdout += chunk; pending += chunk; let n; while((n=pending.indexOf('\n'))>=0){inspect(pending.slice(0,n));pending=pending.slice(n+1);} });
   child.stderr.on('data', (chunk) => { stderr += chunk; });
   child.once('error', reject);
@@ -91,7 +91,7 @@ Socket.prototype.write=function(chunk,...rest){let q;try{q=JSON.parse(String(chu
       `let input=''; try{input=readFileSync(0,'utf8')}catch{}\n` +
       `let native={}; try{native=JSON.parse(input)}catch{}\n` +
       `const started=Date.now();\n` +
-      `if(mode==='observe'){appendFileSync(process.env.HAPSLAND_105_TRACE,JSON.stringify({mode,at:started-Number(process.env.HAPSLAND_PROBE_STARTED_AT_MS),event:native.hook_event_name,nativeTool:native.tool_name,toolIdHash:typeof native.tool_use_id==='string'?(await import('node:crypto')).createHash('sha256').update(native.tool_use_id).digest('hex'):null,ok:true})+'\\n');process.stdout.write('{}\\n');process.exit(0); }\n` +
+      `if(mode==='observe'){appendFileSync(process.env.HAPSLAND_105_TRACE,JSON.stringify({mode,at:started-Number(process.env.HAPSLAND_PROBE_STARTED_AT_MS),event:native.hook_event_name,nativeTool:native.tool_name,runInBackground:native.tool_input?.run_in_background===true,toolTimeoutMs:typeof native.tool_input?.timeout==='number'?native.tool_input.timeout:null,toolResponseKeys:native.tool_response&&typeof native.tool_response==='object'?Object.keys(native.tool_response).sort():[],toolExitCode:typeof native.tool_response?.exitCode==='number'?native.tool_response.exitCode:null,toolInterrupted:native.tool_response?.interrupted===true,toolBackgroundTask:typeof native.tool_response?.backgroundTaskId==='string',toolIdHash:typeof native.tool_use_id==='string'?(await import('node:crypto')).createHash('sha256').update(native.tool_use_id).digest('hex'):null,ok:true})+'\\n');process.stdout.write('{}\\n');process.exit(0); }\n` +
       `const args=['--import',process.env.HAPSLAND_PROBE_OBSERVER,process.env.HAPSLAND_105_CLI,'--controlled-reviewer','--controlled-writer',` +
       `mode==='edit'?'--'+host+'-hook':'--composed-'+mode+'-hook',` +
       `...(mode==='edit'?(process.env.HAPSLAND_105_COMPOSED_EDIT==='1'?['--composed-edit-hook']:[]):` +
@@ -170,7 +170,8 @@ Socket.prototype.write=function(chunk,...rest){let q;try{q=JSON.parse(String(chu
       ? 'Use native apply_patch to create order-count.ts containing exactly one line: type OrderCount = number.'
       : 'Use the native Write tool to create order-count.ts containing exactly one line: type OrderCount = number.';
     const continuation = 'If a Hapsland review finding arrives, use a native edit tool to change the line to: type OrderCount = number & { readonly __brand: "OrderCount" }. Then finish by saying REVIEW_REPAIRED. Do not proactively repair.';
-    const prompt = `${instruction} ${entry.phase === 'tool' ? 'Immediately afterward, use your native shell tool to run sleep 25 in the foreground, never run_in_background, and wait for command completion before finishing.' : entry.phase === 'final' ? 'Afterward write a final response consisting of 800 words explaining basic arithmetic; do not make other tool calls unless advice arrives.' : 'Finish immediately after that edit.'} ${continuation}`;
+    const prompt = `${instruction} ${entry.phase === 'tool' ? (entry.host === 'claude' ? 'Your first tool-use message must contain both the requested Write and Bash with command sleep 15, timeout 20000, run_in_background false. These two calls are independent; run them together. Do not issue other shell commands or repeat the sleep. After a repair, do not run Bash again.' : 'Immediately afterward, use your native shell tool to run sleep 25 in the foreground, never run_in_background, and wait for command completion before finishing.') : entry.phase === 'final' ? 'Afterward write a final response consisting of 800 words explaining basic arithmetic; do not make other tool calls unless advice arrives.' : 'Finish immediately after that edit.'} ${continuation}`;
+    if (entry.host === 'claude' && entry.phase === 'tool') env.CLAUDE_CODE_DISABLE_BACKGROUND_TASKS = '1';
     const binary = entry.host === 'codex' ? codex : claude;
     const claudeSettingsPath = join(repo, '.claude', 'settings.json');
     const args = entry.host === 'codex'
@@ -178,8 +179,8 @@ Socket.prototype.write=function(chunk,...rest){let q;try{q=JSON.parse(String(chu
         '--dangerously-bypass-approvals-and-sandbox', '-m', 'gpt-6-luna', '-c',
         'model_reasoning_effort="medium"', '-C', repo, prompt]
       : ['-p', '--output-format', 'stream-json', '--include-partial-messages', '--verbose', '--no-session-persistence',
-        '--setting-sources', 'user', '--settings', claudeSettingsPath,
-        '--allowedTools', 'Read,Edit,Write,Bash', '--permission-mode', 'acceptEdits', prompt];
+        '--setting-sources', 'user', '--settings', claudeSettingsPath, ...(entry.phase === 'tool' ? ['--effort', 'low'] : []),
+        '--tools', 'Read,Edit,Write,Bash', '--allowedTools', 'Read,Edit,Write,Bash', '--permission-mode', 'acceptEdits', prompt];
     const launchTracing = true;
     let tracedCommand = binary, tracedArgs = args;
     if (launchTracing) {
@@ -232,6 +233,7 @@ Socket.prototype.write=function(chunk,...rest){let q;try{q=JSON.parse(String(chu
     const stages = await activityStages(activityPath);
     const result = { ...entry, hostVersion: entry.host === 'codex' ? '0.155.1' : '2.1.218',
       residentReadyBeforeHost: true,
+      ...(entry.host === 'claude' && entry.phase === 'tool' ? { toolScenario: { explicitAvailableTools: ['Read','Edit','Write','Bash'], effort: 'low', backgroundAgentTasksDisabled: true, pairedInitialWriteAndSleepRequested: true, sleepSeconds: 15 } } : {}),
       exitCode: hostRun.code, signal: hostRun.signal, timedOut: hostRun.timedOut, elapsedMs: hostRun.elapsedMs,
       hookCounts: Object.fromEntries(['before-edit', 'edit', 'background', 'stop', 'prompt'].map((mode) => [mode, hooks.filter((hook) => hook.mode === mode).length])),
       hookSequence: hooks.map(({ mode, at, ok, elapsedMs, finding, submitted, blocked, eventKeys, hasPrompt, hasTurnId, stopActive }) =>

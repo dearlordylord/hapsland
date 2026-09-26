@@ -1,0 +1,2735 @@
+{
+  "issue": 105,
+  "candidateCommit": "2b2a70c3eafb6e0b9f8071a1ee317340b3a1989e",
+  "platform": "linux",
+  "node": "v24.20.0",
+  "backend": "controlled offline Effect DecisionModel",
+  "commandTiming": "Linux ptrace child launch through exit, observer overhead included",
+  "limitations": [
+    "No live Jev",
+    "No direct network request start/end instrumentation",
+    "Output submission is not proof of agent observation",
+    "Only explicit native stream/tool events support timing classifications"
+  ],
+  "cases": [
+    {
+      "host": "claude",
+      "phase": "tool",
+      "hostVersion": "2.1.218",
+      "residentReadyBeforeHost": true,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 34676,
+      "hookCounts": {
+        "before-edit": 2,
+        "edit": 2,
+        "background": 2,
+        "stop": 1,
+        "prompt": 1
+      },
+      "hookSequence": [
+        {
+          "mode": "prompt",
+          "at": 1721,
+          "ok": true,
+          "elapsedMs": 416,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "hook_event_name",
+            "permission_mode",
+            "prompt",
+            "prompt_id",
+            "session_id",
+            "transcript_path"
+          ],
+          "hasPrompt": true,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "observe",
+          "at": 7982,
+          "ok": true
+        },
+        {
+          "mode": "before-edit",
+          "at": 8529,
+          "ok": true,
+          "elapsedMs": 544,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "observe",
+          "at": 8577,
+          "ok": true
+        },
+        {
+          "mode": "edit",
+          "at": 9156,
+          "ok": true,
+          "elapsedMs": 582,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "duration_ms",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "background",
+          "at": 19325,
+          "ok": true,
+          "elapsedMs": 10743,
+          "finding": true,
+          "submitted": true,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "duration_ms",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "observe",
+          "at": 19645,
+          "ok": true
+        },
+        {
+          "mode": "observe",
+          "at": 19679,
+          "ok": true
+        },
+        {
+          "mode": "observe",
+          "at": 26861,
+          "ok": true
+        },
+        {
+          "mode": "before-edit",
+          "at": 27454,
+          "ok": true,
+          "elapsedMs": 592,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "observe",
+          "at": 27514,
+          "ok": true
+        },
+        {
+          "mode": "edit",
+          "at": 28103,
+          "ok": true,
+          "elapsedMs": 590,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "duration_ms",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "stop",
+          "at": 33996,
+          "ok": true,
+          "elapsedMs": 4095,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "background_tasks",
+            "cwd",
+            "effort",
+            "hook_event_name",
+            "last_assistant_message",
+            "permission_mode",
+            "prompt_id",
+            "session_crons",
+            "session_id",
+            "stop_hook_active",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "background",
+          "at": 33999,
+          "ok": true,
+          "elapsedMs": 6486,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "duration_ms",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        }
+      ],
+      "nativeHookShapes": [
+        {
+          "nativeTool": "Write",
+          "inputKeys": [
+            "content",
+            "file_path"
+          ],
+          "responseKeys": [
+            "content",
+            "filePath",
+            "originalFile",
+            "structuredPatch",
+            "type",
+            "userModified"
+          ],
+          "responseKind": "object",
+          "userModified": false,
+          "pathMatches": true,
+          "stringsMatch": null
+        },
+        {
+          "nativeTool": "Edit",
+          "inputKeys": [
+            "file_path",
+            "new_string",
+            "old_string",
+            "replace_all"
+          ],
+          "responseKeys": [
+            "filePath",
+            "newString",
+            "oldString",
+            "originalFile",
+            "replaceAll",
+            "structuredPatch",
+            "userModified"
+          ],
+          "responseKind": "object",
+          "userModified": false,
+          "pathMatches": true,
+          "stringsMatch": true
+        }
+      ],
+      "nativeToolNames": [
+        "Write",
+        "Write",
+        "Edit",
+        "Edit"
+      ],
+      "nativeEvents": [
+        {
+          "at": 710,
+          "type": "system",
+          "subtype": "hook_started",
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false,
+          "lastAt": 712,
+          "count": 6
+        },
+        {
+          "at": 713,
+          "type": "system",
+          "subtype": "hook_response",
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false,
+          "lastAt": 1264,
+          "count": 6
+        },
+        {
+          "at": 1733,
+          "type": "system",
+          "subtype": "init",
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 1733,
+          "type": "system",
+          "subtype": "status",
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 3149,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "message_start",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 3149,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_start",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 3861,
+          "type": "system",
+          "subtype": "thinking_tokens",
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 3861,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_delta",
+          "deltaType": "thinking_delta",
+          "hasText": false
+        },
+        {
+          "at": 4927,
+          "type": "system",
+          "subtype": "thinking_tokens",
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 4927,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_delta",
+          "deltaType": "thinking_delta",
+          "hasText": false,
+          "lastAt": 6008,
+          "count": 2
+        },
+        {
+          "at": 6008,
+          "type": "system",
+          "subtype": "thinking_tokens",
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 6008,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_delta",
+          "deltaType": "signature_delta",
+          "hasText": false
+        },
+        {
+          "at": 6008,
+          "type": "assistant",
+          "subtype": null,
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 6008,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_stop",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 6008,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_start",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 6008,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_delta",
+          "deltaType": "text_delta",
+          "hasText": true,
+          "lastAt": 6791,
+          "count": 13
+        },
+        {
+          "at": 6935,
+          "type": "assistant",
+          "subtype": null,
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 6935,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_stop",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 6935,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_start",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 6935,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_delta",
+          "deltaType": "input_json_delta",
+          "hasText": false,
+          "lastAt": 7949,
+          "count": 13
+        },
+        {
+          "at": 7949,
+          "type": "assistant",
+          "subtype": null,
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 7949,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_stop",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 7954,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "message_delta",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 7955,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "message_stop",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 7959,
+          "type": "rate_limit_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 9172,
+          "type": "user",
+          "subtype": null,
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 9177,
+          "type": "system",
+          "subtype": "status",
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 10901,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "message_start",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 10901,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_start",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 10901,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_delta",
+          "deltaType": "text_delta",
+          "hasText": true,
+          "lastAt": 11398,
+          "count": 4
+        },
+        {
+          "at": 11399,
+          "type": "assistant",
+          "subtype": null,
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 11399,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_stop",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 11399,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_start",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 11399,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_delta",
+          "deltaType": "input_json_delta",
+          "hasText": false,
+          "lastAt": 11999,
+          "count": 5
+        },
+        {
+          "at": 12000,
+          "type": "assistant",
+          "subtype": null,
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 12003,
+          "type": "user",
+          "subtype": null,
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 12003,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_stop",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 12004,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "message_delta",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 12022,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "message_stop",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 12026,
+          "type": "system",
+          "subtype": "status",
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 13728,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "message_start",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 14177,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_start",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 14282,
+          "type": "system",
+          "subtype": "thinking_tokens",
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 14282,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_delta",
+          "deltaType": "thinking_delta",
+          "hasText": false
+        },
+        {
+          "at": 15336,
+          "type": "system",
+          "subtype": "thinking_tokens",
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 15336,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_delta",
+          "deltaType": "thinking_delta",
+          "hasText": false
+        },
+        {
+          "at": 16527,
+          "type": "system",
+          "subtype": "thinking_tokens",
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 16527,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_delta",
+          "deltaType": "thinking_delta",
+          "hasText": false
+        },
+        {
+          "at": 17707,
+          "type": "system",
+          "subtype": "thinking_tokens",
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 17707,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_delta",
+          "deltaType": "thinking_delta",
+          "hasText": false,
+          "lastAt": 18335,
+          "count": 2
+        },
+        {
+          "at": 18335,
+          "type": "system",
+          "subtype": "thinking_tokens",
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 18335,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_delta",
+          "deltaType": "signature_delta",
+          "hasText": false
+        },
+        {
+          "at": 18335,
+          "type": "assistant",
+          "subtype": null,
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 18335,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_stop",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 18335,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_start",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 18335,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_delta",
+          "deltaType": "text_delta",
+          "hasText": true,
+          "lastAt": 18956,
+          "count": 11
+        },
+        {
+          "at": 19148,
+          "type": "assistant",
+          "subtype": null,
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 19148,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_stop",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 19189,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_start",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 19189,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_delta",
+          "deltaType": "input_json_delta",
+          "hasText": false,
+          "lastAt": 19592,
+          "count": 5
+        },
+        {
+          "at": 19593,
+          "type": "assistant",
+          "subtype": null,
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 19613,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_stop",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 19614,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "message_delta",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 19614,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "message_stop",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 19689,
+          "type": "user",
+          "subtype": null,
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 19696,
+          "type": "system",
+          "subtype": "status",
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 21283,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "message_start",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 21283,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_start",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 22353,
+          "type": "system",
+          "subtype": "thinking_tokens",
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 22353,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_delta",
+          "deltaType": "thinking_delta",
+          "hasText": false
+        },
+        {
+          "at": 23550,
+          "type": "system",
+          "subtype": "thinking_tokens",
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 23550,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_delta",
+          "deltaType": "thinking_delta",
+          "hasText": false,
+          "lastAt": 24493,
+          "count": 2
+        },
+        {
+          "at": 24493,
+          "type": "system",
+          "subtype": "thinking_tokens",
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 24493,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_delta",
+          "deltaType": "signature_delta",
+          "hasText": false
+        },
+        {
+          "at": 24493,
+          "type": "assistant",
+          "subtype": null,
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 24496,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_stop",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 24496,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_start",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 24496,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_delta",
+          "deltaType": "text_delta",
+          "hasText": true,
+          "lastAt": 24992,
+          "count": 9
+        },
+        {
+          "at": 25179,
+          "type": "assistant",
+          "subtype": null,
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 25179,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_stop",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 25179,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_start",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 25179,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_delta",
+          "deltaType": "input_json_delta",
+          "hasText": false,
+          "lastAt": 26821,
+          "count": 20
+        },
+        {
+          "at": 26821,
+          "type": "assistant",
+          "subtype": null,
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 26823,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_stop",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 26824,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "message_delta",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 26824,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "message_stop",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 28114,
+          "type": "user",
+          "subtype": null,
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 28117,
+          "type": "system",
+          "subtype": "status",
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 29788,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "message_start",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 29789,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_start",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 29795,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_delta",
+          "deltaType": "text_delta",
+          "hasText": true,
+          "lastAt": 29866,
+          "count": 3
+        },
+        {
+          "at": 29866,
+          "type": "assistant",
+          "subtype": null,
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 29867,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "content_block_stop",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 29870,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "message_delta",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 29870,
+          "type": "stream_event",
+          "subtype": null,
+          "itemType": null,
+          "eventType": "message_stop",
+          "deltaType": null,
+          "hasText": false
+        },
+        {
+          "at": 34011,
+          "type": "result",
+          "subtype": "success",
+          "itemType": null,
+          "eventType": null,
+          "deltaType": null,
+          "hasText": false
+        }
+      ],
+      "observedToolHooks": [
+        {
+          "mode": "observe",
+          "at": 7982,
+          "event": "PreToolUse",
+          "nativeTool": "Write",
+          "toolIdHash": "545ed8434c689ecc95483363d5e29ac9e19420364b0c0d4e553fd2db2c94e4a5",
+          "ok": true
+        },
+        {
+          "mode": "observe",
+          "at": 8577,
+          "event": "PostToolUse",
+          "nativeTool": "Write",
+          "toolIdHash": "545ed8434c689ecc95483363d5e29ac9e19420364b0c0d4e553fd2db2c94e4a5",
+          "ok": true
+        },
+        {
+          "mode": "observe",
+          "at": 19645,
+          "event": "PreToolUse",
+          "nativeTool": "ToolSearch",
+          "toolIdHash": "503be86e6fb45eae41ff37b07993b799234718eb43a3058471ea63b80b585c02",
+          "ok": true
+        },
+        {
+          "mode": "observe",
+          "at": 19679,
+          "event": "PostToolUse",
+          "nativeTool": "ToolSearch",
+          "toolIdHash": "503be86e6fb45eae41ff37b07993b799234718eb43a3058471ea63b80b585c02",
+          "ok": true
+        },
+        {
+          "mode": "observe",
+          "at": 26861,
+          "event": "PreToolUse",
+          "nativeTool": "Edit",
+          "toolIdHash": "7b58ae4217936bbd54a802b360c9cdd4a9d21e94812478b0bec7333c26c91325",
+          "ok": true
+        },
+        {
+          "mode": "observe",
+          "at": 27514,
+          "event": "PostToolUse",
+          "nativeTool": "Edit",
+          "toolIdHash": "7b58ae4217936bbd54a802b360c9cdd4a9d21e94812478b0bec7333c26c91325",
+          "ok": true
+        }
+      ],
+      "ipc": [
+        {
+          "at": 1709,
+          "mode": "prompt",
+          "direction": "request",
+          "operation": "prompt-marker",
+          "token": null,
+          "surface": null
+        },
+        {
+          "at": 1710,
+          "mode": "prompt",
+          "direction": "response",
+          "operation": "prompt-marker",
+          "status": "advanced",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 8509,
+          "mode": "before-edit",
+          "direction": "request",
+          "operation": "register-edit",
+          "token": null,
+          "surface": null
+        },
+        {
+          "at": 8509,
+          "mode": "before-edit",
+          "direction": "response",
+          "operation": "register-edit",
+          "status": "advanced",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 9132,
+          "mode": "edit",
+          "direction": "request",
+          "operation": "admit",
+          "token": null,
+          "surface": null
+        },
+        {
+          "at": 9139,
+          "mode": "edit",
+          "direction": "response",
+          "operation": "admit",
+          "status": "accepted",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 9153,
+          "mode": "background",
+          "direction": "request",
+          "operation": "claim-background",
+          "token": "b1a522ffaf9962fc219b0160dba29abe7de88bf05be85a96f12a88c832216c45",
+          "surface": null
+        },
+        {
+          "at": 9154,
+          "mode": "background",
+          "direction": "response",
+          "operation": "claim-background",
+          "status": "background-claimed",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 9163,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 19188,
+          "count": 187
+        },
+        {
+          "at": 19286,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "advice",
+          "token": "db45f50ad8f67ddaf7f857de17e32f2feafe49a304a9a4f7e605d2b1aebf40f8",
+          "findingCount": 1,
+          "ok": null
+        },
+        {
+          "at": 19288,
+          "mode": "background",
+          "direction": "request",
+          "operation": "begin-submission",
+          "token": "db45f50ad8f67ddaf7f857de17e32f2feafe49a304a9a4f7e605d2b1aebf40f8",
+          "surface": "background"
+        },
+        {
+          "at": 19292,
+          "mode": "background",
+          "direction": "response",
+          "operation": "begin-submission",
+          "status": "submitting",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 19295,
+          "mode": "background",
+          "direction": "request",
+          "operation": "acknowledge",
+          "token": "db45f50ad8f67ddaf7f857de17e32f2feafe49a304a9a4f7e605d2b1aebf40f8",
+          "surface": null
+        },
+        {
+          "at": 19295,
+          "mode": "background",
+          "direction": "response",
+          "operation": "acknowledge",
+          "status": "acknowledged",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 19299,
+          "mode": "background",
+          "direction": "request",
+          "operation": "finalize",
+          "token": "db45f50ad8f67ddaf7f857de17e32f2feafe49a304a9a4f7e605d2b1aebf40f8",
+          "surface": null
+        },
+        {
+          "at": 19300,
+          "mode": "background",
+          "direction": "response",
+          "operation": "finalize",
+          "status": "finalized",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 19301,
+          "mode": "background",
+          "direction": "request",
+          "operation": "release-background",
+          "token": "b1a522ffaf9962fc219b0160dba29abe7de88bf05be85a96f12a88c832216c45",
+          "surface": null
+        },
+        {
+          "at": 19301,
+          "mode": "background",
+          "direction": "response",
+          "operation": "release-background",
+          "status": "released",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 27437,
+          "mode": "before-edit",
+          "direction": "request",
+          "operation": "register-edit",
+          "token": null,
+          "surface": null
+        },
+        {
+          "at": 27437,
+          "mode": "before-edit",
+          "direction": "response",
+          "operation": "register-edit",
+          "status": "advanced",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 28078,
+          "mode": "background",
+          "direction": "request",
+          "operation": "claim-background",
+          "token": "aa00f5603d85e83bc95caf7e761c0af208c9858656c0d8f0fcf16fbe4d707e79",
+          "surface": null
+        },
+        {
+          "at": 28078,
+          "mode": "background",
+          "direction": "response",
+          "operation": "claim-background",
+          "status": "background-claimed",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 28080,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 28085,
+          "mode": "edit",
+          "direction": "request",
+          "operation": "admit",
+          "token": null,
+          "surface": null
+        },
+        {
+          "at": 28088,
+          "mode": "edit",
+          "direction": "response",
+          "operation": "admit",
+          "status": "accepted",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 28135,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 30439,
+          "count": 44
+        },
+        {
+          "at": 30465,
+          "mode": "stop",
+          "direction": "request",
+          "operation": "begin-stop",
+          "token": "11abf80846b4a0934a6043c010a68897a3fa973e91b01f81f41801fb82738ea6",
+          "surface": null
+        },
+        {
+          "at": 30465,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "begin-stop",
+          "status": "advanced",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 30491,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 30492,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 30544,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 30544,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 30596,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 30596,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 30652,
+          "count": 2
+        },
+        {
+          "at": 30652,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 30704,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 30706,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 30759,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 30761,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 30811,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 30814,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 30868,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 30869,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 30922,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 30923,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 30975,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 30976,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 31031,
+          "count": 2
+        },
+        {
+          "at": 31031,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 31083,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 31083,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 31138,
+          "count": 2
+        },
+        {
+          "at": 31139,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 31191,
+          "count": 2
+        },
+        {
+          "at": 31192,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 31263,
+          "count": 2
+        },
+        {
+          "at": 31264,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 31315,
+          "count": 2
+        },
+        {
+          "at": 31317,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 31368,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 31368,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 31425,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 31426,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 31479,
+          "count": 2
+        },
+        {
+          "at": 31480,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 31534,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 31534,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 31588,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 31588,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 31641,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 31642,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 31698,
+          "count": 2
+        },
+        {
+          "at": 31699,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 31750,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 31751,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 31804,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 31804,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 31857,
+          "count": 2
+        },
+        {
+          "at": 31858,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 31910,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 31910,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 31963,
+          "count": 2
+        },
+        {
+          "at": 31965,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32017,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32018,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 32069,
+          "count": 2
+        },
+        {
+          "at": 32070,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32122,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32124,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32176,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32177,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32229,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32229,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 32283,
+          "count": 2
+        },
+        {
+          "at": 32283,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32340,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32341,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32392,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32393,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 32447,
+          "count": 2
+        },
+        {
+          "at": 32447,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32501,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32501,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32554,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32554,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32611,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32611,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32666,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32667,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32722,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32722,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32775,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32775,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32828,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32829,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 32881,
+          "count": 2
+        },
+        {
+          "at": 32881,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 32935,
+          "count": 2
+        },
+        {
+          "at": 32936,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32989,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 32990,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 33046,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 33046,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 33098,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 33100,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 33153,
+          "count": 2
+        },
+        {
+          "at": 33154,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 33207,
+          "count": 2
+        },
+        {
+          "at": 33207,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 33260,
+          "count": 2
+        },
+        {
+          "at": 33260,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 33312,
+          "count": 2
+        },
+        {
+          "at": 33313,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 33366,
+          "count": 2
+        },
+        {
+          "at": 33366,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 33419,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 33419,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 33474,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 33476,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 33531,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 33531,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 33586,
+          "count": 2
+        },
+        {
+          "at": 33587,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 33640,
+          "count": 2
+        },
+        {
+          "at": 33641,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 33694,
+          "count": 2
+        },
+        {
+          "at": 33695,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 33751,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 33751,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 33806,
+          "count": 2
+        },
+        {
+          "at": 33806,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 33858,
+          "count": 2
+        },
+        {
+          "at": 33859,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null,
+          "lastAt": 33911,
+          "count": 2
+        },
+        {
+          "at": 33911,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "pending",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 33962,
+          "mode": "stop",
+          "direction": "request",
+          "operation": "finish-stop",
+          "token": "11abf80846b4a0934a6043c010a68897a3fa973e91b01f81f41801fb82738ea6",
+          "surface": null
+        },
+        {
+          "at": 33967,
+          "mode": "stop",
+          "direction": "response",
+          "operation": "finish-stop",
+          "status": "advanced",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 33972,
+          "mode": "background",
+          "direction": "response",
+          "operation": "collect",
+          "status": "empty",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        },
+        {
+          "at": 33974,
+          "mode": "background",
+          "direction": "request",
+          "operation": "release-background",
+          "token": "aa00f5603d85e83bc95caf7e761c0af208c9858656c0d8f0fcf16fbe4d707e79",
+          "surface": null
+        },
+        {
+          "at": 33975,
+          "mode": "background",
+          "direction": "response",
+          "operation": "release-background",
+          "status": "released",
+          "token": null,
+          "findingCount": null,
+          "ok": null
+        }
+      ],
+      "commandWindows": [
+        {
+          "mode": "prompt",
+          "launchAt": 1285,
+          "at": 1725,
+          "elapsedUs": 440438,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "before-edit",
+          "launchAt": 7951,
+          "at": 8538,
+          "elapsedUs": 586316,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "edit",
+          "launchAt": 8551,
+          "at": 9163,
+          "elapsedUs": 611888,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "background",
+          "launchAt": 8552,
+          "at": 19331,
+          "elapsedUs": 10779143,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "before-edit",
+          "launchAt": 26827,
+          "at": 27461,
+          "elapsedUs": 633798,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "edit",
+          "launchAt": 27481,
+          "at": 28110,
+          "elapsedUs": 628645,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "background",
+          "launchAt": 27482,
+          "at": 34007,
+          "elapsedUs": 6524799,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "stop",
+          "launchAt": 29882,
+          "at": 34008,
+          "elapsedUs": 4125575,
+          "exitCode": 0,
+          "signal": 0
+        }
+      ],
+      "backendCompletions": 1,
+      "backendCompletionTimes": [
+        19237
+      ],
+      "backendCompletedAfterHostExit": false,
+      "clearFollowUp": false,
+      "activityStages": [
+        "pending",
+        "pending",
+        "incomplete",
+        "unavailable",
+        "pending",
+        "pending",
+        "findings"
+      ],
+      "submissionAfterNativeExit": false,
+      "findingSubmission": true,
+      "stopBlock": false,
+      "originalFile": false,
+      "repairedFile": true,
+      "modelClaimedRepair": true,
+      "hookFailures": [],
+      "hostError": false
+    }
+  ],
+  "attemptConfiguration": {
+    "attempt": 1,
+    "nativeCeilingMs": 100000,
+    "controlledReviewDelayMs": 10000,
+    "requestedSleepSeconds": 25,
+    "explicitAvailableTools": false,
+    "backgroundAgentTasksDisabled": false,
+    "effort": "user configuration (medium observed)",
+    "note": "Tool availability/prompt changed for attempt 2; actual tool events determine outcome."
+  }
+}
