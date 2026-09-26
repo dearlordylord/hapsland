@@ -182,7 +182,11 @@ export const runComposedHook = async (input: {
         const output = input.kind === "background" ? advice.output
           : advice.findingCount > 0 ? { decision: "block", reason: message }
             : { systemMessage: message };
-        if (input.kind === "stop" && advice.findingCount === 0) await finishStop(true);
+        if (input.kind === "stop" && advice.findingCount === 0) {
+          // A zero-finding delivery here carries operational failure notices.
+          closeReason = "unavailable";
+          await finishStop(true);
+        }
         const written = await writeJson(output, deadlineAt);
         if (written === "failed") closeReason = "output-failed";
         if (input.kind === "stop" && advice.findingCount > 0 && written !== "failed") continued = true;
