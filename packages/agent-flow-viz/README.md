@@ -26,9 +26,9 @@ Completed response writes and status updates leave the payload flow. A separate
 example history records these emissions; it does not represent production storage
 and cannot feed pending-advice selection.
 
-Host requests and pending findings are different inputs to advice selection.
+Agent runtime requests and pending findings are different inputs to advice selection.
 The page ends at the hook response write. There is no modeled receipt, model
-visibility signal, or advice-consumption event. The agent host owns further use.
+visibility signal, or advice-consumption event. The agent runtime owns further use.
 Sending advice again at Stop is an approved design that production does not yet
 implement. The example does not enforce production size limits, deadlines,
 relevance expiry, or the complete set of advicee checks.

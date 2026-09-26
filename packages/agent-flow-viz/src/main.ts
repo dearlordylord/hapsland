@@ -147,7 +147,7 @@ const nodeView = (h: HtmlBuilder<Message>, id: NodeId, flow: FlowState) => {
   const packets = flow.packets.filter((packet) => packet.at === id);
   const special = id === "deliveryState" ? `chain ${flow.deliveryGeneration} · Stop ${flow.stopUsed ? "used" : "available"}`
     : id === "agentEdit" ? `${flow.agentKind} agent · example input`
-    : id === "collector" ? (flow.leaseSurface ? `${flow.leaseSurface} batch reserved` : flow.opportunity ? `${flow.opportunity} request received` : "waiting for a host request")
+    : id === "collector" ? (flow.leaseSurface ? `${flow.leaseSurface} batch reserved` : flow.opportunity ? `${flow.opportunity} request received` : "waiting for an agent runtime request")
     : id === "hostOutput" ? (flow.lastSubmissionSurface ? "written; no payload stored here" : "no response written yet")
     : id === "workQueue" ? `${packets.length} queued job${packets.length === 1 ? "" : "s"}`
     : id === "adviceStore" ? `${packets.length} pending finding${packets.length === 1 ? "" : "s"}`
@@ -172,7 +172,7 @@ const nodeView = (h: HtmlBuilder<Message>, id: NodeId, flow: FlowState) => {
 
 const chart = (model: Model, h: HtmlBuilder<Message>) => h.div([h.Class("chart-scroll")], [
   h.svg([h.ViewBox("0 0 1450 810"), h.Role("img"),
-    h.AriaLabel("Event-labeled data flow from agent edit through Hapsland and Jev to host output")], [
+    h.AriaLabel("Event-labeled data flow from agent edit through Hapsland and Jev to agent runtime output")], [
     h.defs([], [
       h.marker([h.Id("arrow-muted"), h.ViewBox("0 0 10 10"), h.RefX("8"), h.RefY("5"),
         h.MarkerWidth("6"), h.MarkerHeight("6"), h.Orient("auto")], [
@@ -191,14 +191,14 @@ const chart = (model: Model, h: HtmlBuilder<Message>) => h.div([h.Class("chart-s
       { x: 1230, y: 277, text: "Jev response ↓" },
       { x: 780, y: 314, text: "← pending findings" },
       { x: 285, y: 376, text: "advice request: agent ID + deadline →" },
-      { x: 30, y: 266, text: "edit via host adapter →" },
+      { x: 30, y: 266, text: "edit via runtime adapter →" },
       { x: 30, y: 288, text: "PostToolUse: edit + advice request" },
       { x: 285, y: 435, text: "after tool / Stop / SubagentStop" },
       { x: 165, y: 519, text: "prompt → reset allowance" },
       { x: 30, y: 752, text: "* Stop reoffer: approved design; not yet production behavior." },
       { x: 30, y: 775, text: "** Size, time, expiry and full advicee checks are not simulated." },
       { x: 780, y: 729, text: "Numbers match the event controls below." },
-      { x: 780, y: 752, text: "Solid: review information · Dashed: host request" },
+      { x: 780, y: 752, text: "Solid: review information · Dashed: agent runtime request" },
       { x: 780, y: 775, text: "Amber: stored state · Blue: work · Grey: external · Purple: output" },
     ].map(({ x, y, text }) => h.text([
       h.X(String(x)), h.Y(String(y)), h.FontSize("12"), h.Fill("#52647d"),

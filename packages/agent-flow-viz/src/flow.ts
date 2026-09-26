@@ -18,7 +18,7 @@ export const NODES = {
   decisionResponse: { label: "Read Jev result", detail: "finding or no finding", role: "process", x: 1190, y: 332 },
   adviceStore: { label: "Pending advice", detail: "findings for this agent", role: "storage", x: 900, y: 332 },
   collector: { label: "Select advice to send", detail: "request + eligible pending advice", role: "process", x: 610, y: 332 },
-  hostOutput: { label: "Write hook response", detail: "advice in the host response format", role: "boundary", x: 320, y: 575 },
+  hostOutput: { label: "Write hook response", detail: "advice in the runtime response format", role: "boundary", x: 320, y: 575 },
   deliveryState: { label: "Agent delivery record", detail: "delivery chain + Stop allowance", role: "storage", x: 30, y: 575 },
   outcomeStore: { label: "Record review status", detail: "no finding / review failed", role: "process", x: 1190, y: 575 },
 } as const satisfies Record<NodeId, NodeSpec>;
@@ -26,7 +26,7 @@ export const NODES = {
 export const FLAVORS = [
   "edit observation", "capture job", "review work item", "decision request",
   "network request", "decision response", "advice", "leased batch",
-  "host submission", "review status",
+  "runtime submission", "review status",
 ] as const;
 export type Flavor = (typeof FLAVORS)[number];
 
@@ -40,7 +40,7 @@ type StoredAt = {
   decisionResponse: "decision response";
   adviceStore: "advice";
   collector: "leased batch";
-  hostOutput: "host submission";
+  hostOutput: "runtime submission";
   deliveryState: never;
   outcomeStore: "review status";
 };
@@ -94,7 +94,7 @@ export const TRANSITIONS = {
   AdviceLeasedByBackground: { kind: "data", from: "adviceStore", to: "collector", input: "advice", output: "leased batch", movement: "copy", label: "background leases advice" },
   AdviceLeasedByStop: { kind: "data", from: "adviceStore", to: "collector", input: "advice", output: "leased batch", movement: "copy", label: "Stop leases advice" },
   AdviceReofferedAtStop: { kind: "data", from: "adviceStore", to: "collector", input: "advice", output: "leased batch", movement: "copy", label: "Stop selects advice again (design)" },
-  HostOutputSubmitted: { kind: "data", from: "collector", to: "hostOutput", input: "leased batch", output: "host submission", movement: "move", label: "hook write completed" },
+  HostOutputSubmitted: { kind: "data", from: "collector", to: "hostOutput", input: "leased batch", output: "runtime submission", movement: "move", label: "hook write completed" },
 } as const satisfies Record<EventId, Transition>;
 
 export type Packet = { readonly id: number; readonly at: NodeId; readonly flavor: Flavor };
@@ -134,7 +134,7 @@ export const initialFlow = (agentKind: "main" | "child" = "main"): FlowState => 
   leaseSurface: null,
   lastSubmissionSurface: null,
   lastEvent: null,
-  note: "Scenario setup: one host edit is available as example input. No live host or Jev session is connected.",
+  note: "Scenario setup: one edit event is available as example input. No live agent runtime or Jev session is connected.",
 });
 
 export type StepResult = { readonly state: FlowState; readonly accepted: boolean };
@@ -164,7 +164,7 @@ export const stepFlow = (state: FlowState, event: EventId): StepResult => {
   if ((event === "AdviceLeasedByStop" || event === "AdviceReofferedAtStop") && state.opportunity !== "stop") return rejected(state, "Stop has not requested collection.");
   if ((event === "AdviceLeasedByStop" || event === "AdviceReofferedAtStop") && state.stopUsed) return rejected(state, "Stop already used its continuation.");
   if (event === "AdviceReofferedAtStop" && !(state.lastSubmissionSurface === "background")) {
-    return rejected(state, "Reoffer needs a prior background response. Hapsland has no receipt from the host.");
+    return rejected(state, "Reoffer needs a prior background response. Hapsland has no receipt from the agent runtime.");
   }
   if (event === "AdviceLeasedByStop" && state.lastSubmissionSurface === "background") {
     return rejected(state, "Use the Stop reoffer event for advice already sent in a background response.");
@@ -198,13 +198,13 @@ export const stepFlow = (state: FlowState, event: EventId): StepResult => {
   }
   if (event === "HostOutputSubmitted") return { accepted: true, state: {
     ...next, leaseSurface: null, lastSubmissionSurface: state.leaseSurface,
-    note: "Hapsland wrote a hook response. The host controls what happens next. Hapsland has no receipt that the advice reached the agent.",
+    note: "Hapsland wrote a hook response. The agent runtime controls what happens next. Hapsland has no receipt that the advice reached the agent.",
   } };
   return { accepted: true, state: next };
 };
 
 export const TRACES = [
-  { agentKind: "main", name: "Send advice after a tool", description: "The after-tool hook asks for advice. Hapsland selects a finding and writes the hook response. The host controls further use.", events: [
+  { agentKind: "main", name: "Send advice after a tool", description: "The after-tool hook asks for advice. Hapsland selects a finding and writes the hook response. The agent runtime controls further use.", events: [
     "PromptSubmitted", "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
     "JevRequestSent", "JevResponseReceived", "FindingRetained", "BackgroundHookFired",
     "AdviceLeasedByBackground", "HostOutputSubmitted",
