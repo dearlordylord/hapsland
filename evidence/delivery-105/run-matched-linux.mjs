@@ -109,7 +109,9 @@ for (const entry of cases) {
       REVIEW_STATE_PATH: statePath, REVIEW_ACTIVITY_PATH: activityPath,
       REVIEW_RESIDENT_DIR: runtime, REVIEW_CONTROL_JSON: JSON.stringify({
         syntheticR6BrandedRepair: 'finding',
-        delayMs: entry.host === 'claude' ? entry.phase === 'background' ? 1200 : candidate ? 5000 : 4600
+        // Baseline review finishes comfortably inside the legacy edit hook.
+        // The after path delays review so Stop must wait for its completion.
+        delayMs: entry.host === 'claude' ? entry.phase === 'background' ? 1200 : candidate ? 5000 : 2500
           : entry.phase === 'background' ? 1200 : candidate ? 3500 : 1200,
         outcomePath, capturePath,
       }), HAPSLAND_105_TRACE: trace, HAPSLAND_105_CLI: cli,
@@ -125,6 +127,13 @@ for (const entry of cases) {
     if (proposal.status !== 0) throw new Error('consent preview failed');
     const confirmation = enable('enable-confirm', JSON.parse(proposal.stdout).proposal.digest);
     if (confirmation.status !== 0 || JSON.parse(confirmation.stdout).status !== 'enabled') throw new Error('consent failed');
+    // Compare delivery with the same ready resident in both phases. Cold
+    // startup has a separate host-timeout gate; it can exceed the legacy
+    // five-second edit hook and confound the before/after delivery outcome.
+    const warm = spawnSync(process.execPath, ['--input-type=module', '-e',
+      'import { ensureResident } from "./src/resident/client.ts"; import { residentPaths } from "./src/resident/paths.ts"; await ensureResident(residentPaths(), 10000);'],
+    { cwd: project, env, encoding: 'utf8', timeout: 12_000 });
+    if (warm.status !== 0) throw new Error('resident warmup failed');
     const command = (mode) => `${mode === 'before-edit' ? 'exec ' : ''}${quote(process.execPath)} ${quote(bridge)} ${mode} ${entry.host}`;
     const edit = { type: 'command', command: command('edit'), timeout: 5 };
     const beforeEdit = { type: 'command', command: command('before-edit'), timeout: 5 };
@@ -218,6 +227,7 @@ for (const entry of cases) {
     const backendCompletions = (await readFile(outcomePath, 'utf8').catch(() => '')).split('\n').filter(Boolean).length;
     const stages = await activityStages(activityPath);
     const result = { ...entry, hostVersion: entry.host === 'codex' ? '0.155.1' : '2.1.218',
+      residentReadyBeforeHost: true,
       exitCode: hostRun.code, signal: hostRun.signal, timedOut: hostRun.timedOut, elapsedMs: hostRun.elapsedMs,
       hookCounts: Object.fromEntries(['before-edit', 'edit', 'background', 'stop', 'prompt'].map((mode) => [mode, hooks.filter((hook) => hook.mode === mode).length])),
       hookSequence: hooks.map(({ mode, at, ok, elapsedMs, finding, submitted, blocked, eventKeys, hasPrompt, hasTurnId, stopActive }) =>
