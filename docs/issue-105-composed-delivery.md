@@ -115,11 +115,15 @@ restart loses the in-memory work and cannot claim delivery success.
 
 The candidate's composed `finalize` releases the delivery lease but retains the
 advice. Its source-free submission record suppresses repeat delivery in the
-current delivery generation. A background submission immediately before Stop
-is therefore **submitted/visibility unknown**. The previously approved Stop
-reoffer remains a design requirement while the round is active; the candidate
-does not yet implement it. Once the round closes, the new cleanup direction
-requires discarding that round's remaining advice and submission record.
+current delivery generation. Background advice submitted before Stop begins or
+while its wait is in progress can therefore be **submitted/visibility unknown**.
+The priority Stop reoffer requirement is to offer that current advice once in
+the same active Hapsland round when consumption is unproven, with a fresh
+eligibility check and no new Jev evaluation. The candidate does not implement
+that fallback: it suppresses background submissions at Stop. Retention across
+delivery generations can also reoffer submitted advice in a later round, which
+was never the approved policy. Round closure must discard all live advice and
+submission records owned by that round, whether submitted or not.
 There is no exactly-once or guaranteed model-visibility claim. The legacy edit
 collector remains outside candidate registration; any future candidate edit
 collector must use this same protocol.
@@ -162,14 +166,15 @@ deadline expires. The internal deadline includes startup, parsing, resident star
 if needed, IPC, collection, encoding, writing, and process exit; the native command
 timeout is five seconds from launch. Any remaining budget is reserved for output and
 exit. No stage may silently reset the clock. Today, expiry lets Stop proceed and
-leaves review work running in the resident. The new round-close direction instead
-requires cancellation or discard if the agent runtime accepts completion.
+leaves review work running in the resident. The accepted Hapsland round boundary
+instead requires cancellation or discard when Hapsland allows Stop.
 
-Hapsland tracks a Stop allowance separately for each advicee. When an agent tries
-to finish, Hapsland may send advice and ask it to continue once. Work done in
-response to that advice does not restore the allowance. Another tool call,
-finding, or advice request does not restore it either. A native
-`stop_hook_active` reentry returns quietly; it does not use the allowance.
+The current candidate tracks a Stop allowance separately for each advicee.
+When an agent tries to finish, it can send advice and ask the agent to continue
+once. Work done in response to that advice does not restore the candidate's
+allowance. Another tool call, finding, or advice request does not restore it
+either. The candidate returns quietly on native `stop_hook_active`; the accepted
+four-request policy requires replacing that guard with a Hapsland round count.
 
 For the main agent, a distinct `UserPromptSubmit` event restores the allowance.
 Repeating the same prompt marker does not. A Codex Stop event can create an
@@ -183,8 +188,8 @@ per-task cap.
 
 When an agent has used its allowance, Stop cannot ask it to continue again
 under that record. Today, new findings remain with the resident for a later
-eligible opportunity. Under the round-close direction, they must be discarded
-if the runtime accepts completion. Edits can still be reviewed, and background
+eligible opportunity. Under the accepted round-close rule, they must be discarded
+when Hapsland allows Stop. Edits can still be reviewed, and background
 advice can still be sent without a Stop allowance while the round remains active.
 If Hapsland cannot establish an allowance, it does not block Stop.
 
@@ -192,14 +197,18 @@ The five-second ceiling and one-continuation cap are **selected candidate limits
 from #97's bounded fixtures, not established production defaults. They require both
 exact-profile launch-to-exit measurements and race validation before adoption.
 
-The owner is reviewing the Stop continuation policy. One continuation per
-agent round was proposed on 2026-09-26, but the owner has **not** accepted
-that as the final count. An agent round starts with a request and ends when the
-agent runtime accepts completion or cancellation; Stop feedback stays in that
-round. The current candidate tracks a per-agent in-memory allowance, but it
-does not identify rounds reliably, especially when a subagent resumes. The
-record can expire or disappear on resident restart. Do not treat this
-candidate behavior as an approved product limit.
+The owner accepted an initial hardcoded maximum of **four Hapsland Stop
+continuation requests per Hapsland round** on 2026-09-26 after an Astra review.
+This counts Hapsland's reserved requests, not Stop events or guaranteed runtime
+resumptions. Reserve before writing the Stop response; an uncertain write uses
+that reservation. Background output and repair edits do not use or reset the
+counter. Native `stop_hook_active` does not by itself prohibit another request.
+After four reservations, the next Stop allows completion without a wait for
+advice Hapsland cannot present, closes the Hapsland round, and discards its
+remaining work as incomplete. Other hooks and runtime limits may end work
+sooner. The current candidate instead has a boolean, returns quietly on
+`stop_hook_active`, and can lose or recreate its in-memory state after expiry
+or restart. It does not yet implement the accepted four-request limit.
 
 A Stop request does not empty the resident by construction. It waits for at
 most 4.2 seconds while review work can continue independently; Jev can finish
@@ -214,13 +223,17 @@ current late-collectability behavior; it is not implemented yet.
 
 ## Round-close cleanup direction
 
-The owner clarified on 2026-09-26 that **once an agent round has ended**, Hapsland
-must discard or cancel all state from that round that could start another review
-or deliver advice. This direction replaces the earlier idea that late work
-always remains eligible after Stop. The number of Stop continuations before a
-round ends remains undecided. A synchronous Stop hook may wait for review work
-before it returns; that wait does not itself continue the agent. A native
-`decision: "block"` response prevents completion and keeps the round active.
+The owner accepted on 2026-09-26 that a **Hapsland round closes when Hapsland
+finishes its Stop handling and allows completion**. This is Hapsland's own
+boundary; it does not claim that every other runtime hook also allowed the
+agent to finish. When Hapsland requests a Stop continuation, its round stays
+active. A later fresh edit after another hook continues the agent can open a
+new Hapsland round, even if the runtime reports the same `turn_id`. A repeated
+Stop, duplicate edit, background poll, or late callback cannot reopen the old
+round. At closure, Hapsland must discard or cancel all state from that round
+that could start another review or deliver advice. A synchronous Stop hook may
+wait for review work before returning; that wait does not itself continue the
+agent.
 
 The cleanup contract must cover every stage: admitted edit observations;
 queued capture and review-unit jobs; running Jev evaluations and their late
@@ -233,12 +246,16 @@ Shared state needed by another round must remain owned by that other round.
 Any dropped or cancelled review is **incomplete**, never clean. The exact
 record of discarded counts and reasons remains to be specified.
 
-Hapsland currently sees its own Stop-hook result, not a confirmed signal that
-the agent runtime accepted completion. Other Stop hooks can also affect that
-decision. The implementation must define an observable closure boundary or
-state this limit explicitly; it must not claim accepted completion from a
-successful hook write alone. The current resident has no round identifier or
-round-scoped cancellation path, so this cleanup direction is not implemented.
+Other Stop hooks can continue the agent after Hapsland allows completion. The
+closure rule above intentionally needs only Hapsland's own Stop response, not
+an unobservable all-hooks decision. Keep a source-free closed-round marker to
+fence late callbacks; already written host output cannot be recalled. The
+current resident has no Hapsland round identifier or round-scoped cancellation
+path, so this cleanup direction is not implemented. A future implementation
+must distinguish fresh attributed edits from delayed or duplicate events and
+must preserve the four-request limit across uncertain writes, expiry, and
+resident restart. These are specification gaps before further conformance
+validation, not claims that the candidate already enforces the rule.
 The closure, fencing, and late-result rules are candidates for later formal
 verification.
 
