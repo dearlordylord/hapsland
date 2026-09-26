@@ -180,8 +180,16 @@ not observe that actual end.
 finish-attempt hook call while review work for that virtual round remains
 unfinished, up to its safe hook deadline. If all that work settles sooner, it
 decides immediately. Otherwise the deadline is an input event that forces the
-decision. At either point, the policy considers all available Jev results and
-pending advice together. It selects the actionable findings as one response
+decision. An admitted edit remains unfinished while its source is waiting to be
+read, while Hapsland reads and analyzes it, while its review item waits for Jev,
+and while Jev evaluates it. A Jev finding completes that item and enters pending
+advice in the same logical step. A Jev result with no finding completes the
+item and records its review status in the same step. No separate user or scheduler
+event is needed to move a completed Jev finding into pending advice. If two
+items are unfinished when the finish attempt arrives, completion of the first
+leaves the hook call open for the second; completion of the second lets Hapsland
+decide immediately. The deadline can force a decision before either completes.
+At either point, the policy considers pending advice. It selects the actionable findings as one response
 batch, or chooses allow-finish if none are actionable or the per-virtual-round
 continuation budget is exhausted. The decision discards queued work and
 requests cancellation of in-flight source reading and Jev requests admitted
@@ -191,6 +199,24 @@ from discarded work must not repopulate the round. The pure reducer produces a
 typed response command and cancellation IDs; the runtime adapter performs the
 hook write and cancellation. A decision does not itself establish that the
 runtime received or acted on the response.
+
+The installed edit integration launches a bounded background advice command
+automatically for matching edits. Its output write and an open finish-hook call
+are separate activities. A background command that has not reserved advice does
+not keep an otherwise settled finish decision open. A reserved background write
+may finish while the finish hook is open; pending advice can then be selected
+for the finish response. The accepted four-continuation budget is an explicit
+exception to waiting: once exhausted, the next finish attempt may allow and
+clean up immediately, even while review work remains unfinished. The safe
+deadline is supplied to the pure reducer as an event; it does not read a clock.
+Jev error handling remains outside this refinement.
+
+The sidecar checks that each admitted item remains in exactly one primary live
+location until a terminal Jev response completes it or a finish decision
+discards it. A delivery lease may carry one additional copy. Event/diagram
+coverage checks alone do not prove this property, and the executable guard is
+not a proof over every possible event sequence. The two-item scenario shows
+one remaining unfinished item after the first response and zero after the second.
 
 This policy is currently a sidecar design decision, not a claim about the
 installed #105 candidate. The candidate's finish hook may return as soon as it

@@ -43,8 +43,8 @@ a valid interval. It cannot prove that a transcribed time matches its source.
 The sidecar model follows one agent at a time. Runtime adapters handle session and
 subagent identifiers; the reducer carries no agent identifier or root/child branches.
 It models one resident lifetime with multiple review items, not concurrent agents
-or tabs. Each packet has a stable item ID and a typed location. Edit observations,
-prepared review items, and Jev results have separate queues. Other items can be
+or tabs. Each packet has a stable item ID and a typed location. Edit observations
+and prepared review items have separate queues. Other items can be
 in source reading, in flight at Jev, or pending as advice at the same time.
 The reducer owns two settable positive capacities, initially 3 each: concurrent
 source readings and concurrent Jev requests (`N`). Changing either is a reducer
@@ -86,22 +86,39 @@ review work items in a separate queue. The reducer starts waiting source jobs
 and Jev requests when their respective slots are available. Source-reading
 capacity and Jev-request capacity are independent reducer properties, both
 settable from the page. A reduction below current occupancy lets active work
-finish and pauses further starts until a slot opens. A Jev response enters the
-result queue as a finding, clear result, or unavailable result. Review status is an operation,
-not an invented outcome store. Completed response writes and status updates leave
-the payload flow. Example history records these emissions only for the page; it
-cannot feed pending-advice selection and is not retained production advice.
+finish and pauses further starts until a slot opens. Each admitted edit stays
+unfinished while it waits for source reading, while source is analyzed, while a
+prepared review item waits, and while Jev evaluates it. A Jev finding completes
+that item and enters pending advice in the same reducer step; a clear result
+completes it and records review status in the same step. There is no stored Jev
+result queue or separate event to retain a finding. Completed response writes
+and status updates leave the payload flow. Example history records emissions
+only for the page; it cannot feed pending-advice selection.
 
 Each background-submitted finding remains available for one reoffer through a
 later finish-attempt hook call in the same virtual round, including when the
-background write completes during the finish-decision wait. When all round-owned
-review work settles, the reducer decides immediately. A separate deadline event
-forces the same decision while work is still pending. The policy selects all
+background write completes during the finish-decision wait. The installed edit
+integration starts a bounded background advice wait for matching edits. The
+sidecar records that start automatically with an edit; it does not require a
+manually fired background event. An open finish-hook call is separate state.
+An idle background wait cannot delay a finish decision, but a background write
+with reserved advice can finish during the open call. While at least one review
+item remains unfinished, the finish call stays open until all items complete or
+a deadline event arrives. For example, if two items are unfinished, the first
+Jev response leaves one unfinished; the second leaves zero and causes an
+immediate decision. Once four continuation requests have been reserved in the
+virtual round, the next finish attempt may allow immediately even with
+unfinished work. The policy selects all
 available actionable findings as one abstract batch, requests a hook response
 write, and discards old work. The reducer records the response command; it does
 not claim the write completed or the agent used the advice. The agent runtime
 owns further use. This model does not simulate batch size or byte limits,
 wall-clock progression, relevance expiry, or the complete set of advicee checks.
+Jev error behavior is outside this refinement. The reducer guards one primary
+location per live item and checks accepted steps for lost or duplicated items;
+one delivery lease can carry a copy. TypeScript and projection checks cover
+event routes and diagrams. The two-item guided trace makes the lifecycle
+boundary visible. None of these checks proves every possible event sequence.
 
 Run `npm run build` for TypeScript coverage checking, reducer replay of every
 displayed abstract path, and the Vite production build. A rejected path fails

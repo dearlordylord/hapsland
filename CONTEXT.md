@@ -37,6 +37,7 @@ implementation specification.
 | Observation result | The completion, skip, or incompleteness outcome of processing one change observation before semantic review work exists. |
 | Review unit | One root artifact together with the supporting evidence evaluated independently in one review-backend request. |
 | Review work item | One review unit together with the frozen observation, rule-set, and input-contract context needed to schedule its evaluation. |
+| Unfinished review work | An admitted attributed edit or derived review item whose review outcome has not yet been recorded as pending advice or a completed review status, and which has not been discarded by a finish decision. |
 | Review dispatch cycle | A finite group of review work items selected together for evaluation; work arriving after selection belongs to a later cycle. |
 | Review result | The operational result of evaluating one actual review work item. |
 | Advicee | The agent that Hapsland can advise about an attributed edit. A working root or the latest caller does not identify that agent by itself. |

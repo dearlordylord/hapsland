@@ -49,12 +49,12 @@ const unknown = (at: number, until: number): NativeEntry => ({
   kind: "unknown", lane: "unknown", label: "Advice receipt time unknown", at, until,
   explanation: "The advice output and later repair are observed separately. No receipt timestamp identifies when the agent received advice; with two writes, the evidence does not identify which one prompted repair. This band marks missing timing evidence, not a measured runtime stage.",
 });
-const review: readonly EventId[] = ["EditObserved", "ReviewUnitPrepared", "JevFindingReceived", "FindingRetained"];
+const review: readonly EventId[] = ["EditObserved", "ReviewUnitPrepared", "JevFindingReceived"];
 const stop: readonly EventId[] = [...review.slice(0, 2), "StopHookFired", "JevFindingReceived", "StopHookFired"];
-const duringStopReoffer: readonly EventId[] = [...review.slice(0, 2), "StopHookFired", "BackgroundHookFired", "JevFindingReceived", "FindingRetained", "AdviceLeasedByBackground", "HostOutputSubmitted", "StopHookFired"];
-const reoffer: readonly EventId[] = [...review, "BackgroundHookFired", "AdviceLeasedByBackground", "HostOutputSubmitted", "StopHookFired", "StopHookFired"];
+const duringStopReoffer: readonly EventId[] = [...review, "AdviceLeasedByBackground", "StopHookFired", "HostOutputSubmitted", "StopHookFired"];
+const reoffer: readonly EventId[] = [...review, "AdviceLeasedByBackground", "HostOutputSubmitted", "StopHookFired", "StopHookFired"];
 const cleanup: readonly EventId[] = ["EditObserved", "ReviewUnitPrepared", "StopHookFired", "FinishDecisionDeadlineReached"];
-const backgroundFlow: readonly EventId[] = [...review, "BackgroundHookFired", "AdviceLeasedByBackground", "HostOutputSubmitted"];
+const backgroundFlow: readonly EventId[] = [...review, "AdviceLeasedByBackground", "HostOutputSubmitted"];
 
 export const TIMELINE_CASES: readonly TimelineCase[] = [
   {
@@ -103,7 +103,7 @@ export const TIMELINE_CASES: readonly TimelineCase[] = [
       native(remaining, "runtime", "Edit hook returned", 7516), native(remaining, "delivery", "Hapsland Stop hook process", 9960, 10680), native(remaining, "review", "Finding review completed", 10559),
       native(remaining, "delivery", "Advice output via background hook", 10607), native(remaining, "delivery", "Advice again via Stop; block finish", 10677), unknown(10607, 14480),
       native(remaining, "result", "Repair edit hook returned", 14480), native(remaining, "review", "Clear follow-up completed", 17504), native(remaining, "delivery", "Allow finish; virtual round closes", 17544), native(remaining, "runtime", "Runtime exited", 17585),
-    ] }], reducerEvents: duringStopReoffer, reducerTitle: "Finish-decision wait → background write → reoffer command → later allow", reducerScope: "The companion opens a finish-decision wait while review is pending, then records a background write and requests a reoffer response for that same finish attempt. A later allow decision closes the virtual round. Native timestamps show write order and repair, not proof that unfinished resources were cancelled; cancellation has separate deterministic evidence.", sources: [remaining, "native-background-timing-linux.md", "round-contract-linux.md"],
+    ] }], reducerEvents: duringStopReoffer, reducerTitle: "Background lease → finish-decision wait → background write → reoffer", reducerScope: "This companion checks overlapping background output and an open finish decision after advice was reserved for background. The native run has a different order: its finish attempt began before Jev's finding. The current reducer chooses immediately if the last review item finishes without a reserved background write, so this companion does not reproduce that exact race. Native timestamps show write order and repair, not proof that unfinished resources were cancelled; cancellation has separate deterministic evidence.", sources: [remaining, "native-background-timing-linux.md", "round-contract-linux.md"],
   },
   {
     title: "Codex: advice arrives while Bash runs",

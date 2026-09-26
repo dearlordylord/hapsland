@@ -2,7 +2,7 @@ import { Schema } from "effect";
 
 export const NODE_IDS = [
   "agentEdit", "editQueue", "preparation", "reviewQueue", "jevDispatch", "jev",
-  "resultQueue", "adviceStore", "advicePolicy", "responseCommand", "observedWrite",
+  "adviceStore", "advicePolicy", "responseCommand", "observedWrite",
   "deliveryState", "outcomeStore",
 ] as const;
 export type NodeId = (typeof NODE_IDS)[number];
@@ -21,7 +21,6 @@ type StoredAt = {
   reviewQueue: "review work item";
   jevDispatch: "decision request";
   jev: "network request";
-  resultQueue: "finding result" | "clear result" | "unavailable result";
   adviceStore: "advice";
   advicePolicy: "leased batch";
   responseCommand: never;
@@ -52,10 +51,9 @@ export type Transition = DataTransition | ControlTransition;
 export const EVENT_IDS = [
   "EditObserved", "IngressStarted", "ReviewUnitPrepared",
   "UnitDispatched", "JevRequestSent", "JevFindingReceived", "JevClearReceived",
-  "JevUnavailable", "FindingRetained", "ClearRecorded", "UnavailableRecorded",
-  "BackgroundHookFired", "StopHookFired",
+  "JevUnavailable", "BackgroundWaitStarted", "StopHookFired",
   "FinishDecisionAllWorkSettled", "FinishResponseRequested",
-  "FinishDecisionDeadlineReached",
+  "FinishDecisionDeadlineReached", "FinishDecisionBudgetExhausted",
   "AdviceLeasedByBackground", "AdviceLeasedByStop", "AdviceReofferedAtStop",
   "HostOutputSubmitted", "StopAllowed",
 ] as const;
@@ -72,16 +70,14 @@ export const TRANSITIONS = {
   ReviewUnitPrepared: { kind: "data", from: "preparation", to: "reviewQueue", input: "capture job", output: "review work item", movement: "move" },
   UnitDispatched: { kind: "data", from: "reviewQueue", to: "jevDispatch", input: "review work item", output: "decision request", movement: "move" },
   JevRequestSent: { kind: "data", from: "jevDispatch", to: "jev", input: "decision request", output: "network request", movement: "move" },
-  JevFindingReceived: { kind: "data", from: "jev", to: "resultQueue", input: "network request", output: "finding result", movement: "move" },
-  JevClearReceived: { kind: "data", from: "jev", to: "resultQueue", input: "network request", output: "clear result", movement: "move" },
-  JevUnavailable: { kind: "data", from: "jev", to: "resultQueue", input: "network request", output: "unavailable result", movement: "move" },
-  FindingRetained: { kind: "data", from: "resultQueue", to: "adviceStore", input: "finding result", output: "advice", movement: "move" },
-  ClearRecorded: { kind: "data", from: "resultQueue", to: "outcomeStore", input: "clear result", output: "review status", movement: "move" },
-  UnavailableRecorded: { kind: "data", from: "resultQueue", to: "outcomeStore", input: "unavailable result", output: "review status", movement: "move" },
-  BackgroundHookFired: { kind: "control", from: "agentEdit", to: "advicePolicy", signal: "background" },
+  JevFindingReceived: { kind: "data", from: "jev", to: "adviceStore", input: "network request", output: "advice", movement: "move" },
+  JevClearReceived: { kind: "data", from: "jev", to: "outcomeStore", input: "network request", output: "review status", movement: "move" },
+  JevUnavailable: { kind: "data", from: "jev", to: "outcomeStore", input: "network request", output: "review status", movement: "move" },
+  BackgroundWaitStarted: { kind: "control", from: "agentEdit", to: "advicePolicy", signal: "background" },
   StopHookFired: { kind: "control", from: "agentEdit", to: "advicePolicy", signal: "stop" },
   FinishDecisionAllWorkSettled: { kind: "control", from: "deliveryState", to: "advicePolicy", signal: "settled" },
   FinishDecisionDeadlineReached: { kind: "control", from: "deliveryState", to: "advicePolicy", signal: "deadline" },
+  FinishDecisionBudgetExhausted: { kind: "control", from: "deliveryState", to: "advicePolicy", signal: "allow" },
   FinishResponseRequested: { kind: "control", from: "advicePolicy", to: "responseCommand", signal: "response" },
   AdviceLeasedByBackground: { kind: "data", from: "adviceStore", to: "advicePolicy", input: "advice", output: "leased batch", movement: "copy" },
   AdviceLeasedByStop: { kind: "data", from: "adviceStore", to: "advicePolicy", input: "advice", output: "leased batch", movement: "copy" },
@@ -89,7 +85,7 @@ export const TRANSITIONS = {
   HostOutputSubmitted: { kind: "data", from: "advicePolicy", to: "observedWrite", input: "leased batch", output: "runtime submission", movement: "move" },
 } as const satisfies Record<EventId, Transition>;
 
-export const LIVE_PACKET_NODES = ["editQueue", "preparation", "reviewQueue", "jevDispatch", "jev", "resultQueue", "adviceStore", "advicePolicy"] as const satisfies readonly NodeId[];
+export const LIVE_PACKET_NODES = ["editQueue", "preparation", "reviewQueue", "jevDispatch", "jev", "adviceStore", "advicePolicy"] as const satisfies readonly NodeId[];
 export type LivePacketNode = (typeof LIVE_PACKET_NODES)[number];
 export type Packet = { readonly id: number; readonly at: LivePacketNode; readonly flavor: Flavor };
 export const PacketSchema = Schema.Struct({
@@ -106,7 +102,7 @@ export const FlowStateSchema = Schema.Struct({
   virtualRoundActive: Schema.Boolean,
   stopContinuations: Schema.Number,
   stopWaiting: Schema.Boolean,
-  opportunity: Schema.Union([Schema.Null, Schema.Literals(["background", "stop"])]),
+  backgroundAvailable: Schema.Boolean,
   leaseSurface: Schema.Union([Schema.Null, Schema.Literals(["background", "stop"])]),
   lastSubmissionSurface: Schema.Union([Schema.Null, Schema.Literals(["background", "stop"])]),
   lastSubmissionItemId: Schema.Union([Schema.Null, Schema.Number]),
@@ -124,14 +120,14 @@ export const ACTIVE_REVIEW_LOCATIONS = ["jevDispatch", "jev"] as const satisfies
 export const activeReviewJobCount = (state: FlowState): number =>
   state.packets.filter((packet) => (ACTIVE_REVIEW_LOCATIONS as readonly string[]).includes(packet.at)).length;
 
+export const UNFINISHED_REVIEW_LOCATIONS = ["editQueue", "preparation", "reviewQueue", "jevDispatch", "jev"] as const satisfies readonly LivePacketNode[];
+export const unfinishedReviewItemIds = (state: FlowState): readonly number[] =>
+  state.packets.filter((packet) => (UNFINISHED_REVIEW_LOCATIONS as readonly string[]).includes(packet.at)).map((packet) => packet.id);
+
 export const advicePolicyInput = (state: FlowState) => ({
   openFinishDecision: state.stopWaiting,
-  unfinishedWorkItemIds: state.packets.filter((packet) => packet.at === "editQueue" || packet.at === "preparation" ||
-    packet.at === "reviewQueue" || packet.at === "jevDispatch" || packet.at === "jev").map((packet) => packet.id),
+  unfinishedWorkItemIds: unfinishedReviewItemIds(state),
   ongoingJevRequestIds: state.packets.filter((packet) => packet.at === "jev").map((packet) => packet.id),
-  queuedFindingResultIds: state.packets.filter((packet) => packet.at === "resultQueue" && packet.flavor === "finding result").map((packet) => packet.id),
-  queuedClearResultIds: state.packets.filter((packet) => packet.at === "resultQueue" && packet.flavor === "clear result").map((packet) => packet.id),
-  queuedUnavailableResultIds: state.packets.filter((packet) => packet.at === "resultQueue" && packet.flavor === "unavailable result").map((packet) => packet.id),
   pendingAdviceIds: state.packets.filter((packet) => packet.at === "adviceStore").map((packet) => packet.id),
 });
 
@@ -144,7 +140,7 @@ export const initialFlow = (): FlowState => ({
   virtualRoundActive: false,
   stopContinuations: 0,
   stopWaiting: false,
-  opportunity: null,
+  backgroundAvailable: false,
   leaseSurface: null,
   lastSubmissionSurface: null,
   lastSubmissionItemId: null,
@@ -152,7 +148,7 @@ export const initialFlow = (): FlowState => ({
   backgroundSubmittedIds: [],
 });
 
-export type EmissionEvent = "HostOutputSubmitted" | "ClearRecorded" | "UnavailableRecorded";
+export type EmissionEvent = "HostOutputSubmitted" | "JevClearReceived" | "JevUnavailable";
 export type FlowChange =
   | { readonly kind: "transition"; readonly event: EventId; readonly route: Transition; readonly itemId: number | null }
   | { readonly kind: "capacityChanged"; readonly capacity: "source" | "jev"; readonly before: number; readonly after: number }
@@ -178,7 +174,7 @@ const rejected = (state: FlowState, reason: RejectionCode): StepResult => ({
   changes: [],
 });
 export const INTERNAL_EVENTS = [
-  "IngressStarted", "UnitDispatched", "JevRequestSent", "FinishDecisionAllWorkSettled",
+  "IngressStarted", "UnitDispatched", "JevRequestSent", "BackgroundWaitStarted", "FinishDecisionAllWorkSettled", "FinishDecisionBudgetExhausted",
   "AdviceLeasedByStop",
   "AdviceReofferedAtStop", "StopAllowed", "FinishResponseRequested",
 ] as const satisfies readonly EventId[];
@@ -208,12 +204,40 @@ const settle = (state: FlowState): { readonly state: FlowState; readonly changes
   return { state: { ...state, packets }, changes };
 };
 
-const workStillPending = (state: FlowState): boolean => state.leaseSurface !== null || state.opportunity === "background" || state.packets.some((packet) =>
-  packet.at === "editQueue" || packet.at === "preparation" || packet.at === "reviewQueue" ||
-  packet.at === "jevDispatch" || packet.at === "jev");
+const workStillPending = (state: FlowState): boolean => state.leaseSurface !== null || unfinishedReviewItemIds(state).length > 0;
+
+// Every admitted item has one primary location until its review completes or a
+// finish decision discards it. A delivery lease may hold one additional copy.
+const primaryItemIds = (state: FlowState): readonly number[] =>
+  state.packets.filter((packet) => packet.at !== "advicePolicy").map((packet) => packet.id);
+const assertLiveState = (state: FlowState): void => {
+  const primary = primaryItemIds(state);
+  if (new Set(primary).size !== primary.length) throw new Error("Review item has multiple primary locations");
+  const leased = state.packets.filter((packet) => packet.at === "advicePolicy");
+  if (leased.length !== (state.leaseSurface === null ? 0 : 1) ||
+    (leased.length === 1 && leased[0]!.id !== state.leasedItemId)) {
+    throw new Error("Delivery lease and leased packet disagree");
+  }
+  if (!state.virtualRoundActive && (state.packets.length > 0 || state.backgroundAvailable || state.stopWaiting)) {
+    throw new Error("Closed virtual round retains live work");
+  }
+};
+const assertConservation = (before: FlowState, after: FlowState, event: EventId | "CapacitySet", itemId: number | null): void => {
+  const expected = new Set(primaryItemIds(before));
+  if (event === "EditObserved") expected.add(itemId!);
+  if (event === "JevClearReceived" || event === "JevUnavailable" ||
+    (event === "HostOutputSubmitted" && before.leaseSurface === "stop")) expected.delete(itemId!);
+  if (event === "StopAllowed") expected.clear();
+  const actual = new Set(primaryItemIds(after));
+  if (expected.size !== actual.size || [...expected].some((id) => !actual.has(id))) {
+    throw new Error(`Review item lost or duplicated during ${event}`);
+  }
+  assertLiveState(after);
+};
 
 const accepted = (before: FlowState, event: EventId, after: FlowState, itemId: number | null = null): StepResult => {
   const settled = settle(after);
+  assertConservation(before, settled.state, event, itemId);
   const own: StepResult = { accepted: true,
   state: settled.state,
   changes: [
@@ -221,7 +245,7 @@ const accepted = (before: FlowState, event: EventId, after: FlowState, itemId: n
     ...(!before.virtualRoundActive && after.virtualRoundActive ? [{ kind: "virtualRoundOpened" as const, id: after.virtualRoundId }] : []),
     ...(before.virtualRoundActive && !after.virtualRoundActive ? [{ kind: "virtualRoundClosed" as const, id: before.virtualRoundId,
       discardedItems: new Set(before.packets.map((packet) => packet.id)).size }] : []),
-    ...((event === "HostOutputSubmitted" || event === "ClearRecorded" || event === "UnavailableRecorded")
+    ...((event === "HostOutputSubmitted" || event === "JevClearReceived" || event === "JevUnavailable")
       ? [{ kind: "emitted" as const, event, at: TRANSITIONS[event].to, itemId: itemId! }] : []),
     ...settled.changes,
   ],
@@ -243,29 +267,34 @@ export const stepFlow = (state: FlowState, event: EventId | CapacityEvent, itemI
     const source = event.type === "SourceCapacitySet";
     const updated = { ...state, [source ? "sourceCapacity" : "reviewCapacity"]: event.capacity };
     const settled = settle(updated);
+    assertConservation(state, settled.state, "CapacitySet", null);
     return { accepted: true, state: settled.state,
       changes: [{ kind: "capacityChanged", capacity: source ? "source" : "jev",
         before: source ? state.sourceCapacity : state.reviewCapacity, after: event.capacity }, ...settled.changes] };
   }
-  if (isInternalEvent(event) && event !== "FinishDecisionAllWorkSettled") return rejected(state, "internalEvent");
+  if (isInternalEvent(event) && event !== "FinishDecisionAllWorkSettled" && event !== "FinishDecisionBudgetExhausted") return rejected(state, "internalEvent");
   const transition = TRANSITIONS[event];
   if (event === "EditObserved") {
     const current = state.virtualRoundActive ? state : {
       ...state, virtualRoundId: state.virtualRoundId + 1, virtualRoundActive: true, stopContinuations: 0,
     };
-    return accepted(state, event, {
+    const admitted = accepted(state, event, {
       ...current,
       packets: [...current.packets, { id: current.nextItemId, at: "editQueue", flavor: "capture job" }],
       nextItemId: current.nextItemId + 1,
+      backgroundAvailable: true,
     }, current.nextItemId);
+    if (!admitted.accepted) return admitted;
+    return { ...admitted, changes: [...admitted.changes,
+      ...(!state.backgroundAvailable ? [{ kind: "transition" as const, event: "BackgroundWaitStarted" as const,
+        route: TRANSITIONS.BackgroundWaitStarted, itemId: current.nextItemId }] : [])] };
   }
   if (!state.virtualRoundActive) return rejected(state, "virtualRoundClosed");
-  if (event === "FinishDecisionDeadlineReached" || event === "FinishDecisionAllWorkSettled") {
+  if (event === "FinishDecisionDeadlineReached" || event === "FinishDecisionAllWorkSettled" || event === "FinishDecisionBudgetExhausted") {
     if (!state.stopWaiting) return rejected(state, "stopNotWaiting");
     if (event === "FinishDecisionAllWorkSettled" && workStillPending(state)) return rejected(state, "workStillPending");
-    const adviceItemIds = [...new Set(state.packets.filter((packet) =>
-      packet.at === "adviceStore" || (packet.at === "resultQueue" && packet.flavor === "finding result"))
-      .map((packet) => packet.id))];
+    if (event === "FinishDecisionBudgetExhausted" && state.stopContinuations < MAX_STOP_CONTINUATIONS) return rejected(state, "unexpectedControl");
+    const adviceItemIds = state.packets.filter((packet) => packet.at === "adviceStore").map((packet) => packet.id);
     const canContinue = adviceItemIds.length > 0 && state.stopContinuations < MAX_STOP_CONTINUATIONS;
     const cancelledSourceReadingIds = state.packets.filter((packet) => packet.at === "preparation").map((packet) => packet.id);
     const cancelledJevRequestIds = state.packets.filter((packet) => packet.at === "jev").map((packet) => packet.id);
@@ -273,22 +302,11 @@ export const stepFlow = (state: FlowState, event: EventId | CapacityEvent, itemI
       !canContinue || !adviceItemIds.includes(id));
     const next: FlowState = { ...state, packets: [], virtualRoundActive: canContinue,
       stopContinuations: state.stopContinuations + (canContinue ? 1 : 0), stopWaiting: false,
-      opportunity: null, leaseSurface: null, leasedItemId: null, backgroundSubmittedIds: [],
+      backgroundAvailable: false, leaseSurface: null, leasedItemId: null, backgroundSubmittedIds: [],
       lastSubmissionSurface: null, lastSubmissionItemId: null };
+    assertLiveState(next);
     const changes: FlowChange[] = [
       { kind: "transition", event, route: TRANSITIONS[event], itemId: null },
-      ...state.packets.filter((packet) => packet.at === "resultQueue" && packet.flavor === "finding result")
-        .map((packet): FlowChange => ({ kind: "transition", event: "FindingRetained", route: TRANSITIONS.FindingRetained, itemId: packet.id })),
-      ...state.packets.filter((packet) => packet.at === "resultQueue" && packet.flavor === "clear result")
-        .flatMap((packet): FlowChange[] => [
-          { kind: "transition", event: "ClearRecorded", route: TRANSITIONS.ClearRecorded, itemId: packet.id },
-          { kind: "emitted", event: "ClearRecorded", at: "outcomeStore", itemId: packet.id },
-        ]),
-      ...state.packets.filter((packet) => packet.at === "resultQueue" && packet.flavor === "unavailable result")
-        .flatMap((packet): FlowChange[] => [
-          { kind: "transition", event: "UnavailableRecorded", route: TRANSITIONS.UnavailableRecorded, itemId: packet.id },
-          { kind: "emitted", event: "UnavailableRecorded", at: "outcomeStore", itemId: packet.id },
-        ]),
       ...(canContinue ? adviceItemIds.map((id): FlowChange => ({ kind: "transition",
         event: state.backgroundSubmittedIds.includes(id) ? "AdviceReofferedAtStop" : "AdviceLeasedByStop",
         route: state.backgroundSubmittedIds.includes(id) ? TRANSITIONS.AdviceReofferedAtStop : TRANSITIONS.AdviceLeasedByStop,
@@ -307,17 +325,22 @@ export const stepFlow = (state: FlowState, event: EventId | CapacityEvent, itemI
   if (event === "StopAllowed") {
     if (!state.stopWaiting) return rejected(state, "stopNotWaiting");
     return accepted(state, event, {
-      ...state, virtualRoundActive: false, packets: [], stopWaiting: false, opportunity: null, leaseSurface: null,
+      ...state, virtualRoundActive: false, packets: [], stopWaiting: false, backgroundAvailable: false, leaseSurface: null,
       lastSubmissionSurface: null, lastSubmissionItemId: null, leasedItemId: null, backgroundSubmittedIds: [],
     });
   }
-  if (event === "BackgroundHookFired" || event === "StopHookFired") {
-    if (event === "StopHookFired" && state.stopWaiting) return rejected(state, "finishDecisionAlreadyOpen");
-    const opportunity = event === "StopHookFired" ? "stop" : "background";
-    return accepted(state, event, { ...state, opportunity, stopWaiting: state.stopWaiting || event === "StopHookFired" });
+  if (event === "StopHookFired") {
+    if (state.stopWaiting) return rejected(state, "finishDecisionAlreadyOpen");
+    if (state.stopContinuations >= MAX_STOP_CONTINUATIONS) {
+      const decided = stepFlow({ ...state, stopWaiting: true }, "FinishDecisionBudgetExhausted");
+      if (!decided.accepted) throw new Error(`Budget finish decision rejected: ${decided.reason}`);
+      return { accepted: true, state: decided.state, changes: [
+        { kind: "transition", event, route: TRANSITIONS[event], itemId: null }, ...decided.changes] };
+    }
+    return accepted(state, event, { ...state, stopWaiting: true });
   }
   if (transition.kind !== "data") return rejected(state, "unexpectedControl");
-  if (event === "AdviceLeasedByBackground" && state.opportunity !== "background") return rejected(state, "backgroundNotRequested");
+  if (event === "AdviceLeasedByBackground" && !state.backgroundAvailable) return rejected(state, "backgroundNotRequested");
   if ((event === "AdviceLeasedByStop" || event === "AdviceReofferedAtStop") && !state.stopWaiting) return rejected(state, "stopNotRequested");
   if ((event === "AdviceLeasedByStop" || event === "AdviceReofferedAtStop") && state.stopContinuations >= MAX_STOP_CONTINUATIONS) return rejected(state, "continuationBudgetExhausted");
   if (event === "AdviceLeasedByBackground" || event === "AdviceLeasedByStop" || event === "AdviceReofferedAtStop") {
@@ -342,7 +365,7 @@ export const stepFlow = (state: FlowState, event: EventId | CapacityEvent, itemI
   }
   const nextPackets = [...state.packets];
   if (transition.movement === "move") nextPackets.splice(index, 1);
-  const terminal = event === "HostOutputSubmitted" || event === "ClearRecorded" || event === "UnavailableRecorded";
+  const terminal = event === "HostOutputSubmitted" || event === "JevClearReceived" || event === "JevUnavailable";
   if (!terminal && !isLivePacketNode(transition.to)) {
     throw new Error("Nonterminal domain transition has no live data location");
   }
@@ -353,13 +376,14 @@ export const stepFlow = (state: FlowState, event: EventId | CapacityEvent, itemI
   };
   if (event === "AdviceLeasedByBackground" || event === "AdviceLeasedByStop" || event === "AdviceReofferedAtStop") {
     const surface = event === "AdviceLeasedByBackground" ? "background" : "stop";
-    return accepted(state, event, { ...next, leaseSurface: surface, leasedItemId: source.id, opportunity: null,
+    return accepted(state, event, { ...next, leaseSurface: surface, leasedItemId: source.id,
       stopContinuations: state.stopContinuations + (surface === "stop" ? 1 : 0),
     }, source.id);
   }
   if (event === "HostOutputSubmitted") return accepted(state, event, {
     ...next, packets: state.leaseSurface === "stop" ? next.packets.filter((packet) => !(packet.at === "adviceStore" && packet.id === source.id)) : next.packets,
     leaseSurface: null, leasedItemId: null, lastSubmissionSurface: state.leaseSurface, lastSubmissionItemId: source.id,
+    backgroundAvailable: state.leaseSurface === "background" ? false : state.backgroundAvailable,
     backgroundSubmittedIds: state.leaseSurface === "background" ? [...state.backgroundSubmittedIds, source.id] : state.backgroundSubmittedIds,
     stopWaiting: state.leaseSurface === "stop" ? false : state.stopWaiting,
   }, source.id);

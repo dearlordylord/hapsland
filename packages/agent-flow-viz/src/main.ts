@@ -29,7 +29,7 @@ export const Model = Schema.Struct({
   lastChangeEvents: Schema.Array(Schema.Literals(EVENT_IDS)),
   feedback: Schema.String,
   emissions: Schema.Array(Schema.Struct({
-    event: Schema.Literals(["HostOutputSubmitted", "ClearRecorded", "UnavailableRecorded"]),
+    event: Schema.Literals(["HostOutputSubmitted", "JevClearReceived", "JevUnavailable"]),
     at: Schema.Literals(NODE_IDS),
     itemId: Schema.Number,
   })),
@@ -242,12 +242,11 @@ const nodeView = (h: HtmlBuilder<Message>, id: NodeId, model: Model) => {
     : id === "agentEdit" ? "fresh edit enters through adapter"
     : id === "advicePolicy" ? (() => {
       const input = advicePolicyInput(flow);
-      const queued = input.queuedFindingResultIds.length + input.queuedClearResultIds.length + input.queuedUnavailableResultIds.length;
-      return `${input.unfinishedWorkItemIds.length} unfinished · ${input.ongoingJevRequestIds.length} at Jev · ${queued} results · ${input.pendingAdviceIds.length} advice · ${input.openFinishDecision ? "finish wait open" : "no finish wait"}`;
+      return `${input.unfinishedWorkItemIds.length} unfinished · ${input.ongoingJevRequestIds.length} at Jev · ${input.pendingAdviceIds.length} advice · ${input.openFinishDecision ? "finish wait open" : "no finish wait"}`;
     })()
     : id === "responseCommand" ? (flow.stopWaiting ? "finish decision pending" : "decision command leaves reducer")
     : id === "observedWrite" ? (flow.lastSubmissionSurface ? "background write observed" : "no write observed in model")
-    : id === "editQueue" || id === "reviewQueue" || id === "resultQueue" ? (packets.length === 0 ? "queue empty" : `${packets.length} queued · ${shortIds}`)
+    : id === "editQueue" || id === "reviewQueue" ? (packets.length === 0 ? "queue empty" : `${packets.length} queued · ${shortIds}`)
     : id === "jev" ? `${packets.length} requests at Jev · ${shortIds}`
     : id === "adviceStore" ? (packets.length ? `${packets.length} finding${packets.length === 1 ? "" : "s"} · ${shortIds}` : "no pending advice")
     : id === "outcomeStore" ? (model.emissions.some((item) => item.at === id) ? "updated; no payload stored here" : "no completed review yet")
@@ -308,9 +307,10 @@ const finishDecisionChart = (model: Model, h: HtmlBuilder<Message>) => {
       h.div([h.Class("finish-triggers")], [
         h.div([h.Class("finish-box event")], [EVENT_LABELS.FinishDecisionAllWorkSettled]),
         h.div([h.Class("finish-box event")], [EVENT_LABELS.FinishDecisionDeadlineReached]),
+        h.div([h.Class("finish-box event")], [EVENT_LABELS.FinishDecisionBudgetExhausted]),
       ]),
       h.span([h.Class("finish-arrow")], ["→"]),
-      h.div([h.Class("finish-box policy")], ["Advice policy", h.small([], ["classify queued results + pending advice"])]),
+      h.div([h.Class("finish-box policy")], ["Advice policy", h.small([], ["select pending advice; discard unfinished work"])]),
       h.span([h.Class("finish-arrow")], ["→"]),
       h.div([h.Class("finish-outcomes")], [
         h.div([h.Class(`finish-box outcome${decision?.response === "continueWithAdvice" ? " chosen" : ""}`)], [
@@ -361,7 +361,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           "One agent reports edits and receives advice through Claude Code or Codex. The runtime adapter identifies the agent. A sidecar reducer drives this data-flow example.",
         ]),
         h.p([h.Class("caveat")], [
-          `One agent, separate edit and review queues, queued Jev results, and ${model.flow.reviewCapacity} configured Jev slots. No live connection or multiple-agent simulation.`,
+          `One agent, separate edit and review queues, immediate retention of Jev findings, and ${model.flow.reviewCapacity} configured Jev slots. No live connection or multiple-agent simulation.`,
         ]),
       ]),
       h.section([h.Class("chart-panel")], [
@@ -433,12 +433,12 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
             ]))),
           h.p([h.Class("state-line")], [
             `Virtual round ${model.flow.virtualRoundId} (${model.flow.virtualRoundActive ? "active" : "closed"}) · source readings ${activeSourceJobCount(model.flow)}/${model.flow.sourceCapacity} · Jev requests ${activeReviewJobCount(model.flow)}/${model.flow.reviewCapacity} · continue-with-advice responses ${model.flow.stopContinuations}/${MAX_STOP_CONTINUATIONS} · ` +
-            `reserved batch ${model.flow.leaseSurface ?? "none"} · last response ${model.flow.lastSubmissionSurface ?? "none"}`,
+            `unfinished items ${advicePolicyInput(model.flow).unfinishedWorkItemIds.length} · background wait ${model.flow.backgroundAvailable ? "started" : "absent"} · reserved batch ${model.flow.leaseSurface ?? "none"} · last response ${model.flow.lastSubmissionSurface ?? "none"}`,
           ]),
         ]),
         h.section([h.Class("card")], [
           h.h2([], ["Events, prerequisites, and information"]),
-          h.p([h.Class("description")], ["Choose an event for a specific item. Manual events interleave with the selected guided trace without advancing it. Edit observations, review work items, and Jev results have separate queues. Disabled actions show what is missing. The reducer starts waiting source readings and Jev requests whenever a slot opens; those starts appear as generated graph movements."]),
+          h.p([h.Class("description")], ["Choose an event for a specific item. Manual events interleave with the selected guided trace without advancing it. Edit observations and review work items have separate queues. A Jev result completes its item in one reducer step. Disabled actions show what is missing. The reducer starts waiting source readings and Jev requests whenever a slot opens; those starts appear as generated graph movements."]),
           h.div([h.Class("events")], nextEventOptions(model.flow).map((option) => {
             const event = option.event;
             const transition = routeFor(event);
@@ -460,8 +460,10 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
       h.section([h.Class("card explanation")], [
         h.h2([], ["Event reducer and current state"]),
         h.p([], ["The sidecar reducer applies events to example state. Accepted steps generate this graph’s connections and the abstract timeline steps. Box layout and wording are presentation choices. Native timestamps come from retained evidence. Diagram boxes show places and operations, not lifecycle states."]),
-        h.div([h.Class("packets")], [
-          h.div([h.Class("packet")], [h.strong([], ["Virtual round"]), h.span([], [`${model.flow.virtualRoundId} · ${model.flow.virtualRoundActive ? "active" : "closed"}`])]),
+          h.div([h.Class("packets")], [
+            h.div([h.Class("packet")], [h.strong([], ["Virtual round"]), h.span([], [`${model.flow.virtualRoundId} · ${model.flow.virtualRoundActive ? "active" : "closed"}`])]),
+            h.div([h.Class("packet")], [h.strong([], ["Unfinished review items"]), h.span([], [itemIds(advicePolicyInput(model.flow).unfinishedWorkItemIds)])]),
+            h.div([h.Class("packet")], [h.strong([], ["Background advice wait"]), h.span([], [model.flow.backgroundAvailable ? "started with the edit" : "none"])]),
           h.div([h.Class("packet")], [h.strong([], ["Continue-with-advice responses reserved"]), h.span([], [`${model.flow.stopContinuations} of ${MAX_STOP_CONTINUATIONS}`])]),
           h.div([h.Class("packet")], [h.strong([], ["Finish-decision wait"]), h.span([], [model.flow.stopWaiting ? "runtime Stop hook call is open" : "none"])]),
           h.div([h.Class("packet")], [h.strong([], ["Batch reserved for"]), h.span([], [model.flow.leaseSurface ?? "no caller"])]),
