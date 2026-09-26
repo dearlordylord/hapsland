@@ -625,11 +625,14 @@ responses_websockets_v2 = true`);
       restart: { required: true, processesStopped: false },
     });
     const hooks = JSON.parse(readFileSync(join(home, "hooks.json"), "utf8")) as {
-      hooks: { PostToolUse: Array<{ matcher: string; hooks: Array<{ command: string }> }> };
+      hooks: { PreToolUse: Array<{ matcher: string; hooks: Array<{ command: string }> }>;
+        PostToolUse: Array<{ matcher: string; hooks: Array<{ command: string }> }> };
     };
     expect(hooks.hooks.PostToolUse[0]).toEqual(independent);
     expect(hooks.hooks.PostToolUse[1]?.hooks[0]?.command).toContain("review-tool-1.1.0/dist/cli.js");
     expect(hooks.hooks.PostToolUse[1]?.hooks[1]?.command).toContain("--composed-background-hook");
+    expect(JSON.stringify(hooks.hooks.PreToolUse)).toContain("exec ");
+    expect(JSON.stringify(hooks.hooks.PreToolUse)).toContain("--composed-before-edit-hook");
     expect(JSON.stringify(hooks.hooks)).toContain("--composed-stop-hook");
     expect(JSON.stringify(hooks.hooks)).toContain("--composed-prompt-hook");
     expect(JSON.stringify(hooks.hooks)).toContain("SubagentStop");

@@ -76,7 +76,7 @@ interface OwnershipRecord {
   readonly entrypoint: string;
   readonly marker: typeof OWNED_MARKER;
   readonly hookFingerprint: string;
-  readonly composedFingerprints?: { readonly stop: string; readonly prompt: string; readonly subagentStop?: string };
+  readonly composedFingerprints?: { readonly stop: string; readonly prompt: string; readonly subagentStop?: string; readonly preToolUse?: string };
   readonly owned: ReadonlyArray<{
     readonly file: string;
     readonly kind: "feature" | "hook";
@@ -144,12 +144,14 @@ const ownedHook = (runtime: string, entrypoint: string, hostVersion = "0.155.1")
   };
 };
 
-const composedCommand = (runtime: string, entrypoint: string, hostVersion: string, kind: "background" | "stop" | "prompt") => {
+const composedCommand = (runtime: string, entrypoint: string, hostVersion: string, kind: "background" | "stop" | "prompt" | "before-edit") => {
   const version = hostVersion === "0.155.1" ? "" : ` --codex-version=${hostVersion}`;
-  return `${quoteShell(runtime)} ${quoteShell(entrypoint)} --composed-${kind}-hook --composed-host=codex-cli ${COMPOSED_MARKER}${version}`;
+  const exec = kind === "before-edit" ? "exec " : "";
+  return `${exec}${quoteShell(runtime)} ${quoteShell(entrypoint)} --composed-${kind}-hook --composed-host=codex-cli ${COMPOSED_MARKER}${version}`;
 };
 
 const composedGroups = (runtime: string, entrypoint: string, hostVersion: string) => ({
+  PreToolUse: { matcher: OWNED_MATCHER, hooks: [{ type: "command", command: composedCommand(runtime, entrypoint, hostVersion, "before-edit"), timeout: 5 }] },
   Stop: { hooks: [{ type: "command", command: composedCommand(runtime, entrypoint, hostVersion, "stop"), timeout: 5 }] },
   SubagentStop: { hooks: [{ type: "command", command: composedCommand(runtime, entrypoint, hostVersion, "stop"), timeout: 5 }] },
   UserPromptSubmit: { hooks: [{ type: "command", command: composedCommand(runtime, entrypoint, hostVersion, "prompt"), timeout: 4 }] },
@@ -199,7 +201,7 @@ const withComposedGroups = (
   const hooks = root.hooks === undefined ? {} : root.hooks;
   if (!isObject(hooks)) throw new Error("hooks.json field 'hooks' must be an object");
   const nextHooks = { ...hooks };
-  for (const [event, key] of [["Stop", "stop"], ["SubagentStop", "subagentStop"], ["UserPromptSubmit", "prompt"]] as const) {
+  for (const [event, key] of [["PreToolUse", "preToolUse"], ["Stop", "stop"], ["SubagentStop", "subagentStop"], ["UserPromptSubmit", "prompt"]] as const) {
     const existing = nextHooks[event];
     if (existing !== undefined && !Array.isArray(existing)) throw new Error(`hooks.json ${event} must be an array`);
     const groups: unknown[] = existing === undefined ? [] : [...existing];
@@ -449,7 +451,8 @@ const readOwnership = (path: string): OwnershipRecord | undefined => {
       (value.composedFingerprints !== undefined && (!isObject(value.composedFingerprints) ||
         typeof value.composedFingerprints.stop !== "string" ||
         typeof value.composedFingerprints.prompt !== "string" ||
-        (value.composedFingerprints.subagentStop !== undefined && typeof value.composedFingerprints.subagentStop !== "string"))) ||
+        (value.composedFingerprints.subagentStop !== undefined && typeof value.composedFingerprints.subagentStop !== "string") ||
+        (value.composedFingerprints.preToolUse !== undefined && typeof value.composedFingerprints.preToolUse !== "string"))) ||
       value.marker !== OWNED_MARKER) {
     throw new Error("installation ownership record has an unsupported shape or version");
   }
@@ -477,6 +480,7 @@ const readOwnership = (path: string): OwnershipRecord | undefined => {
         stop: (value.composedFingerprints as JsonObject).stop as string,
         prompt: (value.composedFingerprints as JsonObject).prompt as string,
         ...(typeof value.composedFingerprints.subagentStop === "string" ? { subagentStop: value.composedFingerprints.subagentStop } : {}),
+        ...(typeof value.composedFingerprints.preToolUse === "string" ? { preToolUse: value.composedFingerprints.preToolUse } : {}),
       },
     }),
     owned,
@@ -744,6 +748,7 @@ const makeOwnershipRecord = (
   marker: OWNED_MARKER,
   hookFingerprint: fingerprint,
   composedFingerprints: {
+    preToolUse: hookFingerprint(composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version).PreToolUse),
     stop: hookFingerprint(composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version).Stop),
     subagentStop: hookFingerprint(composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version).SubagentStop),
     prompt: hookFingerprint(composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version).UserPromptSubmit),
@@ -1262,6 +1267,7 @@ const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof re
     typeof priorOwnership.composedFingerprints.stop === "string" &&
     typeof priorOwnership.composedFingerprints.prompt === "string"
     ? { stop: priorOwnership.composedFingerprints.stop, prompt: priorOwnership.composedFingerprints.prompt,
+      ...(typeof priorOwnership.composedFingerprints.preToolUse === "string" ? { preToolUse: priorOwnership.composedFingerprints.preToolUse } : {}),
       ...(typeof priorOwnership.composedFingerprints.subagentStop === "string" ? { subagentStop: priorOwnership.composedFingerprints.subagentStop } : {}) }
     : undefined;
   const targetComposed = composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version);
@@ -1295,6 +1301,7 @@ const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof re
         throw new Error("recovery journal does not bind the exact target owned hook");
       }
       withComposedGroups(currentRoot, targetComposed, {
+        preToolUse: hookFingerprint(targetComposed.PreToolUse),
         stop: hookFingerprint(targetComposed.Stop), prompt: hookFingerprint(targetComposed.UserPromptSubmit),
         subagentStop: hookFingerprint(targetComposed.SubagentStop),
       });
@@ -1328,6 +1335,7 @@ const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof re
         throw new Error("recovery journal install plan does not bind the exact owned hook");
       }
       withComposedGroups(currentRoot, targetComposed, {
+        preToolUse: hookFingerprint(targetComposed.PreToolUse),
         stop: hookFingerprint(targetComposed.Stop), prompt: hookFingerprint(targetComposed.UserPromptSubmit),
         subagentStop: hookFingerprint(targetComposed.SubagentStop),
       });

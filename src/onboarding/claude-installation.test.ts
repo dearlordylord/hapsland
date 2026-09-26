@@ -52,7 +52,10 @@ describe("Claude installation lifecycle", () => {
     expect((await installClaudeIntegration({ ...request, proposalDigest: digestOf(preview) })).status).toBe("complete");
     const installed = settings(home);
     expect(installed.permissions).toEqual(original.permissions);
-    const installedHooks = installed.hooks as typeof original.hooks & { UserPromptSubmit: unknown[]; SubagentStop: unknown[] };
+    const installedHooks = installed.hooks as typeof original.hooks & { PreToolUse: unknown[]; UserPromptSubmit: unknown[]; SubagentStop: unknown[] };
+    expect(installedHooks.PreToolUse).toHaveLength(1);
+    expect(JSON.stringify(installedHooks.PreToolUse)).toContain("exec ");
+    expect(JSON.stringify(installedHooks.PreToolUse)).toContain("--composed-before-edit-hook");
     expect(installedHooks.Stop[0]).toEqual(original.hooks.Stop[0]);
     expect(installedHooks.Stop).toHaveLength(2);
     expect(JSON.stringify(installedHooks.Stop[1])).toContain("--composed-stop-hook");
