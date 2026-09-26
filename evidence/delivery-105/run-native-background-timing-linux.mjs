@@ -20,7 +20,7 @@ const run = (command, args, options) => new Promise((resolveRun, reject) => {
   const child = spawn(command, args, { ...options, stdio: ['ignore', 'pipe', 'pipe'] });
   let stdout = '', stderr = '', pending = ''; const nativeEvents = [];
   const inspect = (line) => { let r; try { r=JSON.parse(line); } catch { return; }
-    const item=r.item, event=r.event; nativeEvents.push({at:Date.now()-started,type:r.type, subtype:r.subtype??null,itemType:item?.type??null,eventType:event?.type??null,deltaType:event?.delta?.type??null, hasText:typeof event?.delta?.text==='string'}); }; 
+    const item=r.item, event=r.event; nativeEvents.push({at:Date.now()-started,type:r.type, subtype:r.subtype??null,itemType:item?.type??null,eventType:event?.type??null,deltaType:event?.delta?.type??null, hasText:typeof event?.delta?.text==='string'}); };
   let timedOut = false;
   const timer = setTimeout(() => { timedOut = true; child.kill('SIGTERM'); }, 100_000);
   child.stdout.on('data', (chunk) => { stdout += chunk; pending += chunk; let n; while((n=pending.indexOf('\n'))>=0){inspect(pending.slice(0,n));pending=pending.slice(n+1);} });
