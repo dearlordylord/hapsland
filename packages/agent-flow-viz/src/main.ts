@@ -5,7 +5,7 @@ import { Runtime, type Update } from "foldkit";
 import type { Document, HtmlBuilder } from "foldkit/html";
 import { defineMessageUnion } from "foldkit/message";
 import { describeAccepted, EMISSION_LABELS, EVENT_LABELS, NODES, REJECTION_LABELS } from "./diagram";
-import { CONNECTIONS, routeFor } from "./generation";
+import { CONNECTIONS, nextEventOptions, routeFor } from "./generation";
 import { TRACES } from "./scenarios";
 import {
   EVENT_IDS, FlowStateSchema, MAX_STOP_CONTINUATIONS, NODE_IDS,
@@ -264,10 +264,12 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         ]),
         h.section([h.Class("card")], [
           h.h2([], ["Events, prerequisites, and information"]),
-          h.p([h.Class("description")], ["Click any event to inspect an alternate order. Rejected events explain the missing prerequisite."]),
-          h.div([h.Class("events")], EVENT_IDS.map((event) => {
+          h.p([h.Class("description")], ["Choose any available event in any order. Disabled events show what is missing in the current state. This example accepts only its known event types, without custom payloads."]),
+          h.div([h.Class("events")], nextEventOptions(model.flow).map((option) => {
+            const event = option.event;
             const transition = routeFor(event);
-            return h.button([h.OnClick(Message.TriggeredEvent({ event })), h.Class("event-row")], [
+            return h.button([h.OnClick(Message.TriggeredEvent({ event })), h.Disabled(!option.available),
+              h.Class(option.available ? "event-row available" : "event-row unavailable")], [
               h.span([h.Class("event-number")], [String(CONNECTIONS.findIndex((events) => events.includes(event)) + 1)]),
               h.span([h.Class("event-copy")], [
                 h.strong([], [EVENT_LABELS[event]]),
@@ -275,10 +277,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
                 h.small([], [transition.kind === "data"
                   ? `${transition.input} → ${transition.output}${transition.movement === "copy" ? " · source retained" : ""}`
                   : `${transition.signal} request · agent identity and delivery context`]),
-                h.small([], [(() => {
-                  const attempt = stepFlow(model.flow, event);
-                  return attempt.accepted ? "Can happen now" : REJECTION_LABELS[attempt.reason];
-                })()]),
+                h.small([], [option.available ? "Available now" : REJECTION_LABELS[option.reason]]),
               ]),
             ]);
           })),

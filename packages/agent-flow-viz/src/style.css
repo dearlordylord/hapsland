@@ -24,7 +24,7 @@ p { line-height: 1.5; }
 .trace, .trace-controls button { border: 1px solid #b8c7d9; border-radius: 7px; background: #fff; color: #264365; padding: 8px 10px; font-size: .8rem; }
 .key-hint { align-self: center; color: #66778e; font-size: .8rem; }
 .trace.selected, .trace-controls .primary { background: #245bb8; color: #fff; border-color: #245bb8; }
-.trace:hover, .trace-controls button:hover, .event-row:hover { background: #eaf1ff; color: #17335e; }
+.trace:hover, .trace-controls button:hover, .event-row:not(:disabled):hover { background: #eaf1ff; color: #17335e; }
 .trace.selected:hover, .trace-controls .primary:hover { background: #174a9d; color: #fff; }
 .trace-controls button:disabled { cursor: default; opacity: .5; background: #fff; color: #264365; }
 .description, .progress { color: #5c6d82; font-size: .86rem; }
@@ -35,6 +35,8 @@ p { line-height: 1.5; }
 .state-line { margin-bottom: 0; font-size: .78rem; color: #66778e; }
 .events { display: grid; gap: 5px; max-height: 680px; overflow: auto; }
 .event-row { display: flex; align-items: flex-start; width: 100%; gap: 10px; padding: 8px; text-align: left; border: 1px solid #e3e9f0; border-radius: 7px; background: #fff; color: inherit; }
+.event-row.available { border-color: #b8d7c6; background: #f6fcf8; }
+.event-row:disabled { cursor: default; color: #69778a; background: #f7f9fb; }
 .event-number { flex: 0 0 23px; display: grid; place-items: center; height: 23px; border: 1px solid #9aabbf; border-radius: 50%; font-size: .69rem; font-weight: 800; }
 .event-copy { display: grid; gap: 2px; }
 .event-copy strong { font-size: .8rem; }

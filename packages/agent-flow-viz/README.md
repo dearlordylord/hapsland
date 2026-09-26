@@ -12,7 +12,10 @@ npm run dev
 Select a guided example, move to its next or previous event, or apply an event
 directly. The process diagram groups
 related events into one numbered connection. The event list shows each variant,
-its information, and whether its prerequisites currently hold.
+its information, and whether its prerequisites currently hold. The event panel
+probes every known event against the current reducer state: accepted events are
+selectable, while unavailable events are disabled with a reason. An actual click
+runs the reducer again, so the panel does not introduce a separate validity rule.
 Left and Right Arrow move through a guided example when focus is outside text inputs.
 
 The backbone is the guarded `stepFlow` reducer. There is no separate explicit

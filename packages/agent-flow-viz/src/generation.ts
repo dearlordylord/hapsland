@@ -1,4 +1,4 @@
-import { EVENT_IDS, NODE_IDS, initialFlow, stepFlow, type EventId, type FlowChange, type FlowState, type Transition } from "./flow";
+import { EVENT_IDS, NODE_IDS, initialFlow, stepFlow, type EventId, type FlowChange, type FlowState, type RejectionCode, type Transition } from "./flow";
 import { TRACES } from "./scenarios";
 
 export type ProjectedStep = {
@@ -20,6 +20,17 @@ export const projectSequence = (events: readonly EventId[], title: string): read
 };
 
 export const PROJECTED_TRACES = TRACES.map((trace) => projectSequence(trace.events, trace.name));
+
+export type EventOption =
+  | { readonly event: EventId; readonly available: true }
+  | { readonly event: EventId; readonly available: false; readonly reason: RejectionCode };
+
+// Probe the pure reducer. This creates no new domain state and cannot change the
+// current flow; the actual click runs stepFlow again against the latest state.
+export const nextEventOptions = (state: FlowState): readonly EventOption[] => EVENT_IDS.map((event) => {
+  const result = stepFlow(state, event);
+  return result.accepted ? { event, available: true } : { event, available: false, reason: result.reason };
+});
 
 const routes = new Map<EventId, Transition>();
 for (const steps of PROJECTED_TRACES) {
