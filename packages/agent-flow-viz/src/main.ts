@@ -170,7 +170,7 @@ const nodeView = (h: HtmlBuilder<Message>, id: NodeId, model: Model) => {
 
 const chart = (model: Model, h: HtmlBuilder<Message>) => h.div([h.Class("chart-scroll")], [
   h.svg([h.ViewBox("0 0 1450 810"), h.Role("img"),
-    h.AriaLabel("Event-labeled data flow from agent edit through Hapsland and Jev to agent runtime output")], [
+    h.AriaLabel("One-agent, one-review-item model: event-labeled data flow from agent edit through Hapsland and Jev to agent runtime output")], [
     h.defs([], [
       h.marker([h.Id("arrow-muted"), h.ViewBox("0 0 10 10"), h.RefX("8"), h.RefY("5"),
         h.MarkerWidth("6"), h.MarkerHeight("6"), h.Orient("auto")], [
@@ -180,6 +180,9 @@ const chart = (model: Model, h: HtmlBuilder<Message>) => h.div([h.Class("chart-s
         h.MarkerWidth("6"), h.MarkerHeight("6"), h.Orient("auto")], [
         h.path([h.D("M 0 0 L 10 5 L 0 10 z"), h.Fill("#e66035")], []),
       ]),
+    ]),
+    h.text([h.X("30"), h.Y("28"), h.FontSize("13"), h.FontWeight("700"), h.Fill("#34516e")], [
+      "Model scope: one agent · one review item at a time",
     ]),
     ...CONNECTIONS.map((events, index) => arrow(h, events, index + 1, model.lastEvent !== null && events.includes(model.lastEvent))),
     ...NODE_IDS.map((id) => nodeView(h, id, model)),
