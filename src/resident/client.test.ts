@@ -40,7 +40,7 @@ describe("resident client trust boundary", () => {
     const observation: DirectObservation = {
       root: "/tmp/root",
       rootIdentity: { rootDevice: "1", rootInode: "2", gitDirectory: "/tmp/root/.git", gitDevice: "1", gitInode: "3" },
-      recipient: { host: "claude-code", hostVersion: "2.1.218", sessionId: "session", turnId: null, toolUseId: "tool", agentId: null },
+      advicee: { host: "claude-code", hostVersion: "2.1.218", sessionId: "session", turnId: null, toolUseId: "tool", agentId: null },
       candidates: [{ operation: "add", path: "/tmp/root/type.ts", addedLines: ["type A = number"] }],
     };
     const dispatch = { statePath: "/tmp/state", userConfigPath: null, credential: null, controlled: {} };
@@ -82,7 +82,7 @@ describe("resident client trust boundary", () => {
     expect(await collectOutcome(accepted.admission)).toEqual({ status: "advice", advice: {
       output: { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "review advice" } },
       token: "lease", lifetime: "original-owner", paths, root: observation.root,
-      recipient: observation.recipient, activityPath: undefined, findingCount: 1,
+      advicee: observation.advicee, activityPath: undefined, findingCount: 1,
     } });
     expect(await collectOutcome(accepted.admission)).toEqual({ status: "clear" });
     expect(await collectOutcome(accepted.admission)).toEqual({ status: "delivered" });
@@ -248,7 +248,7 @@ describe("resident client trust boundary", () => {
       operation: "collect",
       lifetime: "lifetime",
       root: "/tmp/root",
-      recipient: {
+      advicee: {
         host: "codex-cli",
         hostVersion: "0.155.1",
         sessionId: "session",
@@ -267,7 +267,7 @@ describe("resident client trust boundary", () => {
     );
   });
 
-  it("rejects an oversized request before writing recipient-bearing bytes", async () => {
+  it("rejects an oversized request before writing advicee-bearing bytes", async () => {
     const directory = await mkdtemp(join(tmpdir(), "resident-oversized-request-"));
     directories.push(directory);
     await chmod(directory, 0o700);
@@ -288,7 +288,7 @@ describe("resident client trust boundary", () => {
       operation: "collect",
       lifetime: "lifetime",
       root: "/tmp/root",
-      recipient: {
+      advicee: {
         host: "codex-cli",
         hostVersion: "0.155.1",
         sessionId: "session",

@@ -99,7 +99,7 @@ test('accepted edit becomes stale before controlled backend completion and emits
   } finally { f.close(); }
 });
 
-test('resident restart discards old queued work and keeps new session recipient isolated', { timeout: 45_000 }, () => {
+test('resident restart discards old queued work and keeps new session advicee isolated', { timeout: 45_000 }, () => {
   const f = fixture();
   try {
     writeFileSync(f.source, 'type OrderCount = number\n');
@@ -116,7 +116,7 @@ test('resident restart discards old queued work and keeps new session recipient 
     assert.ok(readLines(f.outcome).every(item => item.sessionId === 'new-session'),
       'old queued work completed after restart');
     assert.deepEqual(f.nativeHook(f.event('old-session', 'old-collect', 'Bash')), {},
-      'old work reached an old recipient after restart');
+      'old work reached an old advicee after restart');
     const delivered = f.nativeHook(f.event('new-session', 'new-collect', 'Bash'));
     assert.match(delivered.hookSpecificOutput?.additionalContext ?? '', /\[r6_bare_domain_value, p=/,
       'new session did not receive its own finding');

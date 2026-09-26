@@ -5,7 +5,7 @@ import { promisify } from "node:util";
 import * as Effect from "effect/Effect";
 import { captureStable, MAX_SOURCE_BYTES, type CaptureHooks } from "../../direct-event/capture.ts";
 import { eligibleNamedPath } from "../../direct-event/selection.ts";
-import type { DirectCandidate, DirectObservation, DirectRecipient, PhysicalRootIdentity } from "../../direct-event/model.ts";
+import type { DirectCandidate, DirectObservation, DirectAdvicee, PhysicalRootIdentity } from "../../direct-event/model.ts";
 
 const exec = promisify(execFile);
 const object = (value: unknown): Record<string, unknown> | undefined =>
@@ -92,10 +92,10 @@ export const adaptOpenCodeDirectEvent = Effect.fn("DirectEvent.adaptOpenCodeDire
     candidate = { operation: "add", path: relativePath,
       addedLines: args.content.split(/\r?\n/u) };
   }
-  const recipient: DirectRecipient = Object.freeze({
+  const advicee: DirectAdvicee = Object.freeze({
     host: "opencode", hostVersion: "1.14.44", sessionId: input.sessionID,
     turnId: null, toolUseId: input.callID, agentId: null,
   });
   return Object.freeze({ root: root.value.root, rootIdentity: root.value.rootIdentity,
-    recipient, candidates: Object.freeze([Object.freeze(candidate)]) } satisfies DirectObservation);
+    advicee, candidates: Object.freeze([Object.freeze(candidate)]) } satisfies DirectObservation);
 });

@@ -9,7 +9,7 @@ export type CodexHostVersion = typeof CODEX_HOST_VERSIONS[number];
 export const isCodexHostVersion = (value: unknown): value is CodexHostVersion =>
   typeof value === "string" && CODEX_HOST_VERSIONS.some((version) => version === value);
 
-export type DirectRecipient = {
+export type DirectAdvicee = {
   readonly host: "codex-cli";
   readonly hostVersion: CodexHostVersion;
   readonly sessionId: string;
@@ -58,7 +58,7 @@ export type DirectObservation = {
   readonly root: string;
   /** Physical working-tree and Git-administration identity captured at adaptation. */
   readonly rootIdentity: PhysicalRootIdentity;
-  readonly recipient: DirectRecipient;
+  readonly advicee: DirectAdvicee;
   readonly candidates: ReadonlyArray<DirectCandidate>;
 };
 
@@ -189,7 +189,7 @@ export type ReviewInput = {
 
 export type PreparedUnit = {
   readonly root: string;
-  readonly recipient: DirectRecipient;
+  readonly advicee: DirectAdvicee;
   readonly input: ReviewInput;
   readonly identity: string;
 };

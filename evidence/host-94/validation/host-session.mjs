@@ -491,8 +491,8 @@ try {
       const checkpoint = JSON.parse(readFileSync(checkpointPath, 'utf8'));
       const outcomes = existsSync(outcomePath)
         ? readFileSync(outcomePath, 'utf8').trim().split('\n').filter(Boolean).map(line => JSON.parse(line)) : [];
-      evidence.restartNewRecipientDistinct = Boolean(sessionKey && sessionKey !== checkpoint.oldSessionKey);
-      evidence.restartOutcomesOnlyNewRecipient = Boolean(sessionKey && outcomes.length > 0 &&
+      evidence.restartNewAdviceeDistinct = Boolean(sessionKey && sessionKey !== checkpoint.oldSessionKey);
+      evidence.restartOutcomesOnlyNewAdvicee = Boolean(sessionKey && outcomes.length > 0 &&
         outcomes.every(item => typeof item.sessionId === 'string' &&
           createHash('sha256').update(`${salt}:${item.sessionId}`).digest('hex') === sessionKey));
       evidence.restartNewFindingSubmitted = evidence.findingSubmissions > 0;
@@ -552,8 +552,8 @@ try {
               evidence.restartOldSessionAttributionPresent && evidence.hostSubmissions === 0 &&
               (!blockStageB || backendCalls.length === 0) ? 'passed' : 'incomplete'
             : restartNew
-              ? evidence.restartAdmissionObserved && evidence.restartNewRecipientDistinct &&
-              evidence.restartOutcomesOnlyNewRecipient &&
+              ? evidence.restartAdmissionObserved && evidence.restartNewAdviceeDistinct &&
+              evidence.restartOutcomesOnlyNewAdvicee &&
                 (blockStageB ? evidence.reviewCompletedOutcome === 'completed-clear' &&
                   evidence.hostSubmissions === 0 && backendCalls.length === 1
                   : evidence.restartNewFindingSubmitted) ? 'passed' : 'incomplete'
@@ -600,7 +600,7 @@ try {
       try {
         const oldSessionKey = readFileSync(trace, 'utf8').trim().split('\n').filter(Boolean)
           .map(line => JSON.parse(line)).find(item => item.sessionKey)?.sessionKey;
-        assert.ok(oldSessionKey, 'old recipient missing');
+        assert.ok(oldSessionKey, 'old advicee missing');
         writeFileSync(checkpointPath, JSON.stringify({ oldSessionKey, oldAdmissionObserved: true,
           oldOutcomeAbsent: true }), { mode: 0o600 });
         rmSync(source, { force: true });

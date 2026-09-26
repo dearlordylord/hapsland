@@ -6,7 +6,7 @@ export const SUCCESS_CACHE_ENTRY_LIMIT = 8;
 export const SUCCESS_CACHE_BYTE_LIMIT = 128 * 1024;
 
 /**
- * Identity for one logical evaluation. Recipient/root isolation comes from the
+ * Identity for one logical evaluation. Advicee/root isolation comes from the
  * partition; event ids, source snapshots, and scheduler bookkeeping are absent.
  */
 export const residentEvaluationIdentity = (

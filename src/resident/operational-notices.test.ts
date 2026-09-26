@@ -3,8 +3,8 @@ import * as Effect from "effect/Effect";
 import { symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
-import type { DirectObservation, DirectRecipient } from "../direct-event/model.ts";
-import { addEvent, makeGitFixture, put, recipient } from "../direct-event/test-fixtures.ts";
+import type { DirectObservation, DirectAdvicee } from "../direct-event/model.ts";
+import { addEvent, makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { Consent } from "../runtime/consent.ts";
 import type { ResidentDispatchContext } from "./protocol.ts";
@@ -77,7 +77,7 @@ const collectAndFinalize = async (
   observation: DirectObservation,
   context: ResidentDispatchContext,
 ) => {
-  const response = await server.collect(observation.root, observation.recipient, context);
+  const response = await server.collect(observation.root, observation.advicee, context);
   if (response.status === "advice") {
     expect(server.acknowledge(response.token).status).toBe("acknowledged");
     expect(server.finalize(response.token).status).toBe("finalized");
@@ -95,7 +95,7 @@ const fillAndFinalizeCooldownTable = async (
   for (let index = 0; index < maximumKeys; index += 1) {
     const scoped = {
       ...observation,
-      recipient: recipient({
+      advicee: advicee({
         sessionId: `session-${index}`,
         turnId: `turn-${index}`,
         toolUseId: `tool-${index}`,
@@ -181,10 +181,10 @@ console.log('{"version":1,"status":"interaction-required"}');
     }
 
     now += OPERATIONAL_NOTICE_COOLDOWN_MS - 1;
-    expect(await server.collect(root, observation.recipient, failed)).toMatchObject({ status: "empty" });
+    expect(await server.collect(root, observation.advicee, failed)).toMatchObject({ status: "empty" });
     expect(server.admit(observation, failed).status).toBe("accepted");
     await server.whenIdle();
-    expect(await server.collect(root, observation.recipient, failed)).toMatchObject({ status: "empty" });
+    expect(await server.collect(root, observation.advicee, failed)).toMatchObject({ status: "empty" });
 
     now += 1;
     expect(server.admit(observation, failed).status).toBe("accepted");
@@ -196,17 +196,17 @@ console.log('{"version":1,"status":"interaction-required"}');
     }
 
     now += OPERATIONAL_NOTICE_COOLDOWN_MS;
-    expect(await server.collect(root, observation.recipient, failed)).toMatchObject({ status: "empty" });
+    expect(await server.collect(root, observation.advicee, failed)).toMatchObject({ status: "empty" });
 
     const restarted = new ResidentServer(residentPaths(join(root, "runtime-b")), () => now);
     expect(restarted.admit(observation, failed).status).toBe("accepted");
     await restarted.whenIdle();
-    expect((await restarted.collect(root, observation.recipient, failed)).status).toBe("advice");
+    expect((await restarted.collect(root, observation.advicee, failed)).status).toBe("advice");
     await server.close();
     await restarted.close();
   });
 
-  it("keeps capacity/backend and recipient partitions independent and batches with fresh findings", async () => {
+  it("keeps capacity/backend and advicee partitions independent and batches with fresh findings", async () => {
     const { root, statePath, observation } = await fixture();
     const failed = dispatch(statePath, { failure: "offline backend" });
     const server = new ResidentServer(residentPaths(join(root, "runtime")), () => 1_000);
@@ -219,7 +219,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     await installCapacityRule(root, 0.7, 32);
     expect(server.admit(observation, capacityDispatch(statePath)).status).toBe("accepted");
     await server.whenIdle();
-    const combined = await server.collect(root, observation.recipient, capacityDispatch(statePath));
+    const combined = await server.collect(root, observation.advicee, capacityDispatch(statePath));
     expect(combined.status).toBe("advice");
     if (combined.status === "advice") {
       const text = combined.output.hookSpecificOutput.additionalContext;
@@ -231,23 +231,23 @@ console.log('{"version":1,"status":"interaction-required"}');
       expect(server.finalize(combined.token).status).toBe("finalized");
     }
 
-    const otherRecipient: DirectRecipient = recipient({
+    const otherAdvicee: DirectAdvicee = advicee({
       sessionId: "other-session",
       turnId: "other-turn",
       toolUseId: "other-tool",
     });
-    const otherObservation = { ...observation, recipient: otherRecipient };
+    const otherObservation = { ...observation, advicee: otherAdvicee };
     expect(server.admit(otherObservation, failed).status).toBe("accepted");
     await server.whenIdle();
-    const otherRecipientNotice = await collectAndFinalize(server, otherObservation, failed);
-    expect(otherRecipientNotice.status).toBe("advice");
+    const otherAdviceeNotice = await collectAndFinalize(server, otherObservation, failed);
+    expect(otherAdviceeNotice.status).toBe("advice");
 
     const second = await fixture();
     const secondFailed = dispatch(second.statePath, { failure: "offline backend" });
     expect(server.admit(second.observation, secondFailed).status).toBe("accepted");
     await server.whenIdle();
-    expect(await server.collect(root, observation.recipient, failed)).toMatchObject({ status: "empty" });
-    expect((await server.collect(second.root, second.observation.recipient, secondFailed)).status).toBe("advice");
+    expect(await server.collect(root, observation.advicee, failed)).toMatchObject({ status: "empty" });
+    expect((await server.collect(second.root, second.observation.advicee, secondFailed)).status).toBe("advice");
     await server.close();
   });
 
@@ -283,7 +283,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     if (excluded === undefined) throw new Error("excluded fixture adaptation failed");
     expect(excludedServer.admit(excluded, capacity).status).toBe("accepted");
     await excludedServer.whenIdle();
-    expect(await excludedServer.collect(root, excluded.recipient, capacity)).toMatchObject({ status: "empty" });
+    expect(await excludedServer.collect(root, excluded.advicee, capacity)).toMatchObject({ status: "empty" });
     expect(excludedServer.accountingMetrics()).toMatchObject({
       operationalNoticeKeys: maximumKeys,
       pendingOperationalNotices: 0,
@@ -291,7 +291,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     excludedNow += OPERATIONAL_NOTICE_COOLDOWN_MS;
     expect(excludedServer.admit(excluded, capacity).status).toBe("accepted");
     await excludedServer.whenIdle();
-    expect(await excludedServer.collect(root, excluded.recipient, capacity)).toMatchObject({ status: "empty" });
+    expect(await excludedServer.collect(root, excluded.advicee, capacity)).toMatchObject({ status: "empty" });
     expect(excludedServer.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 0 });
     await excludedServer.close();
   });
@@ -340,11 +340,11 @@ console.log('{"version":1,"status":"interaction-required"}');
     await server.close();
   });
 
-  it("does not address unknown recipients or quiet applicability outcomes", async () => {
+  it("does not address unknown advicees or quiet applicability outcomes", async () => {
     const { root, statePath, observation } = await fixture();
     const server = new ResidentServer(residentPaths(join(root, "runtime")), () => 10);
     const oversized = dispatch(statePath, { answers: { oversized: "x".repeat(2 * 1024 * 1024) } });
-    const unknown = { ...observation, recipient: { ...observation.recipient, sessionId: "" } };
+    const unknown = { ...observation, advicee: { ...observation.advicee, sessionId: "" } };
     expect(server.admit(unknown, oversized).status).toBe("rejected-capacity");
     expect(server.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 0 });
 
@@ -378,7 +378,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     };
     expect(server.admit(unsupportedOperation, capacity).status).toBe("accepted");
     await server.whenIdle();
-    expect(await server.collect(root, unsupported.recipient, capacity)).toMatchObject({ status: "empty" });
+    expect(await server.collect(root, unsupported.advicee, capacity)).toMatchObject({ status: "empty" });
     expect(server.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 0 });
     await server.close();
   });

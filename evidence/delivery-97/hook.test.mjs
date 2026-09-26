@@ -29,12 +29,12 @@ try {
   const stale = call({...base,hook_event_name:'Stop',stop_hook_active:false});
   assert.equal(stale.stdout,'');
   writeFileSync(join(repo,'synthetic.ts'),'export const state = "BAD";');
-  writeFileSync(join(dir,'work.json'),JSON.stringify({recipient:`s1:child1:${repo}`,units:[{id:1,readyAt:Date.now()+5100,failure:false}]}));
+  writeFileSync(join(dir,'work.json'),JSON.stringify({advicee:`s1:child1:${repo}`,units:[{id:1,readyAt:Date.now()+5100,failure:false}]}));
   const timedOut = call({...base,hook_event_name:'Stop',stop_hook_active:false});
   assert.equal(timedOut.stdout,'');
   const retained = call({...base,hook_event_name:'Stop',stop_hook_active:false});
   assert.equal(JSON.parse(retained.stdout).decision,'block');
   const events = readFileSync(join(dir,'events.jsonl'),'utf8').trim().split('\n').map(JSON.parse);
   assert.equal(events.filter(e=>e.kind==='host-submission').length,2);
-  process.stdout.write('recipient isolation, continuation cap, stale suppression, and post-timeout retention: pass\n');
+  process.stdout.write('advicee isolation, continuation cap, stale suppression, and post-timeout retention: pass\n');
 } finally {rmSync(root,{recursive:true,force:true});}

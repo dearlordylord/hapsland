@@ -12,13 +12,13 @@ describe("direct-event Codex Add adapter", () => {
     const codex = await Effect.runPromise(adaptComposedHookIdentity({
       hook_event_name: "Stop", cwd: root, session_id: "codex", turn_id: "turn",
     }, "codex-cli", "Stop"));
-    expect(codex).toMatchObject({ root, recipient: { host: "codex-cli",
+    expect(codex).toMatchObject({ root, advicee: { host: "codex-cli",
       sessionId: "codex", agentId: null } });
     const claude = await Effect.runPromise(adaptComposedHookIdentity({
       hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
       session_id: "claude", tool_use_id: "tool", agent_id: "child",
     }, "claude-code", "PostToolUse"));
-    expect(claude).toMatchObject({ root, recipient: { host: "claude-code",
+    expect(claude).toMatchObject({ root, advicee: { host: "claude-code",
       sessionId: "claude", toolUseId: "tool", agentId: "child" } });
     expect(await Effect.runPromise(adaptComposedHookIdentity({
       hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
@@ -28,15 +28,15 @@ describe("direct-event Codex Add adapter", () => {
   it("preserves the selected 0.156.0 host identity", async () => {
     const root = await makeGitFixture();
     const result = await Effect.runPromise(adaptCodexAdd(addEvent(root), "0.156.0"));
-    expect(result?.recipient.hostVersion).toBe("0.156.0");
+    expect(result?.advicee.hostVersion).toBe("0.156.0");
   });
-  it("preserves the complete explicit recipient and canonical Git root", async () => {
+  it("preserves the complete explicit advicee and canonical Git root", async () => {
     const root = await makeGitFixture();
     const event = addEvent(root, ["a.ts"], { agent_id: "child" });
     const result = await Effect.runPromise(adaptCodexAdd(event));
     expect(result).toMatchObject({
       root,
-      recipient: {
+      advicee: {
         host: "codex-cli",
         hostVersion: "0.155.1",
         sessionId: "session",
@@ -47,7 +47,7 @@ describe("direct-event Codex Add adapter", () => {
       candidates: [{ operation: "add", path: "a.ts" }],
     });
     const parent = await Effect.runPromise(adaptCodexAdd(addEvent(root)));
-    expect(parent?.recipient.agentId).toBeNull();
+    expect(parent?.advicee.agentId).toBeNull();
   });
 
   it("normalizes an absolute patch path through the event cwd alias", async () => {
@@ -91,7 +91,7 @@ describe("direct-event Codex Add adapter", () => {
     };
     expect(await Effect.runPromise(adaptCodexAdd(native))).toMatchObject({
       root,
-      recipient: {
+      advicee: {
         sessionId: "pinned-session",
         turnId: "pinned-turn",
         toolUseId: "pinned-tool",

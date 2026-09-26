@@ -15,7 +15,7 @@ const eventually = async (predicate: () => boolean) => {
 };
 
 describe("resident finite dispatch cycles", () => {
-  it("reports work only for the recipient with queued or running entries", async () => {
+  it("reports work only for the advicee with queued or running entries", async () => {
     const first = gate();
     const dispatcher = new DispatchCycles<string, number>(1, async ({ value }) => {
       if (value === 1) await first.wait();

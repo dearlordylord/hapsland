@@ -32,7 +32,7 @@ The [frozen blind scores](./blind-artifact-scores-2026-09-24.md) and [arm-aware 
 ## Options for owner review
 
 1. **Close #95 Stage 2 as an incomplete pilot:** score both retained trees descriptively, report A1's observed zero delivery and B1's missing runtime ledger, and use the evidence to design a later evaluation. This is the only path that preserves the frozen protocol without new live work.
-2. **Register a new prospective evaluation:** first isolate crash-prone postprocessing from the host runner, persist source-free usage and exit metadata durably before postprocessing, and instrument advice collection/revalidation/recipient decisions. Choose a new sample and ceilings before any new host run. The existing A1/B1 trees remain prior feasibility evidence and are excluded from the new sample.
+2. **Register a new prospective evaluation:** first isolate crash-prone postprocessing from the host runner, persist source-free usage and exit metadata durably before postprocessing, and instrument advice collection/revalidation/advicee decisions. Choose a new sample and ceilings before any new host run. The existing A1/B1 trees remain prior feasibility evidence and are excluded from the new sample.
 
 Neither option authorizes B2, A2, a B1 retry, or additional Jev calls under the stopped pilot.
 

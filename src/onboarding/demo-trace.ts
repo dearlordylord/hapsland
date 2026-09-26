@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { DirectRecipient } from "../direct-event/model.ts";
+import type { DirectAdvicee } from "../direct-event/model.ts";
 
 type Trace = {
   readonly version: 1;
@@ -20,7 +20,7 @@ export const demoSourceHash = (root: string): string | undefined => {
 };
 
 /** Best-effort source-free evidence scoped to the demo budget's owned root. */
-export const recordDemoTrace = (budgetPath: string | null | undefined, root: string, recipient: DirectRecipient, entry: {
+export const recordDemoTrace = (budgetPath: string | null | undefined, root: string, advicee: DirectAdvicee, entry: {
   readonly kind: Trace["kind"];
   readonly sourceHash?: string;
   readonly ruleIds?: ReadonlyArray<string>;
@@ -34,7 +34,7 @@ export const recordDemoTrace = (budgetPath: string | null | undefined, root: str
     if (sourceHash === undefined || !/^[a-f0-9]{64}$/.test(sourceHash)) return;
     const directory = `${budgetPath}.trace`;
     mkdirSync(directory, { recursive: true, mode: 0o700 });
-    const trace: Trace = { version: 1, sessionId: recipient.sessionId, at: Date.now(), kind: entry.kind,
+    const trace: Trace = { version: 1, sessionId: advicee.sessionId, at: Date.now(), kind: entry.kind,
       sourceHash, ...(entry.ruleIds === undefined ? {} : { ruleIds: entry.ruleIds.slice(0, 16) }),
       ...(entry.state === undefined ? {} : { state: entry.state }) };
     writeFileSync(join(directory, `${trace.at}.${randomUUID()}.json`), `${JSON.stringify(trace)}\n`, { mode: 0o600, flag: "wx" });

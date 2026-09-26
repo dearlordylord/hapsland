@@ -406,8 +406,8 @@ const run = (host, shape, stageB = null, blockTrial = false, advisoryDowngrade =
       assert.equal(old.restartResidentStopped, true);
       const next = invoke('restart-new');
       assert.equal(next.acceptanceStatus, 'passed');
-      assert.equal(next.restartNewRecipientDistinct, true);
-      assert.equal(next.restartOutcomesOnlyNewRecipient, true);
+      assert.equal(next.restartNewAdviceeDistinct, true);
+      assert.equal(next.restartOutcomesOnlyNewAdvicee, true);
       assert.equal(readPassLedger(ledger).length, 4);
     }
   } finally { rmSync(root, { recursive: true, force: true }); }
