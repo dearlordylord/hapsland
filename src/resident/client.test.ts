@@ -40,7 +40,7 @@ describe("resident client trust boundary", () => {
     const observation: DirectObservation = {
       root: "/tmp/root",
       rootIdentity: { rootDevice: "1", rootInode: "2", gitDirectory: "/tmp/root/.git", gitDevice: "1", gitInode: "3" },
-      advicee: { host: "claude-code", hostVersion: "2.1.218", sessionId: "session", turnId: null, toolUseId: "tool", agentId: null },
+      advicee: { host: "claude-code", hostVersion: "2.1.218", sessionId: "session", turnId: null, toolUseId: "tool", subagentId: null },
       candidates: [{ operation: "add", path: "/tmp/root/type.ts", addedLines: ["type A = number"] }],
     };
     const dispatch = { statePath: "/tmp/state", userConfigPath: null, credential: null, controlled: {} };
@@ -254,7 +254,7 @@ describe("resident client trust boundary", () => {
         sessionId: "session",
         turnId: "turn",
         toolUseId: "tool",
-        agentId: null,
+        subagentId: null,
       },
       dispatch: {
         statePath: "/tmp/consent",
@@ -294,7 +294,7 @@ describe("resident client trust boundary", () => {
         sessionId: "session",
         turnId: "turn",
         toolUseId: "tool",
-        agentId: null,
+        subagentId: null,
       },
       dispatch: {
         statePath: "/tmp/consent",

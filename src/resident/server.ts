@@ -295,7 +295,7 @@ const adviceePartition = (root: string, advicee: DirectAdvicee) => canonicalValu
   host: advicee.host,
   hostVersion: advicee.hostVersion,
   sessionId: advicee.sessionId,
-  agentId: advicee.agentId,
+  subagentId: advicee.subagentId,
   ...(advicee.host !== "codex-cli" ? { toolUseId: advicee.toolUseId } : {}),
 });
 
@@ -305,7 +305,7 @@ const adviceeGroup = (root: string, advicee: DirectAdvicee) => canonicalValue({
   host: advicee.host,
   hostVersion: advicee.hostVersion,
   sessionId: advicee.sessionId,
-  agentId: advicee.agentId,
+  subagentId: advicee.subagentId,
 });
 
 const workSubject = (partition: string, prepared: PreparedUnit): string => canonicalValue({
@@ -1767,12 +1767,12 @@ export class ResidentServer {
           unitIdentity: job.evaluationKey,
         });
         if (controlled?.outcomePath !== undefined) {
-          const { sessionId, turnId, toolUseId, agentId } = job.observation.advicee;
+          const { sessionId, turnId, toolUseId, subagentId } = job.observation.advicee;
           await appendFile(controlled.outcomePath, `${JSON.stringify({
             sessionId,
             turnId,
             toolUseId,
-            agentId,
+            subagentId,
             outcome: result.findings.length === 0 ? "completed-clear" : "completed-findings",
           })}\n`, "utf8");
         }

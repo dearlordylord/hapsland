@@ -13,13 +13,13 @@ describe("direct-event Codex Add adapter", () => {
       hook_event_name: "Stop", cwd: root, session_id: "codex", turn_id: "turn",
     }, "codex-cli", "Stop"));
     expect(codex).toMatchObject({ root, advicee: { host: "codex-cli",
-      sessionId: "codex", agentId: null } });
+      sessionId: "codex", subagentId: null } });
     const claude = await Effect.runPromise(adaptComposedHookIdentity({
       hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
       session_id: "claude", tool_use_id: "tool", agent_id: "child",
     }, "claude-code", "PostToolUse"));
     expect(claude).toMatchObject({ root, advicee: { host: "claude-code",
-      sessionId: "claude", toolUseId: "tool", agentId: "child" } });
+      sessionId: "claude", toolUseId: "tool", subagentId: "child" } });
     expect(await Effect.runPromise(adaptComposedHookIdentity({
       hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
       session_id: "claude", tool_use_id: "tool", agent_id: "",
@@ -32,7 +32,7 @@ describe("direct-event Codex Add adapter", () => {
       expect(await Effect.runPromise(adaptComposedHookIdentity(event, host, "SubagentStop"))).toBeUndefined();
       expect(await Effect.runPromise(adaptComposedHookIdentity({ ...event, agent_id: "" }, host, "SubagentStop"))).toBeUndefined();
       expect(await Effect.runPromise(adaptComposedHookIdentity({ ...event, agent_id: "child" }, host, "SubagentStop")))
-        .toMatchObject({ root, advicee: { host, sessionId: "session", agentId: "child" } });
+        .toMatchObject({ root, advicee: { host, sessionId: "session", subagentId: "child" } });
       expect(await Effect.runPromise(adaptComposedHookIdentity({ ...event, agent_id: "child" }, host, "Stop"))).toBeUndefined();
     }
   });
@@ -53,12 +53,12 @@ describe("direct-event Codex Add adapter", () => {
         sessionId: "session",
         turnId: "turn",
         toolUseId: "tool-use",
-        agentId: "child",
+        subagentId: "child",
       },
       candidates: [{ operation: "add", path: "a.ts" }],
     });
     const parent = await Effect.runPromise(adaptCodexAdd(addEvent(root)));
-    expect(parent?.advicee.agentId).toBeNull();
+    expect(parent?.advicee.subagentId).toBeNull();
   });
 
   it("normalizes an absolute patch path through the event cwd alias", async () => {
@@ -106,7 +106,7 @@ describe("direct-event Codex Add adapter", () => {
         sessionId: "pinned-session",
         turnId: "pinned-turn",
         toolUseId: "pinned-tool",
-        agentId: null,
+        subagentId: null,
       },
       candidates: [{ operation: "add", path: "pinned.ts" }],
     });

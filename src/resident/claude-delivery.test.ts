@@ -42,7 +42,7 @@ describe("Claude advicee scoped resident delivery", () => {
     });
     const stopAdvicee = { ...observation.advicee, toolUseId: "stop" };
     expect((await collect(stopAdvicee, true)).status).toBe("advice");
-    expect((await collect({ ...stopAdvicee, agentId: "child" }, true)).status).toBe("empty");
+    expect((await collect({ ...stopAdvicee, subagentId: "child" }, true)).status).toBe("empty");
     expect((await collect({ ...stopAdvicee, sessionId: "other" }, true)).status).toBe("empty");
   });
 

@@ -107,9 +107,9 @@ export const runComposedHook = async (input: {
   // Initialize before background submission too, so Stop does not accidentally
   // change its generation and bypass submitted-finding suppression.
   // Resumed children remain capped until an explicit prompt advances their chain.
-  if ((eventName === "SubagentStop" || input.kind === "background") && advicee.agentId !== null) {
+  if ((eventName === "SubagentStop" || input.kind === "background") && advicee.subagentId !== null) {
     await markComposedUserPrompt(root, advicee,
-      digest(`subagent:${input.host}:${advicee.sessionId}:${advicee.agentId}`), paths, undefined, true)
+      digest(`subagent:${input.host}:${advicee.sessionId}:${advicee.subagentId}`), paths, undefined, true)
       .catch(() => false);
   }
   // Codex supplies a stable native turn ID on Stop. Reasserting that marker

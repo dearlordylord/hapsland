@@ -131,7 +131,7 @@ describe("resident delivery lease", () => {
     if (codex === undefined || claudeBase === undefined) return;
     const claude = { ...claudeBase, advicee: {
       host: "claude-code" as const, hostVersion: "2.1.218" as const,
-      sessionId: "claude-session", turnId: null, toolUseId: "claude-tool", agentId: null,
+      sessionId: "claude-session", turnId: null, toolUseId: "claude-tool", subagentId: null,
     } };
     let clock = 100;
     const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock);
@@ -175,7 +175,7 @@ describe("resident delivery lease", () => {
     if (base === undefined) return;
     const observation = { ...base, advicee: {
       host: "claude-code" as const, hostVersion: "2.1.218" as const,
-      sessionId: "claude-session", turnId: null, toolUseId: "write-1", agentId: null,
+      sessionId: "claude-session", turnId: null, toolUseId: "write-1", subagentId: null,
     } };
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
     const dispatch: ResidentDispatchContext = { ...findingDispatch(statePath), credential: {
@@ -373,7 +373,7 @@ describe("resident delivery lease", () => {
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
     const codex = advicee({ sessionId: "codex-session" });
     const claude = { host: "claude-code" as const, hostVersion: "2.1.218" as const,
-      sessionId: "claude-session", turnId: null, toolUseId: "prompt", agentId: null };
+      sessionId: "claude-session", turnId: null, toolUseId: "prompt", subagentId: null };
     const marker = "a".repeat(64);
     for (const selected of [codex, claude]) {
       const firstToken = "00000000-0000-4000-8000-000000000001";
@@ -402,10 +402,10 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
     for (const host of ["codex-cli", "claude-code"] as const) {
-      const parent = host === "codex-cli" ? { host, hostVersion: "0.155.1" as const, sessionId: "session", turnId: "turn", toolUseId: "stop", agentId: null }
-        : { host, hostVersion: "2.1.218" as const, sessionId: "session", turnId: null, toolUseId: "stop", agentId: null };
-      const child = { ...parent, agentId: "child" };
-      const sibling = { ...parent, agentId: "sibling" };
+      const parent = host === "codex-cli" ? { host, hostVersion: "0.155.1" as const, sessionId: "session", turnId: "turn", toolUseId: "stop", subagentId: null }
+        : { host, hostVersion: "2.1.218" as const, sessionId: "session", turnId: null, toolUseId: "stop", subagentId: null };
+      const child = { ...parent, subagentId: "child" };
+      const sibling = { ...parent, subagentId: "sibling" };
       const consume = (selected: typeof child | typeof parent) => server.handle({ version: 1,
         operation: "consume-stop", lifetime: server.lifetime, root, advicee: selected });
       const ensure = (selected: typeof child) => server.handle({ version: 1,
@@ -1319,7 +1319,7 @@ describe("resident delivery lease", () => {
     expect(server.stats().pendingAdvice).toBe(1);
     expect(await server.collect(
       root,
-      advicee({ agentId: "other", turnId: "other", toolUseId: "other" }),
+      advicee({ subagentId: "other", turnId: "other", toolUseId: "other" }),
       dispatch,
     )).toMatchObject({ status: "empty" });
     expect(server.stats().pendingAdvice).toBe(1);
@@ -1434,12 +1434,12 @@ describe("resident delivery lease", () => {
     const saturated = server.stats();
     expect(saturated).toMatchObject({ pendingAdvice: 64 });
     const firstBatchBytes = server.pendingAdviceMetadata().filter(({ partition }) =>
-      partition.includes('"agentId":"agent-0"')).slice(0, 5)
+      partition.includes('"subagentId":"agent-0"')).slice(0, 5)
       .reduce((total, item) => total + item.retainedBytes, 0);
 
     const collected = await server.collect(
       root,
-      advicee({ agentId: "agent-0", turnId: "global", toolUseId: "global" }),
+      advicee({ subagentId: "agent-0", turnId: "global", toolUseId: "global" }),
       dispatch,
     );
     expect(collected.status).toBe("advice");
@@ -1631,11 +1631,11 @@ describe("resident delivery lease", () => {
     // Both identifiers are valid at the 16,384-code-unit protocol ceiling
     // while their combined UTF-8 representation is 96 KiB.
     const sessionId = "漢".repeat(16_384);
-    const agentId = "界".repeat(16_384);
+    const subagentId = "界".repeat(16_384);
     const padding = "p".repeat(56 * 1024);
     const observation = {
       ...base,
-      advicee: { ...base.advicee, sessionId, agentId },
+      advicee: { ...base.advicee, sessionId, subagentId },
       candidates: base.candidates.map((candidate) => candidate.operation === "add"
         ? { ...candidate, addedLines: [padding] }
         : candidate),
@@ -1683,7 +1683,7 @@ describe("resident delivery lease", () => {
 
     expect(await server.collect(
       root,
-      { ...observation.advicee, agentId: `${agentId.slice(0, -1)}z` },
+      { ...observation.advicee, subagentId: `${subagentId.slice(0, -1)}z` },
       dispatch,
     )).toMatchObject({ status: "empty" });
     expect(server.pendingAdviceMetadata().map(({ id, delivery }) => ({ id, delivery }))).toEqual(

@@ -15,7 +15,7 @@ export type DirectAdvicee = {
   readonly sessionId: string;
   readonly turnId: string;
   readonly toolUseId: string;
-  readonly agentId: string | null;
+  readonly subagentId: string | null;
 } | {
   readonly host: "claude-code";
   readonly hostVersion: "2.1.218";
@@ -24,14 +24,14 @@ export type DirectAdvicee = {
   readonly turnId: null;
   readonly toolUseId: string;
   /** Preserve a supplied subagent identity; main-thread hooks may omit it. */
-  readonly agentId: string | null;
+  readonly subagentId: string | null;
 } | {
   readonly host: "opencode";
   readonly hostVersion: "1.14.44";
   readonly sessionId: string;
   readonly turnId: null;
   readonly toolUseId: string;
-  readonly agentId: null;
+  readonly subagentId: null;
 };
 
 export type AddCandidate = {

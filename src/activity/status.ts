@@ -48,7 +48,7 @@ const hash = (value: string) => createHash("sha256").update(value).digest("hex")
 const sessionKey = (value: string) => hash(`activity-v1:session\0${value}`);
 const childKey = (value: string | null) => hash(`activity-v1:child\0${value ?? "root"}`);
 const repositoryKey = (value: string) => hash(`activity-v1:repository\0${value}`);
-const eventKey = (value: DirectAdvicee) => hash(`activity-v1:event\0${value.sessionId}\0${value.agentId ?? "root"}\0${value.turnId}\0${value.toolUseId}`);
+const eventKey = (value: DirectAdvicee) => hash(`activity-v1:event\0${value.sessionId}\0${value.subagentId ?? "root"}\0${value.turnId}\0${value.toolUseId}`);
 const unitKey = (value: string) => hash(`activity-v1:unit\0${value}`);
 const digest = (value: unknown): value is string => typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
 const count = (value: unknown): value is number => typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 65_536;
@@ -157,7 +157,7 @@ export const recordActivity = (options: {
     const base: BaseMarker = {
       version: ACTIVITY_VERSION,
       sessionKey: sessionKey(options.advicee.sessionId),
-      childKey: childKey(options.advicee.agentId),
+      childKey: childKey(options.advicee.subagentId),
       repositoryKey: repositoryKey(options.root),
       eventKey: eventKey(options.advicee),
       lifetime: options.lifetime,

@@ -94,7 +94,7 @@ export const adaptOpenCodeDirectEvent = Effect.fn("DirectEvent.adaptOpenCodeDire
   }
   const advicee: DirectAdvicee = Object.freeze({
     host: "opencode", hostVersion: "1.14.44", sessionId: input.sessionID,
-    turnId: null, toolUseId: input.callID, agentId: null,
+    turnId: null, toolUseId: input.callID, subagentId: null,
   });
   return Object.freeze({ root: root.value.root, rootIdentity: root.value.rootIdentity,
     advicee, candidates: Object.freeze([Object.freeze(candidate)]) } satisfies DirectObservation);

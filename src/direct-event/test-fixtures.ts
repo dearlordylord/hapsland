@@ -28,7 +28,7 @@ export const advicee = (overrides: Partial<Extract<DirectAdvicee, { host: "codex
   sessionId: "session",
   turnId: "turn",
   toolUseId: "tool-use",
-  agentId: null,
+  subagentId: null,
   ...overrides,
 });
 
