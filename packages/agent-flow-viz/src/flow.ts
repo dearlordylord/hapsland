@@ -10,7 +10,7 @@ export type NodeId = (typeof NODE_IDS)[number];
 export type NodeRole = "external" | "storage" | "process" | "boundary";
 type NodeSpec = { readonly label: string; readonly detail: string; readonly role: NodeRole; readonly x: number; readonly y: number };
 export const NODES = {
-  agentEdit: { label: "Agent", detail: "session + optional child ID", role: "external", x: 30, y: 332 },
+  agentEdit: { label: "Agent", detail: "one opaque agent identity", role: "external", x: 30, y: 332 },
   workQueue: { label: "Review scheduler", detail: "waits for capacity to run work", role: "storage", x: 320, y: 52 },
   preparation: { label: "Read and analyze source", detail: "extract reviewable artifacts", role: "process", x: 610, y: 52 },
   decisionRequest: { label: "Build review input", detail: "artifact + rule + evidence", role: "process", x: 900, y: 52 },
@@ -19,7 +19,7 @@ export const NODES = {
   adviceStore: { label: "Pending advice", detail: "findings for this agent", role: "storage", x: 900, y: 332 },
   collector: { label: "Select advice to send", detail: "request + eligible pending advice", role: "process", x: 610, y: 332 },
   hostOutput: { label: "Write hook response", detail: "advice in the runtime response format", role: "boundary", x: 320, y: 575 },
-  deliveryState: { label: "Agent delivery record", detail: "delivery chain + Stop allowance", role: "storage", x: 30, y: 575 },
+  deliveryState: { label: "Hapsland round", detail: "active round + continuation count", role: "storage", x: 30, y: 575 },
   outcomeStore: { label: "Record review status", detail: "no finding / review failed", role: "process", x: 1190, y: 575 },
 } as const satisfies Record<NodeId, NodeSpec>;
 
@@ -62,25 +62,27 @@ type ControlTransition = {
   readonly from: NodeId;
   readonly to: NodeId;
   readonly label: string;
-  readonly signal: "prompt" | "background" | "stop";
+  readonly signal: "background" | "stop" | "allow";
 };
 export type Transition = DataTransition | ControlTransition;
 
 export const EVENT_IDS = [
-  "PromptSubmitted", "EditObserved", "IngressStarted", "ReviewUnitPrepared",
+  "EditObserved", "IngressStarted", "ReviewUnitPrepared",
   "UnitDispatched", "JevRequestSent", "JevResponseReceived", "FindingRetained",
   "ClearRecorded", "JevUnavailable", "BackgroundHookFired", "StopHookFired",
   "AdviceLeasedByBackground", "AdviceLeasedByStop", "AdviceReofferedAtStop",
-  "HostOutputSubmitted",
+  "HostOutputSubmitted", "StopAllowed",
 ] as const;
 export type EventId = (typeof EVENT_IDS)[number];
 
 // Discussion reducer: transitions describe sample payload changes.
+// EditObserved means adapter-proven fresh input; all other inputs are already
+// bound to this round. Native deduplication/callback fencing lives at the adapter.
 // The process diagram may group several event variants into one connection.
 // `satisfies` checks both event coverage and each node's admissible data flavor.
 export const TRANSITIONS = {
-  PromptSubmitted: { kind: "control", from: "agentEdit", to: "deliveryState", label: "user prompt resets allowance", signal: "prompt" },
-  EditObserved: { kind: "data", from: "agentEdit", to: "workQueue", input: "edit observation", output: "capture job", movement: "move", label: "edit admitted" },
+  StopAllowed: { kind: "control", from: "collector", to: "deliveryState", label: "allow Stop; close round", signal: "allow" },
+  EditObserved: { kind: "data", from: "agentEdit", to: "workQueue", input: "edit observation", output: "capture job", movement: "move", label: "proven fresh edit admitted" },
   IngressStarted: { kind: "data", from: "workQueue", to: "preparation", input: "capture job", output: "capture job", movement: "move", label: "start source capture" },
   ReviewUnitPrepared: { kind: "data", from: "preparation", to: "workQueue", input: "capture job", output: "review work item", movement: "move", label: "queue extracted review work" },
   UnitDispatched: { kind: "data", from: "workQueue", to: "decisionRequest", input: "review work item", output: "decision request", movement: "move", label: "unit dispatched" },
@@ -112,9 +114,10 @@ export const FlowStateSchema = Schema.Struct({
     description: Schema.String,
   })),
   nextPacketId: Schema.Number,
-  deliveryGeneration: Schema.Number,
-  agentKind: Schema.Literals(["main", "child"]),
-  stopUsed: Schema.Boolean,
+  roundId: Schema.Number,
+  roundActive: Schema.Boolean,
+  stopContinuations: Schema.Number,
+  stopWaiting: Schema.Boolean,
   opportunity: Schema.Union([Schema.Null, Schema.Literals(["background", "stop"])]),
   leaseSurface: Schema.Union([Schema.Null, Schema.Literals(["background", "stop"])]),
   lastSubmissionSurface: Schema.Union([Schema.Null, Schema.Literals(["background", "stop"])]),
@@ -123,18 +126,21 @@ export const FlowStateSchema = Schema.Struct({
 });
 export type FlowState = typeof FlowStateSchema.Type;
 
-export const initialFlow = (agentKind: "main" | "child" = "main"): FlowState => ({
-  agentKind,
-  packets: [{ id: 1, at: "agentEdit", flavor: "edit observation" }],
+export const MAX_STOP_CONTINUATIONS = 4;
+
+export const initialFlow = (): FlowState => ({
+  packets: [],
   emissions: [],
-  nextPacketId: 2,
-  deliveryGeneration: 0,
-  stopUsed: false,
+  nextPacketId: 1,
+  roundId: 0,
+  roundActive: false,
+  stopContinuations: 0,
+  stopWaiting: false,
   opportunity: null,
   leaseSurface: null,
   lastSubmissionSurface: null,
   lastEvent: null,
-  note: "Scenario setup: one edit event is available as example input. No live agent runtime or Jev session is connected.",
+  note: "No live round or review work yet. Events are example inputs; no agent runtime or Jev connection is attached.",
 });
 
 export type StepResult = { readonly state: FlowState; readonly accepted: boolean };
@@ -145,24 +151,40 @@ const rejected = (state: FlowState, reason: string): StepResult => ({
 
 export const stepFlow = (state: FlowState, event: EventId): StepResult => {
   const transition = TRANSITIONS[event];
-  if (event === "PromptSubmitted" && state.agentKind === "child") return rejected(state, "This child example has no UserPromptSubmit hook. Its first advice request initializes the allowance.");
-  if (event === "PromptSubmitted") return { accepted: true, state: {
-    ...state, deliveryGeneration: state.deliveryGeneration + 1, stopUsed: false, opportunity: null,
-    lastEvent: event, note: "A prompt started a new delivery chain and reset the Stop allowance.",
-  } };
+  if (event === "EditObserved") {
+    if (state.packets.length > 0) return rejected(state, "This example follows one review item at a time. Finish or discard that item before introducing a fresh edit.");
+    const current = state.roundActive ? state : {
+      ...state, roundId: state.roundId + 1, roundActive: true, stopContinuations: 0,
+    };
+    return { accepted: true, state: {
+      ...current,
+      packets: [{ id: current.nextPacketId, at: "workQueue", flavor: "capture job" }],
+      nextPacketId: current.nextPacketId + 1,
+      lastSubmissionSurface: null,
+      lastEvent: event,
+      note: `${state.roundActive ? "The round remains active." : "An edit proven fresh by the adapter opened a Hapsland round."} The edit entered the review scheduler.`,
+    } };
+  }
+  if (!state.roundActive) return rejected(state, "This round is closed. Only a proven fresh edit can open another round; late results and repeated Stop cannot.");
+  if (event === "StopAllowed") {
+    if (!state.stopWaiting) return rejected(state, "Stop has not requested a decision.");
+    return { accepted: true, state: {
+      ...state, roundActive: false, packets: [], stopWaiting: false, opportunity: null, leaseSurface: null,
+      lastSubmissionSurface: null, lastEvent: event,
+      note: "Hapsland allowed Stop and closed its round. All round-owned work, Jev requests, advice, reservations and delivery records were discarded or cancelled. Example history is display-only. Another plugin may continue the agent.",
+    } };
+  }
   if (event === "BackgroundHookFired" || event === "StopHookFired") {
-    if (state.deliveryGeneration === 0 && state.agentKind === "main") return rejected(state, "A prompt must initialize this main agent’s delivery allowance first.");
-    if (event === "StopHookFired" && state.stopUsed) return rejected(state, "Stop already used its one continuation in this delivery chain.");
     const opportunity = event === "StopHookFired" ? "stop" : "background";
-    return { accepted: true, state: { ...state, deliveryGeneration: state.deliveryGeneration === 0 ? 1 : state.deliveryGeneration, opportunity, lastEvent: event,
-      note: `${state.deliveryGeneration === 0 ? "First child request initialized its allowance. " : ""}${opportunity === "stop" ? (state.agentKind === "child" ? "SubagentStop" : "Stop") : "The after-tool hook"} requested advice for this agent.`,
+    return { accepted: true, state: { ...state, opportunity, stopWaiting: state.stopWaiting || event === "StopHookFired", lastEvent: event,
+      note: opportunity === "stop" ? "The agent is trying to finish. Hapsland waits for review work; the round has not ended." : "The runtime requested background advice for this agent.",
     } };
   }
   if (transition.kind !== "data") return rejected(state, "Unknown control transition.");
-  if (event === "EditObserved" && state.deliveryGeneration === 0 && state.agentKind === "main") return rejected(state, "A prompt must initialize this main agent’s delivery allowance first.");
+  if (event === "AdviceLeasedByBackground" && state.lastSubmissionSurface === "background") return rejected(state, "This example already submitted its background advice. It can be offered once more at Stop.");
   if (event === "AdviceLeasedByBackground" && state.opportunity !== "background") return rejected(state, "Background has not requested collection.");
-  if ((event === "AdviceLeasedByStop" || event === "AdviceReofferedAtStop") && state.opportunity !== "stop") return rejected(state, "Stop has not requested collection.");
-  if ((event === "AdviceLeasedByStop" || event === "AdviceReofferedAtStop") && state.stopUsed) return rejected(state, "Stop already used its continuation.");
+  if ((event === "AdviceLeasedByStop" || event === "AdviceReofferedAtStop") && !state.stopWaiting) return rejected(state, "Stop has not requested collection.");
+  if ((event === "AdviceLeasedByStop" || event === "AdviceReofferedAtStop") && state.stopContinuations >= MAX_STOP_CONTINUATIONS) return rejected(state, "This round already requested four Stop continuations. Hapsland must allow Stop and clean up.");
   if (event === "AdviceReofferedAtStop" && !(state.lastSubmissionSurface === "background")) {
     return rejected(state, "Reoffer needs a prior background response. Hapsland has no receipt from the agent runtime.");
   }
@@ -179,7 +201,7 @@ export const stepFlow = (state: FlowState, event: EventId): StepResult => {
   const nextPackets = [...state.packets];
   if (transition.movement === "move") nextPackets.splice(index, 1);
   const terminal = event === "HostOutputSubmitted" || event === "ClearRecorded" || event === "JevUnavailable";
-  const emittedDescription = event === "HostOutputSubmitted" ? "Hook response written; no host receipt"
+  const emittedDescription = event === "HostOutputSubmitted" ? "Hook response written; no runtime receipt"
     : event === "ClearRecorded" ? "Review completed with no finding" : "Review failed because Jev was unavailable";
   const next: FlowState = {
     ...state,
@@ -192,45 +214,58 @@ export const stepFlow = (state: FlowState, event: EventId): StepResult => {
   if (event === "AdviceLeasedByBackground" || event === "AdviceLeasedByStop" || event === "AdviceReofferedAtStop") {
     const surface = event === "AdviceLeasedByBackground" ? "background" : "stop";
     return { accepted: true, state: { ...next, leaseSurface: surface, opportunity: null,
-      stopUsed: surface === "stop" ? true : next.stopUsed,
+      stopContinuations: state.stopContinuations + (surface === "stop" ? 1 : 0),
       note: `${transition.label}. The resident retains advice while one lease is active.`,
     } };
   }
   if (event === "HostOutputSubmitted") return { accepted: true, state: {
-    ...next, leaseSurface: null, lastSubmissionSurface: state.leaseSurface,
-    note: "Hapsland wrote a hook response. The agent runtime controls what happens next. Hapsland has no receipt that the advice reached the agent.",
+    ...next, packets: state.leaseSurface === "stop" ? next.packets.filter((packet) => packet.at !== "adviceStore") : next.packets,
+    leaseSurface: null, lastSubmissionSurface: state.leaseSurface,
+    stopWaiting: state.leaseSurface === "stop" ? false : state.stopWaiting,
+    note: state.leaseSurface === "stop" ? "Hapsland wrote advice and asked the runtime to continue. The same round stays active; the request was counted before the write." : "Hapsland wrote background advice. There is no receipt that the agent saw it. Stop can reoffer it within this round.",
   } };
   return { accepted: true, state: next };
 };
 
 export const TRACES = [
-  { agentKind: "main", name: "Send advice after a tool", description: "The after-tool hook asks for advice. Hapsland selects a finding and writes the hook response. The agent runtime controls further use.", events: [
-    "PromptSubmitted", "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
+  { name: "Send advice after a tool", description: "The after-tool hook asks for advice. Hapsland selects a finding and writes the hook response. The agent runtime controls further use.", events: [
+    "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
     "JevRequestSent", "JevResponseReceived", "FindingRetained", "BackgroundHookFired",
     "AdviceLeasedByBackground", "HostOutputSubmitted",
   ] },
-  { agentKind: "main", name: "Send advice again at Stop (design)", description: "Approved design: keep advice after an after-tool response so Stop can send it again. Current production code does not yet support this reoffer.", events: [
-    "PromptSubmitted", "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
+  { name: "Send advice again at Stop (design)", description: "Background holds a batch when Stop begins waiting. The background write completes during that wait; Stop offers the advice once more in the same round.", events: [
+    "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
     "JevRequestSent", "JevResponseReceived", "FindingRetained", "BackgroundHookFired",
-    "AdviceLeasedByBackground", "HostOutputSubmitted", "StopHookFired",
+    "AdviceLeasedByBackground", "StopHookFired", "HostOutputSubmitted",
     "AdviceReofferedAtStop", "HostOutputSubmitted",
   ] },
-  { agentKind: "main", name: "Stop waits for response", description: "Stop requests advice while Jev is running. This example supplies the result before any collection deadline; it does not simulate timeout behavior.", events: [
-    "PromptSubmitted", "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
+  { name: "Stop waits for response", description: "Stop requests advice while Jev is running. This example supplies the result before any collection deadline; it does not simulate timeout behavior.", events: [
+    "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
     "JevRequestSent", "StopHookFired", "JevResponseReceived", "FindingRetained",
     "AdviceLeasedByStop", "HostOutputSubmitted",
   ] },
-  { agentKind: "main", name: "Clear result", description: "A Jev result with no finding updates the review status. There is no advice to send.", events: [
-    "PromptSubmitted", "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
+  { name: "Clear result", description: "A Jev result with no finding updates the review status. There is no advice to send.", events: [
+    "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
     "JevRequestSent", "JevResponseReceived", "ClearRecorded",
   ] },
-  { agentKind: "main", name: "Jev unavailable", description: "A failed Jev request records a failed review. It does not establish that the source has no finding.", events: [
-    "PromptSubmitted", "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
+  { name: "Jev unavailable", description: "A failed Jev request records a failed review. It does not establish that the source has no finding.", events: [
+    "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
     "JevRequestSent", "JevUnavailable",
   ] },
-  { agentKind: "child", name: "Child Stop without a user prompt", description: "One child agent edits. Its first SubagentStop request initializes its own allowance and collects advice. Repeated requests cannot reset that allowance; resumed-child reset is outside this example.", events: [
+  { name: "Edit opens a round", description: "An identified agent can enter through an edit without a user-prompt hook. The runtime adapter handles root and subagent details.", events: [
     "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
     "JevRequestSent", "JevResponseReceived", "FindingRetained", "StopHookFired",
-    "AdviceLeasedByStop", "HostOutputSubmitted",
+    "AdviceLeasedByStop", "HostOutputSubmitted", "StopHookFired", "StopAllowed",
   ] },
-] as const satisfies ReadonlyArray<{ readonly agentKind: "main" | "child"; readonly name: string; readonly description: string; readonly events: ReadonlyArray<EventId> }>;
+  { name: "Stop timeout cleans up", description: "Jev has not replied when Hapsland allows Stop. All live round data is removed, including the running request. A fresh edit can open another round.", events: [
+    "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
+    "JevRequestSent", "StopHookFired", "StopAllowed", "EditObserved",
+  ] },
+  { name: "Four continuation requests", description: "Each repair can be reviewed again. Four Stop responses request continuation in the same round; the next Stop must close it.", events: [
+    ...Array.from({ length: MAX_STOP_CONTINUATIONS }, () => [
+      "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
+      "JevRequestSent", "JevResponseReceived", "FindingRetained", "StopHookFired",
+      "AdviceLeasedByStop", "HostOutputSubmitted",
+    ] as const).flat(), "StopHookFired", "StopAllowed",
+  ] },
+] as const satisfies ReadonlyArray<{ readonly name: string; readonly description: string; readonly events: ReadonlyArray<EventId> }>;

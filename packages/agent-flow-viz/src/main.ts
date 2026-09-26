@@ -23,7 +23,7 @@ export const Message = defineMessageUnion({
 });
 export type Message = typeof Message.Type;
 
-const reset = (trace: number): Model => ({ trace, cursor: 0, flow: initialFlow(TRACES[trace]?.agentKind ?? "main") });
+const reset = (trace: number): Model => ({ trace, cursor: 0, flow: initialFlow() });
 export const init: Runtime.ApplicationInit<Model, Message> = () => ({ model: reset(0) });
 
 export const update = (model: Model, message: Message) =>
@@ -40,7 +40,7 @@ export const update = (model: Model, message: Message) =>
       const events = TRACES[model.trace]?.events;
       if (events === undefined || model.cursor === 0) return { model };
       const cursor = model.cursor - 1;
-      let flow = initialFlow(model.flow.agentKind);
+      let flow = initialFlow();
       for (const event of events.slice(0, cursor)) {
         const result = stepFlow(flow, event);
         if (!result.accepted) return { model };
@@ -128,7 +128,7 @@ const arrow = (h: HtmlBuilder<Message>, events: EventId[], number: number, activ
 };
 
 const NODE_NOTES: Record<NodeId, readonly string[]> = {
-  agentEdit: ["Claude Code / Codex adapter", "one identified conversation"],
+  agentEdit: ["Claude Code / Codex adapter", "one opaque agent identity"],
   workQueue: ["one scheduler, two job kinds", "capture jobs → review work items"],
   preparation: ["snapshot → artifacts + evidence", "enqueue work in same scheduler"],
   decisionRequest: ["one artifact + supporting evidence", "one rule evaluation request"],
@@ -137,7 +137,7 @@ const NODE_NOTES: Record<NodeId, readonly string[]> = {
   adviceStore: ["advicee + source + relevance", "after tool / Stop / Stop reoffer*"],
   collector: ["one batch reserved for one caller", "limit: 5 findings / 2 KiB**"],
   hostOutput: ["adapter formats response for agent", "write ≠ receipt or use"],
-  deliveryState: ["one continuation for this agent", "first advice request / child Stop"],
+  deliveryState: ["at most four requests per round", "allow Stop → discard round work"],
   outcomeStore: ["update ticket / activity status", "no finding ≠ failed review"],
 };
 
@@ -145,8 +145,8 @@ const nodeView = (h: HtmlBuilder<Message>, id: NodeId, flow: FlowState) => {
   const node = NODES[id];
   const palette = colors[node.role];
   const packets = flow.packets.filter((packet) => packet.at === id);
-  const special = id === "deliveryState" ? `chain ${flow.deliveryGeneration} · Stop ${flow.stopUsed ? "used" : "available"}`
-    : id === "agentEdit" ? `${flow.agentKind} agent · example input`
+  const special = id === "deliveryState" ? `round ${flow.roundId} · ${flow.roundActive ? "active" : "closed"} · ${flow.stopContinuations}/4`
+    : id === "agentEdit" ? "fresh edit enters through adapter"
     : id === "collector" ? (flow.leaseSurface ? `${flow.leaseSurface} batch reserved` : flow.opportunity ? `${flow.opportunity} request received` : "waiting for an agent runtime request")
     : id === "hostOutput" ? (flow.lastSubmissionSurface ? "written; no payload stored here" : "no response written yet")
     : id === "workQueue" ? `${packets.length} queued job${packets.length === 1 ? "" : "s"}`
@@ -193,8 +193,8 @@ const chart = (model: Model, h: HtmlBuilder<Message>) => h.div([h.Class("chart-s
       { x: 285, y: 376, text: "advice request: agent ID + deadline →" },
       { x: 30, y: 266, text: "edit via runtime adapter →" },
       { x: 30, y: 288, text: "PostToolUse: edit + advice request" },
-      { x: 285, y: 435, text: "after tool / Stop / SubagentStop" },
-      { x: 165, y: 519, text: "prompt → reset allowance" },
+      { x: 285, y: 435, text: "after tool / Stop" },
+      { x: 165, y: 519, text: "Stop allow → close + cleanup" },
       { x: 30, y: 752, text: "* Stop reoffer: approved design; not yet production behavior." },
       { x: 30, y: 775, text: "** Size, time, expiry and full advicee checks are not simulated." },
       { x: 780, y: 729, text: "Numbers match the event controls below." },
@@ -222,7 +222,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         h.p([h.Class("eyebrow")], ["SIDECAR MODEL · FOLDKIT"]),
         h.h1([], ["From agent edit to Jev and back"]),
         h.p([h.Class("intro")], [
-          "One agent reports edits and receives advice through Claude Code or Codex. Session and child agent identity keep its advice separate. A sidecar reducer drives this data-flow example.",
+          "One agent reports edits and receives advice through Claude Code or Codex. The runtime adapter identifies the agent. A sidecar reducer drives this data-flow example.",
         ]),
         h.p([h.Class("caveat")], [
           "One agent, one review item; no live connection. This reducer does not simulate multiple agents or tabs.",
@@ -254,7 +254,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           ]),
           h.p([h.Class("progress")], [trace ? `Step ${model.cursor} of ${trace.events.length}` : "Free play"]),
           h.p([h.Class("status")], [model.flow.note]),
-          h.h3([], ["Example payloads currently in the flow"]),
+          h.h3([], ["Live review data in this round"]),
           h.div([h.Class("packets")], model.flow.packets.map((packet) =>
             h.div([h.Class("packet")], [
               h.strong([], [`#${packet.id} ${packet.flavor}`]),
@@ -268,7 +268,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
               h.strong([], [item.description]), h.span([], [NODES[item.at].label]),
             ]))),
           h.p([h.Class("state-line")], [
-            `Delivery chain ${model.flow.deliveryGeneration} · Stop ${model.flow.stopUsed ? "used" : "available"} · ` +
+            `Hapsland round ${model.flow.roundId} (${model.flow.roundActive ? "active" : "closed"}) · continuations ${model.flow.stopContinuations}/4 · ` +
             `reserved batch ${model.flow.leaseSurface ?? "none"} · last response ${model.flow.lastSubmissionSurface ?? "none"}`,
           ]),
         ]),
@@ -295,13 +295,13 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         h.h2([], ["Event reducer and current state"]),
         h.p([], ["The sidecar reducer applies events to example state. It has no separate explicit state machine. Diagram boxes show places and operations."]),
         h.div([h.Class("packets")], [
-          h.div([h.Class("packet")], [h.strong([], ["Delivery allowance generation"]), h.span([], [String(model.flow.deliveryGeneration)])]),
-          h.div([h.Class("packet")], [h.strong([], ["Stop continuation allowance"]), h.span([], [model.flow.stopUsed ? "used" : "available"])]),
-          h.div([h.Class("packet")], [h.strong([], ["Collection request"]), h.span([], [model.flow.opportunity ?? "none"])]),
+          h.div([h.Class("packet")], [h.strong([], ["Hapsland round"]), h.span([], [`${model.flow.roundId} · ${model.flow.roundActive ? "active" : "closed"}`])]),
+          h.div([h.Class("packet")], [h.strong([], ["Stop continuation requests"]), h.span([], [`${model.flow.stopContinuations} of 4`])]),
+          h.div([h.Class("packet")], [h.strong([], ["Stop wait"]), h.span([], [model.flow.stopWaiting ? "waiting before a finish decision" : "none"])]),
           h.div([h.Class("packet")], [h.strong([], ["Batch reserved for"]), h.span([], [model.flow.leaseSurface ?? "no caller"])]),
           h.div([h.Class("packet")], [h.strong([], ["Last response written through"]), h.span([], [model.flow.lastSubmissionSurface ?? "none"])]),
         ]),
-        h.p([], ["Prompt → reset allowance. Request → enable selection. Selection → reserve batch. Stop selection → use allowance. Write → release reservation. The child trace has no user-prompt event: its first collection hook initializes the allowance without resetting an existing one."]),
+        h.p([], ["Fresh edit → open a round if closed. Stop selection → reserve one continuation before writing. Stop advice → continue the same round. Stop allow → cancel and discard all round resources. The adapter rejects old and duplicate events; runtime turn IDs never identify these rounds. Restart and transport failure are outside this example."]),
       ]),
     ]),
   };
