@@ -36,8 +36,9 @@ The reducer takes trusted, normalized events. The adapter must establish fresh
 edit identity and bind callbacks to their originating round before invoking it.
 This example does not implement that adapter or simulate late callbacks crossing
 into a new round, uncertain output writes, cancellation failure, or restart.
-The four-request bound applies within a resident lifetime; durability across
-restart is deferred to low-priority [#107](https://github.com/dearlordylord/hapsland/issues/107).
+The four-request bound applies per Hapsland round while one resident process
+runs. A resident restart resets the count by accepted product policy; count
+persistence across restarts is not planned.
 
 Two job kinds share one modeled review scheduler. Review status is an operation,
 not an invented outcome store. Completed response writes and status updates leave
