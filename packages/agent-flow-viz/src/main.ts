@@ -78,21 +78,21 @@ const geometry = (transition: Transition, offset: number) => {
   };
 };
 
-const edgeOffsets = (): Readonly<Record<EventId, number>> => {
-  const pairs = new Map<string, number>();
-  return Object.fromEntries(EVENT_IDS.map((event) => {
-    const transition = TRANSITIONS[event];
-    const key = `${transition.from}:${transition.to}`;
-    const count = pairs.get(key) ?? 0;
-    pairs.set(key, count + 1);
-    return [event, count * 18 - (key === "adviceStore:collector" ? 18 : 0)];
-  })) as Record<EventId, number>;
-};
-const OFFSETS = edgeOffsets();
+// Group related events into a single process connection. Event details remain below.
+const CONNECTIONS = EVENT_IDS.reduce<EventId[][]>((groups, event) => {
+  const edge = TRANSITIONS[event];
+  const group = groups.find(([first]) => {
+    const candidate = TRANSITIONS[first];
+    return candidate.from === edge.from && candidate.to === edge.to && candidate.kind === edge.kind;
+  });
+  if (group) group.push(event);
+  else groups.push([event]);
+  return groups;
+}, []);
 
-const arrow = (h: HtmlBuilder<Message>, event: EventId, number: number, active: boolean) => {
-  const transition = TRANSITIONS[event];
-  const { path, badge } = geometry(transition, OFFSETS[event]);
+const arrow = (h: HtmlBuilder<Message>, events: EventId[], number: number, active: boolean) => {
+  const transition = TRANSITIONS[events[0]];
+  const { path, badge } = geometry(transition, 0);
   const stroke = active ? "#e66035" : transition.kind === "control" ? "#8b94a5" : "#98a9bd";
   return h.g([], [
     h.path([
@@ -113,9 +113,14 @@ const nodeView = (h: HtmlBuilder<Message>, id: NodeId, flow: FlowState) => {
   const palette = colors[node.role];
   const packets = flow.packets.filter((packet) => packet.at === id);
   const special = id === "turnState" ? `turn ${flow.turn} · Stop ${flow.stopUsed ? "used" : "available"}`
-    : id === "collector" && flow.leaseSurface ? `${flow.leaseSurface} lease active`
-      : id === "hostOutput" ? `model visibility: ${flow.visibility}`
-        : `${packets.length} data item${packets.length === 1 ? "" : "s"}`;
+    : id === "agentEdit" ? "scenario input; no live host"
+    : id === "hostHooks" ? "request + recipient context"
+    : id === "collector" ? (flow.leaseSurface ? `${flow.leaseSurface} batch reserved` : flow.opportunity ? `${flow.opportunity} request received` : "waiting for a host request")
+    : id === "hostOutput" ? (flow.lastSubmissionSurface ? "written; no payload stored here" : "no response written yet")
+    : id === "workQueue" ? `${packets.length} queued job${packets.length === 1 ? "" : "s"}`
+    : id === "adviceStore" ? `${packets.length} pending finding${packets.length === 1 ? "" : "s"}`
+    : id === "outcomeStore" ? (flow.emissions.some((item) => item.at === id) ? "updated; no payload stored here" : "no completed review yet")
+    : packets.length ? packets.map((packet) => packet.flavor).join(", ") : "idle in this example";
   return h.g([], [
     h.rect([h.X(String(node.x)), h.Y(String(node.y)), h.Width(String(NODE_WIDTH)),
       h.Height(String(NODE_HEIGHT)), h.Rx("12"), h.Fill(palette.fill),
@@ -142,7 +147,7 @@ const chart = (model: Model, h: HtmlBuilder<Message>) => h.div([h.Class("chart-s
         h.path([h.D("M 0 0 L 10 5 L 0 10 z"), h.Fill("#e66035")], []),
       ]),
     ]),
-    ...EVENT_IDS.map((event, index) => arrow(h, event, index + 1, model.flow.lastEvent === event)),
+    ...CONNECTIONS.map((events, index) => arrow(h, events, index + 1, model.flow.lastEvent !== null && events.includes(model.flow.lastEvent))),
     ...NODE_IDS.map((id) => nodeView(h, id, model.flow)),
   ]),
 ]);
@@ -162,21 +167,43 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         h.p([h.Class("eyebrow")], ["SIDECAR MODEL · FOLDKIT"]),
         h.h1([], ["From agent edit to Jev and back"]),
         h.p([h.Class("intro")], [
-          "Every arrow is a named event. Amber nodes hold resident state; blue nodes process it. Dashed arrows carry hook control signals. The chart and reducer use one typed transition table.",
+          "Hapsland receives an edit from an agent host, asks Jev to review it, and sends useful findings back in a hook response. This diagram shows where the work and information go. The event reducer below drives this example.",
         ]),
         h.p([h.Class("caveat")], [
-          "Discussion model: one recipient and one review unit. Stop reoffer is an approved design decision, not current production behavior. Model visibility is observer evidence, never inferred from a write.",
+          "Discussion example: one advice recipient and one review work item. Sending advice again at Stop is an approved design that production does not yet implement. A successful response write gives Hapsland no receipt that the host accepted the advice or that the agent acted on it.",
         ]),
       ]),
       h.section([h.Class("chart-panel")], [
         h.div([h.Class("section-head")], [
-          h.h2([], ["Data locations and event arrows"]),
+          h.h2([], ["Review and advice flow"]),
           h.span([], ["Scroll horizontally on narrow screens"]),
         ]),
         chart(model, h),
         h.p([h.Class("legend")], [
-          "Numbered arrows map to the event list below. A review unit may cycle through the same work queue after preparation. Advice stays in the resident while a delivery batch is leased.",
+          "Solid arrows carry review information. Dashed arrows carry host requests. Each number identifies one connection; several events can use that connection. Amber boxes hold state. Blue boxes perform work. Grey boxes belong to an external system. Purple marks the response boundary.",
         ]),
+      ]),
+      h.section([h.Class("card explanation")], [
+        h.h2([], ["What the boxes and connections mean"]),
+        h.p([], ["The review scheduler is one scheduler with two job kinds. A capture job reads eligible source and extracts artifacts. It then adds review work items to the same scheduler. A review work item contains one artifact, its supporting evidence, and the rules to check. The return arrow shows this new work; it does not mean there are two queues."]),
+        h.p([], ["Read Jev result checks the returned review judgment. A finding becomes pending advice for its intended recipient. A result with no finding updates review status. A failed request records a failed review. Record review status is an operation; production tracks this through tickets and activity status, not a separate outcome store."]),
+        h.p([], ["The host calls Hapsland at three times. UserPromptSubmit starts a recipient turn chain. PostToolUse reports an edit and also runs the background advice check. These are two commands for the same native host event; the background check does not start another review. Stop asks for advice when the host tries to finish a turn."]),
+        h.p([], ["Select advice to send has two different inputs. The dashed connection carries a host request: recipient identity, hook type, and turn or deadline context. The solid connection carries pending findings with their source, recipient, and relevance information. The Jev response first becomes a review result and then pending advice; it is not a collection request."]),
+        h.p([], ["One solid connection covers three selection cases: after a tool, at Stop, or again at Stop under the approved design. Each case reserves one advice batch for one caller. Production limits a response to five findings and 2 KiB and limits how long collection may wait. This example shows the reservation; it does not simulate size limits, time, relevance expiry, or all recipient checks."]),
+        h.p([], ["Write hook response means that Hapsland writes the host-specific response to stdout. The agent host owns the next step. Hapsland cannot infer that the agent received, read, or used the advice. A later edit would arrive as a new host change observation."]),
+      ]),
+      h.section([h.Class("card explanation")], [
+        h.h2([], ["Event reducer and current state"]),
+        h.p([], ["This page uses a reducer: stepFlow(current state, event) returns the next state or a reason to reject the event. It has no separate, explicit state-machine definition. The flow diagram groups places and operations; its boxes are not lifecycle states."]),
+        h.p([], ["The reducer holds example review information, the recipient turn number, the Stop allowance, the latest collection request, the reserved batch, and the last response type. It checks prerequisites before each event. The event list shows which events can happen now."]),
+        h.div([h.Class("packets")], [
+          h.div([h.Class("packet")], [h.strong([], ["Recipient turn chain"]), h.span([], [String(model.flow.turn)])]),
+          h.div([h.Class("packet")], [h.strong([], ["Stop continuation allowance"]), h.span([], [model.flow.stopUsed ? "used" : "available"])]),
+          h.div([h.Class("packet")], [h.strong([], ["Collection request"]), h.span([], [model.flow.opportunity ?? "none"])]),
+          h.div([h.Class("packet")], [h.strong([], ["Batch reserved for"]), h.span([], [model.flow.leaseSurface ?? "no caller"])]),
+          h.div([h.Class("packet")], [h.strong([], ["Last response written through"]), h.span([], [model.flow.lastSubmissionSurface ?? "none"])]),
+        ]),
+        h.p([], ["A new prompt resets the Stop allowance. A host collection request enables batch selection. Selection reserves the batch; selecting it at Stop also uses the allowance. Writing the response releases the reservation. This narrow turn record does not represent the agent host’s full conversation or user interface."]),
       ]),
       h.div([h.Class("below")], [
         h.section([h.Class("card")], [
@@ -193,30 +220,38 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           ]),
           h.p([h.Class("progress")], [trace ? `Step ${model.cursor} of ${trace.events.length}` : "Free play"]),
           h.p([h.Class("status")], [model.flow.note]),
-          h.h3([], ["Stored and transient data now"]),
+          h.h3([], ["Example payloads currently in the flow"]),
           h.div([h.Class("packets")], model.flow.packets.map((packet) =>
             h.div([h.Class("packet")], [
               h.strong([], [`#${packet.id} ${packet.flavor}`]),
               h.span([], [NODES[packet.at].label]),
             ]))),
+          h.h3([], ["Emitted outcomes — example history"]),
+          h.p([h.Class("description")], ["These entries record what the example emitted. They are not payloads stored at the process boxes and cannot be selected as pending advice."]),
+          h.div([h.Class("packets")], model.flow.emissions.length === 0
+            ? [h.p([h.Class("description")], ["No response or status update emitted yet."])]
+            : model.flow.emissions.map((item) => h.div([h.Class("packet")], [
+              h.strong([], [item.description]), h.span([], [NODES[item.at].label]),
+            ]))),
           h.p([h.Class("state-line")], [
             `Turn ${model.flow.turn} · Stop ${model.flow.stopUsed ? "used" : "available"} · ` +
-            `active lease ${model.flow.leaseSurface ?? "none"} · visibility ${model.flow.visibility}`,
+            `reserved batch ${model.flow.leaseSurface ?? "none"} · last response ${model.flow.lastSubmissionSurface ?? "none"}`,
           ]),
         ]),
         h.section([h.Class("card")], [
-          h.h2([], ["Events and data flavors"]),
+          h.h2([], ["Events, prerequisites, and information"]),
           h.p([h.Class("description")], ["Click any event to inspect an alternate order. Rejected events explain the missing prerequisite."]),
-          h.div([h.Class("events")], EVENT_IDS.map((event, index) => {
+          h.div([h.Class("events")], EVENT_IDS.map((event) => {
             const transition = TRANSITIONS[event];
             return h.button([h.OnClick(Message.TriggeredEvent({ event })), h.Class("event-row")], [
-              h.span([h.Class("event-number")], [String(index + 1)]),
+              h.span([h.Class("event-number")], [String(CONNECTIONS.findIndex((events) => events.includes(event)) + 1)]),
               h.span([h.Class("event-copy")], [
-                h.strong([], [event]),
+                h.strong([], [transition.label]),
                 h.small([], [eventLabel(event)]),
                 h.small([], [transition.kind === "data"
                   ? `${transition.input} → ${transition.output}${transition.movement === "copy" ? " · source retained" : ""}`
-                  : `${transition.signal} control signal · no review data moves`]),
+                  : `${transition.signal} request · recipient and turn context`]),
+                h.small([], [stepFlow(model.flow, event).accepted ? "Can happen now" : stepFlow(model.flow, event).state.note]),
               ]),
             ]);
           })),

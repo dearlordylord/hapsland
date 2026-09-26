@@ -2,7 +2,7 @@ import { Schema } from "effect";
 
 export const NODE_IDS = [
   "agentEdit", "workQueue", "preparation", "decisionRequest", "jev",
-  "decisionResponse", "adviceStore", "collector", "hostOutput", "agentModel",
+  "decisionResponse", "adviceStore", "collector", "hostOutput",
   "hostHooks", "turnState", "outcomeStore",
 ] as const;
 export type NodeId = (typeof NODE_IDS)[number];
@@ -10,43 +10,41 @@ export type NodeId = (typeof NODE_IDS)[number];
 export type NodeRole = "external" | "storage" | "process" | "boundary";
 type NodeSpec = { readonly label: string; readonly detail: string; readonly role: NodeRole; readonly x: number; readonly y: number };
 export const NODES = {
-  agentEdit: { label: "Agent edit", detail: "attributed host event", role: "external", x: 30, y: 52 },
-  workQueue: { label: "Review work queue", detail: "ingress + review units", role: "storage", x: 320, y: 52 },
-  preparation: { label: "Preparation", detail: "capture + artifact analysis", role: "process", x: 610, y: 52 },
-  decisionRequest: { label: "Decision request", detail: "prepared review input", role: "process", x: 900, y: 52 },
+  agentEdit: { label: "Agent host", detail: "reports edits with a recipient", role: "external", x: 30, y: 52 },
+  workQueue: { label: "Review scheduler", detail: "capture jobs + review work items", role: "storage", x: 320, y: 52 },
+  preparation: { label: "Read and analyze source", detail: "extract reviewable artifacts", role: "process", x: 610, y: 52 },
+  decisionRequest: { label: "Build review input", detail: "artifact + rule + evidence", role: "process", x: 900, y: 52 },
   jev: { label: "Jev", detail: "external network backend", role: "external", x: 1190, y: 52 },
-  decisionResponse: { label: "Decision response", detail: "finding or clear result", role: "process", x: 1190, y: 332 },
-  adviceStore: { label: "Pending advice store", detail: "recipient + freshness", role: "storage", x: 900, y: 332 },
-  collector: { label: "Collect + lease", detail: "bounded handoff", role: "process", x: 610, y: 332 },
-  hostOutput: { label: "Host output", detail: "write, visibility unknown", role: "boundary", x: 320, y: 332 },
-  agentModel: { label: "Agent model", detail: "visibility only if observed", role: "external", x: 30, y: 332 },
-  hostHooks: { label: "Host hooks", detail: "prompt, background, Stop", role: "external", x: 320, y: 575 },
-  turnState: { label: "Turn state", detail: "one Stop continuation", role: "storage", x: 30, y: 575 },
-  outcomeStore: { label: "Outcome record", detail: "clear or unavailable", role: "storage", x: 1190, y: 575 },
+  decisionResponse: { label: "Read Jev result", detail: "finding or no finding", role: "process", x: 1190, y: 332 },
+  adviceStore: { label: "Pending advice", detail: "findings for a specific recipient", role: "storage", x: 900, y: 332 },
+  collector: { label: "Select advice to send", detail: "reserve one batch for one hook", role: "process", x: 610, y: 332 },
+  hostOutput: { label: "Write hook response", detail: "advice in the host response format", role: "boundary", x: 320, y: 332 },
+  hostHooks: { label: "Host calls Hapsland", detail: "new prompt / after tool / Stop", role: "external", x: 320, y: 575 },
+  turnState: { label: "Recipient turn record", detail: "turn chain + Stop allowance", role: "storage", x: 30, y: 575 },
+  outcomeStore: { label: "Record review status", detail: "no finding / review failed", role: "process", x: 1190, y: 575 },
 } as const satisfies Record<NodeId, NodeSpec>;
 
 export const FLAVORS = [
-  "edit observation", "ingress job", "review unit", "decision request",
+  "edit observation", "capture job", "review work item", "decision request",
   "network request", "decision response", "advice", "leased batch",
-  "host submission", "model-visible advice", "terminal outcome",
+  "host submission", "review status",
 ] as const;
 export type Flavor = (typeof FLAVORS)[number];
 
 // These location contracts statically constrain the transition table below.
 type StoredAt = {
   agentEdit: "edit observation";
-  workQueue: "ingress job" | "review unit";
-  preparation: "ingress job";
+  workQueue: "capture job" | "review work item";
+  preparation: "capture job";
   decisionRequest: "decision request";
   jev: "network request";
   decisionResponse: "decision response";
   adviceStore: "advice";
   collector: "leased batch";
   hostOutput: "host submission";
-  agentModel: "model-visible advice";
   hostHooks: never;
   turnState: never;
-  outcomeStore: "terminal outcome";
+  outcomeStore: "review status";
 };
 type DataTransition = {
   [From in NodeId]: {
@@ -75,31 +73,30 @@ export const EVENT_IDS = [
   "UnitDispatched", "JevRequestSent", "JevResponseReceived", "FindingRetained",
   "ClearRecorded", "JevUnavailable", "BackgroundHookFired", "StopHookFired",
   "AdviceLeasedByBackground", "AdviceLeasedByStop", "AdviceReofferedAtStop",
-  "HostOutputSubmitted", "ModelVisibilityObserved", "RepairEditObserved",
+  "HostOutputSubmitted",
 ] as const;
 export type EventId = (typeof EVENT_IDS)[number];
 
-// One source of truth: the reducer executes these transitions; Foldkit renders them.
+// Discussion reducer: transitions describe sample payload changes.
+// The process diagram may group several event variants into one connection.
 // `satisfies` checks both event coverage and each node's admissible data flavor.
 export const TRANSITIONS = {
   PromptSubmitted: { kind: "control", from: "hostHooks", to: "turnState", label: "user prompt starts turn", signal: "prompt" },
-  EditObserved: { kind: "data", from: "agentEdit", to: "workQueue", input: "edit observation", output: "ingress job", movement: "move", label: "edit admitted" },
-  IngressStarted: { kind: "data", from: "workQueue", to: "preparation", input: "ingress job", output: "ingress job", movement: "move", label: "ingress dequeued" },
-  ReviewUnitPrepared: { kind: "data", from: "preparation", to: "workQueue", input: "ingress job", output: "review unit", movement: "move", label: "unit prepared" },
-  UnitDispatched: { kind: "data", from: "workQueue", to: "decisionRequest", input: "review unit", output: "decision request", movement: "move", label: "unit dispatched" },
+  EditObserved: { kind: "data", from: "agentEdit", to: "workQueue", input: "edit observation", output: "capture job", movement: "move", label: "edit admitted" },
+  IngressStarted: { kind: "data", from: "workQueue", to: "preparation", input: "capture job", output: "capture job", movement: "move", label: "start source capture" },
+  ReviewUnitPrepared: { kind: "data", from: "preparation", to: "workQueue", input: "capture job", output: "review work item", movement: "move", label: "queue extracted review work" },
+  UnitDispatched: { kind: "data", from: "workQueue", to: "decisionRequest", input: "review work item", output: "decision request", movement: "move", label: "unit dispatched" },
   JevRequestSent: { kind: "data", from: "decisionRequest", to: "jev", input: "decision request", output: "network request", movement: "move", label: "Jev request sent" },
   JevResponseReceived: { kind: "data", from: "jev", to: "decisionResponse", input: "network request", output: "decision response", movement: "move", label: "Jev response received" },
   FindingRetained: { kind: "data", from: "decisionResponse", to: "adviceStore", input: "decision response", output: "advice", movement: "move", label: "finding retained" },
-  ClearRecorded: { kind: "data", from: "decisionResponse", to: "outcomeStore", input: "decision response", output: "terminal outcome", movement: "move", label: "clear result recorded" },
-  JevUnavailable: { kind: "data", from: "jev", to: "outcomeStore", input: "network request", output: "terminal outcome", movement: "move", label: "Jev request unavailable" },
+  ClearRecorded: { kind: "data", from: "decisionResponse", to: "outcomeStore", input: "decision response", output: "review status", movement: "move", label: "clear result recorded" },
+  JevUnavailable: { kind: "data", from: "jev", to: "outcomeStore", input: "network request", output: "review status", movement: "move", label: "Jev request unavailable" },
   BackgroundHookFired: { kind: "control", from: "hostHooks", to: "collector", label: "background asks to collect", signal: "background" },
   StopHookFired: { kind: "control", from: "hostHooks", to: "collector", label: "Stop asks to collect", signal: "stop" },
   AdviceLeasedByBackground: { kind: "data", from: "adviceStore", to: "collector", input: "advice", output: "leased batch", movement: "copy", label: "background leases advice" },
   AdviceLeasedByStop: { kind: "data", from: "adviceStore", to: "collector", input: "advice", output: "leased batch", movement: "copy", label: "Stop leases advice" },
-  AdviceReofferedAtStop: { kind: "data", from: "adviceStore", to: "collector", input: "advice", output: "leased batch", movement: "copy", label: "Stop reoffers unseen advice" },
+  AdviceReofferedAtStop: { kind: "data", from: "adviceStore", to: "collector", input: "advice", output: "leased batch", movement: "copy", label: "Stop selects advice again (design)" },
   HostOutputSubmitted: { kind: "data", from: "collector", to: "hostOutput", input: "leased batch", output: "host submission", movement: "move", label: "hook write completed" },
-  ModelVisibilityObserved: { kind: "data", from: "hostOutput", to: "agentModel", input: "host submission", output: "model-visible advice", movement: "move", label: "visibility independently observed" },
-  RepairEditObserved: { kind: "data", from: "agentModel", to: "workQueue", input: "model-visible advice", output: "ingress job", movement: "move", label: "repair edit admitted" },
 } as const satisfies Record<EventId, Transition>;
 
 export type Packet = { readonly id: number; readonly at: NodeId; readonly flavor: Flavor };
@@ -110,13 +107,18 @@ export const PacketSchema = Schema.Struct({
 });
 export const FlowStateSchema = Schema.Struct({
   packets: Schema.Array(PacketSchema),
+  // Example history only: emitted responses and status updates are not resident payloads.
+  emissions: Schema.Array(Schema.Struct({
+    event: Schema.Literals(EVENT_IDS),
+    at: Schema.Literals(NODE_IDS),
+    description: Schema.String,
+  })),
   nextPacketId: Schema.Number,
   turn: Schema.Number,
   stopUsed: Schema.Boolean,
   opportunity: Schema.Union([Schema.Null, Schema.Literals(["background", "stop"])]),
   leaseSurface: Schema.Union([Schema.Null, Schema.Literals(["background", "stop"])]),
   lastSubmissionSurface: Schema.Union([Schema.Null, Schema.Literals(["background", "stop"])]),
-  visibility: Schema.Literals(["none", "unknown", "observed"]),
   lastEvent: Schema.Union([Schema.Null, Schema.Literals(EVENT_IDS)]),
   note: Schema.String,
 });
@@ -124,15 +126,15 @@ export type FlowState = typeof FlowStateSchema.Type;
 
 export const initialFlow = (): FlowState => ({
   packets: [{ id: 1, at: "agentEdit", flavor: "edit observation" }],
+  emissions: [],
   nextPacketId: 2,
   turn: 0,
   stopUsed: false,
   opportunity: null,
   leaseSurface: null,
   lastSubmissionSurface: null,
-  visibility: "none",
   lastEvent: null,
-  note: "An agent edit is ready to be observed. Choose a trace or an event.",
+  note: "Scenario setup: one host edit is available as example input. No live host or Jev session is connected.",
 });
 
 export type StepResult = { readonly state: FlowState; readonly accepted: boolean };
@@ -152,7 +154,7 @@ export const stepFlow = (state: FlowState, event: EventId): StepResult => {
     if (event === "StopHookFired" && state.stopUsed) return rejected(state, "Stop already used its one continuation in this turn.");
     const opportunity = event === "StopHookFired" ? "stop" : "background";
     return { accepted: true, state: { ...state, opportunity, lastEvent: event,
-      note: `${opportunity === "stop" ? "Stop" : "Background"} requested collection; review work did not move.`,
+      note: `${opportunity === "stop" ? "Stop" : "The after-tool hook"} sent a request to collect advice for this recipient. The request is separate from the pending findings.`,
     } };
   }
   if (transition.kind !== "data") return rejected(state, "Unknown control transition.");
@@ -160,28 +162,29 @@ export const stepFlow = (state: FlowState, event: EventId): StepResult => {
   if (event === "AdviceLeasedByBackground" && state.opportunity !== "background") return rejected(state, "Background has not requested collection.");
   if ((event === "AdviceLeasedByStop" || event === "AdviceReofferedAtStop") && state.opportunity !== "stop") return rejected(state, "Stop has not requested collection.");
   if ((event === "AdviceLeasedByStop" || event === "AdviceReofferedAtStop") && state.stopUsed) return rejected(state, "Stop already used its continuation.");
-  if (event === "AdviceReofferedAtStop" && !(state.lastSubmissionSurface === "background" && state.visibility === "unknown")) {
-    return rejected(state, "Reoffer needs a background submission whose model visibility is unknown.");
+  if (event === "AdviceReofferedAtStop" && !(state.lastSubmissionSurface === "background")) {
+    return rejected(state, "Reoffer needs a prior background response. Hapsland has no receipt from the host.");
   }
-  if (event === "AdviceLeasedByStop" && state.lastSubmissionSurface === "background" && state.visibility === "unknown") {
-    return rejected(state, "Use the explicit Stop reoffer event for submitted, unseen advice.");
+  if (event === "AdviceLeasedByStop" && state.lastSubmissionSurface === "background") {
+    return rejected(state, "Use the Stop reoffer event for advice already sent in a background response.");
   }
   if (event === "AdviceLeasedByBackground" || event === "AdviceLeasedByStop" || event === "AdviceReofferedAtStop") {
     if (state.leaseSurface !== null) return rejected(state, "Another collector already holds the advice lease.");
   }
   if (event === "HostOutputSubmitted" && state.leaseSurface === null) return rejected(state, "No delivery lease exists.");
-  if (event === "ModelVisibilityObserved" && state.visibility !== "unknown") return rejected(state, "There is no visibility-unknown submission to observe.");
 
-  const index = event === "ModelVisibilityObserved"
-    ? state.packets.findLastIndex((packet) => packet.at === transition.from && packet.flavor === transition.input)
-    : state.packets.findIndex((packet) => packet.at === transition.from && packet.flavor === transition.input);
+  const index = state.packets.findIndex((packet) => packet.at === transition.from && packet.flavor === transition.input);
   if (index < 0) return rejected(state, `No ${transition.input} is at ${NODES[transition.from].label}.`);
   const nextPackets = [...state.packets];
   if (transition.movement === "move") nextPackets.splice(index, 1);
+  const terminal = event === "HostOutputSubmitted" || event === "ClearRecorded" || event === "JevUnavailable";
+  const emittedDescription = event === "HostOutputSubmitted" ? "Hook response written; no host receipt"
+    : event === "ClearRecorded" ? "Review completed with no finding" : "Review failed because Jev was unavailable";
   const next: FlowState = {
     ...state,
-    packets: [...nextPackets, { id: state.nextPacketId, at: transition.to, flavor: transition.output }],
-    nextPacketId: state.nextPacketId + 1,
+    packets: terminal ? nextPackets : [...nextPackets, { id: state.nextPacketId, at: transition.to, flavor: transition.output }],
+    emissions: terminal ? [...state.emissions, { event, at: transition.to, description: emittedDescription }] : state.emissions,
+    nextPacketId: state.nextPacketId + (terminal ? 0 : 1),
     lastEvent: event,
     note: `${transition.label}: ${transition.input} → ${transition.output}.`,
   };
@@ -194,38 +197,33 @@ export const stepFlow = (state: FlowState, event: EventId): StepResult => {
   }
   if (event === "HostOutputSubmitted") return { accepted: true, state: {
     ...next, leaseSurface: null, lastSubmissionSurface: state.leaseSurface,
-    visibility: "unknown",
-    note: "Hook output was submitted. The model may still never see it.",
-  } };
-  if (event === "ModelVisibilityObserved") return { accepted: true, state: {
-    ...next, visibility: "observed",
-    note: "An external observer established model visibility; this is not a Hapsland runtime signal.",
+    note: "Hapsland wrote a hook response. The host controls what happens next. Hapsland has no receipt that the advice reached the agent.",
   } };
   return { accepted: true, state: next };
 };
 
 export const TRACES = [
-  { name: "Background reaches model", description: "The review finding is submitted through background and independently observed by the model.", events: [
+  { name: "Send advice after a tool", description: "The after-tool hook asks for advice. Hapsland selects a finding and writes the hook response. The host controls further use.", events: [
     "PromptSubmitted", "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
     "JevRequestSent", "JevResponseReceived", "FindingRetained", "BackgroundHookFired",
-    "AdviceLeasedByBackground", "HostOutputSubmitted", "ModelVisibilityObserved", "RepairEditObserved",
+    "AdviceLeasedByBackground", "HostOutputSubmitted",
   ] },
-  { name: "Stop reoffers unseen advice", description: "Background writes advice, but visibility remains unknown. Stop leases that retained advice and submits it again.", events: [
+  { name: "Send advice again at Stop (design)", description: "Approved design: keep advice after an after-tool response so Stop can send it again. Current production code does not yet support this reoffer.", events: [
     "PromptSubmitted", "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
     "JevRequestSent", "JevResponseReceived", "FindingRetained", "BackgroundHookFired",
     "AdviceLeasedByBackground", "HostOutputSubmitted", "StopHookFired",
-    "AdviceReofferedAtStop", "HostOutputSubmitted", "ModelVisibilityObserved", "RepairEditObserved",
+    "AdviceReofferedAtStop", "HostOutputSubmitted",
   ] },
-  { name: "Stop waits for response", description: "Stop requests advice while Jev is in flight; the response then enters the same advice store.", events: [
+  { name: "Stop waits for response", description: "Stop requests advice while Jev is running. This example supplies the result before any collection deadline; it does not simulate timeout behavior.", events: [
     "PromptSubmitted", "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
     "JevRequestSent", "StopHookFired", "JevResponseReceived", "FindingRetained",
     "AdviceLeasedByStop", "HostOutputSubmitted",
   ] },
-  { name: "Clear result", description: "A clear Jev response becomes an outcome record, not pending advice.", events: [
+  { name: "Clear result", description: "A Jev result with no finding updates the review status. There is no advice to send.", events: [
     "PromptSubmitted", "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
     "JevRequestSent", "JevResponseReceived", "ClearRecorded",
   ] },
-  { name: "Jev unavailable", description: "An unavailable backend response is a distinct terminal outcome, not a clear review.", events: [
+  { name: "Jev unavailable", description: "A failed Jev request records a failed review. It does not establish that the source has no finding.", events: [
     "PromptSubmitted", "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
     "JevRequestSent", "JevUnavailable",
   ] },
