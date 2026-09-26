@@ -78,15 +78,16 @@ distinguishes a child from the main agent within one host session. `null` means
 the host supplied no child identity for that event. The complete advicee key
 is **not** a `subagentId`; it also includes root, host/version, and session.
 The shared review and delivery lifecycle treats every resolved advicee as one
-agent. Host-specific hook names and evidence for starting a delivery chain stay
-at the adapter boundary.
+agent. The host adapter identifies that agent and interprets host events that
+grant or restore its permission to request work at Stop.
 
 The candidate now registers `SubagentStop` for both hosts and sends it through
-the same composed Stop collector. A child with no `UserPromptSubmit` initializes
-one delivery allowance on its first background or Stop request. Repeated child
-requests do not reset it. This does **not** establish a fresh allowance for a
-child resumed in a later parent turn; that lifecycle boundary needs host evidence
-and a separately defined reset rule before the candidate can be adopted.
+the same composed Stop collector. A child with no `UserPromptSubmit` gets its
+initial Stop allowance on its first background or Stop request. Later requests
+do not restore an existing allowance. The record is held in memory and expires
+after ten minutes; a restart also loses it. A later request can then create a
+new initial record, even without evidence of a new child task. The candidate
+does not yet define when a resumed child should receive another allowance.
 
 Every collection checks root identity, advicee identity, enablement, credential
 generation, source selection, current work revision, current snapshot, and advice age
@@ -166,22 +167,27 @@ exit. No stage may silently reset the clock. On expiry the hook allows Stop and 
 review work running in the resident. A later eligible hook may collect the eventual
 result if it is still current and unexpired.
 
-At most **one** `decision: "block"` continuation is permitted per session and
-user-initiated turn chain, shared across all Stop invocations in that chain. A native
-`stop_hook_active` reentry consumes that allowance and cannot block again. The
-allowance resets only on the next distinct user prompt in the same session, not on a
-model repair, a tool call, a new `turn_id` caused by continuation, or another finding.
-The installed candidate therefore also needs a bounded `UserPromptSubmit` marker
-for each session to advance a source-free turn-chain generation. Stop reads and
-atomically consumes that generation in the resident before returning a block; a
-repeated or missing marker cannot reset the allowance. The marker performs no
-review or advice collection. Codex Stop can seed a missing chain from its native
-turn ID if prompt marking was missed; this seed never advances an existing chain.
-When the allowance is exhausted, Stop may submit no second block; new repair
-findings remain resident-owned for a later eligible opportunity. Background and edit
-collection can still submit advice at their normal safe points, subject to the same
-lease and visibility protocol. Failure to establish the user-turn chain fails quiet
-for Stop and is recorded as unknown, rather than risking an unbounded loop.
+Hapsland tracks a Stop allowance separately for each advicee. When an agent tries
+to finish, Hapsland may send advice and ask it to continue once. Work done in
+response to that advice does not restore the allowance. Another tool call,
+finding, or advice request does not restore it either. A native
+`stop_hook_active` reentry returns quietly; it does not use the allowance.
+
+For the main agent, a distinct `UserPromptSubmit` event restores the allowance.
+Repeating the same prompt marker does not. A Codex Stop event can create an
+initial allowance from its native turn ID if no record exists, but it cannot
+restore an existing allowance. A subagent may receive no user prompt event. Its first
+background or `SubagentStop` request creates an initial allowance only if no
+record exists. Later requests leave that record as it is. The candidate does not
+yet establish when a resumed subagent starts new work. Its in-memory record can
+also expire or disappear on restart, so this rule alone does not give a durable
+per-task cap.
+
+When an agent has used its allowance, Stop cannot ask it to continue again
+under that record. New findings remain with the resident for a later eligible
+opportunity. Edits can still be reviewed, and background advice can still be
+sent without a Stop allowance. If Hapsland cannot establish an allowance, it
+does not block Stop.
 
 The five-second ceiling and one-continuation cap are **selected candidate limits**
 from #97's bounded fixtures, not established production defaults. They require both
