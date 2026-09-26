@@ -250,7 +250,12 @@ for (const entry of cases) {
       hostError: hostRun.code !== 0 || hostRun.stderr.includes('Error'),
     };
     results.push(result);
-    process.stdout.write(`${entry.host}-${entry.phase}: ${JSON.stringify(result)}\n`);
+    process.stdout.write(`${entry.host}-${entry.phase}: ${JSON.stringify({
+      exitCode: result.exitCode, timedOut: result.timedOut, hooks: result.hookCounts,
+      backendCompletions: result.backendCompletions, findingSubmission: result.findingSubmission,
+      stopBlock: result.stopBlock, repairedFile: result.repairedFile,
+      clearFollowUp: result.clearFollowUp, hookFailures: result.hookFailures,
+    })}\n`);
   } finally {
     try {
       const owner = JSON.parse(await readFile(join(runtime, 'owner.json'), 'utf8'));
