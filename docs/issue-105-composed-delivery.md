@@ -113,17 +113,14 @@ the model acted. Acknowledgement loss and uncertain writes retain an uncertain s
 Expired leases are recoverable, with revalidation before a new handoff. Resident
 restart loses the in-memory work and cannot claim delivery success.
 
-For this combined path, the present `acknowledge` + `finalize` behavior is insufficient:
-`finalize` removes advice immediately after the write. The resident must instead
-retain a bounded, source-free submitted record (advice identity, advicee, turn
-chain, output surface, timestamp and token) through the relevant turn boundary. A
-background submission immediately before Stop is therefore **submitted/visibility
-unknown**. Stop must not race to submit the same advice again during that turn chain;
-it can collect other unhanded findings. Once an independent host continuation
-explicitly demonstrates consumption, the item may be retired. If visibility is never
-observed, a later eligible collection may retry after the lease and turn boundary,
-subject to freshness and expiry; that retry can duplicate a prior host submission.
-No exactly-once or guaranteed model-visibility claim is made. The legacy edit
+The candidate's composed `finalize` releases the delivery lease but retains the
+advice. Its source-free submission record suppresses repeat delivery in the
+current delivery generation. A background submission immediately before Stop
+is therefore **submitted/visibility unknown**. The previously approved Stop
+reoffer remains a design requirement while the round is active; the candidate
+does not yet implement it. Once the round closes, the new cleanup direction
+requires discarding that round's remaining advice and submission record.
+There is no exactly-once or guaranteed model-visibility claim. The legacy edit
 collector remains outside candidate registration; any future candidate edit
 collector must use this same protocol.
 
@@ -145,9 +142,10 @@ may be active per advicee; later triggers coalesce against that waiter. A waiter
 holds no advice lease while waiting. It has a 20-second wall-clock cap from command
 launch to exit and a corresponding host command timeout; the resident's existing
 item and byte capacity limits remain authoritative. A canceled hook releases any
-unsubmitted lease. Session end cancels the waiter, but does not cancel resident-owned
-review work. Resident memory lifetime and the ten-minute advice relevance expiry
-still bound later collectability.
+unsubmitted lease. The current candidate does not cancel resident-owned review
+work at session end; the round-close cleanup direction above changes how work
+from a completed round must be handled. Resident memory lifetime and the
+ten-minute advice relevance expiry currently bound later collectability.
 
 Async completion is only an output opportunity at a Codex safe point. It does not
 interrupt an in-flight model request or tool call, and it does not start a new turn.
@@ -163,9 +161,9 @@ more than 50 ms intervals until a finding becomes available or the internal 4.2-
 deadline expires. The internal deadline includes startup, parsing, resident startup
 if needed, IPC, collection, encoding, writing, and process exit; the native command
 timeout is five seconds from launch. Any remaining budget is reserved for output and
-exit. No stage may silently reset the clock. On expiry the hook allows Stop and leaves
-review work running in the resident. A later eligible hook may collect the eventual
-result if it is still current and unexpired.
+exit. No stage may silently reset the clock. Today, expiry lets Stop proceed and
+leaves review work running in the resident. The new round-close direction instead
+requires cancellation or discard if the agent runtime accepts completion.
 
 Hapsland tracks a Stop allowance separately for each advicee. When an agent tries
 to finish, Hapsland may send advice and ask it to continue once. Work done in
@@ -184,10 +182,11 @@ also expire or disappear on restart, so this rule alone does not give a durable
 per-task cap.
 
 When an agent has used its allowance, Stop cannot ask it to continue again
-under that record. New findings remain with the resident for a later eligible
-opportunity. Edits can still be reviewed, and background advice can still be
-sent without a Stop allowance. If Hapsland cannot establish an allowance, it
-does not block Stop.
+under that record. Today, new findings remain with the resident for a later
+eligible opportunity. Under the round-close direction, they must be discarded
+if the runtime accepts completion. Edits can still be reviewed, and background
+advice can still be sent without a Stop allowance while the round remains active.
+If Hapsland cannot establish an allowance, it does not block Stop.
 
 The five-second ceiling and one-continuation cap are **selected candidate limits**
 from #97's bounded fixtures, not established production defaults. They require both
@@ -210,10 +209,52 @@ a successful response and suppresses repeat delivery only for the current
 delivery record. A later request can make still-current advice eligible again.
 If the agent repairs a finding, that edit can create new review work. Review
 completion, response submission, and agent action must remain separate
-observations. The owner is considering whether a final Stop should instead
-cancel unfinished work and discard undelivered advice with an explicit
-incomplete-review outcome. That would revise the current late-collectability
-requirement; it is not implemented or approved.
+observations. The round-close cleanup direction below revises the candidate's
+current late-collectability behavior; it is not implemented yet.
+
+## Round-close cleanup direction
+
+The owner clarified on 2026-09-26 that **once an agent round has ended**, Hapsland
+must discard or cancel all state from that round that could start another review
+or deliver advice. This direction replaces the earlier idea that late work
+always remains eligible after Stop. The number of Stop continuations before a
+round ends remains undecided. A synchronous Stop hook may wait for review work
+before it returns; that wait does not itself continue the agent. A native
+`decision: "block"` response prevents completion and keeps the round active.
+
+The cleanup contract must cover every stage: admitted edit observations;
+queued capture and review-unit jobs; running Jev evaluations and their late
+results; captured artifacts and current-work references; pending advice and
+operational notices; delivery leases; background waiters; submitted or
+uncertain handoff records; and Stop continuation state. Closing a round must
+fence late admissions and late completions before it cancels or releases
+resources. No old callback may create new work or advice for that round.
+Shared state needed by another round must remain owned by that other round.
+Any dropped or cancelled review is **incomplete**, never clean. The exact
+record of discarded counts and reasons remains to be specified.
+
+Hapsland currently sees its own Stop-hook result, not a confirmed signal that
+the agent runtime accepted completion. Other Stop hooks can also affect that
+decision. The implementation must define an observable closure boundary or
+state this limit explicitly; it must not claim accepted completion from a
+successful hook write alone. The current resident has no round identifier or
+round-scoped cancellation path, so this cleanup direction is not implemented.
+The closure, fencing, and late-result rules are candidates for later formal
+verification.
+
+The required round-close properties are:
+
+1. **No new work:** after round `r` closes, no edit or late preparation result
+   from `r` can enqueue a capture job, review unit, or Jev request.
+2. **No new advice:** no Jev result, retry, lease recovery, or background waiter
+   from `r` can make advice deliverable after closure.
+3. **Resource release:** queued jobs, running evaluations, network requests,
+   leases, and waiters owned only by `r` are cancelled or released. A callback
+   that finishes after cancellation is ignored for review and delivery.
+4. **Isolation:** closing `r` does not cancel or discard another agent's round
+   or a later round of the same agent.
+5. **Truthful outcome:** dropped or interrupted review work is recorded as
+   incomplete or discarded; it is never reported as a clear review.
 
 ## Required conformance and present evidence
 
