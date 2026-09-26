@@ -330,6 +330,13 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
     const root = makeTemporaryDirectory("review-cli-no-credential-");
     roots.push(root);
     const statePath = initializeRepository(root);
+    const credentialStatePath = join(root, "credential-state.json");
+    // Removing the environment key alone still permits saved-keychain lookup.
+    writeFileSync(credentialStatePath, JSON.stringify({
+      version: 1,
+      generation: 0,
+      savedUseSuspended: true,
+    }));
     mkdirSync(join(root, "src"));
     const content = "export type Counter = { count: number };\n";
     const path = join(root, "src/counter.ts");
@@ -350,7 +357,11 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
       cwd: process.cwd(),
       input,
       encoding: "utf8",
-      env: { ...environment, REVIEW_STATE_PATH: statePath },
+      env: {
+        ...environment,
+        REVIEW_STATE_PATH: statePath,
+        REVIEW_CREDENTIAL_STATE_PATH: credentialStatePath,
+      },
     });
 
     expect(child.status).toBe(0);
