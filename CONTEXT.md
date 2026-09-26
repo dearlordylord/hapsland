@@ -12,7 +12,7 @@ implementation specification.
 | Repository enablement | The user-approved activation of review for a canonical working root and its review backend/destination, subject to source eligibility rules. |
 | Host trust | The agent host's approval to execute an installed integration. It is separate from repository enablement and credential availability. |
 | Agent host | A runtime that owns an agent's tool/edit loop and exposes lifecycle interception, such as Codex CLI or OpenCode. |
-| Agent | One coding actor whose attributed work and advice are addressed independently within an agent host. |
+| Agent | A coding assistant that edits source in an agent host and can receive advice from Hapsland. |
 | Subagent | An agent started by another agent within an agent host. It remains an agent for review and advice. |
 | Model provider | Secondary metadata about the inference service selected by a host or review backend. It is not a first-class adapter target in the current phase. |
 | Artifact | An independently identifiable semantic subject extracted from source. Its kind identifies what it describes; the initial kind is `typeShape`. |
@@ -36,7 +36,9 @@ implementation specification.
 | Review work item | One review unit together with the frozen observation, rule-set, and input-contract context needed to schedule its evaluation. |
 | Review dispatch cycle | A finite group of review work items selected together for evaluation; work arriving after selection belongs to a later cycle. |
 | Review result | The operational result of evaluating one actual review work item. |
-| Advicee | The specific agent eligible to receive advice for an attributable review input. A working root or the latest caller is not itself an advicee. |
+| Advicee | The agent that Hapsland can advise about an attributed edit. A working root or the latest caller does not identify that agent by itself. |
+| Stop continuation | More work that Hapsland asks an agent to do when it tries to finish, so it can act on advice. |
+| Stop allowance | Permission for Hapsland to request one Stop continuation from a specific agent. |
 | Pending advice | Advice from a completed review that remains eligible for delivery to its intended advicee. |
 | Advice relevance expiry | The transition after which undelivered pending advice is no longer eligible for delivery because its configured relevance age has elapsed. It does not imply delivery, host closure, or loss of the observation baseline. |
 | Advice batch | The bounded collection of review results selected for delivery together through one agent-host interaction. |
