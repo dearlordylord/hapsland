@@ -13,6 +13,7 @@ Select a guided example, move to its next or previous event, or apply an event
 directly. The process diagram groups
 related events into one numbered connection. The event list shows each variant,
 its information, and whether its prerequisites currently hold.
+Left and Right Arrow move through a guided example when focus is outside text inputs.
 
 The backbone is the guarded `stepFlow` reducer. There is no separate explicit
 state-machine definition. The page displays reducer state and explains its

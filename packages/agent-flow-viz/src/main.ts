@@ -250,6 +250,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
               next === undefined ? "Trace complete" : `Next: ${TRANSITIONS[next].label}`,
             ]),
             h.button([h.OnClick(Message.Reset())], ["Reset trace"]),
+            h.span([h.Class("key-hint")], ["← / → keys"]),
           ]),
           h.p([h.Class("progress")], [trace ? `Step ${model.cursor} of ${trace.events.length}` : "Free play"]),
           h.p([h.Class("status")], [model.flow.note]),

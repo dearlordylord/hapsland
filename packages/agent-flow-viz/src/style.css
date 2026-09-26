@@ -22,6 +22,7 @@ p { line-height: 1.5; }
 .card { padding: 22px; min-width: 0; }
 .trace-options, .trace-controls { display: flex; flex-wrap: wrap; gap: 7px; }
 .trace, .trace-controls button { border: 1px solid #b8c7d9; border-radius: 7px; background: #fff; color: #264365; padding: 8px 10px; font-size: .8rem; }
+.key-hint { align-self: center; color: #66778e; font-size: .8rem; }
 .trace.selected, .trace-controls .primary { background: #245bb8; color: #fff; border-color: #245bb8; }
 .trace:hover, .trace-controls button:hover, .event-row:hover { background: #eaf1ff; color: #17335e; }
 .trace.selected:hover, .trace-controls .primary:hover { background: #174a9d; color: #fff; }
