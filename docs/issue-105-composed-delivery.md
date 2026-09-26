@@ -543,11 +543,18 @@ The required bottom demo diagram must:
   checks statically, and which runtime, IPC, scheduling, timing, cancellation, or
   visibility behavior lies outside that model.
 
-The owner delegated representation choices after Astra pre-research. The diagram is
-being implemented in the clean, separate Foldkit PR #110; this document does not claim
-it is complete. The remaining acceptance work is to complete and review that diagram
-and its coverage/limits, reconcile its evidence labels with this contract, and record
-the final adoption/review outcome. #105 stays open during that work. No further native
+The owner delegated representation choices after Astra pre-research. The diagram
+implementation condition is fulfilled in the clean Foldkit PR #110 by `1667d0b` and
+`8e66825`, subject to the owner's visual review and adoption. Read-only audit confirmed
+bottom placement, separate required/exploratory and observed/unproven labels, retained
+timestamp accuracy, visible unknown-runtime caveats, and truthful partial reducer
+coverage. The default after panels include prompt, pre-edit, repair pre-edit, edit,
+Stop, and runtime-exit observations. Grey spans explicitly mark missing evidence,
+not measured runtime stages. Typed event identity checks and reducer replay establish
+the abstract companion paths, not native timing or visibility. The sidecar build
+passed. The remaining work is the owner's visual review of this implemented diagram
+and its coverage/limits, followed by the final adoption/review outcome. #105 stays
+open during that work. No further native
 probe is automatically required merely because one of the accepted support limits is
 still unobservable. Any newly found product failure still requires an explicit disposition.
 
@@ -562,8 +569,8 @@ contains the clean, separate backbone prototype. The prototype is not running in
 production and its reducer/diagram does not substitute for native conformance.
 
 **Present decision:** candidate implementation and the recorded evidence support the
-owner's conditionally accepted Linux boundary. Complete the Foldkit timing-diagram
-condition and final review/adoption work before closure. Closing #105 must still create
+owner's conditionally accepted Linux boundary. The Foldkit timing-diagram implementation is complete; finish the owner’s visual
+review and final adoption work before closure. Closing #105 must still create
 and link the manual macOS follow-up. A background response submitted near session end
 remains visibility unknown even when the resident records a successful write. No live
 Jev validation is needed for this controlled delivery gate.
