@@ -54,8 +54,11 @@ const writeJson = (value: unknown, deadlineAt: number): Promise<WriteOutcome> =>
 const promptMarker = async (event: Readonly<Record<string, unknown>>, host: ComposedHookHost): Promise<string | undefined> => {
   if (typeof event.prompt !== "string") return undefined;
   if (host === "codex-cli") {
-    return typeof event.turn_id === "string" && event.turn_id.length > 0
-      ? digest(`codex-turn:${event.turn_id}`) : undefined;
+    // Native Codex turn identity identifies this prompt notification. It is not
+    // a Hapsland round ID: a round may span multiple runtime turns.
+    const runtimeTurnId = event.turn_id;
+    return typeof runtimeTurnId === "string" && runtimeTurnId.length > 0
+      ? digest(`codex-turn:${runtimeTurnId}`) : undefined;
   }
   if (typeof event.transcript_path !== "string" || event.transcript_path.length === 0) {
     return digest(`claude-prompt:${event.session_id}:${event.prompt}`);
@@ -112,12 +115,14 @@ export const runComposedHook = async (input: {
       digest(`subagent:${input.host}:${advicee.sessionId}:${advicee.subagentId}`), paths, undefined, true)
       .catch(() => false);
   }
-  // Codex supplies a stable native turn ID on Stop. Reasserting that marker
-  // recovers if UserPromptSubmit could not reach the resident under load;
-  // advance() keeps the existing one-continuation cap for the same marker.
+  // Codex's native turn ID is only a fallback marker for the candidate's Stop
+  // allowance, not evidence that a Hapsland round started or ended. Initialize
+  // missing state if UserPromptSubmit could not reach the resident; ensure mode
+  // preserves an existing allowance even if the runtime turn ID changed.
+  const runtimeTurnId = event.turn_id;
   if (input.kind === "stop" && input.host === "codex-cli" &&
-      typeof event.turn_id === "string" && event.turn_id.length > 0) {
-    await markComposedUserPrompt(root, advicee, digest(`codex-turn:${event.turn_id}`), paths, undefined, true)
+      typeof runtimeTurnId === "string" && runtimeTurnId.length > 0) {
+    await markComposedUserPrompt(root, advicee, digest(`codex-turn:${runtimeTurnId}`), paths, undefined, true)
       .catch(() => false);
   }
   const dispatch = await makeResidentDispatchContext(
