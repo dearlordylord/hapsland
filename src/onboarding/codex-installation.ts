@@ -76,7 +76,7 @@ interface OwnershipRecord {
   readonly entrypoint: string;
   readonly marker: typeof OWNED_MARKER;
   readonly hookFingerprint: string;
-  readonly composedFingerprints?: { readonly stop: string; readonly prompt: string };
+  readonly composedFingerprints?: { readonly stop: string; readonly prompt: string; readonly subagentStop?: string };
   readonly owned: ReadonlyArray<{
     readonly file: string;
     readonly kind: "feature" | "hook";
@@ -151,6 +151,7 @@ const composedCommand = (runtime: string, entrypoint: string, hostVersion: strin
 
 const composedGroups = (runtime: string, entrypoint: string, hostVersion: string) => ({
   Stop: { hooks: [{ type: "command", command: composedCommand(runtime, entrypoint, hostVersion, "stop"), timeout: 5 }] },
+  SubagentStop: { hooks: [{ type: "command", command: composedCommand(runtime, entrypoint, hostVersion, "stop"), timeout: 5 }] },
   UserPromptSubmit: { hooks: [{ type: "command", command: composedCommand(runtime, entrypoint, hostVersion, "prompt"), timeout: 4 }] },
 });
 
@@ -198,15 +199,16 @@ const withComposedGroups = (
   const hooks = root.hooks === undefined ? {} : root.hooks;
   if (!isObject(hooks)) throw new Error("hooks.json field 'hooks' must be an object");
   const nextHooks = { ...hooks };
-  for (const [event, key] of [["Stop", "stop"], ["UserPromptSubmit", "prompt"]] as const) {
+  for (const [event, key] of [["Stop", "stop"], ["SubagentStop", "subagentStop"], ["UserPromptSubmit", "prompt"]] as const) {
     const existing = nextHooks[event];
     if (existing !== undefined && !Array.isArray(existing)) throw new Error(`hooks.json ${event} must be an array`);
     const groups: unknown[] = existing === undefined ? [] : [...existing];
     const indexes = groups.flatMap((group, index) =>
       stableJson(group).includes(COMPOSED_MARKER) ? [index] : []);
-    if (indexes.length > 1 || (expected === undefined && indexes.length !== 0) ||
-        (expected !== undefined && (indexes.length !== 1 ||
-          hookFingerprint(groups[indexes[0]!]) !== expected[key]))) {
+    const expectedFingerprint = expected?.[key];
+    if (indexes.length > 1 || (expectedFingerprint === undefined && indexes.length !== 0) ||
+        (expectedFingerprint !== undefined && (indexes.length !== 1 ||
+          hookFingerprint(groups[indexes[0]!]) !== expectedFingerprint))) {
       throw new Error(`owned Codex ${event} hook is missing, duplicated, or locally modified`);
     }
     if (indexes.length === 1) groups.splice(indexes[0]!, 1);
@@ -446,7 +448,8 @@ const readOwnership = (path: string): OwnershipRecord | undefined => {
         !Number.isSafeInteger(value.residentProtocol) || value.residentProtocol <= 0)) ||
       (value.composedFingerprints !== undefined && (!isObject(value.composedFingerprints) ||
         typeof value.composedFingerprints.stop !== "string" ||
-        typeof value.composedFingerprints.prompt !== "string")) ||
+        typeof value.composedFingerprints.prompt !== "string" ||
+        (value.composedFingerprints.subagentStop !== undefined && typeof value.composedFingerprints.subagentStop !== "string"))) ||
       value.marker !== OWNED_MARKER) {
     throw new Error("installation ownership record has an unsupported shape or version");
   }
@@ -473,6 +476,7 @@ const readOwnership = (path: string): OwnershipRecord | undefined => {
       composedFingerprints: {
         stop: (value.composedFingerprints as JsonObject).stop as string,
         prompt: (value.composedFingerprints as JsonObject).prompt as string,
+        ...(typeof value.composedFingerprints.subagentStop === "string" ? { subagentStop: value.composedFingerprints.subagentStop } : {}),
       },
     }),
     owned,
@@ -741,6 +745,7 @@ const makeOwnershipRecord = (
   hookFingerprint: fingerprint,
   composedFingerprints: {
     stop: hookFingerprint(composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version).Stop),
+    subagentStop: hookFingerprint(composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version).SubagentStop),
     prompt: hookFingerprint(composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version).UserPromptSubmit),
   },
   owned: [
@@ -1256,7 +1261,8 @@ const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof re
   const priorComposed = isObject(priorOwnership?.composedFingerprints) &&
     typeof priorOwnership.composedFingerprints.stop === "string" &&
     typeof priorOwnership.composedFingerprints.prompt === "string"
-    ? { stop: priorOwnership.composedFingerprints.stop, prompt: priorOwnership.composedFingerprints.prompt }
+    ? { stop: priorOwnership.composedFingerprints.stop, prompt: priorOwnership.composedFingerprints.prompt,
+      ...(typeof priorOwnership.composedFingerprints.subagentStop === "string" ? { subagentStop: priorOwnership.composedFingerprints.subagentStop } : {}) }
     : undefined;
   const targetComposed = composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version);
   const priorOwned = Array.isArray(priorOwnership?.owned) ? priorOwnership.owned : [];
@@ -1290,6 +1296,7 @@ const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof re
       }
       withComposedGroups(currentRoot, targetComposed, {
         stop: hookFingerprint(targetComposed.Stop), prompt: hookFingerprint(targetComposed.UserPromptSubmit),
+        subagentStop: hookFingerprint(targetComposed.SubagentStop),
       });
     }
     return;
@@ -1322,6 +1329,7 @@ const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof re
       }
       withComposedGroups(currentRoot, targetComposed, {
         stop: hookFingerprint(targetComposed.Stop), prompt: hookFingerprint(targetComposed.UserPromptSubmit),
+        subagentStop: hookFingerprint(targetComposed.SubagentStop),
       });
     }
     const featureOwned = priorFeatureOwned || configChange !== undefined;

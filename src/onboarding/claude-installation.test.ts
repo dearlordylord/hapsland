@@ -52,11 +52,13 @@ describe("Claude installation lifecycle", () => {
     expect((await installClaudeIntegration({ ...request, proposalDigest: digestOf(preview) })).status).toBe("complete");
     const installed = settings(home);
     expect(installed.permissions).toEqual(original.permissions);
-    const installedHooks = installed.hooks as typeof original.hooks & { UserPromptSubmit: unknown[] };
+    const installedHooks = installed.hooks as typeof original.hooks & { UserPromptSubmit: unknown[]; SubagentStop: unknown[] };
     expect(installedHooks.Stop[0]).toEqual(original.hooks.Stop[0]);
     expect(installedHooks.Stop).toHaveLength(2);
     expect(JSON.stringify(installedHooks.Stop[1])).toContain("--composed-stop-hook");
     expect(JSON.stringify(installedHooks.UserPromptSubmit)).toContain("--composed-prompt-hook");
+    expect(installedHooks.SubagentStop).toHaveLength(1);
+    expect(JSON.stringify(installedHooks.SubagentStop)).toContain("--composed-stop-hook");
     const post = (installed.hooks as typeof original.hooks).PostToolUse;
     expect(post[0]).toEqual(original.hooks.PostToolUse[0]);
     expect(post).toHaveLength(2);
@@ -69,6 +71,23 @@ describe("Claude installation lifecycle", () => {
     expect((await uninstallClaudeIntegration({ ...request, proposalDigest: digestOf(removal) })).status).toBe("complete");
     expect(settings(home)).toEqual(original);
     expect((inspectClaudeInstallation(request) as { installed?: boolean }).installed).toBe(false);
+  });
+
+  it("updates an older owned installation to add SubagentStop", async () => {
+    const { home, claudeExecutable } = fixture();
+    const request = { claudeHome: home, claudeExecutable };
+    await installClaudeIntegration({ ...request, proposalDigest: digestOf(previewClaudeInstallation(request)) });
+    const previous = settings(home);
+    delete (previous.hooks as Record<string, unknown>).SubagentStop;
+    writeFileSync(join(home, "settings.json"), JSON.stringify(previous));
+    const recordPath = join(home, ".realtime-review-tool", "claude-installation-v1.json");
+    const record = JSON.parse(readFileSync(recordPath, "utf8")) as { composed: { subagentStopDigest?: string } };
+    delete record.composed.subagentStopDigest;
+    writeFileSync(recordPath, JSON.stringify(record));
+    const proposal = previewClaudeUpdate(request);
+    expect(proposal.status).toBe("preview");
+    expect((await updateClaudeIntegration({ ...request, proposalDigest: digestOf(proposal) })).status).toBe("complete");
+    expect((settings(home).hooks as Record<string, unknown>).SubagentStop).toBeDefined();
   });
 
   it("requires the exact tested host profile and an approval digest", async () => {
@@ -97,12 +116,12 @@ describe("Claude installation lifecycle", () => {
     expect(settings(home)).toEqual(changed);
   });
 
-  it("rejects a locally modified owned Stop hook", async () => {
+  it.each(["Stop", "SubagentStop"] as const)("rejects a locally modified owned %s hook", async (event) => {
     const { home, claudeExecutable } = fixture();
     const request = { claudeHome: home, claudeExecutable };
     await installClaudeIntegration({ ...request, proposalDigest: digestOf(previewClaudeInstallation(request)) });
     const changed = settings(home);
-    const stop = (changed.hooks as { Stop: Array<{ hooks: Array<{ timeout: number }> }> }).Stop;
+    const stop = (changed.hooks as Record<typeof event, Array<{ hooks: Array<{ timeout: number }> }>>)[event];
     stop[0]!.hooks[0]!.timeout = 3;
     writeFileSync(join(home, "settings.json"), JSON.stringify(changed));
     expect(inspectClaudeInstallation(request).status).toBe("conflict");

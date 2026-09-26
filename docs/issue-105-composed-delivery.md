@@ -64,6 +64,20 @@ co-location, or a checkpoint. A direct edit with a supplied child `agent_id` rem
 child-owned. A shared-root checkpoint change with unknown origin has no advicee and
 cannot yield addressed advice. Isolated worktrees have distinct canonical roots.
 
+The agent host is adapter metadata in that key; it does not represent a parent
+agent that owns child advice. A parent and its child use different keys when the
+host supplies the child's `agent_id`. Independent tabs use different sessions.
+The resident does not model a parent-child tree. The earlier child delivery gap
+was at the hook boundary: `SubagentStop` was not registered or accepted, so a
+child-owned finding could not be collected at that child's Stop.
+
+The candidate now registers `SubagentStop` for both hosts and sends it through
+the same composed Stop collector. A child with no `UserPromptSubmit` initializes
+one delivery allowance on its first background or Stop request. Repeated child
+requests do not reset it. This does **not** establish a fresh allowance for a
+child resumed in a later parent turn; that lifecycle boundary needs host evidence
+and a separately defined reset rule before the candidate can be adopted.
+
 Every collection checks root identity, advicee identity, enablement, credential
 generation, source selection, current work revision, current snapshot, and advice age
 at the final handoff barrier. A stale or unattributed result is suppressed. A transient

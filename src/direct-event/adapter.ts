@@ -237,13 +237,14 @@ export const adaptCodexReply = Effect.fn("DirectEvent.adaptCodexReply")(function
 export const adaptComposedHookIdentity = Effect.fn("DirectEvent.adaptComposedHookIdentity")(function* (
   value: unknown,
   host: "codex-cli" | "claude-code",
-  eventName: "PostToolUse" | "Stop" | "UserPromptSubmit",
+  eventName: "PostToolUse" | "Stop" | "SubagentStop" | "UserPromptSubmit",
   codexVersion: CodexHostVersion = "0.155.1",
 ) {
   const event = record(value);
   if (event?.hook_event_name !== eventName || !nonEmpty(event.session_id) ||
       !nonEmpty(event.cwd) ||
       (event.agent_id !== undefined && !nonEmpty(event.agent_id))) return undefined;
+  if (eventName === "SubagentStop" && !nonEmpty(event.agent_id)) return undefined;
   if (eventName === "PostToolUse") {
     if (!nonEmpty(event.tool_use_id)) return undefined;
     if (host === "codex-cli" && event.tool_name !== "apply_patch") return undefined;

@@ -85,7 +85,7 @@ export const runComposedHook = async (input: {
   const event = record(input.event);
   if (event === undefined) return quiet();
   const eventName = input.kind === "background" ? "PostToolUse"
-    : input.kind === "stop" ? "Stop" : "UserPromptSubmit";
+    : input.kind === "stop" ? (event.hook_event_name === "SubagentStop" ? "SubagentStop" : "Stop") : "UserPromptSubmit";
   const identity = await Effect.runPromise(adaptComposedHookIdentity(
     event, input.host, eventName, input.codexVersion,
   )).catch(() => undefined);
@@ -102,6 +102,16 @@ export const runComposedHook = async (input: {
     return quiet();
   }
   if (input.kind === "stop" && event.stop_hook_active === true) return quiet();
+  // A child may never receive UserPromptSubmit. Its explicit native identity
+  // permits one initial allowance; repeated tool/Stop events must not reset it.
+  // Initialize before background submission too, so Stop does not accidentally
+  // change its generation and bypass submitted-finding suppression.
+  // Resumed children remain capped until an explicit prompt advances their chain.
+  if ((eventName === "SubagentStop" || input.kind === "background") && advicee.agentId !== null) {
+    await markComposedUserPrompt(root, advicee,
+      digest(`subagent:${input.host}:${advicee.sessionId}:${advicee.agentId}`), paths, undefined, true)
+      .catch(() => false);
+  }
   // Codex supplies a stable native turn ID on Stop. Reasserting that marker
   // recovers if UserPromptSubmit could not reach the resident under load;
   // advance() keeps the existing one-continuation cap for the same marker.

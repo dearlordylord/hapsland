@@ -398,6 +398,31 @@ describe("resident delivery lease", () => {
     }
   });
 
+  it("initializes child Stop allowance without a child prompt and isolates parent and siblings", async () => {
+    const root = await makeGitFixture();
+    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    for (const host of ["codex-cli", "claude-code"] as const) {
+      const parent = host === "codex-cli" ? { host, hostVersion: "0.155.1" as const, sessionId: "session", turnId: "turn", toolUseId: "stop", agentId: null }
+        : { host, hostVersion: "2.1.218" as const, sessionId: "session", turnId: null, toolUseId: "stop", agentId: null };
+      const child = { ...parent, agentId: "child" };
+      const sibling = { ...parent, agentId: "sibling" };
+      const consume = (selected: typeof child | typeof parent) => server.handle({ version: 1,
+        operation: "consume-stop", lifetime: server.lifetime, root, advicee: selected });
+      const ensure = (selected: typeof child) => server.handle({ version: 1,
+        operation: "prompt-marker", lifetime: server.lifetime, root, advicee: selected,
+        marker: "b".repeat(64), onlyIfMissing: true });
+      expect(await consume(child)).toEqual({ status: "continuation-denied" });
+      expect(await ensure(child)).toEqual({ status: "advanced" });
+      expect(await consume(child)).toEqual({ status: "continuation-allowed" });
+      expect(await ensure(child)).toEqual({ status: "advanced" });
+      expect(await consume(child)).toEqual({ status: "continuation-denied" });
+      expect(await consume(parent)).toEqual({ status: "continuation-denied" });
+      expect(await consume(sibling)).toEqual({ status: "continuation-denied" });
+      expect(await ensure(sibling)).toEqual({ status: "advanced" });
+      expect(await consume(sibling)).toEqual({ status: "continuation-allowed" });
+    }
+  });
+
   it("reports pending work only to its advicee during composed collection", async () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");

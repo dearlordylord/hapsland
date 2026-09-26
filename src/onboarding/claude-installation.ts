@@ -23,7 +23,7 @@ interface OwnedRecord {
   readonly home: string;
   readonly hookDigest: string;
   readonly command: string;
-  readonly composed?: { readonly stopDigest: string; readonly promptDigest: string };
+  readonly composed?: { readonly stopDigest: string; readonly promptDigest: string; readonly subagentStopDigest?: string };
 }
 
 const object = (value: unknown): value is JsonObject => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -70,7 +70,8 @@ const readRecord = (path: string): OwnedRecord | undefined => {
   if (value.version !== OWNERSHIP_VERSION || value.adapter !== "claude" || typeof value.home !== "string" ||
       typeof value.hookDigest !== "string" || typeof value.command !== "string" ||
       (value.composed !== undefined && (!object(value.composed) ||
-        typeof value.composed.stopDigest !== "string" || typeof value.composed.promptDigest !== "string"))) {
+        typeof value.composed.stopDigest !== "string" || typeof value.composed.promptDigest !== "string" ||
+        (value.composed.subagentStopDigest !== undefined && typeof value.composed.subagentStopDigest !== "string")))) {
     throw new Error("Claude ownership record has an unsupported shape");
   }
   return value as unknown as OwnedRecord;
@@ -107,7 +108,7 @@ const withGroups = (settings: JsonObject, next: ReadonlyArray<unknown>): JsonObj
   return result;
 };
 
-const eventGroups = (settings: JsonObject, event: "Stop" | "UserPromptSubmit"): ReadonlyArray<unknown> => {
+const eventGroups = (settings: JsonObject, event: "Stop" | "SubagentStop" | "UserPromptSubmit"): ReadonlyArray<unknown> => {
   if (settings.hooks === undefined) return [];
   if (!object(settings.hooks)) throw new Error("Claude settings hooks must be an object");
   const value = settings.hooks[event];
@@ -117,7 +118,7 @@ const eventGroups = (settings: JsonObject, event: "Stop" | "UserPromptSubmit"): 
 };
 
 const withComposedGroup = (
-  settings: JsonObject, event: "Stop" | "UserPromptSubmit", next: unknown | undefined,
+  settings: JsonObject, event: "Stop" | "SubagentStop" | "UserPromptSubmit", next: unknown | undefined,
   expectedDigest: string | undefined,
 ): JsonObject => {
   const current = [...eventGroups(settings, event)];
@@ -187,6 +188,7 @@ const plan = (kind: Kind, request: ClaudeInstallationRequest) => {
   const current = owned(settings);
   if (record === undefined) {
     withComposedGroup(settings, "Stop", undefined, undefined);
+    withComposedGroup(settings, "SubagentStop", undefined, undefined);
     withComposedGroup(settings, "UserPromptSubmit", undefined, undefined);
   }
   if (record?.home !== undefined && record.home !== input.home) throw new Error("Claude ownership record belongs to another home");
@@ -204,8 +206,10 @@ const plan = (kind: Kind, request: ClaudeInstallationRequest) => {
   else nextGroups[current.index] = input.group;
   const nextSettings = kind === "uninstall" && record === undefined ? settings
     : withComposedGroup(
-      withComposedGroup(withGroups(settings, nextGroups), "Stop",
-        kind === "uninstall" ? undefined : input.stopGroup, composed?.stopDigest),
+      withComposedGroup(
+        withComposedGroup(withGroups(settings, nextGroups), "Stop",
+          kind === "uninstall" ? undefined : input.stopGroup, composed?.stopDigest),
+        "SubagentStop", kind === "uninstall" ? undefined : input.stopGroup, composed?.subagentStopDigest),
       "UserPromptSubmit", kind === "uninstall" ? undefined : input.promptGroup,
       composed?.promptDigest,
     );
@@ -213,7 +217,8 @@ const plan = (kind: Kind, request: ClaudeInstallationRequest) => {
   const afterRecord = kind === "uninstall" ? undefined : encode({
     version: OWNERSHIP_VERSION, adapter: "claude", home: input.home,
     hookDigest: digest(canonical(input.group)), command: input.command,
-    composed: { stopDigest: digest(canonical(input.stopGroup)), promptDigest: digest(canonical(input.promptGroup)) },
+    composed: { stopDigest: digest(canonical(input.stopGroup)), promptDigest: digest(canonical(input.promptGroup)),
+      subagentStopDigest: digest(canonical(input.stopGroup)) },
   } satisfies OwnedRecord);
   const proposalDigest = digest(canonical({ version: 1, adapter: "claude", operation: kind, home: input.home,
     beforeSettings: digest(beforeSettings ?? "<missing>"), beforeRecord: digest(beforeRecord ?? "<missing>"),
@@ -294,6 +299,7 @@ export const inspectClaudeInstallation = (request: ClaudeInstallationRequest) =>
     const current = owned(settings);
     if (record === undefined) {
       withComposedGroup(settings, "Stop", undefined, undefined);
+      withComposedGroup(settings, "SubagentStop", undefined, undefined);
       withComposedGroup(settings, "UserPromptSubmit", undefined, undefined);
     }
     if (record === undefined && current === undefined) return { version: 1 as const, operation: "inspect-installation", status: "ready" as const, installed: false };
@@ -302,6 +308,7 @@ export const inspectClaudeInstallation = (request: ClaudeInstallationRequest) =>
     }
     if (record.composed !== undefined) {
       withComposedGroup(settings, "Stop", undefined, record.composed.stopDigest);
+      withComposedGroup(settings, "SubagentStop", undefined, record.composed.subagentStopDigest);
       withComposedGroup(settings, "UserPromptSubmit", undefined, record.composed.promptDigest);
     }
     return { version: 1 as const, operation: "inspect-installation", status: "ready" as const, installed: true };
