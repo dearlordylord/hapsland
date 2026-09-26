@@ -956,7 +956,7 @@ describe("resident delivery lease", () => {
     expect(server.stats().pendingAdvice).toBe(1);
     expect(await server.collect(
       root,
-      advicee({ agentId: "other", turnId: "other", toolUseId: "other" }),
+      advicee({ subagentId: "other", turnId: "other", toolUseId: "other" }),
       dispatch,
     )).toMatchObject({ status: "empty" });
     expect(server.stats().pendingAdvice).toBe(1);
@@ -1071,12 +1071,12 @@ describe("resident delivery lease", () => {
     const saturated = server.stats();
     expect(saturated).toMatchObject({ pendingAdvice: 64 });
     const firstBatchBytes = server.pendingAdviceMetadata().filter(({ partition }) =>
-      partition.includes('"agentId":"agent-0"')).slice(0, 5)
+      partition.includes('"subagentId":"agent-0"')).slice(0, 5)
       .reduce((total, item) => total + item.retainedBytes, 0);
 
     const collected = await server.collect(
       root,
-      advicee({ agentId: "agent-0", turnId: "global", toolUseId: "global" }),
+      advicee({ subagentId: "agent-0", turnId: "global", toolUseId: "global" }),
       dispatch,
     );
     expect(collected.status).toBe("advice");
@@ -1268,11 +1268,11 @@ describe("resident delivery lease", () => {
     // Both identifiers are valid at the 16,384-code-unit protocol ceiling
     // while their combined UTF-8 representation is 96 KiB.
     const sessionId = "漢".repeat(16_384);
-    const agentId = "界".repeat(16_384);
+    const subagentId = "界".repeat(16_384);
     const padding = "p".repeat(56 * 1024);
     const observation = {
       ...base,
-      advicee: { ...base.advicee, sessionId, agentId },
+      advicee: { ...base.advicee, sessionId, subagentId },
       candidates: base.candidates.map((candidate) => candidate.operation === "add"
         ? { ...candidate, addedLines: [padding] }
         : candidate),
@@ -1320,7 +1320,7 @@ describe("resident delivery lease", () => {
 
     expect(await server.collect(
       root,
-      { ...observation.advicee, agentId: `${agentId.slice(0, -1)}z` },
+      { ...observation.advicee, subagentId: `${subagentId.slice(0, -1)}z` },
       dispatch,
     )).toMatchObject({ status: "empty" });
     expect(server.pendingAdviceMetadata().map(({ id, delivery }) => ({ id, delivery }))).toEqual(

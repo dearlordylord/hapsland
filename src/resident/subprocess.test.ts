@@ -256,7 +256,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       return stats.status === "stats" && stats.pendingAdvice === 1 ? stats : undefined;
     });
 
-    expect(await collectReady(root, advicee({ agentId: "other-child" }), dispatch, paths)).toBeUndefined();
+    expect(await collectReady(root, advicee({ subagentId: "other-child" }), dispatch, paths)).toBeUndefined();
     expect(await collectReady(otherRoot, advicee(), dispatch, paths)).toBeUndefined();
     await writeFile(`${collectGate}.enabled`, "enabled\n");
     const disconnectScript = [
@@ -592,7 +592,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     expect(await acknowledgeAdvice(cachedBatch)).toBe(true);
     const childAdvice = await collectReady(
       root,
-      advicee({ agentId: "child-2", turnId: "collect", toolUseId: "child" }),
+      advicee({ subagentId: "child-2", turnId: "collect", toolUseId: "child" }),
       dispatch,
       paths,
     );

@@ -24,12 +24,12 @@ describe("direct-event Codex Add adapter", () => {
         sessionId: "session",
         turnId: "turn",
         toolUseId: "tool-use",
-        agentId: "child",
+        subagentId: "child",
       },
       candidates: [{ operation: "add", path: "a.ts" }],
     });
     const parent = await Effect.runPromise(adaptCodexAdd(addEvent(root)));
-    expect(parent?.advicee.agentId).toBeNull();
+    expect(parent?.advicee.subagentId).toBeNull();
   });
 
   it("normalizes an absolute patch path through the event cwd alias", async () => {
@@ -77,7 +77,7 @@ describe("direct-event Codex Add adapter", () => {
         sessionId: "pinned-session",
         turnId: "pinned-turn",
         toolUseId: "pinned-tool",
-        agentId: null,
+        subagentId: null,
       },
       candidates: [{ operation: "add", path: "pinned.ts" }],
     });

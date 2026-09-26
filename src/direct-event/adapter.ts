@@ -196,7 +196,7 @@ export const adaptCodexDirectEvent = Effect.fn("DirectEvent.adaptCodexDirectEven
     sessionId: event.session_id,
     turnId: event.turn_id,
     toolUseId: event.tool_use_id,
-    agentId: event.agent_id ?? null,
+    subagentId: event.agent_id ?? null,
   });
   return Object.freeze({
     root: rootOption.value.root,
@@ -228,7 +228,7 @@ export const adaptCodexReply = Effect.fn("DirectEvent.adaptCodexReply")(function
       sessionId: event.session_id,
       turnId: event.turn_id,
       toolUseId: event.tool_use_id,
-      agentId: event.agent_id ?? null,
+      subagentId: event.agent_id ?? null,
     } satisfies DirectAdvicee),
   });
 });
@@ -312,7 +312,7 @@ export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEv
     rootIdentity: root.value.rootIdentity,
     advicee: Object.freeze({
       host: "claude-code", hostVersion: "2.1.218",
-      sessionId: event.session_id, turnId: null, toolUseId: event.tool_use_id, agentId: null,
+      sessionId: event.session_id, turnId: null, toolUseId: event.tool_use_id, subagentId: null,
     } satisfies DirectAdvicee),
     candidates: Object.freeze([Object.freeze({ ...candidate, path: relativePath })]),
   } satisfies DirectObservation);

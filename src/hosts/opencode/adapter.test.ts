@@ -29,7 +29,7 @@ describe("OpenCode 1.14.44 direct event adaptation", () => {
       filePath: "src/item.ts", oldString: "export interface Item { value: string }", newString: "export interface Item { value: number }", replaceAll: false,
     }, { diff: "fixture diff", truncated: false }));
     expect(result?.advicee).toEqual({ host: "opencode", hostVersion: "1.14.44", sessionId: "ses-1",
-      turnId: null, toolUseId: "call-1", agentId: null });
+      turnId: null, toolUseId: "call-1", subagentId: null });
     expect(result?.candidates).toEqual([{ operation: "update", path: "src/item.ts", addedLines: ["export interface Item { value: number }"] }]);
   });
 

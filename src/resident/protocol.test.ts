@@ -68,7 +68,7 @@ describe("resident protocol bounds", () => {
     expect(decodeResidentRequest(JSON.stringify({ ...synthetic, dispatch: {
       ...synthetic.dispatch, controlled: { syntheticR6BrandedRepair: "unknown" },
     } }))).toBeUndefined();
-    if (decoded?.operation === "admit") expect(decoded.observation.advicee.agentId).toBe("child-7");
+    if (decoded?.operation === "admit") expect(decoded.observation.advicee.subagentId).toBe("child-7");
     expect(decodeResidentRequest(JSON.stringify({
       version: 1,
       operation: "admit",

@@ -18,13 +18,13 @@ const makeRoot = () => {
   roots.push(root);
   return root;
 };
-const advicee = (sessionId: string, toolUseId: string, agentId: string | null = null): DirectAdvicee => ({
+const advicee = (sessionId: string, toolUseId: string, subagentId: string | null = null): DirectAdvicee => ({
   host: "codex-cli",
   hostVersion: "0.155.1",
   sessionId,
   turnId: `turn-${toolUseId}`,
   toolUseId,
-  agentId,
+  subagentId,
 });
 
 afterEach(() => {
@@ -204,12 +204,12 @@ describe("resident activity status", () => {
     const statePath = makeRoot();
     const root = "/secret/repository/path";
     const sessionId = "raw-session-secret";
-    const agentId = "raw-child-secret";
+    const subagentId = "raw-child-secret";
     for (let index = 0; index < MAX_ACTIVITY_EVENTS_PER_SESSION + 8; index += 1) {
       recordActivity({
         statePath,
         root,
-        advicee: advicee(sessionId, `tool-${index}`, agentId),
+        advicee: advicee(sessionId, `tool-${index}`, subagentId),
         lifetime: "resident",
         stage: "clear",
         now: index,
@@ -220,11 +220,11 @@ describe("resident activity status", () => {
     const files = readdirSync(join(statePath, sessionDirectories[0]!));
     expect(files).toHaveLength(MAX_ACTIVITY_EVENTS_PER_SESSION);
     const persisted = files.map((file) => readFileSync(join(statePath, sessionDirectories[0]!, file), "utf8")).join("\n");
-    for (const forbidden of [root, sessionId, agentId, "tool-", "source", "credential", "advice", "probability"]) {
+    for (const forbidden of [root, sessionId, subagentId, "tool-", "source", "credential", "advice", "probability"]) {
       expect(persisted).not.toContain(forbidden);
     }
 
-    const retried = advicee(sessionId, "retry-event", agentId);
+    const retried = advicee(sessionId, "retry-event", subagentId);
     for (let index = 0; index < MAX_ACTIVITY_MARKERS_PER_EVENT + 8; index += 1) {
       recordActivity({
         statePath,

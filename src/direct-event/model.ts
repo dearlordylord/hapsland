@@ -15,7 +15,7 @@ export type DirectAdvicee = {
   readonly sessionId: string;
   readonly turnId: string;
   readonly toolUseId: string;
-  readonly agentId: string | null;
+  readonly subagentId: string | null;
 } | {
   readonly host: "claude-code";
   readonly hostVersion: "2.1.218";
@@ -24,14 +24,14 @@ export type DirectAdvicee = {
   readonly turnId: null;
   readonly toolUseId: string;
   /** Claude 2.1.218 PostToolUse does not provide an agent identifier. */
-  readonly agentId: null;
+  readonly subagentId: null;
 } | {
   readonly host: "opencode";
   readonly hostVersion: "1.14.44";
   readonly sessionId: string;
   readonly turnId: null;
   readonly toolUseId: string;
-  readonly agentId: null;
+  readonly subagentId: null;
 };
 
 export type AddCandidate = {

@@ -28,7 +28,7 @@ describe("Claude Code 2.1.218 direct adapter", () => {
     const observation = await Effect.runPromise(adaptClaudeDirectEvent(event));
     expect(observation).toMatchObject({
       root,
-      advicee: { host: "claude-code", hostVersion: "2.1.218", sessionId: "session-a", turnId: null, toolUseId: "tool-a", agentId: null },
+      advicee: { host: "claude-code", hostVersion: "2.1.218", sessionId: "session-a", turnId: null, toolUseId: "tool-a", subagentId: null },
       candidates: [{ operation: "update", path: "item.ts", addedLines: ["export interface Item { value: number }"] }],
     });
     expect(decodeResidentRequest(JSON.stringify({

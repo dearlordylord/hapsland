@@ -86,7 +86,7 @@ describe("installed-product first-review demo", () => {
     writeFileSync(join(test.root, "session.ts"), "private synthetic source");
     writeFileSync(budget, JSON.stringify({ root: test.root }));
     const advicee = { host: "codex-cli" as const, hostVersion: "0.155.1" as const,
-      sessionId: "session", turnId: "turn", toolUseId: "tool", agentId: null };
+      sessionId: "session", turnId: "turn", toolUseId: "tool", subagentId: null };
     recordDemoTrace(budget, join(test.root, "other"), advicee, { kind: "delivery", ruleIds: ["r1_inferred_case"] });
     expect(readDemoTrace(budget, "session")).toHaveLength(0);
     recordDemoTrace(budget, test.root, advicee, { kind: "delivery", ruleIds: ["r1_inferred_case"] });

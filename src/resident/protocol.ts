@@ -136,10 +136,10 @@ const advicee = (value: unknown): value is DirectAdvicee => {
   const item = record(value);
   if (item?.host === "claude-code" || item?.host === "opencode") return item.hostVersion ===
     (item.host === "claude-code" ? "2.1.218" : "1.14.44") &&
-    string(item.sessionId) && item.turnId === null && string(item.toolUseId) && item.agentId === null;
+    string(item.sessionId) && item.turnId === null && string(item.toolUseId) && item.subagentId === null;
   return item?.host === "codex-cli" && isCodexHostVersion(item.hostVersion) &&
     string(item.sessionId) && string(item.turnId) && string(item.toolUseId) &&
-    (item.agentId === null || string(item.agentId));
+    (item.subagentId === null || string(item.subagentId));
 };
 
 const controlled = (value: unknown): value is ResidentControlledOptions => {
