@@ -125,8 +125,9 @@ for (const entry of cases) {
     if (proposal.status !== 0) throw new Error('consent preview failed');
     const confirmation = enable('enable-confirm', JSON.parse(proposal.stdout).proposal.digest);
     if (confirmation.status !== 0 || JSON.parse(confirmation.stdout).status !== 'enabled') throw new Error('consent failed');
-    const command = (mode) => `${quote(process.execPath)} ${quote(bridge)} ${mode} ${entry.host}`;
+    const command = (mode) => `${mode === 'before-edit' ? 'exec ' : ''}${quote(process.execPath)} ${quote(bridge)} ${mode} ${entry.host}`;
     const edit = { type: 'command', command: command('edit'), timeout: 5 };
+    const beforeEdit = { type: 'command', command: command('before-edit'), timeout: 5 };
     const background = { type: 'command', command: command('background'), timeout: 25, async: true };
     const stop = { type: 'command', command: command('stop'), timeout: 5 };
     const promptHook = { type: 'command', command: command('prompt'), timeout: 4 };
@@ -137,6 +138,7 @@ for (const entry of cases) {
       await chmod(join(home, 'auth.json'), 0o600);
       await writeFile(join(home, 'config.toml'), '[features]\nhooks = true\n');
       await writeFile(join(home, 'hooks.json'), JSON.stringify({ hooks: {
+        ...(candidate ? { PreToolUse: [{ matcher: '^apply_patch$', hooks: [beforeEdit] }] } : {}),
         PostToolUse: [{ matcher: '^apply_patch$', hooks: candidate ? [edit, background] : [edit] }],
         ...(candidate ? { UserPromptSubmit: [{ hooks: [promptHook] }], Stop: [{ hooks: [stop] }] } : {}),
       } }));
@@ -145,6 +147,7 @@ for (const entry of cases) {
       const claudeSettings = join(repo, '.claude');
       await mkdir(claudeSettings);
       await writeFile(join(claudeSettings, 'settings.json'), JSON.stringify({ hooks: {
+        ...(candidate ? { PreToolUse: [{ matcher: 'Edit|Write', hooks: [beforeEdit] }] } : {}),
         PostToolUse: [{ matcher: 'Edit|Write', hooks: candidate ? [edit, background] : [edit] }],
         ...(candidate ? { UserPromptSubmit: [{ hooks: [promptHook] }], Stop: [{ hooks: [stop] }] } : {}),
       } }));
@@ -216,7 +219,7 @@ for (const entry of cases) {
     const stages = await activityStages(activityPath);
     const result = { ...entry, hostVersion: entry.host === 'codex' ? '0.155.1' : '2.1.218',
       exitCode: hostRun.code, signal: hostRun.signal, timedOut: hostRun.timedOut, elapsedMs: hostRun.elapsedMs,
-      hookCounts: Object.fromEntries(['edit', 'background', 'stop', 'prompt'].map((mode) => [mode, hooks.filter((hook) => hook.mode === mode).length])),
+      hookCounts: Object.fromEntries(['before-edit', 'edit', 'background', 'stop', 'prompt'].map((mode) => [mode, hooks.filter((hook) => hook.mode === mode).length])),
       hookSequence: hooks.map(({ mode, at, ok, elapsedMs, finding, submitted, blocked, eventKeys, hasPrompt, hasTurnId, stopActive }) =>
         ({ mode, at, ok, elapsedMs, finding, submitted, blocked, eventKeys, hasPrompt, hasTurnId, stopActive })),
       nativeHookShapes: hooks.filter((hook) => hook.mode === 'edit').map(({ nativeTool, inputKeys, responseKeys, responseKind,
