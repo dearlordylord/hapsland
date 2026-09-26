@@ -55,7 +55,7 @@ synchronous `Stop` command are **delivery triggers only**. Neither may maintain 
 second review queue, reconstruct a review from the filesystem, or call Jev to obtain
 delivery output. All three collectors call the same resident collection operation.
 
-The partition key is the tuple `(canonical physical working root, agent host,
+The partition key is the tuple `(canonical physical working root, agent runtime,
 exact supported host version, session_id, supplied agent_id or null)`. It is created
 from the attributed edit and must be supplied unchanged by each collector. `turn_id`
 and `tool_use_id` identify events and continuation attempts; they do not replace the
@@ -64,7 +64,7 @@ co-location, or a checkpoint. A direct edit with a supplied child `agent_id` rem
 child-owned. A shared-root checkpoint change with unknown origin has no advicee and
 cannot yield addressed advice. Isolated worktrees have distinct canonical roots.
 
-The agent host is adapter metadata in that key; it does not represent a parent
+The agent runtime is adapter metadata in that key; it does not represent a parent
 agent that owns child advice. A parent and its child use different keys when the
 host supplies the child's `agent_id`. Independent tabs use different sessions.
 The resident does not model a parent-child tree. The earlier child delivery gap
@@ -192,6 +192,24 @@ does not block Stop.
 The five-second ceiling and one-continuation cap are **selected candidate limits**
 from #97's bounded fixtures, not established production defaults. They require both
 exact-profile launch-to-exit measurements and race validation before adoption.
+
+The owner selected **at most one Stop continuation per agent assignment** on
+2026-09-26. A repair requested at Stop stays in the same assignment. A later
+assignment to the same agent gets a new allowance. The current candidate does
+not yet implement this rule reliably: it has no assignment identity, and it
+cannot tell when a resumed subagent begins a new assignment. Its in-memory
+allowance can also expire or disappear on resident restart. These are adoption
+gaps, not proof that another assignment started.
+
+A Stop request does not empty the resident by construction. It waits for at
+most 4.2 seconds while review work can continue independently; Jev can finish
+after Stop returns. One response has a limit of five findings and 2 KiB, so
+other findings can remain pending. Composed delivery also retains advice after
+a successful response and suppresses repeat delivery only for the current
+delivery record. A later assignment can make still-current advice eligible
+again. If the agent repairs a finding, that edit can create new review work
+within the same assignment. Review completion, response submission, and
+agent action must therefore remain separate observations.
 
 ## Required conformance and present evidence
 
