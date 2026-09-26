@@ -13,6 +13,8 @@ implementation specification.
 | Runtime trust | The agent runtime's approval to execute an installed integration. It is separate from repository enablement and credential availability. |
 | Agent runtime | A program that runs an agent's tool and edit loop and reports its events, such as Codex CLI or Claude Code. |
 | Agent | A coding assistant that edits source in an agent runtime and can receive advice from Hapsland. |
+| Advicing | Hapsland's flow from an agent-runtime hook toward an advice decision for the agent. The flow may end without advice. |
+| Jeview | The portion of advicing in which Jev evaluates one item and returns its result. |
 | Subagent | An agent started by another agent within an agent runtime. It remains an agent for review and advice. |
 | Round | One episode of an agent's work that ends when its runtime accepts completion. Another runtime hook can keep it going after Hapsland allows a Stop attempt. Hapsland need not observe its actual end. |
 | Virtual round | Hapsland's own period of review and advice for one agent. It continues when Hapsland asks that agent to work on advice at Stop. It ends when Hapsland allows a Stop attempt, even if the agent's round continues because of another hook. Fresh attributed work after that boundary starts a new virtual round. |
