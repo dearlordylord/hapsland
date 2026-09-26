@@ -226,6 +226,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
       h.header([h.Class("page-header")], [
         h.p([h.Class("eyebrow")], ["SIDECAR MODEL · FOLDKIT"]),
         h.h1([], ["From agent edit to Jev and back"]),
+        h.a([h.Href("#timing-diagrams"), h.Class("timing-jump")], ["Jump to timing diagrams ↓"]),
         h.p([h.Class("intro")], [
           "One agent reports edits and receives advice through Claude Code or Codex. The runtime adapter identifies the agent. A sidecar reducer drives this data-flow example.",
         ]),

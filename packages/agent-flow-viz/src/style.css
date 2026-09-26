@@ -66,3 +66,7 @@ p { line-height: 1.5; }
 .timeline-steps span { margin-top: 8px; color: #62758f; }
 .timeline-sources { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-top: 18px; font-size: .75rem; }
 .timeline-sources a { color: #245bb8; overflow-wrap: anywhere; }
+
+.timing-jump { display: inline-block; margin: 0 0 14px; padding: 9px 12px; border: 1px solid #245bb8; border-radius: 7px; color: #fff; background: #245bb8; text-decoration: none; font-size: .86rem; font-weight: 700; }
+.timing-jump:hover { background: #174a9d; }
+#timing-diagrams { scroll-margin-top: 20px; }

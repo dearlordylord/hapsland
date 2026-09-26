@@ -64,7 +64,7 @@ export const timelineView = <Message>(h: HtmlBuilder<Message>, selected: number,
   const scenario = TIMELINE_CASES[selected] ?? TIMELINE_CASES[0];
   const segment = REDUCER_SEGMENTS[selected] ?? REDUCER_SEGMENTS[0];
   const maximum = Math.max(5000, Math.ceil(Math.max(...scenario.panels.flatMap((panel) => panel.entries.map((entry) => entry.until ?? entry.at))) / 5000) * 5000);
-  return h.section([h.Class("card timeline-section")], [
+  return h.section([h.Id("timing-diagrams"), h.Class("card timeline-section")], [
     h.h2([], ["When advice can reach the agent"]),
     h.p([h.Class("timeline-context")], ["Linux · Codex 0.155.1 / Claude Code 2.1.218 · controlled Effect reviewer, not live Jev · selected retained runs, not universal latency bounds"]),
     h.div([h.Class("timeline-case-heading")], [

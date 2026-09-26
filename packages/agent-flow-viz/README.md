@@ -59,6 +59,10 @@ Run `npm run build` for TypeScript checking and the Vite production build.
 
 ## Native timing evidence at the bottom of the page
 
+Use the prominent “Jump to timing diagrams” link at the top, or open
+`/#timing-diagrams` on the preview origin. The diagrams remain at the bottom
+of the same demo.
+
 The lower timeline defaults to matched before/after Stop repair runs on Codex and
 Claude. Seven selectable cases retain successful background opportunities,
 Stop reoffer, Codex foreground Bash, Claude streamed messages, all three unproven
