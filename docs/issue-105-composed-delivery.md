@@ -71,6 +71,16 @@ The resident does not model a parent-child tree. The earlier child delivery gap
 was at the hook boundary: `SubagentStop` was not registered or accepted, so a
 child-owned finding could not be collected at that child's Stop.
 
+Native Codex and Claude hooks call the child identifier `agent_id` because each
+child is an agent from the host's point of view. Hapsland maps that field to
+`subagentId` at the adapter boundary: from the product's broader view it
+distinguishes a child from the main agent within one host session. `null` means
+the host supplied no child identity for that event. The complete advicee key
+is **not** a `subagentId`; it also includes root, host/version, and session.
+The shared review and delivery lifecycle treats every resolved advicee as one
+agent. Host-specific hook names and evidence for starting a delivery chain stay
+at the adapter boundary.
+
 The candidate now registers `SubagentStop` for both hosts and sends it through
 the same composed Stop collector. A child with no `UserPromptSubmit` initializes
 one delivery allowance on its first background or Stop request. Repeated child
