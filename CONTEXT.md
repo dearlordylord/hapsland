@@ -14,7 +14,6 @@ implementation specification.
 | Agent runtime | A program that runs an agent's tool and edit loop and reports its events, such as Codex CLI or Claude Code. |
 | Agent | A coding assistant that edits source in an agent runtime and can receive advice from Hapsland. |
 | Subagent | An agent started by another agent within an agent runtime. It remains an agent for review and advice. |
-| Agent assignment | Work given to one agent by a user or another agent. Work that Hapsland asks the agent to do at Stop remains part of that assignment. |
 | Model provider | Secondary metadata about the inference service selected by an agent runtime or review backend. It is not a first-class adapter target in the current phase. |
 | Artifact | An independently identifiable semantic subject extracted from source. Its kind identifies what it describes; the initial kind is `typeShape`. |
 | Type-shape artifact | An artifact describing the domain values admitted by one interface, type declaration, or schema. |
@@ -39,7 +38,7 @@ implementation specification.
 | Review result | The operational result of evaluating one actual review work item. |
 | Advicee | The agent that Hapsland can advise about an attributed edit. A working root or the latest caller does not identify that agent by itself. |
 | Stop continuation | More work that Hapsland asks an agent to do when it tries to finish, so it can act on advice. |
-| Stop allowance | Permission for Hapsland to request one Stop continuation from an agent during one assignment. |
+| Stop allowance | Permission for Hapsland to request a Stop continuation from an agent. |
 | Pending advice | Advice from a completed review that remains eligible for delivery to its intended advicee. |
 | Advice relevance expiry | The transition after which undelivered pending advice is no longer eligible for delivery because its configured relevance age has elapsed. It does not imply delivery, runtime closure, or loss of the observation baseline. |
 | Advice batch | The bounded collection of review results selected for delivery together through one agent-runtime interaction. |
