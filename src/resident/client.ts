@@ -488,7 +488,7 @@ export const markComposedUserPrompt = async (
   return response.status === "advanced";
 };
 
-export const consumeComposedStopAllowance = async (
+export const reserveComposedVirtualRoundContinuation = async (
   root: string,
   advicee: DirectAdvicee,
   paths = residentPaths(),

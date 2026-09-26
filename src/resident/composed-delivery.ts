@@ -179,7 +179,7 @@ export class ComposedDelivery {
     return this.#rounds.get(partition)?.generation ?? 0;
   }
 
-  /** Only an active Hapsland round may authorize another Stop continuation. */
+  /** Reserve one request from the active virtual round's continuation budget. */
   consumeStop(partition: string, continuationDigest?: string): boolean {
     const chain = this.#rounds.get(partition);
     if (chain === undefined || chain.closed || chain.stopCount >= MAX_STOP_CONTINUATIONS) return false;
@@ -190,7 +190,7 @@ export class ComposedDelivery {
     return true;
   }
 
-  hasStopAllowance(partition: string): boolean {
+  hasVirtualRoundContinuationBudget(partition: string): boolean {
     const chain = this.#rounds.get(partition);
     return chain !== undefined && !chain.closed && chain.stopCount < MAX_STOP_CONTINUATIONS;
   }

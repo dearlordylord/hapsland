@@ -14,7 +14,7 @@ import {
   beginComposedSubmission,
   claimComposedBackground,
   collectAdviceeOutcome,
-  consumeComposedStopAllowance,
+  reserveComposedVirtualRoundContinuation,
   makeResidentDispatchContext,
   markComposedUserPrompt,
   releaseComposedSubmission,
@@ -61,7 +61,7 @@ const promptMarker = async (event: Readonly<Record<string, unknown>>, host: Comp
   if (typeof event.prompt !== "string") return undefined;
   if (host === "codex-cli") {
     // Native Codex turn identity identifies this prompt notification. It is not
-    // a Hapsland round ID: a round may span multiple runtime turns.
+    // a virtual round ID: a virtual round may span multiple runtime turns.
     const runtimeTurnId = event.turn_id;
     return typeof runtimeTurnId === "string" && runtimeTurnId.length > 0
       ? digest(`codex-turn:${runtimeTurnId}`) : undefined;
@@ -117,18 +117,18 @@ export const runComposedHook = async (input: {
     return quiet();
   }
   // stop_hook_active means a prior hook requested continuation. It must not
-  // bypass this round's remaining wait/cleanup or four-request allowance.
+  // bypass this virtual round's remaining wait, cleanup, or four-request budget.
   // Some agents never receive UserPromptSubmit. Identity can initialize only
-  // their first round; a closed round requires fresh edit occurrence evidence.
+  // their first virtual round; a closed virtual round requires fresh edit occurrence evidence.
   if ((eventName === "SubagentStop" || input.kind === "background") && advicee.subagentId !== null) {
     await markComposedUserPrompt(root, advicee,
       digest(`subagent:${input.host}:${advicee.sessionId}:${advicee.subagentId}`), paths, undefined, true)
       .catch(() => false);
   }
   // Codex's native turn ID is only a fallback marker for the candidate's Stop
-  // allowance, not evidence that a Hapsland round started or ended. Initialize
+  // budget, not evidence that a virtual round started or ended. Initialize
   // missing state if UserPromptSubmit could not reach the resident; ensure mode
-  // preserves an existing allowance even if the runtime turn ID changed.
+  // preserves an existing virtual round budget even if the runtime turn ID changed.
   const runtimeTurnId = event.turn_id;
   if (input.kind === "stop" && input.host === "codex-cli" &&
       typeof runtimeTurnId === "string" && runtimeTurnId.length > 0) {
@@ -168,7 +168,7 @@ export const runComposedHook = async (input: {
         const advice = outcome.advice;
         const message = advice.output.hookSpecificOutput.additionalContext;
         if (advice.findingCount > 0 && input.kind === "stop") {
-          const allowed = await consumeComposedStopAllowance(root, advicee, paths, digest(message)).catch(() => false);
+          const allowed = await reserveComposedVirtualRoundContinuation(root, advicee, paths, digest(message)).catch(() => false);
           if (!allowed) {
             closeReason = "limit";
             await releaseComposedSubmission(advice).catch(() => false);

@@ -9,6 +9,13 @@ The earlier-candidate descriptions in this document explain the replaced behavio
 the normative sections define the accepted contract. A passing selected fixture
 is not a reliability estimate or proof of the whole contract.
 
+Terminology: a **round** is the agent's actual episode of work, whose end the
+agent runtime controls. A **virtual round** is Hapsland's own review and advice
+period. Hapsland closes its virtual round when it allows Stop, even if another
+hook keeps the same agent round going. The four-request continuation budget is
+per virtual round. Older candidate passages below use “round” as shorthand for
+the Hapsland-owned period; the normative rule is the virtual-round boundary.
+
 ## Required product outcome
 
 The revised [issue #105](https://github.com/dearlordylord/hapsland/issues/105)
@@ -117,7 +124,7 @@ advice. Its source-free submission record suppresses repeat delivery in the
 current delivery generation. Background advice submitted before Stop begins or
 while its wait is in progress can therefore be **submitted/visibility unknown**.
 The priority Stop reoffer requirement is to offer that current advice once in
-the same active Hapsland round when consumption is unproven, with a fresh
+the same active virtual round when consumption is unproven, with a fresh
 eligibility check and no new Jev evaluation. The earlier candidate did not implement
 that fallback: it suppresses background submissions at Stop. Retention across
 delivery generations can also reoffer submitted advice in a later round, which
@@ -161,10 +168,10 @@ advicee. Host submission and model visibility must be measured independently.
 an agent tries to finish. Hapsland may wait **inside that hook attempt** for
 review work. If actionable advice is ready, Hapsland returns a Stop **block**
 response carrying ordinary review advice and asks the runtime to continue the
-same Hapsland round. There is no separate kind of "Stop advice" and no Jev
-Stop API call. If Hapsland returns **allow**, it closes its round and cleans up
+same virtual round. There is no separate kind of "Stop advice" and no Jev
+Stop API call. If Hapsland returns **allow**, it closes its virtual round and cleans up
 owned work even if another hook keeps the runtime active. The hook invocation,
-bounded wait, block/allow response, and Hapsland round boundary are distinct.
+bounded wait, block/allow response, and virtual round boundary are distinct.
 
 The candidate Stop policy starts its budget at native command launch. It first checks
 the exact advicee and turn-chain continuation state, then collects ready advice.
@@ -174,7 +181,7 @@ deadline expires. The internal deadline includes startup, parsing, resident star
 if needed, IPC, collection, encoding, writing, and process exit; the native command
 timeout is five seconds from launch. Any remaining budget is reserved for output and
 exit. No stage may silently reset the clock. In the earlier candidate, expiry let Stop proceed and
-left review work running in the resident. The accepted Hapsland round boundary
+left review work running in the resident. The accepted virtual round boundary
 instead requires cancellation or discard when Hapsland allows Stop.
 
 The earlier candidate tracks a Stop allowance separately for each advicee.
@@ -182,7 +189,7 @@ When an agent tries to finish, it can send advice and ask the agent to continue
 once. Work done in response to that advice does not restore the candidate's
 allowance. Another tool call, finding, or advice request does not restore it
 either. The candidate returns quietly on native `stop_hook_active`; the accepted
-four-request policy requires replacing that guard with a Hapsland round count.
+four-request policy requires replacing that guard with a virtual round count.
 
 For the main agent, a distinct `UserPromptSubmit` event restores the allowance.
 Repeating the same prompt marker does not. A Codex Stop event can create an
@@ -206,13 +213,13 @@ from #97's bounded fixtures, not established production defaults. They require b
 exact-profile launch-to-exit measurements and race validation before adoption.
 
 The owner accepted an initial hardcoded maximum of **four Hapsland Stop
-continuation requests per Hapsland round** on 2026-09-26 after an Astra review.
+continuation requests per virtual round** on 2026-09-26 after an Astra review.
 This counts Hapsland's reserved requests, not Stop events or guaranteed runtime
 resumptions. Reserve before writing the Stop response; an uncertain write uses
 that reservation. Background output and repair edits do not use or reset the
 counter. Native `stop_hook_active` does not by itself prohibit another request.
 After four reservations, the next Stop allows completion without a wait for
-advice Hapsland cannot present, closes the Hapsland round, and discards its
+advice Hapsland cannot present, closes the virtual round, and discards its
 remaining work as incomplete. Other hooks and runtime limits may end work
 sooner. The earlier candidate instead has a boolean, returns quietly on
 `stop_hook_active`, and can lose or recreate its in-memory state after expiry
@@ -230,14 +237,14 @@ observations. The round-close cleanup direction below revises the candidate's
 earlier late-collectability behavior; candidate `b36b879` implements round cleanup,
 with the conformance limits listed below.
 
-## Round-close cleanup direction
+## Virtual-round closure and cleanup direction
 
-The owner accepted on 2026-09-26 that a **Hapsland round closes when Hapsland
+The owner accepted on 2026-09-26 that a **virtual round closes when Hapsland
 finishes its Stop handling and allows completion**. This is Hapsland's own
 boundary; it does not claim that every other runtime hook also allowed the
-agent to finish. When Hapsland requests a Stop continuation, its round stays
-active. A later fresh edit after another hook continues the agent can open a
-new Hapsland round, even if the runtime reports the same `turn_id`. A repeated
+agent to finish its actual round. When Hapsland requests a Stop continuation,
+its virtual round stays active. A later fresh edit after another hook continues the agent can open a
+new virtual round, even if the runtime reports the same `turn_id`. A repeated
 Stop, duplicate edit, background poll, or late callback cannot reopen the old
 round. At closure, Hapsland must discard or cancel all state from that round
 that could start another review or deliver advice. A synchronous Stop hook may
@@ -258,11 +265,11 @@ Other Stop hooks can continue the agent after Hapsland allows completion. The
 closure rule above intentionally needs only Hapsland's own Stop response, not
 an unobservable all-hooks decision. Keep a source-free closed-round marker to
 fence late callbacks; already written host output cannot be recalled. The
-earlier resident had no Hapsland round identifier or round-scoped cancellation
+earlier resident had no virtual round identifier or round-scoped cancellation
 path; `b36b879` introduces those mechanisms, subject to the remaining validation gates. A future implementation
 must distinguish fresh attributed edits from delayed or duplicate events and
 must preserve each round’s four-request limit across uncertain writes and expiry
-while the resident process remains running. Each new Hapsland round gets its own four;
+while the resident process remains running. Each new virtual round gets its own four;
 a resident restart resets the count by accepted product policy. The normative rules below resolve these specification gaps. They are requirements,
 not claims that the candidate already enforces them.
 The closure, fencing, and late-result rules are candidates for later formal
@@ -290,10 +297,10 @@ must state which of these rules it enforces before Linux conformance resumes.
 
 ### Round identity and admission
 
-The resident assigns an opaque round ID within the complete advicee partition.
+The resident assigns an opaque virtual-round ID within the complete advicee partition.
 Every admitted observation, queue entry, preparation result, review unit, Jev
 request, advice item, lease, waiter, and output reservation carries that ID.
-Native `turn_id` is runtime metadata; it neither creates a new Hapsland round nor
+Native `turn_id` is runtime metadata; it neither creates a new virtual round nor
 restores its continuation count. Prompts, background polls, Stop calls, and
 subagent lifecycle notifications cannot reset an active round. A fresh attributed
 edit stays in the current active round, including an edit made to repair advice.
@@ -302,7 +309,7 @@ A new instruction alone need not have a special policy for #105.
 The installed composed path registers a synchronous `PreToolUse` hook for eligible
 native edit tools. Before the runtime executes the tool, this hook obtains a
 source-free permit bound to the complete advicee identity, native tool-use ID,
-resident lifetime, and Hapsland round. It can prepare an empty new round after a
+resident lifetime, and virtual round. It can prepare an empty new round after a
 previous round closed. It does not capture source, enqueue review work, or call Jev.
 The runtime waits for this synchronous hook to finish before executing the tool.
 A successful `PostToolUse` observation must consume that same permit before any
@@ -449,7 +456,7 @@ race and report the remaining external-write uncertainty explicitly.
 
 ### Restart and expiry scope
 
-Each Hapsland round permits at most four continuation requests while its resident
+Each virtual round permits at most four continuation requests while its resident
 process remains running; each new round gets its own four. The closed-round event
 fence also applies within that resident lifetime. Keep source-free round identity, phase, reserved count, output reservation,
 and event digests in resident memory. Advice relevance expiry can remove advice but
@@ -567,7 +574,7 @@ open during that work. No further native
 probe is automatically required merely because one of the accepted support limits is
 still unobservable. Any newly found product failure still requires an explicit disposition.
 
-The accepted bound is four Stop continuation requests **per Hapsland round** while
+The accepted bound is four Stop continuation requests **per virtual round** while
 the resident runs; each new round gets its own four. Resident restart resets the
 count. Carrying it across restart is rejected, including future work; #107 is closed
 as not planned and is not an outstanding acceptance item.

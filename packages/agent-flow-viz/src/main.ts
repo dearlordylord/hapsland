@@ -4,8 +4,11 @@ import { TIMELINE_CASES } from "./timeline";
 import { Runtime, type Update } from "foldkit";
 import type { Document, HtmlBuilder } from "foldkit/html";
 import { defineMessageUnion } from "foldkit/message";
+import { NODES } from "./diagram";
+import { CONNECTIONS, routeFor } from "./generation";
+import { TRACES } from "./scenarios";
 import {
-  EVENT_IDS, FlowStateSchema, NODES, NODE_IDS, TRANSITIONS, TRACES,
+  EVENT_IDS, FlowStateSchema, NODE_IDS, TRANSITIONS,
   initialFlow, stepFlow, type EventId, type FlowState, type NodeId, type Transition,
 } from "./flow";
 
@@ -102,20 +105,8 @@ const geometry = (transition: Transition, offset: number) => {
   };
 };
 
-// Group related events into a single process connection. Event details remain below.
-const CONNECTIONS = EVENT_IDS.reduce<EventId[][]>((groups, event) => {
-  const edge = TRANSITIONS[event];
-  const group = groups.find(([first]) => {
-    const candidate = TRANSITIONS[first];
-    return candidate.from === edge.from && candidate.to === edge.to && candidate.kind === edge.kind;
-  });
-  if (group) group.push(event);
-  else groups.push([event]);
-  return groups;
-}, []);
-
-const arrow = (h: HtmlBuilder<Message>, events: EventId[], number: number, active: boolean) => {
-  const transition = TRANSITIONS[events[0]];
+const arrow = (h: HtmlBuilder<Message>, events: readonly EventId[], number: number, active: boolean) => {
+  const transition = routeFor(events[0]);
   const { path, badge } = geometry(transition, 0);
   const stroke = active ? "#e66035" : transition.kind === "control" ? "#8b94a5" : "#98a9bd";
   return h.g([], [
@@ -142,7 +133,7 @@ const NODE_NOTES: Record<NodeId, readonly string[]> = {
   adviceStore: ["advicee + source + relevance", "after tool / Stop / Stop reoffer*"],
   collector: ["one batch reserved for one caller", "limit: 5 findings / 2 KiB**"],
   hostOutput: ["adapter formats response for agent", "write ≠ receipt or use"],
-  deliveryState: ["at most four requests per round", "allow Stop → discard round work"],
+  deliveryState: ["four Stop requests per virtual round", "allow Stop → discard its work"],
   outcomeStore: ["update ticket / activity status", "no finding ≠ failed review"],
 };
 
@@ -150,7 +141,7 @@ const nodeView = (h: HtmlBuilder<Message>, id: NodeId, flow: FlowState) => {
   const node = NODES[id];
   const palette = colors[node.role];
   const packets = flow.packets.filter((packet) => packet.at === id);
-  const special = id === "deliveryState" ? `round ${flow.roundId} · ${flow.roundActive ? "active" : "closed"} · ${flow.stopContinuations}/4`
+  const special = id === "deliveryState" ? `virtual round ${flow.virtualRoundId} · ${flow.virtualRoundActive ? "active" : "closed"} · ${flow.stopContinuations}/4`
     : id === "agentEdit" ? "fresh edit enters through adapter"
     : id === "collector" ? (flow.leaseSurface ? `${flow.leaseSurface} batch reserved` : flow.opportunity ? `${flow.opportunity} request received` : "waiting for an agent runtime request")
     : id === "hostOutput" ? (flow.lastSubmissionSurface ? "written; no payload stored here" : "no response written yet")
@@ -212,7 +203,7 @@ const chart = (model: Model, h: HtmlBuilder<Message>) => h.div([h.Class("chart-s
 ]);
 
 const eventLabel = (event: EventId): string => {
-  const transition = TRANSITIONS[event];
+  const transition = routeFor(event);
   return `${transition.label} · ${NODES[transition.from].label} → ${NODES[transition.to].label}`;
 };
 
@@ -260,7 +251,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           ]),
           h.p([h.Class("progress")], [trace ? `Step ${model.cursor} of ${trace.events.length}` : "Free play"]),
           h.p([h.Class("status")], [model.flow.note]),
-          h.h3([], ["Live review data in this round"]),
+          h.h3([], ["Live review data in this virtual round"]),
           h.div([h.Class("packets")], model.flow.packets.map((packet) =>
             h.div([h.Class("packet")], [
               h.strong([], [`#${packet.id} ${packet.flavor}`]),
@@ -274,7 +265,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
               h.strong([], [item.description]), h.span([], [NODES[item.at].label]),
             ]))),
           h.p([h.Class("state-line")], [
-            `Hapsland round ${model.flow.roundId} (${model.flow.roundActive ? "active" : "closed"}) · continuations ${model.flow.stopContinuations}/4 · ` +
+            `Virtual round ${model.flow.virtualRoundId} (${model.flow.virtualRoundActive ? "active" : "closed"}) · Stop continuation requests ${model.flow.stopContinuations}/4 · ` +
             `reserved batch ${model.flow.leaseSurface ?? "none"} · last response ${model.flow.lastSubmissionSurface ?? "none"}`,
           ]),
         ]),
@@ -282,7 +273,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           h.h2([], ["Events, prerequisites, and information"]),
           h.p([h.Class("description")], ["Click any event to inspect an alternate order. Rejected events explain the missing prerequisite."]),
           h.div([h.Class("events")], EVENT_IDS.map((event) => {
-            const transition = TRANSITIONS[event];
+            const transition = routeFor(event);
             return h.button([h.OnClick(Message.TriggeredEvent({ event })), h.Class("event-row")], [
               h.span([h.Class("event-number")], [String(CONNECTIONS.findIndex((events) => events.includes(event)) + 1)]),
               h.span([h.Class("event-copy")], [
@@ -299,15 +290,15 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
       ]),
       h.section([h.Class("card explanation")], [
         h.h2([], ["Event reducer and current state"]),
-        h.p([], ["The sidecar reducer applies events to example state. It has no separate explicit state machine. Diagram boxes show places and operations."]),
+        h.p([], ["The sidecar reducer applies events to example state. Accepted steps generate this graph’s connections and the abstract timeline steps. Box layout and wording are presentation choices. Native timestamps come from retained evidence. Diagram boxes show places and operations, not lifecycle states."]),
         h.div([h.Class("packets")], [
-          h.div([h.Class("packet")], [h.strong([], ["Hapsland round"]), h.span([], [`${model.flow.roundId} · ${model.flow.roundActive ? "active" : "closed"}`])]),
+          h.div([h.Class("packet")], [h.strong([], ["Virtual round"]), h.span([], [`${model.flow.virtualRoundId} · ${model.flow.virtualRoundActive ? "active" : "closed"}`])]),
           h.div([h.Class("packet")], [h.strong([], ["Stop continuation requests"]), h.span([], [`${model.flow.stopContinuations} of 4`])]),
           h.div([h.Class("packet")], [h.strong([], ["Stop wait"]), h.span([], [model.flow.stopWaiting ? "waiting before a finish decision" : "none"])]),
           h.div([h.Class("packet")], [h.strong([], ["Batch reserved for"]), h.span([], [model.flow.leaseSurface ?? "no caller"])]),
           h.div([h.Class("packet")], [h.strong([], ["Last response written through"]), h.span([], [model.flow.lastSubmissionSurface ?? "none"])]),
         ]),
-        h.p([], ["Fresh edit → open a round if closed. Selecting advice for a Stop response reserves one continuation before writing. A Stop block response asks the runtime to continue the same round. Stop allow closes the Hapsland round and cancels or discards its resources. The adapter rejects old and duplicate events; runtime turn IDs never identify these rounds. Restart and transport failure are outside this example."]),
+        h.p([], ["A fresh edit opens a virtual round if the previous one closed. Selecting advice for a Stop response reserves one request from that virtual round’s budget before writing. A Stop block asks the runtime to keep the agent working in the same virtual round. Stop allow closes it and cancels or discards its resources. Another hook can keep the agent's actual round going. Runtime turn IDs do not identify virtual rounds. Restart and transport failure are outside this example."]),
       ]),
       timelineView(h, model.timeline, (index) => Message.SelectedTimeline({ index })),
     ]),

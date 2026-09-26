@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import { Runtime, Subscription } from "foldkit";
-import { TRACES } from "./flow";
+import { TRACES } from "./scenarios";
 import { Message, Model, init, update, view } from "./main";
 import "./style.css";
 

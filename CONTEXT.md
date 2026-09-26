@@ -14,8 +14,9 @@ implementation specification.
 | Agent runtime | A program that runs an agent's tool and edit loop and reports its events, such as Codex CLI or Claude Code. |
 | Agent | A coding assistant that edits source in an agent runtime and can receive advice from Hapsland. |
 | Subagent | An agent started by another agent within an agent runtime. It remains an agent for review and advice. |
-| Hapsland round | One agent's period of review and advice in Hapsland. It continues when Hapsland asks that agent to work on advice at Stop. It ends when Hapsland allows a Stop attempt to finish, even if another hook keeps the agent working. New work after that boundary starts a new Hapsland round. |
-| Runtime turn | A unit of conversation identified by an agent runtime. Its boundary need not match a Hapsland round. |
+| Round | One episode of an agent's work that ends when its runtime accepts completion. Another runtime hook can keep it going after Hapsland allows a Stop attempt. Hapsland need not observe its actual end. |
+| Virtual round | Hapsland's own period of review and advice for one agent. It continues when Hapsland asks that agent to work on advice at Stop. It ends when Hapsland allows a Stop attempt, even if the agent's round continues because of another hook. Fresh attributed work after that boundary starts a new virtual round. |
+| Runtime turn | A unit of conversation identified by an agent runtime. Its boundary need not match either a round or a virtual round. |
 | Model provider | Secondary metadata about the inference service selected by an agent runtime or review backend. It is not a first-class adapter target in the current phase. |
 | Artifact | An independently identifiable semantic subject extracted from source. Its kind identifies what it describes; the initial kind is `typeShape`. |
 | Type-shape artifact | An artifact describing the domain values admitted by one interface, type declaration, or schema. |
@@ -41,10 +42,10 @@ implementation specification.
 | Advicee | The agent that Hapsland can advise about an attributed edit. A working root or the latest caller does not identify that agent by itself. |
 | Stop hook attempt | An agent runtime's request to Hapsland when an agent tries to finish. It is a runtime event, not a Jev review operation. |
 | Stop wait | The bounded period within a Stop hook attempt during which Hapsland waits for eligible advice. The attempt has not yet been allowed or blocked. |
-| Stop block response | Hapsland's response to a Stop hook attempt that carries advice and asks the runtime to let the agent continue the same Hapsland round. |
-| Stop allow response | Hapsland's response that permits the finish attempt and closes its own round. Another runtime hook may still keep the agent working. |
+| Stop block response | Hapsland's response to a Stop hook attempt that carries advice and asks the runtime to let the agent continue the same virtual round. |
+| Stop allow response | Hapsland's response that permits the finish attempt and closes its virtual round. Another runtime hook may still keep the agent working in the same round. |
 | Stop continuation | More work that Hapsland asks an agent to do when it tries to finish, so it can act on advice. |
-| Stop allowance | Permission for Hapsland to request a Stop continuation from an agent. |
+| Per-virtual-round continuation budget | The maximum number of Stop continuation requests Hapsland may reserve in one virtual round. A new virtual round has a new budget. |
 | Pending advice | Advice from a completed review that remains eligible for delivery to its intended advicee. |
 | Advice relevance expiry | The transition after which undelivered pending advice is no longer eligible for delivery because its configured relevance age has elapsed. It does not imply delivery, runtime closure, or loss of the observation baseline. |
 | Advice batch | The bounded collection of review results selected for delivery together through one agent-runtime interaction. |
