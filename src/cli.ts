@@ -503,7 +503,8 @@ const isCodexHook = process.argv.includes("--codex-hook");
 const isClaudeHook = process.argv.includes("--claude-hook");
 const isOpenCodeHook = process.argv.includes("--opencode-hook");
 const isComposedEditHook = process.argv.includes("--composed-edit-hook");
-const composedKind: ComposedHookKind | undefined = process.argv.includes("--composed-background-hook")
+const composedKind: ComposedHookKind | undefined = process.argv.includes("--composed-before-edit-hook")
+  ? "before-edit" : process.argv.includes("--composed-background-hook")
   ? "background" : process.argv.includes("--composed-stop-hook")
     ? "stop" : process.argv.includes("--composed-prompt-hook") ? "prompt" : undefined;
 const composedHost: ComposedHookHost = process.argv.includes("--composed-host=claude-code")
@@ -626,7 +627,7 @@ const runDirectCodexHook = (
     } else if (!isControlledWriter) {
       recordActivity({ statePath: activityPath, root: observation.root, advicee: observation.advicee, lifetime: owner.value.lifetime, stage: "unavailable" });
     } else {
-      yield* Effect.tryPromise(() => admitObservation(observation, true, dispatch)).pipe(
+      yield* Effect.tryPromise(() => admitObservation(observation, true, dispatch, undefined, isComposedEditHook)).pipe(
         Effect.catch(() => {
           recordActivity({ statePath: activityPath, root: observation.root, advicee: observation.advicee, lifetime: owner.value.lifetime, stage: "unavailable" });
           return Effect.void;
@@ -665,7 +666,7 @@ const runDirectBoundedHook = async (
   ));
   if (dispatch === undefined) return {};
   if (isClaudeHook) {
-    const accepted = await bounded(() => admitTicketedObservation(observation, dispatch));
+    const accepted = await bounded(() => admitTicketedObservation(observation, dispatch, undefined, isComposedEditHook));
     if (accepted?.status !== "accepted") return {};
     // The composed background hook and Stop own collection. The synchronous
     // edit hook only admits work so a later repair edit cannot consume its
@@ -682,7 +683,7 @@ const runDirectBoundedHook = async (
     }
     return {};
   }
-  const accepted = await bounded(() => admitObservation(observation, true, dispatch));
+  const accepted = await bounded(() => admitObservation(observation, true, dispatch, undefined, isComposedEditHook));
   if (accepted?.status !== "accepted") return {};
   while (remaining() > 150) {
     const collected = await bounded(() => collectReady(

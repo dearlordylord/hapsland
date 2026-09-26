@@ -1,3 +1,4 @@
+import type { RoundCloseReason } from "../activity/status.ts";
 import { spawn } from "node:child_process";
 import * as Effect from "effect/Effect";
 import { connect } from "node:net";
@@ -293,6 +294,7 @@ export const admitObservation = async (
   controlledWriter: boolean,
   dispatch: ResidentDispatchContext,
   paths = residentPaths(),
+  composed = false,
 ) => {
   const owner = await ensureResident(paths);
   if (!controlledWriter) return { status: "empty" } as const;
@@ -302,6 +304,7 @@ export const admitObservation = async (
     lifetime: owner.lifetime,
     observation,
     controlledWriter: true,
+    ...(composed ? { composed: true as const } : {}),
     dispatch,
   });
 };
@@ -317,13 +320,14 @@ export type TicketedAdmission = {
 
 export type TicketedAdmissionResult =
   | { readonly status: "accepted"; readonly admission: TicketedAdmission }
-  | { readonly status: "rejected-capacity" | "obsolete-lifetime" | "unsupported" };
+  | { readonly status: "rejected-capacity" | "rejected-stale" | "obsolete-lifetime" | "unsupported" };
 
 /** Only Claude's synchronous PostToolUse hook uses ticketed collection. */
 export const admitTicketedObservation = async (
   observation: DirectObservation,
   dispatch: ResidentDispatchContext,
   paths = residentPaths(),
+  composed = false,
 ): Promise<TicketedAdmissionResult> => {
   if (observation.advicee.host !== "claude-code") return { status: "unsupported" };
   const owner = await ensureResident(paths);
@@ -333,6 +337,7 @@ export const admitTicketedObservation = async (
     lifetime: owner.lifetime,
     observation,
     controlledWriter: true,
+    ...(composed ? { composed: true as const } : {}),
     dispatch,
   });
   if (!("version" in response) || response.version !== 2 || response.status === "unsupported") return { status: "unsupported" };
@@ -347,7 +352,7 @@ export const admitTicketedObservation = async (
       dispatch,
     } };
   }
-  if (response.status === "rejected-capacity" || response.status === "obsolete-lifetime") {
+  if (response.status === "rejected-capacity" || response.status === "rejected-stale" || response.status === "obsolete-lifetime") {
     return { status: response.status };
   }
   return { status: "unsupported" };
@@ -561,4 +566,25 @@ export const acknowledgeAdvice = async (advice: CollectedAdvice): Promise<boolea
     token: advice.token,
   }, remaining).catch(() => undefined);
   return finalized?.status === "finalized";
+};
+
+export const composedStopBoundary = async (
+  operation: "begin-stop" | "finish-stop", root: string, advicee: DirectAdvicee,
+  token: string, close = false, paths = residentPaths(), reason: RoundCloseReason = "no-advice",
+): Promise<boolean> => {
+  const owner = await inspectResident(paths);
+  if (!owner.available || owner.lifetime === undefined) return false;
+  const response = await residentRequest(paths, { version: 1, operation,
+    lifetime: owner.lifetime, root, advicee, token, close, reason }, 250);
+  return response.status === "advanced";
+};
+
+export const registerComposedEdit = async (
+  root: string, advicee: DirectAdvicee, startedAt: number, paths = residentPaths(), activityPath?: string,
+): Promise<boolean> => {
+  const owner = await ensureResident(paths, 1_500);
+  const response = await residentRequest(paths, { version: 1, operation: "register-edit",
+    lifetime: owner.lifetime, root, advicee, startedAt,
+    ...(activityPath === undefined ? {} : { activityPath }) });
+  return response.status === "advanced";
 };

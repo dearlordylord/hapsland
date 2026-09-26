@@ -59,6 +59,27 @@ export class DispatchCycles<K, A> {
       [...this.#runningEntries].some(predicate);
   }
 
+  snapshotWhere(predicate: (entry: { readonly key: K; readonly value: A }) => boolean): { queued: number; running: number } {
+    return { queued: this.#pending.filter(predicate).length + this.#active.filter(predicate).length,
+      running: [...this.#runningEntries].filter(predicate).length };
+  }
+
+  /** Remove queued entries; running owners are returned for cooperative cancellation. */
+  discardWhere(predicate: (entry: { readonly key: K; readonly value: A }) => boolean): ReadonlyArray<A> {
+    const removed: A[] = [];
+    for (let index = this.#pending.length - 1; index >= 0; index--) {
+      const entry = this.#pending[index]!;
+      if (predicate(entry)) { removed.push(entry.value); this.#pending.splice(index, 1); }
+    }
+    this.#active = this.#active.filter((entry) => {
+      if (!predicate(entry)) return true;
+      removed.push(entry.value); return false;
+    });
+    for (const entry of this.#runningEntries) if (predicate(entry)) removed.push(entry.value);
+    this.#settleIdle();
+    return removed;
+  }
+
   whenIdle(): Promise<void> {
     if (this.#running === 0 && this.#active.length === 0 && this.#pending.length === 0) return Promise.resolve();
     return new Promise((resolve) => this.#idleWaiters.push(resolve));

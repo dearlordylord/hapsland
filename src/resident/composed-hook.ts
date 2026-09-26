@@ -1,3 +1,5 @@
+import type { RoundCloseReason } from "../activity/status.ts";
+import { hookProcessStartedAt } from "./hook-clock.ts";
 import { createHash, randomUUID } from "node:crypto";
 import { stat } from "node:fs/promises";
 import * as Effect from "effect/Effect";
@@ -6,6 +8,8 @@ import type { CodexHostVersion } from "../direct-event/model.ts";
 import type { ControlledDecisionModelOptions } from "../test-support/controlled-decision-model.ts";
 import {
   acknowledgeAdvice,
+  registerComposedEdit,
+  composedStopBoundary,
   beginComposedSubmission,
   claimComposedBackground,
   collectAdviceeOutcome,
@@ -17,7 +21,7 @@ import {
 } from "./client.ts";
 import { residentPaths } from "./paths.ts";
 
-export type ComposedHookKind = "background" | "stop" | "prompt";
+export type ComposedHookKind = "background" | "stop" | "prompt" | "before-edit";
 export type ComposedHookHost = "codex-cli" | "claude-code";
 
 const record = (value: unknown): Readonly<Record<string, unknown>> | undefined =>
@@ -26,7 +30,8 @@ const record = (value: unknown): Readonly<Record<string, unknown>> | undefined =
 const digest = (value: string): string => createHash("sha256").update(value).digest("hex");
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** A write callback records host submission, not model visibility. */
+/** A write callback records runtime submission, not observation by the agent.
+ * "failed" is only a pre-write refusal: no bytes were passed to stdout. */
 type WriteOutcome = "written" | "failed" | "uncertain";
 const writeJson = (value: unknown, deadlineAt: number): Promise<WriteOutcome> => {
   const remaining = deadlineAt - performance.now() - 50;
@@ -40,13 +45,13 @@ const writeJson = (value: unknown, deadlineAt: number): Promise<WriteOutcome> =>
       process.stdout.removeListener("error", onError);
       resolve(outcome);
     };
-    const onError = () => finish("failed");
+    const onError = () => finish("uncertain");
     const timer = setTimeout(() => finish("uncertain"), remaining);
     process.stdout.once("error", onError);
     try {
-      process.stdout.write(`${JSON.stringify(value)}\n`, (error?: Error | null) => finish(error == null ? "written" : "failed"));
+      process.stdout.write(`${JSON.stringify(value)}\n`, (error?: Error | null) => finish(error == null ? "written" : "uncertain"));
     } catch {
-      finish("failed");
+      finish("uncertain");
     }
   });
 };
@@ -82,12 +87,14 @@ export const runComposedHook = async (input: {
   readonly controlled?: ControlledDecisionModelOptions;
 }): Promise<void> => {
   const deadlineAt = input.kind === "background" ? 20_000 : input.kind === "stop" ? 4_200 : 2_500;
+  let beforeQuiet = async (): Promise<void> => {};
   const quiet = async () => {
+    await beforeQuiet();
     if (input.kind !== "background") await writeJson({}, deadlineAt);
   };
   const event = record(input.event);
   if (event === undefined) return quiet();
-  const eventName = input.kind === "background" ? "PostToolUse"
+  const eventName = input.kind === "before-edit" ? "PreToolUse" : input.kind === "background" ? "PostToolUse"
     : input.kind === "stop" ? (event.hook_event_name === "SubagentStop" ? "SubagentStop" : "Stop") : "UserPromptSubmit";
   const identity = await Effect.runPromise(adaptComposedHookIdentity(
     event, input.host, eventName, input.codexVersion,
@@ -96,6 +103,10 @@ export const runComposedHook = async (input: {
   const { root, advicee } = identity;
   const paths = residentPaths();
 
+  if (input.kind === "before-edit") {
+    await registerComposedEdit(root, advicee, hookProcessStartedAt, paths, input.activityPath).catch(() => false);
+    return quiet();
+  }
   if (input.kind === "prompt") {
     const marker = await promptMarker(event, input.host);
     if (marker !== undefined) {
@@ -104,12 +115,10 @@ export const runComposedHook = async (input: {
     }
     return quiet();
   }
-  if (input.kind === "stop" && event.stop_hook_active === true) return quiet();
-  // A child may never receive UserPromptSubmit. Its explicit native identity
-  // permits one initial allowance; repeated tool/Stop events must not reset it.
-  // Initialize before background submission too, so Stop does not accidentally
-  // change its generation and bypass submitted-finding suppression.
-  // Resumed children remain capped until an explicit prompt advances their chain.
+  // stop_hook_active means a prior hook requested continuation. It must not
+  // bypass this round's remaining wait/cleanup or four-request allowance.
+  // Some agents never receive UserPromptSubmit. Identity can initialize only
+  // their first round; a closed round requires fresh edit occurrence evidence.
   if ((eventName === "SubagentStop" || input.kind === "background") && advicee.subagentId !== null) {
     await markComposedUserPrompt(root, advicee,
       digest(`subagent:${input.host}:${advicee.sessionId}:${advicee.subagentId}`), paths, undefined, true)
@@ -130,6 +139,17 @@ export const runComposedHook = async (input: {
   ).catch(() => undefined);
   if (dispatch === undefined) return quiet();
 
+  const stopToken = input.kind === "stop" ? randomUUID() : undefined;
+  if (stopToken !== undefined &&
+      !await composedStopBoundary("begin-stop", root, advicee, stopToken).catch(() => false)) return quiet();
+  let continued = false;
+  let closeReason: RoundCloseReason = "no-advice";
+  let stopFinished = false;
+  const finishStop = async (close: boolean): Promise<void> => {
+    if (stopToken === undefined || stopFinished) return;
+    stopFinished = await composedStopBoundary("finish-stop", root, advicee, stopToken, close, paths, closeReason).catch(() => false);
+  };
+  beforeQuiet = () => finishStop(true);
   const backgroundToken = input.kind === "background" ? randomUUID() : undefined;
   if (backgroundToken !== undefined &&
       !await claimComposedBackground(root, advicee, backgroundToken, paths).catch(() => false)) return quiet();
@@ -142,34 +162,45 @@ export const runComposedHook = async (input: {
         root, advicee, dispatch, paths,
         input.kind === "stop" ? "turn-end" : "ordinary", deadlineAt,
       ).catch(() => undefined);
-      if (outcome === undefined) return quiet();
+      if (outcome === undefined) { closeReason = "unavailable"; return quiet(); }
       if (outcome.status === "advice") {
         const advice = outcome.advice;
         const message = advice.output.hookSpecificOutput.additionalContext;
         if (advice.findingCount > 0 && input.kind === "stop") {
           const allowed = await consumeComposedStopAllowance(root, advicee, paths, digest(message)).catch(() => false);
           if (!allowed) {
+            closeReason = "limit";
             await releaseComposedSubmission(advice).catch(() => false);
             return quiet();
           }
         }
         if (advice.findingCount > 0) {
           const begun = await beginComposedSubmission(advice, input.kind).catch(() => false);
-          if (!begun) return quiet();
+          if (!begun) { closeReason = "unavailable"; return quiet(); }
         }
         const output = input.kind === "background" ? advice.output
           : advice.findingCount > 0 ? { decision: "block", reason: message }
             : { systemMessage: message };
+        if (input.kind === "stop" && advice.findingCount === 0) await finishStop(true);
         const written = await writeJson(output, deadlineAt);
+        if (written === "failed") closeReason = "output-failed";
+        if (input.kind === "stop" && advice.findingCount > 0 && written !== "failed") continued = true;
         if (written === "written") await acknowledgeAdvice(advice).catch(() => false);
         else if (written === "failed") await releaseComposedSubmission(advice).catch(() => false);
         return;
       }
-      if (outcome.status === "empty" && (input.kind === "stop" || performance.now() >= admissionGraceAt)) return quiet();
+      if (outcome.status === "empty" && (input.kind === "stop" || performance.now() >= admissionGraceAt)) {
+        if (performance.now() >= deadlineAt - 200) closeReason = "deadline";
+        return quiet();
+      }
       await sleep(Math.min(50, Math.max(1, deadlineAt - performance.now() - 150)));
     }
+    closeReason = "deadline";
     await quiet();
   } finally {
+    // Retry an unacknowledged finish only when the native hook budget permits.
+    // Otherwise the resident attempt timer owns conservative cleanup/recovery.
+    if (continued || stopFinished || performance.now() < deadlineAt - 550) await finishStop(!continued);
     if (backgroundToken !== undefined) {
       await releaseComposedBackground(root, advicee, backgroundToken, paths).catch(() => false);
     }

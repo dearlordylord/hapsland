@@ -1,3 +1,4 @@
+import { ROUND_CLOSE_REASONS, type RoundCloseReason } from "../activity/status.ts";
 import { isCodexHostVersion, type DirectObservation, type DirectAdvicee } from "../direct-event/model.ts";
 import type { CodexDirectEventOutput } from "../direct-event/pipeline.ts";
 import * as Option from "effect/Option";
@@ -41,7 +42,7 @@ export type ResidentUnavailableReason = "backend" | "credential" | "capacity" | 
 export type ResidentRequest =
   | {
       readonly version: 2; readonly operation: "admit"; readonly lifetime: string;
-      readonly observation: DirectObservation; readonly controlledWriter: true;
+      readonly observation: DirectObservation; readonly controlledWriter: true; readonly composed?: true;
       readonly dispatch: ResidentDispatchContext;
     }
   | {
@@ -54,6 +55,11 @@ export type ResidentRequest =
   | { readonly version: 1; readonly operation: "prompt-marker"; readonly lifetime: string;
       readonly root: string; readonly advicee: DirectAdvicee; readonly marker: string;
       readonly promptDigest?: string; readonly onlyIfMissing?: true }
+  | { readonly version: 1; readonly operation: "begin-stop" | "finish-stop"; readonly lifetime: string;
+      readonly root: string; readonly advicee: DirectAdvicee; readonly token: string;
+      readonly close?: boolean; readonly reason?: RoundCloseReason }
+  | { readonly version: 1; readonly operation: "register-edit"; readonly lifetime: string;
+      readonly root: string; readonly advicee: DirectAdvicee; readonly startedAt: number; readonly activityPath?: string }
   | { readonly version: 1; readonly operation: "consume-stop"; readonly lifetime: string;
       readonly root: string; readonly advicee: DirectAdvicee; readonly continuationDigest?: string }
   | { readonly version: 1; readonly operation: "claim-background" | "release-background";
@@ -69,6 +75,7 @@ export type ResidentRequest =
       readonly lifetime: string;
       readonly observation: DirectObservation;
       readonly controlledWriter: true;
+      readonly composed?: true;
       readonly dispatch: ResidentDispatchContext;
     }
   | {
@@ -99,7 +106,7 @@ export type ResidentRequest =
 
 export type ResidentResponse =
   | { readonly version: 2; readonly status: "accepted"; readonly ticket: ResidentCollectionTicket }
-  | { readonly version: 2; readonly status: "rejected-capacity" | "obsolete-lifetime" | "unsupported" }
+  | { readonly version: 2; readonly status: "rejected-capacity" | "rejected-stale" | "obsolete-lifetime" | "unsupported" }
   | { readonly version: 2; readonly status: "pending" | "clear" | "delivered" | "no-work" }
   | { readonly version: 2; readonly status: "unavailable"; readonly reason: ResidentUnavailableReason }
   | { readonly version: 2; readonly status: "advice"; readonly token: string;
@@ -109,6 +116,7 @@ export type ResidentResponse =
       readonly status:
         | "accepted"
         | "rejected-capacity"
+        | "rejected-stale"
         | "obsolete-lifetime"
         | "empty"
         | "pending"
@@ -233,7 +241,8 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
     if (value.operation === "admit" && value.controlledWriter === true && observation(value.observation) &&
         value.observation.advicee.host === "claude-code" && dispatch(value.dispatch)) {
       return { version: 2, operation: "admit", lifetime: value.lifetime,
-        observation: value.observation, controlledWriter: true, dispatch: value.dispatch };
+        observation: value.observation, controlledWriter: true, dispatch: value.dispatch,
+        ...(value.composed === true ? { composed: true } : {}) };
     }
     const ticket = record(value.ticket);
     if (value.operation === "collect" && string(ticket?.nonce) && string(ticket.lifetime) &&
@@ -257,6 +266,22 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
       ...(typeof value.promptDigest === "string" ? { promptDigest: value.promptDigest } : {}),
       ...(value.onlyIfMissing === true ? { onlyIfMissing: true as const } : {}) };
   }
+  if ((value.operation === "begin-stop" || value.operation === "finish-stop") &&
+      string(value.root) && advicee(value.advicee) && string(value.token) &&
+      (value.close === undefined || typeof value.close === "boolean") &&
+      (value.reason === undefined || ROUND_CLOSE_REASONS.includes(value.reason as RoundCloseReason))) {
+    return { version: 1, operation: value.operation, lifetime: value.lifetime,
+      root: value.root, advicee: value.advicee, token: value.token,
+      ...(typeof value.close === "boolean" ? { close: value.close } : {}),
+      ...(value.reason === undefined ? {} : { reason: value.reason as RoundCloseReason }) };
+  }
+  if (value.operation === "register-edit" && string(value.root) && advicee(value.advicee) &&
+      typeof value.startedAt === "number" && Number.isFinite(value.startedAt) && value.startedAt > 0 &&
+      (value.activityPath === undefined || (string(value.activityPath) && value.activityPath.startsWith("/")))) {
+    return { version: 1, operation: "register-edit", lifetime: value.lifetime,
+      root: value.root, advicee: value.advicee, startedAt: value.startedAt,
+      ...(typeof value.activityPath === "string" ? { activityPath: value.activityPath } : {}) };
+  }
   if (value.operation === "consume-stop" && string(value.root) && advicee(value.advicee) &&
       (value.continuationDigest === undefined ||
         (typeof value.continuationDigest === "string" && /^[a-f0-9]{64}$/.test(value.continuationDigest)))) {
@@ -279,7 +304,8 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
     return { version: 1, operation: "release", lifetime: value.lifetime, token: value.token };
   }
   if (value.operation === "admit" && value.controlledWriter === true && observation(value.observation) && dispatch(value.dispatch)) {
-    return { version: 1, operation: "admit", lifetime: value.lifetime, observation: value.observation, controlledWriter: true, dispatch: value.dispatch };
+    return { version: 1, operation: "admit", lifetime: value.lifetime, observation: value.observation, controlledWriter: true, dispatch: value.dispatch,
+        ...(value.composed === true ? { composed: true } : {}) };
   }
   if (
     value.operation === "collect" && string(value.root) && advicee(value.advicee) && dispatch(value.dispatch) &&
@@ -323,7 +349,7 @@ const ClaudeBlockHostOutput = Schema.Struct({
 const ResidentResponseSchema = Schema.Union([
   Schema.Struct({ version: Schema.Literal(2), status: Schema.Literal("accepted"),
     ticket: Schema.Struct({ nonce: Schema.NonEmptyString, lifetime: Schema.NonEmptyString }) }),
-  Schema.Struct({ version: Schema.Literal(2), status: Schema.Literals(["rejected-capacity", "obsolete-lifetime", "unsupported"])}),
+  Schema.Struct({ version: Schema.Literal(2), status: Schema.Literals(["rejected-capacity", "rejected-stale", "obsolete-lifetime", "unsupported"])}),
   Schema.Struct({ version: Schema.Literal(2), status: Schema.Literals(["pending", "clear", "delivered", "no-work"]) }),
   Schema.Struct({ version: Schema.Literal(2), status: Schema.Literal("unavailable"),
     reason: Schema.Literals(["backend", "credential", "capacity", "stale", "lost", "expired"]) }),
@@ -335,7 +361,7 @@ const ResidentResponseSchema = Schema.Union([
     output: ClaudeBlockHostOutput }),
   Schema.Struct({ status: Schema.Literal("ready"), lifetime: Schema.NonEmptyString, pid: Schema.Int }),
   Schema.Struct({ status: Schema.Literals([
-    "accepted", "rejected-capacity", "obsolete-lifetime", "empty", "pending", "advanced",
+    "accepted", "rejected-capacity", "rejected-stale", "obsolete-lifetime", "empty", "pending", "advanced",
     "continuation-allowed", "continuation-denied", "background-claimed", "submitting", "released",
     "acknowledged", "finalized", "unsupported",
     "busy", "cleaned",

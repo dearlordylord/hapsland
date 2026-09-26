@@ -96,6 +96,15 @@ export class EvaluationReuse<Pending = never> {
     return { entries: this.#cache.size, bytes: this.#cacheBytes, pending: this.#pending.size };
   }
 
+  discardPartition(partition: string): void {
+    for (const [key, entry] of this.#cache) {
+      if (entry.reservation.partition !== partition) continue;
+      this.#cache.delete(key);
+      this.#cacheBytes -= entry.logicalBytes;
+      this.#options.release(entry.reservation);
+    }
+  }
+
   clear(): void {
     this.#pending.clear();
     for (const entry of this.#cache.values()) this.#options.release(entry.reservation);

@@ -1,82 +1,101 @@
 import { describe, expect, it } from "vitest";
-import { BACKGROUND_WAITER_EXPIRY_MS, COMPOSED_CHAIN_EXPIRY_MS, ComposedDelivery, MAX_COMPOSED_CHAINS } from "./composed-delivery.ts";
+import { BACKGROUND_WAITER_EXPIRY_MS, ComposedDelivery, MAX_COMPOSED_ROUNDS } from "./composed-delivery.ts";
 
-describe("shared composed delivery turn chains", () => {
-  it("coalesces background waiters per advicee and reclaims canceled owners", () => {
+describe("shared Hapsland rounds", () => {
+  it("allows four continuation reservations; prompts and expiry cannot reset them", () => {
     const state = new ComposedDelivery();
-    expect(state.claimBackground("codex/a", "first", 0)).toBe(true);
-    expect(state.claimBackground("codex/a", "second", 1)).toBe(false);
-    expect(state.claimBackground("claude/a", "child", 1)).toBe(true);
-    state.releaseBackground("codex/a", "second");
-    expect(state.claimBackground("codex/a", "third", 2)).toBe(false);
-    state.releaseBackground("codex/a", "first");
-    expect(state.claimBackground("codex/a", "third", 3)).toBe(true);
-    expect(state.claimBackground("claude/a", "replacement", BACKGROUND_WAITER_EXPIRY_MS + 1)).toBe(true);
-  });
-  it("permits one Stop continuation per distinct prompt marker and advicee", () => {
-    const state = new ComposedDelivery();
-    expect(state.hasStopAllowance("codex/a")).toBe(false);
-    expect(state.consumeStop("codex/a")).toBe(false);
-    expect(state.advance("codex/a", "prompt-1", 0)).toBe(true);
-    expect(state.consumeStop("codex/a")).toBe(true);
-    expect(state.consumeStop("codex/a")).toBe(false);
-    expect(state.advance("codex/a", "prompt-1", 1)).toBe(true);
-    expect(state.consumeStop("codex/a")).toBe(false);
-    expect(state.advance("claude/a", "prompt-1", 1)).toBe(true);
-    expect(state.consumeStop("claude/a")).toBe(true);
-    expect(state.advance("codex/a", "prompt-2", 2)).toBe(true);
-    expect(state.generation("codex/a")).toBe(2);
-    expect(state.consumeStop("codex/a")).toBe(true);
-  });
-
-  it("does not reset the cap when Stop feedback becomes a synthetic prompt", () => {
-    const state = new ComposedDelivery();
-    state.advance("codex/a", "prompt-1", 0, "original");
-    expect(state.consumeStop("codex/a", "feedback")).toBe(true);
-    expect(state.advance("codex/a", "new-turn-id", 1, "feedback")).toBe(true);
-    expect(state.generation("codex/a")).toBe(1);
-    expect(state.consumeStop("codex/a")).toBe(false);
-    state.advance("codex/a", "actual-next-prompt", 2, "different");
-    expect(state.generation("codex/a")).toBe(2);
-  });
-
-  it("recovers a missing prompt marker from a host turn without resetting an existing cap", () => {
-    const state = new ComposedDelivery();
-    expect(state.ensureFromHostTurn("codex/a", "turn-1", 0)).toBe(true);
-    expect(state.consumeStop("codex/a")).toBe(true);
-    expect(state.ensureFromHostTurn("codex/a", "turn-2", 1)).toBe(true);
-    expect(state.generation("codex/a")).toBe(1);
-    expect(state.consumeStop("codex/a")).toBe(false);
-  });
-
-  it("fails closed at capacity and expires bounded old chains", () => {
-    const state = new ComposedDelivery();
-    for (let index = 0; index < MAX_COMPOSED_CHAINS; index += 1) {
-      expect(state.advance(`advicee-${index}`, "prompt", 0)).toBe(true);
+    expect(state.consumeStop("agent")).toBe(false);
+    state.admitEdit("agent", "edit", 0);
+    for (let count = 0; count < 4; count++) {
+      state.advance("agent", `runtime-turn-${count}`, count);
+      state.expire(600_000 * (count + 1));
+      expect(state.consumeStop("agent")).toBe(true);
     }
-    expect(state.advance("overflow", "prompt", 0)).toBe(false);
-    expect(state.consumeStop("overflow")).toBe(false);
-    state.expire(COMPOSED_CHAIN_EXPIRY_MS);
-    expect(state.advance("overflow", "prompt", COMPOSED_CHAIN_EXPIRY_MS)).toBe(true);
+    expect(state.consumeStop("agent")).toBe(false);
+    expect(state.generation("agent")).toBe(1);
   });
 
-  it("suppresses uncertain and submitted findings until the next prompt while retaining overflow", () => {
+  it("fences a closed round and requires fresh occurrence evidence to reopen", () => {
     const state = new ComposedDelivery();
-    const first = { rule: "r1", advice: "repair first" };
-    const second = { rule: "r2", advice: "repair second" };
-    state.advance("advicee", "prompt-1", 0);
-    state.beginSubmission("advice", "advicee", "lease-1", [first], "background", 1);
-    expect(state.suppresses("advice", "advicee", first)).toBe(true);
-    expect(state.suppresses("advice", "advicee", second)).toBe(false);
-    state.markSubmitted("lease-1");
-    expect(state.suppresses("advice", "advicee", first)).toBe(true);
-    state.beginSubmission("advice", "advicee", "lease-2", [second], "stop", 2);
-    expect(state.suppresses("advice", "advicee", second)).toBe(true);
-    state.release("lease-2");
-    expect(state.suppresses("advice", "advicee", second)).toBe(false);
-    state.advance("advicee", "prompt-2", 3);
-    expect(state.suppresses("advice", "advicee", first)).toBe(false);
-    state.forget("advice");
-    expect(state.hasToken("lease-1")).toBe(false);
+    state.admitEdit("agent", "old", 0);
+    expect(state.beginStop("agent", "stop")).toBe(true);
+    expect(state.beginStop("agent", "competing-stop")).toBe(false);
+    expect(state.finishStop("agent", "stop", true, 100)).toBe(1);
+    expect(state.advance("agent", "prompt", 1)).toBe(false);
+    expect(state.admitEdit("agent", "unknown-late", 1)).toBeUndefined();
+    expect(state.registerEdit("agent", "late", 99, 110)).toBe(false);
+    expect(state.registerEdit("agent", "new", 102, 110)).toBe(true);
+    expect(state.admitEdit("agent", "new", 111, true)).toBe(2);
+    expect(state.admitEdit("agent", "old", 112, true)).toBeUndefined();
+    expect(state.consumeStop("agent")).toBe(true);
+  });
+
+  it("requires a prospective permit, rejects expired or orphaned prehooks and consumes once", () => {
+    const state = new ComposedDelivery();
+    expect(state.admitEdit("agent", "no-pre", 100, true)).toBeUndefined();
+    expect(state.registerEdit("agent", "expired", 100, 2600)).toBe(false);
+    expect(state.registerEdit("agent", "edit", 100, 110)).toBe(true);
+    expect(state.admitEdit("agent", "edit", 120, true)).toBe(1);
+    expect(state.admitEdit("agent", "edit", 121, true)).toBeUndefined();
+    expect(state.registerEdit("agent", "pending", 130, 140)).toBe(true);
+    state.beginStop("agent", "stop");
+    state.finishStop("agent", "stop", true, 200);
+    expect(state.admitEdit("agent", "pending", 210, true)).toBeUndefined();
+    expect(state.registerEdit("agent", "old-hook", 190, 210)).toBe(false);
+    expect(state.registerEdit("agent", "edit", 220, 230)).toBe(false);
+    expect(state.registerEdit("other-agent", "edit", 220, 230)).toBe(true);
+  });
+
+  it("closes abandoned pre-output Stop attempts but preserves uncertain continuations", () => {
+    const state = new ComposedDelivery();
+    state.admitEdit("allow", "edit", 0);
+    state.beginStop("allow", "lost");
+    expect(state.expireStop("allow", "lost")).toBe(1);
+    expect(state.isActive("allow")).toBe(false);
+    state.admitEdit("continue", "edit", 0);
+    state.beginStop("continue", "lost");
+    state.consumeStop("continue");
+    expect(state.expireStop("continue", "lost")).toBeUndefined();
+    expect(state.isActive("continue")).toBe(true);
+    for (let count = 0; count < 3; count++) expect(state.consumeStop("continue")).toBe(true);
+    expect(state.consumeStop("continue")).toBe(false);
+  });
+
+  it("retains source-free fences at capacity instead of resetting through expiry", () => {
+    const state = new ComposedDelivery();
+    for (let i = 0; i < MAX_COMPOSED_ROUNDS; i++) state.advance(`agent-${i}`, "prompt", 0);
+    state.expire(600_000);
+    expect(state.advance("overflow", "prompt", 600_000)).toBe(false);
+  });
+
+  it("coalesces background waiters and forbids submission after the Stop barrier", () => {
+    const state = new ComposedDelivery();
+    state.admitEdit("agent", "edit", 0);
+    expect(state.claimBackground("agent", "first", 0)).toBe(true);
+    expect(state.claimBackground("agent", "second", 1)).toBe(false);
+    expect(state.claimBackground("agent", "second", BACKGROUND_WAITER_EXPIRY_MS)).toBe(true);
+    state.beginStop("agent", "stop");
+    expect(state.canSubmit("agent", "background")).toBe(true);
+    state.consumeStop("agent");
+    expect(state.canSubmit("agent", "background")).toBe(false);
+    state.finishStop("agent", "stop", false);
+    expect(state.canSubmit("agent", "background")).toBe(true);
+  });
+
+  it("reoffers submitted or uncertain background findings once at Stop without rerunning review", () => {
+    const state = new ComposedDelivery();
+    const finding = { rule: "r", advice: "repair" };
+    state.admitEdit("agent", "edit", 0);
+    state.beginSubmission("advice", "agent", "bg", [finding], "background", 1);
+    expect(state.suppresses("advice", "agent", finding)).toBe(true);
+    expect(state.suppresses("advice", "agent", finding, "stop")).toBe(false);
+    state.markSubmitted("bg");
+    expect(state.suppresses("advice", "agent", finding, "stop")).toBe(false);
+    state.beginSubmission("advice", "agent", "stop", [finding], "stop", 2);
+    expect(state.suppresses("advice", "agent", finding, "stop")).toBe(true);
+    state.beginStop("agent", "close");
+    state.finishStop("agent", "close", true);
+    expect(state.hasToken("bg")).toBe(false);
+    expect(state.hasToken("stop")).toBe(false);
   });
 });

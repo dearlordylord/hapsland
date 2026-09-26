@@ -26,7 +26,15 @@ type ActivityMarker = BaseMarker & {
   readonly expectedUnitKeys?: ReadonlyArray<string>;
 };
 type SubmissionMarker = BaseMarker & { readonly kind: "submission"; readonly findings: number };
-type Marker = ActivityMarker | SubmissionMarker;
+export const ROUND_CLOSE_REASONS = ["no-advice", "deadline", "limit", "unavailable", "output-failed", "abandoned-stop"] as const;
+export type RoundCloseReason = typeof ROUND_CLOSE_REASONS[number];
+export type RoundClosureSummary = {
+  readonly roundKey: string; readonly reason: RoundCloseReason; readonly reservedContinuations: number;
+  readonly discarded: { readonly queued: number; readonly running: number; readonly pendingAdvice: number;
+    readonly submitted: number; readonly uncertain: number; readonly editPermits: number };
+};
+type RoundClosureMarker = BaseMarker & RoundClosureSummary & { readonly kind: "round-closure"; readonly findings: 0 };
+type Marker = ActivityMarker | SubmissionMarker | RoundClosureMarker;
 
 export type ActivityKind = "no-observation" | "skipped" | "pending" | "clear" | "findings" | "submitted" | "unavailable" | "incomplete" | "restarted/lost";
 export type ActivityStatus = {
@@ -41,6 +49,7 @@ export type ActivityStatus = {
   readonly lastObservedAt?: number;
   readonly submission: { readonly status: "none" | "submitted"; readonly findings: number };
   readonly modelReaction: { readonly status: "unavailable"; readonly reason: "host-model-reaction-not-instrumented" };
+  readonly roundClosures?: ReadonlyArray<RoundClosureSummary>;
   readonly limitation?: "activity-state-unreadable" | "session-id-required";
 };
 
@@ -62,6 +71,14 @@ const isMarker = (value: unknown): value is Marker => {
     Number.isSafeInteger(item.observedAt) && item.observedAt >= 0 && count(item.findings);
   if (!base) return false;
   if (item.kind === "submission") return true;
+  if (item.kind === "round-closure") {
+    const discarded = item.discarded;
+    return digest(item.roundKey) && ROUND_CLOSE_REASONS.includes(item.reason as RoundCloseReason) &&
+      count(item.reservedContinuations) && Number(item.reservedContinuations) <= 4 &&
+      typeof discarded === "object" && discarded !== null &&
+      ["queued", "running", "pendingAdvice", "submitted", "uncertain", "editPermits"].every((key) =>
+        count((discarded as Record<string, unknown>)[key]));
+  }
   return item.kind === "activity" &&
     ["pending", "skipped", "clear", "findings", "unavailable", "incomplete"].includes(String(item.stage)) &&
     (item.unitKey === undefined || digest(item.unitKey)) &&
@@ -118,7 +135,7 @@ const prune = (directory: string): void => {
     const bySemanticMarker = new Map<string, typeof newest[number]>();
     for (const entry of newest) {
       const marker = entry.marker;
-      const key = marker.kind === "submission"
+      const key = marker.kind === "round-closure" ? "round-closure" : marker.kind === "submission"
         ? "submission"
         : marker.expectedUnitKeys !== undefined
           ? "plan"
@@ -180,6 +197,25 @@ export const recordActivity = (options: {
   } catch {
     // Activity is advisory and cannot fail an already-completed host edit.
   }
+};
+
+/** A bounded source-free explanation of the resource cleanup at round closure. */
+export const recordRoundClosure = (options: {
+  readonly statePath: string | undefined; readonly root: string; readonly advicee: DirectAdvicee;
+  readonly lifetime: string; readonly roundIdentity: string; readonly reason: RoundCloseReason;
+  readonly reservedContinuations: number; readonly discarded: RoundClosureSummary["discarded"];
+}): void => {
+  if (options.statePath === undefined) return;
+  try {
+    const directory = join(options.statePath, sessionKey(options.advicee.sessionId));
+    const roundKey = hash(`round:${options.lifetime}:${options.roundIdentity}`);
+    atomicCreate(directory, { version: 1, kind: "round-closure", findings: 0,
+      sessionKey: sessionKey(options.advicee.sessionId), childKey: childKey(options.advicee.subagentId),
+      repositoryKey: repositoryKey(options.root), eventKey: roundKey, roundKey,
+      lifetime: options.lifetime, observedAt: Date.now(), reason: options.reason,
+      reservedContinuations: options.reservedContinuations, discarded: options.discarded });
+    prune(directory);
+  } catch { /* Advisory accounting must not prevent cleanup. */ }
 };
 
 const emptyCounts = (): Record<ActivityKind, number> => ({
@@ -265,12 +301,18 @@ export const readActivity = (options: {
     if (typeof cause === "object" && cause !== null && "code" in cause && cause.code === "ENOENT") return empty();
     return empty("activity-state-unreadable");
   }
+  const roundClosures: RoundClosureSummary[] = [];
   const events = new Map<string, Array<ActivityMarker>>();
   const submissions = new Map<string, SubmissionMarker>();
   const children = new Map<string, Set<string>>();
   let firstObservedAt: number | undefined;
   let lastObservedAt: number | undefined;
   for (const marker of markers) {
+    if (marker.kind === "round-closure") {
+      roundClosures.push({ roundKey: marker.roundKey, reason: marker.reason,
+        reservedContinuations: marker.reservedContinuations, discarded: marker.discarded });
+      continue;
+    }
     firstObservedAt = Math.min(firstObservedAt ?? marker.observedAt, marker.observedAt);
     lastObservedAt = Math.max(lastObservedAt ?? marker.observedAt, marker.observedAt);
     const childEvents = children.get(marker.childKey) ?? new Set<string>();
@@ -294,6 +336,7 @@ export const readActivity = (options: {
   const submittedFindings = [...submissions.values()].reduce((total, marker) => total + marker.findings, 0);
   counts.submitted = submissions.size;
   return {
+    ...(roundClosures.length === 0 ? {} : { roundClosures }),
     kind: overallKind(counts), observed: markers.length > 0, source: "resident-v1",
     boundedToEvents: MAX_ACTIVITY_EVENTS_PER_SESSION, counts, findings,
     children: [...children.entries()].map(([key, eventKeys]) => ({
@@ -318,6 +361,9 @@ export const formatActivityHuman = (sessionId: string, activity: ActivityStatus)
     `submission: ${activity.submission.status} (findings=${activity.submission.findings})`,
     "model-reaction: unavailable (host model reaction is not instrumented)",
   ];
+  for (const closure of activity.roundClosures ?? []) {
+    lines.push(`round closed: ${closure.reason}; continuations=${closure.reservedContinuations}; discarded ${Object.entries(closure.discarded).map(([key, value]) => `${key}=${value}`).join(", ")}`);
+  }
   if (activity.limitation !== undefined) lines.push(`limitation: ${activity.limitation}`);
   return `${lines.join("\n")}\n`;
 };
