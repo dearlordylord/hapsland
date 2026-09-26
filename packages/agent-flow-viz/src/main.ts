@@ -17,6 +17,7 @@ export type Model = typeof Model.Type;
 export const Message = defineMessageUnion({
   SelectedTrace: { index: Schema.Number },
   Advanced: {},
+  Rewound: {},
   TriggeredEvent: { event: Schema.Literals(EVENT_IDS) },
   Reset: {},
 });
@@ -34,6 +35,18 @@ export const update = (model: Model, message: Message) =>
       if (event === undefined) return { model };
       const result = stepFlow(model.flow, event);
       return { model: { ...model, flow: result.state, cursor: model.cursor + (result.accepted ? 1 : 0) } };
+    },
+    Rewound: () => {
+      const events = TRACES[model.trace]?.events;
+      if (events === undefined || model.cursor === 0) return { model };
+      const cursor = model.cursor - 1;
+      let flow = initialFlow();
+      for (const event of events.slice(0, cursor)) {
+        const result = stepFlow(flow, event);
+        if (!result.accepted) return { model };
+        flow = result.state;
+      }
+      return { model: { ...model, cursor, flow } };
     },
     TriggeredEvent: ({ event }) => ({ model: {
       ...model, trace: -1, cursor: 0, flow: stepFlow(model.flow, event).state,
@@ -201,6 +214,7 @@ const eventLabel = (event: EventId): string => {
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const trace = TRACES[model.trace];
   const next = trace?.events[model.cursor];
+  const previous = model.cursor > 0 ? trace?.events[model.cursor - 1] : undefined;
   return {
     title: "Hapsland · agent flow visualization",
     body: h.main([h.Class("page")], [
@@ -229,7 +243,10 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
               h.Class(index === model.trace ? "trace selected" : "trace")], [item.name]))),
           h.p([h.Class("description")], [trace?.description ?? "Free play: choose any event below."]),
           h.div([h.Class("trace-controls")], [
-            h.button([h.OnClick(Message.Advanced()), h.Class("primary")], [
+            h.button([h.OnClick(Message.Rewound()), h.Disabled(previous === undefined)], [
+              previous === undefined ? "Previous" : `Previous: ${TRANSITIONS[previous].label}`,
+            ]),
+            h.button([h.OnClick(Message.Advanced()), h.Class("primary"), h.Disabled(next === undefined)], [
               next === undefined ? "Trace complete" : `Next: ${TRANSITIONS[next].label}`,
             ]),
             h.button([h.OnClick(Message.Reset())], ["Reset trace"]),

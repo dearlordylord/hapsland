@@ -25,6 +25,7 @@ p { line-height: 1.5; }
 .trace.selected, .trace-controls .primary { background: #245bb8; color: #fff; border-color: #245bb8; }
 .trace:hover, .trace-controls button:hover, .event-row:hover { background: #eaf1ff; color: #17335e; }
 .trace.selected:hover, .trace-controls .primary:hover { background: #174a9d; color: #fff; }
+.trace-controls button:disabled { cursor: default; opacity: .5; background: #fff; color: #264365; }
 .description, .progress { color: #5c6d82; font-size: .86rem; }
 .status { background: #eef4ff; border-left: 3px solid #537ac5; border-radius: 4px; padding: 11px 13px; font-size: .9rem; }
 .packets { display: grid; gap: 7px; max-height: 360px; overflow: auto; }

@@ -9,7 +9,8 @@ npm install
 npm run dev
 ```
 
-Select a guided example or apply one event at a time. The process diagram groups
+Select a guided example, move to its next or previous event, or apply an event
+directly. The process diagram groups
 related events into one numbered connection. The event list shows each variant,
 its information, and whether its prerequisites currently hold.
 
