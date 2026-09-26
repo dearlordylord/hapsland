@@ -193,23 +193,26 @@ The five-second ceiling and one-continuation cap are **selected candidate limits
 from #97's bounded fixtures, not established production defaults. They require both
 exact-profile launch-to-exit measurements and race validation before adoption.
 
-The owner selected **at most one Stop continuation per agent assignment** on
-2026-09-26. A repair requested at Stop stays in the same assignment. A later
-assignment to the same agent gets a new allowance. The current candidate does
-not yet implement this rule reliably: it has no assignment identity, and it
-cannot tell when a resumed subagent begins a new assignment. Its in-memory
-allowance can also expire or disappear on resident restart. These are adoption
-gaps, not proof that another assignment started.
+The owner is reviewing the Stop continuation policy. One continuation per
+agent assignment was proposed on 2026-09-26, but the owner has **not** accepted
+that as the final rule. The meaning and boundary of an assignment also remain
+open. The current candidate tracks a per-agent in-memory allowance; it has no
+assignment identity, and it cannot tell when a resumed subagent receives new
+work. The record can expire or disappear on resident restart. Do not treat this
+candidate behavior as an approved product limit.
 
 A Stop request does not empty the resident by construction. It waits for at
 most 4.2 seconds while review work can continue independently; Jev can finish
 after Stop returns. One response has a limit of five findings and 2 KiB, so
 other findings can remain pending. Composed delivery also retains advice after
 a successful response and suppresses repeat delivery only for the current
-delivery record. A later assignment can make still-current advice eligible
-again. If the agent repairs a finding, that edit can create new review work
-within the same assignment. Review completion, response submission, and
-agent action must therefore remain separate observations.
+delivery record. A later request can make still-current advice eligible again.
+If the agent repairs a finding, that edit can create new review work. Review
+completion, response submission, and agent action must remain separate
+observations. The owner is considering whether a final Stop should instead
+cancel unfinished work and discard undelivered advice with an explicit
+incomplete-review outcome. That would revise the current late-collectability
+requirement; it is not implemented or approved.
 
 ## Required conformance and present evidence
 
