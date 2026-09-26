@@ -4,12 +4,12 @@ import { TIMELINE_CASES } from "./timeline";
 import { Runtime, type Update } from "foldkit";
 import type { Document, HtmlBuilder } from "foldkit/html";
 import { defineMessageUnion } from "foldkit/message";
-import { describeAccepted, EMISSION_LABELS, EVENT_LABELS, NODES, REJECTION_LABELS } from "./diagram";
+import { CONTROL_SIGNAL_LABELS, describeAccepted, EMISSION_LABELS, EVENT_LABELS, NODES, REJECTION_LABELS } from "./diagram";
 import { CONNECTIONS, PROJECTED_TRACES, nextEventOptions, routeFor } from "./generation";
 import { TRACES } from "./scenarios";
 import {
-  EVENT_IDS, FlowStateSchema, MAX_STOP_CONTINUATIONS, NODE_IDS,
-  activeReviewJobCount, initialFlow, stepFlow, type EventId, type FlowState, type NodeId, type Transition,
+  EVENT_IDS, FlowStateSchema, INTERNAL_EVENTS, MAX_STOP_CONTINUATIONS, NODE_IDS,
+  activeReviewJobCount, activeSourceJobCount, advicePolicyInput, initialFlow, stepFlow, type EventId, type FlowState, type NodeId, type Transition,
 } from "./flow";
 
 export const Model = Schema.Struct({
@@ -21,16 +21,25 @@ export const Model = Schema.Struct({
   historyPosition: Schema.Number,
   history: Schema.Array(Schema.Union([
     Schema.Struct({ kind: Schema.Literal("flow"), event: Schema.Literals(EVENT_IDS),
-      itemId: Schema.Union([Schema.Null, Schema.Number]), origin: Schema.Literals(["guided", "manual"]) }),
-    Schema.Struct({ kind: Schema.Literal("capacity"), capacity: Schema.Number }),
+      itemId: Schema.Union([Schema.Null, Schema.Number]), origin: Schema.Literals(["guided", "manual"]),
+      automatic: Schema.Array(Schema.Struct({ event: Schema.Literals(INTERNAL_EVENTS), itemId: Schema.Union([Schema.Null, Schema.Number]) })) }),
+    Schema.Struct({ kind: Schema.Literal("capacity"), capacityType: Schema.Literals(["source", "jev"]), capacity: Schema.Number,
+      automatic: Schema.Array(Schema.Struct({ event: Schema.Literals(INTERNAL_EVENTS), itemId: Schema.Union([Schema.Null, Schema.Number]) })) }),
   ])),
-  lastEvent: Schema.Union([Schema.Null, Schema.Literals(EVENT_IDS)]),
+  lastChangeEvents: Schema.Array(Schema.Literals(EVENT_IDS)),
   feedback: Schema.String,
   emissions: Schema.Array(Schema.Struct({
-    event: Schema.Literals(["HostOutputSubmitted", "ClearRecorded", "JevUnavailable"]),
+    event: Schema.Literals(["HostOutputSubmitted", "ClearRecorded", "UnavailableRecorded"]),
     at: Schema.Literals(NODE_IDS),
     itemId: Schema.Number,
   })),
+  lastFinishDecision: Schema.Union([Schema.Null, Schema.Struct({
+    response: Schema.Literals(["continueWithAdvice", "allowFinish"]),
+    adviceItemIds: Schema.Array(Schema.Number),
+    discardedItemIds: Schema.Array(Schema.Number),
+    cancelledSourceReadingIds: Schema.Array(Schema.Number),
+    cancelledJevRequestIds: Schema.Array(Schema.Number),
+  })]),
 });
 export type Model = typeof Model.Type;
 
@@ -41,7 +50,7 @@ export const Message = defineMessageUnion({
   Rewound: {},
   Redid: {},
   TriggeredEvent: { event: Schema.Literals(EVENT_IDS), itemId: Schema.Union([Schema.Null, Schema.Number]) },
-  CapacitySubmitted: { raw: Schema.String },
+  CapacitySubmitted: { capacityType: Schema.Literals(["source", "jev"]), raw: Schema.String },
   JumpedToHistory: { count: Schema.Number },
   Reset: {},
 });
@@ -49,7 +58,7 @@ export type Message = typeof Message.Type;
 
 const reset = (trace: number): Model => ({
   trace, timeline: 0, cursor: 0, flow: initialFlow(), guidedBindings: [], historyPosition: 0,
-  history: [], lastEvent: null, emissions: [],
+  history: [], lastChangeEvents: [], emissions: [], lastFinishDecision: null,
   feedback: "No live virtual round or review work yet. Events are example inputs; no agent runtime or Jev connection is attached.",
 });
 export const init: Runtime.ApplicationInit<Model, Message> = () => ({ model: reset(0) });
@@ -83,33 +92,53 @@ const applyEvent = (model: Model, event: EventId, origin: EventOrigin, itemId?: 
     : REJECTION_LABELS[result.reason] };
   const actualId = result.changes.find((change) => change.kind === "transition")?.itemId ?? null;
   const plannedId = origin === "guided" && event === "EditObserved" ? plannedItemAt(model) : null;
-  const recorded = { kind: "flow" as const, event, itemId: actualId, origin };
+  const automatic = result.changes.flatMap((change) => change.kind === "transition" &&
+    (INTERNAL_EVENTS as readonly string[]).includes(change.event)
+    ? [{ event: change.event as (typeof INTERNAL_EVENTS)[number], itemId: change.itemId }] : []);
+  const recorded = { kind: "flow" as const, event, itemId: actualId, origin, automatic };
   const nextRecorded = model.history[model.historyPosition];
   const followsTail = nextRecorded?.kind === "flow" && nextRecorded.event === recorded.event &&
     nextRecorded.itemId === recorded.itemId && nextRecorded.origin === recorded.origin;
   const emitted = result.changes.flatMap((change) => change.kind === "emitted"
     ? [{ event: change.event, at: change.at, itemId: change.itemId }] : []);
+  const finishDecision = result.changes.find((change) => change.kind === "finishDecision");
+  const feedback = finishDecision === undefined
+    ? `${describeAccepted(model.flow, result.state, event, routeFor(event))}${actualId === null ? "" : ` Item #${actualId}.`}`
+    : finishDecision.response === "continueWithAdvice"
+      ? `Hapsland chose a continue-with-advice response containing item${finishDecision.adviceItemIds.length === 1 ? "" : "s"} ${finishDecision.adviceItemIds.map((id) => `#${id}`).join(", ")}. It discarded ${finishDecision.discardedItemIds.length} other items and requested cancellation of ${finishDecision.cancelledSourceReadingIds.length} source readings and ${finishDecision.cancelledJevRequestIds.length} Jev requests from this flow.`
+      : `Hapsland chose an allow-finish response. It discarded ${finishDecision.discardedItemIds.length} items and requested cancellation of ${finishDecision.cancelledSourceReadingIds.length} source readings and ${finishDecision.cancelledJevRequestIds.length} Jev requests from this virtual round.`;
   return {
-    ...model, flow: result.state, lastEvent: event,
+    ...model, flow: result.state,
+    lastChangeEvents: result.changes.flatMap((change) => change.kind === "transition" ? [change.event] : []),
+    lastFinishDecision: finishDecision === undefined ? model.lastFinishDecision : {
+      response: finishDecision.response, adviceItemIds: finishDecision.adviceItemIds,
+      discardedItemIds: finishDecision.discardedItemIds,
+      cancelledSourceReadingIds: finishDecision.cancelledSourceReadingIds,
+      cancelledJevRequestIds: finishDecision.cancelledJevRequestIds,
+    },
     guidedBindings: plannedId === null || actualId === null ? model.guidedBindings
       : [...model.guidedBindings, { plannedId, actualId }],
     history: followsTail ? model.history : [...model.history.slice(0, model.historyPosition), recorded],
     historyPosition: model.historyPosition + 1,
     cursor: model.cursor + (origin === "guided" ? 1 : 0),
     emissions: [...model.emissions, ...emitted],
-    feedback: `${describeAccepted(model.flow, result.state, event, routeFor(event))}${actualId === null ? "" : ` Item #${actualId}.`}`,
+    feedback,
   };
 };
 
-const applyCapacity = (model: Model, capacity: number): Model => {
-  const result = stepFlow(model.flow, { type: "ReviewCapacitySet", capacity });
+const applyCapacity = (model: Model, capacityType: "source" | "jev", capacity: number): Model => {
+  const result = stepFlow(model.flow, { type: capacityType === "source" ? "SourceCapacitySet" : "ReviewCapacitySet", capacity });
   if (!result.accepted) return { ...model, feedback: REJECTION_LABELS[result.reason] };
   const nextRecorded = model.history[model.historyPosition];
-  const followsTail = nextRecorded?.kind === "capacity" && nextRecorded.capacity === capacity;
-  return { ...model, flow: result.state, lastEvent: null,
-    history: followsTail ? model.history : [...model.history.slice(0, model.historyPosition), { kind: "capacity", capacity }],
+  const followsTail = nextRecorded?.kind === "capacity" && nextRecorded.capacityType === capacityType && nextRecorded.capacity === capacity;
+  const automatic = result.changes.flatMap((change) => change.kind === "transition" &&
+    (INTERNAL_EVENTS as readonly string[]).includes(change.event)
+    ? [{ event: change.event as (typeof INTERNAL_EVENTS)[number], itemId: change.itemId }] : []);
+  return { ...model, flow: result.state,
+    lastChangeEvents: result.changes.flatMap((change) => change.kind === "transition" ? [change.event] : []),
+    history: followsTail ? model.history : [...model.history.slice(0, model.historyPosition), { kind: "capacity", capacityType, capacity, automatic }],
     historyPosition: model.historyPosition + 1,
-    feedback: `Review job capacity set to ${capacity}. ${activeReviewJobCount(result.state)} job${activeReviewJobCount(result.state) === 1 ? " is" : "s are"} currently active.`,
+    feedback: `${capacityType === "source" ? "Source-reading" : "Jev request"} capacity set to ${capacity}. ${capacityType === "source" ? activeSourceJobCount(result.state) : activeReviewJobCount(result.state)} currently active.`,
   };
 };
 
@@ -117,7 +146,7 @@ const replayHistory = (model: Model, count: number): Model => {
   const position = Math.max(0, Math.min(model.history.length, count));
   let replayed = { ...reset(model.trace), timeline: model.timeline };
   for (const step of model.history.slice(0, position)) {
-    if (step.kind === "capacity") replayed = applyCapacity(replayed, step.capacity);
+    if (step.kind === "capacity") replayed = applyCapacity(replayed, step.capacityType, step.capacity);
     else {
       const input = step.origin === "guided" ? guidedInput(replayed) : null;
       replayed = applyEvent(replayed, step.event, step.origin,
@@ -144,7 +173,7 @@ export const update = (model: Model, message: Message) =>
     },
     Redid: () => ({ model: model.historyPosition === model.history.length ? model : replayHistory(model, model.historyPosition + 1) }),
     TriggeredEvent: ({ event, itemId }) => ({ model: applyEvent(model, event, "manual", itemId ?? undefined) }),
-    CapacitySubmitted: ({ raw }) => ({ model: applyCapacity(model, Number(raw)) }),
+    CapacitySubmitted: ({ capacityType, raw }) => ({ model: applyCapacity(model, capacityType, Number(raw)) }),
     JumpedToHistory: ({ count }) => ({ model: replayHistory(model, count) }),
   });
 
@@ -159,12 +188,6 @@ const colors = {
 
 type Point = { readonly x: number; readonly y: number };
 const geometry = (transition: Transition) => {
-  if (transition.from === "workQueue" && transition.to === "decisionRequest") return {
-    path: "M 432 52 C 432 10, 1012 10, 1012 52", badge: { x: 722, y: 21 },
-  };
-  if (transition.from === "preparation" && transition.to === "workQueue") return {
-    path: "M 650 190 C 650 250, 500 250, 500 190", badge: { x: 575, y: 235 },
-  };
   const from = NODES[transition.from];
   const to = NODES[transition.to];
   const fx = from.x + NODE_WIDTH / 2;
@@ -217,9 +240,14 @@ const nodeView = (h: HtmlBuilder<Message>, id: NodeId, model: Model) => {
     (packets.length > 4 ? ` +${packets.length - 4}` : "");
   const special = id === "deliveryState" ? `virtual round ${flow.virtualRoundId} · ${flow.virtualRoundActive ? "active" : "closed"} · ${flow.stopContinuations}/${MAX_STOP_CONTINUATIONS}`
     : id === "agentEdit" ? "fresh edit enters through adapter"
-    : id === "collector" ? (flow.leaseSurface ? `${flow.leaseSurface} batch reserved` : flow.opportunity ? `${flow.opportunity} request received` : "waiting for an agent runtime request")
-    : id === "hostOutput" ? (flow.lastSubmissionSurface ? "written; no payload stored here" : "no response written yet")
-    : id === "workQueue" ? (packets.length === 0 ? "queue empty" : `${packets.length} queued · ${shortIds}`)
+    : id === "advicePolicy" ? (() => {
+      const input = advicePolicyInput(flow);
+      const queued = input.queuedFindingResultIds.length + input.queuedClearResultIds.length + input.queuedUnavailableResultIds.length;
+      return `${input.unfinishedWorkItemIds.length} unfinished · ${input.ongoingJevRequestIds.length} at Jev · ${queued} results · ${input.pendingAdviceIds.length} advice · ${input.openFinishDecision ? "finish wait open" : "no finish wait"}`;
+    })()
+    : id === "responseCommand" ? (flow.stopWaiting ? "finish decision pending" : "decision command leaves reducer")
+    : id === "observedWrite" ? (flow.lastSubmissionSurface ? "background write observed" : "no write observed in model")
+    : id === "editQueue" || id === "reviewQueue" || id === "resultQueue" ? (packets.length === 0 ? "queue empty" : `${packets.length} queued · ${shortIds}`)
     : id === "jev" ? `${packets.length} requests at Jev · ${shortIds}`
     : id === "adviceStore" ? (packets.length ? `${packets.length} finding${packets.length === 1 ? "" : "s"} · ${shortIds}` : "no pending advice")
     : id === "outcomeStore" ? (model.emissions.some((item) => item.at === id) ? "updated; no payload stored here" : "no completed review yet")
@@ -242,7 +270,7 @@ const nodeView = (h: HtmlBuilder<Message>, id: NodeId, model: Model) => {
 };
 
 const chart = (model: Model, h: HtmlBuilder<Message>) => h.div([h.Class("chart-scroll")], [
-  h.svg([h.ViewBox("0 0 1450 810"), h.Role("img"),
+  h.svg([h.ViewBox("0 0 1450 1010"), h.Role("img"),
     h.AriaLabel("One-agent, multiple-review-item model: event-labeled data flow from agent edit through Hapsland and Jev to agent runtime output")], [
     h.defs([], [
       h.marker([h.Id("arrow-muted"), h.ViewBox("0 0 10 10"), h.RefX("8"), h.RefY("5"),
@@ -255,29 +283,65 @@ const chart = (model: Model, h: HtmlBuilder<Message>) => h.div([h.Class("chart-s
       ]),
     ]),
     h.text([h.X("30"), h.Y("28"), h.FontSize("13"), h.FontWeight("700"), h.Fill("#34516e")], [
-      `Model scope: one agent · multiple items · ${model.flow.reviewCapacity} job slots (settable)`,
+      `Model scope: one agent · multiple items · ${model.flow.reviewCapacity} Jev slots (settable)`,
     ]),
-    ...CONNECTIONS.map((events, index) => arrow(h, events, index + 1, model.lastEvent !== null && events.includes(model.lastEvent))),
+    ...CONNECTIONS.map((events, index) => arrow(h, events, index + 1, events.some((event) => model.lastChangeEvents.includes(event)))),
     ...NODE_IDS.map((id) => nodeView(h, id, model)),
     ...[
-      { x: 30, y: 752, text: "* Stop reoffer: implemented in the #105 candidate." },
-      { x: 30, y: 775, text: "** Size, time, expiry and full agent checks are not simulated." },
-      { x: 780, y: 729, text: "Numbers match the event controls below." },
-      { x: 780, y: 752, text: "Solid: data movement · Dashed: control event" },
-      { x: 780, y: 775, text: "Amber: stored state · Blue: work · Grey: external · Purple: output" },
+      { x: 30, y: 945, text: "Hook response command and observed write are separate boundaries." },
+      { x: 30, y: 968, text: "Size limits, wall-clock time and expiry are outside this model." },
+      { x: 780, y: 922, text: "Numbers match the event controls below." },
+      { x: 780, y: 945, text: "Solid: data movement · Dashed: control event" },
+      { x: 780, y: 968, text: "Amber: stored state · Blue: work · Grey: external · Purple: output" },
     ].map(({ x, y, text }) => h.text([
       h.X(String(x)), h.Y(String(y)), h.FontSize("12"), h.Fill("#52647d"),
     ], [text])),
   ]),
 ]);
 
+const itemIds = (ids: readonly number[]): string => ids.length === 0 ? "none" : ids.map((id) => `#${id}`).join(", ");
+const finishDecisionChart = (model: Model, h: HtmlBuilder<Message>) => {
+  const decision = model.lastFinishDecision;
+  return h.section([h.Class("finish-panel")], [
+    h.h3([], ["Latest finish decision · reducer projection"]),
+    h.div([h.Class("finish-flow")], [
+      h.div([h.Class("finish-triggers")], [
+        h.div([h.Class("finish-box event")], [EVENT_LABELS.FinishDecisionAllWorkSettled]),
+        h.div([h.Class("finish-box event")], [EVENT_LABELS.FinishDecisionDeadlineReached]),
+      ]),
+      h.span([h.Class("finish-arrow")], ["→"]),
+      h.div([h.Class("finish-box policy")], ["Advice policy", h.small([], ["classify queued results + pending advice"])]),
+      h.span([h.Class("finish-arrow")], ["→"]),
+      h.div([h.Class("finish-outcomes")], [
+        h.div([h.Class(`finish-box outcome${decision?.response === "continueWithAdvice" ? " chosen" : ""}`)], [
+          "Continue with advice", h.small([], ["virtual round stays active"]),
+        ]),
+        h.div([h.Class(`finish-box outcome${decision?.response === "allowFinish" ? " chosen" : ""}`)], [
+          "Allow finish", h.small([], ["virtual round closes"]),
+        ]),
+      ]),
+      h.span([h.Class("finish-arrow")], ["→"]),
+      h.div([h.Class("finish-box command")], ["Response command", h.small([], ["adapter write remains unobserved here"])]),
+    ]),
+    h.div([h.Class("finish-facts")], [
+      h.span([], [`Selected advice: ${decision === null ? "no decision yet" : itemIds(decision.adviceItemIds)}`]),
+      h.span([], [`Discarded: ${decision === null ? "no decision yet" : itemIds(decision.discardedItemIds)}`]),
+      h.span([], [`Cancel source readings: ${decision === null ? "no decision yet" : itemIds(decision.cancelledSourceReadingIds)}`]),
+      h.span([], [`Cancel Jev requests: ${decision === null ? "no decision yet" : itemIds(decision.cancelledJevRequestIds)}`]),
+      h.span([], [`Continuation requests reserved: ${model.flow.stopContinuations}/${MAX_STOP_CONTINUATIONS}`]),
+    ]),
+  ]);
+};
+
 const eventLabel = (event: EventId): string => {
   const transition = routeFor(event);
   return `${EVENT_LABELS[event]} · ${NODES[transition.from].label} → ${NODES[transition.to].label}`;
 };
-const historyLabel = (step: Model["history"][number]): string => step.kind === "capacity"
-  ? `Capacity set to ${step.capacity}`
-  : `${step.origin === "guided" ? "Guided" : "Manual"}: ${EVENT_LABELS[step.event]}${step.itemId === null ? "" : ` · #${step.itemId}`}`;
+const historyLabel = (step: Model["history"][number]): string =>
+  (step.kind === "capacity"
+    ? `${step.capacityType === "source" ? "Source-reading" : "Jev request"} capacity set to ${step.capacity}`
+    : `${step.origin === "guided" ? "Guided" : "Manual"}: ${EVENT_LABELS[step.event]}${step.itemId === null ? "" : ` · #${step.itemId}`}`) +
+  (step.automatic.length === 0 ? "" : ` · then ${step.automatic.map((change) => `${EVENT_LABELS[change.event]}${change.itemId === null ? "" : ` #${change.itemId}`}`).join(", ")}`);
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const trace = TRACES[model.trace];
@@ -297,7 +361,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           "One agent reports edits and receives advice through Claude Code or Codex. The runtime adapter identifies the agent. A sidecar reducer drives this data-flow example.",
         ]),
         h.p([h.Class("caveat")], [
-          `One agent, multiple review items, a FIFO work queue, and ${model.flow.reviewCapacity} configured preparation or evaluation job slots. No live connection or multiple-agent simulation.`,
+          `One agent, separate edit and review queues, queued Jev results, and ${model.flow.reviewCapacity} configured Jev slots. No live connection or multiple-agent simulation.`,
         ]),
       ]),
       h.section([h.Class("chart-panel")], [
@@ -306,13 +370,18 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           h.span([], ["Scroll horizontally on narrow screens"]),
         ]),
         chart(model, h),
+        finishDecisionChart(model, h),
       ]),
       h.section([h.Class("capacity-control")], [
-        h.label([h.For("review-capacity")], ["Active review job slots (N)"]),
+        h.label([h.For("source-capacity")], ["Concurrent source readings"]),
+        h.input([h.Id("source-capacity"), h.Type("number"), h.Min("1"), h.Step("1"),
+          h.Value(String(model.flow.sourceCapacity)),
+          h.OnChange((raw) => Message.CapacitySubmitted({ capacityType: "source", raw }))]),
+        h.label([h.For("review-capacity")], ["Concurrent Jev requests (N)"]),
         h.input([h.Id("review-capacity"), h.Type("number"), h.Min("1"), h.Step("1"),
           h.Value(String(model.flow.reviewCapacity)),
-          h.OnChange((raw) => Message.CapacitySubmitted({ raw }))]),
-        h.p([], ["Changing N is a reducer event recorded in history. If N falls below the active-job count, those jobs finish normally; no new job starts until a slot is available."]),
+          h.OnChange((raw) => Message.CapacitySubmitted({ capacityType: "jev", raw }))]),
+        h.p([], ["Changing N is a reducer event recorded in history. If N falls below the number of requests already at Jev, those requests finish normally; no new request starts until a slot is available. Source reading does not use N."]),
       ]),
       h.div([h.Class("below")], [
         h.section([h.Class("card")], [
@@ -363,13 +432,13 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
               h.strong([], [`#${item.itemId} ${EMISSION_LABELS[item.event]}`]), h.span([], [NODES[item.at].label]),
             ]))),
           h.p([h.Class("state-line")], [
-            `Virtual round ${model.flow.virtualRoundId} (${model.flow.virtualRoundActive ? "active" : "closed"}) · active review jobs ${activeReviewJobCount(model.flow)}/${model.flow.reviewCapacity} · Stop continuation requests ${model.flow.stopContinuations}/${MAX_STOP_CONTINUATIONS} · ` +
+            `Virtual round ${model.flow.virtualRoundId} (${model.flow.virtualRoundActive ? "active" : "closed"}) · source readings ${activeSourceJobCount(model.flow)}/${model.flow.sourceCapacity} · Jev requests ${activeReviewJobCount(model.flow)}/${model.flow.reviewCapacity} · continue-with-advice responses ${model.flow.stopContinuations}/${MAX_STOP_CONTINUATIONS} · ` +
             `reserved batch ${model.flow.leaseSurface ?? "none"} · last response ${model.flow.lastSubmissionSurface ?? "none"}`,
           ]),
         ]),
         h.section([h.Class("card")], [
           h.h2([], ["Events, prerequisites, and information"]),
-          h.p([h.Class("description")], ["Choose an event for a specific item. Manual events interleave with the selected guided trace without advancing it. Add more edits at any time in an active virtual round; queued items wait in FIFO order. Disabled actions show what is missing or why an item must wait. N is set above; scheduling still requires explicit start events in this sidecar."]),
+          h.p([h.Class("description")], ["Choose an event for a specific item. Manual events interleave with the selected guided trace without advancing it. Edit observations, review work items, and Jev results have separate queues. Disabled actions show what is missing. The reducer starts waiting source readings and Jev requests whenever a slot opens; those starts appear as generated graph movements."]),
           h.div([h.Class("events")], nextEventOptions(model.flow).map((option) => {
             const event = option.event;
             const transition = routeFor(event);
@@ -381,7 +450,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
                 h.small([], [eventLabel(event)]),
                 h.small([], [transition.kind === "data"
                   ? `${transition.input} → ${transition.output}${transition.movement === "copy" ? " · source retained" : ""}`
-                  : `${transition.signal} request · agent identity and delivery context`]),
+                  : CONTROL_SIGNAL_LABELS[transition.signal]]),
                 h.small([], [option.available ? "Available now" : REJECTION_LABELS[option.reason]]),
               ]),
             ]);
@@ -393,12 +462,12 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         h.p([], ["The sidecar reducer applies events to example state. Accepted steps generate this graph’s connections and the abstract timeline steps. Box layout and wording are presentation choices. Native timestamps come from retained evidence. Diagram boxes show places and operations, not lifecycle states."]),
         h.div([h.Class("packets")], [
           h.div([h.Class("packet")], [h.strong([], ["Virtual round"]), h.span([], [`${model.flow.virtualRoundId} · ${model.flow.virtualRoundActive ? "active" : "closed"}`])]),
-          h.div([h.Class("packet")], [h.strong([], ["Stop continuation requests"]), h.span([], [`${model.flow.stopContinuations} of ${MAX_STOP_CONTINUATIONS}`])]),
-          h.div([h.Class("packet")], [h.strong([], ["Stop wait"]), h.span([], [model.flow.stopWaiting ? "waiting before a finish decision" : "none"])]),
+          h.div([h.Class("packet")], [h.strong([], ["Continue-with-advice responses reserved"]), h.span([], [`${model.flow.stopContinuations} of ${MAX_STOP_CONTINUATIONS}`])]),
+          h.div([h.Class("packet")], [h.strong([], ["Finish-decision wait"]), h.span([], [model.flow.stopWaiting ? "runtime Stop hook call is open" : "none"])]),
           h.div([h.Class("packet")], [h.strong([], ["Batch reserved for"]), h.span([], [model.flow.leaseSurface ?? "no caller"])]),
           h.div([h.Class("packet")], [h.strong([], ["Last response written through"]), h.span([], [model.flow.lastSubmissionSurface ?? "none"])]),
         ]),
-        h.p([], ["A fresh edit opens a virtual round if the previous one closed. Selecting advice for a Stop response reserves one request from that virtual round’s budget before writing. A Stop block asks the runtime to keep the agent working in the same virtual round. Stop allow closes it and cancels or discards its resources. Another hook can keep the agent's actual round going. Runtime turn IDs do not identify virtual rounds. Restart and transport failure are outside this example."]),
+        h.p([], ["The runtime calls its Stop hook when the agent attempts to finish. Hapsland may hold that call open for a finish-decision wait. Returning block with advice asks the runtime to continue the same virtual round; returning allow closes Hapsland’s virtual round and discards its resources. A fresh edit can open another virtual round even if a different hook kept the agent’s actual round going. The hook response alone does not prove advice use or the actual end of the agent’s round."]),
       ]),
       timelineView(h, model.timeline, (index) => Message.SelectedTimeline({ index })),
     ]),

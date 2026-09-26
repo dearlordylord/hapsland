@@ -40,12 +40,12 @@ implementation specification.
 | Review dispatch cycle | A finite group of review work items selected together for evaluation; work arriving after selection belongs to a later cycle. |
 | Review result | The operational result of evaluating one actual review work item. |
 | Advicee | The agent that Hapsland can advise about an attributed edit. A working root or the latest caller does not identify that agent by itself. |
-| Stop hook attempt | An agent runtime's request to Hapsland when an agent tries to finish. It is a runtime event, not a Jev review operation. |
-| Stop wait | The bounded period within a Stop hook attempt during which Hapsland waits for eligible advice. The attempt has not yet been allowed or blocked. |
-| Stop block response | Hapsland's response to a Stop hook attempt that carries advice and asks the runtime to let the agent continue the same virtual round. |
-| Stop allow response | Hapsland's response that permits the finish attempt and closes its virtual round. Another runtime hook may still keep the agent working in the same round. |
-| Stop continuation | More work that Hapsland asks an agent to do when it tries to finish, so it can act on advice. |
-| Per-virtual-round continuation budget | The maximum number of Stop continuation requests Hapsland may reserve in one virtual round. A new virtual round has a new budget. |
+| Finish attempt | The agent runtime invokes its API hook named `Stop` or `SubagentStop` when an agent tries to finish. This is a runtime event, not proof of completion or a Jev operation. |
+| Finish-decision wait | The bounded period while Hapsland holds one finish-attempt hook call open for review work. The runtime has not yet received Hapsland's response. |
+| Continue-with-advice response | Hapsland's `block` response to an open finish-attempt hook call. It carries ordinary review advice and asks the runtime to let the agent continue the same virtual round. |
+| Allow-finish response | Hapsland's `allow` response to an open finish-attempt hook call. Hapsland closes its virtual round; another runtime hook may still keep the agent working in the same actual round. |
+| Continuation request | More work that Hapsland asks an agent to do via a continue-with-advice response so it can act on advice. |
+| Per-virtual-round continuation budget | The maximum number of continuation requests Hapsland may reserve in one virtual round. A new virtual round has a new budget. |
 | Pending advice | Advice from a completed review that remains eligible for delivery to its intended advicee. |
 | Advice relevance expiry | The transition after which undelivered pending advice is no longer eligible for delivery because its configured relevance age has elapsed. It does not imply delivery, runtime closure, or loss of the observation baseline. |
 | Advice batch | The bounded collection of review results selected for delivery together through one agent-runtime interaction. |

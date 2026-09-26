@@ -1,57 +1,45 @@
-import { MAX_STOP_CONTINUATIONS, type EventId } from "./flow";
+import { INTERNAL_EVENTS, MAX_STOP_CONTINUATIONS, type EventId } from "./flow";
 
 // Editorial situations to replay. Routes and state changes come from the reducer.
 export const TRACES = [
-  { name: "Several items at once", description: "Three edits enter one agent's virtual round. Two reviews run at Jev while the third capture job waits. Handling the first result frees a dispatch slot for that job. Item numbers identify each review item.", events: [
-    "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched", "JevRequestSent",
-    "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched", "JevRequestSent",
-    "EditObserved", "JevResponseReceived", "FindingRetained",
-    "IngressStarted", "ReviewUnitPrepared", "UnitDispatched", "JevRequestSent", "StopHookFired",
-    "AdviceLeasedByStop", "HostOutputSubmitted", "StopHookFired", "StopAllowed",
+  { name: "Several items at once", description: "Four edits enter one agent's virtual round. Three source readings start; the fourth edit waits. Three prepared items occupy Jev slots while a fourth waits for a result. One finding is already pending advice and another remains in the Jev results queue. At the finish-decision deadline, the policy batches both, cancels work still running, and keeps the virtual round open for repair.", events: [
+    "EditObserved", "EditObserved", "EditObserved", "EditObserved",
+    "ReviewUnitPrepared", "ReviewUnitPrepared", "ReviewUnitPrepared", "ReviewUnitPrepared",
+    "JevFindingReceived", "FindingRetained", "JevFindingReceived", "StopHookFired",
+    "FinishDecisionDeadlineReached", "StopHookFired",
   ] },
   { name: "Send advice after a tool", description: "The after-tool hook asks for advice. Hapsland selects a finding and writes the hook response. The agent runtime controls further use.", events: [
-    "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
-    "JevRequestSent", "JevResponseReceived", "FindingRetained", "BackgroundHookFired",
+    "EditObserved", "ReviewUnitPrepared", "JevFindingReceived", "FindingRetained", "BackgroundHookFired",
     "AdviceLeasedByBackground", "HostOutputSubmitted",
   ] },
-  { name: "Send advice again at Stop", description: "Background holds a batch when Stop begins waiting. Advice output through the background hook completes during that wait; Stop offers the advice once more in the same virtual round.", events: [
-    "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
-    "JevRequestSent", "JevResponseReceived", "FindingRetained", "BackgroundHookFired",
+  { name: "Reoffer during a finish attempt", description: "Hapsland has reserved advice for background output when the runtime calls its Stop hook. The background write completes during that open hook call; Hapsland selects the same advice for the finish decision.", events: [
+    "EditObserved", "ReviewUnitPrepared", "JevFindingReceived", "FindingRetained", "BackgroundHookFired",
     "AdviceLeasedByBackground", "StopHookFired", "HostOutputSubmitted",
-    "AdviceReofferedAtStop", "HostOutputSubmitted",
   ] },
-  { name: "Stop waits; first advice blocks finish", description: "Stop requests advice while Jev is running. This example supplies the result before any collection deadline; it does not simulate timeout behavior.", events: [
-    "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
-    "JevRequestSent", "StopHookFired", "JevResponseReceived", "FindingRetained",
-    "AdviceLeasedByStop", "HostOutputSubmitted",
+  { name: "Finish-decision wait receives advice", description: "The runtime calls its Stop hook while Jev is running. Hapsland holds that call open; a finding arrives and the reducer chooses a continue-with-advice response before the deadline. The adapter's actual write is outside this model.", events: [
+    "EditObserved", "ReviewUnitPrepared", "StopHookFired", "JevFindingReceived",
   ] },
   { name: "Clear result", description: "A Jev result with no finding updates the review status. There is no advice to send.", events: [
-    "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
-    "JevRequestSent", "JevResponseReceived", "ClearRecorded",
+    "EditObserved", "ReviewUnitPrepared", "JevClearReceived", "ClearRecorded",
   ] },
   { name: "Jev unavailable", description: "A failed Jev request records a failed review. It does not establish that the source has no finding.", events: [
-    "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
-    "JevRequestSent", "JevUnavailable",
+    "EditObserved", "ReviewUnitPrepared", "JevUnavailable", "UnavailableRecorded",
   ] },
   { name: "Edit opens a virtual round", description: "An agent can enter through an attributed edit without a user-prompt hook. The runtime adapter handles root and subagent details.", events: [
-    "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
-    "JevRequestSent", "JevResponseReceived", "FindingRetained", "StopHookFired",
-    "AdviceLeasedByStop", "HostOutputSubmitted", "StopHookFired", "StopAllowed",
+    "EditObserved", "ReviewUnitPrepared", "JevFindingReceived", "FindingRetained", "StopHookFired", "StopHookFired",
   ] },
-  { name: "Stop wait expires; close and discard", description: "Jev has not replied when Hapsland allows Stop. All live virtual-round data is removed, including the running request. A fresh edit can open another virtual round.", events: [
-    "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
-    "JevRequestSent", "StopHookFired", "StopAllowed", "EditObserved",
+  { name: "Finish-decision wait expires", description: "Jev has not replied by the finish-decision deadline. Hapsland returns allow from the runtime's Stop hook. All live virtual-round data is removed, including the running request. A fresh edit can open another virtual round.", events: [
+    "EditObserved", "ReviewUnitPrepared", "StopHookFired", "FinishDecisionDeadlineReached", "EditObserved",
   ] },
-  { name: `${MAX_STOP_CONTINUATIONS} continuation requests`, description: `Each repair can be reviewed again. ${MAX_STOP_CONTINUATIONS} Stop responses request continuation in the same virtual round; the next Stop must close it.`, events: [
+  { name: `${MAX_STOP_CONTINUATIONS} continuation requests`, description: `Each repair can be reviewed again. ${MAX_STOP_CONTINUATIONS} block responses through the runtime's Stop hook request continuation in the same virtual round; the next finish attempt must receive allow.`, events: [
     ...Array.from({ length: MAX_STOP_CONTINUATIONS }, () => [
-      "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
-      "JevRequestSent", "JevResponseReceived", "FindingRetained", "StopHookFired",
-      "AdviceLeasedByStop", "HostOutputSubmitted",
-    ] as const).flat(), "StopHookFired", "StopAllowed",
+      "EditObserved", "ReviewUnitPrepared", "JevFindingReceived", "FindingRetained", "StopHookFired",
+    ] as const).flat(), "StopHookFired",
   ] },
 ] as const satisfies ReadonlyArray<{ readonly name: string; readonly description: string; readonly events: ReadonlyArray<EventId> }>;
 
-// Adding a domain event requires an accepted scenario that can project it.
+// Internal starts are generated by the reducer; every external event has an accepted scenario.
 type CoveredEvent = (typeof TRACES)[number]["events"][number];
-const completeCoverage: Exclude<EventId, CoveredEvent> extends never ? true : never = true;
+type InternalEvent = (typeof INTERNAL_EVENTS)[number];
+const completeCoverage: Exclude<EventId, CoveredEvent | InternalEvent> extends never ? true : never = true;
 void completeCoverage;

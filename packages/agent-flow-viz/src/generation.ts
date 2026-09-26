@@ -1,4 +1,4 @@
-import { EVENT_IDS, NODE_IDS, initialFlow, stepFlow, type EventId, type FlowChange, type FlowState, type RejectionCode, type Transition } from "./flow";
+import { EVENT_IDS, NODE_IDS, initialFlow, isInternalEvent, stepFlow, type EventId, type FlowChange, type FlowState, type RejectionCode, type Transition } from "./flow";
 import { TRACES } from "./scenarios";
 
 export type ProjectedStep = {
@@ -28,6 +28,7 @@ export type EventOption =
 // Probe the pure reducer. This creates no new domain state and cannot change the
 // current flow; the actual click runs stepFlow again against the latest state.
 export const nextEventOptions = (state: FlowState): readonly EventOption[] => EVENT_IDS.flatMap((event) => {
+  if (isInternalEvent(event)) return [];
   const route = routeFor(event);
   const candidates = route.kind === "data" && event !== "EditObserved"
     ? state.packets.filter((packet) => packet.at === route.from && packet.flavor === route.input).map((packet) => packet.id)
@@ -42,13 +43,14 @@ export const nextEventOptions = (state: FlowState): readonly EventOption[] => EV
 const routes = new Map<EventId, Transition>();
 for (const steps of PROJECTED_TRACES) {
   for (const step of steps) {
-    const route = step.changes.find((change) => change.kind === "transition")?.route;
-    if (route === undefined) throw new Error(`No domain route emitted for ${step.event}`);
-    const previous = routes.get(step.event);
-    if (previous !== undefined && JSON.stringify(previous) !== JSON.stringify(route)) {
-      throw new Error(`Conflicting domain routes for ${step.event}`);
+    for (const change of step.changes) {
+      if (change.kind !== "transition") continue;
+      const previous = routes.get(change.event);
+      if (previous !== undefined && JSON.stringify(previous) !== JSON.stringify(change.route)) {
+        throw new Error(`Conflicting domain routes for ${change.event}`);
+      }
+      routes.set(change.event, change.route);
     }
-    routes.set(step.event, route);
   }
 }
 for (const event of EVENT_IDS) {

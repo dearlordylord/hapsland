@@ -164,14 +164,39 @@ advicee. Host submission and model visibility must be measured independently.
 
 ## Stop command and continuation
 
-**Stop vocabulary:** `Stop` and `SubagentStop` are agent-runtime hooks fired when
-an agent tries to finish. Hapsland may wait **inside that hook attempt** for
-review work. If actionable advice is ready, Hapsland returns a Stop **block**
-response carrying ordinary review advice and asks the runtime to continue the
-same virtual round. There is no separate kind of "Stop advice" and no Jev
-Stop API call. If Hapsland returns **allow**, it closes its virtual round and cleans up
-owned work even if another hook keeps the runtime active. The hook invocation,
-bounded wait, block/allow response, and virtual round boundary are distinct.
+**Finish vocabulary:** A **finish attempt** is the agent runtime invoking its
+API hook named `Stop` or `SubagentStop` when an agent tries to finish. The
+**finish-decision wait** is the period when Hapsland holds that hook call open
+for review work. A **continue-with-advice response** is Hapsland returning the
+runtime's `block` decision with ordinary review advice; it asks the runtime to
+continue the same virtual round. An **allow-finish response** is Hapsland
+returning `allow`; Hapsland then closes its virtual round and cleans up owned
+work even if another hook keeps the runtime active. There is no separate kind
+of "Stop advice" and no Jev Stop API call. A hook invocation, the wait, either
+response, and the actual end of the agent's round are distinct; Hapsland may
+not observe that actual end.
+
+**Finish-decision policy accepted 2026-09-26:** Hapsland keeps an open
+finish-attempt hook call while review work for that virtual round remains
+unfinished, up to its safe hook deadline. If all that work settles sooner, it
+decides immediately. Otherwise the deadline is an input event that forces the
+decision. At either point, the policy considers all available Jev results and
+pending advice together. It selects the actionable findings as one response
+batch, or chooses allow-finish if none are actionable or the per-virtual-round
+continuation budget is exhausted. The decision discards queued work and
+requests cancellation of in-flight source reading and Jev requests admitted
+before that decision. A continue-with-advice decision keeps the virtual round
+active for fresh repair edits; an allow-finish decision closes it. Late callbacks
+from discarded work must not repopulate the round. The pure reducer produces a
+typed response command and cancellation IDs; the runtime adapter performs the
+hook write and cancellation. A decision does not itself establish that the
+runtime received or acted on the response.
+
+This policy is currently a sidecar design decision, not a claim about the
+installed #105 candidate. The candidate's finish hook may return as soon as it
+collects eligible advice and does not yet use the sidecar's all-work-settled or
+deadline batch-and-cancel reducer as production authority. Adopting that reducer
+and proving callback fencing remain implementation work for #105.
 
 The candidate Stop policy starts its budget at native command launch. It first checks
 the exact advicee and turn-chain continuation state, then collects ready advice.

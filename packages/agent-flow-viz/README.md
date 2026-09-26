@@ -43,29 +43,34 @@ a valid interval. It cannot prove that a transcribed time matches its source.
 The sidecar model follows one agent at a time. Runtime adapters handle session and
 subagent identifiers; the reducer carries no agent identifier or root/child branches.
 It models one resident lifetime with multiple review items, not concurrent agents
-or tabs. Each packet has a stable item ID and a typed location. The `workQueue`
-location is FIFO and can hold capture jobs and prepared review items. Other items
-can be preparing, awaiting a Jev send, in flight at Jev, awaiting result handling,
-or pending as advice at the same time. The reducer owns a settable positive
-capacity `N`, initially 3, for active preparation and evaluation jobs. Changing
-`N` is a reducer event in the same undo/redo history as flow events. Reducing it
-below current occupancy leaves running jobs in place and prevents new starts
-until occupancy falls below the new capacity. This temporary shared-capacity
-interpretation remains open for design discussion. The sidecar does not replicate
-the resident dispatch cycles or scheduling timing. No agent-ID map
-is needed for this one-agent model.
+or tabs. Each packet has a stable item ID and a typed location. Edit observations,
+prepared review items, and Jev results have separate queues. Other items can be
+in source reading, in flight at Jev, or pending as advice at the same time.
+The reducer owns two settable positive capacities, initially 3 each: concurrent
+source readings and concurrent Jev requests (`N`). Changing either is a reducer
+event in the same undo/redo history as flow events. Reducing a capacity below
+current occupancy leaves active work in place and prevents new starts until
+occupancy falls below the new capacity. The sidecar does not replicate resident
+dispatch cycles or scheduling timing. No agent-ID map is needed for this
+one-agent model.
 
 A round is an episode of agent work whose actual end is controlled by the agent
 runtime. Hapsland may not observe that end. A virtual round is Hapsland's own
 review and advice period. A proven fresh edit opens one. Further edits stay in
-that virtual round. Stop means the agent tries to finish: waiting does not close
-the virtual round. Selecting advice for the Stop response reserves one of its
-four continuation requests before the output write. That advice continues the
-same virtual round. Allowing Stop closes the virtual round,
+that virtual round. **Finish attempt** means the runtime invokes its API hook
+named `Stop` (or `SubagentStop`). **Finish-decision wait** means Hapsland holds
+that hook call open while review work completes; the agent has not necessarily
+finished. **Continue-with-advice response** means Hapsland returns the runtime's
+`block` decision with ordinary review advice. **Allow-finish response** means
+Hapsland returns `allow`. These are hook response outcomes, not separate kinds
+of advice or Jev API calls. Selecting advice for a continue-with-advice response
+reserves one of four continuation requests before the output write. That response
+asks the runtime to continue the same virtual round. An allow-finish response
+closes the virtual round,
 cancels modeled Jev work, and removes every live packet, reservation and delivery
 record. The round number and count remain as a source-free display summary.
-A fresh edit can open the next virtual round; repeated Stop cannot. The agent's
-round may still continue if another hook blocks its finish. Runtime turn IDs are
+A fresh edit can open the next virtual round; a repeated finish attempt cannot.
+The agent's round may still continue if another hook blocks its finish. Runtime turn IDs are
 adapter metadata, not virtual round IDs.
 
 The reducer takes trusted, normalized events. The adapter must establish fresh
@@ -76,21 +81,27 @@ The four-request bound applies per virtual round while one resident process
 runs. A resident restart resets the count by accepted product policy; count
 persistence across restarts is not planned.
 
-The review work queue holds capture jobs and later prepared review work items.
-Review status is an operation,
+Edit observations enter their own queue. Source reading and analysis produces
+review work items in a separate queue. The reducer starts waiting source jobs
+and Jev requests when their respective slots are available. Source-reading
+capacity and Jev-request capacity are independent reducer properties, both
+settable from the page. A reduction below current occupancy lets active work
+finish and pauses further starts until a slot opens. A Jev response enters the
+result queue as a finding, clear result, or unavailable result. Review status is an operation,
 not an invented outcome store. Completed response writes and status updates leave
 the payload flow. Example history records these emissions only for the page; it
 cannot feed pending-advice selection and is not retained production advice.
 
-Each background-submitted finding remains available for one Stop reoffer in the same virtual round,
-including when written during the Stop wait. Stop output retires that advice;
-round closure discards all advice. Distinct findings can justify another Stop
-continuation without a fresh edit. This model can hold several distinct findings,
-but it does not simulate delivery batch sizing or overflow. The page ends at the hook response write and
-has no modeled receipt or advice-consumption event. The agent runtime owns its
-further use. The #105 candidate implements reoffer and round cleanup; this
-model covers only the subset described here. It does not simulate size limits, deadlines, relevance
-expiry, or the complete set of advicee checks.
+Each background-submitted finding remains available for one reoffer through a
+later finish-attempt hook call in the same virtual round, including when the
+background write completes during the finish-decision wait. When all round-owned
+review work settles, the reducer decides immediately. A separate deadline event
+forces the same decision while work is still pending. The policy selects all
+available actionable findings as one abstract batch, requests a hook response
+write, and discards old work. The reducer records the response command; it does
+not claim the write completed or the agent used the advice. The agent runtime
+owns further use. This model does not simulate batch size or byte limits,
+wall-clock progression, relevance expiry, or the complete set of advicee checks.
 
 Run `npm run build` for TypeScript coverage checking, reducer replay of every
 displayed abstract path, and the Vite production build. A rejected path fails
@@ -132,9 +143,19 @@ The timeline is a Foldkit view in `timeline-view.ts`. The flow graph and abstrac
 companions share the reducer projection. Native timing rows remain separate
 evidence. Guided trace controls retain left/right keyboard navigation.
 
-The timeline distinguishes three paths: Stop waits for its first advice;
-background hook output during an existing Stop wait and that Stop reoffers; or the
-wait expires and Hapsland allows finish and closes its virtual round. The race companion
-starts Stop before review completion. The final-message companion retains the
-separate order where background hook output completes before Stop starts. Native hook process
+The main graph draws routes emitted by accepted reducer changes. The smaller
+finish-decision diagram reads the reducer's typed decision change, including
+selected advice IDs, discarded IDs, and cancellation requests. Its layout and
+labels are presentation code; the reducer contains no diagram wording. A
+response command and an observed background hook write have separate graph
+endpoints. The graph highlights all routes produced by the latest accepted
+input, including automatic scheduling and finish-decision changes.
+
+The timeline distinguishes three paths: a finish-decision wait receives its
+first advice; a background hook write completes during an existing
+finish-decision wait and Hapsland reoffers that advice; or the wait expires and
+Hapsland allows finish and closes its virtual round. The race companion starts
+the runtime's Stop hook before review completion. The final-message companion
+retains the separate order where background hook output completes before that
+hook call starts. Native hook process
 intervals include startup and output work, not just review waiting.

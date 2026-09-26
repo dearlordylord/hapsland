@@ -82,3 +82,18 @@ p { line-height: 1.5; }
 .timing-jump { display: inline-block; margin: 0 0 14px; padding: 9px 12px; border: 1px solid #245bb8; border-radius: 7px; color: #fff; background: #245bb8; text-decoration: none; font-size: .86rem; font-weight: 700; }
 .timing-jump:hover { background: #174a9d; }
 #timing-diagrams { scroll-margin-top: 20px; }
+
+.finish-panel { margin-top: 18px; padding: 14px; border: 1px solid #dce3ec; border-radius: 9px; background: #fbfcff; }
+.finish-panel h3 { margin: 0 0 12px; }
+.finish-flow { display: flex; align-items: center; gap: 10px; overflow-x: auto; padding-bottom: 8px; }
+.finish-triggers, .finish-outcomes { display: grid; gap: 8px; min-width: 205px; }
+.finish-box { min-width: 185px; padding: 10px 12px; border: 1px solid #a8b8cc; border-radius: 8px; background: #fff; font-size: .78rem; font-weight: 700; }
+.finish-box small { display: block; margin-top: 6px; color: #5c6d82; font-size: .72rem; font-weight: 400; }
+.finish-box.event { background: #f3f4f6; }
+.finish-box.policy { background: #e5efff; border-color: #527cc4; }
+.finish-box.outcome { background: #fff0c8; border-color: #ae7622; }
+.finish-box.outcome.chosen { outline: 3px solid #e66035; }
+.finish-box.command { background: #f1e9fa; border-color: #8962ae; }
+.finish-arrow { color: #657992; font-size: 1.3rem; font-weight: 800; }
+.finish-facts { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
+.finish-facts span { padding: 6px 8px; border-radius: 6px; background: #edf2f8; color: #314863; font-size: .75rem; }
