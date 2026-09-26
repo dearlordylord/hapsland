@@ -147,8 +147,8 @@ const nodeView = (h: HtmlBuilder<Message>, id: NodeId, model: Model) => {
     : id === "agentEdit" ? "fresh edit enters through adapter"
     : id === "collector" ? (flow.leaseSurface ? `${flow.leaseSurface} batch reserved` : flow.opportunity ? `${flow.opportunity} request received` : "waiting for an agent runtime request")
     : id === "hostOutput" ? (flow.lastSubmissionSurface ? "written; no payload stored here" : "no response written yet")
-    : id === "workQueue" ? `${packets.length} queued job${packets.length === 1 ? "" : "s"}`
-    : id === "adviceStore" ? `${packets.length} pending finding${packets.length === 1 ? "" : "s"}`
+    : id === "workQueue" ? (packets[0] ? `${packets[0].flavor} waiting` : "no queued work")
+    : id === "adviceStore" ? (packets[0] ? "finding available for selection" : "no pending advice")
     : id === "outcomeStore" ? (model.emissions.some((item) => item.at === id) ? "updated; no payload stored here" : "no completed review yet")
     : packets.length ? packets.map((packet) => packet.flavor).join(", ") : "idle in this example";
   return h.g([], [
@@ -245,9 +245,9 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           h.p([h.Class("progress")], [trace ? `Step ${model.cursor} of ${trace.events.length}` : "Free play"]),
           h.p([h.Class("status")], [model.feedback]),
           h.h3([], ["Live review data in this virtual round"]),
-          h.div([h.Class("packets")], model.flow.packets.map((packet, index) =>
+          h.div([h.Class("packets")], model.flow.packets.map((packet) =>
             h.div([h.Class("packet")], [
-              h.strong([], [`#${index + 1} ${packet.flavor}`]),
+              h.strong([], [packet.flavor]),
               h.span([], [NODES[packet.at].label]),
             ]))),
           h.h3([], ["Emitted outcomes — example history"]),

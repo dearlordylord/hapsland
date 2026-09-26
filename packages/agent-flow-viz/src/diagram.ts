@@ -7,7 +7,7 @@ type NodeSpec = { readonly label: string; readonly detail: string; readonly note
 // coordinates and descriptions do not participate in state transitions.
 export const NODES = {
   agentEdit: { label: "Agent", detail: "edit and hook events for one agent", notes: ["Claude Code / Codex adapter"], role: "external", x: 30, y: 332 },
-  workQueue: { label: "Review scheduler", detail: "waits for capacity to run work", notes: ["one scheduler, two job kinds", "capture jobs → review work items"], role: "storage", x: 320, y: 52 },
+  workQueue: { label: "Review scheduler", detail: "holds capture or review work", notes: ["one work item in this example", "capture job → review work item"], role: "storage", x: 320, y: 52 },
   preparation: { label: "Read and analyze source", detail: "capture job → review work item", notes: ["returns work to the review scheduler"], role: "process", x: 610, y: 52 },
   decisionRequest: { label: "Build review input", detail: "review work item → decision request", notes: ["one modeled review item"], role: "process", x: 900, y: 52 },
   jev: { label: "Jev", detail: "evaluates the review input", notes: ["external review backend", "returns a judgment or fails"], role: "external", x: 1190, y: 52 },
