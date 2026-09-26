@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 
 export const NODE_IDS = [
-  "agentEdit", "workQueue", "preparation", "decisionRequest", "jev",
+  "agentEdit", "workSlot", "preparation", "decisionRequest", "jev",
   "decisionResponse", "adviceStore", "collector", "hostOutput",
   "deliveryState", "outcomeStore",
 ] as const;
@@ -17,7 +17,7 @@ export type Flavor = (typeof FLAVORS)[number];
 // These location contracts statically constrain the transition table below.
 type StoredAt = {
   agentEdit: "edit observation";
-  workQueue: "capture job" | "review work item";
+  workSlot: "capture job" | "review work item";
   preparation: "capture job";
   decisionRequest: "decision request";
   jev: "network request";
@@ -63,10 +63,10 @@ export type EventId = (typeof EVENT_IDS)[number];
 // `satisfies` checks both event coverage and each node's admissible data flavor.
 export const TRANSITIONS = {
   StopAllowed: { kind: "control", from: "collector", to: "deliveryState", signal: "allow" },
-  EditObserved: { kind: "data", from: "agentEdit", to: "workQueue", input: "edit observation", output: "capture job", movement: "move" },
-  IngressStarted: { kind: "data", from: "workQueue", to: "preparation", input: "capture job", output: "capture job", movement: "move" },
-  ReviewUnitPrepared: { kind: "data", from: "preparation", to: "workQueue", input: "capture job", output: "review work item", movement: "move" },
-  UnitDispatched: { kind: "data", from: "workQueue", to: "decisionRequest", input: "review work item", output: "decision request", movement: "move" },
+  EditObserved: { kind: "data", from: "agentEdit", to: "workSlot", input: "edit observation", output: "capture job", movement: "move" },
+  IngressStarted: { kind: "data", from: "workSlot", to: "preparation", input: "capture job", output: "capture job", movement: "move" },
+  ReviewUnitPrepared: { kind: "data", from: "preparation", to: "workSlot", input: "capture job", output: "review work item", movement: "move" },
+  UnitDispatched: { kind: "data", from: "workSlot", to: "decisionRequest", input: "review work item", output: "decision request", movement: "move" },
   JevRequestSent: { kind: "data", from: "decisionRequest", to: "jev", input: "decision request", output: "network request", movement: "move" },
   JevResponseReceived: { kind: "data", from: "jev", to: "decisionResponse", input: "network request", output: "decision response", movement: "move" },
   FindingRetained: { kind: "data", from: "decisionResponse", to: "adviceStore", input: "decision response", output: "advice", movement: "move" },
@@ -151,7 +151,7 @@ export const stepFlow = (state: FlowState, event: EventId): StepResult => {
     };
     return accepted(state, event, {
       ...current,
-      packets: [{ at: "workQueue", flavor: "capture job" }],
+      packets: [{ at: "workSlot", flavor: "capture job" }],
       lastSubmissionSurface: null,
     });
   }

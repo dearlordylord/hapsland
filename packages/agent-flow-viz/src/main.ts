@@ -89,10 +89,10 @@ const colors = {
 
 type Point = { readonly x: number; readonly y: number };
 const geometry = (transition: Transition) => {
-  if (transition.from === "workQueue" && transition.to === "decisionRequest") return {
+  if (transition.from === "workSlot" && transition.to === "decisionRequest") return {
     path: "M 432 52 C 432 10, 1012 10, 1012 52", badge: { x: 722, y: 21 },
   };
-  if (transition.from === "preparation" && transition.to === "workQueue") return {
+  if (transition.from === "preparation" && transition.to === "workSlot") return {
     path: "M 650 190 C 650 250, 500 250, 500 190", badge: { x: 575, y: 235 },
   };
   const from = NODES[transition.from];
@@ -147,7 +147,7 @@ const nodeView = (h: HtmlBuilder<Message>, id: NodeId, model: Model) => {
     : id === "agentEdit" ? "fresh edit enters through adapter"
     : id === "collector" ? (flow.leaseSurface ? `${flow.leaseSurface} batch reserved` : flow.opportunity ? `${flow.opportunity} request received` : "waiting for an agent runtime request")
     : id === "hostOutput" ? (flow.lastSubmissionSurface ? "written; no payload stored here" : "no response written yet")
-    : id === "workQueue" ? (packets[0] ? `${packets[0].flavor} waiting` : "no queued work")
+    : id === "workSlot" ? (packets[0] ? `${packets[0].flavor} present` : "slot empty")
     : id === "adviceStore" ? (packets[0] ? "finding available for selection" : "no pending advice")
     : id === "outcomeStore" ? (model.emissions.some((item) => item.at === id) ? "updated; no payload stored here" : "no completed review yet")
     : packets.length ? packets.map((packet) => packet.flavor).join(", ") : "idle in this example";

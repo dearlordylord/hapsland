@@ -29,7 +29,7 @@ editorial and is not semantically proved by those checks.
 The build checks that every native timing row names a retained source and has
 a valid interval. It cannot prove that a transcribed time matches its source.
 
-The example follows one agent at a time. Runtime adapters handle session and
+The sidecar model follows one agent at a time. Runtime adapters handle session and
 subagent identifiers; the reducer carries no agent identifier or root/child branches. It models one
 resident lifetime and one review item at a time, not concurrent agents or tabs.
 
@@ -48,13 +48,14 @@ adapter metadata, not virtual round IDs.
 
 The reducer takes trusted, normalized events. The adapter must establish fresh
 edit identity and bind callbacks to their originating virtual round before invoking it.
-This example does not implement that adapter or simulate late callbacks crossing
+This model does not implement that adapter or simulate late callbacks crossing
 into a new virtual round, uncertain output writes, cancellation failure, or restart.
 The four-request bound applies per virtual round while one resident process
 runs. A resident restart resets the count by accepted product policy; count
 persistence across restarts is not planned.
 
-Two job kinds share one modeled review scheduler. Review status is an operation,
+The same review work slot holds a capture job and later a review work item.
+Review status is an operation,
 not an invented outcome store. Completed response writes and status updates leave
 the payload flow. Example history records these emissions only for the page; it
 cannot feed pending-advice selection and is not retained production advice.
@@ -62,11 +63,11 @@ cannot feed pending-advice selection and is not retained production advice.
 Background advice remains available for one Stop reoffer in the same virtual round,
 including when written during the Stop wait. Stop output retires that advice;
 round closure discards all advice. Distinct findings can justify another Stop
-continuation without a fresh edit in the contract; this one-item example does
+continuation without a fresh edit in the contract; this one-item model does
 not simulate multiple findings or overflow. The page ends at the hook response write and
 has no modeled receipt or advice-consumption event. The agent runtime owns its
 further use. The #105 candidate implements reoffer and round cleanup; this
-example covers only the subset described here. It does not simulate size limits, deadlines, relevance
+model covers only the subset described here. It does not simulate size limits, deadlines, relevance
 expiry, or the complete set of advicee checks.
 
 Run `npm run build` for TypeScript coverage checking, reducer replay of every
