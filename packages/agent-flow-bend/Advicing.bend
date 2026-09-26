@@ -7,9 +7,9 @@ type Jeview is Data:
   AtJev{item: Nat}
 
 type PendingAdvice is Data:
-  Pending{item: Nat}
+  AdvicePending{item: Nat}
 
 def receive_finding(jeview: Jeview) -> PendingAdvice:
   match jeview:
     case AtJev{item}:
-      Pending{item}
+      AdvicePending{item}

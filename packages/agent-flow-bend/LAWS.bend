@@ -5,4 +5,4 @@ import ./Advicing.bend as Advicing
 # same item in one transition.
 law finding_enters_pending_advice:
   for item: Nat
-  {Advicing.receive_finding(Advicing.AtJev{item}) == Advicing.Pending{item} : Advicing.PendingAdvice}
+  {Advicing.receive_finding(Advicing.AtJev{item}) == Advicing.AdvicePending{item} : Advicing.PendingAdvice}
