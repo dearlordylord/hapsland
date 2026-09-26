@@ -62,15 +62,15 @@ export const TIMELINE_CASES: readonly TimelineCase[] = [
         native(matched, "runtime", "Edit hook returned", 6106), native(matched, "review", "Review completed", 7344), native(matched, "runtime", "Runtime exited", 8875),
       ] },
       { title: "Codex · after", status: "OBSERVED", outcome: "Stop advice submitted; repair and clear follow-up confirmed.", entries: [
-        native(matched, "runtime", "Edit hook returned", 10906), native(matched, "review", "Finding review completed", 14446), native(matched, "delivery", "Stop returned advice + continue", 14504),
-        unknown(14504, 19238), native(matched, "result", "Repair edit hook returned", 19238), native(matched, "review", "Clear follow-up completed", 22765), native(matched, "delivery", "Stop returned allow", 22792), native(matched, "runtime", "Runtime exited", 23325),
+        native(matched, "runtime", "UserPromptSubmit hook returned", 2276), native(matched, "runtime", "PreToolUse hook returned", 10582), native(matched, "runtime", "Edit hook returned", 10906), native(matched, "review", "Finding review completed", 14446), native(matched, "delivery", "Stop returned advice + continue", 14504),
+        unknown(14504, 19238), native(matched, "runtime", "Repair PreToolUse hook returned", 18912), native(matched, "result", "Repair edit hook returned", 19238), native(matched, "review", "Clear follow-up completed", 22765), native(matched, "delivery", "Stop returned allow", 22792), native(matched, "runtime", "Runtime exited", 23325),
       ] },
       { title: "Claude · before", status: "OBSERVED", outcome: "No finding handoff; no repair. Original file confirmed after exit.", entries: [
         native(matched, "runtime", "Edit hook returned", 10084), native(matched, "review", "Review completed", 12376), native(matched, "runtime", "Runtime exited", 13381),
       ] },
       { title: "Claude · after", status: "OBSERVED", outcome: "Stop advice submitted; repair and clear follow-up confirmed.", entries: [
-        native(matched, "runtime", "Edit hook returned", 6832), native(matched, "review", "Finding review completed", 11874), native(matched, "delivery", "Stop returned advice + continue", 11963),
-        unknown(11963, 16478), native(matched, "result", "Repair edit hook returned", 16478), native(matched, "review", "Clear follow-up completed", 21501), native(matched, "delivery", "Stop returned allow", 21520), native(matched, "runtime", "Runtime exited", 21615),
+        native(matched, "runtime", "UserPromptSubmit hook returned", 1089), native(matched, "runtime", "PreToolUse hook returned", 6487), native(matched, "runtime", "Edit hook returned", 6832), native(matched, "review", "Finding review completed", 11874), native(matched, "delivery", "Stop returned advice + continue", 11963),
+        unknown(11963, 16478), native(matched, "runtime", "Repair PreToolUse hook returned", 16157), native(matched, "result", "Repair edit hook returned", 16478), native(matched, "review", "Clear follow-up completed", 21501), native(matched, "delivery", "Stop returned allow", 21520), native(matched, "runtime", "Runtime exited", 21615),
       ] },
     ], reducerEvents: stop,
     reducerScope: "The companion path checks review → Stop submission → close. Baseline behavior, native times, repair observation and file verification are outside the reducer. The abstract path omits the repair review shown above.",

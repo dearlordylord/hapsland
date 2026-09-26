@@ -71,7 +71,7 @@ export const timelineView = <Message>(h: HtmlBuilder<Message>, selected: number,
       h.h3([], [scenario.title]), h.span([h.Class("timeline-badge requirement")], [scenario.requirement]),
     ]),
     h.p([h.Class("description")], [scenario.summary]),
-    h.p([h.Class("timeline-legend")], ["Blue: native observation · Green: observed outcome · Grey: missing evidence inside runtime. A write is not a receipt. Independent file checks have no retained timestamp and appear in the outcome text."]),
+    h.p([h.Class("timeline-legend")], ["Blue: native observation · Green: observed outcome · Grey spans mark missing evidence, not a measured runtime stage. A write is not a receipt. Independent file checks have no retained timestamp and appear in the outcome text."]),
     ...scenario.panels.map((panel) => panelView(h, panel, maximum)),
     h.div([h.Class("trace-options timeline-options"), h.Role("group"), h.AriaLabel("Select timing scenario")], TIMELINE_CASES.map((item, index) =>
       h.button([h.OnClick(select(index)), h.Class(index === selected ? "trace selected" : "trace")], [item.title]))),
