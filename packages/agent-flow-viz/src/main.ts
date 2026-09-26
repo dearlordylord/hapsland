@@ -124,7 +124,7 @@ const arrow = (h: HtmlBuilder<Message>, events: readonly EventId[], number: numb
 };
 
 const NODE_NOTES: Record<NodeId, readonly string[]> = {
-  agentEdit: ["Claude Code / Codex adapter", "one opaque agent identity"],
+  agentEdit: ["Claude Code / Codex adapter"],
   workQueue: ["one scheduler, two job kinds", "capture jobs → review work items"],
   preparation: ["snapshot → artifacts + evidence", "enqueue work in same scheduler"],
   decisionRequest: ["one artifact + supporting evidence", "one rule evaluation request"],

@@ -20,9 +20,12 @@ state-machine definition. Accepted steps emit typed domain changes. The typed
 `generation.ts` projection replays editorial scenarios and derives graph
 connections and abstract timeline steps from those changes. Diagram layout and
 wording live outside the reducer; process boxes are not lifecycle states.
+TypeScript requires a presentation entry for each model node, and build-time
+replay rejects any node unused by all accepted routes. Descriptive wording is
+editorial and is not semantically proved by those checks.
 
-The example uses one opaque Agent identity. Runtime adapters handle session and
-subagent identifiers; the reducer has no root/child branches. It models one
+The example follows one agent at a time. Runtime adapters handle session and
+subagent identifiers; the reducer carries no agent identifier or root/child branches. It models one
 resident lifetime and one review item at a time, not concurrent agents or tabs.
 
 A round is an episode of agent work whose actual end is controlled by the agent

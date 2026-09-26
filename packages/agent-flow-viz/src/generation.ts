@@ -1,4 +1,4 @@
-import { EVENT_IDS, initialFlow, stepFlow, type EventId, type FlowChange, type FlowState, type Transition } from "./flow";
+import { EVENT_IDS, NODE_IDS, initialFlow, stepFlow, type EventId, type FlowChange, type FlowState, type Transition } from "./flow";
 import { TRACES } from "./scenarios";
 
 export type ProjectedStep = {
@@ -35,6 +35,10 @@ for (const steps of PROJECTED_TRACES) {
 }
 for (const event of EVENT_IDS) {
   if (!routes.has(event)) throw new Error(`No accepted model scenario covers ${event}`);
+}
+const usedNodes = new Set([...routes.values()].flatMap((route) => [route.from, route.to]));
+for (const node of NODE_IDS) {
+  if (!usedNodes.has(node)) throw new Error(`No accepted model route uses diagram node ${node}`);
 }
 
 export const routeFor = (event: EventId): Transition => {
