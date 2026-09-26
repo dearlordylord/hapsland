@@ -136,13 +136,14 @@ for (const host of ["codex-cli", "claude-code"] as const) {
     const entered = deferred();
     const f = await fixture(host, { ...findingControl, delayMs: 8_000 }, { beforeEvaluate: async () => entered.resolve() });
     try {
-      await f.admit({ "type.ts": finding() }); await within(entered.promise);
+      await f.admit({ "first.ts": finding("FirstCount"), "second.ts": finding("SecondCount"), "third.ts": finding("ThirdCount") }); await within(entered.promise);
       const stop = await f.stop(); await f.server.whenIdle();
       requireThat(!stop.blocked, "deadline unexpectedly continued");
       const stats = f.server.stats();
-      requireThat(stats.queued === 0 && stats.running === 0 && stats.pendingAdvice === 0 && stats.pendingEvaluations === 0, "deadline retained review resources");
+      requireThat(stats.queued === 0 && stats.running === 0 && stats.pendingAdvice === 0 && stats.pendingEvaluations === 0 && stats.retainedBytes === 0 &&
+        stats.successfulCacheEntries === 0 && stats.currentWork === 0, "deadline retained review resources");
       const closure = f.activity().roundClosures?.at(-1);
-      requireThat(closure?.reason === "deadline" && closure.discarded.running > 0, "deadline summary missing cancellation");
+      requireThat(closure?.reason === "deadline" && closure.discarded.running > 0 && closure.discarded.queued > 0, "deadline summary missing cancellation");
       return { stop, closure, resourcesEmpty: true };
     } finally { await f.cleanup(); }
   });
@@ -161,6 +162,7 @@ for (const host of ["codex-cli", "claude-code"] as const) {
     const f = await fixture(host);
     try {
       await f.admit({ "type.ts": finding() }); await f.server.whenIdle();
+      requireThat(f.server.pendingAdviceMetadata().length === 1, "stale fixture had no finding to discard");
       await put(f.root, "type.ts", 'type OrderCount = number & { readonly __brand: "OrderCount" }\n');
       const stop = await f.stop();
       requireThat(!stop.blocked && f.server.stats().pendingAdvice === 0, "stale finding escaped revalidation");
@@ -172,6 +174,9 @@ for (const host of ["codex-cli", "claude-code"] as const) {
     try {
       await f.admit({ "first.ts": finding("FirstCount"), "second.ts": finding("SecondCount") }); await f.server.whenIdle();
       requireThat(f.server.pendingAdviceMetadata().length === 2, "multi-unit fixture did not produce two records");
+      const selected = asAdvice(await f.collect());
+      requireThat(selected.findingCount === 2, "multi-unit collection did not include both findings");
+      f.server.releaseDelivery(selected.token);
       const stop = await f.stop();
       requireThat(stop.blocked, "multi-unit findings did not continue");
       const finish = await f.stop(true);
