@@ -2,6 +2,8 @@
 
 Independent Foldkit discussion page for Hapsland's review and advice flow.
 It does not import or change the production app.
+The separate [Bend model](../agent-flow-bend/README.md) begins with a proved
+one-item Jev-finding transition; it does not yet formalize this full reducer.
 
 ```sh
 cd packages/agent-flow-viz
