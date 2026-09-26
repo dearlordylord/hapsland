@@ -4,11 +4,11 @@ import { TIMELINE_CASES } from "./timeline";
 import { Runtime, type Update } from "foldkit";
 import type { Document, HtmlBuilder } from "foldkit/html";
 import { defineMessageUnion } from "foldkit/message";
-import { NODES } from "./diagram";
+import { describeAccepted, EMISSION_LABELS, EVENT_LABELS, NODES, REJECTION_LABELS } from "./diagram";
 import { CONNECTIONS, routeFor } from "./generation";
 import { TRACES } from "./scenarios";
 import {
-  EVENT_IDS, FlowStateSchema, NODE_IDS, TRANSITIONS,
+  EVENT_IDS, FlowStateSchema, MAX_STOP_CONTINUATIONS, NODE_IDS,
   initialFlow, stepFlow, type EventId, type FlowState, type NodeId, type Transition,
 } from "./flow";
 
@@ -17,6 +17,12 @@ export const Model = Schema.Struct({
   timeline: Schema.Number,
   cursor: Schema.Number,
   flow: FlowStateSchema,
+  lastEvent: Schema.Union([Schema.Null, Schema.Literals(EVENT_IDS)]),
+  feedback: Schema.String,
+  emissions: Schema.Array(Schema.Struct({
+    event: Schema.Literals(["HostOutputSubmitted", "ClearRecorded", "JevUnavailable"]),
+    at: Schema.Literals(NODE_IDS),
+  })),
 });
 export type Model = typeof Model.Type;
 
@@ -30,8 +36,24 @@ export const Message = defineMessageUnion({
 });
 export type Message = typeof Message.Type;
 
-const reset = (trace: number): Model => ({ trace, timeline: 0, cursor: 0, flow: initialFlow() });
+const reset = (trace: number): Model => ({
+  trace, timeline: 0, cursor: 0, flow: initialFlow(), lastEvent: null, emissions: [],
+  feedback: "No live virtual round or review work yet. Events are example inputs; no agent runtime or Jev connection is attached.",
+});
 export const init: Runtime.ApplicationInit<Model, Message> = () => ({ model: reset(0) });
+
+const applyEvent = (model: Model, event: EventId, advance: boolean): Model => {
+  const result = stepFlow(model.flow, event);
+  if (!result.accepted) return { ...model, feedback: REJECTION_LABELS[result.reason] };
+  const emitted = result.changes.flatMap((change) => change.kind === "emitted"
+    ? [{ event: change.event, at: change.at }] : []);
+  return {
+    ...model, flow: result.state, lastEvent: event,
+    cursor: model.cursor + (advance ? 1 : 0),
+    emissions: [...model.emissions, ...emitted],
+    feedback: describeAccepted(model.flow, result.state, event, routeFor(event)),
+  };
+};
 
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
@@ -41,24 +63,19 @@ export const update = (model: Model, message: Message) =>
     Advanced: () => {
       const event = TRACES[model.trace]?.events[model.cursor];
       if (event === undefined) return { model };
-      const result = stepFlow(model.flow, event);
-      return { model: { ...model, flow: result.state, cursor: model.cursor + (result.accepted ? 1 : 0) } };
+      return { model: applyEvent(model, event, true) };
     },
     Rewound: () => {
       const events = TRACES[model.trace]?.events;
       if (events === undefined || model.cursor === 0) return { model };
       const cursor = model.cursor - 1;
-      let flow = initialFlow();
+      let replayed = { ...reset(model.trace), timeline: model.timeline };
       for (const event of events.slice(0, cursor)) {
-        const result = stepFlow(flow, event);
-        if (!result.accepted) return { model };
-        flow = result.state;
+        replayed = applyEvent(replayed, event, true);
       }
-      return { model: { ...model, cursor, flow } };
+      return { model: replayed };
     },
-    TriggeredEvent: ({ event }) => ({ model: {
-      ...model, trace: -1, cursor: 0, flow: stepFlow(model.flow, event).state,
-    } }),
+    TriggeredEvent: ({ event }) => ({ model: applyEvent({ ...model, trace: -1, cursor: 0 }, event, false) }),
   });
 
 const NODE_WIDTH = 224;
@@ -71,7 +88,7 @@ const colors = {
 };
 
 type Point = { readonly x: number; readonly y: number };
-const geometry = (transition: Transition, offset: number) => {
+const geometry = (transition: Transition) => {
   if (transition.from === "workQueue" && transition.to === "decisionRequest") return {
     path: "M 432 52 C 432 10, 1012 10, 1012 52", badge: { x: 722, y: 21 },
   };
@@ -89,25 +106,23 @@ const geometry = (transition: Transition, offset: number) => {
   let start: Point;
   let end: Point;
   if (Math.abs(dx) >= Math.abs(dy)) {
-    start = { x: fx + Math.sign(dx) * NODE_WIDTH / 2, y: fy + offset };
-    end = { x: tx - Math.sign(dx) * NODE_WIDTH / 2, y: ty + offset };
+    start = { x: fx + Math.sign(dx) * NODE_WIDTH / 2, y: fy };
+    end = { x: tx - Math.sign(dx) * NODE_WIDTH / 2, y: ty };
   } else {
-    start = { x: fx + offset, y: fy + Math.sign(dy) * NODE_HEIGHT / 2 };
-    end = { x: tx + offset, y: ty - Math.sign(dy) * NODE_HEIGHT / 2 };
+    start = { x: fx, y: fy + Math.sign(dy) * NODE_HEIGHT / 2 };
+    end = { x: tx, y: ty - Math.sign(dy) * NODE_HEIGHT / 2 };
   }
-  const bend = transition.from === "preparation" && transition.to === "workQueue" ? -62
-    : transition.from === "workQueue" && transition.to === "decisionRequest" ? 72 : 0;
-  const control1 = { x: start.x + dx * 0.34, y: start.y + dy * 0.12 + bend };
-  const control2 = { x: end.x - dx * 0.34, y: end.y - dy * 0.12 + bend };
+  const control1 = { x: start.x + dx * 0.34, y: start.y + dy * 0.12 };
+  const control2 = { x: end.x - dx * 0.34, y: end.y - dy * 0.12 };
   return {
     path: `M ${start.x} ${start.y} C ${control1.x} ${control1.y}, ${control2.x} ${control2.y}, ${end.x} ${end.y}`,
-    badge: { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 + bend * 0.72 },
+    badge: { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 },
   };
 };
 
 const arrow = (h: HtmlBuilder<Message>, events: readonly EventId[], number: number, active: boolean) => {
   const transition = routeFor(events[0]);
-  const { path, badge } = geometry(transition, 0);
+  const { path, badge } = geometry(transition);
   const stroke = active ? "#e66035" : transition.kind === "control" ? "#8b94a5" : "#98a9bd";
   return h.g([], [
     h.path([
@@ -123,31 +138,18 @@ const arrow = (h: HtmlBuilder<Message>, events: readonly EventId[], number: numb
   ]);
 };
 
-const NODE_NOTES: Record<NodeId, readonly string[]> = {
-  agentEdit: ["Claude Code / Codex adapter"],
-  workQueue: ["one scheduler, two job kinds", "capture jobs → review work items"],
-  preparation: ["snapshot → artifacts + evidence", "enqueue work in same scheduler"],
-  decisionRequest: ["one artifact + supporting evidence", "one rule evaluation request"],
-  jev: ["external review backend", "returns a judgment or fails"],
-  decisionResponse: ["finding → pending advice", "no finding → review status"],
-  adviceStore: ["advicee + source + relevance", "after tool / Stop / Stop reoffer*"],
-  collector: ["one batch reserved for one caller", "limit: 5 findings / 2 KiB**"],
-  hostOutput: ["adapter formats response for agent", "write ≠ receipt or use"],
-  deliveryState: ["four Stop requests per virtual round", "allow Stop → discard its work"],
-  outcomeStore: ["update ticket / activity status", "no finding ≠ failed review"],
-};
-
-const nodeView = (h: HtmlBuilder<Message>, id: NodeId, flow: FlowState) => {
+const nodeView = (h: HtmlBuilder<Message>, id: NodeId, model: Model) => {
+  const flow = model.flow;
   const node = NODES[id];
   const palette = colors[node.role];
   const packets = flow.packets.filter((packet) => packet.at === id);
-  const special = id === "deliveryState" ? `virtual round ${flow.virtualRoundId} · ${flow.virtualRoundActive ? "active" : "closed"} · ${flow.stopContinuations}/4`
+  const special = id === "deliveryState" ? `virtual round ${flow.virtualRoundId} · ${flow.virtualRoundActive ? "active" : "closed"} · ${flow.stopContinuations}/${MAX_STOP_CONTINUATIONS}`
     : id === "agentEdit" ? "fresh edit enters through adapter"
     : id === "collector" ? (flow.leaseSurface ? `${flow.leaseSurface} batch reserved` : flow.opportunity ? `${flow.opportunity} request received` : "waiting for an agent runtime request")
     : id === "hostOutput" ? (flow.lastSubmissionSurface ? "written; no payload stored here" : "no response written yet")
     : id === "workQueue" ? `${packets.length} queued job${packets.length === 1 ? "" : "s"}`
     : id === "adviceStore" ? `${packets.length} pending finding${packets.length === 1 ? "" : "s"}`
-    : id === "outcomeStore" ? (flow.emissions.some((item) => item.at === id) ? "updated; no payload stored here" : "no completed review yet")
+    : id === "outcomeStore" ? (model.emissions.some((item) => item.at === id) ? "updated; no payload stored here" : "no completed review yet")
     : packets.length ? packets.map((packet) => packet.flavor).join(", ") : "idle in this example";
   return h.g([], [
     h.rect([h.X(String(node.x)), h.Y(String(node.y)), h.Width(String(NODE_WIDTH)),
@@ -157,7 +159,7 @@ const nodeView = (h: HtmlBuilder<Message>, id: NodeId, flow: FlowState) => {
       h.FontWeight("700"), h.Fill("#1e3048")], [node.label]),
     h.text([h.X(String(node.x + 14)), h.Y(String(node.y + 51)), h.FontSize("12"),
       h.Fill("#52647d")], [node.detail]),
-    ...NODE_NOTES[id].map((line, index) => h.text([
+    ...node.notes.map((line, index) => h.text([
       h.X(String(node.x + 14)), h.Y(String(node.y + 73 + index * 17)), h.FontSize("11"),
       h.Fill("#52647d"),
     ], [line])),
@@ -179,20 +181,11 @@ const chart = (model: Model, h: HtmlBuilder<Message>) => h.div([h.Class("chart-s
         h.path([h.D("M 0 0 L 10 5 L 0 10 z"), h.Fill("#e66035")], []),
       ]),
     ]),
-    ...CONNECTIONS.map((events, index) => arrow(h, events, index + 1, model.flow.lastEvent !== null && events.includes(model.flow.lastEvent))),
-    ...NODE_IDS.map((id) => nodeView(h, id, model.flow)),
+    ...CONNECTIONS.map((events, index) => arrow(h, events, index + 1, model.lastEvent !== null && events.includes(model.lastEvent))),
+    ...NODE_IDS.map((id) => nodeView(h, id, model)),
     ...[
-      { x: 755, y: 26, text: "review work item →" },
-      { x: 510, y: 268, text: "new review work" },
-      { x: 1230, y: 277, text: "Jev response ↓" },
-      { x: 780, y: 314, text: "← pending findings" },
-      { x: 285, y: 376, text: "advice request: agent ID + deadline →" },
-      { x: 30, y: 266, text: "edit via runtime adapter →" },
-      { x: 30, y: 288, text: "PostToolUse: edit + advice request" },
-      { x: 285, y: 435, text: "after tool / Stop" },
-      { x: 165, y: 519, text: "Stop allow → close + cleanup" },
       { x: 30, y: 752, text: "* Stop reoffer: implemented in the #105 candidate." },
-      { x: 30, y: 775, text: "** Size, time, expiry and full advicee checks are not simulated." },
+      { x: 30, y: 775, text: "** Size, time, expiry and full agent checks are not simulated." },
       { x: 780, y: 729, text: "Numbers match the event controls below." },
       { x: 780, y: 752, text: "Solid: review information · Dashed: agent runtime request" },
       { x: 780, y: 775, text: "Amber: stored state · Blue: work · Grey: external · Purple: output" },
@@ -204,7 +197,7 @@ const chart = (model: Model, h: HtmlBuilder<Message>) => h.div([h.Class("chart-s
 
 const eventLabel = (event: EventId): string => {
   const transition = routeFor(event);
-  return `${transition.label} · ${NODES[transition.from].label} → ${NODES[transition.to].label}`;
+  return `${EVENT_LABELS[event]} · ${NODES[transition.from].label} → ${NODES[transition.to].label}`;
 };
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
@@ -241,31 +234,31 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           h.p([h.Class("description")], [trace?.description ?? "Free play: choose any event below."]),
           h.div([h.Class("trace-controls")], [
             h.button([h.OnClick(Message.Rewound()), h.Disabled(previous === undefined)], [
-              previous === undefined ? "Previous" : `Previous: ${TRANSITIONS[previous].label}`,
+              previous === undefined ? "Previous" : `Previous: ${EVENT_LABELS[previous]}`,
             ]),
             h.button([h.OnClick(Message.Advanced()), h.Class("primary"), h.Disabled(next === undefined)], [
-              next === undefined ? "Trace complete" : `Next: ${TRANSITIONS[next].label}`,
+              next === undefined ? "Trace complete" : `Next: ${EVENT_LABELS[next]}`,
             ]),
             h.button([h.OnClick(Message.Reset())], ["Reset trace"]),
             h.span([h.Class("key-hint")], ["← / → keys"]),
           ]),
           h.p([h.Class("progress")], [trace ? `Step ${model.cursor} of ${trace.events.length}` : "Free play"]),
-          h.p([h.Class("status")], [model.flow.note]),
+          h.p([h.Class("status")], [model.feedback]),
           h.h3([], ["Live review data in this virtual round"]),
-          h.div([h.Class("packets")], model.flow.packets.map((packet) =>
+          h.div([h.Class("packets")], model.flow.packets.map((packet, index) =>
             h.div([h.Class("packet")], [
-              h.strong([], [`#${packet.id} ${packet.flavor}`]),
+              h.strong([], [`#${index + 1} ${packet.flavor}`]),
               h.span([], [NODES[packet.at].label]),
             ]))),
           h.h3([], ["Emitted outcomes — example history"]),
           h.p([h.Class("description")], ["These entries record what the example emitted. They are not payloads stored at the process boxes and cannot be selected as pending advice."]),
-          h.div([h.Class("packets")], model.flow.emissions.length === 0
+          h.div([h.Class("packets")], model.emissions.length === 0
             ? [h.p([h.Class("description")], ["No response or status update emitted yet."])]
-            : model.flow.emissions.map((item) => h.div([h.Class("packet")], [
-              h.strong([], [item.description]), h.span([], [NODES[item.at].label]),
+            : model.emissions.map((item) => h.div([h.Class("packet")], [
+              h.strong([], [EMISSION_LABELS[item.event]]), h.span([], [NODES[item.at].label]),
             ]))),
           h.p([h.Class("state-line")], [
-            `Virtual round ${model.flow.virtualRoundId} (${model.flow.virtualRoundActive ? "active" : "closed"}) · Stop continuation requests ${model.flow.stopContinuations}/4 · ` +
+            `Virtual round ${model.flow.virtualRoundId} (${model.flow.virtualRoundActive ? "active" : "closed"}) · Stop continuation requests ${model.flow.stopContinuations}/${MAX_STOP_CONTINUATIONS} · ` +
             `reserved batch ${model.flow.leaseSurface ?? "none"} · last response ${model.flow.lastSubmissionSurface ?? "none"}`,
           ]),
         ]),
@@ -277,12 +270,15 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
             return h.button([h.OnClick(Message.TriggeredEvent({ event })), h.Class("event-row")], [
               h.span([h.Class("event-number")], [String(CONNECTIONS.findIndex((events) => events.includes(event)) + 1)]),
               h.span([h.Class("event-copy")], [
-                h.strong([], [transition.label]),
+                h.strong([], [EVENT_LABELS[event]]),
                 h.small([], [eventLabel(event)]),
                 h.small([], [transition.kind === "data"
                   ? `${transition.input} → ${transition.output}${transition.movement === "copy" ? " · source retained" : ""}`
                   : `${transition.signal} request · agent identity and delivery context`]),
-                h.small([], [stepFlow(model.flow, event).accepted ? "Can happen now" : stepFlow(model.flow, event).state.note]),
+                h.small([], [(() => {
+                  const attempt = stepFlow(model.flow, event);
+                  return attempt.accepted ? "Can happen now" : REJECTION_LABELS[attempt.reason];
+                })()]),
               ]),
             ]);
           })),
@@ -293,7 +289,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         h.p([], ["The sidecar reducer applies events to example state. Accepted steps generate this graph’s connections and the abstract timeline steps. Box layout and wording are presentation choices. Native timestamps come from retained evidence. Diagram boxes show places and operations, not lifecycle states."]),
         h.div([h.Class("packets")], [
           h.div([h.Class("packet")], [h.strong([], ["Virtual round"]), h.span([], [`${model.flow.virtualRoundId} · ${model.flow.virtualRoundActive ? "active" : "closed"}`])]),
-          h.div([h.Class("packet")], [h.strong([], ["Stop continuation requests"]), h.span([], [`${model.flow.stopContinuations} of 4`])]),
+          h.div([h.Class("packet")], [h.strong([], ["Stop continuation requests"]), h.span([], [`${model.flow.stopContinuations} of ${MAX_STOP_CONTINUATIONS}`])]),
           h.div([h.Class("packet")], [h.strong([], ["Stop wait"]), h.span([], [model.flow.stopWaiting ? "waiting before a finish decision" : "none"])]),
           h.div([h.Class("packet")], [h.strong([], ["Batch reserved for"]), h.span([], [model.flow.leaseSurface ?? "no caller"])]),
           h.div([h.Class("packet")], [h.strong([], ["Last response written through"]), h.span([], [model.flow.lastSubmissionSurface ?? "none"])]),

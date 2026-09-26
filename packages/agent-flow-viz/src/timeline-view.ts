@@ -85,7 +85,7 @@ export const timelineView = <Message>(h: HtmlBuilder<Message>, selected: number,
           h.strong([], [`${entry.order + 1}. ${entry.label}`]),
           h.span([], [`${entry.virtualRoundActive ? "round active" : "round closed"} · ${entry.packets} live data item${entry.packets === 1 ? "" : "s"}`]),
         ]))),
-        h.p([h.Class("description")], ["These steps use typed reducer events and labels from TRANSITIONS; stepFlow accepts their order. Native timestamps, unknown intervals and repair outcomes above are separate evidence, not reducer-verified facts."]),
+        h.p([h.Class("description")], ["These steps use accepted reducer changes and presentation labels keyed to typed events. Native timestamps, unknown intervals and repair outcomes above are separate evidence, not reducer-verified facts."]),
       ] : []),
     ]),
     h.div([h.Class("timeline-sources")], [

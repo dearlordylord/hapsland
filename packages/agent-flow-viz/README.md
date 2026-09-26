@@ -23,6 +23,8 @@ wording live outside the reducer; process boxes are not lifecycle states.
 TypeScript requires a presentation entry for each model node, and build-time
 replay rejects any node unused by all accepted routes. Descriptive wording is
 editorial and is not semantically proved by those checks.
+The build checks that every native timing row names a retained source and has
+a valid interval. It cannot prove that a transcribed time matches its source.
 
 The example follows one agent at a time. Runtime adapters handle session and
 subagent identifiers; the reducer carries no agent identifier or root/child branches. It models one
@@ -54,7 +56,7 @@ not an invented outcome store. Completed response writes and status updates leav
 the payload flow. Example history records these emissions only for the page; it
 cannot feed pending-advice selection and is not retained production advice.
 
-Background advice remains available for one Stop reoffer in the same round,
+Background advice remains available for one Stop reoffer in the same virtual round,
 including when written during the Stop wait. Stop output retires that advice;
 round closure discards all advice. Distinct findings can justify another Stop
 continuation without a fresh edit in the contract; this one-item example does
@@ -105,8 +107,8 @@ companions share the reducer projection. Native timing rows remain separate
 evidence. Guided trace controls retain left/right keyboard navigation.
 
 The timeline distinguishes three paths: Stop waits for its first advice;
-background writes during an existing Stop wait and that Stop reoffers; or the
-wait expires and Hapsland allows finish and closes its round. The race companion
+background hook output during an existing Stop wait and that Stop reoffers; or the
+wait expires and Hapsland allows finish and closes its virtual round. The race companion
 starts Stop before review completion. The final-message companion retains the
-separate order where background writes before Stop starts. Native hook process
+separate order where background hook output completes before Stop starts. Native hook process
 intervals include startup and output work, not just review waiting.

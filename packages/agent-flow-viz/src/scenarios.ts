@@ -7,7 +7,7 @@ export const TRACES = [
     "JevRequestSent", "JevResponseReceived", "FindingRetained", "BackgroundHookFired",
     "AdviceLeasedByBackground", "HostOutputSubmitted",
   ] },
-  { name: "Send advice again at Stop", description: "Background holds a batch when Stop begins waiting. The background write completes during that wait; Stop offers the advice once more in the same round.", events: [
+  { name: "Send advice again at Stop", description: "Background holds a batch when Stop begins waiting. Advice output through the background hook completes during that wait; Stop offers the advice once more in the same virtual round.", events: [
     "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
     "JevRequestSent", "JevResponseReceived", "FindingRetained", "BackgroundHookFired",
     "AdviceLeasedByBackground", "StopHookFired", "HostOutputSubmitted",
@@ -26,16 +26,16 @@ export const TRACES = [
     "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
     "JevRequestSent", "JevUnavailable",
   ] },
-  { name: "Edit opens a round", description: "An identified agent can enter through an edit without a user-prompt hook. The runtime adapter handles root and subagent details.", events: [
+  { name: "Edit opens a virtual round", description: "An agent can enter through an attributed edit without a user-prompt hook. The runtime adapter handles root and subagent details.", events: [
     "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
     "JevRequestSent", "JevResponseReceived", "FindingRetained", "StopHookFired",
     "AdviceLeasedByStop", "HostOutputSubmitted", "StopHookFired", "StopAllowed",
   ] },
-  { name: "Stop wait expires; close and discard", description: "Jev has not replied when Hapsland allows Stop. All live round data is removed, including the running request. A fresh edit can open another round.", events: [
+  { name: "Stop wait expires; close and discard", description: "Jev has not replied when Hapsland allows Stop. All live virtual-round data is removed, including the running request. A fresh edit can open another virtual round.", events: [
     "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
     "JevRequestSent", "StopHookFired", "StopAllowed", "EditObserved",
   ] },
-  { name: "Four continuation requests", description: "Each repair can be reviewed again. Four Stop responses request continuation in the same round; the next Stop must close it.", events: [
+  { name: `${MAX_STOP_CONTINUATIONS} continuation requests`, description: `Each repair can be reviewed again. ${MAX_STOP_CONTINUATIONS} Stop responses request continuation in the same virtual round; the next Stop must close it.`, events: [
     ...Array.from({ length: MAX_STOP_CONTINUATIONS }, () => [
       "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
       "JevRequestSent", "JevResponseReceived", "FindingRetained", "StopHookFired",

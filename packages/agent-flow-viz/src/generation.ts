@@ -13,7 +13,7 @@ export const projectSequence = (events: readonly EventId[], title: string): read
   let state = initialFlow();
   return events.map((event) => {
     const result = stepFlow(state, event);
-    if (!result.accepted) throw new Error(`${title}: ${event}: ${result.state.note}`);
+    if (!result.accepted) throw new Error(`${title}: ${event}: ${result.reason}`);
     state = result.state;
     return { event, state, changes: result.changes };
   });

@@ -1,4 +1,5 @@
 import { type EventId } from "./flow";
+import { EVENT_LABELS } from "./diagram";
 import { projectSequence } from "./generation";
 
 export type Lane = "runtime" | "review" | "delivery" | "result" | "unknown";
@@ -162,7 +163,7 @@ export const reducerSegment = (scenario: TimelineCase) => {
   return projectSequence(scenario.reducerEvents, `Timeline ${scenario.title}`).map((step, order) => {
     const route = step.changes.find((change) => change.kind === "transition")?.route;
     if (route === undefined) throw new Error(`Timeline ${scenario.title}: no emitted route for ${step.event}`);
-    return { kind: "reducer event" as const, event: step.event, order, label: route.label,
+    return { kind: "reducer event" as const, event: step.event, order, label: EVENT_LABELS[step.event],
       virtualRoundActive: step.state.virtualRoundActive, packets: step.state.packets.length,
       changes: step.changes };
   });
