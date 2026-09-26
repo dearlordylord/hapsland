@@ -11,7 +11,12 @@ npm run dev
 
 Select a guided example, move to its next or previous event, or apply an event
 directly. The event history lets you return to any completed step and branch
-from there. The process diagram groups
+from there. Manual events do not cancel a guided example or advance its cursor.
+Each guided edit binds its planned review item to the actual item ID created in
+the mixed run, so later guided steps cannot silently act on an extra item.
+If the next guided event is unavailable, the page names that event, item, and
+reducer rejection while keeping the guide selected; further manual events or a
+rewind can restore a path forward. The process diagram groups
 related events into one numbered connection. The event list shows each variant,
 its information, and whether its prerequisites currently hold. The event panel
 probes every known event and each item at its input location against the current

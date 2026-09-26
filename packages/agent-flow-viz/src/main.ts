@@ -5,7 +5,7 @@ import { Runtime, type Update } from "foldkit";
 import type { Document, HtmlBuilder } from "foldkit/html";
 import { defineMessageUnion } from "foldkit/message";
 import { describeAccepted, EMISSION_LABELS, EVENT_LABELS, NODES, REJECTION_LABELS } from "./diagram";
-import { CONNECTIONS, nextEventOptions, routeFor } from "./generation";
+import { CONNECTIONS, PROJECTED_TRACES, nextEventOptions, routeFor } from "./generation";
 import { TRACES } from "./scenarios";
 import {
   EVENT_IDS, FlowStateSchema, MAX_ACTIVE_REVIEW_JOBS, MAX_STOP_CONTINUATIONS, NODE_IDS,
@@ -17,7 +17,11 @@ export const Model = Schema.Struct({
   timeline: Schema.Number,
   cursor: Schema.Number,
   flow: FlowStateSchema,
-  history: Schema.Array(Schema.Struct({ event: Schema.Literals(EVENT_IDS), itemId: Schema.Union([Schema.Null, Schema.Number]) })),
+  guidedBindings: Schema.Array(Schema.Struct({ plannedId: Schema.Number, actualId: Schema.Number })),
+  history: Schema.Array(Schema.Struct({
+    event: Schema.Literals(EVENT_IDS), itemId: Schema.Union([Schema.Null, Schema.Number]),
+    origin: Schema.Literals(["guided", "manual"]),
+  })),
   lastEvent: Schema.Union([Schema.Null, Schema.Literals(EVENT_IDS)]),
   feedback: Schema.String,
   emissions: Schema.Array(Schema.Struct({
@@ -40,23 +44,61 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type;
 
 const reset = (trace: number): Model => ({
-  trace, timeline: 0, cursor: 0, flow: initialFlow(), history: [], lastEvent: null, emissions: [],
+  trace, timeline: 0, cursor: 0, flow: initialFlow(), guidedBindings: [], history: [], lastEvent: null, emissions: [],
   feedback: "No live virtual round or review work yet. Events are example inputs; no agent runtime or Jev connection is attached.",
 });
 export const init: Runtime.ApplicationInit<Model, Message> = () => ({ model: reset(0) });
 
-const applyEvent = (model: Model, event: EventId, advance: boolean, itemId?: number): Model => {
+type EventOrigin = "guided" | "manual";
+const plannedItemAt = (model: Model): number | null =>
+  PROJECTED_TRACES[model.trace]?.[model.cursor]?.changes.find((change) => change.kind === "transition")?.itemId ?? null;
+const guidedInput = (model: Model): { readonly event: EventId; readonly itemId: number | undefined } | null => {
+  const event = TRACES[model.trace]?.events[model.cursor];
+  if (event === undefined) return null;
+  const plannedId = plannedItemAt(model);
+  if (event === "EditObserved" || plannedId === null) return { event, itemId: undefined };
+  return { event, itemId: model.guidedBindings.find((entry) => entry.plannedId === plannedId)?.actualId };
+};
+const guidedBlock = (model: Model): string | null => {
+  const input = guidedInput(model);
+  if (input === null) return null;
+  const plannedId = plannedItemAt(model);
+  if (plannedId !== null && input.event !== "EditObserved" && input.itemId === undefined) {
+    return `Guided trace cannot proceed at step ${model.cursor + 1}: its item #${plannedId} has not entered this replay.`;
+  }
+  const result = stepFlow(model.flow, input.event, input.itemId);
+  return result.accepted ? null :
+    `Guided trace cannot proceed at step ${model.cursor + 1} (${EVENT_LABELS[input.event]}${input.itemId === undefined ? "" : ` for item #${input.itemId}`}): ${REJECTION_LABELS[result.reason]}`;
+};
+
+const applyEvent = (model: Model, event: EventId, origin: EventOrigin, itemId?: number): Model => {
   const result = stepFlow(model.flow, event, itemId);
-  if (!result.accepted) return { ...model, feedback: REJECTION_LABELS[result.reason] };
+  if (!result.accepted) return { ...model, feedback: origin === "guided"
+    ? `Guided trace cannot proceed at step ${model.cursor + 1}: ${REJECTION_LABELS[result.reason]}`
+    : REJECTION_LABELS[result.reason] };
+  const actualId = result.changes.find((change) => change.kind === "transition")?.itemId ?? null;
+  const plannedId = origin === "guided" && event === "EditObserved" ? plannedItemAt(model) : null;
   const emitted = result.changes.flatMap((change) => change.kind === "emitted"
     ? [{ event: change.event, at: change.at, itemId: change.itemId }] : []);
   return {
     ...model, flow: result.state, lastEvent: event,
-    history: [...model.history, { event, itemId: result.changes.find((change) => change.kind === "transition")?.itemId ?? null }],
-    cursor: model.cursor + (advance ? 1 : 0),
+    guidedBindings: plannedId === null || actualId === null ? model.guidedBindings
+      : [...model.guidedBindings, { plannedId, actualId }],
+    history: [...model.history, { event, itemId: actualId, origin }],
+    cursor: model.cursor + (origin === "guided" ? 1 : 0),
     emissions: [...model.emissions, ...emitted],
-    feedback: `${describeAccepted(model.flow, result.state, event, routeFor(event))}${result.changes.find((change) => change.kind === "transition")?.itemId == null ? "" : ` Item #${result.changes.find((change) => change.kind === "transition")?.itemId}.`}`,
+    feedback: `${describeAccepted(model.flow, result.state, event, routeFor(event))}${actualId === null ? "" : ` Item #${actualId}.`}`,
   };
+};
+
+const replayHistory = (model: Model, count: number): Model => {
+  let replayed = { ...reset(model.trace), timeline: model.timeline };
+  for (const step of model.history.slice(0, count)) {
+    const input = step.origin === "guided" ? guidedInput(replayed) : null;
+    replayed = applyEvent(replayed, step.event, step.origin,
+      step.origin === "manual" ? step.itemId ?? undefined : input?.itemId);
+  }
+  return replayed;
 };
 
 export const update = (model: Model, message: Message) =>
@@ -65,27 +107,17 @@ export const update = (model: Model, message: Message) =>
     SelectedTrace: ({ index }) => ({ model: { ...reset(index >= 0 && index < TRACES.length ? index : 0), timeline: model.timeline } }),
     Reset: () => ({ model: { ...reset(model.trace), timeline: model.timeline } }),
     Advanced: () => {
-      const event = TRACES[model.trace]?.events[model.cursor];
-      if (event === undefined) return { model };
-      return { model: applyEvent(model, event, true) };
+      const input = guidedInput(model);
+      if (input === null) return { model };
+      const blocked = guidedBlock(model);
+      if (blocked !== null) return { model: { ...model, feedback: blocked } };
+      return { model: applyEvent(model, input.event, "guided", input.itemId) };
     },
     Rewound: () => {
-      const events = TRACES[model.trace]?.events;
-      if (events === undefined || model.cursor === 0) return { model };
-      const cursor = model.cursor - 1;
-      let replayed = { ...reset(model.trace), timeline: model.timeline };
-      for (const event of events.slice(0, cursor)) {
-        replayed = applyEvent(replayed, event, true);
-      }
-      return { model: replayed };
+      return { model: model.history.length === 0 ? model : replayHistory(model, model.history.length - 1) };
     },
-    TriggeredEvent: ({ event, itemId }) => ({ model: applyEvent({ ...model, trace: -1, cursor: 0 }, event, false, itemId ?? undefined) }),
-    JumpedToHistory: ({ count }) => {
-      const steps = model.history.slice(0, count);
-      let replayed = { ...reset(-1), timeline: model.timeline };
-      for (const step of steps) replayed = applyEvent(replayed, step.event, false, step.itemId ?? undefined);
-      return { model: replayed };
-    },
+    TriggeredEvent: ({ event, itemId }) => ({ model: applyEvent(model, event, "manual", itemId ?? undefined) }),
+    JumpedToHistory: ({ count }) => ({ model: replayHistory(model, count) }),
   });
 
 const NODE_WIDTH = 224;
@@ -219,7 +251,8 @@ const eventLabel = (event: EventId): string => {
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const trace = TRACES[model.trace];
   const next = trace?.events[model.cursor];
-  const previous = model.cursor > 0 ? trace?.events[model.cursor - 1] : undefined;
+  const previous = model.history.at(-1);
+  const blocked = guidedBlock(model);
   const liveItems = model.flow.packets;
   return {
     title: "Hapsland · agent flow visualization",
@@ -251,7 +284,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           h.p([h.Class("description")], [trace?.description ?? "Free play: choose any event below."]),
           h.div([h.Class("trace-controls")], [
             h.button([h.OnClick(Message.Rewound()), h.Disabled(previous === undefined)], [
-              previous === undefined ? "Previous" : `Previous: ${EVENT_LABELS[previous]}`,
+              previous === undefined ? "Previous" : `Previous ${previous.origin}: ${EVENT_LABELS[previous.event]}`,
             ]),
             h.button([h.OnClick(Message.Advanced()), h.Class("primary"), h.Disabled(next === undefined)], [
               next === undefined ? "Trace complete" : `Next: ${EVENT_LABELS[next]}`,
@@ -259,16 +292,19 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
             h.button([h.OnClick(Message.Reset())], ["Reset trace"]),
             h.span([h.Class("key-hint")], ["← / → keys"]),
           ]),
-          h.p([h.Class("progress")], [trace ? `Step ${model.cursor} of ${trace.events.length}` : "Free play"]),
+          h.p([h.Class("progress")], [trace
+            ? `Guided step ${model.cursor} of ${trace.events.length} · ${model.history.filter((entry) => entry.origin === "manual").length} manual events`
+            : "Free play"]),
           h.h3([], ["Event history"]),
           h.p([h.Class("description")], ["Select a completed step to return to its resulting state; later steps are then discarded."]),
           h.div([h.Class("history")], [
             h.button([h.OnClick(Message.JumpedToHistory({ count: 0 }))], ["Initial state"]),
             ...model.history.map((step, index) => h.button([
               h.OnClick(Message.JumpedToHistory({ count: index + 1 })),
-            ], [`${index + 1}. ${EVENT_LABELS[step.event]}${step.itemId === null ? "" : ` · #${step.itemId}`}`])),
+            ], [`${index + 1}. ${step.origin === "guided" ? "Guided" : "Manual"}: ${EVENT_LABELS[step.event]}${step.itemId === null ? "" : ` · #${step.itemId}`}`])),
           ]),
           h.p([h.Class("status")], [model.feedback]),
+          ...(blocked === null ? [] : [h.p([h.Class("status blocked")], [blocked])]),
           h.h3([], ["Live review data in this virtual round"]),
           h.div([h.Class("packets")], liveItems.map((packet) =>
             h.div([h.Class("packet")], [
@@ -289,7 +325,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         ]),
         h.section([h.Class("card")], [
           h.h2([], ["Events, prerequisites, and information"]),
-          h.p([h.Class("description")], ["Choose an event for a specific item. Add more edits at any time in an active virtual round; queued items wait in FIFO order. Disabled actions show what is missing or why an item must wait. The two active-job slots follow the current resident constant; exact production scheduling is outside this sidecar."]),
+          h.p([h.Class("description")], ["Choose an event for a specific item. Manual events interleave with the selected guided trace without advancing it. Add more edits at any time in an active virtual round; queued items wait in FIFO order. Disabled actions show what is missing or why an item must wait. The two active-job slots follow the current resident constant; exact production scheduling is outside this sidecar."]),
           h.div([h.Class("events")], nextEventOptions(model.flow).map((option) => {
             const event = option.event;
             const transition = routeFor(event);
