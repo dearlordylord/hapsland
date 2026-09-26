@@ -47,7 +47,7 @@ export class DispatchCycles<K, A> {
     return { queued: this.#pending.length + this.#active.length, running: this.#running, cycle: this.#cycle };
   }
 
-  /** Recipient-scoped work includes pending, active, and currently executing entries. */
+  /** Advicee-scoped work includes pending, active, and currently executing entries. */
   hasWork(key: K): boolean {
     return this.#pending.some((entry) => entry.key === key) ||
       this.#active.some((entry) => entry.key === key) ||

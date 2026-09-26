@@ -17,7 +17,7 @@ requires matched, headless Linux before/after observations. In the **before**
 case, an attributable edit produces an actionable review finding, but the
 current delivery policy gives the agent no suggestion before it finishes; the
 defect remains. In the **after** case, a bounded host response carries the
-current suggestion to that recipient, a later model action follows it, the file
+current suggestion to that advicee, a later model action follows it, the file
 is repaired, and a subsequent review is clear. Review completion, host
 submission, model action, and final file state are separate observations.
 Run this gate first with Codex, then with Claude Code on Linux. Both after
@@ -30,7 +30,7 @@ when #105 closes.
 ## Host-neutral implementation boundary
 
 One resident delivery module owns review work, advice, bounded wait state,
-recipient partitions, collection leases, submitted/uncertain handoff state,
+advicee partitions, collection leases, submitted/uncertain handoff state,
 freshness checks, batching, failure outcomes, expiry, and Stop continuation
 allowances. Codex and Claude Code adapters map native hook inputs and outputs
 to that module. They may have host-specific registration and lifecycle rules,
@@ -59,12 +59,12 @@ The partition key is the tuple `(canonical physical working root, agent host,
 exact supported host version, session_id, supplied agent_id or null)`. It is created
 from the attributed edit and must be supplied unchanged by each collector. `turn_id`
 and `tool_use_id` identify events and continuation attempts; they do not replace the
-recipient partition. Do not infer a missing agent from the latest caller, root
+advicee partition. Do not infer a missing agent from the latest caller, root
 co-location, or a checkpoint. A direct edit with a supplied child `agent_id` remains
-child-owned. A shared-root checkpoint change with unknown origin has no recipient and
+child-owned. A shared-root checkpoint change with unknown origin has no advicee and
 cannot yield addressed advice. Isolated worktrees have distinct canonical roots.
 
-Every collection checks root identity, recipient identity, enablement, credential
+Every collection checks root identity, advicee identity, enablement, credential
 generation, source selection, current work revision, current snapshot, and advice age
 at the final handoff barrier. A stale or unattributed result is suppressed. A transient
 revalidation failure leaves its advice available until a later valid attempt or normal
@@ -90,7 +90,7 @@ restart loses the in-memory work and cannot claim delivery success.
 
 For this combined path, the present `acknowledge` + `finalize` behavior is insufficient:
 `finalize` removes advice immediately after the write. The resident must instead
-retain a bounded, source-free submitted record (advice identity, recipient, turn
+retain a bounded, source-free submitted record (advice identity, advicee, turn
 chain, output surface, timestamp and token) through the relevant turn boundary. A
 background submission immediately before Stop is therefore **submitted/visibility
 unknown**. Stop must not race to submit the same advice again during that turn chain;
@@ -113,10 +113,10 @@ The proposed registration adds a native async command for the same attributed
 `PostToolUse` event that admits the edit. The candidate synchronous edit hook admits
 the observation and returns promptly; the legacy edit hook retains ordinary
 collection behavior. The background command waits for its
-exact recipient's resident work, including the admission race, and emits at most one
+exact advicee's resident work, including the admission race, and emits at most one
 bounded `additionalContext` response through the native async hook output channel.
 It exits quietly when no eligible advice becomes ready. Only one background waiter
-may be active per recipient; later triggers coalesce against that waiter. A waiter
+may be active per advicee; later triggers coalesce against that waiter. A waiter
 holds no advice lease while waiting. It has a 20-second wall-clock cap from command
 launch to exit and a corresponding host command timeout; the resident's existing
 item and byte capacity limits remain authoritative. A canceled hook releases any
@@ -127,13 +127,13 @@ still bound later collectability.
 Async completion is only an output opportunity at a Codex safe point. It does not
 interrupt an in-flight model request or tool call, and it does not start a new turn.
 Output during the final model response or after turn/session end may have no model
-recipient. Host submission and model visibility must be measured independently.
+advicee. Host submission and model visibility must be measured independently.
 
 ## Stop command and continuation
 
 The candidate Stop policy starts its budget at native command launch. It first checks
-the exact recipient and turn-chain continuation state, then collects ready advice.
-If eligible work is still in flight, it polls that recipient's resident state at no
+the exact advicee and turn-chain continuation state, then collects ready advice.
+If eligible work is still in flight, it polls that advicee's resident state at no
 more than 50 ms intervals until a finding becomes available or the internal 4.2-second
 deadline expires. The internal deadline includes startup, parsing, resident startup
 if needed, IPC, collection, encoding, writing, and process exit; the native command
@@ -182,7 +182,7 @@ backend responses are not retained.
 | Background timing | No later edit before delivery; completion during model request/tool call, final response, and after end; actual submission and model visibility | **Partial** on Linux. [Selected early-completion runs](../evidence/delivery-105/linux-background-opportunities.json) submitted async findings on both hosts; Claude made a repair edit and completed a clear follow-up, while Codex finished without a repair. Separate [contended](../evidence/delivery-105/linux-background-opportunities-contended.json) and [late Claude](../evidence/delivery-105/linux-claude-background-late-miss.json) runs also submitted findings without observed repair. This shows host submission does not guarantee model visibility. Exact in-flight tool-call and after-end visibility boundaries need further classification. |
 | Stop outcomes | Ready, completes during wait, deadline then later collectable, unavailable/backend failure, stale, multi-unit | **Partial** on Linux. Stop won a lease, collected during its wait, and left a later result collectable. Background delivered a multi-unit batch and a failure notice. Stale and Stop failure-notice delivery remain open. |
 | Composition races | Background/Stop overlap, submitted but unconsumed background output, edit/other collector overlap, failed collection or lost ack, repair-generated findings | **Partial** on Linux. Stop won in two fixtures while a background waiter existed; background won in other fixtures. The probes do not prove simultaneous resident collection. One background output was submitted during Stop after the final model message without observed model visibility; pre-Stop unconsumed output remains untested. Repair-generated findings were observed. Edit overlap, failed collection, and lost ack remain open. |
-| Isolation | Two concurrent recipients with distinct findings on both paths; isolated worktrees, shared-root unknown origin, supplied child identity | **Missing** as a combined host run. Existing resident subprocess tests cover partition isolation. |
+| Isolation | Two concurrent advicees with distinct findings on both paths; isolated worktrees, shared-root unknown origin, supplied child identity | **Missing** as a combined host run. Existing resident subprocess tests cover partition isolation. |
 | Timing | Host command launch through response and exit on both profiles; edit, background, and added Stop latency kept distinct | **Partial**: the [new ptrace record](../evidence/delivery-105/linux-host-command-timing.json) measured native edit, background, prompt, and Stop child creation through exit on both Linux profiles. Its selected Stop calls finished below five seconds; tracing adds overhead. Background completion-to-model visibility remains an event-order observation rather than a precise latency bound. |
 
 The [#97 record](issue-97-delivery.md) is useful prior evidence, but its isolated

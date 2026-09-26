@@ -4,7 +4,7 @@ import { connect } from "node:net";
 import { resolve } from "node:path";
 import { closeSync, existsSync, lstatSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import type { DirectObservation, DirectRecipient } from "../direct-event/model.ts";
+import type { DirectObservation, DirectAdvicee } from "../direct-event/model.ts";
 import type { CodexDirectEventOutput } from "../direct-event/pipeline.ts";
 import { loadReviewSettings } from "../runtime/review-config.ts";
 import type { ControlledDecisionModelOptions } from "../test-support/controlled-decision-model.ts";
@@ -283,7 +283,7 @@ export type CollectedAdvice = {
   readonly lifetime: string;
   readonly paths: ResidentPaths;
   readonly root: string;
-  readonly recipient: DirectRecipient;
+  readonly advicee: DirectAdvicee;
   readonly activityPath: string | undefined;
   readonly findingCount: number;
 };
@@ -311,7 +311,7 @@ export type TicketedAdmission = {
   readonly lifetime: string;
   readonly paths: ResidentPaths;
   readonly root: string;
-  readonly recipient: DirectRecipient;
+  readonly advicee: DirectAdvicee;
   readonly dispatch: ResidentDispatchContext;
 };
 
@@ -325,7 +325,7 @@ export const admitTicketedObservation = async (
   dispatch: ResidentDispatchContext,
   paths = residentPaths(),
 ): Promise<TicketedAdmissionResult> => {
-  if (observation.recipient.host !== "claude-code") return { status: "unsupported" };
+  if (observation.advicee.host !== "claude-code") return { status: "unsupported" };
   const owner = await ensureResident(paths);
   const response = await residentRequest(paths, {
     version: 2,
@@ -343,7 +343,7 @@ export const admitTicketedObservation = async (
       lifetime: owner.lifetime,
       paths,
       root: observation.root,
-      recipient: observation.recipient,
+      advicee: observation.advicee,
       dispatch,
     } };
   }
@@ -369,7 +369,7 @@ export const collectOutcome = async (
     lifetime: admission.lifetime,
     ticket: admission.ticket,
     root: admission.root,
-    recipient: admission.recipient,
+    advicee: admission.advicee,
     dispatch: admission.dispatch,
     mode,
   });
@@ -380,7 +380,7 @@ export const collectOutcome = async (
     lifetime: admission.lifetime,
     paths: admission.paths,
     root: admission.root,
-    recipient: admission.recipient,
+    advicee: admission.advicee,
     activityPath: admission.dispatch.activityPath,
     findingCount: response.findingCount,
   } };
@@ -393,7 +393,7 @@ export const collectOutcome = async (
 
 export const collectReady = async (
   root: string,
-  recipient: DirectRecipient,
+  advicee: DirectAdvicee,
   dispatch: ResidentDispatchContext,
   paths = residentPaths(),
   mode: CollectionMode = "ordinary",
@@ -404,7 +404,7 @@ export const collectReady = async (
     operation: "collect",
     lifetime: owner.lifetime,
     root,
-    recipient,
+    advicee,
     dispatch,
     mode,
   });
@@ -415,26 +415,26 @@ export const collectReady = async (
         lifetime: owner.lifetime,
         paths,
         root,
-        recipient,
+        advicee,
         activityPath: dispatch.activityPath,
         findingCount: response.findingCount,
       }
     : undefined;
 };
 
-export type RecipientCollectionOutcome =
+export type AdviceeCollectionOutcome =
   | { readonly status: "advice"; readonly advice: CollectedAdvice & { readonly output: CodexDirectEventOutput } }
   | { readonly status: "pending" | "empty" };
 
-/** Shared background/Stop collection probe for any supported host recipient. */
-export const collectRecipientOutcome = async (
+/** Shared background/Stop collection probe for any supported host advicee. */
+export const collectAdviceeOutcome = async (
   root: string,
-  recipient: DirectRecipient,
+  advicee: DirectAdvicee,
   dispatch: ResidentDispatchContext,
   paths = residentPaths(),
   mode: CollectionMode = "ordinary",
   deadlineAt = Number.POSITIVE_INFINITY,
-): Promise<RecipientCollectionOutcome> => {
+): Promise<AdviceeCollectionOutcome> => {
   const owner = await inspectResident(paths);
   if (!owner.available || owner.lifetime === undefined) return { status: "empty" };
   const remaining = deadlineAt - performance.now() - 100;
@@ -444,7 +444,7 @@ export const collectRecipientOutcome = async (
     operation: "collect",
     lifetime: owner.lifetime,
     root,
-    recipient,
+    advicee,
     dispatch,
     mode,
     reportWorkState: true,
@@ -457,7 +457,7 @@ export const collectRecipientOutcome = async (
       lifetime: owner.lifetime,
       paths,
       root,
-      recipient,
+      advicee,
       activityPath: dispatch.activityPath,
       findingCount: response.findingCount,
     } };
@@ -467,7 +467,7 @@ export const collectRecipientOutcome = async (
 
 export const markComposedUserPrompt = async (
   root: string,
-  recipient: DirectRecipient,
+  advicee: DirectAdvicee,
   marker: string,
   paths = residentPaths(),
   promptDigest?: string,
@@ -476,7 +476,7 @@ export const markComposedUserPrompt = async (
   const owner = await ensureResident(paths, 1_500);
   const response = await residentRequest(paths, {
     version: 1, operation: "prompt-marker", lifetime: owner.lifetime,
-    root, recipient, marker,
+    root, advicee, marker,
     ...(promptDigest === undefined ? {} : { promptDigest }),
     ...(onlyIfMissing === true ? { onlyIfMissing: true as const } : {}),
   });
@@ -485,7 +485,7 @@ export const markComposedUserPrompt = async (
 
 export const consumeComposedStopAllowance = async (
   root: string,
-  recipient: DirectRecipient,
+  advicee: DirectAdvicee,
   paths = residentPaths(),
   continuationDigest?: string,
 ): Promise<boolean> => {
@@ -493,33 +493,33 @@ export const consumeComposedStopAllowance = async (
   if (!owner.available || owner.lifetime === undefined) return false;
   const response = await residentRequest(paths, {
     version: 1, operation: "consume-stop", lifetime: owner.lifetime,
-    root, recipient,
+    root, advicee,
     ...(continuationDigest === undefined ? {} : { continuationDigest }),
   });
   return response.status === "continuation-allowed";
 };
 
 export const claimComposedBackground = async (
-  root: string, recipient: DirectRecipient, token: string,
+  root: string, advicee: DirectAdvicee, token: string,
   paths = residentPaths(),
 ): Promise<boolean> => {
   const owner = await ensureResident(paths, 1_500);
   const response = await residentRequest(paths, {
     version: 1, operation: "claim-background", lifetime: owner.lifetime,
-    root, recipient, token,
+    root, advicee, token,
   });
   return response.status === "background-claimed";
 };
 
 export const releaseComposedBackground = async (
-  root: string, recipient: DirectRecipient, token: string,
+  root: string, advicee: DirectAdvicee, token: string,
   paths = residentPaths(),
 ): Promise<boolean> => {
   const owner = await inspectResident(paths);
   if (!owner.available || owner.lifetime === undefined) return false;
   const response = await residentRequest(paths, {
     version: 1, operation: "release-background", lifetime: owner.lifetime,
-    root, recipient, token,
+    root, advicee, token,
   });
   return response.status === "released";
 };

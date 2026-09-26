@@ -67,7 +67,7 @@ try {
     { ...controlled, outcomePath: process.env.HAPSLAND_CONTROL_OUTCOME_PATH,
       capturePath: process.env.HAPSLAND_CONTROL_CAPTURE_PATH, delayMs },
   );
-  const recipient = {
+  const advicee = {
     host: 'codex-cli',
     hostVersion: '0.155.1',
     sessionId: input.session_id,
@@ -82,7 +82,7 @@ try {
     const remaining = Math.max(1, deadline - performance.now());
     let timer;
     const result = await Promise.race([
-      collectReady(root, recipient, dispatch, paths, 'turn-end').catch(() => undefined),
+      collectReady(root, advicee, dispatch, paths, 'turn-end').catch(() => undefined),
       new Promise((resolvePromise) => { timer = setTimeout(() => resolvePromise('deadline'), remaining); }),
     ]);
     clearTimeout(timer);

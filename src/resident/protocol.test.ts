@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addEvent, makeGitFixture, recipient } from "../direct-event/test-fixtures.ts";
+import { addEvent, makeGitFixture, advicee } from "../direct-event/test-fixtures.ts";
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import * as Effect from "effect/Effect";
 import {
@@ -20,13 +20,13 @@ describe("resident protocol bounds", () => {
     expect(decodeResidentResponse({ version: 2, status: "unavailable", reason: "other" })).toBeUndefined();
     expect(decodeResidentResponse({ version: 2, status: "empty" })).toBeUndefined();
   });
-  it("decodes the opt-in recipient work state without changing ordinary collection", () => {
+  it("decodes the opt-in advicee work state without changing ordinary collection", () => {
     expect(decodeResidentResponse({ status: "pending" })).toEqual({ status: "pending" });
     expect(decodeResidentResponse({ status: "pending", path: "source.ts" })).toBeUndefined();
   });
   it("strictly decodes bounded background waiter ownership", () => {
     const request = { version: 1, operation: "claim-background", lifetime: "lifetime",
-      root: "/tmp/repository", recipient: recipient(),
+      root: "/tmp/repository", advicee: advicee(),
       token: "00000000-0000-4000-8000-000000000001" };
     expect(decodeResidentRequest(JSON.stringify(request))).toEqual(request);
     expect(decodeResidentRequest(JSON.stringify({ ...request, operation: "release-background" })))
@@ -82,13 +82,13 @@ describe("resident protocol bounds", () => {
     expect(decodeResidentRequest(JSON.stringify({ ...synthetic, dispatch: {
       ...synthetic.dispatch, controlled: { syntheticR6BrandedRepair: "unknown" },
     } }))).toBeUndefined();
-    if (decoded?.operation === "admit") expect(decoded.observation.recipient.agentId).toBe("child-7");
+    if (decoded?.operation === "admit") expect(decoded.observation.advicee.agentId).toBe("child-7");
     expect(decodeResidentRequest(JSON.stringify({
       version: 1,
       operation: "admit",
       lifetime: "lifetime",
       controlledWriter: true,
-      observation: { ...observation, recipient: { ...observation.recipient, hostVersion: "0.156.0" } },
+      observation: { ...observation, advicee: { ...observation.advicee, hostVersion: "0.156.0" } },
       dispatch: { statePath: "/tmp/consent", userConfigPath: null, credential: null, controlled: {} },
     }))?.operation).toBe("admit");
     expect(decodeResidentRequest(JSON.stringify({
@@ -124,14 +124,14 @@ describe("resident protocol bounds", () => {
       operation: "collect",
       lifetime: "lifetime",
       root,
-      recipient: { ...observation.recipient, sessionId: "" },
+      advicee: { ...observation.advicee, sessionId: "" },
     }))).toBeUndefined();
     const collect = {
       version: 1,
       operation: "collect",
       lifetime: "lifetime",
       root,
-      recipient: observation.recipient,
+      advicee: observation.advicee,
       dispatch: {
         statePath: "/tmp/consent",
         userConfigPath: null,

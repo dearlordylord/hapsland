@@ -45,9 +45,9 @@ const fixture = async () => {
 
 const collect = (server: ResidentServer, ticket: ResidentCollectionTicket,
   data: Awaited<ReturnType<typeof fixture>>, dispatch: ResidentDispatchContext,
-  recipient = data.observation.recipient) => server.handle({
+  advicee = data.observation.advicee) => server.handle({
     version: 2, operation: "collect", lifetime: server.lifetime, ticket,
-    root: data.root, recipient, dispatch,
+    root: data.root, advicee, dispatch,
   } satisfies ResidentRequest);
 
 const collectOverSocket = (server: ResidentServer, ticket: ResidentCollectionTicket,
@@ -63,7 +63,7 @@ const collectOverSocket = (server: ResidentServer, ticket: ResidentCollectionTic
     });
     socket.on("connect", () => socket.write(`${JSON.stringify({
       version: 2, operation: "collect", lifetime: server.lifetime, ticket,
-      root: data.root, recipient: data.observation.recipient, dispatch,
+      root: data.root, advicee: data.observation.advicee, dispatch,
     })}\n`));
   });
 
@@ -91,10 +91,10 @@ describe("Claude terminal collection", () => {
         environmentOnly: true, generation: 1, statePath: join(data.root, "credential") },
     })).toEqual({ version: 2, status: "unavailable", reason: "credential" });
     expect(await collect(server, admission.ticket, data, dispatch, {
-      ...data.observation.recipient, toolUseId: "another-tool",
+      ...data.observation.advicee, toolUseId: "another-tool",
     })).toEqual({ version: 2, status: "unavailable", reason: "lost" });
     expect(await collect(server, admission.ticket, data, dispatch, {
-      ...data.observation.recipient, sessionId: "another-session",
+      ...data.observation.advicee, sessionId: "another-session",
     })).toEqual({ version: 2, status: "unavailable", reason: "lost" });
     expect(await collect(server, admission.ticket, { ...data, root: join(data.root, "other-root") }, dispatch))
       .toEqual({ version: 2, status: "unavailable", reason: "lost" });
@@ -306,7 +306,7 @@ describe("Claude terminal collection", () => {
     expect((await collect(server, admission.ticket, data, dispatch)).status).toBe("advice");
   });
 
-  it("does not lease another ticket's advice for the same Claude recipient", async () => {
+  it("does not lease another ticket's advice for the same Claude advicee", async () => {
     const data = await fixture();
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
     const dispatch = data.dispatch(0.9);
@@ -464,7 +464,7 @@ describe("Claude terminal collection", () => {
     if (first.status !== "accepted" || !("ticket" in first)) throw new Error("first not admitted");
     await server.whenIdle();
     expect(await collect(server, first.ticket, data, dispatch)).toEqual({ version: 2, status: "clear" });
-    const later = { ...data.observation, recipient: { ...data.observation.recipient, toolUseId: "later-tool" } };
+    const later = { ...data.observation, advicee: { ...data.observation.advicee, toolUseId: "later-tool" } };
     expect(server.admit(later, dispatch).status).toBe("accepted");
     await server.whenIdle();
     expect(await collect(server, first.ticket, data, dispatch)).toEqual({ version: 2, status: "clear" });

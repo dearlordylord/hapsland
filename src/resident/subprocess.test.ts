@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
-import { addEvent, makeGitFixture, put, recipient } from "../direct-event/test-fixtures.ts";
+import { addEvent, makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { Consent } from "../runtime/consent.ts";
 import { acknowledgeAdvice, collectReady, ensureResident, residentRequest } from "./client.ts";
@@ -235,7 +235,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
         version: 1,
         operation: "admit",
         lifetime: owner.lifetime,
-        observation: { ...observation, recipient: { ...observation.recipient, toolUseId: `extra-${index}` } },
+        observation: { ...observation, advicee: { ...observation.advicee, toolUseId: `extra-${index}` } },
         controlledWriter: true,
         dispatch,
       }, 50)).rejects.toThrow("outcome is uncertain");
@@ -256,16 +256,16 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       return stats.status === "stats" && stats.pendingAdvice === 1 ? stats : undefined;
     });
 
-    expect(await collectReady(root, recipient({ agentId: "other-child" }), dispatch, paths)).toBeUndefined();
-    expect(await collectReady(otherRoot, recipient(), dispatch, paths)).toBeUndefined();
+    expect(await collectReady(root, advicee({ agentId: "other-child" }), dispatch, paths)).toBeUndefined();
+    expect(await collectReady(otherRoot, advicee(), dispatch, paths)).toBeUndefined();
     await writeFile(`${collectGate}.enabled`, "enabled\n");
     const disconnectScript = [
       "import {collectReady} from './src/resident/client.ts';",
       `const root=${JSON.stringify(root)};`,
-      `const recipient=${JSON.stringify(recipient({ turnId: "later", toolUseId: "disconnect" }))};`,
+      `const advicee=${JSON.stringify(advicee({ turnId: "later", toolUseId: "disconnect" }))};`,
       `const dispatch=${JSON.stringify(dispatch)};`,
       `const paths=${JSON.stringify(paths)};`,
-      "await collectReady(root,recipient,dispatch,paths);",
+      "await collectReady(root,advicee,dispatch,paths);",
     ].join("");
     const disconnecting = spawn(process.execPath, ["--input-type=module", "-e", disconnectScript], {
       cwd: process.cwd(), env, stdio: ["pipe", "pipe", "pipe"],
@@ -278,7 +278,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     await writeFile(`${collectGate}.release`, "release\n");
     const advice = await waitFor(() => collectReady(
       root,
-      recipient({ turnId: "later", toolUseId: "bash" }),
+      advicee({ turnId: "later", toolUseId: "bash" }),
       dispatch,
       paths,
     ), 10_000);
@@ -302,7 +302,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     await writeFile(clockPath, `${100 + DELIVERY_LEASE_MS}\n`);
     const reclaimed = await collectReady(
       root,
-      recipient({ turnId: "later", toolUseId: "after-ack-failure" }),
+      advicee({ turnId: "later", toolUseId: "after-ack-failure" }),
       dispatch,
       paths,
     );
@@ -310,7 +310,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     if (reclaimed !== undefined) expect(await acknowledgeAdvice(reclaimed)).toBe(true);
 
     await put(root, "type.ts", "type ChangedAfterReview = string\n");
-    expect(await collectReady(root, recipient({ turnId: "later-2", toolUseId: "bash-2" }), dispatch, paths)).toBeUndefined();
+    expect(await collectReady(root, advicee({ turnId: "later-2", toolUseId: "bash-2" }), dispatch, paths)).toBeUndefined();
   });
 
   it("rechecks consent after admission and before backend dispatch", async () => {
@@ -355,7 +355,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       return stats.status === "stats" && stats.running === 0 ? stats : undefined;
     });
     expect(existsSync(capturePath)).toBe(false);
-    expect(await collectReady(root, recipient(), dispatch, paths)).toBeUndefined();
+    expect(await collectReady(root, advicee(), dispatch, paths)).toBeUndefined();
     expect(JSON.parse(await readFile(paths.owner, "utf8"))).toMatchObject({ pid: owner.pid });
   });
 
@@ -398,7 +398,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       return stats.status === "stats" && stats.running === 0 ? stats : undefined;
     });
     expect(existsSync(capturePath)).toBe(false);
-    expect(await collectReady(root, recipient(), dispatch, paths)).toBeUndefined();
+    expect(await collectReady(root, advicee(), dispatch, paths)).toBeUndefined();
   });
 
   it("kills one lifetime, rejects obsolete messages, restarts empty, and cleans up only when idle", async () => {
@@ -473,7 +473,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     // An equivalent completed input joins the retained advice/cache identity.
     expect((await residentRequest(paths, {
       version: 1, operation: "admit", lifetime: first.lifetime,
-      observation: { ...rootObservation, recipient: { ...rootObservation.recipient, toolUseId: "joined" } },
+      observation: { ...rootObservation, advicee: { ...rootObservation.advicee, toolUseId: "joined" } },
       controlledWriter: true, dispatch,
     })).status).toBe("accepted");
     await waitFor(async () => {
@@ -485,7 +485,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     for (const toolUseId of ["notice-1", "notice-2"]) {
       expect((await residentRequest(paths, {
         version: 1, operation: "admit", lifetime: first.lifetime,
-        observation: { ...noticeObservation, recipient: { ...noticeObservation.recipient, toolUseId } },
+        observation: { ...noticeObservation, advicee: { ...noticeObservation.advicee, toolUseId } },
         controlledWriter: true, dispatch: failingDispatch,
       })).status).toBe("accepted");
     }
@@ -541,7 +541,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       noticeCooldowns: 0,
       currentWork: 0,
     });
-    expect(await collectReady(root, recipient(), dispatch, paths)).toBeUndefined();
+    expect(await collectReady(root, advicee(), dispatch, paths)).toBeUndefined();
 
     // One two-unit batch, one child partition, and one distinct existing Git
     // worktree travel through the new process. Revocation after admission keeps
@@ -550,7 +550,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     const child = await observe(root, ["type.ts"], { agent_id: "child-2", tool_use_id: "child" });
     const other = await observe(otherRoot, ["type.ts"], { tool_use_id: "other-worktree" });
     await rm(backendGate, { force: true });
-    for (const observation of [batch, { ...batch, recipient: { ...batch.recipient, toolUseId: "batch-join" } }, child, other]) {
+    for (const observation of [batch, { ...batch, advicee: { ...batch.advicee, toolUseId: "batch-join" } }, child, other]) {
       expect((await residentRequest(paths, {
         version: 1, operation: "admit", lifetime: second.lifetime,
         observation, controlledWriter: true, dispatch,
@@ -567,8 +567,8 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
         ? stats
         : undefined;
     });
-    expect(await collectReady(otherRoot, recipient(), dispatch, paths)).toBeUndefined();
-    const rootBatch = await collectReady(root, recipient({ turnId: "collect", toolUseId: "batch" }), dispatch, paths);
+    expect(await collectReady(otherRoot, advicee(), dispatch, paths)).toBeUndefined();
+    const rootBatch = await collectReady(root, advicee({ turnId: "collect", toolUseId: "batch" }), dispatch, paths);
     expect(rootBatch?.output.hookSpecificOutput.additionalContext).toContain("type.ts");
     expect(rootBatch?.output.hookSpecificOutput.additionalContext).toContain("second.ts");
     if (rootBatch === undefined) return;
@@ -578,12 +578,12 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     expect(await acknowledgeAdvice(rootBatch)).toBe(true);
     expect((await residentRequest(paths, {
       version: 1, operation: "admit", lifetime: second.lifetime,
-      observation: { ...batch, recipient: { ...batch.recipient, toolUseId: "cache-reuse" } },
+      observation: { ...batch, advicee: { ...batch.advicee, toolUseId: "cache-reuse" } },
       controlledWriter: true, dispatch,
     })).status).toBe("accepted");
     const cachedBatch = await waitFor(() => collectReady(
       root,
-      recipient({ turnId: "collect-cache", toolUseId: "cache-reuse" }),
+      advicee({ turnId: "collect-cache", toolUseId: "cache-reuse" }),
       dispatch,
       paths,
     ));
@@ -592,7 +592,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     expect(await acknowledgeAdvice(cachedBatch)).toBe(true);
     const childAdvice = await collectReady(
       root,
-      recipient({ agentId: "child-2", turnId: "collect", toolUseId: "child" }),
+      advicee({ agentId: "child-2", turnId: "collect", toolUseId: "child" }),
       dispatch,
       paths,
     );

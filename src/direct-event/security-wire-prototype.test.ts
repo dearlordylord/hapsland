@@ -65,7 +65,7 @@ const prepare = (root: string, path: string, source: string, reads: Array<string
     yield* consent.enable(proposal);
     return yield* prepareObservation(observation, {
       controlledWriter: true,
-      recipient: observation.recipient,
+      advicee: observation.advicee,
       consent,
       settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
       ...(policy === undefined ? {} : { policy }),

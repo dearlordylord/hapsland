@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { BACKGROUND_WAITER_EXPIRY_MS, COMPOSED_CHAIN_EXPIRY_MS, ComposedDelivery, MAX_COMPOSED_CHAINS } from "./composed-delivery.ts";
 
 describe("shared composed delivery turn chains", () => {
-  it("coalesces background waiters per recipient and reclaims canceled owners", () => {
+  it("coalesces background waiters per advicee and reclaims canceled owners", () => {
     const state = new ComposedDelivery();
     expect(state.claimBackground("codex/a", "first", 0)).toBe(true);
     expect(state.claimBackground("codex/a", "second", 1)).toBe(false);
@@ -13,7 +13,7 @@ describe("shared composed delivery turn chains", () => {
     expect(state.claimBackground("codex/a", "third", 3)).toBe(true);
     expect(state.claimBackground("claude/a", "replacement", BACKGROUND_WAITER_EXPIRY_MS + 1)).toBe(true);
   });
-  it("permits one Stop continuation per distinct prompt marker and recipient", () => {
+  it("permits one Stop continuation per distinct prompt marker and advicee", () => {
     const state = new ComposedDelivery();
     expect(state.hasStopAllowance("codex/a")).toBe(false);
     expect(state.consumeStop("codex/a")).toBe(false);
@@ -52,7 +52,7 @@ describe("shared composed delivery turn chains", () => {
   it("fails closed at capacity and expires bounded old chains", () => {
     const state = new ComposedDelivery();
     for (let index = 0; index < MAX_COMPOSED_CHAINS; index += 1) {
-      expect(state.advance(`recipient-${index}`, "prompt", 0)).toBe(true);
+      expect(state.advance(`advicee-${index}`, "prompt", 0)).toBe(true);
     }
     expect(state.advance("overflow", "prompt", 0)).toBe(false);
     expect(state.consumeStop("overflow")).toBe(false);
@@ -64,18 +64,18 @@ describe("shared composed delivery turn chains", () => {
     const state = new ComposedDelivery();
     const first = { rule: "r1", advice: "repair first" };
     const second = { rule: "r2", advice: "repair second" };
-    state.advance("recipient", "prompt-1", 0);
-    state.beginSubmission("advice", "recipient", "lease-1", [first], "background", 1);
-    expect(state.suppresses("advice", "recipient", first)).toBe(true);
-    expect(state.suppresses("advice", "recipient", second)).toBe(false);
+    state.advance("advicee", "prompt-1", 0);
+    state.beginSubmission("advice", "advicee", "lease-1", [first], "background", 1);
+    expect(state.suppresses("advice", "advicee", first)).toBe(true);
+    expect(state.suppresses("advice", "advicee", second)).toBe(false);
     state.markSubmitted("lease-1");
-    expect(state.suppresses("advice", "recipient", first)).toBe(true);
-    state.beginSubmission("advice", "recipient", "lease-2", [second], "stop", 2);
-    expect(state.suppresses("advice", "recipient", second)).toBe(true);
+    expect(state.suppresses("advice", "advicee", first)).toBe(true);
+    state.beginSubmission("advice", "advicee", "lease-2", [second], "stop", 2);
+    expect(state.suppresses("advice", "advicee", second)).toBe(true);
     state.release("lease-2");
-    expect(state.suppresses("advice", "recipient", second)).toBe(false);
-    state.advance("recipient", "prompt-2", 3);
-    expect(state.suppresses("advice", "recipient", first)).toBe(false);
+    expect(state.suppresses("advice", "advicee", second)).toBe(false);
+    state.advance("advicee", "prompt-2", 3);
+    expect(state.suppresses("advice", "advicee", first)).toBe(false);
     state.forget("advice");
     expect(state.hasToken("lease-1")).toBe(false);
   });

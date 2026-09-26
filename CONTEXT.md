@@ -17,11 +17,11 @@ implementation specification.
 | Type-shape artifact | An artifact describing the domain values admitted by one interface, type declaration, or schema. |
 | Change observation | Host or reconciliation evidence that eligible working-tree content may have changed. |
 | Observation origin | The kind of evidence behind a change observation: direct edit or checkpoint reconciliation. |
-| Change attribution | Host evidence that associates an exact current snapshot with an intended advice recipient and canonical working root. Root co-location or checkpoint discovery alone is not attribution. |
+| Change attribution | Host evidence that associates an exact current snapshot with an intended advicee and canonical working root. Root co-location or checkpoint discovery alone is not attribution. |
 | File selection | The policy decision that a candidate path may be captured. Selection is based on containment, file kind, ignore rules, and declarative includes/excludes; it does not encode language or semantic-analyzer applicability. |
 | Analysis applicability | Whether bounded captured content is understood by an available semantic analyzer and yields reviewable artifacts. No applicable analyzer is an ordinary quiet result, distinct from file exclusion. |
 | Snapshot | The exact eligible source content observed at one capture boundary, identified by its source identity. It is transient review evidence, not a backup, history, or durable replay record. |
-| Unattributed change | A checkpoint-discovered change for which the exact current snapshot cannot be associated with an advice recipient. It has unknown origin and no recipient, so it cannot produce agent-addressed advice. |
+| Unattributed change | A checkpoint-discovered change for which the exact current snapshot cannot be associated with an advicee. It has unknown origin and no advicee, so it cannot produce agent-addressed advice. |
 | Direct-edit observation | Change evidence obtained at a dedicated edit boundary exposed by an agent host. |
 | Checkpoint reconciliation | Comparison of eligible working-tree content with prior observation state to discover changes not yet accounted for. |
 | Observation baseline | The bounded, source-free in-memory record of eligible file fingerprints and per-file artifact projections used by the current resident reviewer for checkpoint reconciliation. It is discarded when that reviewer restarts. |
@@ -34,8 +34,8 @@ implementation specification.
 | Review work item | One review unit together with the frozen observation, rule-set, and input-contract context needed to schedule its evaluation. |
 | Review dispatch cycle | A finite group of review work items selected together for evaluation; work arriving after selection belongs to a later cycle. |
 | Review result | The operational result of evaluating one actual review work item. |
-| Advice recipient | The specific agent or subagent context eligible to receive advice for an attributable review input. A working root or the latest caller is not itself a recipient. |
-| Pending advice | Advice from a completed review that remains eligible for delivery to its intended recipient. |
+| Advicee | The specific agent or subagent context eligible to receive advice for an attributable review input. A working root or the latest caller is not itself an advicee. |
+| Pending advice | Advice from a completed review that remains eligible for delivery to its intended advicee. |
 | Advice relevance expiry | The transition after which undelivered pending advice is no longer eligible for delivery because its configured relevance age has elapsed. It does not imply delivery, host closure, or loss of the observation baseline. |
 | Advice batch | The bounded collection of review results selected for delivery together through one agent-host interaction. |
 | Source fingerprint | A deterministic fingerprint of an artifact's exact source, used as equality evidence rather than as the identity of an observation. |

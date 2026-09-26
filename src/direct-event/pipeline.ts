@@ -23,7 +23,7 @@ import {
   freezeRules,
   semanticIdentity,
   type DirectObservation,
-  type DirectRecipient,
+  type DirectAdvicee,
   type PreparedUnit,
   type ReviewInput,
   type ReviewUnit,
@@ -42,8 +42,8 @@ export const DIRECT_EVENT_DEADLINE_MS = 15_000 as const;
 export type DirectReviewContext = {
   /** Explicit operator/fixture authority. Never inferred from matching reads. */
   readonly controlledWriter: boolean;
-  /** The only recipient for whom this invocation may produce advice. */
-  readonly recipient: DirectRecipient;
+  /** The only advicee for whom this invocation may produce advice. */
+  readonly advicee: DirectAdvicee;
   readonly consent: Consent.Interface;
   readonly settings: Pick<ReviewSettings, "backend" | "destination"> &
     Partial<Pick<ReviewSettings, "configuration" | "rules">>;
@@ -119,7 +119,7 @@ export type CodexDirectEventOutput = {
   };
 };
 
-const sameRecipient = (left: DirectRecipient, right: DirectRecipient): boolean =>
+const sameAdvicee = (left: DirectAdvicee, right: DirectAdvicee): boolean =>
   canonicalValue(left) === canonicalValue(right);
 
 const sameInput = (left: ReviewInput, right: ReviewInput): boolean =>
@@ -129,7 +129,7 @@ const preparedBelongsTo = (
   prepared: PreparedUnit,
   observation: DirectObservation,
 ): boolean =>
-  prepared.root === observation.root && sameRecipient(prepared.recipient, observation.recipient);
+  prepared.root === observation.root && sameAdvicee(prepared.advicee, observation.advicee);
 
 const validEvaluation = (evaluation: EvaluatedUnit): boolean =>
   evaluation.prepared.identity === semanticIdentity(evaluation.prepared.input) &&
@@ -304,7 +304,7 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
         path: eligible.relativePath,
         prepared: {
           root: observation.root,
-          recipient: observation.recipient,
+          advicee: observation.advicee,
           input,
           identity: semanticIdentity(input),
         },
@@ -434,7 +434,7 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
   if (!(yield* verifyObservationRoot(observation))) {
     return { status: "unsupported", output: undefined } satisfies DirectReviewResult;
   }
-  if (!context.controlledWriter || !sameRecipient(observation.recipient, context.recipient)) {
+  if (!context.controlledWriter || !sameAdvicee(observation.advicee, context.advicee)) {
     return { status: "unattributed", output: undefined } satisfies DirectReviewResult;
   }
   if (!(yield* authorize(observation.root, context))) {
@@ -479,7 +479,7 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
     return { status: "no-advice", output: undefined } satisfies DirectReviewResult;
   }
   yield* context.beforeHandoff ?? Effect.void;
-  if (!context.controlledWriter || !sameRecipient(observation.recipient, context.recipient)) {
+  if (!context.controlledWriter || !sameAdvicee(observation.advicee, context.advicee)) {
     return { status: "unattributed", output: undefined } satisfies DirectReviewResult;
   }
   const revalidated = yield* revalidateForPublication(
@@ -511,7 +511,7 @@ const revalidateForPublication = Effect.fn("DirectEvent.revalidateForPublication
 ): Effect.fn.Return<RevalidationResult> {
   if (
     !context.controlledWriter ||
-    !sameRecipient(observation.recipient, context.recipient) ||
+    !sameAdvicee(observation.advicee, context.advicee) ||
     evaluations.some((evaluation) => !preparedBelongsTo(evaluation.prepared, observation))
   ) return { status: "unattributed", findings: [] };
   if (
@@ -605,7 +605,7 @@ export const revalidateFindings = Effect.fn("DirectEvent.revalidateFindings")(fu
   }
   if (
     !context.controlledWriter ||
-    !sameRecipient(observation.recipient, context.recipient) ||
+    !sameAdvicee(observation.advicee, context.advicee) ||
     !(yield* verifyObservationRoot(observation)) ||
     !(yield* authorize(observation.root, context))
   ) return false;

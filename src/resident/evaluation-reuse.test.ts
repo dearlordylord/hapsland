@@ -7,7 +7,7 @@ import {
   type ReviewInput,
   type TypeDeclaration,
 } from "../direct-event/model.ts";
-import { recipient } from "../direct-event/test-fixtures.ts";
+import { advicee } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { CapacityLedger } from "./capacity.ts";
 import {
@@ -41,7 +41,7 @@ const input = (overrides: Partial<ReviewInput> = {}): ReviewInput => {
 
 const prepared = (value: ReviewInput, toolUseId = "event-a"): PreparedUnit => ({
   root: "/canonical/root",
-  recipient: recipient({ toolUseId }),
+  advicee: advicee({ toolUseId }),
   input: value,
   identity: semanticIdentity(value),
 });
@@ -49,7 +49,7 @@ const prepared = (value: ReviewInput, toolUseId = "event-a"): PreparedUnit => ({
 describe("resident evaluation identity", () => {
   it("excludes event ids while including partition, path, evidence, contract, and immutable rules", () => {
     const base = input();
-    const partition = "recipient-and-canonical-root";
+    const partition = "advicee-and-canonical-root";
     expect(residentEvaluationIdentity(partition, prepared(base, "event-a"))).toBe(
       residentEvaluationIdentity(partition, prepared(base, "event-b")),
     );

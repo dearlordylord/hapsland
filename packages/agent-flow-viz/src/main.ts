@@ -134,7 +134,7 @@ const NODE_NOTES: Record<NodeId, readonly string[]> = {
   decisionRequest: ["one artifact + supporting evidence", "one rule evaluation request"],
   jev: ["external review backend", "returns a judgment or fails"],
   decisionResponse: ["finding → pending advice", "no finding → review status"],
-  adviceStore: ["recipient + source + relevance", "after tool / Stop / Stop reoffer*"],
+  adviceStore: ["advicee + source + relevance", "after tool / Stop / Stop reoffer*"],
   collector: ["one batch reserved for one caller", "limit: 5 findings / 2 KiB**"],
   hostOutput: ["stdout write; host owns next step", "receipt and agent use unknown"],
   hostHooks: ["prompt → reset turn allowance", "after tool / Stop → request advice"],
@@ -148,7 +148,7 @@ const nodeView = (h: HtmlBuilder<Message>, id: NodeId, flow: FlowState) => {
   const packets = flow.packets.filter((packet) => packet.at === id);
   const special = id === "turnState" ? `turn ${flow.turn} · Stop ${flow.stopUsed ? "used" : "available"}`
     : id === "agentEdit" ? "scenario input; no live host"
-    : id === "hostHooks" ? "request + recipient context"
+    : id === "hostHooks" ? "request + advicee identity"
     : id === "collector" ? (flow.leaseSurface ? `${flow.leaseSurface} batch reserved` : flow.opportunity ? `${flow.opportunity} request received` : "waiting for a host request")
     : id === "hostOutput" ? (flow.lastSubmissionSurface ? "written; no payload stored here" : "no response written yet")
     : id === "workQueue" ? `${packets.length} queued job${packets.length === 1 ? "" : "s"}`
@@ -192,11 +192,11 @@ const chart = (model: Model, h: HtmlBuilder<Message>) => h.div([h.Class("chart-s
       { x: 510, y: 268, text: "new review work" },
       { x: 1230, y: 277, text: "Jev response ↓" },
       { x: 780, y: 314, text: "← pending findings" },
-      { x: 570, y: 550, text: "recipient + hook + deadline" },
+      { x: 570, y: 550, text: "advicee + hook + deadline" },
       { x: 30, y: 490, text: "Agent host calls Hapsland:" },
       { x: 30, y: 509, text: "UserPromptSubmit / PostToolUse / Stop" },
       { x: 30, y: 752, text: "* Stop reoffer: approved design; not yet production behavior." },
-      { x: 30, y: 775, text: "** Size, time, expiry and full recipient checks are not simulated." },
+      { x: 30, y: 775, text: "** Size, time, expiry and full advicee checks are not simulated." },
       { x: 780, y: 729, text: "Numbers match the event controls below." },
       { x: 780, y: 752, text: "Solid: review information · Dashed: host request" },
       { x: 780, y: 775, text: "Amber: stored state · Blue: work · Grey: external · Purple: output" },
@@ -225,7 +225,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           "Data flow from an agent-host edit to a Jev review and a Hapsland advice response. A sidecar reducer drives the example.",
         ]),
         h.p([h.Class("caveat")], [
-          "Discussion example: one recipient, one review work item; no live host or Jev connection.",
+          "Discussion example: one advicee, one review work item; no live host or Jev connection.",
         ]),
       ]),
       h.section([h.Class("chart-panel")], [
@@ -284,7 +284,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
                 h.small([], [eventLabel(event)]),
                 h.small([], [transition.kind === "data"
                   ? `${transition.input} → ${transition.output}${transition.movement === "copy" ? " · source retained" : ""}`
-                  : `${transition.signal} request · recipient and turn context`]),
+                  : `${transition.signal} request · advicee and turn context`]),
                 h.small([], [stepFlow(model.flow, event).accepted ? "Can happen now" : stepFlow(model.flow, event).state.note]),
               ]),
             ]);
@@ -295,7 +295,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         h.h2([], ["Event reducer and current state"]),
         h.p([], ["The sidecar reducer applies events to example state. It has no separate explicit state machine. Diagram boxes show places and operations."]),
         h.div([h.Class("packets")], [
-          h.div([h.Class("packet")], [h.strong([], ["Recipient turn chain"]), h.span([], [String(model.flow.turn)])]),
+          h.div([h.Class("packet")], [h.strong([], ["Advicee turn chain"]), h.span([], [String(model.flow.turn)])]),
           h.div([h.Class("packet")], [h.strong([], ["Stop continuation allowance"]), h.span([], [model.flow.stopUsed ? "used" : "available"])]),
           h.div([h.Class("packet")], [h.strong([], ["Collection request"]), h.span([], [model.flow.opportunity ?? "none"])]),
           h.div([h.Class("packet")], [h.strong([], ["Batch reserved for"]), h.span([], [model.flow.leaseSurface ?? "no caller"])]),

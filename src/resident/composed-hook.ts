@@ -8,7 +8,7 @@ import {
   acknowledgeAdvice,
   beginComposedSubmission,
   claimComposedBackground,
-  collectRecipientOutcome,
+  collectAdviceeOutcome,
   consumeComposedStopAllowance,
   makeResidentDispatchContext,
   markComposedUserPrompt,
@@ -90,14 +90,14 @@ export const runComposedHook = async (input: {
     event, input.host, eventName, input.codexVersion,
   )).catch(() => undefined);
   if (identity === undefined) return quiet();
-  const { root, recipient } = identity;
+  const { root, advicee } = identity;
   const paths = residentPaths();
 
   if (input.kind === "prompt") {
     const marker = await promptMarker(event, input.host);
     if (marker !== undefined) {
       const promptDigest = digest(String(event.prompt));
-      await markComposedUserPrompt(root, recipient, marker, paths, promptDigest).catch(() => false);
+      await markComposedUserPrompt(root, advicee, marker, paths, promptDigest).catch(() => false);
     }
     return quiet();
   }
@@ -107,7 +107,7 @@ export const runComposedHook = async (input: {
   // advance() keeps the existing one-continuation cap for the same marker.
   if (input.kind === "stop" && input.host === "codex-cli" &&
       typeof event.turn_id === "string" && event.turn_id.length > 0) {
-    await markComposedUserPrompt(root, recipient, digest(`codex-turn:${event.turn_id}`), paths, undefined, true)
+    await markComposedUserPrompt(root, advicee, digest(`codex-turn:${event.turn_id}`), paths, undefined, true)
       .catch(() => false);
   }
   const dispatch = await makeResidentDispatchContext(
@@ -117,14 +117,14 @@ export const runComposedHook = async (input: {
 
   const backgroundToken = input.kind === "background" ? randomUUID() : undefined;
   if (backgroundToken !== undefined &&
-      !await claimComposedBackground(root, recipient, backgroundToken, paths).catch(() => false)) return quiet();
+      !await claimComposedBackground(root, advicee, backgroundToken, paths).catch(() => false)) return quiet();
 
   const admissionGraceAt = Math.min(deadlineAt,
     performance.now() + (input.host === "claude-code" ? 5_000 : 2_000));
   try {
     while (performance.now() < deadlineAt - 150) {
-      const outcome = await collectRecipientOutcome(
-        root, recipient, dispatch, paths,
+      const outcome = await collectAdviceeOutcome(
+        root, advicee, dispatch, paths,
         input.kind === "stop" ? "turn-end" : "ordinary", deadlineAt,
       ).catch(() => undefined);
       if (outcome === undefined) return quiet();
@@ -132,7 +132,7 @@ export const runComposedHook = async (input: {
         const advice = outcome.advice;
         const message = advice.output.hookSpecificOutput.additionalContext;
         if (advice.findingCount > 0 && input.kind === "stop") {
-          const allowed = await consumeComposedStopAllowance(root, recipient, paths, digest(message)).catch(() => false);
+          const allowed = await consumeComposedStopAllowance(root, advicee, paths, digest(message)).catch(() => false);
           if (!allowed) {
             await releaseComposedSubmission(advice).catch(() => false);
             return quiet();
@@ -156,7 +156,7 @@ export const runComposedHook = async (input: {
     await quiet();
   } finally {
     if (backgroundToken !== undefined) {
-      await releaseComposedBackground(root, recipient, backgroundToken, paths).catch(() => false);
+      await releaseComposedBackground(root, advicee, backgroundToken, paths).catch(() => false);
     }
   }
 };

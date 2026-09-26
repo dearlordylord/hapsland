@@ -264,8 +264,8 @@ try {
         import { realpath } from 'node:fs/promises';
         const root=await realpath(process.env.HAPSLAND_POST_ROOT);
         const dispatch=await makeResidentDispatchContext(root,process.env.REVIEW_STATE_PATH,process.env.REVIEW_ACTIVITY_PATH,undefined,{syntheticR6BrandedRepair:'finding',delayMs:Number(process.env.HAPSLAND_CONTROL_DELAY_MS),outcomePath:process.env.HAPSLAND_CONTROL_OUTCOME_PATH,capturePath:process.env.HAPSLAND_CONTROL_CAPTURE_PATH});
-        const recipient={host:'codex-cli',hostVersion:'0.155.1',sessionId:process.env.HAPSLAND_POST_SESSION_ID,turnId:'post-session-turn',toolUseId:'post-session-tool',agentId:null};
-        const advice=await collectReady(root,recipient,dispatch,residentPaths(), 'turn-end').catch(()=>undefined);
+        const advicee={host:'codex-cli',hostVersion:'0.155.1',sessionId:process.env.HAPSLAND_POST_SESSION_ID,turnId:'post-session-turn',toolUseId:'post-session-tool',agentId:null};
+        const advice=await collectReady(root,advicee,dispatch,residentPaths(), 'turn-end').catch(()=>undefined);
         const acknowledged=advice===undefined?false:await acknowledgeAdvice(advice).catch(()=>false);
         process.stdout.write(JSON.stringify({collectable:advice!==undefined,acknowledged})+'\\n');
       `;

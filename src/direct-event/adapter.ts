@@ -6,7 +6,7 @@ import * as Effect from "effect/Effect";
 import type {
   DirectCandidate,
   DirectObservation,
-  DirectRecipient,
+  DirectAdvicee,
   PhysicalRootIdentity,
   CodexHostVersion,
 } from "./model.ts";
@@ -190,7 +190,7 @@ export const adaptCodexDirectEvent = Effect.fn("DirectEvent.adaptCodexDirectEven
     const path = [cwdFromRoot, fromCwd].filter(Boolean).join(sep).replaceAll(sep, "/");
     return { ...candidate, path };
   });
-  const recipient: DirectRecipient = Object.freeze({
+  const advicee: DirectAdvicee = Object.freeze({
     host: "codex-cli",
     hostVersion,
     sessionId: event.session_id,
@@ -201,7 +201,7 @@ export const adaptCodexDirectEvent = Effect.fn("DirectEvent.adaptCodexDirectEven
   return Object.freeze({
     root: rootOption.value.root,
     rootIdentity: rootOption.value.rootIdentity,
-    recipient,
+    advicee,
     candidates: Object.freeze(normalizedCandidates.map((candidate) => Object.freeze(candidate))),
   } satisfies DirectObservation);
 });
@@ -222,14 +222,14 @@ export const adaptCodexReply = Effect.fn("DirectEvent.adaptCodexReply")(function
   if (rootOption._tag === "None") return undefined;
   return Object.freeze({
     root: rootOption.value.root,
-    recipient: Object.freeze({
+    advicee: Object.freeze({
       host: "codex-cli",
       hostVersion,
       sessionId: event.session_id,
       turnId: event.turn_id,
       toolUseId: event.tool_use_id,
       agentId: event.agent_id ?? null,
-    } satisfies DirectRecipient),
+    } satisfies DirectAdvicee),
   });
 });
 
@@ -251,7 +251,7 @@ export const adaptComposedHookIdentity = Effect.fn("DirectEvent.adaptComposedHoo
   }
   const root = yield* canonicalGitRoot(event.cwd);
   if (root._tag === "None") return undefined;
-  const recipient: DirectRecipient = host === "codex-cli"
+  const advicee: DirectAdvicee = host === "codex-cli"
     ? {
         host, hostVersion: codexVersion, sessionId: event.session_id,
         turnId: nonEmpty(event.turn_id) ? event.turn_id : "delivery-opportunity",
@@ -264,7 +264,7 @@ export const adaptComposedHookIdentity = Effect.fn("DirectEvent.adaptComposedHoo
         toolUseId: nonEmpty(event.tool_use_id) ? event.tool_use_id : "delivery-opportunity",
         agentId: event.agent_id ?? null,
       };
-  return Object.freeze({ root: root.value.root, recipient: Object.freeze(recipient) });
+  return Object.freeze({ root: root.value.root, advicee: Object.freeze(advicee) });
 });
 
 /** Compatibility name retained for callers introduced by the Add-only slice. */
@@ -345,11 +345,11 @@ export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEv
   return Object.freeze({
     root: root.value.root,
     rootIdentity: root.value.rootIdentity,
-    recipient: Object.freeze({
+    advicee: Object.freeze({
       host: "claude-code", hostVersion: "2.1.218",
       sessionId: event.session_id, turnId: null, toolUseId: event.tool_use_id,
       agentId: event.agent_id ?? null,
-    } satisfies DirectRecipient),
+    } satisfies DirectAdvicee),
     candidates: Object.freeze([Object.freeze({ ...candidate, path: relativePath })]),
   } satisfies DirectObservation);
 });
