@@ -187,7 +187,7 @@ const chart = (model: Model, h: HtmlBuilder<Message>) => h.div([h.Class("chart-s
       { x: 30, y: 752, text: "* Stop reoffer: implemented in the #105 candidate." },
       { x: 30, y: 775, text: "** Size, time, expiry and full agent checks are not simulated." },
       { x: 780, y: 729, text: "Numbers match the event controls below." },
-      { x: 780, y: 752, text: "Solid: review information · Dashed: agent runtime request" },
+      { x: 780, y: 752, text: "Solid: data movement · Dashed: control event" },
       { x: 780, y: 775, text: "Amber: stored state · Blue: work · Grey: external · Purple: output" },
     ].map(({ x, y, text }) => h.text([
       h.X(String(x)), h.Y(String(y)), h.FontSize("12"), h.Fill("#52647d"),
