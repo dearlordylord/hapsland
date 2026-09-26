@@ -1,4 +1,6 @@
 import { Schema } from "effect";
+import { timelineView } from "./timeline-view";
+import { TIMELINE_CASES } from "./timeline";
 import { Runtime, type Update } from "foldkit";
 import type { Document, HtmlBuilder } from "foldkit/html";
 import { defineMessageUnion } from "foldkit/message";
@@ -9,6 +11,7 @@ import {
 
 export const Model = Schema.Struct({
   trace: Schema.Number,
+  timeline: Schema.Number,
   cursor: Schema.Number,
   flow: FlowStateSchema,
 });
@@ -16,6 +19,7 @@ export type Model = typeof Model.Type;
 
 export const Message = defineMessageUnion({
   SelectedTrace: { index: Schema.Number },
+  SelectedTimeline: { index: Schema.Number },
   Advanced: {},
   Rewound: {},
   TriggeredEvent: { event: Schema.Literals(EVENT_IDS) },
@@ -23,13 +27,14 @@ export const Message = defineMessageUnion({
 });
 export type Message = typeof Message.Type;
 
-const reset = (trace: number): Model => ({ trace, cursor: 0, flow: initialFlow() });
+const reset = (trace: number): Model => ({ trace, timeline: 0, cursor: 0, flow: initialFlow() });
 export const init: Runtime.ApplicationInit<Model, Message> = () => ({ model: reset(0) });
 
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
-    SelectedTrace: ({ index }) => ({ model: reset(index >= 0 && index < TRACES.length ? index : 0) }),
-    Reset: () => ({ model: reset(model.trace) }),
+    SelectedTimeline: ({ index }) => ({ model: { ...model, timeline: index >= 0 && index < TIMELINE_CASES.length ? index : 0 } }),
+    SelectedTrace: ({ index }) => ({ model: { ...reset(index >= 0 && index < TRACES.length ? index : 0), timeline: model.timeline } }),
+    Reset: () => ({ model: { ...reset(model.trace), timeline: model.timeline } }),
     Advanced: () => {
       const event = TRACES[model.trace]?.events[model.cursor];
       if (event === undefined) return { model };
@@ -303,6 +308,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         ]),
         h.p([], ["Fresh edit → open a round if closed. Stop selection → reserve one continuation before writing. Stop advice → continue the same round. Stop allow → cancel and discard all round resources. The adapter rejects old and duplicate events; runtime turn IDs never identify these rounds. Restart and transport failure are outside this example."]),
       ]),
+      timelineView(h, model.timeline, (index) => Message.SelectedTimeline({ index })),
     ]),
   };
 };

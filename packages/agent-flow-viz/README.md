@@ -56,3 +56,34 @@ implements them. The example does not simulate size limits, deadlines, relevance
 expiry, or the complete set of advicee checks.
 
 Run `npm run build` for TypeScript checking and the Vite production build.
+
+## Native timing evidence at the bottom of the page
+
+The lower timeline defaults to matched before/after Stop repair runs on Codex and
+Claude. Seven selectable cases retain successful background opportunities,
+Stop reoffer, Codex foreground Bash, Claude streamed messages, all three unproven
+Claude foreground-tool attempts, and the bounded observation after runtime exit.
+Required product behavior and exploratory timing probes have separate labels
+from observed/unproven results. Cleanup is required even though the native
+post-exit timing probe is exploratory.
+
+`timeline.ts` stores a small, sanitized projection of the retained #105 evidence
+with links pinned to its repository commit. The native cases used a controlled
+Effect reviewer, not live Jev. Timed panels share an axis within each case, in
+seconds from each process launch. Hook-return timestamps are labeled as such;
+independent file checks and observations without retained timestamps remain in
+outcome text. The two-second post-exit observation is not drawn with an invented
+exact end timestamp. Grey bands mark missing evidence about runtime advice
+handling; they do not assert a model request or consumption interval.
+
+`TimelineEntry` distinguishes native observations, unknown intervals, and reducer
+events. Native timing rows are evidence projections, not reducer state. Companion
+paths have event order only: identifiers are checked as `EventId`, labels come
+from `TRANSITIONS`, and module initialization replays the paths through `stepFlow`.
+The page labels this partial reducer coverage. Those checks establish acceptance
+of the abstract companion path; they do not validate native timestamps or prove
+unobserved runtime behavior. The existing reducer cannot replay a repair while
+background advice remains retained; this limit is explicit in that case.
+
+The timeline is a Foldkit view in `timeline-view.ts`. The existing flow graph,
+guided trace controls, and left/right keyboard navigation remain independent.

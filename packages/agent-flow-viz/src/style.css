@@ -45,3 +45,24 @@ p { line-height: 1.5; }
 .explanation { margin-top: 20px; }
 .explanation p { max-width: 1100px; color: #495c74; font-size: .9rem; }
 .explanation .packets { max-width: 720px; }
+
+.timeline-section { margin-top: 24px; }
+.timeline-context, .timeline-legend { color: #52647d; font-size: .82rem; }
+.timeline-case-heading, .timeline-panel-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.timeline-case-heading h3, .timeline-panel-heading h3 { margin: 12px 0; }
+.timeline-badge { display: inline-block; border-radius: 5px; padding: 5px 8px; font-size: .67rem; font-weight: 800; letter-spacing: .035em; }
+.timeline-badge.observed { color: #205f4a; background: #e3f3eb; }
+.timeline-badge.unproven { color: #78530e; background: #fff0c8; }
+.timeline-badge.requirement { color: #294976; background: #e7effb; }
+.timeline-badge.partial { color: #625171; background: #f0eaf5; }
+.timeline-panel { margin: 20px 0; }
+.timeline-outcome { margin: 7px 0 18px; font-size: .84rem; color: #425570; }
+.timeline-options { padding: 14px 0; border-top: 1px solid #e5eaf1; }
+.timeline-reducer { margin-top: 16px; padding: 14px; background: #f8faff; border: 1px solid #e0e7f1; border-radius: 8px; }
+.timeline-reducer h3 { margin-top: 0; }
+.timeline-steps { display: flex; overflow-x: auto; list-style: none; gap: 8px; padding: 0 0 10px; }
+.timeline-steps li { min-width: 185px; padding: 10px; border: 1px solid #ccd9eb; border-radius: 7px; background: #fff; }
+.timeline-steps strong, .timeline-steps span { display: block; font-size: .75rem; }
+.timeline-steps span { margin-top: 8px; color: #62758f; }
+.timeline-sources { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-top: 18px; font-size: .75rem; }
+.timeline-sources a { color: #245bb8; overflow-wrap: anywhere; }
