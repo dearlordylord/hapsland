@@ -109,9 +109,9 @@ for (const entry of cases) {
       REVIEW_STATE_PATH: statePath, REVIEW_ACTIVITY_PATH: activityPath,
       REVIEW_RESIDENT_DIR: runtime, REVIEW_CONTROL_JSON: JSON.stringify({
         syntheticR6BrandedRepair: 'finding',
-        // Baseline review finishes comfortably inside the legacy edit hook.
-        // The after path delays review so Stop must wait for its completion.
-        delayMs: entry.host === 'claude' ? entry.phase === 'background' ? 1200 : candidate ? 5000 : 2500
+        // The Claude baseline review completes after the legacy five-second
+        // edit hook: this is the delivery gap the Stop path must cover.
+        delayMs: entry.host === 'claude' ? entry.phase === 'background' ? 1200 : candidate ? 5000 : 6000
           : entry.phase === 'background' ? 1200 : candidate ? 3500 : 1200,
         outcomePath, capturePath,
       }), HAPSLAND_105_TRACE: trace, HAPSLAND_105_CLI: cli,
@@ -269,7 +269,7 @@ if (selected.length === 0) {
   for (const host of ['codex', 'claude']) {
     const before = results.find((entry) => entry.host === host && entry.phase === 'before');
     const after = results.find((entry) => entry.host === host && entry.phase === 'after');
-    if (!before || !after || before.backendCompletions < 1 || before.backendCompletedAfterHostExit ||
+    if (!before || !after || before.backendCompletions < 1 ||
         before.findingSubmission || before.repairedFile ||
         !after.findingSubmission || !after.stopBlock || !after.repairedFile || !after.modelClaimedRepair ||
         !after.clearFollowUp) {
@@ -284,7 +284,7 @@ for (const result of results.filter((entry) => entry.phase === 'background')) {
   }
 }
 for (const result of results.filter((entry) => entry.phase === 'before')) {
-  if (result.timedOut || result.backendCompletions < 1 || result.backendCompletedAfterHostExit ||
+  if (result.timedOut || result.backendCompletions < 1 ||
       result.findingSubmission || result.repairedFile || !result.originalFile) {
     throw new Error(`${result.host} before outcome gate failed`);
   }
