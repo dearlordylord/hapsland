@@ -10,14 +10,14 @@ integration** when the context is unambiguous.
 Keep these terms separate:
 
 - Jev: the external review backend/tool.
-- Hapsland: our host-neutral integration and user-configurable review system.
-- Agent host: Claude Code, Codex CLI, OpenCode, Kimi Code, Pi, or another runtime that
+- Hapsland: our runtime-neutral integration and user-configurable review system.
+- Agent runtime: Claude Code, Codex CLI, OpenCode, Kimi Code, Pi, or another program that
   owns the tool loop.
-- Model provider: secondary metadata about which inference service a host or review
+- Model provider: secondary metadata about which inference service an agent runtime or review
   backend uses. It is not a first-class product target in the current phase.
 
-Hapsland works at the agent-host boundary. Model-provider details matter only when
-they change host behavior, authentication/egress, cost, or the Jev backend configuration;
+Hapsland works at the agent-runtime boundary. Model-provider details matter only when
+they change runtime behavior, authentication/egress, cost, or the Jev backend configuration;
 they do not define the adapter set.
 
 Historical filenames beginning with `JEV-` are retained for continuity and do not
