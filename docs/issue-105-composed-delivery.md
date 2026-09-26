@@ -544,8 +544,8 @@ The required bottom demo diagram must:
   visibility behavior lies outside that model.
 
 The owner delegated representation choices after Astra pre-research. The diagram
-implementation condition is fulfilled in the clean Foldkit PR #110 by `1667d0b` and
-`8e66825`, subject to the owner's visual review and adoption. Read-only audit confirmed
+implementation condition is fulfilled by the Foldkit package in the single #105
+candidate branch, subject to the owner's visual review and adoption. Read-only audit confirmed
 bottom placement, separate required/exploratory and observed/unproven labels, retained
 timestamp accuracy, visible unknown-runtime caveats, and truthful partial reducer
 coverage. The default after panels include prompt, pre-edit, repair pre-edit, edit,
@@ -563,10 +563,13 @@ the resident runs; each new round gets its own four. Resident restart resets the
 count. Carrying it across restart is rejected, including future work; #107 is closed
 as not planned and is not an outstanding acceptance item.
 
-**Review artifacts:** [draft production PR #108](https://github.com/dearlordylord/hapsland/pull/108)
-contains the candidate implementation and evidence. [Draft Foldkit PR #110](https://github.com/dearlordylord/hapsland/pull/110)
-contains the clean, separate backbone prototype. The prototype is not running in
-production and its reducer/diagram does not substitute for native conformance.
+**Review artifact and worktree index:** [draft PR #108](https://github.com/dearlordylord/hapsland/pull/108)
+contains the candidate implementation, evidence, and independent Foldkit package in
+`/workspace/typescript/jev-worktrees/issue-105-composed`. This is the only active #105
+worktree. The older sidecar branches and [PR #110](https://github.com/dearlordylord/hapsland/pull/110)
+are retained in Git history as superseded review paths, without additional worktrees.
+The prototype is not running in production and its reducer/diagram does not
+substitute for native conformance.
 
 **Present decision:** candidate implementation and the recorded evidence support the
 owner's conditionally accepted Linux boundary. The Foldkit timing-diagram implementation is complete; finish the owner’s visual
