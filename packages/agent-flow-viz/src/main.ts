@@ -23,7 +23,7 @@ export const Message = defineMessageUnion({
 });
 export type Message = typeof Message.Type;
 
-const reset = (trace: number): Model => ({ trace, cursor: 0, flow: initialFlow() });
+const reset = (trace: number): Model => ({ trace, cursor: 0, flow: initialFlow(TRACES[trace]?.agentKind ?? "main") });
 export const init: Runtime.ApplicationInit<Model, Message> = () => ({ model: reset(0) });
 
 export const update = (model: Model, message: Message) =>
@@ -40,7 +40,7 @@ export const update = (model: Model, message: Message) =>
       const events = TRACES[model.trace]?.events;
       if (events === undefined || model.cursor === 0) return { model };
       const cursor = model.cursor - 1;
-      let flow = initialFlow();
+      let flow = initialFlow(model.flow.agentKind);
       for (const event of events.slice(0, cursor)) {
         const result = stepFlow(flow, event);
         if (!result.accepted) return { model };
@@ -128,7 +128,7 @@ const arrow = (h: HtmlBuilder<Message>, events: EventId[], number: number, activ
 };
 
 const NODE_NOTES: Record<NodeId, readonly string[]> = {
-  agentEdit: ["PostToolUse: edit observation", "same event also checks for advice"],
+  agentEdit: ["Claude Code / Codex adapter", "one identified conversation"],
   workQueue: ["one scheduler, two job kinds", "capture jobs → review work items"],
   preparation: ["snapshot → artifacts + evidence", "enqueue work in same scheduler"],
   decisionRequest: ["one artifact + supporting evidence", "one rule evaluation request"],
@@ -136,9 +136,8 @@ const NODE_NOTES: Record<NodeId, readonly string[]> = {
   decisionResponse: ["finding → pending advice", "no finding → review status"],
   adviceStore: ["advicee + source + relevance", "after tool / Stop / Stop reoffer*"],
   collector: ["one batch reserved for one caller", "limit: 5 findings / 2 KiB**"],
-  hostOutput: ["stdout write; host owns next step", "receipt and agent use unknown"],
-  hostHooks: ["prompt → reset turn allowance", "after tool / Stop → request advice"],
-  turnState: ["one Stop continuation per chain", "checked before Stop selection"],
+  hostOutput: ["adapter formats response for agent", "write ≠ receipt or use"],
+  deliveryState: ["one continuation for this agent", "first advice request / child Stop"],
   outcomeStore: ["update ticket / activity status", "no finding ≠ failed review"],
 };
 
@@ -146,9 +145,8 @@ const nodeView = (h: HtmlBuilder<Message>, id: NodeId, flow: FlowState) => {
   const node = NODES[id];
   const palette = colors[node.role];
   const packets = flow.packets.filter((packet) => packet.at === id);
-  const special = id === "turnState" ? `turn ${flow.turn} · Stop ${flow.stopUsed ? "used" : "available"}`
-    : id === "agentEdit" ? "scenario input; no live host"
-    : id === "hostHooks" ? "request + advicee identity"
+  const special = id === "deliveryState" ? `chain ${flow.deliveryGeneration} · Stop ${flow.stopUsed ? "used" : "available"}`
+    : id === "agentEdit" ? `${flow.agentKind} agent · example input`
     : id === "collector" ? (flow.leaseSurface ? `${flow.leaseSurface} batch reserved` : flow.opportunity ? `${flow.opportunity} request received` : "waiting for a host request")
     : id === "hostOutput" ? (flow.lastSubmissionSurface ? "written; no payload stored here" : "no response written yet")
     : id === "workQueue" ? `${packets.length} queued job${packets.length === 1 ? "" : "s"}`
@@ -192,9 +190,11 @@ const chart = (model: Model, h: HtmlBuilder<Message>) => h.div([h.Class("chart-s
       { x: 510, y: 268, text: "new review work" },
       { x: 1230, y: 277, text: "Jev response ↓" },
       { x: 780, y: 314, text: "← pending findings" },
-      { x: 570, y: 550, text: "advicee + hook + deadline" },
-      { x: 30, y: 490, text: "Agent host calls Hapsland:" },
-      { x: 30, y: 509, text: "UserPromptSubmit / PostToolUse / Stop" },
+      { x: 285, y: 376, text: "advice request: agent ID + deadline →" },
+      { x: 30, y: 266, text: "edit via host adapter →" },
+      { x: 30, y: 288, text: "PostToolUse: edit + advice request" },
+      { x: 285, y: 435, text: "after tool / Stop / SubagentStop" },
+      { x: 165, y: 519, text: "prompt → reset allowance" },
       { x: 30, y: 752, text: "* Stop reoffer: approved design; not yet production behavior." },
       { x: 30, y: 775, text: "** Size, time, expiry and full advicee checks are not simulated." },
       { x: 780, y: 729, text: "Numbers match the event controls below." },
@@ -222,10 +222,10 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         h.p([h.Class("eyebrow")], ["SIDECAR MODEL · FOLDKIT"]),
         h.h1([], ["From agent edit to Jev and back"]),
         h.p([h.Class("intro")], [
-          "Data flow from an agent-host edit to a Jev review and a Hapsland advice response. A sidecar reducer drives the example.",
+          "One agent reports edits and receives advice through Claude Code or Codex. Session and child agent identity keep its advice separate. A sidecar reducer drives this data-flow example.",
         ]),
         h.p([h.Class("caveat")], [
-          "Discussion example: one advicee, one review work item; no live host or Jev connection.",
+          "One agent, one review item; no live connection. This reducer does not simulate multiple agents or tabs.",
         ]),
       ]),
       h.section([h.Class("chart-panel")], [
@@ -268,7 +268,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
               h.strong([], [item.description]), h.span([], [NODES[item.at].label]),
             ]))),
           h.p([h.Class("state-line")], [
-            `Turn ${model.flow.turn} · Stop ${model.flow.stopUsed ? "used" : "available"} · ` +
+            `Delivery chain ${model.flow.deliveryGeneration} · Stop ${model.flow.stopUsed ? "used" : "available"} · ` +
             `reserved batch ${model.flow.leaseSurface ?? "none"} · last response ${model.flow.lastSubmissionSurface ?? "none"}`,
           ]),
         ]),
@@ -284,7 +284,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
                 h.small([], [eventLabel(event)]),
                 h.small([], [transition.kind === "data"
                   ? `${transition.input} → ${transition.output}${transition.movement === "copy" ? " · source retained" : ""}`
-                  : `${transition.signal} request · advicee and turn context`]),
+                  : `${transition.signal} request · agent identity and delivery context`]),
                 h.small([], [stepFlow(model.flow, event).accepted ? "Can happen now" : stepFlow(model.flow, event).state.note]),
               ]),
             ]);
@@ -295,13 +295,13 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         h.h2([], ["Event reducer and current state"]),
         h.p([], ["The sidecar reducer applies events to example state. It has no separate explicit state machine. Diagram boxes show places and operations."]),
         h.div([h.Class("packets")], [
-          h.div([h.Class("packet")], [h.strong([], ["Advicee turn chain"]), h.span([], [String(model.flow.turn)])]),
+          h.div([h.Class("packet")], [h.strong([], ["Delivery allowance generation"]), h.span([], [String(model.flow.deliveryGeneration)])]),
           h.div([h.Class("packet")], [h.strong([], ["Stop continuation allowance"]), h.span([], [model.flow.stopUsed ? "used" : "available"])]),
           h.div([h.Class("packet")], [h.strong([], ["Collection request"]), h.span([], [model.flow.opportunity ?? "none"])]),
           h.div([h.Class("packet")], [h.strong([], ["Batch reserved for"]), h.span([], [model.flow.leaseSurface ?? "no caller"])]),
           h.div([h.Class("packet")], [h.strong([], ["Last response written through"]), h.span([], [model.flow.lastSubmissionSurface ?? "none"])]),
         ]),
-        h.p([], ["Prompt → reset Stop allowance. Hook request → enable selection. Selection → reserve batch. Stop selection → use allowance. Response write → release reservation."]),
+        h.p([], ["Prompt → reset allowance. Request → enable selection. Selection → reserve batch. Stop selection → use allowance. Write → release reservation. The child trace has no user-prompt event: its first collection hook initializes the allowance without resetting an existing one."]),
       ]),
     ]),
   };

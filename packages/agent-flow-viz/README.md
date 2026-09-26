@@ -34,3 +34,8 @@ implement. The example does not enforce production size limits, deadlines,
 relevance expiry, or the complete set of advicee checks.
 
 Run `npm run build` for TypeScript checking and the Vite production build.
+
+The diagram uses one Agent actor: session identity plus an optional native child
+agent ID. Claude Code and Codex are adapter metadata on that actor. It does not
+merge identities across sessions or children. The reducer still simulates one
+agent only; it does not demonstrate concurrent agents or multiple tabs.
