@@ -12,7 +12,8 @@ const binaries = { codex: process.env.HAPSLAND_105_CODEX ?? '/tmp/hapsland-105-h
 if (process.platform !== 'linux') throw new Error('This probe requires Linux');
 const selected = process.argv.slice(2);
 const cases = [{ host: 'codex', kind: 'worktrees' }, { host: 'claude', kind: 'worktrees' },
-  { host: 'claude', kind: 'children' }, { host: 'codex', kind: 'children' }]
+  { host: 'claude', kind: 'children' }, { host: 'codex', kind: 'children' },
+  ...['codex', 'claude'].filter(host => selected.includes(host+'-background-worktrees')).map(host => ({host,kind:'background-worktrees'}))]
   .filter(({ host, kind }) => selected.length === 0 || selected.includes(`${host}-${kind}`));
 const quote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
 const git = (...args) => {
@@ -58,7 +59,7 @@ if(destination==='children'){
 }
 const startedAt=Date.now();
 const args=[process.env.PROBE_CLI,'--controlled-reviewer','--controlled-writer',mode==='edit'?'--'+host+'-hook':'--composed-'+mode+'-hook',...(mode==='edit'?['--composed-edit-hook']:['--composed-host='+ (host==='codex'?'codex-cli':'claude-code')])];
-const result=spawnSync(process.execPath,args,{input,encoding:'utf8',env:process.env,timeout:mode==='stop'?4800:5000,maxBuffer:262144});
+const result=spawnSync(process.execPath,args,{input,encoding:'utf8',env:process.env,timeout:mode==='background'?21000:mode==='stop'?4800:5000,maxBuffer:262144});
 let output={};try{output=JSON.parse(result.stdout)}catch{}
 const text=output.reason??output.systemMessage??output.hookSpecificOutput?.additionalContext??'';
 const a=typeof text==='string'&&text.includes('AlphaCount'),b=typeof text==='string'&&text.includes('BravoCount');
@@ -79,8 +80,8 @@ for (const item of cases) {
     await writeFile(join(base, 'README.md'), 'Disposable native isolation fixture.\n');
     git('-C', base, 'add', 'README.md'); git('-C', base, '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'fixture');
     await writeFile(bridge, bridgeSource, { mode: 0o700 });
-    const roots = item.kind === 'worktrees' ? [join(scratch, 'work-a'), join(scratch, 'work-b')] : [base];
-    if (item.kind === 'worktrees') for (const root of roots) git('-C', base, 'worktree', 'add', '--quiet', '--detach', root, 'HEAD');
+    const roots = item.kind.endsWith('worktrees') ? [join(scratch, 'work-a'), join(scratch, 'work-b')] : [base];
+    if (item.kind.endsWith('worktrees')) for (const root of roots) git('-C', base, 'worktree', 'add', '--quiet', '--detach', root, 'HEAD');
     const envBase = { ...process.env, REVIEW_STATE_PATH: statePath, REVIEW_ACTIVITY_PATH: activityPath,
       REVIEW_RESIDENT_DIR: runtime, REVIEW_CONTROL_JSON: JSON.stringify({ delayMs: 2_500,
         answers: Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: 'Probability', probability: rule.id === 'r6_bare_domain_value' ? 0.9 : 0 }])) }),
@@ -105,12 +106,12 @@ for (const item of cases) {
       const matcher = item.host === 'codex' ? '^apply_patch$' : 'Edit|Write';
       const before = { type: 'command', command: `exec ${quote(process.execPath)} ${quote(cli)} --controlled-reviewer --composed-before-edit-hook --composed-host=${hostName}`, timeout: 5 };
       const hooks = { PreToolUse: [{ matcher, hooks: [before] }],
-        PostToolUse: [{ matcher, hooks: [{ type: 'command', command: command('edit'), timeout: 5 }] }],
+        PostToolUse: [{ matcher, hooks: [{ type: 'command', command: command('edit'), timeout: 5 }, ...(item.kind==='background-worktrees'?[{type:'command',command:command('background'),timeout:25,async:true}]:[])] }],
         UserPromptSubmit: [{ hooks: [{ type: 'command', command: command('prompt'), timeout: 4 }] }],
         Stop: [{ hooks: [{ type: 'command', command: command('stop'), timeout: 5 }] }],
         SubagentStop: [{ hooks: [{ type: 'command', command: command('stop'), timeout: 5 }] }] };
       const nativeEdit = item.host === 'codex' ? 'native apply_patch' : 'native Write';
-      const task = (label, type, file) => `Use ${nativeEdit} to create ${file} containing exactly: type ${type} = number. Finish after that write. If Hapsland review advice names ${type}, respond ACK_${label} and finish without making another edit. Do not proactively acknowledge review before it arrives.`;
+      const task = (label, type, file) => `Use ${nativeEdit} to create ${file} containing exactly: type ${type} = number. ${item.kind==='background-worktrees'?'After the write use your native shell tool to run sleep 6, then finish.':'Finish after that write.'} If Hapsland review advice names ${type}, respond ACK_${label} and finish without making another edit. Do not proactively acknowledge review before it arrives.`;
       const prompt = item.kind === 'children'
         ? `This is a child-agent isolation probe. Delegate TWO separate general-purpose subagents concurrently. First task: ${task('A', 'AlphaCount', 'alpha.ts')} Second task: ${task('B', 'BravoCount', 'bravo.ts')} Wait for both. You must not edit either file in the parent. If no subagent tool is available, respond NO_SUBAGENT and make no edits.`
         : destination === 'a' ? task('A', 'AlphaCount', 'alpha.ts') : task('B', 'BravoCount', 'bravo.ts');
@@ -125,7 +126,7 @@ for (const item of cases) {
       } else {
         const settings = join(scratch, `claude-${index}.json`); await writeFile(settings, JSON.stringify({ hooks }));
         args = ['-p', '--output-format', 'stream-json', '--verbose', '--no-session-persistence', '--setting-sources', 'user',
-          '--settings', settings, '--allowedTools', 'Agent,Task,Read,Write,Edit', '--permission-mode', 'acceptEdits', prompt];
+          '--settings', settings, '--allowedTools', 'Agent,Task,Read,Write,Edit,Bash', '--permission-mode', 'acceptEdits', prompt];
       }
       jobs.push(run(binaries[item.host], args, env, root));
     }
@@ -133,16 +134,17 @@ for (const item of cases) {
     const events = (await readFile(trace, 'utf8').catch(() => '')).split('\n').filter(Boolean).map((line) => JSON.parse(line));
     const editEvents = events.filter((event) => event.mode === 'edit');
     const deliveries = events.filter((event) => event.expectedFinding || event.foreignFinding);
+    const backgroundDestinations = [...new Set(deliveries.filter(event=>event.mode==='background'&&event.expectedFinding).map(event=>event.destination))];
     const childKeys = [...new Set(editEvents.flatMap((event) => event.childKey === null ? [] : [event.childKey]))];
     const destinations = [...new Set(deliveries.filter((event) => event.expectedFinding).map((event) => event.destination))];
     const concurrentRuns = runs.length === 2 && Math.max(...runs.map((run) => run.startedAt)) < Math.min(...runs.map((run) => run.endedAt));
-    const observed = runs.every((run) => run.exitCode === 0 && !run.timedOut) && events.every((event) => event.ok) &&
-      (item.kind !== 'worktrees' || concurrentRuns) && destinations.includes('a') && destinations.includes('b') &&
+    const observed = (item.kind!=='background-worktrees'||(backgroundDestinations.includes('a')&&backgroundDestinations.includes('b'))) && runs.every((run) => run.exitCode === 0 && !run.timedOut) && events.every((event) => event.ok) &&
+      (!item.kind.endsWith('worktrees') || concurrentRuns) && destinations.includes('a') && destinations.includes('b') &&
       deliveries.every((event) => !event.foreignFinding) && (item.kind !== 'children' || childKeys.length >= 2);
     results.push({ ...item, hostVersion: expectedVersion,
       status: observed ? 'observed-isolated-deliveries' : editEvents.length === 0 && runs.some((run) => run.reportedNoSubagent) ? 'child-route-not-observed' : 'inconclusive',
-      distinctPhysicalWorktrees: item.kind === 'worktrees' && (await realpath(roots[0])) !== (await realpath(roots[1])),
-      sharedResident: true, concurrentNativeRuns: concurrentRuns,
+      distinctPhysicalWorktrees: item.kind.endsWith('worktrees') && (await realpath(roots[0])) !== (await realpath(roots[1])),
+      backgroundDestinations, sharedResident: true, concurrentNativeRuns: concurrentRuns,
       distinctEditSessions: new Set(editEvents.map((event) => event.sessionKey)).size,
       suppliedChildIdentities: childKeys.length, expectedDestinationsObserved: destinations,
       foreignFindingDeliveries: deliveries.filter((event) => event.foreignFinding).length,
@@ -153,7 +155,7 @@ for (const item of cases) {
     results.push({ ...item, status: 'probe-failed', failure: cause instanceof Error ? cause.message : 'unknown probe failure' });
   } finally {
     try { const owner = JSON.parse(await readFile(join(runtime, 'owner.json'), 'utf8')); if (Number.isInteger(owner.pid)) process.kill(owner.pid, 'SIGTERM'); } catch {}
-    await rm(scratch, { recursive: true, force: true });
+    await rm(scratch, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
   }
 }
 const report = { schema: 'hapsland-105-native-isolation-v1', recordedAt: new Date().toISOString(),
@@ -161,7 +163,7 @@ const report = { schema: 'hapsland-105-native-isolation-v1', recordedAt: new Dat
   boundary: 'Pinned native headless runtimes; production composed hooks and shared resident; controlled Effect reviewer; fixture source and advice markers',
   limitations: ['No live Jev requests', 'Finding-marker routing is observed at native hook output; raw model/source output is not retained',
     'Child isolation is established only when native supplied child identities and both distinct finding destinations are observed',
-    'Concurrent native runs do not by themselves prove simultaneous backend evaluations', 'Background delivery is outside this Stop-focused probe'], results };
+    'Concurrent native runs do not by themselves prove simultaneous backend evaluations', 'Background delivery is only exercised by explicit background-worktrees cases'], results };
 const output = join(project, 'evidence/delivery-105', selected.length === 0 ? 'linux-native-isolation.json' : 'linux-native-isolation-' + selected.join('-') + '.json');
 await writeFile(output, `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
 console.log(JSON.stringify({ output, cases: results.map(({ host, kind, status, suppliedChildIdentities, foreignFindingDeliveries }) => ({ host, kind, status, suppliedChildIdentities, foreignFindingDeliveries })) }));
