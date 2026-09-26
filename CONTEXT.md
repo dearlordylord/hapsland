@@ -14,7 +14,7 @@ implementation specification.
 | Agent runtime | A program that runs an agent's tool and edit loop and reports its events, such as Codex CLI or Claude Code. |
 | Agent | A coding assistant that edits source in an agent runtime and can receive advice from Hapsland. |
 | Subagent | An agent started by another agent within an agent runtime. It remains an agent for review and advice. |
-| Agent round | Work by one agent in response to a request from a user or another agent, ending when the agent runtime accepts completion or cancellation. A Stop continuation stays in the same round; a request after completion starts another round. |
+| Agent round | Work by one agent in response to an instruction from a user or another agent, ending when the agent runtime accepts completion or cancellation. A Stop continuation stays in the same round; an instruction after completion starts another round. |
 | Runtime turn | A unit of conversation identified by an agent runtime. Its boundary need not match an agent round. |
 | Model provider | Secondary metadata about the inference service selected by an agent runtime or review backend. It is not a first-class adapter target in the current phase. |
 | Artifact | An independently identifiable semantic subject extracted from source. Its kind identifies what it describes; the initial kind is `typeShape`. |
