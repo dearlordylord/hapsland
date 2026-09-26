@@ -236,7 +236,7 @@ that could start another review or deliver advice. A synchronous Stop hook may
 wait for review work before returning; that wait does not itself continue the
 agent.
 
-The cleanup contract must cover every stage: admitted edit observations;
+The cleanup contract must cover every stage: pre-edit admission permits; admitted edit observations;
 queued capture and review-unit jobs; running Jev evaluations and their late
 results; captured artifacts and current-work references; pending advice and
 operational notices; delivery leases; background waiters; submitted or
@@ -253,8 +253,9 @@ fence late callbacks; already written host output cannot be recalled. The
 current resident has no Hapsland round identifier or round-scoped cancellation
 path, so this cleanup direction is not implemented. A future implementation
 must distinguish fresh attributed edits from delayed or duplicate events and
-must preserve the four-request limit across uncertain writes and expiry within
-one resident lifetime. Durable enforcement across restart is a separate follow-up. The normative rules below resolve these specification gaps. They are requirements,
+must preserve each round’s four-request limit across uncertain writes and expiry
+while the resident process remains running. Each new Hapsland round gets its own four;
+a resident restart resets the count by accepted product policy. The normative rules below resolve these specification gaps. They are requirements,
 not claims that the candidate already enforces them.
 The closure, fencing, and late-result rules are candidates for later formal
 verification.
@@ -290,28 +291,78 @@ subagent lifecycle notifications cannot reset an active round. A fresh attribute
 edit stays in the current active round, including an edit made to repair advice.
 A new instruction alone need not have a special policy for #105.
 
-The first attributable edit can open the first round for an advicee. Its native
-edit identity is the advicee partition plus native tool-use ID and edit event
-kind. Store a source-free digest; do not use source equality as event identity.
-Reject duplicate identities without recapture or another Jev call. Bind the edit
-to a round before asynchronous preparation begins. All subsequent messages carry
-that binding and the resident lifetime; an old callback cannot ask to join whichever
-round happens to be current.
+The installed composed path registers a synchronous `PreToolUse` hook for eligible
+native edit tools. Before the runtime executes the tool, this hook obtains a
+source-free permit bound to the complete advicee identity, native tool-use ID,
+resident lifetime, and Hapsland round. It can prepare an empty new round after a
+previous round closed. It does not capture source, enqueue review work, or call Jev.
+The runtime waits for this synchronous hook to finish before executing the tool.
+A successful `PostToolUse` observation must consume that same permit before any
+capture or review admission, including the first round. A missing, expired, already
+consumed, wrong-agent, or old-round permit yields incomplete admission and no review.
+Tool failure does not turn the permit into a review; expiration or round closure
+releases it. Permits are another explicitly round-owned resource.
 
-After a round closes, opening another requires evidence that the edit happened
-after closure. A previously unseen tool-use ID or a later arrival time alone is
-insufficient: an old hook can be delayed before its first admission. Accept a
-runtime transcript ordering marker only when the adapter can establish that the
-corresponding edit starts after the recorded closure position in that same agent's
-transcript. A trusted adapter admission token created after closure can serve the
-same purpose only if it also proves the native edit occurred after closure;
-issuing a new token for an old payload is insufficient. When that ordering evidence
-is unavailable, reject the ambiguous edit as incomplete and report a bounded
-source-free limitation. Do not silently open a round. Both Codex and Claude require
-adapter evidence for this gate; neither native `turn_id` nor `tool_use_id` alone
-passes it. Support for reopening within the same runtime session remains conditional
-on implementing and validating that evidence. A newly identified runtime session
-has its own advicee partition and can open its first round normally.
+The native edit identity is the advicee partition plus native tool-use ID and edit
+event kind. Store source-free digests; source equality is not event identity.
+Repeated PreToolUse notifications cannot renew or replace a consumed identity, and
+repeated PostToolUse notifications cannot cause another capture or Jev call. All
+asynchronous preparation and review messages carry the admitted round and resident
+lifetime rather than looking up whichever round happens to be current.
+
+A round closure invalidates all its permits and records a monotonic closure boundary.
+A new pre-edit hook can prepare the next round only when its conservative invocation
+start is strictly after that boundary and its original deadline has not expired.
+An old hook's later IPC arrival or a retry cannot create a fresh start time. The
+resident checks the start, deadline, identity, and closed-round fence atomically before
+issuing a permit. Missing or unverifiable timing fails incomplete. The timing source
+must cover native command startup: a delayed child-process launch must not make an
+old invocation appear new. Installed wrappers must directly execute the hook process
+or preserve an earlier trustworthy process-start bound. Never reset the deadline
+on IPC retries, process stages, or resident startup. Timeout or cancellation revokes
+unconsumed permits; a delayed/orphaned hook cannot renew them or reopen an old round.
+A native tool that runs after its permit was invalidated cannot admit a post-edit
+review. This conservatively drops uncertain edits instead of assigning them to a
+new round without evidence.
+
+The process-start clock does **not** reveal when the runtime queued its native hook
+event. The ordering argument also depends on the supported runtime's synchronous
+pre-edit barrier: the tool has not executed while that hook is still pending.
+A delayed launch is safe only while that barrier remains effective. If a timeout
+releases the tool, the timed-out command must not later obtain a usable permit.
+Direct `exec` wrappers avoid leaving a separate delayed launcher, but do not by
+themselves prove arbitrary runtime scheduling. A profile that cannot establish this
+barrier and cancellation behavior must report incomplete admission rather than claim
+that process-start time alone proves native event order.
+
+Bounded native probes on 2026-09-26 used Codex CLI 0.155.1 and Claude Code 2.1.218
+with session persistence disabled. In each main-agent run, a direct-exec PreToolUse
+hook waited 6.5 seconds against a two-second native timeout. Matching PostToolUse
+arrived 2,019 ms after PreToolUse start in Codex and 2,046 ms in Claude: both runtimes
+allowed the edit after timeout. Neither timed-out hook recorded its delayed completion,
+including a seven-second observation period after runtime exit. The same Claude child
+probe observed matching child PostToolUse 2,040 ms after child PreToolUse began, with
+no delayed completion from either timed-out PreToolUse hook. Thus timeout cannot
+be treated as successful permit admission; a missing permit must reject PostToolUse.
+These observations support cancellation for the tested paths. They do not prove
+arbitrary delayed command launch, every descendant process, or all concurrent tool
+schedules. Earlier 1.5-second synchronous PostToolUse-delay probes observed Stop only
+after hook completion on both main agents and Claude's child.
+
+Both pinned Linux runtimes expose matching native PreToolUse/PostToolUse tool IDs
+in the observed main-agent probes; Claude also did so for the child probe. Preserve
+supplied child identity on both hooks and use that child's advicee partition. A
+parent token never authorizes a child's edit. Main and child agents use the same
+permit lifecycle. Codex child execution remains a separate runtime validation case;
+main-agent evidence must not be presented as child evidence.
+
+Transcript files are not the installed ordering dependency. The pinned headless
+Codex ephemeral mode supplies no transcript path; Claude without session persistence
+supplies a path whose file is absent. Persistent Codex nested-tool IDs and Claude
+child transcript paths also prevent the simple transcript-ID lookup from proving
+ordering generally. The pre-edit permit design must pass native registration,
+timeout/orphan, duplicate, and post-closure reopening checks before its implementation
+is claimed conformant. A new runtime session forms its own advicee partition.
 
 ### Stop reservation, output, and reoffer
 
@@ -357,7 +408,7 @@ the round active; every remaining item is discarded when the round closes.
 
 Closure is a resident transition, performed before the hook emits its allow response:
 
-1. Mark the round closed and atomically stop admission, collection, output
+1. Mark the round closed and invalidate its pre-edit permits; atomically stop admission, collection, output
    permits, and new queue transitions. New callbacks check this fence first.
 2. Resolve background waiters quietly; revoke leases and unreleased output permits.
    Already authorized or written output cannot be recalled and must be recorded as
@@ -390,24 +441,25 @@ race and report the remaining external-write uncertainty explicitly.
 
 ### Restart and expiry scope
 
-The four-request bound and closed-round event fence apply within one resident
-lifetime. Keep source-free round identity, phase, reserved count, output reservation,
+Each Hapsland round permits at most four continuation requests while its resident
+process remains running; each new round gets its own four. The closed-round event
+fence also applies within that resident lifetime. Keep source-free round identity, phase, reserved count, output reservation,
 and event digests in resident memory. Advice relevance expiry can remove advice but
 must not reset an active round's count or reopen a closed round. If capacity requires
 removing detailed event history, retain a source-free session denial marker and refuse
 ambiguous admissions for that partition until a new runtime session supplies a new
 partition. Eviction must not become permission within that resident lifetime.
 
-The owner explicitly deferred durable count enforcement across resident restarts to
-[#107](https://github.com/dearlordylord/hapsland/issues/107), labeled `priority:low`.
-A restart loses round state and can create a fresh
-allowance; repeated restarts can therefore exceed four continuations over the runtime's
+The owner explicitly rejected carrying a round’s Stop count across resident restarts,
+including as future work. Reset on restart is accepted behavior.
+A restart mid-round forgets that round’s count and may permit four more requests
+for the same unfinished agent work; repeated restarts can therefore exceed four continuations over the runtime's
 continued work. Unbounded repeated restarts may yield unbounded aggregate requests;
 this is explicitly accepted for #105, which does not promise a durable cap. All old review data and leases
 are discarded on restart, and IPC lifetime checks reject messages addressed to the
 old resident. No recovered work or output is claimed successful. Raw runtime events
 that first arrive after restart have no retained prior-round history; their attribution
-limitation must be explicit. This is the accepted restart limitation, not a reason to
+limitation must be explicit. This is the accepted restart behavior, not a reason to
 reset the count on ordinary expiry, polling, or native turn changes.
 
 ### Implementation and evidence scope
