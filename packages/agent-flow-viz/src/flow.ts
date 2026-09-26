@@ -92,10 +92,10 @@ export const TRANSITIONS = {
   ClearRecorded: { kind: "data", from: "decisionResponse", to: "outcomeStore", input: "decision response", output: "review status", movement: "move", label: "clear result recorded" },
   JevUnavailable: { kind: "data", from: "jev", to: "outcomeStore", input: "network request", output: "review status", movement: "move", label: "Jev request unavailable" },
   BackgroundHookFired: { kind: "control", from: "agentEdit", to: "collector", label: "background asks to collect", signal: "background" },
-  StopHookFired: { kind: "control", from: "agentEdit", to: "collector", label: "Stop asks to collect", signal: "stop" },
+  StopHookFired: { kind: "control", from: "agentEdit", to: "collector", label: "Stop hook starts; wait for advice", signal: "stop" },
   AdviceLeasedByBackground: { kind: "data", from: "adviceStore", to: "collector", input: "advice", output: "leased batch", movement: "copy", label: "background leases advice" },
   AdviceLeasedByStop: { kind: "data", from: "adviceStore", to: "collector", input: "advice", output: "leased batch", movement: "copy", label: "Stop leases advice" },
-  AdviceReofferedAtStop: { kind: "data", from: "adviceStore", to: "collector", input: "advice", output: "leased batch", movement: "copy", label: "Stop selects advice again (design)" },
+  AdviceReofferedAtStop: { kind: "data", from: "adviceStore", to: "collector", input: "advice", output: "leased batch", movement: "copy", label: "Stop selects advice again" },
   HostOutputSubmitted: { kind: "data", from: "collector", to: "hostOutput", input: "leased batch", output: "runtime submission", movement: "move", label: "hook write completed" },
 } as const satisfies Record<EventId, Transition>;
 
@@ -233,13 +233,13 @@ export const TRACES = [
     "JevRequestSent", "JevResponseReceived", "FindingRetained", "BackgroundHookFired",
     "AdviceLeasedByBackground", "HostOutputSubmitted",
   ] },
-  { name: "Send advice again at Stop (design)", description: "Background holds a batch when Stop begins waiting. The background write completes during that wait; Stop offers the advice once more in the same round.", events: [
+  { name: "Send advice again at Stop", description: "Background holds a batch when Stop begins waiting. The background write completes during that wait; Stop offers the advice once more in the same round.", events: [
     "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
     "JevRequestSent", "JevResponseReceived", "FindingRetained", "BackgroundHookFired",
     "AdviceLeasedByBackground", "StopHookFired", "HostOutputSubmitted",
     "AdviceReofferedAtStop", "HostOutputSubmitted",
   ] },
-  { name: "Stop waits for response", description: "Stop requests advice while Jev is running. This example supplies the result before any collection deadline; it does not simulate timeout behavior.", events: [
+  { name: "Stop waits; first advice blocks finish", description: "Stop requests advice while Jev is running. This example supplies the result before any collection deadline; it does not simulate timeout behavior.", events: [
     "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
     "JevRequestSent", "StopHookFired", "JevResponseReceived", "FindingRetained",
     "AdviceLeasedByStop", "HostOutputSubmitted",
@@ -257,7 +257,7 @@ export const TRACES = [
     "JevRequestSent", "JevResponseReceived", "FindingRetained", "StopHookFired",
     "AdviceLeasedByStop", "HostOutputSubmitted", "StopHookFired", "StopAllowed",
   ] },
-  { name: "Stop timeout cleans up", description: "Jev has not replied when Hapsland allows Stop. All live round data is removed, including the running request. A fresh edit can open another round.", events: [
+  { name: "Stop wait expires; close and discard", description: "Jev has not replied when Hapsland allows Stop. All live round data is removed, including the running request. A fresh edit can open another round.", events: [
     "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
     "JevRequestSent", "StopHookFired", "StopAllowed", "EditObserved",
   ] },

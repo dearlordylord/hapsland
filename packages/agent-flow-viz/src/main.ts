@@ -200,7 +200,7 @@ const chart = (model: Model, h: HtmlBuilder<Message>) => h.div([h.Class("chart-s
       { x: 30, y: 288, text: "PostToolUse: edit + advice request" },
       { x: 285, y: 435, text: "after tool / Stop" },
       { x: 165, y: 519, text: "Stop allow → close + cleanup" },
-      { x: 30, y: 752, text: "* Stop reoffer: approved design; not yet production behavior." },
+      { x: 30, y: 752, text: "* Stop reoffer: implemented in the #105 candidate." },
       { x: 30, y: 775, text: "** Size, time, expiry and full advicee checks are not simulated." },
       { x: 780, y: 729, text: "Numbers match the event controls below." },
       { x: 780, y: 752, text: "Solid: review information · Dashed: agent runtime request" },

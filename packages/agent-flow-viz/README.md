@@ -51,8 +51,8 @@ round closure discards all advice. Distinct findings can justify another Stop
 continuation without a fresh edit in the contract; this one-item example does
 not simulate multiple findings or overflow. The page ends at the hook response write and
 has no modeled receipt or advice-consumption event. The agent runtime owns its
-further use. These are #105 target semantics, not a claim that production already
-implements them. The example does not simulate size limits, deadlines, relevance
+further use. The #105 candidate implements reoffer and round cleanup; this
+example covers only the subset described here. It does not simulate size limits, deadlines, relevance
 expiry, or the complete set of advicee checks.
 
 Run `npm run build` for TypeScript checking and the Vite production build.
@@ -91,3 +91,10 @@ background advice remains retained; this limit is explicit in that case.
 
 The timeline is a Foldkit view in `timeline-view.ts`. The existing flow graph,
 guided trace controls, and left/right keyboard navigation remain independent.
+
+The timeline distinguishes three paths: Stop waits for its first advice;
+background writes during an existing Stop wait and that Stop reoffers; or the
+wait expires and Hapsland allows finish and closes its round. The race companion
+starts Stop before review completion. The final-message companion retains the
+separate order where background writes before Stop starts. Native hook process
+intervals include startup and output work, not just review waiting.

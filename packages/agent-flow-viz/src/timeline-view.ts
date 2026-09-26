@@ -76,7 +76,8 @@ export const timelineView = <Message>(h: HtmlBuilder<Message>, selected: number,
     h.div([h.Class("trace-options timeline-options"), h.Role("group"), h.AriaLabel("Select timing scenario")], TIMELINE_CASES.map((item, index) =>
       h.button([h.OnClick(select(index)), h.Class(index === selected ? "trace selected" : "trace")], [item.title]))),
     h.div([h.Class("timeline-reducer")], [
-      h.h3([], ["Reducer companion · event order, no measured seconds"]),
+      h.h3([], [scenario.reducerTitle ?? "Reducer companion"]),
+      h.p([h.Class("description")], ["Event order only · no measured seconds. Waiting for review is separate from returning advice that blocks finish."]),
       h.p([h.Class("timeline-badge partial")], [segment.length ? "PARTIAL REDUCER COVERAGE" : "NATIVE OBSERVATIONS ONLY"]),
       h.p([h.Class("description")], [scenario.reducerScope]),
       ...(segment.length ? [
