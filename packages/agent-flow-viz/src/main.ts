@@ -41,7 +41,7 @@ export const update = (model: Model, message: Message) =>
   });
 
 const NODE_WIDTH = 224;
-const NODE_HEIGHT = 98;
+const NODE_HEIGHT = 138;
 const colors = {
   external: { fill: "#edf1f6", stroke: "#738399" },
   storage: { fill: "#fff0c8", stroke: "#ae7622" },
@@ -51,6 +51,12 @@ const colors = {
 
 type Point = { readonly x: number; readonly y: number };
 const geometry = (transition: Transition, offset: number) => {
+  if (transition.from === "workQueue" && transition.to === "decisionRequest") return {
+    path: "M 432 52 C 432 10, 1012 10, 1012 52", badge: { x: 722, y: 21 },
+  };
+  if (transition.from === "preparation" && transition.to === "workQueue") return {
+    path: "M 650 190 C 650 250, 500 250, 500 190", badge: { x: 575, y: 235 },
+  };
   const from = NODES[transition.from];
   const to = NODES[transition.to];
   const fx = from.x + NODE_WIDTH / 2;
@@ -108,6 +114,21 @@ const arrow = (h: HtmlBuilder<Message>, events: EventId[], number: number, activ
   ]);
 };
 
+const NODE_NOTES: Record<NodeId, readonly string[]> = {
+  agentEdit: ["PostToolUse: edit observation", "same event also checks for advice"],
+  workQueue: ["one scheduler, two job kinds", "capture jobs → review work items"],
+  preparation: ["snapshot → artifacts + evidence", "enqueue work in same scheduler"],
+  decisionRequest: ["one artifact + supporting evidence", "one rule evaluation request"],
+  jev: ["external review backend", "returns a judgment or fails"],
+  decisionResponse: ["finding → pending advice", "no finding → review status"],
+  adviceStore: ["recipient + source + relevance", "after tool / Stop / Stop reoffer*"],
+  collector: ["one batch reserved for one caller", "limit: 5 findings / 2 KiB**"],
+  hostOutput: ["stdout write; host owns next step", "receipt and agent use unknown"],
+  hostHooks: ["prompt → reset turn allowance", "after tool / Stop → request advice"],
+  turnState: ["one Stop continuation per chain", "checked before Stop selection"],
+  outcomeStore: ["update ticket / activity status", "no finding ≠ failed review"],
+};
+
 const nodeView = (h: HtmlBuilder<Message>, id: NodeId, flow: FlowState) => {
   const node = NODES[id];
   const palette = colors[node.role];
@@ -129,13 +150,17 @@ const nodeView = (h: HtmlBuilder<Message>, id: NodeId, flow: FlowState) => {
       h.FontWeight("700"), h.Fill("#1e3048")], [node.label]),
     h.text([h.X(String(node.x + 14)), h.Y(String(node.y + 51)), h.FontSize("12"),
       h.Fill("#52647d")], [node.detail]),
-    h.text([h.X(String(node.x + 14)), h.Y(String(node.y + 78)), h.FontSize("12"),
+    ...NODE_NOTES[id].map((line, index) => h.text([
+      h.X(String(node.x + 14)), h.Y(String(node.y + 73 + index * 17)), h.FontSize("11"),
+      h.Fill("#52647d"),
+    ], [line])),
+    h.text([h.X(String(node.x + 14)), h.Y(String(node.y + 119)), h.FontSize("12"),
       h.FontWeight("700"), h.Fill("#344964")], [special]),
   ]);
 };
 
 const chart = (model: Model, h: HtmlBuilder<Message>) => h.div([h.Class("chart-scroll")], [
-  h.svg([h.ViewBox("0 0 1450 730"), h.Role("img"),
+  h.svg([h.ViewBox("0 0 1450 810"), h.Role("img"),
     h.AriaLabel("Event-labeled data flow from agent edit through Hapsland and Jev to host output")], [
     h.defs([], [
       h.marker([h.Id("arrow-muted"), h.ViewBox("0 0 10 10"), h.RefX("8"), h.RefY("5"),
@@ -149,6 +174,22 @@ const chart = (model: Model, h: HtmlBuilder<Message>) => h.div([h.Class("chart-s
     ]),
     ...CONNECTIONS.map((events, index) => arrow(h, events, index + 1, model.flow.lastEvent !== null && events.includes(model.flow.lastEvent))),
     ...NODE_IDS.map((id) => nodeView(h, id, model.flow)),
+    ...[
+      { x: 755, y: 26, text: "review work item →" },
+      { x: 510, y: 268, text: "new review work" },
+      { x: 1230, y: 277, text: "Jev response ↓" },
+      { x: 780, y: 314, text: "← pending findings" },
+      { x: 570, y: 550, text: "recipient + hook + deadline" },
+      { x: 30, y: 490, text: "Agent host calls Hapsland:" },
+      { x: 30, y: 509, text: "UserPromptSubmit / PostToolUse / Stop" },
+      { x: 30, y: 752, text: "* Stop reoffer: approved design; not yet production behavior." },
+      { x: 30, y: 775, text: "** Size, time, expiry and full recipient checks are not simulated." },
+      { x: 780, y: 729, text: "Numbers match the event controls below." },
+      { x: 780, y: 752, text: "Solid: review information · Dashed: host request" },
+      { x: 780, y: 775, text: "Amber: stored state · Blue: work · Grey: external · Purple: output" },
+    ].map(({ x, y, text }) => h.text([
+      h.X(String(x)), h.Y(String(y)), h.FontSize("12"), h.Fill("#52647d"),
+    ], [text])),
   ]),
 ]);
 
@@ -167,10 +208,10 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         h.p([h.Class("eyebrow")], ["SIDECAR MODEL · FOLDKIT"]),
         h.h1([], ["From agent edit to Jev and back"]),
         h.p([h.Class("intro")], [
-          "Hapsland receives an edit from an agent host, asks Jev to review it, and sends useful findings back in a hook response. This diagram shows where the work and information go. The event reducer below drives this example.",
+          "Data flow from an agent-host edit to a Jev review and a Hapsland advice response. A sidecar reducer drives the example.",
         ]),
         h.p([h.Class("caveat")], [
-          "Discussion example: one advice recipient and one review work item. Sending advice again at Stop is an approved design that production does not yet implement. A successful response write gives Hapsland no receipt that the host accepted the advice or that the agent acted on it.",
+          "Discussion example: one recipient, one review work item; no live host or Jev connection.",
         ]),
       ]),
       h.section([h.Class("chart-panel")], [
@@ -179,31 +220,6 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           h.span([], ["Scroll horizontally on narrow screens"]),
         ]),
         chart(model, h),
-        h.p([h.Class("legend")], [
-          "Solid arrows carry review information. Dashed arrows carry host requests. Each number identifies one connection; several events can use that connection. Amber boxes hold state. Blue boxes perform work. Grey boxes belong to an external system. Purple marks the response boundary.",
-        ]),
-      ]),
-      h.section([h.Class("card explanation")], [
-        h.h2([], ["What the boxes and connections mean"]),
-        h.p([], ["The review scheduler is one scheduler with two job kinds. A capture job reads eligible source and extracts artifacts. It then adds review work items to the same scheduler. A review work item contains one artifact, its supporting evidence, and the rules to check. The return arrow shows this new work; it does not mean there are two queues."]),
-        h.p([], ["Read Jev result checks the returned review judgment. A finding becomes pending advice for its intended recipient. A result with no finding updates review status. A failed request records a failed review. Record review status is an operation; production tracks this through tickets and activity status, not a separate outcome store."]),
-        h.p([], ["The host calls Hapsland at three times. UserPromptSubmit starts a recipient turn chain. PostToolUse reports an edit and also runs the background advice check. These are two commands for the same native host event; the background check does not start another review. Stop asks for advice when the host tries to finish a turn."]),
-        h.p([], ["Select advice to send has two different inputs. The dashed connection carries a host request: recipient identity, hook type, and turn or deadline context. The solid connection carries pending findings with their source, recipient, and relevance information. The Jev response first becomes a review result and then pending advice; it is not a collection request."]),
-        h.p([], ["One solid connection covers three selection cases: after a tool, at Stop, or again at Stop under the approved design. Each case reserves one advice batch for one caller. Production limits a response to five findings and 2 KiB and limits how long collection may wait. This example shows the reservation; it does not simulate size limits, time, relevance expiry, or all recipient checks."]),
-        h.p([], ["Write hook response means that Hapsland writes the host-specific response to stdout. The agent host owns the next step. Hapsland cannot infer that the agent received, read, or used the advice. A later edit would arrive as a new host change observation."]),
-      ]),
-      h.section([h.Class("card explanation")], [
-        h.h2([], ["Event reducer and current state"]),
-        h.p([], ["This page uses a reducer: stepFlow(current state, event) returns the next state or a reason to reject the event. It has no separate, explicit state-machine definition. The flow diagram groups places and operations; its boxes are not lifecycle states."]),
-        h.p([], ["The reducer holds example review information, the recipient turn number, the Stop allowance, the latest collection request, the reserved batch, and the last response type. It checks prerequisites before each event. The event list shows which events can happen now."]),
-        h.div([h.Class("packets")], [
-          h.div([h.Class("packet")], [h.strong([], ["Recipient turn chain"]), h.span([], [String(model.flow.turn)])]),
-          h.div([h.Class("packet")], [h.strong([], ["Stop continuation allowance"]), h.span([], [model.flow.stopUsed ? "used" : "available"])]),
-          h.div([h.Class("packet")], [h.strong([], ["Collection request"]), h.span([], [model.flow.opportunity ?? "none"])]),
-          h.div([h.Class("packet")], [h.strong([], ["Batch reserved for"]), h.span([], [model.flow.leaseSurface ?? "no caller"])]),
-          h.div([h.Class("packet")], [h.strong([], ["Last response written through"]), h.span([], [model.flow.lastSubmissionSurface ?? "none"])]),
-        ]),
-        h.p([], ["A new prompt resets the Stop allowance. A host collection request enables batch selection. Selection reserves the batch; selecting it at Stop also uses the allowance. Writing the response releases the reservation. This narrow turn record does not represent the agent host’s full conversation or user interface."]),
       ]),
       h.div([h.Class("below")], [
         h.section([h.Class("card")], [
@@ -256,6 +272,18 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
             ]);
           })),
         ]),
+      ]),
+      h.section([h.Class("card explanation")], [
+        h.h2([], ["Event reducer and current state"]),
+        h.p([], ["The sidecar reducer applies events to example state. It has no separate explicit state machine. Diagram boxes show places and operations."]),
+        h.div([h.Class("packets")], [
+          h.div([h.Class("packet")], [h.strong([], ["Recipient turn chain"]), h.span([], [String(model.flow.turn)])]),
+          h.div([h.Class("packet")], [h.strong([], ["Stop continuation allowance"]), h.span([], [model.flow.stopUsed ? "used" : "available"])]),
+          h.div([h.Class("packet")], [h.strong([], ["Collection request"]), h.span([], [model.flow.opportunity ?? "none"])]),
+          h.div([h.Class("packet")], [h.strong([], ["Batch reserved for"]), h.span([], [model.flow.leaseSurface ?? "no caller"])]),
+          h.div([h.Class("packet")], [h.strong([], ["Last response written through"]), h.span([], [model.flow.lastSubmissionSurface ?? "none"])]),
+        ]),
+        h.p([], ["Prompt → reset Stop allowance. Hook request → enable selection. Selection → reserve batch. Stop selection → use allowance. Response write → release reservation."]),
       ]),
     ]),
   };
