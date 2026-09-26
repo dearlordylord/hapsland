@@ -516,24 +516,40 @@ model visibility. The new Linux probe used a locally cached exact 0.155.1 binary
 with Node 24.20.0. The existing macOS GitHub Actions workflow covers package
 conformance and does not run this combined matrix.
 
-**Remaining acceptance decisions:** Claude actionable review completion inside a
-foreground native tool call remains unproven after three bounded recovery attempts,
-[recorded here](../evidence/delivery-105/claude-reset-rerun-linux.md). All produced advice
-and a native repair. Attempts 1 and 3 made no Bash call; attempt 2 produced actionable
-advice before Bash and a later clear review inside foreground Bash, but timed out.
-SIGTERM began at the 100-second ceiling; process/pipe closure returned at 106.201
-seconds. Repair/clear observations do not turn this timeout into a passing target
-case. No fourth attempt was run. The owner must decide the supported timing boundary
-or authorize a different evidence route; the target has not been silently waived.
+**Owner support decision — conditional acceptance:** The owner accepts the narrower
+Linux support boundary documented by these observations, **conditioned on the bottom
+of the Foldkit demo containing a timing diagram** that makes the boundary understandable.
+This replaces the prior open choice to keep chasing every unobserved runtime interval.
+It does not relabel missed or unobserved probes as passing.
 
-Concurrent background routing now has passing native worktree pairs for both runtimes.
-The recovered Claude pair delivered zero foreign findings through one shared resident;
-this proves observed hook-output routing, not hidden consumption or simultaneous Jev
-work. A minimal settings-excluded Claude control also succeeded; the earlier failures'
-cause remains unestablished. Codex in-progress final/model-request timing and native
-child behavior remain unobserved and need explicit support dispositions. After-end
-silence covers only two seconds. Required gates still need evidence-backed dispositions
-and owner adoption before closure.
+The accepted limits include unproven actionable Claude review completion inside a
+foreground tool call, unobserved Codex in-progress final/model-request intervals and
+native child behavior, bounded after-end observation, and the stated visibility and
+native scheduling limits. Claude's three tool-window recovery attempts remain retained:
+all repaired, but none passed the target interval; attempt 2 timed out after observing
+a later clear review inside Bash. Native worktree background routing passed for both
+runtimes and supplied Claude child routing passed. These findings remain distinct
+from hidden model consumption and universal scheduling guarantees.
+
+The required bottom demo diagram must:
+
+- Show the observable agent/runtime stages and distinguish unknown internals, including
+  model-request timing and whether submitted advice was actually seen.
+- Present successful and missed scenarios without converting an unobserved opportunity,
+  fixture repair, or completed write into proven agent visibility.
+- Label required product cases separately from exploratory probes and preserve the
+  observed scope and failure/timeout results.
+- State exactly which states, events, data ownership, and transitions the sidecar reducer
+  checks statically, and which runtime, IPC, scheduling, timing, cancellation, or
+  visibility behavior lies outside that model.
+
+The owner delegated representation choices after Astra pre-research. The diagram is
+being implemented in the clean, separate Foldkit PR #110; this document does not claim
+it is complete. The remaining acceptance work is to complete and review that diagram
+and its coverage/limits, reconcile its evidence labels with this contract, and record
+the final adoption/review outcome. #105 stays open during that work. No further native
+probe is automatically required merely because one of the accepted support limits is
+still unobservable. Any newly found product failure still requires an explicit disposition.
 
 The accepted bound is four Stop continuation requests **per Hapsland round** while
 the resident runs; each new round gets its own four. Resident restart resets the
@@ -545,8 +561,9 @@ contains the candidate implementation and evidence. [Draft Foldkit PR #110](http
 contains the clean, separate backbone prototype. The prototype is not running in
 production and its reducer/diagram does not substitute for native conformance.
 
-**Present decision:** the candidate hooks are registered in the installer code.
-Keep #105 open until the remaining race, failure, isolation, installer, and
-timing gates pass. A background response submitted near session end remains
-visibility unknown even when the resident records a successful write. No live
+**Present decision:** candidate implementation and the recorded evidence support the
+owner's conditionally accepted Linux boundary. Complete the Foldkit timing-diagram
+condition and final review/adoption work before closure. Closing #105 must still create
+and link the manual macOS follow-up. A background response submitted near session end
+remains visibility unknown even when the resident records a successful write. No live
 Jev validation is needed for this controlled delivery gate.
