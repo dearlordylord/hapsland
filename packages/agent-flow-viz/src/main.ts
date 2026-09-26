@@ -8,8 +8,8 @@ import { describeAccepted, EMISSION_LABELS, EVENT_LABELS, NODES, REJECTION_LABEL
 import { CONNECTIONS, nextEventOptions, routeFor } from "./generation";
 import { TRACES } from "./scenarios";
 import {
-  EVENT_IDS, FlowStateSchema, MAX_STOP_CONTINUATIONS, NODE_IDS,
-  initialFlow, stepFlow, type EventId, type FlowState, type NodeId, type Transition,
+  EVENT_IDS, FlowStateSchema, MAX_ACTIVE_REVIEW_JOBS, MAX_STOP_CONTINUATIONS, NODE_IDS,
+  activeReviewJobCount, initialFlow, stepFlow, type EventId, type FlowState, type NodeId, type Transition,
 } from "./flow";
 
 export const Model = Schema.Struct({
@@ -17,11 +17,13 @@ export const Model = Schema.Struct({
   timeline: Schema.Number,
   cursor: Schema.Number,
   flow: FlowStateSchema,
+  history: Schema.Array(Schema.Struct({ event: Schema.Literals(EVENT_IDS), itemId: Schema.Union([Schema.Null, Schema.Number]) })),
   lastEvent: Schema.Union([Schema.Null, Schema.Literals(EVENT_IDS)]),
   feedback: Schema.String,
   emissions: Schema.Array(Schema.Struct({
     event: Schema.Literals(["HostOutputSubmitted", "ClearRecorded", "JevUnavailable"]),
     at: Schema.Literals(NODE_IDS),
+    itemId: Schema.Number,
   })),
 });
 export type Model = typeof Model.Type;
@@ -31,27 +33,29 @@ export const Message = defineMessageUnion({
   SelectedTimeline: { index: Schema.Number },
   Advanced: {},
   Rewound: {},
-  TriggeredEvent: { event: Schema.Literals(EVENT_IDS) },
+  TriggeredEvent: { event: Schema.Literals(EVENT_IDS), itemId: Schema.Union([Schema.Null, Schema.Number]) },
+  JumpedToHistory: { count: Schema.Number },
   Reset: {},
 });
 export type Message = typeof Message.Type;
 
 const reset = (trace: number): Model => ({
-  trace, timeline: 0, cursor: 0, flow: initialFlow(), lastEvent: null, emissions: [],
+  trace, timeline: 0, cursor: 0, flow: initialFlow(), history: [], lastEvent: null, emissions: [],
   feedback: "No live virtual round or review work yet. Events are example inputs; no agent runtime or Jev connection is attached.",
 });
 export const init: Runtime.ApplicationInit<Model, Message> = () => ({ model: reset(0) });
 
-const applyEvent = (model: Model, event: EventId, advance: boolean): Model => {
-  const result = stepFlow(model.flow, event);
+const applyEvent = (model: Model, event: EventId, advance: boolean, itemId?: number): Model => {
+  const result = stepFlow(model.flow, event, itemId);
   if (!result.accepted) return { ...model, feedback: REJECTION_LABELS[result.reason] };
   const emitted = result.changes.flatMap((change) => change.kind === "emitted"
-    ? [{ event: change.event, at: change.at }] : []);
+    ? [{ event: change.event, at: change.at, itemId: change.itemId }] : []);
   return {
     ...model, flow: result.state, lastEvent: event,
+    history: [...model.history, { event, itemId: result.changes.find((change) => change.kind === "transition")?.itemId ?? null }],
     cursor: model.cursor + (advance ? 1 : 0),
     emissions: [...model.emissions, ...emitted],
-    feedback: describeAccepted(model.flow, result.state, event, routeFor(event)),
+    feedback: `${describeAccepted(model.flow, result.state, event, routeFor(event))}${result.changes.find((change) => change.kind === "transition")?.itemId == null ? "" : ` Item #${result.changes.find((change) => change.kind === "transition")?.itemId}.`}`,
   };
 };
 
@@ -75,7 +79,13 @@ export const update = (model: Model, message: Message) =>
       }
       return { model: replayed };
     },
-    TriggeredEvent: ({ event }) => ({ model: applyEvent({ ...model, trace: -1, cursor: 0 }, event, false) }),
+    TriggeredEvent: ({ event, itemId }) => ({ model: applyEvent({ ...model, trace: -1, cursor: 0 }, event, false, itemId ?? undefined) }),
+    JumpedToHistory: ({ count }) => {
+      const steps = model.history.slice(0, count);
+      let replayed = { ...reset(-1), timeline: model.timeline };
+      for (const step of steps) replayed = applyEvent(replayed, step.event, false, step.itemId ?? undefined);
+      return { model: replayed };
+    },
   });
 
 const NODE_WIDTH = 224;
@@ -89,10 +99,10 @@ const colors = {
 
 type Point = { readonly x: number; readonly y: number };
 const geometry = (transition: Transition) => {
-  if (transition.from === "workSlot" && transition.to === "decisionRequest") return {
+  if (transition.from === "workQueue" && transition.to === "decisionRequest") return {
     path: "M 432 52 C 432 10, 1012 10, 1012 52", badge: { x: 722, y: 21 },
   };
-  if (transition.from === "preparation" && transition.to === "workSlot") return {
+  if (transition.from === "preparation" && transition.to === "workQueue") return {
     path: "M 650 190 C 650 250, 500 250, 500 190", badge: { x: 575, y: 235 },
   };
   const from = NODES[transition.from];
@@ -143,14 +153,17 @@ const nodeView = (h: HtmlBuilder<Message>, id: NodeId, model: Model) => {
   const node = NODES[id];
   const palette = colors[node.role];
   const packets = flow.packets.filter((packet) => packet.at === id);
+  const shortIds = packets.slice(0, 4).map((packet) => `#${packet.id}`).join(", ") +
+    (packets.length > 4 ? ` +${packets.length - 4}` : "");
   const special = id === "deliveryState" ? `virtual round ${flow.virtualRoundId} · ${flow.virtualRoundActive ? "active" : "closed"} · ${flow.stopContinuations}/${MAX_STOP_CONTINUATIONS}`
     : id === "agentEdit" ? "fresh edit enters through adapter"
     : id === "collector" ? (flow.leaseSurface ? `${flow.leaseSurface} batch reserved` : flow.opportunity ? `${flow.opportunity} request received` : "waiting for an agent runtime request")
     : id === "hostOutput" ? (flow.lastSubmissionSurface ? "written; no payload stored here" : "no response written yet")
-    : id === "workSlot" ? (flow.workSlot === null ? "slot empty" : `${flow.workSlot} present`)
-    : id === "adviceStore" ? (packets[0] ? "finding available for selection" : "no pending advice")
+    : id === "workQueue" ? (packets.length === 0 ? "queue empty" : `${packets.length} queued · ${shortIds}`)
+    : id === "jev" ? `${packets.length} requests at Jev · ${shortIds}`
+    : id === "adviceStore" ? (packets.length ? `${packets.length} finding${packets.length === 1 ? "" : "s"} · ${shortIds}` : "no pending advice")
     : id === "outcomeStore" ? (model.emissions.some((item) => item.at === id) ? "updated; no payload stored here" : "no completed review yet")
-    : packets.length ? packets.map((packet) => packet.flavor).join(", ") : "idle in this example";
+    : packets.length ? `${packets.length} item${packets.length === 1 ? "" : "s"} · ${shortIds}` : "idle in this example";
   return h.g([], [
     h.rect([h.X(String(node.x)), h.Y(String(node.y)), h.Width(String(NODE_WIDTH)),
       h.Height(String(NODE_HEIGHT)), h.Rx("12"), h.Fill(palette.fill),
@@ -170,7 +183,7 @@ const nodeView = (h: HtmlBuilder<Message>, id: NodeId, model: Model) => {
 
 const chart = (model: Model, h: HtmlBuilder<Message>) => h.div([h.Class("chart-scroll")], [
   h.svg([h.ViewBox("0 0 1450 810"), h.Role("img"),
-    h.AriaLabel("One-agent, one-review-item model: event-labeled data flow from agent edit through Hapsland and Jev to agent runtime output")], [
+    h.AriaLabel("One-agent, multiple-review-item model: event-labeled data flow from agent edit through Hapsland and Jev to agent runtime output")], [
     h.defs([], [
       h.marker([h.Id("arrow-muted"), h.ViewBox("0 0 10 10"), h.RefX("8"), h.RefY("5"),
         h.MarkerWidth("6"), h.MarkerHeight("6"), h.Orient("auto")], [
@@ -182,7 +195,7 @@ const chart = (model: Model, h: HtmlBuilder<Message>) => h.div([h.Class("chart-s
       ]),
     ]),
     h.text([h.X("30"), h.Y("28"), h.FontSize("13"), h.FontWeight("700"), h.Fill("#34516e")], [
-      "Model scope: one agent · one review item at a time",
+      `Model scope: one agent · multiple items · ${MAX_ACTIVE_REVIEW_JOBS} active review jobs`,
     ]),
     ...CONNECTIONS.map((events, index) => arrow(h, events, index + 1, model.lastEvent !== null && events.includes(model.lastEvent))),
     ...NODE_IDS.map((id) => nodeView(h, id, model)),
@@ -207,8 +220,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const trace = TRACES[model.trace];
   const next = trace?.events[model.cursor];
   const previous = model.cursor > 0 ? trace?.events[model.cursor - 1] : undefined;
-  const liveItems = model.flow.workSlot === null ? model.flow.packets
-    : [{ at: "workSlot" as const, flavor: model.flow.workSlot }, ...model.flow.packets];
+  const liveItems = model.flow.packets;
   return {
     title: "Hapsland · agent flow visualization",
     body: h.main([h.Class("page")], [
@@ -220,7 +232,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           "One agent reports edits and receives advice through Claude Code or Codex. The runtime adapter identifies the agent. A sidecar reducer drives this data-flow example.",
         ]),
         h.p([h.Class("caveat")], [
-          "One agent, one review item; no live connection. This reducer does not simulate multiple agents or tabs.",
+          `One agent, multiple review items, a FIFO work queue, and at most ${MAX_ACTIVE_REVIEW_JOBS} active preparation or evaluation jobs. No live connection or multiple-agent simulation.`,
         ]),
       ]),
       h.section([h.Class("chart-panel")], [
@@ -248,11 +260,19 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
             h.span([h.Class("key-hint")], ["← / → keys"]),
           ]),
           h.p([h.Class("progress")], [trace ? `Step ${model.cursor} of ${trace.events.length}` : "Free play"]),
+          h.h3([], ["Event history"]),
+          h.p([h.Class("description")], ["Select a completed step to return to its resulting state; later steps are then discarded."]),
+          h.div([h.Class("history")], [
+            h.button([h.OnClick(Message.JumpedToHistory({ count: 0 }))], ["Initial state"]),
+            ...model.history.map((step, index) => h.button([
+              h.OnClick(Message.JumpedToHistory({ count: index + 1 })),
+            ], [`${index + 1}. ${EVENT_LABELS[step.event]}${step.itemId === null ? "" : ` · #${step.itemId}`}`])),
+          ]),
           h.p([h.Class("status")], [model.feedback]),
           h.h3([], ["Live review data in this virtual round"]),
           h.div([h.Class("packets")], liveItems.map((packet) =>
             h.div([h.Class("packet")], [
-              h.strong([], [packet.flavor]),
+              h.strong([], [`#${packet.id} ${packet.flavor}`]),
               h.span([], [NODES[packet.at].label]),
             ]))),
           h.h3([], ["Emitted outcomes — example history"]),
@@ -260,24 +280,24 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           h.div([h.Class("packets")], model.emissions.length === 0
             ? [h.p([h.Class("description")], ["No response or status update emitted yet."])]
             : model.emissions.map((item) => h.div([h.Class("packet")], [
-              h.strong([], [EMISSION_LABELS[item.event]]), h.span([], [NODES[item.at].label]),
+              h.strong([], [`#${item.itemId} ${EMISSION_LABELS[item.event]}`]), h.span([], [NODES[item.at].label]),
             ]))),
           h.p([h.Class("state-line")], [
-            `Virtual round ${model.flow.virtualRoundId} (${model.flow.virtualRoundActive ? "active" : "closed"}) · Stop continuation requests ${model.flow.stopContinuations}/${MAX_STOP_CONTINUATIONS} · ` +
+            `Virtual round ${model.flow.virtualRoundId} (${model.flow.virtualRoundActive ? "active" : "closed"}) · active review jobs ${activeReviewJobCount(model.flow)}/${MAX_ACTIVE_REVIEW_JOBS} · Stop continuation requests ${model.flow.stopContinuations}/${MAX_STOP_CONTINUATIONS} · ` +
             `reserved batch ${model.flow.leaseSurface ?? "none"} · last response ${model.flow.lastSubmissionSurface ?? "none"}`,
           ]),
         ]),
         h.section([h.Class("card")], [
           h.h2([], ["Events, prerequisites, and information"]),
-          h.p([h.Class("description")], ["Choose any available event in any order. Disabled events show what is missing in the current state. This example accepts only its known event types, without custom payloads."]),
+          h.p([h.Class("description")], ["Choose an event for a specific item. Add more edits at any time in an active virtual round; queued items wait in FIFO order. Disabled actions show what is missing or why an item must wait. The two active-job slots follow the current resident constant; exact production scheduling is outside this sidecar."]),
           h.div([h.Class("events")], nextEventOptions(model.flow).map((option) => {
             const event = option.event;
             const transition = routeFor(event);
-            return h.button([h.OnClick(Message.TriggeredEvent({ event })), h.Disabled(!option.available),
+            return h.button([h.OnClick(Message.TriggeredEvent({ event, itemId: option.itemId })), h.Disabled(!option.available),
               h.Class(option.available ? "event-row available" : "event-row unavailable")], [
               h.span([h.Class("event-number")], [String(CONNECTIONS.findIndex((events) => events.includes(event)) + 1)]),
               h.span([h.Class("event-copy")], [
-                h.strong([], [EVENT_LABELS[event]]),
+                h.strong([], [`${EVENT_LABELS[event]}${option.itemId === null ? "" : ` · item #${option.itemId}`}`]),
                 h.small([], [eventLabel(event)]),
                 h.small([], [transition.kind === "data"
                   ? `${transition.input} → ${transition.output}${transition.movement === "copy" ? " · source retained" : ""}`

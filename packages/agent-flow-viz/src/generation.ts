@@ -22,14 +22,21 @@ export const projectSequence = (events: readonly EventId[], title: string): read
 export const PROJECTED_TRACES = TRACES.map((trace) => projectSequence(trace.events, trace.name));
 
 export type EventOption =
-  | { readonly event: EventId; readonly available: true }
-  | { readonly event: EventId; readonly available: false; readonly reason: RejectionCode };
+  | { readonly event: EventId; readonly itemId: number | null; readonly available: true }
+  | { readonly event: EventId; readonly itemId: number | null; readonly available: false; readonly reason: RejectionCode };
 
 // Probe the pure reducer. This creates no new domain state and cannot change the
 // current flow; the actual click runs stepFlow again against the latest state.
-export const nextEventOptions = (state: FlowState): readonly EventOption[] => EVENT_IDS.map((event) => {
-  const result = stepFlow(state, event);
-  return result.accepted ? { event, available: true } : { event, available: false, reason: result.reason };
+export const nextEventOptions = (state: FlowState): readonly EventOption[] => EVENT_IDS.flatMap((event) => {
+  const route = routeFor(event);
+  const candidates = route.kind === "data" && event !== "EditObserved"
+    ? state.packets.filter((packet) => packet.at === route.from && packet.flavor === route.input).map((packet) => packet.id)
+    : [];
+  const ids: readonly (number | null)[] = candidates.length > 0 ? [...new Set(candidates)] : [null];
+  return ids.map((itemId) => {
+    const result = stepFlow(state, event, itemId ?? undefined);
+    return result.accepted ? { event, itemId, available: true } : { event, itemId, available: false, reason: result.reason };
+  });
 });
 
 const routes = new Map<EventId, Transition>();

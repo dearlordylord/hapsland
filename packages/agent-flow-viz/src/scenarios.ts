@@ -2,6 +2,13 @@ import { MAX_STOP_CONTINUATIONS, type EventId } from "./flow";
 
 // Editorial situations to replay. Routes and state changes come from the reducer.
 export const TRACES = [
+  { name: "Several items at once", description: "Three edits enter one agent's virtual round. Two reviews run at Jev while the third capture job waits. Handling the first result frees a dispatch slot for that job. Item numbers identify each review item.", events: [
+    "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched", "JevRequestSent",
+    "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched", "JevRequestSent",
+    "EditObserved", "JevResponseReceived", "FindingRetained",
+    "IngressStarted", "ReviewUnitPrepared", "UnitDispatched", "JevRequestSent", "StopHookFired",
+    "AdviceLeasedByStop", "HostOutputSubmitted", "StopHookFired", "StopAllowed",
+  ] },
   { name: "Send advice after a tool", description: "The after-tool hook asks for advice. Hapsland selects a finding and writes the hook response. The agent runtime controls further use.", events: [
     "EditObserved", "IngressStarted", "ReviewUnitPrepared", "UnitDispatched",
     "JevRequestSent", "JevResponseReceived", "FindingRetained", "BackgroundHookFired",

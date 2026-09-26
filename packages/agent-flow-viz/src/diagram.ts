@@ -7,9 +7,9 @@ type NodeSpec = { readonly label: string; readonly detail: string; readonly note
 // coordinates and descriptions do not participate in state transitions.
 export const NODES = {
   agentEdit: { label: "Agent", detail: "edit and hook events for one agent", notes: ["Claude Code / Codex adapter"], role: "external", x: 30, y: 332 },
-  workSlot: { label: "Review work slot", detail: "holds one capture or review item", notes: ["capacity: one item in this model", "capture job → review work item"], role: "storage", x: 320, y: 52 },
-  preparation: { label: "Read and analyze source", detail: "capture job → review work item", notes: ["returns the item to the work slot"], role: "process", x: 610, y: 52 },
-  decisionRequest: { label: "Build review input", detail: "review work item → decision request", notes: ["one modeled review item"], role: "process", x: 900, y: 52 },
+  workQueue: { label: "Review work queue", detail: "FIFO capture and review items", notes: ["multiple items can wait", "capture job → review work item"], role: "storage", x: 320, y: 52 },
+  preparation: { label: "Read and analyze source", detail: "capture job → review work item", notes: ["returns each item to the work queue"], role: "process", x: 610, y: 52 },
+  decisionRequest: { label: "Build review input", detail: "review work item → decision request", notes: ["each item keeps its own ID"], role: "process", x: 900, y: 52 },
   jev: { label: "Jev", detail: "evaluates the review input", notes: ["external review backend", "returns a judgment or fails"], role: "external", x: 1190, y: 52 },
   decisionResponse: { label: "Read Jev result", detail: "finding or no finding", notes: ["finding → pending advice", "no finding → review status"], role: "process", x: 1190, y: 332 },
   adviceStore: { label: "Pending advice", detail: "retained finding in this model", notes: ["background or Stop can select it", "Stop reoffer keeps the same finding*"], role: "storage", x: 900, y: 332 },
@@ -24,7 +24,7 @@ export const EVENT_LABELS = {
   StopAllowed: "allow Stop; close virtual round",
   EditObserved: "proven fresh edit admitted",
   IngressStarted: "start source capture",
-  ReviewUnitPrepared: "prepared review item enters work slot",
+  ReviewUnitPrepared: "prepared review item enters work queue",
   UnitDispatched: "unit dispatched",
   JevRequestSent: "Jev request sent",
   JevResponseReceived: "Jev response received",
@@ -46,7 +46,6 @@ export const EMISSION_LABELS = {
 } as const satisfies Record<EmissionEvent, string>;
 
 export const REJECTION_LABELS = {
-  itemAlreadyActive: "This model follows one review item at a time. Finish or discard it before another edit.",
   virtualRoundClosed: "This virtual round is closed. Only a fresh attributed edit can open another one.",
   stopNotWaiting: "Stop has not requested a decision.",
   unexpectedControl: "This control event cannot move review data.",
@@ -59,13 +58,14 @@ export const REJECTION_LABELS = {
   leaseBusy: "Another collector already holds the advice lease.",
   noLease: "No delivery lease exists.",
   missingPacket: "The required data item is not at this step.",
-  workSlotOccupied: "The review work slot already holds an item.",
+  dispatchCapacityReached: "Both review job slots are in use; wait for a job to finish.",
+  queueOrder: "An earlier queued item must start first.",
 } as const satisfies Record<RejectionCode, string>;
 
 export const describeAccepted = (before: FlowState, after: FlowState, event: EventId, route: Transition): string => {
   if (event === "EditObserved") return before.virtualRoundActive
-    ? "The virtual round remains active. The edit entered the review work slot."
-    : "An attributed edit opened a virtual round and entered the review work slot.";
+    ? "The virtual round remains active. The edit entered the review work queue."
+    : "An attributed edit opened a virtual round and entered the review work queue.";
   if (event === "StopAllowed") return "Hapsland allowed Stop and closed its virtual round. Modeled work was discarded; another hook may continue the agent's round.";
   if (event === "StopHookFired") return "The agent is trying to finish. Hapsland waits for review work; its virtual round remains active.";
   if (event === "BackgroundHookFired") return "The runtime requested background advice for this agent.";

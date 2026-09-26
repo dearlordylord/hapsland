@@ -10,11 +10,13 @@ npm run dev
 ```
 
 Select a guided example, move to its next or previous event, or apply an event
-directly. The process diagram groups
+directly. The event history lets you return to any completed step and branch
+from there. The process diagram groups
 related events into one numbered connection. The event list shows each variant,
 its information, and whether its prerequisites currently hold. The event panel
-probes every known event against the current reducer state: accepted events are
-selectable, while unavailable events are disabled with a reason. An actual click
+probes every known event and each item at its input location against the current
+reducer state: accepted item-specific actions are selectable, while unavailable
+actions are disabled with a reason. An actual click
 runs the reducer again, so the panel does not introduce a separate validity rule.
 Left and Right Arrow move through a guided example when focus is outside text inputs.
 
@@ -30,12 +32,15 @@ The build checks that every native timing row names a retained source and has
 a valid interval. It cannot prove that a transcribed time matches its source.
 
 The sidecar model follows one agent at a time. Runtime adapters handle session and
-subagent identifiers; the reducer carries no agent identifier or root/child branches. It models one
-resident lifetime and one review item at a time, not concurrent agents or tabs.
-Its `workSlot` is explicitly empty, a capture job, or a review work item.
-The separate `packets` array holds data at other locations, such as pending
-advice and an active lease; its type excludes the work slot. No agent-ID map is
-needed for this one-agent model.
+subagent identifiers; the reducer carries no agent identifier or root/child branches.
+It models one resident lifetime with multiple review items, not concurrent agents
+or tabs. Each packet has a stable item ID and a typed location. The `workQueue`
+location is FIFO and can hold capture jobs and prepared review items. Other items
+can be preparing, awaiting a Jev send, in flight at Jev, awaiting result handling,
+or pending as advice at the same time. The model allows two active preparation or evaluation jobs, matching the current
+production `BACKEND_CONCURRENCY` constant; it does not replicate the resident
+dispatch cycles or scheduling timing. No agent-ID map
+is needed for this one-agent model.
 
 A round is an episode of agent work whose actual end is controlled by the agent
 runtime. Hapsland may not observe that end. A virtual round is Hapsland's own
@@ -58,17 +63,17 @@ The four-request bound applies per virtual round while one resident process
 runs. A resident restart resets the count by accepted product policy; count
 persistence across restarts is not planned.
 
-The same review work slot holds a capture job and later a review work item.
+The review work queue holds capture jobs and later prepared review work items.
 Review status is an operation,
 not an invented outcome store. Completed response writes and status updates leave
 the payload flow. Example history records these emissions only for the page; it
 cannot feed pending-advice selection and is not retained production advice.
 
-Background advice remains available for one Stop reoffer in the same virtual round,
+Each background-submitted finding remains available for one Stop reoffer in the same virtual round,
 including when written during the Stop wait. Stop output retires that advice;
 round closure discards all advice. Distinct findings can justify another Stop
-continuation without a fresh edit in the contract; this one-item model does
-not simulate multiple findings or overflow. The page ends at the hook response write and
+continuation without a fresh edit. This model can hold several distinct findings,
+but it does not simulate delivery batch sizing or overflow. The page ends at the hook response write and
 has no modeled receipt or advice-consumption event. The agent runtime owns its
 further use. The #105 candidate implements reoffer and round cleanup; this
 model covers only the subset described here. It does not simulate size limits, deadlines, relevance
@@ -107,8 +112,8 @@ paths supply event order only: `generation.ts` replays them through `stepFlow`
 and derives their labels, state, and changes from accepted steps. The page labels
 this partial reducer coverage. Those checks establish acceptance of the abstract
 companion path; they do not validate native timestamps or prove unobserved runtime
-behavior. The existing reducer cannot replay a repair while background advice
-remains retained; this limit is explicit in that case.
+behavior. A repair edit can enter while earlier background advice remains
+retained, although its native timing still comes from separate evidence.
 
 The timeline is a Foldkit view in `timeline-view.ts`. The flow graph and abstract
 companions share the reducer projection. Native timing rows remain separate
