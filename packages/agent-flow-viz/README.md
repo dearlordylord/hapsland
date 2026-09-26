@@ -39,3 +39,8 @@ The diagram uses one Agent actor: session identity plus an optional native child
 agent ID. Claude Code and Codex are adapter metadata on that actor. It does not
 merge identities across sessions or children. The reducer still simulates one
 agent only; it does not demonstrate concurrent agents or multiple tabs.
+
+Known model gap: the current reducer requires a prompt before a main agent's
+edit or background advice request. Production Hapsland can review edits and
+collect background advice without a Stop allowance. The reducer also branches
+on `agentKind`; the proposed uniform Agent model has not been applied yet.
