@@ -8,7 +8,7 @@ import { describeAccepted, EMISSION_LABELS, EVENT_LABELS, NODES, REJECTION_LABEL
 import { CONNECTIONS, PROJECTED_TRACES, nextEventOptions, routeFor } from "./generation";
 import { TRACES } from "./scenarios";
 import {
-  EVENT_IDS, FlowStateSchema, MAX_ACTIVE_REVIEW_JOBS, MAX_STOP_CONTINUATIONS, NODE_IDS,
+  EVENT_IDS, FlowStateSchema, MAX_STOP_CONTINUATIONS, NODE_IDS,
   activeReviewJobCount, initialFlow, stepFlow, type EventId, type FlowState, type NodeId, type Transition,
 } from "./flow";
 
@@ -19,10 +19,11 @@ export const Model = Schema.Struct({
   flow: FlowStateSchema,
   guidedBindings: Schema.Array(Schema.Struct({ plannedId: Schema.Number, actualId: Schema.Number })),
   historyPosition: Schema.Number,
-  history: Schema.Array(Schema.Struct({
-    event: Schema.Literals(EVENT_IDS), itemId: Schema.Union([Schema.Null, Schema.Number]),
-    origin: Schema.Literals(["guided", "manual"]),
-  })),
+  history: Schema.Array(Schema.Union([
+    Schema.Struct({ kind: Schema.Literal("flow"), event: Schema.Literals(EVENT_IDS),
+      itemId: Schema.Union([Schema.Null, Schema.Number]), origin: Schema.Literals(["guided", "manual"]) }),
+    Schema.Struct({ kind: Schema.Literal("capacity"), capacity: Schema.Number }),
+  ])),
   lastEvent: Schema.Union([Schema.Null, Schema.Literals(EVENT_IDS)]),
   feedback: Schema.String,
   emissions: Schema.Array(Schema.Struct({
@@ -40,6 +41,7 @@ export const Message = defineMessageUnion({
   Rewound: {},
   Redid: {},
   TriggeredEvent: { event: Schema.Literals(EVENT_IDS), itemId: Schema.Union([Schema.Null, Schema.Number]) },
+  CapacitySubmitted: { raw: Schema.String },
   JumpedToHistory: { count: Schema.Number },
   Reset: {},
 });
@@ -81,9 +83,9 @@ const applyEvent = (model: Model, event: EventId, origin: EventOrigin, itemId?: 
     : REJECTION_LABELS[result.reason] };
   const actualId = result.changes.find((change) => change.kind === "transition")?.itemId ?? null;
   const plannedId = origin === "guided" && event === "EditObserved" ? plannedItemAt(model) : null;
-  const recorded = { event, itemId: actualId, origin };
+  const recorded = { kind: "flow" as const, event, itemId: actualId, origin };
   const nextRecorded = model.history[model.historyPosition];
-  const followsTail = nextRecorded !== undefined && nextRecorded.event === recorded.event &&
+  const followsTail = nextRecorded?.kind === "flow" && nextRecorded.event === recorded.event &&
     nextRecorded.itemId === recorded.itemId && nextRecorded.origin === recorded.origin;
   const emitted = result.changes.flatMap((change) => change.kind === "emitted"
     ? [{ event: change.event, at: change.at, itemId: change.itemId }] : []);
@@ -99,13 +101,28 @@ const applyEvent = (model: Model, event: EventId, origin: EventOrigin, itemId?: 
   };
 };
 
+const applyCapacity = (model: Model, capacity: number): Model => {
+  const result = stepFlow(model.flow, { type: "ReviewCapacitySet", capacity });
+  if (!result.accepted) return { ...model, feedback: REJECTION_LABELS[result.reason] };
+  const nextRecorded = model.history[model.historyPosition];
+  const followsTail = nextRecorded?.kind === "capacity" && nextRecorded.capacity === capacity;
+  return { ...model, flow: result.state, lastEvent: null,
+    history: followsTail ? model.history : [...model.history.slice(0, model.historyPosition), { kind: "capacity", capacity }],
+    historyPosition: model.historyPosition + 1,
+    feedback: `Review job capacity set to ${capacity}. ${activeReviewJobCount(result.state)} job${activeReviewJobCount(result.state) === 1 ? " is" : "s are"} currently active.`,
+  };
+};
+
 const replayHistory = (model: Model, count: number): Model => {
   const position = Math.max(0, Math.min(model.history.length, count));
   let replayed = { ...reset(model.trace), timeline: model.timeline };
   for (const step of model.history.slice(0, position)) {
-    const input = step.origin === "guided" ? guidedInput(replayed) : null;
-    replayed = applyEvent(replayed, step.event, step.origin,
-      step.origin === "manual" ? step.itemId ?? undefined : input?.itemId);
+    if (step.kind === "capacity") replayed = applyCapacity(replayed, step.capacity);
+    else {
+      const input = step.origin === "guided" ? guidedInput(replayed) : null;
+      replayed = applyEvent(replayed, step.event, step.origin,
+        step.origin === "manual" ? step.itemId ?? undefined : input?.itemId);
+    }
   }
   return { ...replayed, history: model.history, historyPosition: position };
 };
@@ -127,6 +144,7 @@ export const update = (model: Model, message: Message) =>
     },
     Redid: () => ({ model: model.historyPosition === model.history.length ? model : replayHistory(model, model.historyPosition + 1) }),
     TriggeredEvent: ({ event, itemId }) => ({ model: applyEvent(model, event, "manual", itemId ?? undefined) }),
+    CapacitySubmitted: ({ raw }) => ({ model: applyCapacity(model, Number(raw)) }),
     JumpedToHistory: ({ count }) => ({ model: replayHistory(model, count) }),
   });
 
@@ -237,7 +255,7 @@ const chart = (model: Model, h: HtmlBuilder<Message>) => h.div([h.Class("chart-s
       ]),
     ]),
     h.text([h.X("30"), h.Y("28"), h.FontSize("13"), h.FontWeight("700"), h.Fill("#34516e")], [
-      `Model scope: one agent · multiple items · ${MAX_ACTIVE_REVIEW_JOBS} active review jobs`,
+      `Model scope: one agent · multiple items · ${model.flow.reviewCapacity} job slots (settable)`,
     ]),
     ...CONNECTIONS.map((events, index) => arrow(h, events, index + 1, model.lastEvent !== null && events.includes(model.lastEvent))),
     ...NODE_IDS.map((id) => nodeView(h, id, model)),
@@ -257,6 +275,9 @@ const eventLabel = (event: EventId): string => {
   const transition = routeFor(event);
   return `${EVENT_LABELS[event]} · ${NODES[transition.from].label} → ${NODES[transition.to].label}`;
 };
+const historyLabel = (step: Model["history"][number]): string => step.kind === "capacity"
+  ? `Capacity set to ${step.capacity}`
+  : `${step.origin === "guided" ? "Guided" : "Manual"}: ${EVENT_LABELS[step.event]}${step.itemId === null ? "" : ` · #${step.itemId}`}`;
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const trace = TRACES[model.trace];
@@ -276,7 +297,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           "One agent reports edits and receives advice through Claude Code or Codex. The runtime adapter identifies the agent. A sidecar reducer drives this data-flow example.",
         ]),
         h.p([h.Class("caveat")], [
-          `One agent, multiple review items, a FIFO work queue, and at most ${MAX_ACTIVE_REVIEW_JOBS} active preparation or evaluation jobs. No live connection or multiple-agent simulation.`,
+          `One agent, multiple review items, a FIFO work queue, and ${model.flow.reviewCapacity} configured preparation or evaluation job slots. No live connection or multiple-agent simulation.`,
         ]),
       ]),
       h.section([h.Class("chart-panel")], [
@@ -285,6 +306,13 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           h.span([], ["Scroll horizontally on narrow screens"]),
         ]),
         chart(model, h),
+      ]),
+      h.section([h.Class("capacity-control")], [
+        h.label([h.For("review-capacity")], ["Active review job slots (N)"]),
+        h.input([h.Id("review-capacity"), h.Type("number"), h.Min("1"), h.Step("1"),
+          h.Value(String(model.flow.reviewCapacity)),
+          h.OnChange((raw) => Message.CapacitySubmitted({ raw }))]),
+        h.p([], ["Changing N is a reducer event recorded in history. If N falls below the active-job count, those jobs finish normally; no new job starts until a slot is available."]),
       ]),
       h.div([h.Class("below")], [
         h.section([h.Class("card")], [
@@ -295,10 +323,10 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           h.p([h.Class("description")], [trace?.description ?? "Free play: choose any event below."]),
           h.div([h.Class("trace-controls")], [
             h.button([h.OnClick(Message.Rewound()), h.Disabled(previous === undefined)], [
-              previous === undefined ? "Previous" : `Previous ${previous.origin}: ${EVENT_LABELS[previous.event]}`,
+              previous === undefined ? "Previous" : `Previous: ${historyLabel(previous)}`,
             ]),
             h.button([h.OnClick(Message.Redid()), h.Disabled(redo === undefined)], [
-              redo === undefined ? "Redo" : `Redo ${redo.origin}: ${EVENT_LABELS[redo.event]}`,
+              redo === undefined ? "Redo" : `Redo: ${historyLabel(redo)}`,
             ]),
             h.button([h.OnClick(Message.Advanced()), h.Class("primary"), h.Disabled(next === undefined)], [
               next === undefined ? "Trace complete" : `Next: ${EVENT_LABELS[next]}`,
@@ -307,7 +335,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
             h.span([h.Class("key-hint")], ["← / → keys"]),
           ]),
           h.p([h.Class("progress")], [trace
-            ? `Guided step ${model.cursor} of ${trace.events.length} · ${model.history.slice(0, model.historyPosition).filter((entry) => entry.origin === "manual").length} manual events · history ${model.historyPosition}/${model.history.length}`
+            ? `Guided step ${model.cursor} of ${trace.events.length} · ${model.history.slice(0, model.historyPosition).filter((entry) => entry.kind === "capacity" || entry.origin === "manual").length} manual events · history ${model.historyPosition}/${model.history.length}`
             : "Free play"]),
           h.h3([], ["Event history"]),
           h.p([h.Class("description")], ["Select any recorded step to move there. Future steps remain available for redo until a different event replaces that tail."]),
@@ -317,7 +345,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
             ...model.history.map((step, index) => h.button([
               h.OnClick(Message.JumpedToHistory({ count: index + 1 })),
               h.Class(index + 1 === model.historyPosition ? "current" : index + 1 < model.historyPosition ? "past" : "future"),
-            ], [`${index + 1}. ${step.origin === "guided" ? "Guided" : "Manual"}: ${EVENT_LABELS[step.event]}${step.itemId === null ? "" : ` · #${step.itemId}`}`])),
+            ], [`${index + 1}. ${historyLabel(step)}`])),
           ]),
           h.p([h.Class("status")], [model.feedback]),
           ...(blocked === null ? [] : [h.p([h.Class("status blocked")], [blocked])]),
@@ -335,13 +363,13 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
               h.strong([], [`#${item.itemId} ${EMISSION_LABELS[item.event]}`]), h.span([], [NODES[item.at].label]),
             ]))),
           h.p([h.Class("state-line")], [
-            `Virtual round ${model.flow.virtualRoundId} (${model.flow.virtualRoundActive ? "active" : "closed"}) · active review jobs ${activeReviewJobCount(model.flow)}/${MAX_ACTIVE_REVIEW_JOBS} · Stop continuation requests ${model.flow.stopContinuations}/${MAX_STOP_CONTINUATIONS} · ` +
+            `Virtual round ${model.flow.virtualRoundId} (${model.flow.virtualRoundActive ? "active" : "closed"}) · active review jobs ${activeReviewJobCount(model.flow)}/${model.flow.reviewCapacity} · Stop continuation requests ${model.flow.stopContinuations}/${MAX_STOP_CONTINUATIONS} · ` +
             `reserved batch ${model.flow.leaseSurface ?? "none"} · last response ${model.flow.lastSubmissionSurface ?? "none"}`,
           ]),
         ]),
         h.section([h.Class("card")], [
           h.h2([], ["Events, prerequisites, and information"]),
-          h.p([h.Class("description")], ["Choose an event for a specific item. Manual events interleave with the selected guided trace without advancing it. Add more edits at any time in an active virtual round; queued items wait in FIFO order. Disabled actions show what is missing or why an item must wait. The two active-job slots follow the current resident constant; exact production scheduling is outside this sidecar."]),
+          h.p([h.Class("description")], ["Choose an event for a specific item. Manual events interleave with the selected guided trace without advancing it. Add more edits at any time in an active virtual round; queued items wait in FIFO order. Disabled actions show what is missing or why an item must wait. N is set above; scheduling still requires explicit start events in this sidecar."]),
           h.div([h.Class("events")], nextEventOptions(model.flow).map((option) => {
             const event = option.event;
             const transition = routeFor(event);

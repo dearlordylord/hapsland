@@ -93,6 +93,7 @@ export const PacketSchema = Schema.Struct({
 export const FlowStateSchema = Schema.Struct({
   packets: Schema.Array(PacketSchema),
   nextItemId: Schema.Number,
+  reviewCapacity: Schema.Number,
   virtualRoundId: Schema.Number,
   virtualRoundActive: Schema.Boolean,
   stopContinuations: Schema.Number,
@@ -107,7 +108,7 @@ export const FlowStateSchema = Schema.Struct({
 export type FlowState = typeof FlowStateSchema.Type;
 
 export const MAX_STOP_CONTINUATIONS = 4;
-export const MAX_ACTIVE_REVIEW_JOBS = 2;
+export const DEFAULT_REVIEW_CAPACITY = 3;
 export const ACTIVE_REVIEW_LOCATIONS = ["preparation", "decisionRequest", "jev", "decisionResponse"] as const satisfies readonly LivePacketNode[];
 export const activeReviewJobCount = (state: FlowState): number =>
   state.packets.filter((packet) => (ACTIVE_REVIEW_LOCATIONS as readonly string[]).includes(packet.at)).length;
@@ -115,6 +116,7 @@ export const activeReviewJobCount = (state: FlowState): number =>
 export const initialFlow = (): FlowState => ({
   packets: [],
   nextItemId: 1,
+  reviewCapacity: DEFAULT_REVIEW_CAPACITY,
   virtualRoundId: 0,
   virtualRoundActive: false,
   stopContinuations: 0,
@@ -130,6 +132,7 @@ export const initialFlow = (): FlowState => ({
 export type EmissionEvent = "HostOutputSubmitted" | "ClearRecorded" | "JevUnavailable";
 export type FlowChange =
   | { readonly kind: "transition"; readonly event: EventId; readonly route: Transition; readonly itemId: number | null }
+  | { readonly kind: "capacityChanged"; readonly before: number; readonly after: number }
   | { readonly kind: "virtualRoundOpened"; readonly id: number }
   | { readonly kind: "virtualRoundClosed"; readonly id: number; readonly discardedItems: number }
   | { readonly kind: "emitted"; readonly event: EmissionEvent; readonly at: NodeId; readonly itemId: number };
@@ -137,7 +140,7 @@ export type RejectionCode =
   | "virtualRoundClosed" | "stopNotWaiting" | "unexpectedControl"
   | "backgroundAlreadySubmitted" | "backgroundNotRequested" | "stopNotRequested"
   | "continuationBudgetExhausted" | "reofferNeedsBackground" | "stopNeedsFreshAdvice"
-  | "leaseBusy" | "noLease" | "missingPacket" | "dispatchCapacityReached" | "queueOrder";
+  | "leaseBusy" | "noLease" | "missingPacket" | "dispatchCapacityReached" | "queueOrder" | "invalidCapacity";
 export type StepResult =
   | { readonly state: FlowState; readonly accepted: true; readonly changes: readonly FlowChange[] }
   | { readonly state: FlowState; readonly accepted: false; readonly changes: readonly []; readonly reason: RejectionCode };
@@ -162,7 +165,13 @@ const accepted = (before: FlowState, event: EventId, after: FlowState, itemId: n
 
 const isLivePacketNode = (node: NodeId): node is LivePacketNode =>
   (LIVE_PACKET_NODES as readonly string[]).includes(node);
-export const stepFlow = (state: FlowState, event: EventId, itemId?: number): StepResult => {
+export type CapacityEvent = { readonly type: "ReviewCapacitySet"; readonly capacity: number };
+export const stepFlow = (state: FlowState, event: EventId | CapacityEvent, itemId?: number): StepResult => {
+  if (typeof event !== "string") {
+    if (!Number.isSafeInteger(event.capacity) || event.capacity < 1) return rejected(state, "invalidCapacity");
+    return { accepted: true, state: { ...state, reviewCapacity: event.capacity },
+      changes: [{ kind: "capacityChanged", before: state.reviewCapacity, after: event.capacity }] };
+  }
   const transition = TRANSITIONS[event];
   if (event === "EditObserved") {
     const current = state.virtualRoundActive ? state : {
@@ -207,7 +216,7 @@ export const stepFlow = (state: FlowState, event: EventId, itemId?: number): Ste
     if (first?.id !== source.id) return rejected(state, "queueOrder");
   }
   if ((event === "IngressStarted" || event === "UnitDispatched") &&
-    activeReviewJobCount(state) >= MAX_ACTIVE_REVIEW_JOBS) {
+    activeReviewJobCount(state) >= state.reviewCapacity) {
     return rejected(state, "dispatchCapacityReached");
   }
   const nextPackets = [...state.packets];

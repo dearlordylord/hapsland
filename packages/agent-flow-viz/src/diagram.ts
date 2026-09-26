@@ -58,8 +58,9 @@ export const REJECTION_LABELS = {
   leaseBusy: "Another collector already holds the advice lease.",
   noLease: "No delivery lease exists.",
   missingPacket: "The required data item is not at this step.",
-  dispatchCapacityReached: "Both review job slots are in use; wait for a job to finish.",
+  dispatchCapacityReached: "All configured review job slots are in use; wait for a job to finish.",
   queueOrder: "An earlier queued item must start first.",
+  invalidCapacity: "Choose a positive whole number of job slots.",
 } as const satisfies Record<RejectionCode, string>;
 
 export const describeAccepted = (before: FlowState, after: FlowState, event: EventId, route: Transition): string => {

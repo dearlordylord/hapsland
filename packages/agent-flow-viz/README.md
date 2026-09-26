@@ -46,9 +46,13 @@ It models one resident lifetime with multiple review items, not concurrent agent
 or tabs. Each packet has a stable item ID and a typed location. The `workQueue`
 location is FIFO and can hold capture jobs and prepared review items. Other items
 can be preparing, awaiting a Jev send, in flight at Jev, awaiting result handling,
-or pending as advice at the same time. The model allows two active preparation or evaluation jobs, matching the current
-production `BACKEND_CONCURRENCY` constant; it does not replicate the resident
-dispatch cycles or scheduling timing. No agent-ID map
+or pending as advice at the same time. The reducer owns a settable positive
+capacity `N`, initially 3, for active preparation and evaluation jobs. Changing
+`N` is a reducer event in the same undo/redo history as flow events. Reducing it
+below current occupancy leaves running jobs in place and prevents new starts
+until occupancy falls below the new capacity. This temporary shared-capacity
+interpretation remains open for design discussion. The sidecar does not replicate
+the resident dispatch cycles or scheduling timing. No agent-ID map
 is needed for this one-agent model.
 
 A round is an episode of agent work whose actual end is controlled by the agent

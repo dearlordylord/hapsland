@@ -9,7 +9,7 @@ const subscriptions = Subscription.make<Model, Message>()((entry) => ({
     { canRewind: Schema.Boolean, canAdvance: Schema.Boolean },
     {
       modelToDependencies: (model) => ({
-        canRewind: model.trace >= 0 && model.cursor > 0,
+        canRewind: model.historyPosition > 0,
         canAdvance: model.cursor < (TRACES[model.trace]?.events.length ?? 0),
       }),
       dependenciesToStream: ({ canRewind, canAdvance }) => Subscription.keyBindings<Message>({
