@@ -11,6 +11,7 @@ and a shared admission/work/finish lifecycle. The resident now uses generated
 Bend for prospective admission and permits, source and review work identities, round and Stop
 transitions, final finding selection, per-finding leases, response limits,
 logical capacity, and the finish wait and cancellation decisions. Generated
+notice selection decides exact fit and host-specific skip or stop behavior.
 background-writer and operational-notice policies also decide their expiry
 and capacity boundaries. Generated collection policy decides readiness,
 expiry, and deterministic order. Generated delivery policy decides token

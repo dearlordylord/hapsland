@@ -20,6 +20,7 @@ try {
   if (!footer.test(source) || !source.includes("function $Handoff$select$(") ||
       !source.includes("function $Handoff$initial$(") ||
       !source.includes("function $Handoff$fits_batch$(") ||
+      !source.includes("function $Handoff$notice_offer$(") ||
       !source.includes("function $Handoff$lease$reserve$(") ||
       !source.includes("function $Handoff$lease$suppresses$(") ||
       !source.includes("function $Admission$step$(") ||
@@ -77,6 +78,8 @@ export const bendSelectionStep = (state, advice, prospectiveBytes) =>
   run_loop($Handoff$select$(state, normalize(advice), nat(prospectiveBytes)));
 export const bendFitsBatch = (items, bytes) =>
   run_loop($Handoff$fits_batch$(nat(items), nat(bytes)));
+export const bendNoticeOffer = (items, bytes, skipUnfitting) =>
+  run_loop($Handoff$notice_offer$(nat(items), nat(bytes), skipUnfitting));
 export const bendAdmissionInitial = (partition, lifetime) =>
   run_loop($Admission$initial$(nat(partition), nat(lifetime)));
 export const bendAdmissionStep = (state, partition, lifetime, event) =>

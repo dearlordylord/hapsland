@@ -1,6 +1,18 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.fitting_notice_is_included():
+  {==}
+
+def Laws.sixth_notice_stops_codex_prefix():
+  {==}
+
+def Laws.oversized_notice_skips_in_claude():
+  {==}
+
+def Laws.oversized_notice_stops_codex_prefix():
+  {==}
+
 def Laws.prospective_gate_accepts_exact_last_capacity_slot():
   {==}
 

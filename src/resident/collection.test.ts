@@ -179,4 +179,21 @@ describe("resident advice collection policy", () => {
     expect(selectFittingClaudeNotices(selected, [notice], "block-current-findings")).toEqual([notice]);
     expect(combinedClaudeOutput([], [notice], "block-current-findings")).not.toHaveProperty("decision");
   });
+
+  it("skips an unfitting Claude notice but stops the Codex notice prefix", () => {
+    const short = { kind: "backend" as const, suppressedCount: 0 };
+    const long = { kind: "credential" as const, suppressedCount: 0 };
+    const claudeBytes = encodedClaudeHostOutputBytes(combinedClaudeOutput(
+      [finding(0, "")], [short], "block-current-findings"));
+    const claudeFinding = finding(0, "x".repeat(MAX_COMBINED_RESPONSE_BYTES - claudeBytes));
+    expect(fitsClaudeReviewResponse([claudeFinding], [short], "block-current-findings")).toBe(true);
+    expect(fitsClaudeReviewResponse([claudeFinding], [long], "block-current-findings")).toBe(false);
+    expect(selectFittingClaudeNotices([claudeFinding], [long, short], "block-current-findings"))
+      .toEqual([short]);
+
+    const codexBytes = encodedHostOutputBytes(combinedReviewOutput([finding(0, "")], [short]));
+    const codexFinding = finding(0, "x".repeat(MAX_COMBINED_RESPONSE_BYTES - codexBytes));
+    expect(fitsCombinedResponse([[codexFinding]])).toBe(true);
+    expect(selectFittingNotices([codexFinding], [], [long, short])).toEqual([]);
+  });
 });

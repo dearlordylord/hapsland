@@ -14,6 +14,22 @@ import ./Delivery.bend as Delivery
 import ./Cache.bend as Cache
 import ./Ticket.bend as Ticket
 
+law fitting_notice_is_included:
+  {Handoff.notice_offer(5n, 2048n, False{}) ==
+    Handoff.IncludeNotice{} : Handoff.NoticeOffer}
+
+law sixth_notice_stops_codex_prefix:
+  {Handoff.notice_offer(6n, 100n, False{}) ==
+    Handoff.StopNotices{} : Handoff.NoticeOffer}
+
+law oversized_notice_skips_in_claude:
+  {Handoff.notice_offer(2n, 2049n, True{}) ==
+    Handoff.SkipNotice{} : Handoff.NoticeOffer}
+
+law oversized_notice_stops_codex_prefix:
+  {Handoff.notice_offer(2n, 2049n, False{}) ==
+    Handoff.StopNotices{} : Handoff.NoticeOffer}
+
 def permit_facts(duplicate: Bool, permit_count: Nat, round_count: Nat,
     new_round: Bool, event_count: Nat, after_close: Bool) -> Admission.ProspectiveFacts:
   Admission.ProspectiveFacts{True{}, True{}, after_close, duplicate,

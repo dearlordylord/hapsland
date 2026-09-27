@@ -17,7 +17,9 @@ finding count, and cancellation IDs.
   each advice item's actual work revision, current work generation, credential
   generations, age, and collection readiness to Bend. An individually
   oversized finding yields a bounded operational notice while its advice
-  remains resident-owned.
+  remains resident-owned. Bend also decides whether each measured notice fits
+  and whether an unfitting one is skipped (Claude) or ends the notice prefix
+  (Codex).
 - `Round.bend` owns the composed turn chain's active generation, exclusive
   Stop claim, four continuation slots, decision barrier, output reservation,
   closure fence, and permitted reopen. The resident maps native Stop strings
@@ -118,6 +120,11 @@ On 2026-09-27, from this worktree:
 - The prospective admission gate passed the focused composed-delivery and
   resident-server suite: 2 files and 76 tests. Six Bend laws cover clock and
   closure guards, duplicate events, and permit, round, and event limits.
+- The notice selection migration passed the focused collection,
+  terminal-collection, and resident-server suite: 3 files and 92 tests. Four
+  Bend laws cover exact item and byte limits plus the host-specific skip/stop
+  behavior; an integration case confirms a shorter notice follows an
+  unfitting notice only for Claude.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
   suite reported 65 passing files and 571 passing tests, with one file and
   two tests skipped.

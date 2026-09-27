@@ -19,6 +19,11 @@ type SelectResult is Data:
   Limited{state: Selection, id: Nat}
   Duplicate{state: Selection}
 
+type NoticeOffer is Data:
+  IncludeNotice{}
+  SkipNotice{}
+  StopNotices{}
+
 def initial(partition: Nat, round: Nat) -> Selection:
   Selection{partition, round, Nil{}, Nil{}, 0n, 0n}
 
@@ -35,6 +40,12 @@ def current(advice: Advice, partition: Nat, round: Nat) -> Bool:
 def fits_batch(+items: Nat, bytes: Nat) -> Bool:
   Bool.and(Nat.is_gt(items, 0n),
     Bool.and(Nat.is_le(items, 5n), Nat.is_le(bytes, 2048n)))
+
+# Claude may skip a notice that does not fit and consider later candidates;
+# Codex preserves a prefix and stops at the first one that does not fit.
+def notice_offer(items: Nat, bytes: Nat, skip_unfitting: Bool) -> NoticeOffer:
+  Bool.pick(NoticeOffer, fits_batch(items, bytes), IncludeNotice{},
+    Bool.pick(NoticeOffer, skip_unfitting, SkipNotice{}, StopNotices{}))
 
 def select.fit(state: Selection, id: Nat, prospective_bytes: Nat, fits: Bool) -> SelectResult:
   match state:

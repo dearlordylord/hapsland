@@ -48,6 +48,9 @@ export function bendSelectionStep(
   state: BendSelection, advice: BendAdvice, prospectiveBytes: number | bigint,
 ): BendSelectionResult;
 export function bendFitsBatch(items: number | bigint, bytes: number | bigint): boolean;
+export type BendNoticeOffer = { readonly $: "IncludeNotice" | "SkipNotice" | "StopNotices" };
+export function bendNoticeOffer(items: number | bigint, bytes: number | bigint,
+  skipUnfitting: boolean): BendNoticeOffer;
 
 export type BendAdmissionState = {
   readonly $: "AdmissionState";

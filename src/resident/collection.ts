@@ -4,6 +4,7 @@ import { encodedCodexHostOutputBytes } from "../direct-event/writer.ts";
 import { encodeClaudeHostOutputLine, type ClaudeHostOutput } from "../direct-event/claude-output.ts";
 import {
   bendFitsBatch,
+  bendNoticeOffer,
   bendSelectionInitial,
   bendSelectionStep,
   bendCollectionOrder,
@@ -274,8 +275,17 @@ export const selectFittingClaudeNotices = (
   mode: ClaudeOutputMode,
 ): ReadonlyArray<OperationalNotice> => {
   const selected: Array<OperationalNotice> = [];
-  for (const notice of candidates) {
-    if (fitsClaudeReviewResponse(findings, [...selected, notice], mode)) selected.push(notice);
+  try {
+    for (const notice of candidates) {
+      const next = [...selected, notice];
+      const offer = bendNoticeOffer(findings.length + next.length,
+        encodedClaudeHostOutputBytes(combinedClaudeOutput(findings, next, mode)), true);
+      if (offer.$ === "IncludeNotice") selected.push(notice);
+      else if (offer.$ === "StopNotices") break;
+      else if (offer.$ !== "SkipNotice") return [];
+    }
+  } catch {
+    return [];
   }
   return selected;
 };
@@ -306,10 +316,17 @@ export const selectFittingNotices = (
   candidates: ReadonlyArray<OperationalNotice>,
 ): ReadonlyArray<OperationalNotice> => {
   const selected: Array<OperationalNotice> = [];
-  for (const notice of candidates) {
-    const next = [...retained, ...selected, notice];
-    if (!fitsCombinedReviewResponse(findings, next)) break;
-    selected.push(notice);
+  try {
+    for (const notice of candidates) {
+      const next = [...retained, ...selected, notice];
+      const offer = bendNoticeOffer(findings.length + next.length,
+        encodedHostOutputBytes(combinedReviewOutput(findings, next)), false);
+      if (offer.$ === "IncludeNotice") selected.push(notice);
+      else if (offer.$ === "StopNotices") break;
+      else if (offer.$ !== "SkipNotice") return [];
+    }
+  } catch {
+    return [];
   }
   return selected;
 };
