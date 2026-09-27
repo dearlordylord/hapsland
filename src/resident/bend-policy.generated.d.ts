@@ -215,6 +215,11 @@ export function bendRoundReserveOutput(state: BendRound, token: number | bigint)
 export function bendRoundReleaseOutput(state: BendRound, token: number | bigint): BendRoundStep;
 export function bendRoundFinishStop(state: BendRound, token: number | bigint,
   close: boolean, at: number | bigint): BendRoundStep;
+export type BendRoundStopTerminal = { readonly $: "StopTerminal";
+  readonly revoke_provisional: boolean; readonly close: boolean };
+export function bendRoundStopTerminal(hasOutput: boolean, authorized: boolean,
+  requestedClose: boolean): BendRoundStopTerminal;
+export function bendRoundExpireClose(barrier: boolean): boolean;
 export function bendRoundReopen(state: BendRound, generation: number | bigint): BendRoundStep;
 
 export type BendBackgroundWaiter = {

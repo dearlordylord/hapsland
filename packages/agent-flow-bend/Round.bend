@@ -10,6 +10,17 @@ type Step is Data:
   Granted{state: Round}
   Denied{state: Round}
 
+type StopTerminal is Data:
+  StopTerminal{revoke_provisional: Bool, close: Bool}
+
+def stop_terminal(+has_output: Bool, +authorized: Bool,
+    requested_close: Bool) -> StopTerminal:
+  StopTerminal{Bool.and(has_output, Bool.not(authorized)),
+    Bool.or(requested_close, Bool.and(has_output, Bool.not(authorized)))}
+
+def expire_close(barrier: Bool) -> Bool:
+  Bool.not(barrier)
+
 def initial() -> Round:
   Round{1n, True{}, 0n, 0n, 0n, False{}, False{}, False{}}
 

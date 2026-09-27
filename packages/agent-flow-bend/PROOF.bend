@@ -1,6 +1,21 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.provisional_stop_output_revokes_and_closes():
+  {==}
+
+def Laws.authorized_stop_output_keeps_requested_open():
+  {==}
+
+def Laws.ordinary_stop_close_is_preserved():
+  {==}
+
+def Laws.expired_stop_without_barrier_closes():
+  {==}
+
+def Laws.expired_stop_with_barrier_stays_open():
+  {==}
+
 def Laws.expired_notice_lease_drops_without_pending_expiry():
   {==}
 

@@ -6,6 +6,7 @@ import { DELIVERY_LEASE_MS } from "./protocol.ts";
 import {
   bendRoundActive, bendRoundBeginStop, bendRoundBudget,
   bendRoundConsume, bendRoundFinishStop, bendRoundInitial, bendRoundOwnsStop,
+  bendRoundStopTerminal, bendRoundExpireClose,
   bendRoundReopen, bendRoundMaxContinuations, type BendRound,
   bendLeaseInitial, bendLeaseOffer, bendLeaseAuthorize, bendLeaseTerminal,
   bendLeaseSuppresses, type BendLease, type BendLeaseSurface,
@@ -412,12 +413,16 @@ export class ComposedDelivery {
     if (stop?.token !== token || round === undefined) return undefined;
     // A provisional output has not crossed the IPC write boundary. If Stop
     // ends while that response is gated, release its slot and close the round.
-    if (stop.outputToken !== undefined && this.#finishPermits.get(stop.outputToken)?.selection.authorized !== true) {
+    const terminal = bendRoundStopTerminal(stop.outputToken !== undefined,
+      stop.outputToken !== undefined &&
+        this.#finishPermits.get(stop.outputToken)?.selection.authorized === true, close);
+    if (terminal.$ !== "StopTerminal") return undefined;
+    if (terminal.revoke_provisional && stop.outputToken !== undefined) {
       if (!this.revokeProvisionalFinishOutput(partition, token, stop.outputToken)) return undefined;
       round = this.#rounds.get(partition);
       if (round === undefined) return undefined;
-      close = true;
     }
+    close = terminal.close;
     const result = bendRoundFinishStop(round.policy, stop.id, close, Math.floor(Math.max(0, closedAt)));
     if (result.$ !== "Granted") return undefined;
     this.#rounds.set(partition, { ...round, policy: result.state });
@@ -464,7 +469,8 @@ export class ComposedDelivery {
     if (stop?.token !== token) return undefined;
     // An authorized output may have reached the runtime. Preserve its count
     // and round; finishStop releases any provisional output before closing.
-    return this.finishStop(partition, token, !this.#rounds.get(partition)?.policy.barrier);
+    return this.finishStop(partition, token,
+      bendRoundExpireClose(this.#rounds.get(partition)?.policy.barrier === true));
   }
 
   isDeciding(partition: string): boolean {

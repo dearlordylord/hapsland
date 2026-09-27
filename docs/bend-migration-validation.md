@@ -23,7 +23,9 @@ finding count, and cancellation IDs.
 - `Round.bend` owns the composed turn chain's active generation, exclusive
   Stop claim, four continuation slots, decision barrier, output reservation,
   closure fence, and permitted reopen. The resident maps native Stop strings
-  to positive IDs and retains host output details outside the model.
+  to positive IDs and retains host output details outside the model. Its Stop
+  terminal gate decides provisional-output revocation and closure; its expiry
+  gate decides closure from the decision barrier.
 - `Admission.bend` decides prospective permit admission from measured clock,
   identity, and capacity facts, then issues, consumes, releases, and closes
   source-free pre-edit permits, including a prospective round that closes
@@ -226,6 +228,10 @@ On 2026-09-27, from this worktree:
 - The notice pruning migration passed the focused resident-server and
   terminal-collection suite: 2 files and 80 tests. Four Bend laws cover
   expired leases, pending notices, excepted keys, and empty cooldown keys.
+- The abandoned-Stop terminal migration passed the focused composed-delivery
+  and resident-server suite: 2 files and 80 tests. Five Bend laws cover
+  provisional revocation, authorized output, requested closure, and expiry
+  with or without a decision barrier.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
   suite reported 65 passing files and 575 passing tests, with one file and
   two tests skipped.

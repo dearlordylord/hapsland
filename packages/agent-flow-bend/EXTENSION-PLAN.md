@@ -13,6 +13,7 @@ prepared-unit admission and empty-observation ticket disposition,
 evaluated-result retention, failure classification, and joined-ticket
 settlement,
 round and Stop transitions, final finding selection, per-finding leases, response limits,
+abandoned-Stop provisional revocation and closure,
 logical capacity, and the finish wait and cancellation decisions. Generated
 lease offer policy routes background terminal phases to the one-time Stop
 reoffer and other phases to ordinary reservation. Generated

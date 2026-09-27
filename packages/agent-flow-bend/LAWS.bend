@@ -17,6 +17,24 @@ import ./Revision.bend as Revision
 import ./Reuse.bend as Reuse
 import ./Retention.bend as Retention
 
+law provisional_stop_output_revokes_and_closes:
+  {Round.stop_terminal(True{}, False{}, False{}) ==
+    Round.StopTerminal{True{}, True{}} : Round.StopTerminal}
+
+law authorized_stop_output_keeps_requested_open:
+  {Round.stop_terminal(True{}, True{}, False{}) ==
+    Round.StopTerminal{False{}, False{}} : Round.StopTerminal}
+
+law ordinary_stop_close_is_preserved:
+  {Round.stop_terminal(False{}, False{}, True{}) ==
+    Round.StopTerminal{False{}, True{}} : Round.StopTerminal}
+
+law expired_stop_without_barrier_closes:
+  {Round.expire_close(False{}) == True{} : Bool}
+
+law expired_stop_with_barrier_stays_open:
+  {Round.expire_close(True{}) == False{} : Bool}
+
 law expired_notice_lease_drops_without_pending_expiry:
   {Notice.prune(True{}, True{}, True{}, False{}, False{}, False{}) ==
     Notice.Prune{True{}, False{}, False{}} : Notice.Prune}

@@ -71,6 +71,8 @@ type Smoke is Data:
     round_consume: Round.Step
     round_reserve: Round.Step
     round_finish: Round.Step
+    round_stop_terminal: Round.StopTerminal
+    round_expire_close: Bool
     round_reopen: Round.Step
     background_claim: Background.Step
     background_release: Background.Step
@@ -202,6 +204,8 @@ def main() -> Smoke:
     Round.consume(Round.initial()),
     Round.reserve_output(Round.Round{1n, True{}, 0n, 0n, 1n, False{}, True{}, False{}}, 1n),
     Round.finish_stop(Round.Round{1n, True{}, 0n, 0n, 1n, False{}, False{}, False{}}, 1n, True{}, 2n),
+    Round.stop_terminal(True{}, False{}, False{}),
+    Round.expire_close(False{}),
     Round.reopen(Round.Round{1n, False{}, 2n, 0n, 0n, False{}, False{}, False{}}, 2n),
     Background.claim(Background.initial(), 1n, True{}, 0n, 64n),
     Background.release(Background.Waiter{1n}, 1n),

@@ -39,7 +39,8 @@ try {
         "interrupt_observation", "interrupt_unit", "retire", "revise_finding", "unfinished", "pending_findings", "pending_for", "cancel_unfinished", "close"]
         .some((name) => !source.includes(`function $Work$${name}$(`)) ||
       ["initial", "max_continuations", "active", "budget", "begin_stop",
-        "owns_stop", "begin_decision", "consume", "reserve_output", "release_output", "finish_stop", "reopen"]
+        "owns_stop", "begin_decision", "consume", "reserve_output", "release_output", "finish_stop", "reopen",
+        "stop_terminal", "expire_close"]
         .some((name) => !source.includes(`function $Round$${name}$(`)) ||
       ["initial", "claim", "release", "expire"]
         .some((name) => !source.includes(`function $Background$${name}$(`)) ||
@@ -196,6 +197,10 @@ export const bendRoundReleaseOutput = (state, token) =>
   run_loop($Round$release_output$(state, nat(token)));
 export const bendRoundFinishStop = (state, token, close, at) =>
   run_loop($Round$finish_stop$(state, nat(token), close, nat(at)));
+export const bendRoundStopTerminal = (hasOutput, authorized, requestedClose) =>
+  run_loop($Round$stop_terminal$(hasOutput, authorized, requestedClose));
+export const bendRoundExpireClose = (barrier) =>
+  run_loop($Round$expire_close$(barrier));
 export const bendRoundReopen = (state, generation) =>
   run_loop($Round$reopen$(state, nat(generation)));
 export const bendBackgroundInitial = () => run_loop($Background$initial$());
