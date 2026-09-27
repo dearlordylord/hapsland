@@ -23,8 +23,10 @@ cancellation IDs, response limits, logical capacity, background-writer claims,
 notice cooldown admission, collection order, readiness, expiry, output-token
 phase transitions, and successful-review cache pressure. The generated files
 are checked against source hashes before the app builds or tests.
-`Lifecycle.bend` remains a tested aggregate model; the resident composes its
-generated admission, work, round, and handoff modules at their effect barriers.
+`Lifecycle.bend` now provides the resident's aggregate Stop cutoff, combining
+the Round decision fence and Work cancellation IDs in one transition. Other
+aggregate events remain tested models; the resident calls generated admission,
+work, round, and handoff modules at their effect barriers.
 
 Run `npm test` in this directory. It builds `flow.generated.js` and
 `lifecycle.generated.js` and the resident policy/ledger artifacts from Bend,

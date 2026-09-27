@@ -1,9 +1,10 @@
 import { createHash } from "node:crypto";
 import { monotonicNow, PRE_EDIT_ADMISSION_DEADLINE_MS } from "./hook-clock.ts";
 import { canonicalValue } from "../direct-event/model.ts";
+import { BendWorkTracker } from "./bend-work.ts";
 import { DELIVERY_LEASE_MS } from "./protocol.ts";
 import {
-  bendRoundActive, bendRoundBeginDecision, bendRoundBeginStop, bendRoundBudget,
+  bendRoundActive, bendRoundBeginStop, bendRoundBudget,
   bendRoundConsume, bendRoundFinishStop, bendRoundInitial, bendRoundOwnsStop,
   bendRoundReopen, bendRoundReserveOutput, bendRoundMaxContinuations, type BendRound,
   bendLeaseInitial, bendLeaseReserve, bendLeaseAuthorize, bendLeaseTerminal,
@@ -291,15 +292,16 @@ export class ComposedDelivery {
       bendRoundOwnsStop(round.policy, stop.id) && this.isActive(partition, stop.generation);
   }
 
-  beginFinishDecision(partition: string, token: string): boolean {
+  beginFinishDecision(partition: string, token: string, work = new BendWorkTracker()):
+    { readonly cancelledSource: number[]; readonly cancelledJev: number[] } | undefined {
     const stop = this.#stops.get(partition);
     const round = this.#rounds.get(partition);
-    if (stop?.token !== token || round === undefined) return false;
-    const result = bendRoundBeginDecision(round.policy, stop.id);
-    if (result.$ !== "Granted") return false;
-    this.#rounds.set(partition, { ...round, policy: result.state });
+    if (stop?.token !== token || round === undefined) return undefined;
+    const result = work.cutoff(round.policy, stop.id);
+    if (result === undefined) return undefined;
+    this.#rounds.set(partition, { ...round, policy: result.round });
     for (const [key, permit] of this.#permits) if (permit.partition === partition) this.#permits.delete(key);
-    return true;
+    return { cancelledSource: result.cancelledSource, cancelledJev: result.cancelledJev };
   }
 
   reserveFinishOutput(partition: string, attempt: string, outputToken: string,

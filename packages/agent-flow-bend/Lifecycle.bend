@@ -2,6 +2,7 @@ import Base
 import ./Admission.bend as Admission
 import ./Work.bend as Work
 import ./Handoff.bend as Handoff
+import ./Round.bend as Round
 
 # One advicee partition in one resident lifetime. Native identities are mapped
 # bijectively to Nat IDs by the adapter, then checked on every event here.
@@ -32,6 +33,29 @@ type Command is Data:
 type LifecycleResult is Data:
   Advanced{state: Lifecycle, command: Command}
   Denied{state: Lifecycle}
+
+# The resident uses this aggregate transition at the synchronous Stop barrier.
+# It publishes the Round decision fence and emits exact unfinished work IDs in
+# one pure step before the adapter cancels Effect jobs or selects host output.
+type CutoffResult is Data:
+  CutoffGranted{round: Round.Round, work: Work.Work,
+    cancelled_source: List<&2, Nat>, cancelled_jev: List<&2, Nat>}
+  CutoffDenied{round: Round.Round, work: Work.Work}
+
+def cutoff.granted(round: Round.Round, result: Work.CancelResult) -> CutoffResult:
+  match result:
+    case Work.Cancelled{work, source, jev}:
+      CutoffGranted{round, work, source, jev}
+
+def cutoff.round(work: Work.Work, result: Round.Step) -> CutoffResult:
+  match result:
+    case Round.Granted{round}:
+      cutoff.granted(round, Work.cancel_unfinished(work))
+    case Round.Denied{round}:
+      CutoffDenied{round, work}
+
+def cutoff(+round: Round.Round, work: Work.Work, token: Nat) -> CutoffResult:
+  cutoff.round(work, Round.begin_decision(round, token))
 
 def initial(partition: Nat, lifetime: Nat) -> Lifecycle:
   Lifecycle{Admission.initial(partition, lifetime), Work.initial(), Handoff.finish.initial(0n)}

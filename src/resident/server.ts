@@ -1482,9 +1482,9 @@ export class ResidentServer {
   }
 
   /** Cut off the pre-decision work cohort without retiring completed advice. */
-  #discardUnfinishedWork(round: RoundWork): boolean {
+  #discardUnfinishedWork(round: RoundWork, cancellation: {
+    readonly cancelledSource: ReadonlyArray<number>; readonly cancelledJev: ReadonlyArray<number> }): boolean {
     const work = round.work;
-    const cancellation = round.policyWork.cancelUnfinished();
     const sourceIds = new Set(cancellation.cancelledSource);
     const unitIds = new Set(cancellation.cancelledJev);
     const named = (job: Job): boolean => job.kind === "ingress"
@@ -2375,9 +2375,10 @@ export class ResidentServer {
           request.finish.deadlineReached, this.#composedDelivery.hasVirtualRoundContinuationBudget(group))) {
           return { status: "pending" };
         }
-        if (!this.#composedDelivery.beginFinishDecision(group, request.finish.token)) return { status: "empty" };
         const round = this.#rounds.get(group);
-        if (round !== undefined && !this.#discardUnfinishedWork(round)) {
+        const cutoff = this.#composedDelivery.beginFinishDecision(group, request.finish.token, round?.policyWork);
+        if (cutoff === undefined) return { status: "empty" };
+        if (round !== undefined && !this.#discardUnfinishedWork(round, cutoff)) {
           this.#allowFinish(group, request.finish.token, "unavailable");
           return { status: "empty" };
         }

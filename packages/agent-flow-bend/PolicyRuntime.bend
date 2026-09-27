@@ -9,6 +9,7 @@ import ./Notice.bend as Notice
 import ./Collection.bend as Collection
 import ./Delivery.bend as Delivery
 import ./Cache.bend as Cache
+import ./Lifecycle.bend as Lifecycle
 
 type Smoke is Data:
   Smoke{
@@ -67,6 +68,7 @@ type Smoke is Data:
     background_reofferable: Bool
     cache_admission: Cache.Admission
     cache_evict: Bool
+    lifecycle_cutoff: Lifecycle.CutoffResult
   }
 
 def sample_work() -> Work.Work:
@@ -146,5 +148,7 @@ def main() -> Smoke:
     Delivery.expired(Delivery.Authorized{}, 1000n, 1000n),
     Delivery.background_reofferable(Delivery.Uncertain{}, Delivery.Background{}),
     Cache.admit(False{}, 10n, 100n),
-    Cache.evict(8n, 100n, 20n, 8n, 128000n)
+    Cache.evict(8n, 100n, 20n, 8n, 128000n),
+    Lifecycle.cutoff(Round.Round{1n, True{}, 0n, 0n, 1n, False{}, False{}, False{}},
+      sample_work(), 1n)
   }

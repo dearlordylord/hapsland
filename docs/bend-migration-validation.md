@@ -3,7 +3,9 @@
 This records source-free local verification for the generated Bend boundaries.
 The resident uses generated Bend at admission, work, round, selection, lease,
 capacity, and finish-wait barriers. The aggregate generated `Lifecycle` reducer
-is still an executable model. The resident dispatcher runs asynchronous Effect
+now owns the composed Stop cutoff, joining the Round decision fence with exact
+Work cancellation IDs in one transition. Its other aggregate events remain an
+executable model. The resident dispatcher runs asynchronous Effect
 jobs, while Bend owns their source-free identities, unfinished count, pending
 finding count, and cancellation IDs.
 
@@ -32,6 +34,8 @@ finding count, and cancellation IDs.
   unfinished count plus live edit-permit and output-lease facts. The resident
   checks Bend's cancellation IDs against its queued and running jobs and fails
   closed on a mismatch.
+- `Lifecycle.bend` atomically begins a claimed Stop decision and cancels that
+  round's unfinished Work before TypeScript discards dispatcher jobs.
 - `Ledger.bend` decides global and partition item and byte reservations,
   resize, and release. TypeScript retains opaque object capabilities and maps
   exact partition strings to unique numeric IDs.
@@ -75,8 +79,11 @@ On 2026-09-27, from this worktree:
 - The focused evaluation-reuse and resident-server suite passed 2 files and 61
   tests after successful-review cache pressure moved to Bend. Its six new
   laws cover exact limits, existing reuse, byte pressure, and empty caches.
+- The focused Bend work, composed-delivery, and resident-server suite passed
+  3 files and 78 tests after the aggregate Stop cutoff became production
+  authority. Two Bend laws check exact IDs and rejection of a wrong Stop token.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
-  suite reported 65 passing files and 562 passing tests, with one file and
+  suite reported 65 passing files and 563 passing tests, with one file and
   two tests skipped.
 - `npm run conformance:package` passed from a clean local package install on
   Linux arm64 and Node 24.20.0. The CLI, parser, resident, hook, installation,

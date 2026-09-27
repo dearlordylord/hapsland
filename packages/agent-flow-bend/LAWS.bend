@@ -384,6 +384,26 @@ law decision_cancels_all_unfinished_but_keeps_advice:
       Work.ReviewUnit{2n, 1n, Work.PendingFinding{}, 1n, 20n} <> Nil{}},
       1n <> Nil{}, 1n <> Nil{}} : Work.CancelResult}
 
+def cutoff_work() -> Work.Work:
+  Work.Work{2n, 3n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n},
+    Work.Observation{1n, Work.SourceReading{}} <> Nil{},
+    Work.ReviewUnit{1n, 1n, Work.AtJev{}, 0n, 0n} <>
+    Work.ReviewUnit{2n, 1n, Work.PendingFinding{}, 1n, 20n} <> Nil{}}
+
+def claimed_round() -> Round.Round:
+  Round.Round{1n, True{}, 0n, 0n, 7n, False{}, False{}, False{}}
+
+law cutoff_fences_round_and_names_exact_cancellations:
+  {Lifecycle.cutoff(claimed_round(), cutoff_work(), 7n) ==
+    Lifecycle.CutoffGranted{Round.Round{1n, True{}, 0n, 0n, 7n, False{}, True{}, False{}},
+      Work.Work{2n, 3n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
+        Work.ReviewUnit{2n, 1n, Work.PendingFinding{}, 1n, 20n} <> Nil{}},
+      1n <> Nil{}, 1n <> Nil{}} : Lifecycle.CutoffResult}
+
+law wrong_stop_cannot_cut_off_work:
+  {Lifecycle.cutoff(claimed_round(), cutoff_work(), 8n) ==
+    Lifecycle.CutoffDenied{claimed_round(), cutoff_work()} : Lifecycle.CutoffResult}
+
 def current_advice() -> Handoff.Advice:
   Handoff.Advice{7n, 4n, 9n, 1n, 2n, 2n, 3n, 3n, 25n, 300n, True{}}
 

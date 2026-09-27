@@ -229,6 +229,12 @@ def Laws.interrupted_source_does_not_leave_unfinished_work():
 def Laws.decision_cancels_all_unfinished_but_keeps_advice():
   {==}
 
+def Laws.cutoff_fences_round_and_names_exact_cancellations():
+  {==}
+
+def Laws.wrong_stop_cannot_cut_off_work():
+  {==}
+
 def Laws.handoff_selects_fitting_findings():
   {==}
 

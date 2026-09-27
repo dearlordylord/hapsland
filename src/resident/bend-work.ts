@@ -5,7 +5,8 @@ import {
   bendWorkOutcome, bendWorkPendingFindings, bendWorkRetire, bendWorkSpawn,
   bendWorkStartSource, bendWorkStartUnit, bendWorkUnfinished, bendWorkReviseFinding,
   bendWorkPendingFor,
-  type BendList, type BendWorkOutcome, type BendWorkState,
+  bendLifecycleCutoff,
+  type BendList, type BendRound, type BendWorkOutcome, type BendWorkState,
   type BendWorkStep,
 } from "./bend-policy.generated.js";
 
@@ -106,5 +107,15 @@ export class BendWorkTracker {
     const cancelled = bendWorkCancelUnfinished(this.#state);
     this.#state = cancelled.state;
     return { cancelledSource: ids(cancelled.cancelled_source), cancelledJev: ids(cancelled.cancelled_jev) };
+  }
+
+  cutoff(round: BendRound, token: number): { readonly round: BendRound;
+    readonly cancelledSource: number[]; readonly cancelledJev: number[] } | undefined {
+    const cutoff = bendLifecycleCutoff(round, this.#state, token);
+    if (cutoff.$ !== "CutoffGranted") return undefined;
+    const cancelledSource = ids(cutoff.cancelled_source);
+    const cancelledJev = ids(cutoff.cancelled_jev);
+    this.#state = cutoff.work;
+    return { round: cutoff.round, cancelledSource, cancelledJev };
   }
 }

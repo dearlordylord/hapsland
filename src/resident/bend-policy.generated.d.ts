@@ -217,3 +217,10 @@ export function bendCacheAdmit(existing: boolean, incomingBytes: number | bigint
 export function bendCacheEvict(entries: number | bigint, currentBytes: number | bigint,
   incomingBytes: number | bigint, entryLimit: number | bigint,
   byteLimit: number | bigint): boolean;
+
+export type BendLifecycleCutoff =
+  | { readonly $: "CutoffGranted"; readonly round: BendRound; readonly work: BendWorkState;
+    readonly cancelled_source: BendList<bigint>; readonly cancelled_jev: BendList<bigint> }
+  | { readonly $: "CutoffDenied"; readonly round: BendRound; readonly work: BendWorkState };
+export function bendLifecycleCutoff(round: BendRound, work: BendWorkState,
+  token: number | bigint): BendLifecycleCutoff;
