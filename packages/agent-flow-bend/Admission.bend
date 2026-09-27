@@ -40,6 +40,10 @@ type AdmissionResult is Data:
   Accepted{state: AdmissionState, token: Maybe<&2, Nat>, round: Maybe<&2, Nat>}
   Rejected{state: AdmissionState, reason: AdmissionRejection}
 
+type ExpiryResult is Data:
+  KeepPermit{state: AdmissionState}
+  RemovePermit{state: AdmissionState}
+
 type ProspectiveFacts is Data:
   ProspectiveFacts{clock_valid: Bool, within_hook_window: Bool,
     started_after_closure: Bool, duplicate_event: Bool,
@@ -231,6 +235,22 @@ def release(+state: AdmissionState, +token: Nat) -> AdmissionResult:
   match state:
     case AdmissionState{_, _, _, _, _, _, permits, used}:
       release.used(state, token, has_token(token, used), find_permit(token, permits))
+
+# The adapter measures the exact fractional deadline comparison. Bend decides
+# whether to keep the native permit and removes the matching source-free token.
+def expire.due(state: AdmissionState, token: Nat) -> ExpiryResult:
+  match state:
+    case AdmissionState{partition, lifetime, round, active, closed_at, next_token,
+        permits, used}:
+      RemovePermit{AdmissionState{partition, lifetime, round, active, closed_at,
+        next_token, remove_permit(token, permits), used}}
+
+def expire(+state: AdmissionState, token: Nat, deadline_reached: Bool) -> ExpiryResult:
+  match deadline_reached:
+    case False{}:
+      KeepPermit{state}
+    case True{}:
+      expire.due(state, token)
 
 def close_round.time(state: AdmissionState, partition: Nat, lifetime: Nat, +round: Nat, next_token: Nat, used: List<&2, Used>, at: Nat, valid: Bool) -> AdmissionResult:
   match valid:

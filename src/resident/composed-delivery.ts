@@ -10,7 +10,7 @@ import {
   bendLeaseInitial, bendLeaseReserve, bendLeaseAuthorize, bendLeaseTerminal,
   bendLeaseReoffer, bendLeaseSuppresses, type BendLease, type BendLeaseSurface,
   bendAdmissionInitial, bendAdmissionStep, bendAdmissionCloseProspective,
-  bendAdmissionProspectiveGate,
+  bendAdmissionProspectiveGate, bendAdmissionExpire,
   type BendAdmissionState,
   bendBackgroundInitial, bendBackgroundClaim, bendBackgroundRelease,
   bendBackgroundExpire, type BendBackgroundWaiter,
@@ -263,13 +263,15 @@ export class ComposedDelivery {
   }
 
   expirePermits(now = monotonicNow()): void {
-    for (const [key, permit] of this.#permits) if (permit.expiresAt <= now) {
-      this.#permits.delete(key);
+    for (const [key, permit] of this.#permits) {
       const admission = this.#admissions.get(permit.partition);
-      if (admission === undefined) continue;
-      const released = bendAdmissionStep(admission, this.#partitionId(permit.partition), 1,
-        { $: "Release", token: permit.token });
-      this.#admissions.set(permit.partition, released.state);
+      const result = bendAdmissionExpire(admission ??
+        bendAdmissionInitial(this.#partitionId(permit.partition), 1),
+      permit.token, permit.expiresAt <= now);
+      if (result.$ === "KeepPermit") continue;
+      if (result.$ !== "RemovePermit") throw new Error("invalid Bend permit expiry");
+      this.#permits.delete(key);
+      if (admission !== undefined) this.#admissions.set(permit.partition, result.state);
     }
   }
 

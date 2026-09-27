@@ -25,6 +25,7 @@ try {
       !source.includes("function $Handoff$lease$suppresses$(") ||
       !source.includes("function $Admission$step$(") ||
       !source.includes("function $Admission$prospective_gate$(") ||
+      !source.includes("function $Admission$expire$(") ||
       !source.includes("function $Admission$close_prospective$(") ||
       !source.includes("function $Work$finish_wait$(") ||
       ["initial", "admit", "start_source", "start_unit", "spawn", "complete_source", "cached_finding", "outcome",
@@ -89,6 +90,8 @@ export const bendAdmissionStep = (state, partition, lifetime, event) =>
   run_loop($Admission$step$(state, nat(partition), nat(lifetime), normalize(event)));
 export const bendAdmissionProspectiveGate = (facts) =>
   run_loop($Admission$prospective_gate$(normalize(facts)));
+export const bendAdmissionExpire = (state, token, deadlineReached) =>
+  run_loop($Admission$expire$(state, nat(token), deadlineReached));
 export const bendAdmissionCloseProspective = (state, at) =>
   run_loop($Admission$close_prospective$(state, nat(at)));
 export const bendWorkFinishWait = (unfinished, deadlineReached, continuationBudget) =>

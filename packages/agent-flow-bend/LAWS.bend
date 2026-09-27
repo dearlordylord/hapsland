@@ -15,6 +15,23 @@ import ./Cache.bend as Cache
 import ./Ticket.bend as Ticket
 import ./Revision.bend as Revision
 
+def expirable_permit() -> Admission.AdmissionState:
+  Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n,
+    Admission.Permit{1n, 1n, 1n, 100n, 200n} <> Nil{}, Nil{}}
+
+law permit_before_deadline_is_retained:
+  {Admission.expire(expirable_permit(), 1n, False{}) ==
+    Admission.KeepPermit{expirable_permit()} : Admission.ExpiryResult}
+
+law permit_at_deadline_is_removed:
+  {Admission.expire(expirable_permit(), 1n, True{}) ==
+    Admission.RemovePermit{Admission.AdmissionState{1n, 1n, 0n, False{}, 0n,
+      2n, Nil{}, Nil{}}} : Admission.ExpiryResult}
+
+law expiry_does_not_remove_another_token:
+  {Admission.expire(expirable_permit(), 2n, True{}) ==
+    Admission.RemovePermit{expirable_permit()} : Admission.ExpiryResult}
+
 law identical_input_reuses_current_revision:
   {Revision.register(True{}, True{}) == Revision.Reuse{} : Revision.Registration}
 

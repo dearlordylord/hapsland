@@ -28,7 +28,9 @@ finding count, and cancellation IDs.
   identity, and capacity facts, then issues, consumes, releases, and closes
   source-free pre-edit permits, including a prospective round that closes
   without a post-edit observation. TypeScript measures the native fractional
-  clock and exact event identity before passing facts to Bend.
+  clock and exact event identity before passing facts to Bend. At expiry,
+  Bend decides whether the permit remains live and removes its source-free
+  token; TypeScript drops the matching native permit only on Bend's command.
 - `Handoff.bend` validates exclusive finding lease transitions and decides
   suppression for edit, background, and Stop surfaces. The resident retains
   opaque finding fingerprints and replays source-free token transitions.
@@ -140,8 +142,12 @@ On 2026-09-27, from this worktree:
 - The revision supersession migration passed the focused resident-server and
   terminal-collection suite: 2 files and 80 tests. Six Bend laws cover reuse, changed input, first
   input, same-subject replacement, current generation, and other subjects.
+- The permit expiry migration passed the focused composed-delivery and
+  resident-server suite: 2 files and 77 tests. Three Bend laws cover retention before deadline,
+  removal at deadline, and preserving other tokens. An integration case checks
+  the exact fractional deadline.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
-  suite reported 65 passing files and 571 passing tests, with one file and
+  suite reported 65 passing files and 575 passing tests, with one file and
   two tests skipped.
 - `npm run conformance:package` passed from a clean local package install on
   Linux arm64 and Node 24.20.0. The CLI, parser, resident, hook, installation,

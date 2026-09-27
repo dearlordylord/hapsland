@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { BACKGROUND_WAITER_EXPIRY_MS, ComposedDelivery, MAX_COMPOSED_ROUNDS } from "./composed-delivery.ts";
+import { BACKGROUND_WAITER_EXPIRY_MS, ComposedDelivery, EDIT_PERMIT_EXPIRY_MS,
+  MAX_COMPOSED_ROUNDS } from "./composed-delivery.ts";
 import { DELIVERY_LEASE_MS } from "./protocol.ts";
 import { BendWorkTracker } from "./bend-work.ts";
 
@@ -46,6 +47,18 @@ describe("shared Hapsland rounds", () => {
     expect(state.registerEdit("agent", "old-hook", 190, 210)).toBe(false);
     expect(state.registerEdit("agent", "edit", 220, 230)).toBe(false);
     expect(state.registerEdit("other-agent", "edit", 220, 230)).toBe(true);
+  });
+
+  it("expires a prospective permit at its exact fractional deadline", () => {
+    const state = new ComposedDelivery();
+    const startedAt = 100.5;
+    expect(state.registerEdit("agent", "fractional", startedAt, 101)).toBe(true);
+    state.expirePermits(startedAt + EDIT_PERMIT_EXPIRY_MS - 0.001);
+    expect(state.closureCounts("agent").editPermits).toBe(1);
+    state.expirePermits(startedAt + EDIT_PERMIT_EXPIRY_MS);
+    expect(state.closureCounts("agent").editPermits).toBe(0);
+    expect(state.admitEdit("agent", "fractional", startedAt + EDIT_PERMIT_EXPIRY_MS, true))
+      .toBeUndefined();
   });
 
   it("closes abandoned pre-output Stop attempts but preserves uncertain continuations", () => {

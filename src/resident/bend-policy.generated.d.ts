@@ -11,6 +11,10 @@ export type BendAdmissionProspectiveFacts = { readonly $: "ProspectiveFacts";
 export type BendAdmissionProspectiveDecision = { readonly $: "PermitAllowed" | "PermitDenied" };
 export function bendAdmissionProspectiveGate(facts: BendAdmissionProspectiveFacts):
   BendAdmissionProspectiveDecision;
+export type BendAdmissionExpiryResult =
+  { readonly $: "KeepPermit" | "RemovePermit"; readonly state: BendAdmissionState };
+export function bendAdmissionExpire(state: BendAdmissionState,
+  token: number | bigint, deadlineReached: boolean): BendAdmissionExpiryResult;
 
 export type BendSelection = {
   readonly $: "Selection";

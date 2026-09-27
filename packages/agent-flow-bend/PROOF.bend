@@ -1,6 +1,15 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.permit_before_deadline_is_retained():
+  {==}
+
+def Laws.permit_at_deadline_is_removed():
+  {==}
+
+def Laws.expiry_does_not_remove_another_token():
+  {==}
+
 def Laws.identical_input_reuses_current_revision():
   {==}
 
