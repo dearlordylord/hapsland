@@ -45,6 +45,17 @@ export type BendSelectionResult =
   | { readonly $: "Selected" | "Retained" | "Expired" | "Duplicate"; readonly state: BendSelection }
   | { readonly $: "Limited"; readonly state: BendSelection; readonly id: bigint };
 
+export type BendValidationStatus = { readonly $: "Current" | "Stale" | "Unavailable" | "Unattributed" };
+export type BendCandidateAction = { readonly $: "IgnoreCandidate" | "ReleaseCandidate" |
+  "RetireCandidate" | "ContinueCandidate" | "RetainCandidate" };
+export function bendValidationRoute(ownerCurrent: boolean,
+  status: BendValidationStatus): BendCandidateAction;
+export function bendPostValidation(workAccepted: boolean, expired: boolean,
+  hasFitting: boolean): BendCandidateAction;
+export function bendFinalCandidate(ownerCurrent: boolean,
+  credentialGeneration: boolean, credentialAuthorized: boolean,
+  expired: boolean, workCurrent: boolean, hasFindings: boolean): BendCandidateAction;
+
 export function bendSelectionInitial(
   partition: number | bigint, round: number | bigint,
 ): BendSelection;

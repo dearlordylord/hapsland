@@ -35,7 +35,9 @@ finding count, and cancellation IDs.
   suppression for edit, background, and Stop surfaces. The resident retains
   opaque finding fingerprints and replays source-free token transitions. Bend
   also routes each new offer to ordinary reservation or a one-time background
-  reoffer at Stop from the current lease phase.
+  reoffer at Stop from the current lease phase. Its candidate gates route
+  fresh revalidation status, work-revision rejection, expiry, fitting selection,
+  credential authority, and currentness to ignore, release, retire, or retain.
 - `Work.bend` admits source observations, accepts streamed review fanout,
   records current findings and terminal outcomes, and returns the exact source
   and review IDs to cancel at the Stop decision. The finish wait uses Bend's
@@ -189,6 +191,10 @@ On 2026-09-27, from this worktree:
   Bend laws cover exact selected-unit reservation, notice-only output,
   over-selection, and deadline Allow. Both provisional and final IPC barriers
   use the same generated finish-output result.
+- The revalidation and handoff candidate migration passed the focused
+  resident-server and terminal-collection suite: 2 files and 80 tests. Eight
+  Bend laws cover owner replacement, unavailable and stale validation, work
+  rejection, fitting selection, credential invalidation, and final retention.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
   suite reported 65 passing files and 575 passing tests, with one file and
   two tests skipped.

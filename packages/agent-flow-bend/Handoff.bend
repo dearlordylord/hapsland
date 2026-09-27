@@ -24,6 +24,45 @@ type NoticeOffer is Data:
   SkipNotice{}
   StopNotices{}
 
+type ValidationStatus is Data:
+  Current{}
+  Stale{}
+  Unavailable{}
+  Unattributed{}
+
+type CandidateAction is Data:
+  IgnoreCandidate{}
+  ReleaseCandidate{}
+  RetireCandidate{}
+  ContinueCandidate{}
+  RetainCandidate{}
+
+def validation_route(owner_current: Bool, status: ValidationStatus) -> CandidateAction:
+  match owner_current:
+    case False{}:
+      IgnoreCandidate{}
+    case True{}:
+      match status:
+        case Current{}:
+          ContinueCandidate{}
+        case Stale{}:
+          RetireCandidate{}
+        case _:
+          ReleaseCandidate{}
+
+def post_validation(work_accepted: Bool, expired: Bool, has_fitting: Bool) -> CandidateAction:
+  Bool.pick(CandidateAction, Bool.or(Bool.not(work_accepted), expired), RetireCandidate{},
+    Bool.pick(CandidateAction, has_fitting, RetainCandidate{}, ReleaseCandidate{}))
+
+def final_candidate(owner_current: Bool, credential_generation: Bool,
+    credential_authorized: Bool, expired: Bool, work_current: Bool,
+    has_findings: Bool) -> CandidateAction:
+  Bool.pick(CandidateAction, Bool.not(owner_current), IgnoreCandidate{},
+    Bool.pick(CandidateAction, Bool.not(credential_generation), RetireCandidate{},
+      Bool.pick(CandidateAction, Bool.not(credential_authorized), ReleaseCandidate{},
+        Bool.pick(CandidateAction, Bool.or(expired, Bool.not(work_current)), RetireCandidate{},
+          Bool.pick(CandidateAction, has_findings, RetainCandidate{}, ReleaseCandidate{})))))
+
 def initial(partition: Nat, round: Nat) -> Selection:
   Selection{partition, round, Nil{}, Nil{}, 0n, 0n}
 

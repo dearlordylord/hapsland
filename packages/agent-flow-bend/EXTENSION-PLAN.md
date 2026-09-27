@@ -18,6 +18,10 @@ terminal events; release rebuilds from retained token history to restore an
 aborted Stop reoffer. Generated
 admission policy decides permit expiry from an exact native clock fact.
 Generated notice selection decides exact fit and host-specific skip or stop behavior.
+Generated handoff policy routes fresh revalidation to ignore, release, or
+retire a candidate, then decides work-revision rejection, expiry, fitting
+selection, and final credential/currentness disposition. Native code supplies
+the validation, identity, clock, and credential facts.
 Background-writer and operational-notice policies also decide their expiry,
 capacity, suppression count, and pending-notice coalescing boundaries.
 Generated collection policy decides readiness,

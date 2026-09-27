@@ -21,6 +21,8 @@ try {
       !source.includes("function $Handoff$initial$(") ||
       !source.includes("function $Handoff$fits_batch$(") ||
       !source.includes("function $Handoff$notice_offer$(") ||
+      ["validation_route", "post_validation", "final_candidate"]
+        .some((name) => !source.includes(`function $Handoff$${name}$(`)) ||
       !source.includes("function $Handoff$lease$reserve$(") ||
       !source.includes("function $Handoff$lease$offer$(") ||
       !source.includes("function $Handoff$lease$suppresses$(") ||
@@ -94,6 +96,14 @@ export const bendFitsBatch = (items, bytes) =>
   run_loop($Handoff$fits_batch$(nat(items), nat(bytes)));
 export const bendNoticeOffer = (items, bytes, skipUnfitting) =>
   run_loop($Handoff$notice_offer$(nat(items), nat(bytes), skipUnfitting));
+export const bendValidationRoute = (ownerCurrent, status) =>
+  run_loop($Handoff$validation_route$(ownerCurrent, normalize(status)));
+export const bendPostValidation = (workAccepted, expired, hasFitting) =>
+  run_loop($Handoff$post_validation$(workAccepted, expired, hasFitting));
+export const bendFinalCandidate = (ownerCurrent, credentialGeneration,
+  credentialAuthorized, expired, workCurrent, hasFindings) =>
+  run_loop($Handoff$final_candidate$(ownerCurrent, credentialGeneration,
+    credentialAuthorized, expired, workCurrent, hasFindings));
 export const bendAdmissionInitial = (partition, lifetime) =>
   run_loop($Admission$initial$(nat(partition), nat(lifetime)));
 export const bendAdmissionStep = (state, partition, lifetime, event) =>

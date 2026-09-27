@@ -66,8 +66,10 @@ import { bendTicketInitial, bendTicketFail, bendTicketClose, bendTicketTerminal,
   bendDeliveryReleaseUnacknowledged,
   bendDeliveryCollectionLease, bendDeliveryAdviceCandidate,
   bendDeliveryNoticeCandidate, bendDeliveryReserveCandidate,
+  bendValidationRoute, bendPostValidation, bendFinalCandidate,
   type BendTicketPhase, type BendTicketReason,
-  type BendTicketUnitEvent, type BendTicketUnitStage } from "./bend-policy.generated.js";
+  type BendTicketUnitEvent, type BendTicketUnitStage,
+  type BendValidationStatus } from "./bend-policy.generated.js";
 import {
   collectionOrder,
   combinedClaudeOutput,
@@ -97,6 +99,9 @@ import { claimDemoBudget } from "../onboarding/demo-budget.ts";
 import { recordDemoTrace } from "../onboarding/demo-trace.ts";
 
 const BACKEND_CONCURRENCY = 2;
+const validationStatus = (status: RevalidationResult["status"]): BendValidationStatus =>
+  ({ $: status === "current" ? "Current" : status === "stale" ? "Stale" :
+    status === "unavailable" ? "Unavailable" : "Unattributed" });
 const RESERVATION_OVERHEAD_BYTES = 1024;
 const MAX_PROBABILITY_ENCODING_BYTES = 24;
 export const OPERATIONAL_NOTICE_COOLDOWN_MS = 60_000;
@@ -865,33 +870,46 @@ export class ResidentServer {
       await this.#beforeRevalidate?.(advice.id);
       const validity = await this.#revalidate(advice, dispatch);
       const retained = this.#advice.find((item) => item.id === advice.id);
-      if (retained !== advice || retained.delivery?.token !== token) continue;
-      if (validity.status === "unavailable" || validity.status === "unattributed") {
+      const route = bendValidationRoute(retained === advice && retained.delivery?.token === token,
+        validationStatus(validity.status));
+      if (route.$ === "IgnoreCandidate") continue;
+      if (route.$ === "ReleaseCandidate") {
         delete advice.delivery;
         continue;
       }
-      if (validity.status === "stale") {
+      if (route.$ === "RetireCandidate") {
         this.#removeAdvice(advice.id, token);
         continue;
       }
-      if (advice.round !== undefined && advice.workUnitId !== undefined &&
-          !advice.round.policyWork.reviseFinding(advice.workUnitId,
-            validity.findings.length, logicalBytes(validity.findings))) {
-        this.#removeAdvice(advice.id, token);
+      if (route.$ !== "ContinueCandidate" || validity.status !== "current") {
+        delete advice.delivery;
+        continue;
+      }
+      const workAccepted = advice.round === undefined || advice.workUnitId === undefined ||
+        advice.round.policyWork.reviseFinding(advice.workUnitId,
+          validity.findings.length, logicalBytes(validity.findings));
+      const workRoute = bendPostValidation(workAccepted, false, true);
+      if (workRoute.$ !== "RetainCandidate") {
+        if (workRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
+        else delete advice.delivery;
         continue;
       }
       advice.evaluations = validity.evaluations;
       advice.findings = validity.findings;
       const handoffNow = this.#now();
-      if (isPendingAdviceExpired(advice, handoffNow)) {
-        this.#removeAdvice(advice.id, token);
+      const expiryRoute = bendPostValidation(true, isPendingAdviceExpired(advice, handoffNow), true);
+      if (expiryRoute.$ !== "RetainCandidate") {
+        if (expiryRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
+        else delete advice.delivery;
         continue;
       }
       const fitting = fittingFindings(selectedFindings, advice.findings.filter((finding) =>
         !this.#composedDelivery.suppresses(advice.id,
           adviceeGroup(advice.observation.root, advice.observation.advicee), finding, stopCollector ? "stop" : undefined)), advice, true);
-      if (fitting.length === 0) {
-        delete advice.delivery;
+      const fittingRoute = bendPostValidation(true, false, fitting.length > 0);
+      if (fittingRoute.$ !== "RetainCandidate") {
+        if (fittingRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
+        else delete advice.delivery;
         continue;
       }
       advice.delivery.findings = fitting;
@@ -905,33 +923,46 @@ export class ResidentServer {
         await this.#beforeFinalRevalidate?.(advice.id);
         const validity = await this.#revalidate(advice, dispatch);
         const retained = this.#advice.find((item) => item.id === advice.id);
-        if (retained !== advice || retained.delivery?.token !== token) continue;
-        if (validity.status === "unavailable" || validity.status === "unattributed") {
+        const route = bendValidationRoute(retained === advice && retained.delivery?.token === token,
+          validationStatus(validity.status));
+        if (route.$ === "IgnoreCandidate") continue;
+        if (route.$ === "ReleaseCandidate") {
           delete advice.delivery;
           continue;
         }
-        if (validity.status === "stale") {
+        if (route.$ === "RetireCandidate") {
           this.#removeAdvice(advice.id, token);
           continue;
         }
-        if (advice.round !== undefined && advice.workUnitId !== undefined &&
-            !advice.round.policyWork.reviseFinding(advice.workUnitId,
-              validity.findings.length, logicalBytes(validity.findings))) {
-          this.#removeAdvice(advice.id, token);
+        if (route.$ !== "ContinueCandidate" || validity.status !== "current") {
+          delete advice.delivery;
+          continue;
+        }
+        const workAccepted = advice.round === undefined || advice.workUnitId === undefined ||
+          advice.round.policyWork.reviseFinding(advice.workUnitId,
+            validity.findings.length, logicalBytes(validity.findings));
+        const workRoute = bendPostValidation(workAccepted, false, true);
+        if (workRoute.$ !== "RetainCandidate") {
+          if (workRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
+          else delete advice.delivery;
           continue;
         }
         advice.evaluations = validity.evaluations;
         advice.findings = validity.findings;
         const handoffNow = this.#now();
-        if (isPendingAdviceExpired(advice, handoffNow)) {
-          this.#removeAdvice(advice.id, token);
+        const expiryRoute = bendPostValidation(true, isPendingAdviceExpired(advice, handoffNow), true);
+        if (expiryRoute.$ !== "RetainCandidate") {
+          if (expiryRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
+          else delete advice.delivery;
           continue;
         }
         const fitting = fittingFindings(finalFindings, advice.findings.filter((finding) =>
           !this.#composedDelivery.suppresses(advice.id,
             adviceeGroup(advice.observation.root, advice.observation.advicee), finding, stopCollector ? "stop" : undefined)), advice, true);
-        if (fitting.length === 0) {
-          delete advice.delivery;
+        const fittingRoute = bendPostValidation(true, false, fitting.length > 0);
+        if (fittingRoute.$ !== "RetainCandidate") {
+          if (fittingRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
+          else delete advice.delivery;
           continue;
         }
         if (advice.delivery?.token !== token) continue;
@@ -949,31 +980,32 @@ export class ResidentServer {
         for (const advice of final) {
           const retained = this.#advice.find((item) => item.id === advice.id);
           const delivery = retained?.delivery;
-          if (retained !== advice || delivery?.token !== token) continue;
-          if (advice.credentialGeneration !== credentialGeneration) {
-            this.#removeAdvice(advice.id, token);
-            continue;
-          }
-          if (dispatch.credential !== null) {
+          const ownerCurrent = retained === advice && delivery?.token === token;
+          const credentialGenerationValid = advice.credentialGeneration === credentialGeneration;
+          let credentialAuthorized = true;
+          if (ownerCurrent && credentialGenerationValid && dispatch.credential !== null) {
             const credentialState = readCredentialState(dispatch.credential.statePath);
-            if (credentialState === undefined || credentialState.generation !== credentialGeneration ||
-                (!dispatch.credential.environmentOnly && credentialState.savedUseSuspended)) {
-              delete advice.delivery;
-              continue;
-            }
+            credentialAuthorized = credentialState !== undefined &&
+              credentialState.generation === credentialGeneration &&
+              (dispatch.credential.environmentOnly || !credentialState.savedUseSuspended);
           }
-          if (isPendingAdviceExpired(advice, handoffNow)) {
+          const route = bendFinalCandidate(ownerCurrent, credentialGenerationValid,
+            credentialAuthorized,
+            ownerCurrent && credentialGenerationValid && credentialAuthorized &&
+              isPendingAdviceExpired(advice, handoffNow),
+            ownerCurrent && credentialGenerationValid && credentialAuthorized &&
+              this.#isCurrentWork(advice.revision, advice.prepared),
+            delivery !== undefined && delivery.findings.length > 0);
+          if (route.$ === "IgnoreCandidate") continue;
+          if (route.$ === "RetireCandidate") {
             this.#removeAdvice(advice.id, token);
             continue;
           }
-          if (!this.#isCurrentWork(advice.revision, advice.prepared)) {
-            this.#removeAdvice(advice.id, token);
-            continue;
-          }
-          if (delivery.findings.length === 0) {
+          if (route.$ === "ReleaseCandidate") {
             delete advice.delivery;
             continue;
           }
+          if (route.$ !== "RetainCandidate" || delivery === undefined) continue;
           delivery.leaseUntil = handoffNow + DELIVERY_LEASE_MS;
           handoff.push(advice);
         }
@@ -2654,14 +2686,19 @@ export class ResidentServer {
     const handoff: Array<Advice> = [];
     for (const advice of [...this.#advice]) {
       if (advice.delivery?.token !== response.token) continue;
-      if (!this.#roundActive(advice.round) || isPendingAdviceExpired(advice, now) || !this.#isCurrentWork(advice.revision, advice.prepared)) {
+      const route = bendFinalCandidate(true, true, true,
+        !this.#roundActive(advice.round) || isPendingAdviceExpired(advice, now),
+        this.#isCurrentWork(advice.revision, advice.prepared),
+        advice.delivery.findings.length > 0);
+      if (route.$ === "RetireCandidate") {
         this.#removeAdvice(advice.id, response.token);
         continue;
       }
-      if (advice.delivery.findings.length === 0) {
+      if (route.$ === "ReleaseCandidate") {
         delete advice.delivery;
         continue;
       }
+      if (route.$ !== "RetainCandidate") continue;
       advice.delivery.leaseUntil = now + DELIVERY_LEASE_MS;
       handoff.push(advice);
     }

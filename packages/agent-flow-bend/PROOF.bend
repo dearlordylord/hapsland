@@ -1,6 +1,30 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.replaced_candidate_is_ignored_before_revalidation_status():
+  {==}
+
+def Laws.unavailable_revalidation_releases_lease():
+  {==}
+
+def Laws.stale_revalidation_retires_advice():
+  {==}
+
+def Laws.failed_work_revision_retires_advice():
+  {==}
+
+def Laws.empty_fitting_selection_releases_lease():
+  {==}
+
+def Laws.credential_generation_mismatch_retires_final_candidate():
+  {==}
+
+def Laws.credential_revocation_releases_final_candidate():
+  {==}
+
+def Laws.current_final_candidate_is_retained():
+  {==}
+
 def Laws.selected_finish_output_reserves_exact_unit_and_slot():
   {==}
 

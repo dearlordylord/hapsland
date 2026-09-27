@@ -16,6 +16,38 @@ import ./Ticket.bend as Ticket
 import ./Revision.bend as Revision
 import ./Reuse.bend as Reuse
 
+law replaced_candidate_is_ignored_before_revalidation_status:
+  {Handoff.validation_route(False{}, Handoff.Stale{}) ==
+    Handoff.IgnoreCandidate{} : Handoff.CandidateAction}
+
+law unavailable_revalidation_releases_lease:
+  {Handoff.validation_route(True{}, Handoff.Unavailable{}) ==
+    Handoff.ReleaseCandidate{} : Handoff.CandidateAction}
+
+law stale_revalidation_retires_advice:
+  {Handoff.validation_route(True{}, Handoff.Stale{}) ==
+    Handoff.RetireCandidate{} : Handoff.CandidateAction}
+
+law failed_work_revision_retires_advice:
+  {Handoff.post_validation(False{}, False{}, True{}) ==
+    Handoff.RetireCandidate{} : Handoff.CandidateAction}
+
+law empty_fitting_selection_releases_lease:
+  {Handoff.post_validation(True{}, False{}, False{}) ==
+    Handoff.ReleaseCandidate{} : Handoff.CandidateAction}
+
+law credential_generation_mismatch_retires_final_candidate:
+  {Handoff.final_candidate(True{}, False{}, False{}, False{}, True{}, True{}) ==
+    Handoff.RetireCandidate{} : Handoff.CandidateAction}
+
+law credential_revocation_releases_final_candidate:
+  {Handoff.final_candidate(True{}, True{}, False{}, False{}, True{}, True{}) ==
+    Handoff.ReleaseCandidate{} : Handoff.CandidateAction}
+
+law current_final_candidate_is_retained:
+  {Handoff.final_candidate(True{}, True{}, True{}, False{}, True{}, True{}) ==
+    Handoff.RetainCandidate{} : Handoff.CandidateAction}
+
 law expired_collection_lease_is_dropped:
   {Delivery.collection_lease(True{}, True{}, False{}, False{}, False{}) ==
     Delivery.DropLease{} : Delivery.CollectionLeaseAction}
