@@ -11,6 +11,7 @@ const tracerSource = join(project, 'evidence/advicing-linux/command-trace-wrappe
 const codex = process.env.HAPSLAND_105_CODEX ?? '/tmp/hapsland-105-hosts/node_modules/.bin/codex';
 const claude = process.env.HAPSLAND_105_CLAUDE ?? '/tmp/hapsland-105-hosts/node_modules/.bin/claude';
 const selected = process.argv.slice(2);
+const reviewResponsePolicy = 'In this test, always act on every actionable Hapsland review finding you receive. Use the native edit tool to perform the requested repair before finishing. A review finding received after your initial edit is an instruction to continue, even if the task said to stop after that edit. Do not invent a finding or repair proactively. Follow the task fixture for the exact repair and permitted tools.';
 const cases = [
   { host: 'codex', phase: 'before' }, { host: 'codex', phase: 'after' },
   { host: 'claude', phase: 'before' }, { host: 'claude', phase: 'after' },
@@ -81,6 +82,7 @@ for (const entry of cases) {
     await mkdir(repo);
     if (spawnSync('git', ['init', '--quiet', repo]).status !== 0) throw new Error('scratch Git init failed');
     await writeFile(join(repo, 'README.md'), 'Background delivery fixture.\n');
+    if (entry.host === 'codex') await writeFile(join(repo, 'AGENTS.md'), `${reviewResponsePolicy}\n`);
     await writeFile(bridge, `import {spawnSync} from 'node:child_process';\n` +
       `import {appendFileSync,readFileSync} from 'node:fs';\n` +
       `const mode=process.argv[2], host=process.argv[3];\n` +
@@ -181,6 +183,7 @@ for (const entry of cases) {
         '--dangerously-bypass-approvals-and-sandbox', '-m', 'gpt-6-luna', '-c',
         entry.phase === 'background' ? 'model_reasoning_effort="medium"' : 'model_reasoning_effort="max"', '-C', repo, prompt]
       : ['-p', '--output-format', 'stream-json', '--verbose', '--no-session-persistence',
+        '--append-system-prompt', reviewResponsePolicy,
         '--setting-sources', 'user', '--settings', claudeSettingsPath,
         '--allowedTools', 'Read,Edit,Write', '--permission-mode', 'acceptEdits', prompt];
     const launchTracing = process.env.HAPSLAND_105_TRACE_LAUNCH === '1';
@@ -235,6 +238,8 @@ for (const entry of cases) {
     const stages = await activityStages(activityPath);
     const result = { ...entry, hostVersion: entry.host === 'codex' ? '0.155.1' : '2.1.218',
       residentReadyBeforeHost: true,
+      reviewResponsePolicy: { instruction: reviewResponsePolicy,
+        mechanism: entry.host === 'codex' ? 'fixture AGENTS.md' : 'appended system prompt' },
       repairFollowUpOpportunity: repairRead ? "native README read requested after repair" : "finish hook only",
       exitCode: hostRun.code, signal: hostRun.signal, timedOut: hostRun.timedOut, elapsedMs: hostRun.elapsedMs,
       hookCounts: Object.fromEntries(['before-edit', 'edit', 'background', 'stop', 'prompt'].map((mode) => [mode, hooks.filter((hook) => hook.mode === mode).length])),

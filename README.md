@@ -65,6 +65,13 @@ The agent who makes bad API and data structure decisions despite you instructing
 
 Right after the file been modified. The agent gets almost immediate *non-blocking* feedback. It makes its own decision whether to follow it.
 
+Hapsland delivers advice; your agent's instructions govern whether it acts on
+that advice. You can instruct it to address actionable review findings, or to
+ignore reviews. A request to continue with advice does not force a repair.
+Our native repair tests explicitly instruct the agent to follow received
+findings so they exercise delivery under a cooperative policy. See the
+[agent-response boundary](docs/advicing-target-contract.md#agent-response-is-controlled-by-its-instructions).
+
 ### Who's slapping the hand?
 
 The system works as agent hooks. Each agent host has its own implementation. TODO contribution. There is a background job that manages all queuing and async communication with Jev.

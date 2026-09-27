@@ -2,9 +2,8 @@
 
 Issue #105 remains **incomplete for adoption and closure**. The shared-resident
 implementation now waits for all admitted unfinished work or the safe hook
-deadline, then batches advice and cancels unfinished pre-decision work. Owner
-visual review of the Foldkit timing diagrams and an explicit final Linux
-adoption decision remain required. This report is evidence, not a change to the
+deadline, then batches advice and cancels unfinished pre-decision work. The owner accepted the timing diagrams in the implementation conversation on
+2026-09-27. An explicit final Linux adoption decision remains required. This report is evidence, not a change to the
 [Advicing target contract](../../docs/advicing-target-contract.md).
 
 ## Implementation and regressions
@@ -43,7 +42,7 @@ is inferred from the sidecar. Background waits remain independently bounded.
 | Native timing | The matched record includes ptrace child-creation-to-exit command windows. Selected measurements, with tracing overhead, do not establish a latency distribution. |
 | Routing and accepted unknowns | Existing [native isolation](native-isolation-linux.md), [background timing](native-background-timing-linux.md), and [Claude rerun](claude-reset-rerun-linux.md) retain their precise scopes. Native Codex child routing and the actionable Claude foreground-tool window remain unproven under the owner's conditionally accepted boundary. No new observation is inferred from unit tests. |
 | Single installed behavior | Both installers still register composed PreToolUse, edit/background, Stop/SubagentStop, and prompt hooks. There is no installed legacy/composed selector. Legacy collection remains available only for baseline probes. |
-| Diagram condition | The independent Foldkit package builds and its top jump link opens the rendered bottom timing section without browser errors. Required/exploratory, observed/unproven, unknown receipt time, timeout, and partial reducer labels remain explicit. Native timing panels retain their original evidence provenance. Owner visual acceptance is pending. |
+| Diagram condition | The independent Foldkit package builds and its top jump link opens the rendered bottom timing section without browser errors. Required/exploratory, observed/unproven, unknown receipt time, timeout, and partial reducer labels remain explicit. Native timing panels retain their original evidence provenance. Owner timing acceptance was recorded in the implementation conversation on 2026-09-27. |
 | macOS follow-up | `.github/workflows/issue-105-macos-followup.yml` is present on the branch, scoped to #105 closure, finds its marker before creating a follow-up, cross-links it, and reopens #105 on failure. It must be available on the default branch and its creation/link verified at authorized closure. No macOS result is claimed. |
 
 The controlled harness uses the production resident, local IPC, and real hook
@@ -132,8 +131,25 @@ This review does not establish native acceptance or owner adoption.
 
 ## Remaining decision
 
-The owner must review the diagram and the evidence limitations, then explicitly
-accept or reject Linux adoption in #105. Implementation approval is not inferred
+The owner accepted the timing diagrams. Final Linux adoption remains a separate
+decision after review of the evidence limitations. Implementation approval is not inferred
 from the earlier conditional boundary decision. Keep #105 open and PR #108 draft
 until that decision and the closure prerequisites are satisfied. Installed
 release declarations and publishing work remain separate from this candidate.
+
+## Agent-response policy decision
+
+On 2026-09-27, the owner clarified that acting on review advice is the agent's
+decision under its instructions. Users may instruct an agent to ignore reviews;
+Hapsland does not enforce compliance. Native repair probes should explicitly
+instruct the agent to act on received findings. This decision is recorded in
+the [target contract](../../docs/advicing-target-contract.md#agent-response-is-controlled-by-its-instructions)
+and the user-facing README.
+
+Earlier records used a task-level conditional repair request. They retain their
+original outcomes and do not establish why an agent did not repair. The updated
+matched harness additionally supplies the same explicit compliance policy in
+both phases: fixture `AGENTS.md` for Codex and an appended system prompt for
+Claude. Each new case records the policy and mechanism. This is a test condition,
+not a new installed product policy. Agent compliance is distinct from the
+remaining delivery-visibility and follow-up-review timing questions.

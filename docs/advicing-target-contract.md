@@ -17,6 +17,24 @@ submission to an agent runtime, model visibility, and a repair edit must never b
 inferred from one another. A completed output write establishes submission only.
 An unavailable, interrupted, or discarded evaluation is never reported as clear.
 
+### Agent response is controlled by its instructions
+
+Hapsland submits advice and can request a bounded continuation; it does not
+compel the agent to implement a finding. The agent decides how to respond under
+its governing instructions. A user can instruct it to follow reviews or to
+ignore them. Hapsland does not override that choice. An agent's decision not to
+repair is not, by itself, a delivery failure; nor does submission prove that the
+agent saw the advice and chose to ignore it.
+
+Native delivery-and-repair tests must explicitly instruct the fixture agent to
+act on every actionable Hapsland finding it receives. Apply the same policy to
+both before and after runs, and record the instruction mechanism with the
+evidence. Repairs then demonstrate the end-to-end path under a cooperative
+agent policy, not enforcement in arbitrary user sessions. Keep submission,
+observed repair, and follow-up review completion as separate assertions. A
+missing repair requires diagnosis, not an assumption of either refusal or
+failed delivery.
+
 The installed composed path uses the same resident delivery module for Codex CLI
 and Claude Code. Native hooks translate runtime events and response formats; they
 do not own another review queue, reconstruct reviews from the filesystem, or call

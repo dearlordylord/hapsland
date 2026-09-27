@@ -71,8 +71,8 @@ are observations, not universal latency bounds. The Foldkit
 [timing diagrams](../../packages/agent-flow-viz/README.md#native-timing-evidence-at-the-bottom-of-the-page)
 visualize required and exploratory cases with unknown visibility marked.
 
-The candidate is not adopted as a new pinned installed release. Owner visual
-review and final adoption remain open. Manual macOS testing with real installed
+The candidate is not adopted as a new pinned installed release. Owner timing-diagram review was accepted in the implementation conversation on
+2026-09-27; final Linux adoption remains open. Manual macOS testing with real installed
 Codex and Claude belongs to a follow-up created when the current issue closes.
 
 For this exact candidate profile, the composed command reserves 4.2 seconds
