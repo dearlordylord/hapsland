@@ -52,6 +52,19 @@
       "phases": ["ready", "incomplete"],
       "commands": ["none", "unitIncomplete:TreeLimit"],
       "expected": { "phase": "incomplete", "reason": "TreeLimit", "files": 1, "visited": [1] }
+    },
+    {
+      "name": "supporting import exceeds tree bound after capture",
+      "events": [
+        { "kind": "root", "target": 1, "sourceBytes": 1000, "treeBytes": 20400, "edges": [10] },
+        { "kind": "next" },
+        { "kind": "resolved", "target": 2, "result": "found" },
+        { "kind": "pathChecked", "allowed": true },
+        { "kind": "captured", "sourceBytes": 128, "treeBytes": 100, "edges": [] }
+      ],
+      "phases": ["ready", "resolving", "checking", "capturing", "incomplete"],
+      "commands": ["none", "resolveEdge:10", "checkPath:2", "readSource:2", "unitIncomplete:TreeLimit"],
+      "expected": { "phase": "incomplete", "reason": "TreeLimit", "files": 1, "readBytes": 1000, "treeBytes": 20400, "visited": [1] }
     }
   ]
 }

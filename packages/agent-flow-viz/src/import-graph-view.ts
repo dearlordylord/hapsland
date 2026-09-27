@@ -21,6 +21,7 @@ export const IMPORT_GRAPH_SCENARIOS = [
   { title: "Evidence tree exhausted", description: "The canonical evidence tree already occupies 20 KiB. Bend stops before requesting resolution or supporting source.", units: ["A.ts"], targetNames: { 1: "A.ts" }, steps: [root([10], 20480), next()] },
   { title: "Total read budget exhausted", description: "Six captured files use the 1.5 MiB total-read budget. Bend rejects the seventh target before requesting source, even though its path is allowed.", units: ["A.ts"], targetNames: { 1: "A.ts", 2: "B.ts", 3: "C.ts", 4: "D.ts", 5: "E.ts", 6: "F.ts", 7: "G.ts" }, steps: totalReadSteps },
   { title: "Capture read limit", description: "Native bounded capture reports a per-file read beyond 256 KiB. Bend rejects the unit.", units: ["A.ts"], targetNames: { 1: "A.ts", 2: "B.ts" }, steps: [root([10]), next(), resolved(2), allowed(), captured([], 400, 262145)] },
+  { title: "Tree overflows during B import", description: "A's accepted tree contribution is 20,400 B. B is allowed and read, but its reported 100 B tree contribution would make 20,500 B, above the 20,480 B cap. Bend rejects B's contribution and ends the whole unit incomplete.", units: ["A.ts"], targetNames: { 1: "A.ts", 2: "B.ts" }, steps: [root([10], 20400), next(), resolved(2), allowed(), step("Native: B capture reports 128 B source and 100 B tree", { kind: "captured", sourceBytes: 128, treeBytes: 100, edges: [] })] },
 ] as const;
 
 export const projectImportExample = (scenarioIndex: number, cursor: number) => {

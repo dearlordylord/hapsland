@@ -3,7 +3,7 @@ import type { ImportGraphCommand, ImportGraphEvent, ImportGraphProjection } from
 
 export type ImportGraphStage = "resolve" | "gate" | "capture" | "expand" | "complete" | "incomplete";
 type HistoryStep = { readonly unit: number; readonly event: ImportGraphEvent; readonly command: ImportGraphCommand; readonly state: ImportGraphProjection };
-type FileNode = { readonly target: number; readonly status: "captured" | "discovered" | "read requested" | "blocked"; readonly reason?: string };
+type FileNode = { readonly target: number; readonly status: "captured" | "discovered" | "read requested" | "blocked"; readonly reason?: string; readonly sourceBytes?: number; readonly treeBytes?: number; readonly sizeAccepted?: boolean };
 type FileEdge = { readonly id: number; readonly from: number; to?: number; reason?: string; visited?: boolean };
 type UnitGraph = { readonly nodes: Map<number, FileNode>; readonly edges: Map<number, FileEdge>; root?: number; resolving?: number; checking?: number; reading?: number };
 
@@ -19,7 +19,7 @@ const projectFileGraphs = (unitCount: number, history: readonly HistoryStep[]): 
       case "root":
         if (step.state.files > 0) {
           graph.root = event.target;
-          graph.nodes.set(event.target, { target: event.target, status: "captured" });
+          graph.nodes.set(event.target, { target: event.target, status: "captured", sourceBytes: event.sourceBytes, treeBytes: event.treeBytes, sizeAccepted: true });
           for (const id of event.edges) graph.edges.set(id, { id, from: event.target });
         }
         break;
@@ -55,10 +55,10 @@ const projectFileGraphs = (unitCount: number, history: readonly HistoryStep[]): 
       case "captured":
         if (graph.reading !== undefined) {
           if (command.kind === "none" && step.state.phase === "ready") {
-            graph.nodes.set(graph.reading, { target: graph.reading, status: "captured" });
+            graph.nodes.set(graph.reading, { target: graph.reading, status: "captured", sourceBytes: event.sourceBytes, treeBytes: event.treeBytes, sizeAccepted: true });
             for (const id of event.edges) graph.edges.set(id, { id, from: graph.reading! });
           } else if (command.kind === "unitIncomplete") {
-            graph.nodes.set(graph.reading, { target: graph.reading, status: "blocked", reason: command.reason });
+            graph.nodes.set(graph.reading, { target: graph.reading, status: "blocked", reason: command.reason, sourceBytes: event.sourceBytes, treeBytes: event.treeBytes, sizeAccepted: false });
           }
         }
         break;
@@ -119,10 +119,15 @@ const fileGraph = <Message>(h: HtmlBuilder<Message>, units: readonly string[],
         const stroke = blocked ? "#d76546" : completeRoot ? "#31836a" : node?.status === "captured" ? "#527cc4" : "#a3afbf";
         const name = node === undefined ? `import #${edge!.id}` : names[node.target] ?? `target #${node.target}`;
         const detail = node?.reason ?? edge?.reason ?? (node?.status === "captured" ? node.target === graph.root ? "captured root" : "captured support" : node?.status ?? "pending resolution");
+        const sizeKind = node?.sizeAccepted === false ? "reported" : "accepted";
+        const treeSize = node?.treeBytes === undefined ? "tree size unknown" : `${sizeKind} tree +${node.treeBytes} B`;
+        const sourceSize = node?.sourceBytes === undefined ? "source size unknown" : `${sizeKind} source ${node.sourceBytes} B`;
         elements.push(h.g([], [
-          h.rect([h.X(String(x)), h.Y(String(top)), h.Width("175"), h.Height("85"), h.Rx("10"), h.Fill(fill), h.Stroke(stroke), h.StrokeWidth("2")], []),
-          h.text([h.X(String(x + 13)), h.Y(String(top + 33)), h.FontSize("17"), h.FontWeight("700"), h.Fill("#1e3048")], [name]),
-          h.text([h.X(String(x + 13)), h.Y(String(top + 60)), h.FontSize("11"), h.Fill("#52647d")], [detail]),
+          h.rect([h.X(String(x)), h.Y(String(top)), h.Width("175"), h.Height("108"), h.Rx("10"), h.Fill(fill), h.Stroke(stroke), h.StrokeWidth("2")], []),
+          h.text([h.X(String(x + 13)), h.Y(String(top + 28)), h.FontSize("17"), h.FontWeight("700"), h.Fill("#1e3048")], [name]),
+          h.text([h.X(String(x + 13)), h.Y(String(top + 51)), h.FontSize("11"), h.Fill("#52647d")], [detail]),
+          h.text([h.X(String(x + 13)), h.Y(String(top + 75)), h.FontSize("10"), h.Fill("#52647d")], [treeSize]),
+          h.text([h.X(String(x + 13)), h.Y(String(top + 92)), h.FontSize("10"), h.Fill("#52647d")], [sourceSize]),
         ]));
       }
       return elements;

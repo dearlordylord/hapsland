@@ -204,13 +204,21 @@ The separate import exploration section uses `ImportGraph.bend` through
 `import-graph-adapter.ts`. Its own scenario controls preserve the full-flow replay
 position. Grey boxes represent supplied native resolution/capture facts; blue
 boxes represent Bend decisions; the green downstream boundary identifies Jev
-outcomes without simulating a request or result. Seven source-free examples cover
+outcomes without simulating a request or result. Eight source-free examples cover
 excluded C with an independent complete D unit, ordered imports and cycles,
 missing/ambiguous targets, the 20 KiB evidence-tree cap, the 1.5 MiB total-read cap,
 and an oversized per-file capture. These are synthetic policy examples, not
 observed filesystem or production execution traces. The build checks the shared
 adapter projections and Foldkit controls; `test:browser` checks the rendered
 independent replay controls as well.
+
+The "Tree overflows during B import" example starts with 20,400 B of accepted
+tree data for A. B's reported 100 B contribution would exceed the 20,480 B
+bound, so Bend emits `UnitIncomplete(TreeLimit)` after the capture fact and
+keeps the accepted tree at 20,400 B. File boxes display accepted or reported
+tree and source sizes; unread files show unknown sizes.
+The saved [tree overflow view](../../docs/assets/import-graph-tree-overflow.png)
+shows the rejected contribution at the final step.
 
 The [dashboard rules](DASHBOARD-RULES.md) allow presentation mappings and
 checked example traces, while requiring every displayed policy outcome to come

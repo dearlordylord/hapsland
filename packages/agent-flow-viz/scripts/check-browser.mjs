@@ -77,6 +77,8 @@ try {
   assert.match(await fileDiagram.textContent(), /A\.ts review unit · incomplete/);
   assert.match(await fileDiagram.textContent(), /D\.ts review unit · complete/);
   assert.match(await fileDiagram.textContent(), /C\.tsExcluded/);
+  assert.match(await fileDiagram.textContent(), /A\.tscaptured rootaccepted tree \+400 Baccepted source 1000 B/);
+  assert.match(await fileDiagram.textContent(), /C\.tsExcludedtree size unknownsource size unknown/);
   await imports.getByRole("button", { name: "Previous import step", exact: true }).click();
   await waitForText(".import-graph-progress", "Import step 9 of 10");
   await imports.getByRole("button", { name: "Multiple imports and cycle", exact: true }).click();
@@ -88,6 +90,15 @@ try {
     await waitForText(".import-graph-progress", `Import step ${step} of 2`);
   }
   assert.match(await fileDiagram.textContent(), /import #10TreeLimit/);
+  await imports.getByRole("button", { name: "Tree overflows during B import", exact: true }).click();
+  for (let step = 1; step <= 5; step++) {
+    await imports.getByRole("button", { name: "Next import step", exact: true }).click();
+    await waitForText(".import-graph-progress", `Import step ${step} of 5`);
+  }
+  assert.match(await fileDiagram.textContent(), /A\.tscaptured rootaccepted tree \+20400 Baccepted source 1000 B/);
+  assert.match(await fileDiagram.textContent(), /B\.tsTreeLimitreported tree \+100 Breported source 128 B/);
+  assert.match(await imports.locator(".import-graph-facts").innerText(), /A.ts · incomplete \(TreeLimit\)/);
+  assert.match(await imports.locator(".import-graph-facts").innerText(), /tree bytes: 20400\/20480/);
   assert.deepEqual(errors, []);
   console.log("Browser controls passed: guided, manual, disabled rejection, capacity, finish, rewind, redo, and independent import exploration");
 } finally {

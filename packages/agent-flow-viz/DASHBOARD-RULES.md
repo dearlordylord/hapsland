@@ -22,6 +22,10 @@ must state that scope until #119–#137 change the production boundary.
 - Static mappings from a Bend constructor, command, or state to a label, color,
   icon, route, or layout. For example, `UnitIncomplete{Excluded}` can display
   “excluded · no read.” Native `Found` can display a resolved import edge.
+- File-size labels transcribed from source-free native capture facts. A size
+  offered by a capture that Bend rejects must be labeled "reported"; only a
+  size accepted into Bend state may be labeled "accepted". Unread files have
+  unknown sizes rather than invented estimates.
 - Rendering, responsive layout, history navigation, and source-free summaries
   of the Bend result. These cannot change what an event does or whether a unit
   can reach Jev.

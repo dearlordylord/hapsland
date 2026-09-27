@@ -36,6 +36,12 @@ try {
   const treeLimit = imports.projectImportExample(4, 2);
   assert.equal(treeLimit.states[0].reason, "TreeLimit");
   assert.equal(treeLimit.history.some((entry) => ["resolveEdge", "readSource"].includes(entry.command.kind)), false);
+  const treeOverflow = imports.projectImportExample(7, 5);
+  assert.deepEqual(treeOverflow.history.map((entry) => entry.state.phase), ["ready", "resolving", "checking", "capturing", "incomplete"]);
+  assert.deepEqual(treeOverflow.history.map((entry) => entry.command.kind), ["none", "resolveEdge", "checkPath", "readSource", "unitIncomplete"]);
+  assert.equal(treeOverflow.states[0].reason, "TreeLimit");
+  assert.equal(treeOverflow.states[0].treeBytes, 20400, "rejected B contribution is not charged to the accepted tree");
+  assert.equal(treeOverflow.states[0].files, 1, "rejected B is not counted as captured");
   const totalRead = imports.projectImportExample(5, imports.IMPORT_GRAPH_SCENARIOS[5].steps.length);
   assert.equal(totalRead.states[0].reason, "ReadLimit");
   assert.equal(totalRead.states[0].readBytes, 1572864);
