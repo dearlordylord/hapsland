@@ -165,7 +165,8 @@ int main(int argc, char **argv) {
       }
     } else if (event == PTRACE_EVENT_EXEC) {
       const char *mode = NULL;
-      if (command_matches(pid, target, "stop")) mode = "stop";
+      if (command_matches(pid, target, "before-edit")) mode = "before-edit";
+      else if (command_matches(pid, target, "stop")) mode = "stop";
       else if (command_matches(pid, target, "post-tool")) mode = "post-tool";
       else if (command_matches(pid, target, "edit")) mode = "edit";
       else if (command_matches(pid, target, "background")) mode = "background";
