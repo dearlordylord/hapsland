@@ -10,6 +10,18 @@ type EmptyPrepared is Data:
   NoEmptyFailure{}
   FailEmptyLost{}
 
+type EvaluatedDisposition is Data:
+  RetainFinding{}
+  SettleClear{}
+  SettleStaleClear{}
+  RetireStaleFinding{}
+
+type FailureDisposition is Data:
+  NoFailure{}
+  BackendUnavailable{}
+  CredentialUnavailable{}
+  LostUnavailable{}
+
 def prepared_offer(ready: Bool, within_frame: Bool) -> PreparedOffer:
   Bool.pick(PreparedOffer, Bool.not(ready), SkipPrepared{},
     Bool.pick(PreparedOffer, within_frame, AdmitPrepared{}, RejectPreparedCapacity{}))
@@ -18,6 +30,17 @@ def empty_prepared(ready_count: Nat, has_non_skipped: Bool,
     ticketed: Bool) -> EmptyPrepared:
   Bool.pick(EmptyPrepared, Bool.and(Nat.is_eq(ready_count, 0n),
     Bool.and(has_non_skipped, ticketed)), FailEmptyLost{}, NoEmptyFailure{})
+
+def evaluated_disposition(has_findings: Bool, +current_work: Bool) -> EvaluatedDisposition:
+  Bool.pick(EvaluatedDisposition, has_findings,
+    Bool.pick(EvaluatedDisposition, current_work, RetainFinding{}, RetireStaleFinding{}),
+    Bool.pick(EvaluatedDisposition, current_work, SettleClear{}, SettleStaleClear{}))
+
+def failure_disposition(backend_or_timeout: Bool, credential: Bool,
+    missing: Bool) -> FailureDisposition:
+  Bool.pick(FailureDisposition, backend_or_timeout, BackendUnavailable{},
+    Bool.pick(FailureDisposition, credential, CredentialUnavailable{},
+      Bool.pick(FailureDisposition, missing, LostUnavailable{}, NoFailure{})))
 
 type ObservationStage is Data:
   SourceQueued{}

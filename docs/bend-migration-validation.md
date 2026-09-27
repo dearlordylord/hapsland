@@ -45,7 +45,9 @@ finding count, and cancellation IDs.
   checks Bend's cancellation IDs against its queued and running jobs and fails
   closed on a mismatch. Its prepared-offer gate admits ready units only within
   the measured IPC frame budget, and its empty-observation gate decides whether
-  a ticket records a lost result.
+  a ticket records a lost result. Its completed-result gates decide whether a
+  finding is retained, a clear is settled, a stale result is retired, or a
+  provider failure reports backend, credential, or lost availability.
 - `Lifecycle.bend` decides whether a claimed Stop waits for Bend Work and
   external owner counts. At the deadline or when work settles, it atomically
   begins the decision and cancels unfinished Work before TypeScript discards
@@ -82,7 +84,9 @@ finding count, and cancellation IDs.
   supplies credential and live-output facts and maps Bend's reason tag to the
   resident protocol. Its collect gate uses that same order at the initial
   request and final IPC handoff barriers. Its final authority gate releases a
-  block-mode selection when current user opt-in has been revoked.
+  block-mode selection when current user opt-in has been revoked. Its joined
+  settlement gate preserves stale ticket units and decides clear, finding,
+  supplied unavailability, or lost identity from source-free facts.
 - `Revision.bend` decides whether canonical input identity reuses a current
   revision or replaces it, and whether a source-free subject/generation pair
   supersedes ticket units and pending advice. TypeScript maps exact canonical
@@ -213,6 +217,10 @@ On 2026-09-27, from this worktree:
 - The prepared-unit admission migration passed the focused resident-server and
   terminal-collection suite. Five Bend laws cover ready, skipped, oversized,
   and empty-ticket outcomes.
+- The completed-result and joined-ticket migration passed the focused
+  resident-server and terminal-collection suite: 2 files and 80 tests. Ten Bend
+  laws cover current and stale findings and clears, backend/credential/lost
+  failures, and joined-unit settlement.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
   suite reported 65 passing files and 575 passing tests, with one file and
   two tests skipped.

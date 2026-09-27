@@ -1,6 +1,36 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.current_finding_is_retained():
+  {==}
+
+def Laws.stale_finding_is_retired():
+  {==}
+
+def Laws.current_clear_settles_clear():
+  {==}
+
+def Laws.stale_clear_settles_unavailable():
+  {==}
+
+def Laws.backend_failure_reports_backend():
+  {==}
+
+def Laws.credential_failure_reports_credential():
+  {==}
+
+def Laws.missing_result_reports_lost():
+  {==}
+
+def Laws.stale_joined_ticket_preserves_stale_status():
+  {==}
+
+def Laws.joined_finding_without_identity_is_lost():
+  {==}
+
+def Laws.joined_clear_with_revision_settles_clear():
+  {==}
+
 def Laws.ready_unit_within_frame_is_admitted():
   {==}
 

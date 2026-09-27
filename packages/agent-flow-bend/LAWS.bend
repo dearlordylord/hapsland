@@ -17,6 +17,46 @@ import ./Revision.bend as Revision
 import ./Reuse.bend as Reuse
 import ./Retention.bend as Retention
 
+law current_finding_is_retained:
+  {Work.evaluated_disposition(True{}, True{}) ==
+    Work.RetainFinding{} : Work.EvaluatedDisposition}
+
+law stale_finding_is_retired:
+  {Work.evaluated_disposition(True{}, False{}) ==
+    Work.RetireStaleFinding{} : Work.EvaluatedDisposition}
+
+law current_clear_settles_clear:
+  {Work.evaluated_disposition(False{}, True{}) ==
+    Work.SettleClear{} : Work.EvaluatedDisposition}
+
+law stale_clear_settles_unavailable:
+  {Work.evaluated_disposition(False{}, False{}) ==
+    Work.SettleStaleClear{} : Work.EvaluatedDisposition}
+
+law backend_failure_reports_backend:
+  {Work.failure_disposition(True{}, False{}, False{}) ==
+    Work.BackendUnavailable{} : Work.FailureDisposition}
+
+law credential_failure_reports_credential:
+  {Work.failure_disposition(False{}, True{}, False{}) ==
+    Work.CredentialUnavailable{} : Work.FailureDisposition}
+
+law missing_result_reports_lost:
+  {Work.failure_disposition(False{}, False{}, True{}) ==
+    Work.LostUnavailable{} : Work.FailureDisposition}
+
+law stale_joined_ticket_preserves_stale_status:
+  {Ticket.joined_disposition(Ticket.JoinedFinding{}, True{}, True{}, True{}) ==
+    Ticket.KeepJoined{} : Ticket.JoinedDisposition}
+
+law joined_finding_without_identity_is_lost:
+  {Ticket.joined_disposition(Ticket.JoinedFinding{}, False{}, True{}, False{}) ==
+    Ticket.SetJoinedLost{} : Ticket.JoinedDisposition}
+
+law joined_clear_with_revision_settles_clear:
+  {Ticket.joined_disposition(Ticket.JoinedClear{}, False{}, True{}, False{}) ==
+    Ticket.SetJoinedClear{} : Ticket.JoinedDisposition}
+
 law ready_unit_within_frame_is_admitted:
   {Work.prepared_offer(True{}, True{}) ==
     Work.AdmitPrepared{} : Work.PreparedOffer}

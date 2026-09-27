@@ -42,6 +42,8 @@ type Smoke is Data:
     finish_wait: Bool,
     prepared_offer: Work.PreparedOffer,
     empty_prepared: Work.EmptyPrepared,
+    evaluated_disposition: Work.EvaluatedDisposition,
+    failure_disposition: Work.FailureDisposition,
     source_capacity: Work.WorkStep,
     review_capacity: Work.WorkStep,
     selection: Handoff.SelectResult,
@@ -110,6 +112,7 @@ type Smoke is Data:
     ticket_terminal: Ticket.Outcome
     ticket_collect_gate: Ticket.CollectGate
     ticket_final_authority: Ticket.FinalAuthority
+    ticket_joined_disposition: Ticket.JoinedDisposition
     ticket_unit: Ticket.UnitStep
     ticket_unit_initial: Ticket.UnitStage
     revision_register: Revision.Registration
@@ -168,6 +171,8 @@ def main() -> Smoke:
     Work.finish_wait(1n, False{}, True{}),
     Work.prepared_offer(True{}, True{}),
     Work.empty_prepared(0n, True{}, True{}),
+    Work.evaluated_disposition(True{}, True{}),
+    Work.failure_disposition(False{}, True{}, False{}),
     Work.set_source_capacity(sample_work(), Flow.Capacity{2n, 0n}),
     Work.set_review_capacity(sample_unit_work(), Flow.Capacity{2n, 0n}),
     Handoff.select(Handoff.initial(1n, 1n),
@@ -247,6 +252,7 @@ def main() -> Smoke:
       False{}, False{}, None{}, 0n, 0n, 1n}),
     Ticket.collect_gate(False{}, True{}),
     Ticket.final_authority(True{}, True{}),
+    Ticket.joined_disposition(Ticket.JoinedFinding{}, False{}, True{}, True{}),
     Ticket.unit.step(Ticket.UnitFinding{False{}}, Ticket.MarkDelivered{}),
     Ticket.unit.initial(),
     Revision.register(True{}, False{}),

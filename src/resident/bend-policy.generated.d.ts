@@ -105,6 +105,14 @@ export function bendWorkPreparedOffer(ready: boolean, withinFrame: boolean): Ben
 export type BendEmptyPrepared = { readonly $: "NoEmptyFailure" | "FailEmptyLost" };
 export function bendWorkEmptyPrepared(readyCount: number | bigint,
   hasNonSkipped: boolean, ticketed: boolean): BendEmptyPrepared;
+export type BendEvaluatedDisposition = { readonly $: "RetainFinding" | "SettleClear" |
+  "SettleStaleClear" | "RetireStaleFinding" };
+export function bendWorkEvaluatedDisposition(hasFindings: boolean,
+  currentWork: boolean): BendEvaluatedDisposition;
+export type BendFailureDisposition = { readonly $: "NoFailure" | "BackendUnavailable" |
+  "CredentialUnavailable" | "LostUnavailable" };
+export function bendWorkFailureDisposition(backendOrTimeout: boolean,
+  credential: boolean, missing: boolean): BendFailureDisposition;
 
 export type BendWorkState = {
   readonly $: "Work";
@@ -362,6 +370,13 @@ export function bendTicketCollectGate(expired: boolean,
 export type BendTicketFinalAuthority = { readonly $: "FinalProceed" | "FinalRelease" };
 export function bendTicketFinalAuthority(admittedBlock: boolean,
   currentBlock: boolean): BendTicketFinalAuthority;
+export type BendTicketJoinedState = { readonly $: "JoinedPending" | "JoinedClear" |
+  "JoinedFinding" | "JoinedUnavailable" };
+export type BendTicketJoinedDisposition = { readonly $: "KeepJoined" | "SetJoinedClear" |
+  "SetJoinedFinding" | "SetJoinedUnavailable" | "SetJoinedLost" };
+export function bendTicketJoinedDisposition(state: BendTicketJoinedState,
+  staleUnavailable: boolean, hasRevision: boolean,
+  hasAdviceId: boolean): BendTicketJoinedDisposition;
 export type BendTicketUnitStage =
   | { readonly $: "UnitPending" | "UnitClear" | "UnitUnavailable" }
   | { readonly $: "UnitFinding"; readonly delivered: boolean };

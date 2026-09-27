@@ -70,6 +70,8 @@ import { bendTicketInitial, bendTicketFail, bendTicketClose, bendTicketTerminal,
   bendValidationRoute, bendPostValidation, bendFinalCandidate,
   bendCleanupGate, bendCleanupCommit, bendTicketRetention, bendDiscardScope,
   bendWorkPreparedOffer, bendWorkEmptyPrepared,
+  bendWorkEvaluatedDisposition,
+  bendWorkFailureDisposition, bendTicketJoinedDisposition,
   type BendTicketPhase, type BendTicketReason,
   type BendTicketUnitEvent, type BendTicketUnitStage,
   type BendValidationStatus } from "./bend-policy.generated.js";
@@ -2211,20 +2213,24 @@ export class ResidentServer {
             outcome: result.findings.length === 0 ? "completed-clear" : "completed-findings",
           })}\n`, "utf8");
         };
-        if (
-          result.findings.length === 0 ||
-          !this.#isCurrentWork(job.revision, job.prepared)
-        ) {
-          if (result.findings.length > 0 && job.round !== undefined && job.workUnitId !== undefined) {
+        const disposition = bendWorkEvaluatedDisposition(result.findings.length > 0,
+          this.#isCurrentWork(job.revision, job.prepared));
+        if (disposition.$ !== "RetainFinding" && disposition.$ !== "SettleClear" &&
+            disposition.$ !== "SettleStaleClear" && disposition.$ !== "RetireStaleFinding") {
+          throw new Error("Bend denied evaluated result disposition");
+        }
+        if (disposition.$ !== "RetainFinding") {
+          if (disposition.$ === "RetireStaleFinding" &&
+              job.round !== undefined && job.workUnitId !== undefined) {
             job.round.policyWork.retire(job.workUnitId);
           }
           if (job.ticketUnit !== undefined) {
-            if (result.findings.length === 0 && this.#isCurrentWork(job.revision, job.prepared)) {
+            if (disposition.$ === "SettleClear") {
               unitClear(job.ticketUnit, job.revision);
             } else unitUnavailable(job.ticketUnit, "stale");
           }
           this.#settleJoined(job.evaluationKey,
-            result.findings.length === 0 && this.#isCurrentWork(job.revision, job.prepared) ? "clear" : "unavailable",
+            disposition.$ === "SettleClear" ? "clear" : "unavailable",
             "stale");
           job.completed = true;
           this.#releaseUnit(job);
@@ -2235,20 +2241,24 @@ export class ResidentServer {
         await recordOutcome();
         return;
       }
-      if (result?.status === "backend" || result?.status === "timeout") {
+      const failure = bendWorkFailureDisposition(result?.status === "backend" || result?.status === "timeout",
+        result?.status === "credential", result === undefined);
+      if (failure.$ === "BackendUnavailable") {
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "backend");
         this.#settleJoined(job.evaluationKey, "unavailable", "backend");
         this.#recordOperationalFailure(job.observation, "backend", job.ticket);
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
-      } else if (result?.status === "credential") {
+      } else if (failure.$ === "CredentialUnavailable") {
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "credential");
         this.#settleJoined(job.evaluationKey, "unavailable", "credential");
         this.#recordOperationalFailure(job.observation, "credential", job.ticket);
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
-      } else if (result === undefined) {
+      } else if (failure.$ === "LostUnavailable") {
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "lost");
         this.#settleJoined(job.evaluationKey, "unavailable", "lost");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
+      } else if (failure.$ !== "NoFailure") {
+        throw new Error("Bend denied review failure disposition");
       }
     } catch {
       if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "backend");
@@ -2275,16 +2285,25 @@ export class ResidentServer {
     if (joined === undefined) return;
     this.#joinedTicketUnits.delete(key);
     for (const unit of joined) {
-      if (unit.current.stage.$ === "UnitUnavailable" && unit.current.reason === "stale") continue;
-      if (state === "unavailable") unitUnavailable(unit, reason ?? "lost");
-      else {
-        const revision = unit.current.revision;
-        if (revision === undefined) unitUnavailable(unit, "lost");
-        else if (state === "clear") unitClear(unit, revision);
-        else if (state === "finding") {
-          if (adviceId === undefined) unitUnavailable(unit, "lost");
-          else unitFinding(unit, revision, adviceId);
-        }
+      const revision = unit.current.revision;
+      const disposition = bendTicketJoinedDisposition({ $: state === "clear" ? "JoinedClear" :
+        state === "finding" ? "JoinedFinding" :
+        state === "unavailable" ? "JoinedUnavailable" : "JoinedPending" },
+      unit.current.stage.$ === "UnitUnavailable" && unit.current.reason === "stale",
+      revision !== undefined, adviceId !== undefined);
+      switch (disposition.$) {
+        case "KeepJoined": break;
+        case "SetJoinedUnavailable": unitUnavailable(unit, reason ?? "lost"); break;
+        case "SetJoinedLost": unitUnavailable(unit, "lost"); break;
+        case "SetJoinedClear":
+          if (revision === undefined) throw new Error("Bend joined clear lacks revision");
+          unitClear(unit, revision);
+          break;
+        case "SetJoinedFinding":
+          if (revision === undefined || adviceId === undefined) throw new Error("Bend joined finding lacks identity");
+          unitFinding(unit, revision, adviceId);
+          break;
+        default: throw new Error("Bend denied joined ticket disposition");
       }
     }
   }

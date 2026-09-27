@@ -33,6 +33,8 @@ try {
       !source.includes("function $Work$finish_wait$(") ||
       !source.includes("function $Work$prepared_offer$(") ||
       !source.includes("function $Work$empty_prepared$(") ||
+      !source.includes("function $Work$evaluated_disposition$(") ||
+      !source.includes("function $Work$failure_disposition$(") ||
       ["initial", "admit", "start_source", "start_unit", "spawn", "complete_source", "cached_finding", "outcome",
         "interrupt_observation", "interrupt_unit", "retire", "revise_finding", "unfinished", "pending_findings", "pending_for", "cancel_unfinished", "close"]
         .some((name) => !source.includes(`function $Work$${name}$(`)) ||
@@ -64,6 +66,7 @@ try {
       !source.includes("function $Ticket$terminal$(") ||
       !source.includes("function $Ticket$collect_gate$(") ||
       !source.includes("function $Ticket$final_authority$(") ||
+      !source.includes("function $Ticket$joined_disposition$(") ||
       !source.includes("function $Ticket$unit$step$(") ||
       !source.includes("function $Ticket$unit$initial$(") ||
       !source.includes("function $Revision$register$(") ||
@@ -125,6 +128,10 @@ export const bendWorkPreparedOffer = (ready, withinFrame) =>
   run_loop($Work$prepared_offer$(ready, withinFrame));
 export const bendWorkEmptyPrepared = (readyCount, hasNonSkipped, ticketed) =>
   run_loop($Work$empty_prepared$(nat(readyCount), hasNonSkipped, ticketed));
+export const bendWorkEvaluatedDisposition = (hasFindings, currentWork) =>
+  run_loop($Work$evaluated_disposition$(hasFindings, currentWork));
+export const bendWorkFailureDisposition = (backendOrTimeout, credential, missing) =>
+  run_loop($Work$failure_disposition$(backendOrTimeout, credential, missing));
 export const bendWorkInitial = () => run_loop($Work$initial$());
 export const bendWorkAdmit = (state) => run_loop($Work$admit$(state));
 export const bendWorkStartSource = (state, observation) =>
@@ -282,6 +289,10 @@ export const bendTicketCollectGate = (expired, credentialValid) =>
   run_loop($Ticket$collect_gate$(expired, credentialValid));
 export const bendTicketFinalAuthority = (admittedBlock, currentBlock) =>
   run_loop($Ticket$final_authority$(admittedBlock, currentBlock));
+export const bendTicketJoinedDisposition = (state, staleUnavailable,
+  hasRevision, hasAdviceId) =>
+  run_loop($Ticket$joined_disposition$(normalize(state), staleUnavailable,
+    hasRevision, hasAdviceId));
 export const bendTicketUnitStep = (stage, event) =>
   run_loop($Ticket$unit$step$(normalize(stage), normalize(event)));
 export const bendTicketUnitInitial = () => run_loop($Ticket$unit$initial$());
