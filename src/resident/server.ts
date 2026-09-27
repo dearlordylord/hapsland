@@ -62,6 +62,8 @@ import { bendTicketInitial, bendTicketFail, bendTicketClose, bendTicketTerminal,
   bendTicketCollectGate,
   bendTicketUnitStep, bendTicketUnitInitial, bendRevisionRegister, bendRevisionSuperseded,
   bendReuseRoute, bendReuseCacheRoute,
+  bendDeliveryAcknowledge, bendDeliveryFinalize, bendDeliveryFindingDisposition,
+  bendDeliveryReleaseUnacknowledged,
   type BendTicketPhase, type BendTicketReason,
   type BendTicketUnitEvent, type BendTicketUnitStage } from "./bend-policy.generated.js";
 import {
@@ -997,15 +999,16 @@ export class ResidentServer {
     this.#pruneNoticeCooldowns(now);
     const advice = this.#advice.filter((item) => item.delivery?.token === token);
     const notices = this.#noticesForToken(token);
-    if (advice.length === 0 && notices.length === 0) return { status: "empty" };
-    if (
-      advice.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now) ||
-      notices.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now)
-    ) {
+    const expired = advice.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now) ||
+      notices.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now);
+    const decision = bendDeliveryAcknowledge(advice.length + notices.length, expired);
+    if (decision.$ === "AckEmpty") return { status: "empty" };
+    if (decision.$ === "AckExpired") {
       for (const item of advice) delete item.delivery;
       for (const item of notices) delete item.delivery;
       return { status: "empty" };
     }
+    if (decision.$ !== "AckReady") return { status: "empty" };
     if (!this.#composedDelivery.markSubmitted(token,
       advice.flatMap((item) => (item.delivery?.findings ?? []).map(() => item.workUnitId ?? 0)))) {
       return { status: "empty" };
@@ -1025,30 +1028,28 @@ export class ResidentServer {
     this.#pruneNoticeCooldowns(now);
     const advice = this.#advice.filter((item) => item.delivery?.token === token);
     const notices = this.#noticesForToken(token);
-    if (
-      (advice.length === 0 && notices.length === 0) ||
-      advice.some((item) => item.delivery?.acknowledged !== true) ||
-      notices.some((item) => item.delivery?.acknowledged !== true)
-    ) {
-      return { status: "empty" };
-    }
-    if (
-      advice.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now) ||
-      notices.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now)
-    ) {
+    const allAcknowledged = advice.every((item) => item.delivery?.acknowledged === true) &&
+      notices.every((item) => item.delivery?.acknowledged === true);
+    const expired = advice.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now) ||
+      notices.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now);
+    const decision = bendDeliveryFinalize(advice.length + notices.length, allAcknowledged, expired);
+    if (decision.$ === "FinalEmpty") return { status: "empty" };
+    if (decision.$ === "FinalExpired") {
       for (const item of advice) delete item.delivery;
       for (const item of notices) delete item.delivery;
       return { status: "empty" };
     }
+    if (decision.$ !== "FinalReady") return { status: "empty" };
     const composed = this.#composedDelivery.hasToken(token);
     for (const item of advice) {
-      if (composed) {
+      const delivered = item.delivery?.findings ?? [];
+      const remaining = composed ? [] : withoutDeliveredFindings(item.findings, delivered);
+      const disposition = bendDeliveryFindingDisposition(composed, remaining.length);
+      if (disposition.$ === "KeepForReoffer") {
         delete item.delivery;
         continue;
       }
-      const delivered = item.delivery?.findings ?? [];
-      const remaining = withoutDeliveredFindings(item.findings, delivered);
-      if (remaining.length === 0) {
+      if (disposition.$ === "RetireAdvice") {
         for (const ticket of this.#tickets.values()) {
           for (const unit of ticket.units) {
             if (unit.current.stage.$ === "UnitFinding" && unit.current.adviceId === item.id) {
@@ -1062,6 +1063,7 @@ export class ResidentServer {
         this.#removeAdvice(item.id, token);
         continue;
       }
+      if (disposition.$ !== "KeepRemaining") throw new Error("invalid Bend delivery disposition");
       item.findings = remaining;
       item.evaluations = item.evaluations.map((evaluation) => ({
         ...evaluation,
@@ -1075,10 +1077,12 @@ export class ResidentServer {
 
   releaseDelivery(token: string): void {
     for (const advice of this.#advice) {
-      if (advice.delivery?.token === token && !advice.delivery.acknowledged) delete advice.delivery;
+      if (advice.delivery?.token === token &&
+          bendDeliveryReleaseUnacknowledged(advice.delivery.acknowledged)) delete advice.delivery;
     }
     for (const notice of this.#noticesForToken(token)) {
-      if (notice.delivery?.token === token && !notice.delivery.acknowledged) delete notice.delivery;
+      if (notice.delivery?.token === token &&
+          bendDeliveryReleaseUnacknowledged(notice.delivery.acknowledged)) delete notice.delivery;
     }
   }
 

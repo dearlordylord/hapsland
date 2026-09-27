@@ -41,7 +41,8 @@ try {
       !source.includes("function $Notice$advance$(") ||
       ["order", "eligible", "expired"]
         .some((name) => !source.includes(`function $Collection$${name}$(`)) ||
-      ["transition", "expired", "background_reofferable", "existing_token_allowed", "submission_allowed", "legacy_stop_allowed"]
+      ["transition", "expired", "background_reofferable", "existing_token_allowed", "submission_allowed", "legacy_stop_allowed",
+        "acknowledge", "finalize", "finding_disposition", "release_unacknowledged"]
         .some((name) => !source.includes(`function $Delivery$${name}$(`)) ||
       ["admit", "evict"].some((name) => !source.includes(`function $Cache$${name}$(`)) ||
       !source.includes("function $Lifecycle$cutoff$(") ||
@@ -198,6 +199,14 @@ export const bendDeliveryExistingTokenAllowed = (surface, existingToken, finishP
   run_loop($Delivery$existing_token_allowed$(normalize(surface), existingToken, finishPermit));
 export const bendDeliveryLegacyStopAllowed = (round) =>
   run_loop($Delivery$legacy_stop_allowed$(normalize(round)));
+export const bendDeliveryAcknowledge = (items, anyExpired) =>
+  run_loop($Delivery$acknowledge$(nat(items), anyExpired));
+export const bendDeliveryFinalize = (items, allAcknowledged, anyExpired) =>
+  run_loop($Delivery$finalize$(nat(items), allAcknowledged, anyExpired));
+export const bendDeliveryFindingDisposition = (composed, remaining) =>
+  run_loop($Delivery$finding_disposition$(composed, nat(remaining)));
+export const bendDeliveryReleaseUnacknowledged = (acknowledged) =>
+  run_loop($Delivery$release_unacknowledged$(acknowledged));
 export const bendReuseRoute = (liveAdvice, attachedPending, claimedPending) =>
   run_loop($Reuse$route$(liveAdvice, attachedPending, claimedPending));
 export const bendReuseCacheRoute = (hit) =>

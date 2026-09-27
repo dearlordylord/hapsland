@@ -242,6 +242,15 @@ export function bendDeliverySubmissionAllowed(round: BendRound, surface: BendDel
 export function bendDeliveryExistingTokenAllowed(surface: BendDeliverySurface,
   existingToken: boolean, finishPermit: boolean): boolean;
 export function bendDeliveryLegacyStopAllowed(round: BendRound): boolean;
+export type BendDeliveryAckDecision = { readonly $: "AckReady" | "AckExpired" | "AckEmpty" };
+export type BendDeliveryFinalDecision = { readonly $: "FinalReady" | "FinalExpired" | "FinalEmpty" };
+export type BendDeliveryFindingDisposition = { readonly $: "RetireAdvice" | "KeepRemaining" | "KeepForReoffer" };
+export function bendDeliveryAcknowledge(items: number | bigint, anyExpired: boolean): BendDeliveryAckDecision;
+export function bendDeliveryFinalize(items: number | bigint, allAcknowledged: boolean,
+  anyExpired: boolean): BendDeliveryFinalDecision;
+export function bendDeliveryFindingDisposition(composed: boolean,
+  remaining: number | bigint): BendDeliveryFindingDisposition;
+export function bendDeliveryReleaseUnacknowledged(acknowledged: boolean): boolean;
 
 export type BendReuseRoute = { readonly $: "JoinAdvice" | "JoinPending" | "JoinClaimed" | "LookupCache" };
 export type BendReuseCacheRoute = { readonly $: "Cached" | "Own" };

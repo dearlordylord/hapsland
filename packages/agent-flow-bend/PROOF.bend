@@ -1,6 +1,30 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.no_delivery_cannot_acknowledge():
+  {==}
+
+def Laws.expired_delivery_cannot_acknowledge():
+  {==}
+
+def Laws.live_delivery_can_acknowledge():
+  {==}
+
+def Laws.unacknowledged_delivery_cannot_finalize():
+  {==}
+
+def Laws.expired_acknowledged_delivery_releases():
+  {==}
+
+def Laws.composed_delivery_retains_advice_for_reoffer():
+  {==}
+
+def Laws.noncomposed_partial_delivery_retains_remaining():
+  {==}
+
+def Laws.noncomposed_complete_delivery_retires_advice():
+  {==}
+
 def Laws.output_selection_reserves_pending_unit():
   {==}
 

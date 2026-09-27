@@ -177,6 +177,10 @@ On 2026-09-27, from this worktree:
 - The retained finding-lease migration passed the focused composed-delivery and
   resident-server suite: 2 files and 80 tests. A release regression verifies
   that an unwritten Stop reoffer restores the background terminal lease.
+- The delivery terminal gate migration passed the focused resident-server,
+  composed-delivery, and terminal-collection suite: 3 files and 99 tests. Eight
+  Bend laws cover ack and finalize precedence, expired leases, composed reoffer,
+  and partial versus complete noncomposed delivery.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
   suite reported 65 passing files and 575 passing tests, with one file and
   two tests skipped.

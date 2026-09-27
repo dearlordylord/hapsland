@@ -77,6 +77,10 @@ type Smoke is Data:
     submission_allowed: Bool
     existing_token_allowed: Bool
     legacy_stop_allowed: Bool
+    delivery_ack: Delivery.AckDecision
+    delivery_final: Delivery.FinalDecision
+    delivery_finding: Delivery.FindingDisposition
+    delivery_release: Bool
     reuse_route: Reuse.Route
     reuse_cache_route: Reuse.CacheRoute
     cache_admission: Cache.Admission
@@ -185,6 +189,10 @@ def main() -> Smoke:
     Delivery.submission_allowed(Round.initial(), Delivery.Edit{}, False{}, False{}),
     Delivery.existing_token_allowed(Delivery.Edit{}, False{}, False{}),
     Delivery.legacy_stop_allowed(Round.initial()),
+    Delivery.acknowledge(1n, False{}),
+    Delivery.finalize(1n, True{}, False{}),
+    Delivery.finding_disposition(False{}, 0n),
+    Delivery.release_unacknowledged(False{}),
     Reuse.route(False{}, False{}, False{}),
     Reuse.cache_route(False{}),
     Cache.admit(False{}, 10n, 100n),

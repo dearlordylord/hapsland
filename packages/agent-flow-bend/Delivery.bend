@@ -18,6 +18,39 @@ type Step is Data:
   Granted{phase: Phase}
   Denied{phase: Phase}
 
+type AckDecision is Data:
+  AckReady{}
+  AckExpired{}
+  AckEmpty{}
+
+type FinalDecision is Data:
+  FinalReady{}
+  FinalExpired{}
+  FinalEmpty{}
+
+type FindingDisposition is Data:
+  RetireAdvice{}
+  KeepRemaining{}
+  KeepForReoffer{}
+
+# A native token identifies leased findings and notices. Time comparison and
+# exact content subtraction are measured outside Bend; these decisions own
+# terminal eligibility and the resulting native record disposition.
+def acknowledge(items: Nat, any_expired: Bool) -> AckDecision:
+  Bool.pick(AckDecision, Nat.is_eq(items, 0n), AckEmpty{},
+    Bool.pick(AckDecision, any_expired, AckExpired{}, AckReady{}))
+
+def finalize(items: Nat, all_acknowledged: Bool, any_expired: Bool) -> FinalDecision:
+  Bool.pick(FinalDecision, Bool.or(Nat.is_eq(items, 0n), Bool.not(all_acknowledged)),
+    FinalEmpty{}, Bool.pick(FinalDecision, any_expired, FinalExpired{}, FinalReady{}))
+
+def finding_disposition(composed: Bool, remaining: Nat) -> FindingDisposition:
+  Bool.pick(FindingDisposition, composed, KeepForReoffer{},
+    Bool.pick(FindingDisposition, Nat.is_eq(remaining, 0n), RetireAdvice{}, KeepRemaining{}))
+
+def release_unacknowledged(acknowledged: Bool) -> Bool:
+  Bool.not(acknowledged)
+
 # A submission needs a live round. A background writer cannot enter while
 # Stop owns the barrier, and an existing token needs its Stop finish permit.
 def existing_token_allowed(surface: Surface, existing_token: Bool,

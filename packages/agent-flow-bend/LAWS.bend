@@ -16,6 +16,30 @@ import ./Ticket.bend as Ticket
 import ./Revision.bend as Revision
 import ./Reuse.bend as Reuse
 
+law no_delivery_cannot_acknowledge:
+  {Delivery.acknowledge(0n, False{}) == Delivery.AckEmpty{} : Delivery.AckDecision}
+
+law expired_delivery_cannot_acknowledge:
+  {Delivery.acknowledge(1n, True{}) == Delivery.AckExpired{} : Delivery.AckDecision}
+
+law live_delivery_can_acknowledge:
+  {Delivery.acknowledge(1n, False{}) == Delivery.AckReady{} : Delivery.AckDecision}
+
+law unacknowledged_delivery_cannot_finalize:
+  {Delivery.finalize(1n, False{}, False{}) == Delivery.FinalEmpty{} : Delivery.FinalDecision}
+
+law expired_acknowledged_delivery_releases:
+  {Delivery.finalize(1n, True{}, True{}) == Delivery.FinalExpired{} : Delivery.FinalDecision}
+
+law composed_delivery_retains_advice_for_reoffer:
+  {Delivery.finding_disposition(True{}, 0n) == Delivery.KeepForReoffer{} : Delivery.FindingDisposition}
+
+law noncomposed_partial_delivery_retains_remaining:
+  {Delivery.finding_disposition(False{}, 1n) == Delivery.KeepRemaining{} : Delivery.FindingDisposition}
+
+law noncomposed_complete_delivery_retires_advice:
+  {Delivery.finding_disposition(False{}, 0n) == Delivery.RetireAdvice{} : Delivery.FindingDisposition}
+
 def reserved_output_selection() -> Lifecycle.OutputSelection:
   Lifecycle.OutputSelection{1n <> 2n <> Nil{}, False{}, False{}}
 
