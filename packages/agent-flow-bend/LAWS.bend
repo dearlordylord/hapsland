@@ -78,6 +78,30 @@ def one_pending_selection_work() -> Work.Work:
   Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
     Work.ReviewUnit{1n, 1n, Work.PendingFinding{}, 1n, 20n} <> Nil{}}
 
+def deciding_output_round() -> Round.Round:
+  Round.Round{1n, True{}, 0n, 0n, 7n, False{}, True{}, False{}}
+
+law selected_finish_output_reserves_exact_unit_and_slot:
+  {Lifecycle.finish_output(deciding_output_round(), one_pending_selection_work(), 7n,
+      1n <> Nil{}, False{}, True{}, True{}, True{}, False{}) ==
+    Lifecycle.OutputReserved{Round.Round{1n, True{}, 0n, 1n, 7n, True{}, True{}, True{}},
+      Lifecycle.OutputSelection{1n <> Nil{}, False{}, False{}}} : Lifecycle.FinishOutput}
+
+law notice_only_finish_output_does_not_reserve:
+  {Lifecycle.finish_output(deciding_output_round(), one_pending_selection_work(), 7n,
+      Nil{}, True{}, True{}, True{}, True{}, False{}) ==
+    Lifecycle.OutputNotices{} : Lifecycle.FinishOutput}
+
+law overselected_finish_output_is_unavailable:
+  {Lifecycle.finish_output(deciding_output_round(), one_pending_selection_work(), 7n,
+      1n <> 1n <> Nil{}, False{}, True{}, True{}, True{}, False{}) ==
+    Lifecycle.OutputAllowed{Lifecycle.AllowUnavailable{}} : Lifecycle.FinishOutput}
+
+law empty_finish_output_at_deadline_allows:
+  {Lifecycle.finish_output(deciding_output_round(), one_pending_selection_work(), 7n,
+      Nil{}, False{}, True{}, True{}, True{}, True{}) ==
+    Lifecycle.OutputAllowed{Lifecycle.AllowDeadline{}} : Lifecycle.FinishOutput}
+
 law output_selection_reserves_pending_unit:
   {Lifecycle.selection_reserve(one_pending_selection_work(), 1n <> Nil{}) ==
     Lifecycle.SelectionReserved{Lifecycle.OutputSelection{1n <> Nil{}, False{}, False{}}}

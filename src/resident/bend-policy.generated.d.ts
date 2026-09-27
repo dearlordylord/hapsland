@@ -289,6 +289,14 @@ export function bendLifecycleFinishGate(round: BendRound, work: BendWorkState,
   deadlineReached: boolean): BendLifecycleFinishGate;
 export type BendLifecycleFinishDisposition = { readonly $:
   "ReserveFindings" | "PassNotices" | "AllowNoAdvice" | "AllowDeadline" | "AllowUnavailable" };
+export type BendLifecycleFinishOutput =
+  | { readonly $: "OutputReserved"; readonly round: BendRound; readonly selection: BendOutputSelection }
+  | { readonly $: "OutputNotices" }
+  | { readonly $: "OutputAllowed"; readonly reason: BendLifecycleFinishDisposition };
+export function bendLifecycleFinishOutput(round: BendRound, work: BendWorkState,
+  token: number | bigint, selected: ReadonlyArray<number | bigint>,
+  hasNotice: boolean, passNotices: boolean, canWrite: boolean,
+  bindingValid: boolean, deadlineReached: boolean): BendLifecycleFinishOutput;
 export function bendLifecycleFinishDisposition(work: BendWorkState,
   selected: ReadonlyArray<number | bigint>, hasNotice: boolean,
   passNotices: boolean, canWrite: boolean, bindingValid: boolean,

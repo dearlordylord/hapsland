@@ -8,10 +8,12 @@ import {
   bendLifecycleCutoff,
   bendLifecycleFinishGate,
   bendLifecycleFinishDisposition,
+  bendLifecycleFinishOutput,
   bendLifecycleSelectionReserve,
   bendLifecycleReserveSelected,
   type BendList, type BendRound, type BendWorkOutcome, type BendWorkState,
   type BendLifecycleFinishDisposition,
+  type BendLifecycleFinishOutput,
   type BendOutputSelection,
   type BendWorkStep,
 } from "./bend-policy.generated.js";
@@ -153,5 +155,12 @@ export class BendWorkTracker {
     deadlineReached: boolean): BendLifecycleFinishDisposition {
     return bendLifecycleFinishDisposition(this.#state, selectedUnits, hasNotice,
       passNotices, canWrite, bindingValid, deadlineReached);
+  }
+
+  finishOutput(round: BendRound, token: number, selectedUnits: ReadonlyArray<number>,
+    hasNotice: boolean, passNotices: boolean, canWrite: boolean,
+    bindingValid: boolean, deadlineReached: boolean): BendLifecycleFinishOutput {
+    return bendLifecycleFinishOutput(round, this.#state, token, selectedUnits,
+      hasNotice, passNotices, canWrite, bindingValid, deadlineReached);
   }
 }

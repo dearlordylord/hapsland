@@ -328,29 +328,46 @@ export class ComposedDelivery {
   reserveFinishOutput(partition: string, attempt: string, outputToken: string,
     advice: ReadonlyArray<{ readonly id: string; readonly unit: number;
       readonly findings: ReadonlyArray<unknown> }>, now: number, work: BendWorkTracker): boolean {
+    return this.decideFinishOutput(partition, attempt, outputToken, advice, now, work,
+      false, false, true, true, false).kind === "reserved";
+  }
+
+  decideFinishOutput(partition: string, attempt: string, outputToken: string,
+    advice: ReadonlyArray<{ readonly id: string; readonly unit: number;
+      readonly findings: ReadonlyArray<unknown> }>, now: number, work: BendWorkTracker,
+    hasNotice: boolean, passNotices: boolean, canWrite: boolean,
+    bindingValid: boolean, deadlineReached: boolean):
+    { readonly kind: "reserved" | "notices" | "failed" } |
+    { readonly kind: "allowed"; readonly reason: "no-advice" | "deadline" | "unavailable" } {
     const stop = this.#stops.get(partition);
     const round = this.#rounds.get(partition);
-    if (stop?.token !== attempt || round === undefined) return false;
+    if (stop?.token !== attempt || round === undefined) return { kind: "failed" };
+    const selected = advice.flatMap((item) => item.findings.map(() => item.unit));
+    const decision = work.finishOutput(round.policy, stop.id, selected,
+      hasNotice, passNotices, canWrite, bindingValid, deadlineReached);
+    if (decision.$ === "OutputNotices") return { kind: "notices" };
+    if (decision.$ === "OutputAllowed") {
+      switch (decision.reason.$) {
+        case "AllowNoAdvice": return { kind: "allowed", reason: "no-advice" };
+        case "AllowDeadline": return { kind: "allowed", reason: "deadline" };
+        case "AllowUnavailable": return { kind: "allowed", reason: "unavailable" };
+        default: return { kind: "failed" };
+      }
+    }
+    if (decision.$ !== "OutputReserved") return { kind: "failed" };
     const staged = advice.map((item) => [item.id,
       this.#stageSubmission(item.id, partition, outputToken, item.findings, "stop", now, "reserved")
     ] as const);
     if (staged.some(([, submission]) => submission === undefined)) {
       this.#pruneSubmissionTokenIds();
-      return false;
+      return { kind: "failed" };
     }
-    const selected = advice.flatMap((item) => item.findings.map(() => item.unit));
-    const selection = work.reserveOutputSelection(selected);
-    const reserved = selection === undefined ? undefined : work.reserveSelected(round.policy, stop.id, selected);
-    if (reserved === undefined || selection === undefined) {
-      this.#pruneSubmissionTokenIds();
-      return false;
-    }
-    this.#rounds.set(partition, { ...round, policy: reserved });
+    this.#rounds.set(partition, { ...round, policy: decision.round });
     stop.outputToken = outputToken;
     this.#finishPermits.set(outputToken, { partition, generation: stop.generation, attempt,
-      selection, revoked: false });
+      selection: decision.selection, revoked: false });
     for (const [id, submission] of staged) this.#submissions.set(id, submission!);
-    return true;
+    return { kind: "reserved" };
   }
 
   revokeProvisionalFinishOutput(partition: string, attempt: string, outputToken: string): boolean {

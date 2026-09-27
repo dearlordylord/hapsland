@@ -1,6 +1,18 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.selected_finish_output_reserves_exact_unit_and_slot():
+  {==}
+
+def Laws.notice_only_finish_output_does_not_reserve():
+  {==}
+
+def Laws.overselected_finish_output_is_unavailable():
+  {==}
+
+def Laws.empty_finish_output_at_deadline_allows():
+  {==}
+
 def Laws.expired_collection_lease_is_dropped():
   {==}
 

@@ -94,6 +94,7 @@ type Smoke is Data:
     lifecycle_reserve: Round.Step
     lifecycle_release: Round.Step
     finish_disposition: Lifecycle.FinishDisposition
+    finish_output: Lifecycle.FinishOutput
     selection_reserved: Lifecycle.OutputSelectionReservation
     selection_authorized: Lifecycle.OutputSelectionStep
     selection_consumed: Lifecycle.OutputSelectionStep
@@ -215,6 +216,8 @@ def main() -> Smoke:
       1n, 1n <> Nil{}),
     Lifecycle.release_unwritten(Round.Round{1n, True{}, 0n, 1n, 1n, True{}, True{}, True{}}, 1n),
     Lifecycle.finish_disposition(sample_work(), Nil{}, True{}, True{}, True{}, True{}, False{}),
+    Lifecycle.finish_output(Round.Round{1n, True{}, 0n, 0n, 1n, False{}, True{}, False{}},
+      sample_work(), 1n, Nil{}, True{}, True{}, True{}, True{}, False{}),
     Lifecycle.selection_reserve(Work.Work{2n, 2n, Flow.Capacity{3n, 0n},
       Flow.Capacity{3n, 0n}, Nil{}, Work.ReviewUnit{1n, 1n,
       Work.PendingFinding{}, 1n, 20n} <> Nil{}}, 1n <> Nil{}),

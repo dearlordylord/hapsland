@@ -184,6 +184,11 @@ On 2026-09-27, from this worktree:
 - The collection lease and candidate migration passed the same focused suite:
   3 files and 99 tests. Seven Bend laws cover expiry, exclusive live leases,
   Stop reoffer scope, and advice or notice candidate ownership.
+- The aggregate Stop output migration passed the focused Bend work,
+  composed-delivery, and resident-server suite: 3 files and 89 tests. Four
+  Bend laws cover exact selected-unit reservation, notice-only output,
+  over-selection, and deadline Allow. Both provisional and final IPC barriers
+  use the same generated finish-output result.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
   suite reported 65 passing files and 575 passing tests, with one file and
   two tests skipped.

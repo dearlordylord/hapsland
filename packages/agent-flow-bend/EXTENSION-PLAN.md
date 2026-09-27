@@ -37,16 +37,14 @@ ticket units and advice are superseded. The generated
 decision fence, exact work cancellation
 IDs, selected pending unit counts, and continuation slot. The final IPC
 barrier releases and replaces a provisional slot if its selected findings
-change before encoding. The production finish disposition receives the final
-selected unit IDs, notice presence, and writer fact to choose Continue,
-notice-only output, or an Allow reason. Its
-output selection ledger retains those exact unit IDs through authorization and
-consumes them at acknowledgement. Its other aggregate events remain executable
-models rather than the resident's callback state. `FinishCheck.actionable_findings`
-still needs to come from the final Bend selection.
-The installed adapter uses the aggregate finish gate at Stop and the generated
-component policies at their individual effect barriers; the full aggregate
-reducer is not yet production authority.
+change before encoding. Production `Lifecycle.finish_output` receives the exact
+selected unit IDs, notice presence, and writer fact. It combines the Allow or
+notice decision with pending-unit validation, Round slot reservation, and a
+retained output selection. `Lifecycle.selection_consume` settles that same
+selection at acknowledgement. The older `FinishCheck` and `WriteTerminal`
+event forms remain executable sidecar traces; production uses the corresponding
+finish gate, finish output, and selection terminal functions. Other aggregate
+events remain models rather than the resident's callback state.
 
 ## Boundary and source of truth
 

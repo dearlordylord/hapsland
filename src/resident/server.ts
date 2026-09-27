@@ -2494,22 +2494,18 @@ export class ResidentServer {
             selectedAdvice.every((advice) => advice.round === round &&
               advice.workUnitId !== undefined && advice.delivery !== undefined &&
               advice.delivery.findings.length <= round.policyWork.pendingFor(advice.workUnitId)));
-        const disposition = (round?.policyWork ?? new BendWorkTracker()).finishDisposition(
-          selected.flatMap((item) => item.findings.map(() => item.unit)),
+        const output = this.#composedDelivery.decideFinishOutput(group, request.finish.token,
+          collected.status === "advice" ? collected.token : "", selected, this.#now(),
+          round?.policyWork ?? new BendWorkTracker(),
           collected.status === "advice" && collected.findingCount === 0,
           true, true, bindingValid, request.finish.deadlineReached);
-        if (disposition.$ === "ReserveFindings") {
-          if (round === undefined || collected.status !== "advice" ||
-              !this.#composedDelivery.reserveFinishOutput(group, request.finish.token, collected.token,
-                selected, this.#now(), round.policyWork)) {
-            if (collected.status === "advice") this.releaseDelivery(collected.token);
-            return { status: "empty" };
-          }
-        } else if (disposition.$ !== "PassNotices") {
+        if (output.kind === "failed") {
           if (collected.status === "advice") this.releaseDelivery(collected.token);
-          this.#allowFinish(group, request.finish.token,
-            disposition.$ === "AllowDeadline" ? "deadline" :
-              disposition.$ === "AllowUnavailable" ? "unavailable" : "no-advice");
+          return { status: "empty" };
+        }
+        if (output.kind === "allowed") {
+          if (collected.status === "advice") this.releaseDelivery(collected.token);
+          this.#allowFinish(group, request.finish.token, output.reason);
           if (collected.status === "advice") return { status: "empty" };
         }
         // Operational notices must pass the IPC handoff barrier before the hook
@@ -2754,19 +2750,16 @@ export class ResidentServer {
     const bindingValid = final.status !== "advice" || final.findingCount === 0 ||
       (round !== undefined && selectedCount === final.findingCount && selectedAdvice.every((advice) =>
         advice.round === round && advice.workUnitId !== undefined && advice.delivery !== undefined));
-    const disposition = (round?.policyWork ?? new BendWorkTracker()).finishDisposition(
-      selected.flatMap((item) => item.findings.map(() => item.unit)),
+    const output = this.#composedDelivery.decideFinishOutput(group, request.finish.token,
+      final.status === "advice" ? final.token : "", selected, this.#now(),
+      round?.policyWork ?? new BendWorkTracker(),
       final.status === "advice" && final.findingCount === 0,
       false, canWrite && final.status === "advice" && final.token === provisional.token,
       bindingValid, request.finish.deadlineReached);
-    if (disposition.$ === "ReserveFindings" && round !== undefined && final.status === "advice" &&
-        this.#composedDelivery.reserveFinishOutput(group, request.finish.token, final.token,
-          selected, this.#now(), round.policyWork)) return final;
+    if (output.kind === "reserved") return final;
     if (final.status === "advice") this.releaseDelivery(final.token);
     this.#allowFinish(group, request.finish.token,
-      disposition.$ === "AllowDeadline" ? "deadline" :
-        disposition.$ === "AllowUnavailable" || disposition.$ === "ReserveFindings"
-          ? "unavailable" : "no-advice");
+      output.kind === "allowed" ? output.reason : "unavailable");
     return { status: "empty" };
   }
 

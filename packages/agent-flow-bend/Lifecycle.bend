@@ -211,6 +211,55 @@ def finish_disposition(work: Work.Work, selected: List<&2, Nat>,
       finish_disposition.writable(work, selected, has_notice, pass_notices,
         binding_valid, deadline_reached)
 
+type FinishOutput is Data:
+  OutputReserved{round: Round.Round, selection: OutputSelection}
+  OutputNotices{}
+  OutputAllowed{reason: FinishDisposition}
+
+def finish_output.slot(selection: OutputSelection, step: Round.Step) -> FinishOutput:
+  match step:
+    case Round.Granted{round}:
+      OutputReserved{round, selection}
+    case Round.Denied{_}:
+      OutputAllowed{AllowUnavailable{}}
+
+def finish_output.reservation(round: Round.Round, work: Work.Work, token: Nat,
+    selected: List<&2, Nat>, reservation: OutputSelectionReservation) -> FinishOutput:
+  match reservation:
+    case SelectionReserved{selection}:
+      finish_output.slot(selection, reserve_selected(round, work, token, selected))
+    case SelectionRejected{}:
+      OutputAllowed{AllowUnavailable{}}
+
+def finish_output.reserve(+round: Round.Round, +work: Work.Work, token: Nat,
+    +selected: List<&2, Nat>) -> FinishOutput:
+  finish_output.reservation(round, work, token, selected,
+    selection_reserve(work, selected))
+
+def finish_output.decide(round: Round.Round, work: Work.Work, token: Nat,
+    selected: List<&2, Nat>, disposition: FinishDisposition) -> FinishOutput:
+  match disposition:
+    case ReserveFindings{}:
+      finish_output.reserve(round, work, token, selected)
+    case PassNotices{}:
+      OutputNotices{}
+    case AllowNoAdvice{}:
+      OutputAllowed{AllowNoAdvice{}}
+    case AllowDeadline{}:
+      OutputAllowed{AllowDeadline{}}
+    case AllowUnavailable{}:
+      OutputAllowed{AllowUnavailable{}}
+
+# One production result joins selected pending work, writer authority, and the
+# Round continuation slot. The adapter commits it only after native lease
+# staging succeeds; acknowledgement later consumes its OutputSelection.
+def finish_output(+round: Round.Round, +work: Work.Work, token: Nat,
+    +selected: List<&2, Nat>, has_notice: Bool, pass_notices: Bool,
+    can_write: Bool, binding_valid: Bool, deadline_reached: Bool) -> FinishOutput:
+  finish_output.decide(round, work, token, selected,
+    finish_disposition(work, selected, has_notice, pass_notices,
+      can_write, binding_valid, deadline_reached))
+
 def initial(partition: Nat, lifetime: Nat) -> Lifecycle:
   Lifecycle{Admission.initial(partition, lifetime), Work.initial(), Handoff.finish.initial(0n)}
 
