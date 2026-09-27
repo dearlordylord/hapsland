@@ -61,6 +61,22 @@ describe("shared Hapsland rounds", () => {
     expect(state.consumeStop("continue")).toBe(false);
   });
 
+  it("keeps an abandoned finish reservation consumed and revokes its old output permit", () => {
+    const state = new ComposedDelivery();
+    const finding = { rule: "r", advice: "repair" };
+    state.admitEdit("agent", "edit", 0);
+    state.beginStop("agent", "attempt");
+    state.beginFinishDecision("agent", "attempt");
+    expect(state.reserveFinishOutput("agent", "attempt", "output",
+      [{ id: "advice", findings: [finding] }], 1)).toBe(true);
+    expect(state.expireStop("agent", "attempt")).toBeUndefined();
+    expect(state.suppresses("advice", "agent", finding, "stop")).toBe(true);
+    expect(state.authorizeFinishOutput("agent", "output")).toBe(false);
+    state.beginStop("agent", "later");
+    expect(state.authorizeFinishOutput("agent", "output")).toBe(false);
+    expect(state.closureCounts("agent").reservedContinuations).toBe(1);
+  });
+
   it("retains source-free fences at capacity instead of resetting through expiry", () => {
     const state = new ComposedDelivery();
     for (let i = 0; i < MAX_COMPOSED_ROUNDS; i++) state.advance(`agent-${i}`, "prompt", 0);

@@ -14,6 +14,7 @@ import { analyzerMaterializationPreflight } from "../direct-event/analyzer.ts";
 import { readActivity } from "../activity/status.ts";
 import { claudeHostOutputText } from "../direct-event/claude-output.ts";
 import { residentPaths } from "./paths.ts";
+import { residentRequest } from "./client.ts";
 import {
   DELIVERY_LEASE_MS,
   decodeResidentRequest,
@@ -214,6 +215,40 @@ describe("resident delivery lease", () => {
       expect((await server.handle({ ...request, finish: { token: "second-finish", deadlineReached: false } })).status).toBe("empty");
       expect(server.stats().pendingAdvice).toBe(0);
     } finally { await server.close(); }
+  });
+
+  it("keeps a pending finish poll pending when the last result arrives before IPC handoff", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const gate = deferred(), started = deferred();
+    let armed = true;
+    const paths = residentPaths(join(root, "runtime"));
+    const server = new ResidentServer(paths, () => performance.now(), {
+      beforeEvaluate: async () => { started.resolve(); await gate.promise; },
+      beforeResponseHandoff: async () => {
+        if (!armed) return;
+        armed = false;
+        gate.resolve();
+        await server.whenIdle();
+      },
+    });
+    const dispatch = findingDispatch(statePath);
+    try {
+      await server.listen();
+      server.admit(observation, dispatch, false, true);
+      await started.promise;
+      await server.handle({ version: 1, operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "finish" });
+      const request = { version: 1 as const, operation: "collect" as const, lifetime: server.lifetime,
+        root, advicee: observation.advicee, dispatch, mode: "turn-end" as const, composed: true as const,
+        reportWorkState: true as const, finish: { token: "finish", deadlineReached: false } };
+      expect((await residentRequest(paths, request)).status).toBe("pending");
+      expect((await residentRequest(paths, request)).status).toBe("advice");
+    } finally { gate.resolve(); await server.close(); }
   });
 
   it("requires the installed PreToolUse permit before admitting composed IPC", async () => {

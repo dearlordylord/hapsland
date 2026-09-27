@@ -1001,7 +1001,8 @@ export class ResidentServer {
   beginComposedSubmission(token: string, surface: "edit" | "background" | "stop"): ResidentResponse {
     const now = this.#now();
     this.#expirePending(now);
-    if (this.#composedDelivery.hasToken(token)) return { status: "empty" };
+    const finishPermit = surface === "stop" && this.#composedDelivery.hasFinishPermit(token);
+    if (this.#composedDelivery.hasToken(token) && !finishPermit) return { status: "empty" };
     const advice = this.#advice.filter((item) =>
       item.delivery?.token === token && item.delivery.leaseUntil > now &&
       item.delivery.findings.length > 0);
@@ -1012,6 +1013,7 @@ export class ResidentServer {
       if (!this.#composedDelivery.authorizeFinishOutput(group, token)) return { status: "empty" };
     }
     for (const item of advice) {
+      if (finishPermit) continue;
       this.#composedDelivery.beginSubmission(
         item.id, adviceeGroup(item.observation.root, item.observation.advicee),
         token, item.delivery?.findings ?? [], surface, now,
@@ -1395,19 +1397,20 @@ export class ResidentServer {
     work.controller.abort();
     round.work = { id: randomUUID(), controller: new AbortController() };
     const discarded = this.#dispatcher.discardWhere(({ value }) => value.work === work);
-    for (const job of discarded) {
-      // A completed item can still be unwinding its instrumentation callback.
-      if (job.completed) continue;
-      if (job.ticket !== undefined) ticketFail(job.ticket, "lost");
-      if (job.kind === "unit") {
-        if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "lost");
-        this.#settleJoined(job.evaluationKey, "unavailable", "lost");
-        this.#reuse.releaseClaim(job.evaluationKey);
-        this.#releaseUnit(job);
-      } else this.#ledger.release(job.reservation);
-      recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
-        advicee: job.observation.advicee, lifetime: this.lifetime, stage: "incomplete" });
-    }
+    for (const job of discarded) this.#discardJob(job);
+  }
+
+  #discardJob(job: Job): void {
+    if (job.completed) return;
+    if (job.ticket !== undefined) ticketFail(job.ticket, "lost");
+    if (job.kind === "unit") {
+      if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "lost");
+      this.#settleJoined(job.evaluationKey, "unavailable", "lost");
+      this.#reuse.releaseClaim(job.evaluationKey);
+      this.#releaseUnit(job);
+    } else this.#ledger.release(job.reservation);
+    recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
+      advicee: job.observation.advicee, lifetime: this.lifetime, stage: "incomplete" });
   }
 
   #closeRound(group: string, generation: number, reason: RoundCloseReason,
@@ -1430,18 +1433,7 @@ export class ResidentServer {
     round.work.controller.abort();
     this.#rounds.delete(group);
     const discarded = this.#dispatcher.discardWhere(({ value }) => value.round === round);
-    for (const job of discarded) {
-      if (job.completed) continue;
-      if (job.ticket !== undefined) ticketFail(job.ticket, "lost");
-      if (job.kind === "unit") {
-        if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "lost");
-        this.#settleJoined(job.evaluationKey, "unavailable", "lost");
-        this.#reuse.releaseClaim(job.evaluationKey);
-        this.#releaseUnit(job);
-      } else this.#ledger.release(job.reservation);
-      recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
-        advicee: job.observation.advicee, lifetime: this.lifetime, stage: "incomplete" });
-    }
+    for (const job of discarded) this.#discardJob(job);
     for (const advice of [...this.#advice]) if (advice.round === round) this.#removeAdvice(advice.id);
     for (const [key, notice] of this.#noticeCooldowns) {
       if (round.partitions.has(notice.partition) || notice.deliveryGroup === group) this.#releaseNoticeCooldown(key);
@@ -2219,7 +2211,9 @@ export class ResidentServer {
       if (request.finish !== undefined) {
         const group = adviceeGroup(request.root, request.advicee);
         if (collected.status === "advice" && collected.findingCount > 0) {
-          if (!this.#composedDelivery.reserveFinishOutput(group, request.finish.token, collected.token)) {
+          const selected = this.#advice.filter((advice) => advice.delivery?.token === collected.token)
+            .map((advice) => ({ id: advice.id, findings: advice.delivery?.findings ?? [] }));
+          if (!this.#composedDelivery.reserveFinishOutput(group, request.finish.token, collected.token, selected, this.#now())) {
             this.releaseDelivery(collected.token);
             return { status: "empty" };
           }
@@ -2318,7 +2312,7 @@ export class ResidentServer {
   /** Synchronous last barrier after response gates and immediately before encoding. */
   #responseForHandoff(request: ResidentRequest, response: ResidentResponse): ResidentResponse {
     if (response.status !== "advice") {
-      if (request.version === 1 && request.operation === "collect" && request.reportWorkState === true &&
+      if (request.version === 1 && request.operation === "collect" && request.finish === undefined && request.reportWorkState === true &&
           (response.status === "empty" || response.status === "pending")) {
         return this.#collectionWorkState(request.root, request.advicee, request.composed === true);
       }

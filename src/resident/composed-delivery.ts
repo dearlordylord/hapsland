@@ -24,7 +24,7 @@ type SubmissionBatch = {
   readonly surface: DeliverySurface;
   readonly at: number;
   readonly fingerprints: ReadonlySet<string>;
-  status: "uncertain" | "submitted";
+  status: "reserved" | "uncertain" | "submitted";
 };
 type Submission = {
   readonly partition: string;
@@ -38,8 +38,12 @@ const fingerprint = (finding: unknown): string =>
 export class ComposedDelivery {
   readonly #rounds = new Map<string, Round>();
   readonly #permits = new Map<string, { readonly partition: string; readonly generation: number; readonly expiresAt: number }>();
-  readonly #stops = new Map<string, { token: string; generation: number; barrier: boolean; deciding: boolean; outputToken?: string; outputAuthorized?: boolean }>();
+  readonly #stops = new Map<string, { token: string; generation: number; barrier: boolean; deciding: boolean; outputToken?: string }>();
   readonly #submissions = new Map<string, Submission>();
+  readonly #finishPermits = new Map<string, {
+    readonly partition: string; readonly generation: number; readonly attempt: string;
+    authorized: boolean; revoked: boolean;
+  }>();
   readonly #backgroundWaiters = new Map<string, { readonly token: string; readonly at: number }>();
 
   claimBackground(partition: string, token: string, now: number): boolean {
@@ -147,20 +151,33 @@ export class ComposedDelivery {
     return true;
   }
 
-  reserveFinishOutput(partition: string, attempt: string, outputToken: string): boolean {
+  reserveFinishOutput(partition: string, attempt: string, outputToken: string,
+    advice: ReadonlyArray<{ readonly id: string; readonly findings: ReadonlyArray<unknown> }>, now: number): boolean {
     const stop = this.#stops.get(partition);
     if (stop?.token !== attempt || !stop.deciding || stop.outputToken !== undefined ||
         !this.consumeStop(partition)) return false;
     stop.outputToken = outputToken;
+    this.#finishPermits.set(outputToken, { partition, generation: stop.generation, attempt, authorized: false, revoked: false });
+    for (const item of advice) this.beginSubmission(item.id, partition, outputToken, item.findings, "stop", now, "reserved");
     return true;
   }
 
+  hasFinishPermit(token: string): boolean {
+    return this.#finishPermits.has(token);
+  }
+
   authorizeFinishOutput(partition: string, token: string): boolean {
+    const permit = this.#finishPermits.get(token);
+    // The non-installed legacy collector has no finish-decision permit.
+    if (permit === undefined) return !this.#stops.get(partition)?.deciding;
     const stop = this.#stops.get(partition);
-    // The non-installed legacy collector has no finish-decision attempt.
-    if (stop?.deciding !== true) return true;
-    if (stop.outputToken !== token || stop.outputAuthorized === true) return false;
-    stop.outputAuthorized = true;
+    if (permit.partition !== partition || !this.isActive(partition, permit.generation) ||
+        permit.revoked || permit.authorized || stop?.token !== permit.attempt || stop.outputToken !== token) return false;
+    permit.authorized = true;
+    for (const submission of this.#submissions.values()) {
+      const batch = submission.batches.get(token);
+      if (batch !== undefined) batch.status = "uncertain";
+    }
     return true;
   }
 
@@ -168,6 +185,10 @@ export class ComposedDelivery {
     const stop = this.#stops.get(partition);
     if (stop?.token !== token) return undefined;
     this.#stops.delete(partition);
+    if (stop.outputToken !== undefined) {
+      const permit = this.#finishPermits.get(stop.outputToken);
+      if (permit !== undefined) permit.revoked = true;
+    }
     if (!close) return undefined;
     const round = this.#rounds.get(partition);
     if (round === undefined || round.generation !== stop.generation) return undefined;
@@ -175,6 +196,7 @@ export class ComposedDelivery {
     this.#rounds.set(partition, { ...round, closed: true, closedAt });
     for (const [key, permit] of this.#permits) if (permit.partition === partition) this.#permits.delete(key);
     this.#backgroundWaiters.delete(partition);
+    for (const [token, permit] of this.#finishPermits) if (permit.partition === partition) this.#finishPermits.delete(token);
     for (const [id, submission] of this.#submissions) {
       if (submission.partition === partition) this.#submissions.delete(id);
     }
@@ -236,6 +258,7 @@ export class ComposedDelivery {
     findings: ReadonlyArray<unknown>,
     surface: DeliverySurface,
     now: number,
+    status: SubmissionBatch["status"] = "uncertain",
   ): void {
     const generation = this.generation(partition);
     const existing = this.#submissions.get(adviceId);
@@ -244,7 +267,7 @@ export class ComposedDelivery {
     batches.set(token, {
       surface, at: now,
       fingerprints: new Set(findings.map(fingerprint)),
-      status: "uncertain",
+      status,
     });
     this.#submissions.set(adviceId, { partition, generation, batches });
   }
@@ -252,11 +275,13 @@ export class ComposedDelivery {
   markSubmitted(token: string): void {
     for (const submission of this.#submissions.values()) {
       const batch = submission.batches.get(token);
-      if (batch !== undefined) batch.status = "submitted";
+      if (batch !== undefined && batch.status !== "reserved") batch.status = "submitted";
     }
   }
 
   release(token: string): void {
+    const permit = this.#finishPermits.get(token);
+    if (permit !== undefined) permit.revoked = true;
     for (const [adviceId, submission] of this.#submissions) {
       submission.batches.delete(token);
       if (submission.batches.size === 0) this.#submissions.delete(adviceId);

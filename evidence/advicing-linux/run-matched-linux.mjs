@@ -20,13 +20,16 @@ const cases = [
 const quote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
 const run = (command, args, options) => new Promise((resolveRun, reject) => {
   const started = Date.now();
-  const child = spawn(command, args, { ...options, stdio: ['ignore', 'pipe', 'pipe'] });
+  const child = spawn(command, args, { ...options, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
   let stdout = '', stderr = '';
   let timedOut = false;
-  const timer = setTimeout(() => { timedOut = true; child.kill('SIGTERM'); }, 100_000);
+  const timer = setTimeout(() => {
+    timedOut = true;
+    try { process.kill(-child.pid, 'SIGKILL'); } catch { child.kill('SIGKILL'); }
+  }, 100_000);
   child.stdout.on('data', (chunk) => { stdout += chunk; });
   child.stderr.on('data', (chunk) => { stderr += chunk; });
-  child.once('error', reject);
+  child.once('error', (error) => { clearTimeout(timer); reject(error); });
   child.once('close', (code, signal) => { clearTimeout(timer); resolveRun({ code, signal, timedOut, stdout, stderr, elapsedMs: Date.now() - started }); });
 });
 const exact = (binary, expected) => {
@@ -267,7 +270,8 @@ for (const entry of cases) {
 }
 const out = process.env.HAPSLAND_105_EVIDENCE_FILE;
 if (out) await writeFile(out, JSON.stringify({ issue: 105, platform: `${process.platform}-${process.arch}`,
-  node: process.version, backend: 'controlled offline Effect DecisionModel',
+  node: process.version, candidateCommit: spawnSync('git', ['rev-parse', 'HEAD'], { cwd: project, encoding: 'utf8' }).stdout.trim(),
+  backend: 'controlled offline Effect DecisionModel',
   ...(process.env.HAPSLAND_105_TRACE_LAUNCH === '1' ? { commandTiming: 'Linux ptrace child creation through exit; tracing adds overhead' } : {}),
   cases: results }, null, 2) + '\n');
 if (selected.length === 0) {
