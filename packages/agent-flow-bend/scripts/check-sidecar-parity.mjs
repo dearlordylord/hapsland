@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { bendInitial, bendStep, bendChanges } from "../flow.generated.js";
-import { initialFlow, stepFlow } from "../../agent-flow-viz/src/flow.ts";
+import { initialFlow, stepFlow } from "../../agent-flow-viz/src/reference-flow.ts";
 import { TRACES } from "../../agent-flow-viz/src/scenarios.ts";
 
 const list = (value) => {

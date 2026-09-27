@@ -1,4 +1,4 @@
-import { INTERNAL_EVENTS, MAX_STOP_CONTINUATIONS, type EventId } from "./flow";
+import { INTERNAL_EVENTS, MAX_STOP_CONTINUATIONS, type EventId } from "./view-contract";
 
 // Editorial situations to replay. Routes and state changes come from the reducer.
 export const TRACES = [

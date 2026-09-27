@@ -7,15 +7,14 @@ The [product vocabulary](../../CONTEXT.md) defines the terms, and the
 [Advicing target contract](../../docs/advicing-target-contract.md) states
 the accepted behavior. This reducer models a stated subset of that contract;
 its accepted paths do not establish production conformance.
-The [Bend model](../agent-flow-bend/README.md) implements the overlapping
-discussion reducer. The page now replays the same accepted history through
-both reducers, draws their projected state and changes side by side, and shows
-the first-class differences in acceptance, ordered changes, and state fields.
-Both diagrams share layout and wording. A match for the current replay is not
-a proof of all paths, and the Bend flow model is narrower than the generated
-policies called by the production resident. The page lists those production
-policy areas separately with links to Bend sources and resident call sites.
-The build checks all nine guided traces through this browser projection.
+The [Bend model](../agent-flow-bend/README.md) is the page's action and
+history authority. Compiled `Flow.bend` accepts or rejects each input and emits
+state, routes, changes, and finish decisions. TypeScript projects those values
+for Foldkit controls, charts, and timelines. This is a teaching visualization of
+a simplified virtual-round flow with one review item per edit, not a trace of the production resident.
+Production calls richer generated Bend policies and ledgers, while TypeScript
+orchestrates effects and native state. The page links those separate policy
+areas to their Bend sources and resident call sites.
 
 ```sh
 cd packages/agent-flow-viz
@@ -43,8 +42,10 @@ actions are disabled with a reason. An actual click
 runs the reducer again, so the panel does not introduce a separate validity rule.
 Left and Right Arrow move through a guided example when focus is outside text inputs.
 
-The backbone is the guarded `stepFlow` reducer. There is no separate explicit
-state-machine definition. Accepted steps emit typed domain changes. The typed
+The page calls generated `bendInitial`, `bendStep`, and `bendChanges` through
+`bend-flow.ts`. The reference TypeScript reducer is isolated in
+`reference-flow.ts` for offline differential checks and is not imported by the
+page. Accepted steps emit typed domain changes. The typed
 `generation.ts` projection replays editorial scenarios and derives graph
 connections and abstract timeline steps from those changes. Diagram layout and
 wording live outside the reducer; process boxes are not lifecycle states.
@@ -55,7 +56,7 @@ The build checks that every native timing row names a declared source at a
 pinned commit and has a valid interval. It cannot prove that a transcribed time
 matches its source.
 
-The sidecar model follows one agent at a time. Runtime adapters handle session and
+The Flow.bend model follows one agent at a time. Runtime adapters handle session and
 subagent identifiers; the reducer carries no agent identifier or root/child branches.
 It models one resident lifetime with multiple review items, not concurrent agents
 or tabs. Each packet has a stable item ID and a typed location. Edit observations
@@ -65,7 +66,7 @@ The reducer owns two settable positive capacities, initially 3 each: concurrent
 source readings and concurrent Jev requests (`N`). Changing either is a reducer
 event in the same undo/redo history as flow events. Reducing a capacity below
 current occupancy leaves active work in place and prevents new starts until
-occupancy falls below the new capacity. The sidecar does not replicate resident
+occupancy falls below the new capacity. This model does not replicate resident
 dispatch cycles or scheduling timing. No agent-ID map is needed for this
 one-agent model.
 
@@ -88,7 +89,7 @@ A fresh edit can open the next virtual round; a repeated finish attempt cannot.
 The agent's round may still continue if another hook blocks its finish. Runtime turn IDs are
 adapter metadata, not virtual round IDs.
 
-The reducer takes trusted, normalized events. The adapter must establish fresh
+Flow.bend takes trusted, normalized events. The adapter must establish fresh
 edit identity and bind callbacks to their originating virtual round before invoking it.
 This model does not implement that adapter or simulate late callbacks crossing
 into a new virtual round, uncertain output writes, cancellation failure, or restart.
@@ -114,7 +115,7 @@ Each background-submitted finding remains available for one reoffer through a
 later finish-attempt hook call in the same virtual round, including when the
 background write completes during the finish-decision wait. The installed edit
 integration starts a bounded background advice wait for matching edits. The
-sidecar records that start automatically with an edit; it does not require a
+Flow.bend records that start automatically with an edit; it does not require a
 manually fired background event. An open finish-hook call is separate state.
 An idle background wait cannot delay a finish decision, but a background write
 with reserved advice can finish during the open call. While at least one review
@@ -129,14 +130,16 @@ write, and discards old work. The reducer records the response command; it does
 not claim the write completed or the agent used the advice. The agent runtime
 owns further use. This model does not simulate batch size or byte limits,
 wall-clock progression, relevance expiry, or the complete set of advicee checks.
-Jev error behavior is outside this refinement. The reducer guards one primary
-location per live item and checks accepted steps for lost or duplicated items;
-one delivery lease can carry a copy. TypeScript and projection checks cover
-event routes and diagrams. The two-item guided trace makes the lifecycle
+Jev error behavior is outside this refinement. The retained TypeScript
+reference reducer asserts one primary location per live item, lease consistency,
+closed-round emptiness, and accepted-step item conservation. The Bend model and
+projection checks cover event routes and diagrams; the oracle audit tracks
+which independent checks should remain. The two-item guided trace makes the lifecycle
 boundary visible. None of these checks proves every possible event sequence.
 
-Run `npm run build` for TypeScript coverage checking, reducer replay of every
-displayed abstract path, and the Vite production build. A rejected path fails
+Run `npm run build` for TypeScript coverage checking, Bend replay of every
+displayed abstract path, focused Foldkit interactions, and the Vite production
+build. A rejected path fails
 the build.
 
 ## Native timing evidence at the bottom of the page
@@ -164,7 +167,7 @@ handling; they do not assert a model request or consumption interval.
 
 `TimelineEntry` distinguishes native observations, unknown intervals, and reducer
 events. Native timing rows are evidence projections, not reducer state. Companion
-paths supply event order only: `generation.ts` replays them through `stepFlow`
+paths supply event order only: `generation.ts` replays them through compiled Bend flow
 and derives their labels, state, and changes from accepted steps. The page labels
 this partial reducer coverage. Those checks establish acceptance of the abstract
 companion path; they do not validate native timestamps or prove unobserved runtime

@@ -1,4 +1,4 @@
-import { type EventId } from "./flow";
+import { type EventId } from "./view-contract";
 import { EVENT_LABELS } from "./diagram";
 import { projectSequence } from "./generation";
 

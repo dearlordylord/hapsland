@@ -1,40 +1,108 @@
+import assert from "node:assert/strict";
 import { createServer } from "vite";
+import { inertHtml } from "foldkit/html";
+import { Scene } from "foldkit/test";
 
-// TypeScript checks event coverage and route shape. This build-time replay
-// checks the guards and ordering that cannot be proved from those types alone.
+// Exercise the same messages and rendered Foldkit view used by the page.
 const server = await createServer({ server: { middlewareMode: true }, appType: "custom" });
 try {
   const graph = await server.ssrLoadModule("/src/generation.ts");
   const timing = await server.ssrLoadModule("/src/timeline.ts");
-  const comparison = await server.ssrLoadModule("/src/bend-comparison.ts");
+  const main = await server.ssrLoadModule("/src/main.ts");
   const scenarios = await server.ssrLoadModule("/src/scenarios.ts");
-  for (const trace of scenarios.TRACES) {
-    const result = comparison.compareHistory(trace.events.map((event) => ({ event })));
-    if (result.differences.length > 0) {
-      throw new Error(`Bend visualization diverges in ${trace.name}: ${result.differences.join("; ")}`);
+  const bend = await server.ssrLoadModule("/src/bend-flow.ts");
+  const renderText = (model) => {
+    const read = (node) => typeof node === "string" ? node : node == null ? "" :
+      [node.text ?? "", ...(node.children ?? []).map(read)].join(" ");
+    return read(main.view(model, inertHtml).body);
+  };
+  const send = (model, message) => main.update(model, message).model;
+  const trigger = (model, event, itemId = null) =>
+    send(model, main.Message.TriggeredEvent({ event, itemId }));
+  const initial = main.init().model;
+  assert.match(renderText(initial), /COMPILED BEND FLOW MODEL/);
+  assert.match(renderText(initial), /not a trace of the production resident/);
+  assert.doesNotMatch(renderText(initial), /TypeScript sidecar reducer|Routes and .* applied steps match/);
+  assert.equal(bend.stepBend(initial.bend, "StopHookFired").reason, "virtualRoundClosed");
+  const rejected = trigger(initial, "StopHookFired");
+  assert.equal(rejected.history.length, 0);
+  assert.match(renderText(rejected), /This virtual round is closed/);
+
+  for (const [index, trace] of scenarios.TRACES.entries()) {
+    let model = send(initial, main.Message.SelectedTrace({ index }));
+    for (const [cursor, expected] of graph.PROJECTED_TRACES[index].entries()) {
+      model = send(model, main.Message.Advanced());
+      assert.equal(model.cursor, cursor + 1, `${trace.name}: guide cursor`);
+      assert.deepEqual(model.flow, expected.state, `${trace.name}: Bend-guided state`);
+      assert.equal(model.history.length, cursor + 1, `${trace.name}: accepted history`);
     }
+    assert.match(renderText(model), new RegExp(`Guided step ${trace.events.length} of ${trace.events.length}`));
   }
-  for (const [label, inputs] of [
-    ["capacity", [
-      { event: { type: "SourceCapacitySet", capacity: 1 } },
-      { event: "EditObserved" }, { event: "EditObserved" },
-      { event: { type: "ReviewCapacitySet", capacity: 1 } },
-      { event: "ReviewUnitPrepared" },
-    ]],
-    ["rejections", [
-      { event: "StopHookFired" },
-      { event: { type: "SourceCapacitySet", capacity: 0 } },
-      { event: "EditObserved" },
-      { event: "AdviceLeasedByBackground" },
-    ]],
-  ]) {
-    const result = comparison.compareHistory(inputs);
-    if (result.differences.length > 0) {
-      throw new Error(`Bend visualization diverges in ${label}: ${result.differences.join("; ")}`);
-    }
-  }
+
+  let mixed = send(initial, main.Message.SelectedTrace({ index: 1 }));
+  mixed = send(mixed, main.Message.Advanced());
+  mixed = trigger(mixed, "EditObserved");
+  mixed = send(mixed, main.Message.Advanced());
+  assert.equal(mixed.cursor, 2);
+  assert.equal(mixed.flow.packets.find((packet) => packet.id === 1)?.at, "jev");
+  assert.equal(mixed.flow.packets.find((packet) => packet.id === 2)?.at, "preparation");
+  assert.equal(mixed.history[2].origin, "guided");
+  assert.equal(mixed.history[2].itemId, 1, "guided item binding survives manual interleaving");
+
+  let capacity = send(initial, main.Message.CapacitySubmitted({ capacityType: "source", raw: "1" }));
+  capacity = trigger(trigger(capacity, "EditObserved"), "EditObserved");
+  assert.equal(capacity.flow.packets.find((packet) => packet.id === 2)?.at, "editQueue");
+  capacity = send(capacity, main.Message.CapacitySubmitted({ capacityType: "source", raw: "2" }));
+  assert.equal(capacity.flow.packets.find((packet) => packet.id === 2)?.at, "preparation");
+  const invalid = send(capacity, main.Message.CapacitySubmitted({ capacityType: "jev", raw: "0" }));
+  assert.equal(invalid.history.length, capacity.history.length);
+  assert.match(renderText(invalid), /Choose a positive whole number/);
+
+  let finish = trigger(initial, "EditObserved");
+  finish = trigger(finish, "ReviewUnitPrepared");
+  finish = trigger(finish, "JevFindingReceived");
+  finish = trigger(finish, "StopHookFired");
+  assert.equal(finish.lastFinishDecision.response, "continueWithAdvice");
+  assert.deepEqual(finish.lastFinishDecision.adviceItemIds, [1]);
+  assert.match(renderText(finish), /Continue with advice/);
+  let allowed = trigger(initial, "EditObserved");
+  allowed = trigger(allowed, "ReviewUnitPrepared");
+  allowed = trigger(allowed, "StopHookFired");
+  allowed = trigger(allowed, "FinishDecisionDeadlineReached");
+  assert.equal(allowed.lastFinishDecision.response, "allowFinish");
+  assert.equal(allowed.flow.virtualRoundActive, false);
+  assert.match(renderText(allowed), /Cancel Jev requests: #1/);
+  const replayed = send(send(allowed, main.Message.Rewound()), main.Message.Redid());
+  assert.deepEqual(replayed.flow, allowed.flow);
+  assert.deepEqual(replayed.lastFinishDecision, allowed.lastFinishDecision);
+  assert.equal(replayed.historyPosition, allowed.historyPosition);
+  const jumped = send(allowed, main.Message.JumpedToHistory({ count: 1 }));
+  assert.equal(jumped.flow.virtualRoundActive, true);
+  assert.equal(jumped.historyPosition, 1);
+  assert.equal(jumped.history.length, allowed.history.length);
+  assert.equal(trigger(jumped, "EditObserved").history.length, 2, "new accepted action replaces the future tail");
+
+  // Scene clicks and input changes exercise the actual Foldkit control wiring.
+  Scene.scene({ update: main.update, view: main.view },
+    Scene.given(initial),
+    Scene.click(Scene.getByRole("button", { name: /^Next: proven fresh edit admitted/ })),
+    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 1 of 13/)),
+    Scene.click(Scene.getByRole("button", { name: /^Previous:/ })),
+    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 0 of 13/)),
+    Scene.click(Scene.getByRole("button", { name: /^Redo:/ })),
+    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 1 of 13/)));
+  Scene.scene({ update: main.update, view: main.view },
+    Scene.given(initial),
+    Scene.change(Scene.getByLabel("Concurrent source readings"), "1"),
+    Scene.click(Scene.getByRole("button", { name: /^1proven fresh edit admitted/ })),
+    Scene.tap((state) => {
+      const text = Scene.textContent(state.html);
+      assert.match(text, /Virtual round 1 \(active\)/);
+      assert.match(text, /source readings 1\/1/);
+    }));
+
   if (graph.CONNECTIONS.length === 0 || timing.REDUCER_SEGMENTS.length !== timing.TIMELINE_CASES.length) {
-    throw new Error("Incomplete model projection");
+    throw new Error("Incomplete Bend model projection");
   }
   if (!/^https:\/\/github\.com\/[^/]+\/[^/]+\/blob\/[0-9a-f]{40}\/evidence\/.+\/$/.test(timing.EVIDENCE_BASE)) {
     throw new Error("Native timing evidence must link to a pinned repository commit");
@@ -58,7 +126,7 @@ try {
       }
     }
   }
-  process.stdout.write(`Projected ${graph.PROJECTED_TRACES.length} guided scenarios and ${timing.REDUCER_SEGMENTS.length} timeline companions.\n`);
+  process.stdout.write(`Checked ${graph.PROJECTED_TRACES.length} guided scenarios, focused Foldkit interactions, and ${timing.REDUCER_SEGMENTS.length} timeline companions.\n`);
 } finally {
   await server.close();
 }

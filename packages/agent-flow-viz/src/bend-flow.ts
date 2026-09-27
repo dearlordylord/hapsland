@@ -1,9 +1,8 @@
 import { bendChanges, bendInitial, bendStep } from "../../agent-flow-bend/flow.generated.js";
-import { EVENT_IDS, initialFlow, stepFlow, type EventId, type FlowChange, type FlowState, type Transition } from "./flow";
-import { routeFor } from "./generation";
+import { EVENT_IDS, type CapacityEvent, type EventId, type FlowChange, type FlowState, type RejectionCode, type Transition } from "./view-contract";
 import { TRACES } from "./scenarios";
 
-type Input = { readonly event: EventId | { readonly type: "SourceCapacitySet" | "ReviewCapacitySet"; readonly capacity: number };
+type Input = { readonly event: EventId | CapacityEvent;
   readonly itemId?: number };
 type Raw = any; // Bend's generated algebraic data types are checked through the projection below.
 
@@ -24,7 +23,7 @@ const place: Record<string, { at: FlowState["packets"][number]["at"]; flavor: Fl
   AdviceStore: { at: "adviceStore", flavor: "advice" },
   AdvicePolicy: { at: "advicePolicy", flavor: "leased batch" },
 };
-const project = (state: Raw): FlowState => ({
+export const projectBend = (state: Raw): FlowState => ({
   packets: list(state.packets).map((packet) => ({ id: Number(packet.id), ...place[packet.at.$] })),
   nextItemId: Number(state.next_id),
   sourceCapacity: capacity(state.source_capacity),
@@ -83,11 +82,9 @@ const change = (value: Raw): FlowChange => {
 };
 const encode = (event: Input["event"]) => typeof event === "string"
   ? { $: event } : { $: event.type, capacity: event.capacity };
-const inputLabel = (input: Input) => typeof input.event === "string" ? input.event : `${input.event.type}(${input.event.capacity})`;
 const equal = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
 
-// Discover the full displayed route table from accepted Bend changes, rather
-// than borrowing the TypeScript reducer's route metadata for the second graph.
+// Derive displayed routes from accepted generated Bend changes.
 const bendRoutes = new Map<EventId, Transition>();
 for (const trace of TRACES) {
   let state: Raw = bendInitial();
@@ -110,11 +107,11 @@ for (const trace of TRACES) {
 for (const event of EVENT_IDS) {
   if (!bendRoutes.has(event)) throw new Error(`No Bend route for ${event}`);
 }
-export const bendRouteFor = (event: EventId): Transition => bendRoutes.get(event)!;
-export const BEND_CONNECTIONS: readonly (readonly EventId[])[] = EVENT_IDS.reduce<EventId[][]>((groups, event) => {
-  const candidate = bendRouteFor(event);
+export const routeFor = (event: EventId): Transition => bendRoutes.get(event)!;
+export const CONNECTIONS: readonly (readonly EventId[])[] = EVENT_IDS.reduce<EventId[][]>((groups, event) => {
+  const candidate = routeFor(event);
   const group = groups.find(([first]) => {
-    const route = bendRouteFor(first);
+    const route = routeFor(first);
     return route.kind === candidate.kind && route.from === candidate.from && route.to === candidate.to;
   });
   if (group) group.push(event);
@@ -122,57 +119,19 @@ export const BEND_CONNECTIONS: readonly (readonly EventId[])[] = EVENT_IDS.reduc
   return groups;
 }, []);
 
-export type Comparison = {
-  readonly flow: FlowState;
-  readonly changes: readonly FlowChange[];
-  readonly emissions: readonly Extract<FlowChange, { kind: "emitted" }>[];
-  readonly finishDecision: Extract<FlowChange, { kind: "finishDecision" }> | null;
-  readonly differences: readonly string[];
-  readonly compared: number;
-};
 
-export const compareHistory = (inputs: readonly Input[]): Comparison => {
-  let bend: Raw = bendInitial();
-  let sidecar = initialFlow();
-  let changes: readonly FlowChange[] = [];
-  let emissions: Extract<FlowChange, { kind: "emitted" }>[] = [];
-  let finishDecision: Comparison["finishDecision"] = null;
-  const differences: string[] = [];
-  for (const event of EVENT_IDS) {
-    if (!equal(bendRouteFor(event), routeFor(event))) differences.push(`Route ${event} differs`);
+export const initialBend = (): Raw => bendInitial();
+export const stepBend = (before: Raw, event: Input["event"], itemId?: number) => {
+  const encoded = encode(event);
+  const item = itemId === undefined ? { $: "None" as const } : { $: "Some" as const, value: BigInt(itemId) };
+  const result: Raw = bendStep(before, encoded, item);
+  const changes = list(bendChanges(before, encoded, item, result)).map(change);
+  if (result.$ === "Rejected") {
+    const name: string = result.reason.$;
+    const reason = `${name[0].toLowerCase()}${name.slice(1)}` as RejectionCode;
+    return { accepted: false as const, bend: result.state, state: projectBend(result.state),
+      changes: [] as readonly [], reason };
   }
-  for (const key of Object.keys(sidecar) as (keyof FlowState)[]) {
-    if (!equal(project(bend)[key], sidecar[key])) differences.push(`Initial state: ${key} differs`);
-  }
-  for (const [index, input] of inputs.entries()) {
-    const event = encode(input.event);
-    const item = input.itemId === undefined ? { $: "None" as const } : { $: "Some" as const, value: BigInt(input.itemId) };
-    const bendResult: Raw = bendStep(bend, event, item);
-    const sidecarResult = stepFlow(sidecar, input.event, input.itemId);
-    const bendAccepted = bendResult.$ === "Accepted";
-    if (bendAccepted !== sidecarResult.accepted) {
-      differences.push(`Step ${index + 1} ${inputLabel(input)}: acceptance differs`);
-    } else if (!bendAccepted && !sidecarResult.accepted) {
-      const reason = bendResult.reason.$;
-      if (`${reason[0].toLowerCase()}${reason.slice(1)}` !== sidecarResult.reason) {
-        differences.push(`Step ${index + 1} ${inputLabel(input)}: rejection reason differs`);
-      }
-    }
-    const bendChangesAtStep = list(bendChanges(bend, event, item, bendResult)).map(change);
-    if (!equal(bendChangesAtStep, sidecarResult.changes)) {
-      differences.push(`Step ${index + 1} ${inputLabel(input)}: ordered changes differ`);
-    }
-    bend = bendResult.state;
-    sidecar = sidecarResult.state;
-    changes = bendChangesAtStep;
-    emissions = [...emissions, ...bendChangesAtStep.filter((entry): entry is Extract<FlowChange, { kind: "emitted" }> => entry.kind === "emitted")];
-    finishDecision = bendChangesAtStep.find((entry): entry is Extract<FlowChange, { kind: "finishDecision" }> => entry.kind === "finishDecision") ?? finishDecision;
-    const projected = project(bend);
-    for (const key of Object.keys(projected) as (keyof FlowState)[]) {
-      if (!equal(projected[key], sidecar[key])) {
-        differences.push(`Step ${index + 1} ${inputLabel(input)}: ${key} differs`);
-      }
-    }
-  }
-  return { flow: project(bend), changes, emissions, finishDecision, differences, compared: inputs.length };
+  if (result.$ !== "Accepted") throw new Error(`Unknown Bend step result ${result.$}`);
+  return { accepted: true as const, bend: result.state, state: projectBend(result.state), changes };
 };

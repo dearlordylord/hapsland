@@ -1,4 +1,4 @@
-import { MAX_STOP_CONTINUATIONS, type EmissionEvent, type EventId, type FlowState, type NodeId, type RejectionCode, type Transition } from "./flow";
+import { MAX_STOP_CONTINUATIONS, type EmissionEvent, type EventId, type FlowState, type NodeId, type RejectionCode, type Transition } from "./view-contract";
 
 export type NodeRole = "external" | "storage" | "process" | "boundary";
 type NodeSpec = { readonly label: string; readonly detail: string; readonly notes: readonly string[]; readonly role: NodeRole; readonly x: number; readonly y: number };
@@ -20,7 +20,7 @@ export const NODES = {
   outcomeStore: { label: "Record review status", detail: "no finding / review failed", notes: ["review status emitted", "no finding ≠ failed review"], role: "process", x: 1190, y: 575 },
 } as const satisfies Record<NodeId, NodeSpec>;
 
-// Presentation wording keyed to every domain event. Routes and guards stay in flow.ts.
+// Presentation wording keyed to every domain event. Routes and guards stay in Flow.bend.
 export const EVENT_LABELS = {
   StopAllowed: "allow-finish decision; close virtual round",
   EditObserved: "proven fresh edit admitted",
