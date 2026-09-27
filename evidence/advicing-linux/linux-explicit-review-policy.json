@@ -1,0 +1,1236 @@
+{
+  "issue": 105,
+  "platform": "linux-arm64",
+  "node": "v24.20.0",
+  "candidateCommit": "60ba9fbd5e5c5e75703adcdf6d7b1ba8f9254679",
+  "backend": "controlled offline Effect DecisionModel",
+  "commandTiming": "Linux ptrace child creation through exit; tracing adds overhead",
+  "cases": [
+    {
+      "host": "codex",
+      "phase": "before",
+      "hostVersion": "0.155.1",
+      "residentReadyBeforeHost": true,
+      "reviewResponsePolicy": {
+        "instruction": "In this test, always act on every actionable Hapsland review finding you receive. Use the native edit tool to perform the requested repair before finishing. A review finding received after your initial edit is an instruction to continue, even if the task said to stop after that edit. Do not invent a finding or repair proactively. Follow the task fixture for the exact repair and permitted tools.",
+        "mechanism": "fixture AGENTS.md"
+      },
+      "repairFollowUpOpportunity": "native README read requested after repair",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 13886,
+      "hookCounts": {
+        "before-edit": 0,
+        "edit": 1,
+        "background": 0,
+        "stop": 0,
+        "prompt": 0
+      },
+      "hookSequence": [
+        {
+          "mode": "edit",
+          "at": 10357,
+          "ok": true,
+          "elapsedMs": 363,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": true,
+          "stopActive": false
+        }
+      ],
+      "nativeHookShapes": [
+        {
+          "nativeTool": "apply_patch",
+          "inputKeys": [
+            "command"
+          ],
+          "responseKeys": [],
+          "responseKind": "string",
+          "userModified": null,
+          "pathMatches": null,
+          "stringsMatch": null
+        }
+      ],
+      "nativeToolNames": [],
+      "commandWindows": [
+        {
+          "mode": "edit",
+          "launchAt": 9974,
+          "at": 10365,
+          "elapsedUs": 391381,
+          "exitCode": 0,
+          "signal": 0
+        }
+      ],
+      "backendCompletions": 1,
+      "backendCompletionTimes": [
+        11624
+      ],
+      "backendCompletedAfterHostExit": false,
+      "clearFollowUp": false,
+      "activityStages": [
+        "pending",
+        "pending",
+        "findings"
+      ],
+      "findingSubmission": false,
+      "stopBlock": false,
+      "originalFile": true,
+      "repairedFile": false,
+      "modelClaimedRepair": false,
+      "hookFailures": [],
+      "hostError": false
+    },
+    {
+      "host": "codex",
+      "phase": "after",
+      "hostVersion": "0.155.1",
+      "residentReadyBeforeHost": true,
+      "reviewResponsePolicy": {
+        "instruction": "In this test, always act on every actionable Hapsland review finding you receive. Use the native edit tool to perform the requested repair before finishing. A review finding received after your initial edit is an instruction to continue, even if the task said to stop after that edit. Do not invent a finding or repair proactively. Follow the task fixture for the exact repair and permitted tools.",
+        "mechanism": "fixture AGENTS.md"
+      },
+      "repairFollowUpOpportunity": "native README read requested after repair",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 92214,
+      "hookCounts": {
+        "before-edit": 2,
+        "edit": 2,
+        "background": 2,
+        "stop": 2,
+        "prompt": 1
+      },
+      "hookSequence": [
+        {
+          "mode": "prompt",
+          "at": 2690,
+          "ok": true,
+          "elapsedMs": 317,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "prompt",
+            "session_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "hasPrompt": true,
+          "hasTurnId": true,
+          "stopActive": false
+        },
+        {
+          "mode": "before-edit",
+          "at": 9647,
+          "ok": true,
+          "elapsedMs": 319,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_use_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": true,
+          "stopActive": false
+        },
+        {
+          "mode": "edit",
+          "at": 10002,
+          "ok": true,
+          "elapsedMs": 329,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": true,
+          "stopActive": false
+        },
+        {
+          "mode": "stop",
+          "at": 13601,
+          "ok": true,
+          "elapsedMs": 1397,
+          "finding": true,
+          "submitted": true,
+          "blocked": true,
+          "eventKeys": [
+            "cwd",
+            "hook_event_name",
+            "last_assistant_message",
+            "model",
+            "permission_mode",
+            "session_id",
+            "stop_hook_active",
+            "transcript_path",
+            "turn_id"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": true,
+          "stopActive": false
+        },
+        {
+          "mode": "before-edit",
+          "at": 23728,
+          "ok": true,
+          "elapsedMs": 318,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_use_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": true,
+          "stopActive": false
+        },
+        {
+          "mode": "edit",
+          "at": 24073,
+          "ok": true,
+          "elapsedMs": 319,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": true,
+          "stopActive": false
+        },
+        {
+          "mode": "background",
+          "at": 32013,
+          "ok": true,
+          "elapsedMs": 2333,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": true,
+          "stopActive": false
+        },
+        {
+          "mode": "background",
+          "at": 46138,
+          "ok": true,
+          "elapsedMs": 2357,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": true,
+          "stopActive": false
+        },
+        {
+          "mode": "stop",
+          "at": 91121,
+          "ok": true,
+          "elapsedMs": 342,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "hook_event_name",
+            "last_assistant_message",
+            "model",
+            "permission_mode",
+            "session_id",
+            "stop_hook_active",
+            "transcript_path",
+            "turn_id"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": true,
+          "stopActive": true
+        }
+      ],
+      "nativeHookShapes": [
+        {
+          "nativeTool": "apply_patch",
+          "inputKeys": [
+            "command"
+          ],
+          "responseKeys": [],
+          "responseKind": "string",
+          "userModified": null,
+          "pathMatches": null,
+          "stringsMatch": null
+        },
+        {
+          "nativeTool": "apply_patch",
+          "inputKeys": [
+            "command"
+          ],
+          "responseKeys": [],
+          "responseKind": "string",
+          "userModified": null,
+          "pathMatches": null,
+          "stringsMatch": null
+        }
+      ],
+      "nativeToolNames": [],
+      "commandWindows": [
+        {
+          "mode": "prompt",
+          "launchAt": 2354,
+          "at": 2694,
+          "elapsedUs": 339702,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "before-edit",
+          "launchAt": 9303,
+          "at": 9652,
+          "elapsedUs": 348336,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "edit",
+          "launchAt": 9655,
+          "at": 10004,
+          "elapsedUs": 349503,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "stop",
+          "launchAt": 12185,
+          "at": 13604,
+          "elapsedUs": 1419059,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "before-edit",
+          "launchAt": 23387,
+          "at": 23731,
+          "elapsedUs": 343415,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "edit",
+          "launchAt": 23734,
+          "at": 24076,
+          "elapsedUs": 341657,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "background",
+          "launchAt": 9657,
+          "at": 32016,
+          "elapsedUs": 22358616,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "background",
+          "launchAt": 23739,
+          "at": 46141,
+          "elapsedUs": 22402416,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "stop",
+          "launchAt": 90748,
+          "at": 91127,
+          "elapsedUs": 379148,
+          "exitCode": 0,
+          "signal": 0
+        }
+      ],
+      "backendCompletions": 2,
+      "backendCompletionTimes": [
+        13544,
+        27608
+      ],
+      "backendCompletedAfterHostExit": false,
+      "clearFollowUp": true,
+      "activityStages": [
+        "pending",
+        "pending",
+        "clear",
+        "pending",
+        "pending",
+        "findings"
+      ],
+      "findingSubmission": true,
+      "stopBlock": true,
+      "originalFile": false,
+      "repairedFile": true,
+      "modelClaimedRepair": true,
+      "hookFailures": [],
+      "hostError": false
+    },
+    {
+      "host": "claude",
+      "phase": "before",
+      "hostVersion": "2.1.218",
+      "residentReadyBeforeHost": true,
+      "reviewResponsePolicy": {
+        "instruction": "In this test, always act on every actionable Hapsland review finding you receive. Use the native edit tool to perform the requested repair before finishing. A review finding received after your initial edit is an instruction to continue, even if the task said to stop after that edit. Do not invent a finding or repair proactively. Follow the task fixture for the exact repair and permitted tools.",
+        "mechanism": "appended system prompt"
+      },
+      "repairFollowUpOpportunity": "native README read requested after repair",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 13069,
+      "hookCounts": {
+        "before-edit": 0,
+        "edit": 1,
+        "background": 0,
+        "stop": 0,
+        "prompt": 0
+      },
+      "hookSequence": [
+        {
+          "mode": "edit",
+          "at": 10471,
+          "ok": true,
+          "elapsedMs": 4107,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "duration_ms",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        }
+      ],
+      "nativeHookShapes": [
+        {
+          "nativeTool": "Write",
+          "inputKeys": [
+            "content",
+            "file_path"
+          ],
+          "responseKeys": [
+            "content",
+            "filePath",
+            "originalFile",
+            "structuredPatch",
+            "type",
+            "userModified"
+          ],
+          "responseKind": "object",
+          "userModified": false,
+          "pathMatches": true,
+          "stringsMatch": null
+        }
+      ],
+      "nativeToolNames": [
+        "Write"
+      ],
+      "commandWindows": [
+        {
+          "mode": "edit",
+          "launchAt": 6346,
+          "at": 10475,
+          "elapsedUs": 4128140,
+          "exitCode": 0,
+          "signal": 0
+        }
+      ],
+      "backendCompletions": 1,
+      "backendCompletionTimes": [
+        12744
+      ],
+      "backendCompletedAfterHostExit": false,
+      "clearFollowUp": false,
+      "activityStages": [
+        "pending",
+        "pending",
+        "findings"
+      ],
+      "findingSubmission": false,
+      "stopBlock": false,
+      "originalFile": true,
+      "repairedFile": false,
+      "modelClaimedRepair": false,
+      "hookFailures": [],
+      "hostError": false
+    },
+    {
+      "host": "claude",
+      "phase": "after",
+      "hostVersion": "2.1.218",
+      "residentReadyBeforeHost": true,
+      "reviewResponsePolicy": {
+        "instruction": "In this test, always act on every actionable Hapsland review finding you receive. Use the native edit tool to perform the requested repair before finishing. A review finding received after your initial edit is an instruction to continue, even if the task said to stop after that edit. Do not invent a finding or repair proactively. Follow the task fixture for the exact repair and permitted tools.",
+        "mechanism": "appended system prompt"
+      },
+      "repairFollowUpOpportunity": "native README read requested after repair",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 21507,
+      "hookCounts": {
+        "before-edit": 2,
+        "edit": 2,
+        "background": 0,
+        "stop": 2,
+        "prompt": 1
+      },
+      "hookSequence": [
+        {
+          "mode": "prompt",
+          "at": 1499,
+          "ok": true,
+          "elapsedMs": 346,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "hook_event_name",
+            "permission_mode",
+            "prompt",
+            "prompt_id",
+            "session_id",
+            "transcript_path"
+          ],
+          "hasPrompt": true,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "before-edit",
+          "at": 6337,
+          "ok": true,
+          "elapsedMs": 325,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "edit",
+          "at": 6753,
+          "ok": true,
+          "elapsedMs": 377,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "duration_ms",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "stop",
+          "at": 11880,
+          "ok": true,
+          "elapsedMs": 3243,
+          "finding": true,
+          "submitted": true,
+          "blocked": true,
+          "eventKeys": [
+            "background_tasks",
+            "cwd",
+            "effort",
+            "hook_event_name",
+            "last_assistant_message",
+            "permission_mode",
+            "prompt_id",
+            "session_crons",
+            "session_id",
+            "stop_hook_active",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "before-edit",
+          "at": 15934,
+          "ok": true,
+          "elapsedMs": 368,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "edit",
+          "at": 16363,
+          "ok": true,
+          "elapsedMs": 391,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "duration_ms",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "stop",
+          "at": 21430,
+          "ok": true,
+          "elapsedMs": 533,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "background_tasks",
+            "cwd",
+            "effort",
+            "hook_event_name",
+            "last_assistant_message",
+            "permission_mode",
+            "prompt_id",
+            "session_crons",
+            "session_id",
+            "stop_hook_active",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": true
+        }
+      ],
+      "nativeHookShapes": [
+        {
+          "nativeTool": "Write",
+          "inputKeys": [
+            "content",
+            "file_path"
+          ],
+          "responseKeys": [
+            "content",
+            "filePath",
+            "originalFile",
+            "structuredPatch",
+            "type",
+            "userModified"
+          ],
+          "responseKind": "object",
+          "userModified": false,
+          "pathMatches": true,
+          "stringsMatch": null
+        },
+        {
+          "nativeTool": "Edit",
+          "inputKeys": [
+            "file_path",
+            "new_string",
+            "old_string",
+            "replace_all"
+          ],
+          "responseKeys": [
+            "filePath",
+            "newString",
+            "oldString",
+            "originalFile",
+            "replaceAll",
+            "structuredPatch",
+            "userModified"
+          ],
+          "responseKind": "object",
+          "userModified": false,
+          "pathMatches": true,
+          "stringsMatch": true
+        }
+      ],
+      "nativeToolNames": [
+        "Write",
+        "Edit",
+        "Read"
+      ],
+      "commandWindows": [
+        {
+          "mode": "prompt",
+          "launchAt": 1134,
+          "at": 1503,
+          "elapsedUs": 368760,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "before-edit",
+          "launchAt": 5982,
+          "at": 6340,
+          "elapsedUs": 357773,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "edit",
+          "launchAt": 6356,
+          "at": 6756,
+          "elapsedUs": 400148,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "stop",
+          "launchAt": 8616,
+          "at": 11883,
+          "elapsedUs": 3267122,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "before-edit",
+          "launchAt": 15537,
+          "at": 15937,
+          "elapsedUs": 400099,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "edit",
+          "launchAt": 15953,
+          "at": 16368,
+          "elapsedUs": 414193,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "stop",
+          "launchAt": 20872,
+          "at": 21433,
+          "elapsedUs": 561246,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "background",
+          "launchAt": 15955,
+          "at": 21455,
+          "elapsedUs": 5499316,
+          "exitCode": -1,
+          "signal": 15
+        },
+        {
+          "mode": "background",
+          "launchAt": 6358,
+          "at": 21456,
+          "elapsedUs": 15098343,
+          "exitCode": -1,
+          "signal": 15
+        }
+      ],
+      "backendCompletions": 2,
+      "backendCompletionTimes": [
+        11801,
+        21401
+      ],
+      "backendCompletedAfterHostExit": false,
+      "clearFollowUp": true,
+      "activityStages": [
+        "pending",
+        "pending",
+        "findings",
+        "pending",
+        "pending",
+        "clear"
+      ],
+      "findingSubmission": true,
+      "stopBlock": true,
+      "originalFile": false,
+      "repairedFile": true,
+      "modelClaimedRepair": true,
+      "hookFailures": [],
+      "hostError": false
+    },
+    {
+      "host": "claude",
+      "phase": "background",
+      "hostVersion": "2.1.218",
+      "residentReadyBeforeHost": true,
+      "reviewResponsePolicy": {
+        "instruction": "In this test, always act on every actionable Hapsland review finding you receive. Use the native edit tool to perform the requested repair before finishing. A review finding received after your initial edit is an instruction to continue, even if the task said to stop after that edit. Do not invent a finding or repair proactively. Follow the task fixture for the exact repair and permitted tools.",
+        "mechanism": "appended system prompt"
+      },
+      "repairFollowUpOpportunity": "native README read requested after repair",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 18047,
+      "hookCounts": {
+        "before-edit": 2,
+        "edit": 2,
+        "background": 1,
+        "stop": 1,
+        "prompt": 1
+      },
+      "hookSequence": [
+        {
+          "mode": "prompt",
+          "at": 1351,
+          "ok": true,
+          "elapsedMs": 345,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "hook_event_name",
+            "permission_mode",
+            "prompt",
+            "prompt_id",
+            "session_id",
+            "transcript_path"
+          ],
+          "hasPrompt": true,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "before-edit",
+          "at": 6103,
+          "ok": true,
+          "elapsedMs": 338,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "edit",
+          "at": 6503,
+          "ok": true,
+          "elapsedMs": 371,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "duration_ms",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "background",
+          "at": 7873,
+          "ok": true,
+          "elapsedMs": 1739,
+          "finding": true,
+          "submitted": true,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "duration_ms",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "before-edit",
+          "at": 13453,
+          "ok": true,
+          "elapsedMs": 401,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "edit",
+          "at": 14086,
+          "ok": true,
+          "elapsedMs": 599,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "duration_ms",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "stop",
+          "at": 17988,
+          "ok": true,
+          "elapsedMs": 531,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "background_tasks",
+            "cwd",
+            "effort",
+            "hook_event_name",
+            "last_assistant_message",
+            "permission_mode",
+            "prompt_id",
+            "session_crons",
+            "session_id",
+            "stop_hook_active",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        }
+      ],
+      "nativeHookShapes": [
+        {
+          "nativeTool": "Write",
+          "inputKeys": [
+            "content",
+            "file_path"
+          ],
+          "responseKeys": [
+            "content",
+            "filePath",
+            "originalFile",
+            "structuredPatch",
+            "type",
+            "userModified"
+          ],
+          "responseKind": "object",
+          "userModified": false,
+          "pathMatches": true,
+          "stringsMatch": null
+        },
+        {
+          "nativeTool": "Edit",
+          "inputKeys": [
+            "file_path",
+            "new_string",
+            "old_string",
+            "replace_all"
+          ],
+          "responseKeys": [
+            "filePath",
+            "newString",
+            "oldString",
+            "originalFile",
+            "replaceAll",
+            "structuredPatch",
+            "userModified"
+          ],
+          "responseKind": "object",
+          "userModified": false,
+          "pathMatches": true,
+          "stringsMatch": true
+        }
+      ],
+      "nativeToolNames": [
+        "Write",
+        "Read",
+        "Edit",
+        "Read"
+      ],
+      "commandWindows": [
+        {
+          "mode": "prompt",
+          "launchAt": 985,
+          "at": 1355,
+          "elapsedUs": 369735,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "before-edit",
+          "launchAt": 5746,
+          "at": 6107,
+          "elapsedUs": 360309,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "edit",
+          "launchAt": 6117,
+          "at": 6506,
+          "elapsedUs": 388418,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "background",
+          "launchAt": 6118,
+          "at": 7879,
+          "elapsedUs": 1761759,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "before-edit",
+          "launchAt": 13034,
+          "at": 13458,
+          "elapsedUs": 423678,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "edit",
+          "launchAt": 13468,
+          "at": 14091,
+          "elapsedUs": 622929,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "stop",
+          "launchAt": 17436,
+          "at": 17992,
+          "elapsedUs": 556488,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "background",
+          "launchAt": 13470,
+          "at": 18017,
+          "elapsedUs": 4547505,
+          "exitCode": -1,
+          "signal": 15
+        }
+      ],
+      "backendCompletions": 2,
+      "backendCompletionTimes": [
+        7757,
+        15325
+      ],
+      "backendCompletedAfterHostExit": false,
+      "clearFollowUp": true,
+      "activityStages": [
+        "pending",
+        "pending",
+        "clear",
+        "pending",
+        "pending",
+        "findings"
+      ],
+      "findingSubmission": true,
+      "stopBlock": false,
+      "originalFile": false,
+      "repairedFile": true,
+      "modelClaimedRepair": true,
+      "hookFailures": [],
+      "hostError": false
+    }
+  ]
+}

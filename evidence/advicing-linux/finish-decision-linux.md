@@ -153,3 +153,15 @@ both phases: fixture `AGENTS.md` for Codex and an appended system prompt for
 Claude. Each new case records the policy and mechanism. This is a test condition,
 not a new installed product policy. Agent compliance is distinct from the
 remaining delivery-visibility and follow-up-review timing questions.
+
+The [explicit-policy native record](linux-explicit-review-policy.json), captured
+on `60ba9fb`, passed all five selected cases: Codex and Claude before/after pairs
+and Claude background. Both baselines completed review without submission or
+repair. Both candidates submitted advice, repaired, and completed clear
+follow-ups. Claude background submitted advice and then repaired and cleared
+without a Stop block. All host processes exited successfully with no hook
+failures. The optional post-repair README read was enabled in every case and
+is recorded separately from the compliance policy. These observations use the
+same exact host versions and offline Effect backend as the preceding records;
+they are selected examples, not a reliability estimate or proof of the cause
+of earlier misses.

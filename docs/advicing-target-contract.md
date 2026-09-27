@@ -17,6 +17,13 @@ submission to an agent runtime, model visibility, and a repair edit must never b
 inferred from one another. A completed output write establishes submission only.
 An unavailable, interrupted, or discarded evaluation is never reported as clear.
 
+The installed composed path uses the same resident delivery module for Codex CLI
+and Claude Code. Native hooks translate runtime events and response formats; they
+do not own another review queue, reconstruct reviews from the filesystem, or call
+Jev to produce delivery output. The resident owns admitted work, pending advice,
+leases, notices, expiry, finish decisions, and virtual-round resources. There is
+one installed delivery behavior, without a legacy/composed mode selector.
+
 ### Agent response is controlled by its instructions
 
 Hapsland submits advice and can request a bounded continuation; it does not
@@ -34,13 +41,6 @@ agent policy, not enforcement in arbitrary user sessions. Keep submission,
 observed repair, and follow-up review completion as separate assertions. A
 missing repair requires diagnosis, not an assumption of either refusal or
 failed delivery.
-
-The installed composed path uses the same resident delivery module for Codex CLI
-and Claude Code. Native hooks translate runtime events and response formats; they
-do not own another review queue, reconstruct reviews from the filesystem, or call
-Jev to produce delivery output. The resident owns admitted work, pending advice,
-leases, notices, expiry, finish decisions, and virtual-round resources. There is
-one installed delivery behavior, without a legacy/composed mode selector.
 
 ## Advicee identity and admission
 
