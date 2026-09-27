@@ -3,10 +3,39 @@ import * as Effect from "effect/Effect";
 import { mkdtemp, readFile, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { adaptCodexAdd, MAX_CODEX_CANDIDATES, MAX_CODEX_COMMAND_BYTES } from "./adapter.ts";
+import { adaptCodexAdd, adaptComposedHookIdentity, MAX_CODEX_CANDIDATES, MAX_CODEX_COMMAND_BYTES } from "./adapter.ts";
 import { addEvent, makeGitFixture } from "./test-fixtures.ts";
 
 describe("direct-event Codex Add adapter", () => {
+  it("maps background and Stop identities for both hosts without inferring a child", async () => {
+    const root = await makeGitFixture();
+    const codex = await Effect.runPromise(adaptComposedHookIdentity({
+      hook_event_name: "Stop", cwd: root, session_id: "codex", turn_id: "turn",
+    }, "codex-cli", "Stop"));
+    expect(codex).toMatchObject({ root, advicee: { host: "codex-cli",
+      sessionId: "codex", subagentId: null } });
+    const claude = await Effect.runPromise(adaptComposedHookIdentity({
+      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
+      session_id: "claude", tool_use_id: "tool", agent_id: "child",
+    }, "claude-code", "PostToolUse"));
+    expect(claude).toMatchObject({ root, advicee: { host: "claude-code",
+      sessionId: "claude", toolUseId: "tool", subagentId: "child" } });
+    expect(await Effect.runPromise(adaptComposedHookIdentity({
+      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
+      session_id: "claude", tool_use_id: "tool", agent_id: "",
+    }, "claude-code", "PostToolUse"))).toBeUndefined();
+  });
+  it("requires an explicit child identity on SubagentStop for both hosts", async () => {
+    const root = await makeGitFixture();
+    for (const host of ["codex-cli", "claude-code"] as const) {
+      const event = { hook_event_name: "SubagentStop", cwd: root, session_id: "session", turn_id: "turn" };
+      expect(await Effect.runPromise(adaptComposedHookIdentity(event, host, "SubagentStop"))).toBeUndefined();
+      expect(await Effect.runPromise(adaptComposedHookIdentity({ ...event, agent_id: "" }, host, "SubagentStop"))).toBeUndefined();
+      expect(await Effect.runPromise(adaptComposedHookIdentity({ ...event, agent_id: "child" }, host, "SubagentStop")))
+        .toMatchObject({ root, advicee: { host, sessionId: "session", subagentId: "child" } });
+      expect(await Effect.runPromise(adaptComposedHookIdentity({ ...event, agent_id: "child" }, host, "Stop"))).toBeUndefined();
+    }
+  });
   it("preserves the selected 0.156.0 host identity", async () => {
     const root = await makeGitFixture();
     const result = await Effect.runPromise(adaptCodexAdd(addEvent(root), "0.156.0"));

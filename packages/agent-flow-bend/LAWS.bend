@@ -6,6 +6,47 @@ import ./Work.bend as Work
 import ./Handoff.bend as Handoff
 import ./Lifecycle.bend as Lifecycle
 import ./Ledger.bend as Ledger
+import ./Round.bend as Round
+
+law round_begin_stop_claims_single_owner:
+  {Round.begin_stop(Round.initial(), 7n) ==
+    Round.Granted{Round.Round{1n, True{}, 0n, 0n, 7n, False{}, False{}, False{}}} : Round.Step}
+
+law second_stop_cannot_take_claim:
+  {Round.begin_stop(Round.Round{1n, True{}, 0n, 0n, 7n, False{}, False{}, False{}}, 8n) ==
+    Round.Denied{Round.Round{1n, True{}, 0n, 0n, 7n, False{}, False{}, False{}}} : Round.Step}
+
+law four_continuations_exhaust_budget:
+  {Round.consume(Round.Round{1n, True{}, 0n, 4n, 0n, False{}, False{}, False{}}) ==
+    Round.Denied{Round.Round{1n, True{}, 0n, 4n, 0n, False{}, False{}, False{}}} : Round.Step}
+
+law finish_closure_fences_late_output:
+  {Round.reserve_output(Round.Round{1n, False{}, 20n, 1n, 7n, True{}, True{}, False{}}, 7n) ==
+    Round.Denied{Round.Round{1n, False{}, 20n, 1n, 7n, True{}, True{}, False{}}} : Round.Step}
+
+law reopening_requires_next_generation:
+  {Round.reopen(Round.Round{1n, False{}, 20n, 1n, 0n, False{}, False{}, False{}}, 2n) ==
+    Round.Granted{Round.Round{2n, True{}, 20n, 0n, 0n, False{}, False{}, False{}}} : Round.Step}
+
+law uncertain_background_suppresses_ordinary_collection:
+  {Handoff.lease.suppresses(Handoff.Lease{1n, 1n, False{}, False{},
+      Handoff.Uncertain{Handoff.Background{}}}, 1n, Handoff.Edit{}) == True{} : Bool}
+
+law uncertain_background_may_reoffer_at_stop:
+  {Handoff.lease.suppresses(Handoff.Lease{1n, 1n, False{}, False{},
+      Handoff.Uncertain{Handoff.Background{}}}, 1n, Handoff.Stop{}) == False{} : Bool}
+
+law edit_submission_cannot_reoffer_at_stop:
+  {Handoff.lease.reoffer(Handoff.Lease{1n, 1n, False{}, False{},
+      Handoff.Submitted{Handoff.Edit{}}}, 1n, 2n, True{}) ==
+    Handoff.Denied{Handoff.Lease{1n, 1n, False{}, False{},
+      Handoff.Submitted{Handoff.Edit{}}}} : Handoff.LeaseResult}
+
+law unconsumed_prospective_round_can_close:
+  {Admission.close_prospective(Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n,
+      Admission.Permit{1n, 2n, 1n, 10n, 20n} <> Nil{}, Nil{}}, 21n) ==
+    Admission.Accepted{Admission.AdmissionState{1n, 1n, 1n, False{}, 21n, 2n,
+      Nil{}, Nil{}}, None{}, Some{1n}} : Admission.AdmissionResult}
 
 # A Jev finding ends the item's Jeview and produces pending advice for the
 # same item in one transition.
@@ -132,6 +173,13 @@ law fanout_keeps_each_review_unfinished:
 law four_units_count_as_four_unfinished:
   {Work.unfinished(four_units()) == 4n : Nat}
 
+law finish_waits_for_all_unfinished_work:
+  {Work.finish_wait(2n, False{}, True{}) == True{} : Bool}
+
+law finish_deadline_or_budget_ends_wait:
+  {Bool.and(Bool.not(Work.finish_wait(2n, True{}, True{})),
+    Bool.not(Work.finish_wait(2n, False{}, False{}))) == True{} : Bool}
+
 law lowering_review_capacity_preserves_active_units:
   {Work.set_review_capacity(four_units(), Flow.Capacity{1n, 0n}) ==
     Work.Accepted{Work.Work{2n, 5n, Flow.Capacity{3n, 0n}, Flow.Capacity{1n, 0n}, Nil{},
@@ -173,11 +221,11 @@ law interrupted_source_does_not_leave_unfinished_work:
     Work.Accepted{Work.Work{2n, 1n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{}, Nil{}}, Nil{}} : Work.WorkStep}
 
 def current_advice() -> Handoff.Advice:
-  Handoff.Advice{7n, 4n, 9n, 1n, 2n, 3n, 25n, 300n, True{}}
+  Handoff.Advice{7n, 4n, 9n, 1n, 2n, 2n, 3n, 3n, 25n, 300n, True{}}
 
 law handoff_selects_fitting_findings:
-  {Handoff.select(Handoff.initial(9n, 1n, 2n, 3n), current_advice(), 2048n) ==
-    Handoff.Selected{Handoff.Selection{9n, 1n, 2n, 3n, 7n <> Nil{}, Nil{}, 1n, 2048n}} : Handoff.SelectResult}
+  {Handoff.select(Handoff.initial(9n, 1n), current_advice(), 2048n) ==
+    Handoff.Selected{Handoff.Selection{9n, 1n, 7n <> Nil{}, Nil{}, 1n, 2048n}} : Handoff.SelectResult}
 
 law fifth_finding_fits_exact_byte_ceiling:
   {Handoff.fits_batch(5n, 2048n) == True{} : Bool}
@@ -186,28 +234,38 @@ law sixth_finding_exceeds_item_ceiling:
   {Handoff.fits_batch(6n, 1n) == False{} : Bool}
 
 law handoff_retains_oversized_item:
-  {Handoff.select(Handoff.initial(9n, 1n, 2n, 3n), current_advice(), 2049n) ==
-    Handoff.Retained{Handoff.Selection{9n, 1n, 2n, 3n, Nil{}, 7n <> Nil{}, 0n, 0n}} : Handoff.SelectResult}
+  {Handoff.select(Handoff.initial(9n, 1n), current_advice(), 2049n) ==
+    Handoff.Retained{Handoff.Selection{9n, 1n, Nil{}, 7n <> Nil{}, 0n, 0n}} : Handoff.SelectResult}
 
 law handoff_rejects_stale_generation:
-  {Handoff.select(Handoff.initial(9n, 1n, 4n, 3n), current_advice(), 300n) ==
-    Handoff.Expired{Handoff.initial(9n, 1n, 4n, 3n)} : Handoff.SelectResult}
+  {Handoff.select(Handoff.initial(9n, 2n), current_advice(), 300n) ==
+    Handoff.Expired{Handoff.initial(9n, 2n)} : Handoff.SelectResult}
+
+law handoff_rejects_stale_snapshot:
+  {Handoff.select(Handoff.initial(9n, 1n),
+    Handoff.Advice{7n, 4n, 9n, 1n, 2n, 4n, 3n, 3n, 25n, 300n, True{}}, 300n) ==
+    Handoff.Expired{Handoff.initial(9n, 1n)} : Handoff.SelectResult}
+
+law handoff_rejects_stale_credential:
+  {Handoff.select(Handoff.initial(9n, 1n),
+    Handoff.Advice{7n, 4n, 9n, 1n, 2n, 2n, 3n, 4n, 25n, 300n, True{}}, 300n) ==
+    Handoff.Expired{Handoff.initial(9n, 1n)} : Handoff.SelectResult}
 
 law individually_oversized_finding_has_limitation:
-  {Handoff.select(Handoff.initial(9n, 1n, 2n, 3n),
-    Handoff.Advice{8n, 4n, 9n, 1n, 2n, 3n, 25n, 2049n, True{}}, 2049n) ==
-    Handoff.Limited{Handoff.Selection{9n, 1n, 2n, 3n, Nil{}, 8n <> Nil{}, 0n, 0n}, 8n} : Handoff.SelectResult}
+  {Handoff.select(Handoff.initial(9n, 1n),
+    Handoff.Advice{8n, 4n, 9n, 1n, 2n, 2n, 3n, 3n, 25n, 2049n, True{}}, 2049n) ==
+    Handoff.Limited{Handoff.Selection{9n, 1n, Nil{}, 8n <> Nil{}, 0n, 0n}, 8n} : Handoff.SelectResult}
 
 law same_finding_cannot_be_selected_twice:
-  {Handoff.select(Handoff.Selection{9n, 1n, 2n, 3n, 7n <> Nil{}, Nil{}, 1n, 300n},
+  {Handoff.select(Handoff.Selection{9n, 1n, 7n <> Nil{}, Nil{}, 1n, 300n},
     current_advice(), 400n) ==
-    Handoff.Duplicate{Handoff.Selection{9n, 1n, 2n, 3n, 7n <> Nil{}, Nil{}, 1n, 300n}} : Handoff.SelectResult}
+    Handoff.Duplicate{Handoff.Selection{9n, 1n, 7n <> Nil{}, Nil{}, 1n, 300n}} : Handoff.SelectResult}
 
 law sixth_finding_from_same_unit_is_retained:
-  {Handoff.select(Handoff.Selection{9n, 1n, 2n, 3n,
+  {Handoff.select(Handoff.Selection{9n, 1n,
       1n <> 2n <> 3n <> 4n <> 5n <> Nil{}, Nil{}, 5n, 1800n},
-    Handoff.Advice{6n, 4n, 9n, 1n, 2n, 3n, 25n, 300n, True{}}, 1900n) ==
-    Handoff.Retained{Handoff.Selection{9n, 1n, 2n, 3n,
+    Handoff.Advice{6n, 4n, 9n, 1n, 2n, 2n, 3n, 3n, 25n, 300n, True{}}, 1900n) ==
+    Handoff.Retained{Handoff.Selection{9n, 1n,
       1n <> 2n <> 3n <> 4n <> 5n <> Nil{}, 6n <> Nil{}, 5n, 1800n}} : Handoff.SelectResult}
 
 law finish_waits_for_review_work:
@@ -249,6 +307,11 @@ def background_reserved() -> Handoff.Lease:
 law live_background_lease_excludes_stop:
   {Handoff.lease.reserve(background_reserved(), 1n, 12n, Handoff.Stop{}) ==
     Handoff.Denied{background_reserved()} : Handoff.LeaseResult}
+
+law authorized_background_suppresses_stop:
+  {Handoff.lease.suppresses(
+    Handoff.Lease{7n, 1n, False{}, False{}, Handoff.Authorized{11n, Handoff.Background{}}},
+    1n, Handoff.Stop{}) == True{} : Bool}
 
 law failed_provisional_lease_releases_item:
   {Handoff.lease.release(background_reserved(), 1n, 11n) ==

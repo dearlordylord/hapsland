@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:e121f6641182dd13ba166c40ef3052a863aab08ed5f6d15d7f2fd64ca49b14f2
+// hapsland-bend-source-sha256:845b028e07774029aa0a32d56f3348ed83a4800aae9620701a397ab517887a91
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -127,7 +127,7 @@ function run_lib(f, n) {
 // =======
 
 function $main$() {
-  return {$: "Smoke", ["admission"]: run_loop($Admission$step$(run_loop($Admission$initial$(1n, 1n)), 1n, 1n, {$: "Issue", ["tool"]: 1n, ["started"]: 1n, ["deadline"]: 2n, ["now"]: 1n})), ["callback"]: run_loop($Admission$callback_current$(run_loop($Admission$initial$(1n, 1n)), 1n, 1n, 0n)), ["admitted"]: run_loop($Work$admit$(run_loop($Work$initial$()))), ["prepared"]: run_loop($Work$prepare$(run_loop($sample_work$()), 1n, 2n)), ["outcome"]: run_loop($Work$outcome$(run_loop($sample_unit_work$()), 1n, {$: "Clear"})), ["unfinished"]: run_loop($Work$unfinished$(run_loop($sample_unit_work$()))), ["source_capacity"]: run_loop($Work$set_source_capacity$(run_loop($sample_work$()), {$: "Capacity", ["low"]: 2n, ["high"]: 0n})), ["review_capacity"]: run_loop($Work$set_review_capacity$(run_loop($sample_unit_work$()), {$: "Capacity", ["low"]: 2n, ["high"]: 0n})), ["selection"]: run_loop($Handoff$select$(run_loop($Handoff$initial$(1n, 1n, 1n, 1n)), {$: "Advice", ["id"]: 1n, ["unit"]: 1n, ["partition"]: 1n, ["round"]: 1n, ["snapshot"]: 1n, ["credential"]: 1n, ["age_ms"]: 0n, ["solo_bytes"]: 100n, ["collection_ready"]: true}, 100n)), ["fit"]: run_loop($Handoff$fits_batch$(1n, 100n)), ["finish"]: run_loop($Handoff$finish$decide$(run_loop($Handoff$finish$initial$(1n)), 0n, false, 1n)), ["lease_reserve"]: run_loop($Handoff$lease$reserve$(run_loop($Handoff$lease$initial$(1n, 1n)), 1n, 1n, {$: "Background"})), ["lease_authorize"]: run_loop($Handoff$lease$authorize$(run_loop($sample_reserved_lease$()), 1n, 1n)), ["lease_release"]: run_loop($Handoff$lease$release$(run_loop($sample_reserved_lease$()), 1n, 1n)), ["lease_terminal"]: run_loop($Handoff$lease$terminal$(run_loop($sample_authorized_lease$()), 1n, 1n, false)), ["lease_reoffer"]: run_loop($Handoff$lease$reoffer$(run_loop($sample_uncertain_lease$()), 1n, 2n, true)), ["closed_lease"]: run_loop($Handoff$lease$close$(run_loop($Handoff$lease$initial$(1n, 1n))))};
+  return {$: "Smoke", ["admission"]: run_loop($Admission$step$(run_loop($Admission$initial$(1n, 1n)), 1n, 1n, {$: "Issue", ["tool"]: 1n, ["started"]: 1n, ["deadline"]: 2n, ["now"]: 1n})), ["prospective_close"]: run_loop($Admission$close_prospective$({$: "AdmissionState", ["partition"]: 1n, ["lifetime"]: 1n, ["round"]: 0n, ["active"]: false, ["closed_at"]: 0n, ["next_token"]: 2n, ["permits"]: {$: "Con", ["head"]: {$: "Permit", ["token"]: 1n, ["tool"]: 1n, ["round"]: 1n, ["started"]: 1n, ["deadline"]: 2n}, ["tail"]: {$: "Nil"}}, ["used"]: {$: "Nil"}}, 3n)), ["callback"]: run_loop($Admission$callback_current$(run_loop($Admission$initial$(1n, 1n)), 1n, 1n, 0n)), ["admitted"]: run_loop($Work$admit$(run_loop($Work$initial$()))), ["prepared"]: run_loop($Work$prepare$(run_loop($sample_work$()), 1n, 2n)), ["outcome"]: run_loop($Work$outcome$(run_loop($sample_unit_work$()), 1n, {$: "Clear"})), ["unfinished"]: run_loop($Work$unfinished$(run_loop($sample_unit_work$()))), ["finish_wait"]: run_loop($Work$finish_wait$(1n, false, true)), ["source_capacity"]: run_loop($Work$set_source_capacity$(run_loop($sample_work$()), {$: "Capacity", ["low"]: 2n, ["high"]: 0n})), ["review_capacity"]: run_loop($Work$set_review_capacity$(run_loop($sample_unit_work$()), {$: "Capacity", ["low"]: 2n, ["high"]: 0n})), ["selection"]: run_loop($Handoff$select$(run_loop($Handoff$initial$(1n, 1n)), {$: "Advice", ["id"]: 1n, ["unit"]: 1n, ["partition"]: 1n, ["round"]: 1n, ["snapshot"]: 1n, ["current_snapshot"]: 1n, ["credential"]: 1n, ["current_credential"]: 1n, ["age_ms"]: 0n, ["solo_bytes"]: 100n, ["collection_ready"]: true}, 100n)), ["fit"]: run_loop($Handoff$fits_batch$(1n, 100n)), ["finish"]: run_loop($Handoff$finish$decide$(run_loop($Handoff$finish$initial$(1n)), 0n, false, 1n)), ["lease_reserve"]: run_loop($Handoff$lease$reserve$(run_loop($Handoff$lease$initial$(1n, 1n)), 1n, 1n, {$: "Background"})), ["lease_authorize"]: run_loop($Handoff$lease$authorize$(run_loop($sample_reserved_lease$()), 1n, 1n)), ["lease_release"]: run_loop($Handoff$lease$release$(run_loop($sample_reserved_lease$()), 1n, 1n)), ["lease_terminal"]: run_loop($Handoff$lease$terminal$(run_loop($sample_authorized_lease$()), 1n, 1n, false)), ["lease_reoffer"]: run_loop($Handoff$lease$reoffer$(run_loop($sample_uncertain_lease$()), 1n, 2n, true)), ["closed_lease"]: run_loop($Handoff$lease$close$(run_loop($Handoff$lease$initial$(1n, 1n)))), ["lease_suppresses"]: run_loop($Handoff$lease$suppresses$(run_loop($sample_uncertain_lease$()), 1n, {$: "Edit"})), ["round_begin"]: run_loop($Round$begin_stop$(run_loop($Round$initial$()), 1n)), ["round_active"]: run_loop($Round$active$(run_loop($Round$initial$()), 1n)), ["round_budget"]: run_loop($Round$budget$(run_loop($Round$initial$()))), ["round_max"]: run_loop($Round$max_continuations$()), ["round_owns"]: run_loop($Round$owns_stop$({$: "Round", ["generation"]: 1n, ["active"]: true, ["closed_at"]: 0n, ["continuations"]: 0n, ["stop_token"]: 1n, ["barrier"]: false, ["deciding"]: false, ["output_reserved"]: false}, 1n)), ["round_decision"]: run_loop($Round$begin_decision$({$: "Round", ["generation"]: 1n, ["active"]: true, ["closed_at"]: 0n, ["continuations"]: 0n, ["stop_token"]: 1n, ["barrier"]: false, ["deciding"]: false, ["output_reserved"]: false}, 1n)), ["round_consume"]: run_loop($Round$consume$(run_loop($Round$initial$()))), ["round_reserve"]: run_loop($Round$reserve_output$({$: "Round", ["generation"]: 1n, ["active"]: true, ["closed_at"]: 0n, ["continuations"]: 0n, ["stop_token"]: 1n, ["barrier"]: false, ["deciding"]: true, ["output_reserved"]: false}, 1n)), ["round_finish"]: run_loop($Round$finish_stop$({$: "Round", ["generation"]: 1n, ["active"]: true, ["closed_at"]: 0n, ["continuations"]: 0n, ["stop_token"]: 1n, ["barrier"]: false, ["deciding"]: false, ["output_reserved"]: false}, 1n, true, 2n)), ["round_reopen"]: run_loop($Round$reopen$({$: "Round", ["generation"]: 1n, ["active"]: false, ["closed_at"]: 2n, ["continuations"]: 0n, ["stop_token"]: 0n, ["barrier"]: false, ["deciding"]: false, ["output_reserved"]: false}, 2n))};
 }
 
 function $Admission$step$(state_0, partition_0, lifetime_0, event_0) {
@@ -144,6 +144,18 @@ function $Admission$step$(state_0, partition_0, lifetime_0, event_0) {
 
 function $Admission$initial$(partition_0, lifetime_0) {
   return {$: "AdmissionState", ["partition"]: partition_0, ["lifetime"]: lifetime_0, ["round"]: 0n, ["active"]: false, ["closed_at"]: 0n, ["next_token"]: 1n, ["permits"]: {$: "Nil"}, ["used"]: {$: "Nil"}};
+}
+
+function $Admission$close_prospective$(state_0, at_0) {
+  const partition_0 = state_0.partition;
+  const lifetime_0 = state_0.lifetime;
+  const round_0 = state_0.round;
+  const active_0 = state_0.active;
+  const closed_at_0 = state_0.closed_at;
+  const next_token_0 = state_0.next_token;
+  const permits_0 = state_0.permits;
+  const used_0 = state_0.used;
+  return run_jump($Bool$pick$, [run_loop($Bool$and$(run_loop($Bool$not$(active_0)), run_loop($Bool$and$(run_loop($Nat$is_ge$(at_0, closed_at_0)), run_loop($Nat$is_gt$(run_loop($List$length$(permits_0)), 0n)))))), {$: "Accepted", ["state"]: {$: "AdmissionState", ["partition"]: partition_0, ["lifetime"]: lifetime_0, ["round"]: nat_chk(round_0 + 1n), ["active"]: false, ["closed_at"]: at_0, ["next_token"]: next_token_0, ["permits"]: {$: "Nil"}, ["used"]: used_0}, ["token"]: {$: "None"}, ["round"]: {$: "Some", ["value"]: nat_chk(round_0 + 1n)}}, {$: "Rejected", ["state"]: {$: "AdmissionState", ["partition"]: partition_0, ["lifetime"]: lifetime_0, ["round"]: round_0, ["active"]: active_0, ["closed_at"]: closed_at_0, ["next_token"]: next_token_0, ["permits"]: permits_0, ["used"]: used_0}, ["reason"]: {$: "RoundAlreadyClosed"}}]);
 }
 
 function $Admission$callback_current$(state_0, partition_0, lifetime_0, round_0) {
@@ -212,6 +224,10 @@ function $Work$unfinished$(work_0) {
   return nat_chk(x_0 + x_1);
 }
 
+function $Work$finish_wait$(unfinished_0, deadline_reached_0, continuation_budget_0) {
+  return run_jump($Bool$and$, [continuation_budget_0, run_loop($Bool$and$(run_loop($Bool$not$(deadline_reached_0)), run_loop($Nat$is_gt$(unfinished_0, 0n))))]);
+}
+
 function $Work$set_source_capacity$(work_0, capacity_0) {
   return run_jump($Work$set_source_capacity$apply$, [work_0, capacity_0, run_loop($Flow$capacity_valid$(capacity_0))]);
 }
@@ -223,8 +239,6 @@ function $Work$set_review_capacity$(work_0, capacity_0) {
 function $Handoff$select$(state_0, advice_0, prospective_bytes_0) {
   const partition_0 = state_0.partition;
   const round_0 = state_0.round;
-  const snapshot_0 = state_0.snapshot;
-  const credential_0 = state_0.credential;
   const selected_0 = state_0.selected;
   const retained_0 = state_0.retained;
   const __0 = state_0.findings;
@@ -234,17 +248,19 @@ function $Handoff$select$(state_0, advice_0, prospective_bytes_0) {
   const __3 = advice_0.partition;
   const __4 = advice_0.round;
   const __5 = advice_0.snapshot;
-  const __6 = advice_0.credential;
-  const __7 = advice_0.age_ms;
-  const __8 = advice_0.solo_bytes;
-  const __9 = advice_0.collection_ready;
+  const __6 = advice_0.current_snapshot;
+  const __7 = advice_0.credential;
+  const __8 = advice_0.current_credential;
+  const __9 = advice_0.age_ms;
+  const __10 = advice_0.solo_bytes;
+  const __11 = advice_0.collection_ready;
   const x_0 = run_loop($Handoff$contains$(id_0, selected_0));
   const x_1 = run_loop($Handoff$contains$(id_0, retained_0));
-  return run_jump($Handoff$select$duplicate$, [{$: "Selection", ["partition"]: partition_0, ["round"]: round_0, ["snapshot"]: snapshot_0, ["credential"]: credential_0, ["selected"]: selected_0, ["retained"]: retained_0, ["findings"]: __0, ["bytes"]: __1}, {$: "Advice", ["id"]: id_0, ["unit"]: __2, ["partition"]: __3, ["round"]: __4, ["snapshot"]: __5, ["credential"]: __6, ["age_ms"]: __7, ["solo_bytes"]: __8, ["collection_ready"]: __9}, prospective_bytes_0, run_loop($Handoff$current$({$: "Advice", ["id"]: id_0, ["unit"]: __2, ["partition"]: __3, ["round"]: __4, ["snapshot"]: __5, ["credential"]: __6, ["age_ms"]: __7, ["solo_bytes"]: __8, ["collection_ready"]: __9}, partition_0, round_0, snapshot_0, credential_0)), (x_0 || x_1)]);
+  return run_jump($Handoff$select$duplicate$, [{$: "Selection", ["partition"]: partition_0, ["round"]: round_0, ["selected"]: selected_0, ["retained"]: retained_0, ["findings"]: __0, ["bytes"]: __1}, {$: "Advice", ["id"]: id_0, ["unit"]: __2, ["partition"]: __3, ["round"]: __4, ["snapshot"]: __5, ["current_snapshot"]: __6, ["credential"]: __7, ["current_credential"]: __8, ["age_ms"]: __9, ["solo_bytes"]: __10, ["collection_ready"]: __11}, prospective_bytes_0, run_loop($Handoff$current$({$: "Advice", ["id"]: id_0, ["unit"]: __2, ["partition"]: __3, ["round"]: __4, ["snapshot"]: __5, ["current_snapshot"]: __6, ["credential"]: __7, ["current_credential"]: __8, ["age_ms"]: __9, ["solo_bytes"]: __10, ["collection_ready"]: __11}, partition_0, round_0)), (x_0 || x_1)]);
 }
 
-function $Handoff$initial$(partition_0, round_0, snapshot_0, credential_0) {
-  return {$: "Selection", ["partition"]: partition_0, ["round"]: round_0, ["snapshot"]: snapshot_0, ["credential"]: credential_0, ["selected"]: {$: "Nil"}, ["retained"]: {$: "Nil"}, ["findings"]: 0n, ["bytes"]: 0n};
+function $Handoff$initial$(partition_0, round_0) {
+  return {$: "Selection", ["partition"]: partition_0, ["round"]: round_0, ["selected"]: {$: "Nil"}, ["retained"]: {$: "Nil"}, ["findings"]: 0n, ["bytes"]: 0n};
 }
 
 function $Handoff$fits_batch$(items_0, bytes_0) {
@@ -337,6 +353,133 @@ function $Handoff$lease$close$(state_0) {
   return {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: true, ["reoffered"]: reoffered_0, ["phase"]: phase_0};
 }
 
+function $Handoff$lease$suppresses$(state_0, round_0, requested_0) {
+  const __0 = state_0.item;
+  const owner_0 = state_0.round;
+  const closed_0 = state_0.closed;
+  const __1 = state_0.reoffered;
+  const phase_0 = state_0.phase;
+  return run_jump($Bool$and$, [run_loop($Nat$is_eq$(owner_0, round_0)), run_loop($Bool$and$(run_loop($Bool$not$(closed_0)), run_loop($Handoff$lease$suppress_phase$(phase_0, requested_0))))]);
+}
+
+function $Round$begin_stop$(state_0, token_0) {
+  const generation_0 = state_0.generation;
+  const live_0 = state_0.active;
+  const closed_at_0 = state_0.closed_at;
+  const count_0 = state_0.continuations;
+  const owner_0 = state_0.stop_token;
+  const barrier_0 = state_0.barrier;
+  const deciding_0 = state_0.deciding;
+  const output_0 = state_0.output_reserved;
+  return run_jump($Bool$pick$, [run_loop($Bool$and$(live_0, run_loop($Bool$and$(run_loop($Nat$is_eq$(owner_0, 0n)), run_loop($Nat$is_gt$(token_0, 0n)))))), {$: "Granted", ["state"]: {$: "Round", ["generation"]: generation_0, ["active"]: live_0, ["closed_at"]: closed_at_0, ["continuations"]: count_0, ["stop_token"]: token_0, ["barrier"]: false, ["deciding"]: false, ["output_reserved"]: false}}, {$: "Denied", ["state"]: {$: "Round", ["generation"]: generation_0, ["active"]: live_0, ["closed_at"]: closed_at_0, ["continuations"]: count_0, ["stop_token"]: owner_0, ["barrier"]: barrier_0, ["deciding"]: deciding_0, ["output_reserved"]: output_0}}]);
+}
+
+function $Round$initial$() {
+  return {$: "Round", ["generation"]: 1n, ["active"]: true, ["closed_at"]: 0n, ["continuations"]: 0n, ["stop_token"]: 0n, ["barrier"]: false, ["deciding"]: false, ["output_reserved"]: false};
+}
+
+function $Round$active$(state_0, generation_0) {
+  const own_0 = state_0.generation;
+  const live_0 = state_0.active;
+  const __0 = state_0.closed_at;
+  const __1 = state_0.continuations;
+  const __2 = state_0.stop_token;
+  const __3 = state_0.barrier;
+  const __4 = state_0.deciding;
+  const __5 = state_0.output_reserved;
+  return run_jump($Bool$and$, [live_0, run_loop($Nat$is_eq$(own_0, generation_0))]);
+}
+
+function $Round$budget$(state_0) {
+  const __0 = state_0.generation;
+  const live_0 = state_0.active;
+  const __1 = state_0.closed_at;
+  const count_0 = state_0.continuations;
+  const __2 = state_0.stop_token;
+  const __3 = state_0.barrier;
+  const __4 = state_0.deciding;
+  const __5 = state_0.output_reserved;
+  const x_0 = run_loop($Round$max_continuations$());
+  return run_jump($Bool$and$, [live_0, (count_0 < x_0)]);
+}
+
+function $Round$max_continuations$() {
+  return 4n;
+}
+
+function $Round$owns_stop$(state_0, token_0) {
+  const __0 = state_0.generation;
+  const live_0 = state_0.active;
+  const __1 = state_0.closed_at;
+  const __2 = state_0.continuations;
+  const owner_0 = state_0.stop_token;
+  const __3 = state_0.barrier;
+  const deciding_0 = state_0.deciding;
+  const __4 = state_0.output_reserved;
+  return run_jump($Bool$and$, [live_0, run_loop($Bool$and$(run_loop($Nat$is_gt$(token_0, 0n)), run_loop($Bool$and$(run_loop($Nat$is_eq$(owner_0, token_0)), run_loop($Bool$not$(deciding_0))))))]);
+}
+
+function $Round$begin_decision$(state_0, token_0) {
+  const generation_0 = state_0.generation;
+  const live_0 = state_0.active;
+  const closed_at_0 = state_0.closed_at;
+  const count_0 = state_0.continuations;
+  const owner_0 = state_0.stop_token;
+  const barrier_0 = state_0.barrier;
+  const deciding_0 = state_0.deciding;
+  const output_0 = state_0.output_reserved;
+  return run_jump($Bool$pick$, [run_loop($Round$owns_stop$({$: "Round", ["generation"]: generation_0, ["active"]: live_0, ["closed_at"]: closed_at_0, ["continuations"]: count_0, ["stop_token"]: owner_0, ["barrier"]: barrier_0, ["deciding"]: deciding_0, ["output_reserved"]: output_0}, token_0)), {$: "Granted", ["state"]: {$: "Round", ["generation"]: generation_0, ["active"]: live_0, ["closed_at"]: closed_at_0, ["continuations"]: count_0, ["stop_token"]: owner_0, ["barrier"]: barrier_0, ["deciding"]: true, ["output_reserved"]: output_0}}, {$: "Denied", ["state"]: {$: "Round", ["generation"]: generation_0, ["active"]: live_0, ["closed_at"]: closed_at_0, ["continuations"]: count_0, ["stop_token"]: owner_0, ["barrier"]: barrier_0, ["deciding"]: deciding_0, ["output_reserved"]: output_0}}]);
+}
+
+function $Round$consume$(state_0) {
+  const generation_0 = state_0.generation;
+  const live_0 = state_0.active;
+  const closed_at_0 = state_0.closed_at;
+  const count_0 = state_0.continuations;
+  const owner_0 = state_0.stop_token;
+  const barrier_0 = state_0.barrier;
+  const deciding_0 = state_0.deciding;
+  const output_0 = state_0.output_reserved;
+  const x_0 = run_loop($Nat$is_gt$(owner_0, 0n));
+  return run_jump($Bool$pick$, [run_loop($Round$budget$({$: "Round", ["generation"]: generation_0, ["active"]: live_0, ["closed_at"]: closed_at_0, ["continuations"]: count_0, ["stop_token"]: owner_0, ["barrier"]: barrier_0, ["deciding"]: deciding_0, ["output_reserved"]: output_0})), {$: "Granted", ["state"]: {$: "Round", ["generation"]: generation_0, ["active"]: live_0, ["closed_at"]: closed_at_0, ["continuations"]: nat_chk(count_0 + 1n), ["stop_token"]: owner_0, ["barrier"]: (barrier_0 || x_0), ["deciding"]: deciding_0, ["output_reserved"]: output_0}}, {$: "Denied", ["state"]: {$: "Round", ["generation"]: generation_0, ["active"]: live_0, ["closed_at"]: closed_at_0, ["continuations"]: count_0, ["stop_token"]: owner_0, ["barrier"]: barrier_0, ["deciding"]: deciding_0, ["output_reserved"]: output_0}}]);
+}
+
+function $Round$reserve_output$(state_0, token_0) {
+  const generation_0 = state_0.generation;
+  const live_0 = state_0.active;
+  const closed_at_0 = state_0.closed_at;
+  const count_0 = state_0.continuations;
+  const owner_0 = state_0.stop_token;
+  const barrier_0 = state_0.barrier;
+  const deciding_0 = state_0.deciding;
+  const output_0 = state_0.output_reserved;
+  return run_jump($Bool$pick$, [run_loop($Bool$and$(live_0, run_loop($Bool$and$(deciding_0, run_loop($Bool$and$(run_loop($Nat$is_eq$(owner_0, token_0)), run_loop($Bool$and$(run_loop($Nat$is_gt$(token_0, 0n)), run_loop($Bool$and$(run_loop($Bool$not$(output_0)), run_loop($Round$budget$({$: "Round", ["generation"]: generation_0, ["active"]: live_0, ["closed_at"]: closed_at_0, ["continuations"]: count_0, ["stop_token"]: owner_0, ["barrier"]: barrier_0, ["deciding"]: deciding_0, ["output_reserved"]: output_0})))))))))))), {$: "Granted", ["state"]: {$: "Round", ["generation"]: generation_0, ["active"]: live_0, ["closed_at"]: closed_at_0, ["continuations"]: nat_chk(count_0 + 1n), ["stop_token"]: owner_0, ["barrier"]: true, ["deciding"]: deciding_0, ["output_reserved"]: true}}, {$: "Denied", ["state"]: {$: "Round", ["generation"]: generation_0, ["active"]: live_0, ["closed_at"]: closed_at_0, ["continuations"]: count_0, ["stop_token"]: owner_0, ["barrier"]: barrier_0, ["deciding"]: deciding_0, ["output_reserved"]: output_0}}]);
+}
+
+function $Round$finish_stop$(state_0, token_0, close_0, at_0) {
+  const generation_0 = state_0.generation;
+  const live_0 = state_0.active;
+  const closed_at_0 = state_0.closed_at;
+  const count_0 = state_0.continuations;
+  const owner_0 = state_0.stop_token;
+  const barrier_0 = state_0.barrier;
+  const deciding_0 = state_0.deciding;
+  const output_0 = state_0.output_reserved;
+  return run_jump($Bool$pick$, [run_loop($Bool$and$(run_loop($Nat$is_gt$(token_0, 0n)), run_loop($Nat$is_eq$(owner_0, token_0)))), {$: "Granted", ["state"]: run_loop($Bool$pick$(close_0, {$: "Round", ["generation"]: generation_0, ["active"]: false, ["closed_at"]: at_0, ["continuations"]: count_0, ["stop_token"]: 0n, ["barrier"]: false, ["deciding"]: false, ["output_reserved"]: false}, {$: "Round", ["generation"]: generation_0, ["active"]: live_0, ["closed_at"]: closed_at_0, ["continuations"]: count_0, ["stop_token"]: 0n, ["barrier"]: false, ["deciding"]: false, ["output_reserved"]: false}))}, {$: "Denied", ["state"]: {$: "Round", ["generation"]: generation_0, ["active"]: live_0, ["closed_at"]: closed_at_0, ["continuations"]: count_0, ["stop_token"]: owner_0, ["barrier"]: barrier_0, ["deciding"]: deciding_0, ["output_reserved"]: output_0}}]);
+}
+
+function $Round$reopen$(state_0, generation_0) {
+  const current_0 = state_0.generation;
+  const live_0 = state_0.active;
+  const closed_at_0 = state_0.closed_at;
+  const count_0 = state_0.continuations;
+  const owner_0 = state_0.stop_token;
+  const barrier_0 = state_0.barrier;
+  const deciding_0 = state_0.deciding;
+  const output_0 = state_0.output_reserved;
+  return run_jump($Bool$pick$, [run_loop($Bool$and$(run_loop($Bool$not$(live_0)), run_loop($Nat$is_eq$(generation_0, nat_chk(current_0 + 1n))))), {$: "Granted", ["state"]: {$: "Round", ["generation"]: generation_0, ["active"]: true, ["closed_at"]: closed_at_0, ["continuations"]: 0n, ["stop_token"]: 0n, ["barrier"]: false, ["deciding"]: false, ["output_reserved"]: false}}, {$: "Denied", ["state"]: {$: "Round", ["generation"]: current_0, ["active"]: live_0, ["closed_at"]: closed_at_0, ["continuations"]: count_0, ["stop_token"]: owner_0, ["barrier"]: barrier_0, ["deciding"]: deciding_0, ["output_reserved"]: output_0}}]);
+}
+
 function $Admission$step$partition$(state_0, partition_0, lifetime_0, event_0, correct_partition_0, correct_lifetime_0) {
   if (!correct_partition_0) {
     return {$: "Rejected", ["state"]: state_0, ["reason"]: {$: "WrongPartition"}};
@@ -353,11 +496,45 @@ function $Nat$is_eq$(a_0, b_0) {
   return run_jump($Cmp$is_eq$, [cmp_new(a_0, b_0)]);
 }
 
+function $Bool$pick$(c_0, a_0, b_0) {
+  if (!c_0) {
+    return b_0;
+  } else {
+    return a_0;
+  }
+}
+
 function $Bool$and$(a_0, b_0) {
   if (!a_0) {
     return false;
   } else {
     return b_0;
+  }
+}
+
+function $Bool$not$(b_0) {
+  if (!b_0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $Nat$is_ge$(a_0, b_0) {
+  return run_jump($Cmp$is_ge$, [cmp_new(a_0, b_0)]);
+}
+
+function $Nat$is_gt$(a_0, b_0) {
+  return run_jump($Cmp$is_gt$, [cmp_new(a_0, b_0)]);
+}
+
+function $List$length$(xs_0) {
+  if (xs_0.$ === "Nil") {
+    return 0n;
+  } else {
+    const h_0 = xs_0.head;
+    const t_0 = xs_0.tail;
+    return nat_chk(run_loop($List$length$(t_0)) + 1n);
   }
 }
 
@@ -498,18 +675,20 @@ function $Handoff$select$duplicate$(state_0, advice_0, prospective_bytes_0, curr
   }
 }
 
-function $Handoff$current$(advice_0, partition_0, round_0, snapshot_0, credential_0) {
+function $Handoff$current$(advice_0, partition_0, round_0) {
   const __0 = advice_0.id;
   const __1 = advice_0.unit;
   const source_partition_0 = advice_0.partition;
   const source_round_0 = advice_0.round;
   const source_snapshot_0 = advice_0.snapshot;
+  const current_snapshot_0 = advice_0.current_snapshot;
   const source_credential_0 = advice_0.credential;
+  const current_credential_0 = advice_0.current_credential;
   const age_ms_0 = advice_0.age_ms;
   const __2 = advice_0.solo_bytes;
   const ready_0 = advice_0.collection_ready;
   const x_0 = BigInt(600000);
-  return run_jump($Bool$and$, [run_loop($Nat$is_eq$(source_partition_0, partition_0)), run_loop($Bool$and$(run_loop($Nat$is_eq$(source_round_0, round_0)), run_loop($Bool$and$(run_loop($Nat$is_eq$(source_snapshot_0, snapshot_0)), run_loop($Bool$and$(run_loop($Nat$is_eq$(source_credential_0, credential_0)), run_loop($Bool$and$((age_ms_0 < x_0), ready_0))))))))]);
+  return run_jump($Bool$and$, [run_loop($Nat$is_eq$(source_partition_0, partition_0)), run_loop($Bool$and$(run_loop($Nat$is_eq$(source_round_0, round_0)), run_loop($Bool$and$(run_loop($Nat$is_eq$(source_snapshot_0, current_snapshot_0)), run_loop($Bool$and$(run_loop($Nat$is_eq$(source_credential_0, current_credential_0)), run_loop($Bool$and$((age_ms_0 < x_0), ready_0))))))))]);
 }
 
 function $Handoff$contains$(id_0, ids_0) {
@@ -524,10 +703,6 @@ function $Handoff$contains$(id_0, ids_0) {
   }
 }
 
-function $Nat$is_gt$(a_0, b_0) {
-  return run_jump($Cmp$is_gt$, [cmp_new(a_0, b_0)]);
-}
-
 function $Nat$is_le$(a_0, b_0) {
   return run_jump($Cmp$is_le$, [cmp_new(a_0, b_0)]);
 }
@@ -537,14 +712,6 @@ function $Handoff$finish$guard$(state_0, unfinished_0, deadline_0, actionable_fi
     return run_jump($Handoff$finish$pending$, [state_0, unfinished_0, deadline_0, actionable_findings_0, reserved_0]);
   } else {
     return {$: "Allow", ["state"]: state_0};
-  }
-}
-
-function $Bool$not$(b_0) {
-  if (!b_0) {
-    return true;
-  } else {
-    return false;
   }
 }
 
@@ -613,6 +780,26 @@ function $Handoff$lease$reoffer$guard$(state_0, token_0, allowed_0) {
   }
 }
 
+function $Handoff$lease$suppress_phase$(phase_0, requested_0) {
+  if (phase_0.$ === "Available") {
+    return false;
+  } else if (phase_0.$ === "Reserved") {
+    const __0 = phase_0.token;
+    const __1 = phase_0.surface;
+    return true;
+  } else if (phase_0.$ === "Authorized") {
+    const __2 = phase_0.token;
+    const __3 = phase_0.surface;
+    return true;
+  } else if (phase_0.$ === "Submitted") {
+    const surface_0 = phase_0.surface;
+    return run_jump($Handoff$lease$suppress_surface$, [surface_0, requested_0]);
+  } else {
+    const surface_1 = phase_0.surface;
+    return run_jump($Handoff$lease$suppress_surface$, [surface_1, requested_0]);
+  }
+}
+
 function $Admission$apply_event$(state_0, event_0) {
   if (event_0.$ === "Issue") {
     const tool_0 = event_0.tool;
@@ -645,6 +832,26 @@ function $Cmp$is_eq$(c_0) {
     return true;
   } else {
     return false;
+  }
+}
+
+function $Cmp$is_ge$(c_0) {
+  if (c_0.$ === "LT") {
+    return false;
+  } else if (c_0.$ === "EQ") {
+    return true;
+  } else {
+    return true;
+  }
+}
+
+function $Cmp$is_gt$(c_0) {
+  if (c_0.$ === "LT") {
+    return false;
+  } else if (c_0.$ === "EQ") {
+    return false;
+  } else {
+    return true;
   }
 }
 
@@ -756,24 +963,6 @@ function $Work$find_unit$pick$(unit_0, fallback_0, hit_0) {
   }
 }
 
-function $List$length$(xs_0) {
-  if (xs_0.$ === "Nil") {
-    return 0n;
-  } else {
-    const h_0 = xs_0.head;
-    const t_0 = xs_0.tail;
-    return nat_chk(run_loop($List$length$(t_0)) + 1n);
-  }
-}
-
-function $Bool$pick$(c_0, a_0, b_0) {
-  if (!c_0) {
-    return b_0;
-  } else {
-    return a_0;
-  }
-}
-
 function $Work$is_unit_unfinished$(stage_0) {
   if (stage_0.$ === "ReviewQueued") {
     return true;
@@ -787,32 +976,22 @@ function $Work$is_unit_unfinished$(stage_0) {
 function $Handoff$select$current$(state_0, advice_0, prospective_bytes_0, valid_0) {
   const __0 = state_0.partition;
   const __1 = state_0.round;
-  const __2 = state_0.snapshot;
-  const __3 = state_0.credential;
-  const __4 = state_0.selected;
-  const __5 = state_0.retained;
+  const __2 = state_0.selected;
+  const __3 = state_0.retained;
   const count_0 = state_0.findings;
-  const __6 = state_0.bytes;
+  const __4 = state_0.bytes;
   const id_0 = advice_0.id;
-  const __7 = advice_0.unit;
-  const __8 = advice_0.partition;
-  const __9 = advice_0.round;
-  const __10 = advice_0.snapshot;
-  const __11 = advice_0.credential;
+  const __5 = advice_0.unit;
+  const __6 = advice_0.partition;
+  const __7 = advice_0.round;
+  const __8 = advice_0.snapshot;
+  const __9 = advice_0.current_snapshot;
+  const __10 = advice_0.credential;
+  const __11 = advice_0.current_credential;
   const __12 = advice_0.age_ms;
   const solo_bytes_0 = advice_0.solo_bytes;
   const __13 = advice_0.collection_ready;
-  return run_jump($Handoff$select$valid$, [{$: "Selection", ["partition"]: __0, ["round"]: __1, ["snapshot"]: __2, ["credential"]: __3, ["selected"]: __4, ["retained"]: __5, ["findings"]: count_0, ["bytes"]: __6}, id_0, prospective_bytes_0, solo_bytes_0, count_0, valid_0]);
-}
-
-function $Cmp$is_gt$(c_0) {
-  if (c_0.$ === "LT") {
-    return false;
-  } else if (c_0.$ === "EQ") {
-    return false;
-  } else {
-    return true;
-  }
+  return run_jump($Handoff$select$valid$, [{$: "Selection", ["partition"]: __0, ["round"]: __1, ["selected"]: __2, ["retained"]: __3, ["findings"]: count_0, ["bytes"]: __4}, id_0, prospective_bytes_0, solo_bytes_0, count_0, valid_0]);
 }
 
 function $Cmp$is_le$(c_0) {
@@ -880,6 +1059,18 @@ function $Handoff$lease$reoffer$phase$(item_0, round_0, closed_0, reoffered_0, p
     return run_jump($Handoff$lease$reoffer$surface$, [item_0, round_0, closed_0, reoffered_0, surface_1, true, token_0]);
   } else {
     return {$: "Denied", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: phase_0}};
+  }
+}
+
+function $Handoff$lease$suppress_surface$(own_0, requested_0) {
+  if (own_0.$ === "Background") {
+    if (requested_0.$ === "Stop") {
+      return false;
+    } else {
+      return true;
+    }
+  } else {
+    return true;
   }
 }
 
@@ -1032,7 +1223,13 @@ function $Handoff$lease$terminal$match$(item_0, round_0, closed_0, reoffered_0, 
 }
 
 function $Handoff$lease$reoffer$surface$(item_0, round_0, closed_0, reoffered_0, surface_0, uncertain_0, token_0) {
-  if (surface_0.$ === "Background") {
+  if (surface_0.$ === "Edit") {
+    if (uncertain_0) {
+      return {$: "Denied", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: {$: "Uncertain", ["surface"]: {$: "Edit"}}}};
+    } else {
+      return {$: "Denied", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: {$: "Submitted", ["surface"]: {$: "Edit"}}}};
+    }
+  } else if (surface_0.$ === "Background") {
     return {$: "Granted", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: true, ["phase"]: {$: "Reserved", ["token"]: token_0, ["surface"]: {$: "Stop"}}}};
   } else {
     if (uncertain_0) {
@@ -1112,10 +1309,6 @@ function $Admission$restart$fresh$(state_0, partition_0, lifetime_0, closed_at_0
   } else {
     return {$: "Accepted", ["state"]: {$: "AdmissionState", ["partition"]: partition_0, ["lifetime"]: new_lifetime_0, ["round"]: 0n, ["active"]: false, ["closed_at"]: at_0, ["next_token"]: 1n, ["permits"]: {$: "Nil"}, ["used"]: {$: "Nil"}}, ["token"]: {$: "None"}, ["round"]: {$: "None"}};
   }
-}
-
-function $Nat$is_ge$(a_0, b_0) {
-  return run_jump($Cmp$is_ge$, [cmp_new(a_0, b_0)]);
 }
 
 function $Work$prepare$apply$(work_0, observation_0, count_0) {
@@ -1267,16 +1460,6 @@ function $Admission$close_round$time$(state_0, partition_0, lifetime_0, round_0,
   }
 }
 
-function $Cmp$is_ge$(c_0) {
-  if (c_0.$ === "LT") {
-    return false;
-  } else if (c_0.$ === "EQ") {
-    return true;
-  } else {
-    return true;
-  }
-}
-
 function $Work$make_units$(count_0, observation_0, next_id_0) {
   if (count_0 === 0n) {
     return {$: "Nil"};
@@ -1331,28 +1514,24 @@ function $Work$replace_unit$(id_0, replacement_0, units_0) {
 function $Handoff$select$limit$(state_0, id_0) {
   const partition_0 = state_0.partition;
   const round_0 = state_0.round;
-  const snapshot_0 = state_0.snapshot;
-  const credential_0 = state_0.credential;
   const selected_0 = state_0.selected;
   const retained_0 = state_0.retained;
   const count_0 = state_0.findings;
   const bytes_0 = state_0.bytes;
-  return {$: "Limited", ["state"]: {$: "Selection", ["partition"]: partition_0, ["round"]: round_0, ["snapshot"]: snapshot_0, ["credential"]: credential_0, ["selected"]: selected_0, ["retained"]: run_loop($List$append$(retained_0, {$: "Con", ["head"]: id_0, ["tail"]: {$: "Nil"}})), ["findings"]: count_0, ["bytes"]: bytes_0}, ["id"]: id_0};
+  return {$: "Limited", ["state"]: {$: "Selection", ["partition"]: partition_0, ["round"]: round_0, ["selected"]: selected_0, ["retained"]: run_loop($List$append$(retained_0, {$: "Con", ["head"]: id_0, ["tail"]: {$: "Nil"}})), ["findings"]: count_0, ["bytes"]: bytes_0}, ["id"]: id_0};
 }
 
 function $Handoff$select$fit$(state_0, id_0, prospective_bytes_0, fits_0) {
   const partition_0 = state_0.partition;
   const round_0 = state_0.round;
-  const snapshot_0 = state_0.snapshot;
-  const credential_0 = state_0.credential;
   const selected_0 = state_0.selected;
   const retained_0 = state_0.retained;
   const count_0 = state_0.findings;
   const bytes_0 = state_0.bytes;
   if (fits_0) {
-    return {$: "Selected", ["state"]: {$: "Selection", ["partition"]: partition_0, ["round"]: round_0, ["snapshot"]: snapshot_0, ["credential"]: credential_0, ["selected"]: run_loop($List$append$(selected_0, {$: "Con", ["head"]: id_0, ["tail"]: {$: "Nil"}})), ["retained"]: retained_0, ["findings"]: nat_chk(count_0 + 1n), ["bytes"]: prospective_bytes_0}};
+    return {$: "Selected", ["state"]: {$: "Selection", ["partition"]: partition_0, ["round"]: round_0, ["selected"]: run_loop($List$append$(selected_0, {$: "Con", ["head"]: id_0, ["tail"]: {$: "Nil"}})), ["retained"]: retained_0, ["findings"]: nat_chk(count_0 + 1n), ["bytes"]: prospective_bytes_0}};
   } else {
-    return {$: "Retained", ["state"]: {$: "Selection", ["partition"]: partition_0, ["round"]: round_0, ["snapshot"]: snapshot_0, ["credential"]: credential_0, ["selected"]: selected_0, ["retained"]: run_loop($List$append$(retained_0, {$: "Con", ["head"]: id_0, ["tail"]: {$: "Nil"}})), ["findings"]: count_0, ["bytes"]: bytes_0}};
+    return {$: "Retained", ["state"]: {$: "Selection", ["partition"]: partition_0, ["round"]: round_0, ["selected"]: selected_0, ["retained"]: run_loop($List$append$(retained_0, {$: "Con", ["head"]: id_0, ["tail"]: {$: "Nil"}})), ["findings"]: count_0, ["bytes"]: bytes_0}};
   }
 }
 
@@ -1784,12 +1963,20 @@ const normalize = (value) => {
   }
   return value;
 };
-export const bendSelectionInitial = (partition, round, snapshot, credential) =>
-  run_loop($Handoff$initial$(nat(partition), nat(round), nat(snapshot), nat(credential)));
+export const bendSelectionInitial = (partition, round) =>
+  run_loop($Handoff$initial$(nat(partition), nat(round)));
 export const bendSelectionStep = (state, advice, prospectiveBytes) =>
   run_loop($Handoff$select$(state, normalize(advice), nat(prospectiveBytes)));
 export const bendFitsBatch = (items, bytes) =>
   run_loop($Handoff$fits_batch$(nat(items), nat(bytes)));
+export const bendAdmissionInitial = (partition, lifetime) =>
+  run_loop($Admission$initial$(nat(partition), nat(lifetime)));
+export const bendAdmissionStep = (state, partition, lifetime, event) =>
+  run_loop($Admission$step$(state, nat(partition), nat(lifetime), normalize(event)));
+export const bendAdmissionCloseProspective = (state, at) =>
+  run_loop($Admission$close_prospective$(state, nat(at)));
+export const bendWorkFinishWait = (unfinished, deadlineReached, continuationBudget) =>
+  run_loop($Work$finish_wait$(nat(unfinished), deadlineReached, continuationBudget));
 export const bendLeaseInitial = (item, round) =>
   run_loop($Handoff$lease$initial$(nat(item), nat(round)));
 export const bendLeaseReserve = (state, round, token, surface) =>
@@ -1803,3 +1990,23 @@ export const bendLeaseTerminal = (state, round, token, certain) =>
 export const bendLeaseReoffer = (state, round, token, fresh) =>
   run_loop($Handoff$lease$reoffer$(state, nat(round), nat(token), fresh));
 export const bendLeaseClose = (state) => run_loop($Handoff$lease$close$(state));
+export const bendLeaseSuppresses = (state, round, requested) =>
+  run_loop($Handoff$lease$suppresses$(state, nat(round), normalize(requested)));
+export const bendRoundInitial = () => run_loop($Round$initial$());
+export const bendRoundMaxContinuations = () => run_loop($Round$max_continuations$());
+export const bendRoundActive = (state, generation) =>
+  run_loop($Round$active$(state, nat(generation)));
+export const bendRoundBudget = (state) => run_loop($Round$budget$(state));
+export const bendRoundBeginStop = (state, token) =>
+  run_loop($Round$begin_stop$(state, nat(token)));
+export const bendRoundOwnsStop = (state, token) =>
+  run_loop($Round$owns_stop$(state, nat(token)));
+export const bendRoundBeginDecision = (state, token) =>
+  run_loop($Round$begin_decision$(state, nat(token)));
+export const bendRoundConsume = (state) => run_loop($Round$consume$(state));
+export const bendRoundReserveOutput = (state, token) =>
+  run_loop($Round$reserve_output$(state, nat(token)));
+export const bendRoundFinishStop = (state, token, close, at) =>
+  run_loop($Round$finish_stop$(state, nat(token), close, nat(at)));
+export const bendRoundReopen = (state, generation) =>
+  run_loop($Round$reopen$(state, nat(generation)));

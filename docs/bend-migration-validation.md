@@ -1,14 +1,33 @@
 # Bend migration validation
 
 This records source-free local verification for the generated Bend boundaries.
-The production migration is still in progress: admission, work callbacks,
-finish decisions, and delivery leases are not yet routed through the generated
-lifecycle.
+The resident uses generated Bend at admission, round, selection, lease, capacity,
+and finish-wait barriers. The aggregate generated `Lifecycle` reducer is still
+an executable model; asynchronous source and review job tracking remains in the
+resident dispatcher.
 
 ## Current generated boundaries
 
 - `Handoff.bend` decides finding inclusion and the five item / 2 KiB final
-  host output limit. TypeScript measures the exact encoded line.
+  host output limit. TypeScript measures the exact encoded line and passes
+  each advice item's actual work revision, current work generation, credential
+  generations, age, and collection readiness to Bend. An individually
+  oversized finding yields a bounded operational notice while its advice
+  remains resident-owned.
+- `Round.bend` owns the composed turn chain's active generation, exclusive
+  Stop claim, four continuation slots, decision barrier, output reservation,
+  closure fence, and permitted reopen. The resident maps native Stop strings
+  to positive IDs and retains host output details outside the model.
+- `Admission.bend` issues, consumes, releases, and closes source-free pre-edit
+  permits, including a prospective round that closes without a post-edit
+  observation. The native hook clock and exact event identity are checked by
+  TypeScript before passing numeric facts to Bend.
+- `Handoff.bend` validates exclusive finding lease transitions and decides
+  suppression for edit, background, and Stop surfaces. The resident retains
+  opaque finding fingerprints and replays source-free token transitions.
+- `Work.bend` decides whether an owned finish attempt waits from the live count
+  of dispatcher jobs, edit permits, and outstanding output leases. The resident
+  still schedules and settles individual Effect jobs.
 - `Ledger.bend` decides global and partition item and byte reservations,
   resize, and release. TypeScript retains opaque object capabilities and maps
   exact partition strings to unique numeric IDs.
@@ -22,9 +41,16 @@ On 2026-09-27, from this worktree:
 - `npm test` in `packages/agent-flow-bend`: all proof terms checked; the
   generated lifecycle trace passed; Bend matched the sidecar in 113 traces
   with 5,048 accepted generated steps.
+- The focused composed-round and resident-server suite passed: 2 files and
+  68 tests. The new cases cover pre-edit closure, credential rotation at the
+  final output barrier, and live background-writer exclusivity at Stop.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
-  suite reported 63 passing files and 501 passing tests, with one file and
+  suite reported 64 passing files and 550 passing tests, with one file and
   two tests skipped.
+- `npm run conformance:package` passed from a clean local package install on
+  Linux arm64 and Node 24.20.0. The CLI, parser, resident, hook, installation,
+  local update, and one controlled offline review passed. Real-agent and
+  credential lifecycle variants were not requested by that run.
 - A deterministic one-time differential trace compared the Bend backed
   `CapacityLedger` against `master:src/resident/capacity.ts` for 2,000
   reserve, resize, release, replace, clear, and snapshot operations: no
@@ -34,4 +60,6 @@ On 2026-09-27, from this worktree:
   synthetic candidate sets: no differences.
 
 The differential traces used generated IDs, sizes, and finding text. No live
-Jev response or credential was printed or stored.
+Jev response or credential was printed or stored. A primary-worktree ignored
+`.env` exists, but no credential was present in the process environment; this
+validation did not read or source the file or execute a paid Jev call.

@@ -16,7 +16,7 @@ export const PENDING_ADVICE_EXPIRY_MS = 600_000;
 export const MAX_COMBINED_RESPONSE_ITEMS = 5;
 export const MAX_COMBINED_RESPONSE_BYTES = 2 * 1024;
 
-export type OperationalNoticeKind = "capacity" | "backend" | "credential";
+export type OperationalNoticeKind = "capacity" | "backend" | "credential" | "output-limit";
 
 export type OperationalNotice = {
   readonly kind: OperationalNoticeKind;
@@ -70,6 +70,8 @@ const noticeText = (notice: OperationalNotice): string => {
     ? "Operational notice: review capacity was unavailable; some eligible edits were not reviewed."
     : notice.kind === "credential"
       ? "Operational notice: the saved review credential was unavailable; run hapsland --login in a user terminal to unlock or approve native access, then retry. Background hooks never prompt."
+      : notice.kind === "output-limit"
+        ? "Operational notice: a review finding exceeded the host response limit and could not be delivered."
       : "Operational notice: Jev was unavailable; some eligible edits were not reviewed.";
   return notice.suppressedCount === 0
     ? message
@@ -132,24 +134,47 @@ const fitsBendBatch = (items: number, bytes: number): boolean => {
 };
 
 /** The exact host encoding is measured here; Bend owns the inclusion rule. */
+export type FindingSelectionFacts = {
+  readonly partition: number;
+  readonly round: number;
+  readonly unit: number;
+  readonly snapshot: number;
+  readonly currentSnapshot: number;
+  readonly credential: number;
+  readonly currentCredential: number;
+  readonly ageMs: number;
+  readonly collectionReady: boolean;
+};
+
+const previouslyValidated: FindingSelectionFacts = {
+  partition: 1, round: 1, unit: 1, snapshot: 1, currentSnapshot: 1,
+  credential: 1, currentCredential: 1, ageMs: 0, collectionReady: true,
+};
+
 const selectBendFindings = (
   retained: ReadonlyArray<Finding>,
   candidates: ReadonlyArray<Finding>,
   encodedBytes: (findings: ReadonlyArray<Finding>) => number,
+  facts: FindingSelectionFacts = previouslyValidated,
+  onLimited?: (finding: Finding) => void,
 ): ReadonlyArray<Finding> => {
   try {
-    let selection: BendSelection = bendSelectionInitial(1, 1, 1, 1);
+    let selection: BendSelection = bendSelectionInitial(facts.partition, facts.round);
     const staged: Array<Finding> = [];
     const selected: Array<Finding> = [];
     let id = 1;
-    const offer = (finding: Finding): boolean => {
+    const offer = (finding: Finding, validated: boolean): boolean => {
       const prospectiveBytes = encodedBytes([...staged, finding]);
+      const current = validated ? previouslyValidated : facts;
       const advice: BendAdvice = {
-        $: "Advice", id: id++, unit: 1, partition: 1, round: 1,
-        snapshot: 1, credential: 1, age_ms: 0,
-        solo_bytes: encodedBytes([finding]), collection_ready: true,
+        $: "Advice", id: id++, unit: current.unit, partition: facts.partition, round: facts.round,
+        snapshot: current.snapshot, current_snapshot: current.currentSnapshot,
+        credential: current.credential, current_credential: current.currentCredential,
+        age_ms: current.ageMs, solo_bytes: encodedBytes([finding]),
+        collection_ready: current.collectionReady,
       };
       const result = bendSelectionStep(selection, advice, prospectiveBytes);
+      if (result.$ === "Limited" && !validated) onLimited?.(finding);
       if (result.$ !== "Selected") return false;
       if (result.state.$ !== "Selection" || result.state.findings !== BigInt(staged.length + 1) ||
           result.state.bytes !== BigInt(prospectiveBytes)) throw new Error("invalid Bend selection");
@@ -157,8 +182,52 @@ const selectBendFindings = (
       staged.push(finding);
       return true;
     };
-    for (const finding of retained) if (!offer(finding)) return [];
-    for (const finding of candidates) if (offer(finding)) selected.push(finding);
+    for (const finding of retained) if (!offer(finding, true)) return [];
+    for (const finding of candidates) if (offer(finding, false)) selected.push(finding);
+    return selected;
+  } catch {
+    return [];
+  }
+};
+
+/** Final writer barrier: every offered finding carries its own current facts. */
+export const selectFittingCurrentFindingIndices = (
+  offers: ReadonlyArray<{ readonly finding: Finding; readonly facts: FindingSelectionFacts }>,
+  mode: ClaudeOutputMode | "codex",
+  onLimited?: (index: number) => void,
+): ReadonlyArray<number> => {
+  if (offers.length === 0) return [];
+  try {
+    const first = offers[0]!.facts;
+    let state = bendSelectionInitial(first.partition, first.round);
+    const staged: Array<Finding> = [];
+    const selected: Array<number> = [];
+    for (const [index, { finding, facts }] of offers.entries()) {
+      const next = [...staged, finding];
+      const prospectiveBytes = mode === "codex"
+        ? encodedHostOutputBytes(combinedReviewOutput(next, []))
+        : encodedClaudeHostOutputBytes(combinedClaudeOutput(next, [], mode));
+      const soloBytes = mode === "codex"
+        ? encodedHostOutputBytes(combinedReviewOutput([finding], []))
+        : encodedClaudeHostOutputBytes(combinedClaudeOutput([finding], [], mode));
+      const advice: BendAdvice = {
+        $: "Advice", id: index + 1, unit: facts.unit,
+        partition: facts.partition, round: facts.round,
+        snapshot: facts.snapshot, current_snapshot: facts.currentSnapshot,
+        credential: facts.credential, current_credential: facts.currentCredential,
+        age_ms: facts.ageMs, solo_bytes: soloBytes,
+        collection_ready: facts.collectionReady,
+      };
+      const result = bendSelectionStep(state, advice, prospectiveBytes);
+      if (result.$ === "Limited") onLimited?.(index);
+      if (result.$ !== "Selected") continue;
+      if (result.state.$ !== "Selection" ||
+          result.state.findings !== BigInt(staged.length + 1) ||
+          result.state.bytes !== BigInt(prospectiveBytes)) throw new Error("invalid Bend selection");
+      state = result.state;
+      staged.push(finding);
+      selected.push(index);
+    }
     return selected;
   } catch {
     return [];
@@ -176,8 +245,10 @@ export const selectFittingClaudeFindings = (
   retained: ReadonlyArray<Finding>,
   candidates: ReadonlyArray<Finding>,
   mode: ClaudeOutputMode,
+  facts?: FindingSelectionFacts,
+  onLimited?: (finding: Finding) => void,
 ): ReadonlyArray<Finding> => selectBendFindings(retained, candidates,
-  (findings) => encodedClaudeHostOutputBytes(combinedClaudeOutput(findings, [], mode)));
+  (findings) => encodedClaudeHostOutputBytes(combinedClaudeOutput(findings, [], mode)), facts, onLimited);
 
 export const selectFittingClaudeNotices = (
   findings: ReadonlyArray<Finding>,
@@ -205,8 +276,10 @@ export const fitsCombinedResponse = (
 export const selectFittingFindings = (
   retained: ReadonlyArray<Finding>,
   candidates: ReadonlyArray<Finding>,
+  facts?: FindingSelectionFacts,
+  onLimited?: (finding: Finding) => void,
 ): ReadonlyArray<Finding> => selectBendFindings(retained, candidates,
-  (findings) => encodedHostOutputBytes(combinedReviewOutput(findings, [])));
+  (findings) => encodedHostOutputBytes(combinedReviewOutput(findings, [])), facts, onLimited);
 
 /** Findings are passed as already retained so notices can never displace them. */
 export const selectFittingNotices = (

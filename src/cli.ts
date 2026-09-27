@@ -67,12 +67,16 @@ import {
   admitObservation,
   admitTicketedObservation,
   collectOutcome,
+  collectAdviceeOutcome,
   collectReady,
+  beginComposedSubmission,
+  releaseComposedSubmission,
   ensureResident,
   inspectResident,
   makeResidentDispatchContext,
   type CollectedAdvice,
 } from "./resident/client.ts";
+import { runComposedHook, type ComposedHookKind, type ComposedHookHost } from "./resident/composed-hook.ts";
 import {
   installCodexIntegration,
   previewCodexInstallation,
@@ -498,21 +502,29 @@ const runRequest = (
 const isCodexHook = process.argv.includes("--codex-hook");
 const isClaudeHook = process.argv.includes("--claude-hook");
 const isOpenCodeHook = process.argv.includes("--opencode-hook");
+const isComposedEditHook = process.argv.includes("--composed-edit-hook");
+const composedKind: ComposedHookKind | undefined = process.argv.includes("--composed-before-edit-hook")
+  ? "before-edit" : process.argv.includes("--composed-background-hook")
+  ? "background" : process.argv.includes("--composed-stop-hook")
+    ? "stop" : process.argv.includes("--composed-prompt-hook") ? "prompt" : undefined;
+const composedHost: ComposedHookHost = process.argv.includes("--composed-host=claude-code")
+  ? "claude-code" : "codex-cli";
 const directHookStartedAt = performance.now();
-const directHookDeadline = directHookStartedAt + 3_900;
+const directHookDeadline = directHookStartedAt +
+  (isCodexHook && isComposedEditHook ? 9_000 : 3_900);
 const directHookWatchdog = isClaudeHook || isOpenCodeHook
   ? setTimeout(() => process.exit(0), 4_500)
   : undefined;
 let keepDirectHookWatchdog = false;
 
-type ClaudeOutputWriteResult = "written" | "error" | "timed-out";
+type HostOutputWriteResult = "written" | "error" | "timed-out";
 
-const writeClaudeOutputWithinHookBudget = (encoded: string): Promise<ClaudeOutputWriteResult> => {
+const writeHostOutputWithinHookBudget = (encoded: string): Promise<HostOutputWriteResult> => {
   const remaining = directHookDeadline - performance.now();
   if (remaining <= 0) return Promise.resolve("timed-out");
   return new Promise((resolve) => {
     let settled = false;
-    const finish = (result: ClaudeOutputWriteResult, keepErrorListener = false) => {
+    const finish = (result: HostOutputWriteResult, keepErrorListener = false) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
@@ -582,7 +594,10 @@ const runDirectCodexHook = (
         )).pipe(Effect.catch(() => Effect.succeed(undefined)));
     const collected = reply === undefined || dispatch === undefined
       ? undefined
-      : yield* Effect.tryPromise(() => collectReady(reply.root, reply.advicee, dispatch)).pipe(
+      : yield* Effect.tryPromise(async () => {
+          if (isComposedEditHook) return undefined;
+          return collectReady(reply.root, reply.advicee, dispatch);
+        }).pipe(
           Effect.catch(() => Effect.succeed(undefined)),
         );
     // Bash has no path adaptation and can never create backend work.
@@ -612,7 +627,7 @@ const runDirectCodexHook = (
     } else if (!isControlledWriter) {
       recordActivity({ statePath: activityPath, root: observation.root, advicee: observation.advicee, lifetime: owner.value.lifetime, stage: "unavailable" });
     } else {
-      yield* Effect.tryPromise(() => admitObservation(observation, true, dispatch)).pipe(
+      yield* Effect.tryPromise(() => admitObservation(observation, true, dispatch, undefined, isComposedEditHook)).pipe(
         Effect.catch(() => {
           recordActivity({ statePath: activityPath, root: observation.root, advicee: observation.advicee, lifetime: owner.value.lifetime, stage: "unavailable" });
           return Effect.void;
@@ -651,8 +666,12 @@ const runDirectBoundedHook = async (
   ));
   if (dispatch === undefined) return {};
   if (isClaudeHook) {
-    const accepted = await bounded(() => admitTicketedObservation(observation, dispatch));
+    const accepted = await bounded(() => admitTicketedObservation(observation, dispatch, undefined, isComposedEditHook));
     if (accepted?.status !== "accepted") return {};
+    // The composed background hook and Stop own collection. The synchronous
+    // edit hook only admits work so a later repair edit cannot consume its
+    // entire host budget waiting for a clear review.
+    if (isComposedEditHook) return {};
     while (remaining() > 150) {
       const outcome = await bounded(() => collectOutcome(accepted.admission));
       if (outcome === undefined) return {};
@@ -664,8 +683,9 @@ const runDirectBoundedHook = async (
     }
     return {};
   }
-  const accepted = await bounded(() => admitObservation(observation, true, dispatch));
+  const accepted = await bounded(() => admitObservation(observation, true, dispatch, undefined, isComposedEditHook));
   if (accepted?.status !== "accepted") return {};
+  if (isComposedEditHook) return {};
   while (remaining() > 150) {
     const collected = await bounded(() => collectReady(
       observation.root, observation.advicee, dispatch,
@@ -1099,6 +1119,23 @@ const program = Effect.gen(function* () {
     ? userConfigPathOption.value
     : undefined;
 
+  if (composedKind !== undefined) {
+    let event: unknown;
+    try { event = JSON.parse(input); } catch { event = undefined; }
+    const controlled = isControlledReviewer ? yield* controlledOptions : undefined;
+    yield* Effect.promise(() => runComposedHook({
+      kind: composedKind,
+      host: composedHost,
+      event,
+      codexVersion: codexHookVersion,
+      statePath,
+      activityPath,
+      ...(userConfigPath === undefined ? {} : { userConfigPath }),
+      ...(controlled === undefined ? {} : { controlled }),
+    }));
+    return undefined;
+  }
+
   const inputRequestsOperation = /"operation"\s*:\s*"(?:enable|enable-confirm|disable|credentials|status|explain)"/.test(
     input,
   );
@@ -1362,7 +1399,7 @@ const program = Effect.gen(function* () {
     if (direct.handled) return direct.output;
     // The legacy whole-file adapter is evidenced only on the earlier host.
     // A new native event shape on 0.156.0 must stay quiet until attributed.
-    if (codexHookVersion !== "0.155.1") return {};
+    if (codexHookVersion !== "0.155.1" || isComposedEditHook) return {};
     const event = yield* decodeCodexJson(input);
     const request = toReviewRequest(event);
     if (request === undefined) return {};
@@ -1402,7 +1439,7 @@ const program = Effect.gen(function* () {
 }).pipe(
   Effect.catchCause(() =>
     Effect.succeed(
-      isClaudeHook || isOpenCodeHook ? {} : isCodexHook
+      composedKind !== undefined ? undefined : isClaudeHook || isOpenCodeHook ? {} : isCodexHook
         ? {
             systemMessage:
               "Review unavailable: invalid or unsupported Codex PostToolUse input.",
@@ -1721,7 +1758,7 @@ if (process.argv.includes("--help") || process.argv.includes("-h")) {
 const output = isCredentialCommand
   ? await runCredentialCommand()
   : await Effect.runPromise(program);
-if (!isCodexHook && !isClaudeHook && !isOpenCodeHook && typeof output === "object" && output !== null) {
+if (composedKind === undefined && !isCodexHook && !isClaudeHook && !isOpenCodeHook && typeof output === "object" && output !== null) {
   const record = output as Readonly<Record<string, unknown>>;
   process.exitCode = record.status === "unsupported"
     ? 3
@@ -1747,16 +1784,22 @@ if (!isCodexHook && !isClaudeHook && !isOpenCodeHook && typeof output === "objec
           : 0;
 }
 if (isDirectEventReady(output)) {
-  const hostWriteResult = isClaudeHook
-    ? await writeClaudeOutputWithinHookBudget(encodeClaudeHostOutputLine(output.value))
-    : "written";
+  const composedSubmission = isComposedEditHook && output.collected.findingCount > 0;
+  const submissionReady = !composedSubmission ||
+    await beginComposedSubmission(output.collected, "edit").catch(() => false);
+  if (!submissionReady) await releaseComposedSubmission(output.collected).catch(() => false);
+  const hostWriteResult = !submissionReady ? "error"
+    : isClaudeHook || composedSubmission
+      ? await writeHostOutputWithinHookBudget(encodeClaudeHostOutputLine(output.value))
+      : "written";
   if (hostWriteResult === "timed-out") keepDirectHookWatchdog = true;
-  if (!isClaudeHook || hostWriteResult === "written") {
+  if (submissionReady && (!isClaudeHook || hostWriteResult === "written") &&
+      (!composedSubmission || hostWriteResult === "written")) {
     if (!isClaudeHook && isOpenCodeHook) {
       if ("hookSpecificOutput" in output.value) {
         process.stdout.write(output.value.hookSpecificOutput.additionalContext);
       }
-    } else if (!isClaudeHook && "hookSpecificOutput" in output.value) attemptCodexHostOutput(output.value, (encoded) => {
+    } else if (!isClaudeHook && !composedSubmission && "hookSpecificOutput" in output.value) attemptCodexHostOutput(output.value, (encoded) => {
       process.stdout.write(encoded);
     });
     recordDemoTrace(process.env.REVIEW_DEMO_BUDGET_PATH, output.collected.root, output.collected.advicee, {
@@ -1772,9 +1815,11 @@ if (isDirectEventReady(output)) {
       submittedFindings: output.collected.findingCount,
     });
     await acknowledgeAdvice(output.collected);
+  } else if (composedSubmission && hostWriteResult === "error") {
+    await releaseComposedSubmission(output.collected).catch(() => false);
   }
 } else {
-  if (isOpenCodeHook) {
+  if (isOpenCodeHook || composedKind !== undefined) {
     // The plugin treats empty stdout as a quiet skip.
   } else
   if (isCredentialCommand && !process.argv.includes("--json") && !process.argv.includes("--credential-stdin") && process.stdin.isTTY) {

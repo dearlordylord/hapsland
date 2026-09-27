@@ -99,6 +99,12 @@ def unfinished(work: Work) -> Nat:
     case Work{_, _, _, _, observations, units}:
       (unfinished_observations(observations) + unfinished_units(units) : Nat)
 
+# The resident reports live dispatcher and writer counts at the finish barrier.
+# A spent continuation budget cannot hold a native Stop hook open.
+def finish_wait(unfinished: Nat, deadline_reached: Bool, continuation_budget: Bool) -> Bool:
+  Bool.and(continuation_budget,
+    Bool.and(Bool.not(deadline_reached), Nat.is_gt(unfinished, 0n)))
+
 def pending_findings_in(units: List<&2, ReviewUnit>) -> Nat:
   match units:
     case Nil{}:

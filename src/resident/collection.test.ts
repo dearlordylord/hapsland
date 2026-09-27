@@ -17,8 +17,10 @@ import {
   isPendingAdviceExpired,
   selectFittingFindings,
   selectFittingClaudeFindings,
+  selectFittingCurrentFindingIndices,
   selectFittingClaudeNotices,
   selectFittingNotices,
+  type FindingSelectionFacts,
 } from "./collection.ts";
 
 const candidate = (overrides: Partial<{
@@ -88,6 +90,39 @@ describe("resident advice collection policy", () => {
       "Count0", "Count1", "Count2", "Count3", "Count4",
     ]);
     expect(fitsCombinedResponse([selected])).toBe(true);
+  });
+
+  it("uses each candidate's current work and credential generations and reports an individual limit", () => {
+    const facts: FindingSelectionFacts = {
+      partition: 17, round: 3, unit: 8, snapshot: 8, currentSnapshot: 8,
+      credential: 12, currentCredential: 12, ageMs: 42, collectionReady: true,
+    };
+    expect(selectFittingFindings([], [finding(0)], { ...facts, currentSnapshot: 9 })).toEqual([]);
+    expect(selectFittingFindings([], [finding(0)], { ...facts, currentCredential: 13 })).toEqual([]);
+    expect(selectFittingFindings([], [finding(0)], { ...facts, ageMs: PENDING_ADVICE_EXPIRY_MS })).toEqual([]);
+    expect(selectFittingFindings([], [finding(0)], { ...facts, collectionReady: false })).toEqual([]);
+    expect(selectFittingFindings([], [finding(0)], facts)).toEqual([finding(0)]);
+    const limited: Array<Finding> = [];
+    const oversized = finding(1, "x".repeat(MAX_COMBINED_RESPONSE_BYTES));
+    expect(selectFittingFindings([], [oversized, finding(2)], facts,
+      (item) => limited.push(item))).toEqual([finding(2)]);
+    expect(limited).toEqual([oversized]);
+    expect(combinedReviewOutput([], [{ kind: "output-limit", suppressedCount: 0 }])
+      .hookSpecificOutput.additionalContext).toContain("exceeded the host response limit");
+  });
+
+  it("rechecks every retained finding from its own facts at final handoff", () => {
+    const current: FindingSelectionFacts = {
+      partition: 7, round: 2, unit: 2, snapshot: 2, currentSnapshot: 2,
+      credential: 4, currentCredential: 4, ageMs: 10, collectionReady: true,
+    };
+    const offers = [
+      { finding: finding(0), facts: { ...current, snapshot: 1 } },
+      { finding: finding(1), facts: current },
+      { finding: finding(2), facts: { ...current, currentCredential: 5 } },
+    ];
+    expect(selectFittingCurrentFindingIndices(offers, "codex")).toEqual([1]);
+    expect(selectFittingCurrentFindingIndices(offers, "block-current-findings")).toEqual([1]);
   });
 
   it("shares item and byte bounds without allowing notices to displace findings", () => {

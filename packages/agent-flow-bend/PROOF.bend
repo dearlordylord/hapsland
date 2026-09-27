@@ -1,6 +1,33 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.round_begin_stop_claims_single_owner():
+  {==}
+
+def Laws.second_stop_cannot_take_claim():
+  {==}
+
+def Laws.four_continuations_exhaust_budget():
+  {==}
+
+def Laws.finish_closure_fences_late_output():
+  {==}
+
+def Laws.reopening_requires_next_generation():
+  {==}
+
+def Laws.uncertain_background_suppresses_ordinary_collection():
+  {==}
+
+def Laws.uncertain_background_may_reoffer_at_stop():
+  {==}
+
+def Laws.edit_submission_cannot_reoffer_at_stop():
+  {==}
+
+def Laws.unconsumed_prospective_round_can_close():
+  {==}
+
 def Laws.finding_enters_pending_advice(item):
   {==}
 
@@ -55,6 +82,12 @@ def Laws.fanout_keeps_each_review_unfinished():
 def Laws.four_units_count_as_four_unfinished():
   {==}
 
+def Laws.finish_waits_for_all_unfinished_work():
+  {==}
+
+def Laws.finish_deadline_or_budget_ends_wait():
+  {==}
+
 def Laws.lowering_review_capacity_preserves_active_units():
   {==}
 
@@ -91,6 +124,12 @@ def Laws.handoff_retains_oversized_item():
 def Laws.handoff_rejects_stale_generation():
   {==}
 
+def Laws.handoff_rejects_stale_snapshot():
+  {==}
+
+def Laws.handoff_rejects_stale_credential():
+  {==}
+
 def Laws.individually_oversized_finding_has_limitation():
   {==}
 
@@ -122,6 +161,9 @@ def Laws.next_attempt_gets_its_own_deadline():
   {==}
 
 def Laws.live_background_lease_excludes_stop():
+  {==}
+
+def Laws.authorized_background_suppresses_stop():
   {==}
 
 def Laws.failed_provisional_lease_releases_item():

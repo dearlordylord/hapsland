@@ -4,11 +4,12 @@ import Base
 # candidates, each with a distinct finding ID and the same unit ID. The adapter
 # measures exact encoded host lines; Bend decides selection and limitations.
 type Advice is Data:
-  Advice{id: Nat, unit: Nat, partition: Nat, round: Nat, snapshot: Nat,
-    credential: Nat, age_ms: Nat, solo_bytes: Nat, collection_ready: Bool}
+  Advice{id: Nat, unit: Nat, partition: Nat, round: Nat,
+    snapshot: Nat, current_snapshot: Nat, credential: Nat, current_credential: Nat,
+    age_ms: Nat, solo_bytes: Nat, collection_ready: Bool}
 
 type Selection is Data:
-  Selection{partition: Nat, round: Nat, snapshot: Nat, credential: Nat,
+  Selection{partition: Nat, round: Nat,
     selected: List<&2, Nat>, retained: List<&2, Nat>, findings: Nat, bytes: Nat}
 
 type SelectResult is Data:
@@ -18,16 +19,17 @@ type SelectResult is Data:
   Limited{state: Selection, id: Nat}
   Duplicate{state: Selection}
 
-def initial(partition: Nat, round: Nat, snapshot: Nat, credential: Nat) -> Selection:
-  Selection{partition, round, snapshot, credential, Nil{}, Nil{}, 0n, 0n}
+def initial(partition: Nat, round: Nat) -> Selection:
+  Selection{partition, round, Nil{}, Nil{}, 0n, 0n}
 
-def current(advice: Advice, partition: Nat, round: Nat, snapshot: Nat, credential: Nat) -> Bool:
+def current(advice: Advice, partition: Nat, round: Nat) -> Bool:
   match advice:
-    case Advice{_, _, source_partition, source_round, source_snapshot, source_credential, age_ms, _, ready}:
+    case Advice{_, _, source_partition, source_round, source_snapshot, current_snapshot,
+        source_credential, current_credential, age_ms, _, ready}:
       Bool.and(Nat.is_eq(source_partition, partition),
         Bool.and(Nat.is_eq(source_round, round),
-        Bool.and(Nat.is_eq(source_snapshot, snapshot),
-        Bool.and(Nat.is_eq(source_credential, credential),
+        Bool.and(Nat.is_eq(source_snapshot, current_snapshot),
+        Bool.and(Nat.is_eq(source_credential, current_credential),
         Bool.and(Nat.is_lt(age_ms, 600000n), ready)))))
 
 def fits_batch(+items: Nat, bytes: Nat) -> Bool:
@@ -36,20 +38,20 @@ def fits_batch(+items: Nat, bytes: Nat) -> Bool:
 
 def select.fit(state: Selection, id: Nat, prospective_bytes: Nat, fits: Bool) -> SelectResult:
   match state:
-    case Selection{partition, round, snapshot, credential, selected, retained, count, bytes}:
+    case Selection{partition, round, selected, retained, count, bytes}:
       match fits:
         case True{}:
-          Selected{Selection{partition, round, snapshot, credential,
+          Selected{Selection{partition, round,
             List.append(&2, Nat, selected, id <> Nil{}), retained,
             (count + 1n : Nat), prospective_bytes}}
         case False{}:
-          Retained{Selection{partition, round, snapshot, credential, selected,
+          Retained{Selection{partition, round, selected,
             List.append(&2, Nat, retained, id <> Nil{}), count, bytes}}
 
 def select.limit(state: Selection, +id: Nat) -> SelectResult:
   match state:
-    case Selection{partition, round, snapshot, credential, selected, retained, count, bytes}:
-      Limited{Selection{partition, round, snapshot, credential, selected,
+    case Selection{partition, round, selected, retained, count, bytes}:
+      Limited{Selection{partition, round, selected,
         List.append(&2, Nat, retained, id <> Nil{}), count, bytes}, id}
 
 def select.solo(state: Selection, id: Nat, +prospective_bytes: Nat,
@@ -71,9 +73,9 @@ def select.valid(state: Selection, id: Nat, prospective_bytes: Nat, solo_bytes: 
 
 def select.current(+state: Selection, advice: Advice, prospective_bytes: Nat, valid: Bool) -> SelectResult:
   match state:
-    case Selection{_, _, _, _, _, _, count, _}:
+    case Selection{_, _, _, _, count, _}:
       match advice:
-        case Advice{id, _, _, _, _, _, _, solo_bytes, _}:
+        case Advice{id, _, _, _, _, _, _, _, _, solo_bytes, _}:
           select.valid(state, id, prospective_bytes, solo_bytes, count, valid)
 
 def contains(+id: Nat, ids: List<&2, Nat>) -> Bool:
@@ -93,11 +95,11 @@ def select.duplicate(state: Selection, advice: Advice, prospective_bytes: Nat,
 
 def select(+state: Selection, +advice: Advice, prospective_bytes: Nat) -> SelectResult:
   match state:
-    case Selection{partition, round, snapshot, credential, selected, retained, _, _}:
+    case Selection{partition, round, selected, retained, _, _}:
       match advice:
-        case Advice{id, _, _, _, _, _, _, _, _}:
+        case Advice{id, _, _, _, _, _, _, _, _, _, _}:
           select.duplicate(state, advice, prospective_bytes,
-            current(advice, partition, round, snapshot, credential),
+            current(advice, partition, round),
             Bool.or(contains(id, selected), contains(id, retained)))
 
 # A notice may be delivered alongside findings but cannot authorize a Stop
@@ -220,6 +222,7 @@ def main() -> FinishResult:
 # terminated without a reliable acknowledgement; it consumes the original
 # slot. A reoffer can be granted once at Stop after fresh validation.
 type Surface is Data:
+  Edit{}
   Background{}
   Stop{}
 
@@ -363,6 +366,12 @@ def lease.terminal(+state: Lease, round: Nat, token: Nat, certain: Bool) -> Leas
 def lease.reoffer.surface(item: Nat, round: Nat, closed: Bool, reoffered: Bool,
     surface: Surface, uncertain: Bool, token: Nat) -> LeaseResult:
   match surface:
+    case Edit{}:
+      match uncertain:
+        case True{}:
+          Denied{Lease{item, round, closed, reoffered, Uncertain{surface}}}
+        case False{}:
+          Denied{Lease{item, round, closed, reoffered, Submitted{surface}}}
     case Background{}:
       Granted{Lease{item, round, closed, True{}, Reserved{token, Stop{}}}}
     case Stop{}:
@@ -402,3 +411,33 @@ def lease.close(state: Lease) -> Lease:
   match state:
     case Lease{item, round, _, reoffered, phase}:
       Lease{item, round, True{}, reoffered, phase}
+
+def lease.suppress_surface(own: Surface, requested: Surface) -> Bool:
+  match own:
+    case Background{}:
+      match requested:
+        case Stop{}:
+          False{}
+        case _:
+          True{}
+    case _:
+      True{}
+
+def lease.suppress_phase(phase: LeasePhase, requested: Surface) -> Bool:
+  match phase:
+    case Available{}:
+      False{}
+    case Reserved{_, _}:
+      True{}
+    case Authorized{_, _}:
+      True{}
+    case Submitted{surface}:
+      lease.suppress_surface(surface, requested)
+    case Uncertain{surface}:
+      lease.suppress_surface(surface, requested)
+
+def lease.suppresses(state: Lease, round: Nat, requested: Surface) -> Bool:
+  match state:
+    case Lease{_, owner, closed, _, phase}:
+      Bool.and(Nat.is_eq(owner, round),
+        Bool.and(Bool.not(closed), lease.suppress_phase(phase, requested)))

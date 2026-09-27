@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 const root = resolve(import.meta.dirname, "..");
 const packageRoot = resolve(root, "packages/agent-flow-bend");
 for (const [artifact, sources] of [
-  ["bend-policy.generated.js", ["Handoff.bend", "PolicyRuntime.bend", "scripts/build-policy.mjs"]],
+  ["bend-policy.generated.js", ["Admission.bend", "Work.bend", "Handoff.bend", "Round.bend", "PolicyRuntime.bend", "scripts/build-policy.mjs"]],
   ["bend-ledger.generated.js", ["Ledger.bend", "LedgerRuntime.bend", "scripts/build-ledger.mjs"]],
 ]) {
   const digest = createHash("sha256");

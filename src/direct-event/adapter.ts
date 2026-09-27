@@ -233,6 +233,41 @@ export const adaptCodexReply = Effect.fn("DirectEvent.adaptCodexReply")(function
   });
 });
 
+/** Identity-only mapping for composed background, Stop, and prompt hooks. */
+export const adaptComposedHookIdentity = Effect.fn("DirectEvent.adaptComposedHookIdentity")(function* (
+  value: unknown,
+  host: "codex-cli" | "claude-code",
+  eventName: "PreToolUse" | "PostToolUse" | "Stop" | "SubagentStop" | "UserPromptSubmit",
+  codexVersion: CodexHostVersion = "0.155.1",
+) {
+  const event = record(value);
+  if (event?.hook_event_name !== eventName || !nonEmpty(event.session_id) ||
+      !nonEmpty(event.cwd) ||
+      (event.agent_id !== undefined && !nonEmpty(event.agent_id))) return undefined;
+  if (eventName === "SubagentStop" && !nonEmpty(event.agent_id)) return undefined;
+  if (eventName === "PostToolUse" || eventName === "PreToolUse") {
+    if (!nonEmpty(event.tool_use_id)) return undefined;
+    if (host === "codex-cli" && event.tool_name !== "apply_patch") return undefined;
+    if (host === "claude-code" && event.tool_name !== "Edit" && event.tool_name !== "Write") return undefined;
+  }
+  const root = yield* canonicalGitRoot(event.cwd);
+  if (root._tag === "None") return undefined;
+  const advicee: DirectAdvicee = host === "codex-cli"
+    ? {
+        host, hostVersion: codexVersion, sessionId: event.session_id,
+        turnId: nonEmpty(event.turn_id) ? event.turn_id : "delivery-opportunity",
+        toolUseId: nonEmpty(event.tool_use_id) ? event.tool_use_id : "delivery-opportunity",
+        subagentId: event.agent_id ?? null,
+      }
+    : {
+        host, hostVersion: "2.1.218", sessionId: event.session_id,
+        turnId: null,
+        toolUseId: nonEmpty(event.tool_use_id) ? event.tool_use_id : "delivery-opportunity",
+        subagentId: event.agent_id ?? null,
+      };
+  return Object.freeze({ root: root.value.root, advicee: Object.freeze(advicee) });
+});
+
 /** Compatibility name retained for callers introduced by the Add-only slice. */
 export const adaptCodexAdd = adaptCodexDirectEvent;
 
@@ -244,13 +279,14 @@ const changedWholeLines = (before: string, after: string): ReadonlyArray<string>
 const boundedSource = (value: unknown): value is string =>
   typeof value === "string" && Buffer.byteLength(value, "utf8") <= MAX_SOURCE_BYTES;
 
-/** Claude 2.1.218 has no turn or agent ID. A tool call is its entire advice lifetime. */
+/** Claude has no observed turn ID; preserve supplied child identity. */
 export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEvent")(function* (value: unknown) {
   const event = record(value);
   if (event?.hook_event_name !== "PostToolUse" ||
     (event.tool_name !== "Edit" && event.tool_name !== "Write") ||
     !nonEmpty(event.session_id) || !nonEmpty(event.tool_use_id) || !nonEmpty(event.cwd) ||
-    event.turn_id !== undefined || event.agent_id !== undefined) return undefined;
+    event.turn_id !== undefined ||
+    (event.agent_id !== undefined && !nonEmpty(event.agent_id))) return undefined;
   const input = record(event.tool_input);
   const response = record(event.tool_response);
   if (input === undefined || response === undefined ||
@@ -312,7 +348,8 @@ export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEv
     rootIdentity: root.value.rootIdentity,
     advicee: Object.freeze({
       host: "claude-code", hostVersion: "2.1.218",
-      sessionId: event.session_id, turnId: null, toolUseId: event.tool_use_id, subagentId: null,
+      sessionId: event.session_id, turnId: null, toolUseId: event.tool_use_id,
+      subagentId: event.agent_id ?? null,
     } satisfies DirectAdvicee),
     candidates: Object.freeze([Object.freeze({ ...candidate, path: relativePath })]),
   } satisfies DirectObservation);

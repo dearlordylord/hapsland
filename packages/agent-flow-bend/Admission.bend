@@ -225,6 +225,18 @@ def close_round(+state: AdmissionState, at: Nat) -> AdmissionResult:
     case AdmissionState{partition, lifetime, round, active, closed_at, next_token, _, used}:
       close_round.active(state, partition, lifetime, round, active, closed_at, next_token, used, at)
 
+# A valid pre-edit permit may open a prospective round before the post-edit
+# observation arrives. Stop can close that round if the observation never does.
+def close_prospective(+state: AdmissionState, +at: Nat) -> AdmissionResult:
+  match state:
+    case AdmissionState{partition, lifetime, +round, active, closed_at, next_token, permits, used}:
+      Bool.pick(AdmissionResult,
+        Bool.and(Bool.not(active), Bool.and(Nat.is_ge(at, closed_at),
+          Nat.is_gt(List.length(&2, Permit, permits), 0n))),
+        Accepted{AdmissionState{partition, lifetime, (round + 1n : Nat), False{}, at,
+          next_token, Nil{}, used}, None{}, Some{(round + 1n : Nat)}},
+        Rejected{state, RoundAlreadyClosed{}})
+
 def restart.fresh(state: AdmissionState, partition: Nat, lifetime: Nat, closed_at: Nat, new_lifetime: Nat, at: Nat, valid: Bool) -> AdmissionResult:
   match valid:
     case False{}:

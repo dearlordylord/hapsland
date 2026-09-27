@@ -1,3 +1,5 @@
+import { recordRoundClosure, type RoundCloseReason } from "../activity/status.ts";
+import { monotonicNow } from "./hook-clock.ts";
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
@@ -54,6 +56,8 @@ import {
   type CapacityReservation,
 } from "./capacity.ts";
 import { DispatchCycles } from "./dispatch.ts";
+import { ComposedDelivery } from "./composed-delivery.ts";
+import { bendWorkFinishWait } from "./bend-policy.generated.js";
 import {
   collectionOrder,
   combinedClaudeOutput,
@@ -61,11 +65,13 @@ import {
   isCollectionEligible,
   isPendingAdviceExpired,
   selectFittingFindings,
+  selectFittingCurrentFindingIndices,
   selectFittingClaudeFindings,
   selectFittingClaudeNotices,
   selectFittingNotices,
   type ClaudeOutputMode,
   type CollectionMode,
+  type FindingSelectionFacts,
   type OperationalNotice,
   type OperationalNoticeKind,
 } from "./collection.ts";
@@ -132,7 +138,20 @@ const ResidentControlledOptions = Schema.Struct({
   syntheticR6BrandedRepair: Schema.optionalKey(Schema.Literals(["control", "finding"])),
 });
 
+type WorkCohort = { readonly id: string; readonly controller: AbortController };
+type RoundWork = {
+  readonly group: string;
+  readonly generation: number;
+  readonly controller: AbortController;
+  readonly partitions: Set<string>;
+  work: WorkCohort;
+  readonly discarded: { queued: number; running: number };
+};
+
 type IngressJob = {
+  readonly round?: RoundWork;
+  readonly work?: WorkCohort;
+  completed?: boolean;
   readonly kind: "ingress";
   readonly observation: DirectObservation;
   readonly partition: string;
@@ -180,6 +199,9 @@ const TICKET_RETENTION_MS = 600_000;
 const MAX_TICKETS = 256;
 
 type UnitJob = {
+  readonly round?: RoundWork;
+  readonly work?: WorkCohort;
+  completed?: boolean;
   readonly kind: "unit";
   readonly observation: DirectObservation;
   readonly partition: string;
@@ -195,13 +217,16 @@ type UnitJob = {
 
 type Job = IngressJob | UnitJob;
 
-type Advice = Omit<UnitJob, "dispatch" | "kind"> & {
+type Advice = Omit<UnitJob, "dispatch" | "kind" | "work" | "completed"> & {
   readonly id: string;
   evaluations: ReadonlyArray<EvaluatedUnit>;
   findings: ReadonlyArray<Finding>;
   readonly cycle: number;
   readonly sequence: number;
   readonly credentialGeneration: number | null;
+  readonly credentialStatePath: string | null;
+  readonly credentialRequired: boolean;
+  readonly credentialEnvironmentOnly: boolean;
   readonly pendingAt: number;
   cycleComplete: boolean;
   collectionEligible: boolean;
@@ -231,6 +256,7 @@ type PendingNotice = {
 
 type NoticeCooldown = {
   readonly partition: string;
+  readonly deliveryGroup: string;
   readonly reservation: CapacityReservation;
   nextAllowedAt: number;
   suppressedCount: number;
@@ -295,6 +321,15 @@ const adviceePartition = (root: string, advicee: DirectAdvicee) => canonicalValu
   sessionId: advicee.sessionId,
   subagentId: advicee.subagentId,
   ...(advicee.host !== "codex-cli" ? { toolUseId: advicee.toolUseId } : {}),
+});
+
+/** Delivery opportunities span a host session's attributed edits, not tool calls. */
+const adviceeGroup = (root: string, advicee: DirectAdvicee) => canonicalValue({
+  root,
+  host: advicee.host,
+  hostVersion: advicee.hostVersion,
+  sessionId: advicee.sessionId,
+  subagentId: advicee.subagentId,
 });
 
 const workSubject = (partition: string, prepared: PreparedUnit): string => canonicalValue({
@@ -435,12 +470,18 @@ export class ResidentServer {
   readonly #noticeCooldowns = new Map<string, NoticeCooldown>();
   readonly #noticeOwners = new Map<string, Set<string>>();
   readonly #currentWork = new Map<string, CurrentWork>();
+  readonly #bendPartitions = new Map<string, number>();
+  #nextBendPartition = 1;
   readonly #tickets = new Map<string, TicketRecord>();
   readonly #joinedTicketUnits = new Map<string, Array<TicketUnit>>();
   #nextAdmissionGeneration = 1;
   readonly #ledger = new CapacityLedger();
   readonly #reuse: EvaluationReuse<UnitJob>;
   readonly #dispatcher: DispatchCycles<string, Job>;
+  readonly #roundActivity = new Map<string, { root: string; advicee: DirectAdvicee; activityPath: string | undefined }>();
+  readonly #stopTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  readonly #rounds = new Map<string, RoundWork>();
+  readonly #composedDelivery = new ComposedDelivery();
   readonly #now: () => number;
   readonly #maximumOperationalNoticeKeys: number;
   readonly #maximumTickets: number;
@@ -588,14 +629,30 @@ export class ResidentServer {
     return "cleaned";
   }
 
-  admit(observation: DirectObservation, dispatch: ResidentDispatchContext, ticketed = false): ResidentResponse {
+  admit(observation: DirectObservation, dispatch: ResidentDispatchContext, ticketed = false, composed = false, requirePermit = false): ResidentResponse {
     const now = this.#now();
     this.#expirePending(now);
     // Reclaim cooldown state whose active guarantee and pending notice have
     // both ended before it can cause an otherwise-valid admission to fail.
     this.#pruneNoticeCooldowns(now);
     if (this.#lifecycle !== "active") return ticketed ? { version: 2, status: "rejected-capacity" } : { status: "rejected-capacity" };
-    const partition = adviceePartition(observation.root, observation.advicee);
+    const group = adviceeGroup(observation.root, observation.advicee);
+    const generation = composed ? this.#composedDelivery.admitEdit(group,
+      observation.advicee.toolUseId, monotonicNow(), requirePermit) : undefined;
+    if (composed && generation === undefined) {
+      recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee,
+        lifetime: this.lifetime, stage: "incomplete" });
+      return ticketed ? { version: 2, status: "rejected-stale" } : { status: "rejected-stale" };
+    }
+    let round = composed ? this.#rounds.get(group) : undefined;
+    if (generation !== undefined && round?.generation !== generation) {
+      round = { group, generation, controller: new AbortController(), partitions: new Set(), work: { id: randomUUID(), controller: new AbortController() }, discarded: { queued: 0, running: 0 } };
+      this.#rounds.set(group, round);
+    }
+    const partition = adviceePartition(observation.root, observation.advicee) +
+      (generation === undefined ? "" : `\0round:${generation}`);
+    round?.partitions.add(partition);
+    if (round !== undefined) this.#roundActivity.set(group, { root: observation.root, advicee: observation.advicee, activityPath: dispatch.activityPath });
     const reservation = this.#reserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES);
     if (reservation === undefined) {
       this.#rejectedCapacity += 1;
@@ -615,6 +672,7 @@ export class ResidentServer {
     } : undefined;
     const job = {
       kind: "ingress" as const,
+      ...(round === undefined ? {} : { round, work: round.work }),
       observation,
       partition,
       reservation,
@@ -663,6 +721,14 @@ export class ResidentServer {
     advicee: DirectAdvicee,
     dispatch: ResidentDispatchContext,
     mode: CollectionMode,
+    ticket: undefined,
+    composed: true,
+  ): Promise<Exclude<ResidentResponse, { readonly version: 2 }>>;
+  collect(
+    root: string,
+    advicee: DirectAdvicee,
+    dispatch: ResidentDispatchContext,
+    mode: CollectionMode,
     ticket: TicketRecord,
   ): Promise<ResidentResponse>;
   async collect(
@@ -671,22 +737,34 @@ export class ResidentServer {
     dispatch: ResidentDispatchContext,
     mode: CollectionMode = "ordinary",
     ticket?: TicketRecord,
+    composed = false,
   ): Promise<ResidentResponse> {
-    const partition = adviceePartition(root, advicee);
+    const partition = composed ? adviceeGroup(root, advicee) : adviceePartition(root, advicee);
     const now = this.#now();
+    if (composed && mode !== "turn-end" && this.#composedDelivery.isDeciding(partition)) return { status: "empty" };
+    const stopCollector = composed && mode === "turn-end" && this.#composedDelivery.isDeciding(partition);
     this.#expirePending(now);
     this.#pruneNoticeCooldowns(now);
     const credentialGeneration = dispatch.credential?.generation ?? null;
     for (const item of [...this.#advice]) {
-      if (item.partition === partition && item.credentialGeneration !== credentialGeneration) {
+      if ((composed ? adviceeGroup(item.observation.root, item.observation.advicee) === partition
+        : item.partition === partition) && item.credentialGeneration !== credentialGeneration) {
         this.#removeAdvice(item.id);
       }
     }
+    // Stop can reoffer only after the background writer has reached a terminal
+    // submitted or uncertain state; a live authorized writer remains exclusive.
     for (const item of this.#advice) {
-      if (item.delivery !== undefined && item.delivery.leaseUntil <= now) delete item.delivery;
+      if (item.delivery !== undefined && (item.delivery.leaseUntil <= now ||
+          (stopCollector &&
+            adviceeGroup(item.observation.root, item.observation.advicee) === partition &&
+            this.#composedDelivery.backgroundReofferable(item.id, item.delivery.token)))) delete item.delivery;
     }
     const available = this.#advice.filter((item) =>
-      item.partition === partition && item.delivery === undefined &&
+      (composed ? adviceeGroup(item.observation.root, item.observation.advicee) === partition
+        : item.partition === partition) && item.delivery === undefined &&
+      item.findings.some((finding) => !this.#composedDelivery.suppresses(
+        item.id, adviceeGroup(item.observation.root, item.observation.advicee), finding, stopCollector ? "stop" : undefined)) &&
       (ticket === undefined || ticket.units.some((unit) => unit.current.state === "finding" && unit.current.adviceId === item.id)));
     const cycles = new Map<number, Array<Advice>>();
     for (const item of available) {
@@ -707,18 +785,24 @@ export class ResidentServer {
       .sort(collectionOrder)
       .map((item) => item.id);
     const token = randomUUID();
-    const fittingFindings = (retained: ReadonlyArray<Finding>, candidates: ReadonlyArray<Finding>) =>
-      ticket === undefined ? selectFittingFindings(retained, candidates)
-        : selectFittingClaudeFindings(retained, candidates, ticket.claudeFeedbackMode);
+    const fittingFindings = (
+      retained: ReadonlyArray<Finding>, candidates: ReadonlyArray<Finding>,
+      advice: Advice, reportLimit: boolean,
+    ) => {
+      const facts = this.#findingSelectionFacts(advice, partition, credentialGeneration, this.#now(), composed);
+      const onLimited = reportLimit
+        ? () => this.#recordOperationalFailure(advice.observation, "output-limit", advice.ticket)
+        : undefined;
+      return ticket === undefined
+        ? selectFittingFindings(retained, candidates, facts, onLimited)
+        : selectFittingClaudeFindings(retained, candidates, ticket.claudeFeedbackMode, facts, onLimited);
+    };
     let handoffFindings: Array<Finding> = [];
     const selected: Array<Advice> = [];
     let selectedFindings: Array<Finding> = [];
     for (const id of eligible) {
       const advice = this.#advice.find((item) => item.id === id && item.delivery === undefined);
       if (advice === undefined) continue;
-      // Scan past individual over-budget findings so one large item cannot
-      // starve later bounded advice from the same or a later unit.
-      if (fittingFindings(selectedFindings, advice.findings).length === 0) continue;
       advice.delivery = {
         token,
         findings: [],
@@ -744,7 +828,9 @@ export class ResidentServer {
         this.#removeAdvice(advice.id, token);
         continue;
       }
-      const fitting = fittingFindings(selectedFindings, advice.findings);
+      const fitting = fittingFindings(selectedFindings, advice.findings.filter((finding) =>
+        !this.#composedDelivery.suppresses(advice.id,
+          adviceeGroup(advice.observation.root, advice.observation.advicee), finding, stopCollector ? "stop" : undefined)), advice, true);
       if (fitting.length === 0) {
         delete advice.delivery;
         continue;
@@ -776,7 +862,9 @@ export class ResidentServer {
           this.#removeAdvice(advice.id, token);
           continue;
         }
-        const fitting = fittingFindings(finalFindings, advice.findings);
+        const fitting = fittingFindings(finalFindings, advice.findings.filter((finding) =>
+          !this.#composedDelivery.suppresses(advice.id,
+            adviceeGroup(advice.observation.root, advice.observation.advicee), finding, stopCollector ? "stop" : undefined)), advice, true);
         if (fitting.length === 0) {
           delete advice.delivery;
           continue;
@@ -797,6 +885,18 @@ export class ResidentServer {
           const retained = this.#advice.find((item) => item.id === advice.id);
           const delivery = retained?.delivery;
           if (retained !== advice || delivery?.token !== token) continue;
+          if (advice.credentialGeneration !== credentialGeneration) {
+            this.#removeAdvice(advice.id, token);
+            continue;
+          }
+          if (dispatch.credential !== null) {
+            const credentialState = readCredentialState(dispatch.credential.statePath);
+            if (credentialState === undefined || credentialState.generation !== credentialGeneration ||
+                (!dispatch.credential.environmentOnly && credentialState.savedUseSuspended)) {
+              delete advice.delivery;
+              continue;
+            }
+          }
           if (isPendingAdviceExpired(advice, handoffNow)) {
             this.#removeAdvice(advice.id, token);
             continue;
@@ -812,11 +912,27 @@ export class ResidentServer {
           delivery.leaseUntil = handoffNow + DELIVERY_LEASE_MS;
           handoff.push(advice);
         }
+        const offers = handoff.flatMap((advice) => (advice.delivery?.findings ?? []).map((finding) => ({
+          advice,
+          finding,
+          facts: this.#findingSelectionFacts(advice, partition, credentialGeneration, handoffNow, composed),
+        })));
+        const accepted = new Set(selectFittingCurrentFindingIndices(offers,
+          ticket === undefined ? "codex" : ticket.claudeFeedbackMode,
+          (index) => this.#recordOperationalFailure(offers[index]!.advice.observation,
+            "output-limit", offers[index]!.advice.ticket, handoffNow)));
+        let index = 0;
+        for (const advice of handoff) {
+          const delivery = advice.delivery;
+          if (delivery === undefined) continue;
+          delivery.findings = delivery.findings.filter(() => accepted.has(index++));
+          if (delivery.findings.length === 0) delete advice.delivery;
+        }
         handoffFindings = handoff.flatMap((advice) => advice.delivery?.findings ?? []);
       }
     }
     const handoffNow = this.#now();
-    const notices = this.#leaseNotices(partition, token, handoffFindings, handoffNow, ticket);
+    const notices = this.#leaseNotices(partition, token, handoffFindings, handoffNow, ticket, composed);
     if (handoffFindings.length === 0 && notices.length === 0) return { status: "empty" };
     return ticket === undefined
       ? { status: "advice", token, findingCount: handoffFindings.length,
@@ -840,6 +956,7 @@ export class ResidentServer {
       for (const item of notices) delete item.delivery;
       return { status: "empty" };
     }
+    if (!this.#composedDelivery.markSubmitted(token)) return { status: "empty" };
     for (const item of advice) {
       if (item.delivery !== undefined) item.delivery.acknowledged = true;
     }
@@ -870,7 +987,12 @@ export class ResidentServer {
       for (const item of notices) delete item.delivery;
       return { status: "empty" };
     }
+    const composed = this.#composedDelivery.hasToken(token);
     for (const item of advice) {
+      if (composed) {
+        delete item.delivery;
+        continue;
+      }
       const delivered = item.delivery?.findings ?? [];
       const remaining = withoutDeliveredFindings(item.findings, delivered);
       if (remaining.length === 0) {
@@ -902,6 +1024,62 @@ export class ResidentServer {
     for (const notice of this.#noticesForToken(token)) {
       if (notice.delivery?.token === token && !notice.delivery.acknowledged) delete notice.delivery;
     }
+  }
+
+  beginComposedSubmission(token: string, surface: "edit" | "background" | "stop"): ResidentResponse {
+    const now = this.#now();
+    this.#expirePending(now);
+    const finishPermit = surface === "stop" && this.#composedDelivery.hasFinishPermit(token);
+    if (this.#composedDelivery.hasToken(token) && !finishPermit) return { status: "empty" };
+    const advice = this.#advice.filter((item) =>
+      item.delivery?.token === token && item.delivery.leaseUntil > now &&
+      item.delivery.findings.length > 0);
+    if (advice.length === 0 || advice.some((item) => !this.#roundActive(item.round) ||
+        !this.#composedDelivery.canSubmit(adviceeGroup(item.observation.root, item.observation.advicee), surface) ||
+        !this.#isCurrentWork(item.revision, item.prepared) ||
+        !this.#adviceCredentialAuthority(item))) {
+      this.releaseComposedSubmission(token);
+      return { status: "empty" };
+    }
+    if (surface === "stop") {
+      const group = adviceeGroup(advice[0]!.observation.root, advice[0]!.observation.advicee);
+      if (!this.#composedDelivery.authorizeFinishOutput(group, token)) return { status: "empty" };
+    }
+    for (const item of advice) {
+      if (finishPermit) continue;
+      if (!this.#composedDelivery.beginSubmission(
+        item.id, adviceeGroup(item.observation.root, item.observation.advicee),
+        token, item.delivery?.findings ?? [], surface, now,
+      )) {
+        this.releaseComposedSubmission(token);
+        return { status: "empty" };
+      }
+    }
+    return { status: "submitting" };
+  }
+
+  releaseComposedSubmission(token: string): ResidentResponse {
+    this.#composedDelivery.release(token);
+    this.releaseDelivery(token);
+    return { status: "released" };
+  }
+
+  #collectionWorkCount(root: string, advicee: DirectAdvicee, composed = false): number {
+    const partition = composed ? adviceeGroup(root, advicee) : adviceePartition(root, advicee);
+    const jobs = this.#dispatcher.snapshotWhere(({ key, value }) => composed
+      ? adviceeGroup(value.observation.root, value.observation.advicee) === partition && !value.completed && this.#jobActive(value)
+      : key === partition);
+    return Number(composed && this.#composedDelivery.hasPendingEdits(partition)) +
+      jobs.queued + jobs.running +
+      this.#advice.filter((item) =>
+        (composed ? adviceeGroup(item.observation.root, item.observation.advicee) === partition
+          : item.partition === partition) && item.delivery !== undefined).length +
+      [...this.#noticeCooldowns.values()].filter((notice) =>
+        (composed ? notice.deliveryGroup === partition : notice.partition === partition) && notice.pending?.delivery !== undefined).length;
+  }
+
+  #collectionWorkState(root: string, advicee: DirectAdvicee, composed = false): { readonly status: "pending" | "empty" } {
+    return { status: this.#collectionWorkCount(root, advicee, composed) > 0 ? "pending" : "empty" };
   }
 
   whenIdle(): Promise<void> {
@@ -1005,10 +1183,11 @@ export class ResidentServer {
     findings: ReadonlyArray<Finding>,
     now: number,
     ticket?: TicketRecord,
+    composed = false,
   ): ReadonlyArray<PendingNotice> {
     const candidates = [...this.#noticeCooldowns.values()]
       .filter((cooldown) =>
-        cooldown.partition === partition &&
+        (composed ? cooldown.deliveryGroup === partition : cooldown.partition === partition) &&
         cooldown.pending !== undefined &&
         cooldown.pending.delivery === undefined &&
         (ticket === undefined || this.#noticeOwners.get(cooldown.pending.id)?.has(ticket.ticket.nonce) === true))
@@ -1113,6 +1292,7 @@ export class ResidentServer {
     if (reservation === undefined) return;
     this.#noticeCooldowns.set(key, {
       partition,
+      deliveryGroup: adviceeGroup(observation.root, observation.advicee),
       reservation,
       nextAllowedAt: now + OPERATIONAL_NOTICE_COOLDOWN_MS,
       suppressedCount: 0,
@@ -1137,6 +1317,30 @@ export class ResidentServer {
 
   #subject(partition: string, prepared: PreparedUnit): string {
     return workSubject(partition, prepared);
+  }
+
+  #findingSelectionFacts(
+    advice: Advice, partition: string, credentialGeneration: number | null,
+    now: number, composed: boolean,
+  ): FindingSelectionFacts {
+    let partitionId = this.#bendPartitions.get(partition);
+    if (partitionId === undefined) {
+      partitionId = this.#nextBendPartition++;
+      this.#bendPartitions.set(partition, partitionId);
+    }
+    return {
+      partition: partitionId,
+      round: composed ? this.#composedDelivery.generation(partition) : 0,
+      unit: advice.revision.generation,
+      snapshot: advice.revision.generation,
+      currentSnapshot: this.#currentWork.get(advice.revision.subject)?.generation ?? 0,
+      credential: advice.credentialGeneration ?? 0,
+      currentCredential: credentialGeneration ?? 0,
+      ageMs: Math.floor(Math.max(0, now - advice.pendingAt)),
+      collectionReady: advice.collectionEligible &&
+        (composed && advice.round !== undefined
+          ? advice.round.generation === this.#composedDelivery.generation(partition) : true),
+    };
   }
 
   #registerCurrentWork(partition: string, prepared: PreparedUnit): WorkRevision {
@@ -1211,6 +1415,7 @@ export class ResidentServer {
     if (index < 0) return false;
     const [removed] = this.#advice.splice(index, 1);
     if (removed !== undefined) {
+      this.#composedDelivery.forget(id);
       for (const ticket of this.#tickets.values()) {
         for (const unit of ticket.units) {
           if (unit.current.state === "finding" && unit.current.adviceId === id && !unit.current.delivered) {
@@ -1225,9 +1430,79 @@ export class ResidentServer {
   }
 
   #expirePending(now: number): void {
+    this.#composedDelivery.expire(now);
     for (const advice of [...this.#advice]) {
       if (isPendingAdviceExpired(advice, now)) this.#removeAdvice(advice.id);
     }
+  }
+
+  #roundActive(round: RoundWork | undefined): boolean {
+    return round === undefined || (!round.controller.signal.aborted &&
+      this.#composedDelivery.isActive(round.group, round.generation));
+  }
+
+  #allowFinish(group: string, token: string, reason: RoundCloseReason): void {
+    const counts = this.#composedDelivery.closureCounts(group);
+    const closed = this.#composedDelivery.finishStop(group, token, true);
+    if (closed !== undefined) this.#closeRound(group, closed, reason, counts);
+  }
+
+  #jobActive(job: Job): boolean {
+    return !job.work?.controller.signal.aborted && this.#roundActive(job.round);
+  }
+
+  /** Cut off the pre-decision work cohort without retiring completed advice. */
+  #discardUnfinishedWork(round: RoundWork): void {
+    const work = round.work;
+    const counts = this.#dispatcher.snapshotWhere(({ value }) => value.work === work && !value.completed);
+    round.discarded.queued += counts.queued;
+    round.discarded.running += counts.running;
+    work.controller.abort();
+    round.work = { id: randomUUID(), controller: new AbortController() };
+    const discarded = this.#dispatcher.discardWhere(({ value }) => value.work === work);
+    for (const job of discarded) this.#discardJob(job);
+  }
+
+  #discardJob(job: Job): void {
+    if (job.completed) return;
+    if (job.ticket !== undefined) ticketFail(job.ticket, "lost");
+    if (job.kind === "unit") {
+      if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "lost");
+      this.#settleJoined(job.evaluationKey, "unavailable", "lost");
+      this.#reuse.releaseClaim(job.evaluationKey);
+      this.#releaseUnit(job);
+    } else this.#ledger.release(job.reservation);
+    recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
+      advicee: job.observation.advicee, lifetime: this.lifetime, stage: "incomplete" });
+  }
+
+  #closeRound(group: string, generation: number, reason: RoundCloseReason,
+    counts: ReturnType<ComposedDelivery["closureCounts"]>): void {
+    const round = this.#rounds.get(group);
+    const activity = this.#roundActivity.get(group);
+    this.#roundActivity.delete(group);
+    const work = round === undefined ? { queued: 0, running: 0 }
+      : this.#dispatcher.snapshotWhere(({ value }) => value.round === round && !value.completed && !value.work?.controller.signal.aborted);
+    if (activity !== undefined) recordRoundClosure({ statePath: activity.activityPath,
+      root: activity.root, advicee: activity.advicee, lifetime: this.lifetime,
+      roundIdentity: `${group}:${generation}`, reason, reservedContinuations: counts.reservedContinuations,
+      discarded: { queued: work.queued + (round?.discarded.queued ?? 0),
+        running: work.running + (round?.discarded.running ?? 0), pendingAdvice: round === undefined ? 0 : this.#advice.filter((advice) => advice.round === round).length,
+        submitted: counts.submitted, uncertain: counts.uncertain, editPermits: counts.editPermits } });
+    if (round === undefined || round.generation !== generation) return;
+    // The admission/output fence is already published. Abort Effect fibers and
+    // their provider connections before releasing all retained round resources.
+    round.controller.abort();
+    round.work.controller.abort();
+    this.#rounds.delete(group);
+    const discarded = this.#dispatcher.discardWhere(({ value }) => value.round === round);
+    for (const job of discarded) this.#discardJob(job);
+    for (const advice of [...this.#advice]) if (advice.round === round) this.#removeAdvice(advice.id);
+    for (const [key, notice] of this.#noticeCooldowns) {
+      if (round.partitions.has(notice.partition) || notice.deliveryGroup === group) this.#releaseNoticeCooldown(key);
+    }
+    for (const partition of round.partitions) this.#reuse.discardPartition(partition);
+    for (const [key, ticket] of this.#tickets) if (round.partitions.has(ticket.partition)) this.#tickets.delete(key);
   }
 
   async #run(job: Job, cycle: number, sequence: number): Promise<void> {
@@ -1290,9 +1565,10 @@ export class ResidentServer {
           readCredentialState(job.dispatch.credential.statePath).generation !== job.dispatch.credential.generation
         ) return undefined;
         return settings;
-      }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))));
+      }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))),
+        { signal: job.work?.controller.signal });
       this.#ledger.release(job.reservation);
-      if (settings === undefined || this.#lifecycle !== "active") {
+      if (settings === undefined || this.#lifecycle !== "active" || !this.#jobActive(job)) {
         if (job.ticket !== undefined) ticketFail(job.ticket, "lost");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
         return;
@@ -1303,6 +1579,7 @@ export class ResidentServer {
       // a time prevents a 16-path event from materializing 1,024 complete
       // inputs outside the ledger.
       for (const candidate of job.observation.candidates) {
+        if (!this.#jobActive(job)) return;
         const workspace = this.#reserve(job.partition, captureWorkspaceBytes(candidate.path));
         if (workspace === undefined) {
           if (job.ticket !== undefined) ticketFail(job.ticket, "capacity");
@@ -1332,11 +1609,13 @@ export class ResidentServer {
                 return resized;
               }),
             });
-          }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))));
+          }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))),
+        { signal: job.work?.controller.signal });
         } catch (cause) {
           this.#ledger.release(workspace);
           throw cause;
         }
+        if (!this.#jobActive(job)) { this.#ledger.release(workspace); return; }
         const ready = prepared.outcomes.filter((outcome) => outcome.status === "ready");
         if (ready.length === 0) {
           if (prepared.outcomes.some((outcome) => outcome.status !== "skipped") && job.ticket !== undefined) {
@@ -1361,7 +1640,7 @@ export class ResidentServer {
           return accepted;
         });
         const planned = deliverable.map((outcome) => {
-          const generationPartition = `${job.partition}\0credential-generation:${job.dispatch.credential?.generation ?? "controlled"}`;
+          const generationPartition = `${job.partition}\0work:${job.work?.id ?? "legacy"}\0credential-generation:${job.dispatch.credential?.generation ?? "controlled"}`;
           const evaluationKey = this.#reuse.key(generationPartition, outcome.prepared);
           if (this.#advice.some((advice) => advice.evaluationKey === evaluationKey)) {
             return { kind: "joined" as const, outcome, evaluationKey };
@@ -1425,6 +1704,15 @@ export class ResidentServer {
           }
         }
         for (const [index, item] of retained.entries()) {
+          if (!this.#jobActive(job)) {
+            for (let remaining = index; remaining < retained.length; remaining++) {
+              const reservation = reservations[remaining];
+              if (reservation !== undefined) this.#ledger.release(reservation);
+              const pending = retained[remaining];
+              if (pending?.kind === "owner") this.#reuse.releaseClaim(pending.evaluationKey);
+            }
+            return;
+          }
           const ticketUnit = job.ticket?.units[ticketUnitOffset + planned.indexOf(item)];
           const reservation = reservations[index];
           if (reservation === undefined) {
@@ -1442,6 +1730,7 @@ export class ResidentServer {
             outcome.path === item.outcome.path ? [outcome.snapshot.sourceHash] : [])[0];
           const unit: UnitJob = {
             kind: "unit",
+            ...(job.round === undefined ? {} : { round: job.round, work: job.work }),
             observation: pathObservation,
             partition: job.partition,
             reservation,
@@ -1490,6 +1779,7 @@ export class ResidentServer {
           expectedUnitIdentities: expectedActivityUnits,
         });
       }
+      job.completed = true;
       await this.#afterPrepare?.();
       return;
     } catch {
@@ -1505,7 +1795,7 @@ export class ResidentServer {
   async #evaluateUnit(job: UnitJob, cycle: number, sequence: number): Promise<void> {
     try {
       await this.#awaitBackendGate();
-      if (!this.#isCurrentWork(job.revision, job.prepared)) {
+      if (!this.#jobActive(job) || !this.#isCurrentWork(job.revision, job.prepared)) {
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "stale");
         this.#settleJoined(job.evaluationKey, "unavailable", "stale");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "incomplete", unitIdentity: job.evaluationKey });
@@ -1660,7 +1950,9 @@ export class ResidentServer {
         return yield* (credentialProvider === undefined
           ? evaluation
           : evaluation.pipe(Effect.provide(credentialProvider)));
-      }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))));
+      }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))),
+        { signal: job.work?.controller.signal });
+      if (!this.#jobActive(job)) { this.#reuse.releaseClaim(job.evaluationKey); this.#releaseUnit(job); return; }
       if (result?.status === "evaluated" && this.#lifecycle === "active") {
         recordDemoTrace(job.dispatch.demoBudgetPath, job.observation.root, job.observation.advicee, {
           kind: "terminal", ...(job.sourceHash === undefined ? {} : { sourceHash: job.sourceHash }),
@@ -1678,16 +1970,14 @@ export class ResidentServer {
           findings: result.findings.length,
           unitIdentity: job.evaluationKey,
         });
-        if (controlled?.outcomePath !== undefined) {
+        const recordOutcome = async (): Promise<void> => {
+          if (controlled?.outcomePath === undefined) return;
           const { sessionId, turnId, toolUseId, subagentId } = job.observation.advicee;
           await appendFile(controlled.outcomePath, `${JSON.stringify({
-            sessionId,
-            turnId,
-            toolUseId,
-            subagentId,
+            sessionId, turnId, toolUseId, subagentId,
             outcome: result.findings.length === 0 ? "completed-clear" : "completed-findings",
           })}\n`, "utf8");
-        }
+        };
         if (
           result.findings.length === 0 ||
           !this.#isCurrentWork(job.revision, job.prepared)
@@ -1700,10 +1990,13 @@ export class ResidentServer {
           this.#settleJoined(job.evaluationKey,
             result.findings.length === 0 && this.#isCurrentWork(job.revision, job.prepared) ? "clear" : "unavailable",
             "stale");
+          job.completed = true;
           this.#releaseUnit(job);
+          await recordOutcome();
           return;
         }
         await this.#retainAdvice(job, evaluation, cycle, sequence);
+        await recordOutcome();
         return;
       }
       if (result?.status === "backend" || result?.status === "timeout") {
@@ -1757,6 +2050,7 @@ export class ResidentServer {
     cycle: number,
     sequence: number,
   ): Promise<void> | void {
+    if (!this.#jobActive(job)) { this.#releaseUnit(job); return; }
     if (this.#advice.some((item) => item.evaluationKey === job.evaluationKey)) {
       const existing = this.#advice.find((item) => item.evaluationKey === job.evaluationKey);
       if (job.ticketUnit !== undefined && existing !== undefined) {
@@ -1768,6 +2062,7 @@ export class ResidentServer {
     }
     const advice: Advice = {
       id: randomUUID(),
+      ...(job.round === undefined ? {} : { round: job.round }),
       observation: job.observation,
       partition: job.partition,
       reservation: job.reservation,
@@ -1779,6 +2074,9 @@ export class ResidentServer {
       cycle,
       sequence,
       credentialGeneration: job.dispatch.credential?.generation ?? null,
+      credentialStatePath: job.dispatch.credential?.statePath ?? null,
+      credentialRequired: job.dispatch.controlled === null || job.dispatch.controlled.requireCredential === true,
+      credentialEnvironmentOnly: job.dispatch.credential?.environmentOnly ?? false,
       pendingAt: this.#now(),
       cycleComplete: false,
       collectionEligible: false,
@@ -1788,6 +2086,7 @@ export class ResidentServer {
     const insertion = this.#advice.findIndex((item) => item.sequence > sequence);
     if (insertion < 0) this.#advice.push(advice);
     else this.#advice.splice(insertion, 0, advice);
+    job.completed = true;
     const afterPending = this.#afterAdvicePending?.(advice.id);
     if (afterPending === undefined) {
       if (job.ticketUnit !== undefined) unitFinding(job.ticketUnit, job.revision, advice.id);
@@ -1795,6 +2094,7 @@ export class ResidentServer {
       return;
     }
     return Promise.resolve(afterPending).then(() => {
+      if (!this.#jobActive(job)) return;
       if (job.ticketUnit !== undefined) unitFinding(job.ticketUnit, job.revision, advice.id);
       this.#settleJoined(job.evaluationKey, "finding", undefined, advice.id);
     });
@@ -1854,7 +2154,8 @@ export class ResidentServer {
           isCurrentWork: (prepared) => Effect.sync(() =>
             server.#isCurrentWork(advice.revision, prepared)),
         });
-      }).pipe(Effect.provide(Consent.layer({ statePath: dispatch.statePath }))));
+      }).pipe(Effect.provide(Consent.layer({ statePath: dispatch.statePath }))),
+        { signal: advice.round?.controller.signal });
       return capacityUnavailable ? { status: "unavailable", findings: [] } : current;
     } catch {
       return { status: "unavailable", findings: [] };
@@ -1877,8 +2178,67 @@ export class ResidentServer {
           : { version: 2, status: "obsolete-lifetime" }
         : { status: "obsolete-lifetime" };
     }
+    if (request.operation === "prompt-marker") {
+      const group = adviceeGroup(request.root, request.advicee);
+      return (request.onlyIfMissing === true
+        ? this.#composedDelivery.ensureFromHostTurn(group, request.marker, this.#now())
+        : this.#composedDelivery.advance(group, request.marker, this.#now(), request.promptDigest))
+        ? { status: "advanced" } : { status: "rejected-capacity" };
+    }
+    if (request.operation === "begin-stop") {
+      const group = adviceeGroup(request.root, request.advicee);
+      if (!this.#composedDelivery.beginStop(group, request.token)) return { status: "busy" };
+      const timer = setTimeout(() => {
+        this.#stopTimers.delete(request.token);
+        const counts = this.#composedDelivery.closureCounts(group);
+        const closed = this.#composedDelivery.expireStop(group, request.token);
+        if (closed !== undefined) this.#closeRound(group, closed, "abandoned-stop", counts);
+      }, 5_000);
+      timer.unref();
+      this.#stopTimers.set(request.token, timer);
+      return { status: "advanced" };
+    }
+    if (request.operation === "finish-stop") {
+      const timer = this.#stopTimers.get(request.token);
+      if (timer !== undefined) clearTimeout(timer);
+      this.#stopTimers.delete(request.token);
+      const group = adviceeGroup(request.root, request.advicee);
+      const counts = this.#composedDelivery.closureCounts(group);
+      const closed = this.#composedDelivery.finishStop(group, request.token, request.close === true);
+      if (closed !== undefined) this.#closeRound(group, closed, request.reason ?? "no-advice", counts);
+      return { status: "advanced" };
+    }
+    if (request.operation === "consume-stop") {
+      return this.#composedDelivery.consumeStop(
+        adviceeGroup(request.root, request.advicee), request.continuationDigest,
+      )
+        ? { status: "continuation-allowed" }
+        : { status: "continuation-denied" };
+    }
+    if (request.operation === "claim-background") {
+      return this.#composedDelivery.claimBackground(
+        adviceeGroup(request.root, request.advicee), request.token, this.#now(),
+      ) ? { status: "background-claimed" } : { status: "busy" };
+    }
+    if (request.operation === "release-background") {
+      this.#composedDelivery.releaseBackground(
+        adviceeGroup(request.root, request.advicee), request.token,
+      );
+      return { status: "released" };
+    }
+    if (request.operation === "begin-submission") {
+      return this.beginComposedSubmission(request.token, request.surface);
+    }
+    if (request.operation === "release") return this.releaseComposedSubmission(request.token);
+    if (request.operation === "register-edit") {
+      const group = adviceeGroup(request.root, request.advicee);
+      if (!this.#composedDelivery.registerEdit(group, request.advicee.toolUseId, request.startedAt)) return { status: "rejected-stale" };
+      this.#roundActivity.set(group, { root: request.root, advicee: request.advicee, activityPath: request.activityPath });
+      return { status: "advanced" };
+    }
     if (request.operation === "admit") {
-      return this.admit(request.observation, request.dispatch, request.version === 2);
+      return this.admit(request.observation, request.dispatch, request.version === 2,
+        request.composed === true, request.composed === true);
     }
     if (request.operation === "collect") {
       if (request.version === 2) {
@@ -1891,7 +2251,49 @@ export class ResidentServer {
         const collected = await this.collect(request.root, request.advicee, request.dispatch, request.mode ?? "ordinary", ticket);
         return collected.status === "advice" ? { ...collected, version: 2 } : this.#terminalStatus(ticket, this.#now());
       }
-      return this.collect(request.root, request.advicee, request.dispatch, request.mode ?? "ordinary");
+      if (request.finish !== undefined) {
+        const group = adviceeGroup(request.root, request.advicee);
+        if (!this.#composedDelivery.ownsStop(group, request.finish.token)) return { status: "empty" };
+        // Expired leases represent uncertain external output, not live writers.
+        this.#pruneNoticeCooldowns(this.#now());
+        for (const advice of this.#advice) {
+          if (adviceeGroup(advice.observation.root, advice.observation.advicee) === group &&
+              advice.delivery !== undefined && advice.delivery.leaseUntil <= this.#now()) delete advice.delivery;
+        }
+        if (bendWorkFinishWait(this.#collectionWorkCount(request.root, request.advicee, true),
+          request.finish.deadlineReached, this.#composedDelivery.hasVirtualRoundContinuationBudget(group))) {
+          return { status: "pending" };
+        }
+        if (!this.#composedDelivery.beginFinishDecision(group, request.finish.token)) return { status: "empty" };
+        const round = this.#rounds.get(group);
+        if (round !== undefined) this.#discardUnfinishedWork(round);
+        if (!this.#composedDelivery.hasVirtualRoundContinuationBudget(group)) {
+          this.#allowFinish(group, request.finish.token, "limit");
+          return { status: "empty" };
+        }
+      }
+      const collected = request.composed === true
+        ? await this.collect(request.root, request.advicee, request.dispatch, request.mode ?? "ordinary", undefined, true)
+        : await this.collect(request.root, request.advicee, request.dispatch, request.mode ?? "ordinary");
+      if (request.finish !== undefined) {
+        const group = adviceeGroup(request.root, request.advicee);
+        if (collected.status === "advice" && collected.findingCount > 0) {
+          const selected = this.#advice.filter((advice) => advice.delivery?.token === collected.token)
+            .map((advice) => ({ id: advice.id, findings: advice.delivery?.findings ?? [] }));
+          if (!this.#composedDelivery.reserveFinishOutput(group, request.finish.token, collected.token, selected, this.#now())) {
+            this.releaseDelivery(collected.token);
+            return { status: "empty" };
+          }
+        } else if (collected.status !== "advice") {
+          this.#allowFinish(group, request.finish.token, request.finish.deadlineReached ? "deadline" : "no-advice");
+        }
+        // Operational notices must pass the IPC handoff barrier before the hook
+        // closes the round; unlike findings they cannot reserve a continuation.
+        return collected;
+      }
+      return request.reportWorkState === true && collected.status === "empty"
+        ? this.#collectionWorkState(request.root, request.advicee, request.composed === true)
+        : collected;
     }
     if (request.operation === "acknowledge") return this.acknowledge(request.token);
     if (request.operation === "finalize") return this.finalize(request.token);
@@ -1946,6 +2348,13 @@ export class ResidentServer {
       (ticket.credentialEnvironmentOnly || !credentialState.savedUseSuspended);
   }
 
+  #adviceCredentialAuthority(advice: Advice): boolean {
+    if (advice.credentialStatePath === null) return !advice.credentialRequired;
+    const state = readCredentialState(advice.credentialStatePath);
+    return state !== undefined && state.generation === advice.credentialGeneration &&
+      (advice.credentialEnvironmentOnly || !state.savedUseSuspended);
+  }
+
   async #responseGate(operation: ResidentRequest["operation"]): Promise<void> {
     const variable = operation === "admit"
       ? "REVIEW_RESIDENT_ADMIT_RESPONSE_GATE_PATH"
@@ -1977,6 +2386,10 @@ export class ResidentServer {
   /** Synchronous last barrier after response gates and immediately before encoding. */
   #responseForHandoff(request: ResidentRequest, response: ResidentResponse): ResidentResponse {
     if (response.status !== "advice") {
+      if (request.version === 1 && request.operation === "collect" && request.finish === undefined && request.reportWorkState === true &&
+          (response.status === "empty" || response.status === "pending")) {
+        return this.#collectionWorkState(request.root, request.advicee, request.composed === true);
+      }
       if (request.version !== 2 || request.operation !== "collect") return response;
       const now = this.#now();
       this.#expirePending(now);
@@ -1990,10 +2403,17 @@ export class ResidentServer {
     const now = this.#now();
     this.#expirePending(now);
     this.#pruneNoticeCooldowns(now);
+    if (request.operation === "collect" && request.version !== 2 &&
+        this.#advice.some((advice) => advice.delivery?.token === response.token &&
+          (advice.credentialGeneration !== (request.dispatch.credential?.generation ?? null) ||
+            !this.#adviceCredentialAuthority(advice)))) {
+      this.releaseComposedSubmission(response.token);
+      return { status: "empty" };
+    }
     const handoff: Array<Advice> = [];
     for (const advice of [...this.#advice]) {
       if (advice.delivery?.token !== response.token) continue;
-      if (isPendingAdviceExpired(advice, now) || !this.#isCurrentWork(advice.revision, advice.prepared)) {
+      if (!this.#roundActive(advice.round) || isPendingAdviceExpired(advice, now) || !this.#isCurrentWork(advice.revision, advice.prepared)) {
         this.#removeAdvice(advice.id, response.token);
         continue;
       }
@@ -2004,17 +2424,36 @@ export class ResidentServer {
       advice.delivery.leaseUntil = now + DELIVERY_LEASE_MS;
       handoff.push(advice);
     }
-    const findings = handoff.flatMap((advice) => advice.delivery?.findings ?? []);
-    const notices = this.#noticesForToken(response.token);
-    for (const notice of notices) {
-      if (notice.delivery !== undefined) notice.delivery.leaseUntil = now + DELIVERY_LEASE_MS;
-    }
     const ticket = request.version === 2 && request.operation === "collect"
       ? this.#ticketFor(request.ticket, request.root, request.advicee, request.dispatch)
       : undefined;
     if (request.version === 2 && request.operation === "collect" && ticket === undefined) {
       this.releaseDelivery(response.token);
       return { version: 2, status: "unavailable", reason: "lost" };
+    }
+    if (request.operation === "collect") {
+      const composed = request.version !== 2 && request.composed === true;
+      const partition = composed
+        ? adviceeGroup(request.root, request.advicee)
+        : adviceePartition(request.root, request.advicee);
+      const generation = request.dispatch.credential?.generation ?? null;
+      const offers = handoff.flatMap((advice) => (advice.delivery?.findings ?? []).map((finding) => ({
+        finding,
+        facts: this.#findingSelectionFacts(advice, partition, generation, now, composed),
+      })));
+      const accepted = new Set(selectFittingCurrentFindingIndices(offers,
+        ticket === undefined ? "codex" : ticket.claudeFeedbackMode));
+      let index = 0;
+      for (const advice of handoff) {
+        if (advice.delivery === undefined) continue;
+        advice.delivery.findings = advice.delivery.findings.filter(() => accepted.has(index++));
+        if (advice.delivery.findings.length === 0) delete advice.delivery;
+      }
+    }
+    const findings = handoff.flatMap((advice) => advice.delivery?.findings ?? []);
+    const notices = this.#noticesForToken(response.token);
+    for (const notice of notices) {
+      if (notice.delivery !== undefined) notice.delivery.leaseUntil = now + DELIVERY_LEASE_MS;
     }
     if (ticket !== undefined && ticket.claudeFeedbackMode === "block-current-findings" &&
         this.#currentClaudeFeedbackMode(ticket.root, ticket.userConfigPath) !== "block-current-findings") {
@@ -2135,6 +2574,11 @@ export class ResidentServer {
   }
 
   async close(): Promise<void> {
+    for (const timer of this.#stopTimers.values()) clearTimeout(timer);
+    this.#stopTimers.clear();
+    for (const round of this.#rounds.values()) { round.controller.abort(); round.work.controller.abort(); }
+    this.#rounds.clear();
+    this.#roundActivity.clear();
     this.#lifecycle = "closed";
     for (const job of this.#dispatcher.close()) {
       if (job.kind === "unit") {

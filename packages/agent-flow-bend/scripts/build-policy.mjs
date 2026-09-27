@@ -7,7 +7,7 @@ import { createHash } from "node:crypto";
 const root = resolve(import.meta.dirname, "..");
 const productRoot = resolve(root, "../..");
 const digest = createHash("sha256");
-for (const path of ["Handoff.bend", "PolicyRuntime.bend", "scripts/build-policy.mjs"]) {
+for (const path of ["Admission.bend", "Work.bend", "Handoff.bend", "Round.bend", "PolicyRuntime.bend", "scripts/build-policy.mjs"]) {
   digest.update(path).update("\0").update(readFileSync(join(root, path))).update("\0");
 }
 const sourceHash = digest.digest("hex");
@@ -20,7 +20,14 @@ try {
   if (!footer.test(source) || !source.includes("function $Handoff$select$(") ||
       !source.includes("function $Handoff$initial$(") ||
       !source.includes("function $Handoff$fits_batch$(") ||
-      !source.includes("function $Handoff$lease$reserve$(")) {
+      !source.includes("function $Handoff$lease$reserve$(") ||
+      !source.includes("function $Handoff$lease$suppresses$(") ||
+      !source.includes("function $Admission$step$(") ||
+      !source.includes("function $Admission$close_prospective$(") ||
+      !source.includes("function $Work$finish_wait$(") ||
+      ["initial", "max_continuations", "active", "budget", "begin_stop",
+        "owns_stop", "begin_decision", "consume", "reserve_output", "finish_stop", "reopen"]
+        .some((name) => !source.includes(`function $Round$${name}$(`))) {
     throw new Error("Bend policy JavaScript layout changed; inspect generated runtime");
   }
   source = source.replace(footer, `
@@ -42,12 +49,20 @@ const normalize = (value) => {
   }
   return value;
 };
-export const bendSelectionInitial = (partition, round, snapshot, credential) =>
-  run_loop($Handoff$initial$(nat(partition), nat(round), nat(snapshot), nat(credential)));
+export const bendSelectionInitial = (partition, round) =>
+  run_loop($Handoff$initial$(nat(partition), nat(round)));
 export const bendSelectionStep = (state, advice, prospectiveBytes) =>
   run_loop($Handoff$select$(state, normalize(advice), nat(prospectiveBytes)));
 export const bendFitsBatch = (items, bytes) =>
   run_loop($Handoff$fits_batch$(nat(items), nat(bytes)));
+export const bendAdmissionInitial = (partition, lifetime) =>
+  run_loop($Admission$initial$(nat(partition), nat(lifetime)));
+export const bendAdmissionStep = (state, partition, lifetime, event) =>
+  run_loop($Admission$step$(state, nat(partition), nat(lifetime), normalize(event)));
+export const bendAdmissionCloseProspective = (state, at) =>
+  run_loop($Admission$close_prospective$(state, nat(at)));
+export const bendWorkFinishWait = (unfinished, deadlineReached, continuationBudget) =>
+  run_loop($Work$finish_wait$(nat(unfinished), deadlineReached, continuationBudget));
 export const bendLeaseInitial = (item, round) =>
   run_loop($Handoff$lease$initial$(nat(item), nat(round)));
 export const bendLeaseReserve = (state, round, token, surface) =>
@@ -61,6 +76,26 @@ export const bendLeaseTerminal = (state, round, token, certain) =>
 export const bendLeaseReoffer = (state, round, token, fresh) =>
   run_loop($Handoff$lease$reoffer$(state, nat(round), nat(token), fresh));
 export const bendLeaseClose = (state) => run_loop($Handoff$lease$close$(state));
+export const bendLeaseSuppresses = (state, round, requested) =>
+  run_loop($Handoff$lease$suppresses$(state, nat(round), normalize(requested)));
+export const bendRoundInitial = () => run_loop($Round$initial$());
+export const bendRoundMaxContinuations = () => run_loop($Round$max_continuations$());
+export const bendRoundActive = (state, generation) =>
+  run_loop($Round$active$(state, nat(generation)));
+export const bendRoundBudget = (state) => run_loop($Round$budget$(state));
+export const bendRoundBeginStop = (state, token) =>
+  run_loop($Round$begin_stop$(state, nat(token)));
+export const bendRoundOwnsStop = (state, token) =>
+  run_loop($Round$owns_stop$(state, nat(token)));
+export const bendRoundBeginDecision = (state, token) =>
+  run_loop($Round$begin_decision$(state, nat(token)));
+export const bendRoundConsume = (state) => run_loop($Round$consume$(state));
+export const bendRoundReserveOutput = (state, token) =>
+  run_loop($Round$reserve_output$(state, nat(token)));
+export const bendRoundFinishStop = (state, token, close, at) =>
+  run_loop($Round$finish_stop$(state, nat(token), close, nat(at)));
+export const bendRoundReopen = (state, generation) =>
+  run_loop($Round$reopen$(state, nat(generation)));
 `);
   writeFileSync(join(productRoot, "src/resident/bend-policy.generated.js"),
     `// hapsland-bend-source-sha256:${sourceHash}\n${source}`);

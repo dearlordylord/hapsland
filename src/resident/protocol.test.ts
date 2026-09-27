@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addEvent, makeGitFixture } from "../direct-event/test-fixtures.ts";
+import { addEvent, makeGitFixture, advicee } from "../direct-event/test-fixtures.ts";
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import * as Effect from "effect/Effect";
 import {
@@ -12,6 +12,17 @@ import {
 } from "./protocol.ts";
 
 describe("resident protocol bounds", () => {
+  it("accepts finish decisions only on composed turn-end collection with an attempt and deadline signal", () => {
+    const request = { version: 1, operation: "collect", lifetime: "lifetime", root: "/tmp/repository",
+      advicee: advicee(), dispatch: { statePath: "/tmp/consent", userConfigPath: null, credential: null, controlled: {} },
+      composed: true, mode: "turn-end", finish: { token: "attempt", deadlineReached: false } };
+    expect(decodeResidentRequest(JSON.stringify(request))).toEqual(request);
+    for (const change of [{ composed: undefined }, { mode: "ordinary" },
+      { finish: { token: "attempt" } }, { finish: { token: "", deadlineReached: true } }]) {
+      expect(decodeResidentRequest(JSON.stringify({ ...request, ...change }))).toBeUndefined();
+    }
+  });
+
   it("strictly decodes source-free v2 terminal statuses", () => {
     expect(decodeResidentResponse({ version: 2, status: "clear" })).toEqual({ version: 2, status: "clear" });
     expect(decodeResidentResponse({ version: 2, status: "unavailable", reason: "stale" }))
@@ -19,6 +30,20 @@ describe("resident protocol bounds", () => {
     expect(decodeResidentResponse({ version: 2, status: "clear", path: "source.ts" })).toBeUndefined();
     expect(decodeResidentResponse({ version: 2, status: "unavailable", reason: "other" })).toBeUndefined();
     expect(decodeResidentResponse({ version: 2, status: "empty" })).toBeUndefined();
+  });
+  it("decodes the opt-in advicee work state without changing ordinary collection", () => {
+    expect(decodeResidentResponse({ status: "pending" })).toEqual({ status: "pending" });
+    expect(decodeResidentResponse({ status: "pending", path: "source.ts" })).toBeUndefined();
+  });
+  it("strictly decodes bounded background waiter ownership", () => {
+    const request = { version: 1, operation: "claim-background", lifetime: "lifetime",
+      root: "/tmp/repository", advicee: advicee(),
+      token: "00000000-0000-4000-8000-000000000001" };
+    expect(decodeResidentRequest(JSON.stringify(request))).toEqual(request);
+    expect(decodeResidentRequest(JSON.stringify({ ...request, operation: "release-background" })))
+      .toEqual({ ...request, operation: "release-background" });
+    expect(decodeResidentRequest(JSON.stringify({ ...request, token: "bad" }))).toBeUndefined();
+    expect(decodeResidentResponse({ status: "background-claimed" })).toEqual({ status: "background-claimed" });
   });
   it("accepts only the exact Claude block envelope in v2 advice", () => {
     const advice = { version: 2, status: "advice", token: "lease", findingCount: 1,
@@ -127,6 +152,9 @@ describe("resident protocol bounds", () => {
     };
     expect(decodeResidentRequest(JSON.stringify({ ...collect, mode: "turn-end" })))
       .toMatchObject({ operation: "collect", mode: "turn-end" });
+    expect(decodeResidentRequest(JSON.stringify({ ...collect, reportWorkState: true })))
+      .toMatchObject({ operation: "collect", reportWorkState: true });
+    expect(decodeResidentRequest(JSON.stringify({ ...collect, reportWorkState: false }))).toBeUndefined();
     expect(decodeResidentRequest(JSON.stringify({ ...collect, mode: "drain" }))).toBeUndefined();
     expect(decodeResidentRequest(JSON.stringify({
       version: 1,

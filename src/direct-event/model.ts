@@ -23,8 +23,8 @@ export type DirectAdvicee = {
   /** Claude 2.1.218 PostToolUse does not provide a turn identifier. */
   readonly turnId: null;
   readonly toolUseId: string;
-  /** Claude 2.1.218 PostToolUse does not provide an agent identifier. */
-  readonly subagentId: null;
+  /** Preserve a supplied subagent identity; main-thread hooks may omit it. */
+  readonly subagentId: string | null;
 } | {
   readonly host: "opencode";
   readonly hostVersion: "1.14.44";
