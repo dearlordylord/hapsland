@@ -79,6 +79,7 @@ type Smoke is Data:
     lifecycle_finish_gate: Lifecycle.FinishGateResult
     lifecycle_reserve: Round.Step
     lifecycle_release: Round.Step
+    finish_disposition: Lifecycle.FinishDisposition
     ticket_initial: Ticket.Phase
     ticket_fail: Ticket.Phase
     ticket_close: Ticket.Phase
@@ -183,6 +184,7 @@ def main() -> Smoke:
         Work.ReviewUnit{1n, 1n, Work.PendingFinding{}, 1n, 20n} <> Nil{}},
       1n, 1n <> Nil{}),
     Lifecycle.release_unwritten(Round.Round{1n, True{}, 0n, 1n, 1n, True{}, True{}, True{}}, 1n),
+    Lifecycle.finish_disposition(sample_work(), Nil{}, True{}, True{}, True{}, True{}, False{}),
     Ticket.initial(),
     Ticket.fail(Ticket.initial(), Ticket.Backend{}),
     Ticket.close(Ticket.fail(Ticket.initial(), Ticket.Backend{})),

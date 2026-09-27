@@ -50,6 +50,9 @@ finding count, and cancellation IDs.
   reserving the continuation slot before output authorization. A provisional
   slot is released through Bend if a final IPC gate changes the batch; the
   resident then reserves against the exact batch it encodes.
+  Its finish disposition takes the selected unit IDs from the final Handoff
+  recheck, the native writer availability fact, and notice presence, then
+  chooses continuation, notice-only handoff, or a specific allow reason.
 - `Ledger.bend` decides global and partition item and byte reservations,
   resize, and release. TypeScript retains opaque object capabilities and maps
   exact partition strings to unique numeric IDs.
@@ -156,6 +159,10 @@ On 2026-09-27, from this worktree:
 - The ticket collection gate migration passed the focused resident-server and
   terminal-collection suite: 2 files and 80 tests. Four Bend laws cover valid
   collection, credential invalidation, expiry, and their combined priority.
+- The Stop finish disposition migration passed the focused Bend work,
+  composed-delivery, and resident-server suite: 3 files and 86 tests. Five
+  Bend laws cover selected pending units, notice-only output, final notice
+  invalidation, a lost writer, and an over-selected unit.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
   suite reported 65 passing files and 575 passing tests, with one file and
   two tests skipped.

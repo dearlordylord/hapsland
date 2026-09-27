@@ -660,6 +660,31 @@ def selected_work() -> Work.Work:
   Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
     Work.ReviewUnit{1n, 1n, Work.PendingFinding{}, 2n, 20n} <> Nil{}}
 
+law selected_findings_require_continuation:
+  {Lifecycle.finish_disposition(selected_work(), 1n <> 1n <> Nil{},
+      False{}, True{}, True{}, True{}, False{}) ==
+    Lifecycle.ReserveFindings{} : Lifecycle.FinishDisposition}
+
+law notice_only_selection_passes_without_slot:
+  {Lifecycle.finish_disposition(selected_work(), Nil{}, True{}, True{},
+      True{}, True{}, False{}) ==
+    Lifecycle.PassNotices{} : Lifecycle.FinishDisposition}
+
+law final_recheck_drops_notice_only_replacement:
+  {Lifecycle.finish_disposition(selected_work(), Nil{}, True{}, False{},
+      True{}, True{}, False{}) ==
+    Lifecycle.AllowNoAdvice{} : Lifecycle.FinishDisposition}
+
+law unwritable_selection_closes_at_deadline:
+  {Lifecycle.finish_disposition(selected_work(), 1n <> Nil{}, False{}, False{},
+      False{}, True{}, True{}) ==
+    Lifecycle.AllowDeadline{} : Lifecycle.FinishDisposition}
+
+law selection_cannot_exceed_pending_unit_count:
+  {Lifecycle.finish_disposition(selected_work(), 1n <> 1n <> 1n <> Nil{},
+      False{}, True{}, True{}, True{}, False{}) ==
+    Lifecycle.AllowUnavailable{} : Lifecycle.FinishDisposition}
+
 law final_output_reserves_exact_pending_unit_findings:
   {Lifecycle.reserve_selected(deciding_round(), selected_work(), 7n,
       1n <> 1n <> Nil{}) ==

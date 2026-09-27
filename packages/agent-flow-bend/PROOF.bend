@@ -1,6 +1,21 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.selected_findings_require_continuation():
+  {==}
+
+def Laws.notice_only_selection_passes_without_slot():
+  {==}
+
+def Laws.final_recheck_drops_notice_only_replacement():
+  {==}
+
+def Laws.unwritable_selection_closes_at_deadline():
+  {==}
+
+def Laws.selection_cannot_exceed_pending_unit_count():
+  {==}
+
 def Laws.ticket_collect_gate_proceeds_with_valid_authority():
   {==}
 

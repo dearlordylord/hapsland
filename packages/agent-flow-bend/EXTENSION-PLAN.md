@@ -28,7 +28,9 @@ ticket units and advice are superseded. The generated
 decision fence, exact work cancellation
 IDs, selected pending unit counts, and continuation slot. The final IPC
 barrier releases and replaces a provisional slot if its selected findings
-change before encoding. Its
+change before encoding. The production finish disposition receives the final
+selected unit IDs, notice presence, and writer fact to choose Continue,
+notice-only output, or an Allow reason. Its
 other aggregate events remain executable models rather than the resident's
 callback state. `FinishCheck.actionable_findings` still needs to come from the
 final Bend selection, and selected IDs must be consumed at write terminal.

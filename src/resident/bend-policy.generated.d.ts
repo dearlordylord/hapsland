@@ -259,6 +259,12 @@ export type BendLifecycleFinishGate =
 export function bendLifecycleFinishGate(round: BendRound, work: BendWorkState,
   token: number | bigint, extraUnfinished: number | bigint,
   deadlineReached: boolean): BendLifecycleFinishGate;
+export type BendLifecycleFinishDisposition = { readonly $:
+  "ReserveFindings" | "PassNotices" | "AllowNoAdvice" | "AllowDeadline" | "AllowUnavailable" };
+export function bendLifecycleFinishDisposition(work: BendWorkState,
+  selected: ReadonlyArray<number | bigint>, hasNotice: boolean,
+  passNotices: boolean, canWrite: boolean, bindingValid: boolean,
+  deadlineReached: boolean): BendLifecycleFinishDisposition;
 export function bendLifecycleReserveSelected(round: BendRound, work: BendWorkState,
   token: number | bigint, selectedUnits: ReadonlyArray<number | bigint>): BendRoundStep;
 export function bendLifecycleReleaseUnwritten(round: BendRound,

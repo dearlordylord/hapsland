@@ -112,6 +112,56 @@ def reserve_selected(+round: Round.Round, work: Work.Work, token: Nat,
 def release_unwritten(round: Round.Round, token: Nat) -> Round.Step:
   Round.release_output(round, token)
 
+type FinishDisposition is Data:
+  ReserveFindings{}
+  PassNotices{}
+  AllowNoAdvice{}
+  AllowDeadline{}
+  AllowUnavailable{}
+
+def finish_disposition.empty(has_notice: Bool, pass_notices: Bool,
+    deadline_reached: Bool) -> FinishDisposition:
+  Bool.pick(FinishDisposition, Bool.and(has_notice, pass_notices), PassNotices{},
+    Bool.pick(FinishDisposition, deadline_reached, AllowDeadline{}, AllowNoAdvice{}))
+
+def finish_disposition.selected(+work: Work.Work, +selected: List<&2, Nat>,
+    binding_valid: Bool) -> FinishDisposition:
+  Bool.pick(FinishDisposition,
+    Bool.and(binding_valid, Bool.and(Nat.is_le(List.length(&2, Nat, selected), 5n),
+      selected_valid(work, selected, selected))),
+    ReserveFindings{}, AllowUnavailable{})
+
+# The adapter supplies the exact final Handoff selection and native writer
+# availability. Bend decides whether those unit IDs reserve output, notices
+# pass without a continuation, or Stop closes with a specific reason.
+def finish_disposition.valid(work: Work.Work, +selected: List<&2, Nat>,
+    has_notice: Bool, pass_notices: Bool,
+    deadline_reached: Bool) -> FinishDisposition:
+  match selected:
+    case Nil{}:
+      finish_disposition.empty(has_notice, pass_notices, deadline_reached)
+    case _:
+      finish_disposition.selected(work, selected, True{})
+
+def finish_disposition.writable(work: Work.Work, selected: List<&2, Nat>,
+    has_notice: Bool, pass_notices: Bool, binding_valid: Bool,
+    deadline_reached: Bool) -> FinishDisposition:
+  match binding_valid:
+    case False{}:
+      AllowUnavailable{}
+    case True{}:
+      finish_disposition.valid(work, selected, has_notice, pass_notices, deadline_reached)
+
+def finish_disposition(work: Work.Work, selected: List<&2, Nat>,
+    has_notice: Bool, pass_notices: Bool, can_write: Bool,
+    binding_valid: Bool, deadline_reached: Bool) -> FinishDisposition:
+  match can_write:
+    case False{}:
+      finish_disposition.empty(False{}, False{}, deadline_reached)
+    case True{}:
+      finish_disposition.writable(work, selected, has_notice, pass_notices,
+        binding_valid, deadline_reached)
+
 def initial(partition: Nat, lifetime: Nat) -> Lifecycle:
   Lifecycle{Admission.initial(partition, lifetime), Work.initial(), Handoff.finish.initial(0n)}
 

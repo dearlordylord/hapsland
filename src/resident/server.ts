@@ -2451,25 +2451,34 @@ export class ResidentServer {
         : await this.collect(request.root, request.advicee, request.dispatch, request.mode ?? "ordinary");
       if (request.finish !== undefined) {
         const group = adviceeGroup(request.root, request.advicee);
-        if (collected.status === "advice" && collected.findingCount > 0) {
-          const round = this.#rounds.get(group);
-          const selectedAdvice = this.#advice.filter((advice) => advice.delivery?.token === collected.token);
-          if (round === undefined || selectedAdvice.some((advice) => advice.round !== round ||
-              advice.workUnitId === undefined || advice.delivery === undefined ||
-              advice.delivery.findings.length > round.policyWork.pendingFor(advice.workUnitId))) {
-            this.releaseDelivery(collected.token);
-            this.#allowFinish(group, request.finish.token, "no-advice");
+        const round = this.#rounds.get(group);
+        const selectedAdvice = collected.status === "advice"
+          ? this.#advice.filter((advice) => advice.delivery?.token === collected.token) : [];
+        const selected = selectedAdvice.map((advice) => ({ id: advice.id,
+          unit: advice.workUnitId ?? 0, findings: advice.delivery?.findings ?? [] }));
+        const selectedCount = selected.reduce((count, item) => count + item.findings.length, 0);
+        const bindingValid = collected.status !== "advice" || collected.findingCount === 0 ||
+          (round !== undefined && selectedCount === collected.findingCount &&
+            selectedAdvice.every((advice) => advice.round === round &&
+              advice.workUnitId !== undefined && advice.delivery !== undefined &&
+              advice.delivery.findings.length <= round.policyWork.pendingFor(advice.workUnitId)));
+        const disposition = (round?.policyWork ?? new BendWorkTracker()).finishDisposition(
+          selected.flatMap((item) => item.findings.map(() => item.unit)),
+          collected.status === "advice" && collected.findingCount === 0,
+          true, true, bindingValid, request.finish.deadlineReached);
+        if (disposition.$ === "ReserveFindings") {
+          if (round === undefined || collected.status !== "advice" ||
+              !this.#composedDelivery.reserveFinishOutput(group, request.finish.token, collected.token,
+                selected, this.#now(), round.policyWork)) {
+            if (collected.status === "advice") this.releaseDelivery(collected.token);
             return { status: "empty" };
           }
-          const selected = selectedAdvice
-            .map((advice) => ({ id: advice.id, unit: advice.workUnitId!, findings: advice.delivery?.findings ?? [] }));
-          if (!this.#composedDelivery.reserveFinishOutput(group, request.finish.token, collected.token,
-            selected, this.#now(), round.policyWork)) {
-            this.releaseDelivery(collected.token);
-            return { status: "empty" };
-          }
-        } else if (collected.status !== "advice") {
-          this.#allowFinish(group, request.finish.token, request.finish.deadlineReached ? "deadline" : "no-advice");
+        } else if (disposition.$ !== "PassNotices") {
+          if (collected.status === "advice") this.releaseDelivery(collected.token);
+          this.#allowFinish(group, request.finish.token,
+            disposition.$ === "AllowDeadline" ? "deadline" :
+              disposition.$ === "AllowUnavailable" ? "unavailable" : "no-advice");
+          if (collected.status === "advice") return { status: "empty" };
         }
         // Operational notices must pass the IPC handoff barrier before the hook
         // closes the round; unlike findings they cannot reserve a continuation.
@@ -2703,31 +2712,30 @@ export class ResidentServer {
       this.#allowFinish(group, request.finish.token, "unavailable");
       return { status: "empty" };
     }
-    if (!canWrite || final.status !== "advice" || final.findingCount === 0 || final.token !== provisional.token) {
-      if (final.status === "advice") this.releaseDelivery(final.token);
-      this.#allowFinish(group, request.finish.token,
-        request.finish.deadlineReached ? "deadline" : "no-advice");
-      return { status: "empty" };
-    }
     const round = this.#rounds.get(group);
-    const selectedAdvice = this.#advice.filter((advice) => advice.delivery?.token === final.token);
+    const selectedAdvice = final.status === "advice"
+      ? this.#advice.filter((advice) => advice.delivery?.token === final.token) : [];
     const selectedCount = selectedAdvice.reduce((count, advice) =>
       count + (advice.delivery?.findings.length ?? 0), 0);
-    if (round === undefined || selectedCount !== final.findingCount || selectedAdvice.some((advice) =>
-      advice.round !== round || advice.workUnitId === undefined || advice.delivery === undefined)) {
-      this.releaseDelivery(final.token);
-      this.#allowFinish(group, request.finish.token, "unavailable");
-      return { status: "empty" };
-    }
-    const selected = selectedAdvice.map((advice) => ({ id: advice.id, unit: advice.workUnitId!,
-      findings: advice.delivery!.findings }));
-    if (!this.#composedDelivery.reserveFinishOutput(group, request.finish.token, final.token,
-      selected, this.#now(), round.policyWork)) {
-      this.releaseDelivery(final.token);
-      this.#allowFinish(group, request.finish.token, "unavailable");
-      return { status: "empty" };
-    }
-    return final;
+    const selected = selectedAdvice.map((advice) => ({ id: advice.id, unit: advice.workUnitId ?? 0,
+      findings: advice.delivery?.findings ?? [] }));
+    const bindingValid = final.status !== "advice" || final.findingCount === 0 ||
+      (round !== undefined && selectedCount === final.findingCount && selectedAdvice.every((advice) =>
+        advice.round === round && advice.workUnitId !== undefined && advice.delivery !== undefined));
+    const disposition = (round?.policyWork ?? new BendWorkTracker()).finishDisposition(
+      selected.flatMap((item) => item.findings.map(() => item.unit)),
+      final.status === "advice" && final.findingCount === 0,
+      false, canWrite && final.status === "advice" && final.token === provisional.token,
+      bindingValid, request.finish.deadlineReached);
+    if (disposition.$ === "ReserveFindings" && round !== undefined && final.status === "advice" &&
+        this.#composedDelivery.reserveFinishOutput(group, request.finish.token, final.token,
+          selected, this.#now(), round.policyWork)) return final;
+    if (final.status === "advice") this.releaseDelivery(final.token);
+    this.#allowFinish(group, request.finish.token,
+      disposition.$ === "AllowDeadline" ? "deadline" :
+        disposition.$ === "AllowUnavailable" || disposition.$ === "ReserveFindings"
+          ? "unavailable" : "no-advice");
+    return { status: "empty" };
   }
 
   #accept(socket: Socket): void {

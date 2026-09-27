@@ -7,8 +7,10 @@ import {
   bendWorkPendingFor,
   bendLifecycleCutoff,
   bendLifecycleFinishGate,
+  bendLifecycleFinishDisposition,
   bendLifecycleReserveSelected,
   type BendList, type BendRound, type BendWorkOutcome, type BendWorkState,
+  type BendLifecycleFinishDisposition,
   type BendWorkStep,
 } from "./bend-policy.generated.js";
 
@@ -137,5 +139,12 @@ export class BendWorkTracker {
   reserveSelected(round: BendRound, token: number, selectedUnits: ReadonlyArray<number>): BendRound | undefined {
     const result = bendLifecycleReserveSelected(round, this.#state, token, selectedUnits);
     return result.$ === "Granted" ? result.state : undefined;
+  }
+
+  finishDisposition(selectedUnits: ReadonlyArray<number>, hasNotice: boolean,
+    passNotices: boolean, canWrite: boolean, bindingValid: boolean,
+    deadlineReached: boolean): BendLifecycleFinishDisposition {
+    return bendLifecycleFinishDisposition(this.#state, selectedUnits, hasNotice,
+      passNotices, canWrite, bindingValid, deadlineReached);
   }
 }
