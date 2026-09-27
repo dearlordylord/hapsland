@@ -14,6 +14,38 @@ import ./Delivery.bend as Delivery
 import ./Cache.bend as Cache
 import ./Ticket.bend as Ticket
 
+law notice_suppression_increments_count:
+  {Notice.advance(Some{1n}, 1n, 64n, 3n, Some{2n}, False{}, 5n) ==
+    Notice.Suppressed{4n} : Notice.Advance}
+
+law notice_suppression_saturates_at_bound:
+  {Notice.advance(Some{1n}, 1n, 64n, 5n, None{}, False{}, 5n) ==
+    Notice.Suppressed{5n} : Notice.Advance}
+
+law notice_refresh_creates_pending_after_delivery:
+  {Notice.advance(Some{0n}, 1n, 64n, 3n, None{}, False{}, 5n) ==
+    Notice.CreatePending{3n} : Notice.Advance}
+
+law notice_refresh_merges_unleased_pending:
+  {Notice.advance(Some{0n}, 1n, 64n, 3n, Some{2n}, False{}, 5n) ==
+    Notice.MergePending{5n} : Notice.Advance}
+
+law notice_merge_saturates_at_bound:
+  {Notice.advance(Some{0n}, 1n, 64n, 2n, Some{5n}, False{}, 5n) ==
+    Notice.MergePending{5n} : Notice.Advance}
+
+law notice_refresh_preserves_leased_pending:
+  {Notice.advance(Some{0n}, 1n, 64n, 3n, Some{2n}, True{}, 5n) ==
+    Notice.KeepLeased{} : Notice.Advance}
+
+law notice_full_table_rejects_new_key:
+  {Notice.advance(None{}, 64n, 64n, 0n, None{}, False{}, 5n) ==
+    Notice.RejectedFull{} : Notice.Advance}
+
+law notice_available_table_creates_new_key:
+  {Notice.advance(None{}, 63n, 64n, 0n, None{}, False{}, 5n) ==
+    Notice.CreateKey{} : Notice.Advance}
+
 law fitting_notice_is_included:
   {Handoff.notice_offer(5n, 2048n, False{}) ==
     Handoff.IncludeNotice{} : Handoff.NoticeOffer}

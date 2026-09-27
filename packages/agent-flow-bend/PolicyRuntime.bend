@@ -63,6 +63,7 @@ type Smoke is Data:
     background_release: Background.Step
     background_expire: Background.Waiter
     notice: Notice.Action
+    notice_advance: Notice.Advance
     collection_order: Collection.Order
     collection_eligible: Bool
     collection_expired: Bool
@@ -156,6 +157,7 @@ def main() -> Smoke:
     Background.release(Background.Waiter{1n}, 1n),
     Background.expire(Background.Waiter{1n}, 20001n, 20000n),
     Notice.decide(Some{10n}, 1n, 64n),
+    Notice.advance(Some{0n}, 1n, 64n, 3n, Some{2n}, False{}, 5n),
     Collection.order(1n, 2n, 1n, 3n),
     Collection.eligible(False{}, False{}, False{}, 50n, 50n),
     Collection.expired(600000n, 600000n),

@@ -79,7 +79,7 @@ import {
   type OperationalNoticeKind,
 } from "./collection.ts";
 import { EvaluationReuse, residentEvaluationIdentity } from "./evaluation-reuse.ts";
-import { operationalNoticeAdmission } from "./operational-notice-policy.ts";
+import { operationalNoticeAdvance } from "./operational-notice-policy.ts";
 import {
   readCredentialState,
   resolveCredential,
@@ -1302,45 +1302,50 @@ export class ResidentServer {
     const key = this.#noticeKey(partition, kind);
     this.#pruneNoticeCooldowns(now, key);
     const retained = this.#noticeCooldowns.get(key);
-    const admission = operationalNoticeAdmission({
+    const advance = operationalNoticeAdvance({
       now,
       existingNextAllowedAt: retained?.nextAllowedAt,
       keyCount: this.#noticeCooldowns.size,
       maximumKeys: this.#maximumOperationalNoticeKeys,
+      suppressedCount: retained?.suppressedCount ?? 0,
+      pendingSuppressedCount: retained?.pending?.value.suppressedCount,
+      pendingLeased: retained?.pending?.delivery !== undefined,
     });
-    if (admission.action === "reject-full") return;
-    if (retained !== undefined) {
-      if (admission.action === "suppress") {
-        retained.suppressedCount = Math.min(Number.MAX_SAFE_INTEGER, retained.suppressedCount + 1);
-        return;
-      }
-      const suppressedCount = retained.suppressedCount;
+    if (advance.$ === "RejectedFull") return;
+    if (advance.$ === "Suppressed") {
+      if (retained === undefined) return;
+      retained.suppressedCount = Number(advance.count);
+      return;
+    }
+    if (advance.$ !== "CreateKey" && advance.$ !== "CreatePending" &&
+        advance.$ !== "MergePending" && advance.$ !== "KeepLeased") return;
+    if (advance.$ !== "CreateKey") {
+      if (retained === undefined) return;
+      if (advance.$ === "CreatePending" && retained.pending !== undefined) return;
+      if (advance.$ === "MergePending" &&
+          (retained.pending === undefined || retained.pending.delivery !== undefined)) return;
+      if (advance.$ === "KeepLeased" && retained.pending?.delivery === undefined) return;
       retained.nextAllowedAt = now + OPERATIONAL_NOTICE_COOLDOWN_MS;
       retained.suppressedCount = 0;
-      if (retained.pending === undefined) {
+      if (advance.$ === "CreatePending") {
         retained.pending = {
           id: randomUUID(),
-          value: { kind, suppressedCount },
+          value: { kind, suppressedCount: Number(advance.count) },
           pendingAt: now,
           sequence: this.#nextNoticeSequence++,
         };
         if (ticket !== undefined) this.#noticeOwners.set(retained.pending.id, new Set([ticket.ticket.nonce]));
-      } else if (retained.pending.delivery === undefined) {
-        retained.pending.value = {
-          kind,
-          suppressedCount: Math.min(
-            Number.MAX_SAFE_INTEGER,
-            retained.pending.value.suppressedCount + suppressedCount,
-          ),
-        };
+      } else if (advance.$ === "MergePending") {
+        retained.pending!.value = { kind, suppressedCount: Number(advance.count) };
         if (ticket !== undefined) {
-          const owners = this.#noticeOwners.get(retained.pending.id) ?? new Set<string>();
+          const owners = this.#noticeOwners.get(retained.pending!.id) ?? new Set<string>();
           owners.add(ticket.ticket.nonce);
-          this.#noticeOwners.set(retained.pending.id, owners);
+          this.#noticeOwners.set(retained.pending!.id, owners);
         }
       }
       return;
     }
+    if (retained !== undefined) return;
     const reservation = this.#reserve(partition, noticeReservationBytes(key, partition));
     // Retention is best effort. In particular, do not recursively turn this
     // failed reservation into another capacity failure.

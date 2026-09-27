@@ -15,7 +15,7 @@ import {
 } from "./server.ts";
 import { residentPaths } from "./paths.ts";
 import { PENDING_ADVICE_EXPIRY_MS } from "./collection.ts";
-import { operationalNoticeAdmission } from "./operational-notice-policy.ts";
+import { operationalNoticeAdmission, operationalNoticeAdvance } from "./operational-notice-policy.ts";
 
 const enable = (root: string, statePath: string) => Effect.runPromise(Effect.gen(function* () {
   const consent = yield* Consent.Service;
@@ -206,6 +206,28 @@ console.log('{"version":1,"status":"interaction-required"}');
     await restarted.close();
   });
 
+  it("merges suppressed failures into an unleased pending notice at refresh", async () => {
+    const { root, statePath, observation } = await fixture();
+    const failed = dispatch(statePath, { failure: "offline backend" });
+    let now = 100;
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => now);
+    expect(server.admit(observation, failed).status).toBe("accepted");
+    await server.whenIdle();
+    now += OPERATIONAL_NOTICE_COOLDOWN_MS - 1;
+    expect(server.admit(observation, failed).status).toBe("accepted");
+    await server.whenIdle();
+    now += 1;
+    expect(server.admit(observation, failed).status).toBe("accepted");
+    await server.whenIdle();
+    const result = await collectAndFinalize(server, observation, failed);
+    expect(result.status).toBe("advice");
+    if (result.status === "advice") {
+      expect(result.output.hookSpecificOutput.additionalContext)
+        .toContain("1 similar failure was suppressed");
+    }
+    await server.close();
+  });
+
   it("keeps capacity/backend and advicee partitions independent and batches with fresh findings", async () => {
     const { root, statePath, observation } = await fixture();
     const failed = dispatch(statePath, { failure: "offline backend" });
@@ -331,6 +353,22 @@ console.log('{"version":1,"status":"interaction-required"}');
     expect(operationalNoticeAdmission({ now: 10.0009,
       existingNextAllowedAt: 10.0009, keyCount: 1, maximumKeys: 64 }))
       .toEqual({ action: "refresh", emit: true });
+  });
+
+  it("saturates notice counts at the generated Bend Nat boundary", () => {
+    const maximum = Number((1n << 48n) - 1n);
+    const common = {
+      now: 1, existingNextAllowedAt: 2, keyCount: 1, maximumKeys: 64,
+      suppressedCount: maximum, pendingSuppressedCount: undefined,
+      pendingLeased: false,
+    };
+    expect(operationalNoticeAdvance(common)).toEqual({ $: "Suppressed", count: BigInt(maximum) });
+    expect(operationalNoticeAdvance({ ...common, now: 2,
+      suppressedCount: 1, pendingSuppressedCount: maximum }))
+      .toEqual({ $: "MergePending", count: BigInt(maximum) });
+    expect(operationalNoticeAdvance({ ...common, now: 2,
+      suppressedCount: 1, pendingSuppressedCount: maximum, pendingLeased: true }))
+      .toEqual({ $: "KeepLeased" });
   });
 
   it("reclaims pending notice state at the exact expiry boundary", async () => {

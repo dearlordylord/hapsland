@@ -206,6 +206,12 @@ export function bendBackgroundExpire(state: BendBackgroundWaiter,
 export type BendNoticeAction = { readonly $: "Suppress" | "Refresh" | "RejectFull" | "Create" };
 export function bendNoticeDecide(remaining: BendMaybeNat,
   count: number | bigint, maximum: number | bigint): BendNoticeAction;
+export type BendNoticeAdvance =
+  | { readonly $: "Suppressed" | "CreatePending" | "MergePending"; readonly count: bigint }
+  | { readonly $: "RejectedFull" | "CreateKey" | "KeepLeased" };
+export function bendNoticeAdvance(remaining: BendMaybeNat,
+  count: number | bigint, maximum: number | bigint, suppressed: number | bigint,
+  pending: BendMaybeNat, leased: boolean): BendNoticeAdvance;
 
 export type BendCollectionOrder = { readonly $: "Before" | "Equal" | "After" };
 export function bendCollectionOrder(leftCycle: number | bigint, leftSequence: number | bigint,

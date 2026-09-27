@@ -1,6 +1,30 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.notice_suppression_increments_count():
+  {==}
+
+def Laws.notice_suppression_saturates_at_bound():
+  {==}
+
+def Laws.notice_refresh_creates_pending_after_delivery():
+  {==}
+
+def Laws.notice_refresh_merges_unleased_pending():
+  {==}
+
+def Laws.notice_merge_saturates_at_bound():
+  {==}
+
+def Laws.notice_refresh_preserves_leased_pending():
+  {==}
+
+def Laws.notice_full_table_rejects_new_key():
+  {==}
+
+def Laws.notice_available_table_creates_new_key():
+  {==}
+
 def Laws.fitting_notice_is_included():
   {==}
 

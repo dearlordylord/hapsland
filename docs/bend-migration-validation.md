@@ -53,7 +53,10 @@ finding count, and cancellation IDs.
   and expiry decisions. The resident maps opaque writer tokens to positive
   IDs and supplies active-round and global-capacity facts.
 - `Notice.bend` decides cooldown suppression, refresh, creation, and
-  full-table rejection from measured remaining time and key count.
+  full-table rejection from measured remaining time and key count. Its
+  production advance also returns the next suppression count and whether to
+  create, merge, or preserve an existing pending notice. TypeScript applies
+  the returned change to its opaque notice and ticket-owner records.
 - `Collection.bend` orders candidate work by cycle and sequence and decides
   readiness and pending-advice expiry from elapsed-time facts.
 - `Delivery.bend` governs output-token phase transitions, authorized lease
@@ -125,6 +128,11 @@ On 2026-09-27, from this worktree:
   Bend laws cover exact item and byte limits plus the host-specific skip/stop
   behavior; an integration case confirms a shorter notice follows an
   unfitting notice only for Claude.
+- The notice coalescing migration passed the focused operational-notices and
+  resident-server suite: 2 files and 71 tests. Eight Bend laws cover
+  suppression, bounded counts, new-key admission, pending creation, unleased
+  merge, and leased preservation; integration cases check a suppressed failure
+  merged into pending output and saturation at the generated Nat limit.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
   suite reported 65 passing files and 571 passing tests, with one file and
   two tests skipped.
