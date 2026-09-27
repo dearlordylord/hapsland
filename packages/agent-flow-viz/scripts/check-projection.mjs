@@ -10,7 +10,7 @@ try {
   if (graph.CONNECTIONS.length === 0 || timing.REDUCER_SEGMENTS.length !== timing.TIMELINE_CASES.length) {
     throw new Error("Incomplete model projection");
   }
-  const evidenceRoot = new URL("../../../evidence/delivery-105/", import.meta.url);
+  const evidenceRoot = new URL("../../../evidence/advicing-linux/", import.meta.url);
   for (const scenario of timing.TIMELINE_CASES) {
     const declared = new Set(scenario.sources);
     for (const source of declared) {

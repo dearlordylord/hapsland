@@ -19,7 +19,7 @@ import { readActivity } from "../../src/activity/status.ts";
 if (process.platform !== "linux") throw new Error("Linux probe required");
 const project = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const cli = join(project, "src/cli.ts");
-const output = process.argv[2] ?? join(project, "evidence/delivery-105/linux-round-contract.json");
+const output = process.argv[2] ?? join(project, "evidence/advicing-linux/linux-round-contract.json");
 const requireThat = (condition: unknown, label: string): void => { if (!condition) throw new Error(label); };
 const deferred = () => {
   let resolve!: () => void;

@@ -3,7 +3,7 @@
 Run from the candidate worktree:
 
 ```sh
-node evidence/delivery-105/run-round-contract-linux.ts
+node evidence/advicing-linux/run-round-contract-linux.ts
 ```
 
 The [recorded results](./linux-round-contract.json) identify the candidate commit,

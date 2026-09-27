@@ -3,6 +3,9 @@
 This glossary records the domain language for the product under design. It is not an
 implementation specification.
 
+The [Advicing target contract](docs/advicing-target-contract.md) defines the
+accepted behavior that uses these terms.
+
 | Term | Meaning |
 |---|---|
 | Product | Hapsland, the runtime-neutral system we are designing around realtime coding-agent reviews. |

@@ -30,7 +30,7 @@ try {
     resultLength: message.length, stderrBytes: Buffer.byteLength(result.stderr ?? ''),
     sourceOrRawResponseRetained: false,
     limitation: 'Limit/reset metadata does not establish root cause, quota class, timezone, or recovery time' };
-  const output = process.env.HAPSLAND_105_EVIDENCE_FILE ?? 'evidence/delivery-105/linux-claude-runtime-diagnostic.json';
+  const output = process.env.HAPSLAND_105_EVIDENCE_FILE ?? 'evidence/advicing-linux/linux-claude-runtime-diagnostic.json';
   await writeFile(output, JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify(report));
 } finally {

@@ -1,6 +1,6 @@
 # Native Linux advice isolation probe
 
-Run `node evidence/delivery-105/run-native-isolation-linux.mjs` from this worktree.
+Run `node evidence/advicing-linux/run-native-isolation-linux.mjs` from this worktree.
 Optional case arguments are `codex-worktrees`, `claude-worktrees`,
 `claude-children`, and `codex-children`. Each native process has a 100-second
 ceiling. Binaries are pinned to Codex CLI 0.155.1 and Claude Code 2.1.218; paths

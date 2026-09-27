@@ -164,6 +164,6 @@ const report = { schema: 'hapsland-105-native-isolation-v1', recordedAt: new Dat
   limitations: ['No live Jev requests', 'Finding-marker routing is observed at native hook output; raw model/source output is not retained',
     'Child isolation is established only when native supplied child identities and both distinct finding destinations are observed',
     'Concurrent native runs do not by themselves prove simultaneous backend evaluations', 'Background delivery is only exercised by explicit background-worktrees cases'], results };
-const output = join(project, 'evidence/delivery-105', selected.length === 0 ? 'linux-native-isolation.json' : 'linux-native-isolation-' + selected.join('-') + '.json');
+const output = join(project, 'evidence/advicing-linux', selected.length === 0 ? 'linux-native-isolation.json' : 'linux-native-isolation-' + selected.join('-') + '.json');
 await writeFile(output, `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
 console.log(JSON.stringify({ output, cases: results.map(({ host, kind, status, suppliedChildIdentities, foreignFindingDeliveries }) => ({ host, kind, status, suppliedChildIdentities, foreignFindingDeliveries })) }));

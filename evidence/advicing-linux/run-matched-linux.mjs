@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const project = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const cli = join(project, 'src/cli.ts');
-const tracerSource = join(project, 'evidence/delivery-105/command-trace-wrapper.c');
+const tracerSource = join(project, 'evidence/advicing-linux/command-trace-wrapper.c');
 const codex = process.env.HAPSLAND_105_CODEX ?? '/tmp/hapsland-105-hosts/node_modules/.bin/codex';
 const claude = process.env.HAPSLAND_105_CLAUDE ?? '/tmp/hapsland-105-hosts/node_modules/.bin/claude';
 const selected = process.argv.slice(2);

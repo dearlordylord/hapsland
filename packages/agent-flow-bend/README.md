@@ -1,5 +1,10 @@
 # Hapsland agent flow in Bend
 
+The [product vocabulary](../../CONTEXT.md) defines the domain terms and the
+[Advicing target contract](../../docs/advicing-target-contract.md) states
+the accepted behavior. This Bend slice formalizes only the finding transition
+described below; further laws must be added before it covers the contract.
+
 **Advicing** names the whole flow from an agent-runtime hook toward advice for
 the agent. **Jeview** names only the part in which Jev evaluates one item. This
 first slice starts with an item at Jev and ends with the pending advice produced

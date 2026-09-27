@@ -2,6 +2,10 @@
 
 Independent Foldkit discussion page for Hapsland's review and advice flow.
 It does not import or change the production app.
+The [product vocabulary](../../CONTEXT.md) defines the terms, and the
+[Advicing target contract](../../docs/advicing-target-contract.md) states
+the accepted behavior. This reducer models a stated subset of that contract;
+its accepted paths do not establish production conformance.
 The separate [Bend model](../agent-flow-bend/README.md) begins with a proved
 one-item Jev-finding transition; it does not yet formalize this full reducer.
 

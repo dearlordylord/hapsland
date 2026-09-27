@@ -27,7 +27,7 @@ Evidence: `linux-claude-runtime-diagnostic.json`.
 Reproduce the settings-excluded control with:
 
 ```sh
-node evidence/delivery-105/diagnose-claude-runtime-linux.mjs
+node evidence/advicing-linux/diagnose-claude-runtime-linux.mjs
 ```
 
 The diagnostic has a 15-second ceiling and retains only structured status,

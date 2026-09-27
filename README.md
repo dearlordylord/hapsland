@@ -6,6 +6,10 @@
 
 ## What is Hapsland
 
+For the domain language and accepted agent-advice behavior, read the
+[product vocabulary](./CONTEXT.md) and
+[Advicing target contract](./docs/advicing-target-contract.md).
+
 With Jev-like AI backends, we can get real-time feedback on certain questions about our code.
 
 We can customize and write our own questions and rules,

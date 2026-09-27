@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const project = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const cli = join(project, 'src/cli.ts');
-const tracerSource = join(project, 'evidence/delivery-105/command-trace-background-wrapper.c');
+const tracerSource = join(project, 'evidence/advicing-linux/command-trace-background-wrapper.c');
 const codex = process.env.HAPSLAND_105_CODEX ?? '/tmp/hapsland-105-hosts/node_modules/.bin/codex';
 const claude = process.env.HAPSLAND_105_CLAUDE ?? '/tmp/hapsland-105-hosts/node_modules/.bin/claude';
 if (process.platform !== 'linux') throw new Error('This timing probe requires Linux');
@@ -277,5 +277,5 @@ Socket.prototype.write=function(chunk,...rest){let q;try{q=JSON.parse(String(chu
 }
 const compact = (items) => { const result=[]; for(const item of items){const previous=result.at(-1);const {at,...shape}=item; const key=JSON.stringify(shape); if(previous?.key===key){previous.value.lastAt=at;previous.value.count=(previous.value.count??1)+1;}else result.push({key,value:{...item}});} return result.map(x=>x.value); };
 for(const result of results){ result.nativeEvents=compact(result.nativeEvents);result.ipc=compact(result.ipc.filter(x=>x.operation!=='hello'&&!(x.direction==='request'&&x.operation==='collect'))); }
-const out = process.env.HAPSLAND_105_EVIDENCE_FILE ?? join(project, 'evidence/delivery-105/linux-native-background-timing' + (selected.length ? '-' + selected.join('-') : '') + '.json');
+const out = process.env.HAPSLAND_105_EVIDENCE_FILE ?? join(project, 'evidence/advicing-linux/linux-native-background-timing' + (selected.length ? '-' + selected.join('-') : '') + '.json');
 await writeFile(out, JSON.stringify({issue:105, candidateCommit:spawnSync('git',['rev-parse','HEAD'],{cwd:project,encoding:'utf8'}).stdout.trim(), platform:process.platform,node:process.version,backend:'controlled offline Effect DecisionModel',commandTiming:'Linux ptrace child launch through exit, observer overhead included',limitations:['No live Jev','No direct network request start/end instrumentation','Output submission is not proof of agent observation','Only explicit native stream/tool events support timing classifications'],cases:results},null,2)+'\n');

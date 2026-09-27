@@ -78,7 +78,7 @@ Run timing cases explicitly, for example:
 
 ```sh
 HAPSLAND_105_EVIDENCE_FILE=/tmp/background-timing.json \
-  node evidence/delivery-105/run-native-background-timing-linux.mjs codex-tool claude-tool
+  node evidence/advicing-linux/run-native-background-timing-linux.mjs codex-tool claude-tool
 ```
 
 Other case names end in `-final`, `-after-end` or `-race`. The current tool case
@@ -90,7 +90,7 @@ adds PreToolUse identification to the existing Linux command tracer.
 Run concurrent background routing with:
 
 ```sh
-node evidence/delivery-105/run-native-isolation-linux.mjs \
+node evidence/advicing-linux/run-native-isolation-linux.mjs \
   codex-background-worktrees claude-background-worktrees
 ```
 
