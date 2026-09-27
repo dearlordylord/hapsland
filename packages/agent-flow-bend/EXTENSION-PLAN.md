@@ -26,7 +26,8 @@ retire a candidate, then decides work-revision rejection, expiry, fitting
 selection, and final credential/currentness disposition. Native code supplies
 the validation, identity, clock, and credential facts.
 Background-writer and operational-notice policies also decide their expiry,
-capacity, suppression count, and pending-notice coalescing boundaries.
+capacity, suppression count, pending-notice coalescing boundaries, and pruning
+of expired leases, pending notices, and cooldown keys.
 Generated collection policy decides readiness,
 expiry, and deterministic order. Generated delivery policy decides token
 transition, lease expiry, submission admission at the Stop barrier, existing

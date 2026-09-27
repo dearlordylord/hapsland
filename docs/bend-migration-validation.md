@@ -69,7 +69,9 @@ finding count, and cancellation IDs.
   full-table rejection from measured remaining time and key count. Its
   production advance also returns the next suppression count and whether to
   create, merge, or preserve an existing pending notice. TypeScript applies
-  the returned change to its opaque notice and ticket-owner records.
+  the returned change to its opaque notice and ticket-owner records. Its prune
+  gate chooses lease, pending-notice, and cooldown-key retirement from exact
+  deadline and exception facts.
 - `Collection.bend` orders candidate work by cycle and sequence and decides
   readiness and pending-advice expiry from elapsed-time facts.
 - `Delivery.bend` governs output-token phase transitions, authorized lease
@@ -221,6 +223,9 @@ On 2026-09-27, from this worktree:
   resident-server and terminal-collection suite: 2 files and 80 tests. Ten Bend
   laws cover current and stale findings and clears, backend/credential/lost
   failures, and joined-unit settlement.
+- The notice pruning migration passed the focused resident-server and
+  terminal-collection suite: 2 files and 80 tests. Four Bend laws cover
+  expired leases, pending notices, excepted keys, and empty cooldown keys.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
   suite reported 65 passing files and 575 passing tests, with one file and
   two tests skipped.

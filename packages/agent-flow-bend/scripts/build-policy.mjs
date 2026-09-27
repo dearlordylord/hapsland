@@ -45,6 +45,7 @@ try {
         .some((name) => !source.includes(`function $Background$${name}$(`)) ||
       !source.includes("function $Notice$decide$(") ||
       !source.includes("function $Notice$advance$(") ||
+      !source.includes("function $Notice$prune$(") ||
       ["order", "eligible", "expired"]
         .some((name) => !source.includes(`function $Collection$${name}$(`)) ||
       ["transition", "expired", "background_reofferable", "existing_token_allowed", "submission_allowed", "legacy_stop_allowed",
@@ -209,6 +210,10 @@ export const bendNoticeDecide = (remaining, count, maximum) =>
 export const bendNoticeAdvance = (remaining, count, maximum, suppressed, pending, leased) =>
   run_loop($Notice$advance$(normalize(remaining), nat(count), nat(maximum),
     nat(suppressed), normalize(pending), leased, MAX_NAT));
+export const bendNoticePrune = (hasPending, leased, leaseExpired,
+  pendingExpired, excepted, cooldownExpired) =>
+  run_loop($Notice$prune$(hasPending, leased, leaseExpired,
+    pendingExpired, excepted, cooldownExpired));
 export const bendCollectionOrder = (leftCycle, leftSequence, rightCycle, rightSequence) =>
   run_loop($Collection$order$(nat(leftCycle), nat(leftSequence), nat(rightCycle), nat(rightSequence)));
 export const bendCollectionEligible = (already, turnEnd, cycleComplete, elapsed, window) =>

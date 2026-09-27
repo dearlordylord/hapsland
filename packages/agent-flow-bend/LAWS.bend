@@ -17,6 +17,22 @@ import ./Revision.bend as Revision
 import ./Reuse.bend as Reuse
 import ./Retention.bend as Retention
 
+law expired_notice_lease_drops_without_pending_expiry:
+  {Notice.prune(True{}, True{}, True{}, False{}, False{}, False{}) ==
+    Notice.Prune{True{}, False{}, False{}} : Notice.Prune}
+
+law expired_pending_notice_drops_key_after_cooldown:
+  {Notice.prune(True{}, False{}, False{}, True{}, False{}, True{}) ==
+    Notice.Prune{False{}, True{}, True{}} : Notice.Prune}
+
+law excepted_notice_key_remains_after_expiry:
+  {Notice.prune(True{}, False{}, False{}, True{}, True{}, True{}) ==
+    Notice.Prune{False{}, True{}, False{}} : Notice.Prune}
+
+law empty_expired_notice_key_is_removed:
+  {Notice.prune(False{}, False{}, False{}, False{}, False{}, True{}) ==
+    Notice.Prune{False{}, False{}, True{}} : Notice.Prune}
+
 law current_finding_is_retained:
   {Work.evaluated_disposition(True{}, True{}) ==
     Work.RetainFinding{} : Work.EvaluatedDisposition}

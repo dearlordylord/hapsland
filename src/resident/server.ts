@@ -72,6 +72,7 @@ import { bendTicketInitial, bendTicketFail, bendTicketClose, bendTicketTerminal,
   bendWorkPreparedOffer, bendWorkEmptyPrepared,
   bendWorkEvaluatedDisposition,
   bendWorkFailureDisposition, bendTicketJoinedDisposition,
+  bendNoticePrune,
   type BendTicketPhase, type BendTicketReason,
   type BendTicketUnitEvent, type BendTicketUnitStage,
   type BendValidationStatus } from "./bend-policy.generated.js";
@@ -1348,14 +1349,19 @@ export class ResidentServer {
   #pruneNoticeCooldowns(now: number, exceptKey?: string): void {
     for (const [key, cooldown] of this.#noticeCooldowns) {
       const pending = cooldown.pending;
+      const prune = bendNoticePrune(pending !== undefined, pending?.delivery !== undefined,
+        pending?.delivery !== undefined && pending.delivery.leaseUntil <= now,
+        pending !== undefined && isPendingAdviceExpired(pending, now),
+        key === exceptKey, cooldown.nextAllowedAt <= now);
+      if (prune.$ !== "Prune") throw new Error("Bend denied notice pruning");
       if (pending !== undefined) {
-        if (pending.delivery !== undefined && pending.delivery.leaseUntil <= now) delete pending.delivery;
-        if (isPendingAdviceExpired(pending, now)) {
+        if (prune.drop_lease) delete pending.delivery;
+        if (prune.drop_pending) {
           this.#noticeOwners.delete(pending.id);
           delete cooldown.pending;
         }
       }
-      if (key !== exceptKey && cooldown.pending === undefined && cooldown.nextAllowedAt <= now) {
+      if (prune.drop_key) {
         this.#releaseNoticeCooldown(key);
       }
     }

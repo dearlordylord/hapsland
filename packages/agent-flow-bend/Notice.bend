@@ -24,6 +24,16 @@ type Advance is Data:
   MergePending{count: Nat}
   KeepLeased{}
 
+type Prune is Data:
+  Prune{drop_lease: Bool, drop_pending: Bool, drop_key: Bool}
+
+def prune(+has_pending: Bool, leased: Bool, lease_expired: Bool,
+    +pending_expired: Bool, excepted: Bool, cooldown_expired: Bool) -> Prune:
+  Prune{Bool.and(has_pending, Bool.and(leased, lease_expired)),
+    Bool.and(has_pending, pending_expired),
+    Bool.and(Bool.not(excepted), Bool.and(cooldown_expired,
+      Bool.or(Bool.not(has_pending), pending_expired)))}
+
 def bounded_add.result(left: Nat, right: Nat, maximum: Nat, over: Bool) -> Nat:
   match over:
     case True{}:

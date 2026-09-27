@@ -242,6 +242,11 @@ export type BendNoticeAdvance =
 export function bendNoticeAdvance(remaining: BendMaybeNat,
   count: number | bigint, maximum: number | bigint, suppressed: number | bigint,
   pending: BendMaybeNat, leased: boolean): BendNoticeAdvance;
+export type BendNoticePrune = { readonly $: "Prune"; readonly drop_lease: boolean;
+  readonly drop_pending: boolean; readonly drop_key: boolean };
+export function bendNoticePrune(hasPending: boolean, leased: boolean,
+  leaseExpired: boolean, pendingExpired: boolean, excepted: boolean,
+  cooldownExpired: boolean): BendNoticePrune;
 
 export type BendCollectionOrder = { readonly $: "Before" | "Equal" | "After" };
 export function bendCollectionOrder(leftCycle: number | bigint, leftSequence: number | bigint,

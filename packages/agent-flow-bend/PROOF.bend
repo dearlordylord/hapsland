@@ -1,6 +1,18 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.expired_notice_lease_drops_without_pending_expiry():
+  {==}
+
+def Laws.expired_pending_notice_drops_key_after_cooldown():
+  {==}
+
+def Laws.excepted_notice_key_remains_after_expiry():
+  {==}
+
+def Laws.empty_expired_notice_key_is_removed():
+  {==}
+
 def Laws.current_finding_is_retained():
   {==}
 
