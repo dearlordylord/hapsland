@@ -64,6 +64,8 @@ import { bendTicketInitial, bendTicketFail, bendTicketClose, bendTicketTerminal,
   bendReuseRoute, bendReuseCacheRoute,
   bendDeliveryAcknowledge, bendDeliveryFinalize, bendDeliveryFindingDisposition,
   bendDeliveryReleaseUnacknowledged,
+  bendDeliveryCollectionLease, bendDeliveryAdviceCandidate,
+  bendDeliveryNoticeCandidate, bendDeliveryReserveCandidate,
   type BendTicketPhase, type BendTicketReason,
   type BendTicketUnitEvent, type BendTicketUnitStage } from "./bend-policy.generated.js";
 import {
@@ -795,17 +797,27 @@ export class ResidentServer {
     // Stop can reoffer only after the background writer has reached a terminal
     // submitted or uncertain state; a live authorized writer remains exclusive.
     for (const item of this.#advice) {
-      if (item.delivery !== undefined && (item.delivery.leaseUntil <= now ||
-          (stopCollector &&
-            adviceeGroup(item.observation.root, item.observation.advicee) === partition &&
-            this.#composedDelivery.backgroundReofferable(item.id, item.delivery.token)))) delete item.delivery;
+      const delivery = item.delivery;
+      const sameGroup = adviceeGroup(item.observation.root, item.observation.advicee) === partition;
+      const action = bendDeliveryCollectionLease(delivery !== undefined,
+        delivery !== undefined && delivery.leaseUntil <= now, stopCollector, sameGroup,
+        delivery !== undefined && stopCollector && sameGroup &&
+          this.#composedDelivery.backgroundReofferable(item.id, delivery.token));
+      if (action.$ === "DropLease") delete item.delivery;
     }
-    const available = this.#advice.filter((item) =>
-      (composed ? adviceeGroup(item.observation.root, item.observation.advicee) === partition
-        : item.partition === partition) && item.delivery === undefined &&
-      item.findings.some((finding) => !this.#composedDelivery.suppresses(
-        item.id, adviceeGroup(item.observation.root, item.observation.advicee), finding, stopCollector ? "stop" : undefined)) &&
-      (ticket === undefined || ticket.units.some((unit) => unit.current.stage.$ === "UnitFinding" && unit.current.adviceId === item.id)));
+    const available = this.#advice.filter((item) => {
+      const samePartition = composed
+        ? adviceeGroup(item.observation.root, item.observation.advicee) === partition
+        : item.partition === partition;
+      const unleased = item.delivery === undefined;
+      const hasUnsuppressed = samePartition && unleased && item.findings.some((finding) =>
+        !this.#composedDelivery.suppresses(item.id,
+          adviceeGroup(item.observation.root, item.observation.advicee), finding,
+          stopCollector ? "stop" : undefined));
+      const ticketOwns = ticket === undefined || ticket.units.some((unit) =>
+        unit.current.stage.$ === "UnitFinding" && unit.current.adviceId === item.id);
+      return bendDeliveryAdviceCandidate(samePartition, unleased, hasUnsuppressed, ticketOwns);
+    });
     const cycles = new Map<number, Array<Advice>>();
     for (const item of available) {
       const cohort = cycles.get(item.cycle) ?? [];
@@ -841,7 +853,8 @@ export class ResidentServer {
     const selected: Array<Advice> = [];
     let selectedFindings: Array<Finding> = [];
     for (const id of eligible) {
-      const advice = this.#advice.find((item) => item.id === id && item.delivery === undefined);
+      const advice = this.#advice.find((item) => item.id === id &&
+        bendDeliveryReserveCandidate(item.delivery === undefined));
       if (advice === undefined) continue;
       advice.delivery = {
         token,
@@ -1252,11 +1265,12 @@ export class ResidentServer {
     composed = false,
   ): ReadonlyArray<PendingNotice> {
     const candidates = [...this.#noticeCooldowns.values()]
-      .filter((cooldown) =>
-        (composed ? cooldown.deliveryGroup === partition : cooldown.partition === partition) &&
-        cooldown.pending !== undefined &&
-        cooldown.pending.delivery === undefined &&
-        (ticket === undefined || this.#noticeOwners.get(cooldown.pending.id)?.has(ticket.ticket.nonce) === true))
+      .filter((cooldown) => bendDeliveryNoticeCandidate(
+        composed ? cooldown.deliveryGroup === partition : cooldown.partition === partition,
+        cooldown.pending !== undefined,
+        cooldown.pending?.delivery === undefined,
+        ticket === undefined || (cooldown.pending !== undefined &&
+          this.#noticeOwners.get(cooldown.pending.id)?.has(ticket.ticket.nonce) === true)))
       .flatMap((cooldown) => cooldown.pending === undefined ? [] : [cooldown.pending])
       .sort((left, right) => left.sequence - right.sequence);
     const candidateValues = candidates.map(({ value }) => value);

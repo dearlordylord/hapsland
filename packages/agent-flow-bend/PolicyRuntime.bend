@@ -81,6 +81,10 @@ type Smoke is Data:
     delivery_final: Delivery.FinalDecision
     delivery_finding: Delivery.FindingDisposition
     delivery_release: Bool
+    collection_lease: Delivery.CollectionLeaseAction
+    advice_candidate: Bool
+    notice_candidate: Bool
+    reserve_candidate: Bool
     reuse_route: Reuse.Route
     reuse_cache_route: Reuse.CacheRoute
     cache_admission: Cache.Admission
@@ -193,6 +197,10 @@ def main() -> Smoke:
     Delivery.finalize(1n, True{}, False{}),
     Delivery.finding_disposition(False{}, 0n),
     Delivery.release_unacknowledged(False{}),
+    Delivery.collection_lease(True{}, False{}, True{}, True{}, True{}),
+    Delivery.advice_candidate(True{}, True{}, True{}, True{}),
+    Delivery.notice_candidate(True{}, True{}, True{}, True{}),
+    Delivery.reserve_candidate(True{}),
     Reuse.route(False{}, False{}, False{}),
     Reuse.cache_route(False{}),
     Cache.admit(False{}, 10n, 100n),

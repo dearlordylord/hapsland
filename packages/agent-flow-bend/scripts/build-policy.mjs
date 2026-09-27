@@ -42,7 +42,8 @@ try {
       ["order", "eligible", "expired"]
         .some((name) => !source.includes(`function $Collection$${name}$(`)) ||
       ["transition", "expired", "background_reofferable", "existing_token_allowed", "submission_allowed", "legacy_stop_allowed",
-        "acknowledge", "finalize", "finding_disposition", "release_unacknowledged"]
+        "acknowledge", "finalize", "finding_disposition", "release_unacknowledged",
+        "collection_lease", "advice_candidate", "notice_candidate", "reserve_candidate"]
         .some((name) => !source.includes(`function $Delivery$${name}$(`)) ||
       ["admit", "evict"].some((name) => !source.includes(`function $Cache$${name}$(`)) ||
       !source.includes("function $Lifecycle$cutoff$(") ||
@@ -207,6 +208,14 @@ export const bendDeliveryFindingDisposition = (composed, remaining) =>
   run_loop($Delivery$finding_disposition$(composed, nat(remaining)));
 export const bendDeliveryReleaseUnacknowledged = (acknowledged) =>
   run_loop($Delivery$release_unacknowledged$(acknowledged));
+export const bendDeliveryCollectionLease = (hasLease, expired, stopCollector, sameGroup, reofferable) =>
+  run_loop($Delivery$collection_lease$(hasLease, expired, stopCollector, sameGroup, reofferable));
+export const bendDeliveryAdviceCandidate = (samePartition, unleased, hasUnsuppressed, ticketOwns) =>
+  run_loop($Delivery$advice_candidate$(samePartition, unleased, hasUnsuppressed, ticketOwns));
+export const bendDeliveryNoticeCandidate = (samePartition, hasPending, unleased, ticketOwns) =>
+  run_loop($Delivery$notice_candidate$(samePartition, hasPending, unleased, ticketOwns));
+export const bendDeliveryReserveCandidate = (unleased) =>
+  run_loop($Delivery$reserve_candidate$(unleased));
 export const bendReuseRoute = (liveAdvice, attachedPending, claimedPending) =>
   run_loop($Reuse$route$(liveAdvice, attachedPending, claimedPending));
 export const bendReuseCacheRoute = (hit) =>

@@ -1,6 +1,27 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.expired_collection_lease_is_dropped():
+  {==}
+
+def Laws.live_background_lease_stays_before_terminal_reoffer():
+  {==}
+
+def Laws.terminal_background_lease_reoffers_only_to_own_stop():
+  {==}
+
+def Laws.other_group_stop_cannot_drop_lease():
+  {==}
+
+def Laws.available_advice_requires_ticket_and_unsuppressed_finding():
+  {==}
+
+def Laws.leased_advice_cannot_be_candidate():
+  {==}
+
+def Laws.pending_notice_requires_unleased_owned_record():
+  {==}
+
 def Laws.no_delivery_cannot_acknowledge():
   {==}
 

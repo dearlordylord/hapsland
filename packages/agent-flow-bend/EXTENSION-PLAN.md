@@ -25,7 +25,8 @@ expiry, and deterministic order. Generated delivery policy decides token
 transition, lease expiry, submission admission at the Stop barrier, existing
 token finish-permit admission, legacy Stop authorization, acknowledgement and
 finalization gates, and whether a completed finding retires its advice or
-remains available for reoffer. Generated cache policy decides successful-review
+remains available for reoffer. It also decides when collection drops a native
+lease and whether advice or notice candidates can be reserved. Generated cache policy decides successful-review
 admission and eviction pressure. Generated reuse policy decides whether an
 evaluation joins live advice, attached or bare pending work, reads successful
 cache, or claims a new owner. Generated ticket policy decides unit-state

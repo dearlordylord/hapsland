@@ -33,6 +33,29 @@ type FindingDisposition is Data:
   KeepRemaining{}
   KeepForReoffer{}
 
+type CollectionLeaseAction is Data:
+  KeepLease{}
+  DropLease{}
+
+def collection_lease(has_lease: Bool, expired: Bool, stop_collector: Bool,
+    same_group: Bool, background_reofferable: Bool) -> CollectionLeaseAction:
+  Bool.pick(CollectionLeaseAction,
+    Bool.and(has_lease, Bool.or(expired,
+      Bool.and(stop_collector, Bool.and(same_group, background_reofferable)))),
+    DropLease{}, KeepLease{})
+
+def advice_candidate(same_partition: Bool, unleased: Bool,
+    has_unsuppressed_finding: Bool, ticket_owns: Bool) -> Bool:
+  Bool.and(same_partition, Bool.and(unleased,
+    Bool.and(has_unsuppressed_finding, ticket_owns)))
+
+def notice_candidate(same_partition: Bool, has_pending: Bool,
+    unleased: Bool, ticket_owns: Bool) -> Bool:
+  Bool.and(same_partition, Bool.and(has_pending, Bool.and(unleased, ticket_owns)))
+
+def reserve_candidate(unleased: Bool) -> Bool:
+  unleased
+
 # A native token identifies leased findings and notices. Time comparison and
 # exact content subtraction are measured outside Bend; these decisions own
 # terminal eligibility and the resulting native record disposition.

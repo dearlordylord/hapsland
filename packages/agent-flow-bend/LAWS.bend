@@ -16,6 +16,31 @@ import ./Ticket.bend as Ticket
 import ./Revision.bend as Revision
 import ./Reuse.bend as Reuse
 
+law expired_collection_lease_is_dropped:
+  {Delivery.collection_lease(True{}, True{}, False{}, False{}, False{}) ==
+    Delivery.DropLease{} : Delivery.CollectionLeaseAction}
+
+law live_background_lease_stays_before_terminal_reoffer:
+  {Delivery.collection_lease(True{}, False{}, True{}, True{}, False{}) ==
+    Delivery.KeepLease{} : Delivery.CollectionLeaseAction}
+
+law terminal_background_lease_reoffers_only_to_own_stop:
+  {Delivery.collection_lease(True{}, False{}, True{}, True{}, True{}) ==
+    Delivery.DropLease{} : Delivery.CollectionLeaseAction}
+
+law other_group_stop_cannot_drop_lease:
+  {Delivery.collection_lease(True{}, False{}, True{}, False{}, True{}) ==
+    Delivery.KeepLease{} : Delivery.CollectionLeaseAction}
+
+law available_advice_requires_ticket_and_unsuppressed_finding:
+  {Delivery.advice_candidate(True{}, True{}, True{}, True{}) == True{} : Bool}
+
+law leased_advice_cannot_be_candidate:
+  {Delivery.advice_candidate(True{}, False{}, True{}, True{}) == False{} : Bool}
+
+law pending_notice_requires_unleased_owned_record:
+  {Delivery.notice_candidate(True{}, True{}, False{}, True{}) == False{} : Bool}
+
 law no_delivery_cannot_acknowledge:
   {Delivery.acknowledge(0n, False{}) == Delivery.AckEmpty{} : Delivery.AckDecision}
 

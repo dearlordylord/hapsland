@@ -181,6 +181,9 @@ On 2026-09-27, from this worktree:
   composed-delivery, and terminal-collection suite: 3 files and 99 tests. Eight
   Bend laws cover ack and finalize precedence, expired leases, composed reoffer,
   and partial versus complete noncomposed delivery.
+- The collection lease and candidate migration passed the same focused suite:
+  3 files and 99 tests. Seven Bend laws cover expiry, exclusive live leases,
+  Stop reoffer scope, and advice or notice candidate ownership.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
   suite reported 65 passing files and 575 passing tests, with one file and
   two tests skipped.

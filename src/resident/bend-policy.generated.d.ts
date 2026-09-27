@@ -251,6 +251,14 @@ export function bendDeliveryFinalize(items: number | bigint, allAcknowledged: bo
 export function bendDeliveryFindingDisposition(composed: boolean,
   remaining: number | bigint): BendDeliveryFindingDisposition;
 export function bendDeliveryReleaseUnacknowledged(acknowledged: boolean): boolean;
+export type BendCollectionLeaseAction = { readonly $: "KeepLease" | "DropLease" };
+export function bendDeliveryCollectionLease(hasLease: boolean, expired: boolean,
+  stopCollector: boolean, sameGroup: boolean, reofferable: boolean): BendCollectionLeaseAction;
+export function bendDeliveryAdviceCandidate(samePartition: boolean, unleased: boolean,
+  hasUnsuppressed: boolean, ticketOwns: boolean): boolean;
+export function bendDeliveryNoticeCandidate(samePartition: boolean, hasPending: boolean,
+  unleased: boolean, ticketOwns: boolean): boolean;
+export function bendDeliveryReserveCandidate(unleased: boolean): boolean;
 
 export type BendReuseRoute = { readonly $: "JoinAdvice" | "JoinPending" | "JoinClaimed" | "LookupCache" };
 export type BendReuseCacheRoute = { readonly $: "Cached" | "Own" };
