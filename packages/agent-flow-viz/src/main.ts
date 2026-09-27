@@ -1,5 +1,6 @@
 import { Schema } from "effect";
 import { timelineView } from "./timeline-view";
+import { BEND_CONNECTIONS, bendRouteFor, compareHistory } from "./bend-comparison";
 import { TIMELINE_CASES } from "./timeline";
 import { Runtime, type Update } from "foldkit";
 import type { Document, HtmlBuilder } from "foldkit/html";
@@ -213,8 +214,9 @@ const geometry = (transition: Transition) => {
   };
 };
 
-const arrow = (h: HtmlBuilder<Message>, events: readonly EventId[], number: number, active: boolean) => {
-  const transition = routeFor(events[0]);
+const arrow = (h: HtmlBuilder<Message>, events: readonly EventId[], number: number, active: boolean,
+  route: (event: EventId) => Transition) => {
+  const transition = route(events[0]);
   const { path, badge } = geometry(transition);
   const stroke = active ? "#e66035" : transition.kind === "control" ? "#8b94a5" : "#98a9bd";
   return h.g([], [
@@ -268,7 +270,9 @@ const nodeView = (h: HtmlBuilder<Message>, id: NodeId, model: Model) => {
   ]);
 };
 
-const chart = (model: Model, h: HtmlBuilder<Message>) => h.div([h.Class("chart-scroll")], [
+const chart = (model: Model, h: HtmlBuilder<Message>,
+  connections: readonly (readonly EventId[])[] = CONNECTIONS,
+  route: (event: EventId) => Transition = routeFor) => h.div([h.Class("chart-scroll")], [
   h.svg([h.ViewBox("0 0 1450 1010"), h.Role("img"),
     h.AriaLabel("One-agent, multiple-review-item model: event-labeled data flow from agent edit through Hapsland and Jev to agent runtime output")], [
     h.defs([], [
@@ -284,7 +288,8 @@ const chart = (model: Model, h: HtmlBuilder<Message>) => h.div([h.Class("chart-s
     h.text([h.X("30"), h.Y("28"), h.FontSize("13"), h.FontWeight("700"), h.Fill("#34516e")], [
       `Model scope: one agent · multiple items · ${model.flow.reviewCapacity} Jev slots (settable)`,
     ]),
-    ...CONNECTIONS.map((events, index) => arrow(h, events, index + 1, events.some((event) => model.lastChangeEvents.includes(event)))),
+    ...connections.map((events, index) => arrow(h, events, index + 1,
+      events.some((event) => model.lastChangeEvents.includes(event)), route)),
     ...NODE_IDS.map((id) => nodeView(h, id, model)),
     ...[
       { x: 30, y: 945, text: "Hook response command and observed write are separate boundaries." },
@@ -350,27 +355,83 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const redo = model.history[model.historyPosition];
   const blocked = guidedBlock(model);
   const liveItems = model.flow.packets;
+  const comparison = compareHistory(model.history.slice(0, model.historyPosition).map((step) =>
+    step.kind === "capacity"
+      ? { event: { type: step.capacityType === "source" ? "SourceCapacitySet" as const : "ReviewCapacitySet" as const,
+          capacity: step.capacity } }
+      : { event: step.event, itemId: step.event === "EditObserved" ? undefined : step.itemId ?? undefined }));
+  const bendModel: Model = {
+    ...model,
+    flow: comparison.flow,
+    lastChangeEvents: comparison.changes.flatMap((change) => change.kind === "transition" ? [change.event] : []),
+    lastFinishDecision: comparison.finishDecision,
+    emissions: comparison.emissions,
+  };
   return {
     title: "Hapsland · agent flow visualization",
     body: h.main([h.Class("page")], [
       h.header([h.Class("page-header")], [
-        h.p([h.Class("eyebrow")], ["SIDECAR MODEL · FOLDKIT"]),
+        h.p([h.Class("eyebrow")], ["SIDECAR AND BEND FLOW MODELS · FOLDKIT"]),
         h.h1([], ["From agent edit to Jev and back"]),
         h.a([h.Href("#timing-diagrams"), h.Class("timing-jump")], ["Jump to timing diagrams ↓"]),
         h.p([h.Class("intro")], [
-          "One agent reports edits and receives advice through Claude Code or Codex. The runtime adapter identifies the agent. A sidecar reducer drives this data-flow example.",
+          "One agent reports edits and receives advice through Claude Code or Codex. The runtime adapter identifies the agent. The TypeScript sidecar and compiled Bend flow reducer replay the same inputs below.",
         ]),
         h.p([h.Class("caveat")], [
-          `One agent, separate edit and review queues, immediate retention of Jev findings, and ${model.flow.reviewCapacity} configured Jev slots. No live connection or multiple-agent simulation.`,
+          `One agent, separate edit and review queues, immediate retention of Jev findings, and ${model.flow.reviewCapacity} configured Jev slots. No live connection or multiple-agent simulation. The Bend flow model is narrower than production policy.`,
         ]),
       ]),
       h.section([h.Class("chart-panel")], [
         h.div([h.Class("section-head")], [
-          h.h2([], ["Review and advice flow"]),
+          h.h2([], ["Review and advice flow · two code paths"]),
           h.span([], ["Scroll horizontally on narrow screens"]),
         ]),
-        chart(model, h),
-        finishDecisionChart(model, h),
+        h.div([h.Class("comparison-grid")], [
+          h.div([h.Class("comparison-column")], [
+            h.h3([], ["TypeScript sidecar reducer"]),
+            h.p([h.Class("description")], ["Current diagram's original interactive model."]),
+            chart(model, h),
+            finishDecisionChart(model, h),
+          ]),
+          h.div([h.Class("comparison-column")], [
+            h.h3([], ["Compiled Bend Flow.bend reducer"]),
+            h.p([h.Class("description")], ["Replayed from the same accepted event history. State, routes, emissions, and finish choice come from generated Bend JavaScript. Layout and labels are shared presentation code."]),
+            chart(bendModel, h, BEND_CONNECTIONS, bendRouteFor),
+            finishDecisionChart(bendModel, h),
+          ]),
+        ]),
+        h.div([h.Class(comparison.differences.length === 0 ? "comparison-status matched" : "comparison-status different")], [
+          h.strong([], [comparison.differences.length === 0
+            ? `Routes and ${comparison.compared} applied step${comparison.compared === 1 ? "" : "s"} match`
+            : `${comparison.differences.length} difference${comparison.differences.length === 1 ? "" : "s"} in routes or ${comparison.compared} applied steps`]),
+          h.p([], ["Compared every displayed route plus acceptance, rejection reasons, ordered changes, and projected flow state for this replay. This is not a proof of every possible path or of the wider resident."]),
+          ...comparison.differences.map((difference) => h.p([], [difference])),
+        ]),
+      ]),
+      h.section([h.Class("card policy-scope")], [
+        h.h2([], ["What the sidecar does not model"]),
+        h.p([], ["The twin diagrams compare the overlapping Flow.bend reducer only. Production calls separate generated Bend policies for the stages below. A matching diagram does not establish parity for those stages. Follow each link to the Bend source and the resident call site."]),
+        h.div([h.Class("scope-list")], [
+          ...([
+            ["Edit permits and admission", "Admission.bend", "src/resident/composed-delivery.ts"],
+            ["Observation fan-out and work cancellation", "Work.bend", "src/resident/bend-work.ts"],
+            ["Stop cutoff and final output reservation", "Lifecycle.bend", "src/resident/bend-work.ts"],
+            ["Finding selection and collection gates", "Collection.bend", "src/resident/collection.ts"],
+            ["Per-finding delivery leases", "Delivery.bend", "src/resident/composed-delivery.ts"],
+            ["Ticket outcomes and final authority", "Ticket.bend", "src/resident/server.ts"],
+            ["Logical capacity ledger", "Ledger.bend", "src/resident/capacity.ts"],
+            ["Revision supersession", "Revision.bend", "src/resident/server.ts"],
+            ["Reuse routing", "Reuse.bend", "src/resident/server.ts"],
+            ["Successful-review cache pressure", "Cache.bend", "src/resident/evaluation-reuse.ts"],
+            ["Operational notices", "Notice.bend", "src/resident/operational-notice-policy.ts"],
+            ["Ticket retention", "Retention.bend", "src/resident/server.ts"],
+          ] as const).map(([label, bendSource, caller]) => h.div([h.Class("scope-row")], [
+            h.strong([], [label]),
+            h.a([h.Href(`https://github.com/dearlordylord/hapsland/blob/ed4ac70/packages/agent-flow-bend/${bendSource}`)], [bendSource]),
+            h.a([h.Href(`https://github.com/dearlordylord/hapsland/blob/ed4ac70/${caller}`)], ["resident use"]),
+          ])),
+        ]),
+        h.p([h.Class("description")], ["Flow.bend is an executable parity model; production uses generated gates from the richer Bend modules. The resident still performs I/O, source capture, identity and time measurements, and applies the decisions in TypeScript."]),
       ]),
       h.section([h.Class("capacity-control")], [
         h.label([h.For("source-capacity")], ["Concurrent source readings"]),

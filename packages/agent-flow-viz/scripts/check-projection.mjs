@@ -6,6 +6,33 @@ const server = await createServer({ server: { middlewareMode: true }, appType: "
 try {
   const graph = await server.ssrLoadModule("/src/generation.ts");
   const timing = await server.ssrLoadModule("/src/timeline.ts");
+  const comparison = await server.ssrLoadModule("/src/bend-comparison.ts");
+  const scenarios = await server.ssrLoadModule("/src/scenarios.ts");
+  for (const trace of scenarios.TRACES) {
+    const result = comparison.compareHistory(trace.events.map((event) => ({ event })));
+    if (result.differences.length > 0) {
+      throw new Error(`Bend visualization diverges in ${trace.name}: ${result.differences.join("; ")}`);
+    }
+  }
+  for (const [label, inputs] of [
+    ["capacity", [
+      { event: { type: "SourceCapacitySet", capacity: 1 } },
+      { event: "EditObserved" }, { event: "EditObserved" },
+      { event: { type: "ReviewCapacitySet", capacity: 1 } },
+      { event: "ReviewUnitPrepared" },
+    ]],
+    ["rejections", [
+      { event: "StopHookFired" },
+      { event: { type: "SourceCapacitySet", capacity: 0 } },
+      { event: "EditObserved" },
+      { event: "AdviceLeasedByBackground" },
+    ]],
+  ]) {
+    const result = comparison.compareHistory(inputs);
+    if (result.differences.length > 0) {
+      throw new Error(`Bend visualization diverges in ${label}: ${result.differences.join("; ")}`);
+    }
+  }
   if (graph.CONNECTIONS.length === 0 || timing.REDUCER_SEGMENTS.length !== timing.TIMELINE_CASES.length) {
     throw new Error("Incomplete model projection");
   }

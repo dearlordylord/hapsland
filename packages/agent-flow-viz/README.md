@@ -1,14 +1,21 @@
 # Hapsland agent flow visualization
 
 Independent Foldkit discussion page for Hapsland's review and advice flow.
-It does not import or change the production app.
+It imports generated Bend flow JavaScript but does not import or change the
+production resident.
 The [product vocabulary](../../CONTEXT.md) defines the terms, and the
 [Advicing target contract](../../docs/advicing-target-contract.md) states
 the accepted behavior. This reducer models a stated subset of that contract;
 its accepted paths do not establish production conformance.
-The separate [Bend model](../agent-flow-bend/README.md) implements this
-discussion reducer and checks its state, decisions, and ordered change records
-against this sidecar. Product integration remains a separate step.
+The [Bend model](../agent-flow-bend/README.md) implements the overlapping
+discussion reducer. The page now replays the same accepted history through
+both reducers, draws their projected state and changes side by side, and shows
+the first-class differences in acceptance, ordered changes, and state fields.
+Both diagrams share layout and wording. A match for the current replay is not
+a proof of all paths, and the Bend flow model is narrower than the generated
+policies called by the production resident. The page lists those production
+policy areas separately with links to Bend sources and resident call sites.
+The build checks all nine guided traces through this browser projection.
 
 ```sh
 cd packages/agent-flow-viz
