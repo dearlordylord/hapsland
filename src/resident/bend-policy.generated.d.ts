@@ -199,3 +199,14 @@ export function bendCollectionEligible(already: boolean, turnEnd: boolean,
   cycleComplete: boolean, elapsed: number | bigint, window: number | bigint): boolean;
 export function bendCollectionExpired(elapsed: number | bigint,
   lifetime: number | bigint): boolean;
+
+export type BendDeliveryPhase = { readonly $: "Reserved" | "Authorized" | "Submitted" | "Uncertain" };
+export type BendDeliverySurface = { readonly $: "Edit" | "Background" | "Stop" };
+export type BendDeliveryStep = { readonly $: "Granted" | "Denied";
+  readonly phase: BendDeliveryPhase };
+export function bendDeliveryTransition(current: BendDeliveryPhase,
+  requested: BendDeliveryPhase): BendDeliveryStep;
+export function bendDeliveryExpired(phase: BendDeliveryPhase,
+  elapsed: number | bigint, lifetime: number | bigint): boolean;
+export function bendDeliveryBackgroundReofferable(phase: BendDeliveryPhase,
+  surface: BendDeliverySurface): boolean;

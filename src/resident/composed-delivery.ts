@@ -12,6 +12,8 @@ import {
   type BendAdmissionState,
   bendBackgroundInitial, bendBackgroundClaim, bendBackgroundRelease,
   bendBackgroundExpire, type BendBackgroundWaiter,
+  bendDeliveryTransition, bendDeliveryExpired, bendDeliveryBackgroundReofferable,
+  type BendDeliveryPhase,
 } from "./bend-policy.generated.js";
 
 /** Shared round and source-free handoff state for every agent runtime. */
@@ -437,6 +439,20 @@ export class ComposedDelivery {
     return { $: surface === "edit" ? "Edit" : surface === "background" ? "Background" : "Stop" };
   }
 
+  #deliveryPhase(status: SubmissionBatch["status"]): BendDeliveryPhase {
+    return { $: status === "reserved" ? "Reserved" : status === "authorized" ? "Authorized"
+      : status === "submitted" ? "Submitted" : "Uncertain" };
+  }
+
+  #batchStatus(phase: BendDeliveryPhase): SubmissionBatch["status"] {
+    switch (phase.$) {
+      case "Reserved": return "reserved";
+      case "Authorized": return "authorized";
+      case "Submitted": return "submitted";
+      case "Uncertain": return "uncertain";
+    }
+  }
+
   #leaseFor(submission: Submission, digest: string): BendLease | null | undefined {
     let lease: BendLease | undefined;
     try {
@@ -510,10 +526,11 @@ export class ComposedDelivery {
     for (const [id, submission] of this.#submissions) {
       const batch = submission.batches.get(token);
       if (batch === undefined) continue;
-      if (status === "authorized" ? batch.status !== "reserved"
-        : batch.status !== "authorized") return false;
+      const transition = bendDeliveryTransition(this.#deliveryPhase(batch.status),
+        this.#deliveryPhase(status));
+      if (transition.$ !== "Granted") return false;
       const batches = new Map(submission.batches);
-      batches.set(token, { ...batch, status });
+      batches.set(token, { ...batch, status: this.#batchStatus(transition.phase) });
       const next: Submission = { ...submission, batches };
       for (const digest of batch.fingerprints) if (this.#leaseFor(next, digest) === null) return false;
       staged.push([id, next]);
@@ -568,8 +585,8 @@ export class ComposedDelivery {
 
   backgroundReofferable(adviceId: string, token: string): boolean {
     const batch = this.#submissions.get(adviceId)?.batches.get(token);
-    return batch?.surface === "background" &&
-      (batch.status === "submitted" || batch.status === "uncertain");
+    return batch !== undefined && bendDeliveryBackgroundReofferable(
+      this.#deliveryPhase(batch.status), this.#leaseSurface(batch.surface));
   }
 
   hasToken(token: string): boolean {
@@ -588,7 +605,8 @@ export class ComposedDelivery {
     const expired = new Set<string>();
     for (const submission of this.#submissions.values()) {
       for (const [token, batch] of submission.batches) {
-        if (batch.status === "authorized" && now - batch.at >= DELIVERY_LEASE_MS) expired.add(token);
+        const elapsed = Math.floor(Math.min(DELIVERY_LEASE_MS, Math.max(0, now - batch.at)));
+        if (bendDeliveryExpired(this.#deliveryPhase(batch.status), elapsed, DELIVERY_LEASE_MS)) expired.add(token);
       }
     }
     for (const token of expired) this.markUncertain(token);

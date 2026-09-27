@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { BACKGROUND_WAITER_EXPIRY_MS, ComposedDelivery, MAX_COMPOSED_ROUNDS } from "./composed-delivery.ts";
+import { DELIVERY_LEASE_MS } from "./protocol.ts";
 
 describe("shared Hapsland rounds", () => {
   it("allows four continuation reservations; prompts and expiry cannot reset them", () => {
@@ -157,5 +158,19 @@ describe("shared Hapsland rounds", () => {
     state.releaseBackground("agent", "worker");
     expect(state.suppresses("advice", "agent", finding, "stop")).toBe(false);
     expect(state.beginSubmission("advice", "agent", "stop", [finding], "stop", 2)).toBe(true);
+  });
+
+  it("expires an authorized background output only at its full fractional-time lease", () => {
+    const state = new ComposedDelivery();
+    const finding = { rule: "r", advice: "repair" };
+    state.admitEdit("agent", "edit", 0);
+    expect(state.beginSubmission("advice", "agent", "bg", [finding], "background", 0.9)).toBe(true);
+    expect(state.backgroundReofferable("advice", "bg")).toBe(false);
+    state.expire(DELIVERY_LEASE_MS + 0.1);
+    expect(state.suppresses("advice", "agent", finding, "stop")).toBe(true);
+    state.expire(DELIVERY_LEASE_MS + 0.9);
+    expect(state.backgroundReofferable("advice", "bg")).toBe(true);
+    expect(state.suppresses("advice", "agent", finding, "stop")).toBe(false);
+    expect(state.markSubmitted("bg")).toBe(false);
   });
 });

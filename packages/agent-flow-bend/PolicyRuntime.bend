@@ -7,6 +7,7 @@ import ./Round.bend as Round
 import ./Background.bend as Background
 import ./Notice.bend as Notice
 import ./Collection.bend as Collection
+import ./Delivery.bend as Delivery
 
 type Smoke is Data:
   Smoke{
@@ -60,6 +61,9 @@ type Smoke is Data:
     collection_order: Collection.Order
     collection_eligible: Bool
     collection_expired: Bool
+    delivery_transition: Delivery.Step
+    delivery_expired: Bool
+    background_reofferable: Bool
   }
 
 def sample_work() -> Work.Work:
@@ -134,5 +138,8 @@ def main() -> Smoke:
     Notice.decide(Some{10n}, 1n, 64n),
     Collection.order(1n, 2n, 1n, 3n),
     Collection.eligible(False{}, False{}, False{}, 50n, 50n),
-    Collection.expired(600000n, 600000n)
+    Collection.expired(600000n, 600000n),
+    Delivery.transition(Delivery.Authorized{}, Delivery.Uncertain{}),
+    Delivery.expired(Delivery.Authorized{}, 1000n, 1000n),
+    Delivery.background_reofferable(Delivery.Uncertain{}, Delivery.Background{})
   }

@@ -1,6 +1,27 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.reserved_delivery_only_authorizes_once():
+  {==}
+
+def Laws.delivered_output_cannot_be_resubmitted():
+  {==}
+
+def Laws.authorized_delivery_expires_at_boundary():
+  {==}
+
+def Laws.authorized_delivery_does_not_expire_early():
+  {==}
+
+def Laws.submitted_background_can_reoffer():
+  {==}
+
+def Laws.live_background_cannot_reoffer():
+  {==}
+
+def Laws.submitted_edit_cannot_reoffer_at_stop():
+  {==}
+
 def Laws.collection_orders_cycle_before_sequence():
   {==}
 

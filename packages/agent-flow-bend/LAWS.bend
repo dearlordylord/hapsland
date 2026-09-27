@@ -10,6 +10,30 @@ import ./Round.bend as Round
 import ./Background.bend as Background
 import ./Notice.bend as Notice
 import ./Collection.bend as Collection
+import ./Delivery.bend as Delivery
+
+law reserved_delivery_only_authorizes_once:
+  {Delivery.transition(Delivery.Reserved{}, Delivery.Authorized{}) ==
+    Delivery.Granted{Delivery.Authorized{}} : Delivery.Step}
+
+law delivered_output_cannot_be_resubmitted:
+  {Delivery.transition(Delivery.Submitted{}, Delivery.Submitted{}) ==
+    Delivery.Denied{Delivery.Submitted{}} : Delivery.Step}
+
+law authorized_delivery_expires_at_boundary:
+  {Delivery.expired(Delivery.Authorized{}, 20000n, 20000n) == True{} : Bool}
+
+law authorized_delivery_does_not_expire_early:
+  {Delivery.expired(Delivery.Authorized{}, 19999n, 20000n) == False{} : Bool}
+
+law submitted_background_can_reoffer:
+  {Delivery.background_reofferable(Delivery.Submitted{}, Delivery.Background{}) == True{} : Bool}
+
+law live_background_cannot_reoffer:
+  {Delivery.background_reofferable(Delivery.Authorized{}, Delivery.Background{}) == False{} : Bool}
+
+law submitted_edit_cannot_reoffer_at_stop:
+  {Delivery.background_reofferable(Delivery.Submitted{}, Delivery.Edit{}) == False{} : Bool}
 
 law collection_orders_cycle_before_sequence:
   {Collection.order(2n, 99n, 3n, 1n) == Collection.Before{} : Collection.Order}
