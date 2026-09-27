@@ -1,0 +1,19 @@
+{
+  "name": "@hapsland/agent-flow-viz",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && node scripts/check-projection.mjs && vite build"
+  },
+  "dependencies": {
+    "@effect/platform-browser": "4.0.0-rc.116",
+    "effect": "4.0.0-rc.116",
+    "foldkit": "0.163.0"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "vite": "8.3.1"
+  }
+}

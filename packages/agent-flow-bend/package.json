@@ -1,0 +1,10 @@
+{
+  "name": "@hapsland/agent-flow-bend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-flow.mjs",
+    "test": "npm run build && bend PROOF.bend && bend FlowExamples.bend && node --experimental-strip-types --disable-warning=ExperimentalWarning --experimental-loader ./scripts/ts-extension-loader.mjs scripts/check-sidecar-parity.mjs"
+  }
+}
