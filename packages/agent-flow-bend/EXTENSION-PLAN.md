@@ -9,6 +9,7 @@ The Bend model implements admission, fan-out, outcome tracking,
 per-finding selection, finish reservation, lease transitions, logical capacity,
 and a shared admission/work/finish lifecycle. The resident now uses generated
 Bend for prospective admission and permits, source and review work identities,
+prepared-unit admission and empty-observation ticket disposition,
 round and Stop transitions, final finding selection, per-finding leases, response limits,
 logical capacity, and the finish wait and cancellation decisions. Generated
 lease offer policy routes background terminal phases to the one-time Stop

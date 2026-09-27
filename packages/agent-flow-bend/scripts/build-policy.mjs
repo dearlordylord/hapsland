@@ -31,6 +31,8 @@ try {
       !source.includes("function $Admission$expire$(") ||
       !source.includes("function $Admission$close_prospective$(") ||
       !source.includes("function $Work$finish_wait$(") ||
+      !source.includes("function $Work$prepared_offer$(") ||
+      !source.includes("function $Work$empty_prepared$(") ||
       ["initial", "admit", "start_source", "start_unit", "spawn", "complete_source", "cached_finding", "outcome",
         "interrupt_observation", "interrupt_unit", "retire", "revise_finding", "unfinished", "pending_findings", "pending_for", "cancel_unfinished", "close"]
         .some((name) => !source.includes(`function $Work$${name}$(`)) ||
@@ -119,6 +121,10 @@ export const bendAdmissionCloseProspective = (state, at) =>
   run_loop($Admission$close_prospective$(state, nat(at)));
 export const bendWorkFinishWait = (unfinished, deadlineReached, continuationBudget) =>
   run_loop($Work$finish_wait$(nat(unfinished), deadlineReached, continuationBudget));
+export const bendWorkPreparedOffer = (ready, withinFrame) =>
+  run_loop($Work$prepared_offer$(ready, withinFrame));
+export const bendWorkEmptyPrepared = (readyCount, hasNonSkipped, ticketed) =>
+  run_loop($Work$empty_prepared$(nat(readyCount), hasNonSkipped, ticketed));
 export const bendWorkInitial = () => run_loop($Work$initial$());
 export const bendWorkAdmit = (state) => run_loop($Work$admit$(state));
 export const bendWorkStartSource = (state, observation) =>

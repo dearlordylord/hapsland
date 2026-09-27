@@ -1,6 +1,21 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.ready_unit_within_frame_is_admitted():
+  {==}
+
+def Laws.oversized_ready_unit_is_rejected():
+  {==}
+
+def Laws.skipped_unit_is_not_admitted():
+  {==}
+
+def Laws.empty_non_skipped_ticket_fails_lost():
+  {==}
+
+def Laws.skipped_only_ticket_has_no_failure():
+  {==}
+
 def Laws.idle_cleanup_is_ready():
   {==}
 

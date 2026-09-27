@@ -43,7 +43,9 @@ finding count, and cancellation IDs.
   and review IDs to cancel at the Stop decision. The finish wait uses Bend's
   unfinished count plus live edit-permit and output-lease facts. The resident
   checks Bend's cancellation IDs against its queued and running jobs and fails
-  closed on a mismatch.
+  closed on a mismatch. Its prepared-offer gate admits ready units only within
+  the measured IPC frame budget, and its empty-observation gate decides whether
+  a ticket records a lost result.
 - `Lifecycle.bend` decides whether a claimed Stop waits for Bend Work and
   external owner counts. At the deadline or when work settles, it atomically
   begins the decision and cancels unfinished Work before TypeScript discards
@@ -208,6 +210,9 @@ On 2026-09-27, from this worktree:
   focused resident-server and terminal-collection suite: 2 files and 80 tests.
   Nine Bend laws cover idle versus busy cleanup, post-clear ledger residue,
   ticket overflow, exact cancellation IDs, and conservative full discard.
+- The prepared-unit admission migration passed the focused resident-server and
+  terminal-collection suite. Five Bend laws cover ready, skipped, oversized,
+  and empty-ticket outcomes.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
   suite reported 65 passing files and 575 passing tests, with one file and
   two tests skipped.

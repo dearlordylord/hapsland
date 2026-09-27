@@ -17,6 +17,26 @@ import ./Revision.bend as Revision
 import ./Reuse.bend as Reuse
 import ./Retention.bend as Retention
 
+law ready_unit_within_frame_is_admitted:
+  {Work.prepared_offer(True{}, True{}) ==
+    Work.AdmitPrepared{} : Work.PreparedOffer}
+
+law oversized_ready_unit_is_rejected:
+  {Work.prepared_offer(True{}, False{}) ==
+    Work.RejectPreparedCapacity{} : Work.PreparedOffer}
+
+law skipped_unit_is_not_admitted:
+  {Work.prepared_offer(False{}, True{}) ==
+    Work.SkipPrepared{} : Work.PreparedOffer}
+
+law empty_non_skipped_ticket_fails_lost:
+  {Work.empty_prepared(0n, True{}, True{}) ==
+    Work.FailEmptyLost{} : Work.EmptyPrepared}
+
+law skipped_only_ticket_has_no_failure:
+  {Work.empty_prepared(0n, False{}, True{}) ==
+    Work.NoEmptyFailure{} : Work.EmptyPrepared}
+
 law idle_cleanup_is_ready:
   {Retention.cleanup_gate(Retention.CleanupFacts{True{}, True{}, True{}, True{},
     True{}, True{}, True{}, True{}, True{}}) ==

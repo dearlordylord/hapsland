@@ -100,6 +100,11 @@ export function bendAdmissionCloseProspective(state: BendAdmissionState,
   at: number | bigint): BendAdmissionResult;
 export function bendWorkFinishWait(unfinished: number | bigint,
   deadlineReached: boolean, continuationBudget: boolean): boolean;
+export type BendPreparedOffer = { readonly $: "SkipPrepared" | "AdmitPrepared" | "RejectPreparedCapacity" };
+export function bendWorkPreparedOffer(ready: boolean, withinFrame: boolean): BendPreparedOffer;
+export type BendEmptyPrepared = { readonly $: "NoEmptyFailure" | "FailEmptyLost" };
+export function bendWorkEmptyPrepared(readyCount: number | bigint,
+  hasNonSkipped: boolean, ticketed: boolean): BendEmptyPrepared;
 
 export type BendWorkState = {
   readonly $: "Work";

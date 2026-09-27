@@ -69,6 +69,7 @@ import { bendTicketInitial, bendTicketFail, bendTicketClose, bendTicketTerminal,
   bendDeliveryNoticeCandidate, bendDeliveryReserveCandidate,
   bendValidationRoute, bendPostValidation, bendFinalCandidate,
   bendCleanupGate, bendCleanupCommit, bendTicketRetention, bendDiscardScope,
+  bendWorkPreparedOffer, bendWorkEmptyPrepared,
   type BendTicketPhase, type BendTicketReason,
   type BendTicketUnitEvent, type BendTicketUnitStage,
   type BendValidationStatus } from "./bend-policy.generated.js";
@@ -1792,9 +1793,14 @@ export class ResidentServer {
           throw cause;
         }
         if (!this.#jobActive(job)) { this.#ledger.release(workspace); return; }
-        const ready = prepared.outcomes.filter((outcome) => outcome.status === "ready");
+        const ready = prepared.outcomes.flatMap((outcome) => {
+          const offer = bendWorkPreparedOffer(outcome.status === "ready", true);
+          return offer.$ === "AdmitPrepared" && outcome.status === "ready" ? [outcome] : [];
+        });
         if (ready.length === 0) {
-          if (prepared.outcomes.some((outcome) => outcome.status !== "skipped") && job.ticket !== undefined) {
+          if (bendWorkEmptyPrepared(ready.length,
+            prepared.outcomes.some((outcome) => outcome.status !== "skipped"),
+            job.ticket !== undefined).$ !== "NoEmptyFailure" && job.ticket !== undefined) {
             ticketFail(job.ticket, "lost");
           }
           recordActivity({
@@ -1808,7 +1814,8 @@ export class ResidentServer {
         this.#maxMaterializedPreparedUnits = Math.max(this.#maxMaterializedPreparedUnits, ready.length);
         let rejectedDeliverable = false;
         const deliverable = ready.filter((outcome) => {
-          const accepted = residentUnitWorstOutcomeBytes(outcome.prepared) <= MAX_IPC_FRAME_BYTES - 1024;
+          const accepted = bendWorkPreparedOffer(true,
+            residentUnitWorstOutcomeBytes(outcome.prepared) <= MAX_IPC_FRAME_BYTES - 1024).$ === "AdmitPrepared";
           if (!accepted) {
             this.#rejectedCapacity += 1;
             rejectedDeliverable = true;
