@@ -1,6 +1,15 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.revoked_block_ticket_releases_final_selection():
+  {==}
+
+def Laws.current_block_ticket_proceeds():
+  {==}
+
+def Laws.advisory_ticket_proceeds_without_block_opt_in():
+  {==}
+
 def Laws.replaced_candidate_is_ignored_before_revalidation_status():
   {==}
 

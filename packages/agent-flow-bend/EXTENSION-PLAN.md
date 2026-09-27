@@ -34,7 +34,8 @@ lease and whether advice or notice candidates can be reserved. Generated cache p
 admission and eviction pressure. Generated reuse policy decides whether an
 evaluation joins live advice, attached or bare pending work, reads successful
 cache, or claims a new owner. Generated ticket policy decides unit-state
-transitions, failure retention, collection gate priority, and terminal outcomes. The generated
+transitions, failure retention, collection gate priority, final Claude block
+authority, and terminal outcomes. The generated
 revision policy decides canonical-input reuse and which same-subject older
 ticket units and advice are superseded. The generated
 `Lifecycle` finish gate and final reservation now own the resident's Stop wait,

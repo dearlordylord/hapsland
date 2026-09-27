@@ -354,6 +354,9 @@ export type BendTicketCollectGate =
   | { readonly $: "CollectUnavailable"; readonly reason: BendTicketReason };
 export function bendTicketCollectGate(expired: boolean,
   credentialValid: boolean): BendTicketCollectGate;
+export type BendTicketFinalAuthority = { readonly $: "FinalProceed" | "FinalRelease" };
+export function bendTicketFinalAuthority(admittedBlock: boolean,
+  currentBlock: boolean): BendTicketFinalAuthority;
 export type BendTicketUnitStage =
   | { readonly $: "UnitPending" | "UnitClear" | "UnitUnavailable" }
   | { readonly $: "UnitFinding"; readonly delivered: boolean };

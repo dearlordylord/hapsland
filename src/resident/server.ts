@@ -60,6 +60,7 @@ import { ComposedDelivery } from "./composed-delivery.ts";
 import { BendWorkTracker } from "./bend-work.ts";
 import { bendTicketInitial, bendTicketFail, bendTicketClose, bendTicketTerminal,
   bendTicketCollectGate,
+  bendTicketFinalAuthority,
   bendTicketUnitStep, bendTicketUnitInitial, bendRevisionRegister, bendRevisionSuperseded,
   bendReuseRoute, bendReuseCacheRoute,
   bendDeliveryAcknowledge, bendDeliveryFinalize, bendDeliveryFindingDisposition,
@@ -2747,8 +2748,10 @@ export class ResidentServer {
         return gate;
       }
     }
-    if (ticket !== undefined && ticket.claudeFeedbackMode === "block-current-findings" &&
-        this.#currentClaudeFeedbackMode(ticket.root, ticket.userConfigPath) !== "block-current-findings") {
+    const admittedBlock = ticket?.claudeFeedbackMode === "block-current-findings";
+    const currentBlock = admittedBlock && ticket !== undefined &&
+      this.#currentClaudeFeedbackMode(ticket.root, ticket.userConfigPath) === "block-current-findings";
+    if (ticket !== undefined && bendTicketFinalAuthority(admittedBlock, currentBlock).$ !== "FinalProceed") {
       // A revoked opt-in cannot turn the old selection into an advisory lease.
       this.releaseDelivery(response.token);
       return this.#terminalStatus(ticket, now);

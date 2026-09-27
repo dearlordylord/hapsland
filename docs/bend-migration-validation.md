@@ -79,7 +79,8 @@ finding count, and cancellation IDs.
   failures, delivered findings, clear results, and no-work results. TypeScript
   supplies credential and live-output facts and maps Bend's reason tag to the
   resident protocol. Its collect gate uses that same order at the initial
-  request and final IPC handoff barriers.
+  request and final IPC handoff barriers. Its final authority gate releases a
+  block-mode selection when current user opt-in has been revoked.
 - `Revision.bend` decides whether canonical input identity reuses a current
   revision or replaces it, and whether a source-free subject/generation pair
   supersedes ticket units and pending advice. TypeScript maps exact canonical
@@ -195,6 +196,10 @@ On 2026-09-27, from this worktree:
   resident-server and terminal-collection suite: 2 files and 80 tests. Eight
   Bend laws cover owner replacement, unavailable and stale validation, work
   rejection, fitting selection, credential invalidation, and final retention.
+- The final Claude block authority migration passed the focused Claude
+  delivery suite. Three Bend laws cover revocation, retained opt-in, and an
+  advisory ticket. The existing final-barrier regression checks that revoking
+  opt-in suppresses a leased block.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
   suite reported 65 passing files and 575 passing tests, with one file and
   two tests skipped.

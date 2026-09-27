@@ -33,6 +33,10 @@ type CollectGate is Data:
   CollectProceed{}
   CollectUnavailable{reason: Reason}
 
+type FinalAuthority is Data:
+  FinalProceed{}
+  FinalRelease{}
+
 type UnitStage is Data:
   UnitPending{}
   UnitClear{}
@@ -171,6 +175,11 @@ def collect_gate.result(outcome: Outcome) -> CollectGate:
 def collect_gate(expired: Bool, credential_valid: Bool) -> CollectGate:
   collect_gate.result(terminal(initial(), Facts{expired, credential_valid,
     0n, False{}, False{}, None{}, 0n, 0n, 0n}))
+
+# A block-mode ticket cannot hand off its leased selection after opt-in is revoked.
+def final_authority(admitted_block: Bool, current_block: Bool) -> FinalAuthority:
+  Bool.pick(FinalAuthority, Bool.and(admitted_block, Bool.not(current_block)),
+    FinalRelease{}, FinalProceed{})
 
 def main() -> Outcome:
   terminal(Closed{}, Facts{False{}, True{}, 0n, False{}, False{}, None{}, 0n, 0n, 1n})

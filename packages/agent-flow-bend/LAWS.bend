@@ -16,6 +16,18 @@ import ./Ticket.bend as Ticket
 import ./Revision.bend as Revision
 import ./Reuse.bend as Reuse
 
+law revoked_block_ticket_releases_final_selection:
+  {Ticket.final_authority(True{}, False{}) ==
+    Ticket.FinalRelease{} : Ticket.FinalAuthority}
+
+law current_block_ticket_proceeds:
+  {Ticket.final_authority(True{}, True{}) ==
+    Ticket.FinalProceed{} : Ticket.FinalAuthority}
+
+law advisory_ticket_proceeds_without_block_opt_in:
+  {Ticket.final_authority(False{}, False{}) ==
+    Ticket.FinalProceed{} : Ticket.FinalAuthority}
+
 law replaced_candidate_is_ignored_before_revalidation_status:
   {Handoff.validation_route(False{}, Handoff.Stale{}) ==
     Handoff.IgnoreCandidate{} : Handoff.CandidateAction}
