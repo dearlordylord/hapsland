@@ -258,7 +258,8 @@ On 2026-09-27, from this worktree:
   finding selection against `master:src/resident/collection.ts` for 1,000
   synthetic candidate sets: no differences.
 
-The differential traces used generated IDs, sizes, and finding text. No live
-Jev response or credential was printed or stored. A primary-worktree ignored
-`.env` exists, but no credential was present in the process environment; this
-validation did not read or source the file or execute a paid Jev call.
+The differential traces used generated IDs, sizes, and finding text. The
+original offline pass did not read or source the primary-worktree ignored
+`.env` or execute a paid Jev call. A later explicit, bounded live validation
+used its `TYPESAFE_API_KEY`; only sanitized outcomes and timing appear in the
+[completion report](bend-full-flow-completion-report.md).
