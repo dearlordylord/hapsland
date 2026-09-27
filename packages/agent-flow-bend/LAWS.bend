@@ -9,6 +9,25 @@ import ./Ledger.bend as Ledger
 import ./Round.bend as Round
 import ./Background.bend as Background
 import ./Notice.bend as Notice
+import ./Collection.bend as Collection
+
+law collection_orders_cycle_before_sequence:
+  {Collection.order(2n, 99n, 3n, 1n) == Collection.Before{} : Collection.Order}
+
+law collection_orders_sequence_inside_cycle:
+  {Collection.order(2n, 9n, 2n, 4n) == Collection.After{} : Collection.Order}
+
+law collection_waits_until_exact_window:
+  {Collection.eligible(False{}, False{}, False{}, 49n, 50n) == False{} : Bool}
+
+law collection_cycle_completion_unblocks_early:
+  {Collection.eligible(False{}, False{}, True{}, 0n, 50n) == True{} : Bool}
+
+law pending_advice_expires_at_boundary:
+  {Collection.expired(600000n, 600000n) == True{} : Bool}
+
+law pending_advice_remains_before_boundary:
+  {Collection.expired(599999n, 600000n) == False{} : Bool}
 
 law active_notice_cooldown_suppresses_even_at_capacity:
   {Notice.decide(Some{1n}, 64n, 64n) == Notice.Suppress{} : Notice.Action}

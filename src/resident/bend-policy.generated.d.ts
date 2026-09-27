@@ -191,3 +191,11 @@ export function bendBackgroundExpire(state: BendBackgroundWaiter,
 export type BendNoticeAction = { readonly $: "Suppress" | "Refresh" | "RejectFull" | "Create" };
 export function bendNoticeDecide(remaining: BendMaybeNat,
   count: number | bigint, maximum: number | bigint): BendNoticeAction;
+
+export type BendCollectionOrder = { readonly $: "Before" | "Equal" | "After" };
+export function bendCollectionOrder(leftCycle: number | bigint, leftSequence: number | bigint,
+  rightCycle: number | bigint, rightSequence: number | bigint): BendCollectionOrder;
+export function bendCollectionEligible(already: boolean, turnEnd: boolean,
+  cycleComplete: boolean, elapsed: number | bigint, window: number | bigint): boolean;
+export function bendCollectionExpired(elapsed: number | bigint,
+  lifetime: number | bigint): boolean;

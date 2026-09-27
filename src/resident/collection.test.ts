@@ -60,6 +60,14 @@ describe("resident advice collection policy", () => {
     expect(isCollectionEligible({ ...newer, collectionEligible: true }, 1_050)).toBe(true);
   });
 
+  it("preserves fractional-time collection and expiry boundaries", () => {
+    const pending = candidate({ pendingAt: 0.9 });
+    expect(isCollectionEligible(pending, ADVICE_COLLECTION_WINDOW_MS + 0.1)).toBe(false);
+    expect(isCollectionEligible(pending, ADVICE_COLLECTION_WINDOW_MS + 0.9)).toBe(true);
+    expect(isPendingAdviceExpired(pending, PENDING_ADVICE_EXPIRY_MS + 0.1)).toBe(false);
+    expect(isPendingAdviceExpired(pending, PENDING_ADVICE_EXPIRY_MS + 0.9)).toBe(true);
+  });
+
   it("orders deterministically by finite cycle then dispatch sequence", () => {
     const ordered = [
       candidate({ cycle: 3, sequence: 1 }),

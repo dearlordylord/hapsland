@@ -1,6 +1,24 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.collection_orders_cycle_before_sequence():
+  {==}
+
+def Laws.collection_orders_sequence_inside_cycle():
+  {==}
+
+def Laws.collection_waits_until_exact_window():
+  {==}
+
+def Laws.collection_cycle_completion_unblocks_early():
+  {==}
+
+def Laws.pending_advice_expires_at_boundary():
+  {==}
+
+def Laws.pending_advice_remains_before_boundary():
+  {==}
+
 def Laws.active_notice_cooldown_suppresses_even_at_capacity():
   {==}
 
