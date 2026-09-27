@@ -130,7 +130,7 @@ const fileGraph = <Message>(h: HtmlBuilder<Message>, units: readonly string[],
   ]);
 };
 const nodes = [
-  { id: "resolve", x: 30, y: 50, title: "Resolve next edge", owner: "NATIVE FACT", detail: "Syntax, path, binding, identity", role: "native" },
+  { id: "resolve", x: 30, y: 50, title: "Next pending edge", owner: "BEND DECISION", detail: "20 KiB tree gate before ResolveEdge", role: "bend" },
   { id: "gate", x: 330, y: 50, title: "Permission and budgets", owner: "BEND DECISION", detail: "Allow before any source read", role: "bend" },
   { id: "capture", x: 630, y: 50, title: "Capture allowed target", owner: "NATIVE FACT", detail: "Bytes and discovered edges", role: "native" },
   { id: "expand", x: 630, y: 260, title: "Track pending / visited", owner: "BEND DECISION", detail: "Order edges; stop cycles", role: "bend" },
@@ -142,7 +142,7 @@ export const importGraphDiagram = <Message>(h: HtmlBuilder<Message>, active: Imp
   h.div([h.Class("chart-scroll import-graph-diagram")], [
     fileGraph(h, units, names, history, states),
     h.p([h.Class("import-graph-diagram-caption")], [`Import process schematic · highlighted Bend phase for ${unitLabel}`]),
-    h.svg([h.ViewBox("0 0 920 505"), h.Role("img"), h.AriaLabel("Import exploration state machine. Native resolution facts enter Bend permission and budget gates before native source capture. Bend tracks edges and decides complete or incomplete; only complete units are eligible for Jev.")], [
+    h.svg([h.ViewBox("0 0 920 505"), h.Role("img"), h.AriaLabel("Import process schematic. Bend checks the 20 KiB tree bound before requesting edge resolution, then gates source capture using native facts. Only complete units are eligible for Jev.")], [
       h.defs([], [h.marker([h.Id("import-arrow"), h.ViewBox("0 0 10 10"), h.RefX("9"), h.RefY("5"), h.MarkerWidth("7"), h.MarkerHeight("7"), h.Orient("auto")], [h.path([h.D("M 0 0 L 10 5 L 0 10 z"), h.Fill("#687e98")], [])])]),
       ...[
         ["M 280 102 L 330 102", "found", 290, 88],
@@ -156,6 +156,7 @@ export const importGraphDiagram = <Message>(h: HtmlBuilder<Message>, active: Imp
         h.path([h.D(String(path)), h.Fill("none"), h.Stroke("#687e98"), h.StrokeWidth("2"), h.MarkerEnd("url(#import-arrow)")], []),
         h.text([h.X(String(x)), h.Y(String(y)), h.FontSize("11"), h.Fill("#52647d")], [String(label)]),
       ])),
+      h.text([h.X("40"), h.Y("182"), h.FontSize("11"), h.FontWeight("700"), h.Fill("#9a4229")], ["TreeLimit at 20 KiB: no ResolveEdge"]),
       h.text([h.X("40"), h.Y("240"), h.FontSize("11"), h.Fill("#52647d")], ["Missing / ambiguous targets also end incomplete"]),
       ...nodes.map((node) => h.g([], [
         h.rect([h.X(String(node.x)), h.Y(String(node.y)), h.Width("250"), h.Height("105"), h.Rx("10"), h.Fill(node.role === "bend" ? "#e5efff" : "#edf1f6"), h.Stroke(active === node.id ? "#e66035" : node.role === "bend" ? "#527cc4" : "#738399"), h.StrokeWidth(active === node.id ? "4" : "2")], []),

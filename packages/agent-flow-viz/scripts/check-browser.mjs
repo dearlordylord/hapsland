@@ -64,6 +64,7 @@ try {
   assert.match(await imports.innerText(), /Native: resolution, permission facts, source capture/);
   const fileDiagram = imports.locator("svg").first();
   assert.match(await fileDiagram.textContent(), /IMPORT \/ REFERENCE GRAPH/);
+  assert.match(await imports.locator("svg").nth(1).textContent(), /TreeLimit at 20 KiB: no ResolveEdge/);
   assert.doesNotMatch(await fileDiagram.textContent(), /C\.ts|Excluded/, "future outcomes are absent before replay");
   for (let step = 1; step <= 10; step++) {
     await imports.getByRole("button", { name: "Next import step", exact: true }).click();
