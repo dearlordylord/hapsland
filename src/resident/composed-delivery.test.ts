@@ -121,6 +121,14 @@ describe("shared Hapsland rounds", () => {
     expect(state.canSubmit("agent", "background")).toBe(true);
   });
 
+  it("keeps a fractional-time background claim until its full lifetime elapses", () => {
+    const state = new ComposedDelivery();
+    state.admitEdit("agent", "edit", 0);
+    expect(state.claimBackground("agent", "first", 0.9)).toBe(true);
+    expect(state.claimBackground("agent", "second", BACKGROUND_WAITER_EXPIRY_MS + 0.1)).toBe(false);
+    expect(state.claimBackground("agent", "second", BACKGROUND_WAITER_EXPIRY_MS + 0.9)).toBe(true);
+  });
+
   it("reoffers submitted or uncertain background findings once at Stop without rerunning review", () => {
     const state = new ComposedDelivery();
     const finding = { rule: "r", advice: "repair" };

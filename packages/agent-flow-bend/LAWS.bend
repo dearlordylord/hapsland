@@ -7,6 +7,44 @@ import ./Handoff.bend as Handoff
 import ./Lifecycle.bend as Lifecycle
 import ./Ledger.bend as Ledger
 import ./Round.bend as Round
+import ./Background.bend as Background
+import ./Notice.bend as Notice
+
+law active_notice_cooldown_suppresses_even_at_capacity:
+  {Notice.decide(Some{1n}, 64n, 64n) == Notice.Suppress{} : Notice.Action}
+
+law elapsed_notice_cooldown_refreshes_at_capacity:
+  {Notice.decide(Some{0n}, 64n, 64n) == Notice.Refresh{} : Notice.Action}
+
+law full_notice_table_rejects_new_key:
+  {Notice.decide(None{}, 64n, 64n) == Notice.RejectFull{} : Notice.Action}
+
+law notice_table_creates_below_capacity:
+  {Notice.decide(None{}, 63n, 64n) == Notice.Create{} : Notice.Action}
+
+law background_writer_claims_one_slot:
+  {Background.claim(Background.initial(), 7n, True{}, 0n, 64n) ==
+    Background.Granted{Background.Waiter{7n}} : Background.Step}
+
+law second_background_writer_cannot_take_slot:
+  {Background.claim(Background.Waiter{7n}, 8n, True{}, 1n, 64n) ==
+    Background.Denied{Background.Waiter{7n}} : Background.Step}
+
+law wrong_background_writer_cannot_release:
+  {Background.release(Background.Waiter{7n}, 8n) ==
+    Background.Denied{Background.Waiter{7n}} : Background.Step}
+
+law background_writer_expires_at_boundary:
+  {Background.expire(Background.Waiter{7n}, 20000n, 20000n) ==
+    Background.initial() : Background.Waiter}
+
+law background_writer_remains_before_boundary:
+  {Background.expire(Background.Waiter{7n}, 19999n, 20000n) ==
+    Background.Waiter{7n} : Background.Waiter}
+
+law background_capacity_denies_new_writer:
+  {Background.claim(Background.initial(), 7n, True{}, 64n, 64n) ==
+    Background.Denied{Background.initial()} : Background.Step}
 
 law round_begin_stop_claims_single_owner:
   {Round.begin_stop(Round.initial(), 7n) ==

@@ -10,6 +10,8 @@ import {
   bendLeaseReoffer, bendLeaseSuppresses, type BendLease, type BendLeaseSurface,
   bendAdmissionInitial, bendAdmissionStep, bendAdmissionCloseProspective,
   type BendAdmissionState,
+  bendBackgroundInitial, bendBackgroundClaim, bendBackgroundRelease,
+  bendBackgroundExpire, type BendBackgroundWaiter,
 } from "./bend-policy.generated.js";
 
 /** Shared round and source-free handoff state for every agent runtime. */
@@ -61,17 +63,27 @@ export class ComposedDelivery {
     readonly partition: string; readonly generation: number; readonly attempt: string;
     authorized: boolean; revoked: boolean;
   }>();
-  readonly #backgroundWaiters = new Map<string, { readonly token: string; readonly at: number }>();
+  readonly #backgroundWaiters = new Map<string, { readonly token: string; readonly id: number; readonly at: number;
+    readonly policy: BendBackgroundWaiter }>();
+  #nextBackgroundId = 1;
 
   claimBackground(partition: string, token: string, now: number): boolean {
     this.expire(now);
-    if (!this.isActive(partition) || this.#backgroundWaiters.has(partition) || this.#backgroundWaiters.size >= MAX_COMPOSED_ROUNDS) return false;
-    this.#backgroundWaiters.set(partition, { token, at: now });
+    const existing = this.#backgroundWaiters.get(partition);
+    const id = this.#nextBackgroundId++;
+    const claim = bendBackgroundClaim(existing?.policy ?? bendBackgroundInitial(), id,
+      this.isActive(partition),
+      this.#backgroundWaiters.size, MAX_COMPOSED_ROUNDS);
+    if (claim.$ !== "Granted") return false;
+    this.#backgroundWaiters.set(partition, { token, id, at: now, policy: claim.state });
     return true;
   }
 
   releaseBackground(partition: string, token: string): void {
-    if (this.#backgroundWaiters.get(partition)?.token !== token) return;
+    const waiter = this.#backgroundWaiters.get(partition);
+    if (waiter === undefined) return;
+    const release = bendBackgroundRelease(waiter.policy, waiter.token === token ? waiter.id : 0);
+    if (release.$ !== "Granted") return;
     this.#backgroundWaiters.delete(partition);
     for (const submission of this.#submissions.values()) {
       if (submission.partition !== partition) continue;
@@ -566,7 +578,12 @@ export class ComposedDelivery {
 
   expire(now: number): void {
     for (const [partition, waiter] of this.#backgroundWaiters) {
-      if (now - waiter.at >= BACKGROUND_WAITER_EXPIRY_MS) this.#backgroundWaiters.delete(partition);
+      const elapsed = Math.floor(Math.min(BACKGROUND_WAITER_EXPIRY_MS,
+        Math.max(0, now - waiter.at)));
+      const expired = bendBackgroundExpire(waiter.policy, elapsed,
+        BACKGROUND_WAITER_EXPIRY_MS);
+      if (expired.owner === 0n) this.#backgroundWaiters.delete(partition);
+      else this.#backgroundWaiters.set(partition, { ...waiter, policy: expired });
     }
     const expired = new Set<string>();
     for (const submission of this.#submissions.values()) {

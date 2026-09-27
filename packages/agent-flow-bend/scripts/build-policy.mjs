@@ -7,7 +7,7 @@ import { createHash } from "node:crypto";
 const root = resolve(import.meta.dirname, "..");
 const productRoot = resolve(root, "../..");
 const digest = createHash("sha256");
-for (const path of ["Admission.bend", "Work.bend", "Handoff.bend", "Round.bend", "PolicyRuntime.bend", "scripts/build-policy.mjs"]) {
+for (const path of ["Admission.bend", "Work.bend", "Handoff.bend", "Round.bend", "Background.bend", "Notice.bend", "PolicyRuntime.bend", "scripts/build-policy.mjs"]) {
   digest.update(path).update("\0").update(readFileSync(join(root, path))).update("\0");
 }
 const sourceHash = digest.digest("hex");
@@ -30,7 +30,10 @@ try {
         .some((name) => !source.includes(`function $Work$${name}$(`)) ||
       ["initial", "max_continuations", "active", "budget", "begin_stop",
         "owns_stop", "begin_decision", "consume", "reserve_output", "finish_stop", "reopen"]
-        .some((name) => !source.includes(`function $Round$${name}$(`))) {
+        .some((name) => !source.includes(`function $Round$${name}$(`)) ||
+      ["initial", "claim", "release", "expire"]
+        .some((name) => !source.includes(`function $Background$${name}$(`)) ||
+      !source.includes("function $Notice$decide$(")) {
     throw new Error("Bend policy JavaScript layout changed; inspect generated runtime");
   }
   source = source.replace(footer, `
@@ -127,6 +130,15 @@ export const bendRoundFinishStop = (state, token, close, at) =>
   run_loop($Round$finish_stop$(state, nat(token), close, nat(at)));
 export const bendRoundReopen = (state, generation) =>
   run_loop($Round$reopen$(state, nat(generation)));
+export const bendBackgroundInitial = () => run_loop($Background$initial$());
+export const bendBackgroundClaim = (state, token, active, used, capacity) =>
+  run_loop($Background$claim$(state, nat(token), active, nat(used), nat(capacity)));
+export const bendBackgroundRelease = (state, token) =>
+  run_loop($Background$release$(state, nat(token)));
+export const bendBackgroundExpire = (state, elapsed, lifetime) =>
+  run_loop($Background$expire$(state, nat(elapsed), nat(lifetime)));
+export const bendNoticeDecide = (remaining, count, maximum) =>
+  run_loop($Notice$decide$(normalize(remaining), nat(count), nat(maximum)));
 `);
   writeFileSync(join(productRoot, "src/resident/bend-policy.generated.js"),
     `// hapsland-bend-source-sha256:${sourceHash}\n${source}`);

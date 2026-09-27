@@ -19,7 +19,8 @@ before passing its byte count to Bend.
 
 The resident executes generated Bend code for admission permits, source and
 review work, composed rounds, finding selection and leases, finish waiting,
-cancellation IDs, response limits, and logical capacity. The generated files
+cancellation IDs, response limits, logical capacity, background-writer claims,
+and notice cooldown admission. The generated files
 are checked against source hashes before the app builds or tests.
 `Lifecycle.bend` remains a tested aggregate model; the resident composes its
 generated admission, work, round, and handoff modules at their effect barriers.

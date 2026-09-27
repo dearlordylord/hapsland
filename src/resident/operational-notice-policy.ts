@@ -4,19 +4,23 @@ export type OperationalNoticeAdmission =
   | { readonly action: "refresh"; readonly emit: true }
   | { readonly action: "create"; readonly emit: true };
 
-/** Bounded cooldown-table policy, independent of the capacity reservation mechanism. */
+/** Bounded cooldown-table admission compiled from Bend. */
 export const operationalNoticeAdmission = (input: {
   readonly now: number;
   readonly existingNextAllowedAt: number | undefined;
   readonly keyCount: number;
   readonly maximumKeys: number;
 }): OperationalNoticeAdmission => {
-  if (input.existingNextAllowedAt !== undefined) {
-    return input.now < input.existingNextAllowedAt
-      ? { action: "suppress", emit: false }
-      : { action: "refresh", emit: true };
+  const remaining: BendMaybeNat = input.existingNextAllowedAt === undefined
+    ? { $: "None" }
+    : { $: "Some", value: BigInt(Math.ceil(Math.max(0,
+      input.existingNextAllowedAt - input.now))) };
+  const decision = bendNoticeDecide(remaining, input.keyCount, input.maximumKeys);
+  switch (decision.$) {
+    case "Suppress": return { action: "suppress", emit: false };
+    case "Refresh": return { action: "refresh", emit: true };
+    case "RejectFull": return { action: "reject-full", emit: false };
+    case "Create": return { action: "create", emit: true };
   }
-  return input.keyCount >= input.maximumKeys
-    ? { action: "reject-full", emit: false }
-    : { action: "create", emit: true };
 };
+import { bendNoticeDecide, type BendMaybeNat } from "./bend-policy.generated.js";

@@ -4,6 +4,8 @@ import ./Work.bend as Work
 import ./Handoff.bend as Handoff
 import ./Flow.bend as Flow
 import ./Round.bend as Round
+import ./Background.bend as Background
+import ./Notice.bend as Notice
 
 type Smoke is Data:
   Smoke{
@@ -50,6 +52,10 @@ type Smoke is Data:
     round_reserve: Round.Step
     round_finish: Round.Step
     round_reopen: Round.Step
+    background_claim: Background.Step
+    background_release: Background.Step
+    background_expire: Background.Waiter
+    notice: Notice.Action
   }
 
 def sample_work() -> Work.Work:
@@ -117,5 +123,9 @@ def main() -> Smoke:
     Round.consume(Round.initial()),
     Round.reserve_output(Round.Round{1n, True{}, 0n, 0n, 1n, False{}, True{}, False{}}, 1n),
     Round.finish_stop(Round.Round{1n, True{}, 0n, 0n, 1n, False{}, False{}, False{}}, 1n, True{}, 2n),
-    Round.reopen(Round.Round{1n, False{}, 2n, 0n, 0n, False{}, False{}, False{}}, 2n)
+    Round.reopen(Round.Round{1n, False{}, 2n, 0n, 0n, False{}, False{}, False{}}, 2n),
+    Background.claim(Background.initial(), 1n, True{}, 0n, 64n),
+    Background.release(Background.Waiter{1n}, 1n),
+    Background.expire(Background.Waiter{1n}, 20001n, 20000n),
+    Notice.decide(Some{10n}, 1n, 64n)
   }

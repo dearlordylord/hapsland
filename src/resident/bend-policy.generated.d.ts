@@ -171,3 +171,23 @@ export function bendRoundReserveOutput(state: BendRound, token: number | bigint)
 export function bendRoundFinishStop(state: BendRound, token: number | bigint,
   close: boolean, at: number | bigint): BendRoundStep;
 export function bendRoundReopen(state: BendRound, generation: number | bigint): BendRoundStep;
+
+export type BendBackgroundWaiter = {
+  readonly $: "Waiter";
+  readonly owner: bigint;
+};
+export type BendBackgroundStep =
+  | { readonly $: "Granted"; readonly state: BendBackgroundWaiter }
+  | { readonly $: "Denied"; readonly state: BendBackgroundWaiter };
+export function bendBackgroundInitial(): BendBackgroundWaiter;
+export function bendBackgroundClaim(state: BendBackgroundWaiter, token: number | bigint,
+  active: boolean, used: number | bigint,
+  capacity: number | bigint): BendBackgroundStep;
+export function bendBackgroundRelease(state: BendBackgroundWaiter,
+  token: number | bigint): BendBackgroundStep;
+export function bendBackgroundExpire(state: BendBackgroundWaiter,
+  elapsed: number | bigint, lifetime: number | bigint): BendBackgroundWaiter;
+
+export type BendNoticeAction = { readonly $: "Suppress" | "Refresh" | "RejectFull" | "Create" };
+export function bendNoticeDecide(remaining: BendMaybeNat,
+  count: number | bigint, maximum: number | bigint): BendNoticeAction;

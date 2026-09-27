@@ -35,6 +35,11 @@ finding count, and cancellation IDs.
 - `Ledger.bend` decides global and partition item and byte reservations,
   resize, and release. TypeScript retains opaque object capabilities and maps
   exact partition strings to unique numeric IDs.
+- `Background.bend` owns the per-partition background-writer claim, release,
+  and expiry decisions. The resident maps opaque writer tokens to positive
+  IDs and supplies active-round and global-capacity facts.
+- `Notice.bend` decides cooldown suppression, refresh, creation, and
+  full-table rejection from measured remaining time and key count.
 - The app build and test commands verify SHA-256 source markers in both
   generated artifacts before using them.
 
@@ -49,8 +54,13 @@ On 2026-09-27, from this worktree:
   3 files and 75 tests. Cases cover streamed fanout, interleaved callback
   settlement, exact cancellation IDs, pre-edit closure, credential rotation at
   the final output barrier, and live background-writer exclusivity at Stop.
+- The focused composed-delivery, operational-notice, resident-server, and
+  subprocess suite passed 4 files and 84 tests after background-writer and
+  cooldown admission moved to Bend. Fractional-time expiry and cooldown
+  boundaries are covered. The Bend package checked six writer and four notice
+  laws.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
-  suite reported 65 passing files and 557 passing tests, with one file and
+  suite reported 65 passing files and 559 passing tests, with one file and
   two tests skipped.
 - `npm run conformance:package` passed from a clean local package install on
   Linux arm64 and Node 24.20.0. The CLI, parser, resident, hook, installation,

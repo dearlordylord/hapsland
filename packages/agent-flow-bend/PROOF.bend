@@ -1,6 +1,36 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.active_notice_cooldown_suppresses_even_at_capacity():
+  {==}
+
+def Laws.elapsed_notice_cooldown_refreshes_at_capacity():
+  {==}
+
+def Laws.full_notice_table_rejects_new_key():
+  {==}
+
+def Laws.notice_table_creates_below_capacity():
+  {==}
+
+def Laws.background_writer_claims_one_slot():
+  {==}
+
+def Laws.second_background_writer_cannot_take_slot():
+  {==}
+
+def Laws.wrong_background_writer_cannot_release():
+  {==}
+
+def Laws.background_writer_expires_at_boundary():
+  {==}
+
+def Laws.background_writer_remains_before_boundary():
+  {==}
+
+def Laws.background_capacity_denies_new_writer():
+  {==}
+
 def Laws.round_begin_stop_claims_single_owner():
   {==}
 

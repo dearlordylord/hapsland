@@ -10,8 +10,10 @@ per-finding selection, finish reservation, lease transitions, logical capacity,
 and a shared admission/work/finish lifecycle. The resident now uses generated
 Bend for admission permits, source and review work identities, round and Stop
 transitions, final finding selection, per-finding leases, response limits,
-logical capacity, and the finish wait and cancellation decisions. The generated
-`Lifecycle` reducer remains an executable aggregate model rather than the
+logical capacity, and the finish wait and cancellation decisions. Generated
+background-writer and operational-notice policies also decide their expiry
+and capacity boundaries. The generated `Lifecycle` reducer remains an
+executable aggregate model rather than the
 resident's callback state. Its
 `FinishCheck.actionable_findings` input also needs to come from the final Bend
 selection and selected IDs must be consumed at write terminal. The installed

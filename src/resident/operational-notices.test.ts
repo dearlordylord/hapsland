@@ -324,6 +324,15 @@ console.log('{"version":1,"status":"interaction-required"}');
     expect(nextAllowedByKey.size).toBe(MAX_OPERATIONAL_NOTICE_KEYS);
   });
 
+  it("keeps a fractional-time notice cooldown until the exact deadline", () => {
+    expect(operationalNoticeAdmission({ now: 10.0001,
+      existingNextAllowedAt: 10.0009, keyCount: 1, maximumKeys: 64 }))
+      .toEqual({ action: "suppress", emit: false });
+    expect(operationalNoticeAdmission({ now: 10.0009,
+      existingNextAllowedAt: 10.0009, keyCount: 1, maximumKeys: 64 }))
+      .toEqual({ action: "refresh", emit: true });
+  });
+
   it("reclaims pending notice state at the exact expiry boundary", async () => {
     const { root, statePath, observation } = await fixture();
     const failed = dispatch(statePath, { failure: "offline backend" });
