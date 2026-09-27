@@ -13,6 +13,9 @@ round and Stop transitions, final finding selection, per-finding leases, respons
 logical capacity, and the finish wait and cancellation decisions. Generated
 lease offer policy routes background terminal phases to the one-time Stop
 reoffer and other phases to ordinary reservation. Generated
+lease state is retained per finding and advanced on offer, authorization, and
+terminal events; release rebuilds from retained token history to restore an
+aborted Stop reoffer. Generated
 admission policy decides permit expiry from an exact native clock fact.
 Generated notice selection decides exact fit and host-specific skip or stop behavior.
 Background-writer and operational-notice policies also decide their expiry,

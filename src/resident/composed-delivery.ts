@@ -49,6 +49,7 @@ type Submission = {
   readonly partition: string;
   readonly generation: number;
   readonly batches: Map<string, SubmissionBatch>;
+  readonly leases: Map<string, BendLease>;
 };
 
 const fingerprint = (finding: unknown): string =>
@@ -519,54 +520,77 @@ export class ComposedDelivery {
     }
   }
 
-  #leaseFor(submission: Submission, digest: string): BendLease | null | undefined {
-    let lease: BendLease | undefined;
+  #rebuildLeases(submission: Submission): Map<string, BendLease> | undefined {
+    const leases = new Map<string, BendLease>();
     try {
       for (const batch of submission.batches.values()) {
-        if (!batch.fingerprints.has(digest)) continue;
-        lease ??= bendLeaseInitial(1, submission.generation);
-        const surface = this.#leaseSurface(batch.surface);
-        const start = bendLeaseOffer(lease, submission.generation, batch.id, surface, true);
-        if (start.$ !== "Granted") return null;
-        lease = start.state;
-        if (batch.status !== "reserved") {
-          const authorized = bendLeaseAuthorize(lease, submission.generation, batch.id);
-          if (authorized.$ !== "Granted") return null;
-          if (batch.status === "authorized") lease = authorized.state;
-          else {
-            const terminal = bendLeaseTerminal(authorized.state, submission.generation, batch.id,
-              batch.status === "submitted");
-            if (terminal.$ !== "Granted") return null;
-            lease = terminal.state;
+        for (const digest of batch.fingerprints) {
+          const previous = leases.get(digest) ?? bendLeaseInitial(1, submission.generation);
+          const offered = bendLeaseOffer(previous, submission.generation, batch.id,
+            this.#leaseSurface(batch.surface), true);
+          if (offered.$ !== "Granted") return undefined;
+          let lease = offered.state;
+          if (batch.status !== "reserved") {
+            const authorized = bendLeaseAuthorize(lease, submission.generation, batch.id);
+            if (authorized.$ !== "Granted") return undefined;
+            lease = authorized.state;
+            if (batch.status !== "authorized") {
+              const terminal = bendLeaseTerminal(lease, submission.generation, batch.id,
+                batch.status === "submitted");
+              if (terminal.$ !== "Granted") return undefined;
+              lease = terminal.state;
+            }
           }
+          leases.set(digest, lease);
         }
       }
-      return lease;
+      return leases;
     } catch {
-      return null;
+      return undefined;
     }
   }
 
   #stageSubmission(
     adviceId: string, partition: string, token: string,
     findings: ReadonlyArray<unknown>, surface: DeliverySurface, now: number,
-    status: SubmissionBatch["status"],
+    status: "reserved" | "authorized",
   ): Submission | undefined {
     const generation = this.generation(partition);
     if (generation === 0 || !this.isActive(partition, generation)) return undefined;
     const existing = this.#submissions.get(adviceId);
     const batches = existing?.partition === partition && existing.generation === generation
       ? new Map(existing.batches) : new Map<string, SubmissionBatch>();
+    const leases = existing?.partition === partition && existing.generation === generation
+      ? new Map(existing.leases) : new Map<string, BendLease>();
     if (batches.has(token)) return undefined;
     const fingerprints = new Set(findings.map(fingerprint));
     if (fingerprints.size === 0) return undefined;
-    batches.set(token, { id: this.#submissionTokenId(token), surface, at: now, fingerprints, status });
-    const staged: Submission = { partition, generation, batches };
-    for (const digest of fingerprints) if (this.#leaseFor(staged, digest) === null) {
+    const id = this.#submissionTokenId(token);
+    try {
+      for (const digest of fingerprints) {
+        const previous = leases.get(digest) ?? bendLeaseInitial(1, generation);
+        const offered = bendLeaseOffer(previous, generation, id, this.#leaseSurface(surface), true);
+        if (offered.$ !== "Granted") {
+          this.#pruneSubmissionTokenIds();
+          return undefined;
+        }
+        if (status === "authorized") {
+          const authorized = bendLeaseAuthorize(offered.state, generation, id);
+          if (authorized.$ !== "Granted") {
+            this.#pruneSubmissionTokenIds();
+            return undefined;
+          }
+          leases.set(digest, authorized.state);
+        } else {
+          leases.set(digest, offered.state);
+        }
+      }
+    } catch {
       this.#pruneSubmissionTokenIds();
       return undefined;
     }
-    return staged;
+    batches.set(token, { id, surface, at: now, fingerprints, status });
+    return { partition, generation, batches, leases };
   }
 
   beginSubmission(
@@ -593,8 +617,21 @@ export class ComposedDelivery {
       if (transition.$ !== "Granted") return false;
       const batches = new Map(submission.batches);
       batches.set(token, { ...batch, status: this.#batchStatus(transition.phase) });
-      const next: Submission = { ...submission, batches };
-      for (const digest of batch.fingerprints) if (this.#leaseFor(next, digest) === null) return false;
+      const leases = new Map(submission.leases);
+      try {
+        for (const digest of batch.fingerprints) {
+          const current = leases.get(digest);
+          if (current === undefined) return false;
+          const step = status === "authorized"
+            ? bendLeaseAuthorize(current, submission.generation, batch.id)
+            : bendLeaseTerminal(current, submission.generation, batch.id, status === "submitted");
+          if (step.$ !== "Granted") return false;
+          leases.set(digest, step.state);
+        }
+      } catch {
+        return false;
+      }
+      const next: Submission = { ...submission, batches, leases };
       staged.push([id, next]);
     }
     for (const [id, submission] of staged) this.#submissions.set(id, submission);
@@ -619,8 +656,19 @@ export class ComposedDelivery {
     const permit = this.#finishPermits.get(token);
     if (permit !== undefined) permit.revoked = true;
     for (const [adviceId, submission] of this.#submissions) {
-      submission.batches.delete(token);
-      if (submission.batches.size === 0) this.#submissions.delete(adviceId);
+      if (!submission.batches.has(token)) continue;
+      const batches = new Map(submission.batches);
+      batches.delete(token);
+      if (batches.size === 0) {
+        this.#submissions.delete(adviceId);
+        continue;
+      }
+      // Removing a known unwritten token restores the previous Bend lease.
+      // Replay is needed only for this rollback, including an aborted Stop
+      // reoffer whose prior background terminal must remain authoritative.
+      const retained = { ...submission, batches };
+      const leases = this.#rebuildLeases(retained);
+      if (leases !== undefined) this.#submissions.set(adviceId, { ...retained, leases });
     }
     this.#pruneSubmissionTokenIds();
   }
@@ -645,8 +693,9 @@ export class ComposedDelivery {
     if (submission === undefined || submission.partition !== partition ||
         submission.generation !== this.generation(partition)) return false;
     const digest = fingerprint(finding);
-    const lease = this.#leaseFor(submission, digest);
-    if (lease === null) return true;
+    const lease = submission.leases.get(digest);
+    if (lease === undefined && [...submission.batches.values()].some((batch) =>
+      batch.fingerprints.has(digest))) return true;
     return lease !== undefined && bendLeaseSuppresses(lease, submission.generation,
       this.#leaseSurface(surface ?? "edit"));
   }

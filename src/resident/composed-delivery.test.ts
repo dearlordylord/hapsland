@@ -244,6 +244,20 @@ describe("shared Hapsland rounds", () => {
     expect(state.beginSubmission("advice", "agent", "stop", [finding], "stop", 2)).toBe(true);
   });
 
+  it("restores a submitted background lease when an unwritten Stop reoffer is released", () => {
+    const state = new ComposedDelivery();
+    const finding = { rule: "r", advice: "repair" };
+    state.admitEdit("agent", "edit", 0);
+    expect(state.beginSubmission("advice", "agent", "bg", [finding], "background", 1)).toBe(true);
+    expect(state.markSubmitted("bg")).toBe(true);
+    expect(state.beginSubmission("advice", "agent", "stop", [finding], "stop", 2)).toBe(true);
+    expect(state.suppresses("advice", "agent", finding, "stop")).toBe(true);
+    state.release("stop");
+    expect(state.hasToken("bg")).toBe(true);
+    expect(state.suppresses("advice", "agent", finding, "stop")).toBe(false);
+    expect(state.beginSubmission("advice", "agent", "retry", [finding], "stop", 3)).toBe(true);
+  });
+
   it("expires an authorized background output only at its full fractional-time lease", () => {
     const state = new ComposedDelivery();
     const finding = { rule: "r", advice: "repair" };
