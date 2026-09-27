@@ -59,7 +59,7 @@ const fixture = async (host: Host, controlled: ResidentDispatchContext["controll
     userConfigPath: null, controlled: { ...controlled, capturePath } };
   let current: DirectAdvicee | undefined;
   let sequence = 0;
-  const admit = async (files: Record<string, string>) => {
+  const admit = async (files: Record<string, string>, control = dispatch.controlled) => {
     for (const [path, source] of Object.entries(files)) await put(root, path, source);
     const base = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, Object.keys(files), {
       tool_use_id: `fixture-edit-${++sequence}`,
@@ -75,7 +75,7 @@ const fixture = async (host: Host, controlled: ResidentDispatchContext["controll
       root, advicee, startedAt: monotonicNow(), activityPath });
     requireThat(permit.status === "advanced", "prospective permit was rejected");
     const admitted = await server.handle({ version: 1, operation: "admit", lifetime: server.lifetime,
-      observation, dispatch, controlledWriter: true, composed: true });
+      observation, dispatch: { ...dispatch, controlled: control }, controlledWriter: true, composed: true });
     requireThat(admitted.status === "accepted", "composed admission was rejected");
     return observation;
   };
@@ -93,7 +93,7 @@ const fixture = async (host: Host, controlled: ResidentDispatchContext["controll
       REVIEW_RESIDENT_DIR: paths.directory, REVIEW_CONTROL_JSON: JSON.stringify(dispatch.controlled) };
     for (const key of ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "TYPESAFE_API_KEY"]) delete env[key];
     const started = performance.now();
-    return new Promise<{ blocked: boolean; unavailableNotice: boolean; elapsedMs: number; outputKeys: string[] }>((done, reject) => {
+    return new Promise<{ blocked: boolean; findings: number; unavailableNotice: boolean; elapsedMs: number; outputKeys: string[] }>((done, reject) => {
       const child = spawn(process.execPath, [cli, "--controlled-reviewer", "--composed-stop-hook", `--composed-host=${host}`],
         { cwd: project, env, stdio: ["pipe", "pipe", "pipe"] });
       let raw = "";
@@ -106,7 +106,7 @@ const fixture = async (host: Host, controlled: ResidentDispatchContext["controll
         if (code !== 0) return reject(new Error("Stop subprocess failed"));
         let parsed: Record<string, unknown>;
         try { parsed = JSON.parse(raw); } catch { return reject(new Error("Stop output was not JSON")); }
-        done({ blocked: parsed.decision === "block", unavailableNotice: typeof parsed.systemMessage === "string" && /unavailable/i.test(parsed.systemMessage),
+        done({ blocked: parsed.decision === "block", findings: typeof parsed.reason === "string" ? (parsed.reason.match(/\[r6_bare_domain_value,/g) ?? []).length : 0, unavailableNotice: typeof parsed.systemMessage === "string" && /unavailable/i.test(parsed.systemMessage),
           elapsedMs: Math.round(performance.now() - started), outputKeys: Object.keys(parsed).sort() });
       });
       child.stdin.end(JSON.stringify(event));
@@ -132,6 +132,39 @@ const asAdvice = (response: ResidentResponse) => {
 };
 
 for (const host of ["codex-cli", "claude-code"] as const) {
+  await runCase(host, "finish-waits-for-second-review-and-batches", async () => {
+    const f = await fixture(host);
+    try {
+      await f.admit({ "first.ts": finding("FirstCount") }); await f.server.whenIdle();
+      await f.admit({ "second.ts": finding("SecondCount") }, { ...findingControl, delayMs: 1_000 });
+      const stop = await f.stop();
+      requireThat(stop.blocked && stop.findings === 2, "finish returned before collecting both completed items");
+      requireThat(f.server.stats().pendingEvaluations === 0, "finish left unfinished review work");
+      const finish = await f.stop(true);
+      requireThat(!finish.blocked, "finish replayed its batch");
+      return { stop, finish, completedFindingItems: 2 };
+    } finally { await f.cleanup(); }
+  });
+  await runCase(host, "deadline-block-cancels-unfinished-and-keeps-repair-round", async () => {
+    const f = await fixture(host);
+    try {
+      await f.admit({ "first.ts": finding("FirstCount") }); await f.server.whenIdle();
+      await f.admit({ "second.ts": finding("SecondCount"), "third.ts": finding("ThirdCount"), "fourth.ts": finding("FourthCount") },
+        { ...findingControl, delayMs: 8_000 });
+      const stop = await f.stop(); await f.server.whenIdle();
+      requireThat(stop.blocked && stop.findings === 1, "deadline did not select the completed advice");
+      const stats = f.server.stats();
+      requireThat(stats.queued === 0 && stats.running === 0 && stats.pendingEvaluations === 0 && stats.pendingFindingBatches === 1,
+        "deadline block retained unfinished review or published a late result");
+      await f.admit({ "repair.ts": finding("RepairCount") }); await f.server.whenIdle();
+      const repair = await f.stop(true);
+      requireThat(repair.blocked && repair.findings === 1, "fresh repair could not continue the same virtual round");
+      const finish = await f.stop(true);
+      const closure = f.activity().roundClosures?.at(-1);
+      requireThat(!finish.blocked && closure?.reservedContinuations === 2, "deadline block reset the continuation count");
+      return { stop, repair, finish, closure, unfinishedWorkDiscarded: true };
+    } finally { await f.cleanup(); }
+  });
   await runCase(host, "deadline-cancels-running-review", async () => {
     const entered = deferred();
     const f = await fixture(host, { ...findingControl, delayMs: 8_000 }, { beforeEvaluate: async () => entered.resolve() });

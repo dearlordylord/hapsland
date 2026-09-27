@@ -87,6 +87,7 @@ export type ResidentRequest =
       readonly dispatch: ResidentDispatchContext;
       readonly mode?: CollectionMode;
       readonly reportWorkState?: true;
+      readonly finish?: { readonly token: string; readonly deadlineReached: boolean };
       readonly composed?: true;
     }
   | {
@@ -307,10 +308,15 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
     return { version: 1, operation: "admit", lifetime: value.lifetime, observation: value.observation, controlledWriter: true, dispatch: value.dispatch,
         ...(value.composed === true ? { composed: true } : {}) };
   }
+  const finish = record(value.finish);
+  const finishToken = finish?.token;
+  const deadlineReached = finish?.deadlineReached;
   if (
     value.operation === "collect" && string(value.root) && advicee(value.advicee) && dispatch(value.dispatch) &&
     (value.mode === undefined || value.mode === "ordinary" || value.mode === "turn-end") &&
     (value.reportWorkState === undefined || value.reportWorkState === true) &&
+    (value.finish === undefined || (value.composed === true && value.mode === "turn-end" &&
+      string(finishToken) && typeof deadlineReached === "boolean")) &&
     (value.composed === undefined || value.composed === true)
   ) {
     return {
@@ -322,6 +328,7 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
       dispatch: value.dispatch,
       ...(value.mode === undefined ? {} : { mode: value.mode }),
       ...(value.reportWorkState === true ? { reportWorkState: true } : {}),
+      ...(string(finishToken) && typeof deadlineReached === "boolean" ? { finish: { token: finishToken, deadlineReached } } : {}),
       ...(value.composed === true ? { composed: true } : {}),
     };
   }

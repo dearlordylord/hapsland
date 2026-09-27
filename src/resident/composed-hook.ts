@@ -14,7 +14,6 @@ import {
   beginComposedSubmission,
   claimComposedBackground,
   collectAdviceeOutcome,
-  reserveComposedVirtualRoundContinuation,
   makeResidentDispatchContext,
   markComposedUserPrompt,
   releaseComposedSubmission,
@@ -162,19 +161,16 @@ export const runComposedHook = async (input: {
       const outcome = await collectAdviceeOutcome(
         root, advicee, dispatch, paths,
         input.kind === "stop" ? "turn-end" : "ordinary", deadlineAt,
+        stopToken === undefined ? undefined : {
+          token: stopToken,
+          // Leave time for final eligibility checks, output authorization and write.
+          deadlineReached: performance.now() >= deadlineAt - 750,
+        },
       ).catch(() => undefined);
       if (outcome === undefined) { closeReason = "unavailable"; return quiet(); }
       if (outcome.status === "advice") {
         const advice = outcome.advice;
         const message = advice.output.hookSpecificOutput.additionalContext;
-        if (advice.findingCount > 0 && input.kind === "stop") {
-          const allowed = await reserveComposedVirtualRoundContinuation(root, advicee, paths, digest(message)).catch(() => false);
-          if (!allowed) {
-            closeReason = "limit";
-            await releaseComposedSubmission(advice).catch(() => false);
-            return quiet();
-          }
-        }
         if (advice.findingCount > 0) {
           const begun = await beginComposedSubmission(advice, input.kind).catch(() => false);
           if (!begun) { closeReason = "unavailable"; return quiet(); }

@@ -135,10 +135,20 @@ const ResidentControlledOptions = Schema.Struct({
   syntheticR6BrandedRepair: Schema.optionalKey(Schema.Literals(["control", "finding"])),
 });
 
-type RoundWork = { readonly group: string; readonly generation: number; readonly controller: AbortController; readonly partitions: Set<string> };
+type WorkCohort = { readonly id: string; readonly controller: AbortController };
+type RoundWork = {
+  readonly group: string;
+  readonly generation: number;
+  readonly controller: AbortController;
+  readonly partitions: Set<string>;
+  work: WorkCohort;
+  readonly discarded: { queued: number; running: number };
+};
 
 type IngressJob = {
   readonly round?: RoundWork;
+  readonly work?: WorkCohort;
+  completed?: boolean;
   readonly kind: "ingress";
   readonly observation: DirectObservation;
   readonly partition: string;
@@ -187,6 +197,8 @@ const MAX_TICKETS = 256;
 
 type UnitJob = {
   readonly round?: RoundWork;
+  readonly work?: WorkCohort;
+  completed?: boolean;
   readonly kind: "unit";
   readonly observation: DirectObservation;
   readonly partition: string;
@@ -202,7 +214,7 @@ type UnitJob = {
 
 type Job = IngressJob | UnitJob;
 
-type Advice = Omit<UnitJob, "dispatch" | "kind"> & {
+type Advice = Omit<UnitJob, "dispatch" | "kind" | "work" | "completed"> & {
   readonly id: string;
   evaluations: ReadonlyArray<EvaluatedUnit>;
   findings: ReadonlyArray<Finding>;
@@ -626,7 +638,7 @@ export class ResidentServer {
     }
     let round = composed ? this.#rounds.get(group) : undefined;
     if (generation !== undefined && round?.generation !== generation) {
-      round = { group, generation, controller: new AbortController(), partitions: new Set() };
+      round = { group, generation, controller: new AbortController(), partitions: new Set(), work: { id: randomUUID(), controller: new AbortController() }, discarded: { queued: 0, running: 0 } };
       this.#rounds.set(group, round);
     }
     const partition = adviceePartition(observation.root, observation.advicee) +
@@ -652,7 +664,7 @@ export class ResidentServer {
     } : undefined;
     const job = {
       kind: "ingress" as const,
-      ...(round === undefined ? {} : { round }),
+      ...(round === undefined ? {} : { round, work: round.work }),
       observation,
       partition,
       reservation,
@@ -721,6 +733,7 @@ export class ResidentServer {
   ): Promise<ResidentResponse> {
     const partition = composed ? adviceeGroup(root, advicee) : adviceePartition(root, advicee);
     const now = this.#now();
+    if (composed && mode !== "turn-end" && this.#composedDelivery.isDeciding(partition)) return { status: "empty" };
     this.#expirePending(now);
     this.#pruneNoticeCooldowns(now);
     const credentialGeneration = dispatch.credential?.generation ?? null;
@@ -988,11 +1001,16 @@ export class ResidentServer {
   beginComposedSubmission(token: string, surface: "edit" | "background" | "stop"): ResidentResponse {
     const now = this.#now();
     this.#expirePending(now);
+    if (this.#composedDelivery.hasToken(token)) return { status: "empty" };
     const advice = this.#advice.filter((item) =>
       item.delivery?.token === token && item.delivery.leaseUntil > now &&
       item.delivery.findings.length > 0);
     if (advice.length === 0 || advice.some((item) => !this.#roundActive(item.round) ||
         !this.#composedDelivery.canSubmit(adviceeGroup(item.observation.root, item.observation.advicee), surface))) return { status: "empty" };
+    if (surface === "stop") {
+      const group = adviceeGroup(advice[0]!.observation.root, advice[0]!.observation.advicee);
+      if (!this.#composedDelivery.authorizeFinishOutput(group, token)) return { status: "empty" };
+    }
     for (const item of advice) {
       this.#composedDelivery.beginSubmission(
         item.id, adviceeGroup(item.observation.root, item.observation.advicee),
@@ -1012,7 +1030,7 @@ export class ResidentServer {
     const partition = composed ? adviceeGroup(root, advicee) : adviceePartition(root, advicee);
     return (composed && this.#composedDelivery.hasPendingEdits(partition)) || (composed
       ? this.#dispatcher.hasWorkWhere(({ value }) =>
-          adviceeGroup(value.observation.root, value.observation.advicee) === partition)
+          adviceeGroup(value.observation.root, value.observation.advicee) === partition && !value.completed && this.#jobActive(value))
       : this.#dispatcher.hasWork(partition)) ||
       this.#advice.some((item) =>
         (composed ? adviceeGroup(item.observation.root, item.observation.advicee) === partition
@@ -1358,25 +1376,62 @@ export class ResidentServer {
       this.#composedDelivery.isActive(round.group, round.generation));
   }
 
+  #allowFinish(group: string, token: string, reason: RoundCloseReason): void {
+    const counts = this.#composedDelivery.closureCounts(group);
+    const closed = this.#composedDelivery.finishStop(group, token, true);
+    if (closed !== undefined) this.#closeRound(group, closed, reason, counts);
+  }
+
+  #jobActive(job: Job): boolean {
+    return !job.work?.controller.signal.aborted && this.#roundActive(job.round);
+  }
+
+  /** Cut off the pre-decision work cohort without retiring completed advice. */
+  #discardUnfinishedWork(round: RoundWork): void {
+    const work = round.work;
+    const counts = this.#dispatcher.snapshotWhere(({ value }) => value.work === work && !value.completed);
+    round.discarded.queued += counts.queued;
+    round.discarded.running += counts.running;
+    work.controller.abort();
+    round.work = { id: randomUUID(), controller: new AbortController() };
+    const discarded = this.#dispatcher.discardWhere(({ value }) => value.work === work);
+    for (const job of discarded) {
+      // A completed item can still be unwinding its instrumentation callback.
+      if (job.completed) continue;
+      if (job.ticket !== undefined) ticketFail(job.ticket, "lost");
+      if (job.kind === "unit") {
+        if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "lost");
+        this.#settleJoined(job.evaluationKey, "unavailable", "lost");
+        this.#reuse.releaseClaim(job.evaluationKey);
+        this.#releaseUnit(job);
+      } else this.#ledger.release(job.reservation);
+      recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
+        advicee: job.observation.advicee, lifetime: this.lifetime, stage: "incomplete" });
+    }
+  }
+
   #closeRound(group: string, generation: number, reason: RoundCloseReason,
     counts: ReturnType<ComposedDelivery["closureCounts"]>): void {
     const round = this.#rounds.get(group);
     const activity = this.#roundActivity.get(group);
     this.#roundActivity.delete(group);
     const work = round === undefined ? { queued: 0, running: 0 }
-      : this.#dispatcher.snapshotWhere(({ value }) => value.round === round);
+      : this.#dispatcher.snapshotWhere(({ value }) => value.round === round && !value.completed && !value.work?.controller.signal.aborted);
     if (activity !== undefined) recordRoundClosure({ statePath: activity.activityPath,
       root: activity.root, advicee: activity.advicee, lifetime: this.lifetime,
       roundIdentity: `${group}:${generation}`, reason, reservedContinuations: counts.reservedContinuations,
-      discarded: { ...work, pendingAdvice: round === undefined ? 0 : this.#advice.filter((advice) => advice.round === round).length,
+      discarded: { queued: work.queued + (round?.discarded.queued ?? 0),
+        running: work.running + (round?.discarded.running ?? 0), pendingAdvice: round === undefined ? 0 : this.#advice.filter((advice) => advice.round === round).length,
         submitted: counts.submitted, uncertain: counts.uncertain, editPermits: counts.editPermits } });
     if (round === undefined || round.generation !== generation) return;
     // The admission/output fence is already published. Abort Effect fibers and
     // their provider connections before releasing all retained round resources.
     round.controller.abort();
+    round.work.controller.abort();
     this.#rounds.delete(group);
     const discarded = this.#dispatcher.discardWhere(({ value }) => value.round === round);
     for (const job of discarded) {
+      if (job.completed) continue;
       if (job.ticket !== undefined) ticketFail(job.ticket, "lost");
       if (job.kind === "unit") {
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "lost");
@@ -1456,9 +1511,9 @@ export class ResidentServer {
         ) return undefined;
         return settings;
       }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))),
-        { signal: job.round?.controller.signal });
+        { signal: job.work?.controller.signal });
       this.#ledger.release(job.reservation);
-      if (settings === undefined || this.#lifecycle !== "active" || !this.#roundActive(job.round)) {
+      if (settings === undefined || this.#lifecycle !== "active" || !this.#jobActive(job)) {
         if (job.ticket !== undefined) ticketFail(job.ticket, "lost");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
         return;
@@ -1469,7 +1524,7 @@ export class ResidentServer {
       // a time prevents a 16-path event from materializing 1,024 complete
       // inputs outside the ledger.
       for (const candidate of job.observation.candidates) {
-        if (!this.#roundActive(job.round)) return;
+        if (!this.#jobActive(job)) return;
         const workspace = this.#reserve(job.partition, captureWorkspaceBytes(candidate.path));
         if (workspace === undefined) {
           if (job.ticket !== undefined) ticketFail(job.ticket, "capacity");
@@ -1500,12 +1555,12 @@ export class ResidentServer {
               }),
             });
           }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))),
-        { signal: job.round?.controller.signal });
+        { signal: job.work?.controller.signal });
         } catch (cause) {
           this.#ledger.release(workspace);
           throw cause;
         }
-        if (!this.#roundActive(job.round)) { this.#ledger.release(workspace); return; }
+        if (!this.#jobActive(job)) { this.#ledger.release(workspace); return; }
         const ready = prepared.outcomes.filter((outcome) => outcome.status === "ready");
         if (ready.length === 0) {
           if (prepared.outcomes.some((outcome) => outcome.status !== "skipped") && job.ticket !== undefined) {
@@ -1530,7 +1585,7 @@ export class ResidentServer {
           return accepted;
         });
         const planned = deliverable.map((outcome) => {
-          const generationPartition = `${job.partition}\0credential-generation:${job.dispatch.credential?.generation ?? "controlled"}`;
+          const generationPartition = `${job.partition}\0work:${job.work?.id ?? "legacy"}\0credential-generation:${job.dispatch.credential?.generation ?? "controlled"}`;
           const evaluationKey = this.#reuse.key(generationPartition, outcome.prepared);
           if (this.#advice.some((advice) => advice.evaluationKey === evaluationKey)) {
             return { kind: "joined" as const, outcome, evaluationKey };
@@ -1594,6 +1649,15 @@ export class ResidentServer {
           }
         }
         for (const [index, item] of retained.entries()) {
+          if (!this.#jobActive(job)) {
+            for (let remaining = index; remaining < retained.length; remaining++) {
+              const reservation = reservations[remaining];
+              if (reservation !== undefined) this.#ledger.release(reservation);
+              const pending = retained[remaining];
+              if (pending?.kind === "owner") this.#reuse.releaseClaim(pending.evaluationKey);
+            }
+            return;
+          }
           const ticketUnit = job.ticket?.units[ticketUnitOffset + planned.indexOf(item)];
           const reservation = reservations[index];
           if (reservation === undefined) {
@@ -1611,7 +1675,7 @@ export class ResidentServer {
             outcome.path === item.outcome.path ? [outcome.snapshot.sourceHash] : [])[0];
           const unit: UnitJob = {
             kind: "unit",
-            ...(job.round === undefined ? {} : { round: job.round }),
+            ...(job.round === undefined ? {} : { round: job.round, work: job.work }),
             observation: pathObservation,
             partition: job.partition,
             reservation,
@@ -1660,6 +1724,7 @@ export class ResidentServer {
           expectedUnitIdentities: expectedActivityUnits,
         });
       }
+      job.completed = true;
       await this.#afterPrepare?.();
       return;
     } catch {
@@ -1675,7 +1740,7 @@ export class ResidentServer {
   async #evaluateUnit(job: UnitJob, cycle: number, sequence: number): Promise<void> {
     try {
       await this.#awaitBackendGate();
-      if (!this.#roundActive(job.round) || !this.#isCurrentWork(job.revision, job.prepared)) {
+      if (!this.#jobActive(job) || !this.#isCurrentWork(job.revision, job.prepared)) {
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "stale");
         this.#settleJoined(job.evaluationKey, "unavailable", "stale");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "incomplete", unitIdentity: job.evaluationKey });
@@ -1831,8 +1896,8 @@ export class ResidentServer {
           ? evaluation
           : evaluation.pipe(Effect.provide(credentialProvider)));
       }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))),
-        { signal: job.round?.controller.signal });
-      if (!this.#roundActive(job.round)) { this.#reuse.releaseClaim(job.evaluationKey); this.#releaseUnit(job); return; }
+        { signal: job.work?.controller.signal });
+      if (!this.#jobActive(job)) { this.#reuse.releaseClaim(job.evaluationKey); this.#releaseUnit(job); return; }
       if (result?.status === "evaluated" && this.#lifecycle === "active") {
         recordDemoTrace(job.dispatch.demoBudgetPath, job.observation.root, job.observation.advicee, {
           kind: "terminal", ...(job.sourceHash === undefined ? {} : { sourceHash: job.sourceHash }),
@@ -1850,16 +1915,14 @@ export class ResidentServer {
           findings: result.findings.length,
           unitIdentity: job.evaluationKey,
         });
-        if (controlled?.outcomePath !== undefined) {
+        const recordOutcome = async (): Promise<void> => {
+          if (controlled?.outcomePath === undefined) return;
           const { sessionId, turnId, toolUseId, subagentId } = job.observation.advicee;
           await appendFile(controlled.outcomePath, `${JSON.stringify({
-            sessionId,
-            turnId,
-            toolUseId,
-            subagentId,
+            sessionId, turnId, toolUseId, subagentId,
             outcome: result.findings.length === 0 ? "completed-clear" : "completed-findings",
           })}\n`, "utf8");
-        }
+        };
         if (
           result.findings.length === 0 ||
           !this.#isCurrentWork(job.revision, job.prepared)
@@ -1872,10 +1935,13 @@ export class ResidentServer {
           this.#settleJoined(job.evaluationKey,
             result.findings.length === 0 && this.#isCurrentWork(job.revision, job.prepared) ? "clear" : "unavailable",
             "stale");
+          job.completed = true;
           this.#releaseUnit(job);
+          await recordOutcome();
           return;
         }
         await this.#retainAdvice(job, evaluation, cycle, sequence);
+        await recordOutcome();
         return;
       }
       if (result?.status === "backend" || result?.status === "timeout") {
@@ -1929,7 +1995,7 @@ export class ResidentServer {
     cycle: number,
     sequence: number,
   ): Promise<void> | void {
-    if (!this.#roundActive(job.round)) { this.#releaseUnit(job); return; }
+    if (!this.#jobActive(job)) { this.#releaseUnit(job); return; }
     if (this.#advice.some((item) => item.evaluationKey === job.evaluationKey)) {
       const existing = this.#advice.find((item) => item.evaluationKey === job.evaluationKey);
       if (job.ticketUnit !== undefined && existing !== undefined) {
@@ -1962,6 +2028,7 @@ export class ResidentServer {
     const insertion = this.#advice.findIndex((item) => item.sequence > sequence);
     if (insertion < 0) this.#advice.push(advice);
     else this.#advice.splice(insertion, 0, advice);
+    job.completed = true;
     const afterPending = this.#afterAdvicePending?.(advice.id);
     if (afterPending === undefined) {
       if (job.ticketUnit !== undefined) unitFinding(job.ticketUnit, job.revision, advice.id);
@@ -1969,6 +2036,7 @@ export class ResidentServer {
       return;
     }
     return Promise.resolve(afterPending).then(() => {
+      if (!this.#jobActive(job)) return;
       if (job.ticketUnit !== undefined) unitFinding(job.ticketUnit, job.revision, advice.id);
       this.#settleJoined(job.evaluationKey, "finding", undefined, advice.id);
     });
@@ -2125,9 +2193,43 @@ export class ResidentServer {
         const collected = await this.collect(request.root, request.advicee, request.dispatch, request.mode ?? "ordinary", ticket);
         return collected.status === "advice" ? { ...collected, version: 2 } : this.#terminalStatus(ticket, this.#now());
       }
+      if (request.finish !== undefined) {
+        const group = adviceeGroup(request.root, request.advicee);
+        if (!this.#composedDelivery.ownsStop(group, request.finish.token)) return { status: "empty" };
+        // Expired leases represent uncertain external output, not live writers.
+        for (const advice of this.#advice) {
+          if (adviceeGroup(advice.observation.root, advice.observation.advicee) === group &&
+              advice.delivery !== undefined && advice.delivery.leaseUntil <= this.#now()) delete advice.delivery;
+        }
+        if (this.#composedDelivery.hasVirtualRoundContinuationBudget(group) && !request.finish.deadlineReached &&
+            this.#collectionWorkState(request.root, request.advicee, true).status === "pending") {
+          return { status: "pending" };
+        }
+        if (!this.#composedDelivery.beginFinishDecision(group, request.finish.token)) return { status: "empty" };
+        const round = this.#rounds.get(group);
+        if (round !== undefined) this.#discardUnfinishedWork(round);
+        if (!this.#composedDelivery.hasVirtualRoundContinuationBudget(group)) {
+          this.#allowFinish(group, request.finish.token, "limit");
+          return { status: "empty" };
+        }
+      }
       const collected = request.composed === true
         ? await this.collect(request.root, request.advicee, request.dispatch, request.mode ?? "ordinary", undefined, true)
         : await this.collect(request.root, request.advicee, request.dispatch, request.mode ?? "ordinary");
+      if (request.finish !== undefined) {
+        const group = adviceeGroup(request.root, request.advicee);
+        if (collected.status === "advice" && collected.findingCount > 0) {
+          if (!this.#composedDelivery.reserveFinishOutput(group, request.finish.token, collected.token)) {
+            this.releaseDelivery(collected.token);
+            return { status: "empty" };
+          }
+        } else if (collected.status !== "advice") {
+          this.#allowFinish(group, request.finish.token, request.finish.deadlineReached ? "deadline" : "no-advice");
+        }
+        // Operational notices must pass the IPC handoff barrier before the hook
+        // closes the round; unlike findings they cannot reserve a continuation.
+        return collected;
+      }
       return request.reportWorkState === true && collected.status === "empty"
         ? this.#collectionWorkState(request.root, request.advicee, request.composed === true)
         : collected;
@@ -2380,7 +2482,7 @@ export class ResidentServer {
   async close(): Promise<void> {
     for (const timer of this.#stopTimers.values()) clearTimeout(timer);
     this.#stopTimers.clear();
-    for (const round of this.#rounds.values()) round.controller.abort();
+    for (const round of this.#rounds.values()) { round.controller.abort(); round.work.controller.abort(); }
     this.#rounds.clear();
     this.#roundActivity.clear();
     this.#lifecycle = "closed";

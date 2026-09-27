@@ -439,6 +439,7 @@ export const collectAdviceeOutcome = async (
   paths = residentPaths(),
   mode: CollectionMode = "ordinary",
   deadlineAt = Number.POSITIVE_INFINITY,
+  finish?: { readonly token: string; readonly deadlineReached: boolean },
 ): Promise<AdviceeCollectionOutcome> => {
   const owner = await inspectResident(paths);
   if (!owner.available || owner.lifetime === undefined) return { status: "empty" };
@@ -454,6 +455,7 @@ export const collectAdviceeOutcome = async (
     mode,
     reportWorkState: true,
     composed: true,
+    ...(finish === undefined ? {} : { finish }),
   }, Math.min(CLIENT_REQUEST_DEADLINE_MS, remaining));
   if (response.status === "advice" && !("version" in response)) {
     return { status: "advice", advice: {

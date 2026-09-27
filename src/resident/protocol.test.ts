@@ -12,6 +12,17 @@ import {
 } from "./protocol.ts";
 
 describe("resident protocol bounds", () => {
+  it("accepts finish decisions only on composed turn-end collection with an attempt and deadline signal", () => {
+    const request = { version: 1, operation: "collect", lifetime: "lifetime", root: "/tmp/repository",
+      advicee: advicee(), dispatch: { statePath: "/tmp/consent", userConfigPath: null, credential: null, controlled: {} },
+      composed: true, mode: "turn-end", finish: { token: "attempt", deadlineReached: false } };
+    expect(decodeResidentRequest(JSON.stringify(request))).toEqual(request);
+    for (const change of [{ composed: undefined }, { mode: "ordinary" },
+      { finish: { token: "attempt" } }, { finish: { token: "", deadlineReached: true } }]) {
+      expect(decodeResidentRequest(JSON.stringify({ ...request, ...change }))).toBeUndefined();
+    }
+  });
+
   it("strictly decodes source-free v2 terminal statuses", () => {
     expect(decodeResidentResponse({ version: 2, status: "clear" })).toEqual({ version: 2, status: "clear" });
     expect(decodeResidentResponse({ version: 2, status: "unavailable", reason: "stale" }))

@@ -89,6 +89,133 @@ const waitUntilIdle = async (server: ResidentServer): Promise<void> => {
 };
 
 describe("resident delivery lease", () => {
+  it("holds the finish decision for all admitted work, then batches the findings", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    await put(root, "second.ts", "type InvoiceCount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const started = deferred();
+    const gate = deferred();
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => performance.now(), {
+      beforeEvaluate: async () => { started.resolve(); await gate.promise; },
+    });
+    const dispatch = findingDispatch(statePath);
+    try {
+      server.admit(observation, dispatch, false, true);
+      await started.promise;
+      await server.handle({ version: 1, operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "finish" });
+      const request = { version: 1 as const, operation: "collect" as const, lifetime: server.lifetime,
+        root, advicee: observation.advicee, dispatch, mode: "turn-end" as const, composed: true as const,
+        reportWorkState: true as const, finish: { token: "finish", deadlineReached: false } };
+      expect((await server.handle(request)).status).toBe("pending");
+      gate.resolve();
+      await server.whenIdle();
+      // A second admitted observation must keep already completed advice waiting.
+      const next = { ...observation, advicee: { ...observation.advicee, toolUseId: "second" },
+        candidates: [{ ...observation.candidates[0]!, path: "second.ts" }] };
+      server.admit(next, dispatch, false, true);
+      expect((await server.handle(request)).status).toBe("pending");
+      await server.whenIdle();
+      const decision = await server.handle(request);
+      expect(decision.status).toBe("advice");
+      if (decision.status === "advice") expect(decision.findingCount).toBe(2);
+    } finally {
+      gate.resolve();
+      await server.close();
+    }
+  });
+
+  it("cancels unfinished pre-decision work on block while preserving advice and fresh repair work", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    await put(root, "second.ts", "type InvoiceCount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const gate = deferred();
+    const started = deferred();
+    let hold = false;
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => performance.now(), {
+      beforeEvaluate: async () => { if (hold) { started.resolve(); await gate.promise; } },
+    });
+    const dispatch = findingDispatch(statePath);
+    try {
+      server.admit(observation, dispatch, false, true);
+      await server.whenIdle();
+      hold = true;
+      const next = { ...observation, advicee: { ...observation.advicee, toolUseId: "second" },
+        candidates: [{ ...observation.candidates[0]!, path: "second.ts" }] };
+      server.admit(next, dispatch, false, true);
+      await started.promise;
+      await server.handle({ version: 1, operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "finish" });
+      const decision = await server.handle({ version: 1, operation: "collect", lifetime: server.lifetime,
+        root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true,
+        finish: { token: "finish", deadlineReached: true } });
+      expect(decision.status).toBe("advice");
+      if (decision.status !== "advice") throw new Error("missing decision");
+      expect(decision.findingCount).toBe(1);
+      expect(server.stats().pendingEvaluations).toBe(0);
+      expect(server.beginComposedSubmission(decision.token, "stop").status).toBe("submitting");
+      server.acknowledge(decision.token); server.finalize(decision.token);
+      await server.handle({ version: 1, operation: "finish-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "finish", close: false });
+      gate.resolve(); hold = false;
+      await server.whenIdle();
+      expect(server.stats().pendingFindingBatches).toBe(1);
+      expect(server.admit({ ...next, advicee: { ...next.advicee, toolUseId: "repair" } }, dispatch, false, true).status).toBe("accepted");
+      await server.whenIdle();
+      expect(server.stats().pendingFindingBatches).toBe(2);
+    } finally {
+      gate.resolve();
+      await server.close();
+    }
+  });
+
+  it("waits for a live background write, then reoffers once without replaying output authorization", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const dispatch = findingDispatch(statePath);
+    try {
+      server.admit(observation, dispatch, false, true);
+      await server.whenIdle();
+      const background = await server.handle({ version: 1, operation: "collect", lifetime: server.lifetime,
+        root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
+      if (background.status !== "advice") throw new Error("missing background finding");
+      server.beginComposedSubmission(background.token, "background");
+      await server.handle({ version: 1, operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "finish" });
+      const request = { version: 1 as const, operation: "collect" as const, lifetime: server.lifetime,
+        root, advicee: observation.advicee, dispatch, mode: "turn-end" as const, composed: true as const,
+        finish: { token: "finish", deadlineReached: false } };
+      expect((await server.handle(request)).status).toBe("pending");
+      server.acknowledge(background.token); server.finalize(background.token);
+      const decision = await server.handle(request);
+      if (decision.status !== "advice") throw new Error("missing reoffer");
+      expect(decision.findingCount).toBe(1);
+      expect((await server.handle(request)).status).toBe("empty");
+      expect(server.beginComposedSubmission(decision.token, "stop").status).toBe("submitting");
+      expect(server.beginComposedSubmission(decision.token, "stop").status).toBe("empty");
+      server.acknowledge(decision.token); server.finalize(decision.token);
+      await server.handle({ version: 1, operation: "finish-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "finish", close: false });
+      await server.handle({ version: 1, operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "second-finish" });
+      expect((await server.handle({ ...request, finish: { token: "second-finish", deadlineReached: false } })).status).toBe("empty");
+      expect(server.stats().pendingAdvice).toBe(0);
+    } finally { await server.close(); }
+  });
+
   it("requires the installed PreToolUse permit before admitting composed IPC", async () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");

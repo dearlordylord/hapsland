@@ -38,7 +38,7 @@ const fingerprint = (finding: unknown): string =>
 export class ComposedDelivery {
   readonly #rounds = new Map<string, Round>();
   readonly #permits = new Map<string, { readonly partition: string; readonly generation: number; readonly expiresAt: number }>();
-  readonly #stops = new Map<string, { token: string; generation: number; barrier: boolean }>();
+  readonly #stops = new Map<string, { token: string; generation: number; barrier: boolean; deciding: boolean; outputToken?: string; outputAuthorized?: boolean }>();
   readonly #submissions = new Map<string, Submission>();
   readonly #backgroundWaiters = new Map<string, { readonly token: string; readonly at: number }>();
 
@@ -131,7 +131,36 @@ export class ComposedDelivery {
 
   beginStop(partition: string, token: string): boolean {
     if (!this.isActive(partition) || this.#stops.has(partition)) return false;
-    this.#stops.set(partition, { token, generation: this.generation(partition), barrier: false });
+    this.#stops.set(partition, { token, generation: this.generation(partition), barrier: false, deciding: false });
+    return true;
+  }
+
+  ownsStop(partition: string, token: string): boolean {
+    const stop = this.#stops.get(partition);
+    return stop?.token === token && !stop.deciding && this.isActive(partition, stop.generation);
+  }
+
+  beginFinishDecision(partition: string, token: string): boolean {
+    if (!this.ownsStop(partition, token)) return false;
+    this.#stops.get(partition)!.deciding = true;
+    for (const [key, permit] of this.#permits) if (permit.partition === partition) this.#permits.delete(key);
+    return true;
+  }
+
+  reserveFinishOutput(partition: string, attempt: string, outputToken: string): boolean {
+    const stop = this.#stops.get(partition);
+    if (stop?.token !== attempt || !stop.deciding || stop.outputToken !== undefined ||
+        !this.consumeStop(partition)) return false;
+    stop.outputToken = outputToken;
+    return true;
+  }
+
+  authorizeFinishOutput(partition: string, token: string): boolean {
+    const stop = this.#stops.get(partition);
+    // The non-installed legacy collector has no finish-decision attempt.
+    if (stop?.deciding !== true) return true;
+    if (stop.outputToken !== token || stop.outputAuthorized === true) return false;
+    stop.outputAuthorized = true;
     return true;
   }
 
@@ -171,8 +200,12 @@ export class ComposedDelivery {
     return this.finishStop(partition, token, !stop.barrier);
   }
 
+  isDeciding(partition: string): boolean {
+    return this.#stops.get(partition)?.deciding === true;
+  }
+
   canSubmit(partition: string, surface: DeliverySurface): boolean {
-    return this.isActive(partition) && (surface !== "background" || !this.#stops.get(partition)?.barrier);
+    return this.isActive(partition) && (surface !== "background" || !(this.#stops.get(partition)?.barrier || this.#stops.get(partition)?.deciding));
   }
 
   generation(partition: string): number {
