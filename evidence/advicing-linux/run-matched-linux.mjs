@@ -167,9 +167,13 @@ for (const entry of cases) {
     const instruction = entry.host === 'codex'
       ? 'Use native apply_patch to create order-count.ts containing exactly one line: type OrderCount = number.'
       : 'Use the native Write tool to create order-count.ts containing exactly one line: type OrderCount = number.';
-    const prompt = entry.phase === 'background'
+    const basePrompt = entry.phase === 'background'
       ? `${instruction} After that edit, use the native Read tool to read README.md once. Do not make another edit before reading. If a Hapsland review finding arrives, use a native edit tool to change the type line to: type OrderCount = number & { readonly __brand: "OrderCount" }. Then finish by saying REVIEW_REPAIRED. Do not proactively repair and do not use shell commands.`
       : `${instruction} Stop after the edit unless a Hapsland review finding asks you to repair it. If a finding arrives, use a native edit tool to change the line to: type OrderCount = number & { readonly __brand: "OrderCount" }. Then finish by saying REVIEW_REPAIRED. Do not proactively repair and do not use shell commands.`;
+    // An explicit, optional native read after repair gives the clear follow-up
+    // another runtime opportunity; it adds no mapped edit and changes no deadline.
+    const repairRead = process.env.HAPSLAND_105_REPAIR_READ === '1';
+    const prompt = basePrompt + (repairRead ? ' After a requested repair, read README.md once before finishing.' : '');
     const binary = entry.host === 'codex' ? codex : claude;
     const claudeSettingsPath = join(repo, '.claude', 'settings.json');
     const args = entry.host === 'codex'
@@ -231,6 +235,7 @@ for (const entry of cases) {
     const stages = await activityStages(activityPath);
     const result = { ...entry, hostVersion: entry.host === 'codex' ? '0.155.1' : '2.1.218',
       residentReadyBeforeHost: true,
+      repairFollowUpOpportunity: repairRead ? "native README read requested after repair" : "finish hook only",
       exitCode: hostRun.code, signal: hostRun.signal, timedOut: hostRun.timedOut, elapsedMs: hostRun.elapsedMs,
       hookCounts: Object.fromEntries(['before-edit', 'edit', 'background', 'stop', 'prompt'].map((mode) => [mode, hooks.filter((hook) => hook.mode === mode).length])),
       hookSequence: hooks.map(({ mode, at, ok, elapsedMs, finding, submitted, blocked, eventKeys, hasPrompt, hasTurnId, stopActive }) =>
@@ -286,6 +291,9 @@ if (selected.length === 0) {
     }
   }
 }
+for (const result of results) {
+  if (result.exitCode !== 0 || result.hookFailures.length !== 0) throw new Error(`${result.host}-${result.phase} host or hook failed`);
+}
 for (const result of results.filter((entry) => entry.phase === 'background')) {
   if (result.timedOut || !result.hookSequence.some((hook) => hook.mode === 'background' && hook.finding && hook.submitted) ||
       !result.repairedFile || !result.modelClaimedRepair || !result.clearFollowUp) {
@@ -293,7 +301,7 @@ for (const result of results.filter((entry) => entry.phase === 'background')) {
   }
 }
 for (const result of results.filter((entry) => entry.phase === 'before')) {
-  if (result.timedOut || result.backendCompletions < 1 ||
+  if (result.timedOut || result.backendCompletedAfterHostExit || result.backendCompletions < 1 ||
       result.findingSubmission || result.repairedFile || !result.originalFile) {
     throw new Error(`${result.host} before outcome gate failed`);
   }
