@@ -3,7 +3,8 @@ import { initialBend, projectBend, stepBend } from "../../agent-flow-viz/src/ben
 
 // Independent expectations for the abstract Flow.bend contract. These do not
 // consult the TypeScript reference reducer or its scenario acceptance choices.
-const input = (event, itemId) => ({ event, itemId });
+const input = (event, itemId) => ({ kind: "flow", event, itemId });
+const capacityInput = (capacityType, capacity) => ({ kind: "capacity", capacityType, capacity });
 const primaryIds = (state) => state.packets.filter((packet) => packet.at !== "advicePolicy").map((packet) => packet.id);
 const sameIds = (actual, expected, label) => assert.deepEqual([...actual].sort((a, b) => a - b), [...expected].sort((a, b) => a - b), label);
 
@@ -22,8 +23,8 @@ const assertState = (state, label) => {
 
 let acceptedSteps = 0;
 let rejectedSteps = 0;
-const apply = (before, { event, itemId }, label) => {
-  const result = stepBend(before.bend, event, itemId);
+const apply = (before, input, label) => {
+  const result = stepBend(before.bend, input);
   assertState(result.state, label);
   if (!result.accepted) {
     rejectedSteps++;
@@ -33,7 +34,7 @@ const apply = (before, { event, itemId }, label) => {
   }
   acceptedSteps++;
   const expected = new Set(primaryIds(before.state));
-  const name = typeof event === "string" ? event : event.type;
+  const name = input.kind === "flow" ? input.event : input.capacityType;
   if (name === "EditObserved") expected.add(before.state.nextItemId);
   if (name === "JevClearReceived" || name === "JevUnavailable") {
     const transition = result.changes.find((change) => change.kind === "transition" && change.event === name);
@@ -54,7 +55,7 @@ const run = (label, events) => {
 
 const closed = run("closed rejection", [input("StopHookFired")]);
 assert.equal(closed.reason, "virtualRoundClosed");
-const invalid = run("invalid capacity", [input({ type: "SourceCapacitySet", capacity: 0 })]);
+const invalid = run("invalid capacity", [capacityInput("source", 0)]);
 assert.equal(invalid.reason, "invalidCapacity");
 const opened = run("edit admission", [input("EditObserved")]);
 assert.deepEqual(opened.changes.filter((change) => change.kind === "transition").map((change) => change.event),
@@ -87,11 +88,11 @@ for (let trace = 0; trace < 100; trace++) {
   for (let index = 0; index < 60; index++) {
     const candidates = [
       ...events.map((event) => input(event)),
-      input({ type: "SourceCapacitySet", capacity: 1 + random() % 5 }),
-      input({ type: "ReviewCapacitySet", capacity: 1 + random() % 5 }),
+      capacityInput("source", 1 + random() % 5),
+      capacityInput("jev", 1 + random() % 5),
       ...result.state.packets.flatMap((packet) => events.map((event) => input(event, packet.id))),
     ];
-    const accepted = candidates.filter(({ event, itemId }) => stepBend(result.bend, event, itemId).accepted);
+    const accepted = candidates.filter((candidate) => stepBend(result.bend, candidate).accepted);
     assert.ok(accepted.length > 0, `trace ${trace}: no accepted candidate`);
     const pool = random() % 5 === 0 ? candidates : accepted;
     result = apply(result, pool[random() % pool.length], `generated trace ${trace} step ${index + 1}`);

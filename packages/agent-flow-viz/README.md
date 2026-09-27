@@ -142,6 +142,11 @@ displayed abstract path, focused Foldkit interactions, and the Vite production
 build. A rejected path fails
 the build.
 
+Run `npm run test:browser` after installing Playwright's Chromium headless shell
+and its system libraries. It opens the page in a real headless browser and
+checks guided and manual controls, disabled rejection feedback, capacity,
+finish, rewind, and redo.
+
 ## Native timing evidence at the bottom of the page
 
 Use the prominent “Jump to timing diagrams” link at the top, or open

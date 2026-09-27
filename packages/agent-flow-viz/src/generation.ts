@@ -1,5 +1,5 @@
 import { EVENT_IDS, isInternalEvent, type EventId, type FlowChange, type FlowState, type RejectionCode } from "./view-contract";
-import { CONNECTIONS, initialBend, routeFor, stepBend } from "./bend-flow";
+import { CONNECTIONS, replaySequence, routeFor, stepBend } from "./bend-flow";
 import { TRACES } from "./scenarios";
 
 export type ProjectedStep = {
@@ -10,15 +10,7 @@ export type ProjectedStep = {
 
 // The scenario supplies only an event order. The reducer supplies every
 // accepted route, state change, and round boundary used by the diagrams.
-export const projectSequence = (events: readonly EventId[], title: string): readonly ProjectedStep[] => {
-  let bend = initialBend();
-  return events.map((event) => {
-    const result = stepBend(bend, event);
-    if (!result.accepted) throw new Error(`${title}: ${event}: ${result.reason}`);
-    bend = result.bend;
-    return { event, state: result.state, changes: result.changes };
-  });
-};
+export const projectSequence = replaySequence;
 
 export const PROJECTED_TRACES = TRACES.map((trace) => projectSequence(trace.events, trace.name));
 
@@ -36,7 +28,7 @@ export const nextEventOptions = (bend: unknown, state: FlowState): readonly Even
     : [];
   const ids: readonly (number | null)[] = candidates.length > 0 ? [...new Set(candidates)] : [null];
   return ids.map((itemId) => {
-    const result = stepBend(bend, event, itemId ?? undefined);
+    const result = stepBend(bend, { kind: "flow", event, itemId: itemId ?? undefined });
     return result.accepted ? { event, itemId, available: true } : { event, itemId, available: false, reason: result.reason };
   });
 });

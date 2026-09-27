@@ -51,7 +51,8 @@ state, so they remain executable if the TypeScript reference is removed later.
 | `FlowExamples.bend` | Three Bend-authored executable traces | Retain as source-level smoke evidence. |
 | `check-sidecar-parity.mjs` | Independent cross-language acceptance, rejection, state, decision, and ordered-change comparison | Retain until equivalent independent coverage exists. |
 | `check-flow-contract.mjs` | Fixed expected admission, rejection, continue, and allow results, plus structural checks over Bend generated traces | Add and retain; does not consult the reference reducer. |
-| Visualization `check-projection.mjs` | Nine guided paths, Foldkit control wiring, mixed manual/guided input, capacity, finish, rewind/replay, timeline source links | Retain; it verifies the displayed projection and UI, not independent domain equivalence. |
+| Visualization `check-projection.mjs` | Nine guided paths, Foldkit scene wiring, mixed manual/guided input, capacity, finish, rewind/replay, timeline source links | Retain; it verifies the displayed projection and UI, not independent domain equivalence. |
+| Visualization `test:browser` | Real headless Chromium interaction with guided/manual controls, disabled rejection feedback, capacity, finish, rewind, and redo | Retain as the focused browser gate; it requires Playwright browser and system libraries. |
 | `check-lifecycle.mjs` | Generated aggregate lifecycle trace | Retain; production-related aggregate scope differs from `Flow.bend`. |
 
 The old browser-side TypeScript-versus-Bend comparison was removed at the UI

@@ -1,0 +1,68 @@
+import assert from "node:assert/strict";
+import { chromium } from "playwright";
+import { createServer } from "vite";
+
+// Focused browser check of the controls changed by the Bend UI migration.
+const server = await createServer({ server: { host: "127.0.0.1", port: 0 } });
+let browser;
+try {
+  await server.listen();
+  const url = server.resolvedUrls?.local[0];
+  if (url === undefined) throw new Error("Vite did not expose a local browser URL");
+  browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto(url);
+  const waitForText = (selector, text) => page.waitForFunction(([target, expected]) =>
+    document.querySelector(target)?.textContent?.includes(expected), [selector, text]);
+
+  assert.match(await page.locator(".page-header").innerText(), /COMPILED BEND FLOW MODEL/);
+  assert.match(await page.locator(".policy-scope").innerText(), /not a trace of the production resident/);
+  const closedStop = page.locator(".event-row").filter({ hasText: "finish attempt; runtime calls Stop hook" }).first();
+  assert.equal(await closedStop.isDisabled(), true);
+  assert.match(await closedStop.innerText(), /This virtual round is closed/);
+
+  await page.getByRole("button", { name: /^Next: proven fresh edit admitted/ }).click();
+  await waitForText(".progress", "Guided step 1 of 13");
+  assert.match(await page.locator(".progress").innerText(), /Guided step 1 of 13/);
+  assert.match(await page.locator(".state-line").innerText(), /Virtual round 1 \(active\)/);
+  await page.getByRole("button", { name: /^Previous:/ }).click();
+  await waitForText(".progress", "Guided step 0 of 13");
+  assert.match(await page.locator(".progress").innerText(), /Guided step 0 of 13/);
+  await page.getByRole("button", { name: /^Redo:/ }).click();
+  await waitForText(".progress", "Guided step 1 of 13");
+  assert.match(await page.locator(".progress").innerText(), /Guided step 1 of 13/);
+
+  await page.getByRole("button", { name: "Finish-decision wait expires", exact: true }).click();
+  await waitForText(".progress", "Guided step 0 of 5");
+  for (let step = 0; step < 4; step++) {
+    await page.getByRole("button", { name: /^Next:/ }).click();
+    await waitForText(".progress", `Guided step ${step + 1} of 5`);
+  }
+  assert.match(await page.locator(".state-line").innerText(), /Virtual round 1 \(closed\)/);
+  assert.match(await page.locator(".finish-panel").innerText(), /Cancel Jev requests: #1/);
+  assert.match(await page.locator(".status").first().innerText(), /allow-finish response/);
+  await page.getByRole("button", { name: /^Previous:/ }).click();
+  await waitForText(".progress", "Guided step 3 of 5");
+  assert.match(await page.locator(".state-line").innerText(), /Virtual round 1 \(active\)/);
+  await page.getByRole("button", { name: /^Redo:/ }).click();
+  await waitForText(".progress", "Guided step 4 of 5");
+  assert.match(await page.locator(".state-line").innerText(), /Virtual round 1 \(closed\)/);
+
+  await page.getByRole("button", { name: "Send advice after a tool" }).click();
+  await waitForText(".progress", "Guided step 0 of 5");
+  const sourceCapacity = page.getByLabel("Concurrent source readings");
+  await sourceCapacity.fill("1");
+  await sourceCapacity.press("Tab");
+  await waitForText(".status", "Source-reading capacity set to 1");
+  await page.locator(".event-row.available").filter({ hasText: "proven fresh edit admitted" }).first().click();
+  await waitForText(".state-line", "Virtual round 1 (active)");
+  assert.match(await page.locator(".state-line").innerText(), /source readings 1\/1/);
+  assert.match(await page.locator(".progress").innerText(), /2 manual events/);
+  assert.deepEqual(errors, []);
+  console.log("Browser controls passed: guided, manual, disabled rejection, capacity, finish, rewind, and redo");
+} finally {
+  await browser?.close();
+  await server.close();
+}

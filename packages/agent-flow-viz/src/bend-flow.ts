@@ -1,9 +1,10 @@
 import { bendChanges, bendInitial, bendStep } from "../../agent-flow-bend/flow.generated.js";
-import { EVENT_IDS, type CapacityEvent, type EventId, type FlowChange, type FlowState, type RejectionCode, type Transition } from "./view-contract";
+import { EVENT_IDS, type EventId, type FlowChange, type FlowState, type RejectionCode, type Transition } from "./view-contract";
 import { TRACES } from "./scenarios";
 
-type Input = { readonly event: EventId | CapacityEvent;
-  readonly itemId?: number };
+export type FlowInput =
+  | { readonly kind: "flow"; readonly event: EventId; readonly itemId?: number }
+  | { readonly kind: "capacity"; readonly capacityType: "source" | "jev"; readonly capacity: number };
 type Raw = any; // Bend's generated algebraic data types are checked through the projection below.
 
 const list = (value: Raw): Raw[] => {
@@ -80,20 +81,45 @@ const change = (value: Raw): FlowChange => {
     default: throw new Error(`Unknown Bend change ${value.$}`);
   }
 };
-const encode = (event: Input["event"]) => typeof event === "string"
-  ? { $: event } : { $: event.type, capacity: event.capacity };
+const encode = (input: FlowInput) => input.kind === "flow"
+  ? { $: input.event }
+  : { $: input.capacityType === "source" ? "SourceCapacitySet" : "ReviewCapacitySet", capacity: input.capacity };
 const equal = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
+
+export const initialBend = (): Raw => bendInitial();
+export const stepBend = (before: Raw, input: FlowInput) => {
+  const encoded = encode(input);
+  const item = input.kind === "flow" && input.itemId !== undefined
+    ? { $: "Some" as const, value: BigInt(input.itemId) } : { $: "None" as const };
+  const result: Raw = bendStep(before, encoded, item);
+  const changes = list(bendChanges(before, encoded, item, result)).map(change);
+  if (result.$ === "Rejected") {
+    const name: string = result.reason.$;
+    const reason = `${name[0].toLowerCase()}${name.slice(1)}` as RejectionCode;
+    return { accepted: false as const, bend: result.state, state: projectBend(result.state),
+      changes: [] as readonly [], reason };
+  }
+  if (result.$ !== "Accepted") throw new Error(`Unknown Bend step result ${result.$}`);
+  return { accepted: true as const, bend: result.state, state: projectBend(result.state), changes };
+};
+
+// Replay editorial inputs through compiled Bend. Both the route table and
+// guided/timeline projections use this one sequence.
+export const replaySequence = (events: readonly EventId[], title: string) => {
+  let bend: Raw = bendInitial();
+  return events.map((event) => {
+    const result = stepBend(bend, { kind: "flow", event });
+    if (!result.accepted) throw new Error(`${title}: ${event}: ${result.reason}`);
+    bend = result.bend;
+    return { event, state: result.state, changes: result.changes };
+  });
+};
 
 // Derive displayed routes from accepted generated Bend changes.
 const bendRoutes = new Map<EventId, Transition>();
 for (const trace of TRACES) {
-  let state: Raw = bendInitial();
-  for (const input of trace.events) {
-    const event = encode(input);
-    const item = { $: "None" as const };
-    const result: Raw = bendStep(state, event, item);
-    if (result.$ !== "Accepted") throw new Error(`Bend route trace rejected ${trace.name}: ${input}`);
-    for (const entry of list(bendChanges(state, event, item, result)).map(change)) {
+  for (const step of replaySequence(trace.events, trace.name)) {
+    for (const entry of step.changes) {
       if (entry.kind !== "transition") continue;
       const previous = bendRoutes.get(entry.event);
       if (previous !== undefined && !equal(previous, entry.route)) {
@@ -101,7 +127,6 @@ for (const trace of TRACES) {
       }
       bendRoutes.set(entry.event, entry.route);
     }
-    state = result.state;
   }
 }
 for (const event of EVENT_IDS) {
@@ -118,20 +143,3 @@ export const CONNECTIONS: readonly (readonly EventId[])[] = EVENT_IDS.reduce<Eve
   else groups.push([event]);
   return groups;
 }, []);
-
-
-export const initialBend = (): Raw => bendInitial();
-export const stepBend = (before: Raw, event: Input["event"], itemId?: number) => {
-  const encoded = encode(event);
-  const item = itemId === undefined ? { $: "None" as const } : { $: "Some" as const, value: BigInt(itemId) };
-  const result: Raw = bendStep(before, encoded, item);
-  const changes = list(bendChanges(before, encoded, item, result)).map(change);
-  if (result.$ === "Rejected") {
-    const name: string = result.reason.$;
-    const reason = `${name[0].toLowerCase()}${name.slice(1)}` as RejectionCode;
-    return { accepted: false as const, bend: result.state, state: projectBend(result.state),
-      changes: [] as readonly [], reason };
-  }
-  if (result.$ !== "Accepted") throw new Error(`Unknown Bend step result ${result.$}`);
-  return { accepted: true as const, bend: result.state, state: projectBend(result.state), changes };
-};

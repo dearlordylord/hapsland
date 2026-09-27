@@ -23,7 +23,7 @@ try {
   assert.match(renderText(initial), /COMPILED BEND FLOW MODEL/);
   assert.match(renderText(initial), /not a trace of the production resident/);
   assert.doesNotMatch(renderText(initial), /TypeScript sidecar reducer|Routes and .* applied steps match/);
-  assert.equal(bend.stepBend(initial.bend, "StopHookFired").reason, "virtualRoundClosed");
+  assert.equal(bend.stepBend(initial.bend, { kind: "flow", event: "StopHookFired" }).reason, "virtualRoundClosed");
   const rejected = trigger(initial, "StopHookFired");
   assert.equal(rejected.history.length, 0);
   assert.match(renderText(rejected), /This virtual round is closed/);
@@ -33,7 +33,7 @@ try {
     for (const [cursor, expected] of graph.PROJECTED_TRACES[index].entries()) {
       model = send(model, main.Message.Advanced());
       assert.equal(model.cursor, cursor + 1, `${trace.name}: guide cursor`);
-      assert.deepEqual(model.flow, expected.state, `${trace.name}: Bend-guided state`);
+      assert.deepEqual(bend.projectBend(model.bend), expected.state, `${trace.name}: Bend-guided state`);
       assert.equal(model.history.length, cursor + 1, `${trace.name}: accepted history`);
     }
     assert.match(renderText(model), new RegExp(`Guided step ${trace.events.length} of ${trace.events.length}`));
@@ -44,16 +44,16 @@ try {
   mixed = trigger(mixed, "EditObserved");
   mixed = send(mixed, main.Message.Advanced());
   assert.equal(mixed.cursor, 2);
-  assert.equal(mixed.flow.packets.find((packet) => packet.id === 1)?.at, "jev");
-  assert.equal(mixed.flow.packets.find((packet) => packet.id === 2)?.at, "preparation");
+  assert.equal(bend.projectBend(mixed.bend).packets.find((packet) => packet.id === 1)?.at, "jev");
+  assert.equal(bend.projectBend(mixed.bend).packets.find((packet) => packet.id === 2)?.at, "preparation");
   assert.equal(mixed.history[2].origin, "guided");
   assert.equal(mixed.history[2].itemId, 1, "guided item binding survives manual interleaving");
 
   let capacity = send(initial, main.Message.CapacitySubmitted({ capacityType: "source", raw: "1" }));
   capacity = trigger(trigger(capacity, "EditObserved"), "EditObserved");
-  assert.equal(capacity.flow.packets.find((packet) => packet.id === 2)?.at, "editQueue");
+  assert.equal(bend.projectBend(capacity.bend).packets.find((packet) => packet.id === 2)?.at, "editQueue");
   capacity = send(capacity, main.Message.CapacitySubmitted({ capacityType: "source", raw: "2" }));
-  assert.equal(capacity.flow.packets.find((packet) => packet.id === 2)?.at, "preparation");
+  assert.equal(bend.projectBend(capacity.bend).packets.find((packet) => packet.id === 2)?.at, "preparation");
   const invalid = send(capacity, main.Message.CapacitySubmitted({ capacityType: "jev", raw: "0" }));
   assert.equal(invalid.history.length, capacity.history.length);
   assert.match(renderText(invalid), /Choose a positive whole number/);
@@ -70,14 +70,14 @@ try {
   allowed = trigger(allowed, "StopHookFired");
   allowed = trigger(allowed, "FinishDecisionDeadlineReached");
   assert.equal(allowed.lastFinishDecision.response, "allowFinish");
-  assert.equal(allowed.flow.virtualRoundActive, false);
+  assert.equal(bend.projectBend(allowed.bend).virtualRoundActive, false);
   assert.match(renderText(allowed), /Cancel Jev requests: #1/);
   const replayed = send(send(allowed, main.Message.Rewound()), main.Message.Redid());
-  assert.deepEqual(replayed.flow, allowed.flow);
+  assert.deepEqual(bend.projectBend(replayed.bend), bend.projectBend(allowed.bend));
   assert.deepEqual(replayed.lastFinishDecision, allowed.lastFinishDecision);
   assert.equal(replayed.historyPosition, allowed.historyPosition);
   const jumped = send(allowed, main.Message.JumpedToHistory({ count: 1 }));
-  assert.equal(jumped.flow.virtualRoundActive, true);
+  assert.equal(bend.projectBend(jumped.bend).virtualRoundActive, true);
   assert.equal(jumped.historyPosition, 1);
   assert.equal(jumped.history.length, allowed.history.length);
   assert.equal(trigger(jumped, "EditObserved").history.length, 2, "new accepted action replaces the future tail");
