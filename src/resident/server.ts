@@ -59,6 +59,7 @@ import { DispatchCycles } from "./dispatch.ts";
 import { ComposedDelivery } from "./composed-delivery.ts";
 import { BendWorkTracker } from "./bend-work.ts";
 import { bendTicketInitial, bendTicketFail, bendTicketClose, bendTicketTerminal,
+  bendTicketCollectGate,
   bendTicketUnitStep, bendTicketUnitInitial, bendRevisionRegister, bendRevisionSuperseded,
   type BendTicketPhase, type BendTicketReason,
   type BendTicketUnitEvent, type BendTicketUnitStage } from "./bend-policy.generated.js";
@@ -2411,10 +2412,8 @@ export class ResidentServer {
       if (request.version === 2) {
         const ticket = this.#ticketFor(request.ticket, request.root, request.advicee, request.dispatch);
         if (ticket === undefined) return { version: 2, status: "unavailable", reason: "lost" };
-        if (ticket.credentialGeneration !== (request.dispatch.credential?.generation ?? null)) {
-          return { version: 2, status: "unavailable", reason: "credential" };
-        }
-        if (this.#now() >= ticket.expiresAt) return { version: 2, status: "unavailable", reason: "expired" };
+        const gate = this.#ticketCollectGate(ticket, request.dispatch, this.#now());
+        if (gate !== undefined) return gate;
         const collected = await this.collect(request.root, request.advicee, request.dispatch, request.mode ?? "ordinary", ticket);
         return collected.status === "advice" ? { ...collected, version: 2 } : this.#terminalStatus(ticket, this.#now());
       }
@@ -2502,6 +2501,16 @@ export class ResidentServer {
   #currentClaudeFeedbackMode(root: string, userConfigPath: string | null): ClaudeOutputMode {
     const authority = readCurrentClaudeFeedbackAuthority(root, userConfigPath ?? undefined);
     return authority.valid ? authority.mode : "advisory";
+  }
+
+  #ticketCollectGate(ticket: TicketRecord, dispatch: ResidentDispatchContext,
+    now: number): ResidentResponse | undefined {
+    const gate = bendTicketCollectGate(now >= ticket.expiresAt,
+      ticket.credentialGeneration === (dispatch.credential?.generation ?? null) &&
+      this.#credentialAuthority(ticket));
+    if (gate.$ === "CollectProceed") return undefined;
+    if (gate.$ !== "CollectUnavailable") throw new Error("invalid Bend ticket collect gate");
+    return { version: 2, status: "unavailable", reason: nativeTicketReason(gate.reason) };
   }
 
   #terminalStatus(ticket: TicketRecord, now: number): ResidentResponse {
@@ -2592,10 +2601,8 @@ export class ResidentServer {
       this.#expirePending(now);
       this.#pruneNoticeCooldowns(now);
       const ticket = this.#ticketFor(request.ticket, request.root, request.advicee, request.dispatch);
-      return ticket === undefined ? { version: 2, status: "unavailable", reason: "lost" }
-        : ticket.credentialGeneration !== (request.dispatch.credential?.generation ?? null)
-          ? { version: 2, status: "unavailable", reason: "credential" }
-        : this.#terminalStatus(ticket, now);
+      if (ticket === undefined) return { version: 2, status: "unavailable", reason: "lost" };
+      return this.#ticketCollectGate(ticket, request.dispatch, now) ?? this.#terminalStatus(ticket, now);
     }
     const now = this.#now();
     this.#expirePending(now);
@@ -2659,6 +2666,13 @@ export class ResidentServer {
     for (const notice of notices) {
       if (notice.delivery !== undefined) notice.delivery.leaseUntil = now + DELIVERY_LEASE_MS;
     }
+    if (ticket !== undefined && request.operation === "collect") {
+      const gate = this.#ticketCollectGate(ticket, request.dispatch, now);
+      if (gate !== undefined) {
+        this.releaseDelivery(response.token);
+        return gate;
+      }
+    }
     if (ticket !== undefined && ticket.claudeFeedbackMode === "block-current-findings" &&
         this.#currentClaudeFeedbackMode(ticket.root, ticket.userConfigPath) !== "block-current-findings") {
       // A revoked opt-in cannot turn the old selection into an advisory lease.
@@ -2674,15 +2688,6 @@ export class ResidentServer {
             output: combinedClaudeOutput(findings, notices.map((notice) => notice.value), ticket.claudeFeedbackMode) };
     if (request.version !== 2 || request.operation !== "collect") return selected;
     if (ticket === undefined) return { version: 2, status: "unavailable", reason: "lost" };
-    if (ticket.credentialGeneration !== (request.dispatch.credential?.generation ?? null)) {
-      if (selected.status === "advice") this.releaseDelivery(selected.token);
-      return { version: 2, status: "unavailable", reason: "credential" };
-    }
-    if (!this.#credentialAuthority(ticket)) {
-      if (selected.status === "advice") this.releaseDelivery(selected.token);
-      return { version: 2, status: "unavailable", reason: "credential" };
-    }
-    if (now >= ticket.expiresAt) return { version: 2, status: "unavailable", reason: "expired" };
     return selected.status === "advice" ? { ...selected, version: 2 }
       : this.#terminalStatus(ticket, now);
   }

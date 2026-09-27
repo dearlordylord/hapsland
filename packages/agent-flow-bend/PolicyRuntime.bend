@@ -83,6 +83,7 @@ type Smoke is Data:
     ticket_fail: Ticket.Phase
     ticket_close: Ticket.Phase
     ticket_terminal: Ticket.Outcome
+    ticket_collect_gate: Ticket.CollectGate
     ticket_unit: Ticket.UnitStep
     ticket_unit_initial: Ticket.UnitStage
     revision_register: Revision.Registration
@@ -187,6 +188,7 @@ def main() -> Smoke:
     Ticket.close(Ticket.fail(Ticket.initial(), Ticket.Backend{})),
     Ticket.terminal(Ticket.Closed{}, Ticket.Facts{False{}, True{}, 0n,
       False{}, False{}, None{}, 0n, 0n, 1n}),
+    Ticket.collect_gate(False{}, True{}),
     Ticket.unit.step(Ticket.UnitFinding{False{}}, Ticket.MarkDelivered{}),
     Ticket.unit.initial(),
     Revision.register(True{}, False{}),

@@ -1,6 +1,18 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.ticket_collect_gate_proceeds_with_valid_authority():
+  {==}
+
+def Laws.ticket_collect_gate_blocks_credential_change():
+  {==}
+
+def Laws.ticket_collect_gate_blocks_expiry():
+  {==}
+
+def Laws.ticket_collect_gate_expiry_precedes_credential():
+  {==}
+
 def Laws.stop_reoffers_submitted_background_lease():
   {==}
 

@@ -286,6 +286,11 @@ export function bendTicketInitial(): BendTicketPhase;
 export function bendTicketFail(phase: BendTicketPhase, reason: BendTicketReason): BendTicketPhase;
 export function bendTicketClose(phase: BendTicketPhase): BendTicketPhase;
 export function bendTicketTerminal(phase: BendTicketPhase, facts: BendTicketFacts): BendTicketOutcome;
+export type BendTicketCollectGate =
+  | { readonly $: "CollectProceed" }
+  | { readonly $: "CollectUnavailable"; readonly reason: BendTicketReason };
+export function bendTicketCollectGate(expired: boolean,
+  credentialValid: boolean): BendTicketCollectGate;
 export type BendTicketUnitStage =
   | { readonly $: "UnitPending" | "UnitClear" | "UnitUnavailable" }
   | { readonly $: "UnitFinding"; readonly delivered: boolean };

@@ -15,6 +15,22 @@ import ./Cache.bend as Cache
 import ./Ticket.bend as Ticket
 import ./Revision.bend as Revision
 
+law ticket_collect_gate_proceeds_with_valid_authority:
+  {Ticket.collect_gate(False{}, True{}) ==
+    Ticket.CollectProceed{} : Ticket.CollectGate}
+
+law ticket_collect_gate_blocks_credential_change:
+  {Ticket.collect_gate(False{}, False{}) ==
+    Ticket.CollectUnavailable{Ticket.Credential{}} : Ticket.CollectGate}
+
+law ticket_collect_gate_blocks_expiry:
+  {Ticket.collect_gate(True{}, True{}) ==
+    Ticket.CollectUnavailable{Ticket.Expired{}} : Ticket.CollectGate}
+
+law ticket_collect_gate_expiry_precedes_credential:
+  {Ticket.collect_gate(True{}, False{}) ==
+    Ticket.CollectUnavailable{Ticket.Expired{}} : Ticket.CollectGate}
+
 def submitted_background_lease() -> Handoff.Lease:
   Handoff.Lease{7n, 1n, False{}, False{}, Handoff.Submitted{Handoff.Background{}}}
 

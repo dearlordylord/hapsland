@@ -52,6 +52,7 @@ try {
       !source.includes("function $Ticket$fail$(") ||
       !source.includes("function $Ticket$close$(") ||
       !source.includes("function $Ticket$terminal$(") ||
+      !source.includes("function $Ticket$collect_gate$(") ||
       !source.includes("function $Ticket$unit$step$(") ||
       !source.includes("function $Ticket$unit$initial$(") ||
       !source.includes("function $Revision$register$(") ||
@@ -206,6 +207,8 @@ export const bendTicketFail = (phase, reason) =>
 export const bendTicketClose = (phase) => run_loop($Ticket$close$(phase));
 export const bendTicketTerminal = (phase, facts) =>
   run_loop($Ticket$terminal$(phase, normalize(facts)));
+export const bendTicketCollectGate = (expired, credentialValid) =>
+  run_loop($Ticket$collect_gate$(expired, credentialValid));
 export const bendTicketUnitStep = (stage, event) =>
   run_loop($Ticket$unit$step$(normalize(stage), normalize(event)));
 export const bendTicketUnitInitial = () => run_loop($Ticket$unit$initial$());

@@ -177,6 +177,10 @@ describe("Claude terminal collection", () => {
     expect(await collect(server, admission.ticket, data, dispatch)).toEqual({
       version: 2, status: "unavailable", reason: "expired",
     });
+    expect(await collect(server, admission.ticket, data, {
+      ...dispatch, credential: { name: "TYPESAFE_API_KEY", environmentValue: null,
+        environmentOnly: true, generation: 1, statePath: join(data.root, "credential") },
+    })).toEqual({ version: 2, status: "unavailable", reason: "expired" });
   });
 
   it("observes a clear that completes while the collection response is gated", async () => {

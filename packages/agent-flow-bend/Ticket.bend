@@ -29,6 +29,10 @@ type Outcome is Data:
   Clear{}
   NoWork{}
 
+type CollectGate is Data:
+  CollectProceed{}
+  CollectUnavailable{reason: Reason}
+
 type UnitStage is Data:
   UnitPending{}
   UnitClear{}
@@ -153,6 +157,20 @@ def terminal(+state: Phase, +facts: Facts) -> Outcome:
       Bool.pick(Outcome, expired, Unavailable{Expired{}},
         Bool.pick(Outcome, Bool.not(credential_valid), Unavailable{Credential{}},
           terminal.pending(state, facts)))
+
+def collect_gate.result(outcome: Outcome) -> CollectGate:
+  match outcome:
+    case Pending{}:
+      CollectProceed{}
+    case Unavailable{reason}:
+      CollectUnavailable{reason}
+    case _:
+      CollectUnavailable{Lost{}}
+
+# The same ordered terminal policy guards each collection and IPC barrier.
+def collect_gate(expired: Bool, credential_valid: Bool) -> CollectGate:
+  collect_gate.result(terminal(initial(), Facts{expired, credential_valid,
+    0n, False{}, False{}, None{}, 0n, 0n, 0n}))
 
 def main() -> Outcome:
   terminal(Closed{}, Facts{False{}, True{}, 0n, False{}, False{}, None{}, 0n, 0n, 1n})

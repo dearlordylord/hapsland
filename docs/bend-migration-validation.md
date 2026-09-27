@@ -73,7 +73,8 @@ finding count, and cancellation IDs.
   expiry, credential authority, pending work, live advice and notices,
   failures, delivered findings, clear results, and no-work results. TypeScript
   supplies credential and live-output facts and maps Bend's reason tag to the
-  resident protocol.
+  resident protocol. Its collect gate uses that same order at the initial
+  request and final IPC handoff barriers.
 - `Revision.bend` decides whether canonical input identity reuses a current
   revision or replaces it, and whether a source-free subject/generation pair
   supersedes ticket units and pending advice. TypeScript maps exact canonical
@@ -152,6 +153,9 @@ On 2026-09-27, from this worktree:
   resident-server, and terminal-collection suite: 3 files and 96 tests. Four Bend laws cover
   background-to-Stop reoffer, denied edit reoffer, fresh validation, and
   ordinary reservation.
+- The ticket collection gate migration passed the focused resident-server and
+  terminal-collection suite: 2 files and 80 tests. Four Bend laws cover valid
+  collection, credential invalidation, expiry, and their combined priority.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
   suite reported 65 passing files and 575 passing tests, with one file and
   two tests skipped.
