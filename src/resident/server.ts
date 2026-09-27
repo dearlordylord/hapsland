@@ -59,7 +59,8 @@ import { DispatchCycles } from "./dispatch.ts";
 import { ComposedDelivery } from "./composed-delivery.ts";
 import { BendWorkTracker } from "./bend-work.ts";
 import { bendTicketInitial, bendTicketFail, bendTicketClose, bendTicketTerminal,
-  type BendTicketPhase, type BendTicketReason } from "./bend-policy.generated.js";
+  bendTicketUnitStep, bendTicketUnitInitial, type BendTicketPhase, type BendTicketReason,
+  type BendTicketUnitEvent, type BendTicketUnitStage } from "./bend-policy.generated.js";
 import {
   collectionOrder,
   combinedClaudeOutput,
@@ -164,23 +165,36 @@ type IngressJob = {
   readonly ticket?: TicketRecord;
 };
 
-type TicketUnitState =
-  | { readonly state: "pending"; readonly revision?: WorkRevision }
-  | { readonly state: "clear"; readonly revision: WorkRevision }
-  | { readonly state: "finding"; readonly revision: WorkRevision; readonly adviceId: string; readonly delivered: boolean }
-  | { readonly state: "unavailable"; readonly reason: ResidentUnavailableReason };
+type TicketUnitState = { readonly stage: BendTicketUnitStage;
+  readonly revision?: WorkRevision; readonly adviceId?: string;
+  readonly reason?: ResidentUnavailableReason };
 type TicketUnit = { current: TicketUnitState };
+const ticketUnitTransition = (unit: TicketUnit, event: BendTicketUnitEvent) =>
+  bendTicketUnitStep(unit.current.stage, event);
 const unitUnavailable = (unit: TicketUnit, reason: ResidentUnavailableReason): void => {
-  unit.current = { state: "unavailable", reason };
+  const result = ticketUnitTransition(unit, { $: "FailUnit" });
+  if (result.$ !== "UnitGranted" || result.stage.$ !== "UnitUnavailable") {
+    throw new Error("Bend denied ticket unit failure");
+  }
+  unit.current = { stage: result.stage, reason };
 };
 const unitRevision = (unit: TicketUnit, revision: WorkRevision): void => {
-  if (unit.current.state === "pending") unit.current = { state: "pending", revision };
+  const result = ticketUnitTransition(unit, { $: "Revise" });
+  if (result.$ === "UnitDenied") return;
+  if (result.stage.$ !== "UnitPending") throw new Error("invalid Bend ticket revision stage");
+  unit.current = { stage: result.stage, revision };
 };
 const unitClear = (unit: TicketUnit, revision: WorkRevision): void => {
-  if (unit.current.state !== "unavailable") unit.current = { state: "clear", revision };
+  const result = ticketUnitTransition(unit, { $: "ClearResult" });
+  if (result.$ === "UnitDenied") return;
+  if (result.stage.$ !== "UnitClear") throw new Error("invalid Bend ticket clear stage");
+  unit.current = { stage: result.stage, revision };
 };
 const unitFinding = (unit: TicketUnit, revision: WorkRevision, adviceId: string): void => {
-  if (unit.current.state !== "unavailable") unit.current = { state: "finding", revision, adviceId, delivered: false };
+  const result = ticketUnitTransition(unit, { $: "FindingResult" });
+  if (result.$ === "UnitDenied") return;
+  if (result.stage.$ !== "UnitFinding") throw new Error("invalid Bend ticket finding stage");
+  unit.current = { stage: result.stage, revision, adviceId };
 };
 type TicketRecord = { readonly ticket: ResidentCollectionTicket; readonly generation: number;
   readonly partition: string; readonly credentialGeneration: number | null;
@@ -786,7 +800,7 @@ export class ResidentServer {
         : item.partition === partition) && item.delivery === undefined &&
       item.findings.some((finding) => !this.#composedDelivery.suppresses(
         item.id, adviceeGroup(item.observation.root, item.observation.advicee), finding, stopCollector ? "stop" : undefined)) &&
-      (ticket === undefined || ticket.units.some((unit) => unit.current.state === "finding" && unit.current.adviceId === item.id)));
+      (ticket === undefined || ticket.units.some((unit) => unit.current.stage.$ === "UnitFinding" && unit.current.adviceId === item.id)));
     const cycles = new Map<number, Array<Advice>>();
     for (const item of available) {
       const cohort = cycles.get(item.cycle) ?? [];
@@ -1031,8 +1045,11 @@ export class ResidentServer {
       if (remaining.length === 0) {
         for (const ticket of this.#tickets.values()) {
           for (const unit of ticket.units) {
-            if (unit.current.state === "finding" && unit.current.adviceId === item.id) {
-              unit.current = { ...unit.current, delivered: true };
+            if (unit.current.stage.$ === "UnitFinding" && unit.current.adviceId === item.id) {
+              const transition = ticketUnitTransition(unit, { $: "MarkDelivered" });
+              if (transition.$ === "UnitGranted" && transition.stage.$ === "UnitFinding") {
+                unit.current = { ...unit.current, stage: transition.stage };
+              }
             }
           }
         }
@@ -1398,7 +1415,7 @@ export class ResidentServer {
     });
     for (const ticket of this.#tickets.values()) {
       for (const unit of ticket.units) {
-        const revision = "revision" in unit.current ? unit.current.revision : undefined;
+        const revision = unit.current.revision;
         if (revision?.subject === subject && revision.token !== token) {
           unitUnavailable(unit, "stale");
         }
@@ -1459,7 +1476,7 @@ export class ResidentServer {
       this.#composedDelivery.forget(id);
       for (const ticket of this.#tickets.values()) {
         for (const unit of ticket.units) {
-          if (unit.current.state === "finding" && unit.current.adviceId === id && !unit.current.delivered) {
+          if (unit.current.stage.$ === "UnitFinding" && unit.current.adviceId === id && !unit.current.stage.delivered) {
             unitUnavailable(unit, isPendingAdviceExpired(removed, this.#now()) ? "expired" : "stale");
           }
         }
@@ -1742,7 +1759,8 @@ export class ResidentServer {
           recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
         }
         for (const item of planned) {
-          const ticketUnit: TicketUnit | undefined = job.ticket === undefined ? undefined : { current: { state: "pending" } };
+          const ticketUnit: TicketUnit | undefined = job.ticket === undefined ? undefined :
+            { current: { stage: bendTicketUnitInitial() } };
           if (ticketUnit !== undefined) job.ticket?.units.push(ticketUnit);
           if (item.kind === "cached" && item.cached.evaluation.findings.length === 0) {
             const revision = this.#registerCurrentWork(job.partition, item.outcome.prepared);
@@ -2143,16 +2161,16 @@ export class ResidentServer {
     this.#releaseUnit(job);
   }
 
-  #settleJoined(key: string, state: TicketUnitState["state"], reason?: ResidentUnavailableReason,
+  #settleJoined(key: string, state: "pending" | "clear" | "finding" | "unavailable", reason?: ResidentUnavailableReason,
     adviceId?: string): void {
     const joined = this.#joinedTicketUnits.get(key);
     if (joined === undefined) return;
     this.#joinedTicketUnits.delete(key);
     for (const unit of joined) {
-      if (unit.current.state === "unavailable" && unit.current.reason === "stale") continue;
+      if (unit.current.stage.$ === "UnitUnavailable" && unit.current.reason === "stale") continue;
       if (state === "unavailable") unitUnavailable(unit, reason ?? "lost");
       else {
-        const revision = "revision" in unit.current ? unit.current.revision : undefined;
+        const revision = unit.current.revision;
         if (revision === undefined) unitUnavailable(unit, "lost");
         else if (state === "clear") unitClear(unit, revision);
         else if (state === "finding") {
@@ -2463,23 +2481,26 @@ export class ResidentServer {
   }
 
   #terminalStatus(ticket: TicketRecord, now: number): ResidentResponse {
-    const pendingUnits = ticket.units.filter((unit) => unit.current.state === "pending").length;
-    const findingUnits = ticket.units.filter((unit) => unit.current.state === "finding");
+    const pendingUnits = ticket.units.filter((unit) => unit.current.stage.$ === "UnitPending").length;
+    const findingUnits = ticket.units.filter((unit) => unit.current.stage.$ === "UnitFinding");
     const liveAdvice = this.#advice.some((item) => findingUnits.some((unit) =>
-      unit.current.state === "finding" && unit.current.adviceId === item.id));
+      unit.current.stage.$ === "UnitFinding" && unit.current.adviceId === item.id));
     const pendingNotice = [...this.#noticeCooldowns.values()].some((item) =>
       item.partition === ticket.partition && item.pending !== undefined);
     const failedUnit = ticket.units.map((unit) => unit.current)
-      .find((state): state is Extract<TicketUnitState, { state: "unavailable" }> => state.state === "unavailable");
+      .find((state) => state.stage.$ === "UnitUnavailable");
+    if (failedUnit !== undefined && failedUnit.reason === undefined) {
+      throw new Error("missing reason for Bend ticket unit failure");
+    }
     const outcome = bendTicketTerminal(ticket.phase, { $: "Facts",
       expired: now >= ticket.expiresAt,
       credential_valid: this.#credentialAuthority(ticket), pending_units: pendingUnits,
       live_advice: liveAdvice, pending_notice: pendingNotice,
-      unit_failure: failedUnit === undefined ? { $: "None" }
+      unit_failure: failedUnit?.reason === undefined ? { $: "None" }
         : { $: "Some", value: ticketReasons[failedUnit.reason] },
       finding_units: findingUnits.length,
       undelivered_findings: findingUnits.filter((unit) =>
-        unit.current.state === "finding" && !unit.current.delivered).length,
+        unit.current.stage.$ === "UnitFinding" && !unit.current.stage.delivered).length,
       total_units: ticket.units.length,
     });
     switch (outcome.$) {

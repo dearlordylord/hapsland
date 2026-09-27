@@ -28,6 +28,24 @@ def Laws.ticket_empty_is_no_work():
 def Laws.ticket_settled_unit_without_finding_is_clear():
   {==}
 
+def Laws.ticket_revision_only_updates_pending_unit():
+  {==}
+
+def Laws.ticket_failure_overrides_previous_unit_result():
+  {==}
+
+def Laws.unavailable_ticket_unit_cannot_become_clear():
+  {==}
+
+def Laws.unavailable_ticket_unit_cannot_become_finding():
+  {==}
+
+def Laws.ticket_finding_delivery_is_terminal_marker():
+  {==}
+
+def Laws.ticket_clear_unit_cannot_mark_delivery():
+  {==}
+
 def Laws.existing_cache_entry_reuses_without_byte_check():
   {==}
 

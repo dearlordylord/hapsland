@@ -19,7 +19,8 @@ before passing its byte count to Bend.
 
 The resident executes generated Bend code for admission permits, source and
 review work, composed rounds, finding selection and leases, finish waiting,
-ticket terminal outcomes, cancellation IDs, response limits, logical capacity,
+ticket unit transitions and terminal outcomes, cancellation IDs, response
+limits, logical capacity,
 background-writer claims,
 notice cooldown admission, collection order, readiness, expiry, output-token
 phase transitions, and successful-review cache pressure. The generated files

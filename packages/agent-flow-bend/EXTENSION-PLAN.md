@@ -15,9 +15,10 @@ background-writer and operational-notice policies also decide their expiry
 and capacity boundaries. Generated collection policy decides readiness,
 expiry, and deterministic order. Generated delivery policy decides token
 transition and lease expiry. Generated cache policy decides successful-review
-admission and eviction pressure. Generated ticket policy decides failure
-retention and terminal collection outcomes. The generated `Lifecycle` finish gate and final
-reservation now own the resident's Stop wait, decision fence, exact work cancellation
+admission and eviction pressure. Generated ticket policy decides unit-state
+transitions, failure retention, and terminal collection outcomes. The generated
+`Lifecycle` finish gate and final reservation now own the resident's Stop wait,
+decision fence, exact work cancellation
 IDs, selected pending unit counts, and continuation slot. The final IPC
 barrier releases and replaces a provisional slot if its selected findings
 change before encoding. Its

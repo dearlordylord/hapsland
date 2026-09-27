@@ -58,7 +58,8 @@ finding count, and cancellation IDs.
 - `Cache.bend` decides successful-review cache admission and whether its oldest
   entry must be evicted for item or byte pressure. TypeScript retains opaque
   cached results and their LRU order.
-- `Ticket.bend` retains the first ticket failure through closure and orders
+- `Ticket.bend` governs ticket unit revisions, review outcomes, failure, and
+  delivery marking. It retains the first ticket failure through closure and orders
   expiry, credential authority, pending work, live advice and notices,
   failures, delivered findings, clear results, and no-work results. TypeScript
   supplies credential and live-output facts and maps Bend's reason tag to the
@@ -110,6 +111,9 @@ On 2026-09-27, from this worktree:
   terminal-collection suite: 2 files and 80 tests. Nine Bend laws cover first
   failure retention and terminal outcome ordering. A fractional clock test
   checks that an exact expiry fact changes only at the original boundary.
+- The ticket unit transition migration passed the same 2 files and 80 tests.
+  Six Bend laws cover pending-only revision, failure dominance, and delivery
+  marking only for finding units.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
   suite reported 65 passing files and 571 passing tests, with one file and
   two tests skipped.

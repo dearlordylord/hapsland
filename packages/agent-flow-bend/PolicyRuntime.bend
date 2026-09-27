@@ -77,6 +77,8 @@ type Smoke is Data:
     ticket_fail: Ticket.Phase
     ticket_close: Ticket.Phase
     ticket_terminal: Ticket.Outcome
+    ticket_unit: Ticket.UnitStep
+    ticket_unit_initial: Ticket.UnitStage
   }
 
 def sample_work() -> Work.Work:
@@ -170,5 +172,7 @@ def main() -> Smoke:
     Ticket.fail(Ticket.initial(), Ticket.Backend{}),
     Ticket.close(Ticket.fail(Ticket.initial(), Ticket.Backend{})),
     Ticket.terminal(Ticket.Closed{}, Ticket.Facts{False{}, True{}, 0n,
-      False{}, False{}, None{}, 0n, 0n, 1n})
+      False{}, False{}, None{}, 0n, 0n, 1n}),
+    Ticket.unit.step(Ticket.UnitFinding{False{}}, Ticket.MarkDelivered{}),
+    Ticket.unit.initial()
   }

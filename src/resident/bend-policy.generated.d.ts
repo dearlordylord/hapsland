@@ -260,3 +260,13 @@ export function bendTicketInitial(): BendTicketPhase;
 export function bendTicketFail(phase: BendTicketPhase, reason: BendTicketReason): BendTicketPhase;
 export function bendTicketClose(phase: BendTicketPhase): BendTicketPhase;
 export function bendTicketTerminal(phase: BendTicketPhase, facts: BendTicketFacts): BendTicketOutcome;
+export type BendTicketUnitStage =
+  | { readonly $: "UnitPending" | "UnitClear" | "UnitUnavailable" }
+  | { readonly $: "UnitFinding"; readonly delivered: boolean };
+export type BendTicketUnitEvent = { readonly $: "Revise" | "ClearResult" |
+  "FindingResult" | "FailUnit" | "MarkDelivered" };
+export type BendTicketUnitStep = { readonly $: "UnitGranted" | "UnitDenied";
+  readonly stage: BendTicketUnitStage };
+export function bendTicketUnitStep(stage: BendTicketUnitStage,
+  event: BendTicketUnitEvent): BendTicketUnitStep;
+export function bendTicketUnitInitial(): BendTicketUnitStage;

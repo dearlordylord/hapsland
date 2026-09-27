@@ -60,6 +60,30 @@ law ticket_settled_unit_without_finding_is_clear:
   {Ticket.terminal(Ticket.Closed{}, ticket_facts(False{}, True{}, 0n,
       False{}, False{}, None{}, 0n, 0n, 1n)) == Ticket.Clear{} : Ticket.Outcome}
 
+law ticket_revision_only_updates_pending_unit:
+  {Ticket.unit.step(Ticket.UnitFinding{False{}}, Ticket.Revise{}) ==
+    Ticket.UnitDenied{Ticket.UnitFinding{False{}}} : Ticket.UnitStep}
+
+law ticket_failure_overrides_previous_unit_result:
+  {Ticket.unit.step(Ticket.UnitFinding{True{}}, Ticket.FailUnit{}) ==
+    Ticket.UnitGranted{Ticket.UnitUnavailable{}} : Ticket.UnitStep}
+
+law unavailable_ticket_unit_cannot_become_clear:
+  {Ticket.unit.step(Ticket.UnitUnavailable{}, Ticket.ClearResult{}) ==
+    Ticket.UnitDenied{Ticket.UnitUnavailable{}} : Ticket.UnitStep}
+
+law unavailable_ticket_unit_cannot_become_finding:
+  {Ticket.unit.step(Ticket.UnitUnavailable{}, Ticket.FindingResult{}) ==
+    Ticket.UnitDenied{Ticket.UnitUnavailable{}} : Ticket.UnitStep}
+
+law ticket_finding_delivery_is_terminal_marker:
+  {Ticket.unit.step(Ticket.UnitFinding{False{}}, Ticket.MarkDelivered{}) ==
+    Ticket.UnitGranted{Ticket.UnitFinding{True{}}} : Ticket.UnitStep}
+
+law ticket_clear_unit_cannot_mark_delivery:
+  {Ticket.unit.step(Ticket.UnitClear{}, Ticket.MarkDelivered{}) ==
+    Ticket.UnitDenied{Ticket.UnitClear{}} : Ticket.UnitStep}
+
 law existing_cache_entry_reuses_without_byte_check:
   {Cache.admit(True{}, 200n, 100n) == Cache.Already{} : Cache.Admission}
 

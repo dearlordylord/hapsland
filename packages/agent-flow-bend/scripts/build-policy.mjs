@@ -46,7 +46,9 @@ try {
       !source.includes("function $Ticket$initial$(") ||
       !source.includes("function $Ticket$fail$(") ||
       !source.includes("function $Ticket$close$(") ||
-      !source.includes("function $Ticket$terminal$(")) {
+      !source.includes("function $Ticket$terminal$(") ||
+      !source.includes("function $Ticket$unit$step$(") ||
+      !source.includes("function $Ticket$unit$initial$(")) {
     throw new Error("Bend policy JavaScript layout changed; inspect generated runtime");
   }
   source = source.replace(footer, `
@@ -186,6 +188,9 @@ export const bendTicketFail = (phase, reason) =>
 export const bendTicketClose = (phase) => run_loop($Ticket$close$(phase));
 export const bendTicketTerminal = (phase, facts) =>
   run_loop($Ticket$terminal$(phase, normalize(facts)));
+export const bendTicketUnitStep = (stage, event) =>
+  run_loop($Ticket$unit$step$(normalize(stage), normalize(event)));
+export const bendTicketUnitInitial = () => run_loop($Ticket$unit$initial$());
 `);
   writeFileSync(join(productRoot, "src/resident/bend-policy.generated.js"),
     `// hapsland-bend-source-sha256:${sourceHash}\n${source}`);
