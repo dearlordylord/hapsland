@@ -168,6 +168,7 @@ export function bendRoundOwnsStop(state: BendRound, token: number | bigint): boo
 export function bendRoundBeginDecision(state: BendRound, token: number | bigint): BendRoundStep;
 export function bendRoundConsume(state: BendRound): BendRoundStep;
 export function bendRoundReserveOutput(state: BendRound, token: number | bigint): BendRoundStep;
+export function bendRoundReleaseOutput(state: BendRound, token: number | bigint): BendRoundStep;
 export function bendRoundFinishStop(state: BendRound, token: number | bigint,
   close: boolean, at: number | bigint): BendRoundStep;
 export function bendRoundReopen(state: BendRound, generation: number | bigint): BendRoundStep;
@@ -224,3 +225,7 @@ export type BendLifecycleCutoff =
   | { readonly $: "CutoffDenied"; readonly round: BendRound; readonly work: BendWorkState };
 export function bendLifecycleCutoff(round: BendRound, work: BendWorkState,
   token: number | bigint): BendLifecycleCutoff;
+export function bendLifecycleReserveSelected(round: BendRound, work: BendWorkState,
+  token: number | bigint, selectedUnits: ReadonlyArray<number | bigint>): BendRoundStep;
+export function bendLifecycleReleaseUnwritten(round: BendRound,
+  token: number | bigint): BendRoundStep;

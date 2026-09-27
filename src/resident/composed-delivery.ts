@@ -6,7 +6,7 @@ import { DELIVERY_LEASE_MS } from "./protocol.ts";
 import {
   bendRoundActive, bendRoundBeginStop, bendRoundBudget,
   bendRoundConsume, bendRoundFinishStop, bendRoundInitial, bendRoundOwnsStop,
-  bendRoundReopen, bendRoundReserveOutput, bendRoundMaxContinuations, type BendRound,
+  bendRoundReopen, bendRoundMaxContinuations, type BendRound,
   bendLeaseInitial, bendLeaseReserve, bendLeaseAuthorize, bendLeaseTerminal,
   bendLeaseReoffer, bendLeaseSuppresses, type BendLease, type BendLeaseSurface,
   bendAdmissionInitial, bendAdmissionStep, bendAdmissionCloseProspective,
@@ -15,6 +15,7 @@ import {
   bendBackgroundExpire, type BendBackgroundWaiter,
   bendDeliveryTransition, bendDeliveryExpired, bendDeliveryBackgroundReofferable,
   type BendDeliveryPhase,
+  bendLifecycleReleaseUnwritten,
 } from "./bend-policy.generated.js";
 
 /** Shared round and source-free handoff state for every agent runtime. */
@@ -305,7 +306,8 @@ export class ComposedDelivery {
   }
 
   reserveFinishOutput(partition: string, attempt: string, outputToken: string,
-    advice: ReadonlyArray<{ readonly id: string; readonly findings: ReadonlyArray<unknown> }>, now: number): boolean {
+    advice: ReadonlyArray<{ readonly id: string; readonly unit: number;
+      readonly findings: ReadonlyArray<unknown> }>, now: number, work: BendWorkTracker): boolean {
     const stop = this.#stops.get(partition);
     const round = this.#rounds.get(partition);
     if (stop?.token !== attempt || round === undefined) return false;
@@ -316,15 +318,31 @@ export class ComposedDelivery {
       this.#pruneSubmissionTokenIds();
       return false;
     }
-    const result = bendRoundReserveOutput(round.policy, stop.id);
-    if (result.$ !== "Granted") {
+    const reserved = work.reserveSelected(round.policy, stop.id,
+      advice.flatMap((item) => item.findings.map(() => item.unit)));
+    if (reserved === undefined) {
       this.#pruneSubmissionTokenIds();
       return false;
     }
-    this.#rounds.set(partition, { ...round, policy: result.state });
+    this.#rounds.set(partition, { ...round, policy: reserved });
     stop.outputToken = outputToken;
     this.#finishPermits.set(outputToken, { partition, generation: stop.generation, attempt, authorized: false, revoked: false });
     for (const [id, submission] of staged) this.#submissions.set(id, submission!);
+    return true;
+  }
+
+  revokeProvisionalFinishOutput(partition: string, attempt: string, outputToken: string): boolean {
+    const stop = this.#stops.get(partition);
+    const round = this.#rounds.get(partition);
+    const permit = this.#finishPermits.get(outputToken);
+    if (stop?.token !== attempt || stop.outputToken !== outputToken || round === undefined ||
+        permit?.authorized === true) return false;
+    const released = bendLifecycleReleaseUnwritten(round.policy, stop.id);
+    if (released.$ !== "Granted") return false;
+    this.#rounds.set(partition, { ...round, policy: released.state });
+    this.release(outputToken);
+    this.#finishPermits.delete(outputToken);
+    delete stop.outputToken;
     return true;
   }
 
@@ -335,7 +353,10 @@ export class ComposedDelivery {
   authorizeFinishOutput(partition: string, token: string): boolean {
     const permit = this.#finishPermits.get(token);
     // The non-installed legacy collector has no finish-decision permit.
-    if (permit === undefined) return this.#rounds.get(partition)?.policy.deciding !== true;
+    if (permit === undefined) {
+      const round = this.#rounds.get(partition)?.policy;
+      return round?.active === true && round.deciding !== true;
+    }
     const stop = this.#stops.get(partition);
     if (permit.partition !== partition || !this.isActive(partition, permit.generation) ||
         permit.revoked || permit.authorized || stop?.token !== permit.attempt || stop.outputToken !== token) return false;
@@ -346,8 +367,16 @@ export class ComposedDelivery {
 
   finishStop(partition: string, token: string, close: boolean, closedAt = monotonicNow()): number | undefined {
     const stop = this.#stops.get(partition);
-    const round = this.#rounds.get(partition);
+    let round = this.#rounds.get(partition);
     if (stop?.token !== token || round === undefined) return undefined;
+    // A provisional output has not crossed the IPC write boundary. If Stop
+    // ends while that response is gated, release its slot and close the round.
+    if (stop.outputToken !== undefined && this.#finishPermits.get(stop.outputToken)?.authorized !== true) {
+      if (!this.revokeProvisionalFinishOutput(partition, token, stop.outputToken)) return undefined;
+      round = this.#rounds.get(partition);
+      if (round === undefined) return undefined;
+      close = true;
+    }
     const result = bendRoundFinishStop(round.policy, stop.id, close, Math.floor(Math.max(0, closedAt)));
     if (result.$ !== "Granted") return undefined;
     this.#rounds.set(partition, { ...round, policy: result.state });
@@ -392,8 +421,8 @@ export class ComposedDelivery {
   expireStop(partition: string, token: string): number | undefined {
     const stop = this.#stops.get(partition);
     if (stop?.token !== token) return undefined;
-    // A reserved output may have reached the runtime. Preserve its count and
-    // round; otherwise the abandoned allow attempt closes with no fresh proof.
+    // An authorized output may have reached the runtime. Preserve its count
+    // and round; finishStop releases any provisional output before closing.
     return this.finishStop(partition, token, !this.#rounds.get(partition)?.policy.barrier);
   }
 

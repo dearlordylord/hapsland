@@ -235,6 +235,24 @@ def Laws.cutoff_fences_round_and_names_exact_cancellations():
 def Laws.wrong_stop_cannot_cut_off_work():
   {==}
 
+def Laws.final_output_reserves_exact_pending_unit_findings():
+  {==}
+
+def Laws.final_output_cannot_invent_third_unit_finding():
+  {==}
+
+def Laws.final_output_cannot_reserve_empty_advice():
+  {==}
+
+def Laws.final_output_cannot_reserve_unknown_unit():
+  {==}
+
+def Laws.unwritten_output_releases_its_continuation():
+  {==}
+
+def Laws.wrong_stop_cannot_release_output():
+  {==}
+
 def Laws.handoff_selects_fitting_findings():
   {==}
 

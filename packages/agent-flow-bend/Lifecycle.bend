@@ -57,6 +57,37 @@ def cutoff.round(work: Work.Work, result: Round.Step) -> CutoffResult:
 def cutoff(+round: Round.Round, work: Work.Work, token: Nat) -> CutoffResult:
   cutoff.round(work, Round.begin_decision(round, token))
 
+def selected_count(+unit: Nat, selected: List<&2, Nat>) -> Nat:
+  match selected:
+    case Nil{}:
+      0n
+    case head <> rest:
+      (Bool.pick(Nat, Nat.is_eq(head, unit), 1n, 0n) + selected_count(unit, rest) : Nat)
+
+def selected_valid(+work: Work.Work, +selected: List<&2, Nat>,
+    remaining: List<&2, Nat>) -> Bool:
+  match remaining:
+    case Nil{}:
+      True{}
+    case +unit <> rest:
+      Bool.and(Nat.is_gt(unit, 0n),
+        Bool.and(Nat.is_le(selected_count(unit, selected), Work.pending_for(work, unit)),
+          selected_valid(work, selected, rest)))
+
+# The encoded host batch was measured by the adapter and selected by Handoff.
+# These exact unit IDs must still exist as pending findings when the resident
+# atomically consumes a continuation slot before output authorization.
+def reserve_selected(+round: Round.Round, work: Work.Work, token: Nat,
+    +selected: List<&2, Nat>) -> Round.Step:
+  Bool.pick(Round.Step,
+    Bool.and(Nat.is_gt(List.length(&2, Nat, selected), 0n),
+      Bool.and(Nat.is_le(List.length(&2, Nat, selected), 5n),
+        selected_valid(work, selected, selected))),
+    Round.reserve_output(round, token), Round.Denied{round})
+
+def release_unwritten(round: Round.Round, token: Nat) -> Round.Step:
+  Round.release_output(round, token)
+
 def initial(partition: Nat, lifetime: Nat) -> Lifecycle:
   Lifecycle{Admission.initial(partition, lifetime), Work.initial(), Handoff.finish.initial(0n)}
 

@@ -1524,6 +1524,9 @@ export class ResidentServer {
 
   #closeRound(group: string, generation: number, reason: RoundCloseReason,
     counts: ReturnType<ComposedDelivery["closureCounts"]>): void {
+    // finishStop can release an unwritten provisional slot after callers took
+    // the pre-cleanup snapshot. Report the final Bend reservation count.
+    const reservedContinuations = this.#composedDelivery.closureCounts(group).reservedContinuations;
     const round = this.#rounds.get(group);
     const activity = this.#roundActivity.get(group);
     this.#roundActivity.delete(group);
@@ -1531,7 +1534,7 @@ export class ResidentServer {
       : this.#dispatcher.snapshotWhere(({ value }) => value.round === round && !value.completed && !value.work?.controller.signal.aborted);
     if (activity !== undefined) recordRoundClosure({ statePath: activity.activityPath,
       root: activity.root, advicee: activity.advicee, lifetime: this.lifetime,
-      roundIdentity: `${group}:${generation}`, reason, reservedContinuations: counts.reservedContinuations,
+      roundIdentity: `${group}:${generation}`, reason, reservedContinuations,
       discarded: { queued: work.queued + (round?.discarded.queued ?? 0),
         running: work.running + (round?.discarded.running ?? 0), pendingAdvice: round === undefined ? 0 : this.#advice.filter((advice) => advice.round === round).length,
         submitted: counts.submitted, uncertain: counts.uncertain, editPermits: counts.editPermits } });
@@ -2403,8 +2406,9 @@ export class ResidentServer {
             return { status: "empty" };
           }
           const selected = selectedAdvice
-            .map((advice) => ({ id: advice.id, findings: advice.delivery?.findings ?? [] }));
-          if (!this.#composedDelivery.reserveFinishOutput(group, request.finish.token, collected.token, selected, this.#now())) {
+            .map((advice) => ({ id: advice.id, unit: advice.workUnitId!, findings: advice.delivery?.findings ?? [] }));
+          if (!this.#composedDelivery.reserveFinishOutput(group, request.finish.token, collected.token,
+            selected, this.#now(), round.policyWork)) {
             this.releaseDelivery(collected.token);
             return { status: "empty" };
           }
@@ -2614,6 +2618,44 @@ export class ResidentServer {
       : this.#terminalStatus(ticket, now);
   }
 
+  /** Replace a provisional Stop reservation with the exact final IPC batch. */
+  #reconcileFinishHandoff(request: ResidentRequest, provisional: ResidentResponse,
+    final: ResidentResponse, canWrite: boolean): ResidentResponse {
+    if (request.operation !== "collect" || request.version === 2 || request.finish === undefined ||
+        provisional.status !== "advice" || provisional.findingCount === 0) return final;
+    const group = adviceeGroup(request.root, request.advicee);
+    if (!this.#composedDelivery.revokeProvisionalFinishOutput(group, request.finish.token, provisional.token)) {
+      this.releaseDelivery(provisional.token);
+      this.#allowFinish(group, request.finish.token, "unavailable");
+      return { status: "empty" };
+    }
+    if (!canWrite || final.status !== "advice" || final.findingCount === 0 || final.token !== provisional.token) {
+      if (final.status === "advice") this.releaseDelivery(final.token);
+      this.#allowFinish(group, request.finish.token,
+        request.finish.deadlineReached ? "deadline" : "no-advice");
+      return { status: "empty" };
+    }
+    const round = this.#rounds.get(group);
+    const selectedAdvice = this.#advice.filter((advice) => advice.delivery?.token === final.token);
+    const selectedCount = selectedAdvice.reduce((count, advice) =>
+      count + (advice.delivery?.findings.length ?? 0), 0);
+    if (round === undefined || selectedCount !== final.findingCount || selectedAdvice.some((advice) =>
+      advice.round !== round || advice.workUnitId === undefined || advice.delivery === undefined)) {
+      this.releaseDelivery(final.token);
+      this.#allowFinish(group, request.finish.token, "unavailable");
+      return { status: "empty" };
+    }
+    const selected = selectedAdvice.map((advice) => ({ id: advice.id, unit: advice.workUnitId!,
+      findings: advice.delivery!.findings }));
+    if (!this.#composedDelivery.reserveFinishOutput(group, request.finish.token, final.token,
+      selected, this.#now(), round.policyWork)) {
+      this.releaseDelivery(final.token);
+      this.#allowFinish(group, request.finish.token, "unavailable");
+      return { status: "empty" };
+    }
+    return final;
+  }
+
   #accept(socket: Socket): void {
     if (this.#connections >= MAX_IPC_CONNECTIONS) {
       socket.end(`${JSON.stringify({ status: "rejected-capacity" })}\n`);
@@ -2658,7 +2700,8 @@ export class ResidentServer {
       void this.handle(decoded).then(async (response) => {
         await this.#responseGate(decoded.operation);
         await this.#beforeResponseHandoff?.();
-        const handoff = this.#responseForHandoff(decoded, response);
+        const selected = this.#responseForHandoff(decoded, response);
+        const handoff = this.#reconcileFinishHandoff(decoded, response, selected, !socket.destroyed);
         if (socket.destroyed) {
           if (handoff.status === "advice") this.releaseDelivery(handoff.token);
           if (handoff.status === "cleaned") this.#scheduleRetirementClose();

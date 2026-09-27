@@ -404,6 +404,41 @@ law wrong_stop_cannot_cut_off_work:
   {Lifecycle.cutoff(claimed_round(), cutoff_work(), 8n) ==
     Lifecycle.CutoffDenied{claimed_round(), cutoff_work()} : Lifecycle.CutoffResult}
 
+def deciding_round() -> Round.Round:
+  Round.Round{1n, True{}, 0n, 0n, 7n, False{}, True{}, False{}}
+
+def selected_work() -> Work.Work:
+  Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
+    Work.ReviewUnit{1n, 1n, Work.PendingFinding{}, 2n, 20n} <> Nil{}}
+
+law final_output_reserves_exact_pending_unit_findings:
+  {Lifecycle.reserve_selected(deciding_round(), selected_work(), 7n,
+      1n <> 1n <> Nil{}) ==
+    Round.Granted{Round.Round{1n, True{}, 0n, 1n, 7n, True{}, True{}, True{}}} : Round.Step}
+
+law final_output_cannot_invent_third_unit_finding:
+  {Lifecycle.reserve_selected(deciding_round(), selected_work(), 7n,
+      1n <> 1n <> 1n <> Nil{}) ==
+    Round.Denied{deciding_round()} : Round.Step}
+
+law final_output_cannot_reserve_empty_advice:
+  {Lifecycle.reserve_selected(deciding_round(), selected_work(), 7n, Nil{}) ==
+    Round.Denied{deciding_round()} : Round.Step}
+
+law final_output_cannot_reserve_unknown_unit:
+  {Lifecycle.reserve_selected(deciding_round(), selected_work(), 7n, 2n <> Nil{}) ==
+    Round.Denied{deciding_round()} : Round.Step}
+
+law unwritten_output_releases_its_continuation:
+  {Lifecycle.release_unwritten(
+      Round.Round{1n, True{}, 0n, 1n, 7n, True{}, True{}, True{}}, 7n) ==
+    Round.Granted{deciding_round()} : Round.Step}
+
+law wrong_stop_cannot_release_output:
+  {Lifecycle.release_unwritten(
+      Round.Round{1n, True{}, 0n, 1n, 7n, True{}, True{}, True{}}, 8n) ==
+    Round.Denied{Round.Round{1n, True{}, 0n, 1n, 7n, True{}, True{}, True{}}} : Round.Step}
+
 def current_advice() -> Handoff.Advice:
   Handoff.Advice{7n, 4n, 9n, 1n, 2n, 2n, 3n, 3n, 25n, 300n, True{}}
 

@@ -96,6 +96,24 @@ describe("generated Bend work authority", () => {
     expect(work.cutoff(cutoff!.round, 7)).toBeUndefined();
   });
 
+  it("reserves final output only for exact pending finding units", () => {
+    const work = new BendWorkTracker();
+    const source = work.admit();
+    const unit = work.spawn(source)!;
+    expect(work.outcome(unit, { $: "Finding", count: 2, bytes: 20 })).toBe(true);
+    expect(work.completeSource(source)).toBe(true);
+    const claimed = bendRoundBeginStop(bendRoundInitial(), 7);
+    if (claimed.$ !== "Granted") throw new Error("round claim failed");
+    const cutoff = work.cutoff(claimed.state, 7);
+    expect(cutoff).toBeDefined();
+    expect(work.reserveSelected(cutoff!.round, 7, [])).toBeUndefined();
+    expect(work.reserveSelected(cutoff!.round, 7, [unit, unit, unit])).toBeUndefined();
+    expect(work.reserveSelected(cutoff!.round, 7, [unit + 1])).toBeUndefined();
+    const reserved = work.reserveSelected(cutoff!.round, 7, [unit, unit]);
+    expect(reserved).toMatchObject({ continuations: 1n, output_reserved: true });
+    expect(work.reserveSelected(reserved!, 7, [unit])).toBeUndefined();
+  });
+
   it("conserves unfinished work across interleaved source and review callbacks", () => {
     const work = new BendWorkTracker();
     const sources = Array.from({ length: 8 }, () => work.admit());

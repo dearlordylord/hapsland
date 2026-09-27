@@ -69,6 +69,8 @@ type Smoke is Data:
     cache_admission: Cache.Admission
     cache_evict: Bool
     lifecycle_cutoff: Lifecycle.CutoffResult
+    lifecycle_reserve: Round.Step
+    lifecycle_release: Round.Step
   }
 
 def sample_work() -> Work.Work:
@@ -150,5 +152,10 @@ def main() -> Smoke:
     Cache.admit(False{}, 10n, 100n),
     Cache.evict(8n, 100n, 20n, 8n, 128000n),
     Lifecycle.cutoff(Round.Round{1n, True{}, 0n, 0n, 1n, False{}, False{}, False{}},
-      sample_work(), 1n)
+      sample_work(), 1n),
+    Lifecycle.reserve_selected(Round.Round{1n, True{}, 0n, 0n, 1n, False{}, True{}, False{}},
+      Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
+        Work.ReviewUnit{1n, 1n, Work.PendingFinding{}, 1n, 20n} <> Nil{}},
+      1n, 1n <> Nil{}),
+    Lifecycle.release_unwritten(Round.Round{1n, True{}, 0n, 1n, 1n, True{}, True{}, True{}}, 1n)
   }

@@ -63,6 +63,18 @@ def reserve_output(+state: Round, +token: Nat) -> Step:
           True{}, deciding, True{}}},
         Denied{state})
 
+# A proven pre-authorization failure can release a provisional continuation.
+# The Stop decision fence remains published until finish_stop closes or resets
+# the attempt, so this cannot admit a new background writer mid-decision.
+def release_output(+state: Round, +token: Nat) -> Step:
+  match state:
+    case Round{generation, live, closed_at, +count, owner, barrier, deciding, output}:
+      Bool.pick(Step, Bool.and(live, Bool.and(deciding,
+        Bool.and(Nat.is_eq(owner, token), Bool.and(Nat.is_gt(token, 0n),
+          Bool.and(output, Nat.is_gt(count, 0n)))))),
+        Granted{Round{generation, live, closed_at, (count - 1n : Nat), owner,
+          False{}, deciding, False{}}}, Denied{state})
+
 def finish_stop(+state: Round, +token: Nat, close: Bool, at: Nat) -> Step:
   match state:
     case Round{generation, live, closed_at, count, owner, barrier, deciding, output}:

@@ -15,8 +15,11 @@ background-writer and operational-notice policies also decide their expiry
 and capacity boundaries. Generated collection policy decides readiness,
 expiry, and deterministic order. Generated delivery policy decides token
 transition and lease expiry. Generated cache policy decides successful-review
-admission and eviction pressure. The generated `Lifecycle` cutoff is now the
-resident's atomic Stop decision fence and work cancellation transition. Its
+admission and eviction pressure. The generated `Lifecycle` cutoff and final
+reservation now own the resident's Stop decision fence, exact work cancellation
+IDs, selected pending unit counts, and continuation slot. The final IPC
+barrier releases and replaces a provisional slot if its selected findings
+change before encoding. Its
 other aggregate events remain executable models rather than the resident's
 callback state. `FinishCheck.actionable_findings` still needs to come from the
 final Bend selection, and selected IDs must be consumed at write terminal.

@@ -614,6 +614,128 @@ describe("resident delivery lease", () => {
     }
   });
 
+  it("releases an unwritten Stop slot when credentials rotate at the final IPC barrier", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const statePath = join(root, "consent");
+    const activityPath = join(root, "activity");
+    const credentialStatePath = join(root, "credential-state.json");
+    const credentialState = (generation: number) =>
+      JSON.stringify({ version: 1, generation, savedUseSuspended: false });
+    writeFileSync(credentialStatePath, credentialState(1));
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const dispatch: ResidentDispatchContext = { ...findingDispatch(statePath), activityPath, credential: {
+      name: "TYPESAFE_API_KEY", environmentValue: "synthetic-race-marker",
+      environmentOnly: true, generation: 1, statePath: credentialStatePath,
+    } };
+    const paths = residentPaths(join(root, "runtime"));
+    const server = new ResidentServer(paths, undefined, { beforeResponseHandoff: async () => {
+      writeFileSync(credentialStatePath, credentialState(2));
+    } });
+    try {
+      expect(server.admit(observation, dispatch, false, true)).toEqual({ status: "accepted" });
+      await server.whenIdle();
+      await server.listen();
+      expect(await server.handle({ version: 1, operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "finish" })).toEqual({ status: "advanced" });
+      const result = await residentRequest(paths, { version: 1, operation: "collect", lifetime: server.lifetime,
+        root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true,
+        finish: { token: "finish", deadlineReached: true } });
+      expect(result).toEqual({ status: "empty" });
+      const activity = readActivity({ statePath: activityPath, root,
+        sessionId: observation.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
+      expect(activity.roundClosures?.[0]?.reservedContinuations).toBe(0);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("releases a provisional Stop slot if the stop closes during the IPC response gate", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const statePath = join(root, "consent");
+    const activityPath = join(root, "activity");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const dispatch = { ...findingDispatch(statePath), activityPath };
+    const paths = residentPaths(join(root, "runtime"));
+    let server: ResidentServer;
+    server = new ResidentServer(paths, undefined, { beforeResponseHandoff: async () => {
+      expect(await server.handle({ version: 1, operation: "finish-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "finish", close: false })).toEqual({ status: "advanced" });
+    } });
+    try {
+      expect(server.admit(observation, dispatch, false, true)).toEqual({ status: "accepted" });
+      await server.whenIdle();
+      await server.listen();
+      expect(await server.handle({ version: 1, operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "finish" })).toEqual({ status: "advanced" });
+      const result = await residentRequest(paths, { version: 1, operation: "collect", lifetime: server.lifetime,
+        root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true,
+        finish: { token: "finish", deadlineReached: true } });
+      expect(result).toEqual({ status: "empty" });
+      const activity = readActivity({ statePath: activityPath, root,
+        sessionId: observation.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
+      expect(activity.roundClosures?.[0]?.reservedContinuations).toBe(0);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("does not emit a notice-only token after final-gate finding invalidation closes Stop", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    await put(root, "failure.ts", "type FailureCount = number\n");
+    const statePath = join(root, "consent");
+    const activityPath = join(root, "activity");
+    await enable(root, statePath);
+    const finding = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["type.ts"], {
+      tool_use_id: "finding-tool", turn_id: "same-turn",
+    })));
+    const failure = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["failure.ts"], {
+      tool_use_id: "failure-tool", turn_id: "same-turn",
+    })));
+    if (finding === undefined || failure === undefined) throw new Error("missing fixture observation");
+    const dispatch = { ...findingDispatch(statePath), activityPath };
+    const failedDispatch = { ...dispatch, controlled: { failure: "fixture unavailable" } };
+    const paths = residentPaths(join(root, "runtime"));
+    let invalidate = false;
+    let now = 0;
+    const server = new ResidentServer(paths, () => now, { beforeResponseHandoff: async () => {
+      if (invalidate) now = PENDING_ADVICE_EXPIRY_MS + 1;
+    } });
+    try {
+      expect(server.admit(finding, dispatch, false, true)).toEqual({ status: "accepted" });
+      await server.whenIdle();
+      now = Math.floor(PENDING_ADVICE_EXPIRY_MS / 2);
+      expect(server.admit(failure, failedDispatch, false, true)).toEqual({ status: "accepted" });
+      await server.whenIdle();
+      await server.listen();
+      const request = { version: 1 as const, operation: "collect" as const, lifetime: server.lifetime,
+        root, advicee: finding.advicee, dispatch, mode: "turn-end" as const, composed: true as const };
+      const mixed = await residentRequest(paths, request);
+      expect(mixed.status).toBe("advice");
+      if (mixed.status !== "advice") return;
+      expect(mixed.findingCount).toBe(1);
+      expect(claudeHostOutputText(mixed.output)).toMatch(/unavailable/i);
+      server.releaseDelivery(mixed.token);
+      expect(await server.handle({ version: 1, operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: finding.advicee, token: "finish" })).toEqual({ status: "advanced" });
+      invalidate = true;
+      const final = await residentRequest(paths, { ...request,
+        finish: { token: "finish", deadlineReached: true } });
+      expect(final).toEqual({ status: "empty" });
+      const activity = readActivity({ statePath: activityPath, root,
+        sessionId: finding.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
+      expect(activity.roundClosures?.[0]?.reservedContinuations).toBe(0);
+    } finally {
+      await server.close();
+    }
+  });
+
   it("lets a later edit collect earlier advice through the same composed advicee group", async () => {
     const root = await makeGitFixture();
     await put(root, "first.ts", "type OrderCount = number\n");
@@ -669,7 +791,10 @@ describe("resident delivery lease", () => {
       root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true,
       finish: { token: "reoffer", deadlineReached: true } });
     expect(reoffer.status).toBe("advice");
-    if (reoffer.status === "advice") server.releaseComposedSubmission(reoffer.token);
+    if (reoffer.status === "advice") {
+      expect(server.beginComposedSubmission(reoffer.token, "stop")).toEqual({ status: "submitting" });
+      server.releaseComposedSubmission(reoffer.token);
+    }
     await server.handle({ version: 1, operation: "finish-stop", lifetime: server.lifetime,
       root, advicee: observation.advicee, token: "reoffer", close: false });
     expect(await mark("b".repeat(64))).toEqual({ status: "advanced" });

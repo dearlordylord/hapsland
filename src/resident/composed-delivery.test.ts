@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { BACKGROUND_WAITER_EXPIRY_MS, ComposedDelivery, MAX_COMPOSED_ROUNDS } from "./composed-delivery.ts";
 import { DELIVERY_LEASE_MS } from "./protocol.ts";
+import { BendWorkTracker } from "./bend-work.ts";
 
 describe("shared Hapsland rounds", () => {
   it("allows four continuation reservations; prompts and expiry cannot reset them", () => {
@@ -62,20 +63,66 @@ describe("shared Hapsland rounds", () => {
     expect(state.consumeStop("continue")).toBe(false);
   });
 
-  it("keeps an abandoned finish reservation consumed and revokes its old output permit", () => {
+  it("releases an abandoned provisional finish reservation and closes the round", () => {
     const state = new ComposedDelivery();
     const finding = { rule: "r", advice: "repair" };
     state.admitEdit("agent", "edit", 0);
     state.beginStop("agent", "attempt");
-    state.beginFinishDecision("agent", "attempt");
+    const work = new BendWorkTracker();
+    const source = work.admit();
+    const unit = work.spawn(source)!;
+    expect(work.outcome(unit, { $: "Finding", count: 1, bytes: 20 })).toBe(true);
+    expect(work.completeSource(source)).toBe(true);
+    state.beginFinishDecision("agent", "attempt", work);
     expect(state.reserveFinishOutput("agent", "attempt", "output",
-      [{ id: "advice", findings: [finding] }], 1)).toBe(true);
+      [{ id: "advice", unit, findings: [finding] }], 1, work)).toBe(true);
+    expect(state.expireStop("agent", "attempt")).toBe(1);
+    expect(state.isActive("agent")).toBe(false);
+    expect(state.suppresses("advice", "agent", finding, "stop")).toBe(false);
+    expect(state.authorizeFinishOutput("agent", "output")).toBe(false);
+    expect(state.beginStop("agent", "later")).toBe(false);
+    expect(state.authorizeFinishOutput("agent", "output")).toBe(false);
+    expect(state.closureCounts("agent").reservedContinuations).toBe(0);
+  });
+
+  it("preserves a reserved continuation after output authorization when Stop expires", () => {
+    const state = new ComposedDelivery();
+    const finding = { rule: "r", advice: "repair" };
+    state.admitEdit("agent", "edit", 0);
+    state.beginStop("agent", "attempt");
+    const work = new BendWorkTracker();
+    const source = work.admit();
+    const unit = work.spawn(source)!;
+    expect(work.outcome(unit, { $: "Finding", count: 1, bytes: 20 })).toBe(true);
+    expect(work.completeSource(source)).toBe(true);
+    state.beginFinishDecision("agent", "attempt", work);
+    expect(state.reserveFinishOutput("agent", "attempt", "output",
+      [{ id: "advice", unit, findings: [finding] }], 1, work)).toBe(true);
+    expect(state.authorizeFinishOutput("agent", "output")).toBe(true);
     expect(state.expireStop("agent", "attempt")).toBeUndefined();
-    expect(state.suppresses("advice", "agent", finding, "stop")).toBe(true);
-    expect(state.authorizeFinishOutput("agent", "output")).toBe(false);
-    state.beginStop("agent", "later");
-    expect(state.authorizeFinishOutput("agent", "output")).toBe(false);
+    expect(state.isActive("agent")).toBe(true);
     expect(state.closureCounts("agent").reservedContinuations).toBe(1);
+    expect(state.authorizeFinishOutput("agent", "output")).toBe(false);
+  });
+
+  it("releases a provisional continuation before output authorization", () => {
+    const state = new ComposedDelivery();
+    const finding = { rule: "r", advice: "repair" };
+    state.admitEdit("agent", "edit", 0);
+    expect(state.beginStop("agent", "attempt")).toBe(true);
+    const work = new BendWorkTracker();
+    const source = work.admit();
+    const unit = work.spawn(source)!;
+    expect(work.outcome(unit, { $: "Finding", count: 1, bytes: 20 })).toBe(true);
+    expect(work.completeSource(source)).toBe(true);
+    expect(state.beginFinishDecision("agent", "attempt", work)).toBeDefined();
+    expect(state.reserveFinishOutput("agent", "attempt", "output",
+      [{ id: "advice", unit, findings: [finding] }], 1, work)).toBe(true);
+    expect(state.closureCounts("agent").reservedContinuations).toBe(1);
+    expect(state.revokeProvisionalFinishOutput("agent", "attempt", "output")).toBe(true);
+    expect(state.closureCounts("agent").reservedContinuations).toBe(0);
+    expect(state.authorizeFinishOutput("agent", "output")).toBe(false);
+    expect(state.revokeProvisionalFinishOutput("agent", "attempt", "output")).toBe(false);
   });
 
   it("retains source-free fences at capacity instead of resetting through expiry", () => {

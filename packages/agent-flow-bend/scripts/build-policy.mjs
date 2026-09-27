@@ -29,7 +29,7 @@ try {
         "interrupt_observation", "interrupt_unit", "retire", "revise_finding", "unfinished", "pending_findings", "pending_for", "cancel_unfinished", "close"]
         .some((name) => !source.includes(`function $Work$${name}$(`)) ||
       ["initial", "max_continuations", "active", "budget", "begin_stop",
-        "owns_stop", "begin_decision", "consume", "reserve_output", "finish_stop", "reopen"]
+        "owns_stop", "begin_decision", "consume", "reserve_output", "release_output", "finish_stop", "reopen"]
         .some((name) => !source.includes(`function $Round$${name}$(`)) ||
       ["initial", "claim", "release", "expire"]
         .some((name) => !source.includes(`function $Background$${name}$(`)) ||
@@ -39,7 +39,9 @@ try {
       ["transition", "expired", "background_reofferable"]
         .some((name) => !source.includes(`function $Delivery$${name}$(`)) ||
       ["admit", "evict"].some((name) => !source.includes(`function $Cache$${name}$(`)) ||
-      !source.includes("function $Lifecycle$cutoff$(")) {
+      !source.includes("function $Lifecycle$cutoff$(") ||
+      !source.includes("function $Lifecycle$reserve_selected$(") ||
+      !source.includes("function $Lifecycle$release_unwritten$(")) {
     throw new Error("Bend policy JavaScript layout changed; inspect generated runtime");
   }
   source = source.replace(footer, `
@@ -132,6 +134,8 @@ export const bendRoundBeginDecision = (state, token) =>
 export const bendRoundConsume = (state) => run_loop($Round$consume$(state));
 export const bendRoundReserveOutput = (state, token) =>
   run_loop($Round$reserve_output$(state, nat(token)));
+export const bendRoundReleaseOutput = (state, token) =>
+  run_loop($Round$release_output$(state, nat(token)));
 export const bendRoundFinishStop = (state, token, close, at) =>
   run_loop($Round$finish_stop$(state, nat(token), close, nat(at)));
 export const bendRoundReopen = (state, generation) =>
@@ -164,6 +168,11 @@ export const bendCacheEvict = (entries, currentBytes, incomingBytes, entryLimit,
     nat(entryLimit), nat(byteLimit)));
 export const bendLifecycleCutoff = (round, work, token) =>
   run_loop($Lifecycle$cutoff$(round, work, nat(token)));
+export const bendLifecycleReserveSelected = (round, work, token, selected) =>
+  run_loop($Lifecycle$reserve_selected$(round, work, nat(token),
+    selected.reduceRight((tail, value) => ({ $: "Con", head: nat(value), tail }), { $: "Nil" })));
+export const bendLifecycleReleaseUnwritten = (round, token) =>
+  run_loop($Lifecycle$release_unwritten$(round, nat(token)));
 `);
   writeFileSync(join(productRoot, "src/resident/bend-policy.generated.js"),
     `// hapsland-bend-source-sha256:${sourceHash}\n${source}`);
