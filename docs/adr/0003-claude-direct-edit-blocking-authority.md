@@ -11,6 +11,6 @@ evidence in [the Claude adapter record](../../evidence/host-94/decision-and-evid
 
 This record preserves the direct-edit decision. It does not specify the composed
 Background/Stop behavior in issue #105, and it does not yet add blocking to the
-Bend model or sidecar reducer. The archived record also describes project
-narrowing and authority revocation; whether their exact mechanics belong in the
-composed design remains a separate decision.
+Bend model or sidecar reducer. The archived record also describes other
+authority mechanics. Their application to composed delivery is deferred to
+[issue #112](https://github.com/dearlordylord/hapsland/issues/112).
