@@ -3,8 +3,7 @@
 **Status: future installation plan, not a usable public quickstart.** The
 public npm registry returned E404 for `@hapsland/hapsland@0.1.0` during this
 documentation pass. These commands apply only after publication and validation
-of the exact registry artifact are recorded in the
-[release preflight record](npm-0.1.0-preflight.md).
+of the exact registry artifact are recorded.
 Hapsland is the product; Jev is its external review backend. Installing the package
 does not authorize source transmission.
 

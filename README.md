@@ -154,8 +154,9 @@ behavior, and native trust handoff are documented in
 [`docs/codex-installation.md`](./docs/codex-installation.md).
 For the proposed registry release, use the
 [`npm installation plan`](./evidence/release/npm-install-plan.md). The public command is
-`hapsland`. The product is Hapsland and Jev is the external backend. The registry release is pending
-the [release preflight record](./evidence/release/npm-0.1.0-preflight.md).
+`hapsland`. The product is Hapsland and Jev is the external backend. The
+[local archive preflight evidence](./evidence/release/npm-0.1.0-preflight.md)
+does not establish a public registry release.
 After setup completes, the [installation guide](./docs/codex-installation.md) also documents the separate `hapsland --demo` preview and
 live-confirmation flow. Its default preview is offline; a live run requires a new consent
 digest for a generated disposable repository and explicit request, source, and time limits.
