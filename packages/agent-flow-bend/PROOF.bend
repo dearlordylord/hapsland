@@ -1,6 +1,27 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.valid_composed_submission_candidate_is_admitted():
+  {==}
+
+def Laws.stale_composed_submission_candidate_is_denied():
+  {==}
+
+def Laws.empty_composed_submission_batch_releases():
+  {==}
+
+def Laws.valid_composed_submission_batch_proceeds():
+  {==}
+
+def Laws.final_credential_mismatch_is_retained_in_fold():
+  {==}
+
+def Laws.final_legacy_credential_mismatch_releases_batch():
+  {==}
+
+def Laws.ticket_credential_mismatch_does_not_use_legacy_gate():
+  {==}
+
 def Laws.provisional_stop_output_revokes_and_closes():
   {==}
 

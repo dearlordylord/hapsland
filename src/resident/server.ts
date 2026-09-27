@@ -73,6 +73,8 @@ import { bendTicketInitial, bendTicketFail, bendTicketClose, bendTicketTerminal,
   bendWorkEvaluatedDisposition,
   bendWorkFailureDisposition, bendTicketJoinedDisposition,
   bendNoticePrune,
+  bendDeliverySubmissionCandidate, bendDeliverySubmissionBatchGate,
+  bendDeliveryCredentialObserve, bendDeliveryFinalCredentialGate,
   type BendTicketPhase, type BendTicketReason,
   type BendTicketUnitEvent, type BendTicketUnitStage,
   type BendValidationStatus } from "./bend-policy.generated.js";
@@ -1153,14 +1155,24 @@ export class ResidentServer {
     const advice = this.#advice.filter((item) =>
       item.delivery?.token === token && item.delivery.leaseUntil > now &&
       item.delivery.findings.length > 0);
-    if (advice.length === 0 || advice.some((item) => !this.#roundActive(item.round) ||
-        item.round === undefined || item.workUnitId === undefined ||
-        item.delivery === undefined ||
-        item.delivery.findings.length > item.round.policyWork.pendingFor(item.workUnitId) ||
-        !this.#composedDelivery.canBeginSubmission(
-          adviceeGroup(item.observation.root, item.observation.advicee), surface, token) ||
-        !this.#isCurrentWork(item.revision, item.prepared) ||
-        !this.#adviceCredentialAuthority(item))) {
+    const allValid = advice.every((item) => {
+      const round = item.round;
+      const delivery = item.delivery;
+      const unit = item.workUnitId;
+      return bendDeliverySubmissionCandidate({ $: "SubmissionFacts",
+        round_active: this.#roundActive(round),
+        has_round: round !== undefined,
+        has_unit: unit !== undefined,
+        has_delivery: delivery !== undefined,
+        pending_capacity: round !== undefined && unit !== undefined && delivery !== undefined &&
+          delivery.findings.length <= round.policyWork.pendingFor(unit),
+        submission_allowed: this.#composedDelivery.canBeginSubmission(
+          adviceeGroup(item.observation.root, item.observation.advicee), surface, token),
+        current_work: this.#isCurrentWork(item.revision, item.prepared),
+        credential_authorized: this.#adviceCredentialAuthority(item),
+      }) === true;
+    });
+    if (bendDeliverySubmissionBatchGate(advice.length, allValid).$ !== "BatchProceed") {
       this.releaseComposedSubmission(token);
       return { status: "empty" };
     }
@@ -2720,10 +2732,15 @@ export class ResidentServer {
     const now = this.#now();
     this.#expirePending(now);
     this.#pruneNoticeCooldowns(now);
-    if (request.operation === "collect" && request.version !== 2 &&
-        this.#advice.some((advice) => advice.delivery?.token === response.token &&
-          (advice.credentialGeneration !== (request.dispatch.credential?.generation ?? null) ||
-            !this.#adviceCredentialAuthority(advice)))) {
+    const legacyCollect = request.operation === "collect" && request.version !== 2;
+    let invalidCredential = false;
+    if (legacyCollect) for (const advice of this.#advice) {
+      if (advice.delivery?.token !== response.token || invalidCredential) continue;
+      const generationValid = advice.credentialGeneration === (request.dispatch.credential?.generation ?? null);
+      invalidCredential = bendDeliveryCredentialObserve(invalidCredential, generationValid,
+        generationValid && this.#adviceCredentialAuthority(advice)) !== false;
+    }
+    if (bendDeliveryFinalCredentialGate(legacyCollect, invalidCredential).$ !== "BatchProceed") {
       this.releaseComposedSubmission(response.token);
       return { status: "empty" };
     }

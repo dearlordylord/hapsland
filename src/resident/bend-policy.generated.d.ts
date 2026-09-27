@@ -285,6 +285,19 @@ export function bendDeliveryFinalize(items: number | bigint, allAcknowledged: bo
 export function bendDeliveryFindingDisposition(composed: boolean,
   remaining: number | bigint): BendDeliveryFindingDisposition;
 export function bendDeliveryReleaseUnacknowledged(acknowledged: boolean): boolean;
+export type BendDeliverySubmissionFacts = { readonly $: "SubmissionFacts";
+  readonly round_active: boolean; readonly has_round: boolean;
+  readonly has_unit: boolean; readonly has_delivery: boolean;
+  readonly pending_capacity: boolean; readonly submission_allowed: boolean;
+  readonly current_work: boolean; readonly credential_authorized: boolean };
+export type BendDeliveryBatchGate = { readonly $: "BatchProceed" | "BatchRelease" };
+export function bendDeliverySubmissionCandidate(facts: BendDeliverySubmissionFacts): boolean;
+export function bendDeliverySubmissionBatchGate(count: number | bigint,
+  allValid: boolean): BendDeliveryBatchGate;
+export function bendDeliveryCredentialObserve(invalidSeen: boolean,
+  generationValid: boolean, authorized: boolean): boolean;
+export function bendDeliveryFinalCredentialGate(legacyCollect: boolean,
+  invalidSeen: boolean): BendDeliveryBatchGate;
 export type BendCollectionLeaseAction = { readonly $: "KeepLease" | "DropLease" };
 export function bendDeliveryCollectionLease(hasLease: boolean, expired: boolean,
   stopCollector: boolean, sameGroup: boolean, reofferable: boolean): BendCollectionLeaseAction;

@@ -33,7 +33,8 @@ Generated collection policy decides readiness,
 expiry, and deterministic order. Generated delivery policy decides token
 transition, lease expiry, submission admission at the Stop barrier, existing
 token finish-permit admission, legacy Stop authorization, acknowledgement and
-finalization gates, and whether a completed finding retires its advice or
+finalization gates, aggregate composed batch submission, final legacy
+credential release, and whether a completed finding retires its advice or
 remains available for reoffer. It also decides when collection drops a native
 lease and whether advice or notice candidates can be reserved. Generated cache policy decides successful-review
 admission and eviction pressure. Generated reuse policy decides whether an

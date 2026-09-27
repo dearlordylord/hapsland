@@ -77,7 +77,9 @@ finding count, and cancellation IDs.
 - `Collection.bend` orders candidate work by cycle and sequence and decides
   readiness and pending-advice expiry from elapsed-time facts.
 - `Delivery.bend` governs output-token phase transitions, authorized lease
-  expiry, and when terminal background output can be reoffered at Stop.
+  expiry, and when terminal background output can be reoffered at Stop. Its
+  aggregate gates decide composed batch submission from per-candidate facts
+  and final legacy IPC token release from credential observations.
 - `Cache.bend` decides successful-review cache admission and whether its oldest
   entry must be evicted for item or byte pressure. TypeScript retains opaque
   cached results and their LRU order.
@@ -232,6 +234,10 @@ On 2026-09-27, from this worktree:
   and resident-server suite: 2 files and 80 tests. Five Bend laws cover
   provisional revocation, authorized output, requested closure, and expiry
   with or without a decision barrier.
+- The composed batch and final credential migration passed the focused
+  resident-server and terminal-collection suite. Seven Bend laws cover valid
+  and stale candidates, empty batches, credential aggregation, and final
+  release for legacy collection.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
   suite reported 65 passing files and 575 passing tests, with one file and
   two tests skipped.

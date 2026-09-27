@@ -51,6 +51,7 @@ try {
         .some((name) => !source.includes(`function $Collection$${name}$(`)) ||
       ["transition", "expired", "background_reofferable", "existing_token_allowed", "submission_allowed", "legacy_stop_allowed",
         "acknowledge", "finalize", "finding_disposition", "release_unacknowledged",
+        "submission_candidate", "submission_batch_gate", "credential_observe", "final_credential_gate",
         "collection_lease", "advice_candidate", "notice_candidate", "reserve_candidate"]
         .some((name) => !source.includes(`function $Delivery$${name}$(`)) ||
       ["admit", "evict"].some((name) => !source.includes(`function $Cache$${name}$(`)) ||
@@ -245,6 +246,14 @@ export const bendDeliveryFindingDisposition = (composed, remaining) =>
   run_loop($Delivery$finding_disposition$(composed, nat(remaining)));
 export const bendDeliveryReleaseUnacknowledged = (acknowledged) =>
   run_loop($Delivery$release_unacknowledged$(acknowledged));
+export const bendDeliverySubmissionCandidate = (facts) =>
+  run_loop($Delivery$submission_candidate$(normalize(facts)));
+export const bendDeliverySubmissionBatchGate = (count, allValid) =>
+  run_loop($Delivery$submission_batch_gate$(nat(count), allValid));
+export const bendDeliveryCredentialObserve = (invalidSeen, generationValid, authorized) =>
+  run_loop($Delivery$credential_observe$(invalidSeen, generationValid, authorized));
+export const bendDeliveryFinalCredentialGate = (legacyCollect, invalidSeen) =>
+  run_loop($Delivery$final_credential_gate$(legacyCollect, invalidSeen));
 export const bendDeliveryCollectionLease = (hasLease, expired, stopCollector, sameGroup, reofferable) =>
   run_loop($Delivery$collection_lease$(hasLease, expired, stopCollector, sameGroup, reofferable));
 export const bendDeliveryAdviceCandidate = (samePartition, unleased, hasUnsuppressed, ticketOwns) =>

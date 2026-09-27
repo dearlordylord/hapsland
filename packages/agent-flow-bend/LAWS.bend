@@ -17,6 +17,33 @@ import ./Revision.bend as Revision
 import ./Reuse.bend as Reuse
 import ./Retention.bend as Retention
 
+law valid_composed_submission_candidate_is_admitted:
+  {Delivery.submission_candidate(Delivery.SubmissionFacts{True{}, True{}, True{},
+    True{}, True{}, True{}, True{}, True{}}) == True{} : Bool}
+
+law stale_composed_submission_candidate_is_denied:
+  {Delivery.submission_candidate(Delivery.SubmissionFacts{True{}, True{}, True{},
+    True{}, True{}, True{}, False{}, True{}}) == False{} : Bool}
+
+law empty_composed_submission_batch_releases:
+  {Delivery.submission_batch_gate(0n, True{}) ==
+    Delivery.BatchRelease{} : Delivery.BatchGate}
+
+law valid_composed_submission_batch_proceeds:
+  {Delivery.submission_batch_gate(1n, True{}) ==
+    Delivery.BatchProceed{} : Delivery.BatchGate}
+
+law final_credential_mismatch_is_retained_in_fold:
+  {Delivery.credential_observe(True{}, True{}, True{}) == True{} : Bool}
+
+law final_legacy_credential_mismatch_releases_batch:
+  {Delivery.final_credential_gate(True{}, True{}) ==
+    Delivery.BatchRelease{} : Delivery.BatchGate}
+
+law ticket_credential_mismatch_does_not_use_legacy_gate:
+  {Delivery.final_credential_gate(False{}, True{}) ==
+    Delivery.BatchProceed{} : Delivery.BatchGate}
+
 law provisional_stop_output_revokes_and_closes:
   {Round.stop_terminal(True{}, False{}, False{}) ==
     Round.StopTerminal{True{}, True{}} : Round.StopTerminal}

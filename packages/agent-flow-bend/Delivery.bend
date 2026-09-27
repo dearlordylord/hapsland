@@ -37,6 +37,35 @@ type CollectionLeaseAction is Data:
   KeepLease{}
   DropLease{}
 
+type SubmissionFacts is Data:
+  SubmissionFacts{round_active: Bool, has_round: Bool, has_unit: Bool,
+    has_delivery: Bool, pending_capacity: Bool, submission_allowed: Bool,
+    current_work: Bool, credential_authorized: Bool}
+
+type BatchGate is Data:
+  BatchProceed{}
+  BatchRelease{}
+
+def submission_candidate(facts: SubmissionFacts) -> Bool:
+  match facts:
+    case SubmissionFacts{round_active, has_round, has_unit, has_delivery,
+        pending_capacity, submission_allowed, current_work, credential_authorized}:
+      Bool.and(round_active, Bool.and(has_round, Bool.and(has_unit,
+        Bool.and(has_delivery, Bool.and(pending_capacity,
+        Bool.and(submission_allowed, Bool.and(current_work, credential_authorized)))))))
+
+def submission_batch_gate(count: Nat, all_valid: Bool) -> BatchGate:
+  Bool.pick(BatchGate, Bool.and(Nat.is_gt(count, 0n), all_valid),
+    BatchProceed{}, BatchRelease{})
+
+def credential_observe(invalid_seen: Bool, generation_valid: Bool,
+    authorized: Bool) -> Bool:
+  Bool.or(invalid_seen, Bool.not(Bool.and(generation_valid, authorized)))
+
+def final_credential_gate(legacy_collect: Bool, invalid_seen: Bool) -> BatchGate:
+  Bool.pick(BatchGate, Bool.and(legacy_collect, invalid_seen),
+    BatchRelease{}, BatchProceed{})
+
 def collection_lease(has_lease: Bool, expired: Bool, stop_collector: Bool,
     same_group: Bool, background_reofferable: Bool) -> CollectionLeaseAction:
   Bool.pick(CollectionLeaseAction,

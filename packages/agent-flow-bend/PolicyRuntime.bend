@@ -92,6 +92,10 @@ type Smoke is Data:
     delivery_final: Delivery.FinalDecision
     delivery_finding: Delivery.FindingDisposition
     delivery_release: Bool
+    submission_candidate: Bool
+    submission_batch_gate: Delivery.BatchGate
+    credential_observe: Bool
+    final_credential_gate: Delivery.BatchGate
     collection_lease: Delivery.CollectionLeaseAction
     advice_candidate: Bool
     notice_candidate: Bool
@@ -225,6 +229,11 @@ def main() -> Smoke:
     Delivery.finalize(1n, True{}, False{}),
     Delivery.finding_disposition(False{}, 0n),
     Delivery.release_unacknowledged(False{}),
+    Delivery.submission_candidate(Delivery.SubmissionFacts{True{}, True{}, True{},
+      True{}, True{}, True{}, True{}, True{}}),
+    Delivery.submission_batch_gate(1n, True{}),
+    Delivery.credential_observe(False{}, True{}, True{}),
+    Delivery.final_credential_gate(True{}, False{}),
     Delivery.collection_lease(True{}, False{}, True{}, True{}, True{}),
     Delivery.advice_candidate(True{}, True{}, True{}, True{}),
     Delivery.notice_candidate(True{}, True{}, True{}, True{}),
