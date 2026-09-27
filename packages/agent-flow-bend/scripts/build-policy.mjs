@@ -7,7 +7,7 @@ import { createHash } from "node:crypto";
 const root = resolve(import.meta.dirname, "..");
 const productRoot = resolve(root, "../..");
 const digest = createHash("sha256");
-for (const path of ["Admission.bend", "Work.bend", "Handoff.bend", "Round.bend", "Background.bend", "Notice.bend", "Collection.bend", "Delivery.bend", "PolicyRuntime.bend", "scripts/build-policy.mjs"]) {
+for (const path of ["Admission.bend", "Work.bend", "Handoff.bend", "Round.bend", "Background.bend", "Notice.bend", "Collection.bend", "Delivery.bend", "Cache.bend", "PolicyRuntime.bend", "scripts/build-policy.mjs"]) {
   digest.update(path).update("\0").update(readFileSync(join(root, path))).update("\0");
 }
 const sourceHash = digest.digest("hex");
@@ -37,7 +37,8 @@ try {
       ["order", "eligible", "expired"]
         .some((name) => !source.includes(`function $Collection$${name}$(`)) ||
       ["transition", "expired", "background_reofferable"]
-        .some((name) => !source.includes(`function $Delivery$${name}$(`))) {
+        .some((name) => !source.includes(`function $Delivery$${name}$(`)) ||
+      ["admit", "evict"].some((name) => !source.includes(`function $Cache$${name}$(`))) {
     throw new Error("Bend policy JavaScript layout changed; inspect generated runtime");
   }
   source = source.replace(footer, `
@@ -155,6 +156,11 @@ export const bendDeliveryExpired = (phase, elapsed, lifetime) =>
   run_loop($Delivery$expired$(normalize(phase), nat(elapsed), nat(lifetime)));
 export const bendDeliveryBackgroundReofferable = (phase, surface) =>
   run_loop($Delivery$background_reofferable$(normalize(phase), normalize(surface)));
+export const bendCacheAdmit = (existing, incomingBytes, byteLimit) =>
+  run_loop($Cache$admit$(existing, nat(incomingBytes), nat(byteLimit)));
+export const bendCacheEvict = (entries, currentBytes, incomingBytes, entryLimit, byteLimit) =>
+  run_loop($Cache$evict$(nat(entries), nat(currentBytes), nat(incomingBytes),
+    nat(entryLimit), nat(byteLimit)));
 `);
   writeFileSync(join(productRoot, "src/resident/bend-policy.generated.js"),
     `// hapsland-bend-source-sha256:${sourceHash}\n${source}`);

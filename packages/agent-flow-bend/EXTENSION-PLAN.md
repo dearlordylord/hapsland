@@ -14,7 +14,8 @@ logical capacity, and the finish wait and cancellation decisions. Generated
 background-writer and operational-notice policies also decide their expiry
 and capacity boundaries. Generated collection policy decides readiness,
 expiry, and deterministic order. Generated delivery policy decides token
-transition and lease expiry. The generated `Lifecycle` reducer remains an
+transition and lease expiry. Generated cache policy decides successful-review
+admission and eviction pressure. The generated `Lifecycle` reducer remains an
 executable aggregate model rather than the
 resident's callback state. Its
 `FinishCheck.actionable_findings` input also needs to come from the final Bend

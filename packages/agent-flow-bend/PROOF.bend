@@ -1,6 +1,24 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.existing_cache_entry_reuses_without_byte_check():
+  {==}
+
+def Laws.cache_rejects_oversized_success():
+  {==}
+
+def Laws.cache_admits_exact_byte_limit():
+  {==}
+
+def Laws.cache_evicts_oldest_at_entry_limit():
+  {==}
+
+def Laws.cache_evicts_oldest_before_byte_overflow():
+  {==}
+
+def Laws.empty_cache_never_evicts():
+  {==}
+
 def Laws.reserved_delivery_only_authorizes_once():
   {==}
 

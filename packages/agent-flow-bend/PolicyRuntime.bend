@@ -8,6 +8,7 @@ import ./Background.bend as Background
 import ./Notice.bend as Notice
 import ./Collection.bend as Collection
 import ./Delivery.bend as Delivery
+import ./Cache.bend as Cache
 
 type Smoke is Data:
   Smoke{
@@ -64,6 +65,8 @@ type Smoke is Data:
     delivery_transition: Delivery.Step
     delivery_expired: Bool
     background_reofferable: Bool
+    cache_admission: Cache.Admission
+    cache_evict: Bool
   }
 
 def sample_work() -> Work.Work:
@@ -141,5 +144,7 @@ def main() -> Smoke:
     Collection.expired(600000n, 600000n),
     Delivery.transition(Delivery.Authorized{}, Delivery.Uncertain{}),
     Delivery.expired(Delivery.Authorized{}, 1000n, 1000n),
-    Delivery.background_reofferable(Delivery.Uncertain{}, Delivery.Background{})
+    Delivery.background_reofferable(Delivery.Uncertain{}, Delivery.Background{}),
+    Cache.admit(False{}, 10n, 100n),
+    Cache.evict(8n, 100n, 20n, 8n, 128000n)
   }

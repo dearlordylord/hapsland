@@ -210,3 +210,10 @@ export function bendDeliveryExpired(phase: BendDeliveryPhase,
   elapsed: number | bigint, lifetime: number | bigint): boolean;
 export function bendDeliveryBackgroundReofferable(phase: BendDeliveryPhase,
   surface: BendDeliverySurface): boolean;
+
+export type BendCacheAdmission = { readonly $: "Already" | "Add" | "Reject" };
+export function bendCacheAdmit(existing: boolean, incomingBytes: number | bigint,
+  byteLimit: number | bigint): BendCacheAdmission;
+export function bendCacheEvict(entries: number | bigint, currentBytes: number | bigint,
+  incomingBytes: number | bigint, entryLimit: number | bigint,
+  byteLimit: number | bigint): boolean;

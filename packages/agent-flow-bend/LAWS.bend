@@ -11,6 +11,25 @@ import ./Background.bend as Background
 import ./Notice.bend as Notice
 import ./Collection.bend as Collection
 import ./Delivery.bend as Delivery
+import ./Cache.bend as Cache
+
+law existing_cache_entry_reuses_without_byte_check:
+  {Cache.admit(True{}, 200n, 100n) == Cache.Already{} : Cache.Admission}
+
+law cache_rejects_oversized_success:
+  {Cache.admit(False{}, 101n, 100n) == Cache.Reject{} : Cache.Admission}
+
+law cache_admits_exact_byte_limit:
+  {Cache.admit(False{}, 100n, 100n) == Cache.Add{} : Cache.Admission}
+
+law cache_evicts_oldest_at_entry_limit:
+  {Cache.evict(8n, 10n, 1n, 8n, 100n) == True{} : Bool}
+
+law cache_evicts_oldest_before_byte_overflow:
+  {Cache.evict(1n, 70n, 40n, 8n, 100n) == True{} : Bool}
+
+law empty_cache_never_evicts:
+  {Cache.evict(0n, 0n, 100n, 8n, 100n) == False{} : Bool}
 
 law reserved_delivery_only_authorizes_once:
   {Delivery.transition(Delivery.Reserved{}, Delivery.Authorized{}) ==

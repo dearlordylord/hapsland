@@ -106,4 +106,27 @@ describe("resident evaluation identity", () => {
     reuse.clear();
     expect(ledger.snapshot()).toMatchObject({ items: 0, bytes: 0 });
   });
+
+  it("evicts the oldest success for byte pressure and rejects an oversized success", () => {
+    const ledger = new CapacityLedger();
+    let size = 70_000;
+    const reuse = new EvaluationReuse<never>({
+      reserve: (partition, bytes) => ledger.reserve(partition, bytes),
+      release: (reservation) => { ledger.release(reservation); },
+      logicalBytes: () => size,
+    });
+    const first = prepared(input({ path: "first.ts", rules: [] }));
+    const second = prepared(input({ path: "second.ts", rules: [] }));
+    const firstKey = reuse.key("partition", first);
+    const secondKey = reuse.key("partition", second);
+    expect(reuse.put("partition", firstKey, { prepared: first, findings: [] })).toBe(true);
+    expect(reuse.put("partition", secondKey, { prepared: second, findings: [] })).toBe(true);
+    expect(reuse.get(firstKey)).toBeUndefined();
+    expect(reuse.snapshot()).toMatchObject({ entries: 1, bytes: 70_000 });
+    size = SUCCESS_CACHE_BYTE_LIMIT + 1;
+    expect(reuse.put("partition", firstKey, { prepared: first, findings: [] })).toBe(false);
+    expect(reuse.snapshot()).toMatchObject({ entries: 1, bytes: 70_000 });
+    expect(ledger.snapshot().bytes).toBe(70_000);
+    reuse.clear();
+  });
 });

@@ -1,6 +1,7 @@
 import { canonicalValue, type PreparedUnit } from "../direct-event/model.ts";
 import type { EvaluatedUnit } from "../direct-event/pipeline.ts";
 import type { CapacityReservation } from "./capacity.ts";
+import { bendCacheAdmit, bendCacheEvict } from "./bend-policy.generated.js";
 
 export const SUCCESS_CACHE_ENTRY_LIMIT = 8;
 export const SUCCESS_CACHE_BYTE_LIMIT = 128 * 1024;
@@ -78,13 +79,11 @@ export class EvaluationReuse<Pending = never> {
   }
 
   put(partition: string, key: string, evaluation: EvaluatedUnit): boolean {
-    if (this.#cache.has(key)) return true;
+    if (this.#cache.has(key)) return bendCacheAdmit(true, 0, SUCCESS_CACHE_BYTE_LIMIT).$ === "Already";
     const logicalBytes = this.#options.logicalBytes({ key, evaluation });
-    if (logicalBytes > SUCCESS_CACHE_BYTE_LIMIT) return false;
-    while (
-      this.#cache.size >= SUCCESS_CACHE_ENTRY_LIMIT ||
-      this.#cacheBytes + logicalBytes > SUCCESS_CACHE_BYTE_LIMIT
-    ) this.#evictOldest();
+    if (bendCacheAdmit(false, logicalBytes, SUCCESS_CACHE_BYTE_LIMIT).$ !== "Add") return false;
+    while (bendCacheEvict(this.#cache.size, this.#cacheBytes, logicalBytes,
+      SUCCESS_CACHE_ENTRY_LIMIT, SUCCESS_CACHE_BYTE_LIMIT)) this.#evictOldest();
     const reservation = this.#options.reserve(partition, logicalBytes);
     if (reservation === undefined) return false;
     this.#cache.set(key, { key, evaluation, logicalBytes, reservation });

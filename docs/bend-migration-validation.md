@@ -44,6 +44,9 @@ finding count, and cancellation IDs.
   readiness and pending-advice expiry from elapsed-time facts.
 - `Delivery.bend` governs output-token phase transitions, authorized lease
   expiry, and when terminal background output can be reoffered at Stop.
+- `Cache.bend` decides successful-review cache admission and whether its oldest
+  entry must be evicted for item or byte pressure. TypeScript retains opaque
+  cached results and their LRU order.
 - The app build and test commands verify SHA-256 source markers in both
   generated artifacts before using them.
 
@@ -69,8 +72,11 @@ On 2026-09-27, from this worktree:
 - The focused composed-delivery, resident-server, and terminal-collection suite
   passed 3 files and 89 tests after output-token phase and lease timing moved
   to Bend. A fractional-time lease boundary is covered, with seven Bend laws.
+- The focused evaluation-reuse and resident-server suite passed 2 files and 61
+  tests after successful-review cache pressure moved to Bend. Its six new
+  laws cover exact limits, existing reuse, byte pressure, and empty caches.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
-  suite reported 65 passing files and 561 passing tests, with one file and
+  suite reported 65 passing files and 562 passing tests, with one file and
   two tests skipped.
 - `npm run conformance:package` passed from a clean local package install on
   Linux arm64 and Node 24.20.0. The CLI, parser, resident, hook, installation,
