@@ -1,4 +1,9 @@
-# Issue #97: Codex turn-end delivery measurement
+# Codex turn-end delivery measurement
+
+**Historical prototype measurement.** The [advicing target contract](advicing-target-contract.md)
+defines current accepted delivery behavior. The [installed release declaration](installed-release-compatibility.md)
+states exact verified release support. The measurements below do not expand that
+declaration.
 
 Status: isolated prototype evidence, 2026-09-25. No production hook or adapter change.
 

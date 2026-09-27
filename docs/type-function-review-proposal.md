@@ -1,4 +1,4 @@
-# Issue #93: diff-selected type and function review proposal
+# Diff-selected type and function review proposal
 
 Status: **Owner decision (2026-09-24): accepted as the complete-evidence
 type/function contract for future prototype planning only.** This does not

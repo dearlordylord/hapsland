@@ -1,6 +1,6 @@
 # Proposed amendment after the Stage 2 token stop
 
-**Status:** proposal for owner review; not in force. No further host session or Jev call has begun. The [original registration](../../../docs/issue-95-stage2.md) and [Arm A result](./arm-a-pilot-report.md) remain intact.
+**Status:** proposal for owner review; not in force. No further host session or Jev call has begun. The [original registration](../../../docs/evaluation-paired-pilot-protocol.md) and [Arm A result](./arm-a-pilot-report.md) remain intact.
 
 ## Trigger and accounting clarification
 

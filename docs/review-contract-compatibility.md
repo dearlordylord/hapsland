@@ -1,6 +1,6 @@
-# Issue #96: contract compatibility before new review branches
+# Review contract compatibility before new branches
 
-Status: compatibility assessment of the proposed [#93 type and function branches](./issue-93-type-function-review-spec.md). Owner decision (2026-09-24): accept the revised complete-evidence contract as the basis for future prototype planning only. This does not authorize branch implementation, live Jev evaluation, or expanded source egress. Existing v1 behavior remains in force, and all prototype and adoption gates remain open. Neither branch, a rule-pack v2 reader, nor another result form is implemented or authorized for production egress.
+Status: compatibility assessment of the proposed [#93 type and function branches](./type-function-review-proposal.md). Owner decision (2026-09-24): accept the revised complete-evidence contract as the basis for future prototype planning only. This does not authorize branch implementation, live Jev evaluation, or expanded source egress. Existing v1 behavior remains in force, and all prototype and adoption gates remain open. Neither branch, a rule-pack v2 reader, nor another result form is implemented or authorized for production egress.
 
 ## Current contract and compatibility decision
 

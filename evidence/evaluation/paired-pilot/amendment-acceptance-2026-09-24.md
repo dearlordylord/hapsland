@@ -1,6 +1,6 @@
 # Issue #95 amendment acceptance
 
-On 2026-09-24 the owner accepted [Choice A](./amendment-proposal-2026-09-24.md): run a fresh two-pair pilot and exclude the earlier pair-1 Arm A from every paired comparison. The owner also accepted the corrected full encoded request-body meter. The [original preregistration](../../../docs/issue-95-stage2.md) and [excluded feasibility report](./arm-a-pilot-report.md) remain unchanged.
+On 2026-09-24 the owner accepted [Choice A](./amendment-proposal-2026-09-24.md): run a fresh two-pair pilot and exclude the earlier pair-1 Arm A from every paired comparison. The owner also accepted the corrected full encoded request-body meter. The [original preregistration](../../../docs/evaluation-paired-pilot-protocol.md) and [excluded feasibility report](./arm-a-pilot-report.md) remain unchanged.
 
 Before the fresh pilot, the amended [provider guard](./provider-guard.mjs), [per-edit exposure observer](./exposure.mjs), and [finding visibility classifier](./visibility.mjs) passed nine offline tests. The guard counts the full encoded Jev request body, including evidence nodes, under 80 calls and 2 MiB per A run. The exposure observer records only path, operation, analyzer status/reason, unit name/status, file byte count, and source hash. The visibility classifier requires a later model mention of a uniquely submitted rule ID for finding-specific acknowledgement; changed source after advice is recorded separately as a possible repair, without causal attribution. Raw host messages and Jev bodies are not retained.
 

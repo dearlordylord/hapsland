@@ -1,5 +1,10 @@
 # Semantic evaluation commands
 
+The separate [paired agent evaluation pilot](../evidence/evaluation/paired-pilot/README.md)
+closed incomplete and makes no Hapsland effect estimate. Its frozen
+[protocol](evaluation-paired-pilot-protocol.md) and
+[fixture acceptance](evaluation-fixture-acceptance.md) remain historical records.
+
 Semantic evaluation is a maintainer milestone operation, separate from ordinary
 tests and review hooks. It uses the bundled production rule pack, the production
 compiler, and the same `ReviewBackend`/Effect `DecisionModel` path as a review.

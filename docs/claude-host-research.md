@@ -1,6 +1,6 @@
-# Issue #94 host adapter research — 2026-09-24
+# Claude Code and OpenCode host adapter research — 2026-09-24
 
-**Status:** targeted, advisory preparation; no Claude Code or OpenCode adapter is implemented or supported by this report. This does not supersede the [direct-event v1 supported profile](direct-event-v1-supported-profile.md). The [issue](https://github.com/dearlordylord/hapsland/issues/94) requires real-host compatibility and advice-reaction evidence before support is declared. The #97 delivery result must precede the delivery design.
+**Status: historical advisory research.** At the time of this report, no Claude Code or OpenCode adapter had been implemented. Its candidate cards, unknowns, and recommendations are not current support claims. The later [Claude host decision and evidence](claude-host-evidence.md) records the implemented exact-profile path and selected host trials; [installed release compatibility](installed-release-compatibility.md) names the verified release cells. This report does not supersede the [direct-event v1 supported profile](direct-event-v1-supported-profile.md). The [issue](https://github.com/dearlordylord/hapsland/issues/94) requires real-host compatibility and advice-reaction evidence before support is declared.
 
 ## Brief and scope
 

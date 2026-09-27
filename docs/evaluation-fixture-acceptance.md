@@ -1,12 +1,16 @@
-# Issue #95: Stage 1 fixture for owner review
+# Paired evaluation fixture acceptance record
+
+**Historical Stage 1 snapshot.** The owner later accepted this fixture for the
+paired pilot. The acceptance and subsequent incomplete-pilot outcome are recorded
+in the [paired pilot evidence index](../evidence/evaluation/paired-pilot/README.md).
 
 **State:** proposed fixture; owner acceptance is pending. No paired evaluation has started.
 
 ## Task and frozen artifact
 
-The [prompt](../evidence/evaluation/issue-95/prompt.md) asks for a TypeScript library that parses a line-oriented test-run format, formats valid documents, exposes typed records and a case-centered view, and supplies tests. It gives ordinary functional requirements and leaves the representation design to the tested agent. It does not mention Hapsland, Jev, review rules, or desired mistakes.
+The [prompt](../evidence/evaluation/paired-pilot/prompt.md) asks for a TypeScript library that parses a line-oriented test-run format, formats valid documents, exposes typed records and a case-centered view, and supplies tests. It gives ordinary functional requirements and leaves the representation design to the tested agent. It does not mention Hapsland, Jev, review rules, or desired mistakes.
 
-The completed pilot's source-only [tree](../evidence/evaluation/issue-95/selected-tree/) is the proposed fixture. It contains six source files, one example, a README, one test file, TypeScript configuration, and package metadata. Generated `dist/`, `node_modules/`, Git internals, and the Codex transcript were excluded. The tree is copied verbatim from the completed pilot; no repair was made during selection. The prompt and tree should be reviewed together before accepting Stage 2.
+The completed pilot's source-only [tree](../evidence/evaluation/paired-pilot/selected-tree/) is the proposed fixture. It contains six source files, one example, a README, one test file, TypeScript configuration, and package metadata. Generated `dist/`, `node_modules/`, Git internals, and the Codex transcript were excluded. The tree is copied verbatim from the completed pilot; no repair was made during selection. The prompt and tree should be reviewed together before accepting Stage 2.
 
 ## Pilot declaration and selection process
 

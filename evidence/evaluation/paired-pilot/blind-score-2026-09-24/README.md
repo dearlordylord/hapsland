@@ -1,6 +1,6 @@
 # Frozen-rubric source review package
 
-Score `candidate-r4/` and `candidate-m7/` independently using the unchanged rubric in `docs/issue-95-stage2.md`, especially its 25/15/35/15/10 point cells and hidden behavior cases. Read only these candidate directories, the accepted prompt, `TYPE-DESIGN-RULES.md`, and the rubric until both initial scores and concrete counterexamples are recorded. The candidate names are arbitrary. Do not inspect run records, Hapsland activity, or the mapping key before initial scoring.
+Score `candidate-r4/` and `candidate-m7/` independently using the unchanged rubric in `docs/evaluation-paired-pilot-protocol.md`, especially its 25/15/35/15/10 point cells and hidden behavior cases. Read only these candidate directories, the accepted prompt, `TYPE-DESIGN-RULES.md`, and the rubric until both initial scores and concrete counterexamples are recorded. The candidate names are arbitrary. Do not inspect run records, Hapsland activity, or the mapping key before initial scoring.
 
 Each directory is a source-only copy of one fresh pair-1 final tree. It contains no host transcript, Jev response, credential, or intervention label. Treat the second artifact as an interrupted evaluation: its source can be scored descriptively, but a paired effect estimate is not authorized. Run offline typecheck and tests and record the exact commands/results. Distinguish defects in final source from claims about what feedback the host saw.
 

@@ -10,6 +10,13 @@ For the domain language and accepted agent-advice behavior, read the
 [product vocabulary](./CONTEXT.md) and
 [Advicing target contract](./docs/advicing-target-contract.md).
 
+For exact installed support, see [installed release compatibility](./docs/installed-release-compatibility.md).
+Current documentation also separates the future [type and function review proposal](./docs/type-function-review-proposal.md)
+and [compatibility assessment](./docs/review-contract-compatibility.md),
+the [Claude host evidence and decisions](./docs/claude-host-evidence.md),
+the [historical Codex delivery measurement](./docs/codex-turn-end-delivery-measurement.md),
+and the [paired evaluation archive](./evidence/evaluation/paired-pilot/README.md).
+
 With Jev-like AI backends, we can get real-time feedback on certain questions about our code.
 
 We can customize and write our own questions and rules,
