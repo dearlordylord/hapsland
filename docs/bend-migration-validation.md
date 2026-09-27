@@ -85,6 +85,10 @@ finding count, and cancellation IDs.
   revision or replaces it, and whether a source-free subject/generation pair
   supersedes ticket units and pending advice. TypeScript maps exact canonical
   subjects to temporary numeric IDs and applies Bend's retirement decisions.
+- `Retention.bend` decides idle cleanup readiness and commit, oldest-ticket
+  eviction under the configured limit, and the scope of a cancellation discard
+  when dispatcher jobs differ from Bend's exact cancellation IDs. TypeScript
+  supplies snapshots and performs the cleanup or discard effects.
 - The app build and test commands verify SHA-256 source markers in both
   generated artifacts before using them.
 
@@ -200,6 +204,10 @@ On 2026-09-27, from this worktree:
   delivery suite. Three Bend laws cover revocation, retained opt-in, and an
   advisory ticket. The existing final-barrier regression checks that revoking
   opt-in suppresses a leased block.
+- The cleanup, ticket retention, and cancellation scope migration passed the
+  focused resident-server and terminal-collection suite: 2 files and 80 tests.
+  Nine Bend laws cover idle versus busy cleanup, post-clear ledger residue,
+  ticket overflow, exact cancellation IDs, and conservative full discard.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
   suite reported 65 passing files and 575 passing tests, with one file and
   two tests skipped.

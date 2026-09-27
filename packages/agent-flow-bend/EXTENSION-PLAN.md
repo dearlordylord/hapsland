@@ -38,6 +38,9 @@ transitions, failure retention, collection gate priority, final Claude block
 authority, and terminal outcomes. The generated
 revision policy decides canonical-input reuse and which same-subject older
 ticket units and advice are superseded. The generated
+retention policy decides whether an idle lifetime may clean up, whether the
+oldest ticket is evicted under the configured limit, and whether cancellation
+discards only named jobs or all unfinished jobs after a mismatch. The generated
 `Lifecycle` finish gate and final reservation now own the resident's Stop wait,
 decision fence, exact work cancellation
 IDs, selected pending unit counts, and continuation slot. The final IPC

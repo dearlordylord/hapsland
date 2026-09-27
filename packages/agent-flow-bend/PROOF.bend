@@ -1,6 +1,33 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.idle_cleanup_is_ready():
+  {==}
+
+def Laws.pending_notice_blocks_cleanup():
+  {==}
+
+def Laws.inactive_lifetime_blocks_cleanup():
+  {==}
+
+def Laws.ledger_residue_blocks_cleanup_commit():
+  {==}
+
+def Laws.excess_ticket_evicts_oldest():
+  {==}
+
+def Laws.ticket_limit_keeps_existing():
+  {==}
+
+def Laws.exact_cancellation_uses_named_jobs():
+  {==}
+
+def Laws.unmatched_cancellation_discards_all_unfinished():
+  {==}
+
+def Laws.unnamed_work_discards_all_unfinished():
+  {==}
+
 def Laws.revoked_block_ticket_releases_final_selection():
   {==}
 

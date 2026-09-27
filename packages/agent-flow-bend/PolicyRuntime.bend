@@ -13,6 +13,7 @@ import ./Lifecycle.bend as Lifecycle
 import ./Ticket.bend as Ticket
 import ./Revision.bend as Revision
 import ./Reuse.bend as Reuse
+import ./Retention.bend as Retention
 
 type Smoke is Data:
   Smoke{
@@ -111,6 +112,10 @@ type Smoke is Data:
     ticket_unit_initial: Ticket.UnitStage
     revision_register: Revision.Registration
     revision_superseded: Bool
+    cleanup_gate: Retention.CleanupGate
+    cleanup_commit: Retention.CleanupGate
+    ticket_retention: Retention.TicketRetention
+    discard_scope: Retention.DiscardScope
   }
 
 def sample_work() -> Work.Work:
@@ -241,5 +246,10 @@ def main() -> Smoke:
     Ticket.unit.step(Ticket.UnitFinding{False{}}, Ticket.MarkDelivered{}),
     Ticket.unit.initial(),
     Revision.register(True{}, False{}),
-    Revision.superseded(1n, 1n, 1n, 2n)
+    Revision.superseded(1n, 1n, 1n, 2n),
+    Retention.cleanup_gate(Retention.CleanupFacts{True{}, True{}, True{}, True{},
+      True{}, True{}, True{}, True{}, True{}}),
+    Retention.cleanup_commit(True{}),
+    Retention.ticket_retention(2n, 1n, True{}),
+    Retention.discard_scope(2n, 2n, False{})
   }

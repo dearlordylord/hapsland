@@ -372,3 +372,18 @@ export function bendRevisionRegister(hasCurrent: boolean, sameInput: boolean): B
 export function bendRevisionSuperseded(candidateSubject: number | bigint,
   targetSubject: number | bigint, candidateGeneration: number | bigint,
   currentGeneration: number | bigint): boolean;
+export type BendCleanupFacts = { readonly $: "CleanupFacts";
+  readonly active: boolean; readonly dispatcher_idle: boolean;
+  readonly no_advice: boolean; readonly no_notices: boolean;
+  readonly no_pending_evaluations: boolean; readonly no_current_work: boolean;
+  readonly no_cooldowns: boolean; readonly connection_count_ok: boolean;
+  readonly cache_matches_ledger: boolean };
+export type BendCleanupGate = { readonly $: "CleanupBusy" | "CleanupReady" };
+export function bendCleanupGate(facts: BendCleanupFacts): BendCleanupGate;
+export function bendCleanupCommit(ledgerEmpty: boolean): BendCleanupGate;
+export type BendTicketRetention = { readonly $: "KeepTickets" | "EvictOldest" };
+export function bendTicketRetention(count: number | bigint,
+  limit: number | bigint, hasOldest: boolean): BendTicketRetention;
+export type BendDiscardScope = { readonly $: "NamedOnly" | "AllUnfinished" };
+export function bendDiscardScope(namedCount: number | bigint,
+  cancelledCount: number | bigint, hasUnnamed: boolean): BendDiscardScope;

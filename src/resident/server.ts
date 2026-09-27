@@ -68,6 +68,7 @@ import { bendTicketInitial, bendTicketFail, bendTicketClose, bendTicketTerminal,
   bendDeliveryCollectionLease, bendDeliveryAdviceCandidate,
   bendDeliveryNoticeCandidate, bendDeliveryReserveCandidate,
   bendValidationRoute, bendPostValidation, bendFinalCandidate,
+  bendCleanupGate, bendCleanupCommit, bendTicketRetention, bendDiscardScope,
   type BendTicketPhase, type BendTicketReason,
   type BendTicketUnitEvent, type BendTicketUnitStage,
   type BendValidationStatus } from "./bend-policy.generated.js";
@@ -647,22 +648,29 @@ export class ResidentServer {
    * part of ending this lifetime; they never authorize source reconstruction.
    */
   cleanup(): "busy" | "cleaned" {
-    if (this.#lifecycle !== "active") return "busy";
+    if (bendCleanupGate({ $: "CleanupFacts", active: this.#lifecycle === "active",
+      dispatcher_idle: true, no_advice: true, no_notices: true,
+      no_pending_evaluations: true, no_current_work: true,
+      no_cooldowns: true, connection_count_ok: true,
+      cache_matches_ledger: true }).$ !== "CleanupReady") return "busy";
     const now = this.#now();
     this.#expirePending(now);
     this.#pruneNoticeCooldowns(now);
     const dispatch = this.#dispatcher.snapshot();
     const reuse = this.#reuse.snapshot();
     const capacity = this.#ledger.snapshot();
-    if (
-      dispatch.queued !== 0 || dispatch.running !== 0 ||
-      this.#advice.length !== 0 || this.#pendingNoticeCount() !== 0 ||
-      reuse.pending !== 0 || this.#currentWork.size !== 0 ||
-      this.#noticeCooldowns.size !== 0 || this.#connections > 1 ||
-      capacity.items !== reuse.entries || capacity.bytes !== reuse.bytes
-    ) return "busy";
+    if (bendCleanupGate({ $: "CleanupFacts", active: true,
+      dispatcher_idle: dispatch.queued === 0 && dispatch.running === 0,
+      no_advice: this.#advice.length === 0,
+      no_notices: this.#pendingNoticeCount() === 0,
+      no_pending_evaluations: reuse.pending === 0,
+      no_current_work: this.#currentWork.size === 0,
+      no_cooldowns: this.#noticeCooldowns.size === 0,
+      connection_count_ok: this.#connections <= 1,
+      cache_matches_ledger: capacity.items === reuse.entries && capacity.bytes === reuse.bytes
+    }).$ !== "CleanupReady") return "busy";
     this.#reuse.clear();
-    if (this.#ledger.snapshot().items !== 0) return "busy";
+    if (bendCleanupCommit(this.#ledger.snapshot().items === 0).$ !== "CleanupReady") return "busy";
     // This synchronous state transition is the cleanup commit point. Node
     // cannot interleave another handler between the idle proof above and this
     // assignment; the response may be delayed, but this lifetime is already
@@ -735,9 +743,10 @@ export class ResidentServer {
     }
     if (ticket !== undefined) {
       this.#tickets.set(ticket.ticket.nonce, ticket);
-      while (this.#tickets.size > this.#maximumTickets) {
+      while (true) {
         const oldest = this.#tickets.keys().next().value;
-        if (oldest === undefined) break;
+        if (bendTicketRetention(this.#tickets.size, this.#maximumTickets,
+          oldest !== undefined).$ !== "EvictOldest" || oldest === undefined) break;
         this.#tickets.delete(oldest);
       }
     }
@@ -1600,8 +1609,10 @@ export class ResidentServer {
       ? job.workObservationId !== undefined && sourceIds.has(job.workObservationId)
       : job.workUnitId !== undefined && unitIds.has(job.workUnitId);
     const namedCounts = this.#dispatcher.snapshotWhere(({ value }) => value.work === work && !value.completed && named(value));
-    const matched = namedCounts.queued + namedCounts.running === sourceIds.size + unitIds.size &&
-      !this.#dispatcher.hasWorkWhere(({ value }) => value.work === work && !value.completed && !named(value));
+    const hasUnnamed = this.#dispatcher.hasWorkWhere(({ value }) =>
+      value.work === work && !value.completed && !named(value));
+    const matched = bendDiscardScope(namedCounts.queued + namedCounts.running,
+      sourceIds.size + unitIds.size, hasUnnamed).$ === "NamedOnly";
     const counts = matched ? namedCounts : this.#dispatcher.snapshotWhere(({ value }) => value.work === work && !value.completed);
     round.discarded.queued += counts.queued;
     round.discarded.running += counts.running;

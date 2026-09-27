@@ -15,6 +15,46 @@ import ./Cache.bend as Cache
 import ./Ticket.bend as Ticket
 import ./Revision.bend as Revision
 import ./Reuse.bend as Reuse
+import ./Retention.bend as Retention
+
+law idle_cleanup_is_ready:
+  {Retention.cleanup_gate(Retention.CleanupFacts{True{}, True{}, True{}, True{},
+    True{}, True{}, True{}, True{}, True{}}) ==
+    Retention.CleanupReady{} : Retention.CleanupGate}
+
+law pending_notice_blocks_cleanup:
+  {Retention.cleanup_gate(Retention.CleanupFacts{True{}, True{}, True{}, False{},
+    True{}, True{}, True{}, True{}, True{}}) ==
+    Retention.CleanupBusy{} : Retention.CleanupGate}
+
+law inactive_lifetime_blocks_cleanup:
+  {Retention.cleanup_gate(Retention.CleanupFacts{False{}, True{}, True{}, True{},
+    True{}, True{}, True{}, True{}, True{}}) ==
+    Retention.CleanupBusy{} : Retention.CleanupGate}
+
+law ledger_residue_blocks_cleanup_commit:
+  {Retention.cleanup_commit(False{}) ==
+    Retention.CleanupBusy{} : Retention.CleanupGate}
+
+law excess_ticket_evicts_oldest:
+  {Retention.ticket_retention(2n, 1n, True{}) ==
+    Retention.EvictOldest{} : Retention.TicketRetention}
+
+law ticket_limit_keeps_existing:
+  {Retention.ticket_retention(1n, 1n, True{}) ==
+    Retention.KeepTickets{} : Retention.TicketRetention}
+
+law exact_cancellation_uses_named_jobs:
+  {Retention.discard_scope(2n, 2n, False{}) ==
+    Retention.NamedOnly{} : Retention.DiscardScope}
+
+law unmatched_cancellation_discards_all_unfinished:
+  {Retention.discard_scope(1n, 2n, False{}) ==
+    Retention.AllUnfinished{} : Retention.DiscardScope}
+
+law unnamed_work_discards_all_unfinished:
+  {Retention.discard_scope(2n, 2n, True{}) ==
+    Retention.AllUnfinished{} : Retention.DiscardScope}
 
 law revoked_block_ticket_releases_final_selection:
   {Ticket.final_authority(True{}, False{}) ==
