@@ -1,6 +1,24 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.background_submission_blocked_by_stop_barrier():
+  {==}
+
+def Laws.edit_submission_allowed_during_stop_barrier():
+  {==}
+
+def Laws.existing_stop_token_requires_finish_permit():
+  {==}
+
+def Laws.existing_stop_token_accepts_finish_permit():
+  {==}
+
+def Laws.existing_background_token_is_denied_before_advice_lookup():
+  {==}
+
+def Laws.legacy_stop_blocked_during_decision():
+  {==}
+
 def Laws.selected_findings_require_continuation():
   {==}
 

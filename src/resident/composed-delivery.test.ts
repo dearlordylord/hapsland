@@ -5,6 +5,27 @@ import { DELIVERY_LEASE_MS } from "./protocol.ts";
 import { BendWorkTracker } from "./bend-work.ts";
 
 describe("shared Hapsland rounds", () => {
+  it("denies a fresh background token after a Stop continuation installs its barrier", () => {
+    const state = new ComposedDelivery();
+    state.admitEdit("agent", "edit", 100);
+    expect(state.beginStop("agent", "stop")).toBe(true);
+    expect(state.consumeStop("agent")).toBe(true);
+    expect(state.canBeginExistingToken("background", "fresh")).toBe(true);
+    expect(state.canBeginSubmission("agent", "background", "fresh")).toBe(false);
+  });
+
+  it("denies a duplicate token after its native lease expires without dropping uncertainty", () => {
+    const state = new ComposedDelivery();
+    state.admitEdit("agent", "edit", 100);
+    expect(state.beginSubmission("advice", "agent", "output", [{ rule: "r" }],
+      "background", 100)).toBe(true);
+    state.expire(100 + DELIVERY_LEASE_MS);
+    expect(state.closureCounts("agent").uncertain).toBe(1);
+    expect(state.canBeginExistingToken("background", "output")).toBe(false);
+    expect(state.closureCounts("agent").uncertain).toBe(1);
+    expect(state.hasToken("output")).toBe(true);
+  });
+
   it("allows four continuation reservations; prompts and expiry cannot reset them", () => {
     const state = new ComposedDelivery();
     expect(state.consumeStop("agent")).toBe(false);

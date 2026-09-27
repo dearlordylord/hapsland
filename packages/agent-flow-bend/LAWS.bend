@@ -15,6 +15,29 @@ import ./Cache.bend as Cache
 import ./Ticket.bend as Ticket
 import ./Revision.bend as Revision
 
+law background_submission_blocked_by_stop_barrier:
+  {Delivery.submission_allowed(
+      Round.Round{1n, True{}, 0n, 0n, 1n, True{}, False{}, False{}},
+      Delivery.Background{}, False{}, False{}) == False{} : Bool}
+
+law edit_submission_allowed_during_stop_barrier:
+  {Delivery.submission_allowed(
+      Round.Round{1n, True{}, 0n, 0n, 1n, True{}, False{}, False{}},
+      Delivery.Edit{}, False{}, False{}) == True{} : Bool}
+
+law existing_stop_token_requires_finish_permit:
+  {Delivery.submission_allowed(Round.initial(), Delivery.Stop{}, True{}, False{}) == False{} : Bool}
+
+law existing_stop_token_accepts_finish_permit:
+  {Delivery.submission_allowed(Round.initial(), Delivery.Stop{}, True{}, True{}) == True{} : Bool}
+
+law existing_background_token_is_denied_before_advice_lookup:
+  {Delivery.existing_token_allowed(Delivery.Background{}, True{}, False{}) == False{} : Bool}
+
+law legacy_stop_blocked_during_decision:
+  {Delivery.legacy_stop_allowed(
+      Round.Round{1n, True{}, 0n, 0n, 1n, False{}, True{}, False{}}) == False{} : Bool}
+
 law ticket_collect_gate_proceeds_with_valid_authority:
   {Ticket.collect_gate(False{}, True{}) ==
     Ticket.CollectProceed{} : Ticket.CollectGate}

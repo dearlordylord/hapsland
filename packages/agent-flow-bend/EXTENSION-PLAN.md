@@ -19,7 +19,8 @@ Background-writer and operational-notice policies also decide their expiry,
 capacity, suppression count, and pending-notice coalescing boundaries.
 Generated collection policy decides readiness,
 expiry, and deterministic order. Generated delivery policy decides token
-transition and lease expiry. Generated cache policy decides successful-review
+transition, lease expiry, submission admission at the Stop barrier, existing
+token finish-permit admission, and legacy Stop authorization. Generated cache policy decides successful-review
 admission and eviction pressure. Generated ticket policy decides unit-state
 transitions, failure retention, collection gate priority, and terminal outcomes. The generated
 revision policy decides canonical-input reuse and which same-subject older

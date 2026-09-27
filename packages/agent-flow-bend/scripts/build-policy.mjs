@@ -41,7 +41,7 @@ try {
       !source.includes("function $Notice$advance$(") ||
       ["order", "eligible", "expired"]
         .some((name) => !source.includes(`function $Collection$${name}$(`)) ||
-      ["transition", "expired", "background_reofferable"]
+      ["transition", "expired", "background_reofferable", "existing_token_allowed", "submission_allowed", "legacy_stop_allowed"]
         .some((name) => !source.includes(`function $Delivery$${name}$(`)) ||
       ["admit", "evict"].some((name) => !source.includes(`function $Cache$${name}$(`)) ||
       !source.includes("function $Lifecycle$cutoff$(") ||
@@ -188,6 +188,12 @@ export const bendDeliveryExpired = (phase, elapsed, lifetime) =>
   run_loop($Delivery$expired$(normalize(phase), nat(elapsed), nat(lifetime)));
 export const bendDeliveryBackgroundReofferable = (phase, surface) =>
   run_loop($Delivery$background_reofferable$(normalize(phase), normalize(surface)));
+export const bendDeliverySubmissionAllowed = (round, surface, existingToken, finishPermit) =>
+  run_loop($Delivery$submission_allowed$(normalize(round), normalize(surface), existingToken, finishPermit));
+export const bendDeliveryExistingTokenAllowed = (surface, existingToken, finishPermit) =>
+  run_loop($Delivery$existing_token_allowed$(normalize(surface), existingToken, finishPermit));
+export const bendDeliveryLegacyStopAllowed = (round) =>
+  run_loop($Delivery$legacy_stop_allowed$(normalize(round)));
 export const bendCacheAdmit = (existing, incomingBytes, byteLimit) =>
   run_loop($Cache$admit$(existing, nat(incomingBytes), nat(byteLimit)));
 export const bendCacheEvict = (entries, currentBytes, incomingBytes, entryLimit, byteLimit) =>

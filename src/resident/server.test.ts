@@ -228,14 +228,16 @@ describe("resident delivery lease", () => {
       const background = await server.handle({ version: 1, operation: "collect", lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
       if (background.status !== "advice") throw new Error("missing background finding");
-      server.beginComposedSubmission(background.token, "background");
+      expect(server.beginComposedSubmission(background.token, "background").status).toBe("submitting");
+      expect(server.beginComposedSubmission(background.token, "background").status).toBe("empty");
       await server.handle({ version: 1, operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "finish" });
       const request = { version: 1 as const, operation: "collect" as const, lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "turn-end" as const, composed: true as const,
         finish: { token: "finish", deadlineReached: false } };
       expect((await server.handle(request)).status).toBe("pending");
-      server.acknowledge(background.token); server.finalize(background.token);
+      expect(server.acknowledge(background.token).status).toBe("acknowledged");
+      expect(server.finalize(background.token).status).toBe("finalized");
       const decision = await server.handle(request);
       if (decision.status !== "advice") throw new Error("missing reoffer");
       expect(decision.findingCount).toBe(1);
@@ -785,6 +787,7 @@ describe("resident delivery lease", () => {
     expect(await server.handle({ version: 1, operation: "begin-submission", lifetime: server.lifetime,
       token: first.token, surface: "background" })).toEqual({ status: "submitting" });
     clock += DELIVERY_LEASE_MS;
+    expect(server.beginComposedSubmission(first.token, "background")).toEqual({ status: "empty" });
     await server.handle({ version: 1, operation: "begin-stop", lifetime: server.lifetime,
       root, advicee: observation.advicee, token: "reoffer" });
     const reoffer = await server.handle({ version: 1, operation: "collect", lifetime: server.lifetime,

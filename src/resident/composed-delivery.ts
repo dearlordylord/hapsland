@@ -15,6 +15,8 @@ import {
   bendBackgroundInitial, bendBackgroundClaim, bendBackgroundRelease,
   bendBackgroundExpire, type BendBackgroundWaiter,
   bendDeliveryTransition, bendDeliveryExpired, bendDeliveryBackgroundReofferable,
+  bendDeliverySubmissionAllowed, bendDeliveryLegacyStopAllowed,
+  bendDeliveryExistingTokenAllowed,
   type BendDeliveryPhase,
   bendLifecycleReleaseUnwritten,
 } from "./bend-policy.generated.js";
@@ -370,7 +372,7 @@ export class ComposedDelivery {
     // The non-installed legacy collector has no finish-decision permit.
     if (permit === undefined) {
       const round = this.#rounds.get(partition)?.policy;
-      return round?.active === true && round.deciding !== true;
+      return round !== undefined && bendDeliveryLegacyStopAllowed(round);
     }
     const stop = this.#stops.get(partition);
     if (permit.partition !== partition || !this.isActive(partition, permit.generation) ||
@@ -447,8 +449,20 @@ export class ComposedDelivery {
 
   canSubmit(partition: string, surface: DeliverySurface): boolean {
     const policy = this.#rounds.get(partition)?.policy;
-    return policy !== undefined && policy.active &&
-      (surface !== "background" || !(policy.barrier || policy.deciding));
+    return policy !== undefined && bendDeliverySubmissionAllowed(policy,
+      this.#leaseSurface(surface), false, false);
+  }
+
+  canBeginSubmission(partition: string, surface: DeliverySurface, token: string): boolean {
+    const policy = this.#rounds.get(partition)?.policy;
+    return policy !== undefined && bendDeliverySubmissionAllowed(policy,
+      this.#leaseSurface(surface), this.hasToken(token),
+      surface === "stop" && this.hasFinishPermit(token));
+  }
+
+  canBeginExistingToken(surface: DeliverySurface, token: string): boolean {
+    return bendDeliveryExistingTokenAllowed(this.#leaseSurface(surface),
+      this.hasToken(token), surface === "stop" && this.hasFinishPermit(token));
   }
 
   generation(partition: string): number {

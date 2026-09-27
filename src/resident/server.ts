@@ -1082,7 +1082,7 @@ export class ResidentServer {
     const now = this.#now();
     this.#expirePending(now);
     const finishPermit = surface === "stop" && this.#composedDelivery.hasFinishPermit(token);
-    if (this.#composedDelivery.hasToken(token) && !finishPermit) return { status: "empty" };
+    if (!this.#composedDelivery.canBeginExistingToken(surface, token)) return { status: "empty" };
     const advice = this.#advice.filter((item) =>
       item.delivery?.token === token && item.delivery.leaseUntil > now &&
       item.delivery.findings.length > 0);
@@ -1090,7 +1090,8 @@ export class ResidentServer {
         item.round === undefined || item.workUnitId === undefined ||
         item.delivery === undefined ||
         item.delivery.findings.length > item.round.policyWork.pendingFor(item.workUnitId) ||
-        !this.#composedDelivery.canSubmit(adviceeGroup(item.observation.root, item.observation.advicee), surface) ||
+        !this.#composedDelivery.canBeginSubmission(
+          adviceeGroup(item.observation.root, item.observation.advicee), surface, token) ||
         !this.#isCurrentWork(item.revision, item.prepared) ||
         !this.#adviceCredentialAuthority(item))) {
       this.releaseComposedSubmission(token);

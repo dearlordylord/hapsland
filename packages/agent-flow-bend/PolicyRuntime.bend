@@ -73,6 +73,9 @@ type Smoke is Data:
     delivery_transition: Delivery.Step
     delivery_expired: Bool
     background_reofferable: Bool
+    submission_allowed: Bool
+    existing_token_allowed: Bool
+    legacy_stop_allowed: Bool
     cache_admission: Cache.Admission
     cache_evict: Bool
     lifecycle_cutoff: Lifecycle.CutoffResult
@@ -173,6 +176,9 @@ def main() -> Smoke:
     Delivery.transition(Delivery.Authorized{}, Delivery.Uncertain{}),
     Delivery.expired(Delivery.Authorized{}, 1000n, 1000n),
     Delivery.background_reofferable(Delivery.Uncertain{}, Delivery.Background{}),
+    Delivery.submission_allowed(Round.initial(), Delivery.Edit{}, False{}, False{}),
+    Delivery.existing_token_allowed(Delivery.Edit{}, False{}, False{}),
+    Delivery.legacy_stop_allowed(Round.initial()),
     Cache.admit(False{}, 10n, 100n),
     Cache.evict(8n, 100n, 20n, 8n, 128000n),
     Lifecycle.cutoff(Round.Round{1n, True{}, 0n, 0n, 1n, False{}, False{}, False{}},
