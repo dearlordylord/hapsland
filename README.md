@@ -13,8 +13,8 @@ For the domain language and accepted agent-advice behavior, read the
 For exact installed support, see [installed release compatibility](./docs/installed-release-compatibility.md).
 Current documentation also separates the future [type and function review proposal](./docs/type-function-review-proposal.md)
 and [compatibility assessment](./docs/review-contract-compatibility.md),
-the [Claude host evidence and decisions](./docs/claude-host-evidence.md),
-the [historical Codex delivery measurement](./docs/codex-turn-end-delivery-measurement.md),
+the [Claude host evidence and decisions](./evidence/host-94/decision-and-evidence.md),
+the [historical Codex delivery measurement](./evidence/delivery-97/measurement.md),
 and the [paired evaluation archive](./evidence/evaluation/paired-pilot/README.md).
 
 With Jev-like AI backends, we can get real-time feedback on certain questions about our code.
@@ -91,26 +91,15 @@ operate on a complete file or use the same evidence boundary.
 
 ## Installation
 
-Hapsland supports Codex CLI 0.155.1 on Linux arm64 and Codex CLI 0.156.0 on macOS arm64.
-
-1. Install Hapsland into a user-writable prefix. Keep optional dependencies enabled; the package
-   supplies its own Node 24.20.0 runtime.
-
-   ```sh
-   npm install --global --prefix "$HOME/.local" --ignore-scripts=true --include=optional @hapsland/hapsland@0.1.0
-   "$HOME/.local/bin/hapsland-doctor"
-   ```
-
-2. In the Git repository you want reviewed, run `"$HOME/.local/bin/hapsland" --pilot`.
-   The guided setup previews the Codex hook changes, accepts a Jev key through masked terminal
-   input, and separately asks you to enable review for that repository. Installing Hapsland or
-   saving a key does not authorize sending repository source to Jev.
-3. Start Codex normally, review its repository and hook trust prompts, and make a supported
-   TypeScript edit. Follow the [status guide](./docs/status.md) to check observed review activity
-   with the host session ID; installation alone does not establish that a review ran.
-
-The [Codex installation guide](./docs/codex-installation.md) covers update, disable, logout,
-uninstall, and an optional first-review demo.
+The public npm package is not available: a registry lookup for
+`@hapsland/hapsland@0.1.0` returned E404 during this documentation pass.
+The [installed release compatibility record](./docs/installed-release-compatibility.md)
+describes exact profiles verified from a locally packed, pinned artifact; it is
+not a public-registry installation claim. The
+[npm installation plan](./evidence/release/npm-install-plan.md) contains commands
+for use after publication and validation. The
+[Codex installation lifecycle](./docs/codex-installation.md) documents the
+versioned operations for an already obtained, verified Hapsland artifact.
 
 <!-- configuration-readme:start -->
 
@@ -164,9 +153,9 @@ The packaged CLI's preview/install/enable/disable/uninstall contract, ownership 
 behavior, and native trust handoff are documented in
 [`docs/codex-installation.md`](./docs/codex-installation.md).
 For the proposed registry release, use the
-[`Codex npm quickstart`](./docs/npm-quickstart.md). The public command is
+[`npm installation plan`](./evidence/release/npm-install-plan.md). The public command is
 `hapsland`. The product is Hapsland and Jev is the external backend. The registry release is pending
-the [release record](./docs/npm-release-record.md).
+the [release preflight record](./evidence/release/npm-0.1.0-preflight.md).
 After setup completes, the [installation guide](./docs/codex-installation.md) also documents the separate `hapsland --demo` preview and
 live-confirmation flow. Its default preview is offline; a live run requires a new consent
 digest for a generated disposable repository and explicit request, source, and time limits.
@@ -186,7 +175,7 @@ gaps are published in
 [`docs/installed-release-compatibility.md`](./docs/installed-release-compatibility.md). The command
 does not call Jev or perform an authenticated Codex retry.
 The local single-repository opt-in pilot is scoped in
-[`docs/codex-opt-in-pilot.md`](./docs/codex-opt-in-pilot.md).
+[`evidence/codex-pilot/owner-procedure.md`](./evidence/codex-pilot/owner-procedure.md).
 
 Review dispatch is repository opt-in. The explicit enable operation first previews the
 canonical Git working-tree root, fixed Jev backend, actual destination, and

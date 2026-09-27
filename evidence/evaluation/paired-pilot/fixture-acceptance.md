@@ -2,15 +2,16 @@
 
 **Historical Stage 1 snapshot.** The owner later accepted this fixture for the
 paired pilot. The acceptance and subsequent incomplete-pilot outcome are recorded
-in the [paired pilot evidence index](../evidence/evaluation/paired-pilot/README.md).
+in the [paired pilot evidence index](README.md).
 
-**State:** proposed fixture; owner acceptance is pending. No paired evaluation has started.
+**State at Stage 1 recording:** proposed fixture; owner acceptance was pending and
+no paired evaluation had started. The later acceptance is recorded above.
 
 ## Task and frozen artifact
 
-The [prompt](../evidence/evaluation/paired-pilot/prompt.md) asks for a TypeScript library that parses a line-oriented test-run format, formats valid documents, exposes typed records and a case-centered view, and supplies tests. It gives ordinary functional requirements and leaves the representation design to the tested agent. It does not mention Hapsland, Jev, review rules, or desired mistakes.
+The [prompt](prompt.md) asks for a TypeScript library that parses a line-oriented test-run format, formats valid documents, exposes typed records and a case-centered view, and supplies tests. It gives ordinary functional requirements and leaves the representation design to the tested agent. It does not mention Hapsland, Jev, review rules, or desired mistakes.
 
-The completed pilot's source-only [tree](../evidence/evaluation/paired-pilot/selected-tree/) is the proposed fixture. It contains six source files, one example, a README, one test file, TypeScript configuration, and package metadata. Generated `dist/`, `node_modules/`, Git internals, and the Codex transcript were excluded. The tree is copied verbatim from the completed pilot; no repair was made during selection. The prompt and tree should be reviewed together before accepting Stage 2.
+The completed pilot's source-only [tree](selected-tree) is the proposed fixture. It contains six source files, one example, a README, one test file, TypeScript configuration, and package metadata. Generated `dist/`, `node_modules/`, Git internals, and the Codex transcript were excluded. The tree is copied verbatim from the completed pilot; no repair was made during selection. The prompt and tree should be reviewed together before accepting Stage 2.
 
 ## Pilot declaration and selection process
 
@@ -39,6 +40,6 @@ I inspected the completed tree after the Codex run ended, without asking the tes
 
 These are type-shape findings, not claims that the parser emits these bad values. They matter at the exported library boundary because callers can construct or transform these public values; `formatTraceTape` accepts a `TraceTapeDocument` and reads both its validity fields and `records`. The first two examples are especially direct, since parser validation demonstrates the intended domain restriction. The type file has no imports, and Hapsland's production analyzer reports `EndRecord`, `TraceCase`, and `TraceTapeDocument` as `ready` review units under the current same-file profile. `RunSummary` is unsupported because its `Record` reference lacks local evidence; it is not part of the selection rationale. I did not run Jev on the tree or claim that it would issue these findings.
 
-## Acceptance gate
+## Acceptance gate at Stage 1 recording
 
-The owner should inspect the prompt and selected tree and explicitly accept or reject this fixture. Stage 2 paired runs, rubric freezing, and Hapsland exposure wait for that decision. The source artifact is reviewable in this branch, and the type errors above make it eligible as a proposed fixture under issue #95's Stage 1 criterion.
+At this stage, the owner was to inspect the prompt and selected tree and explicitly accept or reject this fixture. Stage 2 paired runs, rubric freezing, and Hapsland exposure waited for that decision. The source artifact is reviewable in this branch, and the type errors above make it eligible as a proposed fixture under issue #95's Stage 1 criterion.

@@ -1,9 +1,11 @@
 # Codex installation lifecycle
 
-For a person using a normal Codex profile, start with the
-[npm quickstart](./npm-quickstart.md) and `hapsland --pilot` after the
-registry release. The JSON operations below remain the versioned automation
-interface. `hapsland` is the product command; Jev is the external backend.
+The versioned operations below apply to an already obtained and verified package
+artifact. For a normal Codex profile, `hapsland --pilot` starts its guided setup;
+the JSON operations provide the automation interface. Public npm installation is
+pending; the [release installation plan](../evidence/release/npm-install-plan.md)
+records the intended registry flow. `hapsland` is the product command; Jev is the
+external backend.
 
 After installation, diagnose the selected host and repository without mutation or a
 provider call:

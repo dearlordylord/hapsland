@@ -1,7 +1,11 @@
-# Single-repository Codex pilot
+# Single-repository Codex pilot — historical procedure
+
+**Historical pilot record, 2026-09-23.** The procedure and final repository state below
+were recorded for the selected pilot; they do not authorize another run or state current
+repository enablement.
 
 For a person installing the reviewed pilot package, follow the
-[interactive quickstart](./codex-pilot-quickstart.md). This document records the controlled
+[interactive quickstart](quickstart.md). This document records the controlled
 owner-pilot procedure and its evidence limits.
 
 This is a local, opt-in pilot for one owner-selected Git test repository. It sends no invitations,
@@ -44,5 +48,5 @@ observed one submitted finding, a correlated model reaction, an independently va
 and a completed follow-up review. An independent request guard counted two Jev HTTP 200 requests
 and 290 declaration-source bytes; the product budget counted 641 JSON-encoded provider-input
 bytes. The distinct sanitized results and their limits are in
-[`evidence/codex-pilot`](../evidence/codex-pilot/README.md). The repository remains opt-in and
+[`evidence/codex-pilot`](README.md). The repository remains opt-in and
 limited to synthetic TypeScript source.

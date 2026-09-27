@@ -1,5 +1,7 @@
 # Installed package evidence
 
+The [installed release acceptance record](installed-release-acceptance.md) retains the historical outcome narrative extracted from the support declaration.
+
 `clean-linux-node-24.20.0-arm64.json` is the sanitized result of
 `npm run conformance:package -- --secret-service --real-codex --write-evidence`. The runner packs the release,
 installs production dependencies into a temporary prefix, runs outside the checkout, and creates
@@ -59,4 +61,5 @@ The cross-platform release declaration is maintained separately in
 and machine-readable
 [`../../conformance/installed-release-v1.json`](../../conformance/installed-release-v1.json).
 Those files checksum the retained lifecycle and authenticated-host evidence separately. The
-inconclusive Linux installed first-review result remains a release blocker.
+legacy inconclusive Linux installed first-review result was followed by the conclusive
+record described in the [pinned acceptance record](installed-release-acceptance.md).

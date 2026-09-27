@@ -1,4 +1,16 @@
-# Hapsland 0.1.0 npm release record: pending
+# Hapsland 0.1.0 npm preflight record — 2026-09-24
+
+**Historical preflight snapshot.** Pending states, release instructions, and decisions
+below are retained as recorded on 2026-09-24. The [publishing guide](../../docs/npm-publishing.md)
+is the operational reference; this record does not establish present publication state.
+
+## Public registry observation — 2026-09-26
+
+A read-only lookup, `npm view @hapsland/hapsland@0.1.0 version --json --registry=https://registry.npmjs.org`,
+returned `E404` in this workspace. The requested version was unavailable through that
+public-registry lookup. This observation does not establish whether a private package exists.
+
+## Frozen preflight snapshot
 
 The selected first public coordinates are `@hapsland/hapsland@0.1.0` and the
 `hapsland` command. No `review-tool` alias will ship. The existing Codex
@@ -8,7 +20,7 @@ publication rights for `@hapsland/hapsland` must be verified by the logged-in
 maintainer's host.
 
 No Hapsland release has been published. This record does not yet claim registry
-compatibility. The [host publishing guide](./npm-publishing.md) gives the
+compatibility. The [host publishing guide](../../docs/npm-publishing.md) gives the
 command and post-publication validation. **CI is not a release gate.** Local
 build, native verification, archive audit, and digest match are the publish
 preflight. On-platform tests of the published archive establish advertised
@@ -30,7 +42,7 @@ support; GitHub Actions can add supporting evidence without delaying publish.
 | Hapsland candidate to published registry artifact migration | Pending registry release |
 
 The candidate source commit and archive checksum are recorded in
-[`scripts/npm-release-pin.json`](../scripts/npm-release-pin.json). The pin can be used for
+[`scripts/npm-release-pin.json`](../../scripts/npm-release-pin.json). The pin can be used for
 publication from clean `master` equal to `origin/master` after the branch is merged
 with its commit ancestry intact and the host release script reproduces the archive digest.
 

@@ -1,6 +1,6 @@
 # OpenCode 1.14.44 integration
 
-Hapsland's OpenCode adapter targets the exact `1.14.44` global plugin API. The plugin listens to `tool.execute.after` for direct `edit` and `write` calls. It sends an attributed event to the local Hapsland CLI, waits within the hook's 4.5 second watchdog, and appends a ready finding to that tool's output. The observed 1.14.44 probe showed appended output in the next local provider request for both tools. That probe did **not** observe a real model reacting to a finding, so this path is pending support validation.
+Hapsland's OpenCode adapter targets the exact `1.14.44` global plugin API. The plugin listens to `tool.execute.after` for direct `edit` and `write` calls. It sends an attributed event to the local Hapsland CLI, waits within the hook's 4.5 second watchdog, and appends a ready finding to that tool's output. This candidate path remains outside the [installed release support declaration](installed-release-compatibility.md).
 
 The adapter requires a session ID, call ID, named file, current file evidence, and an eligible semantic root. It skips ambiguous input quietly. The local plugin runs with the user's filesystem privileges. Host plugin loading and per-repository source-egress consent are separate decisions.
 
@@ -31,4 +31,4 @@ Use a normal OpenCode session to confirm host plugin loading. `--pure` is unsupp
 
 ## Validation status
 
-The [sanitized local probe](../evidence/host-94/opencode-1.14.44-local-probe.json) records direct edit/write callbacks, tool-call attribution, and output forwarding in isolated headless mode with a scripted local provider. Production support still requires a real agent reaction to a finding plus stale result, timeout, restart, failure, coexistence, and removal checks. A hook submission alone does not establish agent-visible advice.
+The [historical host evidence](../evidence/host-94/decision-and-evidence.md#remaining-decisions-and-evidence) records the local probe and its limits. Production support still requires a real agent reaction to a finding plus stale result, timeout, restart, failure, coexistence, and removal checks. A hook submission alone does not establish agent-visible advice.

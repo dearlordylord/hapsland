@@ -1,4 +1,8 @@
-# Codex pilot quickstart
+# Codex pilot quickstart — historical procedure
+
+**Historical pilot record, 2026-09-23.** Commands, naming, distribution statements, and
+repository state below describe that pilot. They are not current installation instructions.
+Use the [Hapsland installation status](../../README.md#installation) for the release path.
 
 `review-tool` is the provisional command for this named, opt-in pilot. The product has no public
 name yet; Jev is the external review backend. Keeping the existing command avoids changing the
@@ -8,8 +12,8 @@ chosen with an explicit migration.
 Use a declared profile: Codex CLI 0.155.1 on Linux arm64 or Codex CLI 0.156.0 on macOS arm64.
 The installed command selects its own Node 24.20.0 runtime; the shell's Node version does not
 select the review runtime. Keep npm optional dependencies enabled so the platform runtime is
-installed, even when lifecycle scripts are disabled. See [exact compatibility](./installed-release-compatibility.md)
-for the pinned installed-release gate and its limits. The later [macOS real-Jev pilot result](../evidence/codex-pilot/macos-arm64-independent-positive-demo-2026-09-23.json)
+installed, even when lifecycle scripts are disabled. See [exact compatibility](../../docs/installed-release-compatibility.md)
+for the pinned installed-release gate and its limits. The later [macOS real-Jev pilot result](macos-arm64-independent-positive-demo-2026-09-23.json)
 is recorded separately. Obtain the pilot package archive and its SHA-256 checksum through the pilot
 distribution channel, and verify that checksum before installation. The retained macOS pilot archive
 built from commit `97ea38f` has SHA-256
@@ -38,13 +42,13 @@ or run a package lifecycle script. Building the release archive requires platfor
 3. Start Codex normally in that repository. Complete Codex sign-in and its native repository and
    exact hook trust prompts. The guide's offline doctor check reports what it can observe and
    leaves native trust unknown until observed in Codex. After trust, make an ordinary supported
-   TypeScript edit and inspect review activity using the [status guide](./status.md). A saved key
+   TypeScript edit and inspect review activity using the [status guide](../../docs/status.md). A saved key
    or successful install is not evidence that a review ran.
 
 The guide uses the default Codex profile and user state; no `CODEX_HOME`, `REVIEW_*`, or `PATH`
 exports are needed. For an alternate profile, pass `--codex-home=/absolute/path` or
 `--codex-executable=/absolute/path` to `--pilot`. Headless callers use the versioned JSON
-[`--setup` operation](./codex-installation.md#primary-setup-flow) and explicit credential stdin.
+[`--setup` operation](../../docs/codex-installation.md#primary-setup-flow) and explicit credential stdin.
 `review-tool --login --json` keeps machine output even at a terminal.
 
 To stop future dispatch in this repository, run its explicit disable operation:
@@ -55,6 +59,6 @@ printf '%s\n' "{\"version\":1,\"operation\":\"disable\",\"cwd\":\"$PWD\"}" | rev
 
 `review-tool --logout` deletes only the saved key and preserves repository grants. An active
 environment credential still takes precedence. To remove the installed hook, use the scoped
-uninstall preview and digest confirmation in the [lifecycle guide](./codex-installation.md).
+uninstall preview and digest confirmation in the [lifecycle guide](../../docs/codex-installation.md).
 Disabling, logging out, and uninstalling are separate actions. Requests already sent cannot be
 recalled.

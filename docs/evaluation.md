@@ -2,8 +2,8 @@
 
 The separate [paired agent evaluation pilot](../evidence/evaluation/paired-pilot/README.md)
 closed incomplete and makes no Hapsland effect estimate. Its frozen
-[protocol](evaluation-paired-pilot-protocol.md) and
-[fixture acceptance](evaluation-fixture-acceptance.md) remain historical records.
+[protocol](../evidence/evaluation/paired-pilot/protocol.md) and
+[fixture acceptance](../evidence/evaluation/paired-pilot/fixture-acceptance.md) remain historical records.
 
 Semantic evaluation is a maintainer milestone operation, separate from ordinary
 tests and review hooks. It uses the bundled production rule pack, the production
@@ -52,10 +52,9 @@ maintainer must provide all of the following before a provider layer can be acqu
 4. `authorizedRemainingCalls`, no greater than the remaining cumulative 1,000-call
    project authorization and no lower than the planned worst-case attempts.
 
-The command accounts for every retry in its preflight plan. The 2026-09-20 milestone
-used one repetition, zero retries, and a 44-call ceiling. It completed all 44 requests
-with available transport and conformant assessments, but did not pass the predeclared
-semantic release gate. The repository retains only the sanitized aggregate plan/report,
-content identities, timing, coverage, and acceptance result under `evidence/evaluation/`;
-it retains no credential, fixture source, raw provider response, advice text, or
-individual probability.
+The command accounts for every retry in its preflight plan. The
+[rule-meaning milestone evidence](../evidence/evaluation/README.md) records the
+2026-09-20 plan, outcome, and semantic acceptance limits. Retained reports contain
+sanitized aggregate plans, content identities, timing, coverage, and acceptance
+results; they exclude credentials, fixture source, raw provider responses, advice
+text, and individual probabilities.

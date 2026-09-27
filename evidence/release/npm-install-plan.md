@@ -1,7 +1,10 @@
-# Install Hapsland for Codex
+# Planned npm installation for Codex
 
-This guide applies after `@hapsland/hapsland@0.1.0` is published and the exact registry
-artifact passes the [release record](./npm-release-record.md).
+**Status: future installation plan, not a usable public quickstart.** The
+public npm registry returned E404 for `@hapsland/hapsland@0.1.0` during this
+documentation pass. These commands apply only after publication and validation
+of the exact registry artifact are recorded in the
+[release preflight record](npm-0.1.0-preflight.md).
 Hapsland is the product; Jev is its external review backend. Installing the package
 does not authorize source transmission.
 
@@ -40,10 +43,10 @@ unattributed.
 
 4. Start Codex normally and complete its repository and exact-hook trust prompts.
    Make a supported TypeScript edit, then inspect readiness and observed review
-   activity with the [status guide](./status.md). An installed package or saved
+   activity with the [status guide](../../docs/status.md). An installed package or saved
    key alone does not prove that review ran.
 
-The [installation guide](./codex-installation.md) has the JSON setup, explicit
+The [installation guide](../../docs/codex-installation.md) has the JSON setup, explicit
 update, disable, logout, and scoped uninstall operations. A separate, opt-in
 synthetic demo can show a live Jev finding and Codex repair after its own source
 consent; it has request, source, and time limits.
