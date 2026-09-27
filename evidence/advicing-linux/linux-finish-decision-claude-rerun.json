@@ -1,0 +1,703 @@
+{
+  "issue": 105,
+  "platform": "linux-arm64",
+  "node": "v24.20.0",
+  "candidateCommit": "38ce4b71b97bd96c30f22fdf55d6e3e80e3284a5",
+  "backend": "controlled offline Effect DecisionModel",
+  "commandTiming": "Linux ptrace child creation through exit; tracing adds overhead",
+  "cases": [
+    {
+      "host": "claude",
+      "phase": "after",
+      "hostVersion": "2.1.218",
+      "residentReadyBeforeHost": true,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 34415,
+      "hookCounts": {
+        "before-edit": 2,
+        "edit": 2,
+        "background": 0,
+        "stop": 2,
+        "prompt": 1
+      },
+      "hookSequence": [
+        {
+          "mode": "prompt",
+          "at": 2166,
+          "ok": true,
+          "elapsedMs": 645,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "hook_event_name",
+            "permission_mode",
+            "prompt",
+            "prompt_id",
+            "session_id",
+            "transcript_path"
+          ],
+          "hasPrompt": true,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "before-edit",
+          "at": 9114,
+          "ok": true,
+          "elapsedMs": 484,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "edit",
+          "at": 9635,
+          "ok": true,
+          "elapsedMs": 472,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "duration_ms",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "stop",
+          "at": 14743,
+          "ok": true,
+          "elapsedMs": 1508,
+          "finding": true,
+          "submitted": true,
+          "blocked": true,
+          "eventKeys": [
+            "background_tasks",
+            "cwd",
+            "effort",
+            "hook_event_name",
+            "last_assistant_message",
+            "permission_mode",
+            "prompt_id",
+            "session_crons",
+            "session_id",
+            "stop_hook_active",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "before-edit",
+          "at": 28409,
+          "ok": true,
+          "elapsedMs": 689,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "edit",
+          "at": 29290,
+          "ok": true,
+          "elapsedMs": 793,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "duration_ms",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "stop",
+          "at": 34353,
+          "ok": true,
+          "elapsedMs": 3542,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "background_tasks",
+            "cwd",
+            "effort",
+            "hook_event_name",
+            "last_assistant_message",
+            "permission_mode",
+            "prompt_id",
+            "session_crons",
+            "session_id",
+            "stop_hook_active",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": true
+        }
+      ],
+      "nativeHookShapes": [
+        {
+          "nativeTool": "Write",
+          "inputKeys": [
+            "content",
+            "file_path"
+          ],
+          "responseKeys": [
+            "content",
+            "filePath",
+            "originalFile",
+            "structuredPatch",
+            "type",
+            "userModified"
+          ],
+          "responseKind": "object",
+          "userModified": false,
+          "pathMatches": true,
+          "stringsMatch": null
+        },
+        {
+          "nativeTool": "Edit",
+          "inputKeys": [
+            "file_path",
+            "new_string",
+            "old_string",
+            "replace_all"
+          ],
+          "responseKeys": [
+            "filePath",
+            "newString",
+            "oldString",
+            "originalFile",
+            "replaceAll",
+            "structuredPatch",
+            "userModified"
+          ],
+          "responseKind": "object",
+          "userModified": false,
+          "pathMatches": true,
+          "stringsMatch": true
+        }
+      ],
+      "nativeToolNames": [
+        "Write",
+        "Edit"
+      ],
+      "commandWindows": [
+        {
+          "mode": "prompt",
+          "launchAt": 1482,
+          "at": 2171,
+          "elapsedUs": 688409,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "before-edit",
+          "launchAt": 8604,
+          "at": 9119,
+          "elapsedUs": 514337,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "edit",
+          "launchAt": 9140,
+          "at": 9640,
+          "elapsedUs": 499335,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "stop",
+          "launchAt": 13216,
+          "at": 14746,
+          "elapsedUs": 1530103,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "before-edit",
+          "launchAt": 27688,
+          "at": 28415,
+          "elapsedUs": 726347,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "edit",
+          "launchAt": 28455,
+          "at": 29305,
+          "elapsedUs": 849137,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "stop",
+          "launchAt": 30784,
+          "at": 34357,
+          "elapsedUs": 3572760,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "background",
+          "launchAt": 9142,
+          "at": 34386,
+          "elapsedUs": 25243636,
+          "exitCode": -1,
+          "signal": 15
+        },
+        {
+          "mode": "background",
+          "launchAt": 28457,
+          "at": 34386,
+          "elapsedUs": 5929504,
+          "exitCode": -1,
+          "signal": 15
+        }
+      ],
+      "backendCompletions": 1,
+      "backendCompletionTimes": [
+        14696
+      ],
+      "backendCompletedAfterHostExit": false,
+      "clearFollowUp": false,
+      "activityStages": [
+        "pending",
+        "pending",
+        "findings",
+        "pending",
+        "pending",
+        "incomplete",
+        "unavailable"
+      ],
+      "findingSubmission": true,
+      "stopBlock": true,
+      "originalFile": false,
+      "repairedFile": true,
+      "modelClaimedRepair": true,
+      "hookFailures": [],
+      "hostError": false
+    },
+    {
+      "host": "claude",
+      "phase": "background",
+      "hostVersion": "2.1.218",
+      "residentReadyBeforeHost": true,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 25849,
+      "hookCounts": {
+        "before-edit": 2,
+        "edit": 2,
+        "background": 1,
+        "stop": 2,
+        "prompt": 1
+      },
+      "hookSequence": [
+        {
+          "mode": "prompt",
+          "at": 3077,
+          "ok": true,
+          "elapsedMs": 805,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "hook_event_name",
+            "permission_mode",
+            "prompt",
+            "prompt_id",
+            "session_id",
+            "transcript_path"
+          ],
+          "hasPrompt": true,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "before-edit",
+          "at": 10964,
+          "ok": true,
+          "elapsedMs": 1039,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "edit",
+          "at": 11984,
+          "ok": true,
+          "elapsedMs": 946,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "duration_ms",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "background",
+          "at": 13368,
+          "ok": true,
+          "elapsedMs": 2326,
+          "finding": true,
+          "submitted": true,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "duration_ms",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "stop",
+          "at": 18192,
+          "ok": true,
+          "elapsedMs": 568,
+          "finding": true,
+          "submitted": true,
+          "blocked": true,
+          "eventKeys": [
+            "background_tasks",
+            "cwd",
+            "effort",
+            "hook_event_name",
+            "last_assistant_message",
+            "permission_mode",
+            "prompt_id",
+            "session_crons",
+            "session_id",
+            "stop_hook_active",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "before-edit",
+          "at": 22872,
+          "ok": true,
+          "elapsedMs": 415,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "edit",
+          "at": 23403,
+          "ok": true,
+          "elapsedMs": 478,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "duration_ms",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        },
+        {
+          "mode": "stop",
+          "at": 25790,
+          "ok": true,
+          "elapsedMs": 556,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "background_tasks",
+            "cwd",
+            "effort",
+            "hook_event_name",
+            "last_assistant_message",
+            "permission_mode",
+            "prompt_id",
+            "session_crons",
+            "session_id",
+            "stop_hook_active",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": true
+        }
+      ],
+      "nativeHookShapes": [
+        {
+          "nativeTool": "Write",
+          "inputKeys": [
+            "content",
+            "file_path"
+          ],
+          "responseKeys": [
+            "content",
+            "filePath",
+            "originalFile",
+            "structuredPatch",
+            "type",
+            "userModified"
+          ],
+          "responseKind": "object",
+          "userModified": false,
+          "pathMatches": true,
+          "stringsMatch": null
+        },
+        {
+          "nativeTool": "Edit",
+          "inputKeys": [
+            "file_path",
+            "new_string",
+            "old_string",
+            "replace_all"
+          ],
+          "responseKeys": [
+            "filePath",
+            "newString",
+            "oldString",
+            "originalFile",
+            "replaceAll",
+            "structuredPatch",
+            "userModified"
+          ],
+          "responseKind": "object",
+          "userModified": false,
+          "pathMatches": true,
+          "stringsMatch": true
+        }
+      ],
+      "nativeToolNames": [
+        "Write",
+        "Read",
+        "Edit"
+      ],
+      "commandWindows": [
+        {
+          "mode": "prompt",
+          "launchAt": 2233,
+          "at": 3084,
+          "elapsedUs": 850981,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "before-edit",
+          "launchAt": 9873,
+          "at": 10971,
+          "elapsedUs": 1097883,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "edit",
+          "launchAt": 11003,
+          "at": 11993,
+          "elapsedUs": 989509,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "background",
+          "launchAt": 11004,
+          "at": 13373,
+          "elapsedUs": 2368880,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "stop",
+          "launchAt": 17592,
+          "at": 18197,
+          "elapsedUs": 605082,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "before-edit",
+          "launchAt": 22429,
+          "at": 22876,
+          "elapsedUs": 446619,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "edit",
+          "launchAt": 22907,
+          "at": 23407,
+          "elapsedUs": 500223,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "stop",
+          "launchAt": 25196,
+          "at": 25795,
+          "elapsedUs": 598833,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "background",
+          "launchAt": 22908,
+          "at": 25821,
+          "elapsedUs": 2913639,
+          "exitCode": -1,
+          "signal": 15
+        }
+      ],
+      "backendCompletions": 2,
+      "backendCompletionTimes": [
+        13286,
+        24641
+      ],
+      "backendCompletedAfterHostExit": false,
+      "clearFollowUp": true,
+      "activityStages": [
+        "pending",
+        "pending",
+        "findings",
+        "pending",
+        "pending",
+        "clear"
+      ],
+      "findingSubmission": true,
+      "stopBlock": true,
+      "originalFile": false,
+      "repairedFile": true,
+      "modelClaimedRepair": true,
+      "hookFailures": [],
+      "hostError": false
+    }
+  ]
+}

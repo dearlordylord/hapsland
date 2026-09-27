@@ -7,7 +7,7 @@ product contract or an installed-release support declaration**. Read the
 behavior and [product vocabulary](../../CONTEXT.md) for terms. The exact pinned
 release declaration is in [installed release compatibility](../../docs/installed-release-compatibility.md).
 
-## Current candidate and remaining gap
+## Current candidate and remaining acceptance work
 
 The candidate uses one production resident for Codex CLI and Claude Code. In
 three consecutive matched Linux headless runs for each runtime, the before case
@@ -22,15 +22,21 @@ repair and clear follow-up at available background opportunities. These are
 selected controlled runs, not a reliability estimate or proof of universal
 runtime timing.
 
-**The accepted finish policy remains an implementation gap.** The
-[target contract](../../docs/advicing-target-contract.md#work-and-finish-decision)
-holds a finish call while *any* admitted work remains unfinished, until all
-work settles or its deadline arrives. It then batches advice and discards or
-cancels unfinished pre-decision work at either response. The candidate can
-return when it first collects eligible advice. Passing repair examples do not
-establish the accepted all-work decision policy or every callback fence.
+**The all-work finish decision is now implemented in the shared resident.**
+It holds the finish call while any admitted work or live delivery lease remains,
+then selects a bounded advice batch when that work settles or the safe deadline
+arrives. Either decision fences and cancels unfinished pre-decision work;
+completed overflow advice and the continuation count survive a block. Advice
+identities and a single-use output permit are reserved together, so abandoned
+collectors cannot spend another continuation on the same advice.
 
-The [resident contract record](round-contract-linux.md) reports 14/14
+The [finish-decision validation record](finish-decision-linux.md) distinguishes
+current implementation checks, controlled resident contracts, native repair
+observations, and remaining owner acceptance. The earlier three-run records
+above remain historical evidence of the previous finish policy; they do not
+by themselves validate the refinement.
+
+The historical [resident contract record](round-contract-linux.md) reports 14/14
 deterministic cases across both adapter identities. It uses the production
 resident, local IPC, real finish CLI subprocess, and a controlled offline
 Effect backend; runtime events and model repair are fixtures. It covers
@@ -70,7 +76,10 @@ review and final adoption remain open. Manual macOS testing with real installed
 Codex and Claude belongs to a follow-up created when the current issue closes.
 
 For this exact candidate profile, the composed command reserves 4.2 seconds
-inside a five-second native finish-hook timeout. Its background wait has a
+inside a five-second native finish-hook timeout. The decision deadline leaves
+750 ms of that internal budget for final eligibility checks, authorization,
+and output; poll sleeps are capped at 50 ms, with IPC and scheduling overhead.
+Its background wait has a
 20-second internal limit inside a 25-second native command timeout. These are
 implementation settings and selected-profile measurements, not universal
 product timing guarantees.
@@ -79,7 +88,7 @@ Candidate round ownership was introduced in `b36b879` and the Codex edit-hook
 correction in `bc50725`. After merging master in `98298a4`, the recorded full
 suite passed 535 tests with two skipped; direct-event conformance passed
 231/231. Those runs precede this documentation extraction and do not validate
-the unimplemented all-work finish policy.
+the later all-work finish policy.
 
 ## Historical records
 

@@ -183,8 +183,10 @@ The [sidecar reducer](../packages/agent-flow-viz/README.md) models the
 all-unfinished-work finish rule and logical cancellation in one-agent state.
 The [Bend slice](../packages/agent-flow-bend/README.md) currently proves only
 finding-to-pending-advice transitions. Neither establishes production/native
-hook behavior. The current production candidate may return its finish hook as
-soon as it collects eligible advice, rather than waiting for all unfinished
-work or the deadline and batching/cancelling at that decision. That gap remains
-open. Native scheduling, actual runtime visibility, and physical cancellation
-also require separate evidence; see the [Linux evidence index](../evidence/advicing-linux/README.md).
+hook behavior. The production candidate now implements the all-work/deadline
+finish decision in the shared resident. That implementation has its own
+[contract and Linux validation record](../evidence/advicing-linux/finish-decision-linux.md);
+it does not import the sidecar reducer or extend the Bend proof to production.
+Native scheduling, actual runtime visibility, and physical cancellation require
+separate evidence; see the [Linux evidence index](../evidence/advicing-linux/README.md).
+Owner visual review and final adoption remain separate acceptance gates.
