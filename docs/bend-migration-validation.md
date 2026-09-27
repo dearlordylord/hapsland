@@ -1,10 +1,11 @@
 # Bend migration validation
 
 This records source-free local verification for the generated Bend boundaries.
-The resident uses generated Bend at admission, round, selection, lease, capacity,
-and finish-wait barriers. The aggregate generated `Lifecycle` reducer is still
-an executable model; asynchronous source and review job tracking remains in the
-resident dispatcher.
+The resident uses generated Bend at admission, work, round, selection, lease,
+capacity, and finish-wait barriers. The aggregate generated `Lifecycle` reducer
+is still an executable model. The resident dispatcher runs asynchronous Effect
+jobs, while Bend owns their source-free identities, unfinished count, pending
+finding count, and cancellation IDs.
 
 ## Current generated boundaries
 
@@ -25,9 +26,12 @@ resident dispatcher.
 - `Handoff.bend` validates exclusive finding lease transitions and decides
   suppression for edit, background, and Stop surfaces. The resident retains
   opaque finding fingerprints and replays source-free token transitions.
-- `Work.bend` decides whether an owned finish attempt waits from the live count
-  of dispatcher jobs, edit permits, and outstanding output leases. The resident
-  still schedules and settles individual Effect jobs.
+- `Work.bend` admits source observations, accepts streamed review fanout,
+  records current findings and terminal outcomes, and returns the exact source
+  and review IDs to cancel at the Stop decision. The finish wait uses Bend's
+  unfinished count plus live edit-permit and output-lease facts. The resident
+  checks Bend's cancellation IDs against its queued and running jobs and fails
+  closed on a mismatch.
 - `Ledger.bend` decides global and partition item and byte reservations,
   resize, and release. TypeScript retains opaque object capabilities and maps
   exact partition strings to unique numeric IDs.
@@ -41,11 +45,12 @@ On 2026-09-27, from this worktree:
 - `npm test` in `packages/agent-flow-bend`: all proof terms checked; the
   generated lifecycle trace passed; Bend matched the sidecar in 113 traces
   with 5,048 accepted generated steps.
-- The focused composed-round and resident-server suite passed: 2 files and
-  68 tests. The new cases cover pre-edit closure, credential rotation at the
-  final output barrier, and live background-writer exclusivity at Stop.
+- The focused Bend work, composed-round, and resident-server suite passed:
+  3 files and 75 tests. Cases cover streamed fanout, interleaved callback
+  settlement, exact cancellation IDs, pre-edit closure, credential rotation at
+  the final output barrier, and live background-writer exclusivity at Stop.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
-  suite reported 64 passing files and 550 passing tests, with one file and
+  suite reported 65 passing files and 557 passing tests, with one file and
   two tests skipped.
 - `npm run conformance:package` passed from a clean local package install on
   Linux arm64 and Node 24.20.0. The CLI, parser, resident, hook, installation,

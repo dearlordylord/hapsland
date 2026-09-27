@@ -90,6 +90,41 @@ const waitUntilIdle = async (server: ResidentServer): Promise<void> => {
 };
 
 describe("resident delivery lease", () => {
+  it("cancels a queued and running review fanout using Bend work identities", async () => {
+    const root = await makeGitFixture();
+    const paths = Array.from({ length: 5 }, (_, index) => `item-${index}.ts`);
+    for (const [index, path] of paths.entries()) await put(root, path, `type Item${index}Count = number\n`);
+    const statePath = join(root, "consent");
+    const activityPath = join(root, "activity");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, paths)));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const started = deferred();
+    const gate = deferred();
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => performance.now(), {
+      beforeEvaluate: async () => { started.resolve(); await gate.promise; },
+    });
+    const dispatch = { ...findingDispatch(statePath), activityPath };
+    try {
+      expect(server.admit(observation, dispatch, false, true).status).toBe("accepted");
+      await started.promise;
+      expect((await server.handle({ version: 1, operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "fanout" })).status).toBe("advanced");
+      const decision = await server.handle({ version: 1, operation: "collect", lifetime: server.lifetime,
+        root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true,
+        finish: { token: "fanout", deadlineReached: true } });
+      expect(decision.status).toBe("empty");
+      const activity = readActivity({ statePath: activityPath, root,
+        sessionId: observation.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
+      expect(activity.roundClosures?.[0]?.reason).toBe("deadline");
+      expect(activity.roundClosures?.[0]?.discarded?.queued).toBeGreaterThan(0);
+      expect(activity.roundClosures?.[0]?.discarded?.running).toBeGreaterThan(0);
+    } finally {
+      gate.resolve();
+      await server.close();
+    }
+  });
+
   it("holds the finish decision for all admitted work, then batches the findings", async () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");

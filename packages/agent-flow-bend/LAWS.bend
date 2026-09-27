@@ -173,6 +173,61 @@ law fanout_keeps_each_review_unfinished:
 law four_units_count_as_four_unfinished:
   {Work.unfinished(four_units()) == 4n : Nat}
 
+law streamed_fanout_keeps_source_open:
+  {Work.spawn(one_reading(), 1n, 1n) ==
+    Work.Accepted{Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n},
+      Work.Observation{1n, Work.SourceReading{}} <> Nil{},
+      Work.ReviewUnit{1n, 1n, Work.AtJev{}, 0n, 0n} <> Nil{}}, 1n <> Nil{}} : Work.WorkStep}
+
+law running_source_overrides_logical_queue_projection:
+  {Work.start_source(Work.Work{2n, 1n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n},
+      Work.Observation{1n, Work.SourceQueued{}} <> Nil{}, Nil{}}, 1n) ==
+    Work.Accepted{one_reading(), Nil{}} : Work.WorkStep}
+
+law running_review_overrides_logical_queue_projection:
+  {Work.start_unit(Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
+      Work.ReviewUnit{1n, 1n, Work.ReviewQueued{}, 0n, 0n} <> Nil{}}, 1n) ==
+    Work.Accepted{Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
+      Work.ReviewUnit{1n, 1n, Work.AtJev{}, 0n, 0n} <> Nil{}}, Nil{}} : Work.WorkStep}
+
+law source_completion_removes_only_source_work:
+  {Work.complete_source(one_reading(), 1n) ==
+    Work.Accepted{Work.Work{2n, 1n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{}, Nil{}},
+      Nil{}} : Work.WorkStep}
+
+law cached_finding_is_terminal_advice:
+  {Work.cached_finding(one_reading(), 1n, 1n, 20n) ==
+    Work.Accepted{Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n},
+      Work.Observation{1n, Work.SourceReading{}} <> Nil{},
+      Work.ReviewUnit{1n, 1n, Work.PendingFinding{}, 1n, 20n} <> Nil{}},
+      1n <> Nil{}} : Work.WorkStep}
+
+law revalidated_finding_count_replaces_old_count:
+  {Work.revise_finding(Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
+      Work.ReviewUnit{1n, 1n, Work.PendingFinding{}, 2n, 20n} <> Nil{}}, 1n, 1n, 12n) ==
+    Work.Accepted{Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
+      Work.ReviewUnit{1n, 1n, Work.PendingFinding{}, 1n, 12n} <> Nil{}}, Nil{}} : Work.WorkStep}
+
+law pending_count_is_owned_by_exact_unit:
+  {Work.pending_for(Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
+      Work.ReviewUnit{1n, 1n, Work.PendingFinding{}, 2n, 20n} <> Nil{}}, 1n) == 2n : Nat}
+
+law unknown_unit_cannot_authorize_findings:
+  {Work.pending_for(Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
+      Work.ReviewUnit{1n, 1n, Work.PendingFinding{}, 2n, 20n} <> Nil{}}, 2n) == 0n : Nat}
+
+law unfinished_unit_cannot_retire:
+  {Work.retire(Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
+      Work.ReviewUnit{1n, 1n, Work.AtJev{}, 0n, 0n} <> Nil{}}, 1n) ==
+    Work.Rejected{Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
+      Work.ReviewUnit{1n, 1n, Work.AtJev{}, 0n, 0n} <> Nil{}}, Work.UnitStillUnfinished{}} : Work.WorkStep}
+
+law terminal_finding_can_retire:
+  {Work.retire(Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
+      Work.ReviewUnit{1n, 1n, Work.PendingFinding{}, 1n, 20n} <> Nil{}}, 1n) ==
+    Work.Accepted{Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{}, Nil{}},
+      Nil{}} : Work.WorkStep}
+
 law finish_waits_for_all_unfinished_work:
   {Work.finish_wait(2n, False{}, True{}) == True{} : Bool}
 
@@ -219,6 +274,15 @@ law interrupted_review_is_terminal_before_finish:
 law interrupted_source_does_not_leave_unfinished_work:
   {Work.interrupt_observation(one_reading(), 1n) ==
     Work.Accepted{Work.Work{2n, 1n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{}, Nil{}}, Nil{}} : Work.WorkStep}
+
+law decision_cancels_all_unfinished_but_keeps_advice:
+  {Work.cancel_unfinished(Work.Work{2n, 3n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n},
+      Work.Observation{1n, Work.SourceReading{}} <> Nil{},
+      Work.ReviewUnit{1n, 1n, Work.AtJev{}, 0n, 0n} <>
+      Work.ReviewUnit{2n, 1n, Work.PendingFinding{}, 1n, 20n} <> Nil{}}) ==
+    Work.Cancelled{Work.Work{2n, 3n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
+      Work.ReviewUnit{2n, 1n, Work.PendingFinding{}, 1n, 20n} <> Nil{}},
+      1n <> Nil{}, 1n <> Nil{}} : Work.CancelResult}
 
 def current_advice() -> Handoff.Advice:
   Handoff.Advice{7n, 4n, 9n, 1n, 2n, 2n, 3n, 3n, 25n, 300n, True{}}

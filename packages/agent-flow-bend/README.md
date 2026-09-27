@@ -17,12 +17,12 @@ partition, lifetime, and round issued by admission. The adapter maps exact
 native identities to unique numeric IDs and measures the encoded host output
 before passing its byte count to Bend.
 
-The resident now executes generated `Handoff.bend` code for finding selection
-and response size decisions, and generated `Ledger.bend` code for logical
-capacity reservations. The generated files are checked against source hashes
-before the app builds or tests. `Lifecycle.bend` and delivery lease transitions
-remain modeled and tested here but are not yet connected to the production
-resident.
+The resident executes generated Bend code for admission permits, source and
+review work, composed rounds, finding selection and leases, finish waiting,
+cancellation IDs, response limits, and logical capacity. The generated files
+are checked against source hashes before the app builds or tests.
+`Lifecycle.bend` remains a tested aggregate model; the resident composes its
+generated admission, work, round, and handoff modules at their effect barriers.
 
 Run `npm test` in this directory. It builds `flow.generated.js` and
 `lifecycle.generated.js` and the resident policy/ledger artifacts from Bend,
@@ -34,9 +34,8 @@ traces. The generator exercises both accepted and rejected events. The sidecar
 package's dependencies must be installed with `npm ci` for the parity check.
 
 Generated JavaScript is an artifact, not an alternate implementation. The
-resident still supplies placeholder selection identity metadata because its
-round and lease migration is pending. Handoff selection and leases still need
-to be connected to the lifecycle state; the TypeScript migration must enforce
-exact identity mapping and fresh validation at the final writer barrier. The
-accepted contract in
-`../../docs/advicing-target-contract.md` remains the target for that work.
+resident maps exact native identities to numeric IDs, revalidates each offered
+finding at the final handoff and writer barriers, and keeps source capture,
+Jev Effect calls, IPC, and output formatting in TypeScript. The accepted
+contract in `../../docs/advicing-target-contract.md` remains the target for
+the aggregate lifecycle and installed runtime behavior.

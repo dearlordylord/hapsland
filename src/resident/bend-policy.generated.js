@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:845b028e07774029aa0a32d56f3348ed83a4800aae9620701a397ab517887a91
+// hapsland-bend-source-sha256:4bc5f4f3c410ec765b7410c887067ca13931584588a55355c038c662bc7d3cdd
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -127,7 +127,7 @@ function run_lib(f, n) {
 // =======
 
 function $main$() {
-  return {$: "Smoke", ["admission"]: run_loop($Admission$step$(run_loop($Admission$initial$(1n, 1n)), 1n, 1n, {$: "Issue", ["tool"]: 1n, ["started"]: 1n, ["deadline"]: 2n, ["now"]: 1n})), ["prospective_close"]: run_loop($Admission$close_prospective$({$: "AdmissionState", ["partition"]: 1n, ["lifetime"]: 1n, ["round"]: 0n, ["active"]: false, ["closed_at"]: 0n, ["next_token"]: 2n, ["permits"]: {$: "Con", ["head"]: {$: "Permit", ["token"]: 1n, ["tool"]: 1n, ["round"]: 1n, ["started"]: 1n, ["deadline"]: 2n}, ["tail"]: {$: "Nil"}}, ["used"]: {$: "Nil"}}, 3n)), ["callback"]: run_loop($Admission$callback_current$(run_loop($Admission$initial$(1n, 1n)), 1n, 1n, 0n)), ["admitted"]: run_loop($Work$admit$(run_loop($Work$initial$()))), ["prepared"]: run_loop($Work$prepare$(run_loop($sample_work$()), 1n, 2n)), ["outcome"]: run_loop($Work$outcome$(run_loop($sample_unit_work$()), 1n, {$: "Clear"})), ["unfinished"]: run_loop($Work$unfinished$(run_loop($sample_unit_work$()))), ["finish_wait"]: run_loop($Work$finish_wait$(1n, false, true)), ["source_capacity"]: run_loop($Work$set_source_capacity$(run_loop($sample_work$()), {$: "Capacity", ["low"]: 2n, ["high"]: 0n})), ["review_capacity"]: run_loop($Work$set_review_capacity$(run_loop($sample_unit_work$()), {$: "Capacity", ["low"]: 2n, ["high"]: 0n})), ["selection"]: run_loop($Handoff$select$(run_loop($Handoff$initial$(1n, 1n)), {$: "Advice", ["id"]: 1n, ["unit"]: 1n, ["partition"]: 1n, ["round"]: 1n, ["snapshot"]: 1n, ["current_snapshot"]: 1n, ["credential"]: 1n, ["current_credential"]: 1n, ["age_ms"]: 0n, ["solo_bytes"]: 100n, ["collection_ready"]: true}, 100n)), ["fit"]: run_loop($Handoff$fits_batch$(1n, 100n)), ["finish"]: run_loop($Handoff$finish$decide$(run_loop($Handoff$finish$initial$(1n)), 0n, false, 1n)), ["lease_reserve"]: run_loop($Handoff$lease$reserve$(run_loop($Handoff$lease$initial$(1n, 1n)), 1n, 1n, {$: "Background"})), ["lease_authorize"]: run_loop($Handoff$lease$authorize$(run_loop($sample_reserved_lease$()), 1n, 1n)), ["lease_release"]: run_loop($Handoff$lease$release$(run_loop($sample_reserved_lease$()), 1n, 1n)), ["lease_terminal"]: run_loop($Handoff$lease$terminal$(run_loop($sample_authorized_lease$()), 1n, 1n, false)), ["lease_reoffer"]: run_loop($Handoff$lease$reoffer$(run_loop($sample_uncertain_lease$()), 1n, 2n, true)), ["closed_lease"]: run_loop($Handoff$lease$close$(run_loop($Handoff$lease$initial$(1n, 1n)))), ["lease_suppresses"]: run_loop($Handoff$lease$suppresses$(run_loop($sample_uncertain_lease$()), 1n, {$: "Edit"})), ["round_begin"]: run_loop($Round$begin_stop$(run_loop($Round$initial$()), 1n)), ["round_active"]: run_loop($Round$active$(run_loop($Round$initial$()), 1n)), ["round_budget"]: run_loop($Round$budget$(run_loop($Round$initial$()))), ["round_max"]: run_loop($Round$max_continuations$()), ["round_owns"]: run_loop($Round$owns_stop$({$: "Round", ["generation"]: 1n, ["active"]: true, ["closed_at"]: 0n, ["continuations"]: 0n, ["stop_token"]: 1n, ["barrier"]: false, ["deciding"]: false, ["output_reserved"]: false}, 1n)), ["round_decision"]: run_loop($Round$begin_decision$({$: "Round", ["generation"]: 1n, ["active"]: true, ["closed_at"]: 0n, ["continuations"]: 0n, ["stop_token"]: 1n, ["barrier"]: false, ["deciding"]: false, ["output_reserved"]: false}, 1n)), ["round_consume"]: run_loop($Round$consume$(run_loop($Round$initial$()))), ["round_reserve"]: run_loop($Round$reserve_output$({$: "Round", ["generation"]: 1n, ["active"]: true, ["closed_at"]: 0n, ["continuations"]: 0n, ["stop_token"]: 1n, ["barrier"]: false, ["deciding"]: true, ["output_reserved"]: false}, 1n)), ["round_finish"]: run_loop($Round$finish_stop$({$: "Round", ["generation"]: 1n, ["active"]: true, ["closed_at"]: 0n, ["continuations"]: 0n, ["stop_token"]: 1n, ["barrier"]: false, ["deciding"]: false, ["output_reserved"]: false}, 1n, true, 2n)), ["round_reopen"]: run_loop($Round$reopen$({$: "Round", ["generation"]: 1n, ["active"]: false, ["closed_at"]: 2n, ["continuations"]: 0n, ["stop_token"]: 0n, ["barrier"]: false, ["deciding"]: false, ["output_reserved"]: false}, 2n))};
+  return {$: "Smoke", ["admission"]: run_loop($Admission$step$(run_loop($Admission$initial$(1n, 1n)), 1n, 1n, {$: "Issue", ["tool"]: 1n, ["started"]: 1n, ["deadline"]: 2n, ["now"]: 1n})), ["prospective_close"]: run_loop($Admission$close_prospective$({$: "AdmissionState", ["partition"]: 1n, ["lifetime"]: 1n, ["round"]: 0n, ["active"]: false, ["closed_at"]: 0n, ["next_token"]: 2n, ["permits"]: {$: "Con", ["head"]: {$: "Permit", ["token"]: 1n, ["tool"]: 1n, ["round"]: 1n, ["started"]: 1n, ["deadline"]: 2n}, ["tail"]: {$: "Nil"}}, ["used"]: {$: "Nil"}}, 3n)), ["callback"]: run_loop($Admission$callback_current$(run_loop($Admission$initial$(1n, 1n)), 1n, 1n, 0n)), ["admitted"]: run_loop($Work$admit$(run_loop($Work$initial$()))), ["started_source"]: run_loop($Work$start_source$(run_loop($sample_work$()), 1n)), ["started_unit"]: run_loop($Work$start_unit$(run_loop($sample_unit_work$()), 1n)), ["spawned"]: run_loop($Work$spawn$(run_loop($sample_work$()), 1n, 1n)), ["prepared"]: run_loop($Work$prepare$(run_loop($sample_work$()), 1n, 2n)), ["source_completed"]: run_loop($Work$complete_source$(run_loop($sample_work$()), 1n)), ["cached_finding"]: run_loop($Work$cached_finding$(run_loop($sample_work$()), 1n, 1n, 20n)), ["revised_finding"]: run_loop($Work$revise_finding$({$: "Work", ["next_observation"]: 2n, ["next_unit"]: 2n, ["source_capacity"]: {$: "Capacity", ["low"]: 3n, ["high"]: 0n}, ["review_capacity"]: {$: "Capacity", ["low"]: 3n, ["high"]: 0n}, ["observations"]: {$: "Nil"}, ["units"]: {$: "Con", ["head"]: {$: "ReviewUnit", ["id"]: 1n, ["observation"]: 1n, ["stage"]: {$: "PendingFinding"}, ["findings"]: 1n, ["bytes"]: 20n}, ["tail"]: {$: "Nil"}}}, 1n, 1n, 10n)), ["outcome"]: run_loop($Work$outcome$(run_loop($sample_unit_work$()), 1n, {$: "Clear"})), ["interrupted_source"]: run_loop($Work$interrupt_observation$(run_loop($sample_work$()), 1n)), ["interrupted_unit"]: run_loop($Work$interrupt_unit$(run_loop($sample_unit_work$()), 1n)), ["retired"]: run_loop($Work$retire$({$: "Work", ["next_observation"]: 2n, ["next_unit"]: 2n, ["source_capacity"]: {$: "Capacity", ["low"]: 3n, ["high"]: 0n}, ["review_capacity"]: {$: "Capacity", ["low"]: 3n, ["high"]: 0n}, ["observations"]: {$: "Nil"}, ["units"]: {$: "Con", ["head"]: {$: "ReviewUnit", ["id"]: 1n, ["observation"]: 1n, ["stage"]: {$: "ClearResult"}, ["findings"]: 0n, ["bytes"]: 0n}, ["tail"]: {$: "Nil"}}}, 1n)), ["unfinished"]: run_loop($Work$unfinished$(run_loop($sample_unit_work$()))), ["pending_findings"]: run_loop($Work$pending_findings$(run_loop($sample_unit_work$()))), ["pending_for"]: run_loop($Work$pending_for$(run_loop($sample_unit_work$()), 1n)), ["closed_work"]: run_loop($Work$close$(run_loop($sample_work$()))), ["cancelled_work"]: run_loop($Work$cancel_unfinished$(run_loop($sample_work$()))), ["finish_wait"]: run_loop($Work$finish_wait$(1n, false, true)), ["source_capacity"]: run_loop($Work$set_source_capacity$(run_loop($sample_work$()), {$: "Capacity", ["low"]: 2n, ["high"]: 0n})), ["review_capacity"]: run_loop($Work$set_review_capacity$(run_loop($sample_unit_work$()), {$: "Capacity", ["low"]: 2n, ["high"]: 0n})), ["selection"]: run_loop($Handoff$select$(run_loop($Handoff$initial$(1n, 1n)), {$: "Advice", ["id"]: 1n, ["unit"]: 1n, ["partition"]: 1n, ["round"]: 1n, ["snapshot"]: 1n, ["current_snapshot"]: 1n, ["credential"]: 1n, ["current_credential"]: 1n, ["age_ms"]: 0n, ["solo_bytes"]: 100n, ["collection_ready"]: true}, 100n)), ["fit"]: run_loop($Handoff$fits_batch$(1n, 100n)), ["finish"]: run_loop($Handoff$finish$decide$(run_loop($Handoff$finish$initial$(1n)), 0n, false, 1n)), ["lease_reserve"]: run_loop($Handoff$lease$reserve$(run_loop($Handoff$lease$initial$(1n, 1n)), 1n, 1n, {$: "Background"})), ["lease_authorize"]: run_loop($Handoff$lease$authorize$(run_loop($sample_reserved_lease$()), 1n, 1n)), ["lease_release"]: run_loop($Handoff$lease$release$(run_loop($sample_reserved_lease$()), 1n, 1n)), ["lease_terminal"]: run_loop($Handoff$lease$terminal$(run_loop($sample_authorized_lease$()), 1n, 1n, false)), ["lease_reoffer"]: run_loop($Handoff$lease$reoffer$(run_loop($sample_uncertain_lease$()), 1n, 2n, true)), ["closed_lease"]: run_loop($Handoff$lease$close$(run_loop($Handoff$lease$initial$(1n, 1n)))), ["lease_suppresses"]: run_loop($Handoff$lease$suppresses$(run_loop($sample_uncertain_lease$()), 1n, {$: "Edit"})), ["round_begin"]: run_loop($Round$begin_stop$(run_loop($Round$initial$()), 1n)), ["round_active"]: run_loop($Round$active$(run_loop($Round$initial$()), 1n)), ["round_budget"]: run_loop($Round$budget$(run_loop($Round$initial$()))), ["round_max"]: run_loop($Round$max_continuations$()), ["round_owns"]: run_loop($Round$owns_stop$({$: "Round", ["generation"]: 1n, ["active"]: true, ["closed_at"]: 0n, ["continuations"]: 0n, ["stop_token"]: 1n, ["barrier"]: false, ["deciding"]: false, ["output_reserved"]: false}, 1n)), ["round_decision"]: run_loop($Round$begin_decision$({$: "Round", ["generation"]: 1n, ["active"]: true, ["closed_at"]: 0n, ["continuations"]: 0n, ["stop_token"]: 1n, ["barrier"]: false, ["deciding"]: false, ["output_reserved"]: false}, 1n)), ["round_consume"]: run_loop($Round$consume$(run_loop($Round$initial$()))), ["round_reserve"]: run_loop($Round$reserve_output$({$: "Round", ["generation"]: 1n, ["active"]: true, ["closed_at"]: 0n, ["continuations"]: 0n, ["stop_token"]: 1n, ["barrier"]: false, ["deciding"]: true, ["output_reserved"]: false}, 1n)), ["round_finish"]: run_loop($Round$finish_stop$({$: "Round", ["generation"]: 1n, ["active"]: true, ["closed_at"]: 0n, ["continuations"]: 0n, ["stop_token"]: 1n, ["barrier"]: false, ["deciding"]: false, ["output_reserved"]: false}, 1n, true, 2n)), ["round_reopen"]: run_loop($Round$reopen$({$: "Round", ["generation"]: 1n, ["active"]: false, ["closed_at"]: 2n, ["continuations"]: 0n, ["stop_token"]: 0n, ["barrier"]: false, ["deciding"]: false, ["output_reserved"]: false}, 2n))};
 }
 
 function $Admission$step$(state_0, partition_0, lifetime_0, event_0) {
@@ -184,6 +184,44 @@ function $Work$initial$() {
   return {$: "Work", ["next_observation"]: 1n, ["next_unit"]: 1n, ["source_capacity"]: {$: "Capacity", ["low"]: 3n, ["high"]: 0n}, ["review_capacity"]: {$: "Capacity", ["low"]: 3n, ["high"]: 0n}, ["observations"]: {$: "Nil"}, ["units"]: {$: "Nil"}};
 }
 
+function $Work$start_source$(work_0, id_0) {
+  const __0 = work_0.next_observation;
+  const __1 = work_0.next_unit;
+  const __2 = work_0.source_capacity;
+  const __3 = work_0.review_capacity;
+  const observations_0 = work_0.observations;
+  const __4 = work_0.units;
+  return run_jump($Work$start_source$found$, [{$: "Work", ["next_observation"]: __0, ["next_unit"]: __1, ["source_capacity"]: __2, ["review_capacity"]: __3, ["observations"]: observations_0, ["units"]: __4}, id_0, run_loop($Work$find_observation$(id_0, observations_0))]);
+}
+
+function $sample_work$() {
+  return {$: "Work", ["next_observation"]: 2n, ["next_unit"]: 1n, ["source_capacity"]: {$: "Capacity", ["low"]: 3n, ["high"]: 0n}, ["review_capacity"]: {$: "Capacity", ["low"]: 3n, ["high"]: 0n}, ["observations"]: {$: "Con", ["head"]: {$: "Observation", ["id"]: 1n, ["stage"]: {$: "SourceReading"}}, ["tail"]: {$: "Nil"}}, ["units"]: {$: "Nil"}};
+}
+
+function $Work$start_unit$(work_0, id_0) {
+  const __0 = work_0.next_observation;
+  const __1 = work_0.next_unit;
+  const __2 = work_0.source_capacity;
+  const __3 = work_0.review_capacity;
+  const __4 = work_0.observations;
+  const units_0 = work_0.units;
+  return run_jump($Work$start_unit$found$, [{$: "Work", ["next_observation"]: __0, ["next_unit"]: __1, ["source_capacity"]: __2, ["review_capacity"]: __3, ["observations"]: __4, ["units"]: units_0}, id_0, run_loop($Work$find_unit$(id_0, units_0))]);
+}
+
+function $sample_unit_work$() {
+  return {$: "Work", ["next_observation"]: 2n, ["next_unit"]: 2n, ["source_capacity"]: {$: "Capacity", ["low"]: 3n, ["high"]: 0n}, ["review_capacity"]: {$: "Capacity", ["low"]: 3n, ["high"]: 0n}, ["observations"]: {$: "Nil"}, ["units"]: {$: "Con", ["head"]: {$: "ReviewUnit", ["id"]: 1n, ["observation"]: 1n, ["stage"]: {$: "AtJev"}, ["findings"]: 0n, ["bytes"]: 0n}, ["tail"]: {$: "Nil"}}};
+}
+
+function $Work$spawn$(work_0, observation_0, count_0) {
+  const __0 = work_0.next_observation;
+  const __1 = work_0.next_unit;
+  const __2 = work_0.source_capacity;
+  const __3 = work_0.review_capacity;
+  const observations_0 = work_0.observations;
+  const __4 = work_0.units;
+  return run_jump($Work$spawn$found$, [{$: "Work", ["next_observation"]: __0, ["next_unit"]: __1, ["source_capacity"]: __2, ["review_capacity"]: __3, ["observations"]: observations_0, ["units"]: __4}, observation_0, count_0, run_loop($Work$find_observation$(observation_0, observations_0))]);
+}
+
 function $Work$prepare$(work_0, observation_0, count_0) {
   const __0 = work_0.next_observation;
   const __1 = work_0.next_unit;
@@ -194,8 +232,34 @@ function $Work$prepare$(work_0, observation_0, count_0) {
   return run_jump($Work$prepare$found$, [{$: "Work", ["next_observation"]: __0, ["next_unit"]: __1, ["source_capacity"]: __2, ["review_capacity"]: __3, ["observations"]: observations_0, ["units"]: __4}, observation_0, count_0, run_loop($Work$find_observation$(observation_0, observations_0))]);
 }
 
-function $sample_work$() {
-  return {$: "Work", ["next_observation"]: 2n, ["next_unit"]: 1n, ["source_capacity"]: {$: "Capacity", ["low"]: 3n, ["high"]: 0n}, ["review_capacity"]: {$: "Capacity", ["low"]: 3n, ["high"]: 0n}, ["observations"]: {$: "Con", ["head"]: {$: "Observation", ["id"]: 1n, ["stage"]: {$: "SourceReading"}}, ["tail"]: {$: "Nil"}}, ["units"]: {$: "Nil"}};
+function $Work$complete_source$(work_0, id_0) {
+  const __0 = work_0.next_observation;
+  const __1 = work_0.next_unit;
+  const __2 = work_0.source_capacity;
+  const __3 = work_0.review_capacity;
+  const observations_0 = work_0.observations;
+  const __4 = work_0.units;
+  return run_jump($Work$complete_source$found$, [{$: "Work", ["next_observation"]: __0, ["next_unit"]: __1, ["source_capacity"]: __2, ["review_capacity"]: __3, ["observations"]: observations_0, ["units"]: __4}, id_0, run_loop($Work$find_observation$(id_0, observations_0))]);
+}
+
+function $Work$cached_finding$(work_0, observation_0, count_0, bytes_0) {
+  const __0 = work_0.next_observation;
+  const __1 = work_0.next_unit;
+  const __2 = work_0.source_capacity;
+  const __3 = work_0.review_capacity;
+  const observations_0 = work_0.observations;
+  const __4 = work_0.units;
+  return run_jump($Work$cached_finding$found$, [{$: "Work", ["next_observation"]: __0, ["next_unit"]: __1, ["source_capacity"]: __2, ["review_capacity"]: __3, ["observations"]: observations_0, ["units"]: __4}, observation_0, count_0, bytes_0, run_loop($Work$find_observation$(observation_0, observations_0))]);
+}
+
+function $Work$revise_finding$(work_0, id_0, count_0, bytes_0) {
+  const __0 = work_0.next_observation;
+  const __1 = work_0.next_unit;
+  const __2 = work_0.source_capacity;
+  const __3 = work_0.review_capacity;
+  const __4 = work_0.observations;
+  const units_0 = work_0.units;
+  return run_jump($Work$revise_finding$found$, [{$: "Work", ["next_observation"]: __0, ["next_unit"]: __1, ["source_capacity"]: __2, ["review_capacity"]: __3, ["observations"]: __4, ["units"]: units_0}, id_0, count_0, bytes_0, run_loop($Work$find_unit$(id_0, units_0))]);
 }
 
 function $Work$outcome$(work_0, id_0, result_0) {
@@ -208,8 +272,34 @@ function $Work$outcome$(work_0, id_0, result_0) {
   return run_jump($Work$outcome$found$, [{$: "Work", ["next_observation"]: __0, ["next_unit"]: __1, ["source_capacity"]: __2, ["review_capacity"]: __3, ["observations"]: __4, ["units"]: units_0}, id_0, result_0, run_loop($Work$find_unit$(id_0, units_0))]);
 }
 
-function $sample_unit_work$() {
-  return {$: "Work", ["next_observation"]: 2n, ["next_unit"]: 2n, ["source_capacity"]: {$: "Capacity", ["low"]: 3n, ["high"]: 0n}, ["review_capacity"]: {$: "Capacity", ["low"]: 3n, ["high"]: 0n}, ["observations"]: {$: "Nil"}, ["units"]: {$: "Con", ["head"]: {$: "ReviewUnit", ["id"]: 1n, ["observation"]: 1n, ["stage"]: {$: "AtJev"}, ["findings"]: 0n, ["bytes"]: 0n}, ["tail"]: {$: "Nil"}}};
+function $Work$interrupt_observation$(work_0, id_0) {
+  const __0 = work_0.next_observation;
+  const __1 = work_0.next_unit;
+  const __2 = work_0.source_capacity;
+  const __3 = work_0.review_capacity;
+  const observations_0 = work_0.observations;
+  const __4 = work_0.units;
+  return run_jump($Work$interrupt_observation$found$, [{$: "Work", ["next_observation"]: __0, ["next_unit"]: __1, ["source_capacity"]: __2, ["review_capacity"]: __3, ["observations"]: observations_0, ["units"]: __4}, id_0, run_loop($Work$find_observation$(id_0, observations_0))]);
+}
+
+function $Work$interrupt_unit$(work_0, id_0) {
+  const __0 = work_0.next_observation;
+  const __1 = work_0.next_unit;
+  const __2 = work_0.source_capacity;
+  const __3 = work_0.review_capacity;
+  const __4 = work_0.observations;
+  const units_0 = work_0.units;
+  return run_jump($Work$interrupt_unit$found$, [{$: "Work", ["next_observation"]: __0, ["next_unit"]: __1, ["source_capacity"]: __2, ["review_capacity"]: __3, ["observations"]: __4, ["units"]: units_0}, id_0, run_loop($Work$find_unit$(id_0, units_0))]);
+}
+
+function $Work$retire$(work_0, id_0) {
+  const __0 = work_0.next_observation;
+  const __1 = work_0.next_unit;
+  const __2 = work_0.source_capacity;
+  const __3 = work_0.review_capacity;
+  const __4 = work_0.observations;
+  const units_0 = work_0.units;
+  return run_jump($Work$retire$found$, [{$: "Work", ["next_observation"]: __0, ["next_unit"]: __1, ["source_capacity"]: __2, ["review_capacity"]: __3, ["observations"]: __4, ["units"]: units_0}, id_0, run_loop($Work$find_unit$(id_0, units_0))]);
 }
 
 function $Work$unfinished$(work_0) {
@@ -222,6 +312,46 @@ function $Work$unfinished$(work_0) {
   const x_0 = run_loop($Work$unfinished_observations$(observations_0));
   const x_1 = run_loop($Work$unfinished_units$(units_0));
   return nat_chk(x_0 + x_1);
+}
+
+function $Work$pending_findings$(work_0) {
+  const __0 = work_0.next_observation;
+  const __1 = work_0.next_unit;
+  const __2 = work_0.source_capacity;
+  const __3 = work_0.review_capacity;
+  const __4 = work_0.observations;
+  const units_0 = work_0.units;
+  return run_jump($Work$pending_findings_in$, [units_0]);
+}
+
+function $Work$pending_for$(work_0, id_0) {
+  const __0 = work_0.next_observation;
+  const __1 = work_0.next_unit;
+  const __2 = work_0.source_capacity;
+  const __3 = work_0.review_capacity;
+  const __4 = work_0.observations;
+  const units_0 = work_0.units;
+  return run_jump($Work$pending_for$found$, [run_loop($Work$find_unit$(id_0, units_0))]);
+}
+
+function $Work$close$(work_0) {
+  const next_observation_0 = work_0.next_observation;
+  const next_unit_0 = work_0.next_unit;
+  const source_capacity_0 = work_0.source_capacity;
+  const review_capacity_0 = work_0.review_capacity;
+  const observations_0 = work_0.observations;
+  const units_0 = work_0.units;
+  return {$: "Closed", ["state"]: {$: "Work", ["next_observation"]: next_observation_0, ["next_unit"]: next_unit_0, ["source_capacity"]: source_capacity_0, ["review_capacity"]: review_capacity_0, ["observations"]: {$: "Nil"}, ["units"]: {$: "Nil"}}, ["cancelled_source"]: run_loop($Work$source_cancel_ids$(observations_0)), ["cancelled_jev"]: run_loop($Work$jev_cancel_ids$(units_0)), ["discarded_findings"]: run_loop($Work$discarded_finding_ids$(units_0))};
+}
+
+function $Work$cancel_unfinished$(work_0) {
+  const next_observation_0 = work_0.next_observation;
+  const next_unit_0 = work_0.next_unit;
+  const source_capacity_0 = work_0.source_capacity;
+  const review_capacity_0 = work_0.review_capacity;
+  const observations_0 = work_0.observations;
+  const units_0 = work_0.units;
+  return {$: "Cancelled", ["state"]: {$: "Work", ["next_observation"]: next_observation_0, ["next_unit"]: next_unit_0, ["source_capacity"]: source_capacity_0, ["review_capacity"]: review_capacity_0, ["observations"]: {$: "Nil"}, ["units"]: run_loop($Work$keep_terminal$(units_0))}, ["cancelled_source"]: run_loop($Work$observation_ids$(observations_0)), ["cancelled_jev"]: run_loop($Work$unfinished_unit_ids$(units_0))};
 }
 
 function $Work$finish_wait$(unfinished_0, deadline_reached_0, continuation_budget_0) {
@@ -558,14 +688,12 @@ function $List$append$(xs_0, ys_0) {
   }
 }
 
-function $Work$prepare$found$(work_0, observation_0, count_0, found_0) {
+function $Work$start_source$found$(work_0, id_0, found_0) {
   if (found_0.$ === "None") {
     return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "MissingObservation"}};
   } else {
-    const _t_0 = found_0.value;
-    const __0 = _t_0.id;
-    const stage_0 = _t_0.stage;
-    return run_jump($Work$prepare$stage$, [work_0, observation_0, count_0, stage_0]);
+    const __0 = found_0.value;
+    return run_jump($Work$start_source$apply$, [work_0, id_0]);
   }
 }
 
@@ -578,6 +706,105 @@ function $Work$find_observation$(id_0, observations_0) {
     const __0 = _t_0.stage;
     const rest_0 = observations_0.tail;
     return run_jump($Work$find_observation$pick$, [{$: "Observation", ["id"]: current_0, ["stage"]: __0}, run_loop($Work$find_observation$(id_0, rest_0)), run_loop($Nat$is_eq$(current_0, id_0))]);
+  }
+}
+
+function $Work$start_unit$found$(work_0, id_0, found_0) {
+  if (found_0.$ === "None") {
+    return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "MissingUnit"}};
+  } else {
+    const _t_0 = found_0.value;
+    const __0 = _t_0.id;
+    const observation_0 = _t_0.observation;
+    const stage_0 = _t_0.stage;
+    const __1 = _t_0.findings;
+    const __2 = _t_0.bytes;
+    return run_jump($Work$start_unit$stage$, [work_0, id_0, observation_0, stage_0]);
+  }
+}
+
+function $Work$find_unit$(id_0, units_0) {
+  if (units_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = units_0.head;
+    const current_0 = _t_0.id;
+    const __0 = _t_0.observation;
+    const __1 = _t_0.stage;
+    const __2 = _t_0.findings;
+    const __3 = _t_0.bytes;
+    const rest_0 = units_0.tail;
+    return run_jump($Work$find_unit$pick$, [{$: "ReviewUnit", ["id"]: current_0, ["observation"]: __0, ["stage"]: __1, ["findings"]: __2, ["bytes"]: __3}, run_loop($Work$find_unit$(id_0, rest_0)), run_loop($Nat$is_eq$(current_0, id_0))]);
+  }
+}
+
+function $Work$spawn$found$(work_0, observation_0, count_0, found_0) {
+  if (found_0.$ === "None") {
+    return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "MissingObservation"}};
+  } else {
+    const _t_0 = found_0.value;
+    const __0 = _t_0.id;
+    const _t_1 = _t_0.stage;
+    if (_t_1.$ === "SourceQueued") {
+      return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "SourceNotReading"}};
+    } else {
+      return run_jump($Work$spawn$count$, [work_0, observation_0, count_0, run_loop($Nat$is_le$(count_0, 16n))]);
+    }
+  }
+}
+
+function $Work$prepare$found$(work_0, observation_0, count_0, found_0) {
+  if (found_0.$ === "None") {
+    return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "MissingObservation"}};
+  } else {
+    const _t_0 = found_0.value;
+    const __0 = _t_0.id;
+    const stage_0 = _t_0.stage;
+    return run_jump($Work$prepare$stage$, [work_0, observation_0, count_0, stage_0]);
+  }
+}
+
+function $Work$complete_source$found$(work_0, id_0, found_0) {
+  if (found_0.$ === "None") {
+    return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "MissingObservation"}};
+  } else {
+    const _t_0 = found_0.value;
+    const __0 = _t_0.id;
+    const _t_1 = _t_0.stage;
+    if (_t_1.$ === "SourceQueued") {
+      return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "SourceNotReading"}};
+    } else {
+      return run_jump($Work$interrupt_observation$, [work_0, id_0]);
+    }
+  }
+}
+
+function $Work$cached_finding$found$(work_0, observation_0, count_0, bytes_0, found_0) {
+  if (found_0.$ === "None") {
+    return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "MissingObservation"}};
+  } else {
+    const _t_0 = found_0.value;
+    const __0 = _t_0.id;
+    const _t_1 = _t_0.stage;
+    if (_t_1.$ === "SourceQueued") {
+      return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "SourceNotReading"}};
+    } else {
+      return run_jump($Work$cached_finding$count$, [work_0, observation_0, count_0, bytes_0, run_loop($Nat$is_gt$(count_0, 0n))]);
+    }
+  }
+}
+
+function $Work$revise_finding$found$(work_0, id_0, count_0, bytes_0, found_0) {
+  if (found_0.$ === "None") {
+    return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "MissingUnit"}};
+  } else {
+    const _t_0 = found_0.value;
+    const __0 = _t_0.id;
+    const observation_0 = _t_0.observation;
+    const stage_0 = _t_0.stage;
+    const __1 = _t_0.findings;
+    const __2 = _t_0.bytes;
+    return run_jump($Work$revise_finding$stage$, [work_0, id_0, observation_0, stage_0, count_0, bytes_0]);
   }
 }
 
@@ -595,18 +822,46 @@ function $Work$outcome$found$(work_0, id_0, result_0, found_0) {
   }
 }
 
-function $Work$find_unit$(id_0, units_0) {
-  if (units_0.$ === "Nil") {
-    return {$: "None"};
+function $Work$interrupt_observation$found$(work_0, id_0, found_0) {
+  const next_observation_0 = work_0.next_observation;
+  const next_unit_0 = work_0.next_unit;
+  const source_capacity_0 = work_0.source_capacity;
+  const review_capacity_0 = work_0.review_capacity;
+  const observations_0 = work_0.observations;
+  const units_0 = work_0.units;
+  if (found_0.$ === "None") {
+    return {$: "Rejected", ["state"]: {$: "Work", ["next_observation"]: next_observation_0, ["next_unit"]: next_unit_0, ["source_capacity"]: source_capacity_0, ["review_capacity"]: review_capacity_0, ["observations"]: observations_0, ["units"]: units_0}, ["reason"]: {$: "MissingObservation"}};
   } else {
-    const _t_0 = units_0.head;
-    const current_0 = _t_0.id;
-    const __0 = _t_0.observation;
-    const __1 = _t_0.stage;
+    const __0 = found_0.value;
+    return {$: "Accepted", ["state"]: run_loop($Work$settle$({$: "Work", ["next_observation"]: next_observation_0, ["next_unit"]: next_unit_0, ["source_capacity"]: source_capacity_0, ["review_capacity"]: review_capacity_0, ["observations"]: run_loop($Work$remove_observation$(id_0, observations_0)), ["units"]: units_0})), ["admitted"]: {$: "Nil"}};
+  }
+}
+
+function $Work$interrupt_unit$found$(work_0, id_0, found_0) {
+  if (found_0.$ === "None") {
+    return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "MissingUnit"}};
+  } else {
+    const _t_0 = found_0.value;
+    const __0 = _t_0.id;
+    const observation_0 = _t_0.observation;
+    const stage_0 = _t_0.stage;
+    const __1 = _t_0.findings;
+    const __2 = _t_0.bytes;
+    return run_jump($Work$interrupt_unit$stage$, [work_0, id_0, observation_0, stage_0]);
+  }
+}
+
+function $Work$retire$found$(work_0, id_0, found_0) {
+  if (found_0.$ === "None") {
+    return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "MissingUnit"}};
+  } else {
+    const _t_0 = found_0.value;
+    const __0 = _t_0.id;
+    const __1 = _t_0.observation;
+    const stage_0 = _t_0.stage;
     const __2 = _t_0.findings;
     const __3 = _t_0.bytes;
-    const rest_0 = units_0.tail;
-    return run_jump($Work$find_unit$pick$, [{$: "ReviewUnit", ["id"]: current_0, ["observation"]: __0, ["stage"]: __1, ["findings"]: __2, ["bytes"]: __3}, run_loop($Work$find_unit$(id_0, rest_0)), run_loop($Nat$is_eq$(current_0, id_0))]);
+    return run_jump($Work$retire$stage$, [work_0, id_0, run_loop($Work$is_unit_unfinished$(stage_0))]);
   }
 }
 
@@ -628,6 +883,164 @@ function $Work$unfinished_units$(units_0) {
     const x_0 = run_loop($Bool$pick$(run_loop($Work$is_unit_unfinished$(stage_0)), 1n, 0n));
     const x_1 = run_loop($Work$unfinished_units$(rest_0));
     return nat_chk(x_0 + x_1);
+  }
+}
+
+function $Work$pending_findings_in$(units_0) {
+  if (units_0.$ === "Nil") {
+    return 0n;
+  } else {
+    const _t_0 = units_0.head;
+    const __0 = _t_0.id;
+    const __1 = _t_0.observation;
+    const _t_1 = _t_0.stage;
+    if (_t_1.$ === "PendingFinding") {
+      const findings_0 = _t_0.findings;
+      const __2 = _t_0.bytes;
+      const rest_0 = units_0.tail;
+      const x_0 = run_loop($Work$pending_findings_in$(rest_0));
+      return nat_chk(findings_0 + x_0);
+    } else {
+      const findings_1 = _t_0.findings;
+      const __3 = _t_0.bytes;
+      const rest_1 = units_0.tail;
+      return run_jump($Work$pending_findings_in$, [rest_1]);
+    }
+  }
+}
+
+function $Work$pending_for$found$(found_0) {
+  if (found_0.$ === "None") {
+    return 0n;
+  } else {
+    const _t_0 = found_0.value;
+    const __0 = _t_0.id;
+    const __1 = _t_0.observation;
+    const _t_1 = _t_0.stage;
+    if (_t_1.$ === "PendingFinding") {
+      const findings_0 = _t_0.findings;
+      const __2 = _t_0.bytes;
+      return findings_0;
+    } else {
+      const findings_1 = _t_0.findings;
+      const __3 = _t_0.bytes;
+      return 0n;
+    }
+  }
+}
+
+function $Work$source_cancel_ids$(observations_0) {
+  if (observations_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = observations_0.head;
+    const id_0 = _t_0.id;
+    const _t_1 = _t_0.stage;
+    if (_t_1.$ === "SourceReading") {
+      const rest_0 = observations_0.tail;
+      return {$: "Con", ["head"]: id_0, ["tail"]: run_loop($Work$source_cancel_ids$(rest_0))};
+    } else {
+      const rest_1 = observations_0.tail;
+      return run_jump($Work$source_cancel_ids$, [rest_1]);
+    }
+  }
+}
+
+function $Work$jev_cancel_ids$(units_0) {
+  if (units_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = units_0.head;
+    const id_0 = _t_0.id;
+    const __0 = _t_0.observation;
+    const _t_1 = _t_0.stage;
+    if (_t_1.$ === "AtJev") {
+      const __1 = _t_0.findings;
+      const __2 = _t_0.bytes;
+      const rest_0 = units_0.tail;
+      return {$: "Con", ["head"]: id_0, ["tail"]: run_loop($Work$jev_cancel_ids$(rest_0))};
+    } else {
+      const __3 = _t_0.findings;
+      const __4 = _t_0.bytes;
+      const rest_1 = units_0.tail;
+      return run_jump($Work$jev_cancel_ids$, [rest_1]);
+    }
+  }
+}
+
+function $Work$discarded_finding_ids$(units_0) {
+  if (units_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = units_0.head;
+    const id_0 = _t_0.id;
+    const __0 = _t_0.observation;
+    const _t_1 = _t_0.stage;
+    if (_t_1.$ === "PendingFinding") {
+      const __1 = _t_0.findings;
+      const __2 = _t_0.bytes;
+      const rest_0 = units_0.tail;
+      return {$: "Con", ["head"]: id_0, ["tail"]: run_loop($Work$discarded_finding_ids$(rest_0))};
+    } else {
+      const __3 = _t_0.findings;
+      const __4 = _t_0.bytes;
+      const rest_1 = units_0.tail;
+      return run_jump($Work$discarded_finding_ids$, [rest_1]);
+    }
+  }
+}
+
+function $Work$keep_terminal$(units_0) {
+  if (units_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = units_0.head;
+    const __0 = _t_0.id;
+    const __1 = _t_0.observation;
+    const stage_0 = _t_0.stage;
+    const __2 = _t_0.findings;
+    const __3 = _t_0.bytes;
+    const rest_0 = units_0.tail;
+    return run_jump($Work$keep_terminal$pick$, [{$: "ReviewUnit", ["id"]: __0, ["observation"]: __1, ["stage"]: stage_0, ["findings"]: __2, ["bytes"]: __3}, run_loop($Work$keep_terminal$(rest_0)), run_loop($Work$is_unit_unfinished$(stage_0))]);
+  }
+}
+
+function $Work$observation_ids$(observations_0) {
+  if (observations_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = observations_0.head;
+    const id_0 = _t_0.id;
+    const __0 = _t_0.stage;
+    const rest_0 = observations_0.tail;
+    return {$: "Con", ["head"]: id_0, ["tail"]: run_loop($Work$observation_ids$(rest_0))};
+  }
+}
+
+function $Work$unfinished_unit_ids$(units_0) {
+  if (units_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = units_0.head;
+    const id_0 = _t_0.id;
+    const __0 = _t_0.observation;
+    const _t_1 = _t_0.stage;
+    if (_t_1.$ === "ReviewQueued") {
+      const __1 = _t_0.findings;
+      const __2 = _t_0.bytes;
+      const rest_0 = units_0.tail;
+      return {$: "Con", ["head"]: id_0, ["tail"]: run_loop($Work$unfinished_unit_ids$(rest_0))};
+    } else if (_t_1.$ === "AtJev") {
+      const __3 = _t_0.findings;
+      const __4 = _t_0.bytes;
+      const rest_1 = units_0.tail;
+      return {$: "Con", ["head"]: id_0, ["tail"]: run_loop($Work$unfinished_unit_ids$(rest_1))};
+    } else {
+      const __5 = _t_0.findings;
+      const __6 = _t_0.bytes;
+      const rest_2 = units_0.tail;
+      return run_jump($Work$unfinished_unit_ids$, [rest_2]);
+    }
   }
 }
 
@@ -931,12 +1344,14 @@ function $Work$at_jev_count$(units_0) {
   }
 }
 
-function $Work$prepare$stage$(work_0, observation_0, count_0, stage_0) {
-  if (stage_0.$ === "SourceQueued") {
-    return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "SourceNotReading"}};
-  } else {
-    return run_jump($Work$prepare$count$, [work_0, observation_0, count_0, run_loop($Nat$is_le$(count_0, 16n))]);
-  }
+function $Work$start_source$apply$(work_0, id_0) {
+  const next_observation_0 = work_0.next_observation;
+  const next_unit_0 = work_0.next_unit;
+  const source_capacity_0 = work_0.source_capacity;
+  const review_capacity_0 = work_0.review_capacity;
+  const observations_0 = work_0.observations;
+  const units_0 = work_0.units;
+  return {$: "Accepted", ["state"]: {$: "Work", ["next_observation"]: next_observation_0, ["next_unit"]: next_unit_0, ["source_capacity"]: source_capacity_0, ["review_capacity"]: review_capacity_0, ["observations"]: run_loop($Work$start_observation$(id_0, observations_0)), ["units"]: units_0}, ["admitted"]: {$: "Nil"}};
 }
 
 function $Work$find_observation$pick$(observation_0, fallback_0, hit_0) {
@@ -947,9 +1362,11 @@ function $Work$find_observation$pick$(observation_0, fallback_0, hit_0) {
   }
 }
 
-function $Work$outcome$stage$(work_0, id_0, observation_0, stage_0, result_0) {
-  if (stage_0.$ === "AtJev") {
-    return run_jump($Work$outcome$kind$, [work_0, id_0, observation_0, result_0]);
+function $Work$start_unit$stage$(work_0, id_0, observation_0, stage_0) {
+  if (stage_0.$ === "ReviewQueued") {
+    return run_jump($Work$start_unit$apply$, [work_0, id_0, observation_0]);
+  } else if (stage_0.$ === "AtJev") {
+    return {$: "Accepted", ["state"]: work_0, ["admitted"]: {$: "Nil"}};
   } else {
     return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "UnitNotAtJev"}};
   }
@@ -963,6 +1380,76 @@ function $Work$find_unit$pick$(unit_0, fallback_0, hit_0) {
   }
 }
 
+function $Work$spawn$count$(work_0, observation_0, count_0, valid_0) {
+  if (!valid_0) {
+    return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "TooManyUnits"}};
+  } else {
+    return run_jump($Work$spawn$apply$, [work_0, observation_0, count_0]);
+  }
+}
+
+function $Work$prepare$stage$(work_0, observation_0, count_0, stage_0) {
+  if (stage_0.$ === "SourceQueued") {
+    return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "SourceNotReading"}};
+  } else {
+    return run_jump($Work$prepare$count$, [work_0, observation_0, count_0, run_loop($Nat$is_le$(count_0, 16n))]);
+  }
+}
+
+function $Work$cached_finding$count$(work_0, observation_0, count_0, bytes_0, valid_0) {
+  if (!valid_0) {
+    return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "InvalidFinding"}};
+  } else {
+    return run_jump($Work$cached_finding$apply$, [work_0, observation_0, count_0, bytes_0]);
+  }
+}
+
+function $Work$revise_finding$stage$(work_0, id_0, observation_0, stage_0, count_0, bytes_0) {
+  if (stage_0.$ === "PendingFinding") {
+    return run_jump($Work$revise_finding$valid$, [work_0, id_0, observation_0, count_0, bytes_0, run_loop($Nat$is_gt$(count_0, 0n))]);
+  } else {
+    return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "UnitNotAtJev"}};
+  }
+}
+
+function $Work$outcome$stage$(work_0, id_0, observation_0, stage_0, result_0) {
+  if (stage_0.$ === "AtJev") {
+    return run_jump($Work$outcome$kind$, [work_0, id_0, observation_0, result_0]);
+  } else {
+    return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "UnitNotAtJev"}};
+  }
+}
+
+function $Work$remove_observation$(id_0, observations_0) {
+  if (observations_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = observations_0.head;
+    const current_0 = _t_0.id;
+    const __0 = _t_0.stage;
+    const rest_0 = observations_0.tail;
+    return run_jump($Work$remove_observation$pick$, [{$: "Observation", ["id"]: current_0, ["stage"]: __0}, run_loop($Work$remove_observation$(id_0, rest_0)), run_loop($Nat$is_eq$(current_0, id_0))]);
+  }
+}
+
+function $Work$interrupt_unit$stage$(work_0, id_0, observation_0, stage_0) {
+  if (stage_0.$ === "AtJev") {
+    return run_jump($Work$outcome$apply$, [work_0, {$: "ReviewUnit", ["id"]: id_0, ["observation"]: observation_0, ["stage"]: {$: "InterruptedResult"}, ["findings"]: 0n, ["bytes"]: 0n}]);
+  } else if (stage_0.$ === "ReviewQueued") {
+    return run_jump($Work$outcome$apply$, [work_0, {$: "ReviewUnit", ["id"]: id_0, ["observation"]: observation_0, ["stage"]: {$: "InterruptedResult"}, ["findings"]: 0n, ["bytes"]: 0n}]);
+  } else {
+    return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "UnitNotAtJev"}};
+  }
+}
+
+function $Work$retire$stage$(work_0, id_0, unfinished_0) {
+  if (unfinished_0) {
+    return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "UnitStillUnfinished"}};
+  } else {
+    return run_jump($Work$retire$apply$, [work_0, id_0]);
+  }
+}
+
 function $Work$is_unit_unfinished$(stage_0) {
   if (stage_0.$ === "ReviewQueued") {
     return true;
@@ -970,6 +1457,14 @@ function $Work$is_unit_unfinished$(stage_0) {
     return true;
   } else {
     return false;
+  }
+}
+
+function $Work$keep_terminal$pick$(unit_0, tail_0, unfinished_0) {
+  if (unfinished_0) {
+    return tail_0;
+  } else {
+    return {$: "Con", ["head"]: unit_0, ["tail"]: tail_0};
   }
 }
 
@@ -1158,11 +1653,56 @@ function $Work$is_at_jev$(stage_0) {
   }
 }
 
+function $Work$start_observation$(id_0, observations_0) {
+  if (observations_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = observations_0.head;
+    const current_0 = _t_0.id;
+    const __0 = _t_0.stage;
+    const rest_0 = observations_0.tail;
+    return run_jump($Work$start_observation$pick$, [{$: "Observation", ["id"]: current_0, ["stage"]: __0}, run_loop($Work$start_observation$(id_0, rest_0)), run_loop($Nat$is_eq$(current_0, id_0))]);
+  }
+}
+
+function $Work$start_unit$apply$(work_0, id_0, observation_0) {
+  return run_jump($Work$outcome$apply$, [work_0, {$: "ReviewUnit", ["id"]: id_0, ["observation"]: observation_0, ["stage"]: {$: "AtJev"}, ["findings"]: 0n, ["bytes"]: 0n}]);
+}
+
+function $Work$spawn$apply$(work_0, observation_0, count_0) {
+  const next_observation_0 = work_0.next_observation;
+  const next_unit_0 = work_0.next_unit;
+  const source_capacity_0 = work_0.source_capacity;
+  const review_capacity_0 = work_0.review_capacity;
+  const observations_0 = work_0.observations;
+  const units_0 = work_0.units;
+  const new_units_0 = run_loop($Work$make_units$(count_0, observation_0, next_unit_0));
+  return {$: "Accepted", ["state"]: run_loop($Work$settle$({$: "Work", ["next_observation"]: next_observation_0, ["next_unit"]: nat_chk(next_unit_0 + count_0), ["source_capacity"]: source_capacity_0, ["review_capacity"]: review_capacity_0, ["observations"]: observations_0, ["units"]: run_loop($List$append$(units_0, new_units_0))})), ["admitted"]: run_loop($Work$unit_ids$(new_units_0))};
+}
+
 function $Work$prepare$count$(work_0, observation_0, count_0, within_limit_0) {
   if (!within_limit_0) {
     return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "TooManyUnits"}};
   } else {
     return run_jump($Work$prepare$apply$, [work_0, observation_0, count_0]);
+  }
+}
+
+function $Work$cached_finding$apply$(work_0, observation_0, count_0, bytes_0) {
+  const next_observation_0 = work_0.next_observation;
+  const next_unit_0 = work_0.next_unit;
+  const source_capacity_0 = work_0.source_capacity;
+  const review_capacity_0 = work_0.review_capacity;
+  const observations_0 = work_0.observations;
+  const units_0 = work_0.units;
+  return {$: "Accepted", ["state"]: {$: "Work", ["next_observation"]: next_observation_0, ["next_unit"]: nat_chk(next_unit_0 + 1n), ["source_capacity"]: source_capacity_0, ["review_capacity"]: review_capacity_0, ["observations"]: observations_0, ["units"]: run_loop($List$append$(units_0, {$: "Con", ["head"]: {$: "ReviewUnit", ["id"]: next_unit_0, ["observation"]: observation_0, ["stage"]: {$: "PendingFinding"}, ["findings"]: count_0, ["bytes"]: bytes_0}, ["tail"]: {$: "Nil"}}))}, ["admitted"]: {$: "Con", ["head"]: next_unit_0, ["tail"]: {$: "Nil"}}};
+}
+
+function $Work$revise_finding$valid$(work_0, id_0, observation_0, count_0, bytes_0, valid_0) {
+  if (!valid_0) {
+    return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "InvalidFinding"}};
+  } else {
+    return run_jump($Work$outcome$apply$, [work_0, {$: "ReviewUnit", ["id"]: id_0, ["observation"]: observation_0, ["stage"]: {$: "PendingFinding"}, ["findings"]: count_0, ["bytes"]: bytes_0}]);
   }
 }
 
@@ -1176,6 +1716,39 @@ function $Work$outcome$kind$(work_0, id_0, observation_0, result_0) {
   } else {
     return run_jump($Work$outcome$apply$, [work_0, {$: "ReviewUnit", ["id"]: id_0, ["observation"]: observation_0, ["stage"]: {$: "UnavailableResult"}, ["findings"]: 0n, ["bytes"]: 0n}]);
   }
+}
+
+function $Work$remove_observation$pick$(observation_0, tail_0, hit_0) {
+  if (hit_0) {
+    return tail_0;
+  } else {
+    return {$: "Con", ["head"]: observation_0, ["tail"]: tail_0};
+  }
+}
+
+function $Work$outcome$apply$(work_0, unit_0) {
+  const next_observation_0 = work_0.next_observation;
+  const next_unit_0 = work_0.next_unit;
+  const source_capacity_0 = work_0.source_capacity;
+  const review_capacity_0 = work_0.review_capacity;
+  const observations_0 = work_0.observations;
+  const units_0 = work_0.units;
+  const id_0 = unit_0.id;
+  const __0 = unit_0.observation;
+  const __1 = unit_0.stage;
+  const __2 = unit_0.findings;
+  const __3 = unit_0.bytes;
+  return {$: "Accepted", ["state"]: run_loop($Work$settle$({$: "Work", ["next_observation"]: next_observation_0, ["next_unit"]: next_unit_0, ["source_capacity"]: source_capacity_0, ["review_capacity"]: review_capacity_0, ["observations"]: observations_0, ["units"]: run_loop($Work$replace_unit$(id_0, {$: "ReviewUnit", ["id"]: id_0, ["observation"]: __0, ["stage"]: __1, ["findings"]: __2, ["bytes"]: __3}, units_0))})), ["admitted"]: {$: "Nil"}};
+}
+
+function $Work$retire$apply$(work_0, id_0) {
+  const next_observation_0 = work_0.next_observation;
+  const next_unit_0 = work_0.next_unit;
+  const source_capacity_0 = work_0.source_capacity;
+  const review_capacity_0 = work_0.review_capacity;
+  const observations_0 = work_0.observations;
+  const units_0 = work_0.units;
+  return {$: "Accepted", ["state"]: {$: "Work", ["next_observation"]: next_observation_0, ["next_unit"]: next_unit_0, ["source_capacity"]: source_capacity_0, ["review_capacity"]: review_capacity_0, ["observations"]: observations_0, ["units"]: run_loop($Work$remove_unit$(id_0, units_0))}, ["admitted"]: {$: "Nil"}};
 }
 
 function $Handoff$select$valid$(state_0, id_0, prospective_bytes_0, solo_bytes_0, count_0, valid_0) {
@@ -1311,6 +1884,38 @@ function $Admission$restart$fresh$(state_0, partition_0, lifetime_0, closed_at_0
   }
 }
 
+function $Work$start_observation$pick$(observation_0, tail_0, hit_0) {
+  if (hit_0) {
+    return run_jump($Work$start_observation$read$, [observation_0, tail_0]);
+  } else {
+    return {$: "Con", ["head"]: observation_0, ["tail"]: tail_0};
+  }
+}
+
+function $Work$make_units$(count_0, observation_0, next_id_0) {
+  if (count_0 === 0n) {
+    return {$: "Nil"};
+  } else {
+    const rest_0 = (count_0 - 1n);
+    return {$: "Con", ["head"]: {$: "ReviewUnit", ["id"]: next_id_0, ["observation"]: observation_0, ["stage"]: {$: "ReviewQueued"}, ["findings"]: 0n, ["bytes"]: 0n}, ["tail"]: run_loop($Work$make_units$(rest_0, observation_0, nat_chk(next_id_0 + 1n)))};
+  }
+}
+
+function $Work$unit_ids$(units_0) {
+  if (units_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = units_0.head;
+    const id_0 = _t_0.id;
+    const __0 = _t_0.observation;
+    const __1 = _t_0.stage;
+    const __2 = _t_0.findings;
+    const __3 = _t_0.bytes;
+    const rest_0 = units_0.tail;
+    return {$: "Con", ["head"]: id_0, ["tail"]: run_loop($Work$unit_ids$(rest_0))};
+  }
+}
+
 function $Work$prepare$apply$(work_0, observation_0, count_0) {
   const next_observation_0 = work_0.next_observation;
   const next_unit_0 = work_0.next_unit;
@@ -1330,19 +1935,34 @@ function $Work$outcome$finding$(work_0, id_0, observation_0, count_0, bytes_0, p
   }
 }
 
-function $Work$outcome$apply$(work_0, unit_0) {
-  const next_observation_0 = work_0.next_observation;
-  const next_unit_0 = work_0.next_unit;
-  const source_capacity_0 = work_0.source_capacity;
-  const review_capacity_0 = work_0.review_capacity;
-  const observations_0 = work_0.observations;
-  const units_0 = work_0.units;
-  const id_0 = unit_0.id;
-  const __0 = unit_0.observation;
-  const __1 = unit_0.stage;
-  const __2 = unit_0.findings;
-  const __3 = unit_0.bytes;
-  return {$: "Accepted", ["state"]: run_loop($Work$settle$({$: "Work", ["next_observation"]: next_observation_0, ["next_unit"]: next_unit_0, ["source_capacity"]: source_capacity_0, ["review_capacity"]: review_capacity_0, ["observations"]: observations_0, ["units"]: run_loop($Work$replace_unit$(id_0, {$: "ReviewUnit", ["id"]: id_0, ["observation"]: __0, ["stage"]: __1, ["findings"]: __2, ["bytes"]: __3}, units_0))})), ["admitted"]: {$: "Nil"}};
+function $Work$replace_unit$(id_0, replacement_0, units_0) {
+  if (units_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = units_0.head;
+    const current_0 = _t_0.id;
+    const __0 = _t_0.observation;
+    const __1 = _t_0.stage;
+    const __2 = _t_0.findings;
+    const __3 = _t_0.bytes;
+    const rest_0 = units_0.tail;
+    return run_jump($Work$replace_unit$pick$, [{$: "ReviewUnit", ["id"]: current_0, ["observation"]: __0, ["stage"]: __1, ["findings"]: __2, ["bytes"]: __3}, replacement_0, run_loop($Work$replace_unit$(id_0, replacement_0, rest_0)), run_loop($Nat$is_eq$(current_0, id_0))]);
+  }
+}
+
+function $Work$remove_unit$(id_0, units_0) {
+  if (units_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = units_0.head;
+    const current_0 = _t_0.id;
+    const __0 = _t_0.observation;
+    const __1 = _t_0.stage;
+    const __2 = _t_0.findings;
+    const __3 = _t_0.bytes;
+    const rest_0 = units_0.tail;
+    return run_jump($Work$remove_unit$pick$, [{$: "ReviewUnit", ["id"]: current_0, ["observation"]: __0, ["stage"]: __1, ["findings"]: __2, ["bytes"]: __3}, run_loop($Work$remove_unit$(id_0, rest_0)), run_loop($Nat$is_eq$(current_0, id_0))]);
+  }
 }
 
 function $Handoff$select$solo$(state_0, id_0, prospective_bytes_0, count_0, oversized_0) {
@@ -1460,54 +2080,25 @@ function $Admission$close_round$time$(state_0, partition_0, lifetime_0, round_0,
   }
 }
 
-function $Work$make_units$(count_0, observation_0, next_id_0) {
-  if (count_0 === 0n) {
-    return {$: "Nil"};
+function $Work$start_observation$read$(observation_0, tail_0) {
+  const id_0 = observation_0.id;
+  const __0 = observation_0.stage;
+  return {$: "Con", ["head"]: {$: "Observation", ["id"]: id_0, ["stage"]: {$: "SourceReading"}}, ["tail"]: tail_0};
+}
+
+function $Work$replace_unit$pick$(unit_0, replacement_0, tail_0, hit_0) {
+  if (hit_0) {
+    return {$: "Con", ["head"]: replacement_0, ["tail"]: tail_0};
   } else {
-    const rest_0 = (count_0 - 1n);
-    return {$: "Con", ["head"]: {$: "ReviewUnit", ["id"]: next_id_0, ["observation"]: observation_0, ["stage"]: {$: "ReviewQueued"}, ["findings"]: 0n, ["bytes"]: 0n}, ["tail"]: run_loop($Work$make_units$(rest_0, observation_0, nat_chk(next_id_0 + 1n)))};
+    return {$: "Con", ["head"]: unit_0, ["tail"]: tail_0};
   }
 }
 
-function $Work$remove_observation$(id_0, observations_0) {
-  if (observations_0.$ === "Nil") {
-    return {$: "Nil"};
+function $Work$remove_unit$pick$(unit_0, tail_0, hit_0) {
+  if (hit_0) {
+    return tail_0;
   } else {
-    const _t_0 = observations_0.head;
-    const current_0 = _t_0.id;
-    const __0 = _t_0.stage;
-    const rest_0 = observations_0.tail;
-    return run_jump($Work$remove_observation$pick$, [{$: "Observation", ["id"]: current_0, ["stage"]: __0}, run_loop($Work$remove_observation$(id_0, rest_0)), run_loop($Nat$is_eq$(current_0, id_0))]);
-  }
-}
-
-function $Work$unit_ids$(units_0) {
-  if (units_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = units_0.head;
-    const id_0 = _t_0.id;
-    const __0 = _t_0.observation;
-    const __1 = _t_0.stage;
-    const __2 = _t_0.findings;
-    const __3 = _t_0.bytes;
-    const rest_0 = units_0.tail;
-    return {$: "Con", ["head"]: id_0, ["tail"]: run_loop($Work$unit_ids$(rest_0))};
-  }
-}
-
-function $Work$replace_unit$(id_0, replacement_0, units_0) {
-  if (units_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = units_0.head;
-    const current_0 = _t_0.id;
-    const __0 = _t_0.observation;
-    const __1 = _t_0.stage;
-    const __2 = _t_0.findings;
-    const __3 = _t_0.bytes;
-    const rest_0 = units_0.tail;
-    return run_jump($Work$replace_unit$pick$, [{$: "ReviewUnit", ["id"]: current_0, ["observation"]: __0, ["stage"]: __1, ["findings"]: __2, ["bytes"]: __3}, replacement_0, run_loop($Work$replace_unit$(id_0, replacement_0, rest_0)), run_loop($Nat$is_eq$(current_0, id_0))]);
+    return {$: "Con", ["head"]: unit_0, ["tail"]: tail_0};
   }
 }
 
@@ -1583,22 +2174,6 @@ function $Admission$remove_permit$(token_0, permits_0) {
     const __3 = _t_0.deadline;
     const rest_0 = permits_0.tail;
     return run_jump($Admission$remove_permit$pick$, [{$: "Permit", ["token"]: current_0, ["tool"]: __0, ["round"]: __1, ["started"]: __2, ["deadline"]: __3}, run_loop($Admission$remove_permit$(token_0, rest_0)), run_loop($Nat$is_eq$(current_0, token_0))]);
-  }
-}
-
-function $Work$remove_observation$pick$(observation_0, tail_0, hit_0) {
-  if (hit_0) {
-    return tail_0;
-  } else {
-    return {$: "Con", ["head"]: observation_0, ["tail"]: tail_0};
-  }
-}
-
-function $Work$replace_unit$pick$(unit_0, replacement_0, tail_0, hit_0) {
-  if (hit_0) {
-    return {$: "Con", ["head"]: replacement_0, ["tail"]: tail_0};
-  } else {
-    return {$: "Con", ["head"]: unit_0, ["tail"]: tail_0};
   }
 }
 
@@ -1977,6 +2552,34 @@ export const bendAdmissionCloseProspective = (state, at) =>
   run_loop($Admission$close_prospective$(state, nat(at)));
 export const bendWorkFinishWait = (unfinished, deadlineReached, continuationBudget) =>
   run_loop($Work$finish_wait$(nat(unfinished), deadlineReached, continuationBudget));
+export const bendWorkInitial = () => run_loop($Work$initial$());
+export const bendWorkAdmit = (state) => run_loop($Work$admit$(state));
+export const bendWorkStartSource = (state, observation) =>
+  run_loop($Work$start_source$(state, nat(observation)));
+export const bendWorkStartUnit = (state, unit) =>
+  run_loop($Work$start_unit$(state, nat(unit)));
+export const bendWorkSpawn = (state, observation, count) =>
+  run_loop($Work$spawn$(state, nat(observation), nat(count)));
+export const bendWorkCompleteSource = (state, observation) =>
+  run_loop($Work$complete_source$(state, nat(observation)));
+export const bendWorkCachedFinding = (state, observation, count, bytes) =>
+  run_loop($Work$cached_finding$(state, nat(observation), nat(count), nat(bytes)));
+export const bendWorkOutcome = (state, unit, outcome) =>
+  run_loop($Work$outcome$(state, nat(unit), normalize(outcome)));
+export const bendWorkInterruptObservation = (state, observation) =>
+  run_loop($Work$interrupt_observation$(state, nat(observation)));
+export const bendWorkInterruptUnit = (state, unit) =>
+  run_loop($Work$interrupt_unit$(state, nat(unit)));
+export const bendWorkRetire = (state, unit) =>
+  run_loop($Work$retire$(state, nat(unit)));
+export const bendWorkReviseFinding = (state, unit, count, bytes) =>
+  run_loop($Work$revise_finding$(state, nat(unit), nat(count), nat(bytes)));
+export const bendWorkUnfinished = (state) => run_loop($Work$unfinished$(state));
+export const bendWorkPendingFindings = (state) => run_loop($Work$pending_findings$(state));
+export const bendWorkPendingFor = (state, unit) =>
+  run_loop($Work$pending_for$(state, nat(unit)));
+export const bendWorkClose = (state) => run_loop($Work$close$(state));
+export const bendWorkCancelUnfinished = (state) => run_loop($Work$cancel_unfinished$(state));
 export const bendLeaseInitial = (item, round) =>
   run_loop($Handoff$lease$initial$(nat(item), nat(round)));
 export const bendLeaseReserve = (state, round, token, surface) =>

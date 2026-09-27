@@ -82,6 +82,36 @@ def Laws.fanout_keeps_each_review_unfinished():
 def Laws.four_units_count_as_four_unfinished():
   {==}
 
+def Laws.streamed_fanout_keeps_source_open():
+  {==}
+
+def Laws.running_source_overrides_logical_queue_projection():
+  {==}
+
+def Laws.running_review_overrides_logical_queue_projection():
+  {==}
+
+def Laws.source_completion_removes_only_source_work():
+  {==}
+
+def Laws.cached_finding_is_terminal_advice():
+  {==}
+
+def Laws.revalidated_finding_count_replaces_old_count():
+  {==}
+
+def Laws.pending_count_is_owned_by_exact_unit():
+  {==}
+
+def Laws.unknown_unit_cannot_authorize_findings():
+  {==}
+
+def Laws.unfinished_unit_cannot_retire():
+  {==}
+
+def Laws.terminal_finding_can_retire():
+  {==}
+
 def Laws.finish_waits_for_all_unfinished_work():
   {==}
 
@@ -107,6 +137,9 @@ def Laws.interrupted_review_is_terminal_before_finish():
   {==}
 
 def Laws.interrupted_source_does_not_leave_unfinished_work():
+  {==}
+
+def Laws.decision_cancels_all_unfinished_but_keeps_advice():
   {==}
 
 def Laws.handoff_selects_fitting_findings():

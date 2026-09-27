@@ -25,6 +25,9 @@ try {
       !source.includes("function $Admission$step$(") ||
       !source.includes("function $Admission$close_prospective$(") ||
       !source.includes("function $Work$finish_wait$(") ||
+      ["initial", "admit", "start_source", "start_unit", "spawn", "complete_source", "cached_finding", "outcome",
+        "interrupt_observation", "interrupt_unit", "retire", "revise_finding", "unfinished", "pending_findings", "pending_for", "cancel_unfinished", "close"]
+        .some((name) => !source.includes(`function $Work$${name}$(`)) ||
       ["initial", "max_continuations", "active", "budget", "begin_stop",
         "owns_stop", "begin_decision", "consume", "reserve_output", "finish_stop", "reopen"]
         .some((name) => !source.includes(`function $Round$${name}$(`))) {
@@ -63,6 +66,34 @@ export const bendAdmissionCloseProspective = (state, at) =>
   run_loop($Admission$close_prospective$(state, nat(at)));
 export const bendWorkFinishWait = (unfinished, deadlineReached, continuationBudget) =>
   run_loop($Work$finish_wait$(nat(unfinished), deadlineReached, continuationBudget));
+export const bendWorkInitial = () => run_loop($Work$initial$());
+export const bendWorkAdmit = (state) => run_loop($Work$admit$(state));
+export const bendWorkStartSource = (state, observation) =>
+  run_loop($Work$start_source$(state, nat(observation)));
+export const bendWorkStartUnit = (state, unit) =>
+  run_loop($Work$start_unit$(state, nat(unit)));
+export const bendWorkSpawn = (state, observation, count) =>
+  run_loop($Work$spawn$(state, nat(observation), nat(count)));
+export const bendWorkCompleteSource = (state, observation) =>
+  run_loop($Work$complete_source$(state, nat(observation)));
+export const bendWorkCachedFinding = (state, observation, count, bytes) =>
+  run_loop($Work$cached_finding$(state, nat(observation), nat(count), nat(bytes)));
+export const bendWorkOutcome = (state, unit, outcome) =>
+  run_loop($Work$outcome$(state, nat(unit), normalize(outcome)));
+export const bendWorkInterruptObservation = (state, observation) =>
+  run_loop($Work$interrupt_observation$(state, nat(observation)));
+export const bendWorkInterruptUnit = (state, unit) =>
+  run_loop($Work$interrupt_unit$(state, nat(unit)));
+export const bendWorkRetire = (state, unit) =>
+  run_loop($Work$retire$(state, nat(unit)));
+export const bendWorkReviseFinding = (state, unit, count, bytes) =>
+  run_loop($Work$revise_finding$(state, nat(unit), nat(count), nat(bytes)));
+export const bendWorkUnfinished = (state) => run_loop($Work$unfinished$(state));
+export const bendWorkPendingFindings = (state) => run_loop($Work$pending_findings$(state));
+export const bendWorkPendingFor = (state, unit) =>
+  run_loop($Work$pending_for$(state, nat(unit)));
+export const bendWorkClose = (state) => run_loop($Work$close$(state));
+export const bendWorkCancelUnfinished = (state) => run_loop($Work$cancel_unfinished$(state));
 export const bendLeaseInitial = (item, round) =>
   run_loop($Handoff$lease$initial$(nat(item), nat(round)));
 export const bendLeaseReserve = (state, round, token, surface) =>

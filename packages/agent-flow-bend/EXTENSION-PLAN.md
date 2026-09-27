@@ -8,12 +8,11 @@ links are pinned; probe records are not copied into this branch.
 The Bend model implements admission, fan-out, outcome tracking,
 per-finding selection, finish reservation, lease transitions, logical capacity,
 and a shared admission/work/finish lifecycle. The resident now uses generated
-Bend for admission permits, round and Stop transitions, final finding selection,
-per-finding leases, response limits, logical capacity, and the finish wait
-decision from live dispatcher counts. The generated `Lifecycle` reducer remains
-an executable model rather than the resident's callback state. Connecting it
-requires correlating every source observation and derived Jev unit across
-asynchronous callbacks, cached results, and cancellation. Its
+Bend for admission permits, source and review work identities, round and Stop
+transitions, final finding selection, per-finding leases, response limits,
+logical capacity, and the finish wait and cancellation decisions. The generated
+`Lifecycle` reducer remains an executable aggregate model rather than the
+resident's callback state. Its
 `FinishCheck.actionable_findings` input also needs to come from the final Bend
 selection and selected IDs must be consumed at write terminal. The installed
 adapter instead calls those generated policies at their individual effect

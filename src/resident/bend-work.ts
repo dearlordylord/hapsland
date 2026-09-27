@@ -1,0 +1,110 @@
+import {
+  bendWorkAdmit, bendWorkCachedFinding, bendWorkClose, bendWorkCompleteSource,
+  bendWorkCancelUnfinished,
+  bendWorkInitial, bendWorkInterruptObservation, bendWorkInterruptUnit,
+  bendWorkOutcome, bendWorkPendingFindings, bendWorkRetire, bendWorkSpawn,
+  bendWorkStartSource, bendWorkStartUnit, bendWorkUnfinished, bendWorkReviseFinding,
+  bendWorkPendingFor,
+  type BendList, type BendWorkOutcome, type BendWorkState,
+  type BendWorkStep,
+} from "./bend-policy.generated.js";
+
+const ids = (values: BendList<bigint>): number[] => {
+  const result: number[] = [];
+  for (let node = values; node.$ === "Con"; node = node.tail) {
+    const id = Number(node.head);
+    if (!Number.isSafeInteger(id) || id < 1) throw new Error("invalid Bend work identity");
+    result.push(id);
+  }
+  return result;
+};
+
+/** Source-free work authority for one composed advicee round. */
+export class BendWorkTracker {
+  #state: BendWorkState = bendWorkInitial();
+
+  #accept(step: BendWorkStep): number[] | undefined {
+    if (step.$ !== "Accepted") return undefined;
+    const admitted = ids(step.admitted);
+    this.#state = step.state;
+    return admitted;
+  }
+
+  admit(): number {
+    const admitted = this.#accept(bendWorkAdmit(this.#state));
+    if (admitted?.length !== 1) throw new Error("Bend did not admit one source observation");
+    return admitted[0]!;
+  }
+
+  spawn(observation: number): number | undefined {
+    const admitted = this.#accept(bendWorkSpawn(this.#state, observation, 1));
+    return admitted?.length === 1 ? admitted[0] : undefined;
+  }
+
+  startSource(observation: number): boolean {
+    return this.#accept(bendWorkStartSource(this.#state, observation)) !== undefined;
+  }
+
+  startUnit(unit: number): boolean {
+    return this.#accept(bendWorkStartUnit(this.#state, unit)) !== undefined;
+  }
+
+  cachedFinding(observation: number, count: number, bytes: number): number | undefined {
+    const admitted = this.#accept(bendWorkCachedFinding(this.#state, observation, count, bytes));
+    return admitted?.length === 1 ? admitted[0] : undefined;
+  }
+
+  completeSource(observation: number): boolean {
+    return this.#accept(bendWorkCompleteSource(this.#state, observation)) !== undefined;
+  }
+
+  interruptSource(observation: number): boolean {
+    return this.#accept(bendWorkInterruptObservation(this.#state, observation)) !== undefined;
+  }
+
+  outcome(unit: number, outcome: BendWorkOutcome): boolean {
+    const accepted = this.#accept(bendWorkOutcome(this.#state, unit, outcome)) !== undefined;
+    if (accepted && outcome.$ !== "Finding") this.retire(unit);
+    return accepted;
+  }
+
+  interruptUnit(unit: number): boolean {
+    const accepted = this.#accept(bendWorkInterruptUnit(this.#state, unit)) !== undefined;
+    if (accepted) this.retire(unit);
+    return accepted;
+  }
+
+  retire(unit: number): boolean {
+    return this.#accept(bendWorkRetire(this.#state, unit)) !== undefined;
+  }
+
+  reviseFinding(unit: number, count: number, bytes: number): boolean {
+    return this.#accept(bendWorkReviseFinding(this.#state, unit, count, bytes)) !== undefined;
+  }
+
+  unfinished(): number {
+    return Number(bendWorkUnfinished(this.#state));
+  }
+
+  pendingFindings(): number {
+    return Number(bendWorkPendingFindings(this.#state));
+  }
+
+  pendingFor(unit: number): number {
+    return Number(bendWorkPendingFor(this.#state, unit));
+  }
+
+  close(): { readonly cancelledSource: number[]; readonly cancelledJev: number[];
+    readonly discardedFindings: number[] } {
+    const closed = bendWorkClose(this.#state);
+    this.#state = closed.state;
+    return { cancelledSource: ids(closed.cancelled_source), cancelledJev: ids(closed.cancelled_jev),
+      discardedFindings: ids(closed.discarded_findings) };
+  }
+
+  cancelUnfinished(): { readonly cancelledSource: number[]; readonly cancelledJev: number[] } {
+    const cancelled = bendWorkCancelUnfinished(this.#state);
+    this.#state = cancelled.state;
+    return { cancelledSource: ids(cancelled.cancelled_source), cancelledJev: ids(cancelled.cancelled_jev) };
+  }
+}

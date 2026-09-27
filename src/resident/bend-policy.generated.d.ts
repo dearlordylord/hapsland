@@ -72,6 +72,50 @@ export function bendAdmissionCloseProspective(state: BendAdmissionState,
 export function bendWorkFinishWait(unfinished: number | bigint,
   deadlineReached: boolean, continuationBudget: boolean): boolean;
 
+export type BendWorkState = {
+  readonly $: "Work";
+  readonly next_observation: bigint;
+  readonly next_unit: bigint;
+  readonly source_capacity: unknown;
+  readonly review_capacity: unknown;
+  readonly observations: BendList<unknown>;
+  readonly units: BendList<unknown>;
+};
+export type BendWorkStep =
+  | { readonly $: "Accepted"; readonly state: BendWorkState; readonly admitted: BendList<bigint> }
+  | { readonly $: "Rejected"; readonly state: BendWorkState; readonly reason: { readonly $: string } };
+export type BendWorkOutcome =
+  | { readonly $: "Finding"; readonly count: number | bigint; readonly bytes: number | bigint }
+  | { readonly $: "Clear" | "Unavailable" };
+export type BendWorkClose = { readonly $: "Closed"; readonly state: BendWorkState;
+  readonly cancelled_source: BendList<bigint>; readonly cancelled_jev: BendList<bigint>;
+  readonly discarded_findings: BendList<bigint> };
+export type BendWorkCancel = { readonly $: "Cancelled"; readonly state: BendWorkState;
+  readonly cancelled_source: BendList<bigint>; readonly cancelled_jev: BendList<bigint> };
+export function bendWorkInitial(): BendWorkState;
+export function bendWorkAdmit(state: BendWorkState): BendWorkStep;
+export function bendWorkStartSource(state: BendWorkState, observation: number | bigint): BendWorkStep;
+export function bendWorkStartUnit(state: BendWorkState, unit: number | bigint): BendWorkStep;
+export function bendWorkSpawn(state: BendWorkState, observation: number | bigint,
+  count: number | bigint): BendWorkStep;
+export function bendWorkCompleteSource(state: BendWorkState,
+  observation: number | bigint): BendWorkStep;
+export function bendWorkCachedFinding(state: BendWorkState, observation: number | bigint,
+  count: number | bigint, bytes: number | bigint): BendWorkStep;
+export function bendWorkOutcome(state: BendWorkState, unit: number | bigint,
+  outcome: BendWorkOutcome): BendWorkStep;
+export function bendWorkInterruptObservation(state: BendWorkState,
+  observation: number | bigint): BendWorkStep;
+export function bendWorkInterruptUnit(state: BendWorkState, unit: number | bigint): BendWorkStep;
+export function bendWorkRetire(state: BendWorkState, unit: number | bigint): BendWorkStep;
+export function bendWorkReviseFinding(state: BendWorkState, unit: number | bigint,
+  count: number | bigint, bytes: number | bigint): BendWorkStep;
+export function bendWorkUnfinished(state: BendWorkState): bigint;
+export function bendWorkPendingFindings(state: BendWorkState): bigint;
+export function bendWorkPendingFor(state: BendWorkState, unit: number | bigint): bigint;
+export function bendWorkClose(state: BendWorkState): BendWorkClose;
+export function bendWorkCancelUnfinished(state: BendWorkState): BendWorkCancel;
+
 export type BendLeaseSurface = { readonly $: "Edit" | "Background" | "Stop" };
 export type BendLeasePhase = { readonly $: "Available" } |
   { readonly $: "Reserved" | "Authorized"; readonly token: bigint; readonly surface: BendLeaseSurface } |
