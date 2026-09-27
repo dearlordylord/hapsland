@@ -45,7 +45,8 @@ export const importGraphView = <Message>(h: HtmlBuilder<Message>, scenarioIndex:
     h.div([h.Class("import-graph-legend")], [h.span([h.Class("native")], ["Native: resolution, permission facts, source capture"]), h.span([h.Class("bend")], ["Bend: gates, ordering, budgets, completion"]), h.span([h.Class("jev")], ["Jev: downstream outcome, not simulated"])]),
     h.div([h.Class("trace-options")], IMPORT_GRAPH_SCENARIOS.map((entry, index) => h.button([h.OnClick(select(index)), h.Class(index === scenarioIndex ? "trace selected" : "trace")], [entry.title]))),
     h.p([h.Class("description")], [scenario.description]),
-    importGraphDiagram(h, current ? stages[current.state.phase] ?? null : null),
+    importGraphDiagram(h, current ? stages[current.state.phase] ?? null : null, scenarioIndex, cursor,
+      scenario.units[current?.unit ?? 0] ?? "selected unit"),
     h.div([h.Class("trace-controls")], [
       h.button([h.OnClick(move(cursor - 1)), h.Disabled(cursor === 0)], ["Previous import step"]),
       h.button([h.OnClick(move(cursor + 1)), h.Disabled(cursor >= scenario.steps.length), h.Class("primary")], ["Next import step"]),

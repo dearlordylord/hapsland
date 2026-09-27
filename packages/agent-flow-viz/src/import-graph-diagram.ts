@@ -1,6 +1,57 @@
 import type { HtmlBuilder } from "foldkit/html";
 
 export type ImportGraphStage = "resolve" | "gate" | "capture" | "expand" | "complete" | "incomplete";
+type FileNode = { readonly name: string; readonly detail: string; readonly x: number; readonly after: number; readonly outcome?: "blocked" | "complete" };
+type FileEdge = { readonly from: number; readonly to: number; readonly label: string; readonly back?: boolean };
+type FileExample = { readonly nodes: readonly FileNode[]; readonly edges: readonly FileEdge[] };
+const fileExamples: readonly FileExample[] = [
+  { nodes: [
+    { name: "A.ts", detail: "edited root", x: 25, after: 1 },
+    { name: "B.ts", detail: "supporting import", x: 250, after: 5 },
+    { name: "C.ts", detail: "excluded · no read", x: 475, after: 8, outcome: "blocked" },
+    { name: "D.ts", detail: "independent complete", x: 700, after: 10, outcome: "complete" },
+  ], edges: [{ from: 0, to: 1, label: "imports" }, { from: 1, to: 2, label: "imports" }] },
+  { nodes: [
+    { name: "A.ts", detail: "edited root", x: 25, after: 1 },
+    { name: "B.ts", detail: "supporting import", x: 330, after: 5 },
+    { name: "C.ts", detail: "supporting import", x: 635, after: 9 },
+  ], edges: [{ from: 0, to: 1, label: "import #10" }, { from: 0, to: 2, label: "import #20" }, { from: 1, to: 0, label: "cycle #30", back: true }] },
+  { nodes: [{ name: "A.ts", detail: "edited root", x: 180, after: 1 }, { name: "?", detail: "missing import", x: 560, after: 3, outcome: "blocked" }], edges: [{ from: 0, to: 1, label: "imports" }] },
+  { nodes: [{ name: "A.ts", detail: "edited root", x: 180, after: 1 }, { name: "?", detail: "ambiguous import", x: 560, after: 3, outcome: "blocked" }], edges: [{ from: 0, to: 1, label: "imports" }] },
+  { nodes: [{ name: "A.ts", detail: "20 KiB tree", x: 180, after: 1 }, { name: "B.ts", detail: "import not resolved", x: 560, after: 2, outcome: "blocked" }], edges: [{ from: 0, to: 1, label: "pending import" }] },
+  { nodes: [{ name: "A.ts", detail: "root + five captures", x: 180, after: 1 }, { name: "target #7", detail: "read budget reached", x: 560, after: 24, outcome: "blocked" }], edges: [{ from: 0, to: 1, label: "next import" }] },
+  { nodes: [{ name: "A.ts", detail: "edited root", x: 180, after: 1 }, { name: "B.ts", detail: "capture over 256 KiB", x: 560, after: 5, outcome: "blocked" }], edges: [{ from: 0, to: 1, label: "imports" }] },
+];
+const fileGraph = <Message>(h: HtmlBuilder<Message>, scenarioIndex: number, cursor: number) => {
+  const example = fileExamples[scenarioIndex] ?? fileExamples[0];
+  return h.svg([h.ViewBox("0 0 920 174"), h.Role("img"), h.AriaLabel("Import graph for the selected example. File nodes show the edited root, supporting imports, excluded or unavailable targets, and independent units.")], [
+    h.defs([], [h.marker([h.Id("file-import-arrow"), h.ViewBox("0 0 10 10"), h.RefX("9"), h.RefY("5"), h.MarkerWidth("7"), h.MarkerHeight("7"), h.Orient("auto")], [h.path([h.D("M 0 0 L 10 5 L 0 10 z"), h.Fill("#687e98")], [])])]),
+    h.text([h.X("25"), h.Y("23"), h.FontSize("13"), h.FontWeight("700"), h.Fill("#1e3048")], ["IMPORT / REFERENCE GRAPH · selected example"]),
+    ...example.edges.map((edge) => {
+      const from = example.nodes[edge.from]!;
+      const to = example.nodes[edge.to]!;
+      const left = from.x + 175;
+      const right = to.x;
+      const path = edge.back ? `M ${from.x + 90} 125 L ${from.x + 90} 150 L ${to.x + 90} 150 L ${to.x + 90} 125` :
+        `M ${left} 92 L ${right - 7} 92`;
+      const labelX = edge.back ? (from.x + to.x) / 2 + 70 : (left + right) / 2 - 20;
+      return h.g([], [
+        h.path([h.D(path), h.Fill("none"), h.Stroke("#687e98"), h.StrokeWidth("2"), h.MarkerEnd("url(#file-import-arrow)")], []),
+        h.text([h.X(String(labelX)), h.Y(edge.back ? "147" : "78"), h.FontSize("11"), h.Fill("#52647d")], [edge.label]),
+      ]);
+    }),
+    ...example.nodes.map((node) => {
+      const reached = cursor >= node.after;
+      const fill = !reached ? "#f5f7fa" : node.outcome === "blocked" ? "#fff0eb" : node.outcome === "complete" ? "#e3f3eb" : "#e5efff";
+      const stroke = !reached ? "#a3afbf" : node.outcome === "blocked" ? "#d76546" : node.outcome === "complete" ? "#31836a" : "#527cc4";
+      return h.g([], [
+        h.rect([h.X(String(node.x)), h.Y("45"), h.Width("175"), h.Height("80"), h.Rx("10"), h.Fill(fill), h.Stroke(stroke), h.StrokeWidth("2")], []),
+        h.text([h.X(String(node.x + 13)), h.Y("77"), h.FontSize("17"), h.FontWeight("700"), h.Fill("#1e3048")], [node.name]),
+        h.text([h.X(String(node.x + 13)), h.Y("104"), h.FontSize("11"), h.Fill("#52647d")], [reached ? node.detail : "pending / not reached"]),
+      ]);
+    }),
+  ]);
+};
 const nodes = [
   { id: "resolve", x: 30, y: 50, title: "Resolve next edge", owner: "NATIVE FACT", detail: "Syntax, path, binding, identity", role: "native" },
   { id: "gate", x: 330, y: 50, title: "Permission and budgets", owner: "BEND DECISION", detail: "Allow before any source read", role: "bend" },
@@ -10,8 +61,10 @@ const nodes = [
   { id: "incomplete", x: 30, y: 260, title: "Incomplete unit", owner: "BEND DECISION", detail: "No Jev request for this unit", role: "bend" },
 ] as const;
 
-export const importGraphDiagram = <Message>(h: HtmlBuilder<Message>, active: ImportGraphStage | null) =>
+export const importGraphDiagram = <Message>(h: HtmlBuilder<Message>, active: ImportGraphStage | null, scenarioIndex: number, cursor: number, unitLabel: string) =>
   h.div([h.Class("chart-scroll import-graph-diagram")], [
+    fileGraph(h, scenarioIndex, cursor),
+    h.p([h.Class("import-graph-diagram-caption")], [`Bend state machine for ${unitLabel} in the import graph above`]),
     h.svg([h.ViewBox("0 0 920 505"), h.Role("img"), h.AriaLabel("Import exploration state machine. Native resolution facts enter Bend permission and budget gates before native source capture. Bend tracks edges and decides complete or incomplete; only complete units are eligible for Jev.")], [
       h.defs([], [h.marker([h.Id("import-arrow"), h.ViewBox("0 0 10 10"), h.RefX("9"), h.RefY("5"), h.MarkerWidth("7"), h.MarkerHeight("7"), h.Orient("auto")], [h.path([h.D("M 0 0 L 10 5 L 0 10 z"), h.Fill("#687e98")], [])])]),
       ...[

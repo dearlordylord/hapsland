@@ -110,6 +110,7 @@ p { line-height: 1.5; }
 .import-graph-legend .bend { color: #294976; background: #e5efff; }
 .import-graph-legend .jev { color: #205f4a; background: #e3f3eb; }
 .import-graph-diagram svg { min-width: 800px; max-width: 1100px; }
+.import-graph-diagram-caption { margin: 2px 24px 0; color: #52647d; font-size: .82rem; font-weight: 700; }
 .import-graph-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 16px 0; }
 .import-graph-facts > div { background: #f8faff; padding: 12px; border: 1px solid #dce3ec; border-radius: 8px; }
 .import-graph-facts strong, .import-graph-facts span { display: block; }

@@ -62,6 +62,10 @@ try {
   assert.match(await page.locator(".progress").innerText(), /2 manual events/);
   const imports = page.locator("#import-graph");
   assert.match(await imports.innerText(), /Native: resolution, permission facts, source capture/);
+  const fileDiagram = imports.locator("svg").first();
+  assert.match(await fileDiagram.textContent(), /IMPORT \/ REFERENCE GRAPH/);
+  assert.match(await fileDiagram.textContent(), /A\.ts.*B\.ts.*C\.ts.*D\.ts/s);
+  assert.match(await fileDiagram.textContent(), /imports/);
   for (let step = 1; step <= 10; step++) {
     await imports.getByRole("button", { name: "Next import step", exact: true }).click();
     await waitForText(".import-graph-progress", `Import step ${step} of 10`);
@@ -69,6 +73,7 @@ try {
   assert.match(await imports.locator(".import-graph-facts").innerText(), /A.ts · incomplete/);
   assert.match(await imports.locator(".import-graph-facts").innerText(), /D.ts · complete/);
   assert.match(await imports.locator(".import-graph-facts").innerText(), /Jev: no request for this unit/);
+  assert.match(await fileDiagram.textContent(), /excluded · no read/);
   await imports.getByRole("button", { name: "Previous import step", exact: true }).click();
   await waitForText(".import-graph-progress", "Import step 9 of 10");
   await imports.getByRole("button", { name: "Multiple imports and cycle", exact: true }).click();

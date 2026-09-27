@@ -55,6 +55,7 @@ try {
     Scene.tap((state) => assert.match(Scene.textContent(state.html), /Import step 0 of 10/)));
 
   assert.match(renderText(initial), /COMPILED BEND FLOW MODEL/);
+  assert.match(renderText(initial), /IMPORT \/ REFERENCE GRAPH/);
   assert.match(renderText(initial), /not a trace of the production resident/);
   assert.doesNotMatch(renderText(initial), /TypeScript sidecar reducer|Routes and .* applied steps match/);
   assert.equal(bend.stepBend(initial.bend, bend.flowInput("StopHookFired")).reason, "virtualRoundClosed");
