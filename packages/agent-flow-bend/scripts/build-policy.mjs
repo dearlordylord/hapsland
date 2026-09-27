@@ -22,6 +22,7 @@ try {
       !source.includes("function $Handoff$fits_batch$(") ||
       !source.includes("function $Handoff$notice_offer$(") ||
       !source.includes("function $Handoff$lease$reserve$(") ||
+      !source.includes("function $Handoff$lease$offer$(") ||
       !source.includes("function $Handoff$lease$suppresses$(") ||
       !source.includes("function $Admission$step$(") ||
       !source.includes("function $Admission$prospective_gate$(") ||
@@ -128,6 +129,8 @@ export const bendLeaseInitial = (item, round) =>
   run_loop($Handoff$lease$initial$(nat(item), nat(round)));
 export const bendLeaseReserve = (state, round, token, surface) =>
   run_loop($Handoff$lease$reserve$(state, nat(round), nat(token), normalize(surface)));
+export const bendLeaseOffer = (state, round, token, surface, fresh) =>
+  run_loop($Handoff$lease$offer$(state, nat(round), nat(token), normalize(surface), fresh));
 export const bendLeaseAuthorize = (state, round, token) =>
   run_loop($Handoff$lease$authorize$(state, nat(round), nat(token)));
 export const bendLeaseRelease = (state, round, token) =>

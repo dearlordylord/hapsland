@@ -33,7 +33,9 @@ finding count, and cancellation IDs.
   token; TypeScript drops the matching native permit only on Bend's command.
 - `Handoff.bend` validates exclusive finding lease transitions and decides
   suppression for edit, background, and Stop surfaces. The resident retains
-  opaque finding fingerprints and replays source-free token transitions.
+  opaque finding fingerprints and replays source-free token transitions. Bend
+  also routes each new offer to ordinary reservation or a one-time background
+  reoffer at Stop from the current lease phase.
 - `Work.bend` admits source observations, accepts streamed review fanout,
   records current findings and terminal outcomes, and returns the exact source
   and review IDs to cancel at the Stop decision. The finish wait uses Bend's
@@ -146,6 +148,10 @@ On 2026-09-27, from this worktree:
   resident-server suite: 2 files and 77 tests. Three Bend laws cover retention before deadline,
   removal at deadline, and preserving other tokens. An integration case checks
   the exact fractional deadline.
+- The lease offer routing migration passed the focused composed-delivery,
+  resident-server, and terminal-collection suite: 3 files and 96 tests. Four Bend laws cover
+  background-to-Stop reoffer, denied edit reoffer, fresh validation, and
+  ordinary reservation.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
   suite reported 65 passing files and 575 passing tests, with one file and
   two tests skipped.

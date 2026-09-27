@@ -7,8 +7,8 @@ import {
   bendRoundActive, bendRoundBeginStop, bendRoundBudget,
   bendRoundConsume, bendRoundFinishStop, bendRoundInitial, bendRoundOwnsStop,
   bendRoundReopen, bendRoundMaxContinuations, type BendRound,
-  bendLeaseInitial, bendLeaseReserve, bendLeaseAuthorize, bendLeaseTerminal,
-  bendLeaseReoffer, bendLeaseSuppresses, type BendLease, type BendLeaseSurface,
+  bendLeaseInitial, bendLeaseOffer, bendLeaseAuthorize, bendLeaseTerminal,
+  bendLeaseSuppresses, type BendLease, type BendLeaseSurface,
   bendAdmissionInitial, bendAdmissionStep, bendAdmissionCloseProspective,
   bendAdmissionProspectiveGate, bendAdmissionExpire,
   type BendAdmissionState,
@@ -506,11 +506,7 @@ export class ComposedDelivery {
         if (!batch.fingerprints.has(digest)) continue;
         lease ??= bendLeaseInitial(1, submission.generation);
         const surface = this.#leaseSurface(batch.surface);
-        const start = batch.surface === "stop" &&
-          (lease.phase.$ === "Submitted" || lease.phase.$ === "Uncertain") &&
-          lease.phase.surface.$ === "Background"
-          ? bendLeaseReoffer(lease, submission.generation, batch.id, true)
-          : bendLeaseReserve(lease, submission.generation, batch.id, surface);
+        const start = bendLeaseOffer(lease, submission.generation, batch.id, surface, true);
         if (start.$ !== "Granted") return null;
         lease = start.state;
         if (batch.status !== "reserved") {

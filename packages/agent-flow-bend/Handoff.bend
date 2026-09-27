@@ -418,6 +418,30 @@ def lease.reoffer(+state: Lease, round: Nat, token: Nat, fresh: Bool) -> LeaseRe
         Bool.and(Nat.is_eq(own_round, round),
           Bool.and(Bool.not(closed), Bool.and(Bool.not(reoffered), fresh))))
 
+def lease.offer.background(+state: Lease, round: Nat, token: Nat,
+    surface: Surface, fresh: Bool) -> LeaseResult:
+  match surface:
+    case Stop{}:
+      lease.reoffer(state, round, token, fresh)
+    case _:
+      lease.reserve(state, round, token, surface)
+
+def lease.offer.phase(+state: Lease, round: Nat, token: Nat,
+    surface: Surface, fresh: Bool, phase: LeasePhase) -> LeaseResult:
+  match phase:
+    case Submitted{Background{}}:
+      lease.offer.background(state, round, token, surface, fresh)
+    case Uncertain{Background{}}:
+      lease.offer.background(state, round, token, surface, fresh)
+    case _:
+      lease.reserve(state, round, token, surface)
+
+def lease.offer(+state: Lease, round: Nat, token: Nat,
+    surface: Surface, fresh: Bool) -> LeaseResult:
+  match state:
+    case Lease{_, _, _, _, phase}:
+      lease.offer.phase(state, round, token, surface, fresh, phase)
+
 def lease.close(state: Lease) -> Lease:
   match state:
     case Lease{item, round, _, reoffered, phase}:

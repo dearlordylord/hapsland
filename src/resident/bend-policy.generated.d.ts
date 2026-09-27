@@ -150,6 +150,8 @@ export type BendLeaseResult = { readonly $: "Granted" | "Denied"; readonly state
 export function bendLeaseInitial(item: number | bigint, round: number | bigint): BendLease;
 export function bendLeaseReserve(state: BendLease, round: number | bigint,
   token: number | bigint, surface: BendLeaseSurface): BendLeaseResult;
+export function bendLeaseOffer(state: BendLease, round: number | bigint,
+  token: number | bigint, surface: BendLeaseSurface, fresh: boolean): BendLeaseResult;
 export function bendLeaseAuthorize(state: BendLease, round: number | bigint,
   token: number | bigint): BendLeaseResult;
 export function bendLeaseRelease(state: BendLease, round: number | bigint,

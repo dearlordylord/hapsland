@@ -1,6 +1,18 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.stop_reoffers_submitted_background_lease():
+  {==}
+
+def Laws.edit_cannot_reoffer_submitted_background_lease():
+  {==}
+
+def Laws.stop_cannot_reoffer_without_fresh_validation():
+  {==}
+
+def Laws.available_lease_uses_ordinary_reservation():
+  {==}
+
 def Laws.permit_before_deadline_is_retained():
   {==}
 

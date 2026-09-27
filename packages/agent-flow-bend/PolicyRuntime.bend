@@ -49,6 +49,7 @@ type Smoke is Data:
     lease_release: Handoff.LeaseResult,
     lease_terminal: Handoff.LeaseResult,
     lease_reoffer: Handoff.LeaseResult,
+    lease_offer: Handoff.LeaseResult,
     closed_lease: Handoff.Lease,
     lease_suppresses: Bool
     round_begin: Round.Step
@@ -146,6 +147,7 @@ def main() -> Smoke:
     Handoff.lease.release(sample_reserved_lease(), 1n, 1n),
     Handoff.lease.terminal(sample_authorized_lease(), 1n, 1n, False{}),
     Handoff.lease.reoffer(sample_uncertain_lease(), 1n, 2n, True{}),
+    Handoff.lease.offer(sample_uncertain_lease(), 1n, 2n, Handoff.Stop{}, True{}),
     Handoff.lease.close(Handoff.lease.initial(1n, 1n)),
     Handoff.lease.suppresses(sample_uncertain_lease(), 1n, Handoff.Edit{}),
     Round.begin_stop(Round.initial(), 1n),

@@ -11,6 +11,8 @@ and a shared admission/work/finish lifecycle. The resident now uses generated
 Bend for prospective admission and permits, source and review work identities,
 round and Stop transitions, final finding selection, per-finding leases, response limits,
 logical capacity, and the finish wait and cancellation decisions. Generated
+lease offer policy routes background terminal phases to the one-time Stop
+reoffer and other phases to ordinary reservation. Generated
 admission policy decides permit expiry from an exact native clock fact.
 Generated notice selection decides exact fit and host-specific skip or stop behavior.
 Background-writer and operational-notice policies also decide their expiry,

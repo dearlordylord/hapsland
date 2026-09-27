@@ -15,6 +15,31 @@ import ./Cache.bend as Cache
 import ./Ticket.bend as Ticket
 import ./Revision.bend as Revision
 
+def submitted_background_lease() -> Handoff.Lease:
+  Handoff.Lease{7n, 1n, False{}, False{}, Handoff.Submitted{Handoff.Background{}}}
+
+law stop_reoffers_submitted_background_lease:
+  {Handoff.lease.offer(submitted_background_lease(), 1n, 12n,
+      Handoff.Stop{}, True{}) ==
+    Handoff.Granted{Handoff.Lease{7n, 1n, False{}, True{},
+      Handoff.Reserved{12n, Handoff.Stop{}}}} : Handoff.LeaseResult}
+
+law edit_cannot_reoffer_submitted_background_lease:
+  {Handoff.lease.offer(submitted_background_lease(), 1n, 12n,
+      Handoff.Edit{}, True{}) ==
+    Handoff.Denied{submitted_background_lease()} : Handoff.LeaseResult}
+
+law stop_cannot_reoffer_without_fresh_validation:
+  {Handoff.lease.offer(submitted_background_lease(), 1n, 12n,
+      Handoff.Stop{}, False{}) ==
+    Handoff.Denied{submitted_background_lease()} : Handoff.LeaseResult}
+
+law available_lease_uses_ordinary_reservation:
+  {Handoff.lease.offer(Handoff.lease.initial(7n, 1n), 1n, 12n,
+      Handoff.Background{}, True{}) ==
+    Handoff.Granted{Handoff.Lease{7n, 1n, False{}, False{},
+      Handoff.Reserved{12n, Handoff.Background{}}}} : Handoff.LeaseResult}
+
 def expirable_permit() -> Admission.AdmissionState:
   Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n,
     Admission.Permit{1n, 1n, 1n, 100n, 200n} <> Nil{}, Nil{}}
