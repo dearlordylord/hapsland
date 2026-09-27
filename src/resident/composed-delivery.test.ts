@@ -133,6 +133,9 @@ describe("shared Hapsland rounds", () => {
     expect(state.reserveFinishOutput("agent", "attempt", "output",
       [{ id: "advice", unit, findings: [finding] }], 1, work)).toBe(true);
     expect(state.authorizeFinishOutput("agent", "output")).toBe(true);
+    expect(state.markSubmitted("output", [unit + 1])).toBe(false);
+    expect(state.markSubmitted("output", [unit])).toBe(true);
+    expect(state.markSubmitted("output", [unit])).toBe(false);
     expect(state.expireStop("agent", "attempt")).toBeUndefined();
     expect(state.isActive("agent")).toBe(true);
     expect(state.closureCounts("agent").reservedContinuations).toBe(1);

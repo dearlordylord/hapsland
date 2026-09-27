@@ -16,6 +16,48 @@ import ./Ticket.bend as Ticket
 import ./Revision.bend as Revision
 import ./Reuse.bend as Reuse
 
+def reserved_output_selection() -> Lifecycle.OutputSelection:
+  Lifecycle.OutputSelection{1n <> 2n <> Nil{}, False{}, False{}}
+
+def authorized_output_selection() -> Lifecycle.OutputSelection:
+  Lifecycle.OutputSelection{1n <> 2n <> Nil{}, True{}, False{}}
+
+def consumed_output_selection() -> Lifecycle.OutputSelection:
+  Lifecycle.OutputSelection{1n <> 2n <> Nil{}, True{}, True{}}
+
+def one_pending_selection_work() -> Work.Work:
+  Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
+    Work.ReviewUnit{1n, 1n, Work.PendingFinding{}, 1n, 20n} <> Nil{}}
+
+law output_selection_reserves_pending_unit:
+  {Lifecycle.selection_reserve(one_pending_selection_work(), 1n <> Nil{}) ==
+    Lifecycle.SelectionReserved{Lifecycle.OutputSelection{1n <> Nil{}, False{}, False{}}}
+      : Lifecycle.OutputSelectionReservation}
+
+law output_selection_rejects_more_than_pending:
+  {Lifecycle.selection_reserve(one_pending_selection_work(), 1n <> 1n <> Nil{}) ==
+    Lifecycle.SelectionRejected{} : Lifecycle.OutputSelectionReservation}
+
+law output_selection_authorizes_once:
+  {Lifecycle.selection_authorize(reserved_output_selection()) ==
+    Lifecycle.SelectionGranted{authorized_output_selection()} : Lifecycle.OutputSelectionStep}
+
+law output_selection_consumes_exact_units:
+  {Lifecycle.selection_consume(authorized_output_selection(), 1n <> 2n <> Nil{}) ==
+    Lifecycle.SelectionGranted{consumed_output_selection()} : Lifecycle.OutputSelectionStep}
+
+law output_selection_rejects_changed_units:
+  {Lifecycle.selection_consume(authorized_output_selection(), 2n <> 1n <> Nil{}) ==
+    Lifecycle.SelectionDenied{authorized_output_selection()} : Lifecycle.OutputSelectionStep}
+
+law output_selection_rejects_unapproved_write:
+  {Lifecycle.selection_consume(reserved_output_selection(), 1n <> 2n <> Nil{}) ==
+    Lifecycle.SelectionDenied{reserved_output_selection()} : Lifecycle.OutputSelectionStep}
+
+law output_selection_cannot_be_consumed_twice:
+  {Lifecycle.selection_consume(consumed_output_selection(), 1n <> 2n <> Nil{}) ==
+    Lifecycle.SelectionDenied{consumed_output_selection()} : Lifecycle.OutputSelectionStep}
+
 law live_advice_precedes_pending_and_cache:
   {Reuse.route(True{}, True{}, True{}) == Reuse.JoinAdvice{} : Reuse.Route}
 

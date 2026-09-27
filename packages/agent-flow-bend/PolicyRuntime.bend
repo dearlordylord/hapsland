@@ -86,6 +86,9 @@ type Smoke is Data:
     lifecycle_reserve: Round.Step
     lifecycle_release: Round.Step
     finish_disposition: Lifecycle.FinishDisposition
+    selection_reserved: Lifecycle.OutputSelectionReservation
+    selection_authorized: Lifecycle.OutputSelectionStep
+    selection_consumed: Lifecycle.OutputSelectionStep
     ticket_initial: Ticket.Phase
     ticket_fail: Ticket.Phase
     ticket_close: Ticket.Phase
@@ -196,6 +199,12 @@ def main() -> Smoke:
       1n, 1n <> Nil{}),
     Lifecycle.release_unwritten(Round.Round{1n, True{}, 0n, 1n, 1n, True{}, True{}, True{}}, 1n),
     Lifecycle.finish_disposition(sample_work(), Nil{}, True{}, True{}, True{}, True{}, False{}),
+    Lifecycle.selection_reserve(Work.Work{2n, 2n, Flow.Capacity{3n, 0n},
+      Flow.Capacity{3n, 0n}, Nil{}, Work.ReviewUnit{1n, 1n,
+      Work.PendingFinding{}, 1n, 20n} <> Nil{}}, 1n <> Nil{}),
+    Lifecycle.selection_authorize(Lifecycle.OutputSelection{1n <> Nil{}, False{}, False{}}),
+    Lifecycle.selection_consume(Lifecycle.OutputSelection{1n <> Nil{}, True{}, False{}},
+      1n <> Nil{}),
     Ticket.initial(),
     Ticket.fail(Ticket.initial(), Ticket.Backend{}),
     Ticket.close(Ticket.fail(Ticket.initial(), Ticket.Backend{})),

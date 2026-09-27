@@ -19,6 +19,8 @@ import {
   bendDeliveryExistingTokenAllowed,
   type BendDeliveryPhase,
   bendLifecycleReleaseUnwritten,
+  bendLifecycleSelectionAuthorize, bendLifecycleSelectionConsume,
+  type BendOutputSelection,
 } from "./bend-policy.generated.js";
 
 /** Shared round and source-free handoff state for every agent runtime. */
@@ -68,7 +70,7 @@ export class ComposedDelivery {
   #nextSubmissionTokenId = 1;
   readonly #finishPermits = new Map<string, {
     readonly partition: string; readonly generation: number; readonly attempt: string;
-    authorized: boolean; revoked: boolean;
+    selection: BendOutputSelection; revoked: boolean;
   }>();
   readonly #backgroundWaiters = new Map<string, { readonly token: string; readonly id: number; readonly at: number;
     readonly policy: BendBackgroundWaiter }>();
@@ -335,15 +337,17 @@ export class ComposedDelivery {
       this.#pruneSubmissionTokenIds();
       return false;
     }
-    const reserved = work.reserveSelected(round.policy, stop.id,
-      advice.flatMap((item) => item.findings.map(() => item.unit)));
-    if (reserved === undefined) {
+    const selected = advice.flatMap((item) => item.findings.map(() => item.unit));
+    const selection = work.reserveOutputSelection(selected);
+    const reserved = selection === undefined ? undefined : work.reserveSelected(round.policy, stop.id, selected);
+    if (reserved === undefined || selection === undefined) {
       this.#pruneSubmissionTokenIds();
       return false;
     }
     this.#rounds.set(partition, { ...round, policy: reserved });
     stop.outputToken = outputToken;
-    this.#finishPermits.set(outputToken, { partition, generation: stop.generation, attempt, authorized: false, revoked: false });
+    this.#finishPermits.set(outputToken, { partition, generation: stop.generation, attempt,
+      selection, revoked: false });
     for (const [id, submission] of staged) this.#submissions.set(id, submission!);
     return true;
   }
@@ -353,7 +357,7 @@ export class ComposedDelivery {
     const round = this.#rounds.get(partition);
     const permit = this.#finishPermits.get(outputToken);
     if (stop?.token !== attempt || stop.outputToken !== outputToken || round === undefined ||
-        permit?.authorized === true) return false;
+        permit?.selection.authorized === true) return false;
     const released = bendLifecycleReleaseUnwritten(round.policy, stop.id);
     if (released.$ !== "Granted") return false;
     this.#rounds.set(partition, { ...round, policy: released.state });
@@ -376,9 +380,11 @@ export class ComposedDelivery {
     }
     const stop = this.#stops.get(partition);
     if (permit.partition !== partition || !this.isActive(partition, permit.generation) ||
-        permit.revoked || permit.authorized || stop?.token !== permit.attempt || stop.outputToken !== token) return false;
+        permit.revoked || stop?.token !== permit.attempt || stop.outputToken !== token) return false;
+    const authorization = bendLifecycleSelectionAuthorize(permit.selection);
+    if (authorization.$ !== "SelectionGranted") return false;
     if (!this.#transitionBatchStatus(token, "authorized")) return false;
-    permit.authorized = true;
+    permit.selection = authorization.state;
     return true;
   }
 
@@ -388,7 +394,7 @@ export class ComposedDelivery {
     if (stop?.token !== token || round === undefined) return undefined;
     // A provisional output has not crossed the IPC write boundary. If Stop
     // ends while that response is gated, release its slot and close the round.
-    if (stop.outputToken !== undefined && this.#finishPermits.get(stop.outputToken)?.authorized !== true) {
+    if (stop.outputToken !== undefined && this.#finishPermits.get(stop.outputToken)?.selection.authorized !== true) {
       if (!this.revokeProvisionalFinishOutput(partition, token, stop.outputToken)) return undefined;
       round = this.#rounds.get(partition);
       if (round === undefined) return undefined;
@@ -595,8 +601,14 @@ export class ComposedDelivery {
     return true;
   }
 
-  markSubmitted(token: string): boolean {
-    return this.#transitionBatchStatus(token, "submitted");
+  markSubmitted(token: string, selectedUnits: ReadonlyArray<number> = []): boolean {
+    const permit = this.#finishPermits.get(token);
+    const consumed = permit === undefined ? undefined :
+      bendLifecycleSelectionConsume(permit.selection, selectedUnits);
+    if (consumed !== undefined && consumed.$ !== "SelectionGranted") return false;
+    if (!this.#transitionBatchStatus(token, "submitted")) return false;
+    if (permit !== undefined && consumed !== undefined) permit.selection = consumed.state;
+    return true;
   }
 
   markUncertain(token: string): boolean {

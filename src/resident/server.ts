@@ -1006,7 +1006,10 @@ export class ResidentServer {
       for (const item of notices) delete item.delivery;
       return { status: "empty" };
     }
-    if (!this.#composedDelivery.markSubmitted(token)) return { status: "empty" };
+    if (!this.#composedDelivery.markSubmitted(token,
+      advice.flatMap((item) => (item.delivery?.findings ?? []).map(() => item.workUnitId ?? 0)))) {
+      return { status: "empty" };
+    }
     for (const item of advice) {
       if (item.delivery !== undefined) item.delivery.acknowledged = true;
     }

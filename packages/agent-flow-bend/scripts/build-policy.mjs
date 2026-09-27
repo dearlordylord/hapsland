@@ -47,6 +47,8 @@ try {
       !source.includes("function $Lifecycle$cutoff$(") ||
       !source.includes("function $Lifecycle$finish_gate$(") ||
       !source.includes("function $Lifecycle$finish_disposition$(") ||
+      ["selection_reserve", "selection_authorize", "selection_consume"]
+        .some((name) => !source.includes(`function $Lifecycle$${name}$(`)) ||
       !source.includes("function $Lifecycle$reserve_selected$(") ||
       !source.includes("function $Lifecycle$release_unwritten$(") ||
       !source.includes("function $Ticket$initial$(") ||
@@ -214,6 +216,14 @@ export const bendLifecycleFinishDisposition = (work, selected, hasNotice,
   run_loop($Lifecycle$finish_disposition$(work,
     selected.reduceRight((tail, value) => ({ $: "Con", head: nat(value), tail }), { $: "Nil" }),
     hasNotice, passNotices, canWrite, bindingValid, deadlineReached));
+export const bendLifecycleSelectionReserve = (work, selected) =>
+  run_loop($Lifecycle$selection_reserve$(work,
+    selected.reduceRight((tail, value) => ({ $: "Con", head: nat(value), tail }), { $: "Nil" })));
+export const bendLifecycleSelectionAuthorize = (state) =>
+  run_loop($Lifecycle$selection_authorize$(normalize(state)));
+export const bendLifecycleSelectionConsume = (state, selected) =>
+  run_loop($Lifecycle$selection_consume$(normalize(state),
+    selected.reduceRight((tail, value) => ({ $: "Con", head: nat(value), tail }), { $: "Nil" })));
 export const bendLifecycleReserveSelected = (round, work, token, selected) =>
   run_loop($Lifecycle$reserve_selected$(round, work, nat(token),
     selected.reduceRight((tail, value) => ({ $: "Con", head: nat(value), tail }), { $: "Nil" })));

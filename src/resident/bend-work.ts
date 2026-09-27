@@ -8,9 +8,11 @@ import {
   bendLifecycleCutoff,
   bendLifecycleFinishGate,
   bendLifecycleFinishDisposition,
+  bendLifecycleSelectionReserve,
   bendLifecycleReserveSelected,
   type BendList, type BendRound, type BendWorkOutcome, type BendWorkState,
   type BendLifecycleFinishDisposition,
+  type BendOutputSelection,
   type BendWorkStep,
 } from "./bend-policy.generated.js";
 
@@ -139,6 +141,11 @@ export class BendWorkTracker {
   reserveSelected(round: BendRound, token: number, selectedUnits: ReadonlyArray<number>): BendRound | undefined {
     const result = bendLifecycleReserveSelected(round, this.#state, token, selectedUnits);
     return result.$ === "Granted" ? result.state : undefined;
+  }
+
+  reserveOutputSelection(selectedUnits: ReadonlyArray<number>): BendOutputSelection | undefined {
+    const result = bendLifecycleSelectionReserve(this.#state, selectedUnits);
+    return result.$ === "SelectionReserved" ? result.state : undefined;
   }
 
   finishDisposition(selectedUnits: ReadonlyArray<number>, hasNotice: boolean,

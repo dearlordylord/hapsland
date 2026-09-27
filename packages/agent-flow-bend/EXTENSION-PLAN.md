@@ -34,9 +34,10 @@ barrier releases and replaces a provisional slot if its selected findings
 change before encoding. The production finish disposition receives the final
 selected unit IDs, notice presence, and writer fact to choose Continue,
 notice-only output, or an Allow reason. Its
-other aggregate events remain executable models rather than the resident's
-callback state. `FinishCheck.actionable_findings` still needs to come from the
-final Bend selection, and selected IDs must be consumed at write terminal.
+output selection ledger retains those exact unit IDs through authorization and
+consumes them at acknowledgement. Its other aggregate events remain executable
+models rather than the resident's callback state. `FinishCheck.actionable_findings`
+still needs to come from the final Bend selection.
 The installed adapter uses the aggregate finish gate at Stop and the generated
 component policies at their individual effect barriers; the full aggregate
 reducer is not yet production authority.

@@ -276,6 +276,16 @@ export function bendLifecycleFinishDisposition(work: BendWorkState,
   selected: ReadonlyArray<number | bigint>, hasNotice: boolean,
   passNotices: boolean, canWrite: boolean, bindingValid: boolean,
   deadlineReached: boolean): BendLifecycleFinishDisposition;
+export type BendOutputSelection = { readonly selected: BendList<bigint>;
+  readonly authorized: boolean; readonly consumed: boolean };
+export type BendOutputSelectionStep = { readonly $: "SelectionGranted" | "SelectionDenied";
+  readonly state: BendOutputSelection };
+export function bendLifecycleSelectionReserve(work: BendWorkState,
+  selected: ReadonlyArray<number | bigint>):
+  { readonly $: "SelectionRejected" } | { readonly $: "SelectionReserved"; readonly state: BendOutputSelection };
+export function bendLifecycleSelectionAuthorize(state: BendOutputSelection): BendOutputSelectionStep;
+export function bendLifecycleSelectionConsume(state: BendOutputSelection,
+  selected: ReadonlyArray<number | bigint>): BendOutputSelectionStep;
 export function bendLifecycleReserveSelected(round: BendRound, work: BendWorkState,
   token: number | bigint, selectedUnits: ReadonlyArray<number | bigint>): BendRoundStep;
 export function bendLifecycleReleaseUnwritten(round: BendRound,

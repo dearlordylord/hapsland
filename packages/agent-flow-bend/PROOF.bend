@@ -1,6 +1,27 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.output_selection_reserves_pending_unit():
+  {==}
+
+def Laws.output_selection_rejects_more_than_pending():
+  {==}
+
+def Laws.output_selection_authorizes_once():
+  {==}
+
+def Laws.output_selection_consumes_exact_units():
+  {==}
+
+def Laws.output_selection_rejects_changed_units():
+  {==}
+
+def Laws.output_selection_rejects_unapproved_write():
+  {==}
+
+def Laws.output_selection_cannot_be_consumed_twice():
+  {==}
+
 def Laws.live_advice_precedes_pending_and_cache():
   {==}
 

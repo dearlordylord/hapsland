@@ -112,6 +112,55 @@ def reserve_selected(+round: Round.Round, work: Work.Work, token: Nat,
 def release_unwritten(round: Round.Round, token: Nat) -> Round.Step:
   Round.release_output(round, token)
 
+# Retain the exact selected work-unit sequence across the IPC write boundary.
+# Work findings remain pending for the one permitted Stop reoffer after an
+# uncertain background write; this ledger consumes the output reservation.
+type OutputSelection is Data:
+  OutputSelection{selected: List<&2, Nat>, authorized: Bool, consumed: Bool}
+
+type OutputSelectionStep is Data:
+  SelectionGranted{state: OutputSelection}
+  SelectionDenied{state: OutputSelection}
+
+type OutputSelectionReservation is Data:
+  SelectionReserved{state: OutputSelection}
+  SelectionRejected{}
+
+def selection_reserve(+work: Work.Work, +selected: List<&2, Nat>) -> OutputSelectionReservation:
+  Bool.pick(OutputSelectionReservation,
+    Bool.and(Nat.is_gt(List.length(&2, Nat, selected), 0n),
+      Bool.and(Nat.is_le(List.length(&2, Nat, selected), 5n),
+        selected_valid(work, selected, selected))),
+    SelectionReserved{OutputSelection{selected, False{}, False{}}}, SelectionRejected{})
+
+def selection_authorize(+state: OutputSelection) -> OutputSelectionStep:
+  match state:
+    case OutputSelection{+selected, +authorized, +consumed}:
+      Bool.pick(OutputSelectionStep, Bool.and(Bool.not(authorized), Bool.not(consumed)),
+        SelectionGranted{OutputSelection{selected, True{}, False{}}}, SelectionDenied{state})
+
+def selection_same(left: List<&2, Nat>, right: List<&2, Nat>) -> Bool:
+  match left:
+    case Nil{}:
+      match right:
+        case Nil{}:
+          True{}
+        case _:
+          False{}
+    case head <> tail:
+      match right:
+        case Nil{}:
+          False{}
+        case other <> rest:
+          Bool.and(Nat.is_eq(head, other), selection_same(tail, rest))
+
+def selection_consume(+state: OutputSelection, +actual: List<&2, Nat>) -> OutputSelectionStep:
+  match state:
+    case OutputSelection{+selected, +authorized, +consumed}:
+      Bool.pick(OutputSelectionStep,
+        Bool.and(authorized, Bool.and(Bool.not(consumed), selection_same(selected, actual))),
+        SelectionGranted{OutputSelection{selected, True{}, True{}}}, SelectionDenied{state})
+
 type FinishDisposition is Data:
   ReserveFindings{}
   PassNotices{}
