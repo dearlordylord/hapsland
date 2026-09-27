@@ -29,8 +29,8 @@ the validation, identity, clock, and credential facts.
 Background-writer and operational-notice policies also decide their expiry,
 capacity, suppression count, pending-notice coalescing boundaries, and pruning
 of expired leases, pending notices, and cooldown keys.
-Generated collection policy decides readiness,
-expiry, and deterministic order. Generated delivery policy decides token
+Generated collection policy decides readiness, credential-generation
+retirement, expiry, and deterministic order. Generated delivery policy decides token
 transition, lease expiry, submission admission at the Stop barrier, existing
 token finish-permit admission, legacy Stop authorization, acknowledgement and
 finalization gates, aggregate composed batch submission, final legacy

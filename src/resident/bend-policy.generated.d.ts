@@ -254,6 +254,9 @@ export function bendNoticePrune(hasPending: boolean, leased: boolean,
   cooldownExpired: boolean): BendNoticePrune;
 
 export type BendCollectionOrder = { readonly $: "Before" | "Equal" | "After" };
+export type BendCollectionCredentialDisposition = { readonly $: "RetainAdvice" | "RetireAdvice" };
+export function bendCollectionCredentialDisposition(sameScope: boolean,
+  generationValid: boolean): BendCollectionCredentialDisposition;
 export function bendCollectionOrder(leftCycle: number | bigint, leftSequence: number | bigint,
   rightCycle: number | bigint, rightSequence: number | bigint): BendCollectionOrder;
 export function bendCollectionEligible(already: boolean, turnEnd: boolean,

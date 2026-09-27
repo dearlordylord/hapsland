@@ -75,7 +75,8 @@ finding count, and cancellation IDs.
   gate chooses lease, pending-notice, and cooldown-key retirement from exact
   deadline and exception facts.
 - `Collection.bend` orders candidate work by cycle and sequence and decides
-  readiness and pending-advice expiry from elapsed-time facts.
+  readiness and pending-advice expiry from elapsed-time facts. It also decides
+  whether a collection retires in-scope advice after credential rotation.
 - `Delivery.bend` governs output-token phase transitions, authorized lease
   expiry, and when terminal background output can be reoffered at Stop. Its
   aggregate gates decide composed batch submission from per-candidate facts
@@ -238,8 +239,12 @@ On 2026-09-27, from this worktree:
   resident-server and terminal-collection suite. Seven Bend laws cover valid
   and stale candidates, empty batches, credential aggregation, and final
   release for legacy collection.
+- The initial collection credential migration passed the focused resident
+  suite. Three Bend laws cover in-scope rotation, retained current advice,
+  and out-of-scope advice. Existing integration cases cover rotation before
+  collection and after a delivery lease is acquired.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
-  suite reported 65 passing files and 575 passing tests, with one file and
+  suite reported 65 passing files and 578 passing tests, with one file and
   two tests skipped.
 - `npm run conformance:package` passed from a clean local package install on
   Linux arm64 and Node 24.20.0. The CLI, parser, resident, hook, installation,

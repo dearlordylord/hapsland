@@ -7,6 +7,15 @@ type Order is Data:
   Equal{}
   After{}
 
+type CredentialDisposition is Data:
+  RetainAdvice{}
+  RetireAdvice{}
+
+def credential_disposition(same_scope: Bool,
+    generation_valid: Bool) -> CredentialDisposition:
+  Bool.pick(CredentialDisposition, Bool.and(same_scope, Bool.not(generation_valid)),
+    RetireAdvice{}, RetainAdvice{})
+
 def order(+left_cycle: Nat, +left_sequence: Nat,
     +right_cycle: Nat, +right_sequence: Nat) -> Order:
   Bool.pick(Order, Nat.is_lt(left_cycle, right_cycle), Before{},

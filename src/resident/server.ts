@@ -75,6 +75,7 @@ import { bendTicketInitial, bendTicketFail, bendTicketClose, bendTicketTerminal,
   bendNoticePrune,
   bendDeliverySubmissionCandidate, bendDeliverySubmissionBatchGate,
   bendDeliveryCredentialObserve, bendDeliveryFinalCredentialGate,
+  bendCollectionCredentialDisposition,
   type BendTicketPhase, type BendTicketReason,
   type BendTicketUnitEvent, type BendTicketUnitStage,
   type BendValidationStatus } from "./bend-policy.generated.js";
@@ -810,9 +811,14 @@ export class ResidentServer {
     this.#pruneNoticeCooldowns(now);
     const credentialGeneration = dispatch.credential?.generation ?? null;
     for (const item of [...this.#advice]) {
-      if ((composed ? adviceeGroup(item.observation.root, item.observation.advicee) === partition
-        : item.partition === partition) && item.credentialGeneration !== credentialGeneration) {
+      const sameScope = composed ? adviceeGroup(item.observation.root, item.observation.advicee) === partition
+        : item.partition === partition;
+      const disposition = bendCollectionCredentialDisposition(sameScope,
+        item.credentialGeneration === credentialGeneration);
+      if (disposition.$ === "RetireAdvice") {
         this.#removeAdvice(item.id);
+      } else if (disposition.$ !== "RetainAdvice") {
+        throw new Error("Bend denied collection credential disposition");
       }
     }
     // Stop can reoffer only after the background writer has reached a terminal

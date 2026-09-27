@@ -80,6 +80,7 @@ type Smoke is Data:
     notice: Notice.Action
     notice_advance: Notice.Advance
     collection_order: Collection.Order
+    collection_credential: Collection.CredentialDisposition
     collection_eligible: Bool
     collection_expired: Bool
     delivery_transition: Delivery.Step
@@ -217,6 +218,7 @@ def main() -> Smoke:
     Notice.decide(Some{10n}, 1n, 64n),
     Notice.advance(Some{0n}, 1n, 64n, 3n, Some{2n}, False{}, 5n),
     Collection.order(1n, 2n, 1n, 3n),
+    Collection.credential_disposition(True{}, False{}),
     Collection.eligible(False{}, False{}, False{}, 50n, 50n),
     Collection.expired(600000n, 600000n),
     Delivery.transition(Delivery.Authorized{}, Delivery.Uncertain{}),

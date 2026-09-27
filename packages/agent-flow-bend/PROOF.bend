@@ -1,6 +1,15 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.rotated_in_scope_advice_is_retired():
+  {==}
+
+def Laws.current_in_scope_advice_is_retained():
+  {==}
+
+def Laws.out_of_scope_rotated_advice_is_retained():
+  {==}
+
 def Laws.valid_composed_submission_candidate_is_admitted():
   {==}
 

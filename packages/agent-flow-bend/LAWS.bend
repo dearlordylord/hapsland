@@ -17,6 +17,18 @@ import ./Revision.bend as Revision
 import ./Reuse.bend as Reuse
 import ./Retention.bend as Retention
 
+law rotated_in_scope_advice_is_retired:
+  {Collection.credential_disposition(True{}, False{}) ==
+    Collection.RetireAdvice{} : Collection.CredentialDisposition}
+
+law current_in_scope_advice_is_retained:
+  {Collection.credential_disposition(True{}, True{}) ==
+    Collection.RetainAdvice{} : Collection.CredentialDisposition}
+
+law out_of_scope_rotated_advice_is_retained:
+  {Collection.credential_disposition(False{}, False{}) ==
+    Collection.RetainAdvice{} : Collection.CredentialDisposition}
+
 law valid_composed_submission_candidate_is_admitted:
   {Delivery.submission_candidate(Delivery.SubmissionFacts{True{}, True{}, True{},
     True{}, True{}, True{}, True{}, True{}}) == True{} : Bool}
