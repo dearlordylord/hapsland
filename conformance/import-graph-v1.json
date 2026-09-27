@@ -1,0 +1,53 @@
+{
+  "status": "source-free independent expectations for #141",
+  "traces": [
+    {
+      "name": "A to B to excluded C",
+      "events": [
+        { "kind": "root", "target": 1, "sourceBytes": 1000, "treeBytes": 300, "edges": [10] },
+        { "kind": "next" },
+        { "kind": "resolved", "target": 2, "result": "found" },
+        { "kind": "pathChecked", "allowed": true },
+        { "kind": "captured", "sourceBytes": 1000, "treeBytes": 300, "edges": [20] },
+        { "kind": "next" },
+        { "kind": "resolved", "target": 3, "result": "found" },
+        { "kind": "pathChecked", "allowed": false }
+      ],
+      "commands": ["none", "resolveEdge:10", "checkPath:2", "readSource:2", "none", "resolveEdge:20", "checkPath:3", "unitIncomplete:Excluded"],
+      "expected": { "phase": "incomplete", "reason": "Excluded", "files": 2, "visited": [2, 1] }
+    },
+    {
+      "name": "independent complete unit",
+      "events": [
+        { "kind": "root", "target": 4, "sourceBytes": 600, "treeBytes": 300, "edges": [] },
+        { "kind": "next" }
+      ],
+      "commands": ["none", "unitComplete"],
+      "expected": { "phase": "complete", "files": 1, "visited": [4] }
+    },
+    {
+      "name": "cycle does not recapture root",
+      "events": [
+        { "kind": "root", "target": 1, "sourceBytes": 100, "treeBytes": 100, "edges": [10] },
+        { "kind": "next" },
+        { "kind": "resolved", "target": 2, "result": "found" },
+        { "kind": "pathChecked", "allowed": true },
+        { "kind": "captured", "sourceBytes": 100, "treeBytes": 100, "edges": [20] },
+        { "kind": "next" },
+        { "kind": "resolved", "target": 1, "result": "found" },
+        { "kind": "next" }
+      ],
+      "commands": ["none", "resolveEdge:10", "checkPath:2", "readSource:2", "none", "resolveEdge:20", "none", "unitComplete"],
+      "expected": { "phase": "complete", "files": 2, "visited": [2, 1] }
+    },
+    {
+      "name": "tree boundary stops before resolution",
+      "events": [
+        { "kind": "root", "target": 1, "sourceBytes": 100, "treeBytes": 20480, "edges": [10] },
+        { "kind": "next" }
+      ],
+      "commands": ["none", "unitIncomplete:TreeLimit"],
+      "expected": { "phase": "incomplete", "reason": "TreeLimit", "files": 1, "visited": [1] }
+    }
+  ]
+}

@@ -199,3 +199,15 @@ the runtime's Stop hook before review completion. The final-message companion
 retains the separate order where background hook output completes before that
 hook call starts. Native hook process
 intervals include startup and output work, not just review waiting.
+
+The separate import exploration section uses `ImportGraph.bend` through
+`import-graph-adapter.ts`. Its own scenario controls preserve the full-flow replay
+position. Grey boxes represent supplied native resolution/capture facts; blue
+boxes represent Bend decisions; the green downstream boundary identifies Jev
+outcomes without simulating a request or result. Seven source-free examples cover
+excluded C with an independent complete D unit, ordered imports and cycles,
+missing/ambiguous targets, the 20 KiB evidence-tree cap, the 1.5 MiB total-read cap,
+and an oversized per-file capture. These are synthetic policy examples, not
+observed filesystem or production execution traces. The build checks the shared
+adapter projections and Foldkit controls; `test:browser` checks the rendered
+independent replay controls as well.

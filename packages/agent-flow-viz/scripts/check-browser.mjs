@@ -60,8 +60,22 @@ try {
   await waitForText(".state-line", "Virtual round 1 (active)");
   assert.match(await page.locator(".state-line").innerText(), /source readings 1\/1/);
   assert.match(await page.locator(".progress").innerText(), /2 manual events/);
+  const imports = page.locator("#import-graph");
+  assert.match(await imports.innerText(), /Native: resolution, permission facts, source capture/);
+  for (let step = 1; step <= 10; step++) {
+    await imports.getByRole("button", { name: "Next import step", exact: true }).click();
+    await waitForText(".import-graph-progress", `Import step ${step} of 10`);
+  }
+  assert.match(await imports.locator(".import-graph-facts").innerText(), /A.ts · incomplete/);
+  assert.match(await imports.locator(".import-graph-facts").innerText(), /D.ts · complete/);
+  assert.match(await imports.locator(".import-graph-facts").innerText(), /Jev: no request for this unit/);
+  await imports.getByRole("button", { name: "Previous import step", exact: true }).click();
+  await waitForText(".import-graph-progress", "Import step 9 of 10");
+  await imports.getByRole("button", { name: "Multiple imports and cycle", exact: true }).click();
+  await waitForText(".import-graph-progress", "Import step 0 of 12");
+  assert.equal(await imports.getByRole("button", { name: "Previous import step", exact: true }).isDisabled(), true);
   assert.deepEqual(errors, []);
-  console.log("Browser controls passed: guided, manual, disabled rejection, capacity, finish, rewind, and redo");
+  console.log("Browser controls passed: guided, manual, disabled rejection, capacity, finish, rewind, redo, and independent import exploration");
 } finally {
   await browser?.close();
   await server.close();

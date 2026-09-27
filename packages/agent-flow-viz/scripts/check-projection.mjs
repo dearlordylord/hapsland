@@ -20,6 +20,40 @@ try {
   const trigger = (model, event, itemId = null) =>
     send(model, main.Message.TriggeredEvent({ event, itemId }));
   const initial = main.init().model;
+  const imports = await server.ssrLoadModule("/src/import-graph-view.ts");
+  const excluded = imports.projectImportExample(0, 10);
+  assert.deepEqual(excluded.states.map((state) => state.phase), ["incomplete", "complete"]);
+  assert.equal(excluded.states[0].reason.toLowerCase(), "excluded");
+  assert.deepEqual(excluded.history.filter((entry) => entry.command.kind === "readSource").map((entry) => entry.command.target), [2], "excluded C never receives a read request");
+  const cycle = imports.projectImportExample(1, 12);
+  assert.equal(cycle.states[0].phase, "complete");
+  assert.deepEqual(cycle.history.filter((entry) => entry.command.kind === "resolveEdge").map((entry) => entry.command.edge), [10, 20, 30]);
+  assert.equal(cycle.states[0].files, 3, "cycle does not recapture A");
+  for (let index = 2; index < imports.IMPORT_GRAPH_SCENARIOS.length; index++) {
+    const example = imports.projectImportExample(index, imports.IMPORT_GRAPH_SCENARIOS[index].steps.length);
+    assert.equal(example.states[0].phase, "incomplete", imports.IMPORT_GRAPH_SCENARIOS[index].title);
+  }
+  const treeLimit = imports.projectImportExample(4, 2);
+  assert.equal(treeLimit.states[0].reason, "TreeLimit");
+  assert.equal(treeLimit.history.some((entry) => ["resolveEdge", "readSource"].includes(entry.command.kind)), false);
+  const totalRead = imports.projectImportExample(5, imports.IMPORT_GRAPH_SCENARIOS[5].steps.length);
+  assert.equal(totalRead.states[0].reason, "ReadLimit");
+  assert.equal(totalRead.states[0].readBytes, 1572864);
+  assert.equal(totalRead.states[0].files, 6);
+  assert.equal(totalRead.history.filter((entry) => entry.command.kind === "readSource").length, 5);
+  let importModel = send(initial, main.Message.MovedImportCursor({ cursor: 10 }));
+  assert.match(renderText(importModel), /A.ts · incomplete/);
+  assert.match(renderText(importModel), /D.ts · complete/);
+  importModel = send(importModel, main.Message.Reset());
+  assert.equal(importModel.importCursor, 10, "full-flow reset preserves separate import replay");
+  assert.equal(importModel.historyPosition, 0);
+  Scene.scene({ update: main.update, view: main.view },
+    Scene.given(initial),
+    Scene.click(Scene.getByRole("button", { name: "Next import step", exact: true })),
+    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Import step 1 of 10/)),
+    Scene.click(Scene.getByRole("button", { name: "Previous import step", exact: true })),
+    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Import step 0 of 10/)));
+
   assert.match(renderText(initial), /COMPILED BEND FLOW MODEL/);
   assert.match(renderText(initial), /not a trace of the production resident/);
   assert.doesNotMatch(renderText(initial), /TypeScript sidecar reducer|Routes and .* applied steps match/);
@@ -126,7 +160,7 @@ try {
       }
     }
   }
-  process.stdout.write(`Checked ${graph.PROJECTED_TRACES.length} guided scenarios, focused Foldkit interactions, and ${timing.REDUCER_SEGMENTS.length} timeline companions.\n`);
+  process.stdout.write(`Checked ${graph.PROJECTED_TRACES.length} guided scenarios, ${imports.IMPORT_GRAPH_SCENARIOS.length} import examples, focused Foldkit interactions, and ${timing.REDUCER_SEGMENTS.length} timeline companions.\n`);
 } finally {
   await server.close();
 }

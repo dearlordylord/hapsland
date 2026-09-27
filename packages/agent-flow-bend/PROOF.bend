@@ -1,6 +1,15 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.import_graph_exclusion_has_no_read_command():
+  {==}
+
+def Laws.import_graph_cycle_does_not_request_source():
+  {==}
+
+def Laws.import_graph_exhausted_tree_stops_before_resolve():
+  {==}
+
 def Laws.rotated_in_scope_advice_is_retired():
   {==}
 

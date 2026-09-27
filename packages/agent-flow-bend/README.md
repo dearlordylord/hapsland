@@ -1,5 +1,10 @@
 # Hapsland agent flow in Bend
 
+`ImportGraph.bend` defines the #141 source-free supporting-reference traversal
+for one review unit. Its compiled graph and checked TypeScript adapter drive a
+separate dashboard state machine; production cross-file capture is still pending
+#133/#138. Run `npm run test:import-graph` for its laws and independent traces.
+
 `Flow.bend` drives the abstract discussion visualization. Its state holds all live review items, two
 independent capacities, the virtual round, finish wait, one delivery lease,
 and background submission history. The pure `step` function returns an accepted

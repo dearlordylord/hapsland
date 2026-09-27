@@ -8,9 +8,8 @@ implementation specification.
 | Product | Hapsland, the runtime-neutral system we are designing around realtime coding-agent reviews. |
 | Jev | TypeSafe's external tool used by the product for typed, realtime review judgments. Jev is not the product name. |
 | Review integration | The product's integration boundary around agent runtimes, rules, findings, and review backends. |
-| Runtime installation | The product integration made available to a particular agent runtime for a user. Installation does not itself authorize review of a repository. |
-| Repository enablement | The user-approved activation of review for a canonical working root and its review backend/destination, subject to source eligibility rules. |
-| Runtime trust | The agent runtime's approval to execute an installed integration. It is separate from repository enablement and credential availability. |
+| Runtime installation | The product integration made available to a particular agent runtime for a user. When the runtime executes it and Jev credentials are available, review can run for files allowed by file selection. |
+| Runtime trust | The agent runtime's approval to execute an installed integration. It is separate from Hapsland's file selection and credential availability. |
 | Agent runtime | A program that runs an agent's tool and edit loop and reports its events, such as Codex CLI or Claude Code. |
 | Agent | A coding assistant that edits source in an agent runtime and can receive advice from Hapsland. |
 | Subagent | An agent started by another agent within an agent runtime. It remains an agent for review and advice. |
@@ -22,9 +21,11 @@ implementation specification.
 | Change observation | Agent runtime or reconciliation evidence that eligible working-tree content may have changed. |
 | Observation origin | The kind of evidence behind a change observation: direct edit or checkpoint reconciliation. |
 | Change attribution | Agent runtime evidence that associates an exact current snapshot with an intended advicee and canonical working root. Root co-location or checkpoint discovery alone is not attribution. |
-| File selection | The policy decision that a candidate path may be captured. Selection is based on containment, file kind, ignore rules, and declarative includes/excludes; it does not encode language or semantic-analyzer applicability. |
+| File selection | The policy decision that a candidate path may be captured. By default, otherwise eligible files are included. User file settings can include or exclude paths; containment, protected paths, file kind, and ignore rules still apply. Selection does not encode language or semantic-analyzer applicability. |
 | Analysis applicability | Whether bounded captured content is understood by an available semantic analyzer and yields reviewable artifacts. No applicable analyzer is an ordinary quiet result, distinct from file exclusion. |
 | Snapshot | The exact eligible source content observed at one capture boundary, identified by its source identity. It is transient review evidence, not a backup, history, or durable replay record. |
+| Supporting source | An eligible source file reached through a selected root's reference graph. It contributes evidence to that root's review unit without becoming an attributed edit or a separately selected root. |
+| Evidence tree | The finite projection of one selected root, its resolved supporting declarations, and their reference edges that a review unit presents for evaluation. |
 | Unattributed change | A checkpoint-discovered change for which the exact current snapshot cannot be associated with an advicee. It has unknown origin and no advicee, so it cannot produce agent-addressed advice. |
 | Direct-edit observation | Change evidence obtained at a dedicated edit boundary exposed by an agent runtime. |
 | Checkpoint reconciliation | Comparison of eligible working-tree content with prior observation state to discover changes not yet accounted for. |
@@ -49,6 +50,7 @@ implementation specification.
 | Review input contract | A versioned definition of the source, path, domain text, completeness metadata, and rendering presented to a review backend. Different input contracts are distinct evaluation scenarios even when they describe the same edit. |
 | Review input | The exact semantic payload rendered from one review unit under a review input contract for backend evaluation. |
 | Evidence completeness | Whether the evidence required for a checked rule expectation is present. Missing required evidence is incomplete, not evidence that the source is clear. |
+| Capacity ledger | The transient account of admitted review work and preparation resources, tracked across advicees and their shared resident. It is distinct from the number of Jev requests waiting to run. |
 | Rule | A user-configurable criterion evaluated against an action, edit, diff, or related context. |
 | Finding | Evidence produced by a rule evaluation, including its explanation, location, severity, and confidence where available. |
 | Decision | The operational result of a review: allow, ask, block, advisory, context, or observe. |

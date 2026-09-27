@@ -130,9 +130,10 @@ guarantee a later model-visible opportunity.
 
 ## Handoff, reoffer, and continuation count
 
-Every collection revalidates root and advicee identity, enablement, credential
-generation, source eligibility, current work and snapshot, and advice age at the
-final handoff barrier. Transient revalidation failure leaves current advice
+Before Hapsland gives advice, it checks the working root and advicee, the
+current Jev credential generation, file settings, each file needed by the review unit,
+whether the work is still current, and the advice age. A temporary failure
+of this check leaves current advice
 eligible until a later valid attempt or expiry; stale or unattributed advice is
 suppressed. The resident grants one tokenized lease per selected advice item.
 Overlapping collectors cannot own that item together. The collector releases a

@@ -16,6 +16,27 @@ import ./Ticket.bend as Ticket
 import ./Revision.bend as Revision
 import ./Reuse.bend as Reuse
 import ./Retention.bend as Retention
+import ./ImportGraph.bend as ImportGraph
+
+law import_graph_exclusion_has_no_read_command:
+  {ImportGraph.checked(ImportGraph.Edge{2n, 1n}, 2n, False{},
+    Nil{}, 1n <> Nil{}, 1n, 100n, 100n, 1n) ==
+    ImportGraph.Step{ImportGraph.Graph{ImportGraph.Incomplete{ImportGraph.Excluded{}},
+      Nil{}, 1n <> Nil{}, 1n, 100n, 100n, 1n},
+      ImportGraph.UnitIncomplete{ImportGraph.Excluded{}}} : ImportGraph.Step}
+
+law import_graph_cycle_does_not_request_source:
+  {ImportGraph.resolved(ImportGraph.Edge{2n, 1n}, 1n, ImportGraph.Found{},
+    Nil{}, 1n <> Nil{}, 1n, 100n, 100n, 1n) ==
+    ImportGraph.Step{ImportGraph.Graph{ImportGraph.Ready{}, Nil{},
+      1n <> Nil{}, 1n, 100n, 100n, 1n}, ImportGraph.NoCommand{}} : ImportGraph.Step}
+
+law import_graph_exhausted_tree_stops_before_resolve:
+  {ImportGraph.next(ImportGraph.Edge{2n, 1n} <> Nil{}, 1n <> Nil{},
+    1n, 100n, 20480n, 0n) ==
+    ImportGraph.Step{ImportGraph.Graph{ImportGraph.Incomplete{ImportGraph.TreeLimit{}},
+      ImportGraph.Edge{2n, 1n} <> Nil{}, 1n <> Nil{}, 1n, 100n, 20480n, 0n},
+      ImportGraph.UnitIncomplete{ImportGraph.TreeLimit{}}} : ImportGraph.Step}
 
 law rotated_in_scope_advice_is_retired:
   {Collection.credential_disposition(True{}, False{}) ==

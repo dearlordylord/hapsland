@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/build-flow.mjs && node scripts/build-lifecycle.mjs && node scripts/build-policy.mjs && node scripts/build-ledger.mjs",
-    "test": "npm run build && bend PROOF.bend && bend PolicyRuntime.bend && bend FlowExamples.bend && node scripts/check-lifecycle.mjs && node --experimental-strip-types --disable-warning=ExperimentalWarning --experimental-loader ./scripts/ts-extension-loader.mjs scripts/check-flow-contract.mjs && node --experimental-strip-types --disable-warning=ExperimentalWarning --experimental-loader ./scripts/ts-extension-loader.mjs scripts/check-sidecar-parity.mjs"
+    "build": "node scripts/build-flow.mjs && node scripts/build-lifecycle.mjs && node scripts/build-policy.mjs && node scripts/build-ledger.mjs && node scripts/build-import-graph.mjs",
+    "test": "npm run build && bend PROOF.bend && bend PolicyRuntime.bend && bend FlowExamples.bend && node scripts/check-lifecycle.mjs && node --experimental-strip-types --disable-warning=ExperimentalWarning --experimental-loader ./scripts/ts-extension-loader.mjs scripts/check-flow-contract.mjs && node --experimental-strip-types --disable-warning=ExperimentalWarning --experimental-loader ./scripts/ts-extension-loader.mjs scripts/check-sidecar-parity.mjs && node --experimental-strip-types scripts/check-import-graph.mjs",
+    "test:import-graph": "node scripts/build-import-graph.mjs && bend PROOF.bend && node --experimental-strip-types scripts/check-import-graph.mjs"
   }
 }

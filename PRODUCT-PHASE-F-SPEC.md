@@ -1,5 +1,10 @@
 ## Problem Statement
 
+Historical Phase F implementation handoff. The later target decision in
+[#132](https://github.com/dearlordylord/hapsland/issues/132) removes the
+separate repository consent step described below. Running code still has
+that step until #132 is implemented.
+
 The product now has an evidence-backed synchronous Codex review flow, but users still
 have to edit implementation code to change most review behavior. They cannot reliably
 share repository policy, add local declarative rules, inspect why a file was excluded,
@@ -168,11 +173,11 @@ validation work, not dependencies or implementation requirements of this issue.
 
 ## Further Notes
 
-- This is the Phase F successor to the completed, closed issue #1. Publishing this specification does not implement Phase F or complete the product/release roadmap. Issue #2 remains the directory-consent follow-up; issue #4 tracks later write-coverage research.
+- This is the historical Phase F successor to the completed, closed issue #1. Publishing it did not implement Phase F or complete the product roadmap. Issue #2 was closed after the target moved to file settings without a separate grant; issue #4 tracks later write-coverage research.
 - Reconciliation on 2026-09-20 retains the approved actual-provider/fake-HTTP transport test and input-contract identity in evaluation evidence. No separate prohibition on source snapshot storage was adopted; source-free receipt requirements remain unchanged. Broader research findings do not silently add implementation requirements.
 - This specification synthesizes explicit interview answers and the user's delegation of routine remaining decisions. It uses the accepted subprocess/conformance testing approach; no additional interview is required for those seams.
 - Supporting documents: [rule combinatorics test specification](./PRODUCT-RULE-COMBINATORICS-TEST-SPEC.md) and [rule evaluation model](./PRODUCT-RULE-EVALUATION-MODEL.md). They record rationale and details; this consolidated task is the implementation handoff.
-- Accepted architectural decisions: [ADR 0001 — repository/backend consent](./docs/adr/0001-repository-scoped-backend-consent.md) and [ADR 0002 — accumulated file exclusions](./docs/adr/0002-accumulate-file-exclusions.md).
+- Current target architectural decision: [ADR 0002 — accumulated file exclusions](./docs/adr/0002-accumulate-file-exclusions.md). The old repository-consent ADR was removed because the target uses file settings without a separate repository grant.
 - The file-filter research remains advisory. It found no universal inheritance rule: TypeScript replaces lists, Git uses ordered overrides, and ESLint distinguishes ignore scopes. The product explicitly adopts include replacement plus accumulated exclusions to preserve the accepted privacy boundary; it does not claim standards compliance for that choice.
 - Codex provenance: the tested 0.155.1 annotated tag object is 4e21628f9ec9ee656650cd2b62ef92225725b5ac, resolving to commit be2951ea34f0d295ed0becf97079f92fa5f6950e. Prior records calling the tag object a commit should be corrected when compatibility documentation is updated.
 - Primary references: [Codex hook output](https://developers.openai.com/codex/hooks#common-output-fields), [pinned TUI rendering](https://github.com/openai/codex/blob/be2951ea34f0d295ed0becf97079f92fa5f6950e/codex-rs/tui/src/history_cell/hook_cell.rs#L270), [pinned headless JSON handling](https://github.com/openai/codex/blob/be2951ea34f0d295ed0becf97079f92fa5f6950e/codex-rs/exec/src/event_processor_with_jsonl_output.rs#L467), [W3C permission-store precedent](https://www.w3.org/TR/permissions/#permission-store), [TypeScript inheritance](https://www.typescriptlang.org/tsconfig/extends.html), [ESLint ignores](https://eslint.org/docs/latest/use/configure/ignore), and [Git ignore rules](https://git-scm.com/docs/gitignore).

@@ -102,3 +102,18 @@ p { line-height: 1.5; }
 .finish-arrow { color: #657992; font-size: 1.3rem; font-weight: 800; }
 .finish-facts { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
 .finish-facts span { padding: 6px 8px; border-radius: 6px; background: #edf2f8; color: #314863; font-size: .75rem; }
+
+.import-graph-section { margin-top: 24px; scroll-margin-top: 20px; }
+.import-graph-legend { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+.import-graph-legend span { border-radius: 6px; padding: 7px 10px; font-size: .76rem; }
+.import-graph-legend .native { color: #425570; background: #edf1f6; }
+.import-graph-legend .bend { color: #294976; background: #e5efff; }
+.import-graph-legend .jev { color: #205f4a; background: #e3f3eb; }
+.import-graph-diagram svg { min-width: 800px; max-width: 1100px; }
+.import-graph-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 16px 0; }
+.import-graph-facts > div { background: #f8faff; padding: 12px; border: 1px solid #dce3ec; border-radius: 8px; }
+.import-graph-facts strong, .import-graph-facts span { display: block; }
+.import-graph-facts span { margin-top: 7px; color: #52647d; font-size: .8rem; overflow-wrap: anywhere; }
+.import-graph-log { max-height: 300px; overflow: auto; padding-left: 24px; color: #425570; font-size: .82rem; }
+.import-graph-log li { margin: 8px 0; }
+.import-graph-log .current { color: #973c1e; font-weight: 700; }
