@@ -159,6 +159,26 @@ describe("Claude terminal collection", () => {
     expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ version: 2, status: "unavailable", reason: "expired" });
   });
 
+  it("keeps a clear ticket valid until the exact fractional expiry", async () => {
+    const data = await fixture();
+    const admittedAt = 1_000.00095;
+    let now = admittedAt;
+    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), () => now);
+    const dispatch = data.dispatch(0);
+    const admission = await server.handle({ version: 2, operation: "admit", lifetime: server.lifetime,
+      observation: data.observation, controlledWriter: true, dispatch });
+    if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
+    await server.whenIdle();
+    const expiresAt = admittedAt + 600_000;
+    now = expiresAt - 0.00005;
+    expect(now).toBeLessThan(expiresAt);
+    expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ version: 2, status: "clear" });
+    now = expiresAt;
+    expect(await collect(server, admission.ticket, data, dispatch)).toEqual({
+      version: 2, status: "unavailable", reason: "expired",
+    });
+  });
+
   it("observes a clear that completes while the collection response is gated", async () => {
     const data = await fixture();
     const evaluating = deferred();

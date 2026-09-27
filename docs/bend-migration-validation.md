@@ -58,6 +58,11 @@ finding count, and cancellation IDs.
 - `Cache.bend` decides successful-review cache admission and whether its oldest
   entry must be evicted for item or byte pressure. TypeScript retains opaque
   cached results and their LRU order.
+- `Ticket.bend` retains the first ticket failure through closure and orders
+  expiry, credential authority, pending work, live advice and notices,
+  failures, delivered findings, clear results, and no-work results. TypeScript
+  supplies credential and live-output facts and maps Bend's reason tag to the
+  resident protocol.
 - The app build and test commands verify SHA-256 source markers in both
   generated artifacts before using them.
 
@@ -101,8 +106,12 @@ On 2026-09-27, from this worktree:
 - The aggregate Stop gate passed the focused 3 files and 85 tests. Four new
   Bend laws cover live-work waiting, deadline cutoff with exact IDs, wrong
   Stop tokens, and exhausted continuation budget.
+- The ticket terminal migration passed the focused resident-server and
+  terminal-collection suite: 2 files and 80 tests. Nine Bend laws cover first
+  failure retention and terminal outcome ordering. A fractional clock test
+  checks that an exact expiry fact changes only at the original boundary.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
-  suite reported 65 passing files and 570 passing tests, with one file and
+  suite reported 65 passing files and 571 passing tests, with one file and
   two tests skipped.
 - `npm run conformance:package` passed from a clean local package install on
   Linux arm64 and Node 24.20.0. The CLI, parser, resident, hook, installation,

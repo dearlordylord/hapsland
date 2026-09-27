@@ -1,6 +1,33 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.ticket_keeps_first_failure_until_close():
+  {==}
+
+def Laws.ticket_expiry_precedes_credential_and_pending():
+  {==}
+
+def Laws.ticket_credential_precedes_pending():
+  {==}
+
+def Laws.ticket_waits_for_live_advice_after_work_closes():
+  {==}
+
+def Laws.ticket_phase_failure_precedes_unit_failure():
+  {==}
+
+def Laws.ticket_all_findings_delivered_is_terminal():
+  {==}
+
+def Laws.ticket_undelivered_finding_is_lost():
+  {==}
+
+def Laws.ticket_empty_is_no_work():
+  {==}
+
+def Laws.ticket_settled_unit_without_finding_is_clear():
+  {==}
+
 def Laws.existing_cache_entry_reuses_without_byte_check():
   {==}
 

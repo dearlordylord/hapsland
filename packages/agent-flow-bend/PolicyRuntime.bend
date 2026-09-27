@@ -10,6 +10,7 @@ import ./Collection.bend as Collection
 import ./Delivery.bend as Delivery
 import ./Cache.bend as Cache
 import ./Lifecycle.bend as Lifecycle
+import ./Ticket.bend as Ticket
 
 type Smoke is Data:
   Smoke{
@@ -72,6 +73,10 @@ type Smoke is Data:
     lifecycle_finish_gate: Lifecycle.FinishGateResult
     lifecycle_reserve: Round.Step
     lifecycle_release: Round.Step
+    ticket_initial: Ticket.Phase
+    ticket_fail: Ticket.Phase
+    ticket_close: Ticket.Phase
+    ticket_terminal: Ticket.Outcome
   }
 
 def sample_work() -> Work.Work:
@@ -160,5 +165,10 @@ def main() -> Smoke:
       Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
         Work.ReviewUnit{1n, 1n, Work.PendingFinding{}, 1n, 20n} <> Nil{}},
       1n, 1n <> Nil{}),
-    Lifecycle.release_unwritten(Round.Round{1n, True{}, 0n, 1n, 1n, True{}, True{}, True{}}, 1n)
+    Lifecycle.release_unwritten(Round.Round{1n, True{}, 0n, 1n, 1n, True{}, True{}, True{}}, 1n),
+    Ticket.initial(),
+    Ticket.fail(Ticket.initial(), Ticket.Backend{}),
+    Ticket.close(Ticket.fail(Ticket.initial(), Ticket.Backend{})),
+    Ticket.terminal(Ticket.Closed{}, Ticket.Facts{False{}, True{}, 0n,
+      False{}, False{}, None{}, 0n, 0n, 1n})
   }

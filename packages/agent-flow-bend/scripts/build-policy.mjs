@@ -7,7 +7,7 @@ import { createHash } from "node:crypto";
 const root = resolve(import.meta.dirname, "..");
 const productRoot = resolve(root, "../..");
 const digest = createHash("sha256");
-for (const path of ["Admission.bend", "Work.bend", "Handoff.bend", "Round.bend", "Background.bend", "Notice.bend", "Collection.bend", "Delivery.bend", "Cache.bend", "Lifecycle.bend", "PolicyRuntime.bend", "scripts/build-policy.mjs"]) {
+for (const path of ["Admission.bend", "Work.bend", "Handoff.bend", "Round.bend", "Background.bend", "Notice.bend", "Collection.bend", "Delivery.bend", "Cache.bend", "Ticket.bend", "Lifecycle.bend", "PolicyRuntime.bend", "scripts/build-policy.mjs"]) {
   digest.update(path).update("\0").update(readFileSync(join(root, path))).update("\0");
 }
 const sourceHash = digest.digest("hex");
@@ -42,7 +42,11 @@ try {
       !source.includes("function $Lifecycle$cutoff$(") ||
       !source.includes("function $Lifecycle$finish_gate$(") ||
       !source.includes("function $Lifecycle$reserve_selected$(") ||
-      !source.includes("function $Lifecycle$release_unwritten$(")) {
+      !source.includes("function $Lifecycle$release_unwritten$(") ||
+      !source.includes("function $Ticket$initial$(") ||
+      !source.includes("function $Ticket$fail$(") ||
+      !source.includes("function $Ticket$close$(") ||
+      !source.includes("function $Ticket$terminal$(")) {
     throw new Error("Bend policy JavaScript layout changed; inspect generated runtime");
   }
   source = source.replace(footer, `
@@ -176,6 +180,12 @@ export const bendLifecycleReserveSelected = (round, work, token, selected) =>
     selected.reduceRight((tail, value) => ({ $: "Con", head: nat(value), tail }), { $: "Nil" })));
 export const bendLifecycleReleaseUnwritten = (round, token) =>
   run_loop($Lifecycle$release_unwritten$(round, nat(token)));
+export const bendTicketInitial = () => run_loop($Ticket$initial$());
+export const bendTicketFail = (phase, reason) =>
+  run_loop($Ticket$fail$(phase, normalize(reason)));
+export const bendTicketClose = (phase) => run_loop($Ticket$close$(phase));
+export const bendTicketTerminal = (phase, facts) =>
+  run_loop($Ticket$terminal$(phase, normalize(facts)));
 `);
   writeFileSync(join(productRoot, "src/resident/bend-policy.generated.js"),
     `// hapsland-bend-source-sha256:${sourceHash}\n${source}`);

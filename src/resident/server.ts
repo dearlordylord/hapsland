@@ -58,6 +58,8 @@ import {
 import { DispatchCycles } from "./dispatch.ts";
 import { ComposedDelivery } from "./composed-delivery.ts";
 import { BendWorkTracker } from "./bend-work.ts";
+import { bendTicketInitial, bendTicketFail, bendTicketClose, bendTicketTerminal,
+  type BendTicketPhase, type BendTicketReason } from "./bend-policy.generated.js";
 import {
   collectionOrder,
   combinedClaudeOutput,
@@ -186,16 +188,26 @@ type TicketRecord = { readonly ticket: ResidentCollectionTicket; readonly genera
   readonly credentialStatePath: string | null; readonly credentialRequired: boolean;
   readonly credentialEnvironmentOnly: boolean;
   readonly expiresAt: number; readonly units: Array<TicketUnit>;
-  phase: { readonly state: "preparing"; readonly failure?: ResidentUnavailableReason }
-    | { readonly state: "closed" }
-    | { readonly state: "failed"; readonly reason: ResidentUnavailableReason } };
+  phase: BendTicketPhase };
+const ticketReasons: Record<ResidentUnavailableReason, BendTicketReason> = {
+  backend: { $: "Backend" }, credential: { $: "Credential" }, capacity: { $: "Capacity" },
+  stale: { $: "Stale" }, lost: { $: "Lost" }, expired: { $: "Expired" },
+};
+const nativeTicketReason = (reason: BendTicketReason): ResidentUnavailableReason => {
+  switch (reason.$) {
+    case "Backend": return "backend";
+    case "Credential": return "credential";
+    case "Capacity": return "capacity";
+    case "Stale": return "stale";
+    case "Lost": return "lost";
+    case "Expired": return "expired";
+  }
+};
 const ticketFail = (ticket: TicketRecord, reason: ResidentUnavailableReason): void => {
-  if (ticket.phase.state === "preparing") ticket.phase = { state: "preparing", failure: ticket.phase.failure ?? reason };
+  ticket.phase = bendTicketFail(ticket.phase, ticketReasons[reason]);
 };
 const ticketClose = (ticket: TicketRecord): void => {
-  if (ticket.phase.state !== "preparing") return;
-  ticket.phase = ticket.phase.failure === undefined ? { state: "closed" }
-    : { state: "failed", reason: ticket.phase.failure };
+  ticket.phase = bendTicketClose(ticket.phase);
 };
 const TICKET_RETENTION_MS = 600_000;
 const MAX_TICKETS = 256;
@@ -673,7 +685,7 @@ export class ResidentServer {
       credentialStatePath: dispatch.credential?.statePath ?? null,
       credentialRequired: dispatch.controlled === null || dispatch.controlled.requireCredential === true,
       credentialEnvironmentOnly: dispatch.credential?.environmentOnly ?? false,
-      expiresAt: now + TICKET_RETENTION_MS, phase: { state: "preparing" }, units: [],
+      expiresAt: now + TICKET_RETENTION_MS, phase: bendTicketInitial(), units: [],
     } : undefined;
     const job = {
       kind: "ingress" as const,
@@ -2451,24 +2463,33 @@ export class ResidentServer {
   }
 
   #terminalStatus(ticket: TicketRecord, now: number): ResidentResponse {
-    if (now >= ticket.expiresAt) return { version: 2, status: "unavailable", reason: "expired" };
-    if (!this.#credentialAuthority(ticket)) return { version: 2, status: "unavailable", reason: "credential" };
-    if (ticket.phase.state === "preparing" || ticket.units.some((unit) => unit.current.state === "pending")) return { version: 2, status: "pending" };
-    if (this.#advice.some((item) => ticket.units.some((unit) =>
-        unit.current.state === "finding" && unit.current.adviceId === item.id)) ||
-        [...this.#noticeCooldowns.values()].some((item) => item.partition === ticket.partition && item.pending !== undefined)) {
-      return { version: 2, status: "pending" };
-    }
+    const pendingUnits = ticket.units.filter((unit) => unit.current.state === "pending").length;
+    const findingUnits = ticket.units.filter((unit) => unit.current.state === "finding");
+    const liveAdvice = this.#advice.some((item) => findingUnits.some((unit) =>
+      unit.current.state === "finding" && unit.current.adviceId === item.id));
+    const pendingNotice = [...this.#noticeCooldowns.values()].some((item) =>
+      item.partition === ticket.partition && item.pending !== undefined);
     const failedUnit = ticket.units.map((unit) => unit.current)
       .find((state): state is Extract<TicketUnitState, { state: "unavailable" }> => state.state === "unavailable");
-    const unavailable = ticket.phase.state === "failed" ? ticket.phase.reason : failedUnit?.reason;
-    if (unavailable !== undefined) return { version: 2, status: "unavailable", reason: unavailable };
-    if (ticket.units.some((unit) => unit.current.state === "finding")) {
-      return ticket.units.every((unit) => unit.current.state !== "finding" || unit.current.delivered)
-        ? { version: 2, status: "delivered" }
-        : { version: 2, status: "unavailable", reason: "lost" };
+    const outcome = bendTicketTerminal(ticket.phase, { $: "Facts",
+      expired: now >= ticket.expiresAt,
+      credential_valid: this.#credentialAuthority(ticket), pending_units: pendingUnits,
+      live_advice: liveAdvice, pending_notice: pendingNotice,
+      unit_failure: failedUnit === undefined ? { $: "None" }
+        : { $: "Some", value: ticketReasons[failedUnit.reason] },
+      finding_units: findingUnits.length,
+      undelivered_findings: findingUnits.filter((unit) =>
+        unit.current.state === "finding" && !unit.current.delivered).length,
+      total_units: ticket.units.length,
+    });
+    switch (outcome.$) {
+      case "Pending": return { version: 2, status: "pending" };
+      case "Unavailable": return { version: 2, status: "unavailable",
+        reason: nativeTicketReason(outcome.reason) };
+      case "Delivered": return { version: 2, status: "delivered" };
+      case "Clear": return { version: 2, status: "clear" };
+      case "NoWork": return { version: 2, status: "no-work" };
     }
-    return ticket.units.length > 0 ? { version: 2, status: "clear" } : { version: 2, status: "no-work" };
   }
 
   #credentialAuthority(ticket: TicketRecord): boolean {
