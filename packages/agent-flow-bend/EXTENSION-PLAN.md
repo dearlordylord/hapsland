@@ -5,6 +5,12 @@ sidecar, the accepted [Advicing target contract](../../docs/advicing-target-cont
 and current resident behavior, in that order. The contract's historical evidence
 links are pinned; probe records are not copied into this branch.
 
+Implementation note: this plan's single Bend reducer instance was a target,
+not the final architecture. Production now composes generated Bend policy
+gates with native TypeScript state and effects. See the
+[completion report](../../docs/bend-full-flow-completion-report.md) and
+[production boundary diagrams](../../docs/bend-production-backbone-diagrams.md).
+
 The Bend model implements admission, fan-out, outcome tracking,
 per-finding selection, finish reservation, lease transitions, logical capacity,
 and a shared admission/work/finish lifecycle. The resident now uses generated
@@ -72,12 +78,12 @@ round, and operation token that Bend issued. An adapter rejects malformed wire
 values before they reach Bend and maps Bend commands to effects without adding
 another policy branch.
 
-One Bend reducer instance is keyed by an exact advicee partition (canonical
-physical root, runtime/version, session, optional subagent). The identity
-components are canonicalized at the runtime boundary; Bend also stores an
-opaque partition digest and checks it on every event. Turn and tool IDs remain
-event metadata. Multiple instances have no shared mutable advice. A separate
-Bend capacity ledger handles global and partition quotas when needed.
+The original target was one Bend reducer instance keyed by an exact advicee
+partition (canonical physical root, runtime/version, session, optional
+subagent). That aggregate instance was not adopted. The resident now keeps
+native partition and lifecycle maps, maps exact identities to numeric policy
+IDs, and stores separate Bend admission, work, round, and delivery state. A
+separate generated Bend ledger decides global and partition capacity.
 
 ## Required extension, in dependency order
 
