@@ -1,0 +1,259 @@
+import Base
+import ./Admission.bend as Admission
+import ./Work.bend as Work
+import ./Handoff.bend as Handoff
+
+# One advicee partition in one resident lifetime. Native identities are mapped
+# bijectively to Nat IDs by the adapter, then checked on every event here.
+type Lifecycle is Data:
+  Lifecycle{admission: Admission.AdmissionState, work: Work.Work, finish: Handoff.Finish}
+
+type LifecycleEvent is Data:
+  Issue{tool: Nat, started: Nat, deadline: Nat, now: Nat}
+  Commit{permit: Nat, tool: Nat, now: Nat}
+  Prepared{observation: Nat, count: Nat}
+  Reviewed{unit: Nat, outcome: Work.Outcome}
+  SourceInterrupted{observation: Nat}
+  ReviewInterrupted{unit: Nat}
+  FinishCheck{original_deadline: Nat, actionable_findings: Nat, at: Nat, collector: Nat}
+  WriteTerminal{slot: Nat, token: Nat, collector: Nat}
+
+type Command is Data:
+  PermitIssued{token: Nat}
+  ObservationAdmitted{ids: List<&2, Nat>}
+  UnitsAdmitted{ids: List<&2, Nat>}
+  OutcomeRecorded{}
+  WorkInterrupted{}
+  FinishWaiting{}
+  Continue{slot: Nat, token: Nat}
+  Allow{cancelled_source: List<&2, Nat>, cancelled_jev: List<&2, Nat>, discarded: List<&2, Nat>}
+  WriteSettled{}
+
+type LifecycleResult is Data:
+  Advanced{state: Lifecycle, command: Command}
+  Denied{state: Lifecycle}
+
+def initial(partition: Nat, lifetime: Nat) -> Lifecycle:
+  Lifecycle{Admission.initial(partition, lifetime), Work.initial(), Handoff.finish.initial(0n)}
+
+def issue.result(work: Work.Work, finish: Handoff.Finish, result: Admission.AdmissionResult) -> LifecycleResult:
+  match result:
+    case Admission.Accepted{admission, token, _}:
+      match token:
+        case Some{value}:
+          Advanced{Lifecycle{admission, work, finish}, PermitIssued{value}}
+        case None{}:
+          Denied{Lifecycle{admission, work, finish}}
+    case Admission.Rejected{admission, _}:
+      Denied{Lifecycle{admission, work, finish}}
+
+def issue(state: Lifecycle, partition: Nat, lifetime: Nat, tool: Nat, started: Nat, deadline: Nat, now: Nat) -> LifecycleResult:
+  match state:
+    case Lifecycle{admission, work, finish}:
+      issue.result(work, finish, Admission.step(admission, partition, lifetime,
+        Admission.Issue{tool, started, deadline, now}))
+
+def finish_for_commit(earlier: Bool, current: Handoff.Finish, round: Nat) -> Handoff.Finish:
+  match earlier:
+    case True{}:
+      current
+    case False{}:
+      Handoff.finish.initial(round)
+
+def commit.work(admission: Admission.AdmissionState, work_result: Work.WorkStep,
+    finish: Handoff.Finish) -> LifecycleResult:
+  match work_result:
+    case Work.Accepted{work, ids}:
+      Advanced{Lifecycle{admission, work, finish}, ObservationAdmitted{ids}}
+    case Work.Rejected{work, _}:
+      Denied{Lifecycle{admission, work, finish}}
+
+def commit.accept(work: Work.Work, finish: Handoff.Finish, earlier: Bool,
+    result: Admission.AdmissionResult) -> LifecycleResult:
+  match result:
+    case Admission.Accepted{admission, _, round}:
+      match round:
+        case Some{value}:
+          commit.work(admission, Work.admit(work), finish_for_commit(earlier, finish, value))
+        case None{}:
+          Denied{Lifecycle{admission, work, finish}}
+    case Admission.Rejected{admission, _}:
+      Denied{Lifecycle{admission, work, finish}}
+
+def commit(state: Lifecycle, partition: Nat, lifetime: Nat, permit: Nat, tool: Nat, now: Nat) -> LifecycleResult:
+  match state:
+    case Lifecycle{+admission, work, finish}:
+      match admission:
+        case Admission.AdmissionState{_, _, _, active, _, _, _, _}:
+          commit.accept(work, finish, active, Admission.step(admission, partition, lifetime,
+            Admission.Consume{permit, tool, now}))
+
+def prepared.result(admission: Admission.AdmissionState, finish: Handoff.Finish,
+    result: Work.WorkStep) -> LifecycleResult:
+  match result:
+    case Work.Accepted{work, ids}:
+      Advanced{Lifecycle{admission, work, finish}, UnitsAdmitted{ids}}
+    case Work.Rejected{work, _}:
+      Denied{Lifecycle{admission, work, finish}}
+
+def prepared.guard(state: Lifecycle, observation: Nat, count: Nat, current: Bool) -> LifecycleResult:
+  match state:
+    case Lifecycle{admission, work, finish}:
+      match current:
+        case True{}:
+          prepared.result(admission, finish, Work.prepare(work, observation, count))
+        case False{}:
+          Denied{Lifecycle{admission, work, finish}}
+
+def prepared(+state: Lifecycle, partition: Nat, lifetime: Nat, round: Nat, observation: Nat, count: Nat) -> LifecycleResult:
+  match state:
+    case Lifecycle{admission, _, _}:
+      prepared.guard(state, observation, count,
+        Admission.callback_current(admission, partition, lifetime, round))
+
+def reviewed.result(admission: Admission.AdmissionState, finish: Handoff.Finish,
+    result: Work.WorkStep) -> LifecycleResult:
+  match result:
+    case Work.Accepted{work, _}:
+      Advanced{Lifecycle{admission, work, finish}, OutcomeRecorded{}}
+    case Work.Rejected{work, _}:
+      Denied{Lifecycle{admission, work, finish}}
+
+def reviewed.guard(state: Lifecycle, unit: Nat, outcome: Work.Outcome, current: Bool) -> LifecycleResult:
+  match state:
+    case Lifecycle{admission, work, finish}:
+      match current:
+        case True{}:
+          reviewed.result(admission, finish, Work.outcome(work, unit, outcome))
+        case False{}:
+          Denied{Lifecycle{admission, work, finish}}
+
+def reviewed(+state: Lifecycle, partition: Nat, lifetime: Nat, round: Nat, unit: Nat, outcome: Work.Outcome) -> LifecycleResult:
+  match state:
+    case Lifecycle{admission, _, _}:
+      reviewed.guard(state, unit, outcome,
+        Admission.callback_current(admission, partition, lifetime, round))
+
+def interrupt.result(admission: Admission.AdmissionState, finish: Handoff.Finish,
+    result: Work.WorkStep) -> LifecycleResult:
+  match result:
+    case Work.Accepted{work, _}:
+      Advanced{Lifecycle{admission, work, finish}, WorkInterrupted{}}
+    case Work.Rejected{work, _}:
+      Denied{Lifecycle{admission, work, finish}}
+
+def interrupt.valid(admission: Admission.AdmissionState, work: Work.Work,
+    finish: Handoff.Finish, id: Nat, source: Bool) -> LifecycleResult:
+  match source:
+    case True{}:
+      interrupt.result(admission, finish, Work.interrupt_observation(work, id))
+    case False{}:
+      interrupt.result(admission, finish, Work.interrupt_unit(work, id))
+
+def interrupt.guard(state: Lifecycle, id: Nat, source: Bool, current: Bool) -> LifecycleResult:
+  match state:
+    case Lifecycle{admission, work, finish}:
+      match current:
+        case True{}:
+          interrupt.valid(admission, work, finish, id, source)
+        case False{}:
+          Denied{Lifecycle{admission, work, finish}}
+
+def interrupt(+state: Lifecycle, partition: Nat, lifetime: Nat, round: Nat, id: Nat, source: Bool) -> LifecycleResult:
+  match state:
+    case Lifecycle{admission, _, _}:
+      interrupt.guard(state, id, source,
+        Admission.callback_current(admission, partition, lifetime, round))
+
+def allow.closed(admission_result: Admission.AdmissionResult, closed_work: Work.CloseResult,
+    finish: Handoff.Finish) -> LifecycleResult:
+  match admission_result:
+    case Admission.Accepted{admission, _, _}:
+      match closed_work:
+        case Work.Closed{work, source, jev, discarded}:
+          Advanced{Lifecycle{admission, work, finish}, Allow{source, jev, discarded}}
+    case Admission.Rejected{admission, _}:
+      match closed_work:
+        case Work.Closed{work, _, _, _}:
+          Denied{Lifecycle{admission, work, finish}}
+
+def finish.continue.bound(admission: Admission.AdmissionState, work: Work.Work,
+    +finish: Handoff.Finish) -> LifecycleResult:
+  match finish:
+    case Handoff.Finish{_, _, _, slot, _, token, _, _}:
+      Advanced{Lifecycle{admission, work, finish}, Continue{slot, token}}
+
+def finish.continue(admission: Admission.AdmissionState, work: Work.Work,
+    finish: Handoff.Finish, collector: Nat) -> LifecycleResult:
+  finish.continue.bound(admission, work, Handoff.finish.bind_writer(finish, collector))
+
+def finish.result(admission: Admission.AdmissionState, work: Work.Work, at: Nat, collector: Nat,
+    result: Handoff.FinishResult) -> LifecycleResult:
+  match result:
+    case Handoff.Wait{finish}:
+      Advanced{Lifecycle{admission, work, finish}, FinishWaiting{}}
+    case Handoff.Continue{finish}:
+      finish.continue(admission, work, finish, collector)
+    case Handoff.Allow{finish}:
+      allow.closed(Admission.close_round(admission, at), Work.close(work), finish)
+
+def finish.guard(state: Lifecycle, original_deadline: Nat, actionable: Nat, +at: Nat,
+    collector: Nat, current: Bool) -> LifecycleResult:
+  match state:
+    case Lifecycle{admission, +work, finish}:
+      match current:
+        case True{}:
+          finish.result(admission, work, at, collector,
+            Handoff.finish.decide_at(finish, Work.unfinished(work), at, original_deadline, actionable))
+        case False{}:
+          Denied{Lifecycle{admission, work, finish}}
+
+def finish_check(+state: Lifecycle, partition: Nat, lifetime: Nat, round: Nat,
+    +original_deadline: Nat, +actionable: Nat, at: Nat, +collector: Nat) -> LifecycleResult:
+  match state:
+    case Lifecycle{admission, work, _}:
+      finish.guard(state, original_deadline, actionable, at, collector,
+        Bool.and(Admission.callback_current(admission, partition, lifetime, round),
+          Bool.and(Nat.is_gt(original_deadline, 0n),
+            Bool.and(Nat.is_gt(collector, 0n),
+              Bool.and(Nat.is_le(actionable, Work.pending_findings(work)), Nat.is_le(actionable, 5n))))))
+
+def write.guard(state: Lifecycle, round: Nat, slot: Nat, token: Nat, collector: Nat, current: Bool) -> LifecycleResult:
+  match state:
+    case Lifecycle{admission, work, finish}:
+      match current:
+        case True{}:
+          Advanced{Lifecycle{admission, work, Handoff.finish.complete(finish, round, slot, token, collector)}, WriteSettled{}}
+        case False{}:
+          Denied{Lifecycle{admission, work, finish}}
+
+def write_terminal(+state: Lifecycle, partition: Nat, lifetime: Nat, +round: Nat, +slot: Nat,
+    +token: Nat, +collector: Nat) -> LifecycleResult:
+  match state:
+    case Lifecycle{admission, _, finish}:
+      write.guard(state, round, slot, token, collector,
+        Bool.and(Admission.callback_current(admission, partition, lifetime, round),
+          Handoff.finish.can_complete(finish, round, slot, token, collector)))
+
+def apply(state: Lifecycle, partition: Nat, lifetime: Nat, round: Nat,
+    event: LifecycleEvent) -> LifecycleResult:
+  match event:
+    case Issue{tool, started, deadline, now}:
+      issue(state, partition, lifetime, tool, started, deadline, now)
+    case Commit{permit, tool, now}:
+      commit(state, partition, lifetime, permit, tool, now)
+    case Prepared{observation, count}:
+      prepared(state, partition, lifetime, round, observation, count)
+    case Reviewed{unit, outcome}:
+      reviewed(state, partition, lifetime, round, unit, outcome)
+    case SourceInterrupted{observation}:
+      interrupt(state, partition, lifetime, round, observation, True{})
+    case ReviewInterrupted{unit}:
+      interrupt(state, partition, lifetime, round, unit, False{})
+    case FinishCheck{original_deadline, actionable, at, collector}:
+      finish_check(state, partition, lifetime, round, original_deadline, actionable, at, collector)
+    case WriteTerminal{slot, token, collector}:
+      write_terminal(state, partition, lifetime, round, slot, token, collector)
+
+def main() -> LifecycleResult:
+  apply(initial(1n, 1n), 1n, 1n, 0n, Issue{2n, 1n, 5n, 1n})

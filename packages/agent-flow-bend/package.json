@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/build-flow.mjs",
-    "test": "npm run build && bend PROOF.bend && bend FlowExamples.bend && node --experimental-strip-types --disable-warning=ExperimentalWarning --experimental-loader ./scripts/ts-extension-loader.mjs scripts/check-sidecar-parity.mjs"
+    "build": "node scripts/build-flow.mjs && node scripts/build-lifecycle.mjs",
+    "test": "npm run build && bend PROOF.bend && bend PolicyRuntime.bend && bend FlowExamples.bend && node scripts/check-lifecycle.mjs && node --experimental-strip-types --disable-warning=ExperimentalWarning --experimental-loader ./scripts/ts-extension-loader.mjs scripts/check-sidecar-parity.mjs"
   }
 }
