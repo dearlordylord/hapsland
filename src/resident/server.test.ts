@@ -251,6 +251,31 @@ describe("resident delivery lease", () => {
     } finally { gate.resolve(); await server.close(); }
   });
 
+  it("decides a settled round immediately after an abandoned notice lease expires", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    let now = 0;
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => now);
+    const dispatch = { ...findingDispatch(statePath), controlled: { failure: "fixture unavailable" } };
+    try {
+      server.admit(observation, dispatch, false, true);
+      await server.whenIdle();
+      const collect = { version: 1 as const, operation: "collect" as const, lifetime: server.lifetime,
+        root, advicee: observation.advicee, dispatch, mode: "turn-end" as const, composed: true as const };
+      expect((await server.handle(collect)).status).toBe("advice");
+      now += DELIVERY_LEASE_MS + 1;
+      await server.handle({ version: 1, operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "finish" });
+      const decision = await server.handle({ ...collect, finish: { token: "finish", deadlineReached: false } });
+      expect(decision.status).toBe("advice");
+      if (decision.status === "advice") expect(decision.findingCount).toBe(0);
+    } finally { await server.close(); }
+  });
+
   it("requires the installed PreToolUse permit before admitting composed IPC", async () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");

@@ -2189,6 +2189,7 @@ export class ResidentServer {
         const group = adviceeGroup(request.root, request.advicee);
         if (!this.#composedDelivery.ownsStop(group, request.finish.token)) return { status: "empty" };
         // Expired leases represent uncertain external output, not live writers.
+        this.#pruneNoticeCooldowns(this.#now());
         for (const advice of this.#advice) {
           if (adviceeGroup(advice.observation.root, advice.observation.advicee) === group &&
               advice.delivery !== undefined && advice.delivery.leaseUntil <= this.#now()) delete advice.delivery;
