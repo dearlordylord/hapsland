@@ -11,6 +11,7 @@ import ./Delivery.bend as Delivery
 import ./Cache.bend as Cache
 import ./Lifecycle.bend as Lifecycle
 import ./Ticket.bend as Ticket
+import ./Revision.bend as Revision
 
 type Smoke is Data:
   Smoke{
@@ -82,6 +83,8 @@ type Smoke is Data:
     ticket_terminal: Ticket.Outcome
     ticket_unit: Ticket.UnitStep
     ticket_unit_initial: Ticket.UnitStage
+    revision_register: Revision.Registration
+    revision_superseded: Bool
   }
 
 def sample_work() -> Work.Work:
@@ -181,5 +184,7 @@ def main() -> Smoke:
     Ticket.terminal(Ticket.Closed{}, Ticket.Facts{False{}, True{}, 0n,
       False{}, False{}, None{}, 0n, 0n, 1n}),
     Ticket.unit.step(Ticket.UnitFinding{False{}}, Ticket.MarkDelivered{}),
-    Ticket.unit.initial()
+    Ticket.unit.initial(),
+    Revision.register(True{}, False{}),
+    Revision.superseded(1n, 1n, 1n, 2n)
   }

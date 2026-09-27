@@ -1,6 +1,24 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.identical_input_reuses_current_revision():
+  {==}
+
+def Laws.changed_input_replaces_current_revision():
+  {==}
+
+def Laws.first_input_creates_revision():
+  {==}
+
+def Laws.newer_revision_supersedes_same_subject():
+  {==}
+
+def Laws.same_generation_is_current():
+  {==}
+
+def Laws.other_subject_is_not_superseded():
+  {==}
+
 def Laws.notice_suppression_increments_count():
   {==}
 

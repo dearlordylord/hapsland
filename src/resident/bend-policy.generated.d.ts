@@ -290,3 +290,8 @@ export type BendTicketUnitStep = { readonly $: "UnitGranted" | "UnitDenied";
 export function bendTicketUnitStep(stage: BendTicketUnitStage,
   event: BendTicketUnitEvent): BendTicketUnitStep;
 export function bendTicketUnitInitial(): BendTicketUnitStage;
+export type BendRevisionRegistration = { readonly $: "Reuse" | "Replace" };
+export function bendRevisionRegister(hasCurrent: boolean, sameInput: boolean): BendRevisionRegistration;
+export function bendRevisionSuperseded(candidateSubject: number | bigint,
+  targetSubject: number | bigint, candidateGeneration: number | bigint,
+  currentGeneration: number | bigint): boolean;

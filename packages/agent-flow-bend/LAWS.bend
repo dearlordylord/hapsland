@@ -13,6 +13,25 @@ import ./Collection.bend as Collection
 import ./Delivery.bend as Delivery
 import ./Cache.bend as Cache
 import ./Ticket.bend as Ticket
+import ./Revision.bend as Revision
+
+law identical_input_reuses_current_revision:
+  {Revision.register(True{}, True{}) == Revision.Reuse{} : Revision.Registration}
+
+law changed_input_replaces_current_revision:
+  {Revision.register(True{}, False{}) == Revision.Replace{} : Revision.Registration}
+
+law first_input_creates_revision:
+  {Revision.register(False{}, False{}) == Revision.Replace{} : Revision.Registration}
+
+law newer_revision_supersedes_same_subject:
+  {Revision.superseded(1n, 1n, 2n, 3n) == True{} : Bool}
+
+law same_generation_is_current:
+  {Revision.superseded(1n, 1n, 3n, 3n) == False{} : Bool}
+
+law other_subject_is_not_superseded:
+  {Revision.superseded(2n, 1n, 2n, 3n) == False{} : Bool}
 
 law notice_suppression_increments_count:
   {Notice.advance(Some{1n}, 1n, 64n, 3n, Some{2n}, False{}, 5n) ==

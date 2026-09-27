@@ -70,6 +70,10 @@ finding count, and cancellation IDs.
   failures, delivered findings, clear results, and no-work results. TypeScript
   supplies credential and live-output facts and maps Bend's reason tag to the
   resident protocol.
+- `Revision.bend` decides whether canonical input identity reuses a current
+  revision or replaces it, and whether a source-free subject/generation pair
+  supersedes ticket units and pending advice. TypeScript maps exact canonical
+  subjects to temporary numeric IDs and applies Bend's retirement decisions.
 - The app build and test commands verify SHA-256 source markers in both
   generated artifacts before using them.
 
@@ -133,6 +137,9 @@ On 2026-09-27, from this worktree:
   suppression, bounded counts, new-key admission, pending creation, unleased
   merge, and leased preservation; integration cases check a suppressed failure
   merged into pending output and saturation at the generated Nat limit.
+- The revision supersession migration passed the focused resident-server and
+  terminal-collection suite: 2 files and 80 tests. Six Bend laws cover reuse, changed input, first
+  input, same-subject replacement, current generation, and other subjects.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
   suite reported 65 passing files and 571 passing tests, with one file and
   two tests skipped.

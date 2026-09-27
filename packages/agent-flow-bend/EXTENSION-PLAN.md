@@ -19,6 +19,8 @@ expiry, and deterministic order. Generated delivery policy decides token
 transition and lease expiry. Generated cache policy decides successful-review
 admission and eviction pressure. Generated ticket policy decides unit-state
 transitions, failure retention, and terminal collection outcomes. The generated
+revision policy decides canonical-input reuse and which same-subject older
+ticket units and advice are superseded. The generated
 `Lifecycle` finish gate and final reservation now own the resident's Stop wait,
 decision fence, exact work cancellation
 IDs, selected pending unit counts, and continuation slot. The final IPC

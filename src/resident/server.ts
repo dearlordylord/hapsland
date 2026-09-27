@@ -59,7 +59,8 @@ import { DispatchCycles } from "./dispatch.ts";
 import { ComposedDelivery } from "./composed-delivery.ts";
 import { BendWorkTracker } from "./bend-work.ts";
 import { bendTicketInitial, bendTicketFail, bendTicketClose, bendTicketTerminal,
-  bendTicketUnitStep, bendTicketUnitInitial, type BendTicketPhase, type BendTicketReason,
+  bendTicketUnitStep, bendTicketUnitInitial, bendRevisionRegister, bendRevisionSuperseded,
+  type BendTicketPhase, type BendTicketReason,
   type BendTicketUnitEvent, type BendTicketUnitStage } from "./bend-policy.generated.js";
 import {
   collectionOrder,
@@ -1406,10 +1407,14 @@ export class ResidentServer {
   #registerCurrentWork(partition: string, prepared: PreparedUnit): WorkRevision {
     const subject = this.#subject(partition, prepared);
     const retained = this.#currentWork.get(subject);
-    if (retained !== undefined && canonicalValue(retained.input) === canonicalValue(prepared.input)) {
+    const registration = bendRevisionRegister(retained !== undefined,
+      retained !== undefined && canonicalValue(retained.input) === canonicalValue(prepared.input));
+    if (registration.$ === "Reuse") {
+      if (retained === undefined) throw new Error("invalid Bend revision reuse");
       this.#currentWork.set(subject, { ...retained, members: retained.members + 1 });
       return { subject, token: retained.token, generation: retained.generation };
     }
+    if (registration.$ !== "Replace") throw new Error("invalid Bend revision registration");
     const generation = this.#nextWorkGeneration++;
     const token = randomUUID();
     this.#currentWork.set(subject, {
@@ -1418,36 +1423,50 @@ export class ResidentServer {
       input: prepared.input,
       members: 1,
     });
-    for (const ticket of this.#tickets.values()) {
-      for (const unit of ticket.units) {
-        const revision = unit.current.revision;
-        if (revision?.subject === subject && revision.token !== token) {
-          unitUnavailable(unit, "stale");
+    this.#retireSuperseded(subject, generation, true);
+    return { subject, token, generation };
+  }
+
+  #retireSuperseded(subject: string, generation: number, includeTickets: boolean): void {
+    const subjectIds = new Map<string, number>([[subject, 1]]);
+    const subjectId = (value: string): number => {
+      let id = subjectIds.get(value);
+      if (id === undefined) {
+        id = subjectIds.size + 1;
+        subjectIds.set(value, id);
+      }
+      return id;
+    };
+    const superseded = (revision: WorkRevision): boolean =>
+      bendRevisionSuperseded(subjectId(revision.subject), 1,
+        revision.generation, generation);
+    if (includeTickets) {
+      for (const ticket of this.#tickets.values()) {
+        for (const unit of ticket.units) {
+          const revision = unit.current.revision;
+          if (revision !== undefined && superseded(revision)) unitUnavailable(unit, "stale");
         }
       }
     }
     for (const advice of [...this.#advice]) {
-      if (advice.revision.subject === subject && advice.revision.token !== token) {
-        this.#removeAdvice(advice.id);
-      }
+      if (superseded(advice.revision)) this.#removeAdvice(advice.id);
     }
-    return { subject, token, generation };
   }
 
   #restoreCurrentWork(partition: string, prepared: PreparedUnit): WorkRevision {
     const subject = this.#subject(partition, prepared);
     const retained = this.#currentWork.get(subject);
-    if (retained !== undefined && canonicalValue(retained.input) === canonicalValue(prepared.input)) {
+    const registration = bendRevisionRegister(retained !== undefined,
+      retained !== undefined && canonicalValue(retained.input) === canonicalValue(prepared.input));
+    if (registration.$ === "Reuse") {
+      if (retained === undefined) throw new Error("invalid Bend revision reuse");
       return { subject, token: retained.token, generation: retained.generation };
     }
+    if (registration.$ !== "Replace") throw new Error("invalid Bend revision registration");
     const generation = this.#nextWorkGeneration++;
     const token = randomUUID();
     this.#currentWork.set(subject, { token, generation, input: prepared.input, members: 1 });
-    for (const advice of [...this.#advice]) {
-      if (advice.revision.subject === subject && advice.revision.token !== token) {
-        this.#removeAdvice(advice.id);
-      }
-    }
+    this.#retireSuperseded(subject, generation, false);
     return { subject, token, generation };
   }
 

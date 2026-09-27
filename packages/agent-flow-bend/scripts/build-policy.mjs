@@ -7,7 +7,7 @@ import { createHash } from "node:crypto";
 const root = resolve(import.meta.dirname, "..");
 const productRoot = resolve(root, "../..");
 const digest = createHash("sha256");
-for (const path of ["Admission.bend", "Work.bend", "Handoff.bend", "Round.bend", "Background.bend", "Notice.bend", "Collection.bend", "Delivery.bend", "Cache.bend", "Ticket.bend", "Lifecycle.bend", "PolicyRuntime.bend", "scripts/build-policy.mjs"]) {
+for (const path of ["Admission.bend", "Work.bend", "Handoff.bend", "Round.bend", "Background.bend", "Notice.bend", "Collection.bend", "Delivery.bend", "Cache.bend", "Ticket.bend", "Revision.bend", "Lifecycle.bend", "PolicyRuntime.bend", "scripts/build-policy.mjs"]) {
   digest.update(path).update("\0").update(readFileSync(join(root, path))).update("\0");
 }
 const sourceHash = digest.digest("hex");
@@ -51,7 +51,9 @@ try {
       !source.includes("function $Ticket$close$(") ||
       !source.includes("function $Ticket$terminal$(") ||
       !source.includes("function $Ticket$unit$step$(") ||
-      !source.includes("function $Ticket$unit$initial$(")) {
+      !source.includes("function $Ticket$unit$initial$(") ||
+      !source.includes("function $Revision$register$(") ||
+      !source.includes("function $Revision$superseded$(")) {
     throw new Error("Bend policy JavaScript layout changed; inspect generated runtime");
   }
   source = source.replace(footer, `
@@ -201,6 +203,12 @@ export const bendTicketTerminal = (phase, facts) =>
 export const bendTicketUnitStep = (stage, event) =>
   run_loop($Ticket$unit$step$(normalize(stage), normalize(event)));
 export const bendTicketUnitInitial = () => run_loop($Ticket$unit$initial$());
+export const bendRevisionRegister = (hasCurrent, sameInput) =>
+  run_loop($Revision$register$(hasCurrent, sameInput));
+export const bendRevisionSuperseded = (candidateSubject, targetSubject,
+  candidateGeneration, currentGeneration) =>
+  run_loop($Revision$superseded$(nat(candidateSubject), nat(targetSubject),
+    nat(candidateGeneration), nat(currentGeneration)));
 `);
   writeFileSync(join(productRoot, "src/resident/bend-policy.generated.js"),
     `// hapsland-bend-source-sha256:${sourceHash}\n${source}`);
