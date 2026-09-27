@@ -1,12 +1,11 @@
 # Hapsland agent flow in Bend
 
-`Flow.bend` now implements the one-advicee discussion reducer from
-`../agent-flow-viz/src/flow.ts`. Its state holds all live review items, two
+`Flow.bend` drives the abstract discussion visualization. Its state holds all live review items, two
 independent capacities, the virtual round, finish wait, one delivery lease,
 and background submission history. The pure `step` function returns an accepted
 state and finish choice or a precise rejection. `changes` derives the same
 ordered transition, emission, capacity, and finish-decision records as the
-sidecar. The older `Advicing.bend` is a small proof slice retained for continuity.
+retained TypeScript reference reducer. The older `Advicing.bend` is a small proof slice retained for continuity.
 
 `Admission.bend`, `Work.bend`, and `Handoff.bend` extend the model with
 pre-edit permits, observation fan-out, per-finding handoff limits, finish
@@ -36,11 +35,14 @@ work, round, and handoff modules at their effect barriers.
 Run `npm test` in this directory. It builds `flow.generated.js` and
 `lifecycle.generated.js` and the resident policy/ledger artifacts from Bend,
 checks every law in `PROOF.bend`, runs a
-generated lifecycle trace, executes three Bend flow traces, then compares
+generated lifecycle trace, executes three Bend flow traces, checks fixed flow
+expectations and structural properties over 100 bounded generated traces, then compares
 states, rejections, decisions, and ordered changes against the sidecar for its
 nine guided scenarios, four focused traces, and 100 deterministic generated
-traces. The generator exercises both accepted and rejected events. The sidecar
-package's dependencies must be installed with `npm ci` for the parity check.
+traces. The parity generator exercises both accepted and rejected events. The
+reference reducer now lives in `../agent-flow-viz/src/reference-flow.ts` and is
+used only by that offline parity runner. The visualization package's
+dependencies must be installed with `npm ci` for the parity and contract checks.
 
 Generated JavaScript is an artifact, not an alternate implementation. The
 resident maps exact native identities to numeric IDs, revalidates each offered
