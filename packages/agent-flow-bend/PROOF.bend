@@ -1,6 +1,24 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.live_advice_precedes_pending_and_cache():
+  {==}
+
+def Laws.attached_pending_precedes_claimed_pending():
+  {==}
+
+def Laws.bare_claim_joins_without_cache_lookup():
+  {==}
+
+def Laws.no_live_owner_looks_up_success_cache():
+  {==}
+
+def Laws.successful_cache_hit_reuses_evaluation():
+  {==}
+
+def Laws.cache_miss_claims_evaluation_owner():
+  {==}
+
 def Laws.background_submission_blocked_by_stop_barrier():
   {==}
 

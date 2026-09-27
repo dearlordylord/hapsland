@@ -167,6 +167,9 @@ On 2026-09-27, from this worktree:
   resident-server suite: 2 files and 79 tests. Six Bend laws cover the Stop
   background barrier, edit admission, finish permits, duplicate token denial,
   and legacy Stop decisions.
+- The evaluation reuse route migration passed the focused resident-server and
+  evaluation-reuse suite: 2 files and 64 tests. Six Bend laws cover live advice,
+  pending ownership, successful cache, and a new evaluation claim.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
   suite reported 65 passing files and 575 passing tests, with one file and
   two tests skipped.

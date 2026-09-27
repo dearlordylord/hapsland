@@ -14,6 +14,25 @@ import ./Delivery.bend as Delivery
 import ./Cache.bend as Cache
 import ./Ticket.bend as Ticket
 import ./Revision.bend as Revision
+import ./Reuse.bend as Reuse
+
+law live_advice_precedes_pending_and_cache:
+  {Reuse.route(True{}, True{}, True{}) == Reuse.JoinAdvice{} : Reuse.Route}
+
+law attached_pending_precedes_claimed_pending:
+  {Reuse.route(False{}, True{}, True{}) == Reuse.JoinPending{} : Reuse.Route}
+
+law bare_claim_joins_without_cache_lookup:
+  {Reuse.route(False{}, False{}, True{}) == Reuse.JoinClaimed{} : Reuse.Route}
+
+law no_live_owner_looks_up_success_cache:
+  {Reuse.route(False{}, False{}, False{}) == Reuse.LookupCache{} : Reuse.Route}
+
+law successful_cache_hit_reuses_evaluation:
+  {Reuse.cache_route(True{}) == Reuse.Cached{} : Reuse.CacheRoute}
+
+law cache_miss_claims_evaluation_owner:
+  {Reuse.cache_route(False{}) == Reuse.Own{} : Reuse.CacheRoute}
 
 law background_submission_blocked_by_stop_barrier:
   {Delivery.submission_allowed(

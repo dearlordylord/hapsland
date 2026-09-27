@@ -243,6 +243,12 @@ export function bendDeliveryExistingTokenAllowed(surface: BendDeliverySurface,
   existingToken: boolean, finishPermit: boolean): boolean;
 export function bendDeliveryLegacyStopAllowed(round: BendRound): boolean;
 
+export type BendReuseRoute = { readonly $: "JoinAdvice" | "JoinPending" | "JoinClaimed" | "LookupCache" };
+export type BendReuseCacheRoute = { readonly $: "Cached" | "Own" };
+export function bendReuseRoute(liveAdvice: boolean, attachedPending: boolean,
+  claimedPending: boolean): BendReuseRoute;
+export function bendReuseCacheRoute(hit: boolean): BendReuseCacheRoute;
+
 export type BendCacheAdmission = { readonly $: "Already" | "Add" | "Reject" };
 export function bendCacheAdmit(existing: boolean, incomingBytes: number | bigint,
   byteLimit: number | bigint): BendCacheAdmission;

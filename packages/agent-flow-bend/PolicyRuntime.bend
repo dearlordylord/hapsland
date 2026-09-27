@@ -12,6 +12,7 @@ import ./Cache.bend as Cache
 import ./Lifecycle.bend as Lifecycle
 import ./Ticket.bend as Ticket
 import ./Revision.bend as Revision
+import ./Reuse.bend as Reuse
 
 type Smoke is Data:
   Smoke{
@@ -76,6 +77,8 @@ type Smoke is Data:
     submission_allowed: Bool
     existing_token_allowed: Bool
     legacy_stop_allowed: Bool
+    reuse_route: Reuse.Route
+    reuse_cache_route: Reuse.CacheRoute
     cache_admission: Cache.Admission
     cache_evict: Bool
     lifecycle_cutoff: Lifecycle.CutoffResult
@@ -179,6 +182,8 @@ def main() -> Smoke:
     Delivery.submission_allowed(Round.initial(), Delivery.Edit{}, False{}, False{}),
     Delivery.existing_token_allowed(Delivery.Edit{}, False{}, False{}),
     Delivery.legacy_stop_allowed(Round.initial()),
+    Reuse.route(False{}, False{}, False{}),
+    Reuse.cache_route(False{}),
     Cache.admit(False{}, 10n, 100n),
     Cache.evict(8n, 100n, 20n, 8n, 128000n),
     Lifecycle.cutoff(Round.Round{1n, True{}, 0n, 0n, 1n, False{}, False{}, False{}},

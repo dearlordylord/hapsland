@@ -21,7 +21,9 @@ Generated collection policy decides readiness,
 expiry, and deterministic order. Generated delivery policy decides token
 transition, lease expiry, submission admission at the Stop barrier, existing
 token finish-permit admission, and legacy Stop authorization. Generated cache policy decides successful-review
-admission and eviction pressure. Generated ticket policy decides unit-state
+admission and eviction pressure. Generated reuse policy decides whether an
+evaluation joins live advice, attached or bare pending work, reads successful
+cache, or claims a new owner. Generated ticket policy decides unit-state
 transitions, failure retention, collection gate priority, and terminal outcomes. The generated
 revision policy decides canonical-input reuse and which same-subject older
 ticket units and advice are superseded. The generated

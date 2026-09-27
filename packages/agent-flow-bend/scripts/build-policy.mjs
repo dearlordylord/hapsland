@@ -7,7 +7,7 @@ import { createHash } from "node:crypto";
 const root = resolve(import.meta.dirname, "..");
 const productRoot = resolve(root, "../..");
 const digest = createHash("sha256");
-for (const path of ["Admission.bend", "Work.bend", "Handoff.bend", "Round.bend", "Background.bend", "Notice.bend", "Collection.bend", "Delivery.bend", "Cache.bend", "Ticket.bend", "Revision.bend", "Lifecycle.bend", "PolicyRuntime.bend", "scripts/build-policy.mjs"]) {
+for (const path of ["Admission.bend", "Work.bend", "Handoff.bend", "Round.bend", "Background.bend", "Notice.bend", "Collection.bend", "Delivery.bend", "Cache.bend", "Ticket.bend", "Revision.bend", "Reuse.bend", "Lifecycle.bend", "PolicyRuntime.bend", "scripts/build-policy.mjs"]) {
   digest.update(path).update("\0").update(readFileSync(join(root, path))).update("\0");
 }
 const sourceHash = digest.digest("hex");
@@ -57,7 +57,9 @@ try {
       !source.includes("function $Ticket$unit$step$(") ||
       !source.includes("function $Ticket$unit$initial$(") ||
       !source.includes("function $Revision$register$(") ||
-      !source.includes("function $Revision$superseded$(")) {
+      !source.includes("function $Revision$superseded$(") ||
+      !source.includes("function $Reuse$route$(") ||
+      !source.includes("function $Reuse$cache_route$(")) {
     throw new Error("Bend policy JavaScript layout changed; inspect generated runtime");
   }
   source = source.replace(footer, `
@@ -194,6 +196,10 @@ export const bendDeliveryExistingTokenAllowed = (surface, existingToken, finishP
   run_loop($Delivery$existing_token_allowed$(normalize(surface), existingToken, finishPermit));
 export const bendDeliveryLegacyStopAllowed = (round) =>
   run_loop($Delivery$legacy_stop_allowed$(normalize(round)));
+export const bendReuseRoute = (liveAdvice, attachedPending, claimedPending) =>
+  run_loop($Reuse$route$(liveAdvice, attachedPending, claimedPending));
+export const bendReuseCacheRoute = (hit) =>
+  run_loop($Reuse$cache_route$(hit));
 export const bendCacheAdmit = (existing, incomingBytes, byteLimit) =>
   run_loop($Cache$admit$(existing, nat(incomingBytes), nat(byteLimit)));
 export const bendCacheEvict = (entries, currentBytes, incomingBytes, entryLimit, byteLimit) =>

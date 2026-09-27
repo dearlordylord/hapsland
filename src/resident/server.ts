@@ -61,6 +61,7 @@ import { BendWorkTracker } from "./bend-work.ts";
 import { bendTicketInitial, bendTicketFail, bendTicketClose, bendTicketTerminal,
   bendTicketCollectGate,
   bendTicketUnitStep, bendTicketUnitInitial, bendRevisionRegister, bendRevisionSuperseded,
+  bendReuseRoute, bendReuseCacheRoute,
   type BendTicketPhase, type BendTicketReason,
   type BendTicketUnitEvent, type BendTicketUnitStage } from "./bend-policy.generated.js";
 import {
@@ -1752,21 +1753,30 @@ export class ResidentServer {
         const planned = deliverable.map((outcome) => {
           const generationPartition = `${job.partition}\0work:${job.work?.id ?? "legacy"}\0credential-generation:${job.dispatch.credential?.generation ?? "controlled"}`;
           const evaluationKey = this.#reuse.key(generationPartition, outcome.prepared);
-          if (this.#advice.some((advice) => advice.evaluationKey === evaluationKey)) {
-            return { kind: "joined" as const, outcome, evaluationKey };
-          }
+          const liveAdvice = this.#advice.some((advice) => advice.evaluationKey === evaluationKey);
           const pending = this.#reuse.pending(evaluationKey);
-          if (pending !== undefined) {
-            pending.revision = this.#restoreCurrentWork(job.partition, outcome.prepared);
-            return { kind: "joined" as const, outcome, evaluationKey };
+          const route = bendReuseRoute(liveAdvice, pending !== undefined,
+            this.#reuse.hasPending(evaluationKey));
+          switch (route.$) {
+            case "JoinAdvice":
+            case "JoinClaimed":
+              return { kind: "joined" as const, outcome, evaluationKey };
+            case "JoinPending":
+              if (pending === undefined) throw new Error("Bend reuse route lacks pending evaluation");
+              pending.revision = this.#restoreCurrentWork(job.partition, outcome.prepared);
+              return { kind: "joined" as const, outcome, evaluationKey };
+            case "LookupCache": {
+              const cached = this.#reuse.get(evaluationKey);
+              switch (bendReuseCacheRoute(cached !== undefined).$) {
+                case "Cached":
+                  if (cached === undefined) throw new Error("Bend cache route lacks evaluation");
+                  return { kind: "cached" as const, outcome, evaluationKey, cached };
+                case "Own":
+                  this.#reuse.claim(evaluationKey);
+                  return { kind: "owner" as const, outcome, evaluationKey };
+              }
+            }
           }
-          if (this.#reuse.hasPending(evaluationKey)) {
-            return { kind: "joined" as const, outcome, evaluationKey };
-          }
-          const cached = this.#reuse.get(evaluationKey);
-          if (cached !== undefined) return { kind: "cached" as const, outcome, evaluationKey, cached };
-          this.#reuse.claim(evaluationKey);
-          return { kind: "owner" as const, outcome, evaluationKey };
         });
         const ticketUnitOffset = job.ticket?.units.length ?? 0;
         const retained = planned.filter((item) =>
