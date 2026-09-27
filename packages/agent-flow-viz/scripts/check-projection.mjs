@@ -23,7 +23,7 @@ try {
   assert.match(renderText(initial), /COMPILED BEND FLOW MODEL/);
   assert.match(renderText(initial), /not a trace of the production resident/);
   assert.doesNotMatch(renderText(initial), /TypeScript sidecar reducer|Routes and .* applied steps match/);
-  assert.equal(bend.stepBend(initial.bend, { kind: "flow", event: "StopHookFired" }).reason, "virtualRoundClosed");
+  assert.equal(bend.stepBend(initial.bend, bend.flowInput("StopHookFired")).reason, "virtualRoundClosed");
   const rejected = trigger(initial, "StopHookFired");
   assert.equal(rejected.history.length, 0);
   assert.match(renderText(rejected), /This virtual round is closed/);

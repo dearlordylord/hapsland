@@ -1,5 +1,5 @@
 import { EVENT_IDS, isInternalEvent, type EventId, type FlowChange, type FlowState, type RejectionCode } from "./view-contract";
-import { CONNECTIONS, replaySequence, routeFor, stepBend } from "./bend-flow";
+import { CONNECTIONS, flowInput, replaySequence, routeFor, stepBend } from "./bend-flow";
 import { TRACES } from "./scenarios";
 
 export type ProjectedStep = {
@@ -28,7 +28,7 @@ export const nextEventOptions = (bend: unknown, state: FlowState): readonly Even
     : [];
   const ids: readonly (number | null)[] = candidates.length > 0 ? [...new Set(candidates)] : [null];
   return ids.map((itemId) => {
-    const result = stepBend(bend, { kind: "flow", event, itemId: itemId ?? undefined });
+    const result = stepBend(bend, flowInput(event, itemId ?? undefined));
     return result.accepted ? { event, itemId, available: true } : { event, itemId, available: false, reason: result.reason };
   });
 });

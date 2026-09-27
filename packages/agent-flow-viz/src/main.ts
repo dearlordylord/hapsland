@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import { timelineView } from "./timeline-view";
-import { initialBend, projectBend, stepBend } from "./bend-flow";
+import { flowInput, initialBend, projectBend, stepBend } from "./bend-flow";
 import { TIMELINE_CASES } from "./timeline";
 import { Runtime, type Update } from "foldkit";
 import type { Document, HtmlBuilder } from "foldkit/html";
@@ -85,16 +85,17 @@ const guidedBlock = (model: Model): string | null => {
   if (plannedId !== null && input.event !== "EditObserved" && input.itemId === undefined) {
     return `Guided trace cannot proceed at step ${model.cursor + 1}: its item #${plannedId} has not entered this replay.`;
   }
-  const result = stepBend(model.bend, { kind: "flow", event: input.event, itemId: input.itemId });
+  const result = stepBend(model.bend, flowInput(input.event, input.itemId));
   return result.accepted ? null :
     `Guided trace cannot proceed at step ${model.cursor + 1} (${EVENT_LABELS[input.event]}${input.itemId === undefined ? "" : ` for item #${input.itemId}`}): ${REJECTION_LABELS[result.reason]}`;
 };
 
 const applyEvent = (model: Model, event: EventId, origin: EventOrigin, itemId?: number): Model => {
-  const result = stepBend(model.bend, { kind: "flow", event, itemId });
+  const result = stepBend(model.bend, flowInput(event, itemId));
   if (!result.accepted) return { ...model, feedback: origin === "guided"
     ? `Guided trace cannot proceed at step ${model.cursor + 1}: ${REJECTION_LABELS[result.reason]}`
     : REJECTION_LABELS[result.reason] };
+  const state = projectBend(result.bend);
   const actualId = result.changes.find((change) => change.kind === "transition")?.itemId ?? null;
   const plannedId = origin === "guided" && event === "EditObserved" ? plannedItemAt(model) : null;
   const automatic = result.changes.flatMap((change) => change.kind === "transition" &&
@@ -108,7 +109,7 @@ const applyEvent = (model: Model, event: EventId, origin: EventOrigin, itemId?: 
     ? [{ event: change.event, at: change.at, itemId: change.itemId }] : []);
   const finishDecision = result.changes.find((change) => change.kind === "finishDecision");
   const feedback = finishDecision === undefined
-    ? `${describeAccepted(flowOf(model), result.state, event, routeFor(event))}${actualId === null ? "" : ` Item #${actualId}.`}`
+    ? `${describeAccepted(flowOf(model), state, event, routeFor(event))}${actualId === null ? "" : ` Item #${actualId}.`}`
     : finishDecision.response === "continueWithAdvice"
       ? `Hapsland chose a continue-with-advice response containing item${finishDecision.adviceItemIds.length === 1 ? "" : "s"} ${finishDecision.adviceItemIds.map((id) => `#${id}`).join(", ")}. It discarded ${finishDecision.discardedItemIds.length} other items and requested cancellation of ${finishDecision.cancelledSourceReadingIds.length} source readings and ${finishDecision.cancelledJevRequestIds.length} Jev requests from this flow.`
       : `Hapsland chose an allow-finish response. It discarded ${finishDecision.discardedItemIds.length} items and requested cancellation of ${finishDecision.cancelledSourceReadingIds.length} source readings and ${finishDecision.cancelledJevRequestIds.length} Jev requests from this virtual round.`;
@@ -134,6 +135,7 @@ const applyEvent = (model: Model, event: EventId, origin: EventOrigin, itemId?: 
 const applyCapacity = (model: Model, capacityType: "source" | "jev", capacity: number): Model => {
   const result = stepBend(model.bend, { kind: "capacity", capacityType, capacity });
   if (!result.accepted) return { ...model, feedback: REJECTION_LABELS[result.reason] };
+  const state = projectBend(result.bend);
   const nextRecorded = model.history[model.historyPosition];
   const followsTail = nextRecorded?.kind === "capacity" && nextRecorded.capacityType === capacityType && nextRecorded.capacity === capacity;
   const automatic = result.changes.flatMap((change) => change.kind === "transition" &&
@@ -143,7 +145,7 @@ const applyCapacity = (model: Model, capacityType: "source" | "jev", capacity: n
     lastChangeEvents: result.changes.flatMap((change) => change.kind === "transition" ? [change.event] : []),
     history: followsTail ? model.history : [...model.history.slice(0, model.historyPosition), { kind: "capacity", capacityType, capacity, automatic }],
     historyPosition: model.historyPosition + 1,
-    feedback: `${capacityType === "source" ? "Source-reading" : "Jev request"} capacity set to ${capacity}. ${capacityType === "source" ? activeSourceJobCount(result.state) : activeReviewJobCount(result.state)} currently active.`,
+    feedback: `${capacityType === "source" ? "Source-reading" : "Jev request"} capacity set to ${capacity}. ${capacityType === "source" ? activeSourceJobCount(state) : activeReviewJobCount(state)} currently active.`,
   };
 };
 

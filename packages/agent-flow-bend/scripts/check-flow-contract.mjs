@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { initialBend, projectBend, stepBend } from "../../agent-flow-viz/src/bend-flow.ts";
+import { flowInput, ITEM_EVENTS, initialBend, projectBend, stepBend } from "../../agent-flow-viz/src/bend-flow.ts";
 
 // Independent expectations for the abstract Flow.bend contract. These do not
 // consult the TypeScript reference reducer or its scenario acceptance choices.
-const input = (event, itemId) => ({ kind: "flow", event, itemId });
+const input = flowInput;
 const capacityInput = (capacityType, capacity) => ({ kind: "capacity", capacityType, capacity });
 const primaryIds = (state) => state.packets.filter((packet) => packet.at !== "advicePolicy").map((packet) => packet.id);
 const sameIds = (actual, expected, label) => assert.deepEqual([...actual].sort((a, b) => a - b), [...expected].sort((a, b) => a - b), label);
@@ -24,31 +24,33 @@ const assertState = (state, label) => {
 let acceptedSteps = 0;
 let rejectedSteps = 0;
 const apply = (before, input, label) => {
+  const beforeState = projectBend(before.bend);
   const result = stepBend(before.bend, input);
-  assertState(result.state, label);
+  const state = projectBend(result.bend);
+  assertState(state, label);
   if (!result.accepted) {
     rejectedSteps++;
-    assert.deepEqual(result.state, before.state, `${label}: rejection changed state`);
+    assert.deepEqual(state, beforeState, `${label}: rejection changed state`);
     assert.deepEqual(result.changes, [], `${label}: rejection emitted changes`);
     return result;
   }
   acceptedSteps++;
-  const expected = new Set(primaryIds(before.state));
+  const expected = new Set(primaryIds(beforeState));
   const name = input.kind === "flow" ? input.event : input.capacityType;
-  if (name === "EditObserved") expected.add(before.state.nextItemId);
+  if (name === "EditObserved") expected.add(beforeState.nextItemId);
   if (name === "JevClearReceived" || name === "JevUnavailable") {
     const transition = result.changes.find((change) => change.kind === "transition" && change.event === name);
     expected.delete(transition?.itemId);
   }
-  if (name === "HostOutputSubmitted" && before.state.leaseSurface === "stop") expected.delete(before.state.leasedItemId);
+  if (name === "HostOutputSubmitted" && beforeState.leaseSurface === "stop") expected.delete(beforeState.leasedItemId);
   if (name === "StopAllowed" || result.changes.some((change) => change.kind === "finishDecision")) expected.clear();
-  sameIds(primaryIds(result.state), expected, `${label}: item conservation`);
+  sameIds(primaryIds(state), expected, `${label}: item conservation`);
   return result;
 };
 const run = (label, events) => {
   const bend = initialBend();
-  let result = { bend, state: projectBend(bend) };
-  assertState(result.state, `${label}: initial`);
+  let result = { bend };
+  assertState(projectBend(bend), `${label}: initial`);
   for (const [index, event] of events.entries()) result = apply(result, event, `${label} step ${index + 1}`);
   return result;
 };
@@ -72,7 +74,7 @@ assert.deepEqual(allowed.changes.find((change) => change.kind === "finishDecisio
   kind: "finishDecision", response: "allowFinish", adviceItemIds: [],
   discardedItemIds: [1], cancelledSourceReadingIds: [], cancelledJevRequestIds: [1],
 });
-assert.equal(allowed.state.virtualRoundActive, false);
+assert.equal(projectBend(allowed.bend).virtualRoundActive, false);
 
 // Seeded, bounded exploration checks structural properties across accepted and
 // rejected histories. Each trace starts fresh; accepted options are discovered
@@ -84,13 +86,13 @@ let seed = 0x115b3e;
 const random = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0);
 for (let trace = 0; trace < 100; trace++) {
   const bend = initialBend();
-  let result = { bend, state: projectBend(bend) };
+  let result = { bend };
   for (let index = 0; index < 60; index++) {
     const candidates = [
       ...events.map((event) => input(event)),
       capacityInput("source", 1 + random() % 5),
       capacityInput("jev", 1 + random() % 5),
-      ...result.state.packets.flatMap((packet) => events.map((event) => input(event, packet.id))),
+      ...projectBend(result.bend).packets.flatMap((packet) => ITEM_EVENTS.map((event) => input(event, packet.id))),
     ];
     const accepted = candidates.filter((candidate) => stepBend(result.bend, candidate).accepted);
     assert.ok(accepted.length > 0, `trace ${trace}: no accepted candidate`);
