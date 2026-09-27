@@ -14,6 +14,7 @@ def receive_finding(jeview: Jeview) -> PendingAdvice:
     case AtJev{item}:
       AdvicePending{item}
 
-# The second item is carried through unchanged when the first gets a finding.
-def receive_finding_with_other(first: Jeview, other: Jeview) -> PendingAdvice & Jeview:
-  (receive_finding(first), other)
+# The second value is carried through unchanged when the first gets a finding.
+# These two values are not yet required to carry distinct item IDs.
+def receive_finding_with_second(first: Jeview, second: Jeview) -> PendingAdvice & Jeview:
+  (receive_finding(first), second)
