@@ -13,8 +13,8 @@ public-registry lookup. This observation does not establish whether a private pa
 ## Frozen preflight snapshot
 
 The selected first public coordinates are `@hapsland/hapsland@0.1.0` and the
-`hapsland` command. No `review-tool` alias will ship. The existing Codex
-ownership marker, consent, and native credential identity are retained for pilot
+`hapsland` command. The existing Codex ownership marker, consent, and native
+credential identity are retained for pilot
 migration. Hapsland is the product; Jev is its external backend. Ownership and
 publication rights for `@hapsland/hapsland` must be verified by the logged-in
 maintainer's host.

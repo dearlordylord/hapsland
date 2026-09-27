@@ -1,7 +1,7 @@
 # Installed release acceptance record
 
-**Historical pinned acceptance.** The release-ready conclusion applies to integration
-commit `f2f47e94cd2d90cf73062f07c5e61416218e2f13`, its checksum-bound records,
+**Historical pinned acceptance.** The local compatibility gate passed at integration
+commit `f2f47e94cd2d90cf73062f07c5e61416218e2f13`, with its checksum-bound records
 and the exact pre-rename profiles in the [support declaration](../../docs/installed-release-compatibility.md).
 It does not validate the composed delivery candidate or a public registry artifact.
 The [machine manifest](../../conformance/installed-release-v1.json) binds the evidence.
