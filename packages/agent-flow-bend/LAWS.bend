@@ -14,6 +14,36 @@ import ./Delivery.bend as Delivery
 import ./Cache.bend as Cache
 import ./Ticket.bend as Ticket
 
+def permit_facts(duplicate: Bool, permit_count: Nat, round_count: Nat,
+    new_round: Bool, event_count: Nat, after_close: Bool) -> Admission.ProspectiveFacts:
+  Admission.ProspectiveFacts{True{}, True{}, after_close, duplicate,
+    permit_count, 1024n, round_count, 64n, new_round, event_count, 4096n}
+
+law prospective_gate_accepts_exact_last_capacity_slot:
+  {Admission.prospective_gate(permit_facts(False{}, 1023n, 63n, True{}, 4095n, True{})) ==
+    Admission.PermitAllowed{} : Admission.ProspectiveDecision}
+
+law prospective_gate_rejects_full_permit_table:
+  {Admission.prospective_gate(permit_facts(False{}, 1024n, 0n, True{}, 0n, True{})) ==
+    Admission.PermitDenied{} : Admission.ProspectiveDecision}
+
+law prospective_gate_rejects_new_round_at_limit:
+  {Admission.prospective_gate(permit_facts(False{}, 0n, 64n, True{}, 0n, True{})) ==
+    Admission.PermitDenied{} : Admission.ProspectiveDecision}
+
+law prospective_gate_allows_existing_round_at_table_limit:
+  {Admission.prospective_gate(permit_facts(False{}, 0n, 64n, False{}, 0n, True{})) ==
+    Admission.PermitAllowed{} : Admission.ProspectiveDecision}
+
+law prospective_gate_rejects_duplicate_and_old_closure:
+  {Admission.prospective_gate(permit_facts(True{}, 0n, 0n, False{}, 0n, False{})) ==
+    Admission.PermitDenied{} : Admission.ProspectiveDecision}
+
+law prospective_gate_rejects_late_hook_clock:
+  {Admission.prospective_gate(Admission.ProspectiveFacts{True{}, False{}, True{},
+      False{}, 0n, 1024n, 0n, 64n, True{}, 0n, 4096n}) ==
+    Admission.PermitDenied{} : Admission.ProspectiveDecision}
+
 def ticket_facts(expired: Bool, valid: Bool, pending: Nat, live: Bool,
     notice: Bool, failure: Maybe<&2, Ticket.Reason>, findings: Nat,
     undelivered: Nat, total: Nat) -> Ticket.Facts:

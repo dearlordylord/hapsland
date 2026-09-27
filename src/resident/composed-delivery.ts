@@ -10,6 +10,7 @@ import {
   bendLeaseInitial, bendLeaseReserve, bendLeaseAuthorize, bendLeaseTerminal,
   bendLeaseReoffer, bendLeaseSuppresses, type BendLease, type BendLeaseSurface,
   bendAdmissionInitial, bendAdmissionStep, bendAdmissionCloseProspective,
+  bendAdmissionProspectiveGate,
   type BendAdmissionState,
   bendBackgroundInitial, bendBackgroundClaim, bendBackgroundRelease,
   bendBackgroundExpire, type BendBackgroundWaiter,
@@ -166,16 +167,23 @@ export class ComposedDelivery {
   /** The installed synchronous PreToolUse hook grants one prospective edit. */
   registerEdit(partition: string, eventId: string, startedAt: number, now = monotonicNow()): boolean {
     this.expirePermits(now);
-    if (!Number.isFinite(startedAt) || startedAt <= 0 || startedAt > now ||
-        now - startedAt >= PRE_EDIT_ADMISSION_DEADLINE_MS || this.#permits.size >= 1024) return false;
     let round = this.#rounds.get(partition);
-    if (round === undefined && this.#rounds.size >= MAX_COMPOSED_ROUNDS) return false;
     const event = fingerprint(eventId);
-    if (round?.events.has(event) || (round?.events.size ?? 0) >= 4096) return false;
     // A hook that began before closure cannot reopen by arriving late. The
     // 1ms margin rejects uncertain clock sampling at the boundary.
-    if (round !== undefined && !round.policy.active &&
-        startedAt <= Number(round.policy.closed_at) + 1) return false;
+    const gate = bendAdmissionProspectiveGate({ $: "ProspectiveFacts",
+      clock_valid: Number.isFinite(now) && Number.isFinite(startedAt) &&
+        startedAt > 0 && startedAt <= now,
+      within_hook_window: now - startedAt < PRE_EDIT_ADMISSION_DEADLINE_MS,
+      started_after_closure: round === undefined || round.policy.active ||
+        startedAt > Number(round.policy.closed_at) + 1,
+      duplicate_event: round?.events.has(event) ?? false,
+      permit_count: this.#permits.size, permit_limit: 1024,
+      round_count: this.#rounds.size, round_limit: MAX_COMPOSED_ROUNDS,
+      new_round: round === undefined,
+      event_count: round?.events.size ?? 0, event_limit: 4096,
+    });
+    if (gate.$ !== "PermitAllowed") return false;
     const tool = this.#toolId(partition, event);
     const admission = this.#admissionFor(partition, round);
     let issued;

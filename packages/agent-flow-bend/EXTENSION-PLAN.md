@@ -8,7 +8,7 @@ links are pinned; probe records are not copied into this branch.
 The Bend model implements admission, fan-out, outcome tracking,
 per-finding selection, finish reservation, lease transitions, logical capacity,
 and a shared admission/work/finish lifecycle. The resident now uses generated
-Bend for admission permits, source and review work identities, round and Stop
+Bend for prospective admission and permits, source and review work identities, round and Stop
 transitions, final finding selection, per-finding leases, response limits,
 logical capacity, and the finish wait and cancellation decisions. Generated
 background-writer and operational-notice policies also decide their expiry

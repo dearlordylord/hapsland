@@ -40,6 +40,32 @@ type AdmissionResult is Data:
   Accepted{state: AdmissionState, token: Maybe<&2, Nat>, round: Maybe<&2, Nat>}
   Rejected{state: AdmissionState, reason: AdmissionRejection}
 
+type ProspectiveFacts is Data:
+  ProspectiveFacts{clock_valid: Bool, within_hook_window: Bool,
+    started_after_closure: Bool, duplicate_event: Bool,
+    permit_count: Nat, permit_limit: Nat,
+    round_count: Nat, round_limit: Nat, new_round: Bool,
+    event_count: Nat, event_limit: Nat}
+
+type ProspectiveDecision is Data:
+  PermitAllowed{}
+  PermitDenied{}
+
+# Native identity and fractional clock comparisons are measured by the adapter.
+# Bend owns the resulting prospective admission and bounded-retention decision.
+def prospective_gate(facts: ProspectiveFacts) -> ProspectiveDecision:
+  match facts:
+    case ProspectiveFacts{clock_valid, within_hook_window, started_after_closure,
+        duplicate_event, permit_count, permit_limit, round_count, round_limit,
+        new_round, event_count, event_limit}:
+      Bool.pick(ProspectiveDecision,
+        Bool.and(clock_valid, Bool.and(within_hook_window,
+          Bool.and(started_after_closure, Bool.and(Bool.not(duplicate_event),
+            Bool.and(Nat.is_lt(permit_count, permit_limit),
+              Bool.and(Bool.or(Bool.not(new_round), Nat.is_lt(round_count, round_limit)),
+                Nat.is_lt(event_count, event_limit))))))),
+        PermitAllowed{}, PermitDenied{})
+
 def initial(partition: Nat, lifetime: Nat) -> AdmissionState:
   AdmissionState{partition, lifetime, 0n, False{}, 0n, 1n, Nil{}, Nil{}}
 

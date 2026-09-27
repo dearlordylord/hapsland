@@ -22,10 +22,11 @@ finding count, and cancellation IDs.
   Stop claim, four continuation slots, decision barrier, output reservation,
   closure fence, and permitted reopen. The resident maps native Stop strings
   to positive IDs and retains host output details outside the model.
-- `Admission.bend` issues, consumes, releases, and closes source-free pre-edit
-  permits, including a prospective round that closes without a post-edit
-  observation. The native hook clock and exact event identity are checked by
-  TypeScript before passing numeric facts to Bend.
+- `Admission.bend` decides prospective permit admission from measured clock,
+  identity, and capacity facts, then issues, consumes, releases, and closes
+  source-free pre-edit permits, including a prospective round that closes
+  without a post-edit observation. TypeScript measures the native fractional
+  clock and exact event identity before passing facts to Bend.
 - `Handoff.bend` validates exclusive finding lease transitions and decides
   suppression for edit, background, and Stop surfaces. The resident retains
   opaque finding fingerprints and replays source-free token transitions.
@@ -114,6 +115,9 @@ On 2026-09-27, from this worktree:
 - The ticket unit transition migration passed the same 2 files and 80 tests.
   Six Bend laws cover pending-only revision, failure dominance, and delivery
   marking only for finding units.
+- The prospective admission gate passed the focused composed-delivery and
+  resident-server suite: 2 files and 76 tests. Six Bend laws cover clock and
+  closure guards, duplicate events, and permit, round, and event limits.
 - Root `npm run typecheck`, `npm run build`, and `npm test`: passed. The root
   suite reported 65 passing files and 571 passing tests, with one file and
   two tests skipped.

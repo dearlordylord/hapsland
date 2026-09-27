@@ -1,6 +1,24 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.prospective_gate_accepts_exact_last_capacity_slot():
+  {==}
+
+def Laws.prospective_gate_rejects_full_permit_table():
+  {==}
+
+def Laws.prospective_gate_rejects_new_round_at_limit():
+  {==}
+
+def Laws.prospective_gate_allows_existing_round_at_table_limit():
+  {==}
+
+def Laws.prospective_gate_rejects_duplicate_and_old_closure():
+  {==}
+
+def Laws.prospective_gate_rejects_late_hook_clock():
+  {==}
+
 def Laws.ticket_keeps_first_failure_until_close():
   {==}
 
