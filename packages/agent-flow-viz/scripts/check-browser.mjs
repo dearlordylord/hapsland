@@ -64,8 +64,7 @@ try {
   assert.match(await imports.innerText(), /Native: resolution, permission facts, source capture/);
   const fileDiagram = imports.locator("svg").first();
   assert.match(await fileDiagram.textContent(), /IMPORT \/ REFERENCE GRAPH/);
-  assert.match(await fileDiagram.textContent(), /A\.ts.*B\.ts.*C\.ts.*D\.ts/s);
-  assert.match(await fileDiagram.textContent(), /imports/);
+  assert.doesNotMatch(await fileDiagram.textContent(), /C\.ts|Excluded/, "future outcomes are absent before replay");
   for (let step = 1; step <= 10; step++) {
     await imports.getByRole("button", { name: "Next import step", exact: true }).click();
     await waitForText(".import-graph-progress", `Import step ${step} of 10`);
@@ -73,12 +72,21 @@ try {
   assert.match(await imports.locator(".import-graph-facts").innerText(), /A.ts · incomplete/);
   assert.match(await imports.locator(".import-graph-facts").innerText(), /D.ts · complete/);
   assert.match(await imports.locator(".import-graph-facts").innerText(), /Jev: no request for this unit/);
-  assert.match(await fileDiagram.textContent(), /excluded · no read/);
+  assert.match(await fileDiagram.textContent(), /A\.ts.*B\.ts.*C\.ts.*D\.ts/s);
+  assert.match(await fileDiagram.textContent(), /A\.ts review unit · incomplete/);
+  assert.match(await fileDiagram.textContent(), /D\.ts review unit · complete/);
+  assert.match(await fileDiagram.textContent(), /C\.tsExcluded/);
   await imports.getByRole("button", { name: "Previous import step", exact: true }).click();
   await waitForText(".import-graph-progress", "Import step 9 of 10");
   await imports.getByRole("button", { name: "Multiple imports and cycle", exact: true }).click();
   await waitForText(".import-graph-progress", "Import step 0 of 12");
   assert.equal(await imports.getByRole("button", { name: "Previous import step", exact: true }).isDisabled(), true);
+  await imports.getByRole("button", { name: "Evidence tree exhausted", exact: true }).click();
+  for (let step = 1; step <= 2; step++) {
+    await imports.getByRole("button", { name: "Next import step", exact: true }).click();
+    await waitForText(".import-graph-progress", `Import step ${step} of 2`);
+  }
+  assert.match(await fileDiagram.textContent(), /import #10TreeLimit/);
   assert.deepEqual(errors, []);
   console.log("Browser controls passed: guided, manual, disabled rejection, capacity, finish, rewind, redo, and independent import exploration");
 } finally {

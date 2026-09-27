@@ -211,3 +211,7 @@ and an oversized per-file capture. These are synthetic policy examples, not
 observed filesystem or production execution traces. The build checks the shared
 adapter projections and Foldkit controls; `test:browser` checks the rendered
 independent replay controls as well.
+
+The [dashboard rules](DASHBOARD-RULES.md) allow presentation mappings and
+checked example traces, while requiring every displayed policy outcome to come
+from compiled Bend state or commands. The diagram contains no decision backbone.

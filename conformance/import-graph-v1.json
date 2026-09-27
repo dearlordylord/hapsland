@@ -13,6 +13,7 @@
         { "kind": "resolved", "target": 3, "result": "found" },
         { "kind": "pathChecked", "allowed": false }
       ],
+      "phases": ["ready", "resolving", "checking", "capturing", "ready", "resolving", "checking", "incomplete"],
       "commands": ["none", "resolveEdge:10", "checkPath:2", "readSource:2", "none", "resolveEdge:20", "checkPath:3", "unitIncomplete:Excluded"],
       "expected": { "phase": "incomplete", "reason": "Excluded", "files": 2, "visited": [2, 1] }
     },
@@ -22,6 +23,7 @@
         { "kind": "root", "target": 4, "sourceBytes": 600, "treeBytes": 300, "edges": [] },
         { "kind": "next" }
       ],
+      "phases": ["ready", "complete"],
       "commands": ["none", "unitComplete"],
       "expected": { "phase": "complete", "files": 1, "visited": [4] }
     },
@@ -37,6 +39,7 @@
         { "kind": "resolved", "target": 1, "result": "found" },
         { "kind": "next" }
       ],
+      "phases": ["ready", "resolving", "checking", "capturing", "ready", "resolving", "ready", "complete"],
       "commands": ["none", "resolveEdge:10", "checkPath:2", "readSource:2", "none", "resolveEdge:20", "none", "unitComplete"],
       "expected": { "phase": "complete", "files": 2, "visited": [2, 1] }
     },
@@ -46,6 +49,7 @@
         { "kind": "root", "target": 1, "sourceBytes": 100, "treeBytes": 20480, "edges": [10] },
         { "kind": "next" }
       ],
+      "phases": ["ready", "incomplete"],
       "commands": ["none", "unitIncomplete:TreeLimit"],
       "expected": { "phase": "incomplete", "reason": "TreeLimit", "files": 1, "visited": [1] }
     }

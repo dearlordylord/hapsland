@@ -1,54 +1,131 @@
 import type { HtmlBuilder } from "foldkit/html";
+import type { ImportGraphCommand, ImportGraphEvent, ImportGraphProjection } from "../../agent-flow-bend/import-graph-adapter";
 
 export type ImportGraphStage = "resolve" | "gate" | "capture" | "expand" | "complete" | "incomplete";
-type FileNode = { readonly name: string; readonly detail: string; readonly x: number; readonly after: number; readonly outcome?: "blocked" | "complete" };
-type FileEdge = { readonly from: number; readonly to: number; readonly label: string; readonly back?: boolean };
-type FileExample = { readonly nodes: readonly FileNode[]; readonly edges: readonly FileEdge[] };
-const fileExamples: readonly FileExample[] = [
-  { nodes: [
-    { name: "A.ts", detail: "edited root", x: 25, after: 1 },
-    { name: "B.ts", detail: "supporting import", x: 250, after: 5 },
-    { name: "C.ts", detail: "excluded · no read", x: 475, after: 8, outcome: "blocked" },
-    { name: "D.ts", detail: "independent complete", x: 700, after: 10, outcome: "complete" },
-  ], edges: [{ from: 0, to: 1, label: "imports" }, { from: 1, to: 2, label: "imports" }] },
-  { nodes: [
-    { name: "A.ts", detail: "edited root", x: 25, after: 1 },
-    { name: "B.ts", detail: "supporting import", x: 330, after: 5 },
-    { name: "C.ts", detail: "supporting import", x: 635, after: 9 },
-  ], edges: [{ from: 0, to: 1, label: "import #10" }, { from: 0, to: 2, label: "import #20" }, { from: 1, to: 0, label: "cycle #30", back: true }] },
-  { nodes: [{ name: "A.ts", detail: "edited root", x: 180, after: 1 }, { name: "?", detail: "missing import", x: 560, after: 3, outcome: "blocked" }], edges: [{ from: 0, to: 1, label: "imports" }] },
-  { nodes: [{ name: "A.ts", detail: "edited root", x: 180, after: 1 }, { name: "?", detail: "ambiguous import", x: 560, after: 3, outcome: "blocked" }], edges: [{ from: 0, to: 1, label: "imports" }] },
-  { nodes: [{ name: "A.ts", detail: "20 KiB tree", x: 180, after: 1 }, { name: "B.ts", detail: "import not resolved", x: 560, after: 2, outcome: "blocked" }], edges: [{ from: 0, to: 1, label: "pending import" }] },
-  { nodes: [{ name: "A.ts", detail: "root + five captures", x: 180, after: 1 }, { name: "target #7", detail: "read budget reached", x: 560, after: 24, outcome: "blocked" }], edges: [{ from: 0, to: 1, label: "next import" }] },
-  { nodes: [{ name: "A.ts", detail: "edited root", x: 180, after: 1 }, { name: "B.ts", detail: "capture over 256 KiB", x: 560, after: 5, outcome: "blocked" }], edges: [{ from: 0, to: 1, label: "imports" }] },
-];
-const fileGraph = <Message>(h: HtmlBuilder<Message>, scenarioIndex: number, cursor: number) => {
-  const example = fileExamples[scenarioIndex] ?? fileExamples[0];
-  return h.svg([h.ViewBox("0 0 920 174"), h.Role("img"), h.AriaLabel("Import graph for the selected example. File nodes show the edited root, supporting imports, excluded or unavailable targets, and independent units.")], [
+type HistoryStep = { readonly unit: number; readonly event: ImportGraphEvent; readonly command: ImportGraphCommand; readonly state: ImportGraphProjection };
+type FileNode = { readonly target: number; readonly status: "captured" | "discovered" | "read requested" | "blocked"; readonly reason?: string };
+type FileEdge = { readonly id: number; readonly from: number; to?: number; reason?: string; visited?: boolean };
+type UnitGraph = { readonly nodes: Map<number, FileNode>; readonly edges: Map<number, FileEdge>; root?: number; resolving?: number; checking?: number; reading?: number };
+
+// This is a display projection of native scenario facts and compiled Bend results.
+// It never decides whether to follow, capture, or complete an import.
+const projectFileGraphs = (unitCount: number, history: readonly HistoryStep[]): UnitGraph[] => {
+  const graphs: UnitGraph[] = Array.from({ length: unitCount }, () => ({ nodes: new Map(), edges: new Map() }));
+  for (const step of history) {
+    const graph = graphs[step.unit];
+    if (graph === undefined) throw new TypeError("unknown import diagram unit");
+    const { event, command } = step;
+    switch (event.kind) {
+      case "root":
+        if (step.state.files > 0) {
+          graph.root = event.target;
+          graph.nodes.set(event.target, { target: event.target, status: "captured" });
+          for (const id of event.edges) graph.edges.set(id, { id, from: event.target });
+        }
+        break;
+      case "next":
+        if (command.kind === "resolveEdge") graph.resolving = command.edge;
+        if (command.kind === "unitIncomplete") {
+          const edge = graph.edges.get(step.state.pending[0] ?? -1);
+          if (edge !== undefined) edge.reason = command.reason;
+        }
+        break;
+      case "resolved": {
+        const edge = graph.resolving === undefined ? undefined : graph.edges.get(graph.resolving);
+        if (edge !== undefined) {
+          if (event.result === "found") {
+            edge.to = event.target;
+            const existing = graph.nodes.get(event.target);
+            if (existing === undefined) graph.nodes.set(event.target, { target: event.target, status: "discovered" });
+            else if (command.kind === "none") edge.visited = true;
+          }
+          if (command.kind === "unitIncomplete") edge.reason = command.reason;
+        }
+        if (command.kind === "checkPath") graph.checking = command.target;
+        break;
+      }
+      case "pathChecked":
+        if (command.kind === "readSource") {
+          graph.reading = command.target;
+          graph.nodes.set(command.target, { target: command.target, status: "read requested" });
+        } else if (command.kind === "unitIncomplete" && graph.checking !== undefined) {
+          graph.nodes.set(graph.checking, { target: graph.checking, status: "blocked", reason: command.reason });
+        }
+        break;
+      case "captured":
+        if (graph.reading !== undefined) {
+          if (command.kind === "none" && step.state.phase === "ready") {
+            graph.nodes.set(graph.reading, { target: graph.reading, status: "captured" });
+            for (const id of event.edges) graph.edges.set(id, { id, from: graph.reading! });
+          } else if (command.kind === "unitIncomplete") {
+            graph.nodes.set(graph.reading, { target: graph.reading, status: "blocked", reason: command.reason });
+          }
+        }
+        break;
+      case "captureFailed":
+        if (command.kind === "unitIncomplete" && graph.reading !== undefined) {
+          graph.nodes.set(graph.reading, { target: graph.reading, status: "blocked", reason: command.reason });
+        }
+        break;
+      case "deadlineReached":
+        break;
+    }
+  }
+  return graphs;
+};
+const fileGraph = <Message>(h: HtmlBuilder<Message>, units: readonly string[],
+  names: Readonly<Record<number, string>>, history: readonly HistoryStep[], states: readonly ImportGraphProjection[]) => {
+  const graphs = projectFileGraphs(units.length, history);
+  const rows = graphs.map((graph, unit) => {
+    const vertices: Array<{ key: string; node?: FileNode; edge?: FileEdge }> = [];
+    for (const node of graph.nodes.values()) vertices.push({ key: `target:${node.target}`, node });
+    for (const edge of graph.edges.values()) {
+      if (edge.to === undefined) vertices.push({ key: `edge:${edge.id}`, edge });
+    }
+    const positions = new Map(vertices.map((vertex, index) => [vertex.key, 25 + index * 230]));
+    return { graph, unit, vertices, positions };
+  });
+  const width = Math.max(920, ...rows.map((row) => 40 + row.vertices.length * 230));
+  const height = Math.max(130, 40 + rows.length * 165);
+  return h.svg([h.ViewBox(`0 0 ${width} ${height}`), h.Role("img"),
+    h.AriaLabel("Import graph projected from native example facts and compiled Bend transition results. File colors and outcomes follow Bend commands and state.")], [
     h.defs([], [h.marker([h.Id("file-import-arrow"), h.ViewBox("0 0 10 10"), h.RefX("9"), h.RefY("5"), h.MarkerWidth("7"), h.MarkerHeight("7"), h.Orient("auto")], [h.path([h.D("M 0 0 L 10 5 L 0 10 z"), h.Fill("#687e98")], [])])]),
-    h.text([h.X("25"), h.Y("23"), h.FontSize("13"), h.FontWeight("700"), h.Fill("#1e3048")], ["IMPORT / REFERENCE GRAPH · selected example"]),
-    ...example.edges.map((edge) => {
-      const from = example.nodes[edge.from]!;
-      const to = example.nodes[edge.to]!;
-      const left = from.x + 175;
-      const right = to.x;
-      const path = edge.back ? `M ${from.x + 90} 125 L ${from.x + 90} 150 L ${to.x + 90} 150 L ${to.x + 90} 125` :
-        `M ${left} 92 L ${right - 7} 92`;
-      const labelX = edge.back ? (from.x + to.x) / 2 + 70 : (left + right) / 2 - 20;
-      return h.g([], [
-        h.path([h.D(path), h.Fill("none"), h.Stroke("#687e98"), h.StrokeWidth("2"), h.MarkerEnd("url(#file-import-arrow)")], []),
-        h.text([h.X(String(labelX)), h.Y(edge.back ? "147" : "78"), h.FontSize("11"), h.Fill("#52647d")], [edge.label]),
-      ]);
-    }),
-    ...example.nodes.map((node) => {
-      const reached = cursor >= node.after;
-      const fill = !reached ? "#f5f7fa" : node.outcome === "blocked" ? "#fff0eb" : node.outcome === "complete" ? "#e3f3eb" : "#e5efff";
-      const stroke = !reached ? "#a3afbf" : node.outcome === "blocked" ? "#d76546" : node.outcome === "complete" ? "#31836a" : "#527cc4";
-      return h.g([], [
-        h.rect([h.X(String(node.x)), h.Y("45"), h.Width("175"), h.Height("80"), h.Rx("10"), h.Fill(fill), h.Stroke(stroke), h.StrokeWidth("2")], []),
-        h.text([h.X(String(node.x + 13)), h.Y("77"), h.FontSize("17"), h.FontWeight("700"), h.Fill("#1e3048")], [node.name]),
-        h.text([h.X(String(node.x + 13)), h.Y("104"), h.FontSize("11"), h.Fill("#52647d")], [reached ? node.detail : "pending / not reached"]),
-      ]);
+    h.text([h.X("25"), h.Y("23"), h.FontSize("13"), h.FontWeight("700"), h.Fill("#1e3048")], ["IMPORT / REFERENCE GRAPH · replayed example facts"]),
+    ...(rows.every((row) => row.vertices.length === 0) ? [h.text([h.X("25"), h.Y("83"), h.FontSize("13"), h.Fill("#52647d")], ["Advance the scenario to capture a root and reveal its imports."])] : []),
+    ...rows.flatMap(({ graph, unit, vertices, positions }) => {
+      if (vertices.length === 0) return [];
+      const top = 50 + unit * 165;
+      const unitStatus = states[unit]?.phase ?? "idle";
+      const elements = [h.text([h.X("25"), h.Y(String(top - 10)), h.FontSize("11"), h.FontWeight("700"), h.Fill("#52647d")], [`${units[unit]} review unit · ${unitStatus}`])];
+      for (const edge of graph.edges.values()) {
+        const from = positions.get(`target:${edge.from}`);
+        const to = positions.get(edge.to === undefined ? `edge:${edge.id}` : `target:${edge.to}`);
+        if (from === undefined || to === undefined) continue;
+        const backwards = to <= from;
+        const path = backwards ? `M ${from + 88} ${top + 87} L ${from + 88} ${top + 116} L ${to + 88} ${top + 116} L ${to + 88} ${top + 87}` :
+          `M ${from + 175} ${top + 42} L ${to - 8} ${top + 42}`;
+        elements.push(h.g([], [
+          h.path([h.D(path), h.Fill("none"), h.Stroke("#687e98"), h.StrokeWidth("2"), h.MarkerEnd("url(#file-import-arrow)")], []),
+          h.text([h.X(String(backwards ? (from + to) / 2 + 58 : (from + to) / 2 + 92)), h.Y(String(backwards ? top + 113 : top + 28)), h.FontSize("11"), h.Fill("#52647d")], [edge.visited ? `cycle #${edge.id}` : `#${edge.id}`]),
+        ]));
+      }
+      for (const vertex of vertices) {
+        const x = positions.get(vertex.key)!;
+        const node = vertex.node;
+        const edge = vertex.edge;
+        const blocked = node?.status === "blocked" || edge?.reason !== undefined;
+        const completeRoot = node?.target === graph.root && states[unit]?.phase === "complete";
+        const fill = blocked ? "#fff0eb" : completeRoot ? "#e3f3eb" : node?.status === "captured" ? "#e5efff" : "#f5f7fa";
+        const stroke = blocked ? "#d76546" : completeRoot ? "#31836a" : node?.status === "captured" ? "#527cc4" : "#a3afbf";
+        const name = node === undefined ? `import #${edge!.id}` : names[node.target] ?? `target #${node.target}`;
+        const detail = node?.reason ?? edge?.reason ?? (node?.status === "captured" ? node.target === graph.root ? "captured root" : "captured support" : node?.status ?? "pending resolution");
+        elements.push(h.g([], [
+          h.rect([h.X(String(x)), h.Y(String(top)), h.Width("175"), h.Height("85"), h.Rx("10"), h.Fill(fill), h.Stroke(stroke), h.StrokeWidth("2")], []),
+          h.text([h.X(String(x + 13)), h.Y(String(top + 33)), h.FontSize("17"), h.FontWeight("700"), h.Fill("#1e3048")], [name]),
+          h.text([h.X(String(x + 13)), h.Y(String(top + 60)), h.FontSize("11"), h.Fill("#52647d")], [detail]),
+        ]));
+      }
+      return elements;
     }),
   ]);
 };
@@ -61,10 +138,10 @@ const nodes = [
   { id: "incomplete", x: 30, y: 260, title: "Incomplete unit", owner: "BEND DECISION", detail: "No Jev request for this unit", role: "bend" },
 ] as const;
 
-export const importGraphDiagram = <Message>(h: HtmlBuilder<Message>, active: ImportGraphStage | null, scenarioIndex: number, cursor: number, unitLabel: string) =>
+export const importGraphDiagram = <Message>(h: HtmlBuilder<Message>, active: ImportGraphStage | null, units: readonly string[], names: Readonly<Record<number, string>>, history: readonly HistoryStep[], states: readonly ImportGraphProjection[], unitLabel: string) =>
   h.div([h.Class("chart-scroll import-graph-diagram")], [
-    fileGraph(h, scenarioIndex, cursor),
-    h.p([h.Class("import-graph-diagram-caption")], [`Bend state machine for ${unitLabel} in the import graph above`]),
+    fileGraph(h, units, names, history, states),
+    h.p([h.Class("import-graph-diagram-caption")], [`Import process schematic · highlighted Bend phase for ${unitLabel}`]),
     h.svg([h.ViewBox("0 0 920 505"), h.Role("img"), h.AriaLabel("Import exploration state machine. Native resolution facts enter Bend permission and budget gates before native source capture. Bend tracks edges and decides complete or incomplete; only complete units are eligible for Jev.")], [
       h.defs([], [h.marker([h.Id("import-arrow"), h.ViewBox("0 0 10 10"), h.RefX("9"), h.RefY("5"), h.MarkerWidth("7"), h.MarkerHeight("7"), h.Orient("auto")], [h.path([h.D("M 0 0 L 10 5 L 0 10 z"), h.Fill("#687e98")], [])])]),
       ...[
