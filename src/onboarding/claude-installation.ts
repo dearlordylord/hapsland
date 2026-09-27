@@ -6,6 +6,7 @@ import { dirname, join, resolve } from "node:path";
 import { atomicInstallationFile } from "./atomic-installation-file.ts";
 
 const MARKER = "--review-tool-owned=claude-v1";
+const COMPOSED_MARKER = "--review-tool-composed-owned=claude-v1";
 const PROFILE = "2.1.218";
 const OWNERSHIP_VERSION = 1;
 type JsonObject = Record<string, unknown>;
@@ -22,6 +23,7 @@ interface OwnedRecord {
   readonly home: string;
   readonly hookDigest: string;
   readonly command: string;
+  readonly composed?: { readonly stopDigest: string; readonly promptDigest: string; readonly subagentStopDigest?: string; readonly preToolUseDigest?: string };
 }
 
 const object = (value: unknown): value is JsonObject => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -66,7 +68,11 @@ const readRecord = (path: string): OwnedRecord | undefined => {
   if (content === undefined) return undefined;
   const value = parseObject(content, "Claude ownership record");
   if (value.version !== OWNERSHIP_VERSION || value.adapter !== "claude" || typeof value.home !== "string" ||
-      typeof value.hookDigest !== "string" || typeof value.command !== "string") {
+      typeof value.hookDigest !== "string" || typeof value.command !== "string" ||
+      (value.composed !== undefined && (!object(value.composed) ||
+        typeof value.composed.stopDigest !== "string" || typeof value.composed.promptDigest !== "string" ||
+        (value.composed.subagentStopDigest !== undefined && typeof value.composed.subagentStopDigest !== "string") ||
+        (value.composed.preToolUseDigest !== undefined && typeof value.composed.preToolUseDigest !== "string")))) {
     throw new Error("Claude ownership record has an unsupported shape");
   }
   return value as unknown as OwnedRecord;
@@ -103,6 +109,38 @@ const withGroups = (settings: JsonObject, next: ReadonlyArray<unknown>): JsonObj
   return result;
 };
 
+const eventGroups = (settings: JsonObject, event: "PreToolUse" | "Stop" | "SubagentStop" | "UserPromptSubmit"): ReadonlyArray<unknown> => {
+  if (settings.hooks === undefined) return [];
+  if (!object(settings.hooks)) throw new Error("Claude settings hooks must be an object");
+  const value = settings.hooks[event];
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) throw new Error(`Claude settings ${event} must be an array`);
+  return value;
+};
+
+const withComposedGroup = (
+  settings: JsonObject, event: "PreToolUse" | "Stop" | "SubagentStop" | "UserPromptSubmit", next: unknown | undefined,
+  expectedDigest: string | undefined,
+): JsonObject => {
+  const current = [...eventGroups(settings, event)];
+  const indexes = current.flatMap((group, index) =>
+    JSON.stringify(group).includes(COMPOSED_MARKER) ? [index] : []);
+  if (indexes.length > 1 || (expectedDigest === undefined && indexes.length !== 0) ||
+      (expectedDigest !== undefined && (indexes.length !== 1 ||
+        digest(canonical(current[indexes[0]!])) !== expectedDigest))) {
+    throw new Error(`owned Claude ${event} hook is missing, duplicated, or locally modified`);
+  }
+  if (indexes.length === 1) current.splice(indexes[0]!, 1);
+  if (next !== undefined) current.push(next);
+  const hooks = { ...(settings.hooks as JsonObject | undefined) };
+  if (current.length === 0) delete hooks[event];
+  else hooks[event] = current;
+  const result = { ...settings };
+  if (Object.keys(hooks).length === 0) delete result.hooks;
+  else result.hooks = hooks;
+  return result;
+};
+
 const host = (request: ClaudeInstallationRequest) => {
   const executable = request.claudeExecutable ?? "claude";
   const run = spawnSync(executable, ["--version"], { encoding: "utf8", timeout: 2_000 });
@@ -115,9 +153,18 @@ const inputs = (request: ClaudeInstallationRequest) => {
   const runtime = resolve(process.env.REVIEW_INSTALL_RUNTIME ?? process.execPath);
   let entrypoint = resolve(process.env.REVIEW_INSTALL_ENTRYPOINT ?? process.argv[1] ?? "dist/cli.js");
   try { entrypoint = realpathSync(entrypoint); } catch { /* readiness reports missing path */ }
-  const command = `${quote(runtime)} ${quote(entrypoint)} --claude-hook --controlled-writer ${MARKER}`;
-  const group = { matcher: "Edit|Write", hooks: [{ type: "command", command, timeout: 5 }] };
-  return { home, runtime, entrypoint, command, group, paths: paths(home), host: host(request) };
+  const command = `${quote(runtime)} ${quote(entrypoint)} --claude-hook --controlled-writer --composed-edit-hook ${MARKER}`;
+  const composed = (kind: "background" | "stop" | "prompt" | "before-edit") =>
+    `${kind === "before-edit" ? "exec " : ""}${quote(runtime)} ${quote(entrypoint)} --composed-${kind}-hook --composed-host=claude-code ${COMPOSED_MARKER}`;
+  const group = { matcher: "Edit|Write", hooks: [
+    { type: "command", command, timeout: 5 },
+    { type: "command", command: composed("background"), timeout: 25, async: true },
+  ] };
+  const stopGroup = { hooks: [{ type: "command", command: composed("stop"), timeout: 5 }] };
+  const preGroup = { matcher: "Edit|Write", hooks: [{ type: "command", command: composed("before-edit"), timeout: 5 }] };
+  const promptGroup = { hooks: [{ type: "command", command: composed("prompt"), timeout: 4 }] };
+  return { home, runtime, entrypoint, command, group, preGroup, stopGroup, promptGroup,
+    paths: paths(home), host: host(request) };
 };
 
 const ready = (input: ReturnType<typeof inputs>) => {
@@ -141,11 +188,18 @@ const plan = (kind: Kind, request: ClaudeInstallationRequest) => {
   const settings = parseObject(beforeSettings, "Claude settings.json");
   const record = readRecord(input.paths.ownership);
   const current = owned(settings);
+  if (record === undefined) {
+    withComposedGroup(settings, "PreToolUse", undefined, undefined);
+    withComposedGroup(settings, "Stop", undefined, undefined);
+    withComposedGroup(settings, "SubagentStop", undefined, undefined);
+    withComposedGroup(settings, "UserPromptSubmit", undefined, undefined);
+  }
   if (record?.home !== undefined && record.home !== input.home) throw new Error("Claude ownership record belongs to another home");
   if (current !== undefined && record === undefined) throw new Error("owned Claude hook has no ownership record");
   if (record !== undefined && (current === undefined || digest(canonical(current.group)) !== record.hookDigest)) {
     throw new Error("owned Claude hook is missing or locally modified");
   }
+  const composed = record?.composed;
   if (kind === "install" && record !== undefined) throw new Error("Claude integration already installed; use update");
   if (kind === "update" && record === undefined) throw new Error("Claude integration is not installed");
   const nextGroups = [...groups(settings)];
@@ -153,12 +207,22 @@ const plan = (kind: Kind, request: ClaudeInstallationRequest) => {
     if (current !== undefined) nextGroups.splice(current.index, 1);
   } else if (current === undefined) nextGroups.push(input.group);
   else nextGroups[current.index] = input.group;
-  const afterSettings = kind === "uninstall" && record === undefined
-    ? beforeSettings
-    : encode(withGroups(settings, nextGroups));
+  const nextSettings = kind === "uninstall" && record === undefined ? settings
+    : withComposedGroup(
+      withComposedGroup(
+        withComposedGroup(
+          withComposedGroup(withGroups(settings, nextGroups), "PreToolUse",
+            kind === "uninstall" ? undefined : input.preGroup, composed?.preToolUseDigest),
+          "Stop", kind === "uninstall" ? undefined : input.stopGroup, composed?.stopDigest),
+        "SubagentStop", kind === "uninstall" ? undefined : input.stopGroup, composed?.subagentStopDigest),
+      "UserPromptSubmit", kind === "uninstall" ? undefined : input.promptGroup, composed?.promptDigest,
+    );
+  const afterSettings = kind === "uninstall" && record === undefined ? beforeSettings : encode(nextSettings);
   const afterRecord = kind === "uninstall" ? undefined : encode({
     version: OWNERSHIP_VERSION, adapter: "claude", home: input.home,
     hookDigest: digest(canonical(input.group)), command: input.command,
+    composed: { preToolUseDigest: digest(canonical(input.preGroup)), stopDigest: digest(canonical(input.stopGroup)), promptDigest: digest(canonical(input.promptGroup)),
+      subagentStopDigest: digest(canonical(input.stopGroup)) },
   } satisfies OwnedRecord);
   const proposalDigest = digest(canonical({ version: 1, adapter: "claude", operation: kind, home: input.home,
     beforeSettings: digest(beforeSettings ?? "<missing>"), beforeRecord: digest(beforeRecord ?? "<missing>"),
@@ -237,9 +301,21 @@ export const inspectClaudeInstallation = (request: ClaudeInstallationRequest) =>
     const settings = parseObject(file(input.paths.settings), "Claude settings.json");
     const record = readRecord(input.paths.ownership);
     const current = owned(settings);
+    if (record === undefined) {
+      withComposedGroup(settings, "PreToolUse", undefined, undefined);
+      withComposedGroup(settings, "Stop", undefined, undefined);
+      withComposedGroup(settings, "SubagentStop", undefined, undefined);
+      withComposedGroup(settings, "UserPromptSubmit", undefined, undefined);
+    }
     if (record === undefined && current === undefined) return { version: 1 as const, operation: "inspect-installation", status: "ready" as const, installed: false };
     if (record === undefined || current === undefined || record.home !== input.home || digest(canonical(current.group)) !== record.hookDigest) {
       throw new Error("owned Claude hook and ownership record disagree");
+    }
+    if (record.composed !== undefined) {
+      withComposedGroup(settings, "PreToolUse", undefined, record.composed.preToolUseDigest);
+      withComposedGroup(settings, "Stop", undefined, record.composed.stopDigest);
+      withComposedGroup(settings, "SubagentStop", undefined, record.composed.subagentStopDigest);
+      withComposedGroup(settings, "UserPromptSubmit", undefined, record.composed.promptDigest);
     }
     return { version: 1 as const, operation: "inspect-installation", status: "ready" as const, installed: true };
   } catch (cause) { return resultError("inspect-installation", cause, request.claudeHome); }

@@ -1,0 +1,84 @@
+{
+  "issue": 105,
+  "platform": "linux-arm64",
+  "node": "v24.20.0",
+  "backend": "controlled offline Effect DecisionModel",
+  "cases": [
+    {
+      "host": "codex",
+      "phase": "after",
+      "hostVersion": "0.155.1",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 27401,
+      "hookCounts": {
+        "edit": 1,
+        "background": 0,
+        "stop": 1,
+        "prompt": 1
+      },
+      "hookSequence": [
+        {
+          "mode": "prompt",
+          "at": 11258,
+          "ok": true,
+          "elapsedMs": 3632,
+          "finding": false,
+          "submitted": false,
+          "blocked": false
+        },
+        {
+          "mode": "edit",
+          "at": 19868,
+          "ok": true,
+          "elapsedMs": 2460,
+          "finding": false,
+          "submitted": false,
+          "blocked": false
+        },
+        {
+          "mode": "stop",
+          "at": 25824,
+          "ok": true,
+          "elapsedMs": 2070,
+          "finding": false,
+          "submitted": false,
+          "blocked": false
+        }
+      ],
+      "nativeHookShapes": [
+        {
+          "nativeTool": "apply_patch",
+          "inputKeys": [
+            "command"
+          ],
+          "responseKeys": [],
+          "responseKind": "string",
+          "userModified": null,
+          "pathMatches": null,
+          "stringsMatch": null
+        }
+      ],
+      "nativeToolNames": [],
+      "backendCompletions": 1,
+      "backendCompletionTimes": [
+        23682
+      ],
+      "backendCompletedAfterHostExit": false,
+      "clearFollowUp": false,
+      "activityStages": [
+        "pending",
+        "pending",
+        "findings"
+      ],
+      "findingSubmission": false,
+      "stopBlock": false,
+      "originalFile": true,
+      "repairedFile": false,
+      "modelClaimedRepair": false,
+      "hookFailures": [],
+      "hostError": false
+    }
+  ]
+}

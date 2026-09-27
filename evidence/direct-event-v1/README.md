@@ -1,5 +1,7 @@
 # Direct-event v1 conformance evidence
 
+The [acceptance narrative](acceptance-record.md) retains the historical outcome narrative extracted from the support declaration.
+
 This directory retains sanitized release evidence for the initial supported profile:
 **Codex CLI 0.155.1 / Linux arm64 / headless command hooks / controlled writer**.
 It does not extend support to another host, version, platform, or mode.

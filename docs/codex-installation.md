@@ -1,9 +1,11 @@
 # Codex installation lifecycle
 
-For a person using a normal Codex profile, start with the
-[npm quickstart](./npm-quickstart.md) and `hapsland --pilot` after the
-registry release. The JSON operations below remain the versioned automation
-interface. `hapsland` is the product command; Jev is the external backend.
+The versioned operations below apply to an already obtained and verified package
+artifact. For a normal Codex profile, `hapsland --pilot` starts its guided setup;
+the JSON operations provide the automation interface. Public npm installation is
+pending; the [release installation plan](../evidence/release/npm-install-plan.md)
+records the intended registry flow. `hapsland` is the product command; Jev is the
+external backend.
 
 After installation, diagnose the selected host and repository without mutation or a
 provider call:
@@ -77,6 +79,13 @@ Installation and repository enablement are separate. Installation writes the ada
 an ownership record into the selected Codex home, but grants no permission to send repository
 source. Enablement separately previews the canonical Git root, Jev backend and destination, and
 eligible-source scope. Both mutations require the digest returned by their preview.
+The composed candidate installation adds synchronous `PreToolUse` admission,
+an async background command to the owned `PostToolUse` group, and separately
+owned `Stop`, `SubagentStop`, and `UserPromptSubmit` groups.
+All delivery triggers collect from the same resident work and advice state.
+The matched Linux headless outcome is recorded in
+[the Linux evidence](../evidence/advicing-linux/README.md); remaining conformance
+gates are open, so this is not a new installed-release support declaration.
 The install preview's `proposal.ownedChanges` identifies the exact runtime executable,
 entrypoint, Node/platform/architecture, feature key, hook event, matcher, command, timeout, and
 ownership-record path. It does not echo unrelated configuration values.

@@ -1,13 +1,15 @@
 # Installed release compatibility
 
-The combined Codex background and bounded Stop delivery proposal in
-[issue #105](issue-105-composed-delivery.md) is **not part of this release support
-declaration**. Its exact Linux and macOS composition gates remain open, and the
-installed integration continues to collect ready advice on subsequent mapped edit
-hooks. The existing verified cells below cover their stated earlier behavior only.
+The composed Codex and Claude background plus bounded finish delivery candidate
+is **not part of the pinned release support declaration below**. The
+[Advicing target contract](advicing-target-contract.md) states accepted behavior;
+the [Linux evidence index](../evidence/advicing-linux/README.md) records current
+candidate observations and gaps. The [product vocabulary](../CONTEXT.md)
+defines its terms. Candidate results do not establish installed-release or
+macOS support for that behavior. The verified release cells below apply only
+to the earlier pinned commit and delivery behavior.
 
-The assembled installed-product gate is **release-ready for the exact declared profiles**. The declaration is intentionally
-bound to integration commit `f2f47e94cd2d90cf73062f07c5e61416218e2f13`, the exact retained
+This support declaration is bound to integration commit `f2f47e94cd2d90cf73062f07c5e61416218e2f13`, the exact retained
 evidence checksums, Linux Codex CLI 0.155.1, macOS Codex CLI 0.156.0, Node 24.20.0, and arm64.
 This declaration predates the Hapsland rename and does not validate a public Hapsland package
 name or registry artifact.
@@ -34,39 +36,29 @@ wrong Node version, failed lifecycle stage, evidence mismatch, or omitted compat
 mechanism failure: the command stops instead of converting that failure into an untested or passing
 cell. The replay reports its own status separately from the compatibility verdict.
 
-## Declared cells
+## Declared cells at the pinned integration commit
 
 | Platform / cell | Exact environment and mode | State | Evidence boundary |
 | --- | --- | --- | --- |
 | Linux installed lifecycle | Linux arm64, Node 24.20.0; controlled headless and masked interactive setup | Verified | Packed production install, real Secret Service, independent hook, update/recovery, disable/logout/uninstall |
 | Linux native trust | Codex 0.155.1; native interactive trust review | Verified | Exact hook-definition trust was persisted; no trust bypass was used |
 | Linux authenticated host | Codex 0.155.1 `exec`; installed hook | Verified | One controlled submission and one correlated completed finding were observed; the independent hook also ran |
-| macOS installed lifecycle | macOS 14 arm64, Node 24.20.0; controlled headless, masked interactive setup, isolated Keychains | Verified | GitHub Actions run 35790230309; lookup/replacement/logout stayed in the selected default Keychain |
+| macOS installed lifecycle | macOS 14 arm64, Node 24.20.0; controlled headless, masked interactive setup, isolated Keychains | Verified | Selected default Keychain lookup, replacement, and logout |
 | macOS native-trust handoff | Codex 0.155.1 setup contract | Verified for setup; native review separately verified on 0.156.0 | Setup leaves native trust unchanged; the authenticated-host run persisted exact native trust without bypass |
 | macOS authenticated host | macOS arm64, Node 24.20.0, Codex CLI 0.156.0 | Verified | One controlled offline submission and correlated completed finding; independent hook observed both host events |
-| Installed first review | Linux arm64, packed installation, Codex 0.155.1 | Verified | Supervised synthetic run used normal native trust and an explicitly labeled test host sandbox bypass; 2 real Jev calls, 704 source bytes, correlated finding reaction, independently validated repair, completed follow-up |
+| Installed first review | Linux arm64, packed installation, Codex 0.155.1 | Verified | Synthetic finding/repair/follow-up under normal native trust and a declared test host sandbox bypass |
 
-The macOS controlled path does not imply compatibility beyond the exact authenticated Codex
-CLI 0.156.0 cell. The legacy first-review record remains inconclusive and does not imply provider or repair success. The installed demo now records source-free edit,
-finding-handoff, and review-terminal hashes and requires the host's final report to cite the
-handed-off rule before it credits a reaction. A terminal review must match the independently
-validated repaired source. The 2026-09-23 supervised record satisfies those checks under its
-declared Linux test conditions. It does not verify Codex's default workspace-write sandbox in this
-container; that mode remains a separate pilot observation. No public package registry or broader
-host support follows from this gate.
+The macOS controlled path does not imply compatibility beyond the exact authenticated
+Codex CLI 0.156.0 cell. Codex's default workspace-write sandbox in the Linux container
+is not verified by this declaration. No public registry or broader host support follows
+from this gate. The [release acceptance record](../evidence/package/installed-release-acceptance.md)
+retains first-review attribution details and setup measurements.
 
 For authenticated macOS package validation, run `node scripts/run-clean-package-conformance.mjs
 --real-codex --write-evidence` with Node 24.20.0 and a declared Codex CLI version selected.
 The runner accepts 0.155.1 and 0.156.0, checks versions before packing or creating its isolated
 Keychain fixture, and writes a separate evidence file for each real-host version. The retained
 release manifest verifies the macOS arm64 real-host cell specifically for Codex CLI 0.156.0.
-
-## Setup-effort evidence
-
-Retained single-run measurements are descriptive rather than performance guarantees. The Linux
-first-review preview reported one setup action in 31 ms. Linux Secret Service login and separate
-process lookup took 587 ms and 292 ms. The macOS Keychain run reported 689 ms and 479 ms for the same
-two stages. Interactive native trust effort has no comparable retained timing and remains unmeasured.
 
 The supported observation profile still cannot attribute overlapping invisible writes in a shared
 root when the host supplies no direct writer evidence. Such observations are

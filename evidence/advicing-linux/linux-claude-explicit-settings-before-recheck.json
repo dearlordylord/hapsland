@@ -1,0 +1,99 @@
+{
+  "issue": 105,
+  "platform": "linux-arm64",
+  "node": "v24.20.0",
+  "backend": "controlled offline Effect DecisionModel",
+  "cases": [
+    {
+      "host": "claude",
+      "phase": "before",
+      "hostVersion": "2.1.218",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 27393,
+      "hookCounts": {
+        "edit": 1,
+        "background": 0,
+        "stop": 0,
+        "prompt": 0
+      },
+      "hookSequence": [
+        {
+          "mode": "edit",
+          "at": 24377,
+          "ok": false,
+          "elapsedMs": 5038,
+          "finding": false,
+          "submitted": false,
+          "blocked": false,
+          "eventKeys": [
+            "cwd",
+            "duration_ms",
+            "effort",
+            "hook_event_name",
+            "permission_mode",
+            "prompt_id",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path"
+          ],
+          "hasPrompt": false,
+          "hasTurnId": false,
+          "stopActive": false
+        }
+      ],
+      "nativeHookShapes": [
+        {
+          "nativeTool": "Edit",
+          "inputKeys": [
+            "file_path",
+            "new_string",
+            "old_string",
+            "replace_all"
+          ],
+          "responseKeys": [
+            "filePath",
+            "newString",
+            "oldString",
+            "originalFile",
+            "replaceAll",
+            "structuredPatch",
+            "userModified"
+          ],
+          "responseKind": "object",
+          "userModified": false,
+          "pathMatches": true,
+          "stringsMatch": true
+        }
+      ],
+      "nativeToolNames": [
+        "Read",
+        "Edit"
+      ],
+      "backendCompletions": 1,
+      "backendCompletionTimes": [
+        28930
+      ],
+      "backendCompletedAfterHostExit": true,
+      "clearFollowUp": false,
+      "activityStages": [
+        "pending",
+        "pending",
+        "findings"
+      ],
+      "findingSubmission": false,
+      "stopBlock": false,
+      "originalFile": true,
+      "repairedFile": false,
+      "modelClaimedRepair": false,
+      "hookFailures": [
+        "edit"
+      ],
+      "hostError": false
+    }
+  ]
+}

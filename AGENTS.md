@@ -1,5 +1,18 @@
 # Project instructions
 
+## Review requests and acceptance decisions
+
+When requesting owner review of a diagram or other visual artifact, present the
+specific before/after difference to inspect, identify the exact case or panel,
+and explain the observable behavior that should change. Link the relevant view
+and state the concrete decision requested. If the artifact did not change, say
+so and distinguish an existing design review from validation of new code; do not
+imply that there is a new visual diff. A link to the whole page is insufficient.
+
+For an acceptance decision, state the proposed scope, observed limitations, and
+what acceptance permits next. Cite the source requiring owner approval. Separate
+design acceptance from empirical validation and release/platform support claims.
+
 ## Product identity
 
 The repository checkout may still be named `jev`, but the product is **Hapsland**.

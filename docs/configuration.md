@@ -1,7 +1,7 @@
 # Configuration v1
 
 This is the supported configuration and rule-pack format. The
-[#96 compatibility assessment](./issue-96-contract-compatibility.md) records
+[review contract compatibility assessment](./review-contract-compatibility.md) records
 the proposed v2 path for explicit type/function targets. Choice and Score
 remain separate, undecided result-form work. Those declarations are unsupported
 today; v1 files retain their present probability behavior.

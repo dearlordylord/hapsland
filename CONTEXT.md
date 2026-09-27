@@ -3,6 +3,9 @@
 This glossary records the domain language for the product under design. It is not an
 implementation specification.
 
+The [Advicing target contract](docs/advicing-target-contract.md) defines the
+accepted behavior that uses these terms.
+
 | Term | Meaning |
 |---|---|
 | Product | Hapsland, the runtime-neutral system we are designing around realtime coding-agent reviews. |
@@ -13,9 +16,12 @@ implementation specification.
 | Runtime trust | The agent runtime's approval to execute an installed integration. It is separate from repository enablement and credential availability. |
 | Agent runtime | A program that runs an agent's tool and edit loop and reports its events, such as Codex CLI or Claude Code. |
 | Agent | A coding assistant that edits source in an agent runtime and can receive advice from Hapsland. |
+| Advicing | Hapsland's flow from an agent-runtime hook toward an advice decision for the agent. The flow may end without advice. |
+| Jeview | The portion of advicing in which Jev evaluates one item and returns its result. |
 | Subagent | An agent started by another agent within an agent runtime. It remains an agent for review and advice. |
-| Hapsland round | One agent's period of review and advice in Hapsland. It continues when Hapsland asks that agent to work on advice at Stop. It ends when Hapsland allows a Stop attempt to finish, even if another hook keeps the agent working. New work after that boundary starts a new Hapsland round. |
-| Runtime turn | A unit of conversation identified by an agent runtime. Its boundary need not match a Hapsland round. |
+| Round | One episode of an agent's work that ends when its runtime accepts completion. Another runtime hook can keep it going after Hapsland allows a Stop attempt. Hapsland need not observe its actual end. |
+| Virtual round | Hapsland's own period of review and advice for one agent. It continues when Hapsland asks that agent to work on advice at Stop. It ends when Hapsland allows a Stop attempt, even if the agent's round continues because of another hook. Fresh attributed work after that boundary starts a new virtual round. |
+| Runtime turn | A unit of conversation identified by an agent runtime. Its boundary need not match either a round or a virtual round. |
 | Model provider | Secondary metadata about the inference service selected by an agent runtime or review backend. It is not a first-class adapter target in the current phase. |
 | Artifact | An independently identifiable semantic subject extracted from source. Its kind identifies what it describes; the initial kind is `typeShape`. |
 | Type-shape artifact | An artifact describing the domain values admitted by one interface, type declaration, or schema. |
@@ -36,11 +42,16 @@ implementation specification.
 | Observation result | The completion, skip, or incompleteness outcome of processing one change observation before semantic review work exists. |
 | Review unit | One root artifact together with the supporting evidence evaluated independently in one review-backend request. |
 | Review work item | One review unit together with the frozen observation, rule-set, and input-contract context needed to schedule its evaluation. |
+| Unfinished review work | An admitted attributed edit or derived review item whose review outcome has not yet been recorded as pending advice or a completed review status, and which has not been discarded by a finish decision. |
 | Review dispatch cycle | A finite group of review work items selected together for evaluation; work arriving after selection belongs to a later cycle. |
 | Review result | The operational result of evaluating one actual review work item. |
 | Advicee | The agent that Hapsland can advise about an attributed edit. A working root or the latest caller does not identify that agent by itself. |
-| Stop continuation | More work that Hapsland asks an agent to do when it tries to finish, so it can act on advice. |
-| Stop allowance | Permission for Hapsland to request a Stop continuation from an agent. |
+| Finish attempt | The agent runtime invokes its API hook named `Stop` or `SubagentStop` when an agent tries to finish. This is a runtime event, not proof of completion or a Jev operation. |
+| Finish-decision wait | The bounded period while Hapsland holds one finish-attempt hook call open for review work. The runtime has not yet received Hapsland's response. |
+| Continue-with-advice response | Hapsland's `block` response to an open finish-attempt hook call. It carries ordinary review advice and asks the runtime to let the agent continue the same virtual round. |
+| Allow-finish response | Hapsland's `allow` response to an open finish-attempt hook call. Hapsland closes its virtual round; another runtime hook may still keep the agent working in the same actual round. |
+| Continuation request | More work that Hapsland asks an agent to do via a continue-with-advice response so it can act on advice. |
+| Per-virtual-round continuation budget | The maximum number of continuation requests Hapsland may reserve in one virtual round. A new virtual round has a new budget. |
 | Pending advice | Advice from a completed review that remains eligible for delivery to its intended advicee. |
 | Advice relevance expiry | The transition after which undelivered pending advice is no longer eligible for delivery because its configured relevance age has elapsed. It does not imply delivery, runtime closure, or loss of the observation baseline. |
 | Advice batch | The bounded collection of review results selected for delivery together through one agent-runtime interaction. |

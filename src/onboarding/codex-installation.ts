@@ -24,6 +24,7 @@ import { isCodexHostVersion } from "../direct-event/model.ts";
 const OWNERSHIP_VERSION = 1 as const;
 const RESULT_VERSION = 1 as const;
 const OWNED_MARKER = "--review-tool-owned=codex-v1";
+const COMPOSED_MARKER = "--review-tool-composed-owned=codex-v1";
 const OWNED_MATCHER = "^(apply_patch|Edit|Write|Bash)$";
 const PRODUCT_DIRECTORY = ".realtime-review-tool";
 
@@ -75,6 +76,7 @@ interface OwnershipRecord {
   readonly entrypoint: string;
   readonly marker: typeof OWNED_MARKER;
   readonly hookFingerprint: string;
+  readonly composedFingerprints?: { readonly stop: string; readonly prompt: string; readonly subagentStop?: string; readonly preToolUse?: string };
   readonly owned: ReadonlyArray<{
     readonly file: string;
     readonly kind: "feature" | "hook";
@@ -137,14 +139,33 @@ const ownedHook = (runtime: string, entrypoint: string, hostVersion = "0.155.1")
   const version = hostVersion === "0.155.1" ? "" : ` --codex-version=${hostVersion}`;
   return {
     type: "command",
-    command: `${quoteShell(runtime)} ${quoteShell(entrypoint)} --codex-hook${controlled} --controlled-writer ${OWNED_MARKER}${version}`,
+    command: `${quoteShell(runtime)} ${quoteShell(entrypoint)} --codex-hook${controlled} --controlled-writer --composed-edit-hook ${OWNED_MARKER}${version}`,
     timeout: 10,
   };
 };
 
+const composedCommand = (runtime: string, entrypoint: string, hostVersion: string, kind: "background" | "stop" | "prompt" | "before-edit") => {
+  const controlled = process.env.REVIEW_INSTALL_CONTROLLED === "1" ? " --controlled-reviewer" : "";
+  const version = hostVersion === "0.155.1" ? "" : ` --codex-version=${hostVersion}`;
+  const exec = kind === "before-edit" ? "exec " : "";
+  return `${exec}${quoteShell(runtime)} ${quoteShell(entrypoint)} --composed-${kind}-hook --composed-host=codex-cli${controlled} ${COMPOSED_MARKER}${version}`;
+};
+
+const composedGroups = (runtime: string, entrypoint: string, hostVersion: string) => ({
+  PreToolUse: { matcher: OWNED_MATCHER, hooks: [{ type: "command", command: composedCommand(runtime, entrypoint, hostVersion, "before-edit"), timeout: 5 }] },
+  Stop: { hooks: [{ type: "command", command: composedCommand(runtime, entrypoint, hostVersion, "stop"), timeout: 5 }] },
+  SubagentStop: { hooks: [{ type: "command", command: composedCommand(runtime, entrypoint, hostVersion, "stop"), timeout: 5 }] },
+  UserPromptSubmit: { hooks: [{ type: "command", command: composedCommand(runtime, entrypoint, hostVersion, "prompt"), timeout: 4 }] },
+});
+
 const ownedGroup = (runtime: string, entrypoint: string, hostVersion = "0.155.1") => ({
   matcher: OWNED_MATCHER,
-  hooks: [ownedHook(runtime, entrypoint, hostVersion)],
+  hooks: [ownedHook(runtime, entrypoint, hostVersion), {
+    type: "command",
+    command: composedCommand(runtime, entrypoint, hostVersion, "background"),
+    timeout: 25,
+    async: true,
+  }],
 });
 
 const stableJson = (value: unknown): string => {
@@ -171,6 +192,37 @@ const postToolUseGroups = (root: JsonObject): Array<unknown> => {
   if (post === undefined) return [];
   if (!Array.isArray(post)) throw new Error("hooks.json PostToolUse must be an array");
   return post;
+};
+
+const withComposedGroups = (
+  root: JsonObject,
+  target: ReturnType<typeof composedGroups> | undefined,
+  expected: OwnershipRecord["composedFingerprints"],
+): JsonObject => {
+  const hooks = root.hooks === undefined ? {} : root.hooks;
+  if (!isObject(hooks)) throw new Error("hooks.json field 'hooks' must be an object");
+  const nextHooks = { ...hooks };
+  for (const [event, key] of [["PreToolUse", "preToolUse"], ["Stop", "stop"], ["SubagentStop", "subagentStop"], ["UserPromptSubmit", "prompt"]] as const) {
+    const existing = nextHooks[event];
+    if (existing !== undefined && !Array.isArray(existing)) throw new Error(`hooks.json ${event} must be an array`);
+    const groups: unknown[] = existing === undefined ? [] : [...existing];
+    const indexes = groups.flatMap((group, index) =>
+      stableJson(group).includes(COMPOSED_MARKER) ? [index] : []);
+    const expectedFingerprint = expected?.[key];
+    if (indexes.length > 1 || (expectedFingerprint === undefined && indexes.length !== 0) ||
+        (expectedFingerprint !== undefined && (indexes.length !== 1 ||
+          hookFingerprint(groups[indexes[0]!]) !== expectedFingerprint))) {
+      throw new Error(`owned Codex ${event} hook is missing, duplicated, or locally modified`);
+    }
+    if (indexes.length === 1) groups.splice(indexes[0]!, 1);
+    if (target !== undefined) groups.push(target[event]);
+    if (groups.length === 0) delete nextHooks[event];
+    else nextHooks[event] = groups;
+  }
+  const next = { ...root };
+  if (Object.keys(nextHooks).length === 0) delete next.hooks;
+  else next.hooks = nextHooks;
+  return next;
 };
 
 const addOwnedHook = (root: JsonObject, group: unknown): JsonObject => {
@@ -397,6 +449,11 @@ const readOwnership = (path: string): OwnershipRecord | undefined => {
       (value.packageVersion !== undefined && typeof value.packageVersion !== "string") ||
       (value.residentProtocol !== undefined && (typeof value.residentProtocol !== "number" ||
         !Number.isSafeInteger(value.residentProtocol) || value.residentProtocol <= 0)) ||
+      (value.composedFingerprints !== undefined && (!isObject(value.composedFingerprints) ||
+        typeof value.composedFingerprints.stop !== "string" ||
+        typeof value.composedFingerprints.prompt !== "string" ||
+        (value.composedFingerprints.subagentStop !== undefined && typeof value.composedFingerprints.subagentStop !== "string") ||
+        (value.composedFingerprints.preToolUse !== undefined && typeof value.composedFingerprints.preToolUse !== "string"))) ||
       value.marker !== OWNED_MARKER) {
     throw new Error("installation ownership record has an unsupported shape or version");
   }
@@ -419,6 +476,14 @@ const readOwnership = (path: string): OwnershipRecord | undefined => {
     entrypoint: value.entrypoint,
     marker: OWNED_MARKER,
     hookFingerprint: value.hookFingerprint,
+    ...(value.composedFingerprints === undefined ? {} : {
+      composedFingerprints: {
+        stop: (value.composedFingerprints as JsonObject).stop as string,
+        prompt: (value.composedFingerprints as JsonObject).prompt as string,
+        ...(typeof value.composedFingerprints.subagentStop === "string" ? { subagentStop: value.composedFingerprints.subagentStop } : {}),
+        ...(typeof value.composedFingerprints.preToolUse === "string" ? { preToolUse: value.composedFingerprints.preToolUse } : {}),
+      },
+    }),
     owned,
   };
 };
@@ -683,6 +748,12 @@ const makeOwnershipRecord = (
   entrypoint: inputs.entrypoint,
   marker: OWNED_MARKER,
   hookFingerprint: fingerprint,
+  composedFingerprints: {
+    preToolUse: hookFingerprint(composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version).PreToolUse),
+    stop: hookFingerprint(composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version).Stop),
+    subagentStop: hookFingerprint(composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version).SubagentStop),
+    prompt: hookFingerprint(composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version).UserPromptSubmit),
+  },
   owned: [
     ...(featureOwned
       ? [{ file: inputs.paths.config, kind: "feature" as const, fingerprint: HOOKS_FEATURE_FINGERPRINT }]
@@ -719,7 +790,9 @@ const makeInstallPlan = (request: InstallationRequest) => {
   const nextHooksRoot = existingRecord === undefined
     ? addOwnedHook(hookRoot, group)
     : replaceOwnedHook(hookRoot, group);
-  const nextHooks = encodeJson(nextHooksRoot);
+  const nextHooks = encodeJson(withComposedGroups(nextHooksRoot,
+    composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version),
+    existingRecord?.composedFingerprints));
   const featureOwned = existingRecord?.owned.some((entry) =>
     entry.kind === "feature" && entry.file === inputs.paths.config
   ) ?? nextConfig !== config.content;
@@ -761,7 +834,9 @@ const makeUpdatePlan = (request: InstallationRequest) => {
   }
   const targetGroup = ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version);
   const targetFingerprint = hookFingerprint(targetGroup);
-  const nextHooks = encodeJson(replaceOwnedHook(hookRoot, targetGroup));
+  const nextHooks = encodeJson(withComposedGroups(replaceOwnedHook(hookRoot, targetGroup),
+    composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version),
+    record.composedFingerprints));
   const ownership = snapshot(inputs.paths.ownership);
   const nextOwnership = encodeJson(makeOwnershipRecord(inputs, targetFingerprint, ownedFeature !== undefined));
   const mutations = [
@@ -782,14 +857,18 @@ const makeUpdatePlan = (request: InstallationRequest) => {
 const makeUninstallPlan = (request: InstallationRequest) => {
   const inputs = resolveInputs(request);
   const record = readOwnership(inputs.paths.ownership);
-  if (record === undefined) return { inputs, mutations: [] as Array<Mutation>, digest: installationDigest("uninstall", inputs.home, []), alreadyRemoved: true };
+  if (record === undefined) {
+    withComposedGroups(parseJsonObject(snapshot(inputs.paths.hooks)), undefined, undefined);
+    return { inputs, mutations: [] as Array<Mutation>, digest: installationDigest("uninstall", inputs.home, []), alreadyRemoved: true };
+  }
   if (record.codexHome !== inputs.home) throw new Error("ownership record targets another Codex home");
   const config = snapshot(inputs.paths.config);
   const hooks = snapshot(inputs.paths.hooks);
   const ownership = snapshot(inputs.paths.ownership);
   const parsedConfig = validateToml(config);
   const hookRoot = parseJsonObject(hooks);
-  const nextHookRoot = removeOwnedHook(hookRoot, record.hookFingerprint);
+  const nextHookRoot = withComposedGroups(removeOwnedHook(hookRoot, record.hookFingerprint),
+    undefined, record.composedFingerprints);
   const nextHooks = encodeJson(nextHookRoot);
   const ownedFeature = record.owned.find((entry) => entry.kind === "feature" && entry.file === inputs.paths.config);
   const featureWasOwned = ownedFeature !== undefined;
@@ -1185,6 +1264,14 @@ const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof re
   const targetGroup = ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version);
   const targetFingerprint = hookFingerprint(targetGroup);
   const priorOwnership = decodedOwnershipContent(ownershipChange?.beforeContent ?? null);
+  const priorComposed = isObject(priorOwnership?.composedFingerprints) &&
+    typeof priorOwnership.composedFingerprints.stop === "string" &&
+    typeof priorOwnership.composedFingerprints.prompt === "string"
+    ? { stop: priorOwnership.composedFingerprints.stop, prompt: priorOwnership.composedFingerprints.prompt,
+      ...(typeof priorOwnership.composedFingerprints.preToolUse === "string" ? { preToolUse: priorOwnership.composedFingerprints.preToolUse } : {}),
+      ...(typeof priorOwnership.composedFingerprints.subagentStop === "string" ? { subagentStop: priorOwnership.composedFingerprints.subagentStop } : {}) }
+    : undefined;
+  const targetComposed = composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version);
   const priorOwned = Array.isArray(priorOwnership?.owned) ? priorOwnership.owned : [];
   const priorFeatureOwned = priorOwned.some((entry) =>
     isObject(entry) && entry.kind === "feature" && entry.file === inputs.paths.config &&
@@ -1203,7 +1290,8 @@ const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof re
     }
     if (hooksChange !== undefined) {
       const beforeRoot = parseJsonObject(mutationBeforeFile(hooksChange));
-      const expectedHooks = encodeJson(replaceOwnedHook(beforeRoot, targetGroup));
+      const expectedHooks = encodeJson(withComposedGroups(replaceOwnedHook(beforeRoot, targetGroup),
+        targetComposed, priorComposed));
       if (hooksChange.afterContent !== expectedHooks) {
         throw new Error("recovery journal hook change does not preserve the exact unrelated hook state");
       }
@@ -1213,6 +1301,11 @@ const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof re
       if (markerCount(currentRoot) !== 1 || stableJson(currentGroup) !== stableJson(targetGroup)) {
         throw new Error("recovery journal does not bind the exact target owned hook");
       }
+      withComposedGroups(currentRoot, targetComposed, {
+        preToolUse: hookFingerprint(targetComposed.PreToolUse),
+        stop: hookFingerprint(targetComposed.Stop), prompt: hookFingerprint(targetComposed.UserPromptSubmit),
+        subagentStop: hookFingerprint(targetComposed.SubagentStop),
+      });
     }
     return;
   }
@@ -1233,7 +1326,7 @@ const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof re
         ? addOwnedHook(beforeRoot, targetGroup)
         : replaceOwnedHook(beforeRoot, targetGroup);
       if (hooksChange.description !== "append the owned PostToolUse adapter hook" ||
-          hooksChange.afterContent !== encodeJson(expectedRoot)) {
+          hooksChange.afterContent !== encodeJson(withComposedGroups(expectedRoot, targetComposed, priorComposed))) {
         throw new Error("recovery journal install hook does not preserve unrelated hooks");
       }
     } else {
@@ -1242,6 +1335,11 @@ const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof re
       if (markerCount(currentRoot) !== 1 || stableJson(currentGroup) !== stableJson(targetGroup)) {
         throw new Error("recovery journal install plan does not bind the exact owned hook");
       }
+      withComposedGroups(currentRoot, targetComposed, {
+        preToolUse: hookFingerprint(targetComposed.PreToolUse),
+        stop: hookFingerprint(targetComposed.Stop), prompt: hookFingerprint(targetComposed.UserPromptSubmit),
+        subagentStop: hookFingerprint(targetComposed.SubagentStop),
+      });
     }
     const featureOwned = priorFeatureOwned || configChange !== undefined;
     if (ownershipChange.description !== "write the versioned ownership record" ||
@@ -1260,10 +1358,9 @@ const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof re
     : undefined;
   if (hooksChange !== undefined) {
     if (installedFingerprint === undefined || hooksChange.description !== "remove only the owned PostToolUse adapter hook" ||
-        hooksChange.afterContent !== encodeJson(removeOwnedHook(
-          parseJsonObject(mutationBeforeFile(hooksChange)),
-          installedFingerprint,
-        ))) {
+        hooksChange.afterContent !== encodeJson(withComposedGroups(removeOwnedHook(
+          parseJsonObject(mutationBeforeFile(hooksChange)), installedFingerprint,
+        ), undefined, priorComposed))) {
       throw new Error("recovery journal uninstall hook does not preserve unrelated hooks");
     }
   }
@@ -1492,6 +1589,9 @@ export const inspectCodexInstallation = (request: InstallationRequest): Installa
       const group = postToolUseGroups(hooks).find((candidate) => markerCount(candidate) > 0);
       if (hookFingerprint(group) !== ownership.hookFingerprint) {
         throw new Error("owned Codex hook was locally modified");
+      }
+      if (ownership.composedFingerprints !== undefined) {
+        withComposedGroups(hooks, undefined, ownership.composedFingerprints);
       }
       const pinnedInputs = { ...inputs, executable: ownership.executable };
       return compatibility(pinnedInputs).supported && ownership.runtimeVersion === `v${inputs.runtimeVersion}`;

@@ -1,3 +1,4 @@
+import type { RoundCloseReason } from "../activity/status.ts";
 import { spawn } from "node:child_process";
 import * as Effect from "effect/Effect";
 import { connect } from "node:net";
@@ -293,6 +294,7 @@ export const admitObservation = async (
   controlledWriter: boolean,
   dispatch: ResidentDispatchContext,
   paths = residentPaths(),
+  composed = false,
 ) => {
   const owner = await ensureResident(paths);
   if (!controlledWriter) return { status: "empty" } as const;
@@ -302,6 +304,7 @@ export const admitObservation = async (
     lifetime: owner.lifetime,
     observation,
     controlledWriter: true,
+    ...(composed ? { composed: true as const } : {}),
     dispatch,
   });
 };
@@ -317,13 +320,14 @@ export type TicketedAdmission = {
 
 export type TicketedAdmissionResult =
   | { readonly status: "accepted"; readonly admission: TicketedAdmission }
-  | { readonly status: "rejected-capacity" | "obsolete-lifetime" | "unsupported" };
+  | { readonly status: "rejected-capacity" | "rejected-stale" | "obsolete-lifetime" | "unsupported" };
 
 /** Only Claude's synchronous PostToolUse hook uses ticketed collection. */
 export const admitTicketedObservation = async (
   observation: DirectObservation,
   dispatch: ResidentDispatchContext,
   paths = residentPaths(),
+  composed = false,
 ): Promise<TicketedAdmissionResult> => {
   if (observation.advicee.host !== "claude-code") return { status: "unsupported" };
   const owner = await ensureResident(paths);
@@ -333,6 +337,7 @@ export const admitTicketedObservation = async (
     lifetime: owner.lifetime,
     observation,
     controlledWriter: true,
+    ...(composed ? { composed: true as const } : {}),
     dispatch,
   });
   if (!("version" in response) || response.version !== 2 || response.status === "unsupported") return { status: "unsupported" };
@@ -347,7 +352,7 @@ export const admitTicketedObservation = async (
       dispatch,
     } };
   }
-  if (response.status === "rejected-capacity" || response.status === "obsolete-lifetime") {
+  if (response.status === "rejected-capacity" || response.status === "rejected-stale" || response.status === "obsolete-lifetime") {
     return { status: response.status };
   }
   return { status: "unsupported" };
@@ -422,6 +427,129 @@ export const collectReady = async (
     : undefined;
 };
 
+export type AdviceeCollectionOutcome =
+  | { readonly status: "advice"; readonly advice: CollectedAdvice & { readonly output: CodexDirectEventOutput } }
+  | { readonly status: "pending" | "empty" };
+
+/** Shared background/Stop collection probe for any supported host advicee. */
+export const collectAdviceeOutcome = async (
+  root: string,
+  advicee: DirectAdvicee,
+  dispatch: ResidentDispatchContext,
+  paths = residentPaths(),
+  mode: CollectionMode = "ordinary",
+  deadlineAt = Number.POSITIVE_INFINITY,
+  finish?: { readonly token: string; readonly deadlineReached: boolean },
+): Promise<AdviceeCollectionOutcome> => {
+  const owner = await inspectResident(paths);
+  if (!owner.available || owner.lifetime === undefined) return { status: "empty" };
+  const remaining = deadlineAt - performance.now() - 100;
+  if (remaining <= 0) return { status: "empty" };
+  const response = await residentRequest(paths, {
+    version: 1,
+    operation: "collect",
+    lifetime: owner.lifetime,
+    root,
+    advicee,
+    dispatch,
+    mode,
+    reportWorkState: true,
+    composed: true,
+    ...(finish === undefined ? {} : { finish }),
+  }, Math.min(CLIENT_REQUEST_DEADLINE_MS, remaining));
+  if (response.status === "advice" && !("version" in response)) {
+    return { status: "advice", advice: {
+      output: response.output,
+      token: response.token,
+      lifetime: owner.lifetime,
+      paths,
+      root,
+      advicee,
+      activityPath: dispatch.activityPath,
+      findingCount: response.findingCount,
+    } };
+  }
+  return { status: response.status === "pending" ? "pending" : "empty" };
+};
+
+export const markComposedUserPrompt = async (
+  root: string,
+  advicee: DirectAdvicee,
+  marker: string,
+  paths = residentPaths(),
+  promptDigest?: string,
+  onlyIfMissing?: true,
+): Promise<boolean> => {
+  const owner = await ensureResident(paths, 1_500);
+  const response = await residentRequest(paths, {
+    version: 1, operation: "prompt-marker", lifetime: owner.lifetime,
+    root, advicee, marker,
+    ...(promptDigest === undefined ? {} : { promptDigest }),
+    ...(onlyIfMissing === true ? { onlyIfMissing: true as const } : {}),
+  });
+  return response.status === "advanced";
+};
+
+export const reserveComposedVirtualRoundContinuation = async (
+  root: string,
+  advicee: DirectAdvicee,
+  paths = residentPaths(),
+  continuationDigest?: string,
+): Promise<boolean> => {
+  const owner = await inspectResident(paths);
+  if (!owner.available || owner.lifetime === undefined) return false;
+  const response = await residentRequest(paths, {
+    version: 1, operation: "consume-stop", lifetime: owner.lifetime,
+    root, advicee,
+    ...(continuationDigest === undefined ? {} : { continuationDigest }),
+  });
+  return response.status === "continuation-allowed";
+};
+
+export const claimComposedBackground = async (
+  root: string, advicee: DirectAdvicee, token: string,
+  paths = residentPaths(),
+): Promise<boolean> => {
+  const owner = await ensureResident(paths, 1_500);
+  const response = await residentRequest(paths, {
+    version: 1, operation: "claim-background", lifetime: owner.lifetime,
+    root, advicee, token,
+  });
+  return response.status === "background-claimed";
+};
+
+export const releaseComposedBackground = async (
+  root: string, advicee: DirectAdvicee, token: string,
+  paths = residentPaths(),
+): Promise<boolean> => {
+  const owner = await inspectResident(paths);
+  if (!owner.available || owner.lifetime === undefined) return false;
+  const response = await residentRequest(paths, {
+    version: 1, operation: "release-background", lifetime: owner.lifetime,
+    root, advicee, token,
+  });
+  return response.status === "released";
+};
+
+export const beginComposedSubmission = async (
+  advice: CollectedAdvice,
+  surface: "edit" | "background" | "stop",
+): Promise<boolean> => {
+  const response = await residentRequest(advice.paths, {
+    version: 1, operation: "begin-submission", lifetime: advice.lifetime,
+    token: advice.token, surface,
+  });
+  return response.status === "submitting";
+};
+
+export const releaseComposedSubmission = async (advice: CollectedAdvice): Promise<boolean> => {
+  const response = await residentRequest(advice.paths, {
+    version: 1, operation: "release", lifetime: advice.lifetime,
+    token: advice.token,
+  });
+  return response.status === "released";
+};
+
 export const acknowledgeAdvice = async (advice: CollectedAdvice): Promise<boolean> => {
   const deadline = performance.now() + CLIENT_REQUEST_DEADLINE_MS;
   const acknowledged = await residentRequest(advice.paths, {
@@ -440,4 +568,25 @@ export const acknowledgeAdvice = async (advice: CollectedAdvice): Promise<boolea
     token: advice.token,
   }, remaining).catch(() => undefined);
   return finalized?.status === "finalized";
+};
+
+export const composedStopBoundary = async (
+  operation: "begin-stop" | "finish-stop", root: string, advicee: DirectAdvicee,
+  token: string, close = false, paths = residentPaths(), reason: RoundCloseReason = "no-advice",
+): Promise<boolean> => {
+  const owner = await inspectResident(paths);
+  if (!owner.available || owner.lifetime === undefined) return false;
+  const response = await residentRequest(paths, { version: 1, operation,
+    lifetime: owner.lifetime, root, advicee, token, close, reason }, 250);
+  return response.status === "advanced";
+};
+
+export const registerComposedEdit = async (
+  root: string, advicee: DirectAdvicee, startedAt: number, paths = residentPaths(), activityPath?: string,
+): Promise<boolean> => {
+  const owner = await ensureResident(paths, 1_500);
+  const response = await residentRequest(paths, { version: 1, operation: "register-edit",
+    lifetime: owner.lifetime, root, advicee, startedAt,
+    ...(activityPath === undefined ? {} : { activityPath }) });
+  return response.status === "advanced";
 };

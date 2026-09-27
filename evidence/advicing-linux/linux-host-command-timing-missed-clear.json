@@ -1,0 +1,256 @@
+{
+  "issue": 105,
+  "platform": "linux-arm64",
+  "node": "v24.20.0",
+  "backend": "controlled offline Effect DecisionModel",
+  "commandTiming": "Linux ptrace child creation through exit; tracing adds overhead",
+  "cases": [
+    {
+      "host": "codex",
+      "phase": "after",
+      "hostVersion": "0.155.1",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 26248,
+      "hookCounts": {
+        "edit": 2,
+        "background": 1,
+        "stop": 1,
+        "prompt": 1
+      },
+      "hookSequence": [
+        {
+          "mode": "prompt",
+          "ok": true,
+          "elapsedMs": 633,
+          "finding": false,
+          "submitted": false,
+          "blocked": false
+        },
+        {
+          "mode": "edit",
+          "ok": true,
+          "elapsedMs": 314,
+          "finding": false,
+          "submitted": false,
+          "blocked": false
+        },
+        {
+          "mode": "background",
+          "ok": true,
+          "elapsedMs": 334,
+          "finding": true,
+          "submitted": true,
+          "blocked": false
+        },
+        {
+          "mode": "edit",
+          "ok": true,
+          "elapsedMs": 311,
+          "finding": false,
+          "submitted": false,
+          "blocked": false
+        },
+        {
+          "mode": "stop",
+          "ok": true,
+          "elapsedMs": 2562,
+          "finding": false,
+          "submitted": false,
+          "blocked": false
+        }
+      ],
+      "nativeToolNames": [],
+      "commandWindows": [
+        {
+          "mode": "prompt",
+          "launchAt": 2465,
+          "at": 3120,
+          "elapsedUs": 655896,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "edit",
+          "launchAt": 10770,
+          "at": 11116,
+          "elapsedUs": 345750,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "background",
+          "launchAt": 10774,
+          "at": 17146,
+          "elapsedUs": 6371369,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "edit",
+          "launchAt": 21703,
+          "at": 22037,
+          "elapsedUs": 334458,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "stop",
+          "launchAt": 23003,
+          "at": 25593,
+          "elapsedUs": 2590849,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "background",
+          "launchAt": 21708,
+          "at": 25598,
+          "elapsedUs": 3889184,
+          "exitCode": -1,
+          "signal": 9
+        }
+      ],
+      "backendCompletions": 2,
+      "backendCompletedAfterHostExit": false,
+      "clearFollowUp": true,
+      "findingSubmission": true,
+      "stopBlock": false,
+      "originalFile": false,
+      "repairedFile": true,
+      "modelClaimedRepair": true,
+      "hookFailures": [],
+      "hostError": false
+    },
+    {
+      "host": "claude",
+      "phase": "after",
+      "hostVersion": "2.1.218",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 23470,
+      "hookCounts": {
+        "edit": 2,
+        "background": 0,
+        "stop": 2,
+        "prompt": 1
+      },
+      "hookSequence": [
+        {
+          "mode": "prompt",
+          "ok": true,
+          "elapsedMs": 572,
+          "finding": false,
+          "submitted": false,
+          "blocked": false
+        },
+        {
+          "mode": "edit",
+          "ok": true,
+          "elapsedMs": 4109,
+          "finding": false,
+          "submitted": false,
+          "blocked": false
+        },
+        {
+          "mode": "stop",
+          "ok": true,
+          "elapsedMs": 346,
+          "finding": true,
+          "submitted": true,
+          "blocked": true
+        },
+        {
+          "mode": "edit",
+          "ok": true,
+          "elapsedMs": 545,
+          "finding": false,
+          "submitted": false,
+          "blocked": false
+        },
+        {
+          "mode": "stop",
+          "ok": true,
+          "elapsedMs": 329,
+          "finding": false,
+          "submitted": false,
+          "blocked": false
+        }
+      ],
+      "nativeToolNames": [
+        "Write",
+        "Edit"
+      ],
+      "commandWindows": [
+        {
+          "mode": "prompt",
+          "launchAt": 989,
+          "at": 1579,
+          "elapsedUs": 589816,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "edit",
+          "launchAt": 7581,
+          "at": 11711,
+          "elapsedUs": 4130816,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "stop",
+          "launchAt": 13558,
+          "at": 13932,
+          "elapsedUs": 374569,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "edit",
+          "launchAt": 21117,
+          "at": 21687,
+          "elapsedUs": 569706,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "stop",
+          "launchAt": 23078,
+          "at": 23428,
+          "elapsedUs": 350134,
+          "exitCode": 0,
+          "signal": 0
+        },
+        {
+          "mode": "background",
+          "launchAt": 21118,
+          "at": 23442,
+          "elapsedUs": 2323551,
+          "exitCode": -1,
+          "signal": 15
+        },
+        {
+          "mode": "background",
+          "launchAt": 7581,
+          "at": 23442,
+          "elapsedUs": 15861017,
+          "exitCode": -1,
+          "signal": 15
+        }
+      ],
+      "backendCompletions": 1,
+      "backendCompletedAfterHostExit": false,
+      "clearFollowUp": false,
+      "findingSubmission": true,
+      "stopBlock": true,
+      "originalFile": false,
+      "repairedFile": true,
+      "modelClaimedRepair": true,
+      "hookFailures": [],
+      "hostError": false
+    }
+  ]
+}

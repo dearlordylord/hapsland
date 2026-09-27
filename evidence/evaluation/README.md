@@ -1,6 +1,7 @@
 # Rule-meaning milestone evidence
 
-Status: deterministic offline validation and the explicit live milestone are complete.
+**Historical milestone record, 2026-09-20.** Deterministic offline validation and
+the explicit live milestone were complete at this recording.
 No paid provider call was made by ordinary tests or while landing/correcting the
 evaluation execution slice.
 
