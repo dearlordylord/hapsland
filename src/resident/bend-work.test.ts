@@ -96,6 +96,21 @@ describe("generated Bend work authority", () => {
     expect(work.cutoff(cutoff!.round, 7)).toBeUndefined();
   });
 
+  it("keeps the Stop poll waiting for external owners then cuts off exact work at deadline", () => {
+    const work = new BendWorkTracker();
+    const source = work.admit();
+    const unit = work.spawn(source)!;
+    const claimed = bendRoundBeginStop(bendRoundInitial(), 7);
+    if (claimed.$ !== "Granted") throw new Error("round claim failed");
+    expect(work.finishGate(claimed.state, 8, 0, true)).toBeUndefined();
+    expect(work.finishGate(claimed.state, 7, 1, false)).toMatchObject({ status: "waiting" });
+    expect(work.unfinished()).toBe(2);
+    const cutoff = work.finishGate(claimed.state, 7, 1, true);
+    expect(cutoff).toMatchObject({ status: "cutoff", cancelledSource: [source],
+      cancelledJev: [unit], round: { deciding: true, stop_token: 7n } });
+    expect(work.unfinished()).toBe(0);
+  });
+
   it("reserves final output only for exact pending finding units", () => {
     const work = new BendWorkTracker();
     const source = work.admit();

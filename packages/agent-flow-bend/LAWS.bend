@@ -404,6 +404,29 @@ law wrong_stop_cannot_cut_off_work:
   {Lifecycle.cutoff(claimed_round(), cutoff_work(), 8n) ==
     Lifecycle.CutoffDenied{claimed_round(), cutoff_work()} : Lifecycle.CutoffResult}
 
+law finish_gate_waits_for_live_work_and_external_owners:
+  {Lifecycle.finish_gate(claimed_round(), cutoff_work(), 7n, 1n, False{}) ==
+    Lifecycle.GateWaiting{claimed_round(), cutoff_work()} : Lifecycle.FinishGateResult}
+
+law finish_gate_deadline_cancels_exact_work:
+  {Lifecycle.finish_gate(claimed_round(), cutoff_work(), 7n, 1n, True{}) ==
+    Lifecycle.GateCutoff{Round.Round{1n, True{}, 0n, 0n, 7n, False{}, True{}, False{}},
+      Work.Work{2n, 3n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
+        Work.ReviewUnit{2n, 1n, Work.PendingFinding{}, 1n, 20n} <> Nil{}},
+      1n <> Nil{}, 1n <> Nil{}} : Lifecycle.FinishGateResult}
+
+law wrong_stop_cannot_pass_finish_gate:
+  {Lifecycle.finish_gate(claimed_round(), cutoff_work(), 8n, 0n, True{}) ==
+    Lifecycle.GateDenied{claimed_round(), cutoff_work()} : Lifecycle.FinishGateResult}
+
+law exhausted_budget_does_not_wait_for_work:
+  {Lifecycle.finish_gate(Round.Round{1n, True{}, 0n, 4n, 7n, False{}, False{}, False{}},
+      cutoff_work(), 7n, 0n, False{}) ==
+    Lifecycle.GateCutoff{Round.Round{1n, True{}, 0n, 4n, 7n, False{}, True{}, False{}},
+      Work.Work{2n, 3n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
+        Work.ReviewUnit{2n, 1n, Work.PendingFinding{}, 1n, 20n} <> Nil{}},
+      1n <> Nil{}, 1n <> Nil{}} : Lifecycle.FinishGateResult}
+
 def deciding_round() -> Round.Round:
   Round.Round{1n, True{}, 0n, 0n, 7n, False{}, True{}, False{}}
 

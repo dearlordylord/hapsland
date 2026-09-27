@@ -42,6 +42,12 @@ type CutoffResult is Data:
     cancelled_source: List<&2, Nat>, cancelled_jev: List<&2, Nat>}
   CutoffDenied{round: Round.Round, work: Work.Work}
 
+type FinishGateResult is Data:
+  GateWaiting{round: Round.Round, work: Work.Work}
+  GateCutoff{round: Round.Round, work: Work.Work,
+    cancelled_source: List<&2, Nat>, cancelled_jev: List<&2, Nat>}
+  GateDenied{round: Round.Round, work: Work.Work}
+
 def cutoff.granted(round: Round.Round, result: Work.CancelResult) -> CutoffResult:
   match result:
     case Work.Cancelled{work, source, jev}:
@@ -56,6 +62,24 @@ def cutoff.round(work: Work.Work, result: Round.Step) -> CutoffResult:
 
 def cutoff(+round: Round.Round, work: Work.Work, token: Nat) -> CutoffResult:
   cutoff.round(work, Round.begin_decision(round, token))
+
+def finish_gate.cutoff(result: CutoffResult) -> FinishGateResult:
+  match result:
+    case CutoffGranted{round, work, source, jev}:
+      GateCutoff{round, work, source, jev}
+    case CutoffDenied{round, work}:
+      GateDenied{round, work}
+
+# This is the resident's synchronous Stop poll barrier. External leases and
+# pre-edit permits contribute to extra_unfinished; Bend already owns Work.
+def finish_gate(+round: Round.Round, +work: Work.Work, +token: Nat,
+    extra_unfinished: Nat, deadline_reached: Bool) -> FinishGateResult:
+  Bool.pick(FinishGateResult, Round.owns_stop(round, token),
+    Bool.pick(FinishGateResult,
+      Work.finish_wait((Work.unfinished(work) + extra_unfinished : Nat),
+        deadline_reached, Round.budget(round)),
+      GateWaiting{round, work}, finish_gate.cutoff(cutoff(round, work, token))),
+    GateDenied{round, work})
 
 def selected_count(+unit: Nat, selected: List<&2, Nat>) -> Nat:
   match selected:

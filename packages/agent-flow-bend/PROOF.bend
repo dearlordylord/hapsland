@@ -235,6 +235,18 @@ def Laws.cutoff_fences_round_and_names_exact_cancellations():
 def Laws.wrong_stop_cannot_cut_off_work():
   {==}
 
+def Laws.finish_gate_waits_for_live_work_and_external_owners():
+  {==}
+
+def Laws.finish_gate_deadline_cancels_exact_work():
+  {==}
+
+def Laws.wrong_stop_cannot_pass_finish_gate():
+  {==}
+
+def Laws.exhausted_budget_does_not_wait_for_work():
+  {==}
+
 def Laws.final_output_reserves_exact_pending_unit_findings():
   {==}
 

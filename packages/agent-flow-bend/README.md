@@ -23,7 +23,7 @@ cancellation IDs, response limits, logical capacity, background-writer claims,
 notice cooldown admission, collection order, readiness, expiry, output-token
 phase transitions, and successful-review cache pressure. The generated files
 are checked against source hashes before the app builds or tests.
-`Lifecycle.bend` now provides the resident's aggregate Stop cutoff and final
+`Lifecycle.bend` now provides the resident's aggregate Stop wait, cutoff, and final
 output reservation, combining the Round decision fence, Work cancellation
 IDs, pending finding units, and continuation slot. A final IPC barrier can
 release an unwritten provisional slot and reserve the actual selected batch.

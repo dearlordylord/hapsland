@@ -225,6 +225,14 @@ export type BendLifecycleCutoff =
   | { readonly $: "CutoffDenied"; readonly round: BendRound; readonly work: BendWorkState };
 export function bendLifecycleCutoff(round: BendRound, work: BendWorkState,
   token: number | bigint): BendLifecycleCutoff;
+export type BendLifecycleFinishGate =
+  | { readonly $: "GateWaiting"; readonly round: BendRound; readonly work: BendWorkState }
+  | { readonly $: "GateDenied"; readonly round: BendRound; readonly work: BendWorkState }
+  | { readonly $: "GateCutoff"; readonly round: BendRound; readonly work: BendWorkState;
+    readonly cancelled_source: BendList<bigint>; readonly cancelled_jev: BendList<bigint> };
+export function bendLifecycleFinishGate(round: BendRound, work: BendWorkState,
+  token: number | bigint, extraUnfinished: number | bigint,
+  deadlineReached: boolean): BendLifecycleFinishGate;
 export function bendLifecycleReserveSelected(round: BendRound, work: BendWorkState,
   token: number | bigint, selectedUnits: ReadonlyArray<number | bigint>): BendRoundStep;
 export function bendLifecycleReleaseUnwritten(round: BendRound,

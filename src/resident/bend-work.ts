@@ -6,6 +6,7 @@ import {
   bendWorkStartSource, bendWorkStartUnit, bendWorkUnfinished, bendWorkReviseFinding,
   bendWorkPendingFor,
   bendLifecycleCutoff,
+  bendLifecycleFinishGate,
   bendLifecycleReserveSelected,
   type BendList, type BendRound, type BendWorkOutcome, type BendWorkState,
   type BendWorkStep,
@@ -118,6 +119,19 @@ export class BendWorkTracker {
     const cancelledJev = ids(cutoff.cancelled_jev);
     this.#state = cutoff.work;
     return { round: cutoff.round, cancelledSource, cancelledJev };
+  }
+
+  finishGate(round: BendRound, token: number, extraUnfinished: number, deadlineReached: boolean):
+    { readonly status: "waiting"; readonly round: BendRound } |
+    { readonly status: "cutoff"; readonly round: BendRound;
+      readonly cancelledSource: number[]; readonly cancelledJev: number[] } | undefined {
+    const result = bendLifecycleFinishGate(round, this.#state, token, extraUnfinished, deadlineReached);
+    if (result.$ === "GateDenied") return undefined;
+    if (result.$ === "GateWaiting") return { status: "waiting", round: result.round };
+    const cancelledSource = ids(result.cancelled_source);
+    const cancelledJev = ids(result.cancelled_jev);
+    this.#state = result.work;
+    return { status: "cutoff", round: result.round, cancelledSource, cancelledJev };
   }
 
   reserveSelected(round: BendRound, token: number, selectedUnits: ReadonlyArray<number>): BendRound | undefined {

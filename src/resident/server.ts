@@ -58,7 +58,6 @@ import {
 import { DispatchCycles } from "./dispatch.ts";
 import { ComposedDelivery } from "./composed-delivery.ts";
 import { BendWorkTracker } from "./bend-work.ts";
-import { bendWorkFinishWait } from "./bend-policy.generated.js";
 import {
   collectionOrder,
   combinedClaudeOutput,
@@ -2374,14 +2373,18 @@ export class ResidentServer {
           if (adviceeGroup(advice.observation.root, advice.observation.advicee) === group &&
               advice.delivery !== undefined && advice.delivery.leaseUntil <= this.#now()) delete advice.delivery;
         }
-        if (bendWorkFinishWait(this.#collectionWorkCount(request.root, request.advicee, true),
-          request.finish.deadlineReached, this.#composedDelivery.hasVirtualRoundContinuationBudget(group))) {
-          return { status: "pending" };
-        }
         const round = this.#rounds.get(group);
-        const cutoff = this.#composedDelivery.beginFinishDecision(group, request.finish.token, round?.policyWork);
-        if (cutoff === undefined) return { status: "empty" };
-        if (round !== undefined && !this.#discardUnfinishedWork(round, cutoff)) {
+        const totalUnfinished = this.#collectionWorkCount(request.root, request.advicee, true);
+        const ownUnfinished = round?.policyWork.unfinished() ?? 0;
+        if (totalUnfinished < ownUnfinished) {
+          this.#allowFinish(group, request.finish.token, "unavailable");
+          return { status: "empty" };
+        }
+        const gate = this.#composedDelivery.finishGate(group, request.finish.token,
+          totalUnfinished - ownUnfinished, request.finish.deadlineReached, round?.policyWork);
+        if (gate === undefined) return { status: "empty" };
+        if (gate.status === "waiting") return { status: "pending" };
+        if (round !== undefined && !this.#discardUnfinishedWork(round, gate)) {
           this.#allowFinish(group, request.finish.token, "unavailable");
           return { status: "empty" };
         }

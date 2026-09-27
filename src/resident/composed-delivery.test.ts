@@ -73,7 +73,7 @@ describe("shared Hapsland rounds", () => {
     const unit = work.spawn(source)!;
     expect(work.outcome(unit, { $: "Finding", count: 1, bytes: 20 })).toBe(true);
     expect(work.completeSource(source)).toBe(true);
-    state.beginFinishDecision("agent", "attempt", work);
+    state.finishGate("agent", "attempt", 0, true, work);
     expect(state.reserveFinishOutput("agent", "attempt", "output",
       [{ id: "advice", unit, findings: [finding] }], 1, work)).toBe(true);
     expect(state.expireStop("agent", "attempt")).toBe(1);
@@ -95,7 +95,7 @@ describe("shared Hapsland rounds", () => {
     const unit = work.spawn(source)!;
     expect(work.outcome(unit, { $: "Finding", count: 1, bytes: 20 })).toBe(true);
     expect(work.completeSource(source)).toBe(true);
-    state.beginFinishDecision("agent", "attempt", work);
+    state.finishGate("agent", "attempt", 0, true, work);
     expect(state.reserveFinishOutput("agent", "attempt", "output",
       [{ id: "advice", unit, findings: [finding] }], 1, work)).toBe(true);
     expect(state.authorizeFinishOutput("agent", "output")).toBe(true);
@@ -115,7 +115,7 @@ describe("shared Hapsland rounds", () => {
     const unit = work.spawn(source)!;
     expect(work.outcome(unit, { $: "Finding", count: 1, bytes: 20 })).toBe(true);
     expect(work.completeSource(source)).toBe(true);
-    expect(state.beginFinishDecision("agent", "attempt", work)).toBeDefined();
+    expect(state.finishGate("agent", "attempt", 0, true, work)?.status).toBe("cutoff");
     expect(state.reserveFinishOutput("agent", "attempt", "output",
       [{ id: "advice", unit, findings: [finding] }], 1, work)).toBe(true);
     expect(state.closureCounts("agent").reservedContinuations).toBe(1);

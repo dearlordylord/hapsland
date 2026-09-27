@@ -40,6 +40,7 @@ try {
         .some((name) => !source.includes(`function $Delivery$${name}$(`)) ||
       ["admit", "evict"].some((name) => !source.includes(`function $Cache$${name}$(`)) ||
       !source.includes("function $Lifecycle$cutoff$(") ||
+      !source.includes("function $Lifecycle$finish_gate$(") ||
       !source.includes("function $Lifecycle$reserve_selected$(") ||
       !source.includes("function $Lifecycle$release_unwritten$(")) {
     throw new Error("Bend policy JavaScript layout changed; inspect generated runtime");
@@ -168,6 +169,8 @@ export const bendCacheEvict = (entries, currentBytes, incomingBytes, entryLimit,
     nat(entryLimit), nat(byteLimit)));
 export const bendLifecycleCutoff = (round, work, token) =>
   run_loop($Lifecycle$cutoff$(round, work, nat(token)));
+export const bendLifecycleFinishGate = (round, work, token, extraUnfinished, deadlineReached) =>
+  run_loop($Lifecycle$finish_gate$(round, work, nat(token), nat(extraUnfinished), deadlineReached));
 export const bendLifecycleReserveSelected = (round, work, token, selected) =>
   run_loop($Lifecycle$reserve_selected$(round, work, nat(token),
     selected.reduceRight((tail, value) => ({ $: "Con", head: nat(value), tail }), { $: "Nil" })));

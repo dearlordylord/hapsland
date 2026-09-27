@@ -293,16 +293,21 @@ export class ComposedDelivery {
       bendRoundOwnsStop(round.policy, stop.id) && this.isActive(partition, stop.generation);
   }
 
-  beginFinishDecision(partition: string, token: string, work = new BendWorkTracker()):
-    { readonly cancelledSource: number[]; readonly cancelledJev: number[] } | undefined {
+  finishGate(partition: string, token: string, extraUnfinished: number,
+    deadlineReached: boolean, work = new BendWorkTracker()):
+    { readonly status: "waiting" } |
+    { readonly status: "cutoff"; readonly cancelledSource: number[];
+      readonly cancelledJev: number[] } | undefined {
     const stop = this.#stops.get(partition);
     const round = this.#rounds.get(partition);
     if (stop?.token !== token || round === undefined) return undefined;
-    const result = work.cutoff(round.policy, stop.id);
+    const result = work.finishGate(round.policy, stop.id, extraUnfinished, deadlineReached);
     if (result === undefined) return undefined;
+    if (result.status === "waiting") return { status: "waiting" };
     this.#rounds.set(partition, { ...round, policy: result.round });
     for (const [key, permit] of this.#permits) if (permit.partition === partition) this.#permits.delete(key);
-    return { cancelledSource: result.cancelledSource, cancelledJev: result.cancelledJev };
+    return { status: "cutoff", cancelledSource: result.cancelledSource,
+      cancelledJev: result.cancelledJev };
   }
 
   reserveFinishOutput(partition: string, attempt: string, outputToken: string,
