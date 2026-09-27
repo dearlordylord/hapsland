@@ -1,9 +1,12 @@
 # Shared resident finish-decision validation
 
-Issue #105 remains **incomplete for adoption and closure**. The shared-resident
-implementation now waits for all admitted unfinished work or the safe hook
-deadline, then batches advice and cancels unfinished pre-decision work. The owner accepted the timing diagrams in the implementation conversation on
-2026-09-27. An explicit final Linux adoption decision remains required. This report is evidence, not a change to the
+The owner accepted the timing diagrams and Linux result in the implementation
+conversation on 2026-09-27, and authorized merge and closure. The shared-resident
+implementation waits for all admitted unfinished work or the safe hook deadline,
+then batches advice and cancels unfinished pre-decision work. The accepted scope
+retains the limitations below. macOS validation is deferred to a separate GitHub
+task created and linked at closure; no macOS support result is claimed. This
+report is evidence, not a change to the
 [Advicing target contract](../../docs/advicing-target-contract.md).
 
 ## Implementation and regressions
@@ -129,13 +132,14 @@ Independent implementation review: zero remaining findings after correcting
 reservation identity, expired output authorization, and expired notice leases.
 This review does not establish native acceptance or owner adoption.
 
-## Remaining decision
+## Owner acceptance and closure
 
-The owner accepted the timing diagrams. Final Linux adoption remains a separate
-decision after review of the evidence limitations. Implementation approval is not inferred
-from the earlier conditional boundary decision. Keep #105 open and PR #108 draft
-until that decision and the closure prerequisites are satisfied. Installed
-release declarations and publishing work remain separate from this candidate.
+On 2026-09-27, the owner accepted timing-diagram review, explicitly accepted the
+Linux result, and authorized merging PR #108 and closing #105. macOS testing is
+postponed to a separate GitHub task, which the closure workflow creates and links.
+The accepted Linux boundary retains the recorded unknowns and missed historical
+outcomes; agent compliance is governed by the policy decision below. Publishing
+and installed-release declarations remain separate work under #87.
 
 ## Agent-response policy decision
 

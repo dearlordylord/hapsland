@@ -207,4 +207,5 @@ finish decision in the shared resident. That implementation has its own
 it does not import the sidecar reducer or extend the Bend proof to production.
 Native scheduling, actual runtime visibility, and physical cancellation require
 separate evidence; see the [Linux evidence index](../evidence/advicing-linux/README.md).
-Owner visual review and final adoption remain separate acceptance gates.
+Owner visual review and Linux adoption were accepted on 2026-09-27 within the
+recorded evidence boundary. macOS validation remains a separate follow-up.
