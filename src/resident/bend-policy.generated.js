@@ -1,0 +1,1805 @@
+// hapsland-bend-source-sha256:e121f6641182dd13ba166c40ef3052a863aab08ed5f6d15d7f2fd64ca49b14f2
+function word_to_u32(w) {
+  let x = 0;
+  for (let i = 0; w.$ === "WCon"; i++) {
+    x |= Number(w.head) << i;
+    w = w.tail;
+  }
+  return x >>> 0;
+}
+
+function u32_to_word(x) {
+  let w = {$: "WNil"};
+  for (let i = 31; i >= 0; i--) {
+    w = {$: "WCon", head: ((x >>> i) & 1) === 1, tail: w};
+  }
+  return w;
+}
+
+function cmp_new(a, b) {
+  return {$: a < b ? "LT"
+    : a === b ? "EQ" : "GT"};
+}
+
+function nat_divmod(a, b) {
+  return b === 0n ? {$: "Tuple", fst: 0n, snd: a}
+    : {$: "Tuple", fst: a / b, snd: a % b};
+}
+
+function nat_chk(n) {
+  if (n > 281474976710655n) {
+    throw "bend: a Nat past the largest immediate 2^48-1";
+  }
+  return n;
+}
+
+function f32_show(x) {
+  if (x !== x) {
+    return "nan";
+  }
+  if (!Number.isFinite(x) || Object.is(x, -0)) {
+    return x < 0 ? "-inf"
+      : x === 0 ? "-0" : "inf";
+  }
+  let s = "x";
+  for (let p = 1; p <= 9 && Math.fround(Number(s)) !== x; p += 1) {
+    s = String(Number(x.toExponential(p - 1)));
+  }
+  return s;
+}
+
+function f32_bits(x) {
+  return new Uint32Array(new Float32Array([x]).buffer)[0];
+}
+
+function f32_from_bits(u) {
+  return new Float32Array(new Uint32Array([u]).buffer)[0];
+}
+
+function f32_read(s) {
+  const re = /^\s*[+-]?((\d+\.?\d*|\.\d+)(e[+-]?\d+)?|inf(inity)?|nan)$/i;
+  const v = Number(s.replace(/inf\w*/i, "Infinity"));
+  return re.test(s) ? {$: "Some", value: Math.fround(v)} : {$: "None"};
+}
+
+function char_new(code) {
+  if (code > 0x10FFFF || (code >= 0xD800 && code <= 0xDFFF)) {
+    throw "bend: " + code + " is not a Unicode scalar value";
+  }
+  return String.fromCodePoint(code);
+}
+
+// Array
+// =====
+
+function array_new(d, v) {
+  if (d > 31n) {
+    throw "bend: an array past the deepest block class 31";
+  }
+  return Array(2 ** Number(d)).fill(v);
+}
+
+// An unbalanced tree fails, as in C.
+function array_node(a, b) {
+  if (a.length !== b.length) {
+    throw "bend: runtime fail-stop";
+  }
+  return a.concat(b);
+}
+
+function array_swap(a, i, v) {
+  const at = i % a.length;
+  const old = a[at];
+  a[at] = v;
+  return {$: "Tuple", fst: a, snd: old};
+}
+
+// Run
+// ===
+
+function run_jump(f, x) {
+  return {$: "$JMP", f: f, x: x};
+}
+
+function run_tail(f, x) {
+  return {$: "$JMP", f: f.j?.f === f ? f.j : f, x: [x]};
+}
+
+function run_clo(j) {
+  const f = (x) => run_loop(j(x));
+  f.j = j;
+  j.f = f;
+  return f;
+}
+
+function run_loop(r) {
+  while (r !== null && typeof r === "object" && r.$ === "$JMP") {
+    r = r.f(...r.x);
+  }
+  return r;
+}
+
+function run_lib(f, n) {
+  return (...a) => a.length < n ? run_lib((...b) => f(...a, ...b), n - a.length)
+    : run_loop(f(...a));
+}
+// Program
+// =======
+
+function $main$() {
+  return {$: "Smoke", ["admission"]: run_loop($Admission$step$(run_loop($Admission$initial$(1n, 1n)), 1n, 1n, {$: "Issue", ["tool"]: 1n, ["started"]: 1n, ["deadline"]: 2n, ["now"]: 1n})), ["callback"]: run_loop($Admission$callback_current$(run_loop($Admission$initial$(1n, 1n)), 1n, 1n, 0n)), ["admitted"]: run_loop($Work$admit$(run_loop($Work$initial$()))), ["prepared"]: run_loop($Work$prepare$(run_loop($sample_work$()), 1n, 2n)), ["outcome"]: run_loop($Work$outcome$(run_loop($sample_unit_work$()), 1n, {$: "Clear"})), ["unfinished"]: run_loop($Work$unfinished$(run_loop($sample_unit_work$()))), ["source_capacity"]: run_loop($Work$set_source_capacity$(run_loop($sample_work$()), {$: "Capacity", ["low"]: 2n, ["high"]: 0n})), ["review_capacity"]: run_loop($Work$set_review_capacity$(run_loop($sample_unit_work$()), {$: "Capacity", ["low"]: 2n, ["high"]: 0n})), ["selection"]: run_loop($Handoff$select$(run_loop($Handoff$initial$(1n, 1n, 1n, 1n)), {$: "Advice", ["id"]: 1n, ["unit"]: 1n, ["partition"]: 1n, ["round"]: 1n, ["snapshot"]: 1n, ["credential"]: 1n, ["age_ms"]: 0n, ["solo_bytes"]: 100n, ["collection_ready"]: true}, 100n)), ["fit"]: run_loop($Handoff$fits_batch$(1n, 100n)), ["finish"]: run_loop($Handoff$finish$decide$(run_loop($Handoff$finish$initial$(1n)), 0n, false, 1n)), ["lease_reserve"]: run_loop($Handoff$lease$reserve$(run_loop($Handoff$lease$initial$(1n, 1n)), 1n, 1n, {$: "Background"})), ["lease_authorize"]: run_loop($Handoff$lease$authorize$(run_loop($sample_reserved_lease$()), 1n, 1n)), ["lease_release"]: run_loop($Handoff$lease$release$(run_loop($sample_reserved_lease$()), 1n, 1n)), ["lease_terminal"]: run_loop($Handoff$lease$terminal$(run_loop($sample_authorized_lease$()), 1n, 1n, false)), ["lease_reoffer"]: run_loop($Handoff$lease$reoffer$(run_loop($sample_uncertain_lease$()), 1n, 2n, true)), ["closed_lease"]: run_loop($Handoff$lease$close$(run_loop($Handoff$lease$initial$(1n, 1n))))};
+}
+
+function $Admission$step$(state_0, partition_0, lifetime_0, event_0) {
+  const owner_0 = state_0.partition;
+  const live_0 = state_0.lifetime;
+  const __0 = state_0.round;
+  const __1 = state_0.active;
+  const __2 = state_0.closed_at;
+  const __3 = state_0.next_token;
+  const __4 = state_0.permits;
+  const __5 = state_0.used;
+  return run_jump($Admission$step$partition$, [{$: "AdmissionState", ["partition"]: owner_0, ["lifetime"]: live_0, ["round"]: __0, ["active"]: __1, ["closed_at"]: __2, ["next_token"]: __3, ["permits"]: __4, ["used"]: __5}, partition_0, lifetime_0, event_0, run_loop($Nat$is_eq$(owner_0, partition_0)), run_loop($Nat$is_eq$(live_0, lifetime_0))]);
+}
+
+function $Admission$initial$(partition_0, lifetime_0) {
+  return {$: "AdmissionState", ["partition"]: partition_0, ["lifetime"]: lifetime_0, ["round"]: 0n, ["active"]: false, ["closed_at"]: 0n, ["next_token"]: 1n, ["permits"]: {$: "Nil"}, ["used"]: {$: "Nil"}};
+}
+
+function $Admission$callback_current$(state_0, partition_0, lifetime_0, round_0) {
+  const owner_0 = state_0.partition;
+  const live_0 = state_0.lifetime;
+  const current_0 = state_0.round;
+  const active_0 = state_0.active;
+  const __0 = state_0.closed_at;
+  const __1 = state_0.next_token;
+  const __2 = state_0.permits;
+  const __3 = state_0.used;
+  return run_jump($Bool$and$, [active_0, run_loop($Bool$and$(run_loop($Nat$is_eq$(owner_0, partition_0)), run_loop($Bool$and$(run_loop($Nat$is_eq$(live_0, lifetime_0)), run_loop($Nat$is_eq$(current_0, round_0))))))]);
+}
+
+function $Work$admit$(work_0) {
+  const next_observation_0 = work_0.next_observation;
+  const next_unit_0 = work_0.next_unit;
+  const source_capacity_0 = work_0.source_capacity;
+  const review_capacity_0 = work_0.review_capacity;
+  const observations_0 = work_0.observations;
+  const units_0 = work_0.units;
+  return {$: "Accepted", ["state"]: run_loop($Work$settle$({$: "Work", ["next_observation"]: nat_chk(next_observation_0 + 1n), ["next_unit"]: next_unit_0, ["source_capacity"]: source_capacity_0, ["review_capacity"]: review_capacity_0, ["observations"]: run_loop($List$append$(observations_0, {$: "Con", ["head"]: {$: "Observation", ["id"]: next_observation_0, ["stage"]: {$: "SourceQueued"}}, ["tail"]: {$: "Nil"}})), ["units"]: units_0})), ["admitted"]: {$: "Con", ["head"]: next_observation_0, ["tail"]: {$: "Nil"}}};
+}
+
+function $Work$initial$() {
+  return {$: "Work", ["next_observation"]: 1n, ["next_unit"]: 1n, ["source_capacity"]: {$: "Capacity", ["low"]: 3n, ["high"]: 0n}, ["review_capacity"]: {$: "Capacity", ["low"]: 3n, ["high"]: 0n}, ["observations"]: {$: "Nil"}, ["units"]: {$: "Nil"}};
+}
+
+function $Work$prepare$(work_0, observation_0, count_0) {
+  const __0 = work_0.next_observation;
+  const __1 = work_0.next_unit;
+  const __2 = work_0.source_capacity;
+  const __3 = work_0.review_capacity;
+  const observations_0 = work_0.observations;
+  const __4 = work_0.units;
+  return run_jump($Work$prepare$found$, [{$: "Work", ["next_observation"]: __0, ["next_unit"]: __1, ["source_capacity"]: __2, ["review_capacity"]: __3, ["observations"]: observations_0, ["units"]: __4}, observation_0, count_0, run_loop($Work$find_observation$(observation_0, observations_0))]);
+}
+
+function $sample_work$() {
+  return {$: "Work", ["next_observation"]: 2n, ["next_unit"]: 1n, ["source_capacity"]: {$: "Capacity", ["low"]: 3n, ["high"]: 0n}, ["review_capacity"]: {$: "Capacity", ["low"]: 3n, ["high"]: 0n}, ["observations"]: {$: "Con", ["head"]: {$: "Observation", ["id"]: 1n, ["stage"]: {$: "SourceReading"}}, ["tail"]: {$: "Nil"}}, ["units"]: {$: "Nil"}};
+}
+
+function $Work$outcome$(work_0, id_0, result_0) {
+  const __0 = work_0.next_observation;
+  const __1 = work_0.next_unit;
+  const __2 = work_0.source_capacity;
+  const __3 = work_0.review_capacity;
+  const __4 = work_0.observations;
+  const units_0 = work_0.units;
+  return run_jump($Work$outcome$found$, [{$: "Work", ["next_observation"]: __0, ["next_unit"]: __1, ["source_capacity"]: __2, ["review_capacity"]: __3, ["observations"]: __4, ["units"]: units_0}, id_0, result_0, run_loop($Work$find_unit$(id_0, units_0))]);
+}
+
+function $sample_unit_work$() {
+  return {$: "Work", ["next_observation"]: 2n, ["next_unit"]: 2n, ["source_capacity"]: {$: "Capacity", ["low"]: 3n, ["high"]: 0n}, ["review_capacity"]: {$: "Capacity", ["low"]: 3n, ["high"]: 0n}, ["observations"]: {$: "Nil"}, ["units"]: {$: "Con", ["head"]: {$: "ReviewUnit", ["id"]: 1n, ["observation"]: 1n, ["stage"]: {$: "AtJev"}, ["findings"]: 0n, ["bytes"]: 0n}, ["tail"]: {$: "Nil"}}};
+}
+
+function $Work$unfinished$(work_0) {
+  const __0 = work_0.next_observation;
+  const __1 = work_0.next_unit;
+  const __2 = work_0.source_capacity;
+  const __3 = work_0.review_capacity;
+  const observations_0 = work_0.observations;
+  const units_0 = work_0.units;
+  const x_0 = run_loop($Work$unfinished_observations$(observations_0));
+  const x_1 = run_loop($Work$unfinished_units$(units_0));
+  return nat_chk(x_0 + x_1);
+}
+
+function $Work$set_source_capacity$(work_0, capacity_0) {
+  return run_jump($Work$set_source_capacity$apply$, [work_0, capacity_0, run_loop($Flow$capacity_valid$(capacity_0))]);
+}
+
+function $Work$set_review_capacity$(work_0, capacity_0) {
+  return run_jump($Work$set_review_capacity$apply$, [work_0, capacity_0, run_loop($Flow$capacity_valid$(capacity_0))]);
+}
+
+function $Handoff$select$(state_0, advice_0, prospective_bytes_0) {
+  const partition_0 = state_0.partition;
+  const round_0 = state_0.round;
+  const snapshot_0 = state_0.snapshot;
+  const credential_0 = state_0.credential;
+  const selected_0 = state_0.selected;
+  const retained_0 = state_0.retained;
+  const __0 = state_0.findings;
+  const __1 = state_0.bytes;
+  const id_0 = advice_0.id;
+  const __2 = advice_0.unit;
+  const __3 = advice_0.partition;
+  const __4 = advice_0.round;
+  const __5 = advice_0.snapshot;
+  const __6 = advice_0.credential;
+  const __7 = advice_0.age_ms;
+  const __8 = advice_0.solo_bytes;
+  const __9 = advice_0.collection_ready;
+  const x_0 = run_loop($Handoff$contains$(id_0, selected_0));
+  const x_1 = run_loop($Handoff$contains$(id_0, retained_0));
+  return run_jump($Handoff$select$duplicate$, [{$: "Selection", ["partition"]: partition_0, ["round"]: round_0, ["snapshot"]: snapshot_0, ["credential"]: credential_0, ["selected"]: selected_0, ["retained"]: retained_0, ["findings"]: __0, ["bytes"]: __1}, {$: "Advice", ["id"]: id_0, ["unit"]: __2, ["partition"]: __3, ["round"]: __4, ["snapshot"]: __5, ["credential"]: __6, ["age_ms"]: __7, ["solo_bytes"]: __8, ["collection_ready"]: __9}, prospective_bytes_0, run_loop($Handoff$current$({$: "Advice", ["id"]: id_0, ["unit"]: __2, ["partition"]: __3, ["round"]: __4, ["snapshot"]: __5, ["credential"]: __6, ["age_ms"]: __7, ["solo_bytes"]: __8, ["collection_ready"]: __9}, partition_0, round_0, snapshot_0, credential_0)), (x_0 || x_1)]);
+}
+
+function $Handoff$initial$(partition_0, round_0, snapshot_0, credential_0) {
+  return {$: "Selection", ["partition"]: partition_0, ["round"]: round_0, ["snapshot"]: snapshot_0, ["credential"]: credential_0, ["selected"]: {$: "Nil"}, ["retained"]: {$: "Nil"}, ["findings"]: 0n, ["bytes"]: 0n};
+}
+
+function $Handoff$fits_batch$(items_0, bytes_0) {
+  return run_jump($Bool$and$, [run_loop($Nat$is_gt$(items_0, 0n)), run_loop($Bool$and$(run_loop($Nat$is_le$(items_0, 5n)), run_loop($Nat$is_le$(bytes_0, BigInt(2048)))))]);
+}
+
+function $Handoff$finish$decide$(state_0, unfinished_0, deadline_0, actionable_findings_0) {
+  const __0 = state_0.round;
+  const active_0 = state_0.active;
+  const closed_0 = state_0.closed;
+  const __1 = state_0.continuations;
+  const reserved_0 = state_0.reserved;
+  const __2 = state_0.token;
+  const __3 = state_0.collector;
+  const __4 = state_0.deadline_at;
+  return run_jump($Handoff$finish$guard$, [{$: "Finish", ["round"]: __0, ["active"]: active_0, ["closed"]: closed_0, ["continuations"]: __1, ["reserved"]: reserved_0, ["token"]: __2, ["collector"]: __3, ["deadline_at"]: __4}, unfinished_0, deadline_0, actionable_findings_0, run_loop($Bool$and$(active_0, run_loop($Bool$not$(closed_0)))), reserved_0]);
+}
+
+function $Handoff$finish$initial$(round_0) {
+  return {$: "Finish", ["round"]: round_0, ["active"]: true, ["closed"]: false, ["continuations"]: 0n, ["reserved"]: false, ["token"]: 0n, ["collector"]: 0n, ["deadline_at"]: 0n};
+}
+
+function $Handoff$lease$reserve$(state_0, round_0, token_0, surface_0) {
+  const __0 = state_0.item;
+  const own_round_0 = state_0.round;
+  const closed_0 = state_0.closed;
+  const __1 = state_0.reoffered;
+  const __2 = state_0.phase;
+  return run_jump($Handoff$lease$reserve$guard$, [{$: "Lease", ["item"]: __0, ["round"]: own_round_0, ["closed"]: closed_0, ["reoffered"]: __1, ["phase"]: __2}, token_0, surface_0, run_loop($Bool$and$(run_loop($Nat$is_eq$(own_round_0, round_0)), run_loop($Bool$not$(closed_0))))]);
+}
+
+function $Handoff$lease$initial$(item_0, round_0) {
+  return {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: false, ["reoffered"]: false, ["phase"]: {$: "Available"}};
+}
+
+function $Handoff$lease$authorize$(state_0, round_0, token_0) {
+  const __0 = state_0.item;
+  const own_round_0 = state_0.round;
+  const closed_0 = state_0.closed;
+  const __1 = state_0.reoffered;
+  const __2 = state_0.phase;
+  return run_jump($Handoff$lease$authorize$guard$, [{$: "Lease", ["item"]: __0, ["round"]: own_round_0, ["closed"]: closed_0, ["reoffered"]: __1, ["phase"]: __2}, token_0, run_loop($Bool$and$(run_loop($Nat$is_eq$(own_round_0, round_0)), run_loop($Bool$not$(closed_0))))]);
+}
+
+function $sample_reserved_lease$() {
+  return {$: "Lease", ["item"]: 1n, ["round"]: 1n, ["closed"]: false, ["reoffered"]: false, ["phase"]: {$: "Reserved", ["token"]: 1n, ["surface"]: {$: "Background"}}};
+}
+
+function $Handoff$lease$release$(state_0, round_0, token_0) {
+  const __0 = state_0.item;
+  const own_round_0 = state_0.round;
+  const closed_0 = state_0.closed;
+  const __1 = state_0.reoffered;
+  const __2 = state_0.phase;
+  return run_jump($Handoff$lease$release$guard$, [{$: "Lease", ["item"]: __0, ["round"]: own_round_0, ["closed"]: closed_0, ["reoffered"]: __1, ["phase"]: __2}, token_0, run_loop($Bool$and$(run_loop($Nat$is_eq$(own_round_0, round_0)), run_loop($Bool$not$(closed_0))))]);
+}
+
+function $Handoff$lease$terminal$(state_0, round_0, token_0, certain_0) {
+  const __0 = state_0.item;
+  const own_round_0 = state_0.round;
+  const closed_0 = state_0.closed;
+  const __1 = state_0.reoffered;
+  const __2 = state_0.phase;
+  return run_jump($Handoff$lease$terminal$guard$, [{$: "Lease", ["item"]: __0, ["round"]: own_round_0, ["closed"]: closed_0, ["reoffered"]: __1, ["phase"]: __2}, token_0, certain_0, run_loop($Bool$and$(run_loop($Nat$is_eq$(own_round_0, round_0)), run_loop($Bool$not$(closed_0))))]);
+}
+
+function $sample_authorized_lease$() {
+  return {$: "Lease", ["item"]: 1n, ["round"]: 1n, ["closed"]: false, ["reoffered"]: false, ["phase"]: {$: "Authorized", ["token"]: 1n, ["surface"]: {$: "Background"}}};
+}
+
+function $Handoff$lease$reoffer$(state_0, round_0, token_0, fresh_0) {
+  const __0 = state_0.item;
+  const own_round_0 = state_0.round;
+  const closed_0 = state_0.closed;
+  const reoffered_0 = state_0.reoffered;
+  const __1 = state_0.phase;
+  return run_jump($Handoff$lease$reoffer$guard$, [{$: "Lease", ["item"]: __0, ["round"]: own_round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: __1}, token_0, run_loop($Bool$and$(run_loop($Nat$is_eq$(own_round_0, round_0)), run_loop($Bool$and$(run_loop($Bool$not$(closed_0)), run_loop($Bool$and$(run_loop($Bool$not$(reoffered_0)), fresh_0))))))]);
+}
+
+function $sample_uncertain_lease$() {
+  return {$: "Lease", ["item"]: 1n, ["round"]: 1n, ["closed"]: false, ["reoffered"]: false, ["phase"]: {$: "Uncertain", ["surface"]: {$: "Background"}}};
+}
+
+function $Handoff$lease$close$(state_0) {
+  const item_0 = state_0.item;
+  const round_0 = state_0.round;
+  const __0 = state_0.closed;
+  const reoffered_0 = state_0.reoffered;
+  const phase_0 = state_0.phase;
+  return {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: true, ["reoffered"]: reoffered_0, ["phase"]: phase_0};
+}
+
+function $Admission$step$partition$(state_0, partition_0, lifetime_0, event_0, correct_partition_0, correct_lifetime_0) {
+  if (!correct_partition_0) {
+    return {$: "Rejected", ["state"]: state_0, ["reason"]: {$: "WrongPartition"}};
+  } else {
+    if (!correct_lifetime_0) {
+      return {$: "Rejected", ["state"]: state_0, ["reason"]: {$: "WrongLifetime"}};
+    } else {
+      return run_jump($Admission$apply_event$, [state_0, event_0]);
+    }
+  }
+}
+
+function $Nat$is_eq$(a_0, b_0) {
+  return run_jump($Cmp$is_eq$, [cmp_new(a_0, b_0)]);
+}
+
+function $Bool$and$(a_0, b_0) {
+  if (!a_0) {
+    return false;
+  } else {
+    return b_0;
+  }
+}
+
+function $Work$settle$(work_0) {
+  const next_observation_0 = work_0.next_observation;
+  const next_unit_0 = work_0.next_unit;
+  const source_capacity_0 = work_0.source_capacity;
+  const review_capacity_0 = work_0.review_capacity;
+  const observations_0 = work_0.observations;
+  const units_0 = work_0.units;
+  return {$: "Work", ["next_observation"]: next_observation_0, ["next_unit"]: next_unit_0, ["source_capacity"]: source_capacity_0, ["review_capacity"]: review_capacity_0, ["observations"]: run_loop($Work$fill_source$(observations_0, source_capacity_0, run_loop($Work$reading_count$(observations_0)))), ["units"]: run_loop($Work$fill_review$(units_0, review_capacity_0, run_loop($Work$at_jev_count$(units_0))))};
+}
+
+function $List$append$(xs_0, ys_0) {
+  if (xs_0.$ === "Nil") {
+    return ys_0;
+  } else {
+    const h_0 = xs_0.head;
+    const t_0 = xs_0.tail;
+    return {$: "Con", ["head"]: h_0, ["tail"]: run_loop($List$append$(t_0, ys_0))};
+  }
+}
+
+function $Work$prepare$found$(work_0, observation_0, count_0, found_0) {
+  if (found_0.$ === "None") {
+    return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "MissingObservation"}};
+  } else {
+    const _t_0 = found_0.value;
+    const __0 = _t_0.id;
+    const stage_0 = _t_0.stage;
+    return run_jump($Work$prepare$stage$, [work_0, observation_0, count_0, stage_0]);
+  }
+}
+
+function $Work$find_observation$(id_0, observations_0) {
+  if (observations_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = observations_0.head;
+    const current_0 = _t_0.id;
+    const __0 = _t_0.stage;
+    const rest_0 = observations_0.tail;
+    return run_jump($Work$find_observation$pick$, [{$: "Observation", ["id"]: current_0, ["stage"]: __0}, run_loop($Work$find_observation$(id_0, rest_0)), run_loop($Nat$is_eq$(current_0, id_0))]);
+  }
+}
+
+function $Work$outcome$found$(work_0, id_0, result_0, found_0) {
+  if (found_0.$ === "None") {
+    return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "MissingUnit"}};
+  } else {
+    const _t_0 = found_0.value;
+    const __0 = _t_0.id;
+    const observation_0 = _t_0.observation;
+    const stage_0 = _t_0.stage;
+    const __1 = _t_0.findings;
+    const __2 = _t_0.bytes;
+    return run_jump($Work$outcome$stage$, [work_0, id_0, observation_0, stage_0, result_0]);
+  }
+}
+
+function $Work$find_unit$(id_0, units_0) {
+  if (units_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = units_0.head;
+    const current_0 = _t_0.id;
+    const __0 = _t_0.observation;
+    const __1 = _t_0.stage;
+    const __2 = _t_0.findings;
+    const __3 = _t_0.bytes;
+    const rest_0 = units_0.tail;
+    return run_jump($Work$find_unit$pick$, [{$: "ReviewUnit", ["id"]: current_0, ["observation"]: __0, ["stage"]: __1, ["findings"]: __2, ["bytes"]: __3}, run_loop($Work$find_unit$(id_0, rest_0)), run_loop($Nat$is_eq$(current_0, id_0))]);
+  }
+}
+
+function $Work$unfinished_observations$(observations_0) {
+  return run_jump($List$length$, [observations_0]);
+}
+
+function $Work$unfinished_units$(units_0) {
+  if (units_0.$ === "Nil") {
+    return 0n;
+  } else {
+    const _t_0 = units_0.head;
+    const __0 = _t_0.id;
+    const __1 = _t_0.observation;
+    const stage_0 = _t_0.stage;
+    const __2 = _t_0.findings;
+    const __3 = _t_0.bytes;
+    const rest_0 = units_0.tail;
+    const x_0 = run_loop($Bool$pick$(run_loop($Work$is_unit_unfinished$(stage_0)), 1n, 0n));
+    const x_1 = run_loop($Work$unfinished_units$(rest_0));
+    return nat_chk(x_0 + x_1);
+  }
+}
+
+function $Work$set_source_capacity$apply$(work_0, capacity_0, valid_0) {
+  const next_observation_0 = work_0.next_observation;
+  const next_unit_0 = work_0.next_unit;
+  const source_capacity_0 = work_0.source_capacity;
+  const review_capacity_0 = work_0.review_capacity;
+  const observations_0 = work_0.observations;
+  const units_0 = work_0.units;
+  if (!valid_0) {
+    return {$: "Rejected", ["state"]: {$: "Work", ["next_observation"]: next_observation_0, ["next_unit"]: next_unit_0, ["source_capacity"]: source_capacity_0, ["review_capacity"]: review_capacity_0, ["observations"]: observations_0, ["units"]: units_0}, ["reason"]: {$: "InvalidCapacity"}};
+  } else {
+    return {$: "Accepted", ["state"]: run_loop($Work$settle$({$: "Work", ["next_observation"]: next_observation_0, ["next_unit"]: next_unit_0, ["source_capacity"]: capacity_0, ["review_capacity"]: review_capacity_0, ["observations"]: observations_0, ["units"]: units_0})), ["admitted"]: {$: "Nil"}};
+  }
+}
+
+function $Flow$capacity_valid$(capacity_0) {
+  const low_0 = capacity_0.low;
+  const high_0 = capacity_0.high;
+  const x_0 = run_loop($Nat$is_gt$(high_0, 0n));
+  const x_1 = run_loop($Nat$is_gt$(low_0, 0n));
+  return (x_0 || x_1);
+}
+
+function $Work$set_review_capacity$apply$(work_0, capacity_0, valid_0) {
+  const next_observation_0 = work_0.next_observation;
+  const next_unit_0 = work_0.next_unit;
+  const source_capacity_0 = work_0.source_capacity;
+  const review_capacity_0 = work_0.review_capacity;
+  const observations_0 = work_0.observations;
+  const units_0 = work_0.units;
+  if (!valid_0) {
+    return {$: "Rejected", ["state"]: {$: "Work", ["next_observation"]: next_observation_0, ["next_unit"]: next_unit_0, ["source_capacity"]: source_capacity_0, ["review_capacity"]: review_capacity_0, ["observations"]: observations_0, ["units"]: units_0}, ["reason"]: {$: "InvalidCapacity"}};
+  } else {
+    return {$: "Accepted", ["state"]: run_loop($Work$settle$({$: "Work", ["next_observation"]: next_observation_0, ["next_unit"]: next_unit_0, ["source_capacity"]: source_capacity_0, ["review_capacity"]: capacity_0, ["observations"]: observations_0, ["units"]: units_0})), ["admitted"]: {$: "Nil"}};
+  }
+}
+
+function $Handoff$select$duplicate$(state_0, advice_0, prospective_bytes_0, current_0, duplicate_0) {
+  if (duplicate_0) {
+    return {$: "Duplicate", ["state"]: state_0};
+  } else {
+    return run_jump($Handoff$select$current$, [state_0, advice_0, prospective_bytes_0, current_0]);
+  }
+}
+
+function $Handoff$current$(advice_0, partition_0, round_0, snapshot_0, credential_0) {
+  const __0 = advice_0.id;
+  const __1 = advice_0.unit;
+  const source_partition_0 = advice_0.partition;
+  const source_round_0 = advice_0.round;
+  const source_snapshot_0 = advice_0.snapshot;
+  const source_credential_0 = advice_0.credential;
+  const age_ms_0 = advice_0.age_ms;
+  const __2 = advice_0.solo_bytes;
+  const ready_0 = advice_0.collection_ready;
+  const x_0 = BigInt(600000);
+  return run_jump($Bool$and$, [run_loop($Nat$is_eq$(source_partition_0, partition_0)), run_loop($Bool$and$(run_loop($Nat$is_eq$(source_round_0, round_0)), run_loop($Bool$and$(run_loop($Nat$is_eq$(source_snapshot_0, snapshot_0)), run_loop($Bool$and$(run_loop($Nat$is_eq$(source_credential_0, credential_0)), run_loop($Bool$and$((age_ms_0 < x_0), ready_0))))))))]);
+}
+
+function $Handoff$contains$(id_0, ids_0) {
+  if (ids_0.$ === "Nil") {
+    return false;
+  } else {
+    const item_0 = ids_0.head;
+    const rest_0 = ids_0.tail;
+    const x_0 = run_loop($Nat$is_eq$(id_0, item_0));
+    const x_1 = run_loop($Handoff$contains$(id_0, rest_0));
+    return (x_0 || x_1);
+  }
+}
+
+function $Nat$is_gt$(a_0, b_0) {
+  return run_jump($Cmp$is_gt$, [cmp_new(a_0, b_0)]);
+}
+
+function $Nat$is_le$(a_0, b_0) {
+  return run_jump($Cmp$is_le$, [cmp_new(a_0, b_0)]);
+}
+
+function $Handoff$finish$guard$(state_0, unfinished_0, deadline_0, actionable_findings_0, valid_0, reserved_0) {
+  if (valid_0) {
+    return run_jump($Handoff$finish$pending$, [state_0, unfinished_0, deadline_0, actionable_findings_0, reserved_0]);
+  } else {
+    return {$: "Allow", ["state"]: state_0};
+  }
+}
+
+function $Bool$not$(b_0) {
+  if (!b_0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $Handoff$lease$reserve$guard$(state_0, token_0, surface_0, allowed_0) {
+  const item_0 = state_0.item;
+  const round_0 = state_0.round;
+  const closed_0 = state_0.closed;
+  const reoffered_0 = state_0.reoffered;
+  const phase_0 = state_0.phase;
+  if (allowed_0) {
+    return run_jump($Handoff$lease$reserve$phase$, [item_0, round_0, closed_0, reoffered_0, phase_0, token_0, surface_0]);
+  } else {
+    return {$: "Denied", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: phase_0}};
+  }
+}
+
+function $Handoff$lease$authorize$guard$(state_0, token_0, allowed_0) {
+  const item_0 = state_0.item;
+  const round_0 = state_0.round;
+  const closed_0 = state_0.closed;
+  const reoffered_0 = state_0.reoffered;
+  const phase_0 = state_0.phase;
+  if (allowed_0) {
+    return run_jump($Handoff$lease$authorize$phase$, [item_0, round_0, closed_0, reoffered_0, phase_0, token_0]);
+  } else {
+    return {$: "Denied", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: phase_0}};
+  }
+}
+
+function $Handoff$lease$release$guard$(state_0, token_0, allowed_0) {
+  const item_0 = state_0.item;
+  const round_0 = state_0.round;
+  const closed_0 = state_0.closed;
+  const reoffered_0 = state_0.reoffered;
+  const phase_0 = state_0.phase;
+  if (allowed_0) {
+    return run_jump($Handoff$lease$release$phase$, [item_0, round_0, closed_0, reoffered_0, phase_0, token_0]);
+  } else {
+    return {$: "Denied", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: phase_0}};
+  }
+}
+
+function $Handoff$lease$terminal$guard$(state_0, token_0, certain_0, allowed_0) {
+  const item_0 = state_0.item;
+  const round_0 = state_0.round;
+  const closed_0 = state_0.closed;
+  const reoffered_0 = state_0.reoffered;
+  const phase_0 = state_0.phase;
+  if (allowed_0) {
+    return run_jump($Handoff$lease$terminal$phase$, [item_0, round_0, closed_0, reoffered_0, phase_0, token_0, certain_0]);
+  } else {
+    return {$: "Denied", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: phase_0}};
+  }
+}
+
+function $Handoff$lease$reoffer$guard$(state_0, token_0, allowed_0) {
+  const item_0 = state_0.item;
+  const round_0 = state_0.round;
+  const closed_0 = state_0.closed;
+  const reoffered_0 = state_0.reoffered;
+  const phase_0 = state_0.phase;
+  if (allowed_0) {
+    return run_jump($Handoff$lease$reoffer$phase$, [item_0, round_0, closed_0, reoffered_0, phase_0, token_0]);
+  } else {
+    return {$: "Denied", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: phase_0}};
+  }
+}
+
+function $Admission$apply_event$(state_0, event_0) {
+  if (event_0.$ === "Issue") {
+    const tool_0 = event_0.tool;
+    const started_0 = event_0.started;
+    const deadline_0 = event_0.deadline;
+    const now_0 = event_0.now;
+    return run_jump($Admission$issue$, [state_0, tool_0, started_0, deadline_0, now_0]);
+  } else if (event_0.$ === "Consume") {
+    const token_0 = event_0.token;
+    const tool_1 = event_0.tool;
+    const now_1 = event_0.now;
+    return run_jump($Admission$consume$, [state_0, token_0, tool_1, now_1]);
+  } else if (event_0.$ === "Release") {
+    const token_1 = event_0.token;
+    return run_jump($Admission$release$, [state_0, token_1]);
+  } else if (event_0.$ === "CloseRound") {
+    const at_0 = event_0.at;
+    return run_jump($Admission$close_round$, [state_0, at_0]);
+  } else {
+    const new_lifetime_0 = event_0.new_lifetime;
+    const at_1 = event_0.at;
+    return run_jump($Admission$restart$, [state_0, new_lifetime_0, at_1]);
+  }
+}
+
+function $Cmp$is_eq$(c_0) {
+  if (c_0.$ === "LT") {
+    return false;
+  } else if (c_0.$ === "EQ") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $Work$fill_source$(observations_0, capacity_0, occupied_0) {
+  if (observations_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = observations_0.head;
+    const id_0 = _t_0.id;
+    const _t_1 = _t_0.stage;
+    if (_t_1.$ === "SourceQueued") {
+      const rest_0 = observations_0.tail;
+      const room_0 = run_loop($Flow$has_room$(occupied_0, capacity_0));
+      const next_stage_0 = run_loop($Bool$pick$(room_0, {$: "SourceReading"}, {$: "SourceQueued"}));
+      const x_0 = run_loop($Bool$pick$(room_0, 1n, 0n));
+      return {$: "Con", ["head"]: {$: "Observation", ["id"]: id_0, ["stage"]: next_stage_0}, ["tail"]: run_loop($Work$fill_source$(rest_0, capacity_0, nat_chk(occupied_0 + x_0)))};
+    } else {
+      const rest_1 = observations_0.tail;
+      return {$: "Con", ["head"]: {$: "Observation", ["id"]: id_0, ["stage"]: {$: "SourceReading"}}, ["tail"]: run_loop($Work$fill_source$(rest_1, capacity_0, occupied_0))};
+    }
+  }
+}
+
+function $Work$reading_count$(observations_0) {
+  if (observations_0.$ === "Nil") {
+    return 0n;
+  } else {
+    const _t_0 = observations_0.head;
+    const __0 = _t_0.id;
+    const stage_0 = _t_0.stage;
+    const rest_0 = observations_0.tail;
+    const x_0 = run_loop($Bool$pick$(run_loop($Work$is_source_reading$(stage_0)), 1n, 0n));
+    const x_1 = run_loop($Work$reading_count$(rest_0));
+    return nat_chk(x_0 + x_1);
+  }
+}
+
+function $Work$fill_review$(units_0, capacity_0, occupied_0) {
+  if (units_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = units_0.head;
+    const id_0 = _t_0.id;
+    const observation_0 = _t_0.observation;
+    const _t_1 = _t_0.stage;
+    if (_t_1.$ === "ReviewQueued") {
+      const findings_0 = _t_0.findings;
+      const bytes_0 = _t_0.bytes;
+      const rest_0 = units_0.tail;
+      const room_0 = run_loop($Flow$has_room$(occupied_0, capacity_0));
+      const next_stage_0 = run_loop($Bool$pick$(room_0, {$: "AtJev"}, {$: "ReviewQueued"}));
+      const x_0 = run_loop($Bool$pick$(room_0, 1n, 0n));
+      return {$: "Con", ["head"]: {$: "ReviewUnit", ["id"]: id_0, ["observation"]: observation_0, ["stage"]: next_stage_0, ["findings"]: findings_0, ["bytes"]: bytes_0}, ["tail"]: run_loop($Work$fill_review$(rest_0, capacity_0, nat_chk(occupied_0 + x_0)))};
+    } else {
+      const findings_1 = _t_0.findings;
+      const bytes_1 = _t_0.bytes;
+      const rest_1 = units_0.tail;
+      return {$: "Con", ["head"]: {$: "ReviewUnit", ["id"]: id_0, ["observation"]: observation_0, ["stage"]: _t_1, ["findings"]: findings_1, ["bytes"]: bytes_1}, ["tail"]: run_loop($Work$fill_review$(rest_1, capacity_0, occupied_0))};
+    }
+  }
+}
+
+function $Work$at_jev_count$(units_0) {
+  if (units_0.$ === "Nil") {
+    return 0n;
+  } else {
+    const _t_0 = units_0.head;
+    const __0 = _t_0.id;
+    const __1 = _t_0.observation;
+    const stage_0 = _t_0.stage;
+    const __2 = _t_0.findings;
+    const __3 = _t_0.bytes;
+    const rest_0 = units_0.tail;
+    const x_0 = run_loop($Bool$pick$(run_loop($Work$is_at_jev$(stage_0)), 1n, 0n));
+    const x_1 = run_loop($Work$at_jev_count$(rest_0));
+    return nat_chk(x_0 + x_1);
+  }
+}
+
+function $Work$prepare$stage$(work_0, observation_0, count_0, stage_0) {
+  if (stage_0.$ === "SourceQueued") {
+    return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "SourceNotReading"}};
+  } else {
+    return run_jump($Work$prepare$count$, [work_0, observation_0, count_0, run_loop($Nat$is_le$(count_0, 16n))]);
+  }
+}
+
+function $Work$find_observation$pick$(observation_0, fallback_0, hit_0) {
+  if (hit_0) {
+    return {$: "Some", ["value"]: observation_0};
+  } else {
+    return fallback_0;
+  }
+}
+
+function $Work$outcome$stage$(work_0, id_0, observation_0, stage_0, result_0) {
+  if (stage_0.$ === "AtJev") {
+    return run_jump($Work$outcome$kind$, [work_0, id_0, observation_0, result_0]);
+  } else {
+    return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "UnitNotAtJev"}};
+  }
+}
+
+function $Work$find_unit$pick$(unit_0, fallback_0, hit_0) {
+  if (hit_0) {
+    return {$: "Some", ["value"]: unit_0};
+  } else {
+    return fallback_0;
+  }
+}
+
+function $List$length$(xs_0) {
+  if (xs_0.$ === "Nil") {
+    return 0n;
+  } else {
+    const h_0 = xs_0.head;
+    const t_0 = xs_0.tail;
+    return nat_chk(run_loop($List$length$(t_0)) + 1n);
+  }
+}
+
+function $Bool$pick$(c_0, a_0, b_0) {
+  if (!c_0) {
+    return b_0;
+  } else {
+    return a_0;
+  }
+}
+
+function $Work$is_unit_unfinished$(stage_0) {
+  if (stage_0.$ === "ReviewQueued") {
+    return true;
+  } else if (stage_0.$ === "AtJev") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $Handoff$select$current$(state_0, advice_0, prospective_bytes_0, valid_0) {
+  const __0 = state_0.partition;
+  const __1 = state_0.round;
+  const __2 = state_0.snapshot;
+  const __3 = state_0.credential;
+  const __4 = state_0.selected;
+  const __5 = state_0.retained;
+  const count_0 = state_0.findings;
+  const __6 = state_0.bytes;
+  const id_0 = advice_0.id;
+  const __7 = advice_0.unit;
+  const __8 = advice_0.partition;
+  const __9 = advice_0.round;
+  const __10 = advice_0.snapshot;
+  const __11 = advice_0.credential;
+  const __12 = advice_0.age_ms;
+  const solo_bytes_0 = advice_0.solo_bytes;
+  const __13 = advice_0.collection_ready;
+  return run_jump($Handoff$select$valid$, [{$: "Selection", ["partition"]: __0, ["round"]: __1, ["snapshot"]: __2, ["credential"]: __3, ["selected"]: __4, ["retained"]: __5, ["findings"]: count_0, ["bytes"]: __6}, id_0, prospective_bytes_0, solo_bytes_0, count_0, valid_0]);
+}
+
+function $Cmp$is_gt$(c_0) {
+  if (c_0.$ === "LT") {
+    return false;
+  } else if (c_0.$ === "EQ") {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+function $Cmp$is_le$(c_0) {
+  if (c_0.$ === "LT") {
+    return true;
+  } else if (c_0.$ === "EQ") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $Handoff$finish$pending$(state_0, unfinished_0, deadline_0, actionable_findings_0, reserved_0) {
+  if (reserved_0) {
+    return {$: "Wait", ["state"]: state_0};
+  } else {
+    return run_jump($Handoff$finish$ready$, [state_0, unfinished_0, deadline_0, actionable_findings_0]);
+  }
+}
+
+function $Handoff$lease$reserve$phase$(item_0, round_0, closed_0, reoffered_0, phase_0, token_0, surface_0) {
+  if (phase_0.$ === "Available") {
+    return {$: "Granted", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: {$: "Reserved", ["token"]: token_0, ["surface"]: surface_0}}};
+  } else {
+    return {$: "Denied", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: phase_0}};
+  }
+}
+
+function $Handoff$lease$authorize$phase$(item_0, round_0, closed_0, reoffered_0, phase_0, token_0) {
+  if (phase_0.$ === "Reserved") {
+    const own_token_0 = phase_0.token;
+    const surface_0 = phase_0.surface;
+    return run_jump($Handoff$lease$authorize$match$, [item_0, round_0, closed_0, reoffered_0, own_token_0, surface_0, run_loop($Nat$is_eq$(own_token_0, token_0))]);
+  } else {
+    return {$: "Denied", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: phase_0}};
+  }
+}
+
+function $Handoff$lease$release$phase$(item_0, round_0, closed_0, reoffered_0, phase_0, token_0) {
+  if (phase_0.$ === "Reserved") {
+    const own_token_0 = phase_0.token;
+    const surface_0 = phase_0.surface;
+    return run_jump($Handoff$lease$release$match$, [item_0, round_0, closed_0, reoffered_0, own_token_0, surface_0, run_loop($Nat$is_eq$(own_token_0, token_0))]);
+  } else {
+    return {$: "Denied", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: phase_0}};
+  }
+}
+
+function $Handoff$lease$terminal$phase$(item_0, round_0, closed_0, reoffered_0, phase_0, token_0, certain_0) {
+  if (phase_0.$ === "Authorized") {
+    const own_token_0 = phase_0.token;
+    const surface_0 = phase_0.surface;
+    return run_jump($Handoff$lease$terminal$match$, [item_0, round_0, closed_0, reoffered_0, own_token_0, surface_0, run_loop($Nat$is_eq$(own_token_0, token_0)), certain_0]);
+  } else {
+    return {$: "Denied", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: phase_0}};
+  }
+}
+
+function $Handoff$lease$reoffer$phase$(item_0, round_0, closed_0, reoffered_0, phase_0, token_0) {
+  if (phase_0.$ === "Submitted") {
+    const surface_0 = phase_0.surface;
+    return run_jump($Handoff$lease$reoffer$surface$, [item_0, round_0, closed_0, reoffered_0, surface_0, false, token_0]);
+  } else if (phase_0.$ === "Uncertain") {
+    const surface_1 = phase_0.surface;
+    return run_jump($Handoff$lease$reoffer$surface$, [item_0, round_0, closed_0, reoffered_0, surface_1, true, token_0]);
+  } else {
+    return {$: "Denied", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: phase_0}};
+  }
+}
+
+function $Admission$issue$(state_0, tool_0, started_0, deadline_0, now_0) {
+  const partition_0 = state_0.partition;
+  const lifetime_0 = state_0.lifetime;
+  const round_0 = state_0.round;
+  const active_0 = state_0.active;
+  const closed_at_0 = state_0.closed_at;
+  const next_token_0 = state_0.next_token;
+  const permits_0 = state_0.permits;
+  const used_0 = state_0.used;
+  return run_jump($Admission$issue$guard$, [{$: "AdmissionState", ["partition"]: partition_0, ["lifetime"]: lifetime_0, ["round"]: round_0, ["active"]: active_0, ["closed_at"]: closed_at_0, ["next_token"]: next_token_0, ["permits"]: permits_0, ["used"]: used_0}, partition_0, lifetime_0, round_0, active_0, closed_at_0, next_token_0, permits_0, used_0, tool_0, started_0, deadline_0, now_0, run_loop($Bool$and$(run_loop($Nat$is_gt$(started_0, closed_at_0)), run_loop($Bool$and$(run_loop($Nat$is_le$(started_0, now_0)), run_loop($Nat$is_le$(now_0, deadline_0))))))]);
+}
+
+function $Admission$consume$(state_0, token_0, tool_0, now_0) {
+  const __0 = state_0.partition;
+  const __1 = state_0.lifetime;
+  const __2 = state_0.round;
+  const __3 = state_0.active;
+  const __4 = state_0.closed_at;
+  const __5 = state_0.next_token;
+  const permits_0 = state_0.permits;
+  const used_0 = state_0.used;
+  return run_jump($Admission$consume$used$, [{$: "AdmissionState", ["partition"]: __0, ["lifetime"]: __1, ["round"]: __2, ["active"]: __3, ["closed_at"]: __4, ["next_token"]: __5, ["permits"]: permits_0, ["used"]: used_0}, token_0, tool_0, now_0, run_loop($Admission$has_token$(token_0, used_0)), run_loop($Admission$find_permit$(token_0, permits_0))]);
+}
+
+function $Admission$release$(state_0, token_0) {
+  const __0 = state_0.partition;
+  const __1 = state_0.lifetime;
+  const __2 = state_0.round;
+  const __3 = state_0.active;
+  const __4 = state_0.closed_at;
+  const __5 = state_0.next_token;
+  const permits_0 = state_0.permits;
+  const used_0 = state_0.used;
+  return run_jump($Admission$release$used$, [{$: "AdmissionState", ["partition"]: __0, ["lifetime"]: __1, ["round"]: __2, ["active"]: __3, ["closed_at"]: __4, ["next_token"]: __5, ["permits"]: permits_0, ["used"]: used_0}, token_0, run_loop($Admission$has_token$(token_0, used_0)), run_loop($Admission$find_permit$(token_0, permits_0))]);
+}
+
+function $Admission$close_round$(state_0, at_0) {
+  const partition_0 = state_0.partition;
+  const lifetime_0 = state_0.lifetime;
+  const round_0 = state_0.round;
+  const active_0 = state_0.active;
+  const closed_at_0 = state_0.closed_at;
+  const next_token_0 = state_0.next_token;
+  const __0 = state_0.permits;
+  const used_0 = state_0.used;
+  return run_jump($Admission$close_round$active$, [{$: "AdmissionState", ["partition"]: partition_0, ["lifetime"]: lifetime_0, ["round"]: round_0, ["active"]: active_0, ["closed_at"]: closed_at_0, ["next_token"]: next_token_0, ["permits"]: __0, ["used"]: used_0}, partition_0, lifetime_0, round_0, active_0, closed_at_0, next_token_0, used_0, at_0]);
+}
+
+function $Admission$restart$(state_0, new_lifetime_0, at_0) {
+  const partition_0 = state_0.partition;
+  const lifetime_0 = state_0.lifetime;
+  const __0 = state_0.round;
+  const __1 = state_0.active;
+  const closed_at_0 = state_0.closed_at;
+  const __2 = state_0.next_token;
+  const __3 = state_0.permits;
+  const __4 = state_0.used;
+  return run_jump($Admission$restart$fresh$, [{$: "AdmissionState", ["partition"]: partition_0, ["lifetime"]: lifetime_0, ["round"]: __0, ["active"]: __1, ["closed_at"]: closed_at_0, ["next_token"]: __2, ["permits"]: __3, ["used"]: __4}, partition_0, lifetime_0, closed_at_0, new_lifetime_0, at_0, run_loop($Bool$and$(run_loop($Nat$is_gt$(new_lifetime_0, lifetime_0)), run_loop($Nat$is_ge$(at_0, closed_at_0))))]);
+}
+
+function $Flow$has_room$(occupied_0, capacity_0) {
+  const low_0 = capacity_0.low;
+  const high_0 = capacity_0.high;
+  const x_0 = run_loop($Nat$is_gt$(high_0, 0n));
+  const x_1 = (occupied_0 < low_0);
+  return (x_0 || x_1);
+}
+
+function $Work$is_source_reading$(stage_0) {
+  if (stage_0.$ === "SourceQueued") {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+function $Work$is_at_jev$(stage_0) {
+  if (stage_0.$ === "AtJev") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $Work$prepare$count$(work_0, observation_0, count_0, within_limit_0) {
+  if (!within_limit_0) {
+    return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "TooManyUnits"}};
+  } else {
+    return run_jump($Work$prepare$apply$, [work_0, observation_0, count_0]);
+  }
+}
+
+function $Work$outcome$kind$(work_0, id_0, observation_0, result_0) {
+  if (result_0.$ === "Finding") {
+    const count_0 = result_0.count;
+    const bytes_0 = result_0.bytes;
+    return run_jump($Work$outcome$finding$, [work_0, id_0, observation_0, count_0, bytes_0, run_loop($Nat$is_gt$(count_0, 0n))]);
+  } else if (result_0.$ === "Clear") {
+    return run_jump($Work$outcome$apply$, [work_0, {$: "ReviewUnit", ["id"]: id_0, ["observation"]: observation_0, ["stage"]: {$: "ClearResult"}, ["findings"]: 0n, ["bytes"]: 0n}]);
+  } else {
+    return run_jump($Work$outcome$apply$, [work_0, {$: "ReviewUnit", ["id"]: id_0, ["observation"]: observation_0, ["stage"]: {$: "UnavailableResult"}, ["findings"]: 0n, ["bytes"]: 0n}]);
+  }
+}
+
+function $Handoff$select$valid$(state_0, id_0, prospective_bytes_0, solo_bytes_0, count_0, valid_0) {
+  if (valid_0) {
+    return run_jump($Handoff$select$solo$, [state_0, id_0, prospective_bytes_0, count_0, run_loop($Nat$is_gt$(solo_bytes_0, BigInt(2048)))]);
+  } else {
+    return {$: "Expired", ["state"]: state_0};
+  }
+}
+
+function $Handoff$finish$ready$(state_0, unfinished_0, deadline_0, actionable_findings_0) {
+  if (deadline_0) {
+    return run_jump($Handoff$finish$choose$, [state_0, actionable_findings_0]);
+  } else {
+    return run_jump($Handoff$finish$zero$, [state_0, actionable_findings_0, run_loop($Nat$is_eq$(unfinished_0, 0n))]);
+  }
+}
+
+function $Handoff$lease$authorize$match$(item_0, round_0, closed_0, reoffered_0, own_token_0, surface_0, same_0) {
+  if (same_0) {
+    return {$: "Granted", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: {$: "Authorized", ["token"]: own_token_0, ["surface"]: surface_0}}};
+  } else {
+    return {$: "Denied", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: {$: "Reserved", ["token"]: own_token_0, ["surface"]: surface_0}}};
+  }
+}
+
+function $Handoff$lease$release$match$(item_0, round_0, closed_0, reoffered_0, own_token_0, surface_0, same_0) {
+  if (same_0) {
+    return {$: "Granted", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: {$: "Available"}}};
+  } else {
+    return {$: "Denied", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: {$: "Reserved", ["token"]: own_token_0, ["surface"]: surface_0}}};
+  }
+}
+
+function $Handoff$lease$terminal$match$(item_0, round_0, closed_0, reoffered_0, own_token_0, surface_0, same_0, certain_0) {
+  if (same_0) {
+    if (certain_0) {
+      return {$: "Granted", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: {$: "Submitted", ["surface"]: surface_0}}};
+    } else {
+      return {$: "Granted", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: {$: "Uncertain", ["surface"]: surface_0}}};
+    }
+  } else {
+    return {$: "Denied", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: {$: "Authorized", ["token"]: own_token_0, ["surface"]: surface_0}}};
+  }
+}
+
+function $Handoff$lease$reoffer$surface$(item_0, round_0, closed_0, reoffered_0, surface_0, uncertain_0, token_0) {
+  if (surface_0.$ === "Background") {
+    return {$: "Granted", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: true, ["phase"]: {$: "Reserved", ["token"]: token_0, ["surface"]: {$: "Stop"}}}};
+  } else {
+    if (uncertain_0) {
+      return {$: "Denied", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: {$: "Uncertain", ["surface"]: {$: "Stop"}}}};
+    } else {
+      return {$: "Denied", ["state"]: {$: "Lease", ["item"]: item_0, ["round"]: round_0, ["closed"]: closed_0, ["reoffered"]: reoffered_0, ["phase"]: {$: "Submitted", ["surface"]: {$: "Stop"}}}};
+    }
+  }
+}
+
+function $Admission$issue$guard$(state_0, partition_0, lifetime_0, round_0, active_0, closed_at_0, next_token_0, permits_0, used_0, tool_0, started_0, deadline_0, now_0, clock_valid_0) {
+  if (!clock_valid_0) {
+    return {$: "Rejected", ["state"]: state_0, ["reason"]: {$: "StaleInvocation"}};
+  } else {
+    const x_0 = run_loop($Admission$has_tool$(tool_0, permits_0));
+    const x_1 = run_loop($Admission$has_used_tool$(tool_0, used_0));
+    return run_jump($Admission$issue$tool$, [state_0, partition_0, lifetime_0, round_0, active_0, closed_at_0, next_token_0, permits_0, used_0, tool_0, started_0, deadline_0, (x_0 || x_1)]);
+  }
+}
+
+function $Admission$consume$used$(state_0, token_0, tool_0, now_0, was_used_0, permit_0) {
+  if (was_used_0) {
+    return {$: "Rejected", ["state"]: state_0, ["reason"]: {$: "UsedPermit"}};
+  } else {
+    return run_jump($Admission$consume$found$, [state_0, token_0, tool_0, now_0, permit_0]);
+  }
+}
+
+function $Admission$has_token$(token_0, used_0) {
+  if (used_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = used_0.head;
+    const current_0 = _t_0.token;
+    const __0 = _t_0.tool;
+    const rest_0 = used_0.tail;
+    const x_0 = run_loop($Nat$is_eq$(token_0, current_0));
+    const x_1 = run_loop($Admission$has_token$(token_0, rest_0));
+    return (x_0 || x_1);
+  }
+}
+
+function $Admission$find_permit$(token_0, permits_0) {
+  if (permits_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = permits_0.head;
+    const current_0 = _t_0.token;
+    const __0 = _t_0.tool;
+    const __1 = _t_0.round;
+    const __2 = _t_0.started;
+    const __3 = _t_0.deadline;
+    const rest_0 = permits_0.tail;
+    return run_jump($Admission$find_permit$pick$, [{$: "Permit", ["token"]: current_0, ["tool"]: __0, ["round"]: __1, ["started"]: __2, ["deadline"]: __3}, run_loop($Admission$find_permit$(token_0, rest_0)), run_loop($Nat$is_eq$(current_0, token_0))]);
+  }
+}
+
+function $Admission$release$used$(state_0, token_0, used_0, found_0) {
+  if (used_0) {
+    return {$: "Rejected", ["state"]: state_0, ["reason"]: {$: "UsedPermit"}};
+  } else {
+    return run_jump($Admission$release$found$, [state_0, token_0, found_0]);
+  }
+}
+
+function $Admission$close_round$active$(state_0, partition_0, lifetime_0, round_0, active_0, closed_at_0, next_token_0, used_0, at_0) {
+  if (!active_0) {
+    return {$: "Rejected", ["state"]: state_0, ["reason"]: {$: "RoundAlreadyClosed"}};
+  } else {
+    return run_jump($Admission$close_round$time$, [state_0, partition_0, lifetime_0, round_0, next_token_0, used_0, at_0, run_loop($Nat$is_ge$(at_0, closed_at_0))]);
+  }
+}
+
+function $Admission$restart$fresh$(state_0, partition_0, lifetime_0, closed_at_0, new_lifetime_0, at_0, valid_0) {
+  if (!valid_0) {
+    return {$: "Rejected", ["state"]: state_0, ["reason"]: {$: "LifetimeNotFresh"}};
+  } else {
+    return {$: "Accepted", ["state"]: {$: "AdmissionState", ["partition"]: partition_0, ["lifetime"]: new_lifetime_0, ["round"]: 0n, ["active"]: false, ["closed_at"]: at_0, ["next_token"]: 1n, ["permits"]: {$: "Nil"}, ["used"]: {$: "Nil"}}, ["token"]: {$: "None"}, ["round"]: {$: "None"}};
+  }
+}
+
+function $Nat$is_ge$(a_0, b_0) {
+  return run_jump($Cmp$is_ge$, [cmp_new(a_0, b_0)]);
+}
+
+function $Work$prepare$apply$(work_0, observation_0, count_0) {
+  const next_observation_0 = work_0.next_observation;
+  const next_unit_0 = work_0.next_unit;
+  const source_capacity_0 = work_0.source_capacity;
+  const review_capacity_0 = work_0.review_capacity;
+  const observations_0 = work_0.observations;
+  const units_0 = work_0.units;
+  const new_units_0 = run_loop($Work$make_units$(count_0, observation_0, next_unit_0));
+  return {$: "Accepted", ["state"]: run_loop($Work$settle$({$: "Work", ["next_observation"]: next_observation_0, ["next_unit"]: nat_chk(next_unit_0 + count_0), ["source_capacity"]: source_capacity_0, ["review_capacity"]: review_capacity_0, ["observations"]: run_loop($Work$remove_observation$(observation_0, observations_0)), ["units"]: run_loop($List$append$(units_0, new_units_0))})), ["admitted"]: run_loop($Work$unit_ids$(new_units_0))};
+}
+
+function $Work$outcome$finding$(work_0, id_0, observation_0, count_0, bytes_0, positive_0) {
+  if (!positive_0) {
+    return {$: "Rejected", ["state"]: work_0, ["reason"]: {$: "InvalidFinding"}};
+  } else {
+    return run_jump($Work$outcome$apply$, [work_0, {$: "ReviewUnit", ["id"]: id_0, ["observation"]: observation_0, ["stage"]: {$: "PendingFinding"}, ["findings"]: count_0, ["bytes"]: bytes_0}]);
+  }
+}
+
+function $Work$outcome$apply$(work_0, unit_0) {
+  const next_observation_0 = work_0.next_observation;
+  const next_unit_0 = work_0.next_unit;
+  const source_capacity_0 = work_0.source_capacity;
+  const review_capacity_0 = work_0.review_capacity;
+  const observations_0 = work_0.observations;
+  const units_0 = work_0.units;
+  const id_0 = unit_0.id;
+  const __0 = unit_0.observation;
+  const __1 = unit_0.stage;
+  const __2 = unit_0.findings;
+  const __3 = unit_0.bytes;
+  return {$: "Accepted", ["state"]: run_loop($Work$settle$({$: "Work", ["next_observation"]: next_observation_0, ["next_unit"]: next_unit_0, ["source_capacity"]: source_capacity_0, ["review_capacity"]: review_capacity_0, ["observations"]: observations_0, ["units"]: run_loop($Work$replace_unit$(id_0, {$: "ReviewUnit", ["id"]: id_0, ["observation"]: __0, ["stage"]: __1, ["findings"]: __2, ["bytes"]: __3}, units_0))})), ["admitted"]: {$: "Nil"}};
+}
+
+function $Handoff$select$solo$(state_0, id_0, prospective_bytes_0, count_0, oversized_0) {
+  if (oversized_0) {
+    return run_jump($Handoff$select$limit$, [state_0, id_0]);
+  } else {
+    return run_jump($Handoff$select$fit$, [state_0, id_0, prospective_bytes_0, run_loop($Handoff$fits_batch$(nat_chk(count_0 + 1n), prospective_bytes_0))]);
+  }
+}
+
+function $Handoff$finish$choose$(state_0, actionable_findings_0) {
+  const __0 = state_0.round;
+  const __1 = state_0.active;
+  const __2 = state_0.closed;
+  const continuations_0 = state_0.continuations;
+  const __3 = state_0.reserved;
+  const __4 = state_0.token;
+  const __5 = state_0.collector;
+  const __6 = state_0.deadline_at;
+  return run_jump($Handoff$finish$choose$check$, [{$: "Finish", ["round"]: __0, ["active"]: __1, ["closed"]: __2, ["continuations"]: continuations_0, ["reserved"]: __3, ["token"]: __4, ["collector"]: __5, ["deadline_at"]: __6}, run_loop($Bool$and$(run_loop($Nat$is_gt$(actionable_findings_0, 0n)), (continuations_0 < 4n)))]);
+}
+
+function $Handoff$finish$zero$(state_0, actionable_findings_0, zero_0) {
+  if (zero_0) {
+    return run_jump($Handoff$finish$choose$, [state_0, actionable_findings_0]);
+  } else {
+    return {$: "Wait", ["state"]: state_0};
+  }
+}
+
+function $Admission$issue$tool$(state_0, partition_0, lifetime_0, round_0, active_0, closed_at_0, next_token_0, permits_0, used_0, tool_0, started_0, deadline_0, duplicate_0) {
+  if (duplicate_0) {
+    return {$: "Rejected", ["state"]: state_0, ["reason"]: {$: "DuplicateTool"}};
+  } else {
+    const expected_round_0 = run_loop($Admission$candidate_round$(round_0, active_0));
+    return {$: "Accepted", ["state"]: {$: "AdmissionState", ["partition"]: partition_0, ["lifetime"]: lifetime_0, ["round"]: round_0, ["active"]: active_0, ["closed_at"]: closed_at_0, ["next_token"]: nat_chk(next_token_0 + 1n), ["permits"]: run_loop($List$append$(permits_0, {$: "Con", ["head"]: {$: "Permit", ["token"]: next_token_0, ["tool"]: tool_0, ["round"]: expected_round_0, ["started"]: started_0, ["deadline"]: deadline_0}, ["tail"]: {$: "Nil"}})), ["used"]: used_0}, ["token"]: {$: "Some", ["value"]: next_token_0}, ["round"]: {$: "Some", ["value"]: expected_round_0}};
+  }
+}
+
+function $Admission$has_tool$(tool_0, permits_0) {
+  if (permits_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = permits_0.head;
+    const __0 = _t_0.token;
+    const current_0 = _t_0.tool;
+    const __1 = _t_0.round;
+    const __2 = _t_0.started;
+    const __3 = _t_0.deadline;
+    const rest_0 = permits_0.tail;
+    const x_0 = run_loop($Nat$is_eq$(tool_0, current_0));
+    const x_1 = run_loop($Admission$has_tool$(tool_0, rest_0));
+    return (x_0 || x_1);
+  }
+}
+
+function $Admission$has_used_tool$(tool_0, used_0) {
+  if (used_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = used_0.head;
+    const __0 = _t_0.token;
+    const current_0 = _t_0.tool;
+    const rest_0 = used_0.tail;
+    const x_0 = run_loop($Nat$is_eq$(tool_0, current_0));
+    const x_1 = run_loop($Admission$has_used_tool$(tool_0, rest_0));
+    return (x_0 || x_1);
+  }
+}
+
+function $Admission$consume$found$(state_0, token_0, tool_0, now_0, permit_0) {
+  if (permit_0.$ === "None") {
+    return {$: "Rejected", ["state"]: state_0, ["reason"]: {$: "NoPermit"}};
+  } else {
+    const _t_0 = permit_0.value;
+    const __0 = _t_0.token;
+    const permitted_tool_0 = _t_0.tool;
+    const permitted_round_0 = _t_0.round;
+    const started_0 = _t_0.started;
+    const deadline_0 = _t_0.deadline;
+    return run_jump($Admission$consume$check$, [state_0, token_0, tool_0, now_0, permitted_tool_0, permitted_round_0, started_0, deadline_0]);
+  }
+}
+
+function $Admission$find_permit$pick$(permit_0, fallback_0, hit_0) {
+  if (hit_0) {
+    return {$: "Some", ["value"]: permit_0};
+  } else {
+    return fallback_0;
+  }
+}
+
+function $Admission$release$found$(state_0, token_0, found_0) {
+  const partition_0 = state_0.partition;
+  const lifetime_0 = state_0.lifetime;
+  const round_0 = state_0.round;
+  const active_0 = state_0.active;
+  const closed_at_0 = state_0.closed_at;
+  const next_token_0 = state_0.next_token;
+  const permits_0 = state_0.permits;
+  const used_0 = state_0.used;
+  if (found_0.$ === "None") {
+    return {$: "Rejected", ["state"]: {$: "AdmissionState", ["partition"]: partition_0, ["lifetime"]: lifetime_0, ["round"]: round_0, ["active"]: active_0, ["closed_at"]: closed_at_0, ["next_token"]: next_token_0, ["permits"]: permits_0, ["used"]: used_0}, ["reason"]: {$: "NoPermit"}};
+  } else {
+    const __0 = found_0.value;
+    return {$: "Accepted", ["state"]: {$: "AdmissionState", ["partition"]: partition_0, ["lifetime"]: lifetime_0, ["round"]: round_0, ["active"]: active_0, ["closed_at"]: closed_at_0, ["next_token"]: next_token_0, ["permits"]: run_loop($Admission$remove_permit$(token_0, permits_0)), ["used"]: used_0}, ["token"]: {$: "None"}, ["round"]: {$: "None"}};
+  }
+}
+
+function $Admission$close_round$time$(state_0, partition_0, lifetime_0, round_0, next_token_0, used_0, at_0, valid_0) {
+  if (!valid_0) {
+    return {$: "Rejected", ["state"]: state_0, ["reason"]: {$: "InvalidClock"}};
+  } else {
+    return {$: "Accepted", ["state"]: {$: "AdmissionState", ["partition"]: partition_0, ["lifetime"]: lifetime_0, ["round"]: round_0, ["active"]: false, ["closed_at"]: at_0, ["next_token"]: next_token_0, ["permits"]: {$: "Nil"}, ["used"]: used_0}, ["token"]: {$: "None"}, ["round"]: {$: "Some", ["value"]: round_0}};
+  }
+}
+
+function $Cmp$is_ge$(c_0) {
+  if (c_0.$ === "LT") {
+    return false;
+  } else if (c_0.$ === "EQ") {
+    return true;
+  } else {
+    return true;
+  }
+}
+
+function $Work$make_units$(count_0, observation_0, next_id_0) {
+  if (count_0 === 0n) {
+    return {$: "Nil"};
+  } else {
+    const rest_0 = (count_0 - 1n);
+    return {$: "Con", ["head"]: {$: "ReviewUnit", ["id"]: next_id_0, ["observation"]: observation_0, ["stage"]: {$: "ReviewQueued"}, ["findings"]: 0n, ["bytes"]: 0n}, ["tail"]: run_loop($Work$make_units$(rest_0, observation_0, nat_chk(next_id_0 + 1n)))};
+  }
+}
+
+function $Work$remove_observation$(id_0, observations_0) {
+  if (observations_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = observations_0.head;
+    const current_0 = _t_0.id;
+    const __0 = _t_0.stage;
+    const rest_0 = observations_0.tail;
+    return run_jump($Work$remove_observation$pick$, [{$: "Observation", ["id"]: current_0, ["stage"]: __0}, run_loop($Work$remove_observation$(id_0, rest_0)), run_loop($Nat$is_eq$(current_0, id_0))]);
+  }
+}
+
+function $Work$unit_ids$(units_0) {
+  if (units_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = units_0.head;
+    const id_0 = _t_0.id;
+    const __0 = _t_0.observation;
+    const __1 = _t_0.stage;
+    const __2 = _t_0.findings;
+    const __3 = _t_0.bytes;
+    const rest_0 = units_0.tail;
+    return {$: "Con", ["head"]: id_0, ["tail"]: run_loop($Work$unit_ids$(rest_0))};
+  }
+}
+
+function $Work$replace_unit$(id_0, replacement_0, units_0) {
+  if (units_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = units_0.head;
+    const current_0 = _t_0.id;
+    const __0 = _t_0.observation;
+    const __1 = _t_0.stage;
+    const __2 = _t_0.findings;
+    const __3 = _t_0.bytes;
+    const rest_0 = units_0.tail;
+    return run_jump($Work$replace_unit$pick$, [{$: "ReviewUnit", ["id"]: current_0, ["observation"]: __0, ["stage"]: __1, ["findings"]: __2, ["bytes"]: __3}, replacement_0, run_loop($Work$replace_unit$(id_0, replacement_0, rest_0)), run_loop($Nat$is_eq$(current_0, id_0))]);
+  }
+}
+
+function $Handoff$select$limit$(state_0, id_0) {
+  const partition_0 = state_0.partition;
+  const round_0 = state_0.round;
+  const snapshot_0 = state_0.snapshot;
+  const credential_0 = state_0.credential;
+  const selected_0 = state_0.selected;
+  const retained_0 = state_0.retained;
+  const count_0 = state_0.findings;
+  const bytes_0 = state_0.bytes;
+  return {$: "Limited", ["state"]: {$: "Selection", ["partition"]: partition_0, ["round"]: round_0, ["snapshot"]: snapshot_0, ["credential"]: credential_0, ["selected"]: selected_0, ["retained"]: run_loop($List$append$(retained_0, {$: "Con", ["head"]: id_0, ["tail"]: {$: "Nil"}})), ["findings"]: count_0, ["bytes"]: bytes_0}, ["id"]: id_0};
+}
+
+function $Handoff$select$fit$(state_0, id_0, prospective_bytes_0, fits_0) {
+  const partition_0 = state_0.partition;
+  const round_0 = state_0.round;
+  const snapshot_0 = state_0.snapshot;
+  const credential_0 = state_0.credential;
+  const selected_0 = state_0.selected;
+  const retained_0 = state_0.retained;
+  const count_0 = state_0.findings;
+  const bytes_0 = state_0.bytes;
+  if (fits_0) {
+    return {$: "Selected", ["state"]: {$: "Selection", ["partition"]: partition_0, ["round"]: round_0, ["snapshot"]: snapshot_0, ["credential"]: credential_0, ["selected"]: run_loop($List$append$(selected_0, {$: "Con", ["head"]: id_0, ["tail"]: {$: "Nil"}})), ["retained"]: retained_0, ["findings"]: nat_chk(count_0 + 1n), ["bytes"]: prospective_bytes_0}};
+  } else {
+    return {$: "Retained", ["state"]: {$: "Selection", ["partition"]: partition_0, ["round"]: round_0, ["snapshot"]: snapshot_0, ["credential"]: credential_0, ["selected"]: selected_0, ["retained"]: run_loop($List$append$(retained_0, {$: "Con", ["head"]: id_0, ["tail"]: {$: "Nil"}})), ["findings"]: count_0, ["bytes"]: bytes_0}};
+  }
+}
+
+function $Handoff$finish$choose$check$(state_0, can_continue_0) {
+  const round_0 = state_0.round;
+  const active_0 = state_0.active;
+  const closed_0 = state_0.closed;
+  const continuations_0 = state_0.continuations;
+  const reserved_0 = state_0.reserved;
+  const token_0 = state_0.token;
+  const collector_0 = state_0.collector;
+  const deadline_at_0 = state_0.deadline_at;
+  if (can_continue_0) {
+    return {$: "Continue", ["state"]: {$: "Finish", ["round"]: round_0, ["active"]: active_0, ["closed"]: closed_0, ["continuations"]: nat_chk(continuations_0 + 1n), ["reserved"]: true, ["token"]: token_0, ["collector"]: collector_0, ["deadline_at"]: deadline_at_0}};
+  } else {
+    return {$: "Allow", ["state"]: {$: "Finish", ["round"]: round_0, ["active"]: false, ["closed"]: true, ["continuations"]: continuations_0, ["reserved"]: false, ["token"]: token_0, ["collector"]: collector_0, ["deadline_at"]: deadline_at_0}};
+  }
+}
+
+function $Admission$candidate_round$(round_0, active_0) {
+  if (active_0) {
+    return round_0;
+  } else {
+    return nat_chk(round_0 + 1n);
+  }
+}
+
+function $Admission$consume$check$(state_0, token_0, tool_0, now_0, permitted_tool_0, permitted_round_0, started_0, deadline_0) {
+  const partition_0 = state_0.partition;
+  const lifetime_0 = state_0.lifetime;
+  const round_0 = state_0.round;
+  const active_0 = state_0.active;
+  const closed_at_0 = state_0.closed_at;
+  const next_token_0 = state_0.next_token;
+  const permits_0 = state_0.permits;
+  const used_0 = state_0.used;
+  return run_jump($Admission$consume$tool$, [{$: "AdmissionState", ["partition"]: partition_0, ["lifetime"]: lifetime_0, ["round"]: round_0, ["active"]: active_0, ["closed_at"]: closed_at_0, ["next_token"]: next_token_0, ["permits"]: permits_0, ["used"]: used_0}, partition_0, lifetime_0, round_0, active_0, closed_at_0, next_token_0, permits_0, used_0, token_0, tool_0, now_0, permitted_round_0, started_0, deadline_0, run_loop($Nat$is_eq$(tool_0, permitted_tool_0))]);
+}
+
+function $Admission$remove_permit$(token_0, permits_0) {
+  if (permits_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = permits_0.head;
+    const current_0 = _t_0.token;
+    const __0 = _t_0.tool;
+    const __1 = _t_0.round;
+    const __2 = _t_0.started;
+    const __3 = _t_0.deadline;
+    const rest_0 = permits_0.tail;
+    return run_jump($Admission$remove_permit$pick$, [{$: "Permit", ["token"]: current_0, ["tool"]: __0, ["round"]: __1, ["started"]: __2, ["deadline"]: __3}, run_loop($Admission$remove_permit$(token_0, rest_0)), run_loop($Nat$is_eq$(current_0, token_0))]);
+  }
+}
+
+function $Work$remove_observation$pick$(observation_0, tail_0, hit_0) {
+  if (hit_0) {
+    return tail_0;
+  } else {
+    return {$: "Con", ["head"]: observation_0, ["tail"]: tail_0};
+  }
+}
+
+function $Work$replace_unit$pick$(unit_0, replacement_0, tail_0, hit_0) {
+  if (hit_0) {
+    return {$: "Con", ["head"]: replacement_0, ["tail"]: tail_0};
+  } else {
+    return {$: "Con", ["head"]: unit_0, ["tail"]: tail_0};
+  }
+}
+
+function $Admission$consume$tool$(state_0, partition_0, lifetime_0, round_0, active_0, closed_at_0, next_token_0, permits_0, used_0, token_0, tool_0, now_0, permitted_round_0, started_0, deadline_0, correct_tool_0) {
+  if (!correct_tool_0) {
+    return {$: "Rejected", ["state"]: state_0, ["reason"]: {$: "WrongTool"}};
+  } else {
+    return run_jump($Admission$consume$time$, [state_0, partition_0, lifetime_0, round_0, active_0, closed_at_0, next_token_0, permits_0, used_0, token_0, now_0, permitted_round_0, run_loop($Bool$and$(run_loop($Nat$is_gt$(started_0, closed_at_0)), run_loop($Bool$and$(run_loop($Nat$is_le$(started_0, now_0)), run_loop($Nat$is_le$(now_0, deadline_0))))))]);
+  }
+}
+
+function $Admission$remove_permit$pick$(permit_0, tail_0, hit_0) {
+  if (hit_0) {
+    return tail_0;
+  } else {
+    return {$: "Con", ["head"]: permit_0, ["tail"]: tail_0};
+  }
+}
+
+function $Admission$consume$time$(state_0, partition_0, lifetime_0, round_0, active_0, closed_at_0, next_token_0, permits_0, used_0, token_0, now_0, permitted_round_0, valid_0) {
+  if (!valid_0) {
+    return {$: "Rejected", ["state"]: state_0, ["reason"]: {$: "Expired"}};
+  } else {
+    return run_jump($Admission$consume$round$, [state_0, partition_0, lifetime_0, round_0, active_0, closed_at_0, next_token_0, permits_0, used_0, token_0, permitted_round_0, run_loop($Nat$is_eq$(permitted_round_0, run_loop($Admission$candidate_round$(round_0, active_0))))]);
+  }
+}
+
+function $Admission$consume$round$(state_0, partition_0, lifetime_0, round_0, active_0, closed_at_0, next_token_0, permits_0, used_0, token_0, permitted_round_0, correct_round_0) {
+  if (!correct_round_0) {
+    return {$: "Rejected", ["state"]: state_0, ["reason"]: {$: "OldRound"}};
+  } else {
+    return {$: "Accepted", ["state"]: {$: "AdmissionState", ["partition"]: partition_0, ["lifetime"]: lifetime_0, ["round"]: permitted_round_0, ["active"]: true, ["closed_at"]: closed_at_0, ["next_token"]: next_token_0, ["permits"]: run_loop($Admission$remove_permit$(token_0, permits_0)), ["used"]: run_loop($Admission$record_used$(token_0, permits_0, used_0))}, ["token"]: {$: "Some", ["value"]: token_0}, ["round"]: {$: "Some", ["value"]: permitted_round_0}};
+  }
+}
+
+function $Admission$record_used$(token_0, permits_0, used_0) {
+  return run_jump($Admission$record_used$found$, [run_loop($Admission$find_permit$(token_0, permits_0)), used_0]);
+}
+
+function $Admission$record_used$found$(permit_0, used_0) {
+  if (permit_0.$ === "None") {
+    return used_0;
+  } else {
+    const _t_0 = permit_0.value;
+    const found_0 = _t_0.token;
+    const tool_0 = _t_0.tool;
+    const __0 = _t_0.round;
+    const __1 = _t_0.started;
+    const __2 = _t_0.deadline;
+    return {$: "Con", ["head"]: {$: "Used", ["token"]: found_0, ["tool"]: tool_0}, ["tail"]: used_0};
+  }
+}
+
+// Cli
+// ===
+
+// A JS program runs one thread and no GPU: --threads and --gpu do nothing.
+let cli_args = [];
+
+function cli(argv) {
+  for (let i = 0; i < argv.length; i += 1) {
+    if (argv[i] === "--") {
+      cli_args.push(...argv.slice(i + 1));
+      break;
+    } else if (argv[i] === "--help") {
+      io_out(1, io_bytes("usage: " + process.argv[1] + "\n"));
+      process.exit(0);
+    } else if (argv[i] === "--threads" || argv[i] === "--gpu") {
+      i += 1;
+    } else {
+      cli_args.push(argv[i]);
+    }
+  }
+}
+
+// Show
+// ====
+
+// char_show: an escape, a \u{hex}, else the code point
+function show_chr(c, q) {
+  const k = { 10: "n", 9: "t", 13: "r", 0: "0", 92: "\\" }[c]
+    ?? (c === q.codePointAt(0) ? q : null);
+  return k !== null ? "\\" + k : c < 32 || c === 127
+    ? "\\u{" + c.toString(16) + "}" : String.fromCodePoint(c);
+}
+
+// A pure main's value, spelled as term_show spells it: d is a node of
+// the descriptor D over the names N (see show_main), v the value, chain
+// the bracket of the [a, b] or (a, b) it continues, or 0.
+function show_val(D, N, d, v, chain) {
+  if (D[d] === 7) {
+    const fs = Object.values(typeof v === "boolean"
+      ? { $: v ? "True" : "False" } : v);
+    let a = d + 3;
+    for (; N[D[a]] !== fs[0]; a += 3 + 2 * D[a + 2]) {}
+    let o = "{";
+    let z = "}";
+    if (fs[0] === "Con" || fs[0] === "Nil") {
+      o = "[";
+      z = "]";
+    } else if (fs[0] === "Tuple") {
+      o = "(";
+      z = ")";
+    }
+    let s = o === "{" ? fs[0] + "{" : chain === o ? "" : o;
+    for (const [j, f] of fs.slice(1).entries()) {
+      if (o === "[" ? j === 0 && chain === o : j > 0) {
+        s += ", ";
+      }
+      s += show_val(D, N, D[a + 4 + 2 * j], f, j === 1 && o !== "{" ? o : 0);
+    }
+    return o === "{" || chain !== o ? s + z : s;
+  }
+  return D[d] === 0 ? String(v)
+    : D[d] === 1 ? f32_show(v).replace(/^-?\d+(?=e|$)/, "$&.0")
+    : D[d] === 2 ? v + "n"
+    : D[d] === 3 ? "'" + show_chr(v.codePointAt(0), "'") + "'"
+    : D[d] === 4 ? "\"" + [...v].map((c) =>
+      show_chr(c.codePointAt(0), "\"")).join("") + "\""
+    : D[d] === 5 ? "{==}"
+    : "[" + v.map((x) => show_val(D, N, D[d + 1], x, 0)).join(", ") + "]";
+}
+
+// Io
+// ==
+
+function io_exit(main, show) {
+  try {
+    if (show !== null) {
+      io_out(1, io_bytes(show_val(...show, 0, run_loop(main()), 0) + "\n"));
+      process.exit(0);
+    }
+    process.exit(io_run(main));
+  } catch (e) {
+    io_errs(String(e));
+    process.exit(1);
+  }
+}
+
+function io_out(fd, data) {
+  const fs = require("fs");
+  let at = 0;
+  while (at < data.length) {
+    try {
+      at += fs.writeSync(fd, data, at, data.length - at);
+    } catch (e) {
+      if (e.code === "EAGAIN" || e.code === "EINTR") {
+        continue;
+      }
+      try {
+        fs.writeSync(2, "bend: a short write on a standard stream\n");
+      } catch (o) {
+      }
+      process.exit(1);
+    }
+  }
+}
+
+function io_errs(message) {
+  io_out(2, io_bytes(message + "\n"));
+}
+
+function io_sys() {
+  if (globalThis.BEND_SYS === undefined) {
+    const ffi = require("bun:ffi");
+    const mac = process.platform === "darwin";
+    const err = mac ? "__error" : "__errno_location";
+    const T = { i: "i32", u: "u32", U: "u64", I: "i64", p: "ptr",
+      c: "cstring" };
+    // fcntl is variadic. Apple arm64 passes variadic arguments on the
+    // stack, where the fixed convention puts arguments past the eighth, so
+    // there the flags ride as a ninth argument; elsewhere in a register.
+    const vari = mac && process.arch === "arm64";
+    const lib = ffi.dlopen(mac ? "libSystem.dylib" : "libc.so.6",
+      Object.fromEntries(("socket:iii>i bind:ipu>i listen:ii>i connect:ipu>i"
+        + " accept:ipp>i send:ipUi>I recv:ipUi>I read:ipU>I pread:ipUI>I"
+        + " sendto:ipUipu>I"
+        + " recvfrom:ipUipp>I close:i>i poll:pui>i setsockopt:iiipu>i"
+        + (vari ? " fcntl:iiiiiiiii>i" : " fcntl:iii>i") + " getsockopt:iiipp>i"
+        + " strerror:i>c " + err + ":>p").split(" ").map((s) => {
+        const [name, args, ret] = s.split(/[:>]/);
+        return [name, { args: [...args].map((a) => T[a]), returns: T[ret] }];
+      })));
+    const fcntl = (fd, cmd, arg) => vari
+      ? lib.symbols.fcntl(fd, cmd, 0, 0, 0, 0, 0, 0, arg)
+      : lib.symbols.fcntl(fd, cmd, arg);
+    globalThis.BEND_SYS = { ...lib.symbols, fcntl, ptr: ffi.ptr, mac,
+      errno: () => ffi.read.i32(lib.symbols[err](), 0) };
+  }
+  return globalThis.BEND_SYS;
+}
+
+function io_fail(code) {
+  const text = String(io_sys().strerror(code));
+  return { $: "Fail", error: io_tup(code >>> 0, text) };
+}
+
+function io_done(value) {
+  return { $: "Done", value };
+}
+
+function io_tup(...xs) {
+  return xs.reduceRight((snd, fst) => ({ $: "Tuple", fst: fst, snd: snd }));
+}
+
+function io_bytes(text) {
+  return new TextEncoder().encode(text);
+}
+
+function io_text(b, n) {
+  const dec = new TextDecoder("utf-8", { ignoreBOM: true });
+  return dec.decode(b.subarray(0, n));
+}
+
+function io_addr(host, port) {
+  const part = host.split(".");
+  const deci = (p) => /^(0|[1-9]\d{0,2})$/.test(p) && Number(p) < 256;
+  if (port > 65535 || part.length !== 4 || !part.every(deci)) {
+    return null;
+  }
+  const b = new Uint8Array(16);
+  const head = io_sys().mac ? [16, 2] : [2, 0];
+  b.set([...head, port >> 8, port & 255, ...part.map(Number)]);
+  return b;
+}
+
+function io_push(fun, arg, fresh) {
+  const io = globalThis.BEND_IO;
+  io.runs.push({ fun: fun, arg: arg });
+  io.live += fresh ? 1 : 0;
+}
+
+function io_wait(io) {
+  const soon = io.waits.reduce((m, w) => Math.min(m, w.at ?? m), Infinity);
+  let ms = -1;
+  if (soon !== Infinity) {
+    ms = Math.ceil(soon - performance.now());
+    ms = Math.min(Math.max(0, ms), 2147483647);
+  }
+  const fds = io.waits.filter((w) => w.fd !== undefined);
+  const buf = Int32Array.from(fds.flatMap((w) => [w.fd, w.out ? 4 : 1]));
+  io_sys().poll(fds.length > 0 ? io_sys().ptr(buf) : null, fds.length, ms);
+  const now = performance.now();
+  const fire = io.waits.filter((w) =>
+    (buf[2 * fds.indexOf(w) + 1] >>> 16) !== 0 || w.at <= now);
+  io.waits = io.waits.filter((w) => !fire.includes(w));
+  for (const w of fire) {
+    io_push(io_wake, w, false);
+  }
+}
+
+// A park's wake: more's value goes to k, or undefined, a re-park.
+function io_wake(w) {
+  const x = w.more();
+  return x === undefined ? undefined : w.k(x);
+}
+
+// Parks the running effect until fd is readable (out false) or writable.
+function io_park_on(fd, out, k, more) {
+  globalThis.BEND_IO.waits.push({ fd: fd, out: out, k: k, more: more });
+}
+
+function io_run(m) {
+  const io = { runs: [], live: 0, waits: [] };
+  globalThis.BEND_IO = io;
+  try {
+    io_push(run_loop(m()), (x) => ({ $: "Emit", value: x }), true);
+    for (;;) {
+      if (io.runs.length === 0) {
+        if (io.live === 0) {
+          return 0;
+        }
+        if (io.waits.length === 0) {
+          io_errs("bend: deadlock: every computation waits on a channel");
+          return 1;
+        }
+        io_wait(io);
+        continue;
+      }
+      const s = io.runs.shift();
+      let op = s.fun(s.arg);
+      for (;;) {
+        if (op === undefined) {
+          break;
+        }
+        if (op.$ === "Emit") {
+          io.live -= 1;
+          break;
+        }
+        if (op.$ === "Halt") {
+          io_errs(op.message);
+          return op.code;
+        }
+        const need = op.need?.() ?? {};
+        const fd = need.read ? op.args[0] : null;
+        if (need.time || fd !== null) {
+          const more = () => op.run(...op.args, op.kont);
+          io.waits.push(fd === null
+            ? { at: performance.now() + Number(op.args[0]), k: op.kont, more }
+            : { fd: fd, k: op.kont, more });
+          break;
+        }
+        const x = op.run(...op.args, op.kont);
+        if (x === undefined) {
+          break;
+        }
+        op = op.kont(x);
+      }
+    }
+  } catch (req) {
+    if (req instanceof RangeError) {
+      throw "bend: memory fault (machine stack overflow?)";
+    }
+    if (req?.$ !== "$FFI") {
+      throw req;
+    }
+    io_errs("bend: runtime fail-stop");
+    return 1;
+  }
+}
+
+// Chan
+// ====
+
+function chan_wake(row, x) {
+  const w = row.wait.shift();
+  io_push(w.cont, x, false);
+  return w.item;
+}
+
+function chan_take(row) {
+  const v = row.ring.shift();
+  if (row.wait.length > 0) {
+    row.ring.push(chan_wake(row, true));
+  }
+  return v;
+}
+
+// A handle is the row (a stale copy keeps it, shut).
+function chan_shut(row) {
+  row.shut = true;
+  while (row.wait.length > 0) {
+    chan_wake(row, row.wait[0].item === null ? { $: "None" } : false);
+  }
+}
+
+const MAX_NAT = (1n << 48n) - 1n;
+const nat = (value) => {
+  const integer = typeof value === "number"
+    ? Number.isSafeInteger(value) ? BigInt(value) : null
+    : typeof value === "bigint" ? value : null;
+  if (integer === null || integer < 0n || integer > MAX_NAT) {
+    throw new TypeError("expected Bend Nat within the immediate range");
+  }
+  return integer;
+};
+const normalize = (value) => {
+  if (typeof value === "number" || typeof value === "bigint") return nat(value);
+  if (Array.isArray(value)) return value.map(normalize);
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, normalize(item)]));
+  }
+  return value;
+};
+export const bendSelectionInitial = (partition, round, snapshot, credential) =>
+  run_loop($Handoff$initial$(nat(partition), nat(round), nat(snapshot), nat(credential)));
+export const bendSelectionStep = (state, advice, prospectiveBytes) =>
+  run_loop($Handoff$select$(state, normalize(advice), nat(prospectiveBytes)));
+export const bendFitsBatch = (items, bytes) =>
+  run_loop($Handoff$fits_batch$(nat(items), nat(bytes)));
+export const bendLeaseInitial = (item, round) =>
+  run_loop($Handoff$lease$initial$(nat(item), nat(round)));
+export const bendLeaseReserve = (state, round, token, surface) =>
+  run_loop($Handoff$lease$reserve$(state, nat(round), nat(token), normalize(surface)));
+export const bendLeaseAuthorize = (state, round, token) =>
+  run_loop($Handoff$lease$authorize$(state, nat(round), nat(token)));
+export const bendLeaseRelease = (state, round, token) =>
+  run_loop($Handoff$lease$release$(state, nat(round), nat(token)));
+export const bendLeaseTerminal = (state, round, token, certain) =>
+  run_loop($Handoff$lease$terminal$(state, nat(round), nat(token), certain));
+export const bendLeaseReoffer = (state, round, token, fresh) =>
+  run_loop($Handoff$lease$reoffer$(state, nat(round), nat(token), fresh));
+export const bendLeaseClose = (state) => run_loop($Handoff$lease$close$(state));

@@ -5,10 +5,12 @@ sidecar, the accepted [Advicing target contract](../../docs/advicing-target-cont
 and current resident behavior, in that order. The contract's historical evidence
 links are pinned; probe records are not copied into this branch.
 
-The current Bend milestone implements admission, fan-out, outcome tracking,
-per-finding selection, finish reservation, lease transitions, and a shared
-admission/work/finish lifecycle. It does not yet connect Handoff selection and
-leases to Lifecycle or the production resident. In particular, a production
+The Bend model implements admission, fan-out, outcome tracking,
+per-finding selection, finish reservation, lease transitions, logical capacity,
+and a shared admission/work/finish lifecycle. The resident currently uses
+generated Bend for finding selection, response limits, and logical capacity.
+It does not yet connect Handoff selection and leases to Lifecycle or the
+production resident's round state. In particular, a production
 adapter must not accept `FinishCheck.actionable_findings` as an unverified
 number: it must derive the selection from the same Bend lifecycle and consume
 selected finding IDs on write terminal before this becomes an authoritative

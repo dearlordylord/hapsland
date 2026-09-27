@@ -30,6 +30,10 @@ def current(advice: Advice, partition: Nat, round: Nat, snapshot: Nat, credentia
         Bool.and(Nat.is_eq(source_credential, credential),
         Bool.and(Nat.is_lt(age_ms, 600000n), ready)))))
 
+def fits_batch(+items: Nat, bytes: Nat) -> Bool:
+  Bool.and(Nat.is_gt(items, 0n),
+    Bool.and(Nat.is_le(items, 5n), Nat.is_le(bytes, 2048n)))
+
 def select.fit(state: Selection, id: Nat, prospective_bytes: Nat, fits: Bool) -> SelectResult:
   match state:
     case Selection{partition, round, snapshot, credential, selected, retained, count, bytes}:
@@ -55,7 +59,7 @@ def select.solo(state: Selection, id: Nat, +prospective_bytes: Nat,
       select.limit(state, id)
     case False{}:
       select.fit(state, id, prospective_bytes,
-        Bool.and(Nat.is_lt(count, 5n), Nat.is_le(prospective_bytes, 2048n)))
+        fits_batch((count + 1n : Nat), prospective_bytes))
 
 def select.valid(state: Selection, id: Nat, prospective_bytes: Nat, solo_bytes: Nat,
     count: Nat, valid: Bool) -> SelectResult:

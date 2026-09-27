@@ -5,6 +5,7 @@ import ./Admission.bend as Admission
 import ./Work.bend as Work
 import ./Handoff.bend as Handoff
 import ./Lifecycle.bend as Lifecycle
+import ./Ledger.bend as Ledger
 
 # A Jev finding ends the item's Jeview and produces pending advice for the
 # same item in one transition.
@@ -178,6 +179,12 @@ law handoff_selects_fitting_findings:
   {Handoff.select(Handoff.initial(9n, 1n, 2n, 3n), current_advice(), 2048n) ==
     Handoff.Selected{Handoff.Selection{9n, 1n, 2n, 3n, 7n <> Nil{}, Nil{}, 1n, 2048n}} : Handoff.SelectResult}
 
+law fifth_finding_fits_exact_byte_ceiling:
+  {Handoff.fits_batch(5n, 2048n) == True{} : Bool}
+
+law sixth_finding_exceeds_item_ceiling:
+  {Handoff.fits_batch(6n, 1n) == False{} : Bool}
+
 law handoff_retains_oversized_item:
   {Handoff.select(Handoff.initial(9n, 1n, 2n, 3n), current_advice(), 2049n) ==
     Handoff.Retained{Handoff.Selection{9n, 1n, 2n, 3n, Nil{}, 7n <> Nil{}, 0n, 0n}} : Handoff.SelectResult}
@@ -291,3 +298,34 @@ law closing_work_names_active_cancellations:
       Work.ReviewUnit{2n, 1n, Work.PendingFinding{}, 1n, 100n} <> Nil{}}) ==
     Work.Closed{Work.Work{2n, 3n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{}, Nil{}},
       1n <> Nil{}, 1n <> Nil{}, 2n <> Nil{}} : Work.CloseResult}
+
+def small_limits() -> Ledger.Limits:
+  Ledger.Limits{4n, 100n, 2n, 60n}
+
+law ledger_accepts_exact_partition_byte_limit:
+  {Ledger.reserve(Ledger.Ledger{small_limits(), 2n,
+      Ledger.Charge{1n, 1n, 20n} <> Nil{}}, 1n, 40n) ==
+    Ledger.Granted{Ledger.Ledger{small_limits(), 3n,
+      Ledger.Charge{1n, 1n, 20n} <>
+      Ledger.Charge{2n, 1n, 40n} <> Nil{}}, 2n} : Ledger.LedgerResult}
+
+law ledger_rejects_one_byte_over_partition_limit:
+  {Ledger.reserve(Ledger.Ledger{small_limits(), 2n,
+      Ledger.Charge{1n, 1n, 20n} <> Nil{}}, 1n, 41n) ==
+    Ledger.Rejected{Ledger.Ledger{small_limits(), 2n,
+      Ledger.Charge{1n, 1n, 20n} <> Nil{}}} : Ledger.LedgerResult}
+
+law ledger_unknown_release_cannot_change_state:
+  {Ledger.release(Ledger.initial(small_limits()), 1n) ==
+    Ledger.Rejected{Ledger.initial(small_limits())} : Ledger.LedgerResult}
+
+law ledger_resize_preserves_id_and_count:
+  {Ledger.resize(Ledger.Ledger{small_limits(), 2n,
+      Ledger.Charge{1n, 1n, 20n} <> Nil{}}, 1n, 60n) ==
+    Ledger.Granted{Ledger.Ledger{small_limits(), 2n,
+      Ledger.Charge{1n, 1n, 60n} <> Nil{}}, 1n} : Ledger.LedgerResult}
+
+law ledger_clear_keeps_monotonic_reservation_ids:
+  {Ledger.clear(Ledger.Ledger{small_limits(), 2n,
+      Ledger.Charge{1n, 1n, 20n} <> Nil{}}) ==
+    Ledger.Ledger{small_limits(), 2n, Nil{}} : Ledger.Ledger}

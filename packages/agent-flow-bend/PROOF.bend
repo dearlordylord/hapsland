@@ -79,6 +79,12 @@ def Laws.interrupted_source_does_not_leave_unfinished_work():
 def Laws.handoff_selects_fitting_findings():
   {==}
 
+def Laws.fifth_finding_fits_exact_byte_ceiling():
+  {==}
+
+def Laws.sixth_finding_exceeds_item_ceiling():
+  {==}
+
 def Laws.handoff_retains_oversized_item():
   {==}
 
@@ -140,4 +146,19 @@ def Laws.finish_cannot_invent_actionable_finding():
   {==}
 
 def Laws.closing_work_names_active_cancellations():
+  {==}
+
+def Laws.ledger_accepts_exact_partition_byte_limit():
+  {==}
+
+def Laws.ledger_rejects_one_byte_over_partition_limit():
+  {==}
+
+def Laws.ledger_unknown_release_cannot_change_state():
+  {==}
+
+def Laws.ledger_resize_preserves_id_and_count():
+  {==}
+
+def Laws.ledger_clear_keeps_monotonic_reservation_ids():
   {==}

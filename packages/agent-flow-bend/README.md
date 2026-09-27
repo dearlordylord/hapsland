@@ -17,17 +17,26 @@ partition, lifetime, and round issued by admission. The adapter maps exact
 native identities to unique numeric IDs and measures the encoded host output
 before passing its byte count to Bend.
 
+The resident now executes generated `Handoff.bend` code for finding selection
+and response size decisions, and generated `Ledger.bend` code for logical
+capacity reservations. The generated files are checked against source hashes
+before the app builds or tests. `Lifecycle.bend` and delivery lease transitions
+remain modeled and tested here but are not yet connected to the production
+resident.
+
 Run `npm test` in this directory. It builds `flow.generated.js` and
-`lifecycle.generated.js` from Bend, checks every law in `PROOF.bend`, runs a
+`lifecycle.generated.js` and the resident policy/ledger artifacts from Bend,
+checks every law in `PROOF.bend`, runs a
 generated lifecycle trace, executes three Bend flow traces, then compares
 states, rejections, decisions, and ordered changes against the sidecar for its
 nine guided scenarios, four focused traces, and 100 deterministic generated
 traces. The generator exercises both accepted and rejected events. The sidecar
 package's dependencies must be installed with `npm ci` for the parity check.
 
-Both generated files are artifacts, not alternate implementations. The
-generated lifecycle is not yet called by the production resident. Handoff
-selection and leases still need to be connected to the lifecycle state; the
-TypeScript migration must enforce exact identity mapping and fresh validation
-at the final writer barrier. The accepted contract in
+Generated JavaScript is an artifact, not an alternate implementation. The
+resident still supplies placeholder selection identity metadata because its
+round and lease migration is pending. Handoff selection and leases still need
+to be connected to the lifecycle state; the TypeScript migration must enforce
+exact identity mapping and fresh validation at the final writer barrier. The
+accepted contract in
 `../../docs/advicing-target-contract.md` remains the target for that work.

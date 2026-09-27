@@ -1,0 +1,20 @@
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+const root = resolve(import.meta.dirname, "..");
+const packageRoot = resolve(root, "packages/agent-flow-bend");
+for (const [artifact, sources] of [
+  ["bend-policy.generated.js", ["Handoff.bend", "PolicyRuntime.bend", "scripts/build-policy.mjs"]],
+  ["bend-ledger.generated.js", ["Ledger.bend", "LedgerRuntime.bend", "scripts/build-ledger.mjs"]],
+]) {
+  const digest = createHash("sha256");
+  for (const source of sources) {
+    digest.update(source).update("\0")
+      .update(readFileSync(resolve(packageRoot, source))).update("\0");
+  }
+  const firstLine = readFileSync(resolve(root, "src/resident", artifact), "utf8").split("\n", 1)[0];
+  if (firstLine !== `// hapsland-bend-source-sha256:${digest.digest("hex")}`) {
+    throw new Error(`${artifact} is stale; run npm run build in packages/agent-flow-bend`);
+  }
+}

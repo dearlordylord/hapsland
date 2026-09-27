@@ -67,6 +67,13 @@ describe("resident logical capacity ledger", () => {
     if (running !== undefined) expect(ledger.release(running)).toBe(false);
   });
 
+  it("reports partition names that overlap Object.prototype keys", () => {
+    const ledger = new CapacityLedger();
+    expect(ledger.reserve("__proto__", 1)).toBeDefined();
+    expect(Object.hasOwn(ledger.snapshot().partitions, "__proto__")).toBe(true);
+    expect(ledger.snapshot().partitions["__proto__"]).toEqual({ items: 1, bytes: 1 });
+  });
+
   it("resizes preparation workspace and atomically replaces it with exact units", () => {
     const ledger = new CapacityLedger({
       globalItems: 4,

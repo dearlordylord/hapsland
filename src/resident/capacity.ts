@@ -1,3 +1,14 @@
+import {
+  bendLedgerClear,
+  bendLedgerInitial,
+  bendLedgerPartitionUsage,
+  bendLedgerRelease,
+  bendLedgerReserve,
+  bendLedgerResize,
+  bendLedgerTotal,
+  type BendLedger,
+} from "./bend-ledger.generated.js";
+
 export const GLOBAL_ITEM_LIMIT = 64;
 export const GLOBAL_BYTE_LIMIT = 8 * 1024 * 1024;
 export const PARTITION_ITEM_LIMIT = 16;
@@ -47,47 +58,56 @@ export const encodedBytesWithin = (value: unknown, maximum: number): number | un
  * no-op, so terminal/finalizer paths can safely converge on one cleanup call.
  */
 export class CapacityLedger {
-  readonly #limits: CapacityLimits;
   readonly #reservations = new Map<number, CapacityReservation>();
-  readonly #partitions = new Map<string, { items: number; bytes: number }>();
-  #nextId = 1;
-  #items = 0;
-  #bytes = 0;
+  readonly #partitionIds = new Map<string, bigint>();
+  #nextPartitionId = 1n;
+  #state: BendLedger;
 
   constructor(limits: CapacityLimits = defaultLimits) {
-    this.#limits = limits;
+    this.#state = bendLedgerInitial({
+      $: "Limits",
+      global_items: limits.globalItems,
+      global_bytes: limits.globalBytes,
+      partition_items: limits.partitionItems,
+      partition_bytes: limits.partitionBytes,
+    });
   }
 
   reserve(partition: string, bytes: number): CapacityReservation | undefined {
     if (!Number.isSafeInteger(bytes) || bytes < 0) return undefined;
-    const local = this.#partitions.get(partition) ?? { items: 0, bytes: 0 };
-    if (
-      this.#items + 1 > this.#limits.globalItems ||
-      this.#bytes + bytes > this.#limits.globalBytes ||
-      local.items + 1 > this.#limits.partitionItems ||
-      local.bytes + bytes > this.#limits.partitionBytes
-    ) return undefined;
-
-    const reservation = { id: this.#nextId++, partition, bytes };
+    let partitionId = this.#partitionIds.get(partition);
+    if (partitionId === undefined) {
+      partitionId = this.#nextPartitionId++;
+      this.#partitionIds.set(partition, partitionId);
+    }
+    let result;
+    try {
+      result = bendLedgerReserve(this.#state, partitionId, bytes);
+    } catch {
+      return undefined;
+    }
+    if (result.$ !== "Granted" || result.id > BigInt(Number.MAX_SAFE_INTEGER) ||
+        result.state.$ !== "Ledger") return undefined;
+    const id = Number(result.id);
+    if (this.#reservations.has(id)) return undefined;
+    this.#state = result.state;
+    const reservation = { id, partition, bytes };
     this.#reservations.set(reservation.id, reservation);
-    this.#items += 1;
-    this.#bytes += bytes;
-    this.#partitions.set(partition, { items: local.items + 1, bytes: local.bytes + bytes });
     return reservation;
   }
 
   resize(reservation: CapacityReservation, bytes: number): boolean {
     const retained = this.#reservations.get(reservation.id);
     if (retained !== reservation || !Number.isSafeInteger(bytes) || bytes < 0) return false;
-    const delta = bytes - reservation.bytes;
-    const local = this.#partitions.get(reservation.partition);
-    if (local === undefined) return false;
-    if (
-      this.#bytes + delta > this.#limits.globalBytes ||
-      local.bytes + delta > this.#limits.partitionBytes
-    ) return false;
-    this.#bytes += delta;
-    this.#partitions.set(reservation.partition, { items: local.items, bytes: local.bytes + delta });
+    let result;
+    try {
+      result = bendLedgerResize(this.#state, reservation.id, bytes);
+    } catch {
+      return false;
+    }
+    if (result.$ !== "Granted" || result.id !== BigInt(reservation.id) ||
+        result.state.$ !== "Ledger") return false;
+    this.#state = result.state;
     (reservation as { bytes: number }).bytes = bytes;
     return true;
   }
@@ -99,39 +119,49 @@ export class CapacityLedger {
   ): ReadonlyArray<CapacityReservation | undefined> {
     if (this.#reservations.get(reservation.id) !== reservation) return bytes.map(() => undefined);
     const partition = reservation.partition;
-    this.release(reservation);
+    if (!this.release(reservation)) return bytes.map(() => undefined);
     return bytes.map((size) => this.reserve(partition, size));
   }
 
   release(reservation: CapacityReservation): boolean {
     const retained = this.#reservations.get(reservation.id);
     if (retained !== reservation) return false;
+    let result;
+    try {
+      result = bendLedgerRelease(this.#state, reservation.id);
+    } catch {
+      return false;
+    }
+    if (result.$ !== "Granted" || result.id !== BigInt(reservation.id) ||
+        result.state.$ !== "Ledger") return false;
+    this.#state = result.state;
     this.#reservations.delete(reservation.id);
-    this.#items -= 1;
-    this.#bytes -= reservation.bytes;
-    const local = this.#partitions.get(reservation.partition);
-    if (local !== undefined) {
-      if (local.items === 1) this.#partitions.delete(reservation.partition);
-      else this.#partitions.set(reservation.partition, {
-        items: local.items - 1,
-        bytes: local.bytes - reservation.bytes,
-      });
+    const partitionId = this.#partitionIds.get(reservation.partition);
+    if (partitionId !== undefined && bendLedgerPartitionUsage(this.#state, partitionId).items === 0n) {
+      this.#partitionIds.delete(reservation.partition);
     }
     return true;
   }
 
   clear(): void {
+    this.#state = bendLedgerClear(this.#state);
     this.#reservations.clear();
-    this.#partitions.clear();
-    this.#items = 0;
-    this.#bytes = 0;
+    this.#partitionIds.clear();
   }
 
   snapshot(): CapacitySnapshot {
+    const total = bendLedgerTotal(this.#state);
+    const entries: Array<[string, { items: number; bytes: number }]> = [];
+    for (const [partition, id] of this.#partitionIds) {
+      const usage = bendLedgerPartitionUsage(this.#state, id);
+      if (usage.items > 0n) entries.push([partition, {
+        items: Number(usage.items), bytes: Number(usage.bytes),
+      }]);
+    }
     return {
-      items: this.#items,
-      bytes: this.#bytes,
-      partitions: Object.fromEntries(this.#partitions),
+      items: Number(total.items),
+      bytes: Number(total.bytes),
+      partitions: Object.fromEntries(entries),
     };
   }
 }

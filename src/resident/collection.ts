@@ -2,6 +2,13 @@ import type { CodexDirectEventOutput, Finding } from "../direct-event/pipeline.t
 import { DIRECT_EVENT_ADVISORY_HEADING, toCodexDirectEventOutput } from "../direct-event/pipeline.ts";
 import { encodedCodexHostOutputBytes } from "../direct-event/writer.ts";
 import { encodeClaudeHostOutputLine, type ClaudeHostOutput } from "../direct-event/claude-output.ts";
+import {
+  bendFitsBatch,
+  bendSelectionInitial,
+  bendSelectionStep,
+  type BendAdvice,
+  type BendSelection,
+} from "./bend-policy.generated.js";
 export type { ClaudeBlockOutput, ClaudeHostOutput } from "../direct-event/claude-output.ts";
 
 export const ADVICE_COLLECTION_WINDOW_MS = 50;
@@ -116,26 +123,61 @@ export const combinedClaudeOutput = (
 export const encodedClaudeHostOutputBytes = (output: ClaudeHostOutput): number =>
   Buffer.byteLength(encodeClaudeHostOutputLine(output), "utf8");
 
+const fitsBendBatch = (items: number, bytes: number): boolean => {
+  try {
+    return bendFitsBatch(items, bytes) === true;
+  } catch {
+    return false;
+  }
+};
+
+/** The exact host encoding is measured here; Bend owns the inclusion rule. */
+const selectBendFindings = (
+  retained: ReadonlyArray<Finding>,
+  candidates: ReadonlyArray<Finding>,
+  encodedBytes: (findings: ReadonlyArray<Finding>) => number,
+): ReadonlyArray<Finding> => {
+  try {
+    let selection: BendSelection = bendSelectionInitial(1, 1, 1, 1);
+    const staged: Array<Finding> = [];
+    const selected: Array<Finding> = [];
+    let id = 1;
+    const offer = (finding: Finding): boolean => {
+      const prospectiveBytes = encodedBytes([...staged, finding]);
+      const advice: BendAdvice = {
+        $: "Advice", id: id++, unit: 1, partition: 1, round: 1,
+        snapshot: 1, credential: 1, age_ms: 0,
+        solo_bytes: encodedBytes([finding]), collection_ready: true,
+      };
+      const result = bendSelectionStep(selection, advice, prospectiveBytes);
+      if (result.$ !== "Selected") return false;
+      if (result.state.$ !== "Selection" || result.state.findings !== BigInt(staged.length + 1) ||
+          result.state.bytes !== BigInt(prospectiveBytes)) throw new Error("invalid Bend selection");
+      selection = result.state;
+      staged.push(finding);
+      return true;
+    };
+    for (const finding of retained) if (!offer(finding)) return [];
+    for (const finding of candidates) if (offer(finding)) selected.push(finding);
+    return selected;
+  } catch {
+    return [];
+  }
+};
+
 export const fitsClaudeReviewResponse = (
   findings: ReadonlyArray<Finding>,
   notices: ReadonlyArray<OperationalNotice>,
   mode: ClaudeOutputMode,
-): boolean => findings.length + notices.length > 0 &&
-  findings.length + notices.length <= MAX_COMBINED_RESPONSE_ITEMS &&
-  encodedClaudeHostOutputBytes(combinedClaudeOutput(findings, notices, mode)) <= MAX_COMBINED_RESPONSE_BYTES;
+): boolean => fitsBendBatch(findings.length + notices.length,
+  encodedClaudeHostOutputBytes(combinedClaudeOutput(findings, notices, mode)));
 
 export const selectFittingClaudeFindings = (
   retained: ReadonlyArray<Finding>,
   candidates: ReadonlyArray<Finding>,
   mode: ClaudeOutputMode,
-): ReadonlyArray<Finding> => {
-  const selected: Array<Finding> = [];
-  for (const finding of candidates) {
-    if (retained.length + selected.length >= MAX_COMBINED_RESPONSE_ITEMS) break;
-    if (fitsClaudeReviewResponse([...retained, ...selected, finding], [], mode)) selected.push(finding);
-  }
-  return selected;
-};
+): ReadonlyArray<Finding> => selectBendFindings(retained, candidates,
+  (findings) => encodedClaudeHostOutputBytes(combinedClaudeOutput(findings, [], mode)));
 
 export const selectFittingClaudeNotices = (
   findings: ReadonlyArray<Finding>,
@@ -152,9 +194,8 @@ export const selectFittingClaudeNotices = (
 export const fitsCombinedReviewResponse = (
   findings: ReadonlyArray<Finding>,
   notices: ReadonlyArray<OperationalNotice>,
-): boolean => findings.length + notices.length > 0 &&
-  findings.length + notices.length <= MAX_COMBINED_RESPONSE_ITEMS &&
-  encodedHostOutputBytes(combinedReviewOutput(findings, notices)) <= MAX_COMBINED_RESPONSE_BYTES;
+): boolean => fitsBendBatch(findings.length + notices.length,
+  encodedHostOutputBytes(combinedReviewOutput(findings, notices)));
 
 export const fitsCombinedResponse = (
   groups: ReadonlyArray<ReadonlyArray<Finding>>,
@@ -164,15 +205,8 @@ export const fitsCombinedResponse = (
 export const selectFittingFindings = (
   retained: ReadonlyArray<Finding>,
   candidates: ReadonlyArray<Finding>,
-): ReadonlyArray<Finding> => {
-  const selected: Array<Finding> = [];
-  for (const finding of candidates) {
-    if (retained.length + selected.length >= MAX_COMBINED_RESPONSE_ITEMS) break;
-    const next = [...selected, finding];
-    if (fitsCombinedResponse([retained, next])) selected.push(finding);
-  }
-  return selected;
-};
+): ReadonlyArray<Finding> => selectBendFindings(retained, candidates,
+  (findings) => encodedHostOutputBytes(combinedReviewOutput(findings, [])));
 
 /** Findings are passed as already retained so notices can never displace them. */
 export const selectFittingNotices = (
