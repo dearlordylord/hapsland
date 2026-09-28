@@ -19,13 +19,14 @@ after E and G do not fit. The owner resumed the migration in a new session.
 traces merged through PR #144 and #119 is closed. #120's resident capacity
 slice is merged at `b90a524`. #121's canonical permit admission is merged at
 `cdb00d9`. #122's canonical observation fan-out and review outcomes are merged
-at `b8056e2`; the next migration slice is #123. Other resident decision paths
-under #123–#134 are still pending. Configurable graph limits and
+at `b8056e2`. #123's canonical FIFO dispatch is merged at `348604c`; the next
+migration slice is #124. Other resident decision paths under #124–#134 are
+still pending. Configurable graph limits and
 general budget/termination proofs are tracked separately in
 [#142](https://github.com/dearlordylord/hapsland/issues/142).
 
 The integrated epic is in `/workspace/typescript/jev-worktrees/bend-full-flow`
-(`feat/bend-full-flow`, merge `b8056e2`). Start #123 in a new task worktree
+(`feat/bend-full-flow`, merge `348604c`). Start #124 in a new task worktree
 from the latest epic tip. The old `/tmp/hapsland-bend-handoff.md` predates #119
 and is no longer a valid resume point. The `/workspace/typescript/jev` checkout
 is older and is not the edit target.
@@ -181,6 +182,20 @@ tests passed; two credential-gated live tests were skipped. Details and the
 duplicate-versus-late distinction are in `docs/issue-122-review-evidence.md`.
 The old Stop projection remains pending #124; #123 moves dispatch cycles.
 
+## #123 FIFO dispatch (merged 2026-09-28)
+
+`Canonical.step` now owns queued admission, finite cycle boundaries, FIFO
+sequence, two-slot dispatch starts, completion, and queued/running discard.
+`DispatchCycles` keeps only native job handles and executes Bend commands.
+The direct discard-scope policy call was moved into the canonical transition.
+Two independent dispatch traces cover reordered callbacks, exact sequence and
+cycle facts, wrong lifetime, duplicate completion, deadline discard, and
+closure. A resident fixture holds the first Jev result until the second
+finishes and checks cycle completion; a gated Stop fixture checks late cleanup
+after discard. Bend proofs, 15 total canonical traces, typecheck, build, and
+588 offline tests passed; two credential-gated live tests were skipped.
+See `docs/issue-123-dispatch-evidence.md` for the boundary and evidence.
+
 ## Next autonomous migration run
 
 Use the GitHub issue bodies as the task contracts. Work in a dedicated task
@@ -191,7 +206,7 @@ the issue only when its criteria have evidence. Update this handoff after each
 merged slice. Do not treat the separate #141 import-graph diagram as the final
 production replay.
 
-One valid single-agent order from here is #123, #124, #125, #126,
+One valid single-agent order from here is #124, #125, #126,
 #127, #128, #129, #130, #131, #132, #133, #134, #135. Dependencies allow
 #132–#134 to proceed after their own blockers while the #123–#131 chain is in
 progress; #135 needs both #131 and #134. #135 delivers the build-generated
