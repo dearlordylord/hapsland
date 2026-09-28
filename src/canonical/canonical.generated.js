@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:241e44ed7181831a13f8e56b64d66e8a3ace990710a4f1a13865f0b711924902
+// hapsland-bend-source-sha256:2d62a34bb026a3eebc634dfa258a9d4c1b0dd6277aed64c15a39e3f48c3180f2
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -664,27 +664,21 @@ function $Canonical$step$(_state_0, _event_0) {
     const _semantic_applicable_0 = _event_0["semantic_applicable"];
     return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RuleGate", "gate": ($RulePolicy$applicable$(_consent_0, _complete_0, _target_0, _global_included_0, _global_excluded_0, _pack_enabled_1, _rule_enabled_1, _rule_included_0, _rule_excluded_0, _semantic_applicable_0))}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.RuleFindingCheck") {
-    const _prob_high_0 = _event_0["prob_high"];
-    const _prob_low_0 = _event_0["prob_low"];
-    const _threshold_high_0 = _event_0["threshold_high"];
-    const _threshold_low_0 = _event_0["threshold_low"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RuleGate", "gate": ($RulePolicy$finding$(_prob_high_0, _prob_low_0, _threshold_high_0, _threshold_low_0))}, "tail": {$: "Nil"}}};
+    const _probability_0 = _event_0["probability"];
+    const _threshold_0 = _event_0["threshold"];
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RuleGate", "gate": ($RulePolicy$finding$(_probability_0, _threshold_0))}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.RuleRankOrderCheck") {
-    const _left_high_0 = _event_0["left_high"];
-    const _left_low_0 = _event_0["left_low"];
-    const _right_high_0 = _event_0["right_high"];
-    const _right_low_0 = _event_0["right_low"];
+    const _left_0 = _event_0["left"];
+    const _right_0 = _event_0["right"];
     const _left_rank_0 = _event_0["left_rank"];
     const _right_rank_0 = _event_0["right_rank"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RuleOrder", "order": ($RulePolicy$rank_order$(_left_high_0, _left_low_0, _right_high_0, _right_low_0, _left_rank_0, _right_rank_0))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RuleOrder", "order": ($RulePolicy$rank_order$(_left_0, _right_0, _left_rank_0, _right_rank_0))}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.AdviceOrderCheck") {
-    const _left_high_1 = _event_0["left_high"];
-    const _left_low_1 = _event_0["left_low"];
-    const _right_high_1 = _event_0["right_high"];
-    const _right_low_1 = _event_0["right_low"];
+    const _left_1 = _event_0["left"];
+    const _right_1 = _event_0["right"];
     const _path_order_0 = _event_0["path_order"];
     const _id_order_0 = _event_0["id_order"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RuleOrder", "order": ($RulePolicy$advice_order$(_left_high_1, _left_low_1, _right_high_1, _right_low_1, _path_order_0, _id_order_0))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RuleOrder", "order": ($RulePolicy$advice_order$(_left_1, _right_1, _path_order_0, _id_order_0))}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.RuleBudgetCheck") {
     const _position_0 = _event_0["position"];
     const _limit_1 = _event_0["limit"];
@@ -1751,16 +1745,16 @@ function $RulePolicy$applicable$(_consent_0, _complete_0, _target_0, _global_inc
   return $Bool$pick$(($Bool$and$(_consent_0, ($Bool$and$(_complete_0, ($Bool$and$(($RulePolicy$target_compatible$(_target_0)), ($Bool$and$(_global_included_0, ($Bool$and$(($Bool$not$(_global_excluded_0)), ($Bool$and$(_pack_enabled_0, ($Bool$and$(_rule_enabled_0, ($Bool$and$(_rule_included_0, ($Bool$and$(($Bool$not$(_rule_excluded_0)), _semantic_applicable_0)))))))))))))))))), {$: "RulePolicy.Admit"}, {$: "RulePolicy.Omit"});
 }
 
-function $RulePolicy$finding$(_prob_high_0, _prob_low_0, _threshold_high_0, _threshold_low_0) {
-  return $Bool$pick$(($RulePolicy$greater_words$(_prob_high_0, _prob_low_0, _threshold_high_0, _threshold_low_0)), {$: "RulePolicy.Admit"}, {$: "RulePolicy.Omit"});
+function $RulePolicy$finding$(_probability_0, _threshold_0) {
+  return $Bool$pick$(($Bool$and$(($RulePolicy$valid_words$(_probability_0)), ($Bool$and$(($RulePolicy$valid_words$(_threshold_0)), ($RulePolicy$greater_words$(_probability_0, _threshold_0)))))), {$: "RulePolicy.Admit"}, {$: "RulePolicy.Omit"});
 }
 
-function $RulePolicy$rank_order$(_left_high_0, _left_low_0, _right_high_0, _right_low_0, _left_rank_0, _right_rank_0) {
-  return $RulePolicy$rank_order_result$(($RulePolicy$probability_order$(_left_high_0, _left_low_0, _right_high_0, _right_low_0)), _left_rank_0, _right_rank_0);
+function $RulePolicy$rank_order$(_left_0, _right_0, _left_rank_0, _right_rank_0) {
+  return $RulePolicy$rank_order_result$(($RulePolicy$probability_order$(_left_0, _right_0)), _left_rank_0, _right_rank_0);
 }
 
-function $RulePolicy$advice_order$(_left_high_0, _left_low_0, _right_high_0, _right_low_0, _path_order_0, _id_order_0) {
-  return $RulePolicy$advice_order_result$(($RulePolicy$probability_order$(_left_high_0, _left_low_0, _right_high_0, _right_low_0)), _path_order_0, _id_order_0);
+function $RulePolicy$advice_order$(_left_0, _right_0, _path_order_0, _id_order_0) {
+  return $RulePolicy$advice_order_result$(($RulePolicy$probability_order$(_left_0, _right_0)), _path_order_0, _id_order_0);
 }
 
 function $RulePolicy$budget$(_position_0, _limit_0) {
@@ -3462,7 +3456,19 @@ function $RulePolicy$target_compatible$(_target_0) {
   }
 }
 
-function $RulePolicy$greater_words$(_left_high_0, _left_low_0, _right_high_0, _right_low_0) {
+function $RulePolicy$valid_words$(_word_0) {
+  const _high_0 = _word_0["high"];
+  const _low_0 = _word_0["low"];
+  const _x_0 = (_high_0 < 1072693248);
+  const _x_1 = ($Nat$is_eq$(_low_0, 0));
+  return $Bool$and$(($Nat$is_le$(_low_0, 4294967295)), ($Bool$and$(($Nat$is_le$(_high_0, 1072693248)), (_x_0 || _x_1))));
+}
+
+function $RulePolicy$greater_words$(_left_0, _right_0) {
+  const _left_high_0 = _left_0["high"];
+  const _left_low_0 = _left_0["low"];
+  const _right_high_0 = _right_0["high"];
+  const _right_low_0 = _right_0["low"];
   const _x_0 = ($Nat$is_gt$(_left_high_0, _right_high_0));
   const _x_1 = ($Bool$and$(($Nat$is_eq$(_left_high_0, _right_high_0)), ($Nat$is_gt$(_left_low_0, _right_low_0))));
   return (_x_0 || _x_1);
@@ -3478,8 +3484,8 @@ function $RulePolicy$rank_order_result$(_order_0, _left_rank_0, _right_rank_0) {
   }
 }
 
-function $RulePolicy$probability_order$(_left_high_0, _left_low_0, _right_high_0, _right_low_0) {
-  return $Bool$pick$(($RulePolicy$greater_words$(_left_high_0, _left_low_0, _right_high_0, _right_low_0)), {$: "RulePolicy.Before"}, ($Bool$pick$(($RulePolicy$greater_words$(_right_high_0, _right_low_0, _left_high_0, _left_low_0)), {$: "RulePolicy.After"}, {$: "RulePolicy.Equal"})));
+function $RulePolicy$probability_order$(_left_0, _right_0) {
+  return $Bool$pick$(($Bool$and$(($RulePolicy$valid_words$(_left_0)), ($RulePolicy$valid_words$(_right_0)))), ($Bool$pick$(($RulePolicy$greater_words$(_left_0, _right_0)), {$: "RulePolicy.Before"}, ($Bool$pick$(($RulePolicy$greater_words$(_right_0, _left_0)), {$: "RulePolicy.After"}, {$: "RulePolicy.Equal"})))), {$: "RulePolicy.Equal"});
 }
 
 function $RulePolicy$advice_order_result$(_order_0, _path_order_0, _id_order_0) {

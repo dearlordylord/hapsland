@@ -185,12 +185,12 @@ type CanonicalEvent is Data:
     pack_enabled: Bool, rule_enabled: Bool,
     rule_included: Bool, rule_excluded: Bool,
     semantic_applicable: Bool}
-  RuleFindingCheck{prob_high: Nat, prob_low: Nat,
-    threshold_high: Nat, threshold_low: Nat}
-  RuleRankOrderCheck{left_high: Nat, left_low: Nat,
-    right_high: Nat, right_low: Nat, left_rank: Nat, right_rank: Nat}
-  AdviceOrderCheck{left_high: Nat, left_low: Nat,
-    right_high: Nat, right_low: Nat,
+  RuleFindingCheck{probability: RulePolicy.ProbabilityWords,
+    threshold: RulePolicy.ProbabilityWords}
+  RuleRankOrderCheck{left: RulePolicy.ProbabilityWords,
+    right: RulePolicy.ProbabilityWords, left_rank: Nat, right_rank: Nat}
+  AdviceOrderCheck{left: RulePolicy.ProbabilityWords,
+    right: RulePolicy.ProbabilityWords,
     path_order: RulePolicy.Order, id_order: RulePolicy.Order}
   RuleBudgetCheck{position: Nat, limit: Nat}
   ReuseRoute{id: Nat, live_advice: Bool}
@@ -272,6 +272,7 @@ type Command is Data:
   DiscardAllUnfinished{}
   WaitForWork{}
   CancelWork{operation: Nat}
+  # Ready for advice selection; output still requires authorization.
   FinishReady{}
   FinishLimit{}
   StopEnded{}
@@ -985,6 +986,7 @@ def admit_one(result: Ledger.LedgerResult, +partition: Nat, +lifetime: Nat,
           UnitRefused{position, bytes, Ledger.admission(unchanged, partition, bytes),
             capacity_view(unchanged, partition)} <> Nil{})}
 
+# Continue after refusal: a later, smaller unit may still fit.
 def admit_units(sizes: List<&2, Nat>, batch: Batch, +partition: Nat,
     +lifetime: Nat, +round: Nat, +position: Nat, +parent: Nat) -> Batch:
   match sizes:
@@ -1602,6 +1604,7 @@ def write_is_unknown(outcome: WriteOutcome) -> Bool:
     case _:
       False{}
 
+# An uncertain submission leaves advice eligible for reconsideration at Stop.
 def output_terminal_current(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, +operation: Nat, +outcome: WriteOutcome,
     current: Round) -> Step:
@@ -2678,17 +2681,14 @@ def step(+state: State, event: CanonicalEvent) -> Step:
       Advanced{state, RuleGate{RulePolicy.applicable(consent, complete, target,
         global_included, global_excluded, pack_enabled, rule_enabled,
         rule_included, rule_excluded, semantic_applicable)} <> Nil{}}
-    case RuleFindingCheck{prob_high, prob_low, threshold_high, threshold_low}:
-      Advanced{state, RuleGate{RulePolicy.finding(prob_high, prob_low,
-        threshold_high, threshold_low)} <> Nil{}}
-    case RuleRankOrderCheck{left_high, left_low, right_high, right_low,
-        left_rank, right_rank}:
-      Advanced{state, RuleOrder{RulePolicy.rank_order(left_high, left_low,
-        right_high, right_low, left_rank, right_rank)} <> Nil{}}
-    case AdviceOrderCheck{left_high, left_low, right_high, right_low,
-        path_order, id_order}:
-      Advanced{state, RuleOrder{RulePolicy.advice_order(left_high, left_low,
-        right_high, right_low, path_order, id_order)} <> Nil{}}
+    case RuleFindingCheck{probability, threshold}:
+      Advanced{state, RuleGate{RulePolicy.finding(probability, threshold)} <> Nil{}}
+    case RuleRankOrderCheck{left, right, left_rank, right_rank}:
+      Advanced{state, RuleOrder{RulePolicy.rank_order(left, right,
+        left_rank, right_rank)} <> Nil{}}
+    case AdviceOrderCheck{left, right, path_order, id_order}:
+      Advanced{state, RuleOrder{RulePolicy.advice_order(left, right,
+        path_order, id_order)} <> Nil{}}
     case RuleBudgetCheck{position, limit}:
       Advanced{state, RuleGate{RulePolicy.budget(position, limit)} <> Nil{}}
     case ReuseRoute{id, live_advice}:

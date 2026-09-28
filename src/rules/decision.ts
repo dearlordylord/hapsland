@@ -1,4 +1,4 @@
-import { initialCanonical, stepCanonical, type CanonicalEvent } from "../canonical/adapter.ts";
+import { initialCanonical, probabilityWords, stepCanonical, type CanonicalEvent } from "../canonical/adapter.ts";
 
 const initial = initialCanonical({ globalItems: 1, globalBytes: 1, partitionItems: 1, partitionBytes: 1 });
 
@@ -8,14 +8,6 @@ const decide = (event: CanonicalEvent) => {
     throw new Error("canonical rule decision refused");
   }
   return result.commands[0];
-};
-
-/** IEEE-754 binary64 words retain every threshold edge without decimal rounding. */
-const probabilityWords = (value: number): { readonly high: number; readonly low: number } => {
-  if (!Number.isFinite(value) || value < 0 || value > 1) throw new RangeError("probability must be finite in [0, 1]");
-  const bytes = new DataView(new ArrayBuffer(8));
-  bytes.setFloat64(0, Object.is(value, -0) ? 0 : value, false);
-  return { high: bytes.getUint32(0, false), low: bytes.getUint32(4, false) };
 };
 
 const gate = (event: CanonicalEvent): boolean => {
@@ -43,8 +35,7 @@ export const applicableRule = (facts: {
 export const findingFromProbability = (probability: number, threshold: number): boolean => {
   const observed = probabilityWords(probability);
   const configured = probabilityWords(threshold);
-  return gate({ kind: "ruleFindingCheck", probHigh: observed.high, probLow: observed.low,
-    thresholdHigh: configured.high, thresholdLow: configured.low });
+  return gate({ kind: "ruleFindingCheck", probability: observed, threshold: configured });
 };
 
 const decodedOrder = (event: CanonicalEvent): number => {
@@ -59,8 +50,8 @@ export const compareRuleRank = (
 ): number => {
   const a = probabilityWords(left.probability);
   const b = probabilityWords(right.probability);
-  return decodedOrder({ kind: "ruleRankOrderCheck", leftHigh: a.high, leftLow: a.low,
-    rightHigh: b.high, rightLow: b.low, leftRank: left.rank, rightRank: right.rank });
+  return decodedOrder({ kind: "ruleRankOrderCheck", left: a, right: b,
+    leftRank: left.rank, rightRank: right.rank });
 };
 
 const nativeOrder = (value: number): "before" | "equal" | "after" =>
@@ -72,8 +63,7 @@ export const compareAdviceOrder = (
 ): number => {
   const a = probabilityWords(left.probability);
   const b = probabilityWords(right.probability);
-  return decodedOrder({ kind: "adviceOrderCheck", leftHigh: a.high, leftLow: a.low,
-    rightHigh: b.high, rightLow: b.low,
+  return decodedOrder({ kind: "adviceOrderCheck", left: a, right: b,
     pathOrder: nativeOrder(left.path.localeCompare(right.path)),
     idOrder: nativeOrder(left.ruleId.localeCompare(right.ruleId)) });
 };

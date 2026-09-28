@@ -1427,13 +1427,13 @@ law incomplete_rule_unit_is_omitted:
     RulePolicy.Omit{} : RulePolicy.Gate}
 
 law exact_threshold_is_not_a_finding:
-  {RulePolicy.finding(2n, 3n, 2n, 3n) == RulePolicy.Omit{} : RulePolicy.Gate}
+  {RulePolicy.finding(RulePolicy.Words{2n, 3n}, RulePolicy.Words{2n, 3n}) == RulePolicy.Omit{} : RulePolicy.Gate}
 
 law next_binary64_probability_is_a_finding:
-  {RulePolicy.finding(2n, 4n, 2n, 3n) == RulePolicy.Admit{} : RulePolicy.Gate}
+  {RulePolicy.finding(RulePolicy.Words{2n, 4n}, RulePolicy.Words{2n, 3n}) == RulePolicy.Admit{} : RulePolicy.Gate}
 
 law probability_precedes_rule_rank:
-  {RulePolicy.rank_order(3n, 0n, 2n, 3n,
+  {RulePolicy.rank_order(RulePolicy.Words{3n, 0n}, RulePolicy.Words{2n, 3n},
     9n, 0n) == RulePolicy.Before{} : RulePolicy.Order}
 
 law advice_budget_is_exclusive:

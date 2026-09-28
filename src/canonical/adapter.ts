@@ -1,6 +1,7 @@
 import { bendCanonicalInitial, bendCanonicalInventory, bendCanonicalPartitionUsage, bendCanonicalStep, bendCanonicalTotal } from "./canonical.generated.js";
 
 const MAX_NAT = 2 ** 48 - 1;
+// Keep reserved + requested bytes within Bend's 48-bit immediate Nat range.
 export const CANONICAL_MAX_BYTES = 2 ** 47 - 1;
 const MAX_BYTES = CANONICAL_MAX_BYTES;
 export const CANONICAL_MAX_UNITS = 1024;
@@ -44,6 +45,33 @@ const inputFields = (value: unknown, names: readonly string[]): void => {
   if (Object.keys(object(value)).sort().join() !== names.slice().sort().join()) {
     throw new TypeError("invalid canonical event fields");
   }
+};
+declare const probabilityWordsBrand: unique symbol;
+export type ProbabilityWords = Readonly<{
+  high: number; low: number; [probabilityWordsBrand]: true;
+}>;
+export const probabilityWords = (value: number): ProbabilityWords => {
+  if (!Number.isFinite(value) || value < 0 || value > 1) {
+    throw new RangeError("probability must be finite in [0, 1]");
+  }
+  const bytes = new DataView(new ArrayBuffer(8));
+  bytes.setFloat64(0, Object.is(value, -0) ? 0 : value, false);
+  return { high: bytes.getUint32(0, false), low: bytes.getUint32(4, false) } as ProbabilityWords;
+};
+const encodedProbabilityWords = (value: unknown): unknown => {
+  inputFields(value, ["high", "low"]);
+  const word = object(value);
+  const high = nat(word.high);
+  const low = nat(word.low);
+  if (high > 0xffffffff || low > 0xffffffff) throw new TypeError("invalid probability word");
+  const bytes = new DataView(new ArrayBuffer(8));
+  bytes.setUint32(0, high, false);
+  bytes.setUint32(4, low, false);
+  const probability = bytes.getFloat64(0, false);
+  if (!Number.isFinite(probability) || probability < 0 || probability > 1 || Object.is(probability, -0)) {
+    throw new TypeError("invalid probability words");
+  }
+  return { $: "RulePolicy.Words", high, low };
 };
 const list = (values: readonly number[]): unknown => {
   if (!Array.isArray(values) || values.length > MAX_UNITS) throw new TypeError("too many units");
@@ -146,9 +174,9 @@ export type CanonicalEvent =
   | { readonly kind: "reviewAdmissionCheck"; readonly rootValid: boolean; readonly configurationValid: boolean; readonly credentialReady: boolean; readonly selected: boolean }
   | { readonly kind: "ruleEnableCheck"; readonly packEnabled: boolean; readonly ruleEnabled: boolean }
   | { readonly kind: "ruleApplicabilityCheck"; readonly consent: boolean; readonly complete: boolean; readonly target: "directTypeShape" | "legacyFileTypeShape" | "otherTypeShape" | "functionTarget"; readonly globalIncluded: boolean; readonly globalExcluded: boolean; readonly packEnabled: boolean; readonly ruleEnabled: boolean; readonly ruleIncluded: boolean; readonly ruleExcluded: boolean; readonly semanticApplicable: boolean }
-  | { readonly kind: "ruleFindingCheck"; readonly probHigh: number; readonly probLow: number; readonly thresholdHigh: number; readonly thresholdLow: number }
-  | { readonly kind: "ruleRankOrderCheck"; readonly leftHigh: number; readonly leftLow: number; readonly rightHigh: number; readonly rightLow: number; readonly leftRank: number; readonly rightRank: number }
-  | { readonly kind: "adviceOrderCheck"; readonly leftHigh: number; readonly leftLow: number; readonly rightHigh: number; readonly rightLow: number; readonly pathOrder: "before" | "equal" | "after"; readonly idOrder: "before" | "equal" | "after" }
+  | { readonly kind: "ruleFindingCheck"; readonly probability: ProbabilityWords; readonly threshold: ProbabilityWords }
+  | { readonly kind: "ruleRankOrderCheck"; readonly left: ProbabilityWords; readonly right: ProbabilityWords; readonly leftRank: number; readonly rightRank: number }
+  | { readonly kind: "adviceOrderCheck"; readonly left: ProbabilityWords; readonly right: ProbabilityWords; readonly pathOrder: "before" | "equal" | "after"; readonly idOrder: "before" | "equal" | "after" }
   | { readonly kind: "ruleBudgetCheck"; readonly position: number; readonly limit: number }
   | { readonly kind: "reuseRoute"; readonly id: number; readonly liveAdvice: boolean }
   | { readonly kind: "reuseClaim" | "reuseAttach" | "reuseRelease" | "reuseTouch"; readonly id: number }
@@ -421,9 +449,9 @@ const encode = (event: CanonicalEvent): unknown => {
       if (!["directTypeShape", "legacyFileTypeShape", "otherTypeShape", "functionTarget"].includes(event.target)) throw new TypeError("invalid rule target fact");
       return { $: "Canonical.RuleApplicabilityCheck", consent: bool(event.consent), complete: bool(event.complete), target: { $: `RulePolicy.${event.target.slice(0, 1).toUpperCase()}${event.target.slice(1)}` }, global_included: bool(event.globalIncluded), global_excluded: bool(event.globalExcluded), pack_enabled: bool(event.packEnabled), rule_enabled: bool(event.ruleEnabled), rule_included: bool(event.ruleIncluded), rule_excluded: bool(event.ruleExcluded), semantic_applicable: bool(event.semanticApplicable) };
     }
-    case "ruleFindingCheck": inputFields(event, ["kind", "probHigh", "probLow", "thresholdHigh", "thresholdLow"]); return { $: "Canonical.RuleFindingCheck", prob_high: nat(event.probHigh), prob_low: nat(event.probLow), threshold_high: nat(event.thresholdHigh), threshold_low: nat(event.thresholdLow) };
-    case "ruleRankOrderCheck": inputFields(event, ["kind", "leftHigh", "leftLow", "rightHigh", "rightLow", "leftRank", "rightRank"]); return { $: "Canonical.RuleRankOrderCheck", left_high: nat(event.leftHigh), left_low: nat(event.leftLow), right_high: nat(event.rightHigh), right_low: nat(event.rightLow), left_rank: nat(event.leftRank), right_rank: nat(event.rightRank) };
-    case "adviceOrderCheck": inputFields(event, ["kind", "leftHigh", "leftLow", "rightHigh", "rightLow", "pathOrder", "idOrder"]); return { $: "Canonical.AdviceOrderCheck", left_high: nat(event.leftHigh), left_low: nat(event.leftLow), right_high: nat(event.rightHigh), right_low: nat(event.rightLow), path_order: { $: ruleOrderTag(event.pathOrder) }, id_order: { $: ruleOrderTag(event.idOrder) } };
+    case "ruleFindingCheck": inputFields(event, ["kind", "probability", "threshold"]); return { $: "Canonical.RuleFindingCheck", probability: encodedProbabilityWords(event.probability), threshold: encodedProbabilityWords(event.threshold) };
+    case "ruleRankOrderCheck": inputFields(event, ["kind", "left", "right", "leftRank", "rightRank"]); return { $: "Canonical.RuleRankOrderCheck", left: encodedProbabilityWords(event.left), right: encodedProbabilityWords(event.right), left_rank: nat(event.leftRank), right_rank: nat(event.rightRank) };
+    case "adviceOrderCheck": inputFields(event, ["kind", "left", "right", "pathOrder", "idOrder"]); return { $: "Canonical.AdviceOrderCheck", left: encodedProbabilityWords(event.left), right: encodedProbabilityWords(event.right), path_order: { $: ruleOrderTag(event.pathOrder) }, id_order: { $: ruleOrderTag(event.idOrder) } };
     case "ruleBudgetCheck": inputFields(event, ["kind", "position", "limit"]); return { $: "Canonical.RuleBudgetCheck", position: nat(event.position), limit: nat(event.limit) };
     case "reuseRoute": inputFields(event, ["kind", "id", "liveAdvice"]); return { $: "Canonical.ReuseRoute", id: nat(event.id, true), live_advice: bool(event.liveAdvice) };
     case "reuseClaim": case "reuseAttach": case "reuseRelease": case "reuseTouch": inputFields(event, ["kind", "id"]); return { $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`, id: nat(event.id, true) };
@@ -1046,6 +1074,7 @@ export const initialCanonical = (limits: { readonly globalItems: number; readonl
   known.add(object(state)); projectCanonical(state);
   return state;
 };
+/** Callers must supply measured byte counts, authenticated attribution, and correct deadline facts. */
 export const stepCanonical = (state: unknown, event: CanonicalEvent): { readonly state: unknown; readonly commands: readonly CanonicalCommand[]; readonly rejection?: string } => {
   projectCanonical(state);
   const raw = bendCanonicalStep(state, encode(event));

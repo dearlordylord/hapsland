@@ -135,9 +135,9 @@ with one file and two tests skipped. `npm run test:import-graph` and the
 visualization build also passed. Package-wide `npm test` under
 `packages/agent-flow-bend` was not a merge gate; its older Flow build still
 has a separate compiler-footer compatibility problem.
-This does not switch resident paths or make the installed cross-file
-profile available. The design and current boundary are in
-[`docs/bend-canonical-transition-interface.md`](docs/bend-canonical-transition-interface.md).
+This first boundary did not switch resident paths or make the installed
+cross-file profile available. Its historical design record is
+[#119](https://github.com/dearlordylord/hapsland/issues/119).
 
 ## #120 resident capacity (merged 2026-09-28)
 

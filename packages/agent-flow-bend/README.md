@@ -82,7 +82,6 @@ the aggregate lifecycle and installed runtime behavior.
 state/event/command interface. It owns one global ledger across advicee
 partitions, ordered partial replacement, exact logical release, round and
 operation identities, Stop waiting/cutoff, and uncertain background output.
-The resident's capacity reservations now use its checked transition; the other
-resident decision paths move in later slices. See
-[`docs/bend-canonical-transition-interface.md`](../../docs/bend-canonical-transition-interface.md).
+The resident's capacity reservations and later resident decision paths now use
+its checked transition.
 Run `npm run test:canonical` for Bend proofs and independent source-free traces.

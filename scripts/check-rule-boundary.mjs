@@ -22,8 +22,6 @@ if (!compiler.includes("includeRule(packEnabled") ||
     !policy.includes("withinAdviceBudget(") ||
     !direct.includes("findingFromProbability(") ||
     !direct.includes("compareRuleRank(") ||
-    !direct.includes("compareAdviceOrder(") ||
-    !direct.includes("withinAdviceBudget(") ||
     !legacy.includes("compareAdviceOrder(") ||
     !legacy.includes("withinAdviceBudget(") ||
     !resident.includes("findingFromProbability(1,") ||

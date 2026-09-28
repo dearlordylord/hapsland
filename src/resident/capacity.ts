@@ -206,6 +206,7 @@ export class CapacityLedger {
     }
     this.#reservations.delete(reservation.id);
     const units = result.commands.slice(1).map((command, index) => {
+      // undefined records a capacity refusal, which cannot establish a clear review outcome.
       if (command.kind === "unitRefused" && command.position === index + 1) return undefined;
       if (command.kind !== "unitAdmitted" || command.position !== index + 1) throw new Error("invalid canonical unit admission");
       const unit: CapacityReservation = { id: command.reservation, partition, bytes: command.bytes, purpose: "reviewUnit" };

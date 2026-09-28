@@ -12,15 +12,15 @@
       { "kind": "ruleApplicabilityCheck", "consent": true, "complete": true, "target": "directTypeShape", "globalIncluded": true, "globalExcluded": false, "packEnabled": true, "ruleEnabled": true, "ruleIncluded": true, "ruleExcluded": false, "semanticApplicable": true, "expect": "ruleGate:admit" }
     ] },
     { "name": "strict threshold distinguishes adjacent binary64 values", "events": [
-      { "kind": "ruleFindingCheck", "probHigh": 1072064102, "probLow": 1717986918, "thresholdHigh": 1072064102, "thresholdLow": 1717986918, "expect": "ruleGate:omit" },
-      { "kind": "ruleFindingCheck", "probHigh": 1072064102, "probLow": 1717986919, "thresholdHigh": 1072064102, "thresholdLow": 1717986918, "expect": "ruleGate:admit" },
-      { "kind": "ruleFindingCheck", "probHigh": 0, "probLow": 0, "thresholdHigh": 1072064102, "thresholdLow": 1717986918, "expect": "ruleGate:omit" }
+      { "kind": "ruleFindingCheck", "probability": { "high": 1072064102, "low": 1717986918 }, "threshold": { "high": 1072064102, "low": 1717986918 }, "expect": "ruleGate:omit" },
+      { "kind": "ruleFindingCheck", "probability": { "high": 1072064102, "low": 1717986919 }, "threshold": { "high": 1072064102, "low": 1717986918 }, "expect": "ruleGate:admit" },
+      { "kind": "ruleFindingCheck", "probability": { "high": 0, "low": 0 }, "threshold": { "high": 1072064102, "low": 1717986918 }, "expect": "ruleGate:omit" }
     ] },
     { "name": "probability precedes rank then path and rule identity", "events": [
-      { "kind": "ruleRankOrderCheck", "leftHigh": 1072693248, "leftLow": 0, "rightHigh": 1072064102, "rightLow": 1717986918, "leftRank": 9, "rightRank": 0, "expect": "ruleOrder:before" },
-      { "kind": "ruleRankOrderCheck", "leftHigh": 1072064102, "leftLow": 1717986918, "rightHigh": 1072064102, "rightLow": 1717986918, "leftRank": 2, "rightRank": 3, "expect": "ruleOrder:before" },
-      { "kind": "adviceOrderCheck", "leftHigh": 1072064102, "leftLow": 1717986918, "rightHigh": 1072064102, "rightLow": 1717986918, "pathOrder": "before", "idOrder": "after", "expect": "ruleOrder:before" },
-      { "kind": "adviceOrderCheck", "leftHigh": 1072064102, "leftLow": 1717986918, "rightHigh": 1072064102, "rightLow": 1717986918, "pathOrder": "equal", "idOrder": "after", "expect": "ruleOrder:after" }
+      { "kind": "ruleRankOrderCheck", "left": { "high": 1072693248, "low": 0 }, "right": { "high": 1072064102, "low": 1717986918 }, "leftRank": 9, "rightRank": 0, "expect": "ruleOrder:before" },
+      { "kind": "ruleRankOrderCheck", "left": { "high": 1072064102, "low": 1717986918 }, "right": { "high": 1072064102, "low": 1717986918 }, "leftRank": 2, "rightRank": 3, "expect": "ruleOrder:before" },
+      { "kind": "adviceOrderCheck", "left": { "high": 1072064102, "low": 1717986918 }, "right": { "high": 1072064102, "low": 1717986918 }, "pathOrder": "before", "idOrder": "after", "expect": "ruleOrder:before" },
+      { "kind": "adviceOrderCheck", "left": { "high": 1072064102, "low": 1717986918 }, "right": { "high": 1072064102, "low": 1717986918 }, "pathOrder": "equal", "idOrder": "after", "expect": "ruleOrder:after" }
     ] },
     { "name": "count budget truncates after the configured limit", "events": [
       { "kind": "ruleBudgetCheck", "position": 0, "limit": 2, "expect": "ruleGate:admit" },

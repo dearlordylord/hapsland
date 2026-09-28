@@ -120,16 +120,20 @@ describe("canonical resident capacity", () => {
       beforeEvaluate: async () => { started.resolve(); await release.promise; },
     });
     try {
-      expect(server.admit(observation, dispatch).status).toBe("accepted");
+      expect(server.admit(observation, dispatch, false, true).status).toBe("accepted");
       await started.promise;
       expect(captured).toEqual(["type.ts"]);
       clock = 200;
       release.resolve();
       await server.whenIdle();
-      const response = await server.collect(root, advicee(), dispatch);
+      const response = await server.handle({ version: 1, operation: "collect", lifetime: server.lifetime,
+        root, advicee: advicee(), dispatch, mode: "ordinary", composed: true });
       expect(response.status).toBe(expected);
       if (response.status === "advice") {
         expect(response.output.hookSpecificOutput.additionalContext.split("\n").slice(1)).toHaveLength(5);
+        expect(server.beginComposedSubmission(response.token, "background").status).toBe("submitting");
+        expect(server.acknowledge(response.token).status).toBe("acknowledged");
+        expect(server.finalize(response.token).status).toBe("finalized");
       }
     } finally {
       release.resolve();

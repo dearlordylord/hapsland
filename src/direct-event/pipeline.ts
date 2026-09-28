@@ -5,11 +5,10 @@ import * as Schema from "effect/Schema";
 import { Decision, DecisionModel } from "effect/unstable/ai";
 import type { CompiledRule } from "../rules/compiler.ts";
 import { applicableRules, configuredRules } from "../policy/rules.ts";
-import { compareAdviceOrder, compareRuleRank, findingFromProbability, withinAdviceBudget } from "../rules/decision.ts";
+import { compareRuleRank, findingFromProbability } from "../rules/decision.ts";
 import type { Consent } from "../runtime/consent.ts";
 import { admitReview } from "../configuration/decision.ts";
 import type { ReviewSettings } from "../runtime/review-config.ts";
-import { DEFAULT_RUNTIME_SETTINGS } from "../configuration/types.ts";
 import { adaptCodexDirectEvent, verifyObservationRoot } from "./adapter.ts";
 import {
   analyzeTypeFile,
@@ -492,19 +491,11 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
   if (revalidated.status !== "current" || revalidated.findings.length === 0) {
     return { status: "unavailable", reason: "stale", output: undefined } satisfies DirectReviewResult;
   }
-  const budget = context.settings.configuration?.policy.settings.adviceBudget.value ??
-    DEFAULT_RUNTIME_SETTINGS.adviceBudget;
-  const deliverable = [...revalidated.findings]
-    .sort((left, right) => compareAdviceOrder(left, right))
-    .filter((_, position) => withinAdviceBudget(position, budget));
-  if (deliverable.length === 0) {
-    return { status: "no-advice", output: undefined } satisfies DirectReviewResult;
-  }
   return {
     status: "ready",
-    findings: deliverable,
+    findings: revalidated.findings,
     evaluations: revalidated.evaluations,
-    output: toCodexDirectEventOutput(deliverable),
+    output: toCodexDirectEventOutput(revalidated.findings),
   } satisfies DirectReviewResult;
 });
 

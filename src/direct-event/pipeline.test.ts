@@ -631,7 +631,7 @@ describe("direct-event vertical slice", () => {
     }),
   );
 
-  it.effect("ranks and bounds standalone direct advice through canonical rule policy", () =>
+  it.effect("preserves all standalone direct findings after canonical rule decisions", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture);
       yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number"));
@@ -641,7 +641,7 @@ describe("direct-event vertical slice", () => {
         ])),
       });
       expect(result.status).toBe("ready");
-      if (result.status === "ready") expect(result.findings).toHaveLength(5);
+      if (result.status === "ready") expect(result.findings).toHaveLength(configuredRules.length);
     }),
   );
 
