@@ -69,9 +69,18 @@ export type CanonicalEvent =
   | { readonly kind: "expirePermit"; readonly partition: number; readonly lifetime: number; readonly token: number; readonly deadlineReached: boolean }
   | { readonly kind: "closePermitRound"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly at: number; readonly prospective: boolean }
   | { readonly kind: "openRound"; readonly partition: number; readonly lifetime: number }
+  | { readonly kind: "admitObservation"; readonly partition: number; readonly lifetime: number; readonly round: number }
+  | { readonly kind: "startObservation" | "completeObservation" | "interruptObservation"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly observation: number }
   | { readonly kind: "beginPreparation"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly bytes: number }
+  | { readonly kind: "beginObservedPreparation"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly observation: number; readonly bytes: number }
+  | { readonly kind: "interruptPreparation"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number }
   | { readonly kind: "preparationCompleted"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly unitBytes: readonly number[] }
-  | { readonly kind: "reviewCompleted"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly outcome: "finding" | "clear" | "unavailable" }
+  | { readonly kind: "startReview" | "retireReview"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number }
+  | { readonly kind: "reviewCompleted"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly outcome: "finding" | "clear" | "unavailable" | "interrupted" | "discarded" }
+  | { readonly kind: "reviewObserved"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly outcome: "finding" | "clear"; readonly currentWork: boolean }
+  | { readonly kind: "preparedOfferCheck"; readonly ready: boolean; readonly withinFrame: boolean }
+  | { readonly kind: "emptyPreparedCheck"; readonly readyCount: number; readonly hasNonSkipped: boolean; readonly ticketed: boolean }
+  | { readonly kind: "reviewFailureCheck"; readonly backendOrTimeout: boolean; readonly credential: boolean; readonly missing: boolean }
   | { readonly kind: "stopPolled"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly deadline: boolean }
   | { readonly kind: "outputStarted"; readonly partition: number; readonly lifetime: number; readonly round: number }
   | { readonly kind: "outputTerminal"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly outcome: "acknowledged" | "failed" | "unknown" }
@@ -88,13 +97,17 @@ export type CanonicalCommand =
   | { readonly kind: "permitReleased" | "permitExpired" | "permitKept" }
   | { readonly kind: "permitRoundClosed"; readonly round: number }
   | { readonly kind: "roundStarted"; readonly id: number }
+  | { readonly kind: "observationAdmitted"; readonly id: number }
+  | { readonly kind: "observationStarted" | "observationCompleted" | "observationInterrupted" | "reviewStarted" }
   | { readonly kind: "prepare"; readonly operation: number; readonly reservation: number }
   | { readonly kind: "preparationRefused" }
   | { readonly kind: "unitAdmitted"; readonly operation: number; readonly reservation: number; readonly position: number; readonly bytes: number; readonly after: CapacityView }
   | { readonly kind: "unitRefused"; readonly position: number; readonly bytes: number; readonly reason: CapacityRefusal; readonly after: CapacityView }
   | { readonly kind: "preparationReleased"; readonly id: number; readonly after: CapacityView }
   | { readonly kind: "reservationReleased"; readonly id: number }
-  | { readonly kind: "reviewRecorded"; readonly outcome: "finding" | "clear" | "unavailable" }
+  | { readonly kind: "reviewRecorded"; readonly outcome: "finding" | "clear" | "unavailable" | "interrupted" | "discarded" }
+  | { readonly kind: "retainFinding" | "settleClear" | "settleStaleClear" | "retireStaleFinding" }
+  | { readonly kind: "preparedSkipped" | "preparedAdmitted" | "preparedCapacityRefused" | "emptyLost" | "emptyAccepted" | "failureBackend" | "failureCredential" | "failureLost" | "failureNone" }
   | { readonly kind: "waitForWork" }
   | { readonly kind: "cancelWork"; readonly operation: number }
   | { readonly kind: "finishReady" }
@@ -144,14 +157,35 @@ const encode = (event: CanonicalEvent): unknown => {
     case "expirePermit": inputFields(event, ["kind", "partition", "lifetime", "token", "deadlineReached"]); return { $: "Canonical.ExpirePermit", ...identity(event), token: nat(event.token, true), deadline_reached: bool(event.deadlineReached) };
     case "closePermitRound": inputFields(event, ["kind", "partition", "lifetime", "round", "at", "prospective"]); return { $: "Canonical.ClosePermitRound", ...identity(event), round: nat(event.round, true), at: nat(event.at), prospective: bool(event.prospective) };
     case "openRound": inputFields(event, ["kind", "partition", "lifetime"]); return { $: "Canonical.OpenRound", ...identity(event) };
+    case "admitObservation": inputFields(event, ["kind", "partition", "lifetime", "round"]); return { $: "Canonical.AdmitObservation", ...identity(event), round: nat(event.round, true) };
+    case "startObservation": case "completeObservation": case "interruptObservation": {
+      inputFields(event, ["kind", "partition", "lifetime", "round", "observation"]);
+      const name = { startObservation: "StartObservation", completeObservation: "CompleteObservation", interruptObservation: "InterruptObservation" }[event.kind];
+      return { $: `Canonical.${name}`, ...identity(event), round: nat(event.round, true), observation: nat(event.observation, true) };
+    }
     case "beginPreparation": inputFields(event, ["kind", "partition", "lifetime", "round", "bytes"]); return { $: "Canonical.BeginPreparation", ...identity(event), round: nat(event.round, true), bytes: bytes(event.bytes) };
+    case "beginObservedPreparation": inputFields(event, ["kind", "partition", "lifetime", "round", "observation", "bytes"]); return { $: "Canonical.BeginObservedPreparation", ...identity(event), round: nat(event.round, true), observation: nat(event.observation, true), bytes: bytes(event.bytes) };
+    case "interruptPreparation": inputFields(event, ["kind", "partition", "lifetime", "round", "operation"]); return { $: "Canonical.InterruptPreparation", ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true) };
     case "preparationCompleted": inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "unitBytes"]); return { $: "Canonical.PreparationCompleted", ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true), unit_bytes: list(event.unitBytes) };
+    case "startReview": case "retireReview": {
+      inputFields(event, ["kind", "partition", "lifetime", "round", "operation"]);
+      return { $: event.kind === "startReview" ? "Canonical.StartReview" : "Canonical.RetireReview", ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true) };
+    }
     case "reviewCompleted": {
       inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "outcome"]);
-      const outcome = { finding: "Canonical.Finding", clear: "Canonical.Clear", unavailable: "Canonical.Unavailable" }[event.outcome];
+      const outcome = { finding: "Canonical.Finding", clear: "Canonical.Clear", unavailable: "Canonical.Unavailable", interrupted: "Canonical.Interrupted", discarded: "Canonical.Discarded" }[event.outcome];
       if (!outcome) throw new TypeError("invalid review outcome");
       return { $: "Canonical.ReviewCompleted", ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true), outcome: { $: outcome } };
     }
+    case "reviewObserved": {
+      inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "outcome", "currentWork"]);
+      return { $: "Canonical.ReviewObserved", ...identity(event), round: nat(event.round, true),
+        operation: nat(event.operation, true), outcome: { $: event.outcome === "finding" ? "Canonical.Finding" : "Canonical.Clear" },
+        current_work: bool(event.currentWork) };
+    }
+    case "preparedOfferCheck": inputFields(event, ["kind", "ready", "withinFrame"]); return { $: "Canonical.PreparedOfferCheck", ready: bool(event.ready), within_frame: bool(event.withinFrame) };
+    case "emptyPreparedCheck": inputFields(event, ["kind", "readyCount", "hasNonSkipped", "ticketed"]); return { $: "Canonical.EmptyPreparedCheck", ready_count: nat(event.readyCount), has_non_skipped: bool(event.hasNonSkipped), ticketed: bool(event.ticketed) };
+    case "reviewFailureCheck": inputFields(event, ["kind", "backendOrTimeout", "credential", "missing"]); return { $: "Canonical.ReviewFailureCheck", backend_or_timeout: bool(event.backendOrTimeout), credential: bool(event.credential), missing: bool(event.missing) };
     case "stopPolled": inputFields(event, ["kind", "partition", "lifetime", "round", "deadline"]); return { $: "Canonical.StopPolled", ...identity(event), round: nat(event.round, true), deadline: bool(event.deadline) };
     case "outputStarted": inputFields(event, ["kind", "partition", "lifetime", "round"]); return { $: "Canonical.OutputStarted", ...identity(event), round: nat(event.round, true) };
     case "outputTerminal": {
@@ -164,11 +198,13 @@ const encode = (event: CanonicalEvent): unknown => {
     default: throw new TypeError("unknown canonical event");
   }
 };
-const outcome = (value: unknown): "finding" | "clear" | "unavailable" => {
+const outcome = (value: unknown): "finding" | "clear" | "unavailable" | "interrupted" | "discarded" => {
   const name = tag(value);
   if (name === "Canonical.Finding") return "finding";
   if (name === "Canonical.Clear") return "clear";
   if (name === "Canonical.Unavailable") return "unavailable";
+  if (name === "Canonical.Interrupted") return "interrupted";
+  if (name === "Canonical.Discarded") return "discarded";
   throw new TypeError("unknown canonical outcome");
 };
 const writeOutcome = (value: unknown): "acknowledged" | "failed" | "unknown" => {
@@ -239,13 +275,31 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
     case "Canonical.PermitKept": fields(value, "Canonical.PermitKept", []); return { kind: "permitKept" };
     case "Canonical.PermitRoundClosed": return { kind: "permitRoundClosed", round: nat(fields(value, "Canonical.PermitRoundClosed", ["round"]).round, true) };
     case "Canonical.RoundStarted": return { kind: "roundStarted", id: nat(fields(value, "Canonical.RoundStarted", ["id"]).id, true) };
+    case "Canonical.ObservationAdmitted": return { kind: "observationAdmitted", id: nat(fields(value, "Canonical.ObservationAdmitted", ["id"]).id, true) };
+    case "Canonical.ObservationStarted": fields(value, "Canonical.ObservationStarted", []); return { kind: "observationStarted" };
+    case "Canonical.ObservationCompleted": fields(value, "Canonical.ObservationCompleted", []); return { kind: "observationCompleted" };
+    case "Canonical.ObservationInterrupted": fields(value, "Canonical.ObservationInterrupted", []); return { kind: "observationInterrupted" };
     case "Canonical.Prepare": { const x = fields(value, "Canonical.Prepare", ["operation", "reservation"]); return { kind: "prepare", operation: nat(x.operation, true), reservation: nat(x.reservation, true) }; }
     case "Canonical.PreparationRefused": fields(value, "Canonical.PreparationRefused", []); return { kind: "preparationRefused" };
     case "Canonical.UnitAdmitted": { const x = fields(value, "Canonical.UnitAdmitted", ["operation", "reservation", "position", "bytes", "after"]); return { kind: "unitAdmitted", operation: nat(x.operation, true), reservation: nat(x.reservation, true), position: nat(x.position, true), bytes: bytes(x.bytes), after: capacityView(x.after) }; }
     case "Canonical.UnitRefused": { const x = fields(value, "Canonical.UnitRefused", ["position", "bytes", "reason", "after"]); return { kind: "unitRefused", position: nat(x.position, true), bytes: bytes(x.bytes), reason: capacityRefusal(x.reason), after: capacityView(x.after) }; }
     case "Canonical.PreparationReleased": { const x = fields(value, "Canonical.PreparationReleased", ["id", "after"]); return { kind: "preparationReleased", id: nat(x.id, true), after: capacityView(x.after) }; }
+    case "Canonical.ReviewStarted": fields(value, "Canonical.ReviewStarted", []); return { kind: "reviewStarted" };
     case "Canonical.ReservationReleased": return { kind: "reservationReleased", id: nat(fields(value, "Canonical.ReservationReleased", ["id"]).id, true) };
     case "Canonical.ReviewRecorded": return { kind: "reviewRecorded", outcome: outcome(fields(value, "Canonical.ReviewRecorded", ["outcome"]).outcome) };
+    case "Canonical.RetainFinding": fields(value, "Canonical.RetainFinding", []); return { kind: "retainFinding" };
+    case "Canonical.SettleClear": fields(value, "Canonical.SettleClear", []); return { kind: "settleClear" };
+    case "Canonical.SettleStaleClear": fields(value, "Canonical.SettleStaleClear", []); return { kind: "settleStaleClear" };
+    case "Canonical.RetireStaleFinding": fields(value, "Canonical.RetireStaleFinding", []); return { kind: "retireStaleFinding" };
+    case "Canonical.PreparedSkipped": fields(value, "Canonical.PreparedSkipped", []); return { kind: "preparedSkipped" };
+    case "Canonical.PreparedAdmitted": fields(value, "Canonical.PreparedAdmitted", []); return { kind: "preparedAdmitted" };
+    case "Canonical.PreparedCapacityRefused": fields(value, "Canonical.PreparedCapacityRefused", []); return { kind: "preparedCapacityRefused" };
+    case "Canonical.EmptyLost": fields(value, "Canonical.EmptyLost", []); return { kind: "emptyLost" };
+    case "Canonical.EmptyAccepted": fields(value, "Canonical.EmptyAccepted", []); return { kind: "emptyAccepted" };
+    case "Canonical.FailureBackend": fields(value, "Canonical.FailureBackend", []); return { kind: "failureBackend" };
+    case "Canonical.FailureCredential": fields(value, "Canonical.FailureCredential", []); return { kind: "failureCredential" };
+    case "Canonical.FailureLost": fields(value, "Canonical.FailureLost", []); return { kind: "failureLost" };
+    case "Canonical.FailureNone": fields(value, "Canonical.FailureNone", []); return { kind: "failureNone" };
     case "Canonical.WaitForWork": fields(value, "Canonical.WaitForWork", []); return { kind: "waitForWork" };
     case "Canonical.CancelWork": return { kind: "cancelWork", operation: nat(fields(value, "Canonical.CancelWork", ["operation"]).operation, true) };
     case "Canonical.FinishReady": fields(value, "Canonical.FinishReady", []); return { kind: "finishReady" };
@@ -266,7 +320,7 @@ export type CanonicalProjection = {
   readonly inventory: readonly { readonly purpose: CapacityPurpose; readonly limits: CanonicalProjection["limits"] }[];
   readonly rounds: readonly { readonly partition: number; readonly lifetime: number; readonly id: number; readonly waiting: boolean; readonly deciding: boolean; readonly write?: number; readonly uncertain: boolean }[];
   readonly admissions: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly active: boolean; readonly closedAt: number; readonly permits: readonly { readonly token: number; readonly tool: number; readonly round: number; readonly deadline: number }[]; readonly used: readonly { readonly token: number; readonly tool: number }[] }[];
-  readonly work: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly reservation: number; readonly kind: "preparing" | "reviewing" }[];
+  readonly work: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly reservation: number; readonly parent: number; readonly kind: "sourceQueued" | "sourceReading" | "preparing" | "reviewing" | "atJev" | "pendingFinding" }[];
 };
 const known = new WeakSet<object>();
 export const projectCanonical = (state: unknown): CanonicalProjection => {
@@ -303,21 +357,32 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
     return { partition: nat(x.partition, true), lifetime: nat(x.lifetime, true), round: nat(x.round), active: bool(x.active), closedAt: nat(x.closed_at), permits, used };
   });
   const work = readList(s.work, (value) => {
-    const x = fields(value, "Canonical.Work", ["partition", "lifetime", "round", "operation", "charge", "kind"]);
+    const x = fields(value, "Canonical.Work", ["partition", "lifetime", "round", "operation", "charge", "kind", "parent"]);
     const kind = tag(x.kind);
-    if (kind !== "Canonical.Preparing" && kind !== "Canonical.Reviewing") throw new TypeError("invalid work kind");
-    return { partition: nat(x.partition, true), lifetime: nat(x.lifetime, true), round: nat(x.round, true), operation: nat(x.operation, true), reservation: nat(x.charge, true), kind: kind === "Canonical.Preparing" ? "preparing" as const : "reviewing" as const };
+    const names = { "Canonical.SourceQueued": "sourceQueued", "Canonical.SourceReading": "sourceReading",
+      "Canonical.Preparing": "preparing", "Canonical.Reviewing": "reviewing",
+      "Canonical.AtJev": "atJev", "Canonical.PendingFinding": "pendingFinding" } as const;
+    const stage = names[kind as keyof typeof names];
+    if (stage === undefined) throw new TypeError("invalid work kind");
+    return { partition: nat(x.partition, true), lifetime: nat(x.lifetime, true), round: nat(x.round, true),
+      operation: nat(x.operation, true), reservation: nat(x.charge), parent: nat(x.parent), kind: stage };
   });
   const chargeIds = new Set(charges.map((x) => x.id));
   const chargesById = new Map(charges.map((x) => [x.id, x]));
   const usedBytes = charges.reduce((sum, x) => sum + x.bytes, 0);
-  if (chargeIds.size !== charges.length || work.length > charges.length ||
+  if (chargeIds.size !== charges.length || work.filter((x) => x.reservation !== 0).length > charges.length ||
       new Set(work.map((x) => x.operation)).size !== work.length ||
-      new Set(work.map((x) => x.reservation)).size !== work.length ||
+      new Set(work.filter((x) => x.reservation !== 0).map((x) => x.reservation)).size !== work.filter((x) => x.reservation !== 0).length ||
       new Set(rounds.map((x) => x.partition)).size !== rounds.length ||
       new Set(admissions.map((x) => x.partition)).size !== admissions.length ||
       rounds.some((x) => x.id >= (s.next_round as number) || (x.write !== undefined && x.write >= (s.next_operation as number))) ||
-      work.some((x) => chargesById.get(x.reservation)?.partition !== x.partition ||
+      work.some((x) => (x.reservation === 0
+          ? x.kind !== "sourceQueued" && x.kind !== "sourceReading"
+          : chargesById.get(x.reservation)?.partition !== x.partition ||
+            (x.kind === "pendingFinding"
+              ? chargesById.get(x.reservation)?.purpose !== "storedResult" &&
+                chargesById.get(x.reservation)?.purpose !== "adviceRecheck"
+              : chargesById.get(x.reservation)?.purpose !== (x.kind === "preparing" ? "preparation" : "reviewUnit"))) ||
         x.operation >= (s.next_operation as number) ||
         !rounds.some((round) => round.partition === x.partition && round.lifetime === x.lifetime && round.id === x.round)) ||
       charges.some((x) => x.id >= (ledger.next_id as number)) ||
@@ -382,7 +447,7 @@ export const stepCanonical = (state: unknown, event: CanonicalEvent): { readonly
         if (!/^Admission\.(WrongPartition|WrongLifetime|StaleInvocation|Expired|DuplicateTool|NoPermit|UsedPermit|WrongTool|OldRound|InvalidClock|RoundAlreadyClosed|LifetimeNotFresh)$/.test(detail)) throw new TypeError("unknown permit refusal");
         return { state: x.state, commands: [], rejection: detail.slice("Admission.".length) };
       }
-      if (!/^Canonical\.(InvalidIdentity|RoundLimit|StaleRound|StaleOperation|InconsistentLedger|ProspectiveDenied)$/.test(reason)) throw new TypeError("unknown rejection");
+      if (!/^Canonical\.(InvalidIdentity|RoundLimit|StaleRound|StaleOperation|WrongStage|InconsistentLedger|ProspectiveDenied)$/.test(reason)) throw new TypeError("unknown rejection");
       return { state: x.state, commands: [], rejection: reason.slice("Canonical.".length) };
     }
     default: throw new TypeError("unknown canonical step");

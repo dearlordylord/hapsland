@@ -24,12 +24,22 @@ law canonical_cross_advicee_identity_is_distinct:
 
 law canonical_pending_work_blocks_finish:
   {Canonical.pending(1n, 1n, 1n,
-    Canonical.Work{1n, 1n, 1n, 3n, 2n, Canonical.Reviewing{}} <> Nil{}) ==
+    Canonical.Work{1n, 1n, 1n, 3n, 2n, Canonical.Reviewing{}, 0n} <> Nil{}) ==
+    True{} : Bool}
+
+law canonical_completed_finding_does_not_block_finish:
+  {Canonical.pending(1n, 1n, 1n,
+    Canonical.Work{1n, 1n, 1n, 3n, 2n, Canonical.PendingFinding{}, 1n} <> Nil{}) ==
+    False{} : Bool}
+
+law canonical_source_without_charge_blocks_finish:
+  {Canonical.pending(1n, 1n, 1n,
+    Canonical.Work{1n, 1n, 1n, 2n, 0n, Canonical.SourceReading{}, 0n} <> Nil{}) ==
     True{} : Bool}
 
 law canonical_deadline_releases_exact_charge:
   {Canonical.release_round_charges(
-    Canonical.Work{1n, 1n, 1n, 3n, 2n, Canonical.Preparing{}} <> Nil{},
+    Canonical.Work{1n, 1n, 1n, 3n, 2n, Canonical.Preparing{}, 0n} <> Nil{},
     Ledger.Ledger{Ledger.Limits{3n, 100n, 2n, 60n}, 3n,
       Ledger.Charge{2n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}}, 1n, 1n, 1n) ==
     Ledger.Ledger{Ledger.Limits{3n, 100n, 2n, 60n}, 3n, Nil{}} : Ledger.Ledger}

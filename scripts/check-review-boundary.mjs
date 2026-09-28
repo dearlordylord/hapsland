@@ -1,0 +1,17 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+const source = readFileSync(resolve(import.meta.dirname, "../src/resident/server.ts"), "utf8");
+for (const name of ["bendWorkPreparedOffer", "bendWorkEmptyPrepared",
+  "bendWorkEvaluatedDisposition", "bendWorkFailureDisposition"]) {
+  if (new RegExp(`\\b${name}\\b`).test(source)) {
+    throw new Error(`resident review decision bypasses canonical transition: ${name}`);
+  }
+}
+if (source.includes("this.#ledger.replace(")) {
+  throw new Error("resident review unit fan-out bypasses canonical preparation completion");
+}
+for (const call of ["this.#ledger.admitObservation(", "this.#ledger.completePreparation(",
+  "this.#ledger.observeReview("]) {
+  if (!source.includes(call)) throw new Error(`resident review transition missing: ${call}`);
+}

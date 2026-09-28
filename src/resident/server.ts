@@ -70,9 +70,7 @@ import { bendTicketInitial, bendTicketFail, bendTicketClose, bendTicketTerminal,
   bendDeliveryNoticeCandidate, bendDeliveryReserveCandidate,
   bendValidationRoute, bendPostValidation, bendFinalCandidate,
   bendCleanupGate, bendCleanupCommit, bendTicketRetention, bendDiscardScope,
-  bendWorkPreparedOffer, bendWorkEmptyPrepared,
-  bendWorkEvaluatedDisposition,
-  bendWorkFailureDisposition, bendTicketJoinedDisposition,
+  bendTicketJoinedDisposition,
   bendNoticePrune,
   bendDeliverySubmissionCandidate, bendDeliverySubmissionBatchGate,
   bendDeliveryCredentialObserve, bendDeliveryFinalCredentialGate,
@@ -180,6 +178,7 @@ type IngressJob = {
   completed?: boolean;
   readonly kind: "ingress";
   readonly workObservationId?: number;
+  readonly canonicalObservationId: number;
   readonly observation: DirectObservation;
   readonly partition: string;
   readonly reservation: CapacityReservation;
@@ -252,8 +251,10 @@ type UnitJob = {
   readonly round?: RoundWork;
   readonly work?: WorkCohort;
   completed?: boolean;
+  released?: boolean;
   readonly kind: "unit";
   readonly workUnitId?: number;
+  readonly canonicalOperationId: number;
   readonly observation: DirectObservation;
   readonly partition: string;
   readonly reservation: CapacityReservation;
@@ -719,6 +720,13 @@ export class ResidentServer {
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
       return ticketed ? { version: 2, status: "rejected-capacity" } : { status: "rejected-capacity" };
     }
+    let canonicalObservationId: number;
+    try {
+      canonicalObservationId = this.#ledger.admitObservation(partition);
+    } catch {
+      this.#ledger.release(reservation);
+      return ticketed ? { version: 2, status: "rejected-capacity" } : { status: "rejected-capacity" };
+    }
     const ticket: TicketRecord | undefined = ticketed ? {
       ticket: { nonce: randomUUID(), lifetime: this.lifetime },
       generation: this.#nextAdmissionGeneration++, partition,
@@ -735,12 +743,14 @@ export class ResidentServer {
       ...(round === undefined ? {} : { round, work: round.work,
         workObservationId: round.policyWork.admit() }),
       observation,
+      canonicalObservationId,
       partition,
       reservation,
       dispatch,
       ...(ticket === undefined ? {} : { ticket }),
     };
     if (!this.#dispatcher.enqueue(partition, job)) {
+      this.#ledger.observation(partition, canonicalObservationId, "interruptObservation");
       if (round !== undefined && job.workObservationId !== undefined) {
         round.policyWork.interruptSource(job.workObservationId);
       }
@@ -1578,8 +1588,11 @@ export class ResidentServer {
     else this.#currentWork.set(revision.subject, { ...retained, members: retained.members - 1 });
   }
 
-  #releaseUnit(job: Pick<UnitJob, "reservation" | "revision">): void {
-    if (this.#ledger.release(job.reservation)) this.#releaseCurrentWork(job.revision);
+  #releaseUnit(job: Pick<UnitJob, "reservation" | "revision" | "released">): void {
+    if (job.released) return;
+    job.released = true;
+    this.#ledger.release(job.reservation);
+    this.#releaseCurrentWork(job.revision);
   }
 
   #removeAdvice(id: string, token?: string): boolean {
@@ -1653,6 +1666,9 @@ export class ResidentServer {
 
   #discardJob(job: Job): void {
     if (job.completed) return;
+    if (job.kind === "ingress") {
+      this.#ledger.observation(job.partition, job.canonicalObservationId, "interruptObservation");
+    }
     if (job.kind === "ingress" && job.round !== undefined && job.workObservationId !== undefined) {
       job.round.policyWork.interruptSource(job.workObservationId);
     }
@@ -1701,6 +1717,7 @@ export class ResidentServer {
     }
     for (const partition of round.partitions) this.#reuse.discardPartition(partition);
     for (const [key, ticket] of this.#tickets) if (round.partitions.has(ticket.partition)) this.#tickets.delete(key);
+    for (const partition of round.partitions) this.#ledger.retireRound(partition);
   }
 
   async #run(job: Job, cycle: number, sequence: number): Promise<void> {
@@ -1745,6 +1762,10 @@ export class ResidentServer {
         this.#ledger.release(job.reservation);
         return;
       }
+      if (!this.#ledger.observation(job.partition, job.canonicalObservationId, "startObservation")) {
+        this.#ledger.release(job.reservation);
+        return;
+      }
       await this.#awaitBackendGate();
       const userConfigPath = job.dispatch.userConfigPath ?? undefined;
       const controlled = decodeControlledOptions(job.dispatch.controlled);
@@ -1784,13 +1805,15 @@ export class ResidentServer {
       // inputs outside the ledger.
       for (const candidate of job.observation.candidates) {
         if (!this.#jobActive(job)) return;
-        const workspace = this.#reserve(job.partition, captureWorkspaceBytes(candidate.path), "preparation");
-        if (workspace === undefined) {
+        const preparation = this.#ledger.beginObservedPreparation(
+          job.partition, job.canonicalObservationId, captureWorkspaceBytes(candidate.path));
+        if (preparation === undefined) {
           if (job.ticket !== undefined) ticketFail(job.ticket, "capacity");
           this.#rejectedCapacity += 1;
           recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
           continue;
         }
+        const workspace = preparation.reservation;
         const pathObservation: DirectObservation = { ...job.observation, candidates: [candidate] };
         const server = this;
         let prepared: PreparedObservation;
@@ -1821,13 +1844,13 @@ export class ResidentServer {
         }
         if (!this.#jobActive(job)) { this.#ledger.release(workspace); return; }
         const ready = prepared.outcomes.flatMap((outcome) => {
-          const offer = bendWorkPreparedOffer(outcome.status === "ready", true);
-          return offer.$ === "AdmitPrepared" && outcome.status === "ready" ? [outcome] : [];
+          const offer = this.#ledger.preparedOffer(outcome.status === "ready", true);
+          return offer === "preparedAdmitted" && outcome.status === "ready" ? [outcome] : [];
         });
         if (ready.length === 0) {
-          if (bendWorkEmptyPrepared(ready.length,
+          if (this.#ledger.emptyPrepared(ready.length,
             prepared.outcomes.some((outcome) => outcome.status !== "skipped"),
-            job.ticket !== undefined).$ !== "NoEmptyFailure" && job.ticket !== undefined) {
+            job.ticket !== undefined) && job.ticket !== undefined) {
             ticketFail(job.ticket, "lost");
           }
           recordActivity({
@@ -1841,8 +1864,8 @@ export class ResidentServer {
         this.#maxMaterializedPreparedUnits = Math.max(this.#maxMaterializedPreparedUnits, ready.length);
         let rejectedDeliverable = false;
         const deliverable = ready.filter((outcome) => {
-          const accepted = bendWorkPreparedOffer(true,
-            residentUnitWorstOutcomeBytes(outcome.prepared) <= MAX_IPC_FRAME_BYTES - 1024).$ === "AdmitPrepared";
+          const accepted = this.#ledger.preparedOffer(true,
+            residentUnitWorstOutcomeBytes(outcome.prepared) <= MAX_IPC_FRAME_BYTES - 1024) === "preparedAdmitted";
           if (!accepted) {
             this.#rejectedCapacity += 1;
             rejectedDeliverable = true;
@@ -1880,8 +1903,8 @@ export class ResidentServer {
         const ticketUnitOffset = job.ticket?.units.length ?? 0;
         const retained = planned.filter((item) =>
           item.kind === "owner" || (item.kind === "cached" && item.cached.evaluation.findings.length > 0));
-        const reservations = this.#ledger.replace(
-          workspace,
+        const reservations = this.#ledger.completePreparation(
+          job.partition, preparation.operation, workspace,
           retained.map((item) =>
             residentUnitReservationBytes(pathObservation, job.dispatch, item.outcome.prepared)),
         );
@@ -1926,16 +1949,16 @@ export class ResidentServer {
         for (const [index, item] of retained.entries()) {
           if (!this.#jobActive(job)) {
             for (let remaining = index; remaining < retained.length; remaining++) {
-              const reservation = reservations[remaining];
-              if (reservation !== undefined) this.#ledger.release(reservation);
+              const admitted = reservations[remaining];
+              if (admitted !== undefined) this.#ledger.release(admitted.reservation);
               const pending = retained[remaining];
               if (pending?.kind === "owner") this.#reuse.releaseClaim(pending.evaluationKey);
             }
             return;
           }
           const ticketUnit = job.ticket?.units[ticketUnitOffset + planned.indexOf(item)];
-          const reservation = reservations[index];
-          if (reservation === undefined) {
+          const admitted = reservations[index];
+          if (admitted === undefined) {
             if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "capacity");
             if (item.kind === "owner") this.#reuse.releaseClaim(item.evaluationKey);
             this.#rejectedCapacity += 1;
@@ -1943,6 +1966,7 @@ export class ResidentServer {
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
             continue;
           }
+          const reservation = admitted.reservation;
           const revision = this.#registerCurrentWork(job.partition, item.outcome.prepared);
           if (ticketUnit !== undefined) unitRevision(ticketUnit, revision);
           const workUnitId = job.round === undefined || job.workObservationId === undefined ? undefined
@@ -1964,6 +1988,7 @@ export class ResidentServer {
             kind: "unit",
             ...(job.round === undefined ? {} : { round: job.round, work: job.work }),
             ...(workUnitId === undefined ? {} : { workUnitId }),
+            canonicalOperationId: admitted.operation,
             observation: pathObservation,
             partition: job.partition,
             reservation,
@@ -1976,6 +2001,10 @@ export class ResidentServer {
             ...(job.ticket === undefined ? {} : { ticket: job.ticket }),
           };
           if (item.kind === "cached") {
+            if (!this.#ledger.startReview(job.partition, admitted.operation) ||
+                !this.#ledger.completeReview(job.partition, admitted.operation, reservation, "finding")) {
+              throw new Error("canonical cached review settlement refused");
+            }
             recordActivity({
               statePath: job.dispatch.activityPath,
               root: job.observation.root,
@@ -2024,6 +2053,9 @@ export class ResidentServer {
           !job.round.policyWork.completeSource(job.workObservationId)) {
         throw new Error("Bend denied source completion");
       }
+      if (!this.#ledger.observation(job.partition, job.canonicalObservationId, "completeObservation")) {
+        throw new Error("canonical observation completion refused");
+      }
       job.completed = true;
       await this.#afterPrepare?.();
       return;
@@ -2036,6 +2068,7 @@ export class ResidentServer {
       if (!job.completed && job.round !== undefined && job.workObservationId !== undefined) {
         job.round.policyWork.interruptSource(job.workObservationId);
       }
+      if (!job.completed) this.#ledger.observation(job.partition, job.canonicalObservationId, "interruptObservation");
       if (job.ticket !== undefined) ticketClose(job.ticket);
     }
   }
@@ -2044,6 +2077,11 @@ export class ResidentServer {
     try {
       if (job.round !== undefined && job.workUnitId !== undefined &&
           !job.round.policyWork.startUnit(job.workUnitId)) {
+        this.#reuse.releaseClaim(job.evaluationKey);
+        this.#releaseUnit(job);
+        return;
+      }
+      if (!this.#ledger.startReview(job.partition, job.canonicalOperationId)) {
         this.#reuse.releaseClaim(job.evaluationKey);
         this.#releaseUnit(job);
         return;
@@ -2214,6 +2252,9 @@ export class ResidentServer {
               : { $: "Finding", count: result.findings.length, bytes: logicalBytes(result.findings) })) {
           throw new Error("Bend denied review outcome");
         }
+        const disposition = this.#ledger.observeReview(job.partition, job.canonicalOperationId,
+          job.reservation, result.findings.length === 0 ? "clear" : "finding",
+          this.#isCurrentWork(job.revision, job.prepared));
         recordDemoTrace(job.dispatch.demoBudgetPath, job.observation.root, job.observation.advicee, {
           kind: "terminal", ...(job.sourceHash === undefined ? {} : { sourceHash: job.sourceHash }),
           state: result.findings.length === 0 ? "clear" : "findings",
@@ -2238,24 +2279,18 @@ export class ResidentServer {
             outcome: result.findings.length === 0 ? "completed-clear" : "completed-findings",
           })}\n`, "utf8");
         };
-        const disposition = bendWorkEvaluatedDisposition(result.findings.length > 0,
-          this.#isCurrentWork(job.revision, job.prepared));
-        if (disposition.$ !== "RetainFinding" && disposition.$ !== "SettleClear" &&
-            disposition.$ !== "SettleStaleClear" && disposition.$ !== "RetireStaleFinding") {
-          throw new Error("Bend denied evaluated result disposition");
-        }
-        if (disposition.$ !== "RetainFinding") {
-          if (disposition.$ === "RetireStaleFinding" &&
+        if (disposition !== "retainFinding") {
+          if (disposition === "retireStaleFinding" &&
               job.round !== undefined && job.workUnitId !== undefined) {
             job.round.policyWork.retire(job.workUnitId);
           }
           if (job.ticketUnit !== undefined) {
-            if (disposition.$ === "SettleClear") {
+            if (disposition === "settleClear") {
               unitClear(job.ticketUnit, job.revision);
             } else unitUnavailable(job.ticketUnit, "stale");
           }
           this.#settleJoined(job.evaluationKey,
-            disposition.$ === "SettleClear" ? "clear" : "unavailable",
+            disposition === "settleClear" ? "clear" : "unavailable",
             "stale");
           job.completed = true;
           this.#releaseUnit(job);
@@ -2266,23 +2301,27 @@ export class ResidentServer {
         await recordOutcome();
         return;
       }
-      const failure = bendWorkFailureDisposition(result?.status === "backend" || result?.status === "timeout",
+      const failure = this.#ledger.reviewFailure(result?.status === "backend" || result?.status === "timeout",
         result?.status === "credential", result === undefined);
-      if (failure.$ === "BackendUnavailable") {
+      if (!this.#ledger.completeReview(job.partition, job.canonicalOperationId,
+        job.reservation, "unavailable")) {
+        return;
+      }
+      if (failure === "failureBackend") {
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "backend");
         this.#settleJoined(job.evaluationKey, "unavailable", "backend");
         this.#recordOperationalFailure(job.observation, "backend", job.ticket);
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
-      } else if (failure.$ === "CredentialUnavailable") {
+      } else if (failure === "failureCredential") {
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "credential");
         this.#settleJoined(job.evaluationKey, "unavailable", "credential");
         this.#recordOperationalFailure(job.observation, "credential", job.ticket);
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
-      } else if (failure.$ === "LostUnavailable") {
+      } else if (failure === "failureLost") {
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "lost");
         this.#settleJoined(job.evaluationKey, "unavailable", "lost");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
-      } else if (failure.$ !== "NoFailure") {
+      } else if (failure !== "failureNone") {
         throw new Error("Bend denied review failure disposition");
       }
     } catch {
@@ -2361,6 +2400,7 @@ export class ResidentServer {
       id: randomUUID(),
       ...(job.round === undefined ? {} : { round: job.round }),
       ...(job.workUnitId === undefined ? {} : { workUnitId: job.workUnitId }),
+      canonicalOperationId: job.canonicalOperationId,
       observation: job.observation,
       partition: job.partition,
       reservation: job.reservation,

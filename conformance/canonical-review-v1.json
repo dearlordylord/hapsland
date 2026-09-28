@@ -1,0 +1,79 @@
+{
+  "description": "Independent source-free observation and review work expectations",
+  "traces": [
+    {
+      "name": "one observation fans out to two units and retains only a completed finding",
+      "events": [
+        { "kind": "openRound", "partition": 1, "lifetime": 1, "expect": "roundStarted:1" },
+        { "kind": "admitObservation", "partition": 1, "lifetime": 1, "round": 1, "expect": "observationAdmitted:1" },
+        { "kind": "startObservation", "partition": 1, "lifetime": 1, "round": 1, "observation": 1, "expect": "observationStarted" },
+        { "kind": "beginObservedPreparation", "partition": 1, "lifetime": 1, "round": 1, "observation": 1, "bytes": 10, "expect": "prepare:2:1" },
+        { "kind": "preparationCompleted", "partition": 1, "lifetime": 1, "round": 1, "operation": 2, "unitBytes": [8, 8], "expect": "preparationReleased:1,unitAdmitted:3:2,unitAdmitted:4:3", "afterParents": [1, 1] },
+        { "kind": "startReview", "partition": 1, "lifetime": 1, "round": 1, "operation": 3, "expect": "reviewStarted" },
+        { "kind": "reviewCompleted", "partition": 1, "lifetime": 2, "round": 1, "operation": 3, "outcome": "finding", "expect": "rejected:StaleOperation" },
+        { "kind": "reviewCompleted", "partition": 1, "lifetime": 1, "round": 2, "operation": 3, "outcome": "finding", "expect": "rejected:StaleOperation" },
+        { "kind": "reviewCompleted", "partition": 1, "lifetime": 1, "round": 1, "operation": 3, "outcome": "finding", "expect": "reviewRecorded:finding", "afterChargePurpose": "storedResult", "afterWorkKind": "pendingFinding" },
+        { "kind": "reviewCompleted", "partition": 1, "lifetime": 1, "round": 1, "operation": 3, "outcome": "finding", "expect": "rejected:StaleOperation" },
+        { "kind": "startReview", "partition": 1, "lifetime": 1, "round": 1, "operation": 4, "expect": "reviewStarted" },
+        { "kind": "reviewCompleted", "partition": 1, "lifetime": 1, "round": 1, "operation": 4, "outcome": "clear", "expect": "reservationReleased:3,reviewRecorded:clear" },
+        { "kind": "completeObservation", "partition": 1, "lifetime": 1, "round": 1, "observation": 1, "expect": "observationCompleted" },
+        { "kind": "retireReview", "partition": 1, "lifetime": 1, "round": 1, "operation": 3, "expect": "reservationReleased:2,reviewRecorded:discarded" },
+        { "kind": "retirePartition", "partition": 1, "lifetime": 1, "round": 1, "expect": "partitionRetired:1" }
+      ],
+      "finalWork": [],
+      "finalCharges": []
+    },
+    {
+      "name": "empty preparation and interrupted source create no review unit",
+      "events": [
+        { "kind": "openRound", "partition": 1, "lifetime": 1, "expect": "roundStarted:1" },
+        { "kind": "admitObservation", "partition": 1, "lifetime": 1, "round": 1, "expect": "observationAdmitted:1" },
+        { "kind": "startObservation", "partition": 1, "lifetime": 1, "round": 1, "observation": 1, "expect": "observationStarted" },
+        { "kind": "beginObservedPreparation", "partition": 1, "lifetime": 1, "round": 1, "observation": 1, "bytes": 10, "expect": "prepare:2:1" },
+        { "kind": "preparationCompleted", "partition": 1, "lifetime": 1, "round": 1, "operation": 2, "unitBytes": [], "expect": "preparationReleased:1" },
+        { "kind": "interruptObservation", "partition": 1, "lifetime": 1, "round": 1, "observation": 1, "expect": "observationInterrupted" },
+        { "kind": "completeObservation", "partition": 1, "lifetime": 1, "round": 1, "observation": 1, "expect": "rejected:WrongStage" }
+      ],
+      "finalWork": [],
+      "finalCharges": []
+    },
+    {
+      "name": "queued and active units can be discarded once",
+      "events": [
+        { "kind": "openRound", "partition": 1, "lifetime": 1, "expect": "roundStarted:1" },
+        { "kind": "admitObservation", "partition": 1, "lifetime": 1, "round": 1, "expect": "observationAdmitted:1" },
+        { "kind": "startObservation", "partition": 1, "lifetime": 1, "round": 1, "observation": 1, "expect": "observationStarted" },
+        { "kind": "beginObservedPreparation", "partition": 1, "lifetime": 1, "round": 1, "observation": 1, "bytes": 10, "expect": "prepare:2:1" },
+        { "kind": "preparationCompleted", "partition": 1, "lifetime": 1, "round": 1, "operation": 2, "unitBytes": [8, 8], "expect": "preparationReleased:1,unitAdmitted:3:2,unitAdmitted:4:3" },
+        { "kind": "reviewCompleted", "partition": 1, "lifetime": 1, "round": 1, "operation": 3, "outcome": "discarded", "expect": "reservationReleased:2,reviewRecorded:discarded" },
+        { "kind": "startReview", "partition": 1, "lifetime": 1, "round": 1, "operation": 4, "expect": "reviewStarted" },
+        { "kind": "reviewCompleted", "partition": 1, "lifetime": 1, "round": 1, "operation": 4, "outcome": "unavailable", "expect": "reservationReleased:3,reviewRecorded:unavailable" },
+        { "kind": "reviewCompleted", "partition": 1, "lifetime": 1, "round": 1, "operation": 4, "outcome": "clear", "expect": "rejected:StaleOperation" },
+        { "kind": "completeObservation", "partition": 1, "lifetime": 1, "round": 1, "observation": 1, "expect": "observationCompleted" }
+      ],
+      "finalWork": [],
+      "finalCharges": []
+    },
+    {
+      "name": "stale completed finding never becomes pending advice",
+      "events": [
+        { "kind": "openRound", "partition": 1, "lifetime": 1, "expect": "roundStarted:1" },
+        { "kind": "admitObservation", "partition": 1, "lifetime": 1, "round": 1, "expect": "observationAdmitted:1" },
+        { "kind": "startObservation", "partition": 1, "lifetime": 1, "round": 1, "observation": 1, "expect": "observationStarted" },
+        { "kind": "preparedOfferCheck", "ready": false, "withinFrame": true, "expect": "preparedSkipped" },
+        { "kind": "preparedOfferCheck", "ready": true, "withinFrame": true, "expect": "preparedAdmitted" },
+        { "kind": "preparedOfferCheck", "ready": true, "withinFrame": false, "expect": "preparedCapacityRefused" },
+        { "kind": "emptyPreparedCheck", "readyCount": 0, "hasNonSkipped": true, "ticketed": true, "expect": "emptyLost" },
+        { "kind": "reviewFailureCheck", "backendOrTimeout": true, "credential": false, "missing": false, "expect": "failureBackend" },
+        { "kind": "beginObservedPreparation", "partition": 1, "lifetime": 1, "round": 1, "observation": 1, "bytes": 10, "expect": "prepare:2:1" },
+        { "kind": "preparationCompleted", "partition": 1, "lifetime": 1, "round": 1, "operation": 2, "unitBytes": [8], "expect": "preparationReleased:1,unitAdmitted:3:2" },
+        { "kind": "startReview", "partition": 1, "lifetime": 1, "round": 1, "operation": 3, "expect": "reviewStarted" },
+        { "kind": "reviewObserved", "partition": 1, "lifetime": 1, "round": 1, "operation": 3, "outcome": "finding", "currentWork": false, "expect": "reservationReleased:2,reviewRecorded:finding,retireStaleFinding" },
+        { "kind": "reviewObserved", "partition": 1, "lifetime": 1, "round": 1, "operation": 3, "outcome": "finding", "currentWork": false, "expect": "rejected:StaleOperation" },
+        { "kind": "completeObservation", "partition": 1, "lifetime": 1, "round": 1, "observation": 1, "expect": "observationCompleted" }
+      ],
+      "finalWork": [],
+      "finalCharges": []
+    }
+  ]
+}

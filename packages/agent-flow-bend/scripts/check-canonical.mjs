@@ -118,4 +118,40 @@ for (const trace of permitFixture.traces) {
     permits: entry.permits.length, used: entry.used.length,
   })), trace.rounds, trace.name);
 }
-console.log(`checked ${fixture.traces.length + permitFixture.traces.length} independent source-free canonical traces`);
+const reviewFixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-review-v1.json"), "utf8"));
+for (const trace of reviewFixture.traces) {
+  let current = initialCanonical(fixture.limits);
+  for (const item of trace.events) {
+    const { expect: expected, afterChargePurpose, afterWorkKind, afterParents, ...event } = item;
+    const result = stepCanonical(current, event);
+    current = result.state;
+    const actual = result.rejection ? `rejected:${result.rejection}` : result.commands.map((command) => {
+      if (command.kind === "roundStarted" || command.kind === "observationAdmitted" ||
+          command.kind === "preparationReleased" || command.kind === "reservationReleased") {
+        return `${command.kind}:${command.id}`;
+      }
+      if (command.kind === "prepare" || command.kind === "unitAdmitted") {
+        return `${command.kind}:${command.operation}:${command.reservation}`;
+      }
+      if (command.kind === "reviewRecorded") return `${command.kind}:${command.outcome}`;
+      if (command.kind === "partitionRetired") return `${command.kind}:${command.round}`;
+      return command.kind;
+    }).join(",");
+    assert.equal(actual, expected, `${trace.name}: ${event.kind}`);
+    if (afterChargePurpose !== undefined) {
+      assert.equal(projectCanonical(current).charges[0]?.purpose, afterChargePurpose,
+        `${trace.name}: retained result charge`);
+    }
+    if (afterWorkKind !== undefined) {
+      assert.equal(projectCanonical(current).work.find((work) => work.operation === event.operation)?.kind, afterWorkKind,
+        `${trace.name}: completed result stage`);
+    }
+    if (afterParents !== undefined) {
+      assert.deepEqual(projectCanonical(current).work.filter((work) => work.kind === "reviewing")
+        .map((work) => work.parent), afterParents, `${trace.name}: exact unit parent identities`);
+    }
+  }
+  assert.deepEqual(projectCanonical(current).work, trace.finalWork, `${trace.name}: work`);
+  assert.deepEqual(projectCanonical(current).charges, trace.finalCharges, `${trace.name}: charges`);
+}
+console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length} independent source-free canonical traces`);
