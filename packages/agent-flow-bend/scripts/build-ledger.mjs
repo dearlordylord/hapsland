@@ -16,27 +16,25 @@ try {
   const compiled = join(temporary, "ledger.js");
   execFileSync("bend", [join(root, "LedgerRuntime.bend"), "-o", compiled], { stdio: "pipe" });
   let source = readFileSync(compiled, "utf8");
-  const footer = /\ncli\(process\.argv\.slice\(2\)\);\nio_exit\(\$main\$, [\s\S]*\);\s*$/;
+  const footer = /\ncli\(process\.argv\.slice\(\d+\)\);\nio_exit\(\$main\$, [\s\S]*\);\s*$/;
   for (const symbol of ["initial", "reserve", "release", "resize", "clear", "total", "partition_usage"]) {
     if (!source.includes(`function $Ledger$${symbol}$(`)) throw new Error(`missing generated Ledger.${symbol}`);
   }
   if (!footer.test(source)) throw new Error("Bend ledger JavaScript footer changed");
   source = source.replace(footer, `
-const MAX_NAT = (1n << 48n) - 1n;
+const MAX_NAT = 2 ** 48 - 1;
 const nat = (value) => {
-  const integer = typeof value === "number"
-    ? Number.isSafeInteger(value) ? BigInt(value) : null
-    : typeof value === "bigint" ? value : null;
-  if (integer === null || integer < 0n || integer > MAX_NAT) {
+  if (!Number.isSafeInteger(value) || value < 0 || value > MAX_NAT) {
     throw new TypeError("expected Bend Nat within the immediate range");
   }
-  return integer;
+  return value;
 };
 const normalize = (value) => {
-  if (typeof value === "number" || typeof value === "bigint") return nat(value);
+  if (typeof value === "number") return nat(value);
   if (Array.isArray(value)) return value.map(normalize);
   if (value !== null && typeof value === "object") {
-    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, normalize(item)]));
+    return Object.fromEntries(Object.entries(value).map(([key, item]) =>
+      [key, key === "$" ? item : normalize(item)]));
   }
   return value;
 };

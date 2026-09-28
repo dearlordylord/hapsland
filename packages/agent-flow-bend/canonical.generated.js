@@ -633,15 +633,7 @@ function $Ledger$reserve$check$(_limits_0, _next_id_0, _charges_0, _partition_0,
 }
 
 function $Ledger$fits$(_limits_0, _global_0, _local_0, _bytes_0) {
-  const _global_items_0 = _limits_0["global_items"];
-  const _global_bytes_0 = _limits_0["global_bytes"];
-  const _partition_items_0 = _limits_0["partition_items"];
-  const _partition_bytes_0 = _limits_0["partition_bytes"];
-  const _used_items_0 = _global_0["items"];
-  const _used_bytes_0 = _global_0["bytes"];
-  const _local_items_0 = _local_0["items"];
-  const _local_bytes_0 = _local_0["bytes"];
-  return $Bool$and$(($Nat$is_le$(nat_chk(_used_items_0 + 1), _global_items_0)), ($Bool$and$(($Nat$is_le$(nat_chk(_used_bytes_0 + _bytes_0), _global_bytes_0)), ($Bool$and$(($Nat$is_le$(nat_chk(_local_items_0 + 1), _partition_items_0)), ($Nat$is_le$(nat_chk(_local_bytes_0 + _bytes_0), _partition_bytes_0)))))));
+  return $Ledger$decision_fits$(($Ledger$fit_decision$(_limits_0, _global_0, _local_0, _bytes_0)));
 }
 
 function $Ledger$total$(_charges_0) {
@@ -678,7 +670,7 @@ function $Canonical$prepared_released$(_state_0, _partition_0, _lifetime_0, _rou
       return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0}, "reason": {$: "Canonical.InconsistentLedger"}};
     } else {
       const _released_0 = _result_0["state"];
-      return $Canonical$prepared_batch$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0}, _operation_0, _charge_0, {$: "Canonical.Batch", "ledger": _released_0, "work": {$: "Nil"}, "next_operation": _next_operation_0, "commands": {$: "Nil"}});
+      return $Canonical$prepared_batch$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0}, _operation_0, _charge_0, _partition_0, _released_0, {$: "Canonical.Batch", "ledger": _released_0, "work": {$: "Nil"}, "next_operation": _next_operation_0, "commands": {$: "Nil"}});
     }
   } else {
     const _size_0 = _bytes_0["head"];
@@ -687,7 +679,7 @@ function $Canonical$prepared_released$(_state_0, _partition_0, _lifetime_0, _rou
       return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0}, "reason": {$: "Canonical.InconsistentLedger"}};
     } else {
       const _released_1 = _result_0["state"];
-      return $Canonical$prepared_batch$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0}, _operation_0, _charge_0, ($Canonical$admit_units$(_rest_0, ($Ledger$reserve$(_released_1, _partition_0, _size_0)), _partition_0, _lifetime_0, _round_0, _next_operation_0)));
+      return $Canonical$prepared_batch$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0}, _operation_0, _charge_0, _partition_0, _released_1, ($Canonical$admit_units$({$: "Con", "head": _size_0, "tail": _rest_0}, {$: "Canonical.Batch", "ledger": _released_1, "work": {$: "Nil"}, "next_operation": _next_operation_0, "commands": {$: "Nil"}}, _partition_0, _lifetime_0, _round_0, 1)));
     }
   }
 }
@@ -858,8 +850,24 @@ function $Cmp$is_eq$(_c_0) {
   }
 }
 
-function $Nat$is_le$(_a_0, _b_0) {
-  return $Cmp$is_le$(cmp_new(_a_0, _b_0));
+function $Ledger$decision_fits$(_decision_0) {
+  if (_decision_0.$ === "Ledger.Fits") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $Ledger$fit_decision$(_limits_0, _global_0, _local_0, _bytes_0) {
+  const _global_items_0 = _limits_0["global_items"];
+  const _global_bytes_0 = _limits_0["global_bytes"];
+  const _partition_items_0 = _limits_0["partition_items"];
+  const _partition_bytes_0 = _limits_0["partition_bytes"];
+  const _used_items_0 = _global_0["items"];
+  const _used_bytes_0 = _global_0["bytes"];
+  const _local_items_0 = _local_0["items"];
+  const _local_bytes_0 = _local_0["bytes"];
+  return $Bool$pick$(($Nat$is_gt$(nat_chk(_used_items_0 + 1), _global_items_0)), {$: "Ledger.GlobalItemLimit"}, ($Bool$pick$(($Nat$is_gt$(nat_chk(_used_bytes_0 + _bytes_0), _global_bytes_0)), {$: "Ledger.GlobalByteLimit"}, ($Bool$pick$(($Nat$is_gt$(nat_chk(_local_items_0 + 1), _partition_items_0)), {$: "Ledger.PartitionItemLimit"}, ($Bool$pick$(($Nat$is_gt$(nat_chk(_local_bytes_0 + _bytes_0), _partition_bytes_0)), {$: "Ledger.PartitionByteLimit"}, {$: "Ledger.Fits"})))))));
 }
 
 function $Ledger$total$add$(_usage_0, _bytes_0) {
@@ -878,7 +886,7 @@ function $Ledger$partition_usage$add$(_usage_0, _bytes_0, _same_0) {
   }
 }
 
-function $Canonical$prepared_batch$(_state_0, _operation_0, _charge_0, _batch_0) {
+function $Canonical$prepared_batch$(_state_0, _operation_0, _charge_0, _partition_0, _released_0, _batch_0) {
   const _rounds_0 = _state_0["rounds"];
   const _work_0 = _state_0["work"];
   const _next_round_0 = _state_0["next_round"];
@@ -886,29 +894,35 @@ function $Canonical$prepared_batch$(_state_0, _operation_0, _charge_0, _batch_0)
   const _units_0 = _batch_0["work"];
   const _next_0 = _batch_0["next_operation"];
   const _commands_0 = _batch_0["commands"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($List$append$(($Canonical$remove_work$(_operation_0, _work_0)), _units_0)), "next_round": _next_round_0, "next_operation": _next_0}, "commands": {$: "Con", "head": {$: "Canonical.ReservationReleased", "id": _charge_0}, "tail": _commands_0}};
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($List$append$(($Canonical$remove_work$(_operation_0, _work_0)), _units_0)), "next_round": _next_round_0, "next_operation": _next_0}, "commands": {$: "Con", "head": {$: "Canonical.PreparationReleased", "id": _charge_0, "after": ($Canonical$capacity_view$(_released_0, _partition_0))}, "tail": _commands_0}};
 }
 
-function $Canonical$admit_units$(_rest_0, _result_0, _partition_0, _lifetime_0, _round_0, _next_operation_0) {
-  if (_rest_0.$ === "Nil") {
-    if (_result_0.$ === "Ledger.Granted") {
-      const _granted_0 = _result_0["state"];
-      const _id_0 = _result_0["id"];
-      return {$: "Canonical.Batch", "ledger": _granted_0, "work": {$: "Con", "head": {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _next_operation_0, "charge": _id_0, "kind": {$: "Canonical.Reviewing"}}, "tail": {$: "Nil"}}, "next_operation": nat_chk(_next_operation_0 + 1), "commands": {$: "Con", "head": {$: "Canonical.UnitAdmitted", "operation": _next_operation_0, "reservation": _id_0}, "tail": {$: "Nil"}}};
-    } else {
-      const _unchanged_0 = _result_0["state"];
-      return {$: "Canonical.Batch", "ledger": _unchanged_0, "work": {$: "Nil"}, "next_operation": _next_operation_0, "commands": {$: "Con", "head": {$: "Canonical.UnitRefused"}, "tail": {$: "Nil"}}};
-    }
-  } else {
-    const _size_0 = _rest_0["head"];
-    const _tail_0 = _rest_0["tail"];
-    if (_result_0.$ === "Ledger.Granted") {
-      const _granted_1 = _result_0["state"];
-      const _id_1 = _result_0["id"];
-      return $Canonical$admit_granted_batch$(_partition_0, _lifetime_0, _round_0, _next_operation_0, _id_1, ($Canonical$admit_units$(_tail_0, ($Ledger$reserve$(_granted_1, _partition_0, _size_0)), _partition_0, _lifetime_0, _round_0, nat_chk(_next_operation_0 + 1))));
-    } else {
-      const _unchanged_1 = _result_0["state"];
-      return $Canonical$admit_refused_batch$(($Canonical$admit_units$(_tail_0, ($Ledger$reserve$(_unchanged_1, _partition_0, _size_0)), _partition_0, _lifetime_0, _round_0, _next_operation_0)));
+function $Canonical$admit_units$($0, $1, $2, $3, $4, $5) {
+  for (;;) {
+    {
+      const _sizes_0 = $0;
+      const _batch_0 = $1;
+      const _partition_0 = $2;
+      const _lifetime_0 = $3;
+      const _round_0 = $4;
+      const _position_0 = $5;
+      if (_sizes_0.$ === "Nil") {
+        return _batch_0;
+      } else {
+        const _size_0 = _sizes_0["head"];
+        const _rest_0 = _sizes_0["tail"];
+        const _ledger_0 = _batch_0["ledger"];
+        const _work_0 = _batch_0["work"];
+        const _operation_0 = _batch_0["next_operation"];
+        const _commands_0 = _batch_0["commands"];
+        $0 = _rest_0;
+        $1 = ($Canonical$admit_one$(($Ledger$reserve$(_ledger_0, _partition_0, _size_0)), _partition_0, _lifetime_0, _round_0, _operation_0, _position_0, _size_0, _work_0, _commands_0));
+        $2 = _partition_0;
+        $3 = _lifetime_0;
+        $4 = _round_0;
+        $5 = nat_chk(_position_0 + 1);
+        continue;
+      }
     }
   }
 }
@@ -985,30 +999,20 @@ function $Canonical$cancel_pick$(_operation_0, _tail_0, _hit_0) {
   }
 }
 
-function $Cmp$is_le$(_c_0) {
-  if (_c_0.$ === "LT") {
-    return true;
-  } else if (_c_0.$ === "EQ") {
-    return true;
+function $Canonical$capacity_view$(_ledger_0, _partition_0) {
+  const _charges_0 = _ledger_0["charges"];
+  return {$: "Canonical.CapacityView", "global": ($Ledger$total$(_charges_0)), "local": ($Ledger$partition_usage$(_charges_0, _partition_0)), "charges": _charges_0};
+}
+
+function $Canonical$admit_one$(_result_0, _partition_0, _lifetime_0, _round_0, _operation_0, _position_0, _bytes_0, _work_0, _commands_0) {
+  if (_result_0.$ === "Ledger.Granted") {
+    const _granted_0 = _result_0["state"];
+    const _id_0 = _result_0["id"];
+    return {$: "Canonical.Batch", "ledger": _granted_0, "work": {$: "Con", "head": {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "charge": _id_0, "kind": {$: "Canonical.Reviewing"}}, "tail": _work_0}, "next_operation": nat_chk(_operation_0 + 1), "commands": ($List$append$(_commands_0, {$: "Con", "head": {$: "Canonical.UnitAdmitted", "operation": _operation_0, "reservation": _id_0, "position": _position_0, "bytes": _bytes_0, "after": ($Canonical$capacity_view$(_granted_0, _partition_0))}, "tail": {$: "Nil"}}))};
   } else {
-    return false;
+    const _unchanged_0 = _result_0["state"];
+    return {$: "Canonical.Batch", "ledger": _unchanged_0, "work": _work_0, "next_operation": _operation_0, "commands": ($List$append$(_commands_0, {$: "Con", "head": {$: "Canonical.UnitRefused", "position": _position_0, "bytes": _bytes_0, "reason": ($Ledger$admission$(_unchanged_0, _partition_0, _bytes_0)), "after": ($Canonical$capacity_view$(_unchanged_0, _partition_0))}, "tail": {$: "Nil"}}))};
   }
-}
-
-function $Canonical$admit_granted_batch$(_partition_0, _lifetime_0, _round_0, _operation_0, _charge_0, _batch_0) {
-  const _ledger_0 = _batch_0["ledger"];
-  const _work_0 = _batch_0["work"];
-  const _next_0 = _batch_0["next_operation"];
-  const _commands_0 = _batch_0["commands"];
-  return {$: "Canonical.Batch", "ledger": _ledger_0, "work": {$: "Con", "head": {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "charge": _charge_0, "kind": {$: "Canonical.Reviewing"}}, "tail": _work_0}, "next_operation": _next_0, "commands": {$: "Con", "head": {$: "Canonical.UnitAdmitted", "operation": _operation_0, "reservation": _charge_0}, "tail": _commands_0}};
-}
-
-function $Canonical$admit_refused_batch$(_batch_0) {
-  const _ledger_0 = _batch_0["ledger"];
-  const _work_0 = _batch_0["work"];
-  const _next_0 = _batch_0["next_operation"];
-  const _commands_0 = _batch_0["commands"];
-  return {$: "Canonical.Batch", "ledger": _ledger_0, "work": _work_0, "next_operation": _next_0, "commands": {$: "Con", "head": {$: "Canonical.UnitRefused"}, "tail": _commands_0}};
 }
 
 function $Ledger$remove$pick$(_charge_0, _tail_0, _hit_0) {
@@ -1026,6 +1030,12 @@ function $Canonical$stop_ready$(_state_0, _partition_0, _lifetime_0, _round_0, _
   const _next_round_0 = _state_0["next_round"];
   const _next_operation_0 = _state_0["next_operation"];
   return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($Canonical$release_round_charges$(_work_0, _ledger_0, _partition_0, _lifetime_0, _round_0)), "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _round_0, "waiting": false, "deciding": true, "write": {$: "None"}, "uncertain": _uncertain_0}, "tail": ($Canonical$remove_round$(_partition_0, _rounds_0))}, "work": ($Canonical$retain_other_work$(_work_0, _partition_0, _lifetime_0, _round_0)), "next_round": _next_round_0, "next_operation": _next_operation_0}, "commands": ($List$append$(($Canonical$release_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), ($List$append$(($Canonical$cancel_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), {$: "Con", "head": ($Bool$pick$(($Bool$and$(_uncertain_0, ($Bool$not$(_deadline_0)))), {$: "Canonical.ReofferAtStop"}, {$: "Canonical.FinishReady"})), "tail": {$: "Nil"}}))))};
+}
+
+function $Ledger$admission$(_state_0, _partition_0, _bytes_0) {
+  const _limits_0 = _state_0["limits"];
+  const _charges_0 = _state_0["charges"];
+  return $Ledger$fit_decision$(_limits_0, ($Ledger$total$(_charges_0)), ($Ledger$partition_usage$(_charges_0, _partition_0)), _bytes_0);
 }
 
 // Cli

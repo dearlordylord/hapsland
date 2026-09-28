@@ -13,6 +13,12 @@ def Laws.canonical_deadline_releases_exact_charge():
 def Laws.canonical_uncertain_write_is_not_acknowledged():
   {==}
 
+def Laws.canonical_capacity_reason_uses_first_exceeded_limit():
+  {==}
+
+def Laws.canonical_capacity_view_uses_bend_ledger_totals():
+  {==}
+
 def Laws.import_graph_exclusion_has_no_read_command():
   {==}
 

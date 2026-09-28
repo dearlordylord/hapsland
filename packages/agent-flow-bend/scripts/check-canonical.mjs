@@ -8,6 +8,7 @@ const format = (commands) => commands.map((item) => {
   switch (item.kind) {
     case "prepare": case "unitAdmitted": return `${item.kind}:${item.operation}:${item.reservation}`;
     case "roundStarted": case "reservationReleased": return `${item.kind}:${item.id}`;
+    case "preparationReleased": return `reservationReleased:${item.id}`;
     case "partitionRetired": return `${item.kind}:${item.round}`;
     case "writeAuthorized": case "cancelWork": return `${item.kind}:${item.operation}`;
     case "reviewRecorded": case "writeRecorded": return `${item.kind}:${item.outcome}`;
@@ -17,15 +18,22 @@ const format = (commands) => commands.map((item) => {
 for (const trace of fixture.traces) {
   let state = initialCanonical(fixture.limits);
   const commands = [];
+  const capacity = [];
   for (const event of trace.events) {
     const result = stepCanonical(state, event);
     state = result.state;
     commands.push(result.rejection ? `rejected:${result.rejection}` : format(result.commands));
+    if (event.kind === "preparationCompleted") capacity.push(result.commands
+      .filter((command) => "after" in command)
+      .map((command) => ({ kind: command.kind, ...("position" in command ? { position: command.position, bytes: command.bytes } : {}),
+        ...("reason" in command ? { reason: command.reason } : {}),
+        global: command.after.global, local: command.after.local, charges: command.after.charges })));
   }
   assert.deepEqual(commands, trace.commands, trace.name);
   assert.deepEqual(projectCanonical(state).global, trace.global, `${trace.name}: ledger`);
   assert.deepEqual(projectCanonical(state).partitions, trace.partitions, `${trace.name}: advicee usage`);
   if (trace.charges) assert.deepEqual(projectCanonical(state).charges, trace.charges, `${trace.name}: reservations`);
+  if (trace.capacity) assert.deepEqual(capacity, trace.capacity, `${trace.name}: ordered capacity decisions`);
   if (trace.expectedDecisionPending) {
     assert.equal(projectCanonical(state).rounds[0]?.deciding, true, `${trace.name}: decision fence`);
   }
@@ -44,6 +52,6 @@ let edge = initialCanonical({ globalItems: 2, globalBytes: 2 ** 47 - 1, partitio
 edge = stepCanonical(edge, { kind: "openRound", partition: 1, lifetime: 1 }).state;
 edge = stepCanonical(edge, { kind: "beginPreparation", partition: 1, lifetime: 1, round: 1, bytes: 1 }).state;
 const nearLimit = stepCanonical(edge, { kind: "preparationCompleted", partition: 1, lifetime: 1, round: 1, operation: 1, unitBytes: [2 ** 47 - 1, 2 ** 47 - 1] });
-assert.deepEqual(nearLimit.commands.map((command) => command.kind), ["reservationReleased", "unitAdmitted", "unitRefused"]);
+assert.deepEqual(nearLimit.commands.map((command) => command.kind), ["preparationReleased", "unitAdmitted", "unitRefused"]);
 assert.equal(projectCanonical(nearLimit.state).global.bytes, 2 ** 47 - 1);
 console.log(`checked ${fixture.traces.length} independent source-free canonical traces`);

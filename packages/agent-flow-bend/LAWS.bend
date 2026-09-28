@@ -37,6 +37,18 @@ law canonical_deadline_releases_exact_charge:
 law canonical_uncertain_write_is_not_acknowledged:
   {Canonical.write_is_unknown(Canonical.Unknown{}) == True{} : Bool}
 
+law canonical_capacity_reason_uses_first_exceeded_limit:
+  {Ledger.fit_decision(Ledger.Limits{3n, 100n, 2n, 60n},
+    Ledger.Usage{3n, 80n}, Ledger.Usage{1n, 40n}, 40n) ==
+    Ledger.GlobalItemLimit{} : Ledger.FitDecision}
+
+law canonical_capacity_view_uses_bend_ledger_totals:
+  {Canonical.capacity_view(Ledger.Ledger{Ledger.Limits{3n, 100n, 2n, 60n},
+    3n, Ledger.Charge{1n, 1n, 10n} <> Ledger.Charge{2n, 2n, 20n} <> Nil{}}, 1n) ==
+    Canonical.CapacityView{Ledger.Usage{2n, 30n}, Ledger.Usage{1n, 10n},
+      Ledger.Charge{1n, 1n, 10n} <> Ledger.Charge{2n, 2n, 20n} <> Nil{}} :
+    Canonical.CapacityView}
+
 law import_graph_exclusion_has_no_read_command:
   {ImportGraph.checked(ImportGraph.Edge{2n, 1n}, 2n, False{},
     Nil{}, 1n <> Nil{}, 1n, 100n, 100n, 1n, False{}, False{}) ==

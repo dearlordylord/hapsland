@@ -70,8 +70,9 @@ export type CanonicalCommand =
   | { readonly kind: "roundStarted"; readonly id: number }
   | { readonly kind: "prepare"; readonly operation: number; readonly reservation: number }
   | { readonly kind: "preparationRefused" }
-  | { readonly kind: "unitAdmitted"; readonly operation: number; readonly reservation: number }
-  | { readonly kind: "unitRefused" }
+  | { readonly kind: "unitAdmitted"; readonly operation: number; readonly reservation: number; readonly position: number; readonly bytes: number; readonly after: CapacityView }
+  | { readonly kind: "unitRefused"; readonly position: number; readonly bytes: number; readonly reason: CapacityRefusal; readonly after: CapacityView }
+  | { readonly kind: "preparationReleased"; readonly id: number; readonly after: CapacityView }
   | { readonly kind: "reservationReleased"; readonly id: number }
   | { readonly kind: "reviewRecorded"; readonly outcome: "finding" | "clear" | "unavailable" }
   | { readonly kind: "waitForWork" }
@@ -122,13 +123,46 @@ const writeOutcome = (value: unknown): "acknowledged" | "failed" | "unknown" => 
   if (name === "Canonical.Unknown") return "unknown";
   throw new TypeError("unknown write outcome");
 };
+export type CapacityRefusal = "globalItems" | "globalBytes" | "partitionItems" | "partitionBytes";
+export type CapacityView = {
+  readonly global: { readonly items: number; readonly bytes: number };
+  readonly local: { readonly items: number; readonly bytes: number };
+  readonly charges: readonly { readonly id: number; readonly partition: number; readonly bytes: number }[];
+};
+const usage = (value: unknown): { readonly items: number; readonly bytes: number } => {
+  const x = fields(value, "Ledger.Usage", ["items", "bytes"]);
+  return { items: nat(x.items), bytes: nat(x.bytes) };
+};
+const capacityView = (value: unknown): CapacityView => {
+  const x = fields(value, "Canonical.CapacityView", ["global", "local", "charges"]);
+  const charges = readList(x.charges, (item) => {
+    const charge = fields(item, "Ledger.Charge", ["id", "partition", "bytes"]);
+    return { id: nat(charge.id, true), partition: nat(charge.partition, true), bytes: nat(charge.bytes) };
+  });
+  const global = usage(x.global);
+  const local = usage(x.local);
+  if (charges.length !== global.items || charges.reduce((sum, charge) => sum + charge.bytes, 0) !== global.bytes ||
+      local.items > global.items || local.bytes > global.bytes) throw new TypeError("invalid capacity view");
+  return { global, local, charges };
+};
+const capacityRefusal = (value: unknown): CapacityRefusal => {
+  const reasons: Record<string, CapacityRefusal> = {
+    "Ledger.GlobalItemLimit": "globalItems", "Ledger.GlobalByteLimit": "globalBytes",
+    "Ledger.PartitionItemLimit": "partitionItems", "Ledger.PartitionByteLimit": "partitionBytes",
+  };
+  const reason = reasons[tag(value)];
+  if (!reason) throw new TypeError("unknown capacity refusal");
+  fields(value, tag(value), []);
+  return reason;
+};
 const decodeCommand = (value: unknown): CanonicalCommand => {
   switch (tag(value)) {
     case "Canonical.RoundStarted": return { kind: "roundStarted", id: nat(fields(value, "Canonical.RoundStarted", ["id"]).id, true) };
     case "Canonical.Prepare": { const x = fields(value, "Canonical.Prepare", ["operation", "reservation"]); return { kind: "prepare", operation: nat(x.operation, true), reservation: nat(x.reservation, true) }; }
     case "Canonical.PreparationRefused": fields(value, "Canonical.PreparationRefused", []); return { kind: "preparationRefused" };
-    case "Canonical.UnitAdmitted": { const x = fields(value, "Canonical.UnitAdmitted", ["operation", "reservation"]); return { kind: "unitAdmitted", operation: nat(x.operation, true), reservation: nat(x.reservation, true) }; }
-    case "Canonical.UnitRefused": fields(value, "Canonical.UnitRefused", []); return { kind: "unitRefused" };
+    case "Canonical.UnitAdmitted": { const x = fields(value, "Canonical.UnitAdmitted", ["operation", "reservation", "position", "bytes", "after"]); return { kind: "unitAdmitted", operation: nat(x.operation, true), reservation: nat(x.reservation, true), position: nat(x.position, true), bytes: bytes(x.bytes), after: capacityView(x.after) }; }
+    case "Canonical.UnitRefused": { const x = fields(value, "Canonical.UnitRefused", ["position", "bytes", "reason", "after"]); return { kind: "unitRefused", position: nat(x.position, true), bytes: bytes(x.bytes), reason: capacityRefusal(x.reason), after: capacityView(x.after) }; }
+    case "Canonical.PreparationReleased": { const x = fields(value, "Canonical.PreparationReleased", ["id", "after"]); return { kind: "preparationReleased", id: nat(x.id, true), after: capacityView(x.after) }; }
     case "Canonical.ReservationReleased": return { kind: "reservationReleased", id: nat(fields(value, "Canonical.ReservationReleased", ["id"]).id, true) };
     case "Canonical.ReviewRecorded": return { kind: "reviewRecorded", outcome: outcome(fields(value, "Canonical.ReviewRecorded", ["outcome"]).outcome) };
     case "Canonical.WaitForWork": fields(value, "Canonical.WaitForWork", []); return { kind: "waitForWork" };

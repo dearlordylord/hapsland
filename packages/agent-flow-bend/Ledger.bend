@@ -18,6 +18,13 @@ type LedgerResult is Data:
   Granted{state: Ledger, id: Nat}
   Rejected{state: Ledger}
 
+type FitDecision is Data:
+  Fits{}
+  GlobalItemLimit{}
+  GlobalByteLimit{}
+  PartitionItemLimit{}
+  PartitionByteLimit{}
+
 def initial(limits: Limits) -> Ledger:
   Ledger{limits, 1n, Nil{}}
 
@@ -49,17 +56,36 @@ def partition_usage(charges: List<&2, Charge>, +partition: Nat) -> Usage:
     case Charge{_, owner, bytes} <> rest:
       partition_usage.add(partition_usage(rest, partition), bytes, Nat.is_eq(owner, partition))
 
-def fits(limits: Limits, global: Usage, local: Usage, +bytes: Nat) -> Bool:
+def fit_decision(limits: Limits, global: Usage, local: Usage, +bytes: Nat) -> FitDecision:
   match limits:
     case Limits{global_items, global_bytes, partition_items, partition_bytes}:
       match global:
         case Usage{used_items, used_bytes}:
           match local:
             case Usage{local_items, local_bytes}:
-              Bool.and(Nat.is_le((used_items + 1n : Nat), global_items),
-                Bool.and(Nat.is_le((used_bytes + bytes : Nat), global_bytes),
-                  Bool.and(Nat.is_le((local_items + 1n : Nat), partition_items),
-                    Nat.is_le((local_bytes + bytes : Nat), partition_bytes))))
+              Bool.pick(FitDecision, Nat.is_gt((used_items + 1n : Nat), global_items),
+                GlobalItemLimit{},
+                Bool.pick(FitDecision, Nat.is_gt((used_bytes + bytes : Nat), global_bytes),
+                  GlobalByteLimit{},
+                  Bool.pick(FitDecision, Nat.is_gt((local_items + 1n : Nat), partition_items),
+                    PartitionItemLimit{},
+                    Bool.pick(FitDecision, Nat.is_gt((local_bytes + bytes : Nat), partition_bytes),
+                      PartitionByteLimit{}, Fits{}))))
+
+def decision_fits(decision: FitDecision) -> Bool:
+  match decision:
+    case Fits{}:
+      True{}
+    case _:
+      False{}
+
+def fits(limits: Limits, global: Usage, local: Usage, bytes: Nat) -> Bool:
+  decision_fits(fit_decision(limits, global, local, bytes))
+
+def admission(state: Ledger, +partition: Nat, +bytes: Nat) -> FitDecision:
+  match state:
+    case Ledger{limits, _, +charges}:
+      fit_decision(limits, total(charges), partition_usage(charges, partition), bytes)
 
 def reserve.check(limits: Limits, +next_id: Nat, charges: List<&2, Charge>,
     partition: Nat, bytes: Nat, allowed: Bool) -> LedgerResult:

@@ -59,13 +59,13 @@ export const encodedBytesWithin = (value: unknown, maximum: number): number | un
  */
 export class CapacityLedger {
   readonly #reservations = new Map<number, CapacityReservation>();
-  readonly #partitionIds = new Map<string, bigint>();
-  #nextPartitionId = 1n;
+  readonly #partitionIds = new Map<string, number>();
+  #nextPartitionId = 1;
   #state: BendLedger;
 
   constructor(limits: CapacityLimits = defaultLimits) {
     this.#state = bendLedgerInitial({
-      $: "Limits",
+      $: "Ledger.Limits",
       global_items: limits.globalItems,
       global_bytes: limits.globalBytes,
       partition_items: limits.partitionItems,
@@ -86,9 +86,9 @@ export class CapacityLedger {
     } catch {
       return undefined;
     }
-    if (result.$ !== "Granted" || result.id > BigInt(Number.MAX_SAFE_INTEGER) ||
-        result.state.$ !== "Ledger") return undefined;
-    const id = Number(result.id);
+    if (result.$ !== "Ledger.Granted" || !Number.isSafeInteger(result.id) ||
+        result.state.$ !== "Ledger.Ledger") return undefined;
+    const id = result.id;
     if (this.#reservations.has(id)) return undefined;
     this.#state = result.state;
     const reservation = { id, partition, bytes };
@@ -105,8 +105,8 @@ export class CapacityLedger {
     } catch {
       return false;
     }
-    if (result.$ !== "Granted" || result.id !== BigInt(reservation.id) ||
-        result.state.$ !== "Ledger") return false;
+    if (result.$ !== "Ledger.Granted" || result.id !== reservation.id ||
+        result.state.$ !== "Ledger.Ledger") return false;
     this.#state = result.state;
     (reservation as { bytes: number }).bytes = bytes;
     return true;
@@ -132,12 +132,12 @@ export class CapacityLedger {
     } catch {
       return false;
     }
-    if (result.$ !== "Granted" || result.id !== BigInt(reservation.id) ||
-        result.state.$ !== "Ledger") return false;
+    if (result.$ !== "Ledger.Granted" || result.id !== reservation.id ||
+        result.state.$ !== "Ledger.Ledger") return false;
     this.#state = result.state;
     this.#reservations.delete(reservation.id);
     const partitionId = this.#partitionIds.get(reservation.partition);
-    if (partitionId !== undefined && bendLedgerPartitionUsage(this.#state, partitionId).items === 0n) {
+    if (partitionId !== undefined && bendLedgerPartitionUsage(this.#state, partitionId).items === 0) {
       this.#partitionIds.delete(reservation.partition);
     }
     return true;
@@ -154,7 +154,7 @@ export class CapacityLedger {
     const entries: Array<[string, { items: number; bytes: number }]> = [];
     for (const [partition, id] of this.#partitionIds) {
       const usage = bendLedgerPartitionUsage(this.#state, id);
-      if (usage.items > 0n) entries.push([partition, {
+      if (usage.items > 0) entries.push([partition, {
         items: Number(usage.items), bytes: Number(usage.bytes),
       }]);
     }

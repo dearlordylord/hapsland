@@ -111,6 +111,169 @@
           "partition": 2,
           "bytes": 40
         }
+      ],
+      "capacity": [
+        [
+          {
+            "kind": "preparationReleased",
+            "local": {
+              "items": 0,
+              "bytes": 0
+            },
+            "charges": [
+              {
+                "id": 2,
+                "partition": 2,
+                "bytes": 40
+              }
+            ],
+            "global": {
+              "items": 1,
+              "bytes": 40
+            }
+          },
+          {
+            "kind": "unitAdmitted",
+            "position": 1,
+            "bytes": 20,
+            "local": {
+              "items": 1,
+              "bytes": 20
+            },
+            "charges": [
+              {
+                "id": 2,
+                "partition": 2,
+                "bytes": 40
+              },
+              {
+                "id": 3,
+                "partition": 1,
+                "bytes": 20
+              }
+            ],
+            "global": {
+              "items": 2,
+              "bytes": 60
+            }
+          },
+          {
+            "kind": "unitAdmitted",
+            "position": 2,
+            "bytes": 20,
+            "local": {
+              "items": 2,
+              "bytes": 40
+            },
+            "charges": [
+              {
+                "id": 2,
+                "partition": 2,
+                "bytes": 40
+              },
+              {
+                "id": 3,
+                "partition": 1,
+                "bytes": 20
+              },
+              {
+                "id": 4,
+                "partition": 1,
+                "bytes": 20
+              }
+            ],
+            "global": {
+              "items": 3,
+              "bytes": 80
+            }
+          }
+        ],
+        [
+          {
+            "kind": "preparationReleased",
+            "local": {
+              "items": 0,
+              "bytes": 0
+            },
+            "charges": [
+              {
+                "id": 3,
+                "partition": 1,
+                "bytes": 20
+              },
+              {
+                "id": 4,
+                "partition": 1,
+                "bytes": 20
+              }
+            ],
+            "global": {
+              "items": 2,
+              "bytes": 40
+            }
+          },
+          {
+            "kind": "unitAdmitted",
+            "position": 1,
+            "bytes": 40,
+            "local": {
+              "items": 1,
+              "bytes": 40
+            },
+            "charges": [
+              {
+                "id": 3,
+                "partition": 1,
+                "bytes": 20
+              },
+              {
+                "id": 4,
+                "partition": 1,
+                "bytes": 20
+              },
+              {
+                "id": 5,
+                "partition": 2,
+                "bytes": 40
+              }
+            ],
+            "global": {
+              "items": 3,
+              "bytes": 80
+            }
+          },
+          {
+            "kind": "unitRefused",
+            "position": 2,
+            "bytes": 40,
+            "reason": "globalItems",
+            "local": {
+              "items": 1,
+              "bytes": 40
+            },
+            "charges": [
+              {
+                "id": 3,
+                "partition": 1,
+                "bytes": 20
+              },
+              {
+                "id": 4,
+                "partition": 1,
+                "bytes": 20
+              },
+              {
+                "id": 5,
+                "partition": 2,
+                "bytes": 40
+              }
+            ],
+            "global": {
+              "items": 3,
+              "bytes": 80
+            }
+          }
+        ]
       ]
     },
     {
@@ -257,6 +420,88 @@
           "items": 0,
           "bytes": 0
         }
+      ],
+      "capacity": [
+        [
+          {
+            "kind": "preparationReleased",
+            "local": {
+              "items": 0,
+              "bytes": 0
+            },
+            "charges": [],
+            "global": {
+              "items": 0,
+              "bytes": 0
+            }
+          },
+          {
+            "kind": "unitAdmitted",
+            "position": 1,
+            "bytes": 10,
+            "local": {
+              "items": 1,
+              "bytes": 10
+            },
+            "charges": [
+              {
+                "id": 2,
+                "partition": 1,
+                "bytes": 10
+              }
+            ],
+            "global": {
+              "items": 1,
+              "bytes": 10
+            }
+          },
+          {
+            "kind": "unitRefused",
+            "position": 2,
+            "bytes": 60,
+            "reason": "partitionBytes",
+            "local": {
+              "items": 1,
+              "bytes": 10
+            },
+            "charges": [
+              {
+                "id": 2,
+                "partition": 1,
+                "bytes": 10
+              }
+            ],
+            "global": {
+              "items": 1,
+              "bytes": 10
+            }
+          },
+          {
+            "kind": "unitAdmitted",
+            "position": 3,
+            "bytes": 20,
+            "local": {
+              "items": 2,
+              "bytes": 30
+            },
+            "charges": [
+              {
+                "id": 2,
+                "partition": 1,
+                "bytes": 10
+              },
+              {
+                "id": 3,
+                "partition": 1,
+                "bytes": 20
+              }
+            ],
+            "global": {
+              "items": 2,
+              "bytes": 30
+            }
+          }
+        ]
       ]
     },
     {
