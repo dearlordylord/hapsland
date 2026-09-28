@@ -1,5 +1,9 @@
 # Current
 
+This is a temporary migration handoff. Delete `CURRENT.md` in #137 after the
+final source-linked authority report replaces it; do not publish it as a
+permanent product document.
+
 ## Objective and current step
 
 Implement [#117–#137](https://github.com/dearlordylord/hapsland/issues/116):
