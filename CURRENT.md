@@ -320,6 +320,17 @@ authority review after #135/#136. #143 is a separate resident-process lifetime
 task, not part of the Bend state-cleanup task #131. #139/#140/#142 remain
 separate follow-ups.
 
+For #137, after implementation and validation evidence is complete, revisit
+source precedence against the final authority boundary. The final report must
+state the accepted target sources, current implementation evidence, and which
+material is advisory or historical. Decide whether to retire
+[`docs/bend-requirements-crosswalk.md`](docs/bend-requirements-crosswalk.md)
+only after reviewing #118's requirements and that final report. TypeScript
+display, layout, and instrumentation projections may remain only when they
+cannot affect product decisions; decision-affecting values must be explicit
+Bend facts. TypeScript measures time and supplies clock and deadline facts;
+pure Bend decisions have no implicit host clock.
+
 The imported graph and audit work from #117/#118/#141 is present in the epic
 branch, but those issues remain open. Audit their own criteria before closing
 them; their open status does not turn #119 back into active work.

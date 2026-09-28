@@ -80,3 +80,9 @@ this interface for capacity and integrated decision paths; TypeScript owns
 runtime orchestration and effects, with generated Bend policy modules at the
 other decision boundaries.
 Run `npm run test:canonical` for Bend proofs and independent source-free traces.
+
+TypeScript may derive display, layout, and instrumentation projections only
+when those values cannot affect a product decision. It supplies any
+decision-affecting value as an explicit fact to Bend. TypeScript measures time
+and supplies clock and deadline facts; pure Bend decisions do not read an
+implicit host clock.
