@@ -463,7 +463,7 @@ describe("resident delivery lease", () => {
     }
   });
 
-  it("waits for a live background write, then reoffers once without replaying output authorization", async () => {
+  it("waits for a live background write, then suppresses it after submission", async () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
@@ -488,16 +488,9 @@ describe("resident delivery lease", () => {
       expect((await server.handle(request)).status).toBe("pending");
       expect(server.acknowledge(background.token).status).toBe("acknowledged");
       expect(server.finalize(background.token).status).toBe("finalized");
-      const decision = await server.handle(request);
-      if (decision.status !== "advice") throw new Error("missing reoffer");
-      expect(decision.findingCount).toBe(1);
-      expect((await server.handle(request)).status).toBe("empty");
-      expect(server.beginComposedSubmission(decision.token, "stop").status).toBe("submitting");
-      expect(server.beginComposedSubmission(decision.token, "stop").status).toBe("empty");
-      expect(server.acknowledge(decision.token).status).toBe("acknowledged");
-      expect(server.finalize(decision.token).status).toBe("finalized");
+      expect((await server.handle({ ...request, finish: { token: "finish", deadlineReached: true } })).status).toBe("empty");
       await server.handle({ version: 1, operation: "finish-stop", lifetime: server.lifetime,
-        root, advicee: observation.advicee, token: "finish", close: false });
+        root, advicee: observation.advicee, token: "finish", close: true });
       await server.handle({ version: 1, operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "second-finish" });
       expect((await server.handle({ ...request, finish: { token: "second-finish", deadlineReached: false } })).status).toBe("empty");

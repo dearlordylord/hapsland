@@ -270,7 +270,8 @@ def main() -> FinishResult:
 
 # Each item has at most one live writer. An uncertain write means the writer has
 # terminated without a reliable acknowledgement; it consumes the original
-# slot. A reoffer can be granted once at Stop after fresh validation.
+# slot. Only an uncertain background write can be reoffered once at Stop after
+# fresh validation; a successful stdout write counts as delivery.
 type Surface is Data:
   Edit{}
   Background{}
@@ -435,7 +436,7 @@ def lease.reoffer.phase(item: Nat, round: Nat, closed: Bool, reoffered: Bool,
     phase: LeasePhase, token: Nat) -> LeaseResult:
   match phase:
     case Submitted{surface}:
-      lease.reoffer.surface(item, round, closed, reoffered, surface, False{}, token)
+      Denied{Lease{item, round, closed, reoffered, Submitted{surface}}}
     case Uncertain{surface}:
       lease.reoffer.surface(item, round, closed, reoffered, surface, True{}, token)
     case _:
@@ -468,8 +469,6 @@ def lease.offer.background(+state: Lease, round: Nat, token: Nat,
 def lease.offer.phase(+state: Lease, round: Nat, token: Nat,
     surface: Surface, fresh: Bool, phase: LeasePhase) -> LeaseResult:
   match phase:
-    case Submitted{Background{}}:
-      lease.offer.background(state, round, token, surface, fresh)
     case Uncertain{Background{}}:
       lease.offer.background(state, round, token, surface, fresh)
     case _:
@@ -505,8 +504,8 @@ def lease.suppress_phase(phase: LeasePhase, requested: Surface) -> Bool:
       True{}
     case Authorized{_, _}:
       True{}
-    case Submitted{surface}:
-      lease.suppress_surface(surface, requested)
+    case Submitted{_}:
+      True{}
     case Uncertain{surface}:
       lease.suppress_surface(surface, requested)
 

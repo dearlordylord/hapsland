@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:925ecc658784971b9a7d8462b1660592f55791c32558d4e23cca40b2719a2f4e
+// hapsland-bend-source-sha256:e02eb5a123523a250155e84ccab30851375f1f020202d4900b230a95ec9bef69
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -7565,11 +7565,7 @@ function $SubmissionState$record_matches$(_advice_0, _fingerprint_0, _item_0) {
 
 function $Delivery$background_reofferable$(_phase_0, _surface_0) {
   if (_phase_0.$ === "Delivery.Submitted") {
-    if (_surface_0.$ === "Delivery.Background") {
-      return true;
-    } else {
-      return false;
-    }
+    return false;
   } else if (_phase_0.$ === "Delivery.Uncertain") {
     if (_surface_0.$ === "Delivery.Background") {
       return true;
@@ -7898,11 +7894,10 @@ function $Handoff$lease$suppress_phase$(_phase_0, _requested_0) {
   } else if (_phase_0.$ === "Handoff.Authorized") {
     return true;
   } else if (_phase_0.$ === "Handoff.Submitted") {
+    return true;
+  } else {
     const _surface_0 = _phase_0["surface"];
     return $Handoff$lease$suppress_surface$(_surface_0, _requested_0);
-  } else {
-    const _surface_1 = _phase_0["surface"];
-    return $Handoff$lease$suppress_surface$(_surface_1, _requested_0);
   }
 }
 
@@ -8151,16 +8146,9 @@ function $SubmissionState$staged_lease_granted$(_advice_0, _fingerprint_0, _roun
 }
 
 function $Handoff$lease$offer$phase$(_state_0, _round_0, _token_0, _surface_0, _fresh_0, _phase_0) {
-  if (_phase_0.$ === "Handoff.Submitted") {
+  if (_phase_0.$ === "Handoff.Uncertain") {
     const _t_0 = _phase_0["surface"];
     if (_t_0.$ === "Handoff.Background") {
-      return $Handoff$lease$offer$background$(_state_0, _round_0, _token_0, _surface_0, _fresh_0);
-    } else {
-      return $Handoff$lease$reserve$(_state_0, _round_0, _token_0, _surface_0);
-    }
-  } else if (_phase_0.$ === "Handoff.Uncertain") {
-    const _t_1 = _phase_0["surface"];
-    if (_t_1.$ === "Handoff.Background") {
       return $Handoff$lease$offer$background$(_state_0, _round_0, _token_0, _surface_0, _fresh_0);
     } else {
       return $Handoff$lease$reserve$(_state_0, _round_0, _token_0, _surface_0);
@@ -8358,7 +8346,7 @@ function $Handoff$lease$authorize$match$(_item_0, _round_0, _closed_0, _reoffere
 function $Handoff$lease$reoffer$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0) {
   if (_phase_0.$ === "Handoff.Submitted") {
     const _surface_0 = _phase_0["surface"];
-    return $Handoff$lease$reoffer$surface$(_item_0, _round_0, _closed_0, _reoffered_0, _surface_0, false, _token_0);
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Submitted", "surface": _surface_0}}};
   } else if (_phase_0.$ === "Handoff.Uncertain") {
     const _surface_1 = _phase_0["surface"];
     return $Handoff$lease$reoffer$surface$(_item_0, _round_0, _closed_0, _reoffered_0, _surface_1, true, _token_0);

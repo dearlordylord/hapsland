@@ -683,11 +683,10 @@ law ticket_collect_gate_expiry_precedes_credential:
 def submitted_background_lease() -> Handoff.Lease:
   Handoff.Lease{7n, 1n, False{}, False{}, Handoff.Submitted{Handoff.Background{}}}
 
-law stop_reoffers_submitted_background_lease:
+law stop_cannot_reoffer_submitted_background_lease:
   {Handoff.lease.offer(submitted_background_lease(), 1n, 12n,
       Handoff.Stop{}, True{}) ==
-    Handoff.Granted{Handoff.Lease{7n, 1n, False{}, True{},
-      Handoff.Reserved{12n, Handoff.Stop{}}}} : Handoff.LeaseResult}
+    Handoff.Denied{submitted_background_lease()} : Handoff.LeaseResult}
 
 law edit_cannot_reoffer_submitted_background_lease:
   {Handoff.lease.offer(submitted_background_lease(), 1n, 12n,
@@ -884,8 +883,8 @@ law authorized_delivery_expires_at_boundary:
 law authorized_delivery_does_not_expire_early:
   {Delivery.expired(Delivery.Authorized{}, 19999n, 20000n) == False{} : Bool}
 
-law submitted_background_can_reoffer:
-  {Delivery.background_reofferable(Delivery.Submitted{}, Delivery.Background{}) == True{} : Bool}
+law submitted_background_cannot_reoffer:
+  {Delivery.background_reofferable(Delivery.Submitted{}, Delivery.Background{}) == False{} : Bool}
 
 law live_background_cannot_reoffer:
   {Delivery.background_reofferable(Delivery.Authorized{}, Delivery.Background{}) == False{} : Bool}

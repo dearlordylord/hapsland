@@ -333,7 +333,7 @@ describe("shared Hapsland rounds", () => {
     expect(state.claimBackground("agent", "second", BACKGROUND_WAITER_EXPIRY_MS + 0.9)).toBe(true);
   });
 
-  it("reoffers submitted or uncertain background findings once at Stop without rerunning review", () => {
+  it("counts submitted background findings as delivered at Stop", () => {
     const state = new ComposedDelivery();
     const finding = { rule: "r", advice: "repair" };
     state.admitEdit("agent", "edit", 0);
@@ -342,13 +342,12 @@ describe("shared Hapsland rounds", () => {
     expect(state.suppresses("advice", "agent", finding, "stop")).toBe(true);
     expect(state.beginSubmission("advice", "agent", "early-stop", [finding], "stop", 2)).toBe(false);
     state.markSubmitted("bg");
-    expect(state.suppresses("advice", "agent", finding, "stop")).toBe(false);
-    state.beginSubmission("advice", "agent", "stop", [finding], "stop", 2);
+    expect(state.backgroundReofferable("advice", "bg")).toBe(false);
     expect(state.suppresses("advice", "agent", finding, "stop")).toBe(true);
+    expect(state.beginSubmission("advice", "agent", "stop", [finding], "stop", 2)).toBe(false);
     state.beginStop("agent", "close");
     state.finishStop("agent", "close", true);
     expect(state.hasToken("bg")).toBe(false);
-    expect(state.hasToken("stop")).toBe(false);
   });
 
   it("reoffers an authorized background write only after terminal uncertainty", () => {
@@ -363,12 +362,12 @@ describe("shared Hapsland rounds", () => {
     expect(state.beginSubmission("advice", "agent", "stop", [finding], "stop", 2)).toBe(true);
   });
 
-  it("restores a submitted background lease when an unwritten Stop reoffer is released", () => {
+  it("restores an uncertain background lease when an unwritten Stop reoffer is released", () => {
     const state = new ComposedDelivery();
     const finding = { rule: "r", advice: "repair" };
     state.admitEdit("agent", "edit", 0);
     expect(state.beginSubmission("advice", "agent", "bg", [finding], "background", 1)).toBe(true);
-    expect(state.markSubmitted("bg")).toBe(true);
+    expect(state.markUncertain("bg")).toBe(true);
     expect(state.beginSubmission("advice", "agent", "stop", [finding], "stop", 2)).toBe(true);
     expect(state.suppresses("advice", "agent", finding, "stop")).toBe(true);
     state.release("stop");

@@ -978,8 +978,8 @@ export class ResidentServer {
         throw new Error("invalid canonical credential decision");
       }
     }
-    // Stop can reoffer only after the background writer has reached a terminal
-    // submitted or uncertain state; a live authorized writer remains exclusive.
+    // Stop can reoffer only an uncertain background write after its writer has
+    // terminated; a submitted write counts as delivery.
     for (const item of this.#advice) {
       const delivery = item.delivery;
       const sameGroup = adviceeGroup(item.observation.root, item.observation.advicee) === partition;

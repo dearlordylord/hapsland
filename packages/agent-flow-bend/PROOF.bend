@@ -430,7 +430,7 @@ def Laws.ticket_collect_gate_blocks_expiry():
 def Laws.ticket_collect_gate_expiry_precedes_credential():
   {==}
 
-def Laws.stop_reoffers_submitted_background_lease():
+def Laws.stop_cannot_reoffer_submitted_background_lease():
   {==}
 
 def Laws.edit_cannot_reoffer_submitted_background_lease():
@@ -577,7 +577,7 @@ def Laws.authorized_delivery_expires_at_boundary():
 def Laws.authorized_delivery_does_not_expire_early():
   {==}
 
-def Laws.submitted_background_can_reoffer():
+def Laws.submitted_background_cannot_reoffer():
   {==}
 
 def Laws.live_background_cannot_reoffer():

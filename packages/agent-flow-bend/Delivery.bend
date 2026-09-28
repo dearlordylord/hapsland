@@ -2,7 +2,8 @@ import Base
 import ./Round.bend as Round
 
 # Per-output-token write status. The finding lease in Handoff.bend separately
-# enforces one live writer per finding and one terminal background reoffer.
+# enforces one live writer per finding and permits a Stop reoffer only when
+# background output is uncertain.
 type Surface is Data:
   Edit{}
   Background{}
@@ -169,11 +170,7 @@ def expired(phase: Phase, elapsed: Nat, lifetime: Nat) -> Bool:
 def background_reofferable(phase: Phase, surface: Surface) -> Bool:
   match phase:
     case Submitted{}:
-      match surface:
-        case Background{}:
-          True{}
-        case _:
-          False{}
+      False{}
     case Uncertain{}:
       match surface:
         case Background{}:

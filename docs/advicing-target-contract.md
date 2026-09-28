@@ -148,8 +148,8 @@ establish readiness, successful review, or submission.
 One waiter per advicee coalesces matching triggers, holds no advice lease while
 waiting, and exits quietly if no eligible advice becomes ready. A background
 wait with no reserved advice cannot prolong a settled finish decision. A
-reserved background advice submission can finish during the open finish call; its submitted
-or uncertain advice can then be considered for a same-round reoffer. Background
+reserved background advice submission can finish during the open finish call; only
+an uncertain write can then be considered for a same-round reoffer. Background
 output does not interrupt an in-flight model request or tool call and does not
 guarantee a later model-visible opportunity.
 
@@ -184,8 +184,10 @@ finish attempt cannot replay that attempt or spend a new slot on the same
 advice. When four are reserved, the next finish attempt may allow immediately,
 without waiting for work whose advice cannot be presented.
 
-Background-submitted or uncertain advice may be offered **once** at a finish
-attempt in the same active virtual round when model consumption is unproven.
+Successful stdout submission counts as delivery. Stop does not repeat a
+background finding after that submission, even though the runtime does not
+acknowledge model visibility. An uncertain background write may be offered
+**once** at a finish attempt in the same active virtual round.
 This uses its existing advice identity and a fresh eligibility check, never a
 second Jev evaluation. A live background advice submission keeps its lease;
 the finish collector may wait within its existing deadline or revoke an output
