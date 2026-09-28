@@ -1,7 +1,9 @@
 # Product context
 
 This glossary records the domain language for the product under design. It is not an
-implementation specification.
+implementation specification. Product explanations and dashboard labels use
+these meanings. A Bend or TypeScript constructor name appears in reader-facing
+material only beside the plain-language meaning it represents.
 
 | Term | Meaning |
 |---|---|
@@ -13,6 +15,7 @@ implementation specification.
 | Agent runtime | A program that runs an agent's tool and edit loop and reports its events, such as Codex CLI or Claude Code. |
 | Agent | A coding assistant that edits source in an agent runtime and can receive advice from Hapsland. |
 | Subagent | An agent started by another agent within an agent runtime. It remains an agent for review and advice. |
+| Resident | Hapsland's long-running local process that accepts review work and holds temporary state. Hook clients using the same resident runtime directory connect to that process. The installed default directory is private to one operating-system user; an explicit directory override can change the sharing boundary. |
 | Hapsland round | One agent's period of review and advice in Hapsland. It continues when Hapsland asks that agent to work on advice at Stop. It ends when Hapsland allows a Stop attempt to finish, even if another hook keeps the agent working. New work after that boundary starts a new Hapsland round. |
 | Runtime turn | A unit of conversation identified by an agent runtime. Its boundary need not match a Hapsland round. |
 | Model provider | Secondary metadata about the inference service selected by an agent runtime or review backend. It is not a first-class adapter target in the current phase. |
@@ -40,7 +43,7 @@ implementation specification.
 | Review dispatch cycle | A finite group of review work items selected together for evaluation; work arriving after selection belongs to a later cycle. |
 | Review result | The operational result of evaluating one actual review work item. |
 | Advicee | The agent that Hapsland can advise about an attributed edit. A working root or the latest caller does not identify that agent by itself. |
-| Advicee partition | The separate review and advice scope for one exact advicee identity in a shared resident. Advice stays in its partition, while capacity is shared with other partitions. |
+| Advicee partition | The separate review and advice scope for one exact advicee identity inside a resident. An advicee is an agent, including a subagent when the runtime identifies it. Advice stays with that agent; agents connected to the same resident compete for its review capacity. |
 | Stop continuation | More work that Hapsland asks an agent to do when it tries to finish, so it can act on advice. |
 | Stop allowance | Permission for Hapsland to request a Stop continuation from an agent. |
 | Pending advice | Advice from a completed review that remains eligible for delivery to its intended advicee. |
@@ -51,9 +54,10 @@ implementation specification.
 | Review input contract | A versioned definition of the source, path, domain text, completeness metadata, and rendering presented to a review backend. Different input contracts are distinct evaluation scenarios even when they describe the same edit. |
 | Review input | The exact semantic payload rendered from one review unit under a review input contract for backend evaluation. |
 | Evidence completeness | Whether the evidence required for a checked rule expectation is present. Missing required evidence is incomplete, not evidence that the source is clear. |
-| Capacity ledger | The transient account of admitted preparation and review work across all advicee partitions in one resident. It records how many work items and bytes currently use the resident's capacity. It is distinct from Jev request concurrency. |
-| Capacity charge | One temporary capacity reservation for a preparation job or review work item in an advicee partition. It counts one item and its measured bytes until Hapsland releases it. It is not a payment or a Jev request. |
-| Background advice submission | An attempt to give an agent advice after an edit, before the agent asks to finish. A successful submission to the agent runtime does not prove that the agent saw the advice. |
+| Review capacity limit | How many resident records and measured bytes may reserve space at once, both in total and for one agent's advice scope. It is distinct from Jev request concurrency and process RAM. |
+| Review capacity ledger | The resident's temporary record of reservations against those limits. It records usage, not just the limits themselves. Each agent's usage is part of the shared total, not another pool. |
+| Review capacity reservation | Space held for one resident record: one item and its measured bytes. Preparation and review work are two current examples; the installed resident also retains other records. The Bend `Charge` constructor represents a reservation; “charge” does not mean payment or a Jev request. |
+| Background advice submission | An attempt to send advice to an agent runtime after an edit, before that agent asks to finish. “Background” distinguishes this opportunity from a response to the finish attempt. A successful submission does not prove that the agent saw the advice. |
 | Rule | A user-configurable criterion evaluated against an action, edit, diff, or related context. |
 | Finding | Evidence produced by a rule evaluation, including its explanation, location, severity, and confidence where available. |
 | Decision | The operational result of a review: allow, ask, block, advisory, context, or observe. |

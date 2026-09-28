@@ -2,18 +2,18 @@
 
 ## In plain language
 
-One Hapsland resident can review edits for several agents. Each agent keeps its
-own review and advice scope, called an **advicee partition**. The resident has
-one **capacity ledger** for all those partitions. It records how much review
-work the resident has accepted: one count of work items and one count of
-reserved bytes. Each accepted preparation job or review unit adds a **capacity
-charge** to its agent's partition and to the shared total. The charge is a
-temporary reservation, not money, process RAM, or a Jev request. When that
-work finishes or is cancelled, Hapsland removes the charge. An agent's row is
-a breakdown of the shared total; it is not a second pool of capacity.
+Hapsland runs a local process called the **resident**. Hook clients using the
+same resident directory connect to it, so several agents can use one resident.
+This includes a parent agent and an identified subagent. Each has a separate
+review and advice scope, called an **advicee partition** in the model. The
+resident shares review capacity across those scopes. Its **review capacity
+ledger** records temporary reservations against two limits: work items and
+measured bytes. A preparation job or review unit reserves one item and its
+bytes. The Bend code calls a reservation `Charge`; this is not money, process
+RAM, or a Jev request. Each agent's usage is part of the shared total.
 
-When preparation finds several review units, Hapsland releases the temporary
-preparation charge and checks the units in order. If a unit does not fit, it
+When preparation finds several review units, Hapsland releases its temporary
+reservation and checks the units in order. If a unit does not fit, it
 refuses that unit and still checks the next one. For example, with a 60-byte
 limit for one agent, units of 10, 60, and 20 bytes produce **accept, refuse,
 accept**. A refusal does not mean Jev found the code clear. The current policy
@@ -25,44 +25,47 @@ there is current advice and a continuation is available, Hapsland can ask the
 agent to keep working with that advice. Otherwise it can let the agent finish.
 This first interface stops before that choice; later tasks add it to Bend.
 
-“Background write” in older code means an attempt to submit advice to the
-agent runtime after an edit, before the agent asks to finish. It is not a
-source-file edit. If Hapsland cannot tell whether the runtime received that
-submission, it must not claim the agent saw the advice. At Stop, the same
-advice can be considered for one more offer, subject to the later delivery
-rules. `ReofferAtStop` marks that situation; this first interface does not
-select or send the advice.
+**Background advice submission** means Hapsland tries to send advice after an
+edit, before the agent asks to finish. “Background” matters because this
+submission has a different timing and delivery opportunity from a response to
+Stop. “Advice submission” says what is sent; the older shorthand “background
+write” obscures that. A source-file edit is a different event. A runtime may
+accept the output without the agent seeing it. If that is uncertain, Stop may
+consider the same advice once more under later delivery rules. The Bend result
+`ReofferAtStop` marks that possibility; this slice does not select or send it.
 
-An operation **completion** is a callback saying that preparation, review, or
-an output attempt ended. A **duplicate** completion reports the same work a
-second time. A **stale** completion belongs to work whose round or lifetime
-has ended. This first interface rejects both without changing capacity; it
-uses the same `StaleOperation` result for both cases.
+The resident receives result notifications for preparation, review, and advice
+submission. A **duplicate result** reports an operation already handled. A
+**late result** arrives after its review round or resident lifetime ended.
+Neither may change capacity. The current Bend result `StaleOperation` groups
+both cases; it does not tell the operator which one occurred. The event names
+`PreparationCompleted`, `ReviewCompleted`, and `OutputTerminal` identify which
+operation reported a result.
 
 This is the first checked production-boundary slice for the [#116](https://github.com/dearlordylord/hapsland/issues/116) migration. `Canonical.step` is the single Bend entry point for the state, events, and commands in this slice. The resident still uses its existing generated modules; no installed behavior changes here. Later issues extend this state and event set, then switch resident paths and the final full-flow page to the same compiled transition. The #141 import graph remains a separate model until its events are joined to this boundary.
 
 ## Ownership and identities
 
-`Canonical.State` owns one resident lifetime's global `Ledger.Ledger`, one active `Round` per advicee partition, a list of preparation/review work, and monotonic round and operation counters. The ledger holds all active logical reservations across partitions. A partition ID identifies an advicee; a lifetime ID identifies its resident incarnation; a round ID identifies one virtual round; an operation ID identifies one preparation, review unit, or background output attempt. The native adapter must map exact runtime identities bijectively to positive integers and must not recycle them within a resident lifetime. Generated IDs must remain below `2^48`.
+`Canonical.State` owns one resident lifetime's shared `Ledger.Ledger`, one active `Round` per agent scope, a list of preparation/review work, and monotonic round and operation counters. The ledger holds all active logical reservations across agent scopes. A partition ID identifies one exact agent scope; a lifetime ID identifies its resident incarnation; a round ID identifies one Hapsland round; an operation ID identifies one preparation job, review unit, or background advice submission. The native adapter must map exact runtime identities bijectively to positive integers and must not recycle them within a resident lifetime. Generated IDs must remain below `2^48`.
 
-The existing `CapacityLedger.replace` behavior is the reference for replacement: release the preparation workspace, attempt independent unit reservations in source order, retain successful units, and emit a refusal for each unit that does not fit. `Canonical.PreparationCompleted` performs this sequence in one transition. A reservation is represented by one `Work` entry, and each accepted review completion removes that work and its ledger charge once. A second completion returns `StaleOperation` without commands or ledger change. A wrong lifetime, round, partition, or operation is also rejected without effect. A deadline marks the round decision-pending, releases all its logical charges, and emits exact operation IDs for native cancellation. A callback that arrives afterward is stale. The round remains addressable for later finish selection; a repeated Stop poll is rejected. This avoids depending on when the external cancellation takes effect.
+The existing `CapacityLedger.replace` behavior is the reference for replacement: release the preparation workspace, attempt independent unit reservations in source order, retain successful units, and emit a refusal for each unit that does not fit. `Canonical.PreparationCompleted` performs this sequence in one transition. A reservation is represented by one `Work` entry, and each accepted review result removes that work and its ledger reservation once. A duplicate result returns `StaleOperation` without commands or ledger change. A wrong lifetime, round, partition, or operation is also rejected without effect. A deadline marks the round decision-pending, releases all its logical reservations, and emits exact operation IDs for native cancellation. A result that arrives afterward is late. The round remains addressable for later finish selection; a repeated Stop poll is rejected. This avoids depending on when the external cancellation takes effect.
 
-Global and partition limits are passed to `initial`; the limits are shared across advicees and are checked by Bend's ledger function. The adapter's initial contract requires positive safe integers no larger than `2^48 - 1`. Event identity and operation fields are positive integers in the same range. Byte fields and byte limits are capped at `2^47 - 1` so an occupied-plus-new charge cannot exceed Bend’s immediate Nat range; a prepared unit list has at most 16 entries. That means one preparation result can report the measured sizes of up to 16 review units; it does **not** mean 16 bytes or 16 source files. The initial contract also limits simultaneous charges across all advicees to 256, active rounds to 256, and simultaneous charges for one advicee partition to 16. These are first-slice model and adapter bounds, not new installed product limits. They should be revisited with #120/#122 capacity and #138 review fan-out. The current product constants remain 64 global items/8 MiB and 16 partition items/2 MiB until those tasks change them.
+Resident-wide and per-agent limits are passed to `initial`; Bend checks both when work requests space. The adapter's initial contract requires positive safe integers no larger than `2^48 - 1`. Event identity and operation fields are positive integers in the same range. Byte fields and byte limits are capped at `2^47 - 1` so existing plus requested bytes stay within Bend's immediate Nat range. One preparation result can report the measured sizes of at most 16 review units; this is an input-list bound, not a byte or file-size limit. The first-slice adapter also caps simultaneous reservations and active rounds at 256 per resident and simultaneous reservations at 16 per agent scope. Those are temporary model bounds, not installed capacity limits. #120/#122 must revisit them with #138 review fan-out. The current installed limits remain 64 items/8 MiB per resident and 16 items/2 MiB per agent scope until those tasks change them.
 
 ## Event and command envelopes
 
 | Event | Native fact supplied | Bend-owned result |
 | --- | --- | --- |
-| `OpenRound` | Exact advicee and resident lifetime | Allocate unique round ID, refuse a second active round for that partition |
-| `BeginPreparation` | Attributed round and measured workspace bytes | Reserve global and partition capacity, issue preparation operation and reservation or refuse capacity |
+| `OpenRound` | Exact agent identity and resident lifetime | Allocate unique round ID; refuse a second active round for that agent scope |
+| `BeginPreparation` | Attributed round and measured workspace bytes | Reserve shared and per-agent capacity; issue preparation operation and reservation or refuse capacity |
 | `PreparationCompleted` | Exact operation and ordered measured unit bytes | Release workspace, partially admit units in order, issue review operations and reservations |
 | `ReviewCompleted` | Exact review operation and one of Finding/Clear/Unavailable | Release reservation once and report outcome; unavailable remains distinct from clear |
-| `StopPolled` | Exact round and a native deadline fact | Wait while work/output is pending, or mark the decision fence, release charges, request exact cancellations, and emit `FinishReady` or `ReofferAtStop` |
-| `OutputStarted` | Exact round at the background writer barrier | Issue one output operation token; a second in-flight write is rejected |
-| `OutputTerminal` | Exact output token and Acknowledged/Failed/Unknown fact | Consume the token once; Unknown preserves reoffer eligibility for Stop |
-| `RetirePartition` | Exact partition, lifetime, and round at the final finish or shutdown barrier | Release remaining logical charges, request exact cancellations, remove the old round, and reject late callbacks |
+| `StopPolled` | Exact round and a native deadline fact | Wait while work or advice submission is pending, or close admission for that finish attempt, release reservations, request exact cancellations, and emit `FinishReady` or `ReofferAtStop` |
+| `OutputStarted` | Exact round when background advice submission starts | Issue one output operation token; a second simultaneous submission is rejected |
+| `OutputTerminal` | Exact advice-submission token and runtime result: acknowledged, failed, or unknown | Consume the token once; an unknown result preserves the possibility of one offer at Stop |
+| `RetirePartition` | Exact agent scope, lifetime, and round at final finish or shutdown | Release remaining reservations, request exact cancellations, remove the old round, and reject late results |
 
-`FinishReady` is a decision point for later finding selection and continuation rules, **not** permission to send an allow response. `ReofferAtStop` says an uncertain background write did not establish delivery. It does not duplicate a submission automatically; the later Handoff/Delivery slices must validate the finding, reserve a continuation slot, and cross the native writer barrier. A write in flight causes `WaitForOutput` before deadline. The deadline event can move the round to decision-pending even when output is in flight; its later callback is stale. `RetirePartition` is the explicit terminal cleanup event; later slices must place it after the final output or shutdown barrier. This first slice does not claim to model permits, evidence capture, review scheduling, finding selection, IPC acknowledgements, or the complete installed finish sequence.
+`FinishReady` means this slice is done waiting; later rules must still decide whether to offer advice or let the agent finish. `ReofferAtStop` says an uncertain background advice submission did not establish that the agent saw the advice. It does not submit advice again by itself. Later delivery work must check that the advice is still relevant, reserve a continuation if needed, and authorize output to the runtime. An unfinished submission causes `WaitForOutput` before the deadline. The deadline can close the finish decision even while submission is in progress; its later result is rejected. `RetirePartition` explicitly cleans up an agent scope; later slices must place it after the final output or shutdown boundary. This first slice does not claim to model permits, evidence capture, review scheduling, advice selection, IPC acknowledgements, or the complete installed finish sequence.
 
 The eventual installed sequence joins the current paths in this order: native hook and attribution facts; Bend admission and round/work reservation; native source capture and Jev effects; Bend outcome and logical release; Stop's Bend wait/cutoff fence; native cancellation and final evidence/writer checks; Bend selection/continuation reservation; native output attempt; Bend acknowledgement/unknown disposition. Today, `Lifecycle.finish_gate` supplies part of the Stop fence, `CapacityLedger.replace` supplies ordered replacement, and `Handoff`/`Delivery` supply separate output decisions. Later slices must replace those calls with `Canonical.step` events without making aggregate model events production-ready by assumption.
 
