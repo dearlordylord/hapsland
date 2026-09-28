@@ -172,4 +172,21 @@ for (const trace of dispatchFixture.traces) {
   const { pending, active, running, nextSequence, cycle, closed } = projectCanonical(current).dispatch;
   assert.deepEqual({ pending, active, running, nextSequence, cycle, closed }, trace.dispatch, trace.name);
 }
-console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length} independent source-free canonical traces`);
+const stopFixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-stop-v1.json"), "utf8"));
+for (const trace of stopFixture.traces) {
+  let current = initialCanonical(fixture.limits);
+  for (const { expect: expected, ...event } of trace.events) {
+    const result = stepCanonical(current, event);
+    current = result.state;
+    const actual = result.rejection ? `rejected:${result.rejection}` : result.commands.map((command) => {
+      if (command.kind === "roundStarted" || command.kind === "observationAdmitted" || command.kind === "reservationReleased") return `${command.kind}:${command.id}`;
+      if (command.kind === "preparationReleased") return `${command.kind}:${command.id}`;
+      if (command.kind === "prepare" || command.kind === "unitAdmitted") return `${command.kind}:${command.operation}:${command.reservation}`;
+      if (command.kind === "dispatchStarted" || command.kind === "cancelWork") return `${command.kind}:${command.operation}`;
+      if (command.kind === "dispatchCycleCompleted") return `${command.kind}:${command.cycle}`;
+      return command.kind;
+    }).join(",");
+    assert.equal(actual, expected, `${trace.name}: ${event.kind}`);
+  }
+}
+console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length + stopFixture.traces.length} independent source-free canonical traces`);

@@ -229,6 +229,40 @@ describe("shared Hapsland rounds", () => {
     expect(state.canonical.canonicalProjection().admissions[0]?.permits).toHaveLength(0);
   });
 
+  it("waits across exact edit partitions and resets their decision fences on continuation", () => {
+    const state = new ComposedDelivery();
+    state.admitEdit("agent", "edit", 0);
+    const first = state.canonical.admitObservation("agent\0edit-1");
+    const second = state.canonical.admitObservation("agent\0edit-2");
+    expect(state.beginStop("agent", "stop")).toBe(true);
+    const scopes = ["agent\0edit-1", "agent\0edit-2"];
+    expect(state.finishGate("agent", "stop", 0, false, new BendWorkTracker(), scopes))
+      .toMatchObject({ status: "waiting" });
+    expect(state.canonical.observation(scopes[0]!, first, "completeObservation")).toBe(false);
+    expect(state.canonical.observation(scopes[0]!, first, "startObservation")).toBe(true);
+    expect(state.canonical.observation(scopes[0]!, first, "completeObservation")).toBe(true);
+    expect(state.finishGate("agent", "stop", 0, false, new BendWorkTracker(), scopes))
+      .toMatchObject({ status: "waiting" });
+    const cutoff = state.finishGate("agent", "stop", 0, true, new BendWorkTracker(), scopes);
+    expect(cutoff).toMatchObject({ status: "cutoff", cancelledSource: [] });
+    expect(state.canonical.canonicalProjection().rounds.filter((item) =>
+      scopes.some((scope) => item.partition === state.canonical.partitionId(scope)))
+      .every((item) => item.deciding)).toBe(true);
+    expect(state.finishStop("agent", "stop", false, 100, scopes)).toBeUndefined();
+    expect(state.canonical.canonicalProjection().rounds.filter((item) =>
+      scopes.some((scope) => item.partition === state.canonical.partitionId(scope)))
+      .every((item) => !item.deciding)).toBe(true);
+    expect(state.canonical.admitObservation(scopes[1]!)).toBeGreaterThan(second);
+  });
+
+  it("keeps an external Stop owner waiting until deadline", () => {
+    const state = new ComposedDelivery();
+    state.admitEdit("agent", "edit", 0);
+    expect(state.beginStop("agent", "stop")).toBe(true);
+    expect(state.finishGate("agent", "stop", 1, false)).toMatchObject({ status: "waiting" });
+    expect(state.finishGate("agent", "stop", 1, true)).toMatchObject({ status: "cutoff", limited: false });
+  });
+
   it("coalesces background waiters and forbids submission after the Stop barrier", () => {
     const state = new ComposedDelivery();
     state.admitEdit("agent", "edit", 0);

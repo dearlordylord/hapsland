@@ -36,7 +36,8 @@ type ResidentTransition = Extract<CanonicalEvent, { readonly kind:
   "preparationCompleted" | "startReview" | "reviewCompleted" | "retireReview" |
   "retirePartition" | "reviewObserved" | "preparedOfferCheck" |
   "emptyPreparedCheck" | "reviewFailureCheck" | "queueDispatch" |
-  "dispatchSettled" | "discardDispatch" | "dispatchScopeCheck" | "closeDispatch" }>;
+  "dispatchSettled" | "discardDispatch" | "dispatchScopeCheck" | "closeDispatch" |
+  "stopGroupPolled" | "stopGroupEnded" }>;
 
 const defaultLimits: CapacityLimits = {
   globalItems: GLOBAL_ITEM_LIMIT,
@@ -106,6 +107,13 @@ export class CapacityLedger {
 
   canonicalProjection(): ReturnType<typeof projectCanonical> {
     return projectCanonical(this.#state);
+  }
+
+  acknowledgeStopRelease(id: number): void {
+    if (this.canonicalProjection().charges.some((charge) => charge.id === id)) {
+      throw new Error("canonical Stop release retained its charge");
+    }
+    this.#reservations.delete(id);
   }
 
   roundId(partition: string): number {

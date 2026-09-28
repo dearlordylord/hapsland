@@ -1,0 +1,40 @@
+{
+  "traces": [
+    {
+      "name": "group Stop waits for both partitions then fences a late callback",
+      "events": [
+        { "kind": "openRound", "partition": 1, "lifetime": 1, "expect": "roundStarted:1" },
+        { "kind": "openRound", "partition": 2, "lifetime": 1, "expect": "roundStarted:2" },
+        { "kind": "openRound", "partition": 3, "lifetime": 1, "expect": "roundStarted:3" },
+        { "kind": "admitObservation", "partition": 2, "lifetime": 1, "round": 2, "expect": "observationAdmitted:1" },
+        { "kind": "queueDispatch", "partition": 2, "lifetime": 1, "round": 2, "operation": 1, "expect": "dispatchStarted:1" },
+        { "kind": "startObservation", "partition": 2, "lifetime": 1, "round": 2, "observation": 1, "expect": "observationStarted" },
+        { "kind": "admitObservation", "partition": 3, "lifetime": 1, "round": 3, "expect": "observationAdmitted:2" },
+        { "kind": "queueDispatch", "partition": 3, "lifetime": 1, "round": 3, "operation": 2, "expect": "" },
+        { "kind": "startObservation", "partition": 3, "lifetime": 1, "round": 3, "observation": 2, "expect": "observationStarted" },
+        { "kind": "stopGroupPolled", "group": 1, "lifetime": 1, "round": 1, "scopes": [{ "partition": 2, "round": 2 }, { "partition": 3, "round": 3 }], "deadline": false, "extraPending": false, "continuations": 0, "expect": "waitForWork" },
+        { "kind": "completeObservation", "partition": 2, "lifetime": 1, "round": 2, "observation": 1, "expect": "observationCompleted" },
+        { "kind": "dispatchSettled", "partition": 2, "lifetime": 1, "round": 2, "operation": 1, "expect": "dispatchCycleCompleted:1,dispatchStarted:2" },
+        { "kind": "stopGroupPolled", "group": 1, "lifetime": 1, "round": 1, "scopes": [{ "partition": 2, "round": 2 }, { "partition": 3, "round": 3 }], "deadline": true, "extraPending": false, "continuations": 0, "expect": "cancelWork:2,finishReady" },
+        { "kind": "completeObservation", "partition": 3, "lifetime": 1, "round": 3, "observation": 2, "expect": "rejected:WrongStage" },
+        { "kind": "admitObservation", "partition": 3, "lifetime": 1, "round": 3, "expect": "rejected:StaleRound" },
+        { "kind": "stopGroupPolled", "group": 1, "lifetime": 1, "round": 1, "scopes": [{ "partition": 2, "round": 2 }, { "partition": 3, "round": 3 }], "deadline": true, "extraPending": false, "continuations": 0, "expect": "rejected:StaleRound" },
+        { "kind": "stopGroupEnded", "group": 1, "lifetime": 1, "round": 1, "scopes": [{ "partition": 2, "round": 2 }, { "partition": 3, "round": 9 }], "expect": "rejected:StaleRound" },
+        { "kind": "stopGroupEnded", "group": 1, "lifetime": 1, "round": 1, "scopes": [{ "partition": 2, "round": 2 }, { "partition": 3, "round": 3 }], "expect": "stopEnded" }
+      ]
+    },
+    {
+      "name": "deadline cutoff releases exact review unit and enforces continuation limit",
+      "events": [
+        { "kind": "openRound", "partition": 1, "lifetime": 1, "expect": "roundStarted:1" },
+        { "kind": "openRound", "partition": 2, "lifetime": 1, "expect": "roundStarted:2" },
+        { "kind": "beginPreparation", "partition": 2, "lifetime": 1, "round": 2, "bytes": 10, "expect": "prepare:1:1" },
+        { "kind": "preparationCompleted", "partition": 2, "lifetime": 1, "round": 2, "operation": 1, "unitBytes": [5], "expect": "preparationReleased:1,unitAdmitted:2:2" },
+        { "kind": "queueDispatch", "partition": 2, "lifetime": 1, "round": 2, "operation": 2, "expect": "dispatchStarted:2" },
+        { "kind": "startReview", "partition": 2, "lifetime": 1, "round": 2, "operation": 2, "expect": "reviewStarted" },
+        { "kind": "stopGroupPolled", "group": 1, "lifetime": 1, "round": 1, "scopes": [{ "partition": 2, "round": 2 }], "deadline": true, "extraPending": false, "continuations": 4, "expect": "reservationReleased:2,cancelWork:2,finishLimit" },
+        { "kind": "reviewCompleted", "partition": 2, "lifetime": 1, "round": 2, "operation": 2, "outcome": "clear", "expect": "rejected:StaleOperation" }
+      ]
+    }
+  ]
+}
