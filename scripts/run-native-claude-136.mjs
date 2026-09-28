@@ -99,12 +99,12 @@ let out;try{out=JSON.parse(result.stdout)}catch{}
 const reason=out?.reason??out?.hookSpecificOutput?.additionalContext??'';
 const source=${JSON.stringify(sourcePath)};
 const value=existsSync(source)?readFileSync(source,'utf8'):'';
-appendFileSync(process.env.HAPSLAND_136_EVENTS,JSON.stringify({kind:'hook',at,doneAt:Date.now(),tool:event?.tool_name??'unknown',exitCode:result.status,decision:out?.decision??null,finding:reason.includes('Hapsland found a current rule finding')||reason.includes('Advisory direct-event review'),notice:reason.includes('Operational notice:'),sourceHash:value?createHash('sha256').update(value).digest('hex'):null,sourceBytes:Buffer.byteLength(value),draft:value.includes('receipt: string | null')&&value.includes('failureReason: string | null')})+'\\n',{mode:0o600});
+appendFileSync(process.env.HAPSLAND_136_EVENTS,JSON.stringify({kind:'hook',at,doneAt:Date.now(),tool:event?.tool_name??'unknown',exitCode:result.status,decision:out?.decision??null,finding:(out?.decision==='block'||reason.includes('[r6_bare_domain_value, p=')||reason.includes('Hapsland found a current rule finding'))&&!reason.includes('Operational notice:'),notice:reason.includes('Operational notice:'),sourceHash:value?createHash('sha256').update(value).digest('hex'):null,sourceBytes:Buffer.byteLength(value),draft:value.includes('receipt: string | null')&&value.includes('failureReason: string | null')})+'\\n',{mode:0o600});
 if(result.status===0)process.stdout.write(result.stdout??'');
 process.exitCode=result.status??1;
 `);
   mkdirSync(join(repo, ".claude"));
-  writeFileSync(join(repo, ".claude", "settings.json"), JSON.stringify({ hooks: { PostToolUse: [{ matcher: "Edit|Write", hooks: [{ type: "command", command: `${quote(process.execPath)} ${quote(bridge)}`, timeout: 30 }] }] } }));
+  writeFileSync(join(repo, ".claude", "settings.json"), JSON.stringify({ hooks: { PostToolUse: [{ matcher: "Edit|Write|Bash", hooks: [{ type: "command", command: `${quote(process.execPath)} ${quote(bridge)}`, timeout: 30 }] }] } }));
   const env = { ...process.env, TYPESAFE_API_KEY: key, REVIEW_RESIDENT_DIR: runtime,
     REVIEW_ACTIVITY_PATH: activity, REVIEW_USER_CONFIG_PATH: join(root, "absent-user-config.jsonc"),
     HAPSLAND_136_EVENTS: events, HAPSLAND_136_CALLS: calls,
@@ -116,7 +116,7 @@ export interface PaymentState {
   receipt: string | null;
   failureReason: string | null;
 }
-Do not repair this initial draft before Hapsland feedback. If an actionable Hapsland finding arrives, repair the type using Edit or Write so invalid combinations are impossible, then run npm test. If no finding arrives, say so truthfully. Stay in this repository; do not inspect integration configuration, credentials, or environment variables. Make at most three source edits. In your final reply state whether automated review affected the change; do not invent feedback.`;
+Immediately after that first Write, run npm test using Bash before making any repair. Do not repair this initial draft before Hapsland feedback. If an actionable Hapsland finding arrives on either hook, repair the type using Edit or Write so invalid combinations are impossible, then run npm test again. If no finding arrives, say so truthfully. Stay in this repository; do not inspect integration configuration, credentials, or environment variables. Make at most three source edits. In your final reply state whether automated review affected the change; do not invent feedback.`;
   const host = await run("claude", ["-p", "--output-format", "stream-json", "--verbose", "--no-session-persistence",
     "--allowedTools", "Read,Edit,Write,Bash", "--permission-mode", "acceptEdits", prompt], env, repo, 240_000);
   const timeline = readLines(events).map((entry) => ({ ...entry, atMs: entry.at - started, at: undefined, doneAt: undefined }));
@@ -155,7 +155,7 @@ const contradictory: PaymentState = { status: 'succeeded', receipt: 'r', failure
     hostOutputBytesDiscarded: Buffer.byteLength(host.stdout) + host.stderrBytes };
   record.verdict = host.code === 0 && Object.values(record.checks).every(Boolean) ? "demonstrated" : "incomplete";
   mkdirSync(join(project, "evidence/native-136"), { recursive: true });
-  writeFileSync(join(project, "evidence/native-136/claude.json"), JSON.stringify(record, null, 2) + "\n");
+  writeFileSync(join(project, "evidence/native-136/claude-diagnostic.json"), JSON.stringify(record, null, 2) + "\n");
   console.log(JSON.stringify(record, null, 2));
   if (record.verdict !== "demonstrated") process.exitCode = 1;
 } finally {
