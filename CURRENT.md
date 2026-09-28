@@ -12,14 +12,16 @@ and a denied A → X permission edge in the branching tree. Bend skips X without
 reading it, continues pending branches, and ends that trace with `TreeLimit`
 after E and G do not fit. The owner resumed the migration in a new session.
 #119's first canonical state, events, commands, checked adapter, and independent
-traces are now in this task worktree. Resident switching under #121–#134 is
-still pending. Configurable graph limits and
+traces merged through PR #144 and #119 is closed. The next migration slice is
+#120. Resident switching under #120–#134 is still pending. Configurable graph limits and
 general budget/termination proofs are tracked separately in
 [#142](https://github.com/dearlordylord/hapsland/issues/142).
 
-Work here is in `/workspace/typescript/jev-worktrees/bend-authority-audit`
-(`task/bend-authority-audit`, based on `origin/feat/bend-full-flow`). The
-`/workspace/typescript/jev` checkout is older and is not the edit target.
+The integrated epic is in `/workspace/typescript/jev-worktrees/bend-full-flow`
+(`feat/bend-full-flow`, merge `ea6584b`). Start #120 in a new task worktree
+from the latest epic tip. The old `/tmp/hapsland-bend-handoff.md` predates #119
+and is no longer a valid resume point. The `/workspace/typescript/jev` checkout
+is older and is not the edit target.
 
 ## Current code and accepted target
 
@@ -92,7 +94,7 @@ or Jev-request-size claim.
 3. **Capacity:** #120/#122 bump or rework the ledger with 256 KiB capture.
    Keep accounting bounded and test concurrent advicees. This is supporting
    work for the review change.
-4. **Migration:** #119 defines the first canonical transition; #121–#134 move the
+4. **Migration:** #119 defined the first canonical transition; #120–#134 move the
    production decision slices; #135–#137 complete visualization, host
    validation, and evidence-backed verification. The installed 32 KiB
    supported-profile remains the truthful runtime claim until code and
@@ -102,7 +104,7 @@ The exact Jev input format and finite initial full-request limit remain
 engineering decisions. Changed review inputs must not reuse an old result
 by mistake; public “v1/v2” naming is optional.
 
-## #119 first boundary (2026-09-27)
+## #119 first boundary (merged 2026-09-28)
 
 The first canonical Bend state/event/command boundary is implemented in
 `packages/agent-flow-bend/Canonical.bend`, with a checked adapter and independent
@@ -113,11 +115,36 @@ stop later units. Shared and advicee capacity totals in the checked projection
 come from compiled Bend functions. The proposed full-flow display and the
 still-needed per-unit Bend output are in
 [`docs/capacity-dashboard-plan.md`](docs/capacity-dashboard-plan.md).
-`npm run test:canonical` and adapter typecheck pass. The package-wide `npm test`
-currently stops in the existing Flow build script because the installed Bend
-compiler emits a `process.argv.slice(1)` footer while that builder expects
-`slice(2)`; relaxing that footer check exposes another legacy generated-contract
-shape mismatch in `check-lifecycle.mjs`. Those unrelated builders were restored.
+`npm run test:canonical`, adapter typecheck, and the repository `npm test`
+passed before merge. The repository run passed 65 test files and 578 tests,
+with one file and two tests skipped. `npm run test:import-graph` and the
+visualization build also passed. Package-wide `npm test` under
+`packages/agent-flow-bend` was not a merge gate; its older Flow build still
+has a separate compiler-footer compatibility problem.
 This does not switch resident paths or make the installed cross-file
 profile available. The design and current boundary are in
 [`docs/bend-canonical-transition-interface.md`](docs/bend-canonical-transition-interface.md).
+
+## Next autonomous migration run
+
+Use the GitHub issue bodies as the task contracts. Work in a dedicated task
+worktree based on the latest `feat/bend-full-flow` tip. For each slice, keep
+the production resident and the checked Bend transition in sync, verify the
+changed path offline, review the diff, merge into the epic branch, and close
+the issue only when its criteria have evidence. Update this handoff after each
+merged slice. Do not treat the separate #141 import-graph diagram as the final
+production replay.
+
+One valid single-agent order is #120, #121, #122, #123, #124, #125, #126,
+#127, #128, #129, #130, #131, #132, #133, #134, #135. Dependencies allow
+#132–#134 to proceed after their own blockers while the #123–#131 chain is in
+progress; #135 needs both #131 and #134. #135 delivers the build-generated
+capacity inventory and live ledger panel from compiled Bend output. #136
+validates native Codex and Claude flows after #131/#134; #137 is the final
+authority review after #135/#136. #143 is a separate resident-process lifetime
+task, not part of the Bend state-cleanup task #131. #139/#140/#142 remain
+separate follow-ups.
+
+The imported graph and audit work from #117/#118/#141 is present in the epic
+branch, but those issues remain open. Audit their own criteria before closing
+them; their open status does not turn #119 back into active work.
