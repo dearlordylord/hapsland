@@ -113,6 +113,8 @@ describe("Claude terminal collection", () => {
       if (advice.status !== "advice") break;
       expect(server.acknowledge(advice.token).status).toBe("acknowledged");
       expect(server.finalize(advice.token).status).toBe("finalized");
+      expect(server.acknowledge(advice.token).status).toBe("empty");
+      expect(server.finalize(advice.token).status).toBe("empty");
     }
     expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ version: 2, status: "delivered" });
   });

@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:7cdca1c3bf7828ab7969ebfd15ce5ad48ed6b5c9bff85cf31064f8660fec05e3
+// hapsland-bend-source-sha256:888286c19d3b4cd451ccb9cfa7deec2440b5f6dcf9535520d248729daa0dc8c7
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -559,6 +559,54 @@ function $Canonical$step$(_state_0, _event_0) {
     return $Canonical$revision_generation_check$(_state_0, _subject_4);
   } else if (_event_0.$ === "Canonical.RevisionCountCheck") {
     return $Canonical$revision_count_check$(_state_0);
+  } else if (_event_0.$ === "Canonical.TicketOpen") {
+    const _id_0 = _event_0["id"];
+    return $Canonical$collection_decision$(_state_0, ($CollectionState$ticket_open$(($Canonical$collection_of$(_state_0)), _id_0)), {$: "Canonical.TicketOpened"}, {$: "Canonical.TicketRefused"});
+  } else if (_event_0.$ === "Canonical.TicketForget") {
+    const _id_1 = _event_0["id"];
+    return $Canonical$collection_decision$(_state_0, ($CollectionState$ticket_forget$(($Canonical$collection_of$(_state_0)), _id_1)), {$: "Canonical.TicketForgotten"}, {$: "Canonical.TicketRefused"});
+  } else if (_event_0.$ === "Canonical.TicketFail") {
+    const _id_2 = _event_0["id"];
+    const _reason_0 = _event_0["reason"];
+    return $Canonical$collection_decision$(_state_0, ($CollectionState$ticket_fail$(($Canonical$collection_of$(_state_0)), _id_2, _reason_0)), {$: "Canonical.TicketFailed"}, {$: "Canonical.TicketRefused"});
+  } else if (_event_0.$ === "Canonical.TicketClose") {
+    const _id_3 = _event_0["id"];
+    return $Canonical$collection_decision$(_state_0, ($CollectionState$ticket_close$(($Canonical$collection_of$(_state_0)), _id_3)), {$: "Canonical.TicketClosed"}, {$: "Canonical.TicketRefused"});
+  } else if (_event_0.$ === "Canonical.TicketAddUnit") {
+    const _id_4 = _event_0["id"];
+    const _unit_1 = _event_0["unit"];
+    return $Canonical$collection_decision$(_state_0, ($CollectionState$ticket_add_unit$(($Canonical$collection_of$(_state_0)), _id_4, _unit_1)), {$: "Canonical.TicketUnitAdded"}, {$: "Canonical.TicketRefused"});
+  } else if (_event_0.$ === "Canonical.TicketStepUnit") {
+    const _id_5 = _event_0["id"];
+    const _unit_2 = _event_0["unit"];
+    const _event_1 = _event_0["event"];
+    const _reason_1 = _event_0["reason"];
+    return $Canonical$collection_decision$(_state_0, ($CollectionState$ticket_step_unit$(($Canonical$collection_of$(_state_0)), _id_5, _unit_2, _event_1, _reason_1)), {$: "Canonical.TicketUnitUpdated"}, {$: "Canonical.TicketRefused"});
+  } else if (_event_0.$ === "Canonical.TicketUnitCheck") {
+    const _id_6 = _event_0["id"];
+    const _unit_3 = _event_0["unit"];
+    return $Canonical$ticket_unit_snapshot$(_state_0, ($CollectionState$ticket_unit_snapshot$(($Canonical$collection_of$(_state_0)), _id_6, _unit_3)));
+  } else if (_event_0.$ === "Canonical.TicketTerminal") {
+    const _id_7 = _event_0["id"];
+    const _expired_1 = _event_0["expired"];
+    const _credential_valid_0 = _event_0["credential_valid"];
+    const _live_advice_0 = _event_0["live_advice"];
+    const _pending_notice_0 = _event_0["pending_notice"];
+    return $Canonical$ticket_terminal$(_state_0, _id_7, _expired_1, _credential_valid_0, _live_advice_0, _pending_notice_0);
+  } else if (_event_0.$ === "Canonical.TicketCollectGateCheck") {
+    const _expired_2 = _event_0["expired"];
+    const _credential_valid_1 = _event_0["credential_valid"];
+    return $Canonical$ticket_collect_gate_result$(_state_0, ($Ticket$collect_gate$(_expired_2, _credential_valid_1)));
+  } else if (_event_0.$ === "Canonical.TicketFinalAuthorityCheck") {
+    const _admitted_block_0 = _event_0["admitted_block"];
+    const _current_block_0 = _event_0["current_block"];
+    return $Canonical$ticket_final_authority_result$(_state_0, ($Ticket$final_authority$(_admitted_block_0, _current_block_0)));
+  } else if (_event_0.$ === "Canonical.TicketJoinedCheck") {
+    const _joined_state_0 = _event_0["joined_state"];
+    const _stale_unavailable_0 = _event_0["stale_unavailable"];
+    const _has_revision_0 = _event_0["has_revision"];
+    const _has_advice_id_0 = _event_0["has_advice_id"];
+    return $Canonical$ticket_joined_result$(_state_0, ($Ticket$joined_disposition$(_joined_state_0, _stale_unavailable_0, _has_revision_0, _has_advice_id_0)));
   } else if (_event_0.$ === "Canonical.OutputStarted") {
     const _partition_24 = _event_0["partition"];
     const _lifetime_28 = _event_0["lifetime"];
@@ -1303,6 +1351,151 @@ function $Canonical$revision_count_check$(_state_0) {
   return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, "commands": {$: "Con", "head": {$: "Canonical.RevisionCount", "count": ($CollectionState$revision_count$(_collection_0))}, "tail": {$: "Nil"}}};
 }
 
+function $Canonical$collection_decision$(_state_0, _decision_0, _accepted_0, _refused_0) {
+  if (_decision_0.$ === "CollectionState.Accepted") {
+    const _collection_0 = _decision_0["state"];
+    return {$: "Canonical.Advanced", "state": ($Canonical$with_collection$(_state_0, _collection_0)), "commands": {$: "Con", "head": _accepted_0, "tail": {$: "Nil"}}};
+  } else {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": _refused_0, "tail": {$: "Nil"}}};
+  }
+}
+
+function $CollectionState$ticket_open$(_state_0, _id_0) {
+  const __0 = _state_0["ready"];
+  const __1 = _state_0["leases"];
+  const __2 = _state_0["claims"];
+  const __3 = _state_0["delivery"];
+  const __4 = _state_0["revision"];
+  const _tickets_0 = _state_0["tickets"];
+  return $CollectionState$ticket_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": __3, "revision": __4, "tickets": _tickets_0}, ($TicketState$open$(_tickets_0, _id_0)));
+}
+
+function $Canonical$collection_of$(_state_0) {
+  const _collection_0 = _state_0["collection"];
+  return _collection_0;
+}
+
+function $CollectionState$ticket_forget$(_state_0, _id_0) {
+  const __0 = _state_0["ready"];
+  const __1 = _state_0["leases"];
+  const __2 = _state_0["claims"];
+  const __3 = _state_0["delivery"];
+  const __4 = _state_0["revision"];
+  const _tickets_0 = _state_0["tickets"];
+  return $CollectionState$ticket_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": __3, "revision": __4, "tickets": _tickets_0}, ($TicketState$forget$(_tickets_0, _id_0)));
+}
+
+function $CollectionState$ticket_fail$(_state_0, _id_0, _reason_0) {
+  const __0 = _state_0["ready"];
+  const __1 = _state_0["leases"];
+  const __2 = _state_0["claims"];
+  const __3 = _state_0["delivery"];
+  const __4 = _state_0["revision"];
+  const _tickets_0 = _state_0["tickets"];
+  return $CollectionState$ticket_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": __3, "revision": __4, "tickets": _tickets_0}, ($TicketState$fail$(_tickets_0, _id_0, _reason_0)));
+}
+
+function $CollectionState$ticket_close$(_state_0, _id_0) {
+  const __0 = _state_0["ready"];
+  const __1 = _state_0["leases"];
+  const __2 = _state_0["claims"];
+  const __3 = _state_0["delivery"];
+  const __4 = _state_0["revision"];
+  const _tickets_0 = _state_0["tickets"];
+  return $CollectionState$ticket_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": __3, "revision": __4, "tickets": _tickets_0}, ($TicketState$close$(_tickets_0, _id_0)));
+}
+
+function $CollectionState$ticket_add_unit$(_state_0, _id_0, _unit_0) {
+  const __0 = _state_0["ready"];
+  const __1 = _state_0["leases"];
+  const __2 = _state_0["claims"];
+  const __3 = _state_0["delivery"];
+  const __4 = _state_0["revision"];
+  const _tickets_0 = _state_0["tickets"];
+  return $CollectionState$ticket_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": __3, "revision": __4, "tickets": _tickets_0}, ($TicketState$add_unit$(_tickets_0, _id_0, _unit_0)));
+}
+
+function $CollectionState$ticket_step_unit$(_state_0, _id_0, _unit_0, _event_0, _reason_0) {
+  const __0 = _state_0["ready"];
+  const __1 = _state_0["leases"];
+  const __2 = _state_0["claims"];
+  const __3 = _state_0["delivery"];
+  const __4 = _state_0["revision"];
+  const _tickets_0 = _state_0["tickets"];
+  return $CollectionState$ticket_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": __3, "revision": __4, "tickets": _tickets_0}, ($TicketState$step_unit$(_tickets_0, _id_0, _unit_0, _event_0, _reason_0)));
+}
+
+function $Canonical$ticket_unit_snapshot$(_state_0, _found_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _stage_0 = _t_0["stage"];
+    const _reason_0 = _t_0["reason"];
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketUnitSnapshot", "stage": _stage_0, "reason": _reason_0}, "tail": {$: "Nil"}}};
+  } else {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketUnitMissing"}, "tail": {$: "Nil"}}};
+  }
+}
+
+function $CollectionState$ticket_unit_snapshot$(_state_0, _id_0, _unit_0) {
+  const _tickets_0 = _state_0["tickets"];
+  return $TicketState$unit_snapshot$(_tickets_0, _id_0, _unit_0);
+}
+
+function $Canonical$ticket_terminal$(_state_0, _id_0, _expired_0, _credential_valid_0, _live_advice_0, _pending_notice_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return $Canonical$ticket_terminal_outcome$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, ($CollectionState$ticket_terminal$(_collection_0, _id_0, _expired_0, _credential_valid_0, _live_advice_0, _pending_notice_0)));
+}
+
+function $Canonical$ticket_collect_gate_result$(_state_0, _result_0) {
+  if (_result_0.$ === "Ticket.CollectProceed") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketCollectProceed"}, "tail": {$: "Nil"}}};
+  } else {
+    const _reason_0 = _result_0["reason"];
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketCollectUnavailable", "reason": _reason_0}, "tail": {$: "Nil"}}};
+  }
+}
+
+function $Ticket$collect_gate$(_expired_0, _credential_valid_0) {
+  return $Ticket$collect_gate$result$(($Ticket$terminal$(($Ticket$initial$()), {$: "Ticket.Facts", "expired": _expired_0, "credential_valid": _credential_valid_0, "pending_units": 0, "live_advice": false, "pending_notice": false, "unit_failure": {$: "None"}, "finding_units": 0, "undelivered_findings": 0, "total_units": 0})));
+}
+
+function $Canonical$ticket_final_authority_result$(_state_0, _result_0) {
+  if (_result_0.$ === "Ticket.FinalProceed") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketFinalProceed"}, "tail": {$: "Nil"}}};
+  } else {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketFinalRelease"}, "tail": {$: "Nil"}}};
+  }
+}
+
+function $Ticket$final_authority$(_admitted_block_0, _current_block_0) {
+  return $Bool$pick$(($Bool$and$(_admitted_block_0, ($Bool$not$(_current_block_0)))), {$: "Ticket.FinalRelease"}, {$: "Ticket.FinalProceed"});
+}
+
+function $Canonical$ticket_joined_result$(_state_0, _result_0) {
+  if (_result_0.$ === "Ticket.KeepJoined") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketKeepJoined"}, "tail": {$: "Nil"}}};
+  } else if (_result_0.$ === "Ticket.SetJoinedClear") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketSetJoinedClear"}, "tail": {$: "Nil"}}};
+  } else if (_result_0.$ === "Ticket.SetJoinedFinding") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketSetJoinedFinding"}, "tail": {$: "Nil"}}};
+  } else if (_result_0.$ === "Ticket.SetJoinedUnavailable") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketSetJoinedUnavailable"}, "tail": {$: "Nil"}}};
+  } else {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketSetJoinedLost"}, "tail": {$: "Nil"}}};
+  }
+}
+
+function $Ticket$joined_disposition$(_state_0, _stale_unavailable_0, _has_revision_0, _has_advice_id_0) {
+  return $Bool$pick$(_stale_unavailable_0, {$: "Ticket.KeepJoined"}, ($Ticket$joined$route$(_state_0, _has_revision_0, _has_advice_id_0)));
+}
+
 function $Canonical$output_start$(_state_0, _partition_0, _lifetime_0, _round_0) {
   const __0 = _state_0["ledger"];
   const _rounds_0 = _state_0["rounds"];
@@ -1348,7 +1541,7 @@ function $Dispatch$initial$() {
 }
 
 function $CollectionState$initial$() {
-  return {$: "CollectionState.State", "ready": {$: "Nil"}, "leases": {$: "Nil"}, "claims": {$: "Nil"}, "delivery": ($DeliveryState$initial$()), "revision": ($RevisionState$initial$())};
+  return {$: "CollectionState.State", "ready": {$: "Nil"}, "leases": {$: "Nil"}, "claims": {$: "Nil"}, "delivery": ($DeliveryState$initial$()), "revision": ($RevisionState$initial$()), "tickets": ($TicketState$initial$())};
 }
 
 function $Ledger$limits_for$(_purpose_0, _limits_0) {
@@ -2056,23 +2249,15 @@ function $Canonical$stop_group_end_checked$(_state_0, _group_0, _lifetime_0, _ro
   }
 }
 
-function $Canonical$collection_decision$(_state_0, _decision_0, _accepted_0, _refused_0) {
-  if (_decision_0.$ === "CollectionState.Accepted") {
-    const _collection_0 = _decision_0["state"];
-    return {$: "Canonical.Advanced", "state": ($Canonical$with_collection$(_state_0, _collection_0)), "commands": {$: "Con", "head": _accepted_0, "tail": {$: "Nil"}}};
-  } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": _refused_0, "tail": {$: "Nil"}}};
-  }
-}
-
 function $CollectionState$mark_ready$(_state_0, _advice_0, _eligible_now_0) {
   const _ready_0 = _state_0["ready"];
   const _leases_0 = _state_0["leases"];
   const _claims_0 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
   const _revision_0 = _state_0["revision"];
+  const _tickets_0 = _state_0["tickets"];
   const _x_0 = ($CollectionState$contains$(_advice_0, _ready_0));
-  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_advice_0, 0)), (_eligible_now_0 || _x_0))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": ($Bool$pick$(($CollectionState$contains$(_advice_0, _ready_0)), _ready_0, {$: "Con", "head": _advice_0, "tail": _ready_0})), "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0}});
+  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_advice_0, 0)), (_eligible_now_0 || _x_0))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": ($Bool$pick$(($CollectionState$contains$(_advice_0, _ready_0)), _ready_0, {$: "Con", "head": _advice_0, "tail": _ready_0})), "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}});
 }
 
 function $Collection$eligible$(_already_0, _turn_end_0, _cycle_complete_0, _elapsed_0, _window_0) {
@@ -2136,7 +2321,8 @@ function $CollectionState$reserve$(_state_0, _advice_0, _token_0) {
   const _claims_0 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
   const _revision_0 = _state_0["revision"];
-  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($CollectionState$contains$(_advice_0, _ready_0)), ($Bool$not$(($CollectionState$lease_exists$(_advice_0, _leases_0)))))))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": {$: "Con", "head": {$: "CollectionState.Lease", "advice": _advice_0, "owner": _token_0}, "tail": _leases_0}, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0}});
+  const _tickets_0 = _state_0["tickets"];
+  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($CollectionState$contains$(_advice_0, _ready_0)), ($Bool$not$(($CollectionState$lease_exists$(_advice_0, _leases_0)))))))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": {$: "Con", "head": {$: "CollectionState.Lease", "advice": _advice_0, "owner": _token_0}, "tail": _leases_0}, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}});
 }
 
 function $CollectionState$release$(_state_0, _advice_0, _token_0) {
@@ -2145,7 +2331,8 @@ function $CollectionState$release$(_state_0, _advice_0, _token_0) {
   const _claims_0 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
   const _revision_0 = _state_0["revision"];
-  return $Bool$pick$(($CollectionState$lease_owned$(_advice_0, _token_0, _leases_0)), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": ($CollectionState$remove_lease$(_advice_0, _token_0, _leases_0)), "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0}});
+  const _tickets_0 = _state_0["tickets"];
+  return $Bool$pick$(($CollectionState$lease_owned$(_advice_0, _token_0, _leases_0)), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": ($CollectionState$remove_lease$(_advice_0, _token_0, _leases_0)), "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}});
 }
 
 function $Canonical$collection_lease_checked$(_state_0, _advice_0, _token_0, _action_0) {
@@ -2178,7 +2365,8 @@ function $CollectionState$retire$(_state_0, _advice_0) {
   const _claims_0 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
   const _revision_0 = _state_0["revision"];
-  return {$: "CollectionState.State", "ready": ($CollectionState$remove_ready$(_advice_0, _ready_0)), "leases": ($CollectionState$remove_advice_lease$(_advice_0, _leases_0)), "claims": _claims_0, "delivery": ($DeliveryState$submission_forget$(_delivery_0, _advice_0)), "revision": _revision_0};
+  const _tickets_0 = _state_0["tickets"];
+  return {$: "CollectionState.State", "ready": ($CollectionState$remove_ready$(_advice_0, _ready_0)), "leases": ($CollectionState$remove_advice_lease$(_advice_0, _leases_0)), "claims": _claims_0, "delivery": ($DeliveryState$submission_forget$(_delivery_0, _advice_0)), "revision": _revision_0, "tickets": _tickets_0};
 }
 
 function $CollectionState$claim$(_state_0, _group_0, _token_0, _active_0, _capacity_0) {
@@ -2187,8 +2375,9 @@ function $CollectionState$claim$(_state_0, _group_0, _token_0, _active_0, _capac
   const _claims_0 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
   const _revision_0 = _state_0["revision"];
+  const _tickets_0 = _state_0["tickets"];
   const _x_0 = ($List$length$(_claims_0));
-  return $Bool$pick$(($Bool$and$(_active_0, ($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($Bool$not$(($CollectionState$claim_exists$(_group_0, _claims_0)))), (_x_0 < _capacity_0))))))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": {$: "Con", "head": {$: "CollectionState.Claim", "group": _group_0, "owner": _token_0}, "tail": _claims_0}, "delivery": _delivery_0, "revision": _revision_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0}});
+  return $Bool$pick$(($Bool$and$(_active_0, ($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($Bool$not$(($CollectionState$claim_exists$(_group_0, _claims_0)))), (_x_0 < _capacity_0))))))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": {$: "Con", "head": {$: "CollectionState.Claim", "group": _group_0, "owner": _token_0}, "tail": _claims_0}, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}});
 }
 
 function $CollectionState$release_claim$(_state_0, _group_0, _token_0) {
@@ -2197,7 +2386,8 @@ function $CollectionState$release_claim$(_state_0, _group_0, _token_0) {
   const _claims_0 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
   const _revision_0 = _state_0["revision"];
-  return $Bool$pick$(($CollectionState$claim_owned$(_group_0, _token_0, _claims_0)), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": ($CollectionState$remove_claim$(_group_0, _token_0, _claims_0)), "delivery": _delivery_0, "revision": _revision_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0}});
+  const _tickets_0 = _state_0["tickets"];
+  return $Bool$pick$(($CollectionState$claim_owned$(_group_0, _token_0, _claims_0)), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": ($CollectionState$remove_claim$(_group_0, _token_0, _claims_0)), "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}});
 }
 
 function $CollectionState$expire_claim$(_state_0, _group_0, _token_0, _elapsed_0, _lifetime_0) {
@@ -2255,7 +2445,8 @@ function $CollectionState$finish_release$(_state_0, _group_0, _round_0, _attempt
   const __2 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
   const __3 = _state_0["revision"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3}, ($DeliveryState$release$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0)));
+  const __4 = _state_0["tickets"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4}, ($DeliveryState$release$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0)));
 }
 
 function $CollectionState$submission_ready$(_state_0, _group_0, _round_0, _token_0, _selected_0) {
@@ -2269,7 +2460,8 @@ function $CollectionState$finish_authorize$(_state_0, _group_0, _round_0, _attem
   const __2 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
   const __3 = _state_0["revision"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3}, ($DeliveryState$authorize$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)));
+  const __4 = _state_0["tickets"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4}, ($DeliveryState$authorize$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)));
 }
 
 function $Canonical$finish_terminal_result$(_state_0, _outcome_0, _decision_0) {
@@ -2287,7 +2479,8 @@ function $CollectionState$finish_terminal$(_state_0, _group_0, _round_0, _attemp
   const __2 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
   const __3 = _state_0["revision"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3}, ($DeliveryState$terminal$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0)));
+  const __4 = _state_0["tickets"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4}, ($DeliveryState$terminal$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0)));
 }
 
 function $CollectionState$finish_end$(_state_0, _group_0, _round_0, _attempt_0, _token_0) {
@@ -2296,7 +2489,8 @@ function $CollectionState$finish_end$(_state_0, _group_0, _round_0, _attempt_0, 
   const __2 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
   const __3 = _state_0["revision"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3}, ($DeliveryState$end$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0)));
+  const __4 = _state_0["tickets"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4}, ($DeliveryState$end$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0)));
 }
 
 function $CollectionState$consume_continuation$(_state_0, _group_0, _round_0) {
@@ -2305,7 +2499,8 @@ function $CollectionState$consume_continuation$(_state_0, _group_0, _round_0) {
   const __2 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
   const __3 = _state_0["revision"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3}, ($DeliveryState$consume$(_delivery_0, _group_0, _round_0)));
+  const __4 = _state_0["tickets"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4}, ($DeliveryState$consume$(_delivery_0, _group_0, _round_0)));
 }
 
 function $Canonical$submission_round_found$(_group_0, _round_0, _found_0) {
@@ -2338,7 +2533,8 @@ function $CollectionState$submission_begin$(_state_0, _advice_0, _group_0, _roun
   const __2 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
   const __3 = _state_0["revision"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3}, ($DeliveryState$submission_begin$(_delivery_0, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0)));
+  const __4 = _state_0["tickets"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4}, ($DeliveryState$submission_begin$(_delivery_0, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0)));
 }
 
 function $CollectionState$submission_authorize$(_state_0, _advice_0, _token_0) {
@@ -2347,7 +2543,8 @@ function $CollectionState$submission_authorize$(_state_0, _advice_0, _token_0) {
   const __2 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
   const __3 = _state_0["revision"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3}, ($DeliveryState$submission_authorize$(_delivery_0, _advice_0, _token_0)));
+  const __4 = _state_0["tickets"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4}, ($DeliveryState$submission_authorize$(_delivery_0, _advice_0, _token_0)));
 }
 
 function $CollectionState$submission_terminal$(_state_0, _advice_0, _token_0, _certain_0) {
@@ -2356,7 +2553,8 @@ function $CollectionState$submission_terminal$(_state_0, _advice_0, _token_0, _c
   const __2 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
   const __3 = _state_0["revision"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3}, ($DeliveryState$submission_terminal$(_delivery_0, _advice_0, _token_0, _certain_0)));
+  const __4 = _state_0["tickets"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4}, ($DeliveryState$submission_terminal$(_delivery_0, _advice_0, _token_0, _certain_0)));
 }
 
 function $CollectionState$submission_release$(_state_0, _advice_0, _token_0) {
@@ -2365,7 +2563,8 @@ function $CollectionState$submission_release$(_state_0, _advice_0, _token_0) {
   const __2 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
   const __3 = _state_0["revision"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3}, ($DeliveryState$submission_release$(_delivery_0, _advice_0, _token_0)));
+  const __4 = _state_0["tickets"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4}, ($DeliveryState$submission_release$(_delivery_0, _advice_0, _token_0)));
 }
 
 function $CollectionState$submission_forget$(_state_0, _advice_0) {
@@ -2374,7 +2573,8 @@ function $CollectionState$submission_forget$(_state_0, _advice_0) {
   const _claims_0 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
   const _revision_0 = _state_0["revision"];
-  return {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": ($DeliveryState$submission_forget$(_delivery_0, _advice_0)), "revision": _revision_0};
+  const _tickets_0 = _state_0["tickets"];
+  return {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": ($DeliveryState$submission_forget$(_delivery_0, _advice_0)), "revision": _revision_0, "tickets": _tickets_0};
 }
 
 function $CollectionState$submission_suppresses$(_state_0, _advice_0, _fingerprint_0, _round_0, _surface_0) {
@@ -2423,7 +2623,8 @@ function $CollectionState$revision_release$(_state_0, _subject_0, _generation_0)
   const _claims_0 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
   const _revision_0 = _state_0["revision"];
-  return {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": ($RevisionState$release$(_revision_0, _subject_0, _generation_0))};
+  const _tickets_0 = _state_0["tickets"];
+  return {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": ($RevisionState$release$(_revision_0, _subject_0, _generation_0)), "tickets": _tickets_0};
 }
 
 function $CollectionState$revision_current$(_state_0, _subject_0, _input_0, _generation_0) {
@@ -2444,6 +2645,121 @@ function $CollectionState$revision_generation$(_state_0, _subject_0) {
 function $CollectionState$revision_count$(_state_0) {
   const _revision_0 = _state_0["revision"];
   return $RevisionState$count$(_revision_0);
+}
+
+function $CollectionState$ticket_result$(_state_0, _decision_0) {
+  const _ready_0 = _state_0["ready"];
+  const _leases_0 = _state_0["leases"];
+  const _claims_0 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  const _revision_0 = _state_0["revision"];
+  const __0 = _state_0["tickets"];
+  if (_decision_0.$ === "TicketState.Granted") {
+    const _tickets_0 = _decision_0["state"];
+    return {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}};
+  } else {
+    return {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": __0}};
+  }
+}
+
+function $TicketState$open$(_state_0, _id_0) {
+  const _records_0 = _state_0["records"];
+  return $TicketState$opened$({$: "TicketState.State", "records": _records_0}, _id_0, ($TicketState$find_record$(_id_0, _records_0)));
+}
+
+function $TicketState$forget$(_state_0, _id_0) {
+  const _records_0 = _state_0["records"];
+  return $TicketState$forgotten$({$: "TicketState.State", "records": _records_0}, _id_0, ($TicketState$find_record$(_id_0, _records_0)));
+}
+
+function $TicketState$fail$(_state_0, _id_0, _reason_0) {
+  const _records_0 = _state_0["records"];
+  return $TicketState$failure_result$({$: "TicketState.State", "records": _records_0}, _id_0, _reason_0, ($TicketState$find_record$(_id_0, _records_0)));
+}
+
+function $TicketState$close$(_state_0, _id_0) {
+  const _records_0 = _state_0["records"];
+  return $TicketState$close_result$({$: "TicketState.State", "records": _records_0}, _id_0, ($TicketState$find_record$(_id_0, _records_0)));
+}
+
+function $TicketState$add_unit$(_state_0, _ticket_0, _unit_0) {
+  const _records_0 = _state_0["records"];
+  return $TicketState$add_unit_found$({$: "TicketState.State", "records": _records_0}, _ticket_0, _unit_0, ($TicketState$find_record$(_ticket_0, _records_0)));
+}
+
+function $TicketState$step_unit$(_state_0, _ticket_0, _unit_0, _event_0, _reason_0) {
+  const _records_0 = _state_0["records"];
+  return $TicketState$step_unit_found$({$: "TicketState.State", "records": _records_0}, _ticket_0, _unit_0, _event_0, _reason_0, ($TicketState$find_record$(_ticket_0, _records_0)));
+}
+
+function $TicketState$unit_snapshot$(_state_0, _ticket_0, _unit_0) {
+  const _records_0 = _state_0["records"];
+  return $TicketState$unit_in_record$(($TicketState$find_record$(_ticket_0, _records_0)), _unit_0);
+}
+
+function $Canonical$ticket_terminal_outcome$(_state_0, _outcome_0) {
+  if (_outcome_0.$ === "Some") {
+    const _t_0 = _outcome_0["value"];
+    if (_t_0.$ === "Ticket.Pending") {
+      return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketPending"}, "tail": {$: "Nil"}}};
+    } else if (_t_0.$ === "Ticket.Unavailable") {
+      const _reason_0 = _t_0["reason"];
+      return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketUnavailable", "reason": _reason_0}, "tail": {$: "Nil"}}};
+    } else if (_t_0.$ === "Ticket.Delivered") {
+      return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketDelivered"}, "tail": {$: "Nil"}}};
+    } else if (_t_0.$ === "Ticket.Clear") {
+      return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketClear"}, "tail": {$: "Nil"}}};
+    } else {
+      return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketNoWork"}, "tail": {$: "Nil"}}};
+    }
+  } else {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketRefused"}, "tail": {$: "Nil"}}};
+  }
+}
+
+function $CollectionState$ticket_terminal$(_state_0, _id_0, _expired_0, _credential_valid_0, _live_advice_0, _pending_notice_0) {
+  const _tickets_0 = _state_0["tickets"];
+  return $TicketState$terminal$(_tickets_0, _id_0, _expired_0, _credential_valid_0, _live_advice_0, _pending_notice_0);
+}
+
+function $Ticket$collect_gate$result$(_outcome_0) {
+  if (_outcome_0.$ === "Ticket.Pending") {
+    return {$: "Ticket.CollectProceed"};
+  } else if (_outcome_0.$ === "Ticket.Unavailable") {
+    const _reason_0 = _outcome_0["reason"];
+    return {$: "Ticket.CollectUnavailable", "reason": _reason_0};
+  } else {
+    return {$: "Ticket.CollectUnavailable", "reason": {$: "Ticket.Lost"}};
+  }
+}
+
+function $Ticket$terminal$(_state_0, _facts_0) {
+  const _expired_0 = _facts_0["expired"];
+  const _credential_valid_0 = _facts_0["credential_valid"];
+  const __0 = _facts_0["pending_units"];
+  const __1 = _facts_0["live_advice"];
+  const __2 = _facts_0["pending_notice"];
+  const __3 = _facts_0["unit_failure"];
+  const __4 = _facts_0["finding_units"];
+  const __5 = _facts_0["undelivered_findings"];
+  const __6 = _facts_0["total_units"];
+  return $Bool$pick$(_expired_0, {$: "Ticket.Unavailable", "reason": {$: "Ticket.Expired"}}, ($Bool$pick$(($Bool$not$(_credential_valid_0)), {$: "Ticket.Unavailable", "reason": {$: "Ticket.Credential"}}, ($Ticket$terminal$pending$(_state_0, {$: "Ticket.Facts", "expired": _expired_0, "credential_valid": _credential_valid_0, "pending_units": __0, "live_advice": __1, "pending_notice": __2, "unit_failure": __3, "finding_units": __4, "undelivered_findings": __5, "total_units": __6})))));
+}
+
+function $Ticket$initial$() {
+  return {$: "Ticket.Preparing", "failure": {$: "None"}};
+}
+
+function $Ticket$joined$route$(_state_0, _has_revision_0, _has_advice_id_0) {
+  if (_state_0.$ === "Ticket.JoinedUnavailable") {
+    return {$: "Ticket.SetJoinedUnavailable"};
+  } else if (_state_0.$ === "Ticket.JoinedPending") {
+    return $Bool$pick$(_has_revision_0, {$: "Ticket.KeepJoined"}, {$: "Ticket.SetJoinedLost"});
+  } else if (_state_0.$ === "Ticket.JoinedClear") {
+    return $Bool$pick$(_has_revision_0, {$: "Ticket.SetJoinedClear"}, {$: "Ticket.SetJoinedLost"});
+  } else {
+    return $Bool$pick$(($Bool$and$(_has_revision_0, _has_advice_id_0)), {$: "Ticket.SetJoinedFinding"}, {$: "Ticket.SetJoinedLost"});
+  }
 }
 
 function $Canonical$output_start_found$(_state_0, _partition_0, _lifetime_0, _round_0, _found_0) {
@@ -2498,6 +2814,10 @@ function $DeliveryState$initial$() {
 
 function $RevisionState$initial$() {
   return {$: "RevisionState.State", "entries": {$: "Nil"}, "next_generation": 1};
+}
+
+function $TicketState$initial$() {
+  return {$: "TicketState.State", "records": {$: "Nil"}};
 }
 
 function $Canonical$capacity_view$(_ledger_0, _partition_0) {
@@ -3256,7 +3576,8 @@ function $CollectionState$finish_reserve$(_state_0, _group_0, _round_0, _attempt
   const __2 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
   const __3 = _state_0["revision"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3}, ($DeliveryState$reserve$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)));
+  const __4 = _state_0["tickets"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4}, ($DeliveryState$reserve$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)));
 }
 
 function $CollectionState$delivery_result$(_state_0, _result_0) {
@@ -3265,11 +3586,12 @@ function $CollectionState$delivery_result$(_state_0, _result_0) {
   const _claims_0 = _state_0["claims"];
   const __0 = _state_0["delivery"];
   const _revision_0 = _state_0["revision"];
+  const _tickets_0 = _state_0["tickets"];
   if (_result_0.$ === "DeliveryState.Granted") {
     const _delivery_0 = _result_0["state"];
-    return {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0}};
+    return {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}};
   } else {
-    return {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": __0, "revision": _revision_0}};
+    return {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": __0, "revision": _revision_0, "tickets": _tickets_0}};
   }
 }
 
@@ -3368,7 +3690,8 @@ function $CollectionState$revision_replace$(_state_0, _replacement_0) {
   const _leases_0 = _state_0["leases"];
   const _claims_0 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
-  return {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _replacement_0};
+  const _tickets_0 = _state_0["tickets"];
+  return {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _replacement_0, "tickets": _tickets_0};
 }
 
 function $RevisionState$register$(_state_0, _subject_0, _input_0, _add_member_0) {
@@ -3401,6 +3724,112 @@ function $RevisionState$generation$(_state_0, _subject_0) {
 function $RevisionState$count$(_state_0) {
   const _entries_0 = _state_0["entries"];
   return $List$length$(_entries_0);
+}
+
+function $TicketState$opened$(_state_0, _id_0, _found_0) {
+  const _records_0 = _state_0["records"];
+  if (_found_0.$ === "None") {
+    return {$: "TicketState.Granted", "state": {$: "TicketState.State", "records": {$: "Con", "head": {$: "TicketState.Record", "id": _id_0, "phase": ($Ticket$initial$()), "units": {$: "Nil"}}, "tail": _records_0}}};
+  } else {
+    return {$: "TicketState.Refused", "state": {$: "TicketState.State", "records": _records_0}};
+  }
+}
+
+function $TicketState$find_record$(_id_0, _records_0) {
+  if (_records_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _record_0 = _records_0["head"];
+    const _rest_0 = _records_0["tail"];
+    return $Bool$pick$(($Nat$is_eq$(_id_0, ($TicketState$record_id$(_record_0)))), {$: "Some", "value": _record_0}, ($TicketState$find_record$(_id_0, _rest_0)));
+  }
+}
+
+function $TicketState$forgotten$(_state_0, _id_0, _found_0) {
+  const _records_0 = _state_0["records"];
+  if (_found_0.$ === "Some") {
+    return {$: "TicketState.Granted", "state": {$: "TicketState.State", "records": ($TicketState$without_record$(_id_0, _records_0))}};
+  } else {
+    return {$: "TicketState.Refused", "state": {$: "TicketState.State", "records": _records_0}};
+  }
+}
+
+function $TicketState$failure_result$(_state_0, _id_0, _reason_0, _found_0) {
+  const _records_0 = _state_0["records"];
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _phase_0 = _t_0["phase"];
+    const _units_0 = _t_0["units"];
+    return {$: "TicketState.Granted", "state": {$: "TicketState.State", "records": {$: "Con", "head": {$: "TicketState.Record", "id": _id_0, "phase": ($Ticket$fail$(_phase_0, _reason_0)), "units": _units_0}, "tail": ($TicketState$without_record$(_id_0, _records_0))}}};
+  } else {
+    return {$: "TicketState.Refused", "state": {$: "TicketState.State", "records": _records_0}};
+  }
+}
+
+function $TicketState$close_result$(_state_0, _id_0, _found_0) {
+  const _records_0 = _state_0["records"];
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _phase_0 = _t_0["phase"];
+    const _units_0 = _t_0["units"];
+    return {$: "TicketState.Granted", "state": {$: "TicketState.State", "records": {$: "Con", "head": {$: "TicketState.Record", "id": _id_0, "phase": ($Ticket$close$(_phase_0)), "units": _units_0}, "tail": ($TicketState$without_record$(_id_0, _records_0))}}};
+  } else {
+    return {$: "TicketState.Refused", "state": {$: "TicketState.State", "records": _records_0}};
+  }
+}
+
+function $TicketState$add_unit_found$(_state_0, _ticket_0, _unit_0, _found_0) {
+  const _records_0 = _state_0["records"];
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _phase_0 = _t_0["phase"];
+    const _units_0 = _t_0["units"];
+    return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_unit_0, 0)), ($Maybe$is_none$(($TicketState$find_unit$(_unit_0, _units_0)))))), {$: "TicketState.Granted", "state": {$: "TicketState.State", "records": {$: "Con", "head": {$: "TicketState.Record", "id": _ticket_0, "phase": _phase_0, "units": ($List$append$(_units_0, {$: "Con", "head": {$: "TicketState.TicketUnit", "id": _unit_0, "stage": ($Ticket$unit$initial$()), "reason": {$: "None"}}, "tail": {$: "Nil"}}))}, "tail": ($TicketState$without_record$(_ticket_0, _records_0))}}}, {$: "TicketState.Refused", "state": {$: "TicketState.State", "records": _records_0}});
+  } else {
+    return {$: "TicketState.Refused", "state": {$: "TicketState.State", "records": _records_0}};
+  }
+}
+
+function $TicketState$step_unit_found$(_state_0, _ticket_0, _unit_0, _event_0, _reason_0, _found_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const __0 = _t_0["id"];
+    const __1 = _t_0["phase"];
+    const _units_0 = _t_0["units"];
+    return $TicketState$unit_step_result$(_state_0, _ticket_0, _unit_0, _event_0, _reason_0, {$: "Some", "value": {$: "TicketState.Record", "id": __0, "phase": __1, "units": _units_0}}, ($TicketState$find_unit$(_unit_0, _units_0)));
+  } else {
+    return {$: "TicketState.Refused", "state": _state_0};
+  }
+}
+
+function $TicketState$unit_in_record$(_found_0, _unit_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _units_0 = _t_0["units"];
+    return $TicketState$find_unit$(_unit_0, _units_0);
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $TicketState$terminal$(_state_0, _ticket_0, _expired_0, _credential_valid_0, _live_advice_0, _pending_notice_0) {
+  const _records_0 = _state_0["records"];
+  return $TicketState$terminal_found$(($TicketState$find_record$(_ticket_0, _records_0)), _expired_0, _credential_valid_0, _live_advice_0, _pending_notice_0);
+}
+
+function $Ticket$terminal$pending$(_state_0, _facts_0) {
+  const _pending_units_0 = _facts_0["pending_units"];
+  const _live_advice_0 = _facts_0["live_advice"];
+  const _pending_notice_0 = _facts_0["pending_notice"];
+  const _unit_failure_0 = _facts_0["unit_failure"];
+  const _finding_units_0 = _facts_0["finding_units"];
+  const _undelivered_0 = _facts_0["undelivered_findings"];
+  const _total_0 = _facts_0["total_units"];
+  const _x_0 = ($Nat$is_gt$(_pending_units_0, 0));
+  const _x_1 = (_live_advice_0 || _pending_notice_0);
+  const _x_2 = ($Ticket$is_preparing$(_state_0));
+  const _x_3 = (_x_0 || _x_1);
+  return $Bool$pick$((_x_2 || _x_3), {$: "Ticket.Pending"}, ($Ticket$terminal$phase$(_state_0, _unit_failure_0, _finding_units_0, _undelivered_0, _total_0)));
 }
 
 function $Canonical$remove_round$(_partition_0, _rounds_0) {
@@ -4468,6 +4897,106 @@ function $RevisionState$generation_found$(_found_0) {
   }
 }
 
+function $TicketState$record_id$(_record_0) {
+  const _id_0 = _record_0["id"];
+  return _id_0;
+}
+
+function $TicketState$without_record$(_id_0, _records_0) {
+  if (_records_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _record_0 = _records_0["head"];
+    const _rest_0 = _records_0["tail"];
+    return $TicketState$keep_record$(_record_0, ($TicketState$without_record$(_id_0, _rest_0)), ($Nat$is_eq$(_id_0, ($TicketState$record_id$(_record_0)))));
+  }
+}
+
+function $Ticket$fail$(_phase_0, _reason_0) {
+  if (_phase_0.$ === "Ticket.Preparing") {
+    const _previous_0 = _phase_0["failure"];
+    return $Ticket$fail$previous$(_previous_0, _reason_0);
+  } else {
+    return _phase_0;
+  }
+}
+
+function $Ticket$close$(_phase_0) {
+  if (_phase_0.$ === "Ticket.Preparing") {
+    const _t_0 = _phase_0["failure"];
+    if (_t_0.$ === "None") {
+      return {$: "Ticket.Closed"};
+    } else {
+      const _reason_0 = _t_0["value"];
+      return {$: "Ticket.Failed", "reason": _reason_0};
+    }
+  } else {
+    return _phase_0;
+  }
+}
+
+function $Maybe$is_none$(_m_0) {
+  return $Bool$not$(($Maybe$is_some$(_m_0)));
+}
+
+function $TicketState$find_unit$(_id_0, _units_0) {
+  if (_units_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _unit_0 = _units_0["head"];
+    const _rest_0 = _units_0["tail"];
+    return $Bool$pick$(($Nat$is_eq$(_id_0, ($TicketState$unit_id$(_unit_0)))), {$: "Some", "value": _unit_0}, ($TicketState$find_unit$(_id_0, _rest_0)));
+  }
+}
+
+function $Ticket$unit$initial$() {
+  return {$: "Ticket.UnitPending"};
+}
+
+function $TicketState$unit_step_result$(_state_0, _ticket_0, _unit_0, _event_0, _reason_0, _found_record_0, _found_unit_0) {
+  if (_found_record_0.$ === "Some") {
+    const _t_0 = _found_record_0["value"];
+    const _phase_0 = _t_0["phase"];
+    const _units_0 = _t_0["units"];
+    if (_found_unit_0.$ === "Some") {
+      const _t_1 = _found_unit_0["value"];
+      const _stage_0 = _t_1["stage"];
+      const _previous_reason_0 = _t_1["reason"];
+      return $Bool$pick$(($TicketState$unit_allowed$(_stage_0, _event_0)), ($TicketState$unit_transition_result$(_state_0, _ticket_0, _unit_0, _phase_0, _units_0, _event_0, _reason_0, _previous_reason_0, ($Ticket$unit$step$(_stage_0, _event_0)))), {$: "TicketState.Refused", "state": _state_0});
+    } else {
+      return {$: "TicketState.Refused", "state": _state_0};
+    }
+  } else {
+    return {$: "TicketState.Refused", "state": _state_0};
+  }
+}
+
+function $TicketState$terminal_found$(_found_0, _expired_0, _credential_valid_0, _live_advice_0, _pending_notice_0) {
+  if (_found_0.$ === "Some") {
+    const _record_0 = _found_0["value"];
+    return {$: "Some", "value": ($TicketState$terminal_record$(_record_0, _expired_0, _credential_valid_0, _live_advice_0, _pending_notice_0))};
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $Ticket$is_preparing$(_state_0) {
+  if (_state_0.$ === "Ticket.Preparing") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $Ticket$terminal$phase$(_state_0, _failure_0, _finding_units_0, _undelivered_0, _total_0) {
+  if (_state_0.$ === "Ticket.Failed") {
+    const _reason_0 = _state_0["reason"];
+    return {$: "Ticket.Unavailable", "reason": _reason_0};
+  } else {
+    return $Ticket$terminal$unit$(_failure_0, _finding_units_0, _undelivered_0, _total_0);
+  }
+}
+
 function $Canonical$remove_round_pick$(_round_0, _tail_0, _hit_0) {
   if (_hit_0) {
     return _tail_0;
@@ -5148,6 +5677,89 @@ function $RevisionState$same_subject$(_subject_0, _entry_0) {
   return $Nat$is_eq$(_subject_0, _candidate_0);
 }
 
+function $TicketState$keep_record$(_record_0, _tail_0, _remove_0) {
+  if (_remove_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _record_0, "tail": _tail_0};
+  }
+}
+
+function $Ticket$fail$previous$(_previous_0, _reason_0) {
+  if (_previous_0.$ === "None") {
+    return {$: "Ticket.Preparing", "failure": {$: "Some", "value": _reason_0}};
+  } else {
+    const _earlier_0 = _previous_0["value"];
+    return {$: "Ticket.Preparing", "failure": {$: "Some", "value": _earlier_0}};
+  }
+}
+
+function $Maybe$is_some$(_m_0) {
+  if (_m_0.$ === "None") {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+function $TicketState$unit_id$(_unit_0) {
+  const _id_0 = _unit_0["id"];
+  return _id_0;
+}
+
+function $TicketState$unit_allowed$(_stage_0, _event_0) {
+  if (_event_0.$ === "Ticket.Revise") {
+    return $TicketState$pending_stage$(_stage_0);
+  } else if (_event_0.$ === "Ticket.ClearResult") {
+    return $TicketState$pending_stage$(_stage_0);
+  } else if (_event_0.$ === "Ticket.FindingResult") {
+    return $TicketState$pending_stage$(_stage_0);
+  } else if (_event_0.$ === "Ticket.FailUnit") {
+    return $Bool$not$(($TicketState$unavailable_stage$(_stage_0)));
+  } else {
+    return $TicketState$undelivered_stage$(_stage_0);
+  }
+}
+
+function $TicketState$unit_transition_result$(_state_0, _ticket_0, _unit_0, _phase_0, _units_0, _event_0, _reason_0, _previous_reason_0, _result_0) {
+  const _records_0 = _state_0["records"];
+  if (_result_0.$ === "Ticket.UnitGranted") {
+    const _replacement_0 = _result_0["stage"];
+    return {$: "TicketState.Granted", "state": {$: "TicketState.State", "records": {$: "Con", "head": {$: "TicketState.Record", "id": _ticket_0, "phase": _phase_0, "units": ($TicketState$replace_unit$(_unit_0, {$: "TicketState.TicketUnit", "id": _unit_0, "stage": _replacement_0, "reason": ($TicketState$reason_after$(_event_0, _reason_0, _previous_reason_0))}, _units_0))}, "tail": ($TicketState$without_record$(_ticket_0, _records_0))}}};
+  } else {
+    return {$: "TicketState.Refused", "state": {$: "TicketState.State", "records": _records_0}};
+  }
+}
+
+function $Ticket$unit$step$(_stage_0, _event_0) {
+  if (_event_0.$ === "Ticket.Revise") {
+    return $Ticket$unit$revise$(_stage_0);
+  } else if (_event_0.$ === "Ticket.ClearResult") {
+    return $Ticket$unit$result$(_stage_0, false);
+  } else if (_event_0.$ === "Ticket.FindingResult") {
+    return $Ticket$unit$result$(_stage_0, true);
+  } else if (_event_0.$ === "Ticket.FailUnit") {
+    return {$: "Ticket.UnitGranted", "stage": {$: "Ticket.UnitUnavailable"}};
+  } else {
+    return $Ticket$unit$delivered$(_stage_0);
+  }
+}
+
+function $TicketState$terminal_record$(_record_0, _expired_0, _credential_valid_0, _live_advice_0, _pending_notice_0) {
+  const _phase_0 = _record_0["phase"];
+  const _units_0 = _record_0["units"];
+  return $Ticket$terminal$(_phase_0, {$: "Ticket.Facts", "expired": _expired_0, "credential_valid": _credential_valid_0, "pending_units": ($TicketState$pending_count$(_units_0)), "live_advice": _live_advice_0, "pending_notice": _pending_notice_0, "unit_failure": ($TicketState$first_failure$(_units_0)), "finding_units": ($TicketState$finding_count$(_units_0)), "undelivered_findings": ($TicketState$undelivered_count$(_units_0)), "total_units": ($List$length$(_units_0))});
+}
+
+function $Ticket$terminal$unit$(_failure_0, _finding_units_0, _undelivered_0, _total_0) {
+  if (_failure_0.$ === "Some") {
+    const _reason_0 = _failure_0["value"];
+    return {$: "Ticket.Unavailable", "reason": _reason_0};
+  } else {
+    return $Ticket$terminal$findings$(_finding_units_0, _undelivered_0, _total_0);
+  }
+}
+
 function $Canonical$cancel_pick$(_operation_0, _tail_0, _hit_0) {
   if (_hit_0) {
     return {$: "Con", "head": {$: "Canonical.CancelWork", "operation": _operation_0}, "tail": _tail_0};
@@ -5478,6 +6090,138 @@ function $RevisionState$keep_entry$(_entry_0, _tail_0, _remove_0) {
   }
 }
 
+function $TicketState$pending_stage$(_stage_0) {
+  if (_stage_0.$ === "Ticket.UnitPending") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $TicketState$unavailable_stage$(_stage_0) {
+  if (_stage_0.$ === "Ticket.UnitUnavailable") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $TicketState$undelivered_stage$(_stage_0) {
+  if (_stage_0.$ === "Ticket.UnitFinding") {
+    const _delivered_0 = _stage_0["delivered"];
+    return $Bool$not$(_delivered_0);
+  } else {
+    return false;
+  }
+}
+
+function $TicketState$replace_unit$(_id_0, _replacement_0, _units_0) {
+  if (_units_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _item_0 = _units_0["head"];
+    const _rest_0 = _units_0["tail"];
+    return $TicketState$replace_unit_choice$(_item_0, ($TicketState$replace_unit$(_id_0, _replacement_0, _rest_0)), _replacement_0, ($Nat$is_eq$(_id_0, ($TicketState$unit_id$(_item_0)))));
+  }
+}
+
+function $TicketState$reason_after$(_event_0, _reason_0, _previous_0) {
+  if (_event_0.$ === "Ticket.FailUnit") {
+    return {$: "Some", "value": _reason_0};
+  } else {
+    return _previous_0;
+  }
+}
+
+function $Ticket$unit$revise$(_stage_0) {
+  if (_stage_0.$ === "Ticket.UnitPending") {
+    return {$: "Ticket.UnitGranted", "stage": {$: "Ticket.UnitPending"}};
+  } else {
+    return {$: "Ticket.UnitDenied", "stage": _stage_0};
+  }
+}
+
+function $Ticket$unit$result$(_stage_0, _finding_0) {
+  if (_stage_0.$ === "Ticket.UnitUnavailable") {
+    return {$: "Ticket.UnitDenied", "stage": {$: "Ticket.UnitUnavailable"}};
+  } else {
+    return {$: "Ticket.UnitGranted", "stage": ($Bool$pick$(_finding_0, {$: "Ticket.UnitFinding", "delivered": false}, {$: "Ticket.UnitClear"}))};
+  }
+}
+
+function $Ticket$unit$delivered$(_stage_0) {
+  if (_stage_0.$ === "Ticket.UnitFinding") {
+    return {$: "Ticket.UnitGranted", "stage": {$: "Ticket.UnitFinding", "delivered": true}};
+  } else {
+    return {$: "Ticket.UnitDenied", "stage": _stage_0};
+  }
+}
+
+function $TicketState$pending_count$(_units_0) {
+  if (_units_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _t_0 = _units_0["head"];
+    const _stage_0 = _t_0["stage"];
+    const _rest_0 = _units_0["tail"];
+    const _x_0 = ($TicketState$pending_count$(_rest_0));
+    const _x_1 = ($Bool$pick$(($TicketState$pending_stage$(_stage_0)), 1, 0));
+    return nat_chk(_x_0 + _x_1);
+  }
+}
+
+function $TicketState$first_failure$($0) {
+  for (;;) {
+    {
+      const _units_0 = $0;
+      if (_units_0.$ === "Nil") {
+        return {$: "None"};
+      } else {
+        const _t_0 = _units_0["head"];
+        const _t_1 = _t_0["stage"];
+        if (_t_1.$ === "Ticket.UnitUnavailable") {
+          const _reason_0 = _t_0["reason"];
+          return _reason_0;
+        } else {
+          const _rest_1 = _units_0["tail"];
+          $0 = _rest_1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $TicketState$finding_count$(_units_0) {
+  if (_units_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _t_0 = _units_0["head"];
+    const _stage_0 = _t_0["stage"];
+    const _rest_0 = _units_0["tail"];
+    const _x_0 = ($TicketState$finding_count$(_rest_0));
+    const _x_1 = ($Bool$pick$(($TicketState$finding_stage$(_stage_0)), 1, 0));
+    return nat_chk(_x_0 + _x_1);
+  }
+}
+
+function $TicketState$undelivered_count$(_units_0) {
+  if (_units_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _t_0 = _units_0["head"];
+    const _stage_0 = _t_0["stage"];
+    const _rest_0 = _units_0["tail"];
+    const _x_0 = ($TicketState$undelivered_count$(_rest_0));
+    const _x_1 = ($Bool$pick$(($TicketState$undelivered_stage$(_stage_0)), 1, 0));
+    return nat_chk(_x_0 + _x_1);
+  }
+}
+
+function $Ticket$terminal$findings$(_finding_units_0, _undelivered_0, _total_0) {
+  return $Bool$pick$(($Nat$is_gt$(_finding_units_0, 0)), ($Bool$pick$(($Nat$is_eq$(_undelivered_0, 0)), {$: "Ticket.Delivered"}, {$: "Ticket.Unavailable", "reason": {$: "Ticket.Lost"}})), ($Bool$pick$(($Nat$is_gt$(_total_0, 0)), {$: "Ticket.Clear"}, {$: "Ticket.NoWork"})));
+}
+
 function $Ledger$replace$pick$(_charge_0, _replacement_0, _tail_0, _hit_0) {
   if (_hit_0) {
     return {$: "Con", "head": _replacement_0, "tail": _tail_0};
@@ -5684,6 +6428,22 @@ function $Handoff$lease$suppress_phase$(_phase_0, _requested_0) {
   } else {
     const _surface_1 = _phase_0["surface"];
     return $Handoff$lease$suppress_surface$(_surface_1, _requested_0);
+  }
+}
+
+function $TicketState$replace_unit_choice$(_item_0, _tail_0, _replacement_0, _matches_0) {
+  if (_matches_0) {
+    return {$: "Con", "head": _replacement_0, "tail": _tail_0};
+  } else {
+    return {$: "Con", "head": _item_0, "tail": _tail_0};
+  }
+}
+
+function $TicketState$finding_stage$(_stage_0) {
+  if (_stage_0.$ === "Ticket.UnitFinding") {
+    return true;
+  } else {
+    return false;
   }
 }
 

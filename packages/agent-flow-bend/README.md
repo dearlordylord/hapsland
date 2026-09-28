@@ -46,6 +46,9 @@ it grants one same round Stop reoffer for terminal background advice.
 generation, and live same-input member counts. The resident uses its canonical
 register, release, and supersession commands to fence older review callbacks
 and retire their advice without changing another advicee's work.
+`TicketState.bend` retains ticket phases and ordered unit outcomes, then
+computes terminal status from native expiry, credential, and live advice facts.
+Duplicate delivered marks and late results for unavailable units are refused.
 The resident reserves the selected batch before the final IPC barrier and can
 release an unwritten provisional slot.
 Other

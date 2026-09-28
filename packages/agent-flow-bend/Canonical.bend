@@ -10,6 +10,8 @@ import ./Handoff.bend as Handoff
 import ./Delivery.bend as Delivery
 import ./DeliveryState.bend as DeliveryState
 import ./RevisionState.bend as RevisionState
+import ./Ticket.bend as Ticket
+import ./TicketState.bend as TicketState
 
 # #119 boundary: one resident lifetime, shared ledger, active advicee rounds.
 # Native IDs are bijectively mapped to positive Nat values before entry.
@@ -145,6 +147,20 @@ type CanonicalEvent is Data:
   RevisionSupersededCheck{subject: Nat, candidate_subject: Nat, generation: Nat}
   RevisionGenerationCheck{subject: Nat}
   RevisionCountCheck{}
+  TicketOpen{id: Nat}
+  TicketForget{id: Nat}
+  TicketFail{id: Nat, reason: Ticket.Reason}
+  TicketClose{id: Nat}
+  TicketAddUnit{id: Nat, unit: Nat}
+  TicketStepUnit{id: Nat, unit: Nat, event: Ticket.UnitEvent,
+    reason: Ticket.Reason}
+  TicketUnitCheck{id: Nat, unit: Nat}
+  TicketTerminal{id: Nat, expired: Bool, credential_valid: Bool,
+    live_advice: Bool, pending_notice: Bool}
+  TicketCollectGateCheck{expired: Bool, credential_valid: Bool}
+  TicketFinalAuthorityCheck{admitted_block: Bool, current_block: Bool}
+  TicketJoinedCheck{joined_state: Ticket.JoinedState, stale_unavailable: Bool,
+    has_revision: Bool, has_advice_id: Bool}
   OutputStarted{partition: Nat, lifetime: Nat, round: Nat}
   OutputTerminal{partition: Nat, lifetime: Nat, round: Nat,
     operation: Nat, outcome: WriteOutcome}
@@ -268,6 +284,29 @@ type Command is Data:
   RevisionNotSuperseded{}
   RevisionGeneration{generation: Nat}
   RevisionCount{count: Nat}
+  TicketOpened{}
+  TicketForgotten{}
+  TicketFailed{}
+  TicketClosed{}
+  TicketUnitAdded{}
+  TicketUnitUpdated{}
+  TicketUnitSnapshot{stage: Ticket.UnitStage, reason: Maybe<&2, Ticket.Reason>}
+  TicketUnitMissing{}
+  TicketRefused{}
+  TicketPending{}
+  TicketUnavailable{reason: Ticket.Reason}
+  TicketDelivered{}
+  TicketClear{}
+  TicketNoWork{}
+  TicketCollectProceed{}
+  TicketCollectUnavailable{reason: Ticket.Reason}
+  TicketFinalProceed{}
+  TicketFinalRelease{}
+  TicketKeepJoined{}
+  TicketSetJoinedClear{}
+  TicketSetJoinedFinding{}
+  TicketSetJoinedUnavailable{}
+  TicketSetJoinedLost{}
   WriteAuthorized{operation: Nat}
   WriteRecorded{outcome: WriteOutcome}
   WaitForOutput{}
@@ -2117,7 +2156,62 @@ def revision_count_check(+state: State) -> Step:
     case State{_, _, _, _, _, _, _, collection}:
       Advanced{state, RevisionCount{CollectionState.revision_count(collection)} <> Nil{}}
 
-def step(state: State, event: CanonicalEvent) -> Step:
+def collection_of(state: State) -> CollectionState.State:
+  match state:
+    case State{_, _, _, _, _, _, _, collection}: collection
+
+def ticket_unit_snapshot(state: State, found: Maybe<&2, TicketState.TicketUnit>) -> Step:
+  match found:
+    case Some{TicketState.TicketUnit{_, stage, reason}}:
+      Advanced{state, TicketUnitSnapshot{stage, reason} <> Nil{}}
+    case None{}:
+      Advanced{state, TicketUnitMissing{} <> Nil{}}
+
+def ticket_terminal_outcome(state: State, outcome: Maybe<&2, Ticket.Outcome>) -> Step:
+  match outcome:
+    case Some{Ticket.Pending{}}:
+      Advanced{state, TicketPending{} <> Nil{}}
+    case Some{Ticket.Unavailable{reason}}:
+      Advanced{state, TicketUnavailable{reason} <> Nil{}}
+    case Some{Ticket.Delivered{}}:
+      Advanced{state, TicketDelivered{} <> Nil{}}
+    case Some{Ticket.Clear{}}:
+      Advanced{state, TicketClear{} <> Nil{}}
+    case Some{Ticket.NoWork{}}:
+      Advanced{state, TicketNoWork{} <> Nil{}}
+    case None{}:
+      Advanced{state, TicketRefused{} <> Nil{}}
+
+def ticket_terminal(+state: State, id: Nat, expired: Bool,
+    credential_valid: Bool, live_advice: Bool, pending_notice: Bool) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, _, collection}:
+      ticket_terminal_outcome(state, CollectionState.ticket_terminal(collection,
+        id, expired, credential_valid, live_advice, pending_notice))
+
+def ticket_collect_gate_result(state: State, result: Ticket.CollectGate) -> Step:
+  match result:
+    case Ticket.CollectProceed{}:
+      Advanced{state, TicketCollectProceed{} <> Nil{}}
+    case Ticket.CollectUnavailable{reason}:
+      Advanced{state, TicketCollectUnavailable{reason} <> Nil{}}
+
+def ticket_final_authority_result(state: State, result: Ticket.FinalAuthority) -> Step:
+  match result:
+    case Ticket.FinalProceed{}:
+      Advanced{state, TicketFinalProceed{} <> Nil{}}
+    case Ticket.FinalRelease{}:
+      Advanced{state, TicketFinalRelease{} <> Nil{}}
+
+def ticket_joined_result(state: State, result: Ticket.JoinedDisposition) -> Step:
+  match result:
+    case Ticket.KeepJoined{}: Advanced{state, TicketKeepJoined{} <> Nil{}}
+    case Ticket.SetJoinedClear{}: Advanced{state, TicketSetJoinedClear{} <> Nil{}}
+    case Ticket.SetJoinedFinding{}: Advanced{state, TicketSetJoinedFinding{} <> Nil{}}
+    case Ticket.SetJoinedUnavailable{}: Advanced{state, TicketSetJoinedUnavailable{} <> Nil{}}
+    case Ticket.SetJoinedLost{}: Advanced{state, TicketSetJoinedLost{} <> Nil{}}
+
+def step(+state: State, event: CanonicalEvent) -> Step:
   match event:
     case ReserveCapacity{partition, bytes, purpose}:
       capacity_reserve(state, partition, bytes, purpose)
@@ -2269,6 +2363,35 @@ def step(state: State, event: CanonicalEvent) -> Step:
       revision_generation_check(state, subject)
     case RevisionCountCheck{}:
       revision_count_check(state)
+    case TicketOpen{id}:
+      collection_decision(state, CollectionState.ticket_open(collection_of(state), id),
+        TicketOpened{}, TicketRefused{})
+    case TicketForget{id}:
+      collection_decision(state, CollectionState.ticket_forget(collection_of(state), id),
+        TicketForgotten{}, TicketRefused{})
+    case TicketFail{id, reason}:
+      collection_decision(state, CollectionState.ticket_fail(collection_of(state), id, reason),
+        TicketFailed{}, TicketRefused{})
+    case TicketClose{id}:
+      collection_decision(state, CollectionState.ticket_close(collection_of(state), id),
+        TicketClosed{}, TicketRefused{})
+    case TicketAddUnit{id, unit}:
+      collection_decision(state, CollectionState.ticket_add_unit(collection_of(state), id, unit),
+        TicketUnitAdded{}, TicketRefused{})
+    case TicketStepUnit{id, unit, event, reason}:
+      collection_decision(state, CollectionState.ticket_step_unit(collection_of(state), id, unit,
+        event, reason), TicketUnitUpdated{}, TicketRefused{})
+    case TicketUnitCheck{id, unit}:
+      ticket_unit_snapshot(state, CollectionState.ticket_unit_snapshot(collection_of(state), id, unit))
+    case TicketTerminal{id, expired, credential_valid, live_advice, pending_notice}:
+      ticket_terminal(state, id, expired, credential_valid, live_advice, pending_notice)
+    case TicketCollectGateCheck{expired, credential_valid}:
+      ticket_collect_gate_result(state, Ticket.collect_gate(expired, credential_valid))
+    case TicketFinalAuthorityCheck{admitted_block, current_block}:
+      ticket_final_authority_result(state, Ticket.final_authority(admitted_block, current_block))
+    case TicketJoinedCheck{joined_state, stale_unavailable, has_revision, has_advice_id}:
+      ticket_joined_result(state, Ticket.joined_disposition(joined_state, stale_unavailable,
+        has_revision, has_advice_id))
     case OutputStarted{partition, lifetime, round}:
       output_start(state, partition, lifetime, round)
     case OutputTerminal{partition, lifetime, round, operation, outcome}:
