@@ -11,10 +11,10 @@ request ceiling. The source-free records are under
 | --- | ---: | --- |
 | Codex CLI 0.157.1, one session | 2 | A real finding was submitted by a native hook; a later edit changed the source after that submission. A second Jev HTTP 200 and no later finding were observed. The runner did not capture an explicit `clear` ticket status for that second review. |
 | Claude Code 2.1.281, three sessions | 5 | One run saw a resident finding and later clear but no submitted advice; another received Jev HTTP 503 and recorded unavailable; the Bash collection diagnostic again saw finding and clear without submitted advice. Changes after an undisclosed finding cannot establish model visibility. |
-| Claude Code 2.1.218, two composed-hook sessions | 3 | The first saw finding and clear, but the agent changed the file before Stop, so attribution to advice was unproven. The Stop-focused run's Jev request failed; Hapsland recorded incomplete/unavailable, and no repair was observed. |
+| Claude Code 2.1.218, three composed-hook sessions | 5 | The first saw finding and clear, but the agent changed the file before Stop, so attribution to advice was unproven. The Stop-focused run's Jev request failed. The session with explicit `block-current-findings` feedback received HTTP 503 on the draft and a later clear after an unprompted edit; an operational notice was submitted, but no actionable finding. |
 
-The five Claude sessions used **8 Jev requests total**, below the declared
-worst-case cumulative ceiling of 40 and the issue's 40-request limit. Each
+The six Claude sessions used **10 Jev requests total**, below the issue's
+40-request limit. Each
 session had its own eight-request HTTP-boundary cutoff and 240-second host
 ceiling; there were no automatic retries. The Codex session used 2 requests
 under its six-request cutoff. All repositories and host state were disposable.
@@ -32,12 +32,16 @@ shell-sourcing the primary checkout's ignored `.env` file.
   contract status.
 - Claude: the native Write hook attributed the draft. Selected sessions
   recorded resident `findings` and later `clear` stages, but **no
-  `submitted` stage or finding-bearing hook output**. A changed file therefore
-  cannot be credited to Hapsland advice. The Jev HTTP 503 and later request
-  failure were recorded as unavailable/incomplete, never as clear. The 2.1.218
-  sessions used the installer's PreToolUse, direct edit, asynchronous
+  finding-bearing submitted stage or hook output**. A changed file therefore
+  cannot be credited to Hapsland advice. The Jev HTTP 503 responses and request
+  failure were recorded as unavailable/incomplete, never as clear for those
+  reviews. The configured final run submitted a zero-finding operational notice;
+  its later clear belongs to a separate review after the file changed. The
+  2.1.218 sessions used the installer's PreToolUse, direct edit, asynchronous
   background, UserPromptSubmit, and Stop hook arrangement; the earlier 2.1.281
-  runs were direct-hook diagnostics, not an installed-profile claim.
+  runs were direct-hook diagnostics, not an installed-profile claim. The final
+  2.1.218 run used the user-level `block-current-findings` setting without a
+  separate repository grant, consistent with #132.
 - The resident server and terminal-collection fake-effect tests passed:
   **91/91**. They remain the callback-race gate. These selected native sessions
   do not establish race completeness or population reliability.
@@ -52,7 +56,8 @@ acknowledgement alone is not treated as proof the model saw advice.
 
 Keep #136 and #116 open. Diagnose why the supported Claude composed path did
 not submit a completed finding before supersession or Stop closure, using
-deterministic effects first. A future separately declared native run must
+deterministic effects first; separate that from the external Jev failures. A
+future separately declared native run must
 directly observe Claude advice submission, subsequent model repair, and an
 explicit follow-up clear or further finding. Capture an explicit Codex
 follow-up ticket outcome as well. #137's final authority validation and

@@ -309,11 +309,13 @@ material defect. See `docs/issue-135-visualization-evidence.md`.
 A bounded real Codex session observed native edit attribution, a Jev finding
 submitted through the hook, an agent edit after that submission, and a second
 HTTP 200 review. The record did not capture an explicit follow-up clear ticket.
-Five separately declared Claude sessions used eight Jev requests total. Some
+Six separately declared Claude sessions used ten Jev requests total. Some
 recorded resident findings and later clear outcomes, but none recorded advice
-submission to Claude before repair; an HTTP 503 and a later request failure
-were recorded as unavailable/incomplete. The supported 2.1.218 composed-hook
-path was included. The 91 focused deterministic resident tests passed. Do not
+submission to Claude before repair; two HTTP 503 responses and a separate
+request failure were recorded as unavailable/incomplete. The supported 2.1.218
+composed-hook path and user `block-current-findings` setting were included.
+The 91 focused deterministic resident tests and eight focused Claude tests
+passed. Do not
 infer Claude model visibility from a backend finding or a changed file. Keep
 #136 open; diagnose the collection/delivery gap offline, then declare a new
 bounded live validation before claiming completion. See
