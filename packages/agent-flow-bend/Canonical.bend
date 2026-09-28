@@ -288,23 +288,23 @@ def admit_refused_batch(batch: Batch) -> Batch:
     case Batch{ledger, work, next, commands}:
       Batch{ledger, work, next, UnitRefused{} <> commands}
 
-def admit_units(bytes: List<&2, Nat>, +ledger: Ledger.Ledger, +partition: Nat,
+def admit_units(rest: List<&2, Nat>, result: Ledger.LedgerResult, +partition: Nat,
     +lifetime: Nat, +round: Nat, +next_operation: Nat) -> Batch:
-  match bytes ledger:
-    case Nil{} _:
-      Batch{ledger, Nil{}, next_operation, Nil{}}
-    case +size <> +rest Ledger.Ledger{+limits, +next_id, +charges}:
-        +allowed = Ledger.fits(limits, Ledger.total(charges),
-          Ledger.partition_usage(charges, partition), size)
-        granted = {Ledger.Ledger{limits, (next_id + 1n : Nat),
-          List.append(&2, Ledger.Charge, charges,
-            Ledger.Charge{next_id, partition, size} <> Nil{})} : Ledger.Ledger}
-        Bool.pick(Batch, allowed,
-          admit_granted_batch(partition, lifetime, round, next_operation,
-            next_id, admit_units(rest, granted, partition, lifetime, round,
-              (next_operation + 1n : Nat))),
-          admit_refused_batch(admit_units(rest, ledger, partition, lifetime,
-            round, next_operation)))
+  match rest result:
+    case Nil{} Ledger.Granted{granted, +id}:
+      Batch{granted, Work{partition, lifetime, round, next_operation,
+        id, Reviewing{}} <> Nil{}, (next_operation + 1n : Nat),
+        UnitAdmitted{next_operation, id} <> Nil{}}
+    case Nil{} Ledger.Rejected{unchanged}:
+      Batch{unchanged, Nil{}, next_operation, UnitRefused{} <> Nil{}}
+    case +size <> +tail Ledger.Granted{granted, +id}:
+      admit_granted_batch(partition, lifetime, round, next_operation, id,
+        admit_units(tail, Ledger.reserve(granted, partition, size),
+          partition, lifetime, round, (next_operation + 1n : Nat)))
+    case +size <> +tail Ledger.Rejected{unchanged}:
+      admit_refused_batch(admit_units(tail,
+        Ledger.reserve(unchanged, partition, size), partition, lifetime,
+        round, next_operation))
 
 def prepared_batch(state: State, +operation: Nat, +charge: Nat, batch: Batch) -> Step:
   match state batch:
@@ -316,12 +316,16 @@ def prepared_batch(state: State, +operation: Nat, +charge: Nat, batch: Batch) ->
 def prepared_released(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, +operation: Nat, +charge: Nat, bytes: List<&2, Nat>,
     result: Ledger.LedgerResult) -> Step:
-  match state result:
-    case _ Ledger.Rejected{_}:
+  match state bytes result:
+    case _ _ Ledger.Rejected{_}:
       Rejected{state, InconsistentLedger{}}
-    case State{_, _, _, _, next_operation} Ledger.Granted{released, _}:
+    case State{_, _, _, _, next_operation} Nil{} Ledger.Granted{released, _}:
       prepared_batch(state, operation, charge,
-        admit_units(bytes, released, partition, lifetime, round, next_operation))
+        Batch{released, Nil{}, next_operation, Nil{}})
+    case State{_, _, _, _, next_operation} +size <> +rest Ledger.Granted{released, _}:
+      prepared_batch(state, operation, charge,
+        admit_units(rest, Ledger.reserve(released, partition, size),
+          partition, lifetime, round, next_operation))
 
 def prepared_release(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, +operation: Nat, +charge: Nat, bytes: List<&2, Nat>) -> Step:
