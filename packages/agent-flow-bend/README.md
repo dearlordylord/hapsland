@@ -13,8 +13,7 @@ later edges pending. If both a denied path and a tree-budget skip occur, the fin
 incomplete reason is `TreeLimit`; otherwise a denied path finishes `Excluded`.
 
 `Canonical.bend` is the production transition model and drives the main
-visualization through the checked TypeScript adapter. The former simplified
-Flow page and its TypeScript reference reducer were retired in #135.
+visualization through the checked TypeScript adapter.
 `Flow.bend` remains only as a shared capacity-type dependency of the existing
 Work policy artifact; no page or production path invokes `Flow.step`.
 The older `Advicing.bend` is a small proof slice retained for continuity.
@@ -62,9 +61,7 @@ work, round, and handoff modules at their effect barriers.
 Run `npm test` in this directory. It rebuilds the import-graph and canonical
 artifacts from Bend, checks the laws in
 `PROOF.bend`, and replays their independent source-free contract traces.
-The former simplified Flow sidecar and its TypeScript reference oracle were
-retired after the canonical fixtures and visualization checks replaced their
-distinct regression evidence. The existing policy and lifecycle artifacts are
+The existing policy and lifecycle artifacts are
 still checked against their source hashes by the root build. The canonical
 ledger owns reservation limits.
 
