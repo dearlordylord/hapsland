@@ -146,9 +146,9 @@ Generated artifact: [`packages/agent-flow-bend/flow.generated.js`](../packages/a
 
 | Export | Static non-test application calls |
 | --- | --- |
-| `bendInitial` | [`packages/agent-flow-viz/src/bend-flow.ts` lines 97, 117](../packages/agent-flow-viz/src/bend-flow.ts#L97) |
-| `bendStep` | [`packages/agent-flow-viz/src/bend-flow.ts` lines 102](../packages/agent-flow-viz/src/bend-flow.ts#L102) |
-| `bendChanges` | [`packages/agent-flow-viz/src/bend-flow.ts` lines 103](../packages/agent-flow-viz/src/bend-flow.ts#L103) |
+| `bendInitial` | [`packages/agent-flow-viz/src/bend-flow.ts` lines 97, 117](https://github.com/dearlordylord/hapsland/blob/5f71271/packages/agent-flow-viz/src/bend-flow.ts#L97) |
+| `bendStep` | [`packages/agent-flow-viz/src/bend-flow.ts` lines 102](https://github.com/dearlordylord/hapsland/blob/5f71271/packages/agent-flow-viz/src/bend-flow.ts#L102) |
+| `bendChanges` | [`packages/agent-flow-viz/src/bend-flow.ts` lines 103](https://github.com/dearlordylord/hapsland/blob/5f71271/packages/agent-flow-viz/src/bend-flow.ts#L103) |
 
 ## Lifecycle model (2)
 

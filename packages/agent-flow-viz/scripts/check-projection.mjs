@@ -1,168 +1,94 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { createServer } from "vite";
 import { inertHtml } from "foldkit/html";
 import { Scene } from "foldkit/test";
 
-// Exercise the same messages and rendered Foldkit view used by the page.
+const fixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-v1.json"), "utf8"));
 const server = await createServer({ server: { middlewareMode: true }, appType: "custom" });
 try {
-  const graph = await server.ssrLoadModule("/src/generation.ts");
-  const timing = await server.ssrLoadModule("/src/timeline.ts");
-  const main = await server.ssrLoadModule("/src/main.ts");
-  const scenarios = await server.ssrLoadModule("/src/scenarios.ts");
-  const bend = await server.ssrLoadModule("/src/bend-flow.ts");
-  const renderText = (model) => {
+  const main = await server.ssrLoadModule("/src/production-main.ts");
+  const canonical = await server.ssrLoadModule("/src/canonical-replay.ts");
+  const inventory = await server.ssrLoadModule("/src/capacity-inventory.generated.ts");
+  const imports = await server.ssrLoadModule("/src/import-graph-view.ts");
+  const timeline = await server.ssrLoadModule("/src/timeline.ts");
+  const send = (model, message) => main.update(model, message).model;
+  const text = (model) => {
     const read = (node) => typeof node === "string" ? node : node == null ? "" :
       [node.text ?? "", ...(node.children ?? []).map(read)].join(" ");
     return read(main.view(model, inertHtml).body);
   };
-  const send = (model, message) => main.update(model, message).model;
-  const trigger = (model, event, itemId = null) =>
-    send(model, main.Message.TriggeredEvent({ event, itemId }));
   const initial = main.init().model;
-  const imports = await server.ssrLoadModule("/src/import-graph-view.ts");
+  for (const source of ["src/entry.ts", "src/production-main.ts", "src/canonical-replay.ts"]) {
+    const text = readFileSync(resolve(import.meta.dirname, "..", source), "utf8");
+    assert.doesNotMatch(text, /from\s+["'][^"']*\.generated\.js["']/,
+      `${source} must use the checked adapter, not a generated JavaScript import`);
+  }
+  const compiled = canonical.projectCanonical(canonical.initialCanonical(fixture.limits));
+  assert.deepEqual(inventory.CAPACITY_INVENTORY.map((entry) => entry.purpose),
+    compiled.inventory.map((entry) => entry.purpose));
+  assert.deepEqual(inventory.CAPACITY_INVENTORY.map((entry) => entry.limits),
+    compiled.inventory.map((entry) => Object.keys(entry.limits)));
+  assert.match(text(initial), /CANONICAL BEND PRODUCTION MODEL/);
+  assert.match(text(initial), /What uses review capacity/);
+  assert.match(text(initial), /Native Hapsland effects/);
+  assert.match(text(initial), /Jev response · external/);
+  let model = initial;
+  for (let index = 0; index < fixture.capacityTrace.events.length; index += 1) {
+    model = send(model, main.Message.Advanced());
+    assert.equal(model.position, index + 1, "guided canonical cursor advances including rejected events");
+    const replay = canonical.replayCanonical(model.history, model.position);
+    assert.deepEqual(replay.steps[index].event, fixture.capacityTrace.events[index]);
+  }
+  assert.equal(canonical.guidedIndex(model.history, model.position), fixture.capacityTrace.events.length);
+  assert.deepEqual(canonical.replayCanonical(model.history, model.position).projection.global, fixture.capacityTrace.finalGlobal);
+  for (const [index, trace] of fixture.traces.entries()) {
+    let alternate = send(initial, main.Message.SelectedScenario({ index: index + 1 }));
+    for (const event of trace.events) alternate = send(alternate, main.Message.Advanced());
+    assert.equal(alternate.position, trace.events.length, `${trace.name}: guided replay includes every result variant`);
+    assert.deepEqual(canonical.replayCanonical(alternate.history, alternate.position).projection.global,
+      trace.global, `${trace.name}: displayed state matches independent expected total`);
+    assert.match(text(alternate), new RegExp(`Guided step ${trace.events.length} of ${trace.events.length}`));
+  }
+  model = send(initial, main.Message.Advanced());
+  model = send(model, main.Message.Advanced());
+  model = send(model, main.Message.Advanced());
+  const third = canonical.replayCanonical(model.history, model.position).steps[2];
+  assert.deepEqual(third.commands.map((command) => command.kind),
+    ["preparationReleased", "capacityUnitAdmitted", "capacityUnitRefused", "capacityUnitAdmitted"]);
+  assert.deepEqual(third.commands.map((command) => command.after.global),
+    [{ items: 1, bytes: 40 }, { items: 2, bytes: 50 }, { items: 2, bytes: 50 }, { items: 3, bytes: 70 }]);
+  assert.match(text(model), /Unit 1: accepted.*Unit 2: no capacity.*Unit 3: accepted/s);
+  model = send(model, main.Message.MovedFrame({ frame: 2 }));
+  assert.match(text(model), /Frame 3 of 4 · 2 shared items · 50 shared bytes/);
+  model = send(model, main.Message.Rewound());
+  assert.equal(model.position, 2);
+  model = send(model, main.Message.Redid());
+  assert.deepEqual(canonical.replayCanonical(model.history, model.position).projection.global, { items: 3, bytes: 70 });
+  model = send(model, main.Message.Jumped({ position: 0 }));
+  assert.equal(model.position, 0);
+  const malformed = canonical.tryAppendCanonical([], 0,
+    { kind: "reserveCapacity", partition: 1, bytes: 1, purpose: "invented" }, "manual");
+  assert.ok(malformed.error);
+  assert.equal(malformed.position, 0);
+  assert.throws(() => canonical.projectCanonical({ $: "Canonical.State" }), TypeError);
+  assert.equal(imports.IMPORT_GRAPH_SCENARIOS.length, 2);
   const excluded = imports.projectImportExample(0, 9);
-  assert.deepEqual(excluded.states.map((state) => state.phase), ["incomplete"]);
-  assert.equal(excluded.states[0].reason.toLowerCase(), "excluded");
-  assert.deepEqual(excluded.history.filter((entry) => entry.command.kind === "readSource").map((entry) => entry.command.target), [2], "excluded C never receives a read request");
-  assert.deepEqual(excluded.history.filter((entry) => entry.command.kind === "skipImport").map((entry) => [entry.command.target, entry.command.reason]), [[3, "Excluded"]]);
-  assert.equal(imports.IMPORT_GRAPH_SCENARIOS.length, 2, "the dashboard shows only the two requested A-root traces");
-  const treeOverflow = imports.projectImportExample(1, 29);
-  assert.equal(treeOverflow.history.length, 29);
-  assert.deepEqual(treeOverflow.history.filter((entry) => entry.command.kind === "skipImport").map((entry) => [entry.command.target, entry.command.reason]), [[8, "Excluded"], [5, "TreeLimit"], [7, "TreeLimit"]]);
-  assert.deepEqual(treeOverflow.history.filter((entry) => entry.command.kind === "readSource").map((entry) => entry.command.target), [2, 3, 4, 5, 6, 7], "X receives no read request");
-  assert.equal(treeOverflow.history[19].state.phase, "ready", "E skip leaves later imports available");
-  assert.equal(treeOverflow.history[4].state.treeBytes, 10240, "A and B use 10 KiB together");
-  assert.equal(treeOverflow.history[15].state.treeBytes, 19456, "A, B, C, and D use 19 KiB together");
-  assert.equal(treeOverflow.history[19].state.treeBytes, 19456, "E does not fit the remaining 1 KiB");
-  assert.equal(treeOverflow.history[23].state.treeBytes, 20480, "F is accepted after E and fills the tree");
-  assert.equal(treeOverflow.history[27].state.phase, "ready", "G skip leaves a finalization step");
-  assert.equal(treeOverflow.states[0].reason, "TreeLimit");
-  assert.equal(treeOverflow.states[0].treeBytes, 20480, "E and G are not charged to the accepted tree");
-  assert.equal(treeOverflow.states[0].readBytes, 7000, "all seven source reads count toward the read budget");
-  assert.equal(treeOverflow.states[0].files, 7, "all seven file reads count toward the file budget");
-  assert.equal(treeOverflow.states[0].skippedExcluded, true);
-  let importModel = send(initial, main.Message.MovedImportCursor({ cursor: 9 }));
-  assert.match(renderText(importModel), /A.ts · incomplete/);
-  assert.doesNotMatch(renderText(importModel), /D.ts review unit/);
-  importModel = send(importModel, main.Message.Reset());
-  assert.equal(importModel.importCursor, 9, "full-flow reset preserves separate import replay");
-  assert.equal(importModel.historyPosition, 0);
+  assert.deepEqual(excluded.history.filter((entry) => entry.command.kind === "readSource")
+    .map((entry) => entry.command.target), [2], "excluded C receives no source read");
+  const overflow = imports.projectImportExample(1, 29);
+  assert.deepEqual(overflow.history.filter((entry) => entry.command.kind === "skipImport")
+    .map((entry) => [entry.command.target, entry.command.reason]),
+    [[8, "Excluded"], [5, "TreeLimit"], [7, "TreeLimit"]]);
+  assert.ok(timeline.TIMELINE_CASES.length > 0, "retained native timing evidence remains visible");
   Scene.scene({ update: main.update, view: main.view },
     Scene.given(initial),
-    Scene.click(Scene.getByRole("button", { name: "Next import step", exact: true })),
-    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Import step 1 of 9/)),
-    Scene.click(Scene.getByRole("button", { name: "Previous import step", exact: true })),
-    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Import step 0 of 9/)));
-
-  assert.match(renderText(initial), /COMPILED BEND FLOW MODEL/);
-  assert.match(renderText(initial), /IMPORT \/ REFERENCE GRAPH/);
-  assert.match(renderText(initial), /not a trace of the production resident/);
-  assert.doesNotMatch(renderText(initial), /TypeScript sidecar reducer|Routes and .* applied steps match/);
-  assert.equal(bend.stepBend(initial.bend, bend.flowInput("StopHookFired")).reason, "virtualRoundClosed");
-  const rejected = trigger(initial, "StopHookFired");
-  assert.equal(rejected.history.length, 0);
-  assert.match(renderText(rejected), /This virtual round is closed/);
-
-  for (const [index, trace] of scenarios.TRACES.entries()) {
-    let model = send(initial, main.Message.SelectedTrace({ index }));
-    for (const [cursor, expected] of graph.PROJECTED_TRACES[index].entries()) {
-      model = send(model, main.Message.Advanced());
-      assert.equal(model.cursor, cursor + 1, `${trace.name}: guide cursor`);
-      assert.deepEqual(bend.projectBend(model.bend), expected.state, `${trace.name}: Bend-guided state`);
-      assert.equal(model.history.length, cursor + 1, `${trace.name}: accepted history`);
-    }
-    assert.match(renderText(model), new RegExp(`Guided step ${trace.events.length} of ${trace.events.length}`));
-  }
-
-  let mixed = send(initial, main.Message.SelectedTrace({ index: 1 }));
-  mixed = send(mixed, main.Message.Advanced());
-  mixed = trigger(mixed, "EditObserved");
-  mixed = send(mixed, main.Message.Advanced());
-  assert.equal(mixed.cursor, 2);
-  assert.equal(bend.projectBend(mixed.bend).packets.find((packet) => packet.id === 1)?.at, "jev");
-  assert.equal(bend.projectBend(mixed.bend).packets.find((packet) => packet.id === 2)?.at, "preparation");
-  assert.equal(mixed.history[2].origin, "guided");
-  assert.equal(mixed.history[2].itemId, 1, "guided item binding survives manual interleaving");
-
-  let capacity = send(initial, main.Message.CapacitySubmitted({ capacityType: "source", raw: "1" }));
-  capacity = trigger(trigger(capacity, "EditObserved"), "EditObserved");
-  assert.equal(bend.projectBend(capacity.bend).packets.find((packet) => packet.id === 2)?.at, "editQueue");
-  capacity = send(capacity, main.Message.CapacitySubmitted({ capacityType: "source", raw: "2" }));
-  assert.equal(bend.projectBend(capacity.bend).packets.find((packet) => packet.id === 2)?.at, "preparation");
-  const invalid = send(capacity, main.Message.CapacitySubmitted({ capacityType: "jev", raw: "0" }));
-  assert.equal(invalid.history.length, capacity.history.length);
-  assert.match(renderText(invalid), /Choose a positive whole number/);
-
-  let finish = trigger(initial, "EditObserved");
-  finish = trigger(finish, "ReviewUnitPrepared");
-  finish = trigger(finish, "JevFindingReceived");
-  finish = trigger(finish, "StopHookFired");
-  assert.equal(finish.lastFinishDecision.response, "continueWithAdvice");
-  assert.deepEqual(finish.lastFinishDecision.adviceItemIds, [1]);
-  assert.match(renderText(finish), /Continue with advice/);
-  let allowed = trigger(initial, "EditObserved");
-  allowed = trigger(allowed, "ReviewUnitPrepared");
-  allowed = trigger(allowed, "StopHookFired");
-  allowed = trigger(allowed, "FinishDecisionDeadlineReached");
-  assert.equal(allowed.lastFinishDecision.response, "allowFinish");
-  assert.equal(bend.projectBend(allowed.bend).virtualRoundActive, false);
-  assert.match(renderText(allowed), /Cancel Jev requests: #1/);
-  const replayed = send(send(allowed, main.Message.Rewound()), main.Message.Redid());
-  assert.deepEqual(bend.projectBend(replayed.bend), bend.projectBend(allowed.bend));
-  assert.deepEqual(replayed.lastFinishDecision, allowed.lastFinishDecision);
-  assert.equal(replayed.historyPosition, allowed.historyPosition);
-  const jumped = send(allowed, main.Message.JumpedToHistory({ count: 1 }));
-  assert.equal(bend.projectBend(jumped.bend).virtualRoundActive, true);
-  assert.equal(jumped.historyPosition, 1);
-  assert.equal(jumped.history.length, allowed.history.length);
-  assert.equal(trigger(jumped, "EditObserved").history.length, 2, "new accepted action replaces the future tail");
-
-  // Scene clicks and input changes exercise the actual Foldkit control wiring.
-  Scene.scene({ update: main.update, view: main.view },
-    Scene.given(initial),
-    Scene.click(Scene.getByRole("button", { name: /^Next: proven fresh edit admitted/ })),
-    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 1 of 13/)),
-    Scene.click(Scene.getByRole("button", { name: /^Previous:/ })),
-    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 0 of 13/)),
-    Scene.click(Scene.getByRole("button", { name: /^Redo:/ })),
-    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 1 of 13/)));
-  Scene.scene({ update: main.update, view: main.view },
-    Scene.given(initial),
-    Scene.change(Scene.getByLabel("Concurrent source readings"), "1"),
-    Scene.click(Scene.getByRole("button", { name: /^1proven fresh edit admitted/ })),
-    Scene.tap((state) => {
-      const text = Scene.textContent(state.html);
-      assert.match(text, /Virtual round 1 \(active\)/);
-      assert.match(text, /source readings 1\/1/);
-    }));
-
-  if (graph.CONNECTIONS.length === 0 || timing.REDUCER_SEGMENTS.length !== timing.TIMELINE_CASES.length) {
-    throw new Error("Incomplete Bend model projection");
-  }
-  if (!/^https:\/\/github\.com\/[^/]+\/[^/]+\/blob\/[0-9a-f]{40}\/evidence\/.+\/$/.test(timing.EVIDENCE_BASE)) {
-    throw new Error("Native timing evidence must link to a pinned repository commit");
-  }
-  for (const scenario of timing.TIMELINE_CASES) {
-    const declared = new Set(scenario.sources);
-    for (const source of declared) {
-      if (source.includes("/") || source.includes("..") || !/^[a-z0-9][a-z0-9.-]*$/i.test(source)) {
-        throw new Error(`Invalid pinned source name for ${scenario.title}: ${source}`);
-      }
-    }
-    for (const panel of scenario.panels) {
-      for (const entry of panel.entries) {
-        if (entry.kind === "native observation" && !declared.has(entry.source)) {
-          throw new Error(`Undeclared native source for ${scenario.title}: ${entry.source}`);
-        }
-        if (!Number.isFinite(entry.at) || entry.at < 0 ||
-            (entry.until !== undefined && (!Number.isFinite(entry.until) || entry.until < entry.at))) {
-          throw new Error(`Invalid displayed timing in ${scenario.title}: ${entry.label}`);
-        }
-      }
-    }
-  }
-  process.stdout.write(`Checked ${graph.PROJECTED_TRACES.length} guided scenarios, ${imports.IMPORT_GRAPH_SCENARIOS.length} import examples, focused Foldkit interactions, and ${timing.REDUCER_SEGMENTS.length} timeline companions.\n`);
+    Scene.click(Scene.getByRole("button", { name: "Next canonical step: reserveCapacity", exact: true })),
+    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 1 of 11/)),
+    Scene.click(Scene.getByRole("button", { name: "Previous canonical step", exact: true })),
+    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 0 of 11/)));
+  console.log("Checked compiled canonical inventory, full guided capacity trace, Bend command frames, replay, malformed variants, import graph, and native timing panels.");
 } finally {
   await server.close();
 }

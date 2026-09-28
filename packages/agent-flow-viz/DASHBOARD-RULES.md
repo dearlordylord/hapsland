@@ -1,10 +1,10 @@
 # Hapsland dashboard rules
 
 The dashboard is a **projection of compiled Bend transitions**. It contains no
-Hapsland decision backbone. `Flow.bend` currently drives the abstract flow page;
-`ImportGraph.bend` drives the separate import exploration section. The production
-resident does not yet call either as its single canonical transition. The page
-must state that scope until #119–#137 change the production boundary.
+Hapsland decision backbone. `Canonical.step` drives the production decision
+replay through the same checked adapter as the resident. `ImportGraph.bend`
+drives the separate import exploration section. Native effects and Jev
+responses remain outside Bend state and are identified as example facts.
 
 ## Allowed in the dashboard
 
@@ -50,6 +50,13 @@ must state that scope until #119–#137 change the production boundary.
   call.
 
 ## Current projection boundary
+
+[`canonical-replay.ts`](src/canonical-replay.ts) replays guided and manual
+source-free events through `src/canonical/adapter.ts`. Its history is a list
+of inputs, and each rewind or redo starts from the checked initial state.
+`capacity-inventory.generated.ts` comes from compiled Bend admission output
+at build time. The renderer uses checked projection totals and ordered Bend
+command snapshots for capacity, including within-transition frames.
 
 [`import-graph-view.ts`](src/import-graph-view.ts) replays source-free events
 through the checked `stepImportGraph` adapter.

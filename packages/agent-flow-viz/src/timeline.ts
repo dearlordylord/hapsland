@@ -1,6 +1,4 @@
-import { type EventId } from "./view-contract";
-import { EVENT_LABELS } from "./diagram";
-import { projectSequence } from "./generation";
+type EventId = string;
 
 export type Lane = "runtime" | "review" | "delivery" | "result" | "unknown";
 export const LANES = {
@@ -156,17 +154,3 @@ export const TIMELINE_CASES: readonly TimelineCase[] = [
     ], reducerEvents: [], reducerTitle: "Native observation only", reducerScope: "The two-second window is a native observation, not a reducer-checked duration. The preceding required cleanup has its own case and separate deterministic resident contract. No finite observation proves absence of every possible late external response.", sources: [remaining, "native-background-timing-linux.md"],
   },
 ];
-
-// Event identities are checked by TypeScript; legal order is checked by reducer replay.
-// This validates the displayed abstract companion path, never native timestamps.
-export const reducerSegment = (scenario: TimelineCase) => {
-  return projectSequence(scenario.reducerEvents, `Timeline ${scenario.title}`).map((step, order) => {
-    const route = step.changes.find((change) => change.kind === "transition")?.route;
-    if (route === undefined) throw new Error(`Timeline ${scenario.title}: no emitted route for ${step.event}`);
-    return { kind: "reducer event" as const, event: step.event, order, label: EVENT_LABELS[step.event],
-      virtualRoundActive: step.state.virtualRoundActive,
-      packets: step.state.packets.length,
-      changes: step.changes };
-  });
-};
-export const REDUCER_SEGMENTS = TIMELINE_CASES.map(reducerSegment);

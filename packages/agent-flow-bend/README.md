@@ -12,12 +12,12 @@ Denied import paths emit `SkipImport(Excluded)` before any source read and also 
 later edges pending. If both a denied path and a tree-budget skip occur, the final
 incomplete reason is `TreeLimit`; otherwise a denied path finishes `Excluded`.
 
-`Flow.bend` drives the abstract discussion visualization. Its state holds all live review items, two
-independent capacities, the virtual round, finish wait, one delivery lease,
-and background submission history. The pure `step` function returns an accepted
-state and finish choice or a precise rejection. `changes` derives the same
-ordered transition, emission, capacity, and finish-decision records as the
-retained TypeScript reference reducer. The older `Advicing.bend` is a small proof slice retained for continuity.
+`Canonical.bend` is the production transition model and drives the main
+visualization through the checked TypeScript adapter. The former simplified
+Flow page and its TypeScript reference reducer were retired in #135.
+`Flow.bend` remains only as a shared capacity-type dependency of the existing
+Work policy artifact; no page or production path invokes `Flow.step`.
+The older `Advicing.bend` is a small proof slice retained for continuity.
 
 `Admission.bend`, `Work.bend`, and `Handoff.bend` extend the model with
 pre-edit permits, observation fan-out, per-finding handoff limits, finish
@@ -59,17 +59,14 @@ Other
 aggregate events remain tested models; the resident calls generated admission,
 work, round, and handoff modules at their effect barriers.
 
-Run `npm test` in this directory. It builds `flow.generated.js` and
-`lifecycle.generated.js` and the resident policy/ledger artifacts from Bend,
-checks every law in `PROOF.bend`, runs a
-generated lifecycle trace, executes three Bend flow traces, checks fixed flow
-expectations and structural properties over 100 bounded generated traces, then compares
-states, rejections, decisions, and ordered changes against the sidecar for its
-nine guided scenarios, four focused traces, and 100 deterministic generated
-traces. The parity generator exercises both accepted and rejected events. The
-reference reducer now lives in `../agent-flow-viz/src/reference-flow.ts` and is
-used only by that offline parity runner. The visualization package's
-dependencies must be installed with `npm ci` for the parity and contract checks.
+Run `npm test` in this directory. It rebuilds the import-graph and canonical
+artifacts from Bend, checks the laws in
+`PROOF.bend`, and replays their independent source-free contract traces.
+The former simplified Flow sidecar and its TypeScript reference oracle were
+retired after the canonical fixtures and visualization checks replaced their
+distinct regression evidence. The existing policy and lifecycle artifacts are
+still checked against their source hashes by the root build. The canonical
+ledger owns reservation limits.
 
 Generated JavaScript is an artifact, not an alternate implementation. The
 resident maps exact native identities to numeric IDs, revalidates each offered

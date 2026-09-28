@@ -1,9 +1,10 @@
 # Review capacity on the Hapsland dashboard
 
-Plan for [#135](https://github.com/dearlordylord/hapsland/issues/135).
-The current page does not yet use `Canonical.step`. The installed resident now
-uses it for capacity reservations through the checked adapter; other decision
-families still move in later issues.
+Historical plan for [#135](https://github.com/dearlordylord/hapsland/issues/135).
+The current implementation and its evidence are in
+[issue 135 visualization evidence](issue-135-visualization-evidence.md).
+The page now uses the resident's checked `Canonical.step` adapter for its main
+production replay. Details below retain the original design targets.
 
 ## What to show
 

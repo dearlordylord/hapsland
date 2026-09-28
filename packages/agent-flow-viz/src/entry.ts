@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 import { Runtime, Subscription } from "foldkit";
-import { TRACES } from "./scenarios";
-import { Message, Model, init, update, view } from "./main";
+import { CANONICAL_SCENARIOS, guidedIndex } from "./canonical-replay";
+import { Message, Model, init, update, view } from "./production-main";
 import "./style.css";
 
 const subscriptions = Subscription.make<Model, Message>()((entry) => ({
@@ -9,8 +9,8 @@ const subscriptions = Subscription.make<Model, Message>()((entry) => ({
     { canRewind: Schema.Boolean, canAdvance: Schema.Boolean },
     {
       modelToDependencies: (model) => ({
-        canRewind: model.historyPosition > 0,
-        canAdvance: model.cursor < (TRACES[model.trace]?.events.length ?? 0),
+        canRewind: model.position > 0,
+        canAdvance: guidedIndex(model.history as Parameters<typeof guidedIndex>[0], model.position) < CANONICAL_SCENARIOS[model.scenario].events.length,
       }),
       dependenciesToStream: ({ canRewind, canAdvance }) => Subscription.keyBindings<Message>({
         bindings: [

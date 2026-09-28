@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "tsc --noEmit && node scripts/check-projection.mjs && vite build",
+    "build": "node --experimental-strip-types scripts/build-capacity-inventory.mjs && tsc --noEmit && node scripts/check-projection.mjs && vite build",
     "test:browser": "node scripts/check-browser.mjs"
   },
   "dependencies": {
