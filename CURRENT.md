@@ -22,14 +22,13 @@ slice is merged at `b90a524`. #121's canonical permit admission is merged at
 at `b8056e2`. #123's canonical FIFO dispatch is merged at `348604c`.
 #124's canonical Stop wait and cutoff, #125's collection and lease routing,
 and #126's delivery and terminal acknowledgement routing, #127's revision
-supersession, #128's ticket settlement, #129's evaluation reuse, #130's operational notices, #131's retention and lifetime cleanup, #132's effective file-selection and admission routing, and #133's file eligibility routing are merged;
-the next migration slice is #134. Other resident decision paths under #134 are
-still pending. Configurable graph limits and
+supersession, #128's ticket settlement, #129's evaluation reuse, #130's operational notices, #131's retention and lifetime cleanup, #132's effective file-selection and admission routing, #133's file eligibility routing, and #134's rule and finding decisions are merged;
+the next migration slice is #135. Configurable graph limits and
 general budget/termination proofs are tracked separately in
 [#142](https://github.com/dearlordylord/hapsland/issues/142).
 
 The integrated epic is in `/workspace/typescript/jev-worktrees/bend-full-flow`
-(`feat/bend-full-flow`, merged through #133). Start #134 in a new task worktree
+(`feat/bend-full-flow`, merged through #134). Start #135 in a new task worktree
 from the latest epic tip. The old `/tmp/hapsland-bend-handoff.md` predates #119
 and is no longer a valid resume point. The `/workspace/typescript/jev` checkout
 is older and is not the edit target.
@@ -273,6 +272,20 @@ source-free traces, Bend proofs, build, and 594 offline tests passed; two
 credential-gated live tests were skipped. Both reviews found no remaining
 concrete issue. See `docs/issue-129-reuse-evidence.md`.
 
+## #134 rule and finding decisions (merged 2026-09-28)
+
+`Canonical.step` now decides rule enablement, applicability, strict probability
+thresholds, ranking, and older path advice budgets. Native code still supplies
+source-derived path and semantic facts, complete input contracts, and Jev
+responses. Probability words are validated at the adapter boundary and in
+Bend. Standalone direct output still includes every revalidated finding;
+resident output retains its existing bounded collection behavior. The
+superseded TypeScript decision owner is guarded. Fifty-six source-free traces,
+Bend proofs, build, and 602 offline tests passed; two credential-gated tests
+were skipped. Spec and standards reviewers found no remaining material defect.
+See `docs/issue-134-rule-evidence.md`. The #119 transition-interface document
+was distilled into code comments and deleted.
+
 ## Next autonomous migration run
 
 Use the GitHub issue bodies as the task contracts. Work in a dedicated task
@@ -283,9 +296,8 @@ the issue only when its criteria have evidence. Update this handoff after each
 merged slice. Do not treat the separate #141 import-graph diagram as the final
 production replay.
 
-One valid single-agent order from here is #134, #135, #136, #137.
-#134 can proceed after its blockers; #135 needs both #131 and
-#134. #135 delivers the build-generated
+One valid single-agent order from here is #135, #136, #137.
+#135 now has both #131 and #134. #135 delivers the build-generated
 capacity inventory and live ledger panel from compiled Bend output. #136
 validates native Codex and Claude flows after #131/#134; #137 is the final
 authority review after #135/#136. #143 is a separate resident-process lifetime
