@@ -1543,7 +1543,7 @@ export const previewCodexInstallation = (request: InstallationRequest): Installa
         guidance: "Start Codex normally in the repository and approve its native repository and hook review prompts. No trust record or bypass flag was changed.",
       },
       completed: [],
-      pending: ["install using this proposal digest", "enable each repository separately"],
+      pending: ["install using this proposal digest", "configure file includes/excludes if you want to narrow or turn off review"],
     };
   } catch (cause) {
     const inputs = resolveInputs(request);
@@ -1882,7 +1882,7 @@ export const installCodexIntegration = async (request: InstallationRequest): Pro
           host: { adapter: "codex", home: inputs.home },
           resumed: true,
                     completed: existingJournal.mutations.map((change) => change.description),
-          pending: ["enable a canonical repository with matching-digest approval", "approve native Codex trust prompts when shown"],
+          pending: ["make Jev credentials available and configure file settings if desired", "approve native Codex trust prompts when shown"],
         };
       }
       const plan = makeInstallPlan(request);
@@ -1908,7 +1908,7 @@ export const installCodexIntegration = async (request: InstallationRequest): Pro
           status: "already-installed",
           host: { adapter: "codex", home: inputs.home },
                     completed: [],
-          pending: ["enable a canonical repository separately"],
+          pending: ["make Jev credentials available and configure file settings if desired"],
         };
       }
       const journal: Journal = { version: 1, operation: "install", proposalDigest: plan.digest, completed: [], mutations: plan.mutations };
@@ -1933,7 +1933,7 @@ export const installCodexIntegration = async (request: InstallationRequest): Pro
         status: "installed",
         host: { adapter: "codex", home: inputs.home },
                 completed: plan.mutations.map((change) => change.description),
-        pending: ["enable a canonical repository with matching-digest approval", "approve native Codex trust prompts when shown"],
+        pending: ["make Jev credentials available and configure file settings if desired", "approve native Codex trust prompts when shown"],
         trust: { modified: false, bypassUsed: false },
       };
     });

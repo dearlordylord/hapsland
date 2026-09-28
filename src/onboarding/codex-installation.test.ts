@@ -250,6 +250,8 @@ describe("public Codex installation operations", { timeout: 30_000 }, () => {
     const preview = invoke({ operation: "install-preview", codexHome: home, codexExecutable: bin }, installEnvironment);
     expect(preview).toMatchObject({ version: 1, status: "preview" });
     expect(preview).not.toHaveProperty("sourceEgressAuthorized");
+    expect(JSON.stringify(preview.pending)).not.toContain("enable each repository");
+    expect(JSON.stringify(preview.pending)).toContain("file includes/excludes");
     expect(preview.proposal).toMatchObject({
       ownedChanges: {
         runtime: {
@@ -283,6 +285,8 @@ describe("public Codex installation operations", { timeout: 30_000 }, () => {
     const installed = invoke({ operation: "install", codexHome: home, codexExecutable: bin, proposalDigest: digest }, installEnvironment);
     expect(installed).toMatchObject({ version: 1, status: "installed" });
     expect(installed).not.toHaveProperty("sourceEgressAuthorized");
+    expect(JSON.stringify(installed.pending)).not.toContain("enable a canonical repository");
+    expect(JSON.stringify(installed.pending)).toContain("file settings");
     const config = readFileSync(join(home, "config.toml"), "utf8");
     expect(config).toContain("# keep this comment");
     expect(config).toContain("responses_websockets_v2 = true");

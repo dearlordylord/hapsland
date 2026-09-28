@@ -1,5 +1,14 @@
 # Convenient Codex onboarding — implementation specification
 
+Historical issue #62 specification. Its repository enable/confirm grant,
+stored-grant, and disable requirements were superseded by the accepted
+[#93 review specification](docs/issue-93-type-function-review-spec.md),
+[#96 compatibility decision](docs/issue-96-contract-compatibility.md), and
+[#132 configuration migration](docs/issue-132-configuration-evidence.md).
+Current Hapsland review selects otherwise eligible files by default when Jev
+credentials are available; user file includes/excludes narrow or turn off
+review. The historical text below is retained to show the original design.
+
 Implementation handoff: Implement convenient Codex onboarding (issue #62) (`ready-for-agent`).
 
 ## Problem Statement
