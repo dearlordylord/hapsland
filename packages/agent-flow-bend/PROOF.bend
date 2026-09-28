@@ -313,6 +313,30 @@ def Laws.canonical_post_validation_releases_unfitting_candidate():
 def Laws.canonical_final_candidate_retires_expired_work():
   {==}
 
+def Laws.canonical_stop_begin_requires_active_unowned_round():
+  {==}
+
+def Laws.canonical_deciding_stop_is_not_owned_for_new_decision():
+  {==}
+
+def Laws.canonical_provisional_stop_terminal_revokes_and_closes():
+  {==}
+
+def Laws.canonical_authorized_stop_expiry_keeps_round():
+  {==}
+
+def Laws.canonical_continuation_budget_exhausts_at_four():
+  {==}
+
+def Laws.canonical_background_submission_waits_behind_barrier():
+  {==}
+
+def Laws.canonical_existing_stop_token_requires_finish_permit():
+  {==}
+
+def Laws.canonical_legacy_stop_output_denied_during_decision():
+  {==}
+
 def Laws.output_selection_reserves_pending_unit():
   {==}
 

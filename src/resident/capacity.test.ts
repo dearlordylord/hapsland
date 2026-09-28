@@ -70,6 +70,31 @@ describe("resident logical capacity ledger", () => {
       .toEqual([{ kind: "retireCandidate" }]);
   });
 
+  it("routes Stop ownership, expiry, and submission through canonical Bend", () => {
+    const ledger = new CapacityLedger();
+    expect(ledger.transition({ kind: "roundBeginStopCheck", active: true,
+      hasStop: false, token: 1 }).commands).toEqual([{ kind: "roundStopBegun" }]);
+    expect(ledger.transition({ kind: "roundBeginStopCheck", active: true,
+      hasStop: true, token: 2 }).commands).toEqual([{ kind: "roundStopRefused" }]);
+    expect(ledger.transition({ kind: "roundOwnsStopCheck", active: true,
+      tokenMatches: true, deciding: true }).commands).toEqual([{ kind: "roundStopNotOwned" }]);
+    expect(ledger.transition({ kind: "roundStopTerminalCheck", hasOutput: true,
+      authorized: false, requestedClose: false }).commands)
+      .toEqual([{ kind: "roundStopTerminal", revokeProvisional: true, close: true }]);
+    expect(ledger.transition({ kind: "roundExpireCloseCheck", barrier: false,
+      authorizedOutput: true }).commands).toEqual([{ kind: "roundExpireKeeps" }]);
+    expect(ledger.transition({ kind: "roundContinuationBudgetCheck", active: true,
+      count: 4 }).commands).toEqual([{ kind: "roundContinuationExhausted" }]);
+    expect(ledger.transition({ kind: "deliverySubmissionAllowedCheck", active: true,
+      barrier: true, deciding: false, surface: "background", existingToken: false,
+      finishPermit: false }).commands).toEqual([{ kind: "deliverySubmissionDenied" }]);
+    expect(ledger.transition({ kind: "deliveryExistingTokenCheck", surface: "stop",
+      existingToken: true, finishPermit: false }).commands)
+      .toEqual([{ kind: "deliveryExistingTokenDenied" }]);
+    expect(ledger.transition({ kind: "deliveryLegacyStopCheck", active: true,
+      deciding: true }).commands).toEqual([{ kind: "deliveryLegacyStopDenied" }]);
+  });
+
   it("keeps permit and capacity transitions in one canonical resident state", () => {
     const ledger = new CapacityLedger();
     const partition = ledger.partitionId("agent");

@@ -26,21 +26,24 @@ The older `Advicing.bend` is a small proof slice retained for continuity.
 
 `Admission.bend`, `Work.bend`, and `Handoff.bend` extend the model with
 pre-edit permits, observation fan-out, per-finding handoff limits, finish
-reservation, and exclusive delivery leases. `Lifecycle.bend` connects
-admission, work callbacks, and finish closure for one advicee partition and
-resident lifetime. Every preparation and review callback must carry the
+reservation, and exclusive delivery leases. `Lifecycle.bend` is a separate
+tested model of admission, work callbacks, and finish closure for one advicee
+partition and resident lifetime. Production uses `Canonical.step` for those
+decisions. Every preparation and review callback must carry the
 partition, lifetime, and round issued by admission. The adapter maps exact
 native identities to unique numeric IDs and measures the encoded host output
 before passing its byte count to Bend.
 
-The resident executes generated Bend code for admission permits, source and
+The resident enters `Canonical.step` through the shared adapter for admission permits, source and
 review work, composed rounds, finding selection and leases, finish waiting,
 ticket unit transitions and terminal outcomes, cancellation IDs, response
 limits, logical capacity,
 background-writer claims,
 notice cooldown admission, collection order, readiness, expiry, output-token
-phase transitions, and successful-review cache pressure. The generated files
-are checked against source hashes before the app builds or tests.
+phase transitions, and successful-review cache pressure. Internal Bend modules
+provide the rules; the resident does not invoke their generated wrappers
+independently. The generated artifacts are checked against source hashes and
+their consumed constructors before the app builds or tests.
 `Canonical.step` provides the resident's aggregate Stop wait and cutoff for an
 explicit set of edit partitions, with exact dispatch cancellation IDs and a
 decision fence. `DeliveryState.bend` retains the exact selected Stop output
@@ -60,9 +63,7 @@ partition expiry commands while keeping request handles and cached payloads
 native.
 The resident reserves the selected batch before the final IPC barrier and can
 release an unwritten provisional slot.
-Other
-aggregate events remain tested models; the resident calls generated admission,
-work, round, and handoff modules at their effect barriers.
+Other aggregate events remain tested models.
 
 Run `npm test` in this directory. It rebuilds the import-graph and canonical
 artifacts from Bend, checks the laws in
@@ -82,9 +83,8 @@ the aggregate lifecycle and installed runtime behavior.
 define the resident's checked state/event/command interface. It composes a
 global ledger across advicee partitions with round and operation identities,
 Stop waiting and cutoff, and uncertain background output. The resident uses
-this interface for capacity and integrated decision paths; TypeScript owns
-runtime orchestration and effects, with generated Bend policy modules at the
-other decision boundaries.
+this interface for its decision paths; TypeScript owns runtime orchestration
+and effects.
 Run `npm run test:canonical` for Bend proofs and independent source-free traces.
 
 TypeScript may derive display, layout, and instrumentation projections only

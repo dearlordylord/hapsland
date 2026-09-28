@@ -113,24 +113,32 @@ def existing_token_allowed(surface: Surface, existing_token: Bool,
     case _:
       Bool.not(existing_token)
 
+def submission_allowed_facts(live: Bool, barrier: Bool, deciding: Bool,
+    surface: Surface, existing_token: Bool, finish_permit: Bool) -> Bool:
+  match surface:
+    case Background{}:
+      Bool.and(live, Bool.and(existing_token_allowed(surface, existing_token, finish_permit),
+        Bool.and(Bool.not(barrier), Bool.not(deciding))))
+    case Stop{}:
+      Bool.and(live, existing_token_allowed(surface, existing_token, finish_permit))
+    case Edit{}:
+      Bool.and(live, existing_token_allowed(surface, existing_token, finish_permit))
+
 def submission_allowed(round: Round.Round, surface: Surface,
     existing_token: Bool, finish_permit: Bool) -> Bool:
   match round:
     case Round.Round{_, live, _, _, _, barrier, deciding, _}:
-      match surface:
-        case Background{}:
-          Bool.and(live, Bool.and(existing_token_allowed(surface, existing_token, finish_permit),
-            Bool.and(Bool.not(barrier), Bool.not(deciding))))
-        case Stop{}:
-          Bool.and(live, existing_token_allowed(surface, existing_token, finish_permit))
-        case Edit{}:
-          Bool.and(live, existing_token_allowed(surface, existing_token, finish_permit))
+      submission_allowed_facts(live, barrier, deciding, surface,
+        existing_token, finish_permit)
 
 # Legacy Stop collection predates the finish permit protocol.
+def legacy_stop_allowed_facts(live: Bool, deciding: Bool) -> Bool:
+  Bool.and(live, Bool.not(deciding))
+
 def legacy_stop_allowed(round: Round.Round) -> Bool:
   match round:
     case Round.Round{_, live, _, _, _, _, deciding, _}:
-      Bool.and(live, Bool.not(deciding))
+      legacy_stop_allowed_facts(live, deciding)
 
 def transition(current: Phase, requested: Phase) -> Step:
   match current:

@@ -16,7 +16,7 @@ try {
   const compiled = join(temporary, "policy.js");
   execFileSync("bend", [join(root, "PolicyRuntime.bend"), "-o", compiled], { stdio: "pipe" });
   let source = readFileSync(compiled, "utf8");
-  const footer = /\ncli\(process\.argv\.slice\(2\)\);\nio_exit\(\$main\$, [\s\S]*\);\s*$/;
+  const footer = /\ncli\(process\.argv\.slice\(\d+\)\);\nio_exit\(\$main\$, [\s\S]*\);\s*$/;
   if (!footer.test(source) || !source.includes("function $Handoff$select$(") ||
       !source.includes("function $Handoff$initial$(") ||
       !source.includes("function $Handoff$fits_batch$(") ||

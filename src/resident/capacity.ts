@@ -58,6 +58,9 @@ type ResidentTransition = Extract<CanonicalEvent, { readonly kind:
   "deliverySubmissionCandidateCheck" | "deliverySubmissionBatchCheck" |
   "deliveryCredentialObserveCheck" | "deliveryFinalCredentialCheck" |
   "validationRouteCheck" | "postValidationCheck" | "finalCandidateCheck" |
+  "roundBeginStopCheck" | "roundOwnsStopCheck" | "roundStopTerminalCheck" |
+  "roundExpireCloseCheck" | "roundContinuationBudgetCheck" |
+  "deliverySubmissionAllowedCheck" | "deliveryExistingTokenCheck" | "deliveryLegacyStopCheck" |
   "reuseRoute" | "reuseClaim" | "reuseAttach" | "reuseRelease" | "reuseTouch" |
   "cachePrepare" | "cacheCommit" | "cacheDiscardPartition" | "cacheClear" |
   "noticeAdvance" | "noticeCommit" | "noticePrune" | "noticeDrop" |

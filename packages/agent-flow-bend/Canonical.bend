@@ -8,6 +8,7 @@ import ./Collection.bend as Collection
 import ./CollectionState.bend as CollectionState
 import ./Handoff.bend as Handoff
 import ./Delivery.bend as Delivery
+import ./Round.bend as RoundPolicy
 import ./DeliveryState.bend as DeliveryState
 import ./SubmissionState.bend as SubmissionState
 import ./RevisionState.bend as RevisionState
@@ -183,6 +184,18 @@ type CanonicalEvent is Data:
   FinalCandidateCheck{owner_current: Bool, credential_generation: Bool,
     credential_authorized: Bool, expired: Bool, work_current: Bool,
     has_findings: Bool}
+  RoundBeginStopCheck{active: Bool, has_stop: Bool, token: Nat}
+  RoundOwnsStopCheck{active: Bool, token_matches: Bool, deciding: Bool}
+  RoundStopTerminalCheck{has_output: Bool, authorized: Bool,
+    requested_close: Bool}
+  RoundExpireCloseCheck{barrier: Bool, authorized_output: Bool}
+  RoundContinuationBudgetCheck{active: Bool, count: Nat}
+  DeliverySubmissionAllowedCheck{active: Bool, barrier: Bool,
+    deciding: Bool, surface: Delivery.Surface, existing_token: Bool,
+    finish_permit: Bool}
+  DeliveryExistingTokenCheck{surface: Delivery.Surface,
+    existing_token: Bool, finish_permit: Bool}
+  DeliveryLegacyStopCheck{active: Bool, deciding: Bool}
   IncludeLayerCheck{supplied: Bool, current_rank: Nat, candidate_rank: Nat}
   FileSelectionCheck{protected: Bool, excluded: Bool,
     includes_empty: Bool, included: Bool}
@@ -401,6 +414,21 @@ type Command is Data:
   RetireCandidate{}
   ContinueCandidate{}
   RetainCandidate{}
+  RoundStopBegun{}
+  RoundStopRefused{}
+  RoundStopOwned{}
+  RoundStopNotOwned{}
+  RoundStopTerminal{revoke_provisional: Bool, close: Bool}
+  RoundExpireCloses{}
+  RoundExpireKeeps{}
+  RoundContinuationAvailable{}
+  RoundContinuationExhausted{}
+  DeliverySubmissionAllowed{}
+  DeliverySubmissionDenied{}
+  DeliveryExistingTokenAllowed{}
+  DeliveryExistingTokenDenied{}
+  DeliveryLegacyStopAllowed{}
+  DeliveryLegacyStopDenied{}
   ReuseJoinAdvice{}
   ReuseJoinPending{}
   ReuseJoinClaimed{}
@@ -2396,6 +2424,11 @@ def candidate_route_result(state: State, decision: Handoff.CandidateAction) -> S
     case Handoff.ContinueCandidate{}: Advanced{state, ContinueCandidate{} <> Nil{}}
     case Handoff.RetainCandidate{}: Advanced{state, RetainCandidate{} <> Nil{}}
 
+def stop_terminal_result(state: State, result: RoundPolicy.StopTerminal) -> Step:
+  match result:
+    case RoundPolicy.StopTerminal{revoke_provisional, close}:
+      Advanced{state, RoundStopTerminal{revoke_provisional, close} <> Nil{}}
+
 def cleanup_commit_eligible(state: State) -> Bool:
   match state:
     case State{Ledger.Ledger{_, _, Nil{}}, _, _, _, _, _, _,
@@ -2743,6 +2776,37 @@ def step(+state: State, event: CanonicalEvent) -> Step:
         credential_authorized, expired, work_current, has_findings}:
       candidate_route_result(state, Handoff.final_candidate(owner_current,
         credential_generation, credential_authorized, expired, work_current, has_findings))
+    case RoundBeginStopCheck{active, has_stop, token}:
+      Advanced{state, Bool.pick(Command, Bool.and(active,
+        Bool.and(Bool.not(has_stop), Nat.is_gt(token, 0n))),
+        RoundStopBegun{}, RoundStopRefused{}) <> Nil{}}
+    case RoundOwnsStopCheck{active, token_matches, deciding}:
+      Advanced{state, Bool.pick(Command, Bool.and(active,
+        Bool.and(token_matches, Bool.not(deciding))),
+        RoundStopOwned{}, RoundStopNotOwned{}) <> Nil{}}
+    case RoundStopTerminalCheck{has_output, authorized, requested_close}:
+      stop_terminal_result(state, RoundPolicy.stop_terminal(has_output, authorized,
+        requested_close))
+    case RoundExpireCloseCheck{barrier, authorized_output}:
+      Advanced{state, Bool.pick(Command, Bool.and(Bool.not(authorized_output),
+        RoundPolicy.expire_close(barrier)),
+        RoundExpireCloses{}, RoundExpireKeeps{}) <> Nil{}}
+    case RoundContinuationBudgetCheck{active, count}:
+      Advanced{state, Bool.pick(Command, Bool.and(active,
+        Nat.is_lt(count, RoundPolicy.max_continuations())),
+        RoundContinuationAvailable{}, RoundContinuationExhausted{}) <> Nil{}}
+    case DeliverySubmissionAllowedCheck{active, barrier, deciding, surface,
+        existing_token, finish_permit}:
+      Advanced{state, Bool.pick(Command, Delivery.submission_allowed_facts(active,
+        barrier, deciding, surface, existing_token, finish_permit),
+        DeliverySubmissionAllowed{}, DeliverySubmissionDenied{}) <> Nil{}}
+    case DeliveryExistingTokenCheck{surface, existing_token, finish_permit}:
+      Advanced{state, Bool.pick(Command, Delivery.existing_token_allowed(surface,
+        existing_token, finish_permit), DeliveryExistingTokenAllowed{},
+        DeliveryExistingTokenDenied{}) <> Nil{}}
+    case DeliveryLegacyStopCheck{active, deciding}:
+      Advanced{state, Bool.pick(Command, Delivery.legacy_stop_allowed_facts(active,
+        deciding), DeliveryLegacyStopAllowed{}, DeliveryLegacyStopDenied{}) <> Nil{}}
     case IncludeLayerCheck{supplied, current_rank, candidate_rank}:
       Advanced{state, IncludeChoice{Configuration.include_choice(supplied,
         current_rank, candidate_rank)} <> Nil{}}

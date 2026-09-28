@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:913041cae6990bbdaefc7491a0303665e26760df1a8accca2db28fa45ab45f3b
+// hapsland-bend-source-sha256:fa89259e554467437c313521d1c0844078f2e8665e6d8f4790cd757f0f37b3a1
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -664,6 +664,47 @@ function $Canonical$step$(_state_0, _event_0) {
     const _work_current_0 = _event_0["work_current"];
     const _has_findings_0 = _event_0["has_findings"];
     return $Canonical$candidate_route_result$(_state_0, ($Handoff$final_candidate$(_owner_current_1, _credential_generation_0, _credential_authorized_0, _expired_4, _work_current_0, _has_findings_0)));
+  } else if (_event_0.$ === "Canonical.RoundBeginStopCheck") {
+    const _active_1 = _event_0["active"];
+    const _has_stop_0 = _event_0["has_stop"];
+    const _token_20 = _event_0["token"];
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Bool$and$(_active_1, ($Bool$and$(($Bool$not$(_has_stop_0)), ($Nat$is_gt$(_token_20, 0)))))), {$: "Canonical.RoundStopBegun"}, {$: "Canonical.RoundStopRefused"})), "tail": {$: "Nil"}}};
+  } else if (_event_0.$ === "Canonical.RoundOwnsStopCheck") {
+    const _active_2 = _event_0["active"];
+    const _token_matches_0 = _event_0["token_matches"];
+    const _deciding_0 = _event_0["deciding"];
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Bool$and$(_active_2, ($Bool$and$(_token_matches_0, ($Bool$not$(_deciding_0)))))), {$: "Canonical.RoundStopOwned"}, {$: "Canonical.RoundStopNotOwned"})), "tail": {$: "Nil"}}};
+  } else if (_event_0.$ === "Canonical.RoundStopTerminalCheck") {
+    const _has_output_0 = _event_0["has_output"];
+    const _authorized_1 = _event_0["authorized"];
+    const _requested_close_0 = _event_0["requested_close"];
+    return $Canonical$stop_terminal_result$(_state_0, ($Round$stop_terminal$(_has_output_0, _authorized_1, _requested_close_0)));
+  } else if (_event_0.$ === "Canonical.RoundExpireCloseCheck") {
+    const _barrier_0 = _event_0["barrier"];
+    const _authorized_output_0 = _event_0["authorized_output"];
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Bool$and$(($Bool$not$(_authorized_output_0)), ($Round$expire_close$(_barrier_0)))), {$: "Canonical.RoundExpireCloses"}, {$: "Canonical.RoundExpireKeeps"})), "tail": {$: "Nil"}}};
+  } else if (_event_0.$ === "Canonical.RoundContinuationBudgetCheck") {
+    const _active_3 = _event_0["active"];
+    const _count_2 = _event_0["count"];
+    const _x_0 = ($Round$max_continuations$());
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Bool$and$(_active_3, (_count_2 < _x_0))), {$: "Canonical.RoundContinuationAvailable"}, {$: "Canonical.RoundContinuationExhausted"})), "tail": {$: "Nil"}}};
+  } else if (_event_0.$ === "Canonical.DeliverySubmissionAllowedCheck") {
+    const _active_4 = _event_0["active"];
+    const _barrier_1 = _event_0["barrier"];
+    const _deciding_1 = _event_0["deciding"];
+    const _surface_2 = _event_0["surface"];
+    const _existing_token_0 = _event_0["existing_token"];
+    const _finish_permit_0 = _event_0["finish_permit"];
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Delivery$submission_allowed_facts$(_active_4, _barrier_1, _deciding_1, _surface_2, _existing_token_0, _finish_permit_0)), {$: "Canonical.DeliverySubmissionAllowed"}, {$: "Canonical.DeliverySubmissionDenied"})), "tail": {$: "Nil"}}};
+  } else if (_event_0.$ === "Canonical.DeliveryExistingTokenCheck") {
+    const _surface_3 = _event_0["surface"];
+    const _existing_token_1 = _event_0["existing_token"];
+    const _finish_permit_1 = _event_0["finish_permit"];
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Delivery$existing_token_allowed$(_surface_3, _existing_token_1, _finish_permit_1)), {$: "Canonical.DeliveryExistingTokenAllowed"}, {$: "Canonical.DeliveryExistingTokenDenied"})), "tail": {$: "Nil"}}};
+  } else if (_event_0.$ === "Canonical.DeliveryLegacyStopCheck") {
+    const _active_5 = _event_0["active"];
+    const _deciding_2 = _event_0["deciding"];
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Delivery$legacy_stop_allowed_facts$(_active_5, _deciding_2)), {$: "Canonical.DeliveryLegacyStopAllowed"}, {$: "Canonical.DeliveryLegacyStopDenied"})), "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.IncludeLayerCheck") {
     const _supplied_0 = _event_0["supplied"];
     const _current_rank_0 = _event_0["current_rank"];
@@ -1878,6 +1919,68 @@ function $Handoff$final_candidate$(_owner_current_0, _credential_generation_0, _
   return $Bool$pick$(($Bool$not$(_owner_current_0)), {$: "Handoff.IgnoreCandidate"}, ($Bool$pick$(($Bool$not$(_credential_generation_0)), {$: "Handoff.RetireCandidate"}, ($Bool$pick$(($Bool$not$(_credential_authorized_0)), {$: "Handoff.ReleaseCandidate"}, ($Bool$pick$((_expired_0 || _x_0), {$: "Handoff.RetireCandidate"}, ($Bool$pick$(_has_findings_0, {$: "Handoff.RetainCandidate"}, {$: "Handoff.ReleaseCandidate"})))))))));
 }
 
+function $Bool$and$(_a_0, _b_0) {
+  if (!_a_0) {
+    return false;
+  } else {
+    return _b_0;
+  }
+}
+
+function $Bool$not$(_b_0) {
+  if (!_b_0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $Nat$is_gt$(_a_0, _b_0) {
+  return $Cmp$is_gt$(cmp_new(_a_0, _b_0));
+}
+
+function $Canonical$stop_terminal_result$(_state_0, _result_0) {
+  const _revoke_provisional_0 = _result_0["revoke_provisional"];
+  const _close_0 = _result_0["close"];
+  return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RoundStopTerminal", "revoke_provisional": _revoke_provisional_0, "close": _close_0}, "tail": {$: "Nil"}}};
+}
+
+function $Round$stop_terminal$(_has_output_0, _authorized_0, _requested_close_0) {
+  const _x_0 = ($Bool$and$(_has_output_0, ($Bool$not$(_authorized_0))));
+  return {$: "Round.StopTerminal", "revoke_provisional": ($Bool$and$(_has_output_0, ($Bool$not$(_authorized_0)))), "close": (_requested_close_0 || _x_0)};
+}
+
+function $Round$expire_close$(_barrier_0) {
+  return $Bool$not$(_barrier_0);
+}
+
+function $Round$max_continuations$() {
+  return 4;
+}
+
+function $Delivery$submission_allowed_facts$(_live_0, _barrier_0, _deciding_0, _surface_0, _existing_token_0, _finish_permit_0) {
+  if (_surface_0.$ === "Delivery.Background") {
+    return $Bool$and$(_live_0, ($Bool$and$(($Delivery$existing_token_allowed$({$: "Delivery.Background"}, _existing_token_0, _finish_permit_0)), ($Bool$and$(($Bool$not$(_barrier_0)), ($Bool$not$(_deciding_0)))))));
+  } else if (_surface_0.$ === "Delivery.Stop") {
+    return $Bool$and$(_live_0, ($Delivery$existing_token_allowed$({$: "Delivery.Stop"}, _existing_token_0, _finish_permit_0)));
+  } else {
+    return $Bool$and$(_live_0, ($Delivery$existing_token_allowed$({$: "Delivery.Edit"}, _existing_token_0, _finish_permit_0)));
+  }
+}
+
+function $Delivery$existing_token_allowed$(_surface_0, _existing_token_0, _finish_permit_0) {
+  if (_surface_0.$ === "Delivery.Stop") {
+    const _x_0 = ($Bool$not$(_existing_token_0));
+    return (_x_0 || _finish_permit_0);
+  } else {
+    return $Bool$not$(_existing_token_0);
+  }
+}
+
+function $Delivery$legacy_stop_allowed_facts$(_live_0, _deciding_0) {
+  return $Bool$and$(_live_0, ($Bool$not$(_deciding_0)));
+}
+
 function $Configuration$include_choice$(_supplied_0, _current_rank_0, _candidate_rank_0) {
   return $Bool$pick$(($Bool$and$(_supplied_0, ($Nat$is_ge$(_candidate_rank_0, _current_rank_0)))), {$: "Configuration.ReplaceIncludes"}, {$: "Configuration.KeepIncludes"});
 }
@@ -2906,28 +3009,8 @@ function $Collection$eligible$(_already_0, _turn_end_0, _cycle_complete_0, _elap
   return (_already_0 || _x_2);
 }
 
-function $Bool$and$(_a_0, _b_0) {
-  if (!_a_0) {
-    return false;
-  } else {
-    return _b_0;
-  }
-}
-
-function $Bool$not$(_b_0) {
-  if (!_b_0) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
 function $Delivery$advice_candidate$(_same_partition_0, _unleased_0, _has_unsuppressed_finding_0, _ticket_owns_0) {
   return $Bool$and$(_same_partition_0, ($Bool$and$(_unleased_0, ($Bool$and$(_has_unsuppressed_finding_0, _ticket_owns_0)))));
-}
-
-function $Nat$is_gt$(_a_0, _b_0) {
-  return $Cmp$is_gt$(cmp_new(_a_0, _b_0));
 }
 
 function $Collection$expired$(_elapsed_0, _lifetime_0) {
@@ -3598,6 +3681,16 @@ function $Canonical$cleanup_commit_eligible$(_state_0) {
     }
   } else {
     return false;
+  }
+}
+
+function $Cmp$is_gt$(_c_0) {
+  if (_c_0.$ === "LT") {
+    return false;
+  } else if (_c_0.$ === "EQ") {
+    return false;
+  } else {
+    return true;
   }
 }
 
@@ -4600,16 +4693,6 @@ function $CollectionState$contains$(_id_0, _items_0) {
     const _x_0 = ($Nat$is_eq$(_id_0, _item_0));
     const _x_1 = ($CollectionState$contains$(_id_0, _rest_0));
     return (_x_0 || _x_1);
-  }
-}
-
-function $Cmp$is_gt$(_c_0) {
-  if (_c_0.$ === "LT") {
-    return false;
-  } else if (_c_0.$ === "EQ") {
-    return false;
-  } else {
-    return true;
   }
 }
 
