@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:4ec4850bd73694b3df4a9d6e5cfba7c8b468da3e66cec4a49b194cd01d63f335
+// hapsland-bend-source-sha256:95e0ae21a246906546e55eb63ac71593e77d86ffc28a6a13a529feab4c24a15c
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -221,49 +221,119 @@ function $Canonical$step$(_state_0, _event_0) {
     const _partition_6 = _event_0["partition"];
     const _lifetime_5 = _event_0["lifetime"];
     return $Canonical$open$(_state_0, _partition_6, _lifetime_5);
-  } else if (_event_0.$ === "Canonical.BeginPreparation") {
+  } else if (_event_0.$ === "Canonical.AdmitObservation") {
     const _partition_7 = _event_0["partition"];
     const _lifetime_6 = _event_0["lifetime"];
     const _round_1 = _event_0["round"];
-    const _bytes_2 = _event_0["bytes"];
-    return $Canonical$begin$(_state_0, _partition_7, _lifetime_6, _round_1, _bytes_2);
-  } else if (_event_0.$ === "Canonical.PreparationCompleted") {
+    return $Canonical$admit_observation$(_state_0, _partition_7, _lifetime_6, _round_1);
+  } else if (_event_0.$ === "Canonical.StartObservation") {
     const _partition_8 = _event_0["partition"];
     const _lifetime_7 = _event_0["lifetime"];
     const _round_2 = _event_0["round"];
-    const _operation_0 = _event_0["operation"];
-    const _bytes_3 = _event_0["unit_bytes"];
-    return $Canonical$prepared$(_state_0, _partition_8, _lifetime_7, _round_2, _operation_0, _bytes_3);
-  } else if (_event_0.$ === "Canonical.ReviewCompleted") {
+    const _observation_0 = _event_0["observation"];
+    return $Canonical$start_observation$(_state_0, _partition_8, _lifetime_7, _round_2, _observation_0);
+  } else if (_event_0.$ === "Canonical.CompleteObservation") {
     const _partition_9 = _event_0["partition"];
     const _lifetime_8 = _event_0["lifetime"];
     const _round_3 = _event_0["round"];
-    const _operation_1 = _event_0["operation"];
-    const _outcome_0 = _event_0["outcome"];
-    return $Canonical$reviewed$(_state_0, _partition_9, _lifetime_8, _round_3, _operation_1, _outcome_0);
-  } else if (_event_0.$ === "Canonical.StopPolled") {
+    const _observation_1 = _event_0["observation"];
+    return $Canonical$complete_observation$(_state_0, _partition_9, _lifetime_8, _round_3, _observation_1);
+  } else if (_event_0.$ === "Canonical.InterruptObservation") {
     const _partition_10 = _event_0["partition"];
     const _lifetime_9 = _event_0["lifetime"];
     const _round_4 = _event_0["round"];
-    const _deadline_1 = _event_0["deadline"];
-    return $Canonical$stop$(_state_0, _partition_10, _lifetime_9, _round_4, _deadline_1);
-  } else if (_event_0.$ === "Canonical.OutputStarted") {
+    const _observation_2 = _event_0["observation"];
+    return $Canonical$interrupt_observation$(_state_0, _partition_10, _lifetime_9, _round_4, _observation_2);
+  } else if (_event_0.$ === "Canonical.BeginPreparation") {
     const _partition_11 = _event_0["partition"];
     const _lifetime_10 = _event_0["lifetime"];
     const _round_5 = _event_0["round"];
-    return $Canonical$output_start$(_state_0, _partition_11, _lifetime_10, _round_5);
-  } else if (_event_0.$ === "Canonical.OutputTerminal") {
+    const _bytes_2 = _event_0["bytes"];
+    return $Canonical$begin$(_state_0, _partition_11, _lifetime_10, _round_5, _bytes_2);
+  } else if (_event_0.$ === "Canonical.BeginObservedPreparation") {
     const _partition_12 = _event_0["partition"];
     const _lifetime_11 = _event_0["lifetime"];
     const _round_6 = _event_0["round"];
-    const _operation_2 = _event_0["operation"];
-    const _outcome_1 = _event_0["outcome"];
-    return $Canonical$output_terminal$(_state_0, _partition_12, _lifetime_11, _round_6, _operation_2, _outcome_1);
-  } else {
+    const _observation_3 = _event_0["observation"];
+    const _bytes_3 = _event_0["bytes"];
+    return $Canonical$begin_observed$(_state_0, _partition_12, _lifetime_11, _round_6, _observation_3, _bytes_3);
+  } else if (_event_0.$ === "Canonical.InterruptPreparation") {
     const _partition_13 = _event_0["partition"];
     const _lifetime_12 = _event_0["lifetime"];
     const _round_7 = _event_0["round"];
-    return $Canonical$retire$(_state_0, _partition_13, _lifetime_12, _round_7);
+    const _operation_0 = _event_0["operation"];
+    return $Canonical$interrupt_preparation$(_state_0, _partition_13, _lifetime_12, _round_7, _operation_0);
+  } else if (_event_0.$ === "Canonical.PreparationCompleted") {
+    const _partition_14 = _event_0["partition"];
+    const _lifetime_13 = _event_0["lifetime"];
+    const _round_8 = _event_0["round"];
+    const _operation_1 = _event_0["operation"];
+    const _bytes_4 = _event_0["unit_bytes"];
+    return $Canonical$prepared$(_state_0, _partition_14, _lifetime_13, _round_8, _operation_1, _bytes_4);
+  } else if (_event_0.$ === "Canonical.StartReview") {
+    const _partition_15 = _event_0["partition"];
+    const _lifetime_14 = _event_0["lifetime"];
+    const _round_9 = _event_0["round"];
+    const _operation_2 = _event_0["operation"];
+    return $Canonical$start_review$(_state_0, _partition_15, _lifetime_14, _round_9, _operation_2);
+  } else if (_event_0.$ === "Canonical.ReviewCompleted") {
+    const _partition_16 = _event_0["partition"];
+    const _lifetime_15 = _event_0["lifetime"];
+    const _round_10 = _event_0["round"];
+    const _operation_3 = _event_0["operation"];
+    const _outcome_0 = _event_0["outcome"];
+    return $Canonical$reviewed$(_state_0, _partition_16, _lifetime_15, _round_10, _operation_3, _outcome_0);
+  } else if (_event_0.$ === "Canonical.RetireReview") {
+    const _partition_17 = _event_0["partition"];
+    const _lifetime_16 = _event_0["lifetime"];
+    const _round_11 = _event_0["round"];
+    const _operation_4 = _event_0["operation"];
+    return $Canonical$retire_review$(_state_0, _partition_17, _lifetime_16, _round_11, _operation_4);
+  } else if (_event_0.$ === "Canonical.ReviewObserved") {
+    const _partition_18 = _event_0["partition"];
+    const _lifetime_17 = _event_0["lifetime"];
+    const _round_12 = _event_0["round"];
+    const _operation_5 = _event_0["operation"];
+    const _outcome_1 = _event_0["outcome"];
+    const _current_work_0 = _event_0["current_work"];
+    return $Canonical$review_observed$(_state_0, _partition_18, _lifetime_17, _round_12, _operation_5, _outcome_1, _current_work_0);
+  } else if (_event_0.$ === "Canonical.PreparedOfferCheck") {
+    const _ready_0 = _event_0["ready"];
+    const _within_frame_0 = _event_0["within_frame"];
+    return $Canonical$prepared_offer_check$(_state_0, _ready_0, _within_frame_0);
+  } else if (_event_0.$ === "Canonical.EmptyPreparedCheck") {
+    const _ready_count_0 = _event_0["ready_count"];
+    const _has_non_skipped_0 = _event_0["has_non_skipped"];
+    const _ticketed_0 = _event_0["ticketed"];
+    return $Canonical$empty_prepared_check$(_state_0, _ready_count_0, _has_non_skipped_0, _ticketed_0);
+  } else if (_event_0.$ === "Canonical.ReviewFailureCheck") {
+    const _backend_or_timeout_0 = _event_0["backend_or_timeout"];
+    const _credential_0 = _event_0["credential"];
+    const _missing_0 = _event_0["missing"];
+    return $Canonical$review_failure_check$(_state_0, _backend_or_timeout_0, _credential_0, _missing_0);
+  } else if (_event_0.$ === "Canonical.StopPolled") {
+    const _partition_19 = _event_0["partition"];
+    const _lifetime_18 = _event_0["lifetime"];
+    const _round_13 = _event_0["round"];
+    const _deadline_1 = _event_0["deadline"];
+    return $Canonical$stop$(_state_0, _partition_19, _lifetime_18, _round_13, _deadline_1);
+  } else if (_event_0.$ === "Canonical.OutputStarted") {
+    const _partition_20 = _event_0["partition"];
+    const _lifetime_19 = _event_0["lifetime"];
+    const _round_14 = _event_0["round"];
+    return $Canonical$output_start$(_state_0, _partition_20, _lifetime_19, _round_14);
+  } else if (_event_0.$ === "Canonical.OutputTerminal") {
+    const _partition_21 = _event_0["partition"];
+    const _lifetime_20 = _event_0["lifetime"];
+    const _round_15 = _event_0["round"];
+    const _operation_6 = _event_0["operation"];
+    const _outcome_2 = _event_0["outcome"];
+    return $Canonical$output_terminal$(_state_0, _partition_21, _lifetime_20, _round_15, _operation_6, _outcome_2);
+  } else {
+    const _partition_22 = _event_0["partition"];
+    const _lifetime_21 = _event_0["lifetime"];
+    const _round_16 = _event_0["round"];
+    return $Canonical$retire$(_state_0, _partition_22, _lifetime_21, _round_16);
   }
 }
 
@@ -351,6 +421,46 @@ function $Canonical$open$(_state_0, _partition_0, _lifetime_0) {
   return $Canonical$open_found$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _partition_0, _lifetime_0, ($Canonical$find_round$(_partition_0, _rounds_0)));
 }
 
+function $Canonical$admit_observation$(_state_0, _partition_0, _lifetime_0, _round_0) {
+  const __0 = _state_0["ledger"];
+  const _rounds_0 = _state_0["rounds"];
+  const __1 = _state_0["work"];
+  const __2 = _state_0["next_round"];
+  const __3 = _state_0["next_operation"];
+  const __4 = _state_0["admissions"];
+  return $Canonical$admit_observation_found$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _partition_0, _lifetime_0, _round_0, ($Canonical$find_round$(_partition_0, _rounds_0)));
+}
+
+function $Canonical$start_observation$(_state_0, _partition_0, _lifetime_0, _round_0, _observation_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const _work_0 = _state_0["work"];
+  const __2 = _state_0["next_round"];
+  const __3 = _state_0["next_operation"];
+  const __4 = _state_0["admissions"];
+  return $Canonical$observation_started_found$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": _work_0, "next_round": __2, "next_operation": __3, "admissions": __4}, _observation_0, ($Canonical$find_work$(_partition_0, _lifetime_0, _round_0, _observation_0, _work_0)));
+}
+
+function $Canonical$complete_observation$(_state_0, _partition_0, _lifetime_0, _round_0, _observation_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const _work_0 = _state_0["work"];
+  const __2 = _state_0["next_round"];
+  const __3 = _state_0["next_operation"];
+  const __4 = _state_0["admissions"];
+  return $Canonical$observation_completed_found$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": _work_0, "next_round": __2, "next_operation": __3, "admissions": __4}, _observation_0, ($Canonical$find_work$(_partition_0, _lifetime_0, _round_0, _observation_0, _work_0)));
+}
+
+function $Canonical$interrupt_observation$(_state_0, _partition_0, _lifetime_0, _round_0, _observation_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const _work_0 = _state_0["work"];
+  const __2 = _state_0["next_round"];
+  const __3 = _state_0["next_operation"];
+  const __4 = _state_0["admissions"];
+  return $Canonical$interrupt_observation_found$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": _work_0, "next_round": __2, "next_operation": __3, "admissions": __4}, _observation_0, ($Canonical$find_work$(_partition_0, _lifetime_0, _round_0, _observation_0, _work_0)));
+}
+
 function $Canonical$begin$(_state_0, _partition_0, _lifetime_0, _round_0, _bytes_0) {
   const __0 = _state_0["ledger"];
   const _rounds_0 = _state_0["rounds"];
@@ -358,7 +468,21 @@ function $Canonical$begin$(_state_0, _partition_0, _lifetime_0, _round_0, _bytes
   const __2 = _state_0["next_round"];
   const __3 = _state_0["next_operation"];
   const __4 = _state_0["admissions"];
-  return $Canonical$begin_found$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _partition_0, _lifetime_0, _round_0, _bytes_0, ($Canonical$find_round$(_partition_0, _rounds_0)));
+  return $Canonical$begin_found$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _partition_0, _lifetime_0, _round_0, _bytes_0, 0, ($Canonical$find_round$(_partition_0, _rounds_0)));
+}
+
+function $Canonical$begin_observed$(_state_0, _partition_0, _lifetime_0, _round_0, _observation_0, _bytes_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const _work_0 = _state_0["work"];
+  const __2 = _state_0["next_round"];
+  const __3 = _state_0["next_operation"];
+  const __4 = _state_0["admissions"];
+  return $Canonical$begin_observed_found$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": _work_0, "next_round": __2, "next_operation": __3, "admissions": __4}, _partition_0, _lifetime_0, _round_0, _observation_0, _bytes_0, ($Canonical$find_work$(_partition_0, _lifetime_0, _round_0, _observation_0, _work_0)));
+}
+
+function $Canonical$interrupt_preparation$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
+  return $Canonical$prepared$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Nil"});
 }
 
 function $Canonical$prepared$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _bytes_0) {
@@ -371,6 +495,16 @@ function $Canonical$prepared$(_state_0, _partition_0, _lifetime_0, _round_0, _op
   return $Canonical$prepared_found$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3}, _partition_0, _lifetime_0, _round_0, _operation_0, _bytes_0, ($Canonical$find_round$(_partition_0, _rounds_0)), ($Canonical$find_work$(_partition_0, _lifetime_0, _round_0, _operation_0, _work_0)));
 }
 
+function $Canonical$start_review$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const _work_0 = _state_0["work"];
+  const __2 = _state_0["next_round"];
+  const __3 = _state_0["next_operation"];
+  const __4 = _state_0["admissions"];
+  return $Canonical$start_review_found$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": _work_0, "next_round": __2, "next_operation": __3, "admissions": __4}, _operation_0, ($Canonical$find_work$(_partition_0, _lifetime_0, _round_0, _operation_0, _work_0)));
+}
+
 function $Canonical$reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0) {
   const __0 = _state_0["ledger"];
   const __1 = _state_0["rounds"];
@@ -379,6 +513,32 @@ function $Canonical$reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _op
   const __3 = _state_0["next_operation"];
   const __4 = _state_0["admissions"];
   return $Canonical$reviewed_found$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": _work_0, "next_round": __2, "next_operation": __3, "admissions": __4}, _operation_0, _outcome_0, ($Canonical$find_work$(_partition_0, _lifetime_0, _round_0, _operation_0, _work_0)));
+}
+
+function $Canonical$retire_review$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const _work_0 = _state_0["work"];
+  const __2 = _state_0["next_round"];
+  const __3 = _state_0["next_operation"];
+  const __4 = _state_0["admissions"];
+  return $Canonical$retire_review_found$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": _work_0, "next_round": __2, "next_operation": __3, "admissions": __4}, _operation_0, ($Canonical$find_work$(_partition_0, _lifetime_0, _round_0, _operation_0, _work_0)));
+}
+
+function $Canonical$review_observed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0, _current_work_0) {
+  return $Canonical$review_observed_choice$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0, ($Work$evaluated_disposition$(($Canonical$is_finding$(_outcome_0)), _current_work_0)));
+}
+
+function $Canonical$prepared_offer_check$(_state_0, _ready_0, _within_frame_0) {
+  return $Canonical$prepared_offer_result$(_state_0, ($Work$prepared_offer$(_ready_0, _within_frame_0)));
+}
+
+function $Canonical$empty_prepared_check$(_state_0, _ready_count_0, _has_non_skipped_0, _ticketed_0) {
+  return $Canonical$empty_prepared_result$(_state_0, ($Work$empty_prepared$(_ready_count_0, _has_non_skipped_0, _ticketed_0)));
+}
+
+function $Canonical$review_failure_check$(_state_0, _backend_or_timeout_0, _credential_0, _missing_0) {
+  return $Canonical$review_failure_result$(_state_0, ($Work$failure_disposition$(_backend_or_timeout_0, _credential_0, _missing_0)));
 }
 
 function $Canonical$stop$(_state_0, _partition_0, _lifetime_0, _round_0, _deadline_0) {
@@ -655,38 +815,43 @@ function $Canonical$find_round$(_partition_0, _rounds_0) {
   }
 }
 
-function $Canonical$begin_found$(_state_0, _partition_0, _lifetime_0, _round_0, _bytes_0, _found_0) {
+function $Canonical$admit_observation_found$(_state_0, _partition_0, _lifetime_0, _round_0, _found_0) {
   const _ledger_0 = _state_0["ledger"];
-  const __0 = _state_0["rounds"];
-  const __1 = _state_0["work"];
-  const __2 = _state_0["next_round"];
-  const __3 = _state_0["next_operation"];
-  const __4 = _state_0["admissions"];
+  const _rounds_0 = _state_0["rounds"];
+  const _work_0 = _state_0["work"];
+  const _next_round_0 = _state_0["next_round"];
+  const _next_operation_0 = _state_0["next_operation"];
+  const _admissions_0 = _state_0["admissions"];
   if (_found_0.$ === "Some") {
     const _current_0 = _found_0["value"];
-    return $Bool$pick$(($Bool$and$(($Canonical$same_round$(_partition_0, _lifetime_0, _round_0, _current_0)), ($Bool$and$(($Bool$not$(($Canonical$is_deciding$(_current_0)))), ($Nat$is_gt$(_bytes_0, 0)))))), ($Canonical$begin_result$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _partition_0, _lifetime_0, _round_0, ($Ledger$reserve_for$(_ledger_0, _partition_0, _bytes_0, {$: "Ledger.Preparation"})))), {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, "reason": {$: "Canonical.StaleRound"}});
+    return $Bool$pick$(($Canonical$same_round$(_partition_0, _lifetime_0, _round_0, _current_0)), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": {$: "Con", "head": {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _next_operation_0, "charge": 0, "kind": {$: "Canonical.SourceQueued"}, "parent": 0}, "tail": _work_0}, "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.ObservationAdmitted", "id": _next_operation_0}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": {$: "Canonical.StaleRound"}});
   } else {
-    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, "reason": {$: "Canonical.StaleRound"}};
+    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": {$: "Canonical.StaleRound"}};
   }
 }
 
-function $Canonical$prepared_found$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _bytes_0, _found_round_0, _found_work_0) {
-  if (_found_round_0.$ === "Some") {
-    const _current_0 = _found_round_0["value"];
-    if (_found_work_0.$ === "Some") {
-      const _t_0 = _found_work_0["value"];
-      const _charge_0 = _t_0["charge"];
-      const _t_1 = _t_0["kind"];
-      if (_t_1.$ === "Canonical.Preparing") {
-        return $Bool$pick$(($Canonical$same_round$(_partition_0, _lifetime_0, _round_0, _current_0)), ($Canonical$prepared_release$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _charge_0, _bytes_0)), {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.StaleRound"}});
+function $Canonical$observation_started_found$(_state_0, _operation_0, _found_0) {
+  const _ledger_0 = _state_0["ledger"];
+  const _rounds_0 = _state_0["rounds"];
+  const _work_0 = _state_0["work"];
+  const _next_round_0 = _state_0["next_round"];
+  const _next_operation_0 = _state_0["next_operation"];
+  const _admissions_0 = _state_0["admissions"];
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _t_1 = _t_0["charge"];
+    if (_t_1 === 0) {
+      const _t_2 = _t_0["kind"];
+      if (_t_2.$ === "Canonical.SourceQueued") {
+        return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($Canonical$replace_work_kind$(_operation_0, {$: "Canonical.SourceReading"}, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.ObservationStarted"}, "tail": {$: "Nil"}}};
       } else {
-        return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.StaleOperation"}};
+        return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": {$: "Canonical.WrongStage"}};
       }
     } else {
-      return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.StaleOperation"}};
+      return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": {$: "Canonical.WrongStage"}};
     }
   } else {
-    return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.StaleOperation"}};
+    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": {$: "Canonical.WrongStage"}};
   }
 }
 
@@ -700,7 +865,159 @@ function $Canonical$find_work$(_partition_0, _lifetime_0, _round_0, _operation_0
   }
 }
 
+function $Canonical$observation_completed_found$(_state_0, _operation_0, _found_0) {
+  const _ledger_0 = _state_0["ledger"];
+  const _rounds_0 = _state_0["rounds"];
+  const _work_0 = _state_0["work"];
+  const _next_round_0 = _state_0["next_round"];
+  const _next_operation_0 = _state_0["next_operation"];
+  const _admissions_0 = _state_0["admissions"];
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _t_1 = _t_0["charge"];
+    if (_t_1 === 0) {
+      const _t_2 = _t_0["kind"];
+      if (_t_2.$ === "Canonical.SourceReading") {
+        return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($Canonical$remove_work$(_operation_0, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.ObservationCompleted"}, "tail": {$: "Nil"}}};
+      } else {
+        return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": {$: "Canonical.WrongStage"}};
+      }
+    } else {
+      return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": {$: "Canonical.WrongStage"}};
+    }
+  } else {
+    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": {$: "Canonical.WrongStage"}};
+  }
+}
+
+function $Canonical$interrupt_observation_found$(_state_0, _operation_0, _found_0) {
+  const _ledger_0 = _state_0["ledger"];
+  const _rounds_0 = _state_0["rounds"];
+  const _work_0 = _state_0["work"];
+  const _next_round_0 = _state_0["next_round"];
+  const _next_operation_0 = _state_0["next_operation"];
+  const _admissions_0 = _state_0["admissions"];
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _t_1 = _t_0["charge"];
+    if (_t_1 === 0) {
+      const _t_2 = _t_0["kind"];
+      if (_t_2.$ === "Canonical.SourceQueued") {
+        return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($Canonical$remove_work$(_operation_0, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.ObservationInterrupted"}, "tail": {$: "Nil"}}};
+      } else if (_t_2.$ === "Canonical.SourceReading") {
+        return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($Canonical$remove_work$(_operation_0, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.ObservationInterrupted"}, "tail": {$: "Nil"}}};
+      } else {
+        return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": {$: "Canonical.WrongStage"}};
+      }
+    } else {
+      return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": {$: "Canonical.WrongStage"}};
+    }
+  } else {
+    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": {$: "Canonical.WrongStage"}};
+  }
+}
+
+function $Canonical$begin_found$(_state_0, _partition_0, _lifetime_0, _round_0, _bytes_0, _parent_0, _found_0) {
+  const _ledger_0 = _state_0["ledger"];
+  const __0 = _state_0["rounds"];
+  const __1 = _state_0["work"];
+  const __2 = _state_0["next_round"];
+  const __3 = _state_0["next_operation"];
+  const __4 = _state_0["admissions"];
+  if (_found_0.$ === "Some") {
+    const _current_0 = _found_0["value"];
+    return $Bool$pick$(($Bool$and$(($Canonical$same_round$(_partition_0, _lifetime_0, _round_0, _current_0)), ($Bool$and$(($Bool$not$(($Canonical$is_deciding$(_current_0)))), ($Nat$is_gt$(_bytes_0, 0)))))), ($Canonical$begin_result$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _partition_0, _lifetime_0, _round_0, _parent_0, ($Ledger$reserve_for$(_ledger_0, _partition_0, _bytes_0, {$: "Ledger.Preparation"})))), {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, "reason": {$: "Canonical.StaleRound"}});
+  } else {
+    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, "reason": {$: "Canonical.StaleRound"}};
+  }
+}
+
+function $Canonical$begin_observed_found$(_state_0, _partition_0, _lifetime_0, _round_0, _observation_0, _bytes_0, _found_0) {
+  const __0 = _state_0["ledger"];
+  const _rounds_0 = _state_0["rounds"];
+  const __1 = _state_0["work"];
+  const __2 = _state_0["next_round"];
+  const __3 = _state_0["next_operation"];
+  const __4 = _state_0["admissions"];
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _t_1 = _t_0["charge"];
+    if (_t_1 === 0) {
+      const _t_2 = _t_0["kind"];
+      if (_t_2.$ === "Canonical.SourceReading") {
+        return $Canonical$begin_found$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _partition_0, _lifetime_0, _round_0, _bytes_0, _observation_0, ($Canonical$find_round$(_partition_0, _rounds_0)));
+      } else {
+        return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, "reason": {$: "Canonical.WrongStage"}};
+      }
+    } else {
+      return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, "reason": {$: "Canonical.WrongStage"}};
+    }
+  } else {
+    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, "reason": {$: "Canonical.WrongStage"}};
+  }
+}
+
+function $Canonical$prepared_found$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _bytes_0, _found_round_0, _found_work_0) {
+  if (_found_round_0.$ === "Some") {
+    const _current_0 = _found_round_0["value"];
+    if (_found_work_0.$ === "Some") {
+      const _t_0 = _found_work_0["value"];
+      const _charge_0 = _t_0["charge"];
+      const _t_1 = _t_0["kind"];
+      if (_t_1.$ === "Canonical.Preparing") {
+        const _parent_0 = _t_0["parent"];
+        return $Bool$pick$(($Canonical$same_round$(_partition_0, _lifetime_0, _round_0, _current_0)), ($Canonical$prepared_release$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _charge_0, _parent_0, _bytes_0)), {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.StaleRound"}});
+      } else {
+        return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.StaleOperation"}};
+      }
+    } else {
+      return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.StaleOperation"}};
+    }
+  } else {
+    return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.StaleOperation"}};
+  }
+}
+
+function $Canonical$start_review_found$(_state_0, _operation_0, _found_0) {
+  const _ledger_0 = _state_0["ledger"];
+  const _rounds_0 = _state_0["rounds"];
+  const _work_0 = _state_0["work"];
+  const _next_round_0 = _state_0["next_round"];
+  const _next_operation_0 = _state_0["next_operation"];
+  const _admissions_0 = _state_0["admissions"];
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _t_1 = _t_0["kind"];
+    if (_t_1.$ === "Canonical.Reviewing") {
+      return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($Canonical$replace_work_kind$(_operation_0, {$: "Canonical.AtJev"}, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.ReviewStarted"}, "tail": {$: "Nil"}}};
+    } else {
+      return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": {$: "Canonical.WrongStage"}};
+    }
+  } else {
+    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": {$: "Canonical.WrongStage"}};
+  }
+}
+
 function $Canonical$reviewed_found$(_state_0, _operation_0, _outcome_0, _found_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _charge_0 = _t_0["charge"];
+    const _t_1 = _t_0["kind"];
+    if (_t_1.$ === "Canonical.Reviewing") {
+      const _parent_0 = _t_0["parent"];
+      return $Canonical$reviewed_decide$(_state_0, _operation_0, _charge_0, _parent_0, _outcome_0);
+    } else if (_t_1.$ === "Canonical.AtJev") {
+      const _parent_1 = _t_0["parent"];
+      return $Canonical$reviewed_decide$(_state_0, _operation_0, _charge_0, _parent_1, _outcome_0);
+    } else {
+      return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.StaleOperation"}};
+    }
+  } else {
+    return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.StaleOperation"}};
+  }
+}
+
+function $Canonical$retire_review_found$(_state_0, _operation_0, _found_0) {
   const _ledger_0 = _state_0["ledger"];
   const __0 = _state_0["rounds"];
   const __1 = _state_0["work"];
@@ -711,14 +1028,80 @@ function $Canonical$reviewed_found$(_state_0, _operation_0, _outcome_0, _found_0
     const _t_0 = _found_0["value"];
     const _charge_0 = _t_0["charge"];
     const _t_1 = _t_0["kind"];
-    if (_t_1.$ === "Canonical.Reviewing") {
-      return $Canonical$reviewed_released$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _operation_0, _outcome_0, _charge_0, ($Ledger$release$(_ledger_0, _charge_0)));
+    if (_t_1.$ === "Canonical.PendingFinding") {
+      return $Canonical$reviewed_released$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _operation_0, {$: "Canonical.Discarded"}, _charge_0, ($Ledger$release$(_ledger_0, _charge_0)));
     } else {
       return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, "reason": {$: "Canonical.StaleOperation"}};
     }
   } else {
     return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, "reason": {$: "Canonical.StaleOperation"}};
   }
+}
+
+function $Canonical$review_observed_choice$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0, _choice_0) {
+  if (_choice_0.$ === "Work.RetainFinding") {
+    return $Canonical$append_review_disposition$(($Canonical$reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0)), {$: "Canonical.RetainFinding"});
+  } else if (_choice_0.$ === "Work.RetireStaleFinding") {
+    return $Canonical$append_review_disposition$(($Canonical$reviewed_stale$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0)), {$: "Canonical.RetireStaleFinding"});
+  } else if (_choice_0.$ === "Work.SettleClear") {
+    return $Canonical$append_review_disposition$(($Canonical$reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0)), {$: "Canonical.SettleClear"});
+  } else {
+    return $Canonical$append_review_disposition$(($Canonical$reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0)), {$: "Canonical.SettleStaleClear"});
+  }
+}
+
+function $Work$evaluated_disposition$(_has_findings_0, _current_work_0) {
+  return $Bool$pick$(_has_findings_0, ($Bool$pick$(_current_work_0, {$: "Work.RetainFinding"}, {$: "Work.RetireStaleFinding"})), ($Bool$pick$(_current_work_0, {$: "Work.SettleClear"}, {$: "Work.SettleStaleClear"})));
+}
+
+function $Canonical$is_finding$(_outcome_0) {
+  if (_outcome_0.$ === "Canonical.Finding") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $Canonical$prepared_offer_result$(_state_0, _decision_0) {
+  if (_decision_0.$ === "Work.SkipPrepared") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.PreparedSkipped"}, "tail": {$: "Nil"}}};
+  } else if (_decision_0.$ === "Work.AdmitPrepared") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.PreparedAdmitted"}, "tail": {$: "Nil"}}};
+  } else {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.PreparedCapacityRefused"}, "tail": {$: "Nil"}}};
+  }
+}
+
+function $Work$prepared_offer$(_ready_0, _within_frame_0) {
+  return $Bool$pick$(($Bool$not$(_ready_0)), {$: "Work.SkipPrepared"}, ($Bool$pick$(_within_frame_0, {$: "Work.AdmitPrepared"}, {$: "Work.RejectPreparedCapacity"})));
+}
+
+function $Canonical$empty_prepared_result$(_state_0, _decision_0) {
+  if (_decision_0.$ === "Work.FailEmptyLost") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.EmptyLost"}, "tail": {$: "Nil"}}};
+  } else {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.EmptyAccepted"}, "tail": {$: "Nil"}}};
+  }
+}
+
+function $Work$empty_prepared$(_ready_count_0, _has_non_skipped_0, _ticketed_0) {
+  return $Bool$pick$(($Bool$and$(($Nat$is_eq$(_ready_count_0, 0)), ($Bool$and$(_has_non_skipped_0, _ticketed_0)))), {$: "Work.FailEmptyLost"}, {$: "Work.NoEmptyFailure"});
+}
+
+function $Canonical$review_failure_result$(_state_0, _decision_0) {
+  if (_decision_0.$ === "Work.BackendUnavailable") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.FailureBackend"}, "tail": {$: "Nil"}}};
+  } else if (_decision_0.$ === "Work.CredentialUnavailable") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.FailureCredential"}, "tail": {$: "Nil"}}};
+  } else if (_decision_0.$ === "Work.LostUnavailable") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.FailureLost"}, "tail": {$: "Nil"}}};
+  } else {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.FailureNone"}, "tail": {$: "Nil"}}};
+  }
+}
+
+function $Work$failure_disposition$(_backend_or_timeout_0, _credential_0, _missing_0) {
+  return $Bool$pick$(_backend_or_timeout_0, {$: "Work.BackendUnavailable"}, ($Bool$pick$(_credential_0, {$: "Work.CredentialUnavailable"}, ($Bool$pick$(_missing_0, {$: "Work.LostUnavailable"}, {$: "Work.NoFailure"})))));
 }
 
 function $Canonical$stop_found$(_state_0, _partition_0, _lifetime_0, _round_0, _deadline_0, _found_0) {
@@ -1030,12 +1413,54 @@ function $Canonical$same_round$(_partition_0, _lifetime_0, _id_0, _round_0) {
   return $Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Nat$is_eq$(_current_0, _id_0)))));
 }
 
+function $Canonical$replace_work_kind$(_operation_0, _kind_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _partition_0 = _t_0["partition"];
+    const _lifetime_0 = _t_0["lifetime"];
+    const _round_0 = _t_0["round"];
+    const _current_0 = _t_0["operation"];
+    const _charge_0 = _t_0["charge"];
+    const __0 = _t_0["kind"];
+    const _parent_0 = _t_0["parent"];
+    const _rest_0 = _items_0["tail"];
+    return $Canonical$replace_work_kind_pick$({$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _current_0, "charge": _charge_0, "kind": __0, "parent": _parent_0}, {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _current_0, "charge": _charge_0, "kind": _kind_0, "parent": _parent_0}, ($Canonical$replace_work_kind$(_operation_0, _kind_0, _rest_0)), ($Nat$is_eq$(_current_0, _operation_0)));
+  }
+}
+
+function $Canonical$work_matches$(_partition_0, _lifetime_0, _round_0, _operation_0, _item_0) {
+  const _owner_0 = _item_0["partition"];
+  const _generation_0 = _item_0["lifetime"];
+  const _current_0 = _item_0["round"];
+  const _op_0 = _item_0["operation"];
+  return $Bool$and$(($Canonical$same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)), ($Nat$is_eq$(_op_0, _operation_0)));
+}
+
+function $Canonical$remove_work$(_operation_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const __0 = _t_0["partition"];
+    const __1 = _t_0["lifetime"];
+    const __2 = _t_0["round"];
+    const _op_0 = _t_0["operation"];
+    const __3 = _t_0["charge"];
+    const __4 = _t_0["kind"];
+    const __5 = _t_0["parent"];
+    const _rest_0 = _items_0["tail"];
+    return $Canonical$remove_work_pick$({$: "Canonical.Work", "partition": __0, "lifetime": __1, "round": __2, "operation": _op_0, "charge": __3, "kind": __4, "parent": __5}, ($Canonical$remove_work$(_operation_0, _rest_0)), ($Nat$is_eq$(_op_0, _operation_0)));
+  }
+}
+
 function $Canonical$is_deciding$(_current_0) {
   const _deciding_0 = _current_0["deciding"];
   return _deciding_0;
 }
 
-function $Canonical$begin_result$(_state_0, _partition_0, _lifetime_0, _round_0, _result_0) {
+function $Canonical$begin_result$(_state_0, _partition_0, _lifetime_0, _round_0, _parent_0, _result_0) {
   const __0 = _state_0["ledger"];
   const _rounds_0 = _state_0["rounds"];
   const _work_0 = _state_0["work"];
@@ -1045,28 +1470,40 @@ function $Canonical$begin_result$(_state_0, _partition_0, _lifetime_0, _round_0,
   if (_result_0.$ === "Ledger.Granted") {
     const _ledger_0 = _result_0["state"];
     const _charge_0 = _result_0["id"];
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($List$append$(_work_0, {$: "Con", "head": {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _next_operation_0, "charge": _charge_0, "kind": {$: "Canonical.Preparing"}}, "tail": {$: "Nil"}})), "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.Prepare", "operation": _next_operation_0, "reservation": _charge_0}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($List$append$(_work_0, {$: "Con", "head": {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _next_operation_0, "charge": _charge_0, "kind": {$: "Canonical.Preparing"}, "parent": _parent_0}, "tail": {$: "Nil"}})), "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.Prepare", "operation": _next_operation_0, "reservation": _charge_0}, "tail": {$: "Nil"}}};
   } else {
     return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.PreparationRefused"}, "tail": {$: "Nil"}}};
   }
 }
 
-function $Canonical$prepared_release$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _charge_0, _bytes_0) {
+function $Canonical$prepared_release$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _charge_0, _parent_0, _bytes_0) {
   const _ledger_0 = _state_0["ledger"];
   const __0 = _state_0["rounds"];
   const __1 = _state_0["work"];
   const __2 = _state_0["next_round"];
   const __3 = _state_0["next_operation"];
   const __4 = _state_0["admissions"];
-  return $Canonical$prepared_released$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _partition_0, _lifetime_0, _round_0, _operation_0, _charge_0, _bytes_0, ($Ledger$release$(_ledger_0, _charge_0)));
+  return $Canonical$prepared_released$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _partition_0, _lifetime_0, _round_0, _operation_0, _charge_0, _parent_0, _bytes_0, ($Ledger$release$(_ledger_0, _charge_0)));
 }
 
-function $Canonical$work_matches$(_partition_0, _lifetime_0, _round_0, _operation_0, _item_0) {
-  const _owner_0 = _item_0["partition"];
-  const _generation_0 = _item_0["lifetime"];
-  const _current_0 = _item_0["round"];
-  const _op_0 = _item_0["operation"];
-  return $Bool$and$(($Canonical$same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)), ($Nat$is_eq$(_op_0, _operation_0)));
+function $Canonical$reviewed_decide$(_state_0, _operation_0, _charge_0, _parent_0, _outcome_0) {
+  const _ledger_0 = _state_0["ledger"];
+  const __0 = _state_0["rounds"];
+  const __1 = _state_0["work"];
+  const __2 = _state_0["next_round"];
+  const __3 = _state_0["next_operation"];
+  const __4 = _state_0["admissions"];
+  if (_outcome_0.$ === "Canonical.Finding") {
+    return $Bool$pick$(($Nat$is_gt$(_parent_0, 0)), ($Canonical$reviewed_retained_find$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _operation_0, _charge_0, _ledger_0)), ($Canonical$reviewed_released$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _operation_0, {$: "Canonical.Finding"}, _charge_0, ($Ledger$release$(_ledger_0, _charge_0)))));
+  } else if (_outcome_0.$ === "Canonical.Clear") {
+    return $Canonical$reviewed_released$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _operation_0, {$: "Canonical.Clear"}, _charge_0, ($Ledger$release$(_ledger_0, _charge_0)));
+  } else if (_outcome_0.$ === "Canonical.Unavailable") {
+    return $Canonical$reviewed_released$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _operation_0, {$: "Canonical.Unavailable"}, _charge_0, ($Ledger$release$(_ledger_0, _charge_0)));
+  } else if (_outcome_0.$ === "Canonical.Interrupted") {
+    return $Canonical$reviewed_released$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _operation_0, {$: "Canonical.Interrupted"}, _charge_0, ($Ledger$release$(_ledger_0, _charge_0)));
+  } else {
+    return $Canonical$reviewed_released$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _operation_0, {$: "Canonical.Discarded"}, _charge_0, ($Ledger$release$(_ledger_0, _charge_0)));
+  }
 }
 
 function $Canonical$reviewed_released$(_state_0, _operation_0, _outcome_0, _charge_0, _result_0) {
@@ -1082,6 +1519,28 @@ function $Canonical$reviewed_released$(_state_0, _operation_0, _outcome_0, _char
   } else {
     return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": {$: "Canonical.InconsistentLedger"}};
   }
+}
+
+function $Canonical$append_review_disposition$(_step_0, _command_0) {
+  if (_step_0.$ === "Canonical.Advanced") {
+    const _state_0 = _step_0["state"];
+    const _commands_0 = _step_0["commands"];
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": ($List$append$(_commands_0, {$: "Con", "head": _command_0, "tail": {$: "Nil"}}))};
+  } else {
+    const _state_1 = _step_0["state"];
+    const _reason_0 = _step_0["reason"];
+    return {$: "Canonical.Rejected", "state": _state_1, "reason": _reason_0};
+  }
+}
+
+function $Canonical$reviewed_stale$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const _work_0 = _state_0["work"];
+  const __2 = _state_0["next_round"];
+  const __3 = _state_0["next_operation"];
+  const __4 = _state_0["admissions"];
+  return $Canonical$reviewed_stale_found$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": _work_0, "next_round": __2, "next_operation": __3, "admissions": __4}, _operation_0, ($Canonical$find_work$(_partition_0, _lifetime_0, _round_0, _operation_0, _work_0)));
 }
 
 function $Canonical$match_pending$(_state_0, _partition_0, _lifetime_0, _round_0, _deadline_0, _current_0) {
@@ -1135,7 +1594,7 @@ function $Canonical$retire_current$(_state_0, _partition_0, _lifetime_0, _round_
   const _next_round_0 = _state_0["next_round"];
   const _next_operation_0 = _state_0["next_operation"];
   const _admissions_0 = _state_0["admissions"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($Canonical$release_round_charges$(_work_0, _ledger_0, _partition_0, _lifetime_0, _round_0)), "rounds": ($Canonical$remove_round$(_partition_0, _rounds_0)), "work": ($Canonical$retain_other_work$(_work_0, _partition_0, _lifetime_0, _round_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": ($List$append$(($Canonical$release_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), ($List$append$(($Canonical$cancel_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), {$: "Con", "head": {$: "Canonical.PartitionRetired", "round": _round_0}, "tail": {$: "Nil"}}))))};
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($Canonical$release_round_charges$(_work_0, _ledger_0, _partition_0, _lifetime_0, _round_0)), "rounds": ($Canonical$remove_round$(_partition_0, _rounds_0)), "work": ($Canonical$retain_other_work$(_work_0, _partition_0, _lifetime_0, _round_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": ($List$append$(($Canonical$release_all_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), ($List$append$(($Canonical$cancel_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), {$: "Con", "head": {$: "Canonical.PartitionRetired", "round": _round_0}, "tail": {$: "Nil"}}))))};
 }
 
 function $Ledger$fit_decision$(_limits_0, _global_0, _local_0, _bytes_0) {
@@ -1364,7 +1823,27 @@ function $Cmp$is_gt$(_c_0) {
   }
 }
 
-function $Canonical$prepared_released$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _charge_0, _bytes_0, _result_0) {
+function $Canonical$replace_work_kind_pick$(_item_0, _next_0, _tail_0, _hit_0) {
+  if (_hit_0) {
+    return {$: "Con", "head": _next_0, "tail": _tail_0};
+  } else {
+    return {$: "Con", "head": _item_0, "tail": _tail_0};
+  }
+}
+
+function $Canonical$same_ids$(_a_0, _b_0, _c_0, _x_0, _y_0, _z_0) {
+  return $Bool$and$(($Nat$is_eq$(_a_0, _x_0)), ($Bool$and$(($Nat$is_eq$(_b_0, _y_0)), ($Nat$is_eq$(_c_0, _z_0)))));
+}
+
+function $Canonical$remove_work_pick$(_item_0, _tail_0, _hit_0) {
+  if (_hit_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _item_0, "tail": _tail_0};
+  }
+}
+
+function $Canonical$prepared_released$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _charge_0, _parent_0, _bytes_0, _result_0) {
   const __0 = _state_0["ledger"];
   const __1 = _state_0["rounds"];
   const __2 = _state_0["work"];
@@ -1385,28 +1864,36 @@ function $Canonical$prepared_released$(_state_0, _partition_0, _lifetime_0, _rou
       return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4}, "reason": {$: "Canonical.InconsistentLedger"}};
     } else {
       const _released_1 = _result_0["state"];
-      return $Canonical$prepared_batch$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4}, _operation_0, _charge_0, _partition_0, _released_1, ($Canonical$admit_units$({$: "Con", "head": _size_0, "tail": _rest_0}, {$: "Canonical.Batch", "ledger": _released_1, "work": {$: "Nil"}, "next_operation": _next_operation_0, "commands": {$: "Nil"}}, _partition_0, _lifetime_0, _round_0, 1)));
+      return $Canonical$prepared_batch$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4}, _operation_0, _charge_0, _partition_0, _released_1, ($Canonical$admit_units$({$: "Con", "head": _size_0, "tail": _rest_0}, {$: "Canonical.Batch", "ledger": _released_1, "work": {$: "Nil"}, "next_operation": _next_operation_0, "commands": {$: "Nil"}}, _partition_0, _lifetime_0, _round_0, 1, _parent_0)));
     }
   }
 }
 
-function $Canonical$same_ids$(_a_0, _b_0, _c_0, _x_0, _y_0, _z_0) {
-  return $Bool$and$(($Nat$is_eq$(_a_0, _x_0)), ($Bool$and$(($Nat$is_eq$(_b_0, _y_0)), ($Nat$is_eq$(_c_0, _z_0)))));
+function $Canonical$reviewed_retained_find$(_state_0, _operation_0, _charge_0, _ledger_0) {
+  const _charges_0 = _ledger_0["charges"];
+  return $Canonical$reviewed_retained_charge$(_state_0, _operation_0, _charge_0, ($Ledger$find$(_charge_0, _charges_0)));
 }
 
-function $Canonical$remove_work$(_operation_0, _items_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Nil"};
+function $Canonical$reviewed_stale_found$(_state_0, _operation_0, _found_0) {
+  const _ledger_0 = _state_0["ledger"];
+  const __0 = _state_0["rounds"];
+  const __1 = _state_0["work"];
+  const __2 = _state_0["next_round"];
+  const __3 = _state_0["next_operation"];
+  const __4 = _state_0["admissions"];
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _charge_0 = _t_0["charge"];
+    const _t_1 = _t_0["kind"];
+    if (_t_1.$ === "Canonical.Reviewing") {
+      return $Canonical$reviewed_released$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _operation_0, {$: "Canonical.Finding"}, _charge_0, ($Ledger$release$(_ledger_0, _charge_0)));
+    } else if (_t_1.$ === "Canonical.AtJev") {
+      return $Canonical$reviewed_released$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _operation_0, {$: "Canonical.Finding"}, _charge_0, ($Ledger$release$(_ledger_0, _charge_0)));
+    } else {
+      return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, "reason": {$: "Canonical.StaleOperation"}};
+    }
   } else {
-    const _t_0 = _items_0["head"];
-    const __0 = _t_0["partition"];
-    const __1 = _t_0["lifetime"];
-    const __2 = _t_0["round"];
-    const _op_0 = _t_0["operation"];
-    const __3 = _t_0["charge"];
-    const __4 = _t_0["kind"];
-    const _rest_0 = _items_0["tail"];
-    return $Canonical$remove_work_pick$({$: "Canonical.Work", "partition": __0, "lifetime": __1, "round": __2, "operation": _op_0, "charge": __3, "kind": __4}, ($Canonical$remove_work$(_operation_0, _rest_0)), ($Nat$is_eq$(_op_0, _operation_0)));
+    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, "reason": {$: "Canonical.StaleOperation"}};
   }
 }
 
@@ -1428,8 +1915,9 @@ function $Canonical$pending$(_partition_0, _lifetime_0, _round_0, _items_0) {
     const _owner_0 = _t_0["partition"];
     const _generation_0 = _t_0["lifetime"];
     const _current_0 = _t_0["round"];
+    const _kind_0 = _t_0["kind"];
     const _rest_0 = _items_0["tail"];
-    const _x_0 = ($Canonical$same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0));
+    const _x_0 = ($Bool$and$(($Canonical$same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)), ($Canonical$unfinished$(_kind_0))));
     const _x_1 = ($Canonical$pending$(_partition_0, _lifetime_0, _round_0, _rest_0));
     return (_x_0 || _x_1);
   }
@@ -1490,12 +1978,13 @@ function $Canonical$retain_other_work$(_items_0, _partition_0, _lifetime_0, _rou
     const __0 = _t_0["operation"];
     const __1 = _t_0["charge"];
     const __2 = _t_0["kind"];
+    const __3 = _t_0["parent"];
     const _rest_0 = _items_0["tail"];
-    return $Canonical$retain_work_pick$({$: "Canonical.Work", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": __0, "charge": __1, "kind": __2}, ($Canonical$retain_other_work$(_rest_0, _partition_0, _lifetime_0, _round_0)), ($Canonical$same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)));
+    return $Canonical$retain_work_pick$({$: "Canonical.Work", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": __0, "charge": __1, "kind": __2, "parent": __3}, ($Canonical$retain_other_work$(_rest_0, _partition_0, _lifetime_0, _round_0)), ($Canonical$same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)));
   }
 }
 
-function $Canonical$release_commands$(_partition_0, _lifetime_0, _round_0, _items_0) {
+function $Canonical$release_all_commands$(_partition_0, _lifetime_0, _round_0, _items_0) {
   if (_items_0.$ === "Nil") {
     return {$: "Nil"};
   } else {
@@ -1505,7 +1994,7 @@ function $Canonical$release_commands$(_partition_0, _lifetime_0, _round_0, _item
     const _current_0 = _t_0["round"];
     const _charge_0 = _t_0["charge"];
     const _rest_0 = _items_0["tail"];
-    return $Canonical$release_pick$(_charge_0, ($Canonical$release_commands$(_partition_0, _lifetime_0, _round_0, _rest_0)), ($Canonical$same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)));
+    return $Canonical$release_pick$(_charge_0, ($Canonical$release_all_commands$(_partition_0, _lifetime_0, _round_0, _rest_0)), ($Bool$and$(($Nat$is_gt$(_charge_0, 0)), ($Canonical$same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)))));
   }
 }
 
@@ -1518,8 +2007,9 @@ function $Canonical$cancel_commands$(_partition_0, _lifetime_0, _round_0, _items
     const _generation_0 = _t_0["lifetime"];
     const _current_0 = _t_0["round"];
     const _op_0 = _t_0["operation"];
+    const _kind_0 = _t_0["kind"];
     const _rest_0 = _items_0["tail"];
-    return $Canonical$cancel_pick$(_op_0, ($Canonical$cancel_commands$(_partition_0, _lifetime_0, _round_0, _rest_0)), ($Canonical$same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)));
+    return $Canonical$cancel_pick$(_op_0, ($Canonical$cancel_commands$(_partition_0, _lifetime_0, _round_0, _rest_0)), ($Bool$and$(($Canonical$same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)), ($Canonical$unfinished$(_kind_0)))));
   }
 }
 
@@ -1661,7 +2151,7 @@ function $Canonical$prepared_batch$(_state_0, _operation_0, _charge_0, _partitio
   return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($List$append$(($Canonical$remove_work$(_operation_0, _work_0)), _units_0)), "next_round": _next_round_0, "next_operation": _next_0, "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.PreparationReleased", "id": _charge_0, "after": ($Canonical$capacity_view$(_released_0, _partition_0))}, "tail": _commands_0}};
 }
 
-function $Canonical$admit_units$($0, $1, $2, $3, $4, $5) {
+function $Canonical$admit_units$($0, $1, $2, $3, $4, $5, $6) {
   for (;;) {
     {
       const _sizes_0 = $0;
@@ -1670,6 +2160,7 @@ function $Canonical$admit_units$($0, $1, $2, $3, $4, $5) {
       const _lifetime_0 = $3;
       const _round_0 = $4;
       const _position_0 = $5;
+      const _parent_0 = $6;
       if (_sizes_0.$ === "Nil") {
         return _batch_0;
       } else {
@@ -1680,22 +2171,31 @@ function $Canonical$admit_units$($0, $1, $2, $3, $4, $5) {
         const _operation_0 = _batch_0["next_operation"];
         const _commands_0 = _batch_0["commands"];
         $0 = _rest_0;
-        $1 = ($Canonical$admit_one$(($Ledger$reserve_for$(_ledger_0, _partition_0, _size_0, {$: "Ledger.ReviewUnit"})), _partition_0, _lifetime_0, _round_0, _operation_0, _position_0, _size_0, _work_0, _commands_0));
+        $1 = ($Canonical$admit_one$(($Ledger$reserve_for$(_ledger_0, _partition_0, _size_0, {$: "Ledger.ReviewUnit"})), _partition_0, _lifetime_0, _round_0, _operation_0, _position_0, _size_0, _parent_0, _work_0, _commands_0));
         $2 = _partition_0;
         $3 = _lifetime_0;
         $4 = _round_0;
         $5 = nat_chk(_position_0 + 1);
+        $6 = _parent_0;
         continue;
       }
     }
   }
 }
 
-function $Canonical$remove_work_pick$(_item_0, _tail_0, _hit_0) {
-  if (_hit_0) {
-    return _tail_0;
+function $Canonical$reviewed_retained_charge$(_state_0, _operation_0, _charge_0, _found_0) {
+  const _ledger_0 = _state_0["ledger"];
+  const __0 = _state_0["rounds"];
+  const __1 = _state_0["work"];
+  const __2 = _state_0["next_round"];
+  const __3 = _state_0["next_operation"];
+  const __4 = _state_0["admissions"];
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _bytes_0 = _t_0["bytes"];
+    return $Canonical$reviewed_retained_result$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _operation_0, ($Ledger$resize_for$(_ledger_0, _charge_0, _bytes_0, {$: "Ledger.StoredResult"})));
   } else {
-    return {$: "Con", "head": _item_0, "tail": _tail_0};
+    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, "reason": {$: "Canonical.InconsistentLedger"}};
   }
 }
 
@@ -1708,6 +2208,14 @@ function $Canonical$stop_output$(_state_0, _partition_0, _lifetime_0, _round_0, 
     }
   } else {
     return $Canonical$stop_ready$(_state_0, _partition_0, _lifetime_0, _round_0, _deadline_0, _uncertain_0);
+  }
+}
+
+function $Canonical$unfinished$(_kind_0) {
+  if (_kind_0.$ === "Canonical.PendingFinding") {
+    return false;
+  } else {
+    return true;
   }
 }
 
@@ -1848,14 +2356,29 @@ function $Cmp$is_ge$(_c_0) {
   }
 }
 
-function $Canonical$admit_one$(_result_0, _partition_0, _lifetime_0, _round_0, _operation_0, _position_0, _bytes_0, _work_0, _commands_0) {
+function $Canonical$admit_one$(_result_0, _partition_0, _lifetime_0, _round_0, _operation_0, _position_0, _bytes_0, _parent_0, _work_0, _commands_0) {
   if (_result_0.$ === "Ledger.Granted") {
     const _granted_0 = _result_0["state"];
     const _id_0 = _result_0["id"];
-    return {$: "Canonical.Batch", "ledger": _granted_0, "work": {$: "Con", "head": {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "charge": _id_0, "kind": {$: "Canonical.Reviewing"}}, "tail": _work_0}, "next_operation": nat_chk(_operation_0 + 1), "commands": ($List$append$(_commands_0, {$: "Con", "head": {$: "Canonical.UnitAdmitted", "operation": _operation_0, "reservation": _id_0, "position": _position_0, "bytes": _bytes_0, "after": ($Canonical$capacity_view$(_granted_0, _partition_0))}, "tail": {$: "Nil"}}))};
+    return {$: "Canonical.Batch", "ledger": _granted_0, "work": {$: "Con", "head": {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "charge": _id_0, "kind": {$: "Canonical.Reviewing"}, "parent": _parent_0}, "tail": _work_0}, "next_operation": nat_chk(_operation_0 + 1), "commands": ($List$append$(_commands_0, {$: "Con", "head": {$: "Canonical.UnitAdmitted", "operation": _operation_0, "reservation": _id_0, "position": _position_0, "bytes": _bytes_0, "after": ($Canonical$capacity_view$(_granted_0, _partition_0))}, "tail": {$: "Nil"}}))};
   } else {
     const _unchanged_0 = _result_0["state"];
     return {$: "Canonical.Batch", "ledger": _unchanged_0, "work": _work_0, "next_operation": _operation_0, "commands": ($List$append$(_commands_0, {$: "Con", "head": {$: "Canonical.UnitRefused", "position": _position_0, "bytes": _bytes_0, "reason": ($Ledger$admission$(_unchanged_0, _partition_0, _bytes_0)), "after": ($Canonical$capacity_view$(_unchanged_0, _partition_0))}, "tail": {$: "Nil"}}))};
+  }
+}
+
+function $Canonical$reviewed_retained_result$(_state_0, _operation_0, _result_0) {
+  const __0 = _state_0["ledger"];
+  const _rounds_0 = _state_0["rounds"];
+  const _work_0 = _state_0["work"];
+  const _next_round_0 = _state_0["next_round"];
+  const _next_operation_0 = _state_0["next_operation"];
+  const _admissions_0 = _state_0["admissions"];
+  if (_result_0.$ === "Ledger.Granted") {
+    const _updated_0 = _result_0["state"];
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _updated_0, "rounds": _rounds_0, "work": ($Canonical$replace_work_kind$(_operation_0, {$: "Canonical.PendingFinding"}, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.ReviewRecorded", "outcome": {$: "Canonical.Finding"}}, "tail": {$: "Nil"}}};
+  } else {
+    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": {$: "Canonical.InconsistentLedger"}};
   }
 }
 
@@ -1866,7 +2389,7 @@ function $Canonical$stop_ready$(_state_0, _partition_0, _lifetime_0, _round_0, _
   const _next_round_0 = _state_0["next_round"];
   const _next_operation_0 = _state_0["next_operation"];
   const _admissions_0 = _state_0["admissions"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($Canonical$release_round_charges$(_work_0, _ledger_0, _partition_0, _lifetime_0, _round_0)), "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _round_0, "waiting": false, "deciding": true, "write": {$: "None"}, "uncertain": _uncertain_0}, "tail": ($Canonical$remove_round$(_partition_0, _rounds_0))}, "work": ($Canonical$retain_other_work$(_work_0, _partition_0, _lifetime_0, _round_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": ($List$append$(($Canonical$release_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), ($List$append$(($Canonical$cancel_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), {$: "Con", "head": ($Bool$pick$(($Bool$and$(_uncertain_0, ($Bool$not$(_deadline_0)))), {$: "Canonical.ReofferAtStop"}, {$: "Canonical.FinishReady"})), "tail": {$: "Nil"}}))))};
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($Canonical$release_unfinished_charges$(_work_0, _ledger_0, _partition_0, _lifetime_0, _round_0)), "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _round_0, "waiting": false, "deciding": true, "write": {$: "None"}, "uncertain": _uncertain_0}, "tail": ($Canonical$remove_round$(_partition_0, _rounds_0))}, "work": ($Canonical$retain_after_stop$(_work_0, _partition_0, _lifetime_0, _round_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": ($List$append$(($Canonical$release_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), ($List$append$(($Canonical$cancel_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), {$: "Con", "head": ($Bool$pick$(($Bool$and$(_uncertain_0, ($Bool$not$(_deadline_0)))), {$: "Canonical.ReofferAtStop"}, {$: "Canonical.FinishReady"})), "tail": {$: "Nil"}}))))};
 }
 
 function $Ledger$replace$pick$(_charge_0, _replacement_0, _tail_0, _hit_0) {
@@ -1964,6 +2487,67 @@ function $Admission$close_round$time$(_state_0, _partition_0, _lifetime_0, _roun
     return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.InvalidClock"}};
   } else {
     return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": false, "closed_at": _at_0, "next_token": _next_token_0, "permits": {$: "Nil"}, "used": _used_0}, "token": {$: "None"}, "round": {$: "Some", "value": _round_0}};
+  }
+}
+
+function $Canonical$release_unfinished_charges$($0, $1, $2, $3, $4) {
+  for (;;) {
+    {
+      const _items_0 = $0;
+      const _ledger_0 = $1;
+      const _partition_0 = $2;
+      const _lifetime_0 = $3;
+      const _round_0 = $4;
+      if (_items_0.$ === "Nil") {
+        return _ledger_0;
+      } else {
+        const _t_0 = _items_0["head"];
+        const _owner_0 = _t_0["partition"];
+        const _generation_0 = _t_0["lifetime"];
+        const _current_0 = _t_0["round"];
+        const _charge_0 = _t_0["charge"];
+        const _kind_0 = _t_0["kind"];
+        const _rest_0 = _items_0["tail"];
+        $0 = _rest_0;
+        $1 = ($Bool$pick$(($Bool$and$(($Nat$is_gt$(_charge_0, 0)), ($Bool$and$(($Canonical$same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)), ($Canonical$unfinished$(_kind_0)))))), ($Canonical$release_charge$(_ledger_0, _charge_0)), _ledger_0));
+        $2 = _partition_0;
+        $3 = _lifetime_0;
+        $4 = _round_0;
+        continue;
+      }
+    }
+  }
+}
+
+function $Canonical$retain_after_stop$(_items_0, _partition_0, _lifetime_0, _round_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _owner_0 = _t_0["partition"];
+    const _generation_0 = _t_0["lifetime"];
+    const _current_0 = _t_0["round"];
+    const __0 = _t_0["operation"];
+    const __1 = _t_0["charge"];
+    const _kind_0 = _t_0["kind"];
+    const __2 = _t_0["parent"];
+    const _rest_0 = _items_0["tail"];
+    return $Canonical$retain_work_pick$({$: "Canonical.Work", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": __0, "charge": __1, "kind": _kind_0, "parent": __2}, ($Canonical$retain_after_stop$(_rest_0, _partition_0, _lifetime_0, _round_0)), ($Bool$and$(($Canonical$same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)), ($Canonical$unfinished$(_kind_0)))));
+  }
+}
+
+function $Canonical$release_commands$(_partition_0, _lifetime_0, _round_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _owner_0 = _t_0["partition"];
+    const _generation_0 = _t_0["lifetime"];
+    const _current_0 = _t_0["round"];
+    const _charge_0 = _t_0["charge"];
+    const _kind_0 = _t_0["kind"];
+    const _rest_0 = _items_0["tail"];
+    return $Canonical$release_pick$(_charge_0, ($Canonical$release_commands$(_partition_0, _lifetime_0, _round_0, _rest_0)), ($Bool$and$(($Nat$is_gt$(_charge_0, 0)), ($Bool$and$(($Canonical$same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)), ($Canonical$unfinished$(_kind_0)))))));
   }
 }
 

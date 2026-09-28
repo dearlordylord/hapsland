@@ -25,6 +25,20 @@ describe("resident logical capacity ledger", () => {
     });
   });
 
+  it("fences late work callbacks after round retirement without opening a new round", () => {
+    const ledger = new CapacityLedger();
+    const observation = ledger.admitObservation("agent");
+    expect(ledger.observation("agent", observation, "startObservation")).toBe(true);
+    const preparation = ledger.beginObservedPreparation("agent", observation, 10);
+    expect(preparation).toBeDefined();
+    ledger.retireRound("agent");
+    expect(ledger.observation("agent", observation, "completeObservation")).toBe(false);
+    expect(ledger.beginObservedPreparation("agent", observation, 10)).toBeUndefined();
+    expect(ledger.canonicalProjection().rounds).toEqual([]);
+    expect(ledger.canonicalProjection().work).toEqual([]);
+    expect(ledger.snapshot()).toEqual({ items: 0, bytes: 0, partitions: {} });
+  });
+
   it("enforces the profile's exact 64/8MiB and 16/2MiB boundaries", () => {
     const counts = new CapacityLedger();
     for (let index = 0; index < 16; index += 1) expect(counts.reserve("one", 1, "reviewUnit")).toBeDefined();

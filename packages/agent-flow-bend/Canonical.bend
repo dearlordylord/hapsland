@@ -1,6 +1,7 @@
 import Base
 import ./Ledger.bend as Ledger
 import ./Admission.bend as Admission
+import ./Work.bend as WorkPolicy
 
 # #119 boundary: one resident lifetime, shared ledger, active advicee rounds.
 # Native IDs are bijectively mapped to positive Nat values before entry.
@@ -10,11 +11,15 @@ type Round is Data:
 
 type Work is Data:
   Work{partition: Nat, lifetime: Nat, round: Nat, operation: Nat,
-    charge: Nat, kind: WorkKind}
+    charge: Nat, kind: WorkKind, parent: Nat}
 
 type WorkKind is Data:
+  SourceQueued{}
+  SourceReading{}
   Preparing{}
   Reviewing{}
+  AtJev{}
+  PendingFinding{}
 
 type State is Data:
   State{ledger: Ledger.Ledger, rounds: List<&2, Round>,
@@ -25,6 +30,8 @@ type Outcome is Data:
   Finding{}
   Clear{}
   Unavailable{}
+  Interrupted{}
+  Discarded{}
 
 type WriteOutcome is Data:
   Acknowledged{}
@@ -43,11 +50,25 @@ type CanonicalEvent is Data:
   ExpirePermit{partition: Nat, lifetime: Nat, token: Nat, deadline_reached: Bool}
   ClosePermitRound{partition: Nat, lifetime: Nat, round: Nat, at: Nat, prospective: Bool}
   OpenRound{partition: Nat, lifetime: Nat}
+  AdmitObservation{partition: Nat, lifetime: Nat, round: Nat}
+  StartObservation{partition: Nat, lifetime: Nat, round: Nat, observation: Nat}
+  CompleteObservation{partition: Nat, lifetime: Nat, round: Nat, observation: Nat}
+  InterruptObservation{partition: Nat, lifetime: Nat, round: Nat, observation: Nat}
   BeginPreparation{partition: Nat, lifetime: Nat, round: Nat, bytes: Nat}
+  BeginObservedPreparation{partition: Nat, lifetime: Nat, round: Nat,
+    observation: Nat, bytes: Nat}
+  InterruptPreparation{partition: Nat, lifetime: Nat, round: Nat, operation: Nat}
   PreparationCompleted{partition: Nat, lifetime: Nat, round: Nat,
     operation: Nat, unit_bytes: List<&2, Nat>}
+  StartReview{partition: Nat, lifetime: Nat, round: Nat, operation: Nat}
   ReviewCompleted{partition: Nat, lifetime: Nat, round: Nat,
     operation: Nat, outcome: Outcome}
+  RetireReview{partition: Nat, lifetime: Nat, round: Nat, operation: Nat}
+  ReviewObserved{partition: Nat, lifetime: Nat, round: Nat,
+    operation: Nat, outcome: Outcome, current_work: Bool}
+  PreparedOfferCheck{ready: Bool, within_frame: Bool}
+  EmptyPreparedCheck{ready_count: Nat, has_non_skipped: Bool, ticketed: Bool}
+  ReviewFailureCheck{backend_or_timeout: Bool, credential: Bool, missing: Bool}
   StopPolled{partition: Nat, lifetime: Nat, round: Nat, deadline: Bool}
   OutputStarted{partition: Nat, lifetime: Nat, round: Nat}
   OutputTerminal{partition: Nat, lifetime: Nat, round: Nat,
@@ -72,6 +93,10 @@ type Command is Data:
   PermitKept{}
   PermitRoundClosed{round: Nat}
   RoundStarted{id: Nat}
+  ObservationAdmitted{id: Nat}
+  ObservationStarted{}
+  ObservationCompleted{}
+  ObservationInterrupted{}
   Prepare{operation: Nat, reservation: Nat}
   PreparationRefused{}
   UnitAdmitted{operation: Nat, reservation: Nat, position: Nat, bytes: Nat,
@@ -79,8 +104,22 @@ type Command is Data:
   UnitRefused{position: Nat, bytes: Nat, reason: Ledger.FitDecision,
     after: CapacityView}
   PreparationReleased{id: Nat, after: CapacityView}
+  ReviewStarted{}
   ReservationReleased{id: Nat}
   ReviewRecorded{outcome: Outcome}
+  RetainFinding{}
+  SettleClear{}
+  SettleStaleClear{}
+  RetireStaleFinding{}
+  PreparedSkipped{}
+  PreparedAdmitted{}
+  PreparedCapacityRefused{}
+  EmptyLost{}
+  EmptyAccepted{}
+  FailureBackend{}
+  FailureCredential{}
+  FailureLost{}
+  FailureNone{}
   WaitForWork{}
   CancelWork{operation: Nat}
   FinishReady{}
@@ -95,6 +134,7 @@ type Reason is Data:
   RoundLimit{}
   StaleRound{}
   StaleOperation{}
+  WrongStage{}
   InconsistentLedger{}
   ProspectiveDenied{}
   PermitDenied{reason: Admission.AdmissionRejection}
@@ -325,7 +365,7 @@ def same_ids(a: Nat, b: Nat, c: Nat, x: Nat, y: Nat, z: Nat) -> Bool:
 def work_matches(+partition: Nat, +lifetime: Nat, +round: Nat,
     +operation: Nat, item: Work) -> Bool:
   match item:
-    case Work{owner, generation, current, op, _, _}:
+    case Work{owner, generation, current, op, _, _, _}:
       Bool.and(same_ids(partition, lifetime, round, owner, generation, current),
         Nat.is_eq(op, operation))
 
@@ -351,15 +391,23 @@ def remove_work(+operation: Nat, items: List<&2, Work>) -> List<&2, Work>:
       Nil{}
     case +item <> rest:
       match item:
-        case Work{_, _, _, op, _, _}:
+        case Work{_, _, _, op, _, _, _}:
           remove_work_pick(item, remove_work(operation, rest), Nat.is_eq(op, operation))
+
+def unfinished(kind: WorkKind) -> Bool:
+  match kind:
+    case PendingFinding{}:
+      False{}
+    case _:
+      True{}
 
 def pending(+partition: Nat, +lifetime: Nat, +round: Nat, items: List<&2, Work>) -> Bool:
   match items:
     case Nil{}:
       False{}
-    case Work{owner, generation, current, _, _, _} <> rest:
-      Bool.or(same_ids(partition, lifetime, round, owner, generation, current),
+    case Work{owner, generation, current, _, _, kind, _} <> rest:
+      Bool.or(Bool.and(same_ids(partition, lifetime, round, owner, generation, current),
+          unfinished(kind)),
         pending(partition, lifetime, round, rest))
 
 def cancel_pick(+operation: Nat, tail: List<&2, Command>, hit: Bool) -> List<&2, Command>:
@@ -374,9 +422,10 @@ def cancel_commands(+partition: Nat, +lifetime: Nat, +round: Nat,
   match items:
     case Nil{}:
       Nil{}
-    case Work{owner, generation, current, op, _, _} <> rest:
+    case Work{owner, generation, current, op, _, kind, _} <> rest:
       cancel_pick(op, cancel_commands(partition, lifetime, round, rest),
-        same_ids(partition, lifetime, round, owner, generation, current))
+        Bool.and(same_ids(partition, lifetime, round, owner, generation, current),
+          unfinished(kind)))
 
 def release_pick(charge: Nat, tail: List<&2, Command>, hit: Bool) -> List<&2, Command>:
   match hit:
@@ -390,9 +439,21 @@ def release_commands(+partition: Nat, +lifetime: Nat, +round: Nat,
   match items:
     case Nil{}:
       Nil{}
-    case Work{owner, generation, current, _, charge, _} <> rest:
+    case Work{owner, generation, current, _, +charge, kind, _} <> rest:
       release_pick(charge, release_commands(partition, lifetime, round, rest),
-        same_ids(partition, lifetime, round, owner, generation, current))
+        Bool.and(Nat.is_gt(charge, 0n),
+          Bool.and(same_ids(partition, lifetime, round, owner, generation, current),
+            unfinished(kind))))
+
+def release_all_commands(+partition: Nat, +lifetime: Nat, +round: Nat,
+    items: List<&2, Work>) -> List<&2, Command>:
+  match items:
+    case Nil{}:
+      Nil{}
+    case Work{owner, generation, current, _, +charge, _, _} <> rest:
+      release_pick(charge, release_all_commands(partition, lifetime, round, rest),
+        Bool.and(Nat.is_gt(charge, 0n),
+          same_ids(partition, lifetime, round, owner, generation, current)))
 
 def release_charge(ledger: Ledger.Ledger, charge: Nat) -> Ledger.Ledger:
   match ledger:
@@ -404,10 +465,24 @@ def release_round_charges(items: List<&2, Work>, +ledger: Ledger.Ledger,
   match items:
     case Nil{}:
       ledger
-    case Work{owner, generation, current, _, charge, _} <> rest:
+    case Work{owner, generation, current, _, charge, _, _} <> rest:
       release_round_charges(rest,
         Bool.pick(Ledger.Ledger,
           same_ids(partition, lifetime, round, owner, generation, current),
+          release_charge(ledger, charge), ledger),
+        partition, lifetime, round)
+
+def release_unfinished_charges(items: List<&2, Work>, +ledger: Ledger.Ledger,
+    +partition: Nat, +lifetime: Nat, +round: Nat) -> Ledger.Ledger:
+  match items:
+    case Nil{}:
+      ledger
+    case Work{owner, generation, current, _, +charge, kind, _} <> rest:
+      release_unfinished_charges(rest,
+        Bool.pick(Ledger.Ledger,
+          Bool.and(Nat.is_gt(charge, 0n),
+            Bool.and(same_ids(partition, lifetime, round, owner, generation, current),
+              unfinished(kind))),
           release_charge(ledger, charge), ledger),
         partition, lifetime, round)
 
@@ -425,9 +500,21 @@ def retain_other_work(items: List<&2, Work>, +partition: Nat,
       Nil{}
     case +item <> rest:
       match item:
-        case Work{owner, generation, current, _, _, _}:
+        case Work{owner, generation, current, _, _, _, _}:
           retain_work_pick(item, retain_other_work(rest, partition, lifetime, round),
             same_ids(partition, lifetime, round, owner, generation, current))
+
+def retain_after_stop(items: List<&2, Work>, +partition: Nat,
+    +lifetime: Nat, +round: Nat) -> List<&2, Work>:
+  match items:
+    case Nil{}:
+      Nil{}
+    case +item <> rest:
+      match item:
+        case Work{owner, generation, current, _, _, kind, _}:
+          retain_work_pick(item, retain_after_stop(rest, partition, lifetime, round),
+            Bool.and(same_ids(partition, lifetime, round, owner, generation, current),
+              unfinished(kind)))
 
 def open_found(+state: State, +partition: Nat, +lifetime: Nat,
     found: Maybe<&2, Round>) -> Step:
@@ -449,15 +536,107 @@ def open(+state: State, +partition: Nat, +lifetime: Nat) -> Step:
     case State{_, rounds, _, _, _, _}:
       open_found(state, partition, lifetime, find_round(partition, rounds))
 
+def admit_observation_found(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, found: Maybe<&2, Round>) -> Step:
+  match state found:
+    case State{ledger, rounds, work, next_round, +next_operation, admissions} Some{current}:
+      Bool.pick(Step, same_round(partition, lifetime, round, current),
+        Advanced{State{ledger, rounds,
+          Work{partition, lifetime, round, next_operation, 0n, SourceQueued{}, 0n} <> work,
+          next_round, (next_operation + 1n : Nat), admissions},
+          ObservationAdmitted{next_operation} <> Nil{}},
+        Rejected{state, StaleRound{}})
+    case _ _:
+      Rejected{state, StaleRound{}}
+
+def admit_observation(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat) -> Step:
+  match state:
+    case State{_, rounds, _, _, _, _}:
+      admit_observation_found(state, partition, lifetime, round, find_round(partition, rounds))
+
+def replace_work_kind_pick(item: Work, next: Work, tail: List<&2, Work>, hit: Bool) -> List<&2, Work>:
+  match hit:
+    case True{}:
+      next <> tail
+    case False{}:
+      item <> tail
+
+def replace_work_kind(+operation: Nat, +kind: WorkKind, items: List<&2, Work>) -> List<&2, Work>:
+  match items:
+    case Nil{}:
+      Nil{}
+    case +item <> rest:
+      match item:
+        case Work{partition, lifetime, round, current, charge, _, parent}:
+          replace_work_kind_pick(item,
+            Work{partition, lifetime, round, current, charge, kind, parent},
+            replace_work_kind(operation, kind, rest), Nat.is_eq(current, operation))
+
+def observation_started_found(+state: State, +operation: Nat,
+    found: Maybe<&2, Work>) -> Step:
+  match state found:
+    case State{ledger, rounds, work, next_round, next_operation, admissions}
+        Some{Work{_, _, _, _, 0n, SourceQueued{}, _}}:
+      Advanced{State{ledger, rounds, replace_work_kind(operation, SourceReading{}, work),
+        next_round, next_operation, admissions}, ObservationStarted{} <> Nil{}}
+    case _ _:
+      Rejected{state, WrongStage{}}
+
+def observation_completed_found(+state: State, +operation: Nat,
+    found: Maybe<&2, Work>) -> Step:
+  match state found:
+    case State{ledger, rounds, work, next_round, next_operation, admissions}
+        Some{Work{_, _, _, _, 0n, SourceReading{}, _}}:
+      Advanced{State{ledger, rounds, remove_work(operation, work),
+        next_round, next_operation, admissions}, ObservationCompleted{} <> Nil{}}
+    case _ _:
+      Rejected{state, WrongStage{}}
+
+def start_observation(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, +observation: Nat) -> Step:
+  match state:
+    case State{_, _, work, _, _, _}:
+      observation_started_found(state, observation,
+        find_work(partition, lifetime, round, observation, work))
+
+def complete_observation(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, +observation: Nat) -> Step:
+  match state:
+    case State{_, _, work, _, _, _}:
+      observation_completed_found(state, observation,
+        find_work(partition, lifetime, round, observation, work))
+
+def interrupt_observation_found(+state: State, +operation: Nat,
+    found: Maybe<&2, Work>) -> Step:
+  match state found:
+    case State{ledger, rounds, work, next_round, next_operation, admissions}
+        Some{Work{_, _, _, _, 0n, SourceQueued{}, _}}:
+      Advanced{State{ledger, rounds, remove_work(operation, work),
+        next_round, next_operation, admissions}, ObservationInterrupted{} <> Nil{}}
+    case State{ledger, rounds, work, next_round, next_operation, admissions}
+        Some{Work{_, _, _, _, 0n, SourceReading{}, _}}:
+      Advanced{State{ledger, rounds, remove_work(operation, work),
+        next_round, next_operation, admissions}, ObservationInterrupted{} <> Nil{}}
+    case _ _:
+      Rejected{state, WrongStage{}}
+
+def interrupt_observation(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, +observation: Nat) -> Step:
+  match state:
+    case State{_, _, work, _, _, _}:
+      interrupt_observation_found(state, observation,
+        find_work(partition, lifetime, round, observation, work))
+
 def begin_result(state: State, +partition: Nat, +lifetime: Nat, +round: Nat,
-    result: Ledger.LedgerResult) -> Step:
+    +parent: Nat, result: Ledger.LedgerResult) -> Step:
   match state:
     case State{_, rounds, work, next_round, +next_operation, +admissions}:
       match result:
         case Ledger.Granted{ledger, +charge}:
           Advanced{State{ledger, rounds,
             List.append(&2, Work, work, Work{partition, lifetime, round,
-              next_operation, charge, Preparing{}} <> Nil{}),
+              next_operation, charge, Preparing{}, parent} <> Nil{}),
             next_round, (next_operation + 1n : Nat), admissions},
             Prepare{next_operation, charge} <> Nil{}}
         case Ledger.Rejected{_}:
@@ -469,12 +648,12 @@ def is_deciding(current: Round) -> Bool:
       deciding
 
 def begin_found(+state: State, +partition: Nat, +lifetime: Nat, +round: Nat,
-    +bytes: Nat, found: Maybe<&2, Round>) -> Step:
+    +bytes: Nat, +parent: Nat, found: Maybe<&2, Round>) -> Step:
   match state found:
     case State{ledger, _, _, _, _, _} Some{+current}:
       Bool.pick(Step, Bool.and(same_round(partition, lifetime, round, current),
         Bool.and(Bool.not(is_deciding(current)), Nat.is_gt(bytes, 0n))),
-        begin_result(state, partition, lifetime, round,
+        begin_result(state, partition, lifetime, round, parent,
           Ledger.reserve_for(ledger, partition, bytes, Ledger.Preparation{})),
         Rejected{state, StaleRound{}})
     case _ None{}:
@@ -483,7 +662,23 @@ def begin_found(+state: State, +partition: Nat, +lifetime: Nat, +round: Nat,
 def begin(+state: State, +partition: Nat, +lifetime: Nat, +round: Nat, +bytes: Nat) -> Step:
   match state:
     case State{_, rounds, _, _, _, _}:
-      begin_found(state, partition, lifetime, round, bytes, find_round(partition, rounds))
+      begin_found(state, partition, lifetime, round, bytes, 0n, find_round(partition, rounds))
+
+def begin_observed_found(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, +observation: Nat, +bytes: Nat, found: Maybe<&2, Work>) -> Step:
+  match state found:
+    case State{_, rounds, _, _, _, _} Some{Work{_, _, _, _, 0n, SourceReading{}, _}}:
+      begin_found(state, partition, lifetime, round, bytes, observation,
+        find_round(partition, rounds))
+    case _ _:
+      Rejected{state, WrongStage{}}
+
+def begin_observed(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, +observation: Nat, +bytes: Nat) -> Step:
+  match state:
+    case State{_, _, work, _, _, _}:
+      begin_observed_found(state, partition, lifetime, round, observation, bytes,
+        find_work(partition, lifetime, round, observation, work))
 
 type Batch is Data:
   Batch{ledger: Ledger.Ledger, work: List<&2, Work>,
@@ -495,12 +690,12 @@ def capacity_view(ledger: Ledger.Ledger, +partition: Nat) -> CapacityView:
       CapacityView{Ledger.total(charges), Ledger.partition_usage(charges, partition), charges}
 
 def admit_one(result: Ledger.LedgerResult, +partition: Nat, +lifetime: Nat,
-    +round: Nat, +operation: Nat, +position: Nat, +bytes: Nat,
+    +round: Nat, +operation: Nat, +position: Nat, +bytes: Nat, +parent: Nat,
     work: List<&2, Work>, commands: List<&2, Command>) -> Batch:
   match result:
     case Ledger.Granted{+granted, +id}:
       Batch{granted,
-        Work{partition, lifetime, round, operation, id, Reviewing{}} <> work,
+        Work{partition, lifetime, round, operation, id, Reviewing{}, parent} <> work,
         (operation + 1n : Nat),
         List.append(&2, Command, commands,
           UnitAdmitted{operation, id, position, bytes,
@@ -512,7 +707,7 @@ def admit_one(result: Ledger.LedgerResult, +partition: Nat, +lifetime: Nat,
             capacity_view(unchanged, partition)} <> Nil{})}
 
 def admit_units(sizes: List<&2, Nat>, batch: Batch, +partition: Nat,
-    +lifetime: Nat, +round: Nat, +position: Nat) -> Batch:
+    +lifetime: Nat, +round: Nat, +position: Nat, +parent: Nat) -> Batch:
   match sizes:
     case Nil{}:
       batch
@@ -521,8 +716,8 @@ def admit_units(sizes: List<&2, Nat>, batch: Batch, +partition: Nat,
         case Batch{ledger, work, operation, commands}:
           admit_units(rest,
             admit_one(Ledger.reserve_for(ledger, partition, size, Ledger.ReviewUnit{}), partition,
-              lifetime, round, operation, position, size, work, commands),
-            partition, lifetime, round, (position + 1n : Nat))
+              lifetime, round, operation, position, size, parent, work, commands),
+            partition, lifetime, round, (position + 1n : Nat), parent)
 
 def prepared_batch(state: State, +operation: Nat, +charge: Nat,
     +partition: Nat, released: Ledger.Ledger, batch: Batch) -> Step:
@@ -533,7 +728,7 @@ def prepared_batch(state: State, +operation: Nat, +charge: Nat,
         PreparationReleased{charge, capacity_view(released, partition)} <> commands}
 
 def prepared_released(+state: State, +partition: Nat, +lifetime: Nat,
-    +round: Nat, +operation: Nat, +charge: Nat, bytes: List<&2, Nat>,
+    +round: Nat, +operation: Nat, +charge: Nat, +parent: Nat, bytes: List<&2, Nat>,
     result: Ledger.LedgerResult) -> Step:
   match state bytes result:
     case _ _ Ledger.Rejected{_}:
@@ -544,22 +739,22 @@ def prepared_released(+state: State, +partition: Nat, +lifetime: Nat,
     case State{_, _, _, _, next_operation, _} +size <> +rest Ledger.Granted{+released, _}:
       prepared_batch(state, operation, charge, partition, released,
         admit_units(size <> rest, Batch{released, Nil{}, next_operation, Nil{}},
-          partition, lifetime, round, 1n))
+          partition, lifetime, round, 1n, parent))
 
 def prepared_release(+state: State, +partition: Nat, +lifetime: Nat,
-    +round: Nat, +operation: Nat, +charge: Nat, bytes: List<&2, Nat>) -> Step:
+    +round: Nat, +operation: Nat, +charge: Nat, +parent: Nat, bytes: List<&2, Nat>) -> Step:
   match state:
     case State{ledger, _, _, _, _, _}:
-      prepared_released(state, partition, lifetime, round, operation, charge,
+      prepared_released(state, partition, lifetime, round, operation, charge, parent,
         bytes, Ledger.release(ledger, charge))
 
 def prepared_found(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, +operation: Nat, bytes: List<&2, Nat>,
     found_round: Maybe<&2, Round>, found_work: Maybe<&2, Work>) -> Step:
   match found_round found_work:
-    case Some{current} Some{Work{_, _, _, _, charge, Preparing{}}}:
+    case Some{current} Some{Work{_, _, _, _, charge, Preparing{}, parent}}:
       Bool.pick(Step, same_round(partition, lifetime, round, current),
-        prepared_release(state, partition, lifetime, round, operation, charge, bytes),
+        prepared_release(state, partition, lifetime, round, operation, charge, parent, bytes),
         Rejected{state, StaleRound{}})
     case _ _:
       Rejected{state, StaleOperation{}}
@@ -572,6 +767,27 @@ def prepared(+state: State, +partition: Nat, +lifetime: Nat, +round: Nat,
         find_round(partition, rounds),
         find_work(partition, lifetime, round, operation, work))
 
+def interrupt_preparation(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, +operation: Nat) -> Step:
+  prepared(state, partition, lifetime, round, operation, Nil{})
+
+def start_review_found(+state: State, +operation: Nat,
+    found: Maybe<&2, Work>) -> Step:
+  match state found:
+    case State{ledger, rounds, work, next_round, next_operation, admissions}
+        Some{Work{_, _, _, _, _, Reviewing{}, _}}:
+      Advanced{State{ledger, rounds, replace_work_kind(operation, AtJev{}, work),
+        next_round, next_operation, admissions}, ReviewStarted{} <> Nil{}}
+    case _ _:
+      Rejected{state, WrongStage{}}
+
+def start_review(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, +operation: Nat) -> Step:
+  match state:
+    case State{_, _, work, _, _, _}:
+      start_review_found(state, operation,
+        find_work(partition, lifetime, round, operation, work))
+
 def reviewed_released(+state: State, +operation: Nat, outcome: Outcome,
     +charge: Nat, result: Ledger.LedgerResult) -> Step:
   match state result:
@@ -582,12 +798,58 @@ def reviewed_released(+state: State, +operation: Nat, outcome: Outcome,
     case _ Ledger.Rejected{_}:
       Rejected{state, InconsistentLedger{}}
 
+def reviewed_retained_result(+state: State, +operation: Nat,
+    result: Ledger.LedgerResult) -> Step:
+  match state result:
+    case State{_, rounds, work, next_round, next_operation, +admissions}
+        Ledger.Granted{updated, _}:
+      Advanced{State{updated, rounds,
+        replace_work_kind(operation, PendingFinding{}, work),
+        next_round, next_operation, admissions},
+        ReviewRecorded{Finding{}} <> Nil{}}
+    case _ Ledger.Rejected{_}:
+      Rejected{state, InconsistentLedger{}}
+
+def reviewed_retained_charge(+state: State, +operation: Nat, +charge: Nat,
+    found: Maybe<&2, Ledger.Charge>) -> Step:
+  match state found:
+    case State{ledger, _, _, _, _, _} Some{Ledger.Charge{_, _, bytes, _}}:
+      reviewed_retained_result(state, operation,
+        Ledger.resize_for(ledger, charge, bytes, Ledger.StoredResult{}))
+    case _ _:
+      Rejected{state, InconsistentLedger{}}
+
+def reviewed_retained_find(+state: State, +operation: Nat, +charge: Nat,
+    ledger: Ledger.Ledger) -> Step:
+  match ledger:
+    case Ledger.Ledger{_, _, charges}:
+      reviewed_retained_charge(state, operation, charge, Ledger.find(charge, charges))
+
+def reviewed_decide(+state: State, +operation: Nat, +charge: Nat,
+    +parent: Nat, outcome: Outcome) -> Step:
+  match state outcome:
+    case State{ledger, _, _, _, _, _} Finding{}:
+      Bool.pick(Step, Nat.is_gt(parent, 0n),
+        reviewed_retained_find(state, operation, charge, ledger),
+        reviewed_released(state, operation, Finding{}, charge,
+          Ledger.release(ledger, charge)))
+    case State{ledger, _, _, _, _, _} Clear{}:
+      reviewed_released(state, operation, Clear{}, charge, Ledger.release(ledger, charge))
+    case State{ledger, _, _, _, _, _} Unavailable{}:
+      reviewed_released(state, operation, Unavailable{}, charge, Ledger.release(ledger, charge))
+    case State{ledger, _, _, _, _, _} Interrupted{}:
+      reviewed_released(state, operation, Interrupted{}, charge, Ledger.release(ledger, charge))
+    case State{ledger, _, _, _, _, _} Discarded{}:
+      reviewed_released(state, operation, Discarded{}, charge, Ledger.release(ledger, charge))
+
 def reviewed_found(+state: State, +operation: Nat, outcome: Outcome,
     found: Maybe<&2, Work>) -> Step:
-  match state found:
-    case State{ledger, _, _, _, _, _} Some{Work{_, _, _, _, +charge, Reviewing{}}}:
-      reviewed_released(state, operation, outcome, charge, Ledger.release(ledger, charge))
-    case _ _:
+  match found:
+    case Some{Work{_, _, _, _, charge, Reviewing{}, parent}}:
+      reviewed_decide(state, operation, charge, parent, outcome)
+    case Some{Work{_, _, _, _, charge, AtJev{}, parent}}:
+      reviewed_decide(state, operation, charge, parent, outcome)
+    case _:
       Rejected{state, StaleOperation{}}
 
 def reviewed(+state: State, +partition: Nat, +lifetime: Nat, +round: Nat,
@@ -597,14 +859,126 @@ def reviewed(+state: State, +partition: Nat, +lifetime: Nat, +round: Nat,
       reviewed_found(state, operation, outcome,
         find_work(partition, lifetime, round, operation, work))
 
+def retire_review_found(+state: State, +operation: Nat,
+    found: Maybe<&2, Work>) -> Step:
+  match state found:
+    case State{ledger, _, _, _, _, _}
+        Some{Work{_, _, _, _, +charge, PendingFinding{}, _}}:
+      reviewed_released(state, operation, Discarded{}, charge,
+        Ledger.release(ledger, charge))
+    case _ _:
+      Rejected{state, StaleOperation{}}
+
+def retire_review(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, +operation: Nat) -> Step:
+  match state:
+    case State{_, _, work, _, _, _}:
+      retire_review_found(state, operation,
+        find_work(partition, lifetime, round, operation, work))
+
+def append_review_disposition(step: Step, command: Command) -> Step:
+  match step:
+    case Advanced{state, commands}:
+      Advanced{state, List.append(&2, Command, commands, command <> Nil{})}
+    case Rejected{state, reason}:
+      Rejected{state, reason}
+
+def reviewed_stale_found(+state: State, +operation: Nat,
+    found: Maybe<&2, Work>) -> Step:
+  match state found:
+    case State{ledger, _, _, _, _, _}
+        Some{Work{_, _, _, _, +charge, Reviewing{}, _}}:
+      reviewed_released(state, operation, Finding{}, charge, Ledger.release(ledger, charge))
+    case State{ledger, _, _, _, _, _}
+        Some{Work{_, _, _, _, +charge, AtJev{}, _}}:
+      reviewed_released(state, operation, Finding{}, charge, Ledger.release(ledger, charge))
+    case _ _:
+      Rejected{state, StaleOperation{}}
+
+def reviewed_stale(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, +operation: Nat) -> Step:
+  match state:
+    case State{_, _, work, _, _, _}:
+      reviewed_stale_found(state, operation,
+        find_work(partition, lifetime, round, operation, work))
+
+def review_observed_choice(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, +operation: Nat, outcome: Outcome,
+    choice: WorkPolicy.EvaluatedDisposition) -> Step:
+  match choice:
+    case WorkPolicy.RetainFinding{}:
+      append_review_disposition(reviewed(state, partition, lifetime, round,
+        operation, outcome), RetainFinding{})
+    case WorkPolicy.RetireStaleFinding{}:
+      append_review_disposition(reviewed_stale(state, partition, lifetime, round,
+        operation), RetireStaleFinding{})
+    case WorkPolicy.SettleClear{}:
+      append_review_disposition(reviewed(state, partition, lifetime, round,
+        operation, outcome), SettleClear{})
+    case WorkPolicy.SettleStaleClear{}:
+      append_review_disposition(reviewed(state, partition, lifetime, round,
+        operation, outcome), SettleStaleClear{})
+
+def is_finding(outcome: Outcome) -> Bool:
+  match outcome:
+    case Finding{}:
+      True{}
+    case _:
+      False{}
+
+def review_observed(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, +operation: Nat, +outcome: Outcome, current_work: Bool) -> Step:
+  review_observed_choice(state, partition, lifetime, round, operation, outcome,
+    WorkPolicy.evaluated_disposition(is_finding(outcome), current_work))
+
+def prepared_offer_result(state: State, decision: WorkPolicy.PreparedOffer) -> Step:
+  match decision:
+    case WorkPolicy.SkipPrepared{}:
+      Advanced{state, PreparedSkipped{} <> Nil{}}
+    case WorkPolicy.AdmitPrepared{}:
+      Advanced{state, PreparedAdmitted{} <> Nil{}}
+    case WorkPolicy.RejectPreparedCapacity{}:
+      Advanced{state, PreparedCapacityRefused{} <> Nil{}}
+
+def prepared_offer_check(state: State, ready: Bool, within_frame: Bool) -> Step:
+  prepared_offer_result(state, WorkPolicy.prepared_offer(ready, within_frame))
+
+def empty_prepared_result(state: State, decision: WorkPolicy.EmptyPrepared) -> Step:
+  match decision:
+    case WorkPolicy.FailEmptyLost{}:
+      Advanced{state, EmptyLost{} <> Nil{}}
+    case WorkPolicy.NoEmptyFailure{}:
+      Advanced{state, EmptyAccepted{} <> Nil{}}
+
+def empty_prepared_check(state: State, ready_count: Nat,
+    has_non_skipped: Bool, ticketed: Bool) -> Step:
+  empty_prepared_result(state,
+    WorkPolicy.empty_prepared(ready_count, has_non_skipped, ticketed))
+
+def review_failure_result(state: State, decision: WorkPolicy.FailureDisposition) -> Step:
+  match decision:
+    case WorkPolicy.BackendUnavailable{}:
+      Advanced{state, FailureBackend{} <> Nil{}}
+    case WorkPolicy.CredentialUnavailable{}:
+      Advanced{state, FailureCredential{} <> Nil{}}
+    case WorkPolicy.LostUnavailable{}:
+      Advanced{state, FailureLost{} <> Nil{}}
+    case WorkPolicy.NoFailure{}:
+      Advanced{state, FailureNone{} <> Nil{}}
+
+def review_failure_check(state: State, backend_or_timeout: Bool,
+    credential: Bool, missing: Bool) -> Step:
+  review_failure_result(state,
+    WorkPolicy.failure_disposition(backend_or_timeout, credential, missing))
+
 def stop_ready(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, deadline: Bool, +uncertain: Bool) -> Step:
   match state:
     case State{ledger, rounds, +work, next_round, next_operation, +admissions}:
-      Advanced{State{release_round_charges(work, ledger, partition, lifetime, round),
+      Advanced{State{release_unfinished_charges(work, ledger, partition, lifetime, round),
         Round{partition, lifetime, round, False{}, True{}, None{}, uncertain} <>
           remove_round(partition, rounds),
-        retain_other_work(work, partition, lifetime, round),
+        retain_after_stop(work, partition, lifetime, round),
         next_round, next_operation, admissions},
         List.append(&2, Command,
           release_commands(partition, lifetime, round, work),
@@ -733,7 +1107,7 @@ def retire_current(+state: State, +partition: Nat, +lifetime: Nat,
         retain_other_work(work, partition, lifetime, round),
         next_round, next_operation, admissions},
         List.append(&2, Command,
-          release_commands(partition, lifetime, round, work),
+          release_all_commands(partition, lifetime, round, work),
           List.append(&2, Command,
             cancel_commands(partition, lifetime, round, work),
             PartitionRetired{round} <> Nil{}))}
@@ -898,12 +1272,36 @@ def step(state: State, event: CanonicalEvent) -> Step:
       close_permit_round(state, partition, lifetime, round, at, prospective)
     case OpenRound{partition, lifetime}:
       open(state, partition, lifetime)
+    case AdmitObservation{partition, lifetime, round}:
+      admit_observation(state, partition, lifetime, round)
+    case StartObservation{partition, lifetime, round, observation}:
+      start_observation(state, partition, lifetime, round, observation)
+    case CompleteObservation{partition, lifetime, round, observation}:
+      complete_observation(state, partition, lifetime, round, observation)
+    case InterruptObservation{partition, lifetime, round, observation}:
+      interrupt_observation(state, partition, lifetime, round, observation)
     case BeginPreparation{partition, lifetime, round, bytes}:
       begin(state, partition, lifetime, round, bytes)
+    case BeginObservedPreparation{partition, lifetime, round, observation, bytes}:
+      begin_observed(state, partition, lifetime, round, observation, bytes)
+    case InterruptPreparation{partition, lifetime, round, operation}:
+      interrupt_preparation(state, partition, lifetime, round, operation)
     case PreparationCompleted{partition, lifetime, round, operation, bytes}:
       prepared(state, partition, lifetime, round, operation, bytes)
+    case StartReview{partition, lifetime, round, operation}:
+      start_review(state, partition, lifetime, round, operation)
     case ReviewCompleted{partition, lifetime, round, operation, outcome}:
       reviewed(state, partition, lifetime, round, operation, outcome)
+    case RetireReview{partition, lifetime, round, operation}:
+      retire_review(state, partition, lifetime, round, operation)
+    case ReviewObserved{partition, lifetime, round, operation, outcome, current_work}:
+      review_observed(state, partition, lifetime, round, operation, outcome, current_work)
+    case PreparedOfferCheck{ready, within_frame}:
+      prepared_offer_check(state, ready, within_frame)
+    case EmptyPreparedCheck{ready_count, has_non_skipped, ticketed}:
+      empty_prepared_check(state, ready_count, has_non_skipped, ticketed)
+    case ReviewFailureCheck{backend_or_timeout, credential, missing}:
+      review_failure_check(state, backend_or_timeout, credential, missing)
     case StopPolled{partition, lifetime, round, deadline}:
       stop(state, partition, lifetime, round, deadline)
     case OutputStarted{partition, lifetime, round}:
