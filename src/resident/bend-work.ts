@@ -2,7 +2,13 @@ import type { CapacityLedger } from "./capacity.ts";
 
 /** Read-only work view over the shared canonical state for one composed round. */
 export class BendWorkTracker {
-  constructor(private readonly ledger: CapacityLedger, private readonly partitions: ReadonlySet<string>) {}
+  private readonly ledger: CapacityLedger;
+  private readonly partitions: ReadonlySet<string>;
+
+  constructor(ledger: CapacityLedger, partitions: ReadonlySet<string>) {
+    this.ledger = ledger;
+    this.partitions = partitions;
+  }
 
   #work(operation: number) {
     const ids = new Set([...this.partitions].map((partition) => this.ledger.partitionId(partition)));
