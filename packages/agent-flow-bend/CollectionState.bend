@@ -35,8 +35,8 @@ def claim_exists(+group: Nat, items: List<&2, Claim>) -> Bool:
   match items:
     case Nil{}:
       False{}
-    case Claim{owner, _} <> rest:
-      Bool.or(Nat.is_eq(group, owner), claim_exists(group, rest))
+    case Claim{candidate_group, _} <> rest:
+      Bool.or(Nat.is_eq(group, candidate_group), claim_exists(group, rest))
 
 def keep_ready(item: Nat, tail: List<&2, Nat>, remove: Bool) -> List<&2, Nat>:
   match remove:
@@ -99,16 +99,16 @@ def remove_claim(+group: Nat, +token: Nat, items: List<&2, Claim>) -> List<&2, C
       Nil{}
     case +item <> rest:
       match item:
-        case Claim{owner, id}:
+        case Claim{candidate_group, candidate_token}:
           keep_claim(item, remove_claim(group, token, rest),
-            Bool.and(Nat.is_eq(group, owner), Nat.is_eq(token, id)))
+            Bool.and(Nat.is_eq(group, candidate_group), Nat.is_eq(token, candidate_token)))
 
 def claim_owned(+group: Nat, +token: Nat, items: List<&2, Claim>) -> Bool:
   match items:
     case Nil{}:
       False{}
-    case Claim{owner, id} <> rest:
-      Bool.or(Bool.and(Nat.is_eq(group, owner), Nat.is_eq(token, id)),
+    case Claim{candidate_group, candidate_token} <> rest:
+      Bool.or(Bool.and(Nat.is_eq(group, candidate_group), Nat.is_eq(token, candidate_token)),
         claim_owned(group, token, rest))
 
 def mark_ready(+state: State, +advice: Nat, eligible_now: Bool) -> Decision:

@@ -2,17 +2,7 @@ import type { CodexDirectEventOutput, Finding } from "../direct-event/pipeline.t
 import { DIRECT_EVENT_ADVISORY_HEADING, toCodexDirectEventOutput } from "../direct-event/pipeline.ts";
 import { encodedCodexHostOutputBytes } from "../direct-event/writer.ts";
 import { encodeClaudeHostOutputLine, type ClaudeHostOutput } from "../direct-event/claude-output.ts";
-import {
-  bendFitsBatch,
-  bendNoticeOffer,
-  bendSelectionInitial,
-  bendSelectionStep,
-  bendCollectionOrder,
-  bendCollectionEligible,
-  bendCollectionExpired,
-  type BendAdvice,
-  type BendSelection,
-} from "./bend-policy.generated.js";
+import { initialCanonical, stepCanonical, type CanonicalEvent } from "../canonical/adapter.ts";
 export type { ClaudeBlockOutput, ClaudeHostOutput } from "../direct-event/claude-output.ts";
 
 export const ADVICE_COLLECTION_WINDOW_MS = 50;
@@ -43,14 +33,28 @@ export type CollectionCandidate = {
 
 export type CollectionMode = "ordinary" | "turn-end";
 
+const standaloneLimits = { globalItems: 64, globalBytes: 8 * 1024 * 1024,
+  partitionItems: 16, partitionBytes: 2 * 1024 * 1024 };
+
+const canonicalCollectionCommand = (event: CanonicalEvent): string => {
+  const result = stepCanonical(initialCanonical(standaloneLimits), event);
+  if (result.rejection !== undefined || result.commands.length !== 1) {
+    throw new Error("canonical collection decision refused");
+  }
+  return result.commands[0]!.kind;
+};
+
 export const collectionOrder = <A extends Pick<CollectionCandidate, "cycle" | "sequence">>(
   left: A,
   right: A,
 ): number => {
-  switch (bendCollectionOrder(left.cycle, left.sequence, right.cycle, right.sequence).$) {
-    case "Before": return -1;
-    case "Equal": return 0;
-    case "After": return 1;
+  switch (canonicalCollectionCommand({ kind: "collectionOrderCheck",
+    leftCycle: left.cycle, leftSequence: left.sequence,
+    rightCycle: right.cycle, rightSequence: right.sequence })) {
+    case "collectionBefore": return -1;
+    case "collectionEqual": return 0;
+    case "collectionAfter": return 1;
+    default: throw new Error("invalid canonical collection order");
   }
 };
 
@@ -64,17 +68,18 @@ export const isCollectionEligible = (
   now: number,
   mode: CollectionMode = "ordinary",
   oldestPendingAt: number = candidate.pendingAt,
-): boolean => bendCollectionEligible(candidate.collectionEligible === true,
-  mode === "turn-end", candidate.cycleComplete,
-  elapsedForBend(now, oldestPendingAt, ADVICE_COLLECTION_WINDOW_MS),
-  ADVICE_COLLECTION_WINDOW_MS);
+): boolean => canonicalCollectionCommand({ kind: "collectionReady", advice: 1,
+  already: candidate.collectionEligible === true, turnEnd: mode === "turn-end",
+  cycleComplete: candidate.cycleComplete,
+  elapsed: elapsedForBend(now, oldestPendingAt, ADVICE_COLLECTION_WINDOW_MS),
+  window: ADVICE_COLLECTION_WINDOW_MS }) === "collectionEligible";
 
 export const isPendingAdviceExpired = (
   candidate: Pick<CollectionCandidate, "pendingAt">,
   now: number,
-): boolean => bendCollectionExpired(
-  elapsedForBend(now, candidate.pendingAt, PENDING_ADVICE_EXPIRY_MS),
-  PENDING_ADVICE_EXPIRY_MS);
+): boolean => canonicalCollectionCommand({ kind: "collectionExpiryCheck",
+  elapsed: elapsedForBend(now, candidate.pendingAt, PENDING_ADVICE_EXPIRY_MS),
+  lifetime: PENDING_ADVICE_EXPIRY_MS }) === "collectionExpired";
 
 /** Bytes actually handed to the host writer, including its line terminator. */
 export const encodedHostOutputBytes = (output: CodexDirectEventOutput): number =>
@@ -146,7 +151,7 @@ export const encodedClaudeHostOutputBytes = (output: ClaudeHostOutput): number =
 
 const fitsBendBatch = (items: number, bytes: number): boolean => {
   try {
-    return bendFitsBatch(items, bytes) === true;
+    return canonicalCollectionCommand({ kind: "collectionFitCheck", items, bytes }) === "collectionFits";
   } catch {
     return false;
   }
@@ -179,6 +184,36 @@ export type CanonicalFindingOffer = (input: {
 export type CanonicalNoticeOffer = (items: number, bytes: number,
   skipUnfitting: boolean) => "include" | "skip" | "stop";
 
+const standaloneFindingOffer: CanonicalFindingOffer = (input) => {
+  const facts = input.facts;
+  const command = canonicalCollectionCommand({ kind: "collectionFindingCheck",
+    selectionPartition: input.selectionPartition, selectionRound: input.selectionRound,
+    unit: facts.unit, partition: facts.partition, round: facts.round,
+    snapshot: facts.snapshot, currentSnapshot: facts.currentSnapshot,
+    credential: facts.credential, currentCredential: facts.currentCredential,
+    ageMs: facts.ageMs, soloBytes: input.soloBytes,
+    collectionReady: facts.collectionReady, selectedCount: input.selectedCount,
+    prospectiveBytes: input.prospectiveBytes });
+  switch (command) {
+    case "collectionFindingSelected": return "selected";
+    case "collectionFindingRetained": return "retained";
+    case "collectionFindingLimited": return "limited";
+    case "collectionFindingExpired": return "expired";
+    default: throw new Error("invalid canonical finding offer");
+  }
+};
+
+const standaloneNoticeOffer: CanonicalNoticeOffer = (items, bytes, skipUnfitting) => {
+  const command = canonicalCollectionCommand({ kind: "collectionNoticeCheck",
+    items, bytes, skipUnfitting });
+  switch (command) {
+    case "collectionNoticeIncluded": return "include";
+    case "collectionNoticeSkipped": return "skip";
+    case "collectionNoticeStopped": return "stop";
+    default: throw new Error("invalid canonical notice offer");
+  }
+};
+
 const selectBendFindings = (
   retained: ReadonlyArray<Finding>,
   candidates: ReadonlyArray<Finding>,
@@ -188,36 +223,17 @@ const selectBendFindings = (
   canonicalOffer?: CanonicalFindingOffer,
 ): ReadonlyArray<Finding> => {
   try {
-    let selection: BendSelection = bendSelectionInitial(facts.partition, facts.round);
     const staged: Array<Finding> = [];
     const selected: Array<Finding> = [];
-    let id = 1;
     const offer = (finding: Finding, validated: boolean): boolean => {
       const prospectiveBytes = encodedBytes([...staged, finding]);
       const current = validated ? previouslyValidated : facts;
       const soloBytes = encodedBytes([finding]);
-      if (canonicalOffer !== undefined) {
-        const decision = canonicalOffer({ selectionPartition: facts.partition,
-          selectionRound: facts.round, facts: { ...current, partition: facts.partition,
-            round: facts.round }, selectedCount: staged.length, soloBytes, prospectiveBytes });
-        if (decision === "limited" && !validated) onLimited?.(finding);
-        if (decision !== "selected") return false;
-        staged.push(finding);
-        return true;
-      }
-      const advice: BendAdvice = {
-        $: "Advice", id: id++, unit: current.unit, partition: facts.partition, round: facts.round,
-        snapshot: current.snapshot, current_snapshot: current.currentSnapshot,
-        credential: current.credential, current_credential: current.currentCredential,
-        age_ms: current.ageMs, solo_bytes: soloBytes,
-        collection_ready: current.collectionReady,
-      };
-      const result = bendSelectionStep(selection, advice, prospectiveBytes);
-      if (result.$ === "Limited" && !validated) onLimited?.(finding);
-      if (result.$ !== "Selected") return false;
-      if (result.state.$ !== "Selection" || result.state.findings !== BigInt(staged.length + 1) ||
-          result.state.bytes !== BigInt(prospectiveBytes)) throw new Error("invalid Bend selection");
-      selection = result.state;
+      const decision = (canonicalOffer ?? standaloneFindingOffer)({ selectionPartition: facts.partition,
+        selectionRound: facts.round, facts: { ...current, partition: facts.partition,
+          round: facts.round }, selectedCount: staged.length, soloBytes, prospectiveBytes });
+      if (decision === "limited" && !validated) onLimited?.(finding);
+      if (decision !== "selected") return false;
       staged.push(finding);
       return true;
     };
@@ -239,7 +255,6 @@ export const selectFittingCurrentFindingIndices = (
   if (offers.length === 0) return [];
   try {
     const first = offers[0]!.facts;
-    let state = bendSelectionInitial(first.partition, first.round);
     const staged: Array<Finding> = [];
     const selected: Array<number> = [];
     for (const [index, { finding, facts }] of offers.entries()) {
@@ -250,31 +265,11 @@ export const selectFittingCurrentFindingIndices = (
       const soloBytes = mode === "codex"
         ? encodedHostOutputBytes(combinedReviewOutput([finding], []))
         : encodedClaudeHostOutputBytes(combinedClaudeOutput([finding], [], mode));
-      if (canonicalOffer !== undefined) {
-        const decision = canonicalOffer({ selectionPartition: first.partition,
-          selectionRound: first.round, facts, selectedCount: staged.length,
-          soloBytes, prospectiveBytes });
-        if (decision === "limited") onLimited?.(index);
-        if (decision !== "selected") continue;
-        staged.push(finding);
-        selected.push(index);
-        continue;
-      }
-      const advice: BendAdvice = {
-        $: "Advice", id: index + 1, unit: facts.unit,
-        partition: facts.partition, round: facts.round,
-        snapshot: facts.snapshot, current_snapshot: facts.currentSnapshot,
-        credential: facts.credential, current_credential: facts.currentCredential,
-        age_ms: facts.ageMs, solo_bytes: soloBytes,
-        collection_ready: facts.collectionReady,
-      };
-      const result = bendSelectionStep(state, advice, prospectiveBytes);
-      if (result.$ === "Limited") onLimited?.(index);
-      if (result.$ !== "Selected") continue;
-      if (result.state.$ !== "Selection" ||
-          result.state.findings !== BigInt(staged.length + 1) ||
-          result.state.bytes !== BigInt(prospectiveBytes)) throw new Error("invalid Bend selection");
-      state = result.state;
+      const decision = (canonicalOffer ?? standaloneFindingOffer)({ selectionPartition: first.partition,
+        selectionRound: first.round, facts, selectedCount: staged.length,
+        soloBytes, prospectiveBytes });
+      if (decision === "limited") onLimited?.(index);
+      if (decision !== "selected") continue;
       staged.push(finding);
       selected.push(index);
     }
@@ -313,8 +308,7 @@ export const selectFittingClaudeNotices = (
       const next = [...selected, notice];
       const items = findings.length + next.length;
       const bytes = encodedClaudeHostOutputBytes(combinedClaudeOutput(findings, next, mode));
-      const offer = canonicalOffer?.(items, bytes, true) ??
-        ({ IncludeNotice: "include", SkipNotice: "skip", StopNotices: "stop" } as const)[bendNoticeOffer(items, bytes, true).$];
+      const offer = (canonicalOffer ?? standaloneNoticeOffer)(items, bytes, true);
       if (offer === "include") selected.push(notice);
       else if (offer === "stop") break;
       else if (offer !== "skip") return [];
@@ -358,8 +352,7 @@ export const selectFittingNotices = (
       const next = [...retained, ...selected, notice];
       const items = findings.length + next.length;
       const bytes = encodedHostOutputBytes(combinedReviewOutput(findings, next));
-      const offer = canonicalOffer?.(items, bytes, false) ??
-        ({ IncludeNotice: "include", SkipNotice: "skip", StopNotices: "stop" } as const)[bendNoticeOffer(items, bytes, false).$];
+      const offer = (canonicalOffer ?? standaloneNoticeOffer)(items, bytes, false);
       if (offer === "include") selected.push(notice);
       else if (offer === "stop") break;
       else if (offer !== "skip") return [];

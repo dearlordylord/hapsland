@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:f49e1022967956c4d49ae6124f3976f8b13c3df9b21a4da24fb1917b08170f26
+// hapsland-bend-source-sha256:ee830cadcfba0c5743cf39c0875fbc32833667baf8ef672cff7e93c1b7f6621c
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -2531,9 +2531,9 @@ function $CollectionState$claim_exists$(_group_0, _items_0) {
     return false;
   } else {
     const _t_0 = _items_0["head"];
-    const _owner_0 = _t_0["group"];
+    const _candidate_group_0 = _t_0["group"];
     const _rest_0 = _items_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_group_0, _owner_0));
+    const _x_0 = ($Nat$is_eq$(_group_0, _candidate_group_0));
     const _x_1 = ($CollectionState$claim_exists$(_group_0, _rest_0));
     return (_x_0 || _x_1);
   }
@@ -2544,10 +2544,10 @@ function $CollectionState$claim_owned$(_group_0, _token_0, _items_0) {
     return false;
   } else {
     const _t_0 = _items_0["head"];
-    const _owner_0 = _t_0["group"];
-    const _id_0 = _t_0["owner"];
+    const _candidate_group_0 = _t_0["group"];
+    const _candidate_token_0 = _t_0["owner"];
     const _rest_0 = _items_0["tail"];
-    const _x_0 = ($Bool$and$(($Nat$is_eq$(_group_0, _owner_0)), ($Nat$is_eq$(_token_0, _id_0))));
+    const _x_0 = ($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Nat$is_eq$(_token_0, _candidate_token_0))));
     const _x_1 = ($CollectionState$claim_owned$(_group_0, _token_0, _rest_0));
     return (_x_0 || _x_1);
   }
@@ -2558,10 +2558,10 @@ function $CollectionState$remove_claim$(_group_0, _token_0, _items_0) {
     return {$: "Nil"};
   } else {
     const _t_0 = _items_0["head"];
-    const _owner_0 = _t_0["group"];
-    const _id_0 = _t_0["owner"];
+    const _candidate_group_0 = _t_0["group"];
+    const _candidate_token_0 = _t_0["owner"];
     const _rest_0 = _items_0["tail"];
-    return $CollectionState$keep_claim$({$: "CollectionState.Claim", "group": _owner_0, "owner": _id_0}, ($CollectionState$remove_claim$(_group_0, _token_0, _rest_0)), ($Bool$and$(($Nat$is_eq$(_group_0, _owner_0)), ($Nat$is_eq$(_token_0, _id_0)))));
+    return $CollectionState$keep_claim$({$: "CollectionState.Claim", "group": _candidate_group_0, "owner": _candidate_token_0}, ($CollectionState$remove_claim$(_group_0, _token_0, _rest_0)), ($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Nat$is_eq$(_token_0, _candidate_token_0)))));
   }
 }
 

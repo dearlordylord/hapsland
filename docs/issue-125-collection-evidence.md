@@ -23,11 +23,12 @@ writer exclusion and expiry, and cycle, expiry, finding, and notice fit. The
 resident tests exercise overlapping collection and callback order using fake
 clock, temporary source files, offline Jev responses, and synthetic host
 effects. A new composed-delivery test checks exact background ownership and
-expiry. `scripts/check-collection-boundary.mjs` guards the installed resident
-path against the superseded direct collection and background decisions.
+expiry. `scripts/check-collection-boundary.mjs` guards the resident and
+standalone collection helpers against the superseded direct collection and
+background decisions. Standalone helper calls also use the canonical adapter.
 
-Verification: `npm run test:canonical` passed Bend proofs and 21 independent
+Verification: package `npm run test:canonical` passed Bend proofs and 21 independent
 canonical traces. `npm run build` passed. Root `npm test -- --reporter=dot`
 passed 65 test files and 590 offline tests; one file and two credential-gated
-live tests were skipped. The focused resident and composed delivery run passed
-90 tests.
+live tests were skipped. The focused resident, collection, and composed
+delivery run passed 102 tests after the review fix.
