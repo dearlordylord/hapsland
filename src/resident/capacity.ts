@@ -5,6 +5,9 @@ export const GLOBAL_ITEM_LIMIT = 64;
 export const GLOBAL_BYTE_LIMIT = 8 * 1024 * 1024;
 export const PARTITION_ITEM_LIMIT = 16;
 export const PARTITION_BYTE_LIMIT = 2 * 1024 * 1024;
+// A retired partition has no mapped round. This positive candidate lets
+// QueueDispatch reject it by missing canonical Work instead of native policy.
+const RETIRED_DISPATCH_ROUND_CANDIDATE = 1;
 
 export type CapacityLimits = {
   readonly globalItems: number;
@@ -32,7 +35,8 @@ type ResidentTransition = Extract<CanonicalEvent, { readonly kind:
   "interruptObservation" | "beginObservedPreparation" | "interruptPreparation" |
   "preparationCompleted" | "startReview" | "reviewCompleted" | "retireReview" |
   "retirePartition" | "reviewObserved" | "preparedOfferCheck" |
-  "emptyPreparedCheck" | "reviewFailureCheck" }>;
+  "emptyPreparedCheck" | "reviewFailureCheck" | "queueDispatch" |
+  "dispatchSettled" | "discardDispatch" | "dispatchScopeCheck" | "closeDispatch" }>;
 
 const defaultLimits: CapacityLimits = {
   globalItems: GLOBAL_ITEM_LIMIT,
@@ -79,6 +83,19 @@ export class CapacityLedger {
       this.#partitionIds.set(partition, id);
     }
     return id;
+  }
+
+  dispatchIdentity(partition: string): { readonly partition: number; readonly round: number } {
+    return { partition: this.partitionId(partition), round: this.#roundIds.get(partition) ?? RETIRED_DISPATCH_ROUND_CANDIDATE };
+  }
+
+  dispatchScope(namedCount: number, cancelledCount: number, hasUnnamed: boolean): boolean {
+    const result = this.transition({ kind: "dispatchScopeCheck", namedCount, cancelledCount, hasUnnamed });
+    if (result.rejection !== undefined || result.commands.length !== 1) throw new Error("canonical dispatch scope refused");
+    const command = result.commands[0];
+    if (command?.kind === "discardNamedOnly") return true;
+    if (command?.kind === "discardAllUnfinished") return false;
+    throw new Error("invalid canonical dispatch scope command");
   }
 
   transition(event: ResidentTransition): ReturnType<typeof stepCanonical> {

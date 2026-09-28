@@ -78,6 +78,10 @@ export type CanonicalEvent =
   | { readonly kind: "startReview" | "retireReview"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number }
   | { readonly kind: "reviewCompleted"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly outcome: "finding" | "clear" | "unavailable" | "interrupted" | "discarded" }
   | { readonly kind: "reviewObserved"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly outcome: "finding" | "clear"; readonly currentWork: boolean }
+  | { readonly kind: "queueDispatch" | "dispatchSettled"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number }
+  | { readonly kind: "discardDispatch"; readonly operations: readonly number[] }
+  | { readonly kind: "dispatchScopeCheck"; readonly namedCount: number; readonly cancelledCount: number; readonly hasUnnamed: boolean }
+  | { readonly kind: "closeDispatch" }
   | { readonly kind: "preparedOfferCheck"; readonly ready: boolean; readonly withinFrame: boolean }
   | { readonly kind: "emptyPreparedCheck"; readonly readyCount: number; readonly hasNonSkipped: boolean; readonly ticketed: boolean }
   | { readonly kind: "reviewFailureCheck"; readonly backendOrTimeout: boolean; readonly credential: boolean; readonly missing: boolean }
@@ -108,6 +112,10 @@ export type CanonicalCommand =
   | { readonly kind: "reviewRecorded"; readonly outcome: "finding" | "clear" | "unavailable" | "interrupted" | "discarded" }
   | { readonly kind: "retainFinding" | "settleClear" | "settleStaleClear" | "retireStaleFinding" }
   | { readonly kind: "preparedSkipped" | "preparedAdmitted" | "preparedCapacityRefused" | "emptyLost" | "emptyAccepted" | "failureBackend" | "failureCredential" | "failureLost" | "failureNone" }
+  | { readonly kind: "dispatchStarted"; readonly operation: number; readonly sequence: number; readonly cycle: number }
+  | { readonly kind: "dispatchCycleCompleted"; readonly cycle: number }
+  | { readonly kind: "dispatchDiscarded"; readonly operation: number; readonly running: boolean }
+  | { readonly kind: "discardNamedOnly" | "discardAllUnfinished" }
   | { readonly kind: "waitForWork" }
   | { readonly kind: "cancelWork"; readonly operation: number }
   | { readonly kind: "finishReady" }
@@ -183,6 +191,13 @@ const encode = (event: CanonicalEvent): unknown => {
         operation: nat(event.operation, true), outcome: { $: event.outcome === "finding" ? "Canonical.Finding" : "Canonical.Clear" },
         current_work: bool(event.currentWork) };
     }
+    case "queueDispatch": case "dispatchSettled":
+      inputFields(event, ["kind", "partition", "lifetime", "round", "operation"]);
+      return { $: event.kind === "queueDispatch" ? "Canonical.QueueDispatch" : "Canonical.DispatchSettled",
+        ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true) };
+    case "discardDispatch": inputFields(event, ["kind", "operations"]); return { $: "Canonical.DiscardDispatch", operations: list(event.operations) };
+    case "dispatchScopeCheck": inputFields(event, ["kind", "namedCount", "cancelledCount", "hasUnnamed"]); return { $: "Canonical.DispatchScopeCheck", named_count: nat(event.namedCount), cancelled_count: nat(event.cancelledCount), has_unnamed: bool(event.hasUnnamed) };
+    case "closeDispatch": inputFields(event, ["kind"]); return { $: "Canonical.CloseDispatch" };
     case "preparedOfferCheck": inputFields(event, ["kind", "ready", "withinFrame"]); return { $: "Canonical.PreparedOfferCheck", ready: bool(event.ready), within_frame: bool(event.withinFrame) };
     case "emptyPreparedCheck": inputFields(event, ["kind", "readyCount", "hasNonSkipped", "ticketed"]); return { $: "Canonical.EmptyPreparedCheck", ready_count: nat(event.readyCount), has_non_skipped: bool(event.hasNonSkipped), ticketed: bool(event.ticketed) };
     case "reviewFailureCheck": inputFields(event, ["kind", "backendOrTimeout", "credential", "missing"]); return { $: "Canonical.ReviewFailureCheck", backend_or_timeout: bool(event.backendOrTimeout), credential: bool(event.credential), missing: bool(event.missing) };
@@ -300,6 +315,11 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
     case "Canonical.FailureCredential": fields(value, "Canonical.FailureCredential", []); return { kind: "failureCredential" };
     case "Canonical.FailureLost": fields(value, "Canonical.FailureLost", []); return { kind: "failureLost" };
     case "Canonical.FailureNone": fields(value, "Canonical.FailureNone", []); return { kind: "failureNone" };
+    case "Canonical.DispatchStarted": { const x = fields(value, "Canonical.DispatchStarted", ["operation", "sequence", "cycle"]); return { kind: "dispatchStarted", operation: nat(x.operation, true), sequence: nat(x.sequence), cycle: nat(x.cycle, true) }; }
+    case "Canonical.DispatchCycleCompleted": return { kind: "dispatchCycleCompleted", cycle: nat(fields(value, "Canonical.DispatchCycleCompleted", ["cycle"]).cycle, true) };
+    case "Canonical.DispatchDiscarded": { const x = fields(value, "Canonical.DispatchDiscarded", ["operation", "running"]); return { kind: "dispatchDiscarded", operation: nat(x.operation, true), running: bool(x.running) }; }
+    case "Canonical.DiscardNamedOnly": fields(value, "Canonical.DiscardNamedOnly", []); return { kind: "discardNamedOnly" };
+    case "Canonical.DiscardAllUnfinished": fields(value, "Canonical.DiscardAllUnfinished", []); return { kind: "discardAllUnfinished" };
     case "Canonical.WaitForWork": fields(value, "Canonical.WaitForWork", []); return { kind: "waitForWork" };
     case "Canonical.CancelWork": return { kind: "cancelWork", operation: nat(fields(value, "Canonical.CancelWork", ["operation"]).operation, true) };
     case "Canonical.FinishReady": fields(value, "Canonical.FinishReady", []); return { kind: "finishReady" };
@@ -321,12 +341,31 @@ export type CanonicalProjection = {
   readonly rounds: readonly { readonly partition: number; readonly lifetime: number; readonly id: number; readonly waiting: boolean; readonly deciding: boolean; readonly write?: number; readonly uncertain: boolean }[];
   readonly admissions: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly active: boolean; readonly closedAt: number; readonly permits: readonly { readonly token: number; readonly tool: number; readonly round: number; readonly deadline: number }[]; readonly used: readonly { readonly token: number; readonly tool: number }[] }[];
   readonly work: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly reservation: number; readonly parent: number; readonly kind: "sourceQueued" | "sourceReading" | "preparing" | "reviewing" | "atJev" | "pendingFinding" }[];
+  readonly dispatch: { readonly pending: readonly DispatchEntry[]; readonly active: readonly DispatchEntry[]; readonly running: readonly DispatchEntry[]; readonly nextSequence: number; readonly cycle: number; readonly closed: boolean };
 };
+type DispatchEntry = { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly sequence: number; readonly cycle: number; readonly cancelled: boolean };
 const known = new WeakSet<object>();
 export const projectCanonical = (state: unknown): CanonicalProjection => {
   if (!known.has(object(state))) throw new TypeError("foreign canonical state");
-  const s = fields(state, "Canonical.State", ["ledger", "rounds", "work", "next_round", "next_operation", "admissions"]);
+  const s = fields(state, "Canonical.State", ["ledger", "rounds", "work", "next_round", "next_operation", "admissions", "dispatch"]);
   nat(s.next_round, true); nat(s.next_operation, true);
+  const rawDispatch = fields(s.dispatch, "Dispatch.State", ["pending", "active", "running", "next_sequence", "cycle", "closed"]);
+  const dispatchEntry = (value: unknown): DispatchEntry => {
+    const x = fields(value, "Dispatch.Entry", ["partition", "lifetime", "round", "operation", "sequence", "cycle", "cancelled"]);
+    return { partition: nat(x.partition, true), lifetime: nat(x.lifetime, true), round: nat(x.round, true),
+      operation: nat(x.operation, true), sequence: nat(x.sequence), cycle: nat(x.cycle), cancelled: bool(x.cancelled) };
+  };
+  const dispatch = { pending: readList(rawDispatch.pending, dispatchEntry), active: readList(rawDispatch.active, dispatchEntry),
+    running: readList(rawDispatch.running, dispatchEntry), nextSequence: nat(rawDispatch.next_sequence),
+    cycle: nat(rawDispatch.cycle), closed: bool(rawDispatch.closed) };
+  const dispatchEntries = [...dispatch.pending, ...dispatch.active, ...dispatch.running];
+  if (dispatch.running.length > 2 || new Set(dispatchEntries.map((x) => x.operation)).size !== dispatchEntries.length ||
+      new Set(dispatchEntries.map((x) => x.sequence)).size !== dispatchEntries.length ||
+      dispatchEntries.some((x) => x.sequence >= dispatch.nextSequence || x.cycle > dispatch.cycle) ||
+      dispatch.pending.some((x) => x.cycle !== 0) ||
+      [...dispatch.active, ...dispatch.running].some((x) => x.cycle !== dispatch.cycle)) {
+    throw new TypeError("inconsistent canonical dispatch state");
+  }
   const ledger = fields(s.ledger, "Ledger.Ledger", ["limits", "next_id", "charges"]);
   nat(ledger.next_id, true);
   const limits = fields(ledger.limits, "Ledger.Limits", ["global_items", "global_bytes", "partition_items", "partition_bytes"]);
@@ -418,7 +457,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
   return { global,
     limits: { globalItems: nat(limits.global_items, true), globalBytes: nat(limits.global_bytes, true),
       partitionItems: nat(limits.partition_items, true), partitionBytes: nat(limits.partition_bytes, true) },
-    partitions, charges, inventory, rounds, admissions, work };
+    partitions, charges, inventory, rounds, admissions, work, dispatch };
 };
 export const initialCanonical = (limits: { readonly globalItems: number; readonly globalBytes: number; readonly partitionItems: number; readonly partitionBytes: number }): unknown => {
   const values = Object.values(limits);

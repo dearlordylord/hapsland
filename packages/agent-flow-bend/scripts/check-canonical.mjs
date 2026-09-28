@@ -154,4 +154,22 @@ for (const trace of reviewFixture.traces) {
   assert.deepEqual(projectCanonical(current).work, trace.finalWork, `${trace.name}: work`);
   assert.deepEqual(projectCanonical(current).charges, trace.finalCharges, `${trace.name}: charges`);
 }
-console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length} independent source-free canonical traces`);
+const dispatchFixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-dispatch-v1.json"), "utf8"));
+for (const trace of dispatchFixture.traces) {
+  let current = initialCanonical(fixture.limits);
+  for (const { expect: expected, ...event } of trace.events) {
+    const result = stepCanonical(current, event);
+    current = result.state;
+    const actual = result.rejection ? `rejected:${result.rejection}` : result.commands.map((command) => {
+      if (command.kind === "roundStarted" || command.kind === "observationAdmitted") return `${command.kind}:${command.id}`;
+      if (command.kind === "dispatchStarted") return `${command.kind}:${command.operation}:${command.sequence}:${command.cycle}`;
+      if (command.kind === "dispatchCycleCompleted") return `${command.kind}:${command.cycle}`;
+      if (command.kind === "dispatchDiscarded") return `${command.kind}:${command.operation}:${command.running}`;
+      throw new Error(`unexpected dispatch trace command ${command.kind}`);
+    }).join(",");
+    assert.equal(actual, expected, `${trace.name}: ${event.kind}`);
+  }
+  const { pending, active, running, nextSequence, cycle, closed } = projectCanonical(current).dispatch;
+  assert.deepEqual({ pending, active, running, nextSequence, cycle, closed }, trace.dispatch, trace.name);
+}
+console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length} independent source-free canonical traces`);
