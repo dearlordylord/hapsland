@@ -172,6 +172,9 @@ type CanonicalEvent is Data:
   IncludeLayerCheck{supplied: Bool, current_rank: Nat, candidate_rank: Nat}
   FileSelectionCheck{protected: Bool, excluded: Bool,
     includes_empty: Bool, included: Bool}
+  FileProtectionCheck{valid_relative: Bool, sensitive_name: Bool,
+    generated_name: Bool, generated_segment: Bool, allowed_extension: Bool}
+  CandidateFileCheck{git_admin: Bool, physical_safe: Bool, git_allowed: Bool}
   ReviewAdmissionCheck{root_valid: Bool, configuration_valid: Bool,
     credential_ready: Bool, selected: Bool}
   ReuseRoute{id: Nat, live_advice: Bool}
@@ -377,6 +380,8 @@ type Command is Data:
   NoticeSelected{ids: List<&2, Nat>}
   IncludeChoice{choice: Configuration.IncludeChoice}
   FileSelection{selection: Configuration.Selection}
+  FileProtection{protection: Configuration.Protection}
+  CandidateFile{candidate: Configuration.Candidate}
   ReviewAdmission{admission: Configuration.Admission}
   WriteAuthorized{operation: Nat}
   WriteRecorded{outcome: WriteOutcome}
@@ -2635,6 +2640,14 @@ def step(+state: State, event: CanonicalEvent) -> Step:
     case FileSelectionCheck{protected, excluded, includes_empty, included}:
       Advanced{state, FileSelection{Configuration.select(protected, excluded,
         includes_empty, included)} <> Nil{}}
+    case FileProtectionCheck{valid_relative, sensitive_name, generated_name,
+        generated_segment, allowed_extension}:
+      Advanced{state, FileProtection{Configuration.protection(valid_relative,
+        sensitive_name, generated_name, generated_segment,
+        allowed_extension)} <> Nil{}}
+    case CandidateFileCheck{git_admin, physical_safe, git_allowed}:
+      Advanced{state, CandidateFile{Configuration.candidate(git_admin,
+        physical_safe, git_allowed)} <> Nil{}}
     case ReviewAdmissionCheck{root_valid, configuration_valid, credential_ready, selected}:
       Advanced{state, ReviewAdmission{Configuration.admit(root_valid,
         configuration_valid, credential_ready, selected)} <> Nil{}}

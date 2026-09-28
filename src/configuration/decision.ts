@@ -31,6 +31,28 @@ export const selectFile = (facts: {
   return command.selection;
 };
 
+export const classifyFileProtection = (facts: {
+  readonly validRelative: boolean;
+  readonly sensitiveName: boolean;
+  readonly generatedName: boolean;
+  readonly generatedSegment: boolean;
+  readonly allowedExtension: boolean;
+}): "allowedPath" | "repositoryBoundary" | "sensitivePath" | "generatedOrVendor" | "fileExtension" => {
+  const command = decide({ kind: "fileProtectionCheck", ...facts });
+  if (command?.kind !== "fileProtection") throw new Error("canonical file protection missing");
+  return command.protection;
+};
+
+export const admitCandidateFile = (facts: {
+  readonly gitAdmin: boolean;
+  readonly physicalSafe: boolean;
+  readonly gitAllowed: boolean;
+}): "candidateAllowed" | "refuseGitAdmin" | "refuseFileKind" | "refuseGitIgnore" => {
+  const command = decide({ kind: "candidateFileCheck", ...facts });
+  if (command?.kind !== "candidateFile") throw new Error("canonical candidate file decision missing");
+  return command.candidate;
+};
+
 export const admitReview = (facts: {
   readonly rootValid: boolean;
   readonly configurationValid: boolean;

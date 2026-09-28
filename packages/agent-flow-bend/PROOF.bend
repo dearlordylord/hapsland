@@ -864,3 +864,12 @@ def Laws.ledger_resize_preserves_id_and_count():
 
 def Laws.ledger_clear_keeps_monotonic_reservation_ids():
   {==}
+
+def Laws.privacy_protection_precedes_generated_and_kind():
+  {==}
+
+def Laws.generated_protection_precedes_kind():
+  {==}
+
+def Laws.git_admin_precedes_file_kind_and_ignore():
+  {==}

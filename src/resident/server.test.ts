@@ -90,6 +90,38 @@ const waitUntilIdle = async (server: ResidentServer): Promise<void> => {
 };
 
 describe("canonical resident capacity", () => {
+  it("refuses a protected sibling before resident review while an eligible callback waits", async () => {
+    const root = await makeGitFixture();
+    await put(root, "safe.ts", "type SafeCount = number\n");
+    await put(root, "build/blocked.ts", "type BlockedCount = number\n");
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root,
+      ["build/blocked.ts", "safe.ts"])));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const started = deferred();
+    const release = deferred();
+    const evaluated: Array<string> = [];
+    let clock = 100;
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock, {
+      beforeEvaluate: async (prepared) => {
+        evaluated.push(prepared.input.path);
+        started.resolve();
+        await release.promise;
+      },
+    });
+    try {
+      expect(server.admit(observation, findingDispatch(join(root, "unused-grants"))).status).toBe("accepted");
+      clock = 101;
+      await started.promise;
+      expect(evaluated).toEqual(["safe.ts"]);
+      release.resolve();
+      await server.whenIdle();
+      expect(server.pendingAdviceMetadata().map(({ path }) => path)).toEqual(["safe.ts"]);
+    } finally {
+      release.resolve();
+      await server.close();
+    }
+  });
+
   it("keeps a finite review cycle open when the second Jev result arrives first", async () => {
     const root = await makeGitFixture();
     await put(root, "first.ts", "type FirstCount = number\n");

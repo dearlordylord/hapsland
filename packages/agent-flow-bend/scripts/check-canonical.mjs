@@ -322,6 +322,8 @@ for (const trace of configurationFixture.traces) {
     const command = result.commands[0];
     const actual = command.kind === "includeChoice" ? `includeChoice:${command.choice}`
       : command.kind === "fileSelection" ? `fileSelection:${command.selection}`
+      : command.kind === "fileProtection" ? `fileProtection:${command.protection}`
+      : command.kind === "candidateFile" ? `candidateFile:${command.candidate}`
       : command.kind === "reviewAdmission" ? `reviewAdmission:${command.admission}`
       : command.kind;
     assert.equal(actual, expected, trace.name);

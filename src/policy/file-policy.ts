@@ -1,4 +1,3 @@
-import { extname } from "node:path";
 import type {
   ConfigurationOrigin,
   PatternOrigin,
@@ -6,22 +5,9 @@ import type {
 } from "../configuration/types.ts";
 import {
   matchesAnyGlob,
-  normalizeRepositoryPath,
 } from "../matcher/glob.ts";
-import { selectFile } from "../configuration/decision.ts";
-
-const allowedExtensions = new Set([
-  ".c", ".cc", ".cpp", ".cs", ".css", ".go", ".h", ".hpp", ".html", ".java",
-  ".js", ".jsx", ".json", ".kt", ".md", ".php", ".py", ".rb", ".rs", ".scala",
-  ".sh", ".sql", ".swift", ".toml", ".ts", ".tsx", ".yaml", ".yml",
-]);
-
-const sensitiveNames = /(^|\/)(\.env(?:\..*)?|.*\.(?:key|pem|p12|pfx)|credentials(?:\..*)?|secrets?(?:\..*)?)$/i;
-const generatedNames = /(?:^|\/)(?:package-lock\.json|bun\.lock|yarn\.lock|pnpm-lock\.yaml)$/i;
-const generatedSegments = new Set([
-  ".git", ".idea", ".vscode", "build", "coverage", "dist", "generated", "node_modules",
-  "target", "vendor",
-]);
+import { classifyFileProtection, selectFile } from "../configuration/decision.ts";
+import { pathFacts } from "./path-facts.ts";
 
 export type ProtectedGate =
   | "repository-boundary"
@@ -46,19 +32,17 @@ export type SelectionDecision =
       readonly gate: ProtectedGate;
     });
 
-const normalized = (path: string): string | undefined => normalizeRepositoryPath(path);
-
 /** Filesystem-independent gates. SnapshotReader repeats regular/size/symlink checks. */
 export const protectedPathReason = (path: string): ProtectedGate | undefined => {
-  const value = normalized(path);
-  if (value === undefined || value === ".") return "repository-boundary";
-  if (sensitiveNames.test(value)) return "sensitive";
-  if (generatedNames.test(value)) return "generated-or-vendor";
-  if (value.split("/").some((segment) => generatedSegments.has(segment))) {
-    return "generated-or-vendor";
+  const { normalized: _normalized, ...facts } = pathFacts(path);
+  const protection = classifyFileProtection(facts);
+  switch (protection) {
+    case "allowedPath": return undefined;
+    case "repositoryBoundary": return "repository-boundary";
+    case "sensitivePath": return "sensitive";
+    case "generatedOrVendor": return "generated-or-vendor";
+    case "fileExtension": return "file-extension";
   }
-  if (!allowedExtensions.has(extname(value).toLowerCase())) return "file-extension";
-  return undefined;
 };
 
 const matching = (
@@ -70,7 +54,7 @@ export const selectGlobalPath = (
   policy: ResolvedPolicy,
   path: string,
 ): SelectionDecision => {
-  const value = normalized(path);
+  const value = pathFacts(path).normalized;
   // Compute configured matches before protected gates so explain can account for
   // an attempted sensitive/generated path without implying that it was eligible.
   const matchingIncludes = value === undefined ? [] : matching(policy.includes, value);

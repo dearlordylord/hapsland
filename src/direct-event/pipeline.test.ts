@@ -616,6 +616,22 @@ describe("direct-event vertical slice", () => {
     }),
   );
 
+  it.effect("keeps file selection distinct from analyzer applicability", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture);
+      yield* Effect.promise(() => put(root, "README.md", "type OrderCount = number"));
+      let calls = 0;
+      const reads: Array<string> = [];
+      const result = yield* enabledReview(root, addEvent(root, ["README.md"]), {
+        answers: findingAnswers(),
+        onRequest: Effect.sync(() => { calls += 1; }),
+      }, (base) => ({ ...base, captureHooks: { sourceRead: (path) => { reads.push(path); } } }));
+      expect(reads).toEqual(["README.md", "README.md"]);
+      expect(result.status).toBe("no-advice");
+      expect(calls).toBe(0);
+    }),
+  );
+
   it.effect("rejects qualified and value-query references without a backend call", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture);

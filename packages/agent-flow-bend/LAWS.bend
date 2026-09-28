@@ -6,6 +6,7 @@ import ./Work.bend as Work
 import ./Handoff.bend as Handoff
 import ./Lifecycle.bend as Lifecycle
 import ./Ledger.bend as Ledger
+import ./Configuration.bend as Configuration
 import ./Round.bend as Round
 import ./Background.bend as Background
 import ./Notice.bend as Notice
@@ -1406,3 +1407,15 @@ law ledger_clear_keeps_monotonic_reservation_ids:
   {Ledger.clear(Ledger.Ledger{small_limits(), 2n,
       Ledger.Charge{1n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}}) ==
     Ledger.Ledger{small_limits(), 2n, Nil{}} : Ledger.Ledger}
+
+law privacy_protection_precedes_generated_and_kind:
+  {Configuration.protection(True{}, True{}, True{}, True{}, False{}) ==
+    Configuration.SensitivePath{} : Configuration.Protection}
+
+law generated_protection_precedes_kind:
+  {Configuration.protection(True{}, False{}, False{}, True{}, False{}) ==
+    Configuration.GeneratedOrVendor{} : Configuration.Protection}
+
+law git_admin_precedes_file_kind_and_ignore:
+  {Configuration.candidate(True{}, False{}, False{}) ==
+    Configuration.RefuseGitAdmin{} : Configuration.Candidate}
