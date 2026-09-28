@@ -474,6 +474,24 @@ law canonical_delivery_final_credential_uses_delivery_rule:
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
       Canonical.DeliveryBatchRelease{} <> Nil{}} : Canonical.Step}
 
+law canonical_validation_route_retires_stale_owner:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.ValidationRouteCheck{True{}, Handoff.Stale{}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.RetireCandidate{} <> Nil{}} : Canonical.Step}
+
+law canonical_post_validation_releases_unfitting_candidate:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.PostValidationCheck{True{}, False{}, False{}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.ReleaseCandidate{} <> Nil{}} : Canonical.Step}
+
+law canonical_final_candidate_retires_expired_work:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.FinalCandidateCheck{True{}, True{}, True{}, True{}, True{}, True{}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.RetireCandidate{} <> Nil{}} : Canonical.Step}
+
 def reserved_output_selection() -> Lifecycle.OutputSelection:
   Lifecycle.OutputSelection{1n <> 2n <> Nil{}, False{}, False{}}
 

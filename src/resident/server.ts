@@ -60,9 +60,7 @@ import {
 import { DispatchCycles } from "./dispatch.ts";
 import { ComposedDelivery } from "./composed-delivery.ts";
 import { BendWorkTracker } from "./bend-work.ts";
-import type { CanonicalCommand, TicketReason, TicketUnitEvent } from "../canonical/adapter.ts";
-import { bendValidationRoute, bendPostValidation, bendFinalCandidate,
-  type BendValidationStatus } from "./bend-policy.generated.js";
+import type { CanonicalCommand, CanonicalEvent, TicketReason, TicketUnitEvent } from "../canonical/adapter.ts";
 import {
   ADVICE_COLLECTION_WINDOW_MS,
   PENDING_ADVICE_EXPIRY_MS,
@@ -92,9 +90,6 @@ import { claimDemoBudget } from "../onboarding/demo-budget.ts";
 import { findingFromProbability } from "../rules/decision.ts";
 import { recordDemoTrace } from "../onboarding/demo-trace.ts";
 
-const validationStatus = (status: RevalidationResult["status"]): BendValidationStatus =>
-  ({ $: status === "current" ? "Current" : status === "stale" ? "Stale" :
-    status === "unavailable" ? "Unavailable" : "Unattributed" });
 const RESERVATION_OVERHEAD_BYTES = 1024;
 const MAX_PROBABILITY_ENCODING_BYTES = 24;
 export const OPERATIONAL_NOTICE_COOLDOWN_MS = 60_000;
@@ -1044,27 +1039,29 @@ export class ResidentServer {
       await this.#beforeRevalidate?.(advice.id);
       const validity = await this.#revalidate(advice, dispatch);
       const retained = this.#advice.find((item) => item.id === advice.id);
-      const route = bendValidationRoute(retained === advice && retained.delivery?.token === token,
-        validationStatus(validity.status));
-      if (route.$ === "IgnoreCandidate") continue;
-      if (route.$ === "ReleaseCandidate") {
+      const route = this.#candidateRoute({ kind: "validationRouteCheck",
+        ownerCurrent: retained === advice && retained.delivery?.token === token,
+        status: validity.status });
+      if (route === "ignoreCandidate") continue;
+      if (route === "releaseCandidate") {
         this.#releaseAdviceLease(advice);
         continue;
       }
-      if (route.$ === "RetireCandidate") {
+      if (route === "retireCandidate") {
         this.#removeAdvice(advice.id, token);
         continue;
       }
-      if (route.$ !== "ContinueCandidate" || validity.status !== "current") {
+      if (route !== "continueCandidate" || validity.status !== "current") {
         this.#releaseAdviceLease(advice);
         continue;
       }
       const workAccepted = advice.round === undefined || advice.workUnitId === undefined ||
         advice.round.policyWork.reviseFinding(advice.workUnitId,
           validity.findings.length, logicalBytes(validity.findings));
-      const workRoute = bendPostValidation(workAccepted, false, true);
-      if (workRoute.$ !== "RetainCandidate") {
-        if (workRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
+      const workRoute = this.#candidateRoute({ kind: "postValidationCheck",
+        workAccepted, expired: false, hasFitting: true });
+      if (workRoute !== "retainCandidate") {
+        if (workRoute === "retireCandidate") this.#removeAdvice(advice.id, token);
         else this.#releaseAdviceLease(advice);
         continue;
       }
@@ -1073,18 +1070,20 @@ export class ResidentServer {
       if (advice.round !== undefined) this.#recordFindingCount(advice.partition,
         advice.canonicalOperationId, validity.findings.length);
       const handoffNow = this.#now();
-      const expiryRoute = bendPostValidation(true, this.#adviceExpired(advice, handoffNow), true);
-      if (expiryRoute.$ !== "RetainCandidate") {
-        if (expiryRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
+      const expiryRoute = this.#candidateRoute({ kind: "postValidationCheck",
+        workAccepted: true, expired: this.#adviceExpired(advice, handoffNow), hasFitting: true });
+      if (expiryRoute !== "retainCandidate") {
+        if (expiryRoute === "retireCandidate") this.#removeAdvice(advice.id, token);
         else this.#releaseAdviceLease(advice);
         continue;
       }
       const fitting = fittingFindings(selectedFindings, advice.findings.filter((finding) =>
         !this.#composedDelivery.suppresses(advice.id,
           adviceeGroup(advice.observation.root, advice.observation.advicee), finding, stopCollector ? "stop" : undefined)), advice, true);
-      const fittingRoute = bendPostValidation(true, false, fitting.length > 0);
-      if (fittingRoute.$ !== "RetainCandidate") {
-        if (fittingRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
+      const fittingRoute = this.#candidateRoute({ kind: "postValidationCheck",
+        workAccepted: true, expired: false, hasFitting: fitting.length > 0 });
+      if (fittingRoute !== "retainCandidate") {
+        if (fittingRoute === "retireCandidate") this.#removeAdvice(advice.id, token);
         else this.#releaseAdviceLease(advice);
         continue;
       }
@@ -1099,27 +1098,29 @@ export class ResidentServer {
         await this.#beforeFinalRevalidate?.(advice.id);
         const validity = await this.#revalidate(advice, dispatch);
         const retained = this.#advice.find((item) => item.id === advice.id);
-        const route = bendValidationRoute(retained === advice && retained.delivery?.token === token,
-          validationStatus(validity.status));
-        if (route.$ === "IgnoreCandidate") continue;
-        if (route.$ === "ReleaseCandidate") {
+        const route = this.#candidateRoute({ kind: "validationRouteCheck",
+          ownerCurrent: retained === advice && retained.delivery?.token === token,
+          status: validity.status });
+        if (route === "ignoreCandidate") continue;
+        if (route === "releaseCandidate") {
           this.#releaseAdviceLease(advice);
           continue;
         }
-        if (route.$ === "RetireCandidate") {
+        if (route === "retireCandidate") {
           this.#removeAdvice(advice.id, token);
           continue;
         }
-        if (route.$ !== "ContinueCandidate" || validity.status !== "current") {
+        if (route !== "continueCandidate" || validity.status !== "current") {
           this.#releaseAdviceLease(advice);
           continue;
         }
         const workAccepted = advice.round === undefined || advice.workUnitId === undefined ||
           advice.round.policyWork.reviseFinding(advice.workUnitId,
             validity.findings.length, logicalBytes(validity.findings));
-        const workRoute = bendPostValidation(workAccepted, false, true);
-        if (workRoute.$ !== "RetainCandidate") {
-          if (workRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
+        const workRoute = this.#candidateRoute({ kind: "postValidationCheck",
+          workAccepted, expired: false, hasFitting: true });
+        if (workRoute !== "retainCandidate") {
+          if (workRoute === "retireCandidate") this.#removeAdvice(advice.id, token);
           else this.#releaseAdviceLease(advice);
           continue;
         }
@@ -1128,18 +1129,20 @@ export class ResidentServer {
         if (advice.round !== undefined) this.#recordFindingCount(advice.partition,
           advice.canonicalOperationId, validity.findings.length);
         const handoffNow = this.#now();
-        const expiryRoute = bendPostValidation(true, this.#adviceExpired(advice, handoffNow), true);
-        if (expiryRoute.$ !== "RetainCandidate") {
-          if (expiryRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
+        const expiryRoute = this.#candidateRoute({ kind: "postValidationCheck",
+          workAccepted: true, expired: this.#adviceExpired(advice, handoffNow), hasFitting: true });
+        if (expiryRoute !== "retainCandidate") {
+          if (expiryRoute === "retireCandidate") this.#removeAdvice(advice.id, token);
           else this.#releaseAdviceLease(advice);
           continue;
         }
         const fitting = fittingFindings(finalFindings, advice.findings.filter((finding) =>
           !this.#composedDelivery.suppresses(advice.id,
             adviceeGroup(advice.observation.root, advice.observation.advicee), finding, stopCollector ? "stop" : undefined)), advice, true);
-        const fittingRoute = bendPostValidation(true, false, fitting.length > 0);
-        if (fittingRoute.$ !== "RetainCandidate") {
-          if (fittingRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
+        const fittingRoute = this.#candidateRoute({ kind: "postValidationCheck",
+          workAccepted: true, expired: false, hasFitting: fitting.length > 0 });
+        if (fittingRoute !== "retainCandidate") {
+          if (fittingRoute === "retireCandidate") this.#removeAdvice(advice.id, token);
           else this.#releaseAdviceLease(advice);
           continue;
         }
@@ -1167,23 +1170,23 @@ export class ResidentServer {
               credentialState.generation === credentialGeneration &&
               (dispatch.credential.environmentOnly || !credentialState.savedUseSuspended);
           }
-          const route = bendFinalCandidate(ownerCurrent, credentialGenerationValid,
-            credentialAuthorized,
-            ownerCurrent && credentialGenerationValid && credentialAuthorized &&
+          const route = this.#candidateRoute({ kind: "finalCandidateCheck", ownerCurrent,
+            credentialGeneration: credentialGenerationValid, credentialAuthorized,
+            expired: ownerCurrent && credentialGenerationValid && credentialAuthorized &&
               this.#adviceExpired(advice, handoffNow),
-            ownerCurrent && credentialGenerationValid && credentialAuthorized &&
+            workCurrent: ownerCurrent && credentialGenerationValid && credentialAuthorized &&
               this.#isCurrentWork(advice.revision, advice.prepared),
-            delivery !== undefined && delivery.findings.length > 0);
-          if (route.$ === "IgnoreCandidate") continue;
-          if (route.$ === "RetireCandidate") {
+            hasFindings: delivery !== undefined && delivery.findings.length > 0 });
+          if (route === "ignoreCandidate") continue;
+          if (route === "retireCandidate") {
             this.#removeAdvice(advice.id, token);
             continue;
           }
-          if (route.$ === "ReleaseCandidate") {
+          if (route === "releaseCandidate") {
             this.#releaseAdviceLease(advice);
             continue;
           }
-          if (route.$ !== "RetainCandidate" || delivery === undefined) continue;
+          if (route !== "retainCandidate" || delivery === undefined) continue;
           delivery.leaseUntil = handoffNow + DELIVERY_LEASE_MS;
           handoff.push(advice);
         }
@@ -1215,6 +1218,19 @@ export class ResidentServer {
           output: combinedReviewOutput(handoffFindings, notices.map((notice) => notice.value)) }
       : { version: 2, status: "advice", token, findingCount: handoffFindings.length,
           output: combinedClaudeOutput(handoffFindings, notices.map((notice) => notice.value), ticket.claudeFeedbackMode) };
+  }
+
+  #candidateRoute(event: Extract<CanonicalEvent, { readonly kind:
+    "validationRouteCheck" | "postValidationCheck" | "finalCandidateCheck" }>):
+    "ignoreCandidate" | "releaseCandidate" | "retireCandidate" | "continueCandidate" | "retainCandidate" {
+    const result = this.#ledger.transition(event);
+    const kind = result.commands[0]?.kind;
+    if (result.rejection !== undefined || result.commands.length !== 1 ||
+        (kind !== "ignoreCandidate" && kind !== "releaseCandidate" && kind !== "retireCandidate" &&
+          kind !== "continueCandidate" && kind !== "retainCandidate")) {
+      throw new Error("invalid canonical candidate route");
+    }
+    return kind;
   }
 
   acknowledge(token: string): ResidentResponse {
@@ -3031,19 +3047,20 @@ export class ResidentServer {
     const handoff: Array<Advice> = [];
     for (const advice of [...this.#advice]) {
       if (advice.delivery?.token !== response.token) continue;
-      const route = bendFinalCandidate(true, true, true,
-        !this.#roundActive(advice.round) || this.#adviceExpired(advice, now),
-        this.#isCurrentWork(advice.revision, advice.prepared),
-        advice.delivery.findings.length > 0);
-      if (route.$ === "RetireCandidate") {
+      const route = this.#candidateRoute({ kind: "finalCandidateCheck",
+        ownerCurrent: true, credentialGeneration: true, credentialAuthorized: true,
+        expired: !this.#roundActive(advice.round) || this.#adviceExpired(advice, now),
+        workCurrent: this.#isCurrentWork(advice.revision, advice.prepared),
+        hasFindings: advice.delivery.findings.length > 0 });
+      if (route === "retireCandidate") {
         this.#removeAdvice(advice.id, response.token);
         continue;
       }
-      if (route.$ === "ReleaseCandidate") {
+      if (route === "releaseCandidate") {
         this.#releaseAdviceLease(advice);
         continue;
       }
-      if (route.$ !== "RetainCandidate") continue;
+      if (route !== "retainCandidate") continue;
       advice.delivery.leaseUntil = now + DELIVERY_LEASE_MS;
       handoff.push(advice);
     }

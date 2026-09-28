@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:65da6c6c082e9f90cdb52ad0404c70c712b4616f939e7eeb992426b024207f9e
+// hapsland-bend-source-sha256:913041cae6990bbdaefc7491a0303665e26760df1a8accca2db28fa45ab45f3b
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -647,6 +647,23 @@ function $Canonical$step$(_state_0, _event_0) {
     const _legacy_collect_0 = _event_0["legacy_collect"];
     const _invalid_seen_1 = _event_0["invalid_seen"];
     return $Canonical$delivery_batch_result$(_state_0, ($Delivery$final_credential_gate$(_legacy_collect_0, _invalid_seen_1)));
+  } else if (_event_0.$ === "Canonical.ValidationRouteCheck") {
+    const _owner_current_0 = _event_0["owner_current"];
+    const _status_0 = _event_0["status"];
+    return $Canonical$candidate_route_result$(_state_0, ($Handoff$validation_route$(_owner_current_0, _status_0)));
+  } else if (_event_0.$ === "Canonical.PostValidationCheck") {
+    const _work_accepted_0 = _event_0["work_accepted"];
+    const _expired_3 = _event_0["expired"];
+    const _has_fitting_0 = _event_0["has_fitting"];
+    return $Canonical$candidate_route_result$(_state_0, ($Handoff$post_validation$(_work_accepted_0, _expired_3, _has_fitting_0)));
+  } else if (_event_0.$ === "Canonical.FinalCandidateCheck") {
+    const _owner_current_1 = _event_0["owner_current"];
+    const _credential_generation_0 = _event_0["credential_generation"];
+    const _credential_authorized_0 = _event_0["credential_authorized"];
+    const _expired_4 = _event_0["expired"];
+    const _work_current_0 = _event_0["work_current"];
+    const _has_findings_0 = _event_0["has_findings"];
+    return $Canonical$candidate_route_result$(_state_0, ($Handoff$final_candidate$(_owner_current_1, _credential_generation_0, _credential_authorized_0, _expired_4, _work_current_0, _has_findings_0)));
   } else if (_event_0.$ === "Canonical.IncludeLayerCheck") {
     const _supplied_0 = _event_0["supplied"];
     const _current_rank_0 = _event_0["current_rank"];
@@ -1821,6 +1838,44 @@ function $Delivery$credential_observe$(_invalid_seen_0, _generation_valid_0, _au
 
 function $Delivery$final_credential_gate$(_legacy_collect_0, _invalid_seen_0) {
   return $Bool$pick$(($Bool$and$(_legacy_collect_0, _invalid_seen_0)), {$: "Delivery.BatchRelease"}, {$: "Delivery.BatchProceed"});
+}
+
+function $Canonical$candidate_route_result$(_state_0, _decision_0) {
+  if (_decision_0.$ === "Handoff.IgnoreCandidate") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.IgnoreCandidate"}, "tail": {$: "Nil"}}};
+  } else if (_decision_0.$ === "Handoff.ReleaseCandidate") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.ReleaseCandidate"}, "tail": {$: "Nil"}}};
+  } else if (_decision_0.$ === "Handoff.RetireCandidate") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RetireCandidate"}, "tail": {$: "Nil"}}};
+  } else if (_decision_0.$ === "Handoff.ContinueCandidate") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.ContinueCandidate"}, "tail": {$: "Nil"}}};
+  } else {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RetainCandidate"}, "tail": {$: "Nil"}}};
+  }
+}
+
+function $Handoff$validation_route$(_owner_current_0, _status_0) {
+  if (!_owner_current_0) {
+    return {$: "Handoff.IgnoreCandidate"};
+  } else {
+    if (_status_0.$ === "Handoff.Current") {
+      return {$: "Handoff.ContinueCandidate"};
+    } else if (_status_0.$ === "Handoff.Stale") {
+      return {$: "Handoff.RetireCandidate"};
+    } else {
+      return {$: "Handoff.ReleaseCandidate"};
+    }
+  }
+}
+
+function $Handoff$post_validation$(_work_accepted_0, _expired_0, _has_fitting_0) {
+  const _x_0 = ($Bool$not$(_work_accepted_0));
+  return $Bool$pick$((_x_0 || _expired_0), {$: "Handoff.RetireCandidate"}, ($Bool$pick$(_has_fitting_0, {$: "Handoff.RetainCandidate"}, {$: "Handoff.ReleaseCandidate"})));
+}
+
+function $Handoff$final_candidate$(_owner_current_0, _credential_generation_0, _credential_authorized_0, _expired_0, _work_current_0, _has_findings_0) {
+  const _x_0 = ($Bool$not$(_work_current_0));
+  return $Bool$pick$(($Bool$not$(_owner_current_0)), {$: "Handoff.IgnoreCandidate"}, ($Bool$pick$(($Bool$not$(_credential_generation_0)), {$: "Handoff.RetireCandidate"}, ($Bool$pick$(($Bool$not$(_credential_authorized_0)), {$: "Handoff.ReleaseCandidate"}, ($Bool$pick$((_expired_0 || _x_0), {$: "Handoff.RetireCandidate"}, ($Bool$pick$(_has_findings_0, {$: "Handoff.RetainCandidate"}, {$: "Handoff.ReleaseCandidate"})))))))));
 }
 
 function $Configuration$include_choice$(_supplied_0, _current_rank_0, _candidate_rank_0) {

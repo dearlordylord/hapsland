@@ -47,6 +47,29 @@ describe("resident logical capacity ledger", () => {
       .toEqual([{ kind: "deliveryBatchProceed" }]);
   });
 
+  it("routes revalidation and final handoff candidates through canonical Bend", () => {
+    const ledger = new CapacityLedger();
+    expect(ledger.transition({ kind: "validationRouteCheck",
+      ownerCurrent: false, status: "current" }).commands)
+      .toEqual([{ kind: "ignoreCandidate" }]);
+    expect(ledger.transition({ kind: "validationRouteCheck",
+      ownerCurrent: true, status: "stale" }).commands)
+      .toEqual([{ kind: "retireCandidate" }]);
+    expect(ledger.transition({ kind: "validationRouteCheck",
+      ownerCurrent: true, status: "current" }).commands)
+      .toEqual([{ kind: "continueCandidate" }]);
+    expect(ledger.transition({ kind: "postValidationCheck",
+      workAccepted: true, expired: false, hasFitting: false }).commands)
+      .toEqual([{ kind: "releaseCandidate" }]);
+    expect(ledger.transition({ kind: "postValidationCheck",
+      workAccepted: true, expired: false, hasFitting: true }).commands)
+      .toEqual([{ kind: "retainCandidate" }]);
+    expect(ledger.transition({ kind: "finalCandidateCheck", ownerCurrent: true,
+      credentialGeneration: true, credentialAuthorized: true,
+      expired: true, workCurrent: true, hasFindings: true }).commands)
+      .toEqual([{ kind: "retireCandidate" }]);
+  });
+
   it("keeps permit and capacity transitions in one canonical resident state", () => {
     const ledger = new CapacityLedger();
     const partition = ledger.partitionId("agent");

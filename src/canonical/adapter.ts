@@ -173,6 +173,9 @@ export type CanonicalEvent =
   | { readonly kind: "deliverySubmissionBatchCheck"; readonly count: number; readonly allValid: boolean }
   | { readonly kind: "deliveryCredentialObserveCheck"; readonly invalidSeen: boolean; readonly generationValid: boolean; readonly authorized: boolean }
   | { readonly kind: "deliveryFinalCredentialCheck"; readonly legacyCollect: boolean; readonly invalidSeen: boolean }
+  | { readonly kind: "validationRouteCheck"; readonly ownerCurrent: boolean; readonly status: "current" | "stale" | "unavailable" | "unattributed" }
+  | { readonly kind: "postValidationCheck"; readonly workAccepted: boolean; readonly expired: boolean; readonly hasFitting: boolean }
+  | { readonly kind: "finalCandidateCheck"; readonly ownerCurrent: boolean; readonly credentialGeneration: boolean; readonly credentialAuthorized: boolean; readonly expired: boolean; readonly workCurrent: boolean; readonly hasFindings: boolean }
   | { readonly kind: "includeLayerCheck"; readonly supplied: boolean; readonly currentRank: number; readonly candidateRank: number }
   | { readonly kind: "fileSelectionCheck"; readonly protected: boolean; readonly excluded: boolean; readonly includesEmpty: boolean; readonly included: boolean }
   | { readonly kind: "fileProtectionInvalid" }
@@ -258,6 +261,7 @@ export type CanonicalCommand =
   | { readonly kind: "ticketKept" | "cleanupReady" | "cleanupBusy" | "cleanupCommitted" | "deliveryReleaseUnacknowledged" | "deliveryKeepAcknowledged" }
   | { readonly kind: "deliveryAckReady" | "deliveryAckExpired" | "deliveryAckEmpty" | "deliveryFinalReady" | "deliveryFinalExpired" | "deliveryFinalEmpty" | "deliveryRetireAdvice" | "deliveryKeepRemaining" | "deliveryKeepForReoffer" }
   | { readonly kind: "deliverySubmissionCandidate" | "deliverySubmissionRefused" | "deliveryBatchProceed" | "deliveryBatchRelease" | "deliveryCredentialInvalid" | "deliveryCredentialValid" }
+  | { readonly kind: "ignoreCandidate" | "releaseCandidate" | "retireCandidate" | "continueCandidate" | "retainCandidate" }
   | { readonly kind: "reuseJoinAdvice" | "reuseJoinPending" | "reuseJoinClaimed" | "reuseCached" | "reuseOwn" | "reuseClaimed" | "reuseAttached" | "reuseReleased" | "reuseRefused" | "cacheAlready" | "cacheRejected" | "cacheCommitted" }
   | { readonly kind: "cachePrepared"; readonly evicted: readonly number[] }
   | { readonly kind: "cacheDiscarded"; readonly ids: readonly number[] }
@@ -462,6 +466,14 @@ const encode = (event: CanonicalEvent): unknown => {
     case "deliverySubmissionBatchCheck": inputFields(event, ["kind", "count", "allValid"]); return { $: "Canonical.DeliverySubmissionBatchCheck", count: nat(event.count), all_valid: bool(event.allValid) };
     case "deliveryCredentialObserveCheck": inputFields(event, ["kind", "invalidSeen", "generationValid", "authorized"]); return { $: "Canonical.DeliveryCredentialObserveCheck", invalid_seen: bool(event.invalidSeen), generation_valid: bool(event.generationValid), authorized: bool(event.authorized) };
     case "deliveryFinalCredentialCheck": inputFields(event, ["kind", "legacyCollect", "invalidSeen"]); return { $: "Canonical.DeliveryFinalCredentialCheck", legacy_collect: bool(event.legacyCollect), invalid_seen: bool(event.invalidSeen) };
+    case "validationRouteCheck": {
+      inputFields(event, ["kind", "ownerCurrent", "status"]);
+      if (!["current", "stale", "unavailable", "unattributed"].includes(event.status)) throw new TypeError("invalid validation status");
+      return { $: "Canonical.ValidationRouteCheck", owner_current: bool(event.ownerCurrent),
+        status: { $: `Handoff.${event.status.slice(0, 1).toUpperCase()}${event.status.slice(1)}` } };
+    }
+    case "postValidationCheck": inputFields(event, ["kind", "workAccepted", "expired", "hasFitting"]); return { $: "Canonical.PostValidationCheck", work_accepted: bool(event.workAccepted), expired: bool(event.expired), has_fitting: bool(event.hasFitting) };
+    case "finalCandidateCheck": inputFields(event, ["kind", "ownerCurrent", "credentialGeneration", "credentialAuthorized", "expired", "workCurrent", "hasFindings"]); return { $: "Canonical.FinalCandidateCheck", owner_current: bool(event.ownerCurrent), credential_generation: bool(event.credentialGeneration), credential_authorized: bool(event.credentialAuthorized), expired: bool(event.expired), work_current: bool(event.workCurrent), has_findings: bool(event.hasFindings) };
     case "includeLayerCheck": inputFields(event, ["kind", "supplied", "currentRank", "candidateRank"]); return { $: "Canonical.IncludeLayerCheck", supplied: bool(event.supplied), current_rank: nat(event.currentRank), candidate_rank: nat(event.candidateRank) };
     case "fileSelectionCheck": inputFields(event, ["kind", "protected", "excluded", "includesEmpty", "included"]); return { $: "Canonical.FileSelectionCheck", protected: bool(event.protected), excluded: bool(event.excluded), includes_empty: bool(event.includesEmpty), included: bool(event.included) };
     case "fileProtectionInvalid": inputFields(event, ["kind"]); return { $: "Canonical.FileProtectionInvalid" };
@@ -721,6 +733,11 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
     case "Canonical.DeliveryCredentialInvalid": case "Canonical.DeliveryCredentialValid": {
       const name = tag(value); fields(value, name, []);
       return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "deliverySubmissionCandidate" | "deliverySubmissionRefused" | "deliveryBatchProceed" | "deliveryBatchRelease" | "deliveryCredentialInvalid" | "deliveryCredentialValid" };
+    }
+    case "Canonical.IgnoreCandidate": case "Canonical.ReleaseCandidate": case "Canonical.RetireCandidate":
+    case "Canonical.ContinueCandidate": case "Canonical.RetainCandidate": {
+      const name = tag(value); fields(value, name, []);
+      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "ignoreCandidate" | "releaseCandidate" | "retireCandidate" | "continueCandidate" | "retainCandidate" };
     }
     case "Canonical.NoticeSuppressed": case "Canonical.NoticeCreatePending": case "Canonical.NoticeMergePending": {
       const name = tag(value); return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "noticeSuppressed" | "noticeCreatePending" | "noticeMergePending", count: nat(fields(value, name, ["count"]).count) };

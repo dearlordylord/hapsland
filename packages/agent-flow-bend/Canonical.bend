@@ -178,6 +178,11 @@ type CanonicalEvent is Data:
   DeliveryCredentialObserveCheck{invalid_seen: Bool, generation_valid: Bool,
     authorized: Bool}
   DeliveryFinalCredentialCheck{legacy_collect: Bool, invalid_seen: Bool}
+  ValidationRouteCheck{owner_current: Bool, status: Handoff.ValidationStatus}
+  PostValidationCheck{work_accepted: Bool, expired: Bool, has_fitting: Bool}
+  FinalCandidateCheck{owner_current: Bool, credential_generation: Bool,
+    credential_authorized: Bool, expired: Bool, work_current: Bool,
+    has_findings: Bool}
   IncludeLayerCheck{supplied: Bool, current_rank: Nat, candidate_rank: Nat}
   FileSelectionCheck{protected: Bool, excluded: Bool,
     includes_empty: Bool, included: Bool}
@@ -391,6 +396,11 @@ type Command is Data:
   DeliveryBatchRelease{}
   DeliveryCredentialInvalid{}
   DeliveryCredentialValid{}
+  IgnoreCandidate{}
+  ReleaseCandidate{}
+  RetireCandidate{}
+  ContinueCandidate{}
+  RetainCandidate{}
   ReuseJoinAdvice{}
   ReuseJoinPending{}
   ReuseJoinClaimed{}
@@ -2378,6 +2388,14 @@ def delivery_batch_result(state: State, decision: Delivery.BatchGate) -> Step:
     case Delivery.BatchProceed{}: Advanced{state, DeliveryBatchProceed{} <> Nil{}}
     case Delivery.BatchRelease{}: Advanced{state, DeliveryBatchRelease{} <> Nil{}}
 
+def candidate_route_result(state: State, decision: Handoff.CandidateAction) -> Step:
+  match decision:
+    case Handoff.IgnoreCandidate{}: Advanced{state, IgnoreCandidate{} <> Nil{}}
+    case Handoff.ReleaseCandidate{}: Advanced{state, ReleaseCandidate{} <> Nil{}}
+    case Handoff.RetireCandidate{}: Advanced{state, RetireCandidate{} <> Nil{}}
+    case Handoff.ContinueCandidate{}: Advanced{state, ContinueCandidate{} <> Nil{}}
+    case Handoff.RetainCandidate{}: Advanced{state, RetainCandidate{} <> Nil{}}
+
 def cleanup_commit_eligible(state: State) -> Bool:
   match state:
     case State{Ledger.Ledger{_, _, Nil{}}, _, _, _, _, _, _,
@@ -2717,6 +2735,14 @@ def step(+state: State, event: CanonicalEvent) -> Step:
         generation_valid, authorized), DeliveryCredentialInvalid{}, DeliveryCredentialValid{}) <> Nil{}}
     case DeliveryFinalCredentialCheck{legacy_collect, invalid_seen}:
       delivery_batch_result(state, Delivery.final_credential_gate(legacy_collect, invalid_seen))
+    case ValidationRouteCheck{owner_current, status}:
+      candidate_route_result(state, Handoff.validation_route(owner_current, status))
+    case PostValidationCheck{work_accepted, expired, has_fitting}:
+      candidate_route_result(state, Handoff.post_validation(work_accepted, expired, has_fitting))
+    case FinalCandidateCheck{owner_current, credential_generation,
+        credential_authorized, expired, work_current, has_findings}:
+      candidate_route_result(state, Handoff.final_candidate(owner_current,
+        credential_generation, credential_authorized, expired, work_current, has_findings))
     case IncludeLayerCheck{supplied, current_rank, candidate_rank}:
       Advanced{state, IncludeChoice{Configuration.include_choice(supplied,
         current_rank, candidate_rank)} <> Nil{}}

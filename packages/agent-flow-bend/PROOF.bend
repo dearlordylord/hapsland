@@ -304,6 +304,15 @@ def Laws.canonical_delivery_credential_fold_uses_delivery_rule():
 def Laws.canonical_delivery_final_credential_uses_delivery_rule():
   {==}
 
+def Laws.canonical_validation_route_retires_stale_owner():
+  {==}
+
+def Laws.canonical_post_validation_releases_unfitting_candidate():
+  {==}
+
+def Laws.canonical_final_candidate_retires_expired_work():
+  {==}
+
 def Laws.output_selection_reserves_pending_unit():
   {==}
 
