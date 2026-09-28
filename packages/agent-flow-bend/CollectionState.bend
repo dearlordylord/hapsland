@@ -1,5 +1,6 @@
 import Base
 import ./Collection.bend as Collection
+import ./DeliveryState.bend as DeliveryState
 
 type Lease is Data:
   Lease{advice: Nat, owner: Nat}
@@ -8,14 +9,14 @@ type Claim is Data:
   Claim{group: Nat, owner: Nat}
 
 type State is Data:
-  State{ready: List<&2, Nat>, leases: List<&2, Lease>, claims: List<&2, Claim>}
+  State{ready: List<&2, Nat>, leases: List<&2, Lease>, claims: List<&2, Claim>, delivery: DeliveryState.State}
 
 type Decision is Data:
   Accepted{state: State}
   Refused{state: State}
 
 def initial() -> State:
-  State{Nil{}, Nil{}, Nil{}}
+  State{Nil{}, Nil{}, Nil{}, DeliveryState.initial()}
 
 def contains(+id: Nat, items: List<&2, Nat>) -> Bool:
   match items:
@@ -79,7 +80,7 @@ def lease_owned(+id: Nat, +token: Nat, items: List<&2, Lease>) -> Bool:
 
 def owns_lease(state: State, advice: Nat, token: Nat) -> Bool:
   match state:
-    case State{_, leases, _}:
+    case State{_, leases, _, _}:
       lease_owned(advice, token, leases)
 
 def remove_advice_lease(+id: Nat, items: List<&2, Lease>) -> List<&2, Lease>:
@@ -118,47 +119,94 @@ def claim_owned(+group: Nat, +token: Nat, items: List<&2, Claim>) -> Bool:
 
 def mark_ready(+state: State, +advice: Nat, eligible_now: Bool) -> Decision:
   match state:
-    case State{ready, leases, claims}:
+    case State{ready, leases, claims, delivery}:
       Bool.pick(Decision, Bool.and(Nat.is_gt(advice, 0n),
         Bool.or(eligible_now, contains(advice, ready))),
         Accepted{State{Bool.pick(List<&2, Nat>, contains(advice, ready), ready,
-          advice <> ready), leases, claims}}, Refused{state})
+          advice <> ready), leases, claims, delivery}}, Refused{state})
 
 def reserve(+state: State, +advice: Nat, +token: Nat) -> Decision:
   match state:
-    case State{ready, leases, claims}:
+    case State{ready, leases, claims, delivery}:
       Bool.pick(Decision, Bool.and(Nat.is_gt(token, 0n),
           Bool.and(contains(advice, ready), Bool.not(lease_exists(advice, leases)))),
-        Accepted{State{ready, Lease{advice, token} <> leases, claims}}, Refused{state})
+        Accepted{State{ready, Lease{advice, token} <> leases, claims, delivery}}, Refused{state})
 
 def release(+state: State, +advice: Nat, +token: Nat) -> Decision:
   match state:
-    case State{ready, leases, claims}:
+    case State{ready, leases, claims, delivery}:
       Bool.pick(Decision, lease_owned(advice, token, leases),
-        Accepted{State{ready, remove_lease(advice, token, leases), claims}},
+        Accepted{State{ready, remove_lease(advice, token, leases), claims, delivery}},
         Refused{state})
 
 def retire(+state: State, +advice: Nat) -> State:
   match state:
-    case State{ready, leases, claims}:
-      State{remove_ready(advice, ready), remove_advice_lease(advice, leases), claims}
+    case State{ready, leases, claims, delivery}:
+      State{remove_ready(advice, ready), remove_advice_lease(advice, leases), claims, delivery}
 
 def claim(+state: State, +group: Nat, +token: Nat, active: Bool, capacity: Nat) -> Decision:
   match state:
-    case State{ready, leases, claims}:
+    case State{ready, leases, claims, delivery}:
       Bool.pick(Decision, Bool.and(active, Bool.and(Nat.is_gt(token, 0n),
         Bool.and(Bool.not(claim_exists(group, claims)),
           Nat.is_lt(List.length(&2, Claim, claims), capacity)))),
-        Accepted{State{ready, leases, Claim{group, token} <> claims}}, Refused{state})
+        Accepted{State{ready, leases, Claim{group, token} <> claims, delivery}}, Refused{state})
 
 def release_claim(+state: State, +group: Nat, +token: Nat) -> Decision:
   match state:
-    case State{ready, leases, claims}:
+    case State{ready, leases, claims, delivery}:
       Bool.pick(Decision, claim_owned(group, token, claims),
-        Accepted{State{ready, leases, remove_claim(group, token, claims)}},
+        Accepted{State{ready, leases, remove_claim(group, token, claims), delivery}},
         Refused{state})
 
 def expire_claim(+state: State, group: Nat, token: Nat,
     elapsed: Nat, lifetime: Nat) -> Decision:
   Bool.pick(Decision, Collection.expired(elapsed, lifetime),
     release_claim(state, group, token), Refused{state})
+
+def delivery_result(state: State, result: DeliveryState.Decision) -> Decision:
+  match state result:
+    case State{ready, leases, claims, _} DeliveryState.Granted{delivery}:
+      Accepted{State{ready, leases, claims, delivery}}
+    case _ DeliveryState.Denied{_}:
+      Refused{state}
+
+def finish_reserve(+state: State, group: Nat, round: Nat, attempt: Nat,
+    token: Nat, selected: List<&2, Nat>) -> Decision:
+  match state:
+    case State{_, _, _, delivery}:
+      delivery_result(state, DeliveryState.reserve(delivery, group, round,
+        attempt, token, selected))
+
+def finish_release(+state: State, group: Nat, round: Nat, attempt: Nat,
+    token: Nat) -> Decision:
+  match state:
+    case State{_, _, _, delivery}:
+      delivery_result(state, DeliveryState.release(delivery, group, round,
+        attempt, token))
+
+def finish_authorize(+state: State, group: Nat, round: Nat, attempt: Nat,
+    token: Nat, selected: List<&2, Nat>) -> Decision:
+  match state:
+    case State{_, _, _, delivery}:
+      delivery_result(state, DeliveryState.authorize(delivery, group, round,
+        attempt, token, selected))
+
+def finish_terminal(+state: State, group: Nat, round: Nat, attempt: Nat,
+    token: Nat, selected: List<&2, Nat>, phase: DeliveryState.Phase) -> Decision:
+  match state:
+    case State{_, _, _, delivery}:
+      delivery_result(state, DeliveryState.terminal(delivery, group, round,
+        attempt, token, selected, phase))
+
+def finish_end(+state: State, group: Nat, round: Nat, attempt: Nat,
+    token: Nat) -> Decision:
+  match state:
+    case State{_, _, _, delivery}:
+      delivery_result(state, DeliveryState.end(delivery, group, round,
+        attempt, token))
+
+def consume_continuation(+state: State, group: Nat, round: Nat) -> Decision:
+  match state:
+    case State{_, _, _, delivery}:
+      delivery_result(state, DeliveryState.consume(delivery, group, round))

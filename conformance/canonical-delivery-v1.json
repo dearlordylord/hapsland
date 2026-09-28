@@ -1,0 +1,289 @@
+{
+  "traces": [
+    {
+      "name": "Stop reserves one selected finding and checks exact writer ownership",
+      "events": [
+        {
+          "kind": "openRound",
+          "partition": 1,
+          "lifetime": 1,
+          "expect": "roundStarted"
+        },
+        {
+          "kind": "openRound",
+          "partition": 2,
+          "lifetime": 1,
+          "expect": "roundStarted"
+        },
+        {
+          "kind": "admitObservation",
+          "partition": 2,
+          "lifetime": 1,
+          "round": 2,
+          "expect": "observationAdmitted"
+        },
+        {
+          "kind": "startObservation",
+          "partition": 2,
+          "lifetime": 1,
+          "round": 2,
+          "observation": 1,
+          "expect": "observationStarted"
+        },
+        {
+          "kind": "beginObservedPreparation",
+          "partition": 2,
+          "lifetime": 1,
+          "round": 2,
+          "observation": 1,
+          "bytes": 10,
+          "expect": "prepare"
+        },
+        {
+          "kind": "preparationCompleted",
+          "partition": 2,
+          "lifetime": 1,
+          "round": 2,
+          "operation": 2,
+          "unitBytes": [
+            5
+          ],
+          "expect": "preparationReleased,unitAdmitted"
+        },
+        {
+          "kind": "completeObservation",
+          "partition": 2,
+          "lifetime": 1,
+          "round": 2,
+          "observation": 1,
+          "expect": "observationCompleted"
+        },
+        {
+          "kind": "queueDispatch",
+          "partition": 2,
+          "lifetime": 1,
+          "round": 2,
+          "operation": 3,
+          "expect": "dispatchStarted"
+        },
+        {
+          "kind": "startReview",
+          "partition": 2,
+          "lifetime": 1,
+          "round": 2,
+          "operation": 3,
+          "expect": "reviewStarted"
+        },
+        {
+          "kind": "reviewObserved",
+          "partition": 2,
+          "lifetime": 1,
+          "round": 2,
+          "operation": 3,
+          "outcome": "finding",
+          "currentWork": true,
+          "expect": "reviewRecorded,retainFinding"
+        },
+        {
+          "kind": "stopGroupPolled",
+          "group": 1,
+          "lifetime": 1,
+          "round": 1,
+          "scopes": [
+            {
+              "partition": 2,
+              "round": 2
+            }
+          ],
+          "deadline": true,
+          "extraPending": false,
+          "continuations": 0,
+          "expect": "finishReady"
+        },
+        {
+          "kind": "finishReserve",
+          "group": 1,
+          "lifetime": 1,
+          "round": 1,
+          "attempt": 7,
+          "token": 8,
+          "selected": [
+            3
+          ],
+          "hasNotice": false,
+          "passNotices": true,
+          "canWrite": true,
+          "bindingValid": true,
+          "deadlineReached": true,
+          "expect": "finishReserved"
+        },
+        {
+          "kind": "finishReserve",
+          "group": 1,
+          "lifetime": 1,
+          "round": 1,
+          "attempt": 7,
+          "token": 9,
+          "selected": [
+            3
+          ],
+          "hasNotice": false,
+          "passNotices": true,
+          "canWrite": true,
+          "bindingValid": true,
+          "deadlineReached": true,
+          "expect": "finishRefused"
+        },
+        {
+          "kind": "finishAuthorize",
+          "group": 1,
+          "round": 1,
+          "attempt": 7,
+          "token": 8,
+          "selected": [
+            4
+          ],
+          "expect": "finishRefused"
+        },
+        {
+          "kind": "finishRelease",
+          "group": 1,
+          "round": 1,
+          "attempt": 7,
+          "token": 9,
+          "expect": "finishRefused"
+        },
+        {
+          "kind": "finishAuthorize",
+          "group": 1,
+          "round": 1,
+          "attempt": 7,
+          "token": 8,
+          "selected": [
+            3
+          ],
+          "expect": "finishAuthorized"
+        },
+        {
+          "kind": "finishRelease",
+          "group": 1,
+          "round": 1,
+          "attempt": 7,
+          "token": 8,
+          "expect": "finishRefused"
+        },
+        {
+          "kind": "finishTerminal",
+          "group": 1,
+          "round": 1,
+          "attempt": 7,
+          "token": 8,
+          "selected": [
+            4
+          ],
+          "outcome": "unknown",
+          "expect": "finishRefused"
+        },
+        {
+          "kind": "finishTerminal",
+          "group": 1,
+          "round": 1,
+          "attempt": 7,
+          "token": 8,
+          "selected": [
+            3
+          ],
+          "outcome": "unknown",
+          "expect": "finishRecorded:unknown"
+        },
+        {
+          "kind": "finishTerminal",
+          "group": 1,
+          "round": 1,
+          "attempt": 7,
+          "token": 8,
+          "selected": [
+            3
+          ],
+          "outcome": "acknowledged",
+          "expect": "finishRefused"
+        }
+      ],
+      "delivery": {
+        "slots": [
+          {
+            "group": 1,
+            "round": 1,
+            "attempt": 7,
+            "token": 8,
+            "selected": [
+              3
+            ],
+            "phase": "uncertain"
+          }
+        ],
+        "counters": [
+          {
+            "group": 1,
+            "round": 1,
+            "used": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "empty Stop selection chooses notices or allows finish",
+      "events": [
+        {
+          "kind": "finishReserve",
+          "group": 1,
+          "lifetime": 1,
+          "round": 1,
+          "attempt": 7,
+          "token": 8,
+          "selected": [],
+          "hasNotice": true,
+          "passNotices": true,
+          "canWrite": true,
+          "bindingValid": true,
+          "deadlineReached": false,
+          "expect": "finishNotices"
+        },
+        {
+          "kind": "finishReserve",
+          "group": 1,
+          "lifetime": 1,
+          "round": 1,
+          "attempt": 7,
+          "token": 8,
+          "selected": [],
+          "hasNotice": false,
+          "passNotices": true,
+          "canWrite": true,
+          "bindingValid": true,
+          "deadlineReached": false,
+          "expect": "finishAllowedNoAdvice"
+        },
+        {
+          "kind": "finishReserve",
+          "group": 1,
+          "lifetime": 1,
+          "round": 1,
+          "attempt": 7,
+          "token": 8,
+          "selected": [],
+          "hasNotice": false,
+          "passNotices": true,
+          "canWrite": true,
+          "bindingValid": true,
+          "deadlineReached": true,
+          "expect": "finishAllowedDeadline"
+        }
+      ],
+      "delivery": {
+        "slots": [],
+        "counters": []
+      }
+    }
+  ]
+}

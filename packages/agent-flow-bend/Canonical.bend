@@ -8,6 +8,7 @@ import ./Collection.bend as Collection
 import ./CollectionState.bend as CollectionState
 import ./Handoff.bend as Handoff
 import ./Delivery.bend as Delivery
+import ./DeliveryState.bend as DeliveryState
 
 # #119 boundary: one resident lifetime, shared ledger, active advicee rounds.
 # Native IDs are bijectively mapped to positive Nat values before entry.
@@ -113,6 +114,17 @@ type CanonicalEvent is Data:
   CollectionClaimBackground{group: Nat, token: Nat, active: Bool, capacity: Nat}
   CollectionReleaseBackground{group: Nat, token: Nat}
   CollectionExpireBackground{group: Nat, token: Nat, elapsed: Nat, lifetime: Nat}
+  FinishReserve{group: Nat, lifetime: Nat, round: Nat, attempt: Nat,
+    token: Nat, selected: List<&2, Nat>, has_notice: Bool,
+    pass_notices: Bool, can_write: Bool, binding_valid: Bool,
+    deadline_reached: Bool}
+  FinishRelease{group: Nat, round: Nat, attempt: Nat, token: Nat}
+  FinishAuthorize{group: Nat, round: Nat, attempt: Nat, token: Nat,
+    selected: List<&2, Nat>}
+  FinishTerminal{group: Nat, round: Nat, attempt: Nat, token: Nat,
+    selected: List<&2, Nat>, outcome: WriteOutcome}
+  FinishEnd{group: Nat, round: Nat, attempt: Nat, token: Nat}
+  ContinuationConsume{group: Nat, round: Nat}
   OutputStarted{partition: Nat, lifetime: Nat, round: Nat}
   OutputTerminal{partition: Nat, lifetime: Nat, round: Nat,
     operation: Nat, outcome: WriteOutcome}
@@ -202,6 +214,18 @@ type Command is Data:
   CollectionBackgroundRefused{}
   CollectionBackgroundReleased{}
   CollectionBackgroundKept{}
+  FinishReserved{}
+  FinishNotices{}
+  FinishAllowedNoAdvice{}
+  FinishAllowedDeadline{}
+  FinishAllowedUnavailable{}
+  FinishRefused{}
+  FinishReleased{}
+  FinishAuthorized{}
+  FinishRecorded{outcome: WriteOutcome}
+  FinishEnded{}
+  ContinuationConsumed{}
+  ContinuationRefused{}
   WriteAuthorized{operation: Nat}
   WriteRecorded{outcome: WriteOutcome}
   WaitForOutput{}
@@ -1775,6 +1799,121 @@ def collection_expire_background(+state: State, group: Nat, token: Nat,
         CollectionState.expire_claim(collection, group, token, elapsed, lifetime),
         CollectionBackgroundReleased{}, CollectionBackgroundKept{})
 
+def pending_operation(+operation: Nat, items: List<&2, Work>) -> Bool:
+  match items:
+    case Nil{}:
+      False{}
+    case Work{_, _, _, candidate, _, kind, _} <> rest:
+      match kind:
+        case PendingFinding{}:
+          Bool.or(Nat.is_eq(operation, candidate), pending_operation(operation, rest))
+        case _:
+          pending_operation(operation, rest)
+
+def selected_pending(+selected: List<&2, Nat>, +work: List<&2, Work>) -> Bool:
+  match selected:
+    case Nil{}:
+      True{}
+    case operation <> rest:
+      Bool.and(pending_operation(operation, work), selected_pending(rest, work))
+
+def deciding_round(found: Maybe<&2, Round>, group: Nat,
+    lifetime: Nat, round: Nat) -> Bool:
+  match found:
+    case Some{+current}:
+      match current:
+        case Round{_, _, _, _, deciding, _, _}:
+          Bool.and(deciding, same_round(group, lifetime, round, current))
+    case None{}:
+      False{}
+
+def finish_reserve_decision(+state: State, group: Nat, round: Nat,
+    attempt: Nat, token: Nat, selected: List<&2, Nat>) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, _, collection}:
+      collection_decision(state,
+        CollectionState.finish_reserve(collection, group, round, attempt,
+          token, selected), FinishReserved{}, FinishRefused{})
+
+def finish_reserve(+state: State, +group: Nat, lifetime: Nat, +round: Nat,
+    +attempt: Nat, +token: Nat, +selected: List<&2, Nat>,
+    has_notice: Bool, pass_notices: Bool, can_write: Bool,
+    binding_valid: Bool, +deadline_reached: Bool) -> Step:
+  match state:
+    case State{_, rounds, work, _, _, _, _, _}:
+      Bool.pick(Step, Bool.not(can_write),
+        Advanced{state, Bool.pick(Command, deadline_reached,
+          FinishAllowedDeadline{}, FinishAllowedNoAdvice{}) <> Nil{}},
+        Bool.pick(Step, Nat.is_eq(List.length(&2, Nat, selected), 0n),
+          Advanced{state, Bool.pick(Command,
+            Bool.and(has_notice, pass_notices), FinishNotices{},
+            Bool.pick(Command, deadline_reached,
+              FinishAllowedDeadline{}, FinishAllowedNoAdvice{})) <> Nil{}},
+          Bool.pick(Step,
+            Bool.and(binding_valid,
+              Bool.and(deciding_round(find_round(group, rounds), group,
+                lifetime, round), selected_pending(selected, work))),
+            finish_reserve_decision(state, group, round, attempt, token, selected),
+            Advanced{state, FinishAllowedUnavailable{} <> Nil{}})))
+
+def finish_release(+state: State, group: Nat, round: Nat,
+    attempt: Nat, token: Nat) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, _, collection}:
+      collection_decision(state,
+        CollectionState.finish_release(collection, group, round, attempt, token),
+        FinishReleased{}, FinishRefused{})
+
+def finish_authorize(+state: State, group: Nat, round: Nat,
+    attempt: Nat, token: Nat, selected: List<&2, Nat>) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, _, collection}:
+      collection_decision(state,
+        CollectionState.finish_authorize(collection, group, round,
+          attempt, token, selected), FinishAuthorized{}, FinishRefused{})
+
+def finish_terminal_result(state: State, outcome: WriteOutcome,
+    decision: CollectionState.Decision) -> Step:
+  match decision:
+    case CollectionState.Accepted{collection}:
+      Advanced{with_collection(state, collection), FinishRecorded{outcome} <> Nil{}}
+    case CollectionState.Refused{_}:
+      Advanced{state, FinishRefused{} <> Nil{}}
+
+def finish_terminal(+state: State, group: Nat, round: Nat,
+    attempt: Nat, token: Nat, selected: List<&2, Nat>,
+    outcome: WriteOutcome) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, _, collection}:
+      match outcome:
+        case Acknowledged{}:
+          finish_terminal_result(state, outcome,
+            CollectionState.finish_terminal(collection, group, round,
+              attempt, token, selected, DeliveryState.Submitted{}))
+        case Failed{}:
+          finish_terminal_result(state, outcome,
+            CollectionState.finish_terminal(collection, group, round,
+              attempt, token, selected, DeliveryState.Failed{}))
+        case Unknown{}:
+          finish_terminal_result(state, outcome,
+            CollectionState.finish_terminal(collection, group, round,
+              attempt, token, selected, DeliveryState.Uncertain{}))
+
+def finish_end(+state: State, group: Nat, round: Nat,
+    attempt: Nat, token: Nat) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, _, collection}:
+      collection_decision(state,
+        CollectionState.finish_end(collection, group, round, attempt, token),
+        FinishEnded{}, FinishRefused{})
+
+def continuation_consume(+state: State, group: Nat, round: Nat) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, _, collection}:
+      collection_decision(state,
+        CollectionState.consume_continuation(collection, group, round),
+        ContinuationConsumed{}, ContinuationRefused{})
+
 def step(state: State, event: CanonicalEvent) -> Step:
   match event:
     case ReserveCapacity{partition, bytes, purpose}:
@@ -1882,6 +2021,20 @@ def step(state: State, event: CanonicalEvent) -> Step:
       collection_release_background(state, group, token)
     case CollectionExpireBackground{group, token, elapsed, lifetime}:
       collection_expire_background(state, group, token, elapsed, lifetime)
+    case FinishReserve{group, lifetime, round, attempt, token, selected,
+        has_notice, pass_notices, can_write, binding_valid, deadline_reached}:
+      finish_reserve(state, group, lifetime, round, attempt, token, selected,
+        has_notice, pass_notices, can_write, binding_valid, deadline_reached)
+    case FinishRelease{group, round, attempt, token}:
+      finish_release(state, group, round, attempt, token)
+    case FinishAuthorize{group, round, attempt, token, selected}:
+      finish_authorize(state, group, round, attempt, token, selected)
+    case FinishTerminal{group, round, attempt, token, selected, outcome}:
+      finish_terminal(state, group, round, attempt, token, selected, outcome)
+    case FinishEnd{group, round, attempt, token}:
+      finish_end(state, group, round, attempt, token)
+    case ContinuationConsume{group, round}:
+      continuation_consume(state, group, round)
     case OutputStarted{partition, lifetime, round}:
       output_start(state, partition, lifetime, round)
     case OutputTerminal{partition, lifetime, round, operation, outcome}:

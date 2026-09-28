@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:6ace7c1709f09058b75fe6de7eccfe08af0d90d8916badcf80689748656ba96f
+// hapsland-bend-source-sha256:d493b0d910d456fadb79ea06b87a4ee68ed1cab6e20de373c08f4bbf3bae0095
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -442,23 +442,67 @@ function $Canonical$step$(_state_0, _event_0) {
     const _elapsed_2 = _event_0["elapsed"];
     const _lifetime_24 = _event_0["lifetime"];
     return $Canonical$collection_expire_background$(_state_0, _group_4, _token_8, _elapsed_2, _lifetime_24);
-  } else if (_event_0.$ === "Canonical.OutputStarted") {
-    const _partition_23 = _event_0["partition"];
+  } else if (_event_0.$ === "Canonical.FinishReserve") {
+    const _group_5 = _event_0["group"];
     const _lifetime_25 = _event_0["lifetime"];
     const _round_19 = _event_0["round"];
-    return $Canonical$output_start$(_state_0, _partition_23, _lifetime_25, _round_19);
+    const _attempt_0 = _event_0["attempt"];
+    const _token_9 = _event_0["token"];
+    const _selected_0 = _event_0["selected"];
+    const _has_notice_0 = _event_0["has_notice"];
+    const _pass_notices_0 = _event_0["pass_notices"];
+    const _can_write_0 = _event_0["can_write"];
+    const _binding_valid_0 = _event_0["binding_valid"];
+    const _deadline_reached_1 = _event_0["deadline_reached"];
+    return $Canonical$finish_reserve$(_state_0, _group_5, _lifetime_25, _round_19, _attempt_0, _token_9, _selected_0, _has_notice_0, _pass_notices_0, _can_write_0, _binding_valid_0, _deadline_reached_1);
+  } else if (_event_0.$ === "Canonical.FinishRelease") {
+    const _group_6 = _event_0["group"];
+    const _round_20 = _event_0["round"];
+    const _attempt_1 = _event_0["attempt"];
+    const _token_10 = _event_0["token"];
+    return $Canonical$finish_release$(_state_0, _group_6, _round_20, _attempt_1, _token_10);
+  } else if (_event_0.$ === "Canonical.FinishAuthorize") {
+    const _group_7 = _event_0["group"];
+    const _round_21 = _event_0["round"];
+    const _attempt_2 = _event_0["attempt"];
+    const _token_11 = _event_0["token"];
+    const _selected_1 = _event_0["selected"];
+    return $Canonical$finish_authorize$(_state_0, _group_7, _round_21, _attempt_2, _token_11, _selected_1);
+  } else if (_event_0.$ === "Canonical.FinishTerminal") {
+    const _group_8 = _event_0["group"];
+    const _round_22 = _event_0["round"];
+    const _attempt_3 = _event_0["attempt"];
+    const _token_12 = _event_0["token"];
+    const _selected_2 = _event_0["selected"];
+    const _outcome_2 = _event_0["outcome"];
+    return $Canonical$finish_terminal$(_state_0, _group_8, _round_22, _attempt_3, _token_12, _selected_2, _outcome_2);
+  } else if (_event_0.$ === "Canonical.FinishEnd") {
+    const _group_9 = _event_0["group"];
+    const _round_23 = _event_0["round"];
+    const _attempt_4 = _event_0["attempt"];
+    const _token_13 = _event_0["token"];
+    return $Canonical$finish_end$(_state_0, _group_9, _round_23, _attempt_4, _token_13);
+  } else if (_event_0.$ === "Canonical.ContinuationConsume") {
+    const _group_10 = _event_0["group"];
+    const _round_24 = _event_0["round"];
+    return $Canonical$continuation_consume$(_state_0, _group_10, _round_24);
+  } else if (_event_0.$ === "Canonical.OutputStarted") {
+    const _partition_23 = _event_0["partition"];
+    const _lifetime_26 = _event_0["lifetime"];
+    const _round_25 = _event_0["round"];
+    return $Canonical$output_start$(_state_0, _partition_23, _lifetime_26, _round_25);
   } else if (_event_0.$ === "Canonical.OutputTerminal") {
     const _partition_24 = _event_0["partition"];
-    const _lifetime_26 = _event_0["lifetime"];
-    const _round_20 = _event_0["round"];
+    const _lifetime_27 = _event_0["lifetime"];
+    const _round_26 = _event_0["round"];
     const _operation_8 = _event_0["operation"];
-    const _outcome_2 = _event_0["outcome"];
-    return $Canonical$output_terminal$(_state_0, _partition_24, _lifetime_26, _round_20, _operation_8, _outcome_2);
+    const _outcome_3 = _event_0["outcome"];
+    return $Canonical$output_terminal$(_state_0, _partition_24, _lifetime_27, _round_26, _operation_8, _outcome_3);
   } else {
     const _partition_25 = _event_0["partition"];
-    const _lifetime_27 = _event_0["lifetime"];
-    const _round_21 = _event_0["round"];
-    return $Canonical$retire$(_state_0, _partition_25, _lifetime_27, _round_21);
+    const _lifetime_28 = _event_0["lifetime"];
+    const _round_27 = _event_0["round"];
+    return $Canonical$retire$(_state_0, _partition_25, _lifetime_28, _round_27);
   }
 }
 
@@ -928,6 +972,84 @@ function $Canonical$collection_expire_background$(_state_0, _group_0, _token_0, 
   return $Canonical$collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, ($CollectionState$expire_claim$(_collection_0, _group_0, _token_0, _elapsed_0, _lifetime_0)), {$: "Canonical.CollectionBackgroundReleased"}, {$: "Canonical.CollectionBackgroundKept"});
 }
 
+function $Canonical$finish_reserve$(_state_0, _group_0, _lifetime_0, _round_0, _attempt_0, _token_0, _selected_0, _has_notice_0, _pass_notices_0, _can_write_0, _binding_valid_0, _deadline_reached_0) {
+  const __0 = _state_0["ledger"];
+  const _rounds_0 = _state_0["rounds"];
+  const _work_0 = _state_0["work"];
+  const __1 = _state_0["next_round"];
+  const __2 = _state_0["next_operation"];
+  const __3 = _state_0["admissions"];
+  const __4 = _state_0["dispatch"];
+  const __5 = _state_0["collection"];
+  return $Bool$pick$(($Bool$not$(_can_write_0)), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": __5}, "commands": {$: "Con", "head": ($Bool$pick$(_deadline_reached_0, {$: "Canonical.FinishAllowedDeadline"}, {$: "Canonical.FinishAllowedNoAdvice"})), "tail": {$: "Nil"}}}, ($Bool$pick$(($Nat$is_eq$(($List$length$(_selected_0)), 0)), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": __5}, "commands": {$: "Con", "head": ($Bool$pick$(($Bool$and$(_has_notice_0, _pass_notices_0)), {$: "Canonical.FinishNotices"}, ($Bool$pick$(_deadline_reached_0, {$: "Canonical.FinishAllowedDeadline"}, {$: "Canonical.FinishAllowedNoAdvice"})))), "tail": {$: "Nil"}}}, ($Bool$pick$(($Bool$and$(_binding_valid_0, ($Bool$and$(($Canonical$deciding_round$(($Canonical$find_round$(_group_0, _rounds_0)), _group_0, _lifetime_0, _round_0)), ($Canonical$selected_pending$(_selected_0, _work_0)))))), ($Canonical$finish_reserve_decision$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": __5}, _group_0, _round_0, _attempt_0, _token_0, _selected_0)), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": __5}, "commands": {$: "Con", "head": {$: "Canonical.FinishAllowedUnavailable"}, "tail": {$: "Nil"}}})))));
+}
+
+function $Canonical$finish_release$(_state_0, _group_0, _round_0, _attempt_0, _token_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return $Canonical$collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, ($CollectionState$finish_release$(_collection_0, _group_0, _round_0, _attempt_0, _token_0)), {$: "Canonical.FinishReleased"}, {$: "Canonical.FinishRefused"});
+}
+
+function $Canonical$finish_authorize$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return $Canonical$collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, ($CollectionState$finish_authorize$(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)), {$: "Canonical.FinishAuthorized"}, {$: "Canonical.FinishRefused"});
+}
+
+function $Canonical$finish_terminal$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, _outcome_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  if (_outcome_0.$ === "Canonical.Acknowledged") {
+    return $Canonical$finish_terminal_result$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, {$: "Canonical.Acknowledged"}, ($CollectionState$finish_terminal$(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, {$: "DeliveryState.Submitted"})));
+  } else if (_outcome_0.$ === "Canonical.Failed") {
+    return $Canonical$finish_terminal_result$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, {$: "Canonical.Failed"}, ($CollectionState$finish_terminal$(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, {$: "DeliveryState.Failed"})));
+  } else {
+    return $Canonical$finish_terminal_result$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, {$: "Canonical.Unknown"}, ($CollectionState$finish_terminal$(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, {$: "DeliveryState.Uncertain"})));
+  }
+}
+
+function $Canonical$finish_end$(_state_0, _group_0, _round_0, _attempt_0, _token_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return $Canonical$collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, ($CollectionState$finish_end$(_collection_0, _group_0, _round_0, _attempt_0, _token_0)), {$: "Canonical.FinishEnded"}, {$: "Canonical.FinishRefused"});
+}
+
+function $Canonical$continuation_consume$(_state_0, _group_0, _round_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return $Canonical$collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, ($CollectionState$consume_continuation$(_collection_0, _group_0, _round_0)), {$: "Canonical.ContinuationConsumed"}, {$: "Canonical.ContinuationRefused"});
+}
+
 function $Canonical$output_start$(_state_0, _partition_0, _lifetime_0, _round_0) {
   const __0 = _state_0["ledger"];
   const _rounds_0 = _state_0["rounds"];
@@ -973,7 +1095,7 @@ function $Dispatch$initial$() {
 }
 
 function $CollectionState$initial$() {
-  return {$: "CollectionState.State", "ready": {$: "Nil"}, "leases": {$: "Nil"}, "claims": {$: "Nil"}};
+  return {$: "CollectionState.State", "ready": {$: "Nil"}, "leases": {$: "Nil"}, "claims": {$: "Nil"}, "delivery": ($DeliveryState$initial$())};
 }
 
 function $Ledger$limits_for$(_purpose_0, _limits_0) {
@@ -1672,8 +1794,9 @@ function $CollectionState$mark_ready$(_state_0, _advice_0, _eligible_now_0) {
   const _ready_0 = _state_0["ready"];
   const _leases_0 = _state_0["leases"];
   const _claims_0 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
   const _x_0 = ($CollectionState$contains$(_advice_0, _ready_0));
-  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_advice_0, 0)), (_eligible_now_0 || _x_0))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": ($Bool$pick$(($CollectionState$contains$(_advice_0, _ready_0)), _ready_0, {$: "Con", "head": _advice_0, "tail": _ready_0})), "leases": _leases_0, "claims": _claims_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0}});
+  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_advice_0, 0)), (_eligible_now_0 || _x_0))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": ($Bool$pick$(($CollectionState$contains$(_advice_0, _ready_0)), _ready_0, {$: "Con", "head": _advice_0, "tail": _ready_0})), "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0}});
 }
 
 function $Collection$eligible$(_already_0, _turn_end_0, _cycle_complete_0, _elapsed_0, _window_0) {
@@ -1735,14 +1858,16 @@ function $CollectionState$reserve$(_state_0, _advice_0, _token_0) {
   const _ready_0 = _state_0["ready"];
   const _leases_0 = _state_0["leases"];
   const _claims_0 = _state_0["claims"];
-  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($CollectionState$contains$(_advice_0, _ready_0)), ($Bool$not$(($CollectionState$lease_exists$(_advice_0, _leases_0)))))))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": {$: "Con", "head": {$: "CollectionState.Lease", "advice": _advice_0, "owner": _token_0}, "tail": _leases_0}, "claims": _claims_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0}});
+  const _delivery_0 = _state_0["delivery"];
+  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($CollectionState$contains$(_advice_0, _ready_0)), ($Bool$not$(($CollectionState$lease_exists$(_advice_0, _leases_0)))))))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": {$: "Con", "head": {$: "CollectionState.Lease", "advice": _advice_0, "owner": _token_0}, "tail": _leases_0}, "claims": _claims_0, "delivery": _delivery_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0}});
 }
 
 function $CollectionState$release$(_state_0, _advice_0, _token_0) {
   const _ready_0 = _state_0["ready"];
   const _leases_0 = _state_0["leases"];
   const _claims_0 = _state_0["claims"];
-  return $Bool$pick$(($CollectionState$lease_owned$(_advice_0, _token_0, _leases_0)), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": ($CollectionState$remove_lease$(_advice_0, _token_0, _leases_0)), "claims": _claims_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0}});
+  const _delivery_0 = _state_0["delivery"];
+  return $Bool$pick$(($CollectionState$lease_owned$(_advice_0, _token_0, _leases_0)), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": ($CollectionState$remove_lease$(_advice_0, _token_0, _leases_0)), "claims": _claims_0, "delivery": _delivery_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0}});
 }
 
 function $Canonical$collection_lease_checked$(_state_0, _advice_0, _token_0, _action_0) {
@@ -1773,26 +1898,129 @@ function $CollectionState$retire$(_state_0, _advice_0) {
   const _ready_0 = _state_0["ready"];
   const _leases_0 = _state_0["leases"];
   const _claims_0 = _state_0["claims"];
-  return {$: "CollectionState.State", "ready": ($CollectionState$remove_ready$(_advice_0, _ready_0)), "leases": ($CollectionState$remove_advice_lease$(_advice_0, _leases_0)), "claims": _claims_0};
+  const _delivery_0 = _state_0["delivery"];
+  return {$: "CollectionState.State", "ready": ($CollectionState$remove_ready$(_advice_0, _ready_0)), "leases": ($CollectionState$remove_advice_lease$(_advice_0, _leases_0)), "claims": _claims_0, "delivery": _delivery_0};
 }
 
 function $CollectionState$claim$(_state_0, _group_0, _token_0, _active_0, _capacity_0) {
   const _ready_0 = _state_0["ready"];
   const _leases_0 = _state_0["leases"];
   const _claims_0 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
   const _x_0 = ($List$length$(_claims_0));
-  return $Bool$pick$(($Bool$and$(_active_0, ($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($Bool$not$(($CollectionState$claim_exists$(_group_0, _claims_0)))), (_x_0 < _capacity_0))))))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": {$: "Con", "head": {$: "CollectionState.Claim", "group": _group_0, "owner": _token_0}, "tail": _claims_0}}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0}});
+  return $Bool$pick$(($Bool$and$(_active_0, ($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($Bool$not$(($CollectionState$claim_exists$(_group_0, _claims_0)))), (_x_0 < _capacity_0))))))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": {$: "Con", "head": {$: "CollectionState.Claim", "group": _group_0, "owner": _token_0}, "tail": _claims_0}, "delivery": _delivery_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0}});
 }
 
 function $CollectionState$release_claim$(_state_0, _group_0, _token_0) {
   const _ready_0 = _state_0["ready"];
   const _leases_0 = _state_0["leases"];
   const _claims_0 = _state_0["claims"];
-  return $Bool$pick$(($CollectionState$claim_owned$(_group_0, _token_0, _claims_0)), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": ($CollectionState$remove_claim$(_group_0, _token_0, _claims_0))}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0}});
+  const _delivery_0 = _state_0["delivery"];
+  return $Bool$pick$(($CollectionState$claim_owned$(_group_0, _token_0, _claims_0)), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": ($CollectionState$remove_claim$(_group_0, _token_0, _claims_0)), "delivery": _delivery_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0}});
 }
 
 function $CollectionState$expire_claim$(_state_0, _group_0, _token_0, _elapsed_0, _lifetime_0) {
   return $Bool$pick$(($Collection$expired$(_elapsed_0, _lifetime_0)), ($CollectionState$release_claim$(_state_0, _group_0, _token_0)), {$: "CollectionState.Refused", "state": _state_0});
+}
+
+function $Nat$is_eq$(_a_0, _b_0) {
+  return $Cmp$is_eq$(cmp_new(_a_0, _b_0));
+}
+
+function $List$length$(_xs_0) {
+  if (_xs_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _t_0 = _xs_0["tail"];
+    return nat_chk(($List$length$(_t_0)) + 1);
+  }
+}
+
+function $Canonical$deciding_round$(_found_0, _group_0, _lifetime_0, _round_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const __0 = _t_0["partition"];
+    const __1 = _t_0["lifetime"];
+    const __2 = _t_0["id"];
+    const __3 = _t_0["waiting"];
+    const _deciding_0 = _t_0["deciding"];
+    const __4 = _t_0["write"];
+    const __5 = _t_0["uncertain"];
+    return $Bool$and$(_deciding_0, ($Canonical$same_round$(_group_0, _lifetime_0, _round_0, {$: "Canonical.Round", "partition": __0, "lifetime": __1, "id": __2, "waiting": __3, "deciding": _deciding_0, "write": __4, "uncertain": __5})));
+  } else {
+    return false;
+  }
+}
+
+function $Canonical$selected_pending$(_selected_0, _work_0) {
+  if (_selected_0.$ === "Nil") {
+    return true;
+  } else {
+    const _operation_0 = _selected_0["head"];
+    const _rest_0 = _selected_0["tail"];
+    return $Bool$and$(($Canonical$pending_operation$(_operation_0, _work_0)), ($Canonical$selected_pending$(_rest_0, _work_0)));
+  }
+}
+
+function $Canonical$finish_reserve_decision$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return $Canonical$collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, ($CollectionState$finish_reserve$(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)), {$: "Canonical.FinishReserved"}, {$: "Canonical.FinishRefused"});
+}
+
+function $CollectionState$finish_release$(_state_0, _group_0, _round_0, _attempt_0, _token_0) {
+  const __0 = _state_0["ready"];
+  const __1 = _state_0["leases"];
+  const __2 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$release$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0)));
+}
+
+function $CollectionState$finish_authorize$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0) {
+  const __0 = _state_0["ready"];
+  const __1 = _state_0["leases"];
+  const __2 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$authorize$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)));
+}
+
+function $Canonical$finish_terminal_result$(_state_0, _outcome_0, _decision_0) {
+  if (_decision_0.$ === "CollectionState.Accepted") {
+    const _collection_0 = _decision_0["state"];
+    return {$: "Canonical.Advanced", "state": ($Canonical$with_collection$(_state_0, _collection_0)), "commands": {$: "Con", "head": {$: "Canonical.FinishRecorded", "outcome": _outcome_0}, "tail": {$: "Nil"}}};
+  } else {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.FinishRefused"}, "tail": {$: "Nil"}}};
+  }
+}
+
+function $CollectionState$finish_terminal$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0) {
+  const __0 = _state_0["ready"];
+  const __1 = _state_0["leases"];
+  const __2 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$terminal$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0)));
+}
+
+function $CollectionState$finish_end$(_state_0, _group_0, _round_0, _attempt_0, _token_0) {
+  const __0 = _state_0["ready"];
+  const __1 = _state_0["leases"];
+  const __2 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$end$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0)));
+}
+
+function $CollectionState$consume_continuation$(_state_0, _group_0, _round_0) {
+  const __0 = _state_0["ready"];
+  const __1 = _state_0["leases"];
+  const __2 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$consume$(_delivery_0, _group_0, _round_0)));
 }
 
 function $Canonical$output_start_found$(_state_0, _partition_0, _lifetime_0, _round_0, _found_0) {
@@ -1839,6 +2067,10 @@ function $Canonical$retire_found$(_state_0, _partition_0, _lifetime_0, _round_0,
   } else {
     return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.StaleRound"}};
   }
+}
+
+function $DeliveryState$initial$() {
+  return {$: "DeliveryState.State", "slots": {$: "Nil"}, "counters": {$: "Nil"}};
 }
 
 function $Canonical$capacity_view$(_ledger_0, _partition_0) {
@@ -1922,10 +2154,6 @@ function $Ledger$find$pick$(_charge_0, _fallback_0, _hit_0) {
   } else {
     return _fallback_0;
   }
-}
-
-function $Nat$is_eq$(_a_0, _b_0) {
-  return $Cmp$is_eq$(cmp_new(_a_0, _b_0));
 }
 
 function $Ledger$release$found$(_state_0, _id_0, _found_0) {
@@ -2051,15 +2279,6 @@ function $Canonical$close_permit_apply$(_state_0, _partition_0, _lifetime_0, _at
     return $Canonical$close_prospective_permit$(_state_0, _partition_0, _at_0, _admission_0);
   } else {
     return $Canonical$close_permit_result$(_state_0, _partition_0, ($Admission$step$(_admission_0, _partition_0, _lifetime_0, {$: "Admission.CloseRound", "at": _at_0})));
-  }
-}
-
-function $List$length$(_xs_0) {
-  if (_xs_0.$ === "Nil") {
-    return 0;
-  } else {
-    const _t_0 = _xs_0["tail"];
-    return nat_chk(($List$length$(_t_0)) + 1);
   }
 }
 
@@ -2577,6 +2796,96 @@ function $CollectionState$remove_claim$(_group_0, _token_0, _items_0) {
   }
 }
 
+function $Cmp$is_eq$(_c_0) {
+  if (_c_0.$ === "LT") {
+    return false;
+  } else if (_c_0.$ === "EQ") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $Canonical$pending_operation$($0, $1) {
+  for (;;) {
+    {
+      const _operation_0 = $0;
+      const _items_0 = $1;
+      if (_items_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _items_0["head"];
+        const _candidate_0 = _t_0["operation"];
+        const _t_1 = _t_0["kind"];
+        if (_t_1.$ === "Canonical.PendingFinding") {
+          const _rest_0 = _items_0["tail"];
+          const _x_0 = ($Nat$is_eq$(_operation_0, _candidate_0));
+          const _x_1 = ($Canonical$pending_operation$(_operation_0, _rest_0));
+          return (_x_0 || _x_1);
+        } else {
+          const _rest_1 = _items_0["tail"];
+          $0 = _operation_0;
+          $1 = _rest_1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $CollectionState$finish_reserve$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0) {
+  const __0 = _state_0["ready"];
+  const __1 = _state_0["leases"];
+  const __2 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$reserve$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)));
+}
+
+function $CollectionState$delivery_result$(_state_0, _result_0) {
+  const _ready_0 = _state_0["ready"];
+  const _leases_0 = _state_0["leases"];
+  const _claims_0 = _state_0["claims"];
+  const __0 = _state_0["delivery"];
+  if (_result_0.$ === "DeliveryState.Granted") {
+    const _delivery_0 = _result_0["state"];
+    return {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0}};
+  } else {
+    return {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": __0}};
+  }
+}
+
+function $DeliveryState$release$(_state_0, _group_0, _round_0, _attempt_0, _token_0) {
+  const _slots_0 = _state_0["slots"];
+  const _counters_0 = _state_0["counters"];
+  const _used_0 = ($DeliveryState$count$(_group_0, _round_0, _counters_0));
+  return $Bool$pick$(($Bool$and$(($DeliveryState$reserved_owned$(_group_0, _round_0, _attempt_0, _token_0, _slots_0)), ($Nat$is_gt$(_used_0, 0)))), {$: "DeliveryState.Granted", "state": ($DeliveryState$set_count$({$: "DeliveryState.State", "slots": ($DeliveryState$without_slot$(_group_0, _round_0, _attempt_0, _token_0, _slots_0)), "counters": _counters_0}, _group_0, _round_0, (_used_0 < 1 ? 0 : _used_0 - 1)))}, {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": _counters_0}});
+}
+
+function $DeliveryState$authorize$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0) {
+  const _slots_0 = _state_0["slots"];
+  const _counters_0 = _state_0["counters"];
+  return $Bool$pick$(($DeliveryState$authorizable$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _slots_0)), {$: "DeliveryState.Granted", "state": {$: "DeliveryState.State", "slots": ($DeliveryState$update_slot$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, {$: "DeliveryState.Authorized"}, _slots_0)), "counters": _counters_0}}, {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": _counters_0}});
+}
+
+function $DeliveryState$terminal$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0) {
+  const _slots_0 = _state_0["slots"];
+  const _counters_0 = _state_0["counters"];
+  return $Bool$pick$(($DeliveryState$terminal_owned$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _slots_0)), {$: "DeliveryState.Granted", "state": {$: "DeliveryState.State", "slots": ($DeliveryState$update_slot$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0, _slots_0)), "counters": _counters_0}}, {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": _counters_0}});
+}
+
+function $DeliveryState$end$(_state_0, _group_0, _round_0, _attempt_0, _token_0) {
+  const _slots_0 = _state_0["slots"];
+  const _counters_0 = _state_0["counters"];
+  return $Bool$pick$(($DeliveryState$durable_owned$(_group_0, _round_0, _attempt_0, _token_0, _slots_0)), {$: "DeliveryState.Granted", "state": {$: "DeliveryState.State", "slots": ($DeliveryState$without_slot$(_group_0, _round_0, _attempt_0, _token_0, _slots_0)), "counters": _counters_0}}, {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": _counters_0}});
+}
+
+function $DeliveryState$consume$(_state_0, _group_0, _round_0) {
+  const __0 = _state_0["slots"];
+  const _counters_0 = _state_0["counters"];
+  const _used_0 = ($DeliveryState$count$(_group_0, _round_0, _counters_0));
+  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_group_0, 0)), ($Bool$and$(($Nat$is_gt$(_round_0, 0)), (_used_0 < 4))))), {$: "DeliveryState.Granted", "state": ($DeliveryState$set_count$({$: "DeliveryState.State", "slots": __0, "counters": _counters_0}, _group_0, _round_0, nat_chk(_used_0 + 1)))}, {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": __0, "counters": _counters_0}});
+}
+
 function $Canonical$remove_round$(_partition_0, _rounds_0) {
   if (_rounds_0.$ === "Nil") {
     return {$: "Nil"};
@@ -2684,16 +2993,6 @@ function $Ledger$resize_for$found$(_state_0, _id_0, _bytes_0, _purpose_0, _found
     const _partition_0 = _t_0["partition"];
     const _others_0 = ($Ledger$remove$(_id_0, _charges_0));
     return $Ledger$resize_for$check$(_limits_0, _next_id_0, _charges_0, _id_0, _partition_0, _bytes_0, _purpose_0, ($Ledger$fits$(($Ledger$limits_for$(_purpose_0, _limits_0)), ($Ledger$total$(_others_0)), ($Ledger$partition_usage$(_others_0, _partition_0)), _bytes_0)));
-  }
-}
-
-function $Cmp$is_eq$(_c_0) {
-  if (_c_0.$ === "LT") {
-    return false;
-  } else if (_c_0.$ === "EQ") {
-    return true;
-  } else {
-    return false;
   }
 }
 
@@ -3252,6 +3551,214 @@ function $CollectionState$keep_claim$(_item_0, _tail_0, _remove_0) {
   }
 }
 
+function $DeliveryState$reserve$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0) {
+  const _slots_0 = _state_0["slots"];
+  const _counters_0 = _state_0["counters"];
+  const _used_0 = ($DeliveryState$count$(_group_0, _round_0, _counters_0));
+  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_group_0, 0)), ($Bool$and$(($Nat$is_gt$(_round_0, 0)), ($Bool$and$(($Nat$is_gt$(_attempt_0, 0)), ($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($Bool$not$(($DeliveryState$has_group$(_group_0, _slots_0)))), ($Bool$and$((_used_0 < 4), ($Bool$and$(($Nat$is_gt$(($List$length$(_selected_0)), 0)), ($Nat$is_le$(($List$length$(_selected_0)), 5)))))))))))))))), {$: "DeliveryState.Granted", "state": ($DeliveryState$set_count$({$: "DeliveryState.State", "slots": {$: "Con", "head": {$: "DeliveryState.Slot", "group": _group_0, "round": _round_0, "attempt": _attempt_0, "token": _token_0, "selected": _selected_0, "phase": {$: "DeliveryState.Reserved"}}, "tail": _slots_0}, "counters": _counters_0}, _group_0, _round_0, nat_chk(_used_0 + 1)))}, {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": _counters_0}});
+}
+
+function $DeliveryState$count$(_group_0, _round_0, _counters_0) {
+  if (_counters_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _t_0 = _counters_0["head"];
+    const _candidate_group_0 = _t_0["group"];
+    const _candidate_round_0 = _t_0["round"];
+    const _used_0 = _t_0["used"];
+    const _rest_0 = _counters_0["tail"];
+    return $Bool$pick$(($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Nat$is_eq$(_round_0, _candidate_round_0)))), _used_0, ($DeliveryState$count$(_group_0, _round_0, _rest_0)));
+  }
+}
+
+function $DeliveryState$reserved_owned$($0, $1, $2, $3, $4) {
+  for (;;) {
+    {
+      const _group_0 = $0;
+      const _round_0 = $1;
+      const _attempt_0 = $2;
+      const _token_0 = $3;
+      const _slots_0 = $4;
+      if (_slots_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _slots_0["head"];
+        const _candidate_group_0 = _t_0["group"];
+        const _candidate_round_0 = _t_0["round"];
+        const _candidate_attempt_0 = _t_0["attempt"];
+        const _candidate_token_0 = _t_0["token"];
+        const _t_1 = _t_0["phase"];
+        if (_t_1.$ === "DeliveryState.Reserved") {
+          const _rest_0 = _slots_0["tail"];
+          const _x_0 = ($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Bool$and$(($Nat$is_eq$(_round_0, _candidate_round_0)), ($Bool$and$(($Nat$is_eq$(_attempt_0, _candidate_attempt_0)), ($Nat$is_eq$(_token_0, _candidate_token_0))))))));
+          const _x_1 = ($DeliveryState$reserved_owned$(_group_0, _round_0, _attempt_0, _token_0, _rest_0));
+          return (_x_0 || _x_1);
+        } else {
+          const _rest_1 = _slots_0["tail"];
+          $0 = _group_0;
+          $1 = _round_0;
+          $2 = _attempt_0;
+          $3 = _token_0;
+          $4 = _rest_1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $DeliveryState$set_count$(_state_0, _group_0, _round_0, _used_0) {
+  const _slots_0 = _state_0["slots"];
+  const _counters_0 = _state_0["counters"];
+  return {$: "DeliveryState.State", "slots": _slots_0, "counters": {$: "Con", "head": {$: "DeliveryState.Counter", "group": _group_0, "round": _round_0, "used": _used_0}, "tail": ($DeliveryState$without_counter$(_group_0, _round_0, _counters_0))}};
+}
+
+function $DeliveryState$without_slot$(_group_0, _round_0, _attempt_0, _token_0, _slots_0) {
+  if (_slots_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _slots_0["head"];
+    const _candidate_group_0 = _t_0["group"];
+    const _candidate_round_0 = _t_0["round"];
+    const _candidate_attempt_0 = _t_0["attempt"];
+    const _candidate_token_0 = _t_0["token"];
+    const __0 = _t_0["selected"];
+    const __1 = _t_0["phase"];
+    const _rest_0 = _slots_0["tail"];
+    return $DeliveryState$keep_slot$({$: "DeliveryState.Slot", "group": _candidate_group_0, "round": _candidate_round_0, "attempt": _candidate_attempt_0, "token": _candidate_token_0, "selected": __0, "phase": __1}, ($DeliveryState$without_slot$(_group_0, _round_0, _attempt_0, _token_0, _rest_0)), ($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Bool$and$(($Nat$is_eq$(_round_0, _candidate_round_0)), ($Bool$and$(($Nat$is_eq$(_attempt_0, _candidate_attempt_0)), ($Nat$is_eq$(_token_0, _candidate_token_0)))))))));
+  }
+}
+
+function $DeliveryState$authorizable$($0, $1, $2, $3, $4, $5) {
+  for (;;) {
+    {
+      const _group_0 = $0;
+      const _round_0 = $1;
+      const _attempt_0 = $2;
+      const _token_0 = $3;
+      const _selected_0 = $4;
+      const _slots_0 = $5;
+      if (_slots_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _slots_0["head"];
+        const _candidate_group_0 = _t_0["group"];
+        const _candidate_round_0 = _t_0["round"];
+        const _candidate_attempt_0 = _t_0["attempt"];
+        const _candidate_token_0 = _t_0["token"];
+        const _candidate_selected_0 = _t_0["selected"];
+        const _t_1 = _t_0["phase"];
+        if (_t_1.$ === "DeliveryState.Reserved") {
+          const _rest_0 = _slots_0["tail"];
+          const _x_0 = ($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Bool$and$(($Nat$is_eq$(_round_0, _candidate_round_0)), ($Bool$and$(($Nat$is_eq$(_attempt_0, _candidate_attempt_0)), ($Bool$and$(($Nat$is_eq$(_token_0, _candidate_token_0)), ($DeliveryState$same_selected$(_selected_0, _candidate_selected_0))))))))));
+          const _x_1 = ($DeliveryState$authorizable$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _rest_0));
+          return (_x_0 || _x_1);
+        } else {
+          const _rest_1 = _slots_0["tail"];
+          $0 = _group_0;
+          $1 = _round_0;
+          $2 = _attempt_0;
+          $3 = _token_0;
+          $4 = _selected_0;
+          $5 = _rest_1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $DeliveryState$update_slot$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _candidate_group_0 = _t_0["group"];
+    const _candidate_round_0 = _t_0["round"];
+    const _candidate_attempt_0 = _t_0["attempt"];
+    const _candidate_token_0 = _t_0["token"];
+    const __0 = _t_0["selected"];
+    const __1 = _t_0["phase"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$pick$(($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Bool$and$(($Nat$is_eq$(_round_0, _candidate_round_0)), ($Bool$and$(($Nat$is_eq$(_attempt_0, _candidate_attempt_0)), ($Nat$is_eq$(_token_0, _candidate_token_0)))))))), {$: "Con", "head": {$: "DeliveryState.Slot", "group": _group_0, "round": _round_0, "attempt": _attempt_0, "token": _token_0, "selected": _selected_0, "phase": _phase_0}, "tail": _rest_0}, {$: "Con", "head": {$: "DeliveryState.Slot", "group": _candidate_group_0, "round": _candidate_round_0, "attempt": _candidate_attempt_0, "token": _candidate_token_0, "selected": __0, "phase": __1}, "tail": ($DeliveryState$update_slot$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0, _rest_0))});
+  }
+}
+
+function $DeliveryState$terminal_owned$($0, $1, $2, $3, $4, $5) {
+  for (;;) {
+    {
+      const _group_0 = $0;
+      const _round_0 = $1;
+      const _attempt_0 = $2;
+      const _token_0 = $3;
+      const _selected_0 = $4;
+      const _slots_0 = $5;
+      if (_slots_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _slots_0["head"];
+        const _candidate_group_0 = _t_0["group"];
+        const _candidate_round_0 = _t_0["round"];
+        const _candidate_attempt_0 = _t_0["attempt"];
+        const _candidate_token_0 = _t_0["token"];
+        const _candidate_selected_0 = _t_0["selected"];
+        const _t_1 = _t_0["phase"];
+        if (_t_1.$ === "DeliveryState.Authorized") {
+          const _rest_0 = _slots_0["tail"];
+          const _x_0 = ($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Bool$and$(($Nat$is_eq$(_round_0, _candidate_round_0)), ($Bool$and$(($Nat$is_eq$(_attempt_0, _candidate_attempt_0)), ($Bool$and$(($Nat$is_eq$(_token_0, _candidate_token_0)), ($DeliveryState$same_selected$(_selected_0, _candidate_selected_0))))))))));
+          const _x_1 = ($DeliveryState$terminal_owned$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _rest_0));
+          return (_x_0 || _x_1);
+        } else {
+          const _rest_1 = _slots_0["tail"];
+          $0 = _group_0;
+          $1 = _round_0;
+          $2 = _attempt_0;
+          $3 = _token_0;
+          $4 = _selected_0;
+          $5 = _rest_1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $DeliveryState$durable_owned$($0, $1, $2, $3, $4) {
+  for (;;) {
+    {
+      const _group_0 = $0;
+      const _round_0 = $1;
+      const _attempt_0 = $2;
+      const _token_0 = $3;
+      const _slots_0 = $4;
+      if (_slots_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _slots_0["head"];
+        const _candidate_group_0 = _t_0["group"];
+        const _candidate_round_0 = _t_0["round"];
+        const _candidate_attempt_0 = _t_0["attempt"];
+        const _candidate_token_0 = _t_0["token"];
+        const _t_1 = _t_0["phase"];
+        if (_t_1.$ === "DeliveryState.Reserved") {
+          const _rest_0 = _slots_0["tail"];
+          $0 = _group_0;
+          $1 = _round_0;
+          $2 = _attempt_0;
+          $3 = _token_0;
+          $4 = _rest_0;
+          continue;
+        } else {
+          const _rest_1 = _slots_0["tail"];
+          const _x_0 = ($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Bool$and$(($Nat$is_eq$(_round_0, _candidate_round_0)), ($Bool$and$(($Nat$is_eq$(_attempt_0, _candidate_attempt_0)), ($Nat$is_eq$(_token_0, _candidate_token_0))))))));
+          const _x_1 = ($DeliveryState$durable_owned$(_group_0, _round_0, _attempt_0, _token_0, _rest_1));
+          return (_x_0 || _x_1);
+        }
+      }
+    }
+  }
+}
+
 function $Canonical$remove_round_pick$(_round_0, _tail_0, _hit_0) {
   if (_hit_0) {
     return _tail_0;
@@ -3645,6 +4152,60 @@ function $Canonical$cancel_dispatch_entries$(_items_0, _work_0, _lifetime_0, _sc
   }
 }
 
+function $DeliveryState$has_group$(_group_0, _slots_0) {
+  if (_slots_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _slots_0["head"];
+    const _candidate_group_0 = _t_0["group"];
+    const _rest_0 = _slots_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_group_0, _candidate_group_0));
+    const _x_1 = ($DeliveryState$has_group$(_group_0, _rest_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $DeliveryState$without_counter$(_group_0, _round_0, _counters_0) {
+  if (_counters_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _counters_0["head"];
+    const _candidate_group_0 = _t_0["group"];
+    const _candidate_round_0 = _t_0["round"];
+    const __0 = _t_0["used"];
+    const _rest_0 = _counters_0["tail"];
+    return $DeliveryState$keep_counter$({$: "DeliveryState.Counter", "group": _candidate_group_0, "round": _candidate_round_0, "used": __0}, ($DeliveryState$without_counter$(_group_0, _round_0, _rest_0)), ($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Nat$is_eq$(_round_0, _candidate_round_0)))));
+  }
+}
+
+function $DeliveryState$keep_slot$(_item_0, _rest_0, _remove_0) {
+  if (_remove_0) {
+    return _rest_0;
+  } else {
+    return {$: "Con", "head": _item_0, "tail": _rest_0};
+  }
+}
+
+function $DeliveryState$same_selected$(_left_0, _right_0) {
+  if (_left_0.$ === "Nil") {
+    if (_right_0.$ === "Nil") {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    const _head_0 = _left_0["head"];
+    const _tail_0 = _left_0["tail"];
+    if (_right_0.$ === "Nil") {
+      return false;
+    } else {
+      const _other_0 = _right_0["head"];
+      const _rest_0 = _right_0["tail"];
+      return $Bool$and$(($Nat$is_eq$(_head_0, _other_0)), ($DeliveryState$same_selected$(_tail_0, _rest_0)));
+    }
+  }
+}
+
 function $Canonical$cancel_pick$(_operation_0, _tail_0, _hit_0) {
   if (_hit_0) {
     return {$: "Con", "head": {$: "Canonical.CancelWork", "operation": _operation_0}, "tail": _tail_0};
@@ -3821,6 +4382,14 @@ function $Canonical$dispatch_work_unfinished$(_found_0) {
     return $Canonical$unfinished$(_kind_0);
   } else {
     return false;
+  }
+}
+
+function $DeliveryState$keep_counter$(_item_0, _rest_0, _remove_0) {
+  if (_remove_0) {
+    return _rest_0;
+  } else {
+    return {$: "Con", "head": _item_0, "tail": _rest_0};
   }
 }
 

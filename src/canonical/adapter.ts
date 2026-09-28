@@ -102,6 +102,12 @@ export type CanonicalEvent =
   | { readonly kind: "collectionClaimBackground"; readonly group: number; readonly token: number; readonly active: boolean; readonly capacity: number }
   | { readonly kind: "collectionReleaseBackground"; readonly group: number; readonly token: number }
   | { readonly kind: "collectionExpireBackground"; readonly group: number; readonly token: number; readonly elapsed: number; readonly lifetime: number }
+  | { readonly kind: "finishReserve"; readonly group: number; readonly lifetime: number; readonly round: number; readonly attempt: number; readonly token: number; readonly selected: readonly number[]; readonly hasNotice: boolean; readonly passNotices: boolean; readonly canWrite: boolean; readonly bindingValid: boolean; readonly deadlineReached: boolean }
+  | { readonly kind: "finishRelease"; readonly group: number; readonly round: number; readonly attempt: number; readonly token: number }
+  | { readonly kind: "finishAuthorize"; readonly group: number; readonly round: number; readonly attempt: number; readonly token: number; readonly selected: readonly number[] }
+  | { readonly kind: "finishTerminal"; readonly group: number; readonly round: number; readonly attempt: number; readonly token: number; readonly selected: readonly number[]; readonly outcome: "acknowledged" | "failed" | "unknown" }
+  | { readonly kind: "finishEnd"; readonly group: number; readonly round: number; readonly attempt: number; readonly token: number }
+  | { readonly kind: "continuationConsume"; readonly group: number; readonly round: number }
   | { readonly kind: "outputStarted"; readonly partition: number; readonly lifetime: number; readonly round: number }
   | { readonly kind: "outputTerminal"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly outcome: "acknowledged" | "failed" | "unknown" }
   | { readonly kind: "retirePartition"; readonly partition: number; readonly lifetime: number; readonly round: number };
@@ -138,6 +144,8 @@ export type CanonicalCommand =
   | { readonly kind: "finishLimit" }
   | { readonly kind: "stopEnded" }
   | { readonly kind: "collectionEligible" | "collectionWaiting" | "collectionRetireCredential" | "collectionRetainCredential" | "collectionCandidate" | "collectionSkip" | "collectionBefore" | "collectionEqual" | "collectionAfter" | "collectionExpired" | "collectionCurrent" | "collectionFits" | "collectionLimited" | "collectionFindingSelected" | "collectionFindingRetained" | "collectionFindingLimited" | "collectionFindingExpired" | "collectionNoticeIncluded" | "collectionNoticeSkipped" | "collectionNoticeStopped" | "collectionLeaseReserved" | "collectionLeaseRefused" | "collectionLeaseReleased" | "collectionLeaseKept" | "collectionAdviceRetired" | "collectionBackgroundClaimed" | "collectionBackgroundRefused" | "collectionBackgroundReleased" | "collectionBackgroundKept" }
+  | { readonly kind: "finishReserved" | "finishNotices" | "finishAllowedNoAdvice" | "finishAllowedDeadline" | "finishAllowedUnavailable" | "finishRefused" | "finishReleased" | "finishAuthorized" | "finishEnded" | "continuationConsumed" | "continuationRefused" }
+  | { readonly kind: "finishRecorded"; readonly outcome: "acknowledged" | "failed" | "unknown" }
   | { readonly kind: "writeAuthorized"; readonly operation: number }
   | { readonly kind: "writeRecorded"; readonly outcome: "acknowledged" | "failed" | "unknown" }
   | { readonly kind: "waitForOutput" }
@@ -247,6 +255,17 @@ const encode = (event: CanonicalEvent): unknown => {
     case "collectionClaimBackground": inputFields(event, ["kind", "group", "token", "active", "capacity"]); return { $: "Canonical.CollectionClaimBackground", group: nat(event.group, true), token: nat(event.token, true), active: bool(event.active), capacity: nat(event.capacity, true) };
     case "collectionReleaseBackground": inputFields(event, ["kind", "group", "token"]); return { $: "Canonical.CollectionReleaseBackground", group: nat(event.group, true), token: nat(event.token, true) };
     case "collectionExpireBackground": inputFields(event, ["kind", "group", "token", "elapsed", "lifetime"]); return { $: "Canonical.CollectionExpireBackground", group: nat(event.group, true), token: nat(event.token, true), elapsed: nat(event.elapsed), lifetime: nat(event.lifetime, true) };
+    case "finishReserve": inputFields(event, ["kind", "group", "lifetime", "round", "attempt", "token", "selected", "hasNotice", "passNotices", "canWrite", "bindingValid", "deadlineReached"]); return { $: "Canonical.FinishReserve", group: nat(event.group, true), lifetime: nat(event.lifetime, true), round: nat(event.round, true), attempt: nat(event.attempt, true), token: nat(event.token, true), selected: list(event.selected), has_notice: bool(event.hasNotice), pass_notices: bool(event.passNotices), can_write: bool(event.canWrite), binding_valid: bool(event.bindingValid), deadline_reached: bool(event.deadlineReached) };
+    case "finishRelease": inputFields(event, ["kind", "group", "round", "attempt", "token"]); return { $: "Canonical.FinishRelease", group: nat(event.group, true), round: nat(event.round, true), attempt: nat(event.attempt, true), token: nat(event.token, true) };
+    case "finishAuthorize": inputFields(event, ["kind", "group", "round", "attempt", "token", "selected"]); return { $: "Canonical.FinishAuthorize", group: nat(event.group, true), round: nat(event.round, true), attempt: nat(event.attempt, true), token: nat(event.token, true), selected: list(event.selected) };
+    case "finishTerminal": {
+      inputFields(event, ["kind", "group", "round", "attempt", "token", "selected", "outcome"]);
+      const outcome = { acknowledged: "Canonical.Acknowledged", failed: "Canonical.Failed", unknown: "Canonical.Unknown" }[event.outcome];
+      if (!outcome) throw new TypeError("invalid write outcome");
+      return { $: "Canonical.FinishTerminal", group: nat(event.group, true), round: nat(event.round, true), attempt: nat(event.attempt, true), token: nat(event.token, true), selected: list(event.selected), outcome: { $: outcome } };
+    }
+    case "finishEnd": inputFields(event, ["kind", "group", "round", "attempt", "token"]); return { $: "Canonical.FinishEnd", group: nat(event.group, true), round: nat(event.round, true), attempt: nat(event.attempt, true), token: nat(event.token, true) };
+    case "continuationConsume": inputFields(event, ["kind", "group", "round"]); return { $: "Canonical.ContinuationConsume", group: nat(event.group, true), round: nat(event.round, true) };
     case "outputStarted": inputFields(event, ["kind", "partition", "lifetime", "round"]); return { $: "Canonical.OutputStarted", ...identity(event), round: nat(event.round, true) };
     case "outputTerminal": {
       inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "outcome"]);
@@ -387,6 +406,20 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
       fields(value, name, []);
       return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Extract<CanonicalCommand, { kind: `collection${string}` }>["kind"] };
     }
+    case "Canonical.FinishReserved": case "Canonical.FinishNotices":
+    case "Canonical.FinishAllowedNoAdvice": case "Canonical.FinishAllowedDeadline":
+    case "Canonical.FinishAllowedUnavailable": case "Canonical.FinishRefused":
+    case "Canonical.FinishReleased": case "Canonical.FinishAuthorized":
+    case "Canonical.FinishEnded": case "Canonical.ContinuationConsumed":
+    case "Canonical.ContinuationRefused": {
+      const name = tag(value);
+      fields(value, name, []);
+      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as
+        "finishReserved" | "finishNotices" | "finishAllowedNoAdvice" | "finishAllowedDeadline" |
+        "finishAllowedUnavailable" | "finishRefused" | "finishReleased" | "finishAuthorized" |
+        "finishEnded" | "continuationConsumed" | "continuationRefused" };
+    }
+    case "Canonical.FinishRecorded": return { kind: "finishRecorded", outcome: writeOutcome(fields(value, "Canonical.FinishRecorded", ["outcome"]).outcome) };
     case "Canonical.WriteAuthorized": return { kind: "writeAuthorized", operation: nat(fields(value, "Canonical.WriteAuthorized", ["operation"]).operation, true) };
     case "Canonical.WriteRecorded": return { kind: "writeRecorded", outcome: writeOutcome(fields(value, "Canonical.WriteRecorded", ["outcome"]).outcome) };
     case "Canonical.WaitForOutput": fields(value, "Canonical.WaitForOutput", []); return { kind: "waitForOutput" };
@@ -407,6 +440,7 @@ export type CanonicalProjection = {
   readonly work: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly reservation: number; readonly parent: number; readonly kind: "sourceQueued" | "sourceReading" | "preparing" | "reviewing" | "atJev" | "pendingFinding" }[];
   readonly dispatch: { readonly pending: readonly DispatchEntry[]; readonly active: readonly DispatchEntry[]; readonly running: readonly DispatchEntry[]; readonly nextSequence: number; readonly cycle: number; readonly closed: boolean };
   readonly collection: { readonly ready: readonly number[]; readonly leases: readonly { readonly advice: number; readonly owner: number }[]; readonly claims: readonly { readonly group: number; readonly owner: number }[] };
+  readonly delivery: { readonly slots: readonly { readonly group: number; readonly round: number; readonly attempt: number; readonly token: number; readonly selected: readonly number[]; readonly phase: "reserved" | "authorized" | "submitted" | "failed" | "uncertain" }[]; readonly counters: readonly { readonly group: number; readonly round: number; readonly used: number }[] };
 };
 type DispatchEntry = { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly sequence: number; readonly cycle: number; readonly cancelled: boolean };
 const known = new WeakSet<object>();
@@ -424,7 +458,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
     running: readList(rawDispatch.running, dispatchEntry), nextSequence: nat(rawDispatch.next_sequence),
     cycle: nat(rawDispatch.cycle), closed: bool(rawDispatch.closed) };
   const dispatchEntries = [...dispatch.pending, ...dispatch.active, ...dispatch.running];
-  const collectionState = fields(s.collection, "CollectionState.State", ["ready", "leases", "claims"]);
+  const collectionState = fields(s.collection, "CollectionState.State", ["ready", "leases", "claims", "delivery"]);
   const collection = {
     ready: readList(collectionState.ready, (id) => nat(id, true)),
     leases: readList(collectionState.leases, (value) => {
@@ -442,6 +476,24 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
       new Set(collection.claims.map((item) => item.group)).size !== collection.claims.length) {
     throw new TypeError("inconsistent canonical collection state");
   }
+  const deliveryState = fields(collectionState.delivery, "DeliveryState.State", ["slots", "counters"]);
+  const delivery = {
+    slots: readList(deliveryState.slots, (value) => {
+      const item = fields(value, "DeliveryState.Slot", ["group", "round", "attempt", "token", "selected", "phase"]);
+      const phase = tag(item.phase).slice("DeliveryState.".length).toLowerCase();
+      if (!["reserved", "authorized", "submitted", "failed", "uncertain"].includes(phase)) throw new TypeError("invalid canonical delivery phase");
+      return { group: nat(item.group, true), round: nat(item.round, true), attempt: nat(item.attempt, true),
+        token: nat(item.token, true), selected: readList(item.selected, (id) => nat(id, true)),
+        phase: phase as "reserved" | "authorized" | "submitted" | "failed" | "uncertain" };
+    }),
+    counters: readList(deliveryState.counters, (value) => {
+      const item = fields(value, "DeliveryState.Counter", ["group", "round", "used"]);
+      return { group: nat(item.group, true), round: nat(item.round, true), used: nat(item.used) };
+    }),
+  };
+  if (new Set(delivery.slots.map((item) => item.group)).size !== delivery.slots.length ||
+      new Set(delivery.counters.map((item) => `${item.group}:${item.round}`)).size !== delivery.counters.length ||
+      delivery.counters.some((item) => item.used > 4)) throw new TypeError("inconsistent canonical delivery state");
   if (dispatch.running.length > 2 || new Set(dispatchEntries.map((x) => x.operation)).size !== dispatchEntries.length ||
       new Set(dispatchEntries.map((x) => x.sequence)).size !== dispatchEntries.length ||
       dispatchEntries.some((x) => x.sequence >= dispatch.nextSequence || x.cycle > dispatch.cycle) ||
@@ -540,7 +592,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
   return { global,
     limits: { globalItems: nat(limits.global_items, true), globalBytes: nat(limits.global_bytes, true),
       partitionItems: nat(limits.partition_items, true), partitionBytes: nat(limits.partition_bytes, true) },
-    partitions, charges, inventory, rounds, admissions, work, dispatch, collection };
+    partitions, charges, inventory, rounds, admissions, work, dispatch, collection, delivery };
 };
 export const initialCanonical = (limits: { readonly globalItems: number; readonly globalBytes: number; readonly partitionItems: number; readonly partitionBytes: number }): unknown => {
   const values = Object.values(limits);
