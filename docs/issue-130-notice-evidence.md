@@ -1,5 +1,11 @@
 # #130 canonical operational notice evidence
 
+**Purpose:** Record the implementation boundary and validation evidence for #130.
+**Status:** Integrated #130 implementation checkpoint; evidence is scoped to the runs and fixtures recorded below.
+**Authority:** Implementation or validation evidence; this report does not amend accepted product behavior.
+**Expected use:** Support #130 acceptance and the #137 source-linked authority review.
+**Lifecycle:** Temporary. Review at #130 acceptance and again during #137. Once #137 incorporates the necessary boundary conclusions, exceptions, and validation limitations into its final authority report, consolidate those conclusions there, move any accepted product decision to its contract owner, update inbound links, and delete this snapshot. Keep executable traces and checks in their native artifacts.
+
 `Canonical.step` now retains numeric notice keys, pending notice identities,
 suppression counts, lease state, delivery group, and order. It decides whether a
 failure is suppressed, creates a new key or pending notice, merges an unleased

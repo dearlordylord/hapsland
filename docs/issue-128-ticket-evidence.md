@@ -1,5 +1,11 @@
 # #128 canonical ticket settlement evidence
 
+**Purpose:** Record the implementation boundary and validation evidence for #128.
+**Status:** Integrated #128 implementation checkpoint; evidence is scoped to the runs and fixtures recorded below.
+**Authority:** Implementation or validation evidence; this report does not amend accepted product behavior.
+**Expected use:** Support #128 acceptance and the #137 source-linked authority review.
+**Lifecycle:** Temporary. Review at #128 acceptance and again during #137. Once #137 incorporates the necessary boundary conclusions, exceptions, and validation limitations into its final authority report, consolidate those conclusions there, move any accepted product decision to its contract owner, update inbound links, and delete this snapshot. Keep executable traces and checks in their native artifacts.
+
 `Canonical.step` now retains the source-free phase of each ticket, the ordered
 units and their pending, clear, finding, delivered, or unavailable stages, and
 the first retained failure reason. Native ticket and unit objects keep only

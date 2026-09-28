@@ -1,5 +1,11 @@
 # Bend2 full-flow implementation report
 
+**Purpose:** Record the pre-#116 generated-policy migration checkpoint and its bounded validation.
+**Status:** Historical checkpoint predating the canonical #116 migration; statements below describe that checkpoint, not the latest integrated authority boundary.
+**Authority:** Implementation or validation evidence.
+**Expected use:** Supply historical boundary and evidence context for #117/#118 and the #137 final authority review.
+**Lifecycle:** Temporary. Retain until the #137 final source-linked authority report replaces the useful content. At that gate, consolidate current boundary conclusions and relevant validation limitations into that report, transfer any accepted contract decision to its specification owner, update inbound links, and delete this snapshot. Commit and test chronology remains in Git history.
+
 **Status (2026-09-27): complete for the chosen pure-policy boundary.** Generated
 Bend2 code is the source of truth for Hapsland's material review-flow decisions.
 TypeScript still owns agent-runtime I/O, source capture, clocks, identity

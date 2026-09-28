@@ -1,5 +1,11 @@
 # Hapsland dashboard rules
 
+**Purpose:** Define the dashboard projection boundary and evidence requirements.
+**Status:** Active dashboard development rules.
+**Authority:** Maintained guidance implementing the accepted #116 production-authority constraint.
+**Expected use:** Assess visualization changes for decision ownership, source-free inputs, and truthful coverage claims.
+**Lifecycle:** Maintained with accepted visualization-boundary decisions and projection checks. Review whenever a new interactive control, transition family, native fact, or evidence claim is introduced, and at #137 final authority reconciliation.
+
 The dashboard is a **projection of compiled Bend transitions**. It contains no
 Hapsland decision backbone. `Canonical.step` drives the production decision
 replay through the same checked adapter as the resident. `ImportGraph.bend`

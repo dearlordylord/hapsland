@@ -1,5 +1,11 @@
 # #122 observation and review transition evidence
 
+**Purpose:** Record the implementation boundary and validation evidence for #122.
+**Status:** Integrated #122 implementation checkpoint; evidence is scoped to the runs and fixtures recorded below.
+**Authority:** Implementation or validation evidence; this report does not amend accepted product behavior.
+**Expected use:** Support #122 acceptance and the #137 source-linked authority review.
+**Lifecycle:** Temporary. Review at #122 acceptance and again during #137. Once #137 incorporates the necessary boundary conclusions, exceptions, and validation limitations into its final authority report, consolidate those conclusions there, move any accepted product decision to its contract owner, update inbound links, and delete this snapshot. Keep executable traces and checks in their native artifacts.
+
 The resident admits each source observation through `Canonical.step`, then
 returns measured source and prepared unit facts to the same state. A source can
 yield no units or several units. Each prepared unit receives a canonical

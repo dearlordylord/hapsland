@@ -1,5 +1,11 @@
 # #141: Bend import-graph state machine
 
+**Purpose:** Explain the #141 Bend import traversal model and its separate dashboard diagram.
+**Status:** Reviewed source-free model checkpoint; native cross-file integration remains with #138 and bounded generalization with #142.
+**Authority:** Design proposal and implementation or validation evidence; accepted behavior is owned by the #93/#96 contracts.
+**Expected use:** Inspect graph decisions and the model/native boundary when integrating and reviewing cross-file support.
+**Lifecycle:** Temporary. Review during #137 final authority review and at #138 production adoption; #142 owns later configurable-limit and general-proof review. At #138 acceptance, consolidate adopted boundary guidance into packages/agent-flow-bend/README.md and accepted decisions into the #93/#96 contract owners, carry unresolved #142 obligations to its issue, update inbound links, and delete this model checkpoint. Preserve executable Bend, traces, and the diagram implementation in their native formats.
+
 Status: Bend-first policy definition and separate dashboard diagram for review. This is a source-free model and checked adapter, **not** an installed cross-file reader or a Jev request path. [#117 authority audit](bend-logic-authority-map.md) and [#118 requirements crosswalk](bend-requirements-crosswalk.md) precede it. The target behavior comes from the [amended #93 specification](issue-93-type-function-review-spec.md) and [#138 integration task](https://github.com/dearlordylord/hapsland/issues/138).
 
 [`ImportGraph.bend`](../packages/agent-flow-bend/ImportGraph.bend) defines one unit's pending edges, visited declaration IDs, phase, source-free counters, and terminal result. [`import-graph-adapter.ts`](../packages/agent-flow-bend/import-graph-adapter.ts) validates the compiled constructors and is the shared entry point for the [separate dashboard view](../packages/agent-flow-viz/src/import-graph-view.ts). Production adoption in #133/#138 will use this boundary within the #119 canonical transition rather than calling generated graph JavaScript directly. The existing full-flow page remains the abstract `Flow.step` replay until #135.

@@ -1,5 +1,11 @@
 # #129 canonical evaluation reuse and successful cache evidence
 
+**Purpose:** Record the implementation boundary and validation evidence for #129.
+**Status:** Integrated #129 implementation checkpoint; evidence is scoped to the runs and fixtures recorded below.
+**Authority:** Implementation or validation evidence; this report does not amend accepted product behavior.
+**Expected use:** Support #129 acceptance and the #137 source-linked authority review.
+**Lifecycle:** Temporary. Review at #129 acceptance and again during #137. Once #137 incorporates the necessary boundary conclusions, exceptions, and validation limitations into its final authority report, consolidate those conclusions there, move any accepted product decision to its contract owner, update inbound links, and delete this snapshot. Keep executable traces and checks in their native artifacts.
+
 `Canonical.step` now retains numeric evaluation claims, attachment state, and
 successful cache entries in oldest-first order. One route event gives live
 advice priority, then attached evaluation, bare claim, successful cache, and a

@@ -1,5 +1,11 @@
 # Hapsland production decision visualization
 
+**Purpose:** Explain the production decision visualization and how to build and inspect it.
+**Status:** Active visualization documentation.
+**Authority:** Maintained guidance.
+**Expected use:** Run the dashboard and understand the scope of guided/manual replay and its evidence.
+**Lifecycle:** Maintained alongside visualization source, fixtures, and build commands. Review whenever the shared adapter, page sections, replay behavior, or capacity projection changes, and at #137 final authority review.
+
 This page replays source-free example events through the same checked
 `src/canonical/adapter.ts` and compiled `Canonical.step` used by the resident.
 The main flow identifies native observations and effects, Bend decisions,
@@ -12,6 +18,8 @@ ledger, a preparation release followed by accepted → refused → accepted unit
 admission, a duplicate event rejection, purpose changes, and exact releases.
 Six further sequences cover work, Stop, uncertain output, deadline cancellation,
 and lifetime retirement.
+These finite source-free traces check the page projection and canonical decisions;
+installed host behavior requires separate runtime evidence.
 Manual input accepts one source-free canonical event as JSON. Guided and manual
 events use the same adapter. Rewind, redo, and history jumps replay every event
 from the checked initial state; rejected Bend events remain in the history with

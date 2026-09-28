@@ -1,5 +1,11 @@
 # #124 canonical Stop decision evidence
 
+**Purpose:** Record the implementation boundary and validation evidence for #124.
+**Status:** Integrated #124 implementation checkpoint; evidence is scoped to the runs and fixtures recorded below.
+**Authority:** Implementation or validation evidence; this report does not amend accepted product behavior.
+**Expected use:** Support #124 acceptance and the #137 source-linked authority review.
+**Lifecycle:** Temporary. Review at #124 acceptance and again during #137. Once #137 incorporates the necessary boundary conclusions, exceptions, and validation limitations into its final authority report, consolidate those conclusions there, move any accepted product decision to its contract owner, update inbound links, and delete this snapshot. Keep executable traces and checks in their native artifacts.
+
 `Canonical.step` now decides whether a Stop attempt waits or crosses its
 deadline for an explicit group of edit partitions. The group and each edit
 partition carry exact canonical round IDs. While any source or Jev unit in

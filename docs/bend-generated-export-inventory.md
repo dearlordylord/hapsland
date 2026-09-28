@@ -1,10 +1,17 @@
 # Generated Bend export and static call inventory
 
+**Purpose:** Record static generated-export references at the #117 audit checkpoint.
+**Status:** Historical #117 source inventory; row locations and call counts are not a current runtime-coverage claim.
+**Authority:** Implementation or validation evidence.
+**Expected use:** Support #117 export/reachability review, #118 source reconciliation, and #137 retirement checks.
+**Lifecycle:** Temporary. Review at #117 acceptance and #118 reconciliation; #137 must refresh or replace the static inventory with final source-linked coverage. Once its useful ownership and exception conclusions are incorporated in the #137 final authority report, update inbound links and delete this snapshot. Executable or generated replacement inventories retain their native format.
+
 Static source inventory at the #117 audit checkpoint. A listed call is a lexical call in non-test application source; it does not prove a supported runtime witness or that every branch executes. Build generators and test scripts are excluded. Installed-host reachability is classified in the [authority map](bend-logic-authority-map.md).
 
 The two direct `bendRevision*` server calls listed below are historical: #127
 replaced them with `Canonical.step` revision events. The row positions remain
-the #117 snapshot, not current source locations.
+the #117 snapshot, not current source locations. Links to removed artifacts are
+pinned to the inventory checkpoint so they remain historical evidence.
 
 ## Resident policy (114)
 
@@ -73,8 +80,8 @@ Generated artifact: [`src/resident/bend-policy.generated.js`](../src/resident/be
 | `bendBackgroundClaim` | [`src/resident/composed-delivery.ts` lines 85](../src/resident/composed-delivery.ts#L85) |
 | `bendBackgroundRelease` | [`src/resident/composed-delivery.ts` lines 96](../src/resident/composed-delivery.ts#L96) |
 | `bendBackgroundExpire` | [`src/resident/composed-delivery.ts` lines 740](../src/resident/composed-delivery.ts#L740) |
-| `bendNoticeDecide` | [`src/resident/operational-notice-policy.ts` lines 41](../src/resident/operational-notice-policy.ts#L41) |
-| `bendNoticeAdvance` | [`src/resident/operational-notice-policy.ts` lines 26](../src/resident/operational-notice-policy.ts#L26) |
+| `bendNoticeDecide` | [`src/resident/operational-notice-policy.ts` lines 41](https://github.com/dearlordylord/hapsland/blob/24f2762c6216a93a7f26613b79a37f1932525261/src/resident/operational-notice-policy.ts#L41) |
+| `bendNoticeAdvance` | [`src/resident/operational-notice-policy.ts` lines 26](https://github.com/dearlordylord/hapsland/blob/24f2762c6216a93a7f26613b79a37f1932525261/src/resident/operational-notice-policy.ts#L26) |
 | `bendNoticePrune` | [`src/resident/server.ts` lines 1370](../src/resident/server.ts#L1370) |
 | `bendCollectionOrder` | [`src/resident/collection.ts` lines 50](../src/resident/collection.ts#L50) |
 | `bendCollectionCredentialDisposition` | [`src/resident/server.ts` lines 816](../src/resident/server.ts#L816) |
@@ -142,7 +149,7 @@ against restoring the direct ledger path.
 
 ## Abstract page (3)
 
-Generated artifact: [`packages/agent-flow-bend/flow.generated.js`](../packages/agent-flow-bend/flow.generated.js).
+Generated artifact: [`packages/agent-flow-bend/flow.generated.js`](https://github.com/dearlordylord/hapsland/blob/24f2762c6216a93a7f26613b79a37f1932525261/packages/agent-flow-bend/flow.generated.js).
 
 | Export | Static non-test application calls |
 | --- | --- |

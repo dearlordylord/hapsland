@@ -1,5 +1,11 @@
 # #125 canonical collection evidence
 
+**Purpose:** Record the implementation boundary and validation evidence for #125.
+**Status:** Integrated #125 implementation checkpoint; evidence is scoped to the runs and fixtures recorded below.
+**Authority:** Implementation or validation evidence; this report does not amend accepted product behavior.
+**Expected use:** Support #125 acceptance and the #137 source-linked authority review.
+**Lifecycle:** Temporary. Review at #125 acceptance and again during #137. Once #137 incorporates the necessary boundary conclusions, exceptions, and validation limitations into its final authority report, consolidate those conclusions there, move any accepted product decision to its contract owner, update inbound links, and delete this snapshot. Keep executable traces and checks in their native artifacts.
+
 `Canonical.step` now owns collection readiness, credential disposition, candidate
 eligibility, cycle order, advice expiry, encoded output fit, exclusive advice
 leases, and background collector claims. `CollectionState.bend` retains only

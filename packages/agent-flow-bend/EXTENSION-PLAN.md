@@ -1,5 +1,11 @@
 # Bend ownership plan for Hapsland
 
+**Purpose:** Record the earlier Bend ownership design and migration assumptions for comparison during #116.
+**Status:** Historical checkpoint predating the canonical #116 migration; statements below describe that checkpoint, not the latest integrated authority boundary.
+**Authority:** Design proposal; its adopted behavior is owned by the accepted product contract.
+**Expected use:** Supply historical boundary and evidence context for #117/#118 and the #137 final authority review.
+**Lifecycle:** Temporary. Retain until the #137 final source-linked authority report replaces the useful content. At that gate, consolidate current boundary conclusions and relevant validation limitations into that report, transfer any accepted contract decision to its specification owner, update inbound links, and delete this snapshot. Commit and test chronology remains in Git history.
+
 Status: implementation plan derived from common-sense lifecycle safety, the
 sidecar, the accepted [Advicing target contract](../../docs/advicing-target-contract.md),
 and current resident behavior, in that order. The contract's historical evidence

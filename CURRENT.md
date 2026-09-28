@@ -1,5 +1,11 @@
 # Current
 
+**Purpose:** Hand off the active #116 Bend migration and its unresolved decisions.
+**Status:** Temporary migration handoff; #136 validation and #137 final authority review remain open.
+**Authority:** Implementation or validation evidence and migration coordination; accepted contracts are linked below.
+**Expected use:** Resume the integrated epic and locate its current work and acceptance gates.
+**Lifecycle:** Temporary. In #137, transfer useful current decisions and evidence into the final source-linked authority report and their accepted contract owners, update inbound links, then delete CURRENT.md before closing #137. Keep the handoff current as migration slices integrate.
+
 This is a temporary migration handoff. Delete `CURRENT.md` in #137 after the
 final source-linked authority report replaces it; do not publish it as a
 permanent product document.
@@ -125,9 +131,9 @@ fixture. Six source-free traces cover competing advicees, zero/many units,
 pending Stop, unknown output, deadline cleanup, and lifetime retirement. The
 many-unit trace now checks accepted → refused → accepted; a refusal does not
 stop later units. Shared and advicee capacity totals in the checked projection
-come from compiled Bend functions. The proposed full-flow display and the
-still-needed per-unit Bend output are in
-[`docs/capacity-dashboard-plan.md`](docs/capacity-dashboard-plan.md).
+come from compiled Bend functions. The later #135 implementation and its
+checked capacity display are recorded in
+[`docs/issue-135-visualization-evidence.md`](docs/issue-135-visualization-evidence.md).
 `npm run test:canonical`, adapter typecheck, and the repository `npm test`
 passed before merge. The repository run passed 65 test files and 578 tests,
 with one file and two tests skipped. `npm run test:import-graph` and the

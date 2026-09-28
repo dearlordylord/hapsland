@@ -1,5 +1,11 @@
 # #132 canonical configuration and file admission evidence
 
+**Purpose:** Record the implementation boundary and validation evidence for #132.
+**Status:** Integrated #132 implementation checkpoint; evidence is scoped to the runs and fixtures recorded below.
+**Authority:** Implementation or validation evidence; this report does not amend accepted product behavior.
+**Expected use:** Support #132 acceptance and the #137 source-linked authority review.
+**Lifecycle:** Temporary. Review at #132 acceptance and again during #137. Once #137 incorporates the necessary boundary conclusions, exceptions, and validation limitations into its final authority report, consolidate those conclusions there, move any accepted product decision to its contract owner, update inbound links, and delete this snapshot. Keep executable traces and checks in their native artifacts.
+
 Hapsland now derives effective include precedence, file selection, and review
 admission through `Canonical.step` and `Configuration.bend`. TypeScript parses
 settings, measures Git and physical path facts, matches globs, and resolves the

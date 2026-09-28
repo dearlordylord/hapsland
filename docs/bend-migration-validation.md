@@ -1,5 +1,11 @@
 # Bend migration validation
 
+**Purpose:** Record checks performed at the pre-#116 generated-policy migration checkpoint.
+**Status:** Historical checkpoint predating the canonical #116 migration; statements below describe that checkpoint, not the latest integrated authority boundary.
+**Authority:** Implementation or validation evidence.
+**Expected use:** Supply historical boundary and evidence context for #117/#118 and the #137 final authority review.
+**Lifecycle:** Temporary. Retain until the #137 final source-linked authority report replaces the useful content. At that gate, consolidate current boundary conclusions and relevant validation limitations into that report, transfer any accepted contract decision to its specification owner, update inbound links, and delete this snapshot. Commit and test chronology remains in Git history.
+
 This records source-free local verification for the generated Bend boundaries.
 The resident uses generated Bend at admission, work, round, selection, lease,
 capacity, and finish-wait barriers. The aggregate generated `Lifecycle` reducer

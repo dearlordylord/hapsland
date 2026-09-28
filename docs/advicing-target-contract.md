@@ -1,5 +1,11 @@
 # Advicing target contract
 
+**Purpose:** Define accepted Hapsland behavior at the agent-runtime boundary.
+**Status:** Accepted target; implementation and installed support are separately evidenced.
+**Authority:** Accepted product contract.
+**Expected use:** Resolve intended behavior and assess implementation against the accepted advice, work, and delivery contract.
+**Lifecycle:** Maintained through explicit accepted behavior amendments. Review whenever an owner changes advicee identity, admission, review, delivery, or finish semantics, and at #137 final authority reconciliation; update linked implementation/support evidence without treating it as a contract amendment.
+
 **Status: accepted target behavior, not an implementation or support claim.** This
 document says what Hapsland must do at the agent-runtime boundary. The candidate
 production path implements parts of it; the [implementation and evidence
@@ -203,14 +209,14 @@ is promised across repeated restarts. Old work and leases are lost, and old
 lifetime IPC is rejected. Fresh events first seen after restart have an
 explicit attribution limitation rather than assumed old-round history.
 
-The [sidecar reducer](../packages/agent-flow-viz/README.md) models the
-all-unfinished-work finish rule and logical cancellation in one-agent state.
-The [Bend reducer](../packages/agent-flow-bend/README.md) now matches the
-sidecar reducer on its state, decisions, and ordered changes, with focused laws
-for selected transitions. Neither establishes production/native hook behavior. The production candidate now implements the all-work/deadline
-finish decision in the shared resident. That implementation has its own
+The [canonical Bend transition](../packages/agent-flow-bend/README.md) models
+the resident's Stop wait, cutoff, cancellation IDs, and output decisions. The
+[visualization](../packages/agent-flow-viz/README.md) replays that checked
+transition from source-free examples; it does not establish native hook behavior.
+The resident implements the all-work/deadline finish decision. Its earlier
+implementation has a
 [contract and Linux validation record](https://github.com/dearlordylord/hapsland/blob/6d6f1617c1942faa56e39781684bf0e6c78f62f5/evidence/advicing-linux/finish-decision-linux.md);
-it does not import the sidecar or Bend reducer into production.
+the current resident calls the checked canonical adapter at decision barriers.
 Native scheduling, actual runtime visibility, and physical cancellation require
 separate evidence; see the [Linux evidence index](https://github.com/dearlordylord/hapsland/blob/6d6f1617c1942faa56e39781684bf0e6c78f62f5/evidence/advicing-linux/README.md).
 Owner visual review and Linux adoption were accepted on 2026-09-27 within the

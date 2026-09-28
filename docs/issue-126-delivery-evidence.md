@@ -1,5 +1,11 @@
 # #126 canonical delivery evidence
 
+**Purpose:** Record the implementation boundary and validation evidence for #126.
+**Status:** Integrated #126 implementation checkpoint; evidence is scoped to the runs and fixtures recorded below.
+**Authority:** Implementation or validation evidence; this report does not amend accepted product behavior.
+**Expected use:** Support #126 acceptance and the #137 source-linked authority review.
+**Lifecycle:** Temporary. Review at #126 acceptance and again during #137. Once #137 incorporates the necessary boundary conclusions, exceptions, and validation limitations into its final authority report, consolidate those conclusions there, move any accepted product decision to its contract owner, update inbound links, and delete this snapshot. Keep executable traces and checks in their native artifacts.
+
 `Canonical.step` retains the selected Stop output slot, exact work operation
 identities and finding counts, authorization phase, terminal result, and
 continuation count. The submission batches also retain ordered numeric work
