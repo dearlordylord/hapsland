@@ -22,7 +22,12 @@ expectations for zero, one, and multiple units, exact parent/operation IDs,
 wrong lifetime and round, duplicate completion, stale finding retirement,
 unavailable work, and queued discard. The resident server tests use temporary
 source files, controlled offline Jev answers, synthetic host and IPC events,
-and callback order gates. The boundary guard prevents the direct prepared,
+and callback order gates. `server.test.ts` verifies one observation fan-outs to
+two independently retained results with a fake clock, controlled Jev answers,
+and temporary source files; the delivery-lease test holds a running unit at a
+callback gate while queued units are discarded by a synthetic Stop/deadline
+event. The unavailable path requires canonical completion before publishing
+failure effects. The boundary guard prevents the direct prepared,
 empty, evaluation, and failure policy wrappers from returning to the resident.
 
 `StaleOperation` covers both a duplicate notification for an already completed

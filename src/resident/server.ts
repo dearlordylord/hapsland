@@ -2303,8 +2303,10 @@ export class ResidentServer {
       }
       const failure = this.#ledger.reviewFailure(result?.status === "backend" || result?.status === "timeout",
         result?.status === "credential", result === undefined);
-      this.#ledger.completeReview(job.partition, job.canonicalOperationId,
-        job.reservation, "unavailable");
+      if (!this.#ledger.completeReview(job.partition, job.canonicalOperationId,
+        job.reservation, "unavailable")) {
+        return;
+      }
       if (failure === "failureBackend") {
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "backend");
         this.#settleJoined(job.evaluationKey, "unavailable", "backend");

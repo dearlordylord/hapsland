@@ -90,6 +90,31 @@ const waitUntilIdle = async (server: ResidentServer): Promise<void> => {
 };
 
 describe("canonical resident capacity", () => {
+  it("fans one observation into two charged review outcomes under a fake clock", async () => {
+    const root = await makeGitFixture();
+    await put(root, "first.ts", "type FirstCount = number\n");
+    await put(root, "second.ts", "type SecondCount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root,
+      ["first.ts", "second.ts"])));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    let clock = 100;
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock);
+    try {
+      expect(server.admit(observation, allFindingsDispatch(statePath)).status).toBe("accepted");
+      clock = 101;
+      await server.whenIdle();
+      expect(server.pendingAdviceMetadata().map((item) => item.path).sort())
+        .toEqual(["first.ts", "second.ts"]);
+      expect(server.stats().retainedBytes).toBeGreaterThan(0);
+      expect(server.stats().rejectedCapacity).toBe(0);
+    } finally {
+      await server.close();
+    }
+    expect(server.stats().retainedBytes).toBe(0);
+  });
+
   it("keeps two advicees in one shared capacity ledger through preparation and cleanup", async () => {
     const root = await makeGitFixture();
     await put(root, "agent-a.ts", "type AgentACount = number\n");
