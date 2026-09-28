@@ -1409,11 +1409,11 @@ law ledger_clear_keeps_monotonic_reservation_ids:
     Ledger.Ledger{small_limits(), 2n, Nil{}} : Ledger.Ledger}
 
 law privacy_protection_precedes_generated_and_kind:
-  {Configuration.protection(True{}, True{}, True{}, False{}) ==
+  {Configuration.protection(True{}, True{}, False{}) ==
     Configuration.SensitivePath{} : Configuration.Protection}
 
 law generated_protection_precedes_kind:
-  {Configuration.protection(False{}, False{}, True{}, False{}) ==
+  {Configuration.protection(False{}, True{}, False{}) ==
     Configuration.GeneratedOrVendor{} : Configuration.Protection}
 
 law git_admin_precedes_file_kind_and_ignore:

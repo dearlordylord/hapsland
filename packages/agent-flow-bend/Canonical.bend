@@ -174,7 +174,7 @@ type CanonicalEvent is Data:
     includes_empty: Bool, included: Bool}
   FileProtectionInvalid{}
   FileProtectionCheck{sensitive_name: Bool,
-    generated_name: Bool, generated_segment: Bool, allowed_extension: Bool}
+    generated_or_vendor: Bool, allowed_extension: Bool}
   CandidateFileCheck{git_admin: Bool, physical_safe: Bool, git_allowed: Bool}
   ReviewAdmissionCheck{root_valid: Bool, configuration_valid: Bool,
     credential_ready: Bool, selected: Bool}
@@ -2643,10 +2643,9 @@ def step(+state: State, event: CanonicalEvent) -> Step:
         includes_empty, included)} <> Nil{}}
     case FileProtectionInvalid{}:
       Advanced{state, FileProtection{Configuration.RepositoryBoundary{}} <> Nil{}}
-    case FileProtectionCheck{sensitive_name, generated_name,
-        generated_segment, allowed_extension}:
+    case FileProtectionCheck{sensitive_name, generated_or_vendor, allowed_extension}:
       Advanced{state, FileProtection{Configuration.protection(sensitive_name,
-        generated_name, generated_segment,
+        generated_or_vendor,
         allowed_extension)} <> Nil{}}
     case CandidateFileCheck{git_admin, physical_safe, git_allowed}:
       Advanced{state, CandidateFile{Configuration.candidate(git_admin,

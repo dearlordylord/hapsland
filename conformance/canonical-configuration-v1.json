@@ -30,10 +30,10 @@
     ] },
     { "name": "protection priority is boundary privacy generated kind", "events": [
       { "kind": "fileProtectionInvalid", "expect": "fileProtection:repositoryBoundary" },
-      { "kind": "fileProtectionCheck", "sensitiveName": true, "generatedName": true, "generatedSegment": true, "allowedExtension": false, "expect": "fileProtection:sensitivePath" },
-      { "kind": "fileProtectionCheck", "sensitiveName": false, "generatedName": true, "generatedSegment": false, "allowedExtension": false, "expect": "fileProtection:generatedOrVendor" },
-      { "kind": "fileProtectionCheck", "sensitiveName": false, "generatedName": false, "generatedSegment": false, "allowedExtension": false, "expect": "fileProtection:fileExtension" },
-      { "kind": "fileProtectionCheck", "sensitiveName": false, "generatedName": false, "generatedSegment": false, "allowedExtension": true, "expect": "fileProtection:allowedPath" }
+      { "kind": "fileProtectionCheck", "sensitiveName": true, "generatedOrVendor": true, "allowedExtension": false, "expect": "fileProtection:sensitivePath" },
+      { "kind": "fileProtectionCheck", "sensitiveName": false, "generatedOrVendor": true, "allowedExtension": false, "expect": "fileProtection:generatedOrVendor" },
+      { "kind": "fileProtectionCheck", "sensitiveName": false, "generatedOrVendor": false, "allowedExtension": false, "expect": "fileProtection:fileExtension" },
+      { "kind": "fileProtectionCheck", "sensitiveName": false, "generatedOrVendor": false, "allowedExtension": true, "expect": "fileProtection:allowedPath" }
     ] },
     { "name": "candidate file rejects admin before physical and ignore", "events": [
       { "kind": "candidateFileCheck", "gitAdmin": true, "physicalSafe": false, "gitAllowed": false, "expect": "candidateFile:refuseGitAdmin" },

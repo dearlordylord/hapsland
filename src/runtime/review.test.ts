@@ -95,6 +95,21 @@ describe("review orchestration", () => {
         Effect.provide(Layer.mergeAll(noRead, DedupeStore.testLayer, backend)),
       );
       expect(result.results[0]).toMatchObject({ status: "skipped", code: "excluded" });
+      const unscoped = yield* review(request(root), { _tag: "unscoped" }).pipe(
+        Effect.provide(Layer.mergeAll(noRead, DedupeStore.testLayer, backend)),
+      );
+      expect(unscoped.results[0]).toMatchObject({ status: "skipped", code: "excluded" });
+      const priorPath = process.env.PATH;
+      try {
+        process.env.PATH = "";
+        const unavailable = yield* review(request(root), { _tag: "unscoped" }).pipe(
+          Effect.provide(Layer.mergeAll(noRead, DedupeStore.testLayer, backend)),
+        );
+        expect(unavailable.results[0]).toMatchObject({ status: "unavailable", code: "invalid_configuration" });
+      } finally {
+        if (priorPath === undefined) delete process.env.PATH;
+        else process.env.PATH = priorPath;
+      }
     })),
   );
 

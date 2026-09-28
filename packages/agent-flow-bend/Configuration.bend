@@ -47,10 +47,9 @@ def select(protected: Bool, excluded: Bool, includes_empty: Bool,
         Bool.pick(Selection, included, Selected{}, NotIncluded{}))))
 
 def protection(sensitive_name: Bool,
-    generated_name: Bool, generated_segment: Bool,
-    allowed_extension: Bool) -> Protection:
+    generated_or_vendor: Bool, allowed_extension: Bool) -> Protection:
   Bool.pick(Protection, sensitive_name, SensitivePath{},
-      Bool.pick(Protection, Bool.or(generated_name, generated_segment),
+      Bool.pick(Protection, generated_or_vendor,
         GeneratedOrVendor{},
         Bool.pick(Protection, Bool.not(allowed_extension), FileExtension{},
           AllowedPath{})))

@@ -38,7 +38,7 @@ export const protectedPathReason = (path: string): ProtectedGate | undefined => 
   const protection = observed.kind === "invalid"
     ? classifyFileProtection({ kind: "invalid" })
     : classifyFileProtection({ kind: "valid", sensitiveName: observed.sensitiveName,
-      generatedName: observed.generatedName, generatedSegment: observed.generatedSegment,
+      generatedOrVendor: observed.generatedOrVendor,
       allowedExtension: observed.allowedExtension });
   switch (protection) {
     case "allowedPath": return undefined;

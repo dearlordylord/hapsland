@@ -17,6 +17,7 @@ import {
   type EvaluatedUnit,
   type Finding,
   type PreparedObservation,
+  type DirectReviewContext,
   type RevalidationResult,
 } from "../direct-event/pipeline.ts";
 import { verifyObservationRoot } from "../direct-event/adapter.ts";
@@ -540,6 +541,7 @@ export class ResidentServer {
   readonly #beforeRevalidate: ((adviceId: string) => Promise<void>) | undefined;
   readonly #afterPrepare: (() => Promise<void>) | undefined;
   readonly #beforeEvaluate: ((prepared: PreparedUnit) => Promise<void>) | undefined;
+  readonly #captureSource: DirectReviewContext["captureSource"];
   readonly #afterRevalidationWorkspaceReserved: ((adviceId: string) => Promise<void>) | undefined;
   readonly #afterAdvicePending: ((adviceId: string) => Promise<void> | void) | undefined;
   readonly #afterReuseBoundary: ((phase: "ownerClaimed" | "claimJoined") => Promise<void> | void) | undefined;
@@ -559,6 +561,8 @@ export class ResidentServer {
       readonly beforeRevalidate?: (adviceId: string) => Promise<void>;
       readonly afterPrepare?: () => Promise<void>;
       readonly beforeEvaluate?: (prepared: PreparedUnit) => Promise<void>;
+      /** Fixture-only source effect; never supplied by resident IPC. */
+      readonly captureSource?: DirectReviewContext["captureSource"];
       readonly afterRevalidationWorkspaceReserved?: (adviceId: string) => Promise<void>;
       readonly afterAdvicePending?: (adviceId: string) => Promise<void> | void;
       /** Fixture-only callback-order gate for evaluation reuse. */
@@ -594,6 +598,7 @@ export class ResidentServer {
     this.#beforeRevalidate = options.beforeRevalidate;
     this.#afterPrepare = options.afterPrepare;
     this.#beforeEvaluate = options.beforeEvaluate;
+    this.#captureSource = options.captureSource;
     this.#afterRevalidationWorkspaceReserved = options.afterRevalidationWorkspaceReserved;
     this.#afterAdvicePending = options.afterAdvicePending;
     this.#afterReuseBoundary = options.afterReuseBoundary;
@@ -2058,6 +2063,7 @@ export class ResidentServer {
               controlledWriter: true,
               advicee: pathObservation.advicee,
               settings,
+              ...(server.#captureSource === undefined ? {} : { captureSource: server.#captureSource }),
               beforeAnalyze: (path, sourceBytes, preflight) => Effect.sync(() => {
                 const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules);
                 const resized = server.#ledger.resize(workspace, required);

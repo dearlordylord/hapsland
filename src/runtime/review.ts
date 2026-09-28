@@ -8,7 +8,7 @@ import type {
   ReviewResult,
   SnapshotRef,
 } from "../domain/contracts.ts";
-import { discoverWorkingTreeRoot, rootRelativePath } from "../repository/root.ts";
+import { discoverWorkingTreeRoot, hasGitMetadata, rootRelativePath } from "../repository/root.ts";
 import { eligibleNamedPath } from "../direct-event/selection.ts";
 import type { Consent } from "./consent.ts";
 import type { ReviewSettings } from "./review-config.ts";
@@ -159,23 +159,28 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
     code: "invalid_configuration" as const,
   };
 
-  if (context._tag === "authorized") {
-    const workingTree = yield* discoverWorkingTreeRoot(context.root).pipe(Effect.option);
-    if (Option.isSome(workingTree)) {
-      const candidate = yield* eligibleNamedPath(context.root, relativePath);
-      if (candidate === undefined) return {
-        status: "skipped" as const,
-        path: relativePath,
-        reason: "file is ignored by Git or is not a safe regular path",
-        code: "excluded" as const,
-      };
-    }
+  const readRoot = context._tag === "authorized" ? context.root : request.event.cwd;
+  const workingTree = yield* discoverWorkingTreeRoot(readRoot).pipe(Effect.option);
+  if (Option.isNone(workingTree) && hasGitMetadata(readRoot)) return {
+    status: "unavailable" as const,
+    path: relativePath,
+    reason: "Git eligibility is unavailable before source read",
+    retryable: true,
+    code: "invalid_configuration" as const,
+  };
+  if (Option.isSome(workingTree)) {
+    const candidate = yield* eligibleNamedPath(readRoot, relativePath);
+    if (candidate === undefined) return {
+      status: "skipped" as const,
+      path: relativePath,
+      reason: "file is ignored by Git or is not a safe regular path",
+      code: "excluded" as const,
+    };
   }
 
   const snapshots = yield* SnapshotReader.Service;
   const backend = yield* ReviewBackend.Service;
   const dedupe = yield* DedupeStore.Service;
-  const readRoot = context._tag === "authorized" ? context.root : request.event.cwd;
   const initial = yield* snapshots.read(readRoot, relativePath).pipe(Effect.option);
   if (Option.isNone(initial)) {
     return {

@@ -21,8 +21,8 @@ export const pathFacts = (path: string) => {
     kind: "valid" as const,
     normalized,
     sensitiveName: sensitiveNames.test(normalized),
-    generatedName: generatedNames.test(normalized),
-    generatedSegment: normalized.split("/").some((segment) => generatedSegments.has(segment)),
+    generatedOrVendor: generatedNames.test(normalized) ||
+      normalized.split("/").some((segment) => generatedSegments.has(segment)),
     allowedExtension: reviewableExtensions.has(extname(normalized).toLowerCase()),
   };
 };

@@ -137,7 +137,7 @@ export type CanonicalEvent =
   | { readonly kind: "includeLayerCheck"; readonly supplied: boolean; readonly currentRank: number; readonly candidateRank: number }
   | { readonly kind: "fileSelectionCheck"; readonly protected: boolean; readonly excluded: boolean; readonly includesEmpty: boolean; readonly included: boolean }
   | { readonly kind: "fileProtectionInvalid" }
-  | { readonly kind: "fileProtectionCheck"; readonly sensitiveName: boolean; readonly generatedName: boolean; readonly generatedSegment: boolean; readonly allowedExtension: boolean }
+  | { readonly kind: "fileProtectionCheck"; readonly sensitiveName: boolean; readonly generatedOrVendor: boolean; readonly allowedExtension: boolean }
   | { readonly kind: "candidateFileCheck"; readonly gitAdmin: boolean; readonly physicalSafe: boolean; readonly gitAllowed: boolean }
   | { readonly kind: "reviewAdmissionCheck"; readonly rootValid: boolean; readonly configurationValid: boolean; readonly credentialReady: boolean; readonly selected: boolean }
   | { readonly kind: "reuseRoute"; readonly id: number; readonly liveAdvice: boolean }
@@ -400,7 +400,7 @@ const encode = (event: CanonicalEvent): unknown => {
     case "includeLayerCheck": inputFields(event, ["kind", "supplied", "currentRank", "candidateRank"]); return { $: "Canonical.IncludeLayerCheck", supplied: bool(event.supplied), current_rank: nat(event.currentRank), candidate_rank: nat(event.candidateRank) };
     case "fileSelectionCheck": inputFields(event, ["kind", "protected", "excluded", "includesEmpty", "included"]); return { $: "Canonical.FileSelectionCheck", protected: bool(event.protected), excluded: bool(event.excluded), includes_empty: bool(event.includesEmpty), included: bool(event.included) };
     case "fileProtectionInvalid": inputFields(event, ["kind"]); return { $: "Canonical.FileProtectionInvalid" };
-    case "fileProtectionCheck": inputFields(event, ["kind", "sensitiveName", "generatedName", "generatedSegment", "allowedExtension"]); return { $: "Canonical.FileProtectionCheck", sensitive_name: bool(event.sensitiveName), generated_name: bool(event.generatedName), generated_segment: bool(event.generatedSegment), allowed_extension: bool(event.allowedExtension) };
+    case "fileProtectionCheck": inputFields(event, ["kind", "sensitiveName", "generatedOrVendor", "allowedExtension"]); return { $: "Canonical.FileProtectionCheck", sensitive_name: bool(event.sensitiveName), generated_or_vendor: bool(event.generatedOrVendor), allowed_extension: bool(event.allowedExtension) };
     case "candidateFileCheck": inputFields(event, ["kind", "gitAdmin", "physicalSafe", "gitAllowed"]); return { $: "Canonical.CandidateFileCheck", git_admin: bool(event.gitAdmin), physical_safe: bool(event.physicalSafe), git_allowed: bool(event.gitAllowed) };
     case "reviewAdmissionCheck": inputFields(event, ["kind", "rootValid", "configurationValid", "credentialReady", "selected"]); return { $: "Canonical.ReviewAdmissionCheck", root_valid: bool(event.rootValid), configuration_valid: bool(event.configurationValid), credential_ready: bool(event.credentialReady), selected: bool(event.selected) };
     case "reuseRoute": inputFields(event, ["kind", "id", "liveAdvice"]); return { $: "Canonical.ReuseRoute", id: nat(event.id, true), live_advice: bool(event.liveAdvice) };
