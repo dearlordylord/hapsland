@@ -8,14 +8,18 @@ import { residentPaths } from "../src/resident/paths.ts";
 
 const project = resolve(import.meta.dirname, "..");
 const key = process.env.TYPESAFE_API_KEY;
-if (!process.argv.includes("--execute-paid") || !key) throw new Error("Explicit live selection and Jev credential required");
+const offlineControl = process.argv.includes("--offline-control");
+const countFixture = process.argv.includes("--count-fixture");
+if (!offlineControl && (!process.argv.includes("--execute-paid") || !key)) {
+  throw new Error("Explicit live selection and Jev credential required");
+}
 const ceiling = 8;
 const root = mkdtempSync(join(tmpdir(), "hapsland-native-136-claude-"));
 const repo = join(root, "repo"), runtime = join(root, "resident");
 const events = join(root, "events.jsonl"), calls = join(root, "calls.jsonl");
 const activity = join(root, "activity"), observer = join(root, "observe-fetch.mjs");
 const bridge = join(root, "hook.mjs"), composedBridge = join(root, "composed-hook.mjs");
-const sourcePath = join(repo, "payment.ts");
+const sourcePath = join(repo, countFixture ? "order-count.ts" : "payment.ts");
 const claudeBinary = "/home/node/.local/share/claude/versions/2.1.218";
 const started = Date.now();
 const quote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
@@ -58,7 +62,8 @@ try {
   mkdirSync(repo);
   const init = spawnSync("git", ["init", "--quiet", "--initial-branch=main", repo], { encoding: "utf8" });
   if (init.status !== 0) throw new Error("Temporary Git repository setup failed");
-  writeFileSync(join(repo, "README.md"), "# Payment state example\nA payment is pending, succeeded with a receipt, or failed with a failure reason. Pending has neither result; success and failure are mutually exclusive.\n");
+  writeFileSync(join(repo, "README.md"), countFixture ? "# Order count example\n" :
+    "# Payment state example\nA payment is pending, succeeded with a receipt, or failed with a failure reason. Pending has neither result; success and failure are mutually exclusive.\n");
   writeFileSync(join(repo, "tsconfig.json"), JSON.stringify({ compilerOptions: { strict: true, noEmit: true, target: "ES2022", module: "NodeNext", moduleResolution: "NodeNext", types: [], skipLibCheck: true }, include: ["*.ts"] }));
   const tsc = join(project, "node_modules/typescript/bin/tsc");
   writeFileSync(join(repo, "package.json"), JSON.stringify({ private: true, scripts: { test: `${quote(process.execPath)} ${quote(tsc)} -p tsconfig.json` } }));
@@ -95,12 +100,12 @@ import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 const input=readFileSync(0,'utf8');let event;try{event=JSON.parse(input)}catch{}
 const at=Date.now();
-const result=spawnSync(process.execPath,[${JSON.stringify(join(project, "src/cli.ts"))},'--claude-hook','--controlled-writer','--composed-edit-hook'],{input,encoding:'utf8',env:process.env,timeout:30000,maxBuffer:1048576});
+const result=spawnSync(process.execPath,[${JSON.stringify(join(project, "src/cli.ts"))},'--claude-hook','--controlled-writer','--composed-edit-hook'${offlineControl ? ",'--controlled-reviewer'" : ""}],{input,encoding:'utf8',env:process.env,timeout:30000,maxBuffer:1048576});
 let out;try{out=JSON.parse(result.stdout)}catch{}
 const reason=out?.reason??out?.hookSpecificOutput?.additionalContext??'';
 const source=${JSON.stringify(sourcePath)};
 const value=existsSync(source)?readFileSync(source,'utf8'):'';
-appendFileSync(process.env.HAPSLAND_136_EVENTS,JSON.stringify({kind:'hook',at,doneAt:Date.now(),tool:event?.tool_name??'unknown',exitCode:result.status,decision:out?.decision??null,finding:(out?.decision==='block'||reason.includes('[r6_bare_domain_value, p=')||reason.includes('Hapsland found a current rule finding'))&&!reason.includes('Operational notice:'),notice:reason.includes('Operational notice:'),sourceHash:value?createHash('sha256').update(value).digest('hex'):null,sourceBytes:Buffer.byteLength(value),draft:value.includes('receipt: string | null')&&value.includes('failureReason: string | null')})+'\\n',{mode:0o600});
+appendFileSync(process.env.HAPSLAND_136_EVENTS,JSON.stringify({kind:'hook',at,doneAt:Date.now(),tool:event?.tool_name??'unknown',exitCode:result.status,decision:out?.decision??null,finding:(out?.decision==='block'||reason.includes('[r6_bare_domain_value, p=')||reason.includes('Hapsland found a current rule finding'))&&!reason.includes('Operational notice:'),notice:reason.includes('Operational notice:'),sourceHash:value?createHash('sha256').update(value).digest('hex'):null,sourceBytes:Buffer.byteLength(value),draft:${countFixture ? "value.trim()==='type OrderCount = number'" : "value.includes('receipt: string | null')&&value.includes('failureReason: string | null')"}})+'\\n',{mode:0o600});
 if(result.status===0)process.stdout.write(result.stdout??'');
 process.exitCode=result.status??1;
 `);
@@ -109,10 +114,10 @@ import {spawnSync} from 'node:child_process';
 const kind=process.argv[2];
 const input=readFileSync(0,'utf8');
 const at=Date.now();
-const result=spawnSync(process.execPath,[${JSON.stringify(join(project, "src/cli.ts"))},'--composed-'+kind+'-hook','--composed-host=claude-code'],{input,encoding:'utf8',env:process.env,timeout:30000,maxBuffer:1048576});
+const result=spawnSync(process.execPath,[${JSON.stringify(join(project, "src/cli.ts"))},'--composed-'+kind+'-hook','--composed-host=claude-code'${offlineControl ? ",'--controlled-reviewer'" : ""}],{input,encoding:'utf8',env:process.env,timeout:30000,maxBuffer:1048576});
 let output;try{output=JSON.parse(result.stdout)}catch{}
 const message=output?.reason??output?.hookSpecificOutput?.additionalContext??output?.systemMessage??'';
-appendFileSync(process.env.HAPSLAND_136_EVENTS,JSON.stringify({kind:'composed-'+kind,at,doneAt:Date.now(),exitCode:result.status,decision:output?.decision??null,finding:output?.decision==='block'||message.includes('[r6_bare_domain_value, p='),notice:message.includes('Operational notice:')})+'\\n',{mode:0o600});
+appendFileSync(process.env.HAPSLAND_136_EVENTS,JSON.stringify({kind:'composed-'+kind,at,doneAt:Date.now(),exitCode:result.status,decision:output?.decision??null,finding:output?.decision==='block'||message.includes('[r6_bare_domain_value, p='),notice:message.includes('Operational notice:'),ruleIds:[...message.matchAll(/\\[([a-z0-9_]+), p=/g)].map(match=>match[1])})+'\\n',{mode:0o600});
 if(result.status===0)process.stdout.write(result.stdout??'');
 process.exitCode=result.status??1;
 `);
@@ -129,12 +134,15 @@ process.exitCode=result.status??1;
   } }));
   const userConfigPath = join(root, "user-config.jsonc");
   writeFileSync(userConfigPath, JSON.stringify({ version: 1, claudeFeedbackMode: "block-current-findings" }));
-  const env = { ...process.env, TYPESAFE_API_KEY: key, REVIEW_RESIDENT_DIR: runtime,
+  const env = { ...process.env, ...(offlineControl ? {} : { TYPESAFE_API_KEY: key }), REVIEW_RESIDENT_DIR: runtime,
     REVIEW_ACTIVITY_PATH: activity, REVIEW_USER_CONFIG_PATH: userConfigPath,
     HAPSLAND_136_EVENTS: events, HAPSLAND_136_CALLS: calls,
     NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --import=${observer}`.trim() };
-  delete env.REVIEW_CONTROL_JSON;
-  const prompt = `Implement the payment-state example in README.md. First use the native Write tool to create payment.ts with this initial draft exactly:
+  if (offlineControl) {
+    delete env.TYPESAFE_API_KEY;
+    env.REVIEW_CONTROL_JSON = JSON.stringify({ syntheticR6BrandedRepair: "finding" });
+  } else delete env.REVIEW_CONTROL_JSON;
+  const prompt = countFixture ? `Use native Write to create order-count.ts containing exactly this one line and a final newline: type OrderCount = number. Then finish your turn immediately. Do not repair before Hapsland feedback. If an actionable Hapsland finding is returned by the Stop hook, repair the type using Edit or Write so a raw number is not assignable to OrderCount; then finish. If no finding arrives, leave the draft unchanged. Stay in this repository and do not inspect integration configuration, credentials, or environment variables. Make at most two source edits. In your final reply include HAPSLAND_ADVICE_APPLIED only if you personally received actionable Hapsland advice and changed the type because of it; otherwise include HAPSLAND_ADVICE_NOT_APPLIED. State the rule ID from the advice if you received one. Be truthful.` : `Implement the payment-state example in README.md. First use the native Write tool to create payment.ts with this initial draft exactly:
 export interface PaymentState {
   status: "pending" | "succeeded" | "failed";
   receipt: string | null;
@@ -143,15 +151,31 @@ export interface PaymentState {
 After that first Write, finish your turn immediately without running tests or making another edit. Do not repair this initial draft before Hapsland feedback. If an actionable Hapsland finding is returned by the Stop hook, repair the type using Edit or Write so invalid combinations are impossible, then run npm test and finish. If no finding arrives, leave the draft unchanged and say so truthfully. Stay in this repository; do not inspect integration configuration, credentials, or environment variables. Make at most two source edits. In your final reply state whether automated review affected the change; do not invent feedback.`;
   const host = await run(claudeBinary, ["-p", "--output-format", "stream-json", "--verbose", "--no-session-persistence",
     "--allowedTools", "Read,Edit,Write,Bash", "--permission-mode", "acceptEdits", prompt], env, repo, 240_000);
+  const finalText = host.stdout.split("\n").filter(Boolean).flatMap((line) => {
+    try {
+      const event = JSON.parse(line);
+      return event?.type === "result" && typeof event.result === "string" ? [event.result] : [];
+    } catch { return []; }
+  }).join("\n");
   const timeline = readLines(events).map((entry) => ({ ...entry, atMs: entry.at - started, at: undefined, doneAt: undefined }));
   const activityStages = stages(activity);
+  const deliveredRuleIds = [...new Set(timeline.filter((entry) => entry.finding).flatMap((entry) => entry.ruleIds ?? []))];
+  const agentAffirmsAdvice = finalText.includes("HAPSLAND_ADVICE_APPLIED");
+  const agentDeniesAdvice = finalText.includes("HAPSLAND_ADVICE_NOT_APPLIED");
+  const agentNamesDeliveredRule = deliveredRuleIds.some((ruleId) => finalText.includes(ruleId));
   const source = existsSync(sourcePath) ? readFileSync(sourcePath, "utf8") : "";
   const finding = timeline.find((entry) => entry.finding);
+  const stopFindingDelivered = timeline.some((entry) => entry.kind === "composed-stop" && entry.decision === "block" && entry.finding);
   const editedAfterFinding = !!finding && timeline.some((entry) => entry.kind === "hook" && entry.atMs > finding.atMs && !entry.draft);
+  const repairedAtMs = timeline.find((entry) => entry.kind === "hook" && entry.atMs > (finding?.atMs ?? Infinity) && !entry.draft)?.atMs;
+  const followupStage = repairedAtMs === undefined ? undefined : activityStages.find((entry) =>
+    entry.atMs > repairedAtMs && (entry.stage === "clear" || entry.stage === "findings"));
   const compile = spawnSync("npm", ["test"], { cwd: repo, env, encoding: "utf8", timeout: 30_000 });
   let invalidStatesRejected = false;
   if (source) {
-    writeFileSync(join(repo, "invalid-states.ts"), `import type { PaymentState } from './payment.js';
+    writeFileSync(join(repo, "invalid-states.ts"), countFixture ? `// @ts-expect-error a raw number is not a branded order count
+const invalid: OrderCount = 2;
+` : `import type { PaymentState } from './payment.js';
 // @ts-expect-error success requires receipt
 const missing: PaymentState = { status: 'succeeded', receipt: null, failureReason: null };
 // @ts-expect-error pending cannot contain success
@@ -170,17 +194,27 @@ const contradictory: PaymentState = { status: 'succeeded', receipt: 'r', failure
   } catch { /* native path may not start a resident */ }
   const record = { schemaVersion: 1, runtime: "Claude Code", version: spawnSync(claudeBinary, ["--version"], { encoding: "utf8" }).stdout.trim(),
     recordedAt: new Date().toISOString(), declaration: { maximumProviderRequests: ceiling, automaticRetries: 0, sessionCeilingMs: 240_000,
-      claudeFeedbackMode: "block-current-findings" },
+      claudeFeedbackMode: "block-current-findings", mode: offlineControl ? "controlled-offline" : "real-jev", fixture: countFixture ? "order-count" : "payment-state" },
     hostExitCode: host.code, hostSignal: host.signal, elapsedMs: Date.now() - started, providerRequests: readLines(calls).length,
-    timeline, activityStages, checks: { initialDraftObserved: timeline.some((entry) => entry.draft), realFindingSubmitted: !!finding,
-      editAfterFinding: editedAfterFinding, finalSourceChanged: !!source && !source.includes("receipt: string | null"),
+    timeline, activityStages, checks: { initialDraftObserved: timeline.some((entry) => entry.draft), findingSubmitted: !!finding,
+      stopFindingDelivered, editAfterFinding: editedAfterFinding, finalSourceChanged: !!source && (countFixture ? source.trim() !== "type OrderCount = number" : !source.includes("receipt: string | null")),
       validSourceCompiles: compile.status === 0, invalidStatesRejected,
-      followupClearObserved: activityStages.some((entry) => entry.stage === "clear") },
-    resident, rawHostOutputRetained: false, rawBackendMaterialRetained: false, credentialRetained: false,
+      agentAcknowledgesAdvice: agentAffirmsAdvice && !agentDeniesAdvice,
+      agentNamesDeliveredRule,
+      followupClearObserved: followupStage?.stage === "clear",
+      followupFindingObserved: followupStage?.stage === "findings" },
+    resident, visibilityBasis: agentAffirmsAdvice && !agentDeniesAdvice ? "agent-acknowledgement" :
+      countFixture && stopFindingDelivered && editedAfterFinding ? "conditional-unprescribed-repair-after-stop" : "unconfirmed",
+    acknowledgement: { agentAffirmsAdvice, agentDeniesAdvice, deliveredRuleIds, agentNamesDeliveredRule },
+    rawHostOutputRetained: false, rawBackendMaterialRetained: false, credentialRetained: false,
     hostOutputBytesDiscarded: Buffer.byteLength(host.stdout) + host.stderrBytes };
-  record.verdict = host.code === 0 && Object.values(record.checks).every(Boolean) ? "demonstrated" : "incomplete";
+  record.verdict = host.code === 0 && record.checks.initialDraftObserved && record.checks.findingSubmitted &&
+    record.checks.editAfterFinding && record.checks.finalSourceChanged && record.checks.validSourceCompiles &&
+    record.checks.invalidStatesRejected && record.visibilityBasis !== "unconfirmed" &&
+    (record.checks.followupClearObserved || record.checks.followupFindingObserved)
+    ? "demonstrated" : "incomplete";
   mkdirSync(join(project, "evidence/native-136"), { recursive: true });
-  writeFileSync(join(project, "evidence/native-136/claude-configured.json"), JSON.stringify(record, null, 2) + "\n");
+  writeFileSync(join(project, `evidence/native-136/${offlineControl ? "claude-count-offline" : countFixture ? "claude-count-live" : "claude-configured"}.json`), JSON.stringify(record, null, 2) + "\n");
   console.log(JSON.stringify(record, null, 2));
   if (record.verdict !== "demonstrated") process.exitCode = 1;
 } finally {

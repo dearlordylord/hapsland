@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "runtime": "Claude Code",
+  "version": "2.1.218 (Claude Code)",
+  "recordedAt": "2026-09-28T14:00:32.048Z",
+  "declaration": {
+    "maximumProviderRequests": 8,
+    "automaticRetries": 0,
+    "sessionCeilingMs": 240000,
+    "claudeFeedbackMode": "block-current-findings",
+    "mode": "real-jev",
+    "fixture": "order-count"
+  },
+  "hostExitCode": 0,
+  "hostSignal": null,
+  "elapsedMs": 34801,
+  "providerRequests": 2,
+  "timeline": [
+    {
+      "kind": "composed-prompt",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "atMs": 1783
+    },
+    {
+      "kind": "composed-before-edit",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "atMs": 9650
+    },
+    {
+      "kind": "hook",
+      "tool": "Write",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "sourceHash": "cae206a9c36f719eaea8c03197c45a7f43317facf631994e0f4cf58b21f3a877",
+      "sourceBytes": 25,
+      "draft": true,
+      "atMs": 10043
+    },
+    {
+      "kind": "provider-response",
+      "durationMs": 257,
+      "status": 200,
+      "atMs": 10718
+    },
+    {
+      "kind": "composed-background",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "atMs": 10041
+    },
+    {
+      "kind": "composed-stop",
+      "exitCode": 0,
+      "decision": "block",
+      "finding": true,
+      "notice": false,
+      "atMs": 13970
+    },
+    {
+      "kind": "composed-before-edit",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "atMs": 20993
+    },
+    {
+      "kind": "hook",
+      "tool": "Edit",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "sourceHash": "3177755e4e9f7e11f9bb9f0a36de227fbd2db83d63c088c1b39d067730a5658a",
+      "sourceBytes": 62,
+      "draft": false,
+      "atMs": 21453
+    },
+    {
+      "kind": "provider-response",
+      "durationMs": 238,
+      "status": 200,
+      "atMs": 22131
+    },
+    {
+      "kind": "composed-background",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "atMs": 21451
+    },
+    {
+      "kind": "composed-stop",
+      "exitCode": 0,
+      "decision": "block",
+      "finding": true,
+      "notice": false,
+      "atMs": 28347
+    },
+    {
+      "kind": "composed-stop",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "atMs": 33531
+    }
+  ],
+  "activityStages": [
+    {
+      "stage": "pending",
+      "atMs": 10394
+    },
+    {
+      "stage": "pending",
+      "atMs": 10436
+    },
+    {
+      "stage": "findings",
+      "atMs": 10729
+    },
+    {
+      "stage": "pending",
+      "atMs": 21848
+    },
+    {
+      "stage": "pending",
+      "atMs": 21872
+    },
+    {
+      "stage": "findings",
+      "atMs": 22134
+    }
+  ],
+  "checks": {
+    "initialDraftObserved": true,
+    "findingSubmitted": true,
+    "editAfterFinding": true,
+    "finalSourceChanged": true,
+    "validSourceCompiles": true,
+    "invalidStatesRejected": true,
+    "agentAcknowledgesAdvice": false,
+    "followupClearObserved": false,
+    "followupFindingObserved": true
+  },
+  "resident": {
+    "queued": 0,
+    "running": 0,
+    "pendingFindingBatches": 0,
+    "pendingOperationalNotices": 0
+  },
+  "rawHostOutputRetained": false,
+  "rawBackendMaterialRetained": false,
+  "credentialRetained": false,
+  "hostOutputBytesDiscarded": 149716,
+  "verdict": "incomplete"
+}

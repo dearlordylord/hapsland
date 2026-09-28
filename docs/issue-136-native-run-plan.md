@@ -1,5 +1,11 @@
 # #136 bounded native review and repair run plan
 
+**Purpose:** Declare bounded native Codex and Claude observations before each execution.
+**Status:** Temporary #136 run plan; dated later sections are separate declarations, not retroactive changes to earlier runs.
+**Authority:** Implementation or validation evidence protocol, not an accepted product contract.
+**Expected use:** Audit #136 request ceilings, host instructions, and the sequence of selected native observations; supply provenance for #137.
+**Lifecycle:** Review after #136 acceptance. Keep through #137 while its final authority report needs these declarations; then consolidate necessary conclusions into that report, update inbound links, and delete this plan after #137 incorporates them.
+
 Recorded before live execution on 2026-09-28. The purpose is to observe the
 current Hapsland resident and checked Bend decisions in real Codex CLI and
 Claude Code sessions with Jev credentials, through edit attribution, review
@@ -93,3 +99,97 @@ issue's 40-request ceiling. This supersedes the prior no-further-session plan
 because current code and the fixture identified a concrete feedback-setting difference.
 If advice or repair still does not occur, stop live execution and keep #136
 incomplete.
+
+## Offline delivery diagnostic before any further Jev run
+
+Use the same supported Claude composed hook arrangement and user feedback
+setting with a controlled, source-free reviewer. The synthetic fixture asks for
+one bare `OrderCount` type, then requires Claude to stop before any proactive
+repair. A controlled r6 finding should be offered through background or Stop;
+the subsequent edit and clear must occur after that offer. This diagnostic
+makes no Jev request and does not alter the live request count. Retain only
+sanitized event, timing, and outcome data. If the host fails to receive this
+controlled advice, investigate the adapter/collection path offline before a
+new paid run.
+
+## Declared exact-fixture live observation, before execution
+
+The controlled Claude Code 2.1.218 run now demonstrates draft attribution,
+finding delivery at Stop, repair by the agent, and a clear follow-up using the
+same composed hooks and user feedback setting. The initial diagnostic failed
+because its `export` keyword did not match the controlled review fixture; that
+failure remains recorded separately. One real Jev session will use the exact
+bare `OrderCount` draft and the same Stop-first instruction. It has an
+eight-request HTTP-boundary cutoff, no automatic retry, and a 240-second host
+ceiling. The six prior live Claude sessions used ten requests, so the
+cumulative actual maximum after this run is 18 of the issue's 40 requests.
+The live backend may return a different decision; record that result as
+observed rather than attributing a repair to undelivered advice.
+
+## Declared second exact-fixture live observation, before execution
+
+The first exact-fixture live session delivered a real finding and the agent
+repaired the type. Its second Jev request failed, leaving the follow-up status
+unavailable. Preserve that session as a separate record. One new independent
+Claude session will use the same count fixture, installed-style composed hooks,
+and feedback setting to observe the entire sequence including a checked
+follow-up outcome. It has an eight-request HTTP-boundary cutoff, no automatic
+retry, and a 240-second host ceiling. Twelve live Claude requests have been
+used; this session brings the cumulative actual maximum to 20 of 40. A
+failure or missing follow-up remains incomplete.
+
+## Declared Codex ticket-outcome observation, before execution
+
+The first real Codex session demonstrated finding submission and later repair,
+but did not retain the checked status of its second review. One independent
+native Codex CLI session will use the same synthetic payment-state fixture and
+PostToolUse hook, with source-free activity-stage capture. It has a six-request
+HTTP-boundary cutoff, no automatic retry, and a 240-second host ceiling. The
+first Codex session used two requests, so the cumulative actual maximum is
+eight of the issue's 40 requests. A second HTTP 200 or a quiet hook alone will
+not count as a follow-up result; require an explicit resident `clear` or
+`findings` stage after the repair. Preserve the first session record.
+
+## Visibility-evidence correction after two-axis review
+
+Review of the selected runs found that ordered hook output and a later edit do
+not independently show what the agent read. The next controlled Claude run
+will require a source-free final acknowledgement plus the rule ID from actual
+advice, and will no longer prescribe the exact repair line. The native runner
+records only boolean recognition, never raw agent text. If that offline run
+observes the acknowledgement and repair, one independent real Claude run may
+use the same prompt and an
+eight-request cutoff, no automatic retry, and 240-second host ceiling. Fourteen
+Claude requests have been used; the maximum after that live run is 22 of 40.
+The Codex runner will likewise require a positive final acknowledgement and
+capture it without retaining the raw message; a separately declared Codex
+session is needed because the old transcript was discarded. Four Codex
+requests have been used, so one six-request run has a cumulative maximum of
+ten of 40. Keep #136 open until both visibility observations are present.
+
+## Declared visibility diagnostic live observation, before execution
+
+The first visibility-focused live Claude session delivered advice and reached
+a checked further finding, but the combined acknowledgement check was false
+and did not identify which condition failed. A subsequent offline run records
+separate source-free flags for agent affirmation, denial, and citation of a
+rule ID actually present in the delivered hook result; all three showed an
+affirmative rule-specific acknowledgement after the agent's edit. One new
+independent real Jev session will use that instrumentation. It has an
+eight-request HTTP-boundary cutoff, no automatic retry, and 240-second host
+ceiling. Sixteen live Claude requests have been used; the cumulative actual
+maximum is 24 of 40. Preserve the earlier incomplete live record.
+
+## Declared Codex collection-order observation, before execution
+
+The first strict-acknowledgement Codex session made two Jev requests, but
+Codex repaired the source before a Bash hook collected and submitted the
+initial finding. Its later clear does not establish advice-driven repair.
+Preserve that run as incomplete. One independent native Codex session will
+require a Bash test/collection tool call immediately after the initial draft
+and before any further edit. The agent is instructed to act only on advice it
+actually receives and to affirm that in its final reply. The run has a
+six-request HTTP-boundary cutoff, no automatic retry, and a 240-second host
+ceiling. Six Codex requests have been used across three sessions, so the
+cumulative actual maximum is 12 of 40. A finding submitted after the repair
+will not satisfy this observation.

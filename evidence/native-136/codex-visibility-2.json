@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-28T14:09:43.822Z",
+  "declaration": {
+    "maximumProviderRequests": 6,
+    "deadlineMs": 15000,
+    "automaticRetries": 0,
+    "maximumFixtureFileBytes": 32768,
+    "syntheticRepositoryOnly": true
+  },
+  "hostExitCode": 0,
+  "elapsedMs": 79918,
+  "providerRequests": 2,
+  "timeline": [
+    {
+      "kind": "hook",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "findings": false,
+      "notice": false,
+      "ruleId": null,
+      "sourceHash": "5f4bcf26fcbfb2967471446efbba926e2828a2744766297b90115acbe1829e3c",
+      "sourceBytes": 138,
+      "draft": true,
+      "atMs": 12482
+    },
+    {
+      "kind": "provider-response",
+      "durationMs": 307,
+      "status": 200,
+      "atMs": 13581
+    },
+    {
+      "kind": "hook",
+      "tool": "Bash",
+      "exitCode": 0,
+      "findings": true,
+      "notice": false,
+      "ruleId": "r2_meaningless_combinations",
+      "sourceHash": "5f4bcf26fcbfb2967471446efbba926e2828a2744766297b90115acbe1829e3c",
+      "sourceBytes": 138,
+      "draft": true,
+      "atMs": 16785
+    },
+    {
+      "kind": "hook",
+      "tool": "Bash",
+      "exitCode": 0,
+      "findings": false,
+      "notice": false,
+      "ruleId": null,
+      "sourceHash": "5f4bcf26fcbfb2967471446efbba926e2828a2744766297b90115acbe1829e3c",
+      "sourceBytes": 138,
+      "draft": true,
+      "atMs": 22159
+    },
+    {
+      "kind": "hook",
+      "tool": "Bash",
+      "exitCode": 0,
+      "findings": false,
+      "notice": false,
+      "ruleId": null,
+      "sourceHash": "5f4bcf26fcbfb2967471446efbba926e2828a2744766297b90115acbe1829e3c",
+      "sourceBytes": 138,
+      "draft": true,
+      "atMs": 22600
+    },
+    {
+      "kind": "hook",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "findings": false,
+      "notice": false,
+      "ruleId": null,
+      "sourceHash": "8dbf6cc6806442563da23e5896b113a07438ba4c1dfc783a0bde6f211302d996",
+      "sourceBytes": 219,
+      "draft": false,
+      "atMs": 67388
+    },
+    {
+      "kind": "provider-response",
+      "durationMs": 1230,
+      "status": 200,
+      "atMs": 69026
+    },
+    {
+      "kind": "hook",
+      "tool": "Bash",
+      "exitCode": 0,
+      "findings": false,
+      "notice": false,
+      "ruleId": null,
+      "sourceHash": "8dbf6cc6806442563da23e5896b113a07438ba4c1dfc783a0bde6f211302d996",
+      "sourceBytes": 219,
+      "draft": false,
+      "atMs": 73085
+    },
+    {
+      "kind": "hook",
+      "tool": "Bash",
+      "exitCode": 0,
+      "findings": false,
+      "notice": false,
+      "ruleId": null,
+      "sourceHash": "8dbf6cc6806442563da23e5896b113a07438ba4c1dfc783a0bde6f211302d996",
+      "sourceBytes": 219,
+      "draft": false,
+      "atMs": 73301
+    }
+  ],
+  "activityStages": [
+    {
+      "stage": "pending",
+      "atMs": 13217
+    },
+    {
+      "stage": "pending",
+      "atMs": 13252
+    },
+    {
+      "stage": "findings",
+      "atMs": 13593
+    },
+    {
+      "stage": "pending",
+      "atMs": 67733
+    },
+    {
+      "stage": "incomplete",
+      "atMs": 67777
+    },
+    {
+      "stage": "pending",
+      "atMs": 67779
+    },
+    {
+      "stage": "clear",
+      "atMs": 69040
+    }
+  ],
+  "checks": {
+    "initialDraftObserved": true,
+    "realFindingSubmitted": true,
+    "editAfterFinding": true,
+    "validExamplesCompile": true,
+    "invalidStatesRejected": true,
+    "agentAcknowledgesAdvice": true,
+    "agentNamesDeliveredRule": true,
+    "finalSourceChanged": true,
+    "followupClearObserved": true,
+    "followupFindingObserved": false
+  },
+  "resident": {
+    "queued": 0,
+    "running": 0,
+    "successfulCacheEntries": 2,
+    "pendingFindingBatches": 0,
+    "pendingOperationalNotices": 0
+  },
+  "rawTranscriptRetained": false,
+  "rawBackendMaterialRetained": false,
+  "verdict": "demonstrated"
+}
