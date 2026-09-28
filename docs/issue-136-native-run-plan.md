@@ -119,3 +119,15 @@ ceiling. The six prior live Claude sessions used ten requests, so the
 cumulative actual maximum after this run is 18 of the issue's 40 requests.
 The live backend may return a different decision; record that result as
 observed rather than attributing a repair to undelivered advice.
+
+## Declared second exact-fixture live observation, before execution
+
+The first exact-fixture live session delivered a real finding and the agent
+repaired the type. Its second Jev request failed, leaving the follow-up status
+unavailable. Preserve that session as a separate record. One new independent
+Claude session will use the same count fixture, installed-style composed hooks,
+and feedback setting to observe the entire sequence including a checked
+follow-up outcome. It has an eight-request HTTP-boundary cutoff, no automatic
+retry, and a 240-second host ceiling. Twelve live Claude requests have been
+used; this session brings the cumulative actual maximum to 20 of 40. A
+failure or missing follow-up remains incomplete.
