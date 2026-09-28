@@ -20,6 +20,7 @@ import {
   releaseComposedBackground,
 } from "./client.ts";
 import { residentPaths } from "./paths.ts";
+import { composedClaudeHostOutput } from "./collection.ts";
 
 export type ComposedHookKind = "background" | "stop" | "prompt" | "before-edit";
 export type ComposedHookHost = "codex-cli" | "claude-code";
@@ -175,9 +176,12 @@ export const runComposedHook = async (input: {
           const begun = await beginComposedSubmission(advice, input.kind).catch(() => false);
           if (!begun) { closeReason = "unavailable"; return quiet(); }
         }
-        const output = input.kind === "background" ? advice.output
-          : advice.findingCount > 0 ? { decision: "block", reason: message }
-            : { systemMessage: message };
+        const output = input.host === "claude-code"
+          ? composedClaudeHostOutput(advice.output, advice.findingCount,
+              input.kind === "background" ? "background" : "stop")
+          : input.kind === "background" ? advice.output
+            : advice.findingCount > 0 ? { decision: "block", reason: message }
+              : { systemMessage: message };
         if (input.kind === "stop" && advice.findingCount === 0) {
           // A zero-finding delivery here carries operational failure notices.
           closeReason = "unavailable";

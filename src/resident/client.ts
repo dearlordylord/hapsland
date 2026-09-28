@@ -21,7 +21,8 @@ import {
   CLIENT_REQUEST_DEADLINE_MS,
   MAX_IPC_FRAME_BYTES,
   STARTUP_READINESS_DEADLINE_MS,
-  decodeResidentResponse,
+  decodeCurrentResidentResponse,
+  encodeCurrentResidentRequest,
   type ResidentDispatchContext,
   type ResidentCollectionTicket,
   type ResidentRequest,
@@ -37,7 +38,7 @@ const requestConnected = (
   request: ResidentRequest,
   timeoutMs: number,
 ): Promise<ResidentResponse> => {
-  const frame = `${JSON.stringify(request)}\n`;
+  const frame = `${encodeCurrentResidentRequest(request)}\n`;
   if (Buffer.byteLength(frame, "utf8") > MAX_IPC_FRAME_BYTES) {
     return Promise.reject(new ResidentIpcError("resident request exceeded frame bound"));
   }
@@ -70,7 +71,7 @@ const requestConnected = (
       if (newline < 0) return;
       try {
         const unknown: unknown = JSON.parse(encoded.slice(0, newline));
-        const decoded = decodeResidentResponse(unknown);
+        const decoded = decodeCurrentResidentResponse(unknown, request);
         if (decoded === undefined) throw new Error("response schema mismatch");
         finish(undefined, decoded);
       } catch {
@@ -249,6 +250,9 @@ export const makeResidentDispatchContext = async (
     ...(controlledOptions.answers === undefined ? {} : { answers: controlledOptions.answers }),
     ...(controlledOptions.delayMs === undefined ? {} : { delayMs: controlledOptions.delayMs }),
     ...(controlledOptions.failure === undefined ? {} : { failure: controlledOptions.failure }),
+    ...(controlledOptions.failureOnSourceIncludes === undefined ? {} : {
+      failureOnSourceIncludes: controlledOptions.failureOnSourceIncludes,
+    }),
     ...(controlledOptions.capturePath === undefined ? {} : { capturePath: controlledOptions.capturePath }),
     ...(controlledOptions.outcomePath === undefined ? {} : { outcomePath: controlledOptions.outcomePath }),
     ...(controlledOptions.requireCredential === undefined ? {} : { requireCredential: controlledOptions.requireCredential }),
@@ -316,6 +320,7 @@ export type TicketedAdmission = {
   readonly root: string;
   readonly advicee: DirectAdvicee;
   readonly dispatch: ResidentDispatchContext;
+  readonly composed: boolean;
 };
 
 export type TicketedAdmissionResult =
@@ -350,6 +355,7 @@ export const admitTicketedObservation = async (
       root: observation.root,
       advicee: observation.advicee,
       dispatch,
+      composed,
     } };
   }
   if (response.status === "rejected-capacity" || response.status === "rejected-stale" || response.status === "obsolete-lifetime") {
@@ -360,7 +366,7 @@ export const admitTicketedObservation = async (
 
 export type CollectionOutcome =
   | { readonly status: "advice"; readonly advice: CollectedAdvice }
-  | { readonly status: "pending" | "clear" | "delivered" | "no-work" }
+  | { readonly status: "pending" | "empty" }
   | { readonly status: "unavailable"; readonly reason: "backend" | "credential" | "capacity" | "stale" | "lost" | "expired" };
 
 /** Collect against the original owner. A replacement resident can never prove clear. */
@@ -377,7 +383,9 @@ export const collectOutcome = async (
     advicee: admission.advicee,
     dispatch: admission.dispatch,
     mode,
-  });
+    ...(admission.composed ? { composed: true } : {}),
+  }).catch(() => undefined);
+  if (response === undefined) return { status: "unavailable", reason: "lost" };
   if (!("version" in response) || response.version !== 2) return { status: "unavailable", reason: "lost" };
   if (response.status === "advice") return { status: "advice", advice: {
     output: response.output,
@@ -390,7 +398,7 @@ export const collectOutcome = async (
     findingCount: response.findingCount,
   } };
   if (response.status === "unavailable") return { status: "unavailable", reason: response.reason };
-  if (response.status === "pending" || response.status === "clear" || response.status === "delivered" || response.status === "no-work") {
+  if (response.status === "pending" || response.status === "empty") {
     return { status: response.status };
   }
   return { status: "unavailable", reason: "lost" };

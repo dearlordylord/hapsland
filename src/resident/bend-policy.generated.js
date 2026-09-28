@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:98c6baf4d3ec8dffe2c6be333325f0195817d5aace28f4311163abb9b71f7601
+// hapsland-bend-source-sha256:740ab9c92f39f96db987379e84c2c14c396baa8fb2c0058651d007858a7c974d
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -162,7 +162,7 @@ function io_eff(k, run, need) {
 // =======
 
 function $main$() {
-  return {$: "Smoke", "admission": ($Admission$step$(($Admission$initial$(1, 1)), 1, 1, {$: "Admission.Issue", "tool": 1, "started": 1, "deadline": 2, "now": 1})), "prospective_gate": ($Admission$prospective_gate$({$: "Admission.ProspectiveFacts", "clock_valid": true, "within_hook_window": true, "started_after_closure": true, "duplicate_event": false, "permit_count": 0, "permit_limit": 1024, "round_count": 0, "round_limit": 64, "new_round": true, "event_count": 0, "event_limit": 4096})), "prospective_close": ($Admission$close_prospective$({$: "Admission.AdmissionState", "partition": 1, "lifetime": 1, "round": 0, "active": false, "closed_at": 0, "next_token": 2, "permits": {$: "Con", "head": {$: "Admission.Permit", "token": 1, "tool": 1, "round": 1, "started": 1, "deadline": 2}, "tail": {$: "Nil"}}, "used": {$: "Nil"}}, 3)), "expired_permit": ($Admission$expire$(($Admission$initial$(1, 1)), 1, true)), "callback": ($Admission$callback_current$(($Admission$initial$(1, 1)), 1, 1, 0)), "admitted": ($Work$admit$(($Work$initial$()))), "started_source": ($Work$start_source$(($sample_work$()), 1)), "started_unit": ($Work$start_unit$(($sample_unit_work$()), 1)), "spawned": ($Work$spawn$(($sample_work$()), 1, 1)), "prepared": ($Work$prepare$(($sample_work$()), 1, 2)), "source_completed": ($Work$complete_source$(($sample_work$()), 1)), "cached_finding": ($Work$cached_finding$(($sample_work$()), 1, 1, 20)), "revised_finding": ($Work$revise_finding$({$: "Work.Work", "next_observation": 2, "next_unit": 2, "source_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "review_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "observations": {$: "Nil"}, "units": {$: "Con", "head": {$: "Work.ReviewUnit", "id": 1, "observation": 1, "stage": {$: "Work.PendingFinding"}, "findings": 1, "bytes": 20}, "tail": {$: "Nil"}}}, 1, 1, 10)), "outcome": ($Work$outcome$(($sample_unit_work$()), 1, {$: "Work.Clear"})), "interrupted_source": ($Work$interrupt_observation$(($sample_work$()), 1)), "interrupted_unit": ($Work$interrupt_unit$(($sample_unit_work$()), 1)), "retired": ($Work$retire$({$: "Work.Work", "next_observation": 2, "next_unit": 2, "source_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "review_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "observations": {$: "Nil"}, "units": {$: "Con", "head": {$: "Work.ReviewUnit", "id": 1, "observation": 1, "stage": {$: "Work.ClearResult"}, "findings": 0, "bytes": 0}, "tail": {$: "Nil"}}}, 1)), "unfinished": ($Work$unfinished$(($sample_unit_work$()))), "pending_findings": ($Work$pending_findings$(($sample_unit_work$()))), "pending_for": ($Work$pending_for$(($sample_unit_work$()), 1)), "closed_work": ($Work$close$(($sample_work$()))), "cancelled_work": ($Work$cancel_unfinished$(($sample_work$()))), "finish_wait": ($Work$finish_wait$(1, false, true)), "prepared_offer": ($Work$prepared_offer$(true, true)), "empty_prepared": ($Work$empty_prepared$(0, true, true)), "evaluated_disposition": ($Work$evaluated_disposition$(true, true)), "failure_disposition": ($Work$failure_disposition$(false, true, false)), "source_capacity": ($Work$set_source_capacity$(($sample_work$()), {$: "Flow.Capacity", "low": 2, "high": 0})), "review_capacity": ($Work$set_review_capacity$(($sample_unit_work$()), {$: "Flow.Capacity", "low": 2, "high": 0})), "selection": ($Handoff$select$(($Handoff$initial$(1, 1)), {$: "Handoff.Advice", "id": 1, "unit": 1, "partition": 1, "round": 1, "snapshot": 1, "current_snapshot": 1, "credential": 1, "current_credential": 1, "age_ms": 0, "solo_bytes": 100, "collection_ready": true}, 100)), "fit": ($Handoff$fits_batch$(1, 100)), "notice_offer": ($Handoff$notice_offer$(6, 100, true)), "notice_prune": ($Notice$prune$(true, true, true, false, false, false)), "validation_route": ($Handoff$validation_route$(true, {$: "Handoff.Current"})), "post_validation": ($Handoff$post_validation$(true, false, true)), "final_candidate": ($Handoff$final_candidate$(true, true, true, false, true, true)), "finish": ($Handoff$finish$decide$(($Handoff$finish$initial$(1)), 0, false, 1)), "lease_reserve": ($Handoff$lease$reserve$(($Handoff$lease$initial$(1, 1)), 1, 1, {$: "Handoff.Background"})), "lease_authorize": ($Handoff$lease$authorize$(($sample_reserved_lease$()), 1, 1)), "lease_release": ($Handoff$lease$release$(($sample_reserved_lease$()), 1, 1)), "lease_terminal": ($Handoff$lease$terminal$(($sample_authorized_lease$()), 1, 1, false)), "lease_reoffer": ($Handoff$lease$reoffer$(($sample_uncertain_lease$()), 1, 2, true)), "lease_offer": ($Handoff$lease$offer$(($sample_uncertain_lease$()), 1, 2, {$: "Handoff.Stop"}, true)), "closed_lease": ($Handoff$lease$close$(($Handoff$lease$initial$(1, 1)))), "lease_suppresses": ($Handoff$lease$suppresses$(($sample_uncertain_lease$()), 1, {$: "Handoff.Edit"})), "round_begin": ($Round$begin_stop$(($Round$initial$()), 1)), "round_active": ($Round$active$(($Round$initial$()), 1)), "round_budget": ($Round$budget$(($Round$initial$()))), "round_max": ($Round$max_continuations$()), "round_owns": ($Round$owns_stop$({$: "Round.Round", "generation": 1, "active": true, "closed_at": 0, "continuations": 0, "stop_token": 1, "barrier": false, "deciding": false, "output_reserved": false}, 1)), "round_decision": ($Round$begin_decision$({$: "Round.Round", "generation": 1, "active": true, "closed_at": 0, "continuations": 0, "stop_token": 1, "barrier": false, "deciding": false, "output_reserved": false}, 1)), "round_consume": ($Round$consume$(($Round$initial$()))), "round_reserve": ($Round$reserve_output$({$: "Round.Round", "generation": 1, "active": true, "closed_at": 0, "continuations": 0, "stop_token": 1, "barrier": false, "deciding": true, "output_reserved": false}, 1)), "round_finish": ($Round$finish_stop$({$: "Round.Round", "generation": 1, "active": true, "closed_at": 0, "continuations": 0, "stop_token": 1, "barrier": false, "deciding": false, "output_reserved": false}, 1, true, 2)), "round_stop_terminal": ($Round$stop_terminal$(true, false, false)), "round_expire_close": ($Round$expire_close$(false)), "round_reopen": ($Round$reopen$({$: "Round.Round", "generation": 1, "active": false, "closed_at": 2, "continuations": 0, "stop_token": 0, "barrier": false, "deciding": false, "output_reserved": false}, 2)), "background_claim": ($Background$claim$(($Background$initial$()), 1, true, 0, 64)), "background_release": ($Background$release$({$: "Background.Waiter", "owner": 1}, 1)), "background_expire": ($Background$expire$({$: "Background.Waiter", "owner": 1}, 20001, 20000)), "notice": ($Notice$decide$({$: "Some", "value": 10}, 1, 64)), "notice_advance": ($Notice$advance$({$: "Some", "value": 0}, 1, 64, 3, {$: "Some", "value": 2}, false, 5)), "collection_order": ($Collection$order$(1, 2, 1, 3)), "collection_credential": ($Collection$credential_disposition$(true, false)), "collection_eligible": ($Collection$eligible$(false, false, false, 50, 50)), "collection_expired": ($Collection$expired$(600000, 600000)), "delivery_transition": ($Delivery$transition$({$: "Delivery.Authorized"}, {$: "Delivery.Uncertain"})), "delivery_expired": ($Delivery$expired$({$: "Delivery.Authorized"}, 1000, 1000)), "background_reofferable": ($Delivery$background_reofferable$({$: "Delivery.Uncertain"}, {$: "Delivery.Background"})), "submission_allowed": ($Delivery$submission_allowed$(($Round$initial$()), {$: "Delivery.Edit"}, false, false)), "existing_token_allowed": ($Delivery$existing_token_allowed$({$: "Delivery.Edit"}, false, false)), "legacy_stop_allowed": ($Delivery$legacy_stop_allowed$(($Round$initial$()))), "delivery_ack": ($Delivery$acknowledge$(1, false)), "delivery_final": ($Delivery$finalize$(1, true, false)), "delivery_finding": ($Delivery$finding_disposition$(false, 0)), "delivery_release": ($Delivery$release_unacknowledged$(false)), "submission_candidate": ($Delivery$submission_candidate$({$: "Delivery.SubmissionFacts", "round_active": true, "has_round": true, "has_unit": true, "has_delivery": true, "pending_capacity": true, "submission_allowed": true, "current_work": true, "credential_authorized": true})), "submission_batch_gate": ($Delivery$submission_batch_gate$(1, true)), "credential_observe": ($Delivery$credential_observe$(false, true, true)), "final_credential_gate": ($Delivery$final_credential_gate$(true, false)), "collection_lease": ($Delivery$collection_lease$(true, false, true, true, true)), "advice_candidate": ($Delivery$advice_candidate$(true, true, true, true)), "notice_candidate": ($Delivery$notice_candidate$(true, true, true, true)), "reserve_candidate": ($Delivery$reserve_candidate$(true)), "reuse_route": ($Reuse$route$(false, false, false)), "reuse_cache_route": ($Reuse$cache_route$(false)), "cache_admission": ($Cache$admit$(false, 10, 100)), "cache_evict": ($Cache$evict$(8, 100, 20, 8, 128000)), "lifecycle_cutoff": ($Lifecycle$cutoff$({$: "Round.Round", "generation": 1, "active": true, "closed_at": 0, "continuations": 0, "stop_token": 1, "barrier": false, "deciding": false, "output_reserved": false}, ($sample_work$()), 1)), "lifecycle_finish_gate": ($Lifecycle$finish_gate$({$: "Round.Round", "generation": 1, "active": true, "closed_at": 0, "continuations": 0, "stop_token": 1, "barrier": false, "deciding": false, "output_reserved": false}, ($sample_work$()), 1, 0, false)), "lifecycle_reserve": ($Lifecycle$reserve_selected$({$: "Round.Round", "generation": 1, "active": true, "closed_at": 0, "continuations": 0, "stop_token": 1, "barrier": false, "deciding": true, "output_reserved": false}, {$: "Work.Work", "next_observation": 2, "next_unit": 2, "source_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "review_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "observations": {$: "Nil"}, "units": {$: "Con", "head": {$: "Work.ReviewUnit", "id": 1, "observation": 1, "stage": {$: "Work.PendingFinding"}, "findings": 1, "bytes": 20}, "tail": {$: "Nil"}}}, 1, {$: "Con", "head": 1, "tail": {$: "Nil"}})), "lifecycle_release": ($Lifecycle$release_unwritten$({$: "Round.Round", "generation": 1, "active": true, "closed_at": 0, "continuations": 1, "stop_token": 1, "barrier": true, "deciding": true, "output_reserved": true}, 1)), "finish_disposition": ($Lifecycle$finish_disposition$(($sample_work$()), {$: "Nil"}, true, true, true, true, false)), "finish_output": ($Lifecycle$finish_output$({$: "Round.Round", "generation": 1, "active": true, "closed_at": 0, "continuations": 0, "stop_token": 1, "barrier": false, "deciding": true, "output_reserved": false}, ($sample_work$()), 1, {$: "Nil"}, true, true, true, true, false)), "selection_reserved": ($Lifecycle$selection_reserve$({$: "Work.Work", "next_observation": 2, "next_unit": 2, "source_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "review_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "observations": {$: "Nil"}, "units": {$: "Con", "head": {$: "Work.ReviewUnit", "id": 1, "observation": 1, "stage": {$: "Work.PendingFinding"}, "findings": 1, "bytes": 20}, "tail": {$: "Nil"}}}, {$: "Con", "head": 1, "tail": {$: "Nil"}})), "selection_authorized": ($Lifecycle$selection_authorize$({$: "Lifecycle.OutputSelection", "selected": {$: "Con", "head": 1, "tail": {$: "Nil"}}, "authorized": false, "consumed": false})), "selection_consumed": ($Lifecycle$selection_consume$({$: "Lifecycle.OutputSelection", "selected": {$: "Con", "head": 1, "tail": {$: "Nil"}}, "authorized": true, "consumed": false}, {$: "Con", "head": 1, "tail": {$: "Nil"}})), "ticket_initial": ($Ticket$initial$()), "ticket_fail": ($Ticket$fail$(($Ticket$initial$()), {$: "Ticket.Backend"})), "ticket_close": ($Ticket$close$(($Ticket$fail$(($Ticket$initial$()), {$: "Ticket.Backend"})))), "ticket_terminal": ($Ticket$terminal$({$: "Ticket.Closed"}, {$: "Ticket.Facts", "expired": false, "credential_valid": true, "pending_units": 0, "live_advice": false, "pending_notice": false, "unit_failure": {$: "None"}, "finding_units": 0, "undelivered_findings": 0, "total_units": 1})), "ticket_collect_gate": ($Ticket$collect_gate$(false, true)), "ticket_final_authority": ($Ticket$final_authority$(true, true)), "ticket_joined_disposition": ($Ticket$joined_disposition$({$: "Ticket.JoinedFinding"}, false, true, true)), "ticket_unit": ($Ticket$unit$step$({$: "Ticket.UnitFinding", "delivered": false}, {$: "Ticket.MarkDelivered"})), "ticket_unit_initial": ($Ticket$unit$initial$()), "revision_register": ($Revision$register$(true, false)), "revision_superseded": ($Revision$superseded$(1, 1, 1, 2)), "cleanup_gate": ($Retention$cleanup_gate$({$: "Retention.CleanupFacts", "active": true, "dispatcher_idle": true, "no_advice": true, "no_notices": true, "no_pending_evaluations": true, "no_current_work": true, "no_cooldowns": true, "connection_count_ok": true, "cache_matches_ledger": true})), "cleanup_commit": ($Retention$cleanup_commit$(true)), "ticket_retention": ($Retention$ticket_retention$(2, 1, true)), "discard_scope": ($Retention$discard_scope$(2, 2, false))};
+  return {$: "Smoke", "admission": ($Admission$step$(($Admission$initial$(1, 1)), 1, 1, {$: "Admission.Issue", "tool": 1, "started": 1, "deadline": 2, "now": 1})), "prospective_gate": ($Admission$prospective_gate$({$: "Admission.ProspectiveFacts", "clock_valid": true, "within_hook_window": true, "started_after_closure": true, "duplicate_event": false, "permit_count": 0, "permit_limit": 1024, "round_count": 0, "round_limit": 64, "new_round": true, "event_count": 0, "event_limit": 4096})), "prospective_close": ($Admission$close_prospective$({$: "Admission.AdmissionState", "partition": 1, "lifetime": 1, "round": 0, "active": false, "closed_at": 0, "next_token": 2, "permits": {$: "Con", "head": {$: "Admission.Permit", "token": 1, "tool": 1, "round": 1, "started": 1, "deadline": 2}, "tail": {$: "Nil"}}, "used": {$: "Nil"}}, 3)), "expired_permit": ($Admission$expire$(($Admission$initial$(1, 1)), 1, true)), "callback": ($Admission$callback_current$(($Admission$initial$(1, 1)), 1, 1, 0)), "admitted": ($Work$admit$(($Work$initial$()))), "started_source": ($Work$start_source$(($sample_work$()), 1)), "started_unit": ($Work$start_unit$(($sample_unit_work$()), 1)), "spawned": ($Work$spawn$(($sample_work$()), 1, 1)), "prepared": ($Work$prepare$(($sample_work$()), 1, 2)), "source_completed": ($Work$complete_source$(($sample_work$()), 1)), "cached_finding": ($Work$cached_finding$(($sample_work$()), 1, 1, 20)), "revised_finding": ($Work$revise_finding$({$: "Work.Work", "next_observation": 2, "next_unit": 2, "source_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "review_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "observations": {$: "Nil"}, "units": {$: "Con", "head": {$: "Work.ReviewUnit", "id": 1, "observation": 1, "stage": {$: "Work.PendingFinding"}, "findings": 1, "bytes": 20}, "tail": {$: "Nil"}}}, 1, 1, 10)), "outcome": ($Work$outcome$(($sample_unit_work$()), 1, {$: "Work.Clear"})), "interrupted_source": ($Work$interrupt_observation$(($sample_work$()), 1)), "interrupted_unit": ($Work$interrupt_unit$(($sample_unit_work$()), 1)), "retired": ($Work$retire$({$: "Work.Work", "next_observation": 2, "next_unit": 2, "source_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "review_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "observations": {$: "Nil"}, "units": {$: "Con", "head": {$: "Work.ReviewUnit", "id": 1, "observation": 1, "stage": {$: "Work.ClearResult"}, "findings": 0, "bytes": 0}, "tail": {$: "Nil"}}}, 1)), "unfinished": ($Work$unfinished$(($sample_unit_work$()))), "pending_findings": ($Work$pending_findings$(($sample_unit_work$()))), "pending_for": ($Work$pending_for$(($sample_unit_work$()), 1)), "closed_work": ($Work$close$(($sample_work$()))), "cancelled_work": ($Work$cancel_unfinished$(($sample_work$()))), "finish_wait": ($Work$finish_wait$(1, false, true)), "prepared_offer": ($Work$prepared_offer$(true, true)), "empty_prepared": ($Work$empty_prepared$(0, true, true)), "evaluated_disposition": ($Work$evaluated_disposition$(true, true)), "failure_disposition": ($Work$failure_disposition$(false, true, false)), "source_capacity": ($Work$set_source_capacity$(($sample_work$()), {$: "Flow.Capacity", "low": 2, "high": 0})), "review_capacity": ($Work$set_review_capacity$(($sample_unit_work$()), {$: "Flow.Capacity", "low": 2, "high": 0})), "selection": ($Handoff$select$(($Handoff$initial$(1, 1)), {$: "Handoff.Advice", "id": 1, "unit": 1, "partition": 1, "round": 1, "snapshot": 1, "current_snapshot": 1, "credential": 1, "current_credential": 1, "age_ms": 0, "solo_bytes": 100, "collection_ready": true}, 100)), "fit": ($Handoff$fits_batch$(1, 100)), "notice_offer": ($Handoff$notice_offer$(6, 100, true)), "notice_prune": ($Notice$prune$(true, true, true, false, false, false)), "validation_route": ($Handoff$validation_route$(true, {$: "Handoff.Current"})), "post_validation": ($Handoff$post_validation$(true, false, true)), "final_candidate": ($Handoff$final_candidate$(true, true, true, false, true, true)), "finish": ($Handoff$finish$decide$(($Handoff$finish$initial$(1)), 0, false, 1)), "lease_reserve": ($Handoff$lease$reserve$(($Handoff$lease$initial$(1, 1)), 1, 1, {$: "Handoff.Background"})), "lease_authorize": ($Handoff$lease$authorize$(($sample_reserved_lease$()), 1, 1)), "lease_release": ($Handoff$lease$release$(($sample_reserved_lease$()), 1, 1)), "lease_terminal": ($Handoff$lease$terminal$(($sample_authorized_lease$()), 1, 1, false)), "lease_reoffer": ($Handoff$lease$reoffer$(($sample_uncertain_lease$()), 1, 2, true)), "lease_offer": ($Handoff$lease$offer$(($sample_uncertain_lease$()), 1, 2, {$: "Handoff.Stop"}, true)), "closed_lease": ($Handoff$lease$close$(($Handoff$lease$initial$(1, 1)))), "lease_suppresses": ($Handoff$lease$suppresses$(($sample_uncertain_lease$()), 1, {$: "Handoff.Edit"})), "round_begin": ($Round$begin_stop$(($Round$initial$()), 1)), "round_active": ($Round$active$(($Round$initial$()), 1)), "round_budget": ($Round$budget$(($Round$initial$()))), "round_max": ($Round$max_continuations$()), "round_owns": ($Round$owns_stop$({$: "Round.Round", "generation": 1, "active": true, "closed_at": 0, "continuations": 0, "stop_token": 1, "barrier": false, "deciding": false, "output_reserved": false}, 1)), "round_decision": ($Round$begin_decision$({$: "Round.Round", "generation": 1, "active": true, "closed_at": 0, "continuations": 0, "stop_token": 1, "barrier": false, "deciding": false, "output_reserved": false}, 1)), "round_consume": ($Round$consume$(($Round$initial$()))), "round_reserve": ($Round$reserve_output$({$: "Round.Round", "generation": 1, "active": true, "closed_at": 0, "continuations": 0, "stop_token": 1, "barrier": false, "deciding": true, "output_reserved": false}, 1)), "round_finish": ($Round$finish_stop$({$: "Round.Round", "generation": 1, "active": true, "closed_at": 0, "continuations": 0, "stop_token": 1, "barrier": false, "deciding": false, "output_reserved": false}, 1, true, 2)), "round_stop_terminal": ($Round$stop_terminal$(true, false, false)), "round_expire_close": ($Round$expire_close$(false)), "round_reopen": ($Round$reopen$({$: "Round.Round", "generation": 1, "active": false, "closed_at": 2, "continuations": 0, "stop_token": 0, "barrier": false, "deciding": false, "output_reserved": false}, 2)), "background_claim": ($Background$claim$(($Background$initial$()), 1, true, 0, 64)), "background_release": ($Background$release$({$: "Background.Waiter", "owner": 1}, 1)), "background_expire": ($Background$expire$({$: "Background.Waiter", "owner": 1}, 20001, 20000)), "notice": ($Notice$decide$({$: "Some", "value": 10}, 1, 64)), "notice_advance": ($Notice$advance$({$: "Some", "value": 0}, 1, 64, 3, {$: "Some", "value": 2}, false, 5)), "collection_order": ($Collection$order$(1, 2, 1, 3)), "collection_credential": ($Collection$credential_disposition$(true, false)), "collection_eligible": ($Collection$eligible$(false, false, false, 50, 50)), "collection_expired": ($Collection$expired$(600000, 600000)), "delivery_transition": ($Delivery$transition$({$: "Delivery.Authorized"}, {$: "Delivery.Uncertain"})), "delivery_expired": ($Delivery$expired$({$: "Delivery.Authorized"}, 1000, 1000)), "background_reofferable": ($Delivery$background_reofferable$({$: "Delivery.Uncertain"}, {$: "Delivery.Background"})), "submission_allowed": ($Delivery$submission_allowed$(($Round$initial$()), {$: "Delivery.Edit"}, false, false)), "existing_token_allowed": ($Delivery$existing_token_allowed$({$: "Delivery.Edit"}, false, false)), "legacy_stop_allowed": ($Delivery$legacy_stop_allowed$(($Round$initial$()))), "delivery_ack": ($Delivery$acknowledge$(1, false)), "delivery_final": ($Delivery$finalize$(1, true, false)), "delivery_finding": ($Delivery$finding_disposition$(false, 0)), "delivery_release": ($Delivery$release_unacknowledged$(false)), "submission_candidate": ($Delivery$submission_candidate$({$: "Delivery.SubmissionFacts", "round_active": true, "has_round": true, "has_unit": true, "has_delivery": true, "pending_capacity": true, "submission_allowed": true, "current_work": true, "credential_authorized": true})), "submission_batch_gate": ($Delivery$submission_batch_gate$(1, true)), "credential_observe": ($Delivery$credential_observe$(false, true, true)), "final_credential_gate": ($Delivery$final_credential_gate$(true, false)), "collection_lease": ($Delivery$collection_lease$(true, false, true, true, true)), "advice_candidate": ($Delivery$advice_candidate$(true, true, true, true)), "notice_candidate": ($Delivery$notice_candidate$(true, true, true, true)), "reserve_candidate": ($Delivery$reserve_candidate$(true)), "reuse_route": ($Reuse$route$(false, false, false)), "reuse_cache_route": ($Reuse$cache_route$(false)), "cache_admission": ($Cache$admit$(false, 10, 100)), "cache_evict": ($Cache$evict$(8, 100, 20, 8, 128000)), "lifecycle_cutoff": ($Lifecycle$cutoff$({$: "Round.Round", "generation": 1, "active": true, "closed_at": 0, "continuations": 0, "stop_token": 1, "barrier": false, "deciding": false, "output_reserved": false}, ($sample_work$()), 1)), "lifecycle_finish_gate": ($Lifecycle$finish_gate$({$: "Round.Round", "generation": 1, "active": true, "closed_at": 0, "continuations": 0, "stop_token": 1, "barrier": false, "deciding": false, "output_reserved": false}, ($sample_work$()), 1, 0, false)), "lifecycle_reserve": ($Lifecycle$reserve_selected$({$: "Round.Round", "generation": 1, "active": true, "closed_at": 0, "continuations": 0, "stop_token": 1, "barrier": false, "deciding": true, "output_reserved": false}, {$: "Work.Work", "next_observation": 2, "next_unit": 2, "source_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "review_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "observations": {$: "Nil"}, "units": {$: "Con", "head": {$: "Work.ReviewUnit", "id": 1, "observation": 1, "stage": {$: "Work.PendingFinding"}, "findings": 1, "bytes": 20}, "tail": {$: "Nil"}}}, 1, {$: "Con", "head": 1, "tail": {$: "Nil"}})), "lifecycle_release": ($Lifecycle$release_unwritten$({$: "Round.Round", "generation": 1, "active": true, "closed_at": 0, "continuations": 1, "stop_token": 1, "barrier": true, "deciding": true, "output_reserved": true}, 1)), "finish_disposition": ($Lifecycle$finish_disposition$(($sample_work$()), {$: "Nil"}, true, true, true, true, false)), "finish_output": ($Lifecycle$finish_output$({$: "Round.Round", "generation": 1, "active": true, "closed_at": 0, "continuations": 0, "stop_token": 1, "barrier": false, "deciding": true, "output_reserved": false}, ($sample_work$()), 1, {$: "Nil"}, true, true, true, true, false)), "selection_reserved": ($Lifecycle$selection_reserve$({$: "Work.Work", "next_observation": 2, "next_unit": 2, "source_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "review_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "observations": {$: "Nil"}, "units": {$: "Con", "head": {$: "Work.ReviewUnit", "id": 1, "observation": 1, "stage": {$: "Work.PendingFinding"}, "findings": 1, "bytes": 20}, "tail": {$: "Nil"}}}, {$: "Con", "head": 1, "tail": {$: "Nil"}})), "selection_authorized": ($Lifecycle$selection_authorize$({$: "Lifecycle.OutputSelection", "selected": {$: "Con", "head": 1, "tail": {$: "Nil"}}, "authorized": false, "consumed": false})), "selection_consumed": ($Lifecycle$selection_consume$({$: "Lifecycle.OutputSelection", "selected": {$: "Con", "head": 1, "tail": {$: "Nil"}}, "authorized": true, "consumed": false}, {$: "Con", "head": 1, "tail": {$: "Nil"}})), "ticket_collect_gate": ($Ticket$collect_gate$(false, true)), "ticket_final_authority": ($Ticket$final_authority$(true, true)), "ticket_joined_disposition": ($Ticket$joined_disposition$({$: "Ticket.JoinedFinding"}, false, true, true)), "ticket_unit": ($Ticket$unit$step$({$: "Ticket.UnitFinding", "delivered": false}, {$: "Ticket.MarkDelivered"})), "ticket_unit_initial": ($Ticket$unit$initial$()), "revision_register": ($Revision$register$(true, false)), "revision_superseded": ($Revision$superseded$(1, 1, 1, 2)), "cleanup_gate": ($Retention$cleanup_gate$({$: "Retention.CleanupFacts", "active": true, "dispatcher_idle": true, "no_advice": true, "no_notices": true, "no_pending_evaluations": true, "no_current_work": true, "no_cooldowns": true, "connection_count_ok": true, "cache_matches_ledger": true})), "cleanup_commit": ($Retention$cleanup_commit$(true)), "ticket_retention": ($Retention$ticket_retention$(2, 1, true)), "discard_scope": ($Retention$discard_scope$(2, 2, false))};
 }
 
 function $Admission$step$(_state_0, _partition_0, _lifetime_0, _event_0) {
@@ -959,48 +959,8 @@ function $Lifecycle$selection_consume$(_state_0, _actual_0) {
   return $Bool$pick$(($Bool$and$(_authorized_0, ($Bool$and$(($Bool$not$(_consumed_0)), ($Lifecycle$selection_same$(_selected_0, _actual_0)))))), {$: "Lifecycle.SelectionGranted", "state": {$: "Lifecycle.OutputSelection", "selected": _selected_0, "authorized": true, "consumed": true}}, {$: "Lifecycle.SelectionDenied", "state": {$: "Lifecycle.OutputSelection", "selected": _selected_0, "authorized": _authorized_0, "consumed": _consumed_0}});
 }
 
-function $Ticket$initial$() {
-  return {$: "Ticket.Preparing", "failure": {$: "None"}};
-}
-
-function $Ticket$fail$(_phase_0, _reason_0) {
-  if (_phase_0.$ === "Ticket.Preparing") {
-    const _previous_0 = _phase_0["failure"];
-    return $Ticket$fail$previous$(_previous_0, _reason_0);
-  } else {
-    return _phase_0;
-  }
-}
-
-function $Ticket$close$(_phase_0) {
-  if (_phase_0.$ === "Ticket.Preparing") {
-    const _t_0 = _phase_0["failure"];
-    if (_t_0.$ === "None") {
-      return {$: "Ticket.Closed"};
-    } else {
-      const _reason_0 = _t_0["value"];
-      return {$: "Ticket.Failed", "reason": _reason_0};
-    }
-  } else {
-    return _phase_0;
-  }
-}
-
-function $Ticket$terminal$(_state_0, _facts_0) {
-  const _expired_0 = _facts_0["expired"];
-  const _credential_valid_0 = _facts_0["credential_valid"];
-  const __0 = _facts_0["pending_units"];
-  const __1 = _facts_0["live_advice"];
-  const __2 = _facts_0["pending_notice"];
-  const __3 = _facts_0["unit_failure"];
-  const __4 = _facts_0["finding_units"];
-  const __5 = _facts_0["undelivered_findings"];
-  const __6 = _facts_0["total_units"];
-  return $Bool$pick$(_expired_0, {$: "Ticket.Unavailable", "reason": {$: "Ticket.Expired"}}, ($Bool$pick$(($Bool$not$(_credential_valid_0)), {$: "Ticket.Unavailable", "reason": {$: "Ticket.Credential"}}, ($Ticket$terminal$pending$(_state_0, {$: "Ticket.Facts", "expired": _expired_0, "credential_valid": _credential_valid_0, "pending_units": __0, "live_advice": __1, "pending_notice": __2, "unit_failure": __3, "finding_units": __4, "undelivered_findings": __5, "total_units": __6})))));
-}
-
 function $Ticket$collect_gate$(_expired_0, _credential_valid_0) {
-  return $Ticket$collect_gate$result$(($Ticket$terminal$(($Ticket$initial$()), {$: "Ticket.Facts", "expired": _expired_0, "credential_valid": _credential_valid_0, "pending_units": 0, "live_advice": false, "pending_notice": false, "unit_failure": {$: "None"}, "finding_units": 0, "undelivered_findings": 0, "total_units": 0})));
+  return $Bool$pick$(_expired_0, {$: "Ticket.CollectUnavailable", "reason": {$: "Ticket.Expired"}}, ($Bool$pick$(($Bool$not$(_credential_valid_0)), {$: "Ticket.CollectUnavailable", "reason": {$: "Ticket.Credential"}}, {$: "Ticket.CollectProceed"})));
 }
 
 function $Ticket$final_authority$(_admitted_block_0, _current_block_0) {
@@ -1782,41 +1742,6 @@ function $Lifecycle$selection_same$(_left_0, _right_0) {
   }
 }
 
-function $Ticket$fail$previous$(_previous_0, _reason_0) {
-  if (_previous_0.$ === "None") {
-    return {$: "Ticket.Preparing", "failure": {$: "Some", "value": _reason_0}};
-  } else {
-    const _earlier_0 = _previous_0["value"];
-    return {$: "Ticket.Preparing", "failure": {$: "Some", "value": _earlier_0}};
-  }
-}
-
-function $Ticket$terminal$pending$(_state_0, _facts_0) {
-  const _pending_units_0 = _facts_0["pending_units"];
-  const _live_advice_0 = _facts_0["live_advice"];
-  const _pending_notice_0 = _facts_0["pending_notice"];
-  const _unit_failure_0 = _facts_0["unit_failure"];
-  const _finding_units_0 = _facts_0["finding_units"];
-  const _undelivered_0 = _facts_0["undelivered_findings"];
-  const _total_0 = _facts_0["total_units"];
-  const _x_0 = ($Nat$is_gt$(_pending_units_0, 0));
-  const _x_1 = (_live_advice_0 || _pending_notice_0);
-  const _x_2 = ($Ticket$is_preparing$(_state_0));
-  const _x_3 = (_x_0 || _x_1);
-  return $Bool$pick$((_x_2 || _x_3), {$: "Ticket.Pending"}, ($Ticket$terminal$phase$(_state_0, _unit_failure_0, _finding_units_0, _undelivered_0, _total_0)));
-}
-
-function $Ticket$collect_gate$result$(_outcome_0) {
-  if (_outcome_0.$ === "Ticket.Pending") {
-    return {$: "Ticket.CollectProceed"};
-  } else if (_outcome_0.$ === "Ticket.Unavailable") {
-    const _reason_0 = _outcome_0["reason"];
-    return {$: "Ticket.CollectUnavailable", "reason": _reason_0};
-  } else {
-    return {$: "Ticket.CollectUnavailable", "reason": {$: "Ticket.Lost"}};
-  }
-}
-
 function $Ticket$joined$route$(_state_0, _has_revision_0, _has_advice_id_0) {
   if (_state_0.$ === "Ticket.JoinedUnavailable") {
     return {$: "Ticket.SetJoinedUnavailable"};
@@ -2262,23 +2187,6 @@ function $Lifecycle$finish_output$reserve$(_round_0, _work_0, _token_0, _selecte
   return $Lifecycle$finish_output$reservation$(_round_0, _work_0, _token_0, _selected_0, ($Lifecycle$selection_reserve$(_work_0, _selected_0)));
 }
 
-function $Ticket$is_preparing$(_state_0) {
-  if (_state_0.$ === "Ticket.Preparing") {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function $Ticket$terminal$phase$(_state_0, _failure_0, _finding_units_0, _undelivered_0, _total_0) {
-  if (_state_0.$ === "Ticket.Failed") {
-    const _reason_0 = _state_0["reason"];
-    return {$: "Ticket.Unavailable", "reason": _reason_0};
-  } else {
-    return $Ticket$terminal$unit$(_failure_0, _finding_units_0, _undelivered_0, _total_0);
-  }
-}
-
 function $Admission$issue$(_state_0, _tool_0, _started_0, _deadline_0, _now_0) {
   const _partition_0 = _state_0["partition"];
   const _lifetime_0 = _state_0["lifetime"];
@@ -2560,15 +2468,6 @@ function $Lifecycle$finish_output$reservation$(_round_0, _work_0, _token_0, _sel
   }
 }
 
-function $Ticket$terminal$unit$(_failure_0, _finding_units_0, _undelivered_0, _total_0) {
-  if (_failure_0.$ === "Some") {
-    const _reason_0 = _failure_0["value"];
-    return {$: "Ticket.Unavailable", "reason": _reason_0};
-  } else {
-    return $Ticket$terminal$findings$(_finding_units_0, _undelivered_0, _total_0);
-  }
-}
-
 function $Admission$issue$guard$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _tool_0, _started_0, _deadline_0, _now_0, _clock_valid_0) {
   if (!_clock_valid_0) {
     return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.StaleInvocation"}};
@@ -2751,10 +2650,6 @@ function $Lifecycle$finish_output$slot$(_selection_0, _step_0) {
   } else {
     return {$: "Lifecycle.OutputAllowed", "reason": {$: "Lifecycle.AllowUnavailable"}};
   }
-}
-
-function $Ticket$terminal$findings$(_finding_units_0, _undelivered_0, _total_0) {
-  return $Bool$pick$(($Nat$is_gt$(_finding_units_0, 0)), ($Bool$pick$(($Nat$is_eq$(_undelivered_0, 0)), {$: "Ticket.Delivered"}, {$: "Ticket.Unavailable", "reason": {$: "Ticket.Lost"}})), ($Bool$pick$(($Nat$is_gt$(_total_0, 0)), {$: "Ticket.Clear"}, {$: "Ticket.NoWork"})));
 }
 
 function $Admission$issue$tool$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _tool_0, _started_0, _deadline_0, _duplicate_0) {
@@ -3468,12 +3363,6 @@ export const bendLifecycleReserveSelected = (round, work, token, selected) =>
     selected.reduceRight((tail, value) => ({ $: "Con", head: nat(value), tail }), { $: "Nil" })));
 export const bendLifecycleReleaseUnwritten = (round, token) =>
   run_loop($Lifecycle$release_unwritten$(round, nat(token)));
-export const bendTicketInitial = () => run_loop($Ticket$initial$());
-export const bendTicketFail = (phase, reason) =>
-  run_loop($Ticket$fail$(phase, normalize(reason)));
-export const bendTicketClose = (phase) => run_loop($Ticket$close$(phase));
-export const bendTicketTerminal = (phase, facts) =>
-  run_loop($Ticket$terminal$(phase, normalize(facts)));
 export const bendTicketCollectGate = (expired, credentialValid) =>
   run_loop($Ticket$collect_gate$(expired, credentialValid));
 export const bendTicketFinalAuthority = (admittedBlock, currentBlock) =>

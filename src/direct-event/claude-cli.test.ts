@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
 import { spawn, spawnSync } from "node:child_process";
+import { createConnection } from "node:net";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { readActivity } from "../activity/status.ts";
@@ -10,6 +11,7 @@ import { configuredRules } from "../policy/rules.ts";
 import { makeGitFixture, put } from "./test-fixtures.ts";
 import { ensureResident, residentRequest } from "../resident/client.ts";
 import { residentPaths } from "../resident/paths.ts";
+import { encodeCurrentResidentRequest } from "../resident/protocol.ts";
 
 const roots: Array<string> = [];
 afterEach(() => {
@@ -28,32 +30,114 @@ const enable = (root: string, statePath: string) => Effect.runPromise(Effect.gen
   yield* consent.enable(proposal);
 }).pipe(Effect.provide(Consent.layer({ statePath }))));
 
+const preClaudeEdit = (event: Readonly<Record<string, unknown>>, env: NodeJS.ProcessEnv) =>
+  spawnSync(process.execPath, ["src/cli.ts", "--composed-before-edit-hook", "--composed-host=claude-code"], {
+    cwd: process.cwd(), input: JSON.stringify({ ...event, hook_event_name: "PreToolUse" }),
+    encoding: "utf8", timeout: 7_000, env,
+  });
+
+const CLAUDE_EDIT_FLAGS = ["src/cli.ts", "--claude-hook", "--controlled-reviewer",
+  "--controlled-writer", "--composed-edit-hook"] as const;
+
+const waitForFile = async (path: string, timeoutMs = 3_000): Promise<void> => {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (existsSync(path)) return;
+    await new Promise<void>((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error(`fixture gate was not reached: ${path}`);
+};
+
 describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
+  it("returns a current finding through the installed composed edit hooks", async () => {
+    const root = await makeGitFixture();
+    roots.push(root);
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const path = await put(root, "type.ts", "type OrderCount = number\n");
+    const event = {
+      tool_name: "Write", cwd: root, session_id: "installed-session", tool_use_id: "installed-tool",
+      tool_input: { file_path: path, content: "type OrderCount = number\n" },
+      tool_response: { filePath: path, content: "type OrderCount = number\n", originalFile: null, userModified: false },
+    };
+    const env = { ...process.env, REVIEW_STATE_PATH: statePath,
+      REVIEW_RESIDENT_DIR: join(root, "runtime"),
+      REVIEW_CONTROL_JSON: JSON.stringify({ answers: Object.fromEntries(configuredRules.map((rule) => [
+        rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
+      ])) }),
+    };
+    const invoke = (flags: ReadonlyArray<string>, hookEventName: string) => spawnSync(process.execPath,
+      ["src/cli.ts", ...flags], { cwd: process.cwd(), input: JSON.stringify({ ...event, hook_event_name: hookEventName }),
+        encoding: "utf8", timeout: 7_000, env });
+    const obsoleteDirect = invoke(["--claude-hook", "--controlled-reviewer", "--controlled-writer"], "PostToolUse");
+    expect(obsoleteDirect.status).toBe(0);
+    expect(JSON.parse(obsoleteDirect.stdout)).toEqual({});
+    const before = invoke(["--composed-before-edit-hook", "--composed-host=claude-code"], "PreToolUse");
+    expect(before.status).toBe(0);
+    expect(JSON.parse(before.stdout)).toEqual({});
+    const after = invoke(["--claude-hook", "--controlled-reviewer", "--controlled-writer", "--composed-edit-hook"], "PostToolUse");
+    expect(after.status).toBe(0);
+    expect(JSON.parse(after.stdout)).toMatchObject({ hookSpecificOutput: {
+      hookEventName: "PostToolUse", additionalContext: expect.stringContaining("OrderCount"),
+    } });
+    expect(Buffer.byteLength(after.stdout, "utf8")).toBeLessThanOrEqual(2_048);
+  });
+
   it("returns quietly when the admitted review finishes clear", async () => {
     const root = await makeGitFixture();
     roots.push(root);
     const statePath = join(root, "consent");
     await enable(root, statePath);
     const path = await put(root, "type.ts", "type ClearCount = number\n");
+    const event = {
+      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
+      session_id: "clear-session", tool_use_id: "clear-tool",
+      tool_input: { file_path: path, content: "type ClearCount = number\n" },
+      tool_response: { filePath: path, content: "type ClearCount = number\n", originalFile: null, userModified: false },
+    };
+    const env = { ...process.env, REVIEW_STATE_PATH: statePath, REVIEW_RESIDENT_DIR: join(root, "runtime"),
+      REVIEW_CONTROL_JSON: JSON.stringify({ answers: Object.fromEntries(configuredRules.map((rule) => [
+        rule.id, { _tag: "Probability", probability: 0 },
+      ])) }),
+    };
+    expect(preClaudeEdit(event, env).status).toBe(0);
     const started = performance.now();
-    const result = spawnSync(process.execPath, ["src/cli.ts", "--claude-hook", "--controlled-reviewer", "--controlled-writer"], {
+    const result = spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
       cwd: process.cwd(),
-      input: JSON.stringify({
-        hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
-        session_id: "clear-session", tool_use_id: "clear-tool",
-        tool_input: { file_path: path, content: "type ClearCount = number\n" },
-        tool_response: { filePath: path, content: "type ClearCount = number\n", originalFile: null, userModified: false },
-      }),
+      input: JSON.stringify(event),
       encoding: "utf8", timeout: 7_000,
-      env: { ...process.env, REVIEW_STATE_PATH: statePath, REVIEW_RESIDENT_DIR: join(root, "runtime"),
-        REVIEW_CONTROL_JSON: JSON.stringify({ answers: Object.fromEntries(configuredRules.map((rule) => [
-          rule.id, { _tag: "Probability", probability: 0 },
-        ])) }),
-      },
+      env,
     });
     expect(result.status).toBe(0);
     expect(JSON.parse(result.stdout)).toEqual({});
     expect(performance.now() - started).toBeLessThan(3_900);
+  });
+
+  it("returns quietly when the installed edit hook yields no review units", async () => {
+    const root = await makeGitFixture();
+    roots.push(root);
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const path = await put(root, "excluded.ts", "type ExcludedCount = number\n");
+    await put(root, ".review.jsonc", '{"version":1,"excludes":["excluded.ts"]}\n');
+    const event = {
+      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
+      session_id: "no-units-session", tool_use_id: "no-units-tool",
+      tool_input: { file_path: path, content: "type ExcludedCount = number\n" },
+      tool_response: { filePath: path, content: "type ExcludedCount = number\n", originalFile: null, userModified: false },
+    };
+    const env = { ...process.env, REVIEW_STATE_PATH: statePath, REVIEW_RESIDENT_DIR: join(root, "runtime"),
+      REVIEW_CONTROL_JSON: JSON.stringify({ answers: Object.fromEntries(configuredRules.map((rule) => [
+        rule.id, { _tag: "Probability", probability: 0.9 },
+      ])) }),
+    };
+    expect(preClaudeEdit(event, env).status).toBe(0);
+    const result = spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
+      cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: 7_000, env,
+    });
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout)).toEqual({});
+    expect(readFileSync(path, "utf8")).toBe("type ExcludedCount = number\n");
   });
 
   it("writes resident-selected advisory or block output exactly and keeps unsupported events quiet", async () => {
@@ -76,9 +160,12 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
         rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
       ])) }),
     };
-    const invoke = (input: unknown, selectedEnv: NodeJS.ProcessEnv = env) => spawnSync(process.execPath, ["src/cli.ts", "--claude-hook", "--controlled-reviewer", "--controlled-writer"], {
-      cwd: process.cwd(), input: JSON.stringify(input), encoding: "utf8", env: selectedEnv, timeout: 7_000,
-    });
+    const invoke = (input: typeof event, selectedEnv: NodeJS.ProcessEnv = env) => {
+      if (input.tool_name === "Write") expect(preClaudeEdit(input, selectedEnv).status).toBe(0);
+      return spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
+        cwd: process.cwd(), input: JSON.stringify(input), encoding: "utf8", env: selectedEnv, timeout: 7_000,
+      });
+    };
     const result = invoke(event);
     expect(result.status).toBe(0);
     const advice = JSON.parse(result.stdout) as {
@@ -110,36 +197,527 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     expect(Object.keys(block).sort()).toEqual(["decision", "reason"]);
     expect(Buffer.byteLength(blockResult.stdout, "utf8")).toBeLessThanOrEqual(2 * 1024);
 
+    await put(root, ".review.jsonc", '{"version":1,"claudeFeedbackMode":"advisory"}');
+    const narrowedResult = invoke({ ...event, tool_use_id: "tool-three" }, {
+      ...env, REVIEW_USER_CONFIG_PATH: userConfigPath,
+    });
+    expect(narrowedResult.status).toBe(0);
+    expect(JSON.parse(narrowedResult.stdout)).toMatchObject({ hookSpecificOutput: {
+      additionalContext: expect.stringContaining("OrderCount"),
+    } });
+    expect(JSON.parse(narrowedResult.stdout)).not.toHaveProperty("decision", "block");
+
     const unsupported = invoke({ ...event, tool_name: "Bash" });
     expect(unsupported.status).toBe(0);
     expect(JSON.parse(unsupported.stdout)).toEqual({});
   });
 
-  it("returns a quiet result within the hook budget when evaluation is slow", async () => {
+  it("rejects a selected block after the user revokes opt-in at final IPC handoff", async () => {
+    const root = await makeGitFixture();
+    roots.push(root);
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const path = await put(root, "type.ts", "type RevokedCount = number\n");
+    const userConfigPath = await put(root, "user-config.jsonc", '{"version":1,"claudeFeedbackMode":"block-current-findings"}');
+    const gate = join(root, "advice-response-gate");
+    const event = {
+      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
+      session_id: "revoked-session", tool_use_id: "revoked-tool",
+      tool_input: { file_path: path, content: "type RevokedCount = number\n" },
+      tool_response: { filePath: path, content: "type RevokedCount = number\n", originalFile: null, userModified: false },
+    };
+    const env = { ...process.env, REVIEW_STATE_PATH: statePath,
+      REVIEW_USER_CONFIG_PATH: userConfigPath, REVIEW_RESIDENT_DIR: join(root, "runtime"),
+      REVIEW_RESIDENT_COLLECT_ADVICE_RESPONSE_GATE_PATH: gate,
+      REVIEW_CONTROL_JSON: JSON.stringify({ answers: Object.fromEntries(configuredRules.map((rule) => [
+        rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
+      ])) }),
+    };
+    expect(preClaudeEdit(event, env).status).toBe(0);
+    writeFileSync(`${gate}.enabled`, "enabled\n");
+    const child = spawn(process.execPath, CLAUDE_EDIT_FLAGS, { cwd: process.cwd(), env,
+      stdio: ["pipe", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString("utf8"); });
+    child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString("utf8"); });
+    const completed = new Promise<number | null>((resolve, reject) => {
+      const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("Claude hook did not exit")); }, 7_000);
+      child.once("error", (error) => { clearTimeout(timer); reject(error); });
+      child.once("close", (code) => { clearTimeout(timer); resolve(code); });
+    });
+    child.stdin.end(JSON.stringify(event));
+    try {
+      await waitForFile(`${gate}.entered`);
+      writeFileSync(userConfigPath, '{"version":1,"claudeFeedbackMode":"advisory"}');
+      writeFileSync(`${gate}.release`, "release\n");
+      expect(await completed, stderr).toBe(0);
+      expect(JSON.parse(stdout)).not.toHaveProperty("decision", "block");
+      expect(readFileSync(path, "utf8")).toBe("type RevokedCount = number\n");
+      const paths = residentPaths(join(root, "runtime"));
+      const owner = await ensureResident(paths);
+      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
+      expect(stats).toMatchObject({ status: "stats", pendingAdvice: 1 });
+    } finally {
+      writeFileSync(`${gate}.release`, "release\n");
+      if (child.exitCode === null) child.kill();
+    }
+  });
+
+  it("rejects selected advice when credential authority changes at final IPC handoff", async () => {
+    const root = await makeGitFixture();
+    roots.push(root);
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const path = await put(root, "type.ts", "type CredentialCount = number\n");
+    const credentialStatePath = await put(root, "credential-state.json", '{"version":1,"generation":1,"savedUseSuspended":false}');
+    const gate = join(root, "advice-response-gate");
+    const event = {
+      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
+      session_id: "credential-session", tool_use_id: "credential-tool",
+      tool_input: { file_path: path, content: "type CredentialCount = number\n" },
+      tool_response: { filePath: path, content: "type CredentialCount = number\n", originalFile: null, userModified: false },
+    };
+    const env = { ...process.env, REVIEW_STATE_PATH: statePath,
+      REVIEW_RESIDENT_DIR: join(root, "runtime"),
+      REVIEW_RESIDENT_COLLECT_ADVICE_RESPONSE_GATE_PATH: gate,
+      REVIEW_CREDENTIAL_STATE_PATH: credentialStatePath, TYPESAFE_API_KEY: "synthetic-credential-marker",
+      REVIEW_CONTROL_JSON: JSON.stringify({ requireCredential: true,
+        answers: Object.fromEntries(configuredRules.map((rule) => [
+          rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
+        ])) }),
+    };
+    expect(preClaudeEdit(event, env).status).toBe(0);
+    writeFileSync(`${gate}.enabled`, "enabled\n");
+    const child = spawn(process.execPath, CLAUDE_EDIT_FLAGS, { cwd: process.cwd(), env,
+      stdio: ["pipe", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString("utf8"); });
+    child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString("utf8"); });
+    const completed = new Promise<number | null>((resolve, reject) => {
+      const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("Claude hook did not exit")); }, 7_000);
+      child.once("error", (error) => { clearTimeout(timer); reject(error); });
+      child.once("close", (code) => { clearTimeout(timer); resolve(code); });
+    });
+    child.stdin.end(JSON.stringify(event));
+    try {
+      await waitForFile(`${gate}.entered`);
+      writeFileSync(credentialStatePath, '{"version":1,"generation":2,"savedUseSuspended":false}');
+      writeFileSync(`${gate}.release`, "release\n");
+      expect(await completed, stderr).toBe(0);
+      expect(JSON.parse(stdout)).toEqual({});
+      expect(readFileSync(path, "utf8")).toBe("type CredentialCount = number\n");
+    } finally {
+      writeFileSync(`${gate}.release`, "release\n");
+      if (child.exitCode === null) child.kill();
+    }
+  });
+
+  it("retires selected advice when source changes before the installed hook response", async () => {
+    const root = await makeGitFixture();
+    roots.push(root);
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const path = await put(root, "type.ts", "type StaleCount = number\n");
+    const gate = join(root, "advice-response-gate");
+    const event = {
+      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
+      session_id: "stale-session", tool_use_id: "stale-tool",
+      tool_input: { file_path: path, content: "type StaleCount = number\n" },
+      tool_response: { filePath: path, content: "type StaleCount = number\n", originalFile: null, userModified: false },
+    };
+    const env = { ...process.env, REVIEW_STATE_PATH: statePath,
+      REVIEW_RESIDENT_DIR: join(root, "runtime"),
+      REVIEW_RESIDENT_COLLECT_ADVICE_RESPONSE_GATE_PATH: gate,
+      REVIEW_CONTROL_JSON: JSON.stringify({ answers: Object.fromEntries(configuredRules.map((rule) => [
+        rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
+      ])) }),
+    };
+    expect(preClaudeEdit(event, env).status).toBe(0);
+    writeFileSync(`${gate}.enabled`, "enabled\n");
+    const child = spawn(process.execPath, CLAUDE_EDIT_FLAGS, { cwd: process.cwd(), env,
+      stdio: ["pipe", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString("utf8"); });
+    child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString("utf8"); });
+    const completed = new Promise<number | null>((resolve, reject) => {
+      const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("Claude hook did not exit")); }, 7_000);
+      child.once("error", (error) => { clearTimeout(timer); reject(error); });
+      child.once("close", (code) => { clearTimeout(timer); resolve(code); });
+    });
+    child.stdin.end(JSON.stringify(event));
+    try {
+      await waitForFile(`${gate}.entered`);
+      writeFileSync(path, "type StaleCount = string\n");
+      writeFileSync(`${gate}.release`, "release\n");
+      expect(await completed, stderr).toBe(0);
+      expect(JSON.parse(stdout)).toEqual({});
+      expect(readFileSync(path, "utf8")).toBe("type StaleCount = string\n");
+      const paths = residentPaths(join(root, "runtime"));
+      const owner = await ensureResident(paths);
+      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
+      expect(stats).toMatchObject({ status: "stats", pendingAdvice: 0 });
+    } finally {
+      writeFileSync(`${gate}.release`, "release\n");
+      if (child.exitCode === null) child.kill();
+    }
+  });
+
+  it("batches ready findings from two installed edits in the later edit response", async () => {
+    const root = await makeGitFixture();
+    roots.push(root);
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const event = (path: string, name: string, toolUseId: string) => ({
+      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
+      session_id: "batch-session", tool_use_id: toolUseId,
+      tool_input: { file_path: path, content: `type ${name} = number\n` },
+      tool_response: { filePath: path, content: `type ${name} = number\n`, originalFile: null, userModified: false },
+    });
+    const acceptedPath = join(root, "admission-accepted");
+    const baseEnv = { ...process.env, REVIEW_STATE_PATH: statePath,
+      REVIEW_RESIDENT_DIR: join(root, "runtime"),
+      REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH: acceptedPath,
+      REVIEW_CONTROL_JSON: JSON.stringify({ answers: Object.fromEntries(configuredRules.map((rule) => [
+        rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
+      ])) }),
+    };
+    const delayedEnv = { ...baseEnv, REVIEW_CONTROL_JSON: JSON.stringify({ delayMs: 7_000,
+      answers: JSON.parse(baseEnv.REVIEW_CONTROL_JSON).answers }) };
+    const first = event(await put(root, "first.ts", "type FirstCount = number\n"), "FirstCount", "batch-first");
+    const second = event(await put(root, "second.ts", "type SecondCount = number\n"), "SecondCount", "batch-second");
+    const runDelayed = (input: typeof first) => new Promise<{ code: number | null; stdout: string; stderr: string }>((resolve, reject) => {
+      const child = spawn(process.execPath, CLAUDE_EDIT_FLAGS, { cwd: process.cwd(), env: delayedEnv,
+        stdio: ["pipe", "pipe", "pipe"] });
+      let stdout = "";
+      let stderr = "";
+      child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString("utf8"); });
+      child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString("utf8"); });
+      const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("Claude edit hook exceeded its deadline")); }, 7_000);
+      child.once("error", (error) => { clearTimeout(timer); reject(error); });
+      child.once("close", (code) => { clearTimeout(timer); resolve({ code, stdout, stderr }); });
+      child.stdin.end(JSON.stringify(input));
+    });
+    expect(preClaudeEdit(first, delayedEnv).status).toBe(0);
+    const firstPending = runDelayed(first);
+    await waitForFile(acceptedPath);
+    expect(preClaudeEdit(second, delayedEnv).status).toBe(0);
+    const secondPending = runDelayed(second);
+    const [firstResult, secondResult] = await Promise.all([firstPending, secondPending]);
+    expect(firstResult.code, firstResult.stderr).toBe(0);
+    expect(secondResult.code, secondResult.stderr).toBe(0);
+    expect(JSON.parse(firstResult.stdout)).toEqual({});
+    expect(JSON.parse(secondResult.stdout)).toEqual({});
+    const paths = residentPaths(join(root, "runtime"));
+    const owner = await ensureResident(paths);
+    const deadline = Date.now() + 15_000;
+    let pendingAdvice = 0;
+    let lastStats: unknown;
+    while (Date.now() < deadline && pendingAdvice < 2) {
+      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
+      lastStats = stats;
+      pendingAdvice = stats.status === "stats" ? stats.pendingAdvice : 0;
+      if (pendingAdvice < 2) await new Promise<void>((resolve) => setTimeout(resolve, 20));
+    }
+    expect(pendingAdvice, JSON.stringify(lastStats)).toBeGreaterThanOrEqual(2);
+    const third = event(await put(root, "third.ts", "type ThirdCount = number\n"), "ThirdCount", "batch-third");
+    expect(preClaudeEdit(third, baseEnv).status).toBe(0);
+    const thirdResult = spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
+      cwd: process.cwd(), input: JSON.stringify(third), encoding: "utf8", timeout: 7_000, env: baseEnv,
+    });
+    expect(thirdResult.status).toBe(0);
+    const output = JSON.parse(thirdResult.stdout) as { hookSpecificOutput?: { additionalContext: string } };
+    expect(output.hookSpecificOutput?.additionalContext).toContain("FirstCount");
+    expect(output.hookSpecificOutput?.additionalContext).toContain("SecondCount");
+  });
+
+  it("bounds the encoded installed response for multiple review units", async () => {
+    const root = await makeGitFixture();
+    roots.push(root);
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const names = Array.from({ length: 6 }, (_, index) => `Count${"X".repeat(350)}${index}`);
+    const source = `${names.map((name) => `type ${name} = number`).join("\n")}\n`;
+    const path = await put(root, "type.ts", source);
+    const event = {
+      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
+      session_id: "multi-unit-session", tool_use_id: "multi-unit-tool",
+      tool_input: { file_path: path, content: source },
+      tool_response: { filePath: path, content: source, originalFile: null, userModified: false },
+    };
+    const env = { ...process.env, REVIEW_STATE_PATH: statePath,
+      REVIEW_RESIDENT_DIR: join(root, "runtime"),
+      REVIEW_CONTROL_JSON: JSON.stringify({ answers: Object.fromEntries(configuredRules.map((rule) => [
+        rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
+      ])) }),
+    };
+    expect(preClaudeEdit(event, env).status).toBe(0);
+    const result = spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
+      cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: 7_000, env,
+    });
+    expect(result.status).toBe(0);
+    const output = JSON.parse(result.stdout) as { hookSpecificOutput?: { additionalContext: string } };
+    const context = output.hookSpecificOutput?.additionalContext ?? "";
+    const findingCount = [...context.matchAll(/\[r6_bare_domain_value/g)].length;
+    expect(findingCount).toBeGreaterThan(0);
+    expect(findingCount).toBeLessThan(5);
+    expect(Buffer.byteLength(result.stdout, "utf8")).toBeLessThanOrEqual(2_048);
+    expect(readFileSync(path, "utf8")).toBe(source);
+  });
+
+  it("delivers a finding while another unit fails and records both facts", async () => {
+    const root = await makeGitFixture();
+    roots.push(root);
+    const statePath = join(root, "consent");
+    const activityPath = join(root, "activity.jsonl");
+    await enable(root, statePath);
+    const source = "type GoodCount = number\ntype FailedCount = number\n";
+    const path = await put(root, "type.ts", source);
+    const event = {
+      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
+      session_id: "mixed-session", tool_use_id: "mixed-tool",
+      tool_input: { file_path: path, content: source },
+      tool_response: { filePath: path, content: source, originalFile: null, userModified: false },
+    };
+    const env = { ...process.env, REVIEW_STATE_PATH: statePath,
+      REVIEW_ACTIVITY_PATH: activityPath, REVIEW_RESIDENT_DIR: join(root, "runtime"),
+      REVIEW_CONTROL_JSON: JSON.stringify({ failureOnSourceIncludes: "FailedCount",
+        answers: Object.fromEntries(configuredRules.map((rule) => [
+          rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
+        ])) }),
+    };
+    expect(preClaudeEdit(event, env).status).toBe(0);
+    const result = spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
+      cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: 7_000, env,
+    });
+    expect(result.status).toBe(0);
+    const output = JSON.parse(result.stdout) as { hookSpecificOutput?: { additionalContext: string } };
+    expect(output.hookSpecificOutput?.additionalContext).toContain("GoodCount");
+    expect(output.hookSpecificOutput?.additionalContext).not.toContain("FailedCount");
+    const paths = residentPaths(join(root, "runtime"));
+    const owner = await ensureResident(paths);
+    const deadline = Date.now() + 3_000;
+    let activity = readActivity({ statePath: activityPath, root,
+      sessionId: event.session_id, resident: { available: true, lifetime: owner.lifetime } });
+    while (Date.now() < deadline && activity.counts.unavailable === 0) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 20));
+      activity = readActivity({ statePath: activityPath, root,
+        sessionId: event.session_id, resident: { available: true, lifetime: owner.lifetime } });
+    }
+    expect(activity.findings).toBeGreaterThan(0);
+    expect(activity.counts.unavailable).toBeGreaterThan(0);
+    expect(readFileSync(path, "utf8")).toBe(source);
+  });
+
+  it("does not turn a lost resident's pending Claude work into clear or submitted advice", async () => {
+    const root = await makeGitFixture();
+    roots.push(root);
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const event = (path: string, name: string, toolUseId: string) => ({
+      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
+      session_id: "restart-session", tool_use_id: toolUseId,
+      tool_input: { file_path: path, content: `type ${name} = number\n` },
+      tool_response: { filePath: path, content: `type ${name} = number\n`, originalFile: null, userModified: false },
+    });
+    const baseEnv = { ...process.env, REVIEW_STATE_PATH: statePath,
+      REVIEW_RESIDENT_DIR: join(root, "runtime"),
+      REVIEW_CONTROL_JSON: JSON.stringify({ answers: Object.fromEntries(configuredRules.map((rule) => [
+        rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
+      ])) }),
+    };
+    const first = event(await put(root, "first.ts", "type LostCount = number\n"), "LostCount", "lost-tool");
+    const delayedEnv = { ...baseEnv, REVIEW_CONTROL_JSON: JSON.stringify({ delayMs: 10_000,
+      answers: JSON.parse(baseEnv.REVIEW_CONTROL_JSON).answers }) };
+    expect(preClaudeEdit(first, delayedEnv).status).toBe(0);
+    const firstResult = spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
+      cwd: process.cwd(), input: JSON.stringify(first), encoding: "utf8", timeout: 7_000, env: delayedEnv,
+    });
+    expect(firstResult.status).toBe(0);
+    expect(JSON.parse(firstResult.stdout)).toEqual({});
+    const paths = residentPaths(join(root, "runtime"));
+    const oldOwner = await ensureResident(paths);
+    process.kill(oldOwner.pid, "SIGKILL");
+    const newOwner = await ensureResident(paths);
+    expect(newOwner.lifetime).not.toBe(oldOwner.lifetime);
+    const stale = await residentRequest(paths, { version: 1, operation: "stats", lifetime: newOwner.lifetime });
+    expect(stale).toMatchObject({ status: "stats", pendingAdvice: 0 });
+    const second = event(await put(root, "second.ts", "type FreshCount = number\n"), "FreshCount", "fresh-tool");
+    expect(preClaudeEdit(second, baseEnv).status).toBe(0);
+    const secondResult = spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
+      cwd: process.cwd(), input: JSON.stringify(second), encoding: "utf8", timeout: 7_000, env: baseEnv,
+    });
+    expect(secondResult.status).toBe(0);
+    expect(JSON.parse(secondResult.stdout)).toMatchObject({ hookSpecificOutput: {
+      additionalContext: expect.stringContaining("FreshCount"),
+    } });
+    expect(secondResult.stdout).not.toContain("LostCount");
+  });
+
+  it("accepts only the current IPC frame at the installed resident socket", async () => {
+    const root = await makeGitFixture();
+    roots.push(root);
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const path = await put(root, "type.ts", "type ProtocolCount = number\n");
+    const event = {
+      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
+      session_id: "protocol-session", tool_use_id: "protocol-tool",
+      tool_input: { file_path: path, content: "type ProtocolCount = number\n" },
+      tool_response: { filePath: path, content: "type ProtocolCount = number\n", originalFile: null, userModified: false },
+    };
+    const env = { ...process.env, REVIEW_STATE_PATH: statePath, REVIEW_RESIDENT_DIR: join(root, "runtime") };
+    expect(preClaudeEdit(event, env).status).toBe(0);
+    const paths = residentPaths(join(root, "runtime"));
+    const owner = await ensureResident(paths);
+    const raw = (frame: string) => new Promise<unknown>((resolve, reject) => {
+      const socket = createConnection(paths.socket);
+      let response = "";
+      socket.once("error", reject);
+      socket.on("data", (chunk: Buffer) => { response += chunk.toString("utf8"); });
+      socket.once("end", () => {
+        try { resolve(JSON.parse(response.trim())); } catch (error) { reject(error); }
+      });
+      socket.once("connect", () => socket.write(`${frame}\n`));
+    });
+    expect(await raw(encodeCurrentResidentRequest({ version: 1, operation: "hello" })))
+      .toMatchObject({ version: 3, status: "ready", lifetime: owner.lifetime });
+    for (const frame of ['{"version":3,', JSON.stringify({ version: 1, operation: "hello" }),
+      JSON.stringify({ version: 2, operation: "collect", lifetime: owner.lifetime })]) {
+      expect(await raw(frame)).toEqual({ version: 3, status: "unsupported" });
+    }
+  });
+
+  it("fences one finding across concurrent installed edit, background, and Stop collectors", async () => {
+    const root = await makeGitFixture();
+    roots.push(root);
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const path = await put(root, "type.ts", "type ConcurrentCount = number\n");
+    const edit = {
+      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
+      session_id: "concurrent-session", tool_use_id: "concurrent-tool",
+      tool_input: { file_path: path, content: "type ConcurrentCount = number\n" },
+      tool_response: { filePath: path, content: "type ConcurrentCount = number\n", originalFile: null, userModified: false },
+    };
+    const acceptedPath = join(root, "admission-accepted");
+    const env = { ...process.env, REVIEW_STATE_PATH: statePath,
+      REVIEW_RESIDENT_DIR: join(root, "runtime"), REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH: acceptedPath,
+      REVIEW_CONTROL_JSON: JSON.stringify({ delayMs: 1_200,
+        answers: Object.fromEntries(configuredRules.map((rule) => [
+          rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
+        ])) }),
+    };
+    expect(preClaudeEdit(edit, env).status).toBe(0);
+    const run = (flags: ReadonlyArray<string>, input: unknown, timeoutMs: number) =>
+      new Promise<{ code: number | null; stdout: string; stderr: string }>((resolve, reject) => {
+        const child = spawn(process.execPath, ["src/cli.ts", ...flags], { cwd: process.cwd(), env,
+          stdio: ["pipe", "pipe", "pipe"] });
+        let stdout = "";
+        let stderr = "";
+        child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString("utf8"); });
+        child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString("utf8"); });
+        const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("collector exceeded deadline")); }, timeoutMs);
+        child.once("error", (error) => { clearTimeout(timer); reject(error); });
+        child.once("close", (code) => { clearTimeout(timer); resolve({ code, stdout, stderr }); });
+        child.stdin.end(JSON.stringify(input));
+      });
+    const editResult = run(CLAUDE_EDIT_FLAGS.slice(1), edit, 7_000);
+    await waitForFile(acceptedPath);
+    const backgroundResult = run(["--controlled-reviewer", "--composed-background-hook", "--composed-host=claude-code"], edit, 23_000);
+    const stopResult = run(["--controlled-reviewer", "--composed-stop-hook", "--composed-host=claude-code"], {
+      hook_event_name: "Stop", cwd: root, session_id: edit.session_id, stop_hook_active: false,
+    }, 7_000);
+    const [sync, background, stop] = await Promise.all([editResult, backgroundResult, stopResult]);
+    for (const result of [sync, background, stop]) expect(result.code, result.stderr).toBe(0);
+    const outputs = [sync, background, stop].map((result) => result.stdout.trim() === ""
+      ? {} : JSON.parse(result.stdout) as Record<string, unknown>);
+    const containsFinding = (output: Record<string, unknown> | undefined) =>
+      JSON.stringify(output ?? {}).includes("ConcurrentCount");
+    expect(outputs.filter(containsFinding).length).toBeGreaterThanOrEqual(1);
+    expect(outputs.filter(containsFinding).length).toBeLessThanOrEqual(2);
+    expect([outputs[0], outputs[1]].filter(containsFinding).length).toBeLessThanOrEqual(1);
+    for (const result of [sync, background, stop]) {
+      expect(Buffer.byteLength(result.stdout, "utf8")).toBeLessThanOrEqual(2_048);
+    }
+    expect(readFileSync(path, "utf8")).toBe("type ConcurrentCount = number\n");
+  }, 40_000);
+
+  it("returns quietly at the edit budget and offers slow advice to background", async () => {
     const root = await makeGitFixture();
     roots.push(root);
     const statePath = join(root, "consent");
     await enable(root, statePath);
     const path = await put(root, "type.ts", "type OrderCount = number\n");
+    const event = {
+      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
+      session_id: "slow-session", tool_use_id: "slow-tool",
+      tool_input: { file_path: path, content: "type OrderCount = number\n" },
+      tool_response: { filePath: path, content: "type OrderCount = number\n", originalFile: null, userModified: false },
+    };
+    const env = { ...process.env, REVIEW_STATE_PATH: statePath, REVIEW_RESIDENT_DIR: join(root, "runtime"),
+      REVIEW_CONTROL_JSON: JSON.stringify({ delayMs: 10_000, answers: Object.fromEntries(configuredRules.map((rule) => [
+        rule.id, { _tag: "Probability", probability: 0.9 },
+      ])) }),
+    };
+    expect(preClaudeEdit(event, env).status).toBe(0);
     const started = performance.now();
-    const result = spawnSync(process.execPath, ["src/cli.ts", "--claude-hook", "--controlled-reviewer", "--controlled-writer"], {
+    const result = spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
       cwd: process.cwd(),
-      input: JSON.stringify({
-        hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
-        session_id: "slow-session", tool_use_id: "slow-tool",
-        tool_input: { file_path: path, content: "type OrderCount = number\n" },
-        tool_response: { filePath: path, content: "type OrderCount = number\n", originalFile: null, userModified: false },
-      }),
+      input: JSON.stringify(event),
       encoding: "utf8", timeout: 7_000,
-      env: { ...process.env, REVIEW_STATE_PATH: statePath, REVIEW_RESIDENT_DIR: join(root, "runtime"),
-        REVIEW_CONTROL_JSON: JSON.stringify({ delayMs: 10_000, answers: Object.fromEntries(configuredRules.map((rule) => [
-          rule.id, { _tag: "Probability", probability: 0.9 },
-        ])) }),
-      },
+      env,
     });
     expect(result.status).toBe(0);
     expect(JSON.parse(result.stdout)).toEqual({});
     expect(performance.now() - started).toBeLessThan(5_000);
+    const background = spawnSync(process.execPath,
+      ["src/cli.ts", "--controlled-reviewer", "--composed-background-hook", "--composed-host=claude-code"], {
+        cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: 22_000, env,
+      });
+    expect(background.status).toBe(0);
+    expect(JSON.parse(background.stdout)).toMatchObject({ hookSpecificOutput: {
+      hookEventName: "PostToolUse", additionalContext: expect.stringContaining("OrderCount"),
+    } });
+    expect(readFileSync(path, "utf8")).toBe("type OrderCount = number\n");
+  });
+
+  it("waits for unfinished admitted work and offers its finding at Stop", async () => {
+    const root = await makeGitFixture();
+    roots.push(root);
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const path = await put(root, "type.ts", "type StopCount = number\n");
+    const event = {
+      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
+      session_id: "stop-session", tool_use_id: "stop-tool",
+      tool_input: { file_path: path, content: "type StopCount = number\n" },
+      tool_response: { filePath: path, content: "type StopCount = number\n", originalFile: null, userModified: false },
+    };
+    const env = { ...process.env, REVIEW_STATE_PATH: statePath, REVIEW_RESIDENT_DIR: join(root, "runtime"),
+      REVIEW_CONTROL_JSON: JSON.stringify({ delayMs: 5_000,
+        answers: Object.fromEntries(configuredRules.map((rule) => [
+          rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
+        ])) }),
+    };
+    expect(preClaudeEdit(event, env).status).toBe(0);
+    const edit = spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
+      cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: 7_000, env,
+    });
+    expect(edit.status).toBe(0);
+    expect(JSON.parse(edit.stdout)).toEqual({});
+    const stop = spawnSync(process.execPath,
+      ["src/cli.ts", "--controlled-reviewer", "--composed-stop-hook", "--composed-host=claude-code"], {
+        cwd: process.cwd(), encoding: "utf8", timeout: 7_000, env,
+        input: JSON.stringify({ hook_event_name: "Stop", cwd: root, session_id: event.session_id,
+          stop_hook_active: false }),
+      });
+    expect(stop.status).toBe(0);
+    expect(JSON.parse(stop.stdout)).toMatchObject({ decision: "block", reason: expect.stringContaining("StopCount") });
+    expect(Buffer.byteLength(stop.stdout, "utf8")).toBeLessThanOrEqual(2_048);
+    expect(readFileSync(path, "utf8")).toBe("type StopCount = number\n");
   });
 
   it("does not acknowledge a Claude lease when stdout reports a write error", async () => {
@@ -170,7 +748,8 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
       tool_response: { filePath: path, content: "type OrderCount = number\n", originalFile: null, userModified: false },
     };
     writeFileSync(`${ackGatePath}.enabled`, "enabled\n");
-    const child = spawn(process.execPath, ["src/cli.ts", "--claude-hook", "--controlled-reviewer", "--controlled-writer"], {
+    expect(preClaudeEdit(event, env).status).toBe(0);
+    const child = spawn(process.execPath, CLAUDE_EDIT_FLAGS, {
       cwd: process.cwd(), stdio: ["pipe", "pipe", "pipe"], env,
     });
     const completed = new Promise<{ readonly code: number | null; readonly signal: NodeJS.Signals | null }>((resolve, reject) => {

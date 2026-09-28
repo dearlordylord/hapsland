@@ -144,6 +144,7 @@ const ControlledOptions = Schema.Struct({
   ),
   delayMs: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
   failure: Schema.optionalKey(Schema.String),
+  failureOnSourceIncludes: Schema.optionalKey(Schema.String),
   capturePath: Schema.optionalKey(Schema.String),
   outcomePath: Schema.optionalKey(Schema.String),
   requireCredential: Schema.optionalKey(Schema.Boolean),
@@ -667,10 +668,6 @@ const runDirectBoundedHook = async (
   if (isClaudeHook) {
     const accepted = await bounded(() => admitTicketedObservation(observation, dispatch, undefined, isComposedEditHook));
     if (accepted?.status !== "accepted") return {};
-    // The composed background hook and Stop own collection. The synchronous
-    // edit hook only admits work so a later repair edit cannot consume its
-    // entire host budget waiting for a clear review.
-    if (isComposedEditHook) return {};
     while (remaining() > 150) {
       const outcome = await bounded(() => collectOutcome(accepted.admission));
       if (outcome === undefined) return {};
@@ -1334,6 +1331,7 @@ const program = Effect.gen(function* () {
   const controlled = isControlledReviewer ? yield* controlledOptions : undefined;
 
   if (isClaudeHook || isOpenCodeHook) {
+    if (isClaudeHook && !isComposedEditHook) return {};
     const nativeEvent = yield* decodeJson(input);
     const observation = isClaudeHook
       ? yield* adaptClaudeDirectEvent(nativeEvent)

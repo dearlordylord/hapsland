@@ -54,9 +54,12 @@ it grants one same round Stop reoffer for terminal background advice.
 generation, and live same-input member counts. The resident uses its canonical
 register, release, and supersession commands to fence older review callbacks
 and retire their advice without changing another advicee's work.
-`TicketState.bend` retains ticket phases and ordered unit outcomes, then
-computes terminal status from native expiry, credential, and live advice facts.
-Duplicate delivered marks and late results for unavailable units are refused.
+`TicketState.bend` retains admission identities and a flat set of per-unit
+review facts; every unit names its admission. It stores no reverse unit list
+or aggregate outcome phase. The resident derives collection availability from
+live work and advice, while canonical authority checks guard expiry and
+credentials. Duplicate delivered marks and late results for unavailable units
+are refused.
 `ReuseState.bend` retains source-free evaluation claims and successful cache
 LRU order. The resident follows canonical route, admission, eviction, and
 partition expiry commands while keeping request handles and cached payloads

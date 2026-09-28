@@ -9,6 +9,8 @@ import {
   combinedFindingOutput,
   combinedClaudeOutput,
   combinedReviewOutput,
+  composedClaudeHostOutput,
+  encodedComposedClaudeOutputBytes,
   encodedHostOutputBytes,
   encodedClaudeHostOutputBytes,
   fitsClaudeReviewResponse,
@@ -19,6 +21,8 @@ import {
   selectFittingClaudeFindings,
   selectFittingCurrentFindingIndices,
   selectFittingClaudeNotices,
+  selectFittingComposedClaudeFindings,
+  selectFittingComposedClaudeNotices,
   selectFittingNotices,
   type FindingSelectionFacts,
 } from "./collection.ts";
@@ -164,6 +168,17 @@ describe("resident advice collection policy", () => {
     expect(fitsClaudeReviewResponse([{ ...exact, message: `${exact.message}x` }], [], "block-current-findings")).toBe(false);
     const oversized = { ...exact, message: `${exact.message}x` };
     expect(selectFittingClaudeFindings([], [oversized, finding(1)], "block-current-findings")).toEqual([finding(1)]);
+  });
+
+  it.each(["background", "stop"] as const)("bounds the final composed Claude %s response", (surface) => {
+    const baseline = encodedComposedClaudeOutputBytes([finding(0, "")], [], surface);
+    const exact = finding(0, "x".repeat(MAX_COMBINED_RESPONSE_BYTES - baseline));
+    expect(encodedComposedClaudeOutputBytes([exact], [], surface)).toBe(MAX_COMBINED_RESPONSE_BYTES);
+    expect(selectFittingComposedClaudeFindings([], [exact], surface)).toEqual([exact]);
+    expect(selectFittingComposedClaudeFindings([], [{ ...exact, message: `${exact.message}x` }], surface)).toEqual([]);
+    expect(selectFittingComposedClaudeNotices([exact], [{ kind: "backend", suppressedCount: 0 }], surface)).toEqual([]);
+    const output = composedClaudeHostOutput(combinedReviewOutput([exact], []), 1, surface);
+    expect(Buffer.byteLength(`${JSON.stringify(output)}\n`, "utf8")).toBe(MAX_COMBINED_RESPONSE_BYTES);
   });
 
   it("keeps notices informational and uses advisory output when no finding fits", () => {

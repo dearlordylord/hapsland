@@ -1,16 +1,17 @@
 import Base
 import ./Ticket.bend as Ticket
 
-# Only numeric ticket and unit identities, phase, and failure category live here.
-# Source, credentials, advice payload, clocks, and host output stay native.
+# Admissions retain identity only. Each review unit names its admission.
+# Collection status is derived from live work, advice, and activity facts.
 type TicketUnit is Data:
-  TicketUnit{id: Nat, stage: Ticket.UnitStage, reason: Maybe<&2, Ticket.Reason>}
+  TicketUnit{id: Nat, admission: Nat, stage: Ticket.UnitStage,
+    reason: Maybe<&2, Ticket.Reason>}
 
 type Record is Data:
-  Record{id: Nat, phase: Ticket.Phase, units: List<&2, TicketUnit>}
+  Record{id: Nat}
 
 type State is Data:
-  State{records: List<&2, Record>}
+  State{records: List<&2, Record>, units: List<&2, TicketUnit>}
 
 type Decision is Data:
   Granted{state: State}
@@ -21,15 +22,19 @@ type Retention is Data:
   Evicted{state: State, id: Nat}
 
 def initial() -> State:
-  State{Nil{}}
+  State{Nil{}, Nil{}}
 
 def record_id(record: Record) -> Nat:
   match record:
-    case Record{id, _, _}: id
+    case Record{id}: id
 
 def unit_id(unit: TicketUnit) -> Nat:
   match unit:
-    case TicketUnit{id, _, _}: id
+    case TicketUnit{id, _, _, _}: id
+
+def unit_admission(unit: TicketUnit) -> Nat:
+  match unit:
+    case TicketUnit{_, admission, _, _}: admission
 
 def find_record(+id: Nat, records: List<&2, Record>) -> Maybe<&2, Record>:
   match records:
@@ -45,14 +50,16 @@ def find_unit(+id: Nat, units: List<&2, TicketUnit>) -> Maybe<&2, TicketUnit>:
       Bool.pick(Maybe<&2, TicketUnit>, Nat.is_eq(id, unit_id(unit)),
         Some{unit}, find_unit(id, rest))
 
-def unit_in_record(found: Maybe<&2, Record>, unit: Nat) -> Maybe<&2, TicketUnit>:
+def owned_unit(found: Maybe<&2, TicketUnit>, admission: Nat) -> Maybe<&2, TicketUnit>:
   match found:
-    case Some{Record{_, _, units}}: find_unit(unit, units)
     case None{}: None{}
+    case Some{+unit}:
+      Bool.pick(Maybe<&2, TicketUnit>, Nat.is_eq(unit_admission(unit), admission),
+        Some{unit}, None{})
 
-def unit_snapshot(state: State, ticket: Nat, unit: Nat) -> Maybe<&2, TicketUnit>:
+def unit_snapshot(state: State, admission: Nat, unit: Nat) -> Maybe<&2, TicketUnit>:
   match state:
-    case State{records}: unit_in_record(find_record(ticket, records), unit)
+    case State{_, units}: owned_unit(find_unit(unit, units), admission)
 
 def keep_record(record: Record, tail: List<&2, Record>, remove: Bool) -> List<&2, Record>:
   match remove:
@@ -70,11 +77,12 @@ def keep_unit(unit: TicketUnit, tail: List<&2, TicketUnit>, remove: Bool) -> Lis
     case True{}: tail
     case False{}: unit <> tail
 
-def without_unit(+id: Nat, units: List<&2, TicketUnit>) -> List<&2, TicketUnit>:
+def without_admission(+admission: Nat, units: List<&2, TicketUnit>) -> List<&2, TicketUnit>:
   match units:
     case Nil{}: Nil{}
     case +unit <> rest:
-      keep_unit(unit, without_unit(id, rest), Nat.is_eq(id, unit_id(unit)))
+      keep_unit(unit, without_admission(admission, rest),
+        Nat.is_eq(admission, unit_admission(unit)))
 
 def replace_unit_choice(item: TicketUnit, tail: List<&2, TicketUnit>,
     replacement: TicketUnit, matches: Bool) -> List<&2, TicketUnit>:
@@ -92,27 +100,25 @@ def replace_unit(+id: Nat, +replacement: TicketUnit,
 
 def opened(state: State, id: Nat, found: Maybe<&2, Record>) -> Decision:
   match state found:
-    case State{records} None{}:
-      Granted{State{Record{id, Ticket.initial(), Nil{}} <> records}}
+    case State{records, units} None{}:
+      Granted{State{Record{id} <> records, units}}
     case _ _:
       Refused{state}
 
 def open(+state: State, +id: Nat) -> Decision:
   match state:
-    case State{records}:
-      opened(state, id, find_record(id, records))
+    case State{records, _}: opened(state, id, find_record(id, records))
 
-def forgotten(state: State, id: Nat, found: Maybe<&2, Record>) -> Decision:
+def forgotten(state: State, +id: Nat, found: Maybe<&2, Record>) -> Decision:
   match state found:
-    case State{records} Some{_}:
-      Granted{State{without_record(id, records)}}
+    case State{records, units} Some{_}:
+      Granted{State{without_record(id, records), without_admission(id, units)}}
     case _ _:
       Refused{state}
 
 def forget(+state: State, +id: Nat) -> Decision:
   match state:
-    case State{records}:
-      forgotten(state, id, find_record(id, records))
+    case State{records, _}: forgotten(state, id, find_record(id, records))
 
 def older(+candidate: Nat, current: Maybe<&2, Nat>) -> Maybe<&2, Nat>:
   match current:
@@ -126,59 +132,32 @@ def oldest(records: List<&2, Record>) -> Maybe<&2, Nat>:
 
 def evict_found(state: State, found: Maybe<&2, Nat>) -> Retention:
   match state found:
-    case State{records} Some{+id}:
-      Evicted{State{without_record(id, records)}, id}
+    case State{records, units} Some{+id}:
+      Evicted{State{without_record(id, records), without_admission(id, units)}, id}
     case _ None{}: Kept{state}
 
 def retention(+state: State, limit: Nat) -> Retention:
   match state:
-    case State{records}:
+    case State{records, _}:
       Bool.pick(Retention, Nat.is_gt(List.length(&2, Record, records), limit),
         evict_found(state, oldest(records)), Kept{state})
 
-def failure_result(state: State, +id: Nat, reason: Ticket.Reason,
+def add_unit_found(+state: State, +admission: Nat, +unit: Nat,
     found: Maybe<&2, Record>) -> Decision:
   match state found:
-    case State{records} Some{Record{_, phase, units}}:
-      Granted{State{Record{id, Ticket.fail(phase, reason), units} <>
-        without_record(id, records)}}
-    case _ _:
-      Refused{state}
-
-def fail(+state: State, +id: Nat, reason: Ticket.Reason) -> Decision:
-  match state:
-    case State{records}:
-      failure_result(state, id, reason, find_record(id, records))
-
-def close_result(state: State, +id: Nat, found: Maybe<&2, Record>) -> Decision:
-  match state found:
-    case State{records} Some{Record{_, phase, units}}:
-      Granted{State{Record{id, Ticket.close(phase), units} <>
-        without_record(id, records)}}
-    case _ _:
-      Refused{state}
-
-def close(+state: State, +id: Nat) -> Decision:
-  match state:
-    case State{records}:
-      close_result(state, id, find_record(id, records))
-
-def add_unit_found(+state: State, +ticket: Nat, +unit: Nat,
-    found: Maybe<&2, Record>) -> Decision:
-  match state found:
-    case State{+records} Some{Record{_, phase, +units}}:
+    case State{records, +units} Some{_}:
       Bool.pick(Decision, Bool.and(Nat.is_gt(unit, 0n),
         Maybe.is_none(&2, TicketUnit, find_unit(unit, units))),
-        Granted{State{Record{ticket, phase, List.append(&2, TicketUnit, units,
-          TicketUnit{unit, Ticket.unit.initial(), None{}} <> Nil{})} <>
-          without_record(ticket, records)}}, Refused{state})
+        Granted{State{records, List.append(&2, TicketUnit, units,
+          TicketUnit{unit, admission, Ticket.unit.initial(), None{}} <> Nil{})}},
+        Refused{state})
     case _ _:
       Refused{state}
 
-def add_unit(+state: State, +ticket: Nat, unit: Nat) -> Decision:
+def add_unit(+state: State, +admission: Nat, unit: Nat) -> Decision:
   match state:
-    case State{records}:
-      add_unit_found(state, ticket, unit, find_record(ticket, records))
+    case State{records, _}:
+      add_unit_found(state, admission, unit, find_record(admission, records))
 
 def reason_after(event: Ticket.UnitEvent, reason: Ticket.Reason,
     previous: Maybe<&2, Ticket.Reason>) -> Maybe<&2, Ticket.Reason>:
@@ -189,11 +168,6 @@ def reason_after(event: Ticket.UnitEvent, reason: Ticket.Reason,
 def pending_stage(stage: Ticket.UnitStage) -> Bool:
   match stage:
     case Ticket.UnitPending{}: True{}
-    case _: False{}
-
-def finding_stage(stage: Ticket.UnitStage) -> Bool:
-  match stage:
-    case Ticket.UnitFinding{_}: True{}
     case _: False{}
 
 def undelivered_stage(stage: Ticket.UnitStage) -> Bool:
@@ -214,95 +188,39 @@ def unit_allowed(stage: Ticket.UnitStage, event: Ticket.UnitEvent) -> Bool:
     case Ticket.FailUnit{}: Bool.not(unavailable_stage(stage))
     case Ticket.MarkDelivered{}: undelivered_stage(stage)
 
-def unit_transition_result(state: State, +ticket: Nat, +unit: Nat,
-    phase: Ticket.Phase, units: List<&2, TicketUnit>,
-    event: Ticket.UnitEvent, reason: Ticket.Reason,
-    previous_reason: Maybe<&2, Ticket.Reason>,
+def unit_transition_result(state: State, +admission: Nat, +unit: Nat,
+    units: List<&2, TicketUnit>, event: Ticket.UnitEvent,
+    reason: Ticket.Reason, previous_reason: Maybe<&2, Ticket.Reason>,
     result: Ticket.UnitStep) -> Decision:
   match state result:
-    case State{records} Ticket.UnitGranted{replacement}:
-      Granted{State{Record{ticket, phase,
-        replace_unit(unit, TicketUnit{unit, replacement,
-          reason_after(event, reason, previous_reason)}, units)} <>
-          without_record(ticket, records)}}
-    case _ Ticket.UnitDenied{_}:
-      Refused{state}
+    case State{records, _} Ticket.UnitGranted{replacement}:
+      Granted{State{records, replace_unit(unit,
+        TicketUnit{unit, admission, replacement,
+          reason_after(event, reason, previous_reason)}, units)}}
+    case _ Ticket.UnitDenied{_}: Refused{state}
 
-def unit_step_result(+state: State, ticket: Nat, unit: Nat,
+def unit_step_owned(+state: State, +admission: Nat, unit: Nat,
+    owner: Nat, +stage: Ticket.UnitStage,
+    previous_reason: Maybe<&2, Ticket.Reason>,
+    +event: Ticket.UnitEvent, reason: Ticket.Reason) -> Decision:
+  match state:
+    case State{_, units}:
+      Bool.pick(Decision, Bool.and(Nat.is_eq(owner, admission), unit_allowed(stage, event)),
+        unit_transition_result(state, admission, unit, units, event, reason,
+          previous_reason, Ticket.unit.step(stage, event)),
+        Refused{state})
+
+def unit_step_found(+state: State, admission: Nat, unit: Nat,
     +event: Ticket.UnitEvent, reason: Ticket.Reason,
-    found_record: Maybe<&2, Record>, found_unit: Maybe<&2, TicketUnit>) -> Decision:
-  match found_record found_unit:
-    case Some{Record{_, phase, units}} Some{TicketUnit{_, +stage, previous_reason}}:
-      Bool.pick(Decision, unit_allowed(stage, event),
-        unit_transition_result(state, ticket, unit, phase, units, event, reason,
-          previous_reason, Ticket.unit.step(stage, event)), Refused{state})
-    case _ _:
-      Refused{state}
-
-def step_unit_found(state: State, +ticket: Nat, +unit: Nat,
-    event: Ticket.UnitEvent, reason: Ticket.Reason,
-    +found: Maybe<&2, Record>) -> Decision:
+    found: Maybe<&2, TicketUnit>) -> Decision:
   match found:
-    case Some{Record{_, _, units}}:
-      unit_step_result(state, ticket, unit, event, reason, found, find_unit(unit, units))
-    case None{}:
-      Refused{state}
+    case Some{TicketUnit{_, owner, +stage, previous_reason}}:
+      unit_step_owned(state, admission, unit, owner, stage, previous_reason,
+        event, reason)
+    case None{}: Refused{state}
 
-def step_unit(+state: State, +ticket: Nat, unit: Nat,
+def step_unit(+state: State, admission: Nat, +unit: Nat,
     event: Ticket.UnitEvent, reason: Ticket.Reason) -> Decision:
   match state:
-    case State{records}:
-      step_unit_found(state, ticket, unit, event, reason, find_record(ticket, records))
-
-def pending_count(units: List<&2, TicketUnit>) -> Nat:
-  match units:
-    case Nil{}: 0n
-    case TicketUnit{_, stage, _} <> rest:
-      (pending_count(rest) + Bool.pick(Nat, pending_stage(stage), 1n, 0n) : Nat)
-
-def finding_count(units: List<&2, TicketUnit>) -> Nat:
-  match units:
-    case Nil{}: 0n
-    case TicketUnit{_, stage, _} <> rest:
-      (finding_count(rest) + Bool.pick(Nat, finding_stage(stage), 1n, 0n) : Nat)
-
-def undelivered_count(units: List<&2, TicketUnit>) -> Nat:
-  match units:
-    case Nil{}: 0n
-    case TicketUnit{_, stage, _} <> rest:
-      (undelivered_count(rest) + Bool.pick(Nat, undelivered_stage(stage), 1n, 0n) : Nat)
-
-def first_failure(units: List<&2, TicketUnit>) -> Maybe<&2, Ticket.Reason>:
-  match units:
-    case Nil{}: None{}
-    case TicketUnit{_, stage, reason} <> rest:
-      match stage:
-        case Ticket.UnitUnavailable{}:
-          reason
-        case _:
-          first_failure(rest)
-
-def terminal_record(record: Record, expired: Bool, credential_valid: Bool,
-    live_advice: Bool, pending_notice: Bool) -> Ticket.Outcome:
-  match record:
-    case Record{_, phase, +units}:
-      Ticket.terminal(phase, Ticket.Facts{expired, credential_valid,
-        pending_count(units), live_advice, pending_notice,
-        first_failure(units), finding_count(units),
-        undelivered_count(units), List.length(&2, TicketUnit, units)})
-
-def terminal_found(found: Maybe<&2, Record>, expired: Bool,
-    credential_valid: Bool, live_advice: Bool, pending_notice: Bool) -> Maybe<&2, Ticket.Outcome>:
-  match found:
-    case Some{record}:
-      Some{terminal_record(record, expired, credential_valid, live_advice, pending_notice)}
-    case None{}:
-      None{}
-
-def terminal(state: State, ticket: Nat, expired: Bool,
-    credential_valid: Bool, live_advice: Bool,
-    pending_notice: Bool) -> Maybe<&2, Ticket.Outcome>:
-  match state:
-    case State{records}:
-      terminal_found(find_record(ticket, records), expired, credential_valid,
-        live_advice, pending_notice)
+    case State{_, units}:
+      unit_step_found(state, admission, unit, event, reason, find_unit(unit, units))

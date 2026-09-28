@@ -368,26 +368,6 @@ export function bendLifecycleReleaseUnwritten(round: BendRound,
 
 export type BendTicketReason = { readonly $: "Backend" | "Credential" | "Capacity" |
   "Stale" | "Lost" | "Expired" };
-export type BendTicketPhase =
-  | { readonly $: "Preparing"; readonly failure:
-      { readonly $: "None" } | { readonly $: "Some"; readonly value: BendTicketReason } }
-  | { readonly $: "Closed" }
-  | { readonly $: "Failed"; readonly reason: BendTicketReason };
-export type BendTicketFacts = { readonly $: "Facts";
-  readonly expired: boolean; readonly credential_valid: boolean;
-  readonly pending_units: number | bigint;
-  readonly live_advice: boolean; readonly pending_notice: boolean;
-  readonly unit_failure: { readonly $: "None" } |
-    { readonly $: "Some"; readonly value: BendTicketReason };
-  readonly finding_units: number | bigint; readonly undelivered_findings: number | bigint;
-  readonly total_units: number | bigint };
-export type BendTicketOutcome =
-  | { readonly $: "Pending" | "Delivered" | "Clear" | "NoWork" }
-  | { readonly $: "Unavailable"; readonly reason: BendTicketReason };
-export function bendTicketInitial(): BendTicketPhase;
-export function bendTicketFail(phase: BendTicketPhase, reason: BendTicketReason): BendTicketPhase;
-export function bendTicketClose(phase: BendTicketPhase): BendTicketPhase;
-export function bendTicketTerminal(phase: BendTicketPhase, facts: BendTicketFacts): BendTicketOutcome;
 export type BendTicketCollectGate =
   | { readonly $: "CollectProceed" }
   | { readonly $: "CollectUnavailable"; readonly reason: BendTicketReason };

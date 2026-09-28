@@ -1,7 +1,7 @@
 {
   "traces": [
     {
-      "name": "oldest admission evicts after ticket phase reorder and cleanup closes once",
+      "name": "oldest admission evicts by identity and cleanup closes once",
       "events": [
         {
           "kind": "ticketOpen",
@@ -17,12 +17,6 @@
           "kind": "ticketOpen",
           "id": 3,
           "expect": "ticketOpened"
-        },
-        {
-          "kind": "ticketFail",
-          "id": 1,
-          "reason": "backend",
-          "expect": "ticketFailed"
         },
         {
           "kind": "ticketRetentionCheck",

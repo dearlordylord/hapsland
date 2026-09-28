@@ -1,7 +1,7 @@
 {
   "traces": [
     {
-      "name": "clear and backend unavailable units retain ordered failure priority",
+      "name": "clear and backend unavailable units remain distinct",
       "events": [
         { "kind": "ticketOpen", "id": 1, "expect": "ticketOpened" },
         { "kind": "ticketAddUnit", "id": 1, "unit": 10, "expect": "ticketUnitAdded" },
@@ -9,30 +9,24 @@
         { "kind": "ticketUnitCheck", "id": 1, "unit": 10, "expect": "ticketUnitSnapshot:pending" },
         { "kind": "ticketStepUnit", "id": 1, "unit": 10, "event": "clearResult", "reason": "lost", "expect": "ticketUnitUpdated" },
         { "kind": "ticketStepUnit", "id": 1, "unit": 11, "event": "failUnit", "reason": "backend", "expect": "ticketUnitUpdated" },
-        { "kind": "ticketUnitCheck", "id": 1, "unit": 11, "expect": "ticketUnitSnapshot:unavailable:backend" },
-        { "kind": "ticketClose", "id": 1, "expect": "ticketClosed" },
-        { "kind": "ticketTerminal", "id": 1, "expired": false, "credentialValid": true, "liveAdvice": false, "pendingNotice": false, "expect": "ticketUnavailable:backend" }
+        { "kind": "ticketUnitCheck", "id": 1, "unit": 11, "expect": "ticketUnitSnapshot:unavailable:backend" }
       ],
-      "tickets": [{ "id": 1, "phase": "closed", "units": [
+      "tickets": [{ "id": 1, "units": [
         { "id": 10, "stage": "clear" },
         { "id": 11, "stage": "unavailable", "reason": "backend" }
       ] }]
     },
     {
-      "name": "finding remains unavailable until delivery acknowledgment",
+      "name": "finding delivery mark follows acknowledgment",
       "events": [
         { "kind": "ticketOpen", "id": 2, "expect": "ticketOpened" },
         { "kind": "ticketAddUnit", "id": 2, "unit": 20, "expect": "ticketUnitAdded" },
         { "kind": "ticketStepUnit", "id": 2, "unit": 20, "event": "findingResult", "reason": "lost", "expect": "ticketUnitUpdated" },
-        { "kind": "ticketClose", "id": 2, "expect": "ticketClosed" },
-        { "kind": "ticketTerminal", "id": 2, "expired": false, "credentialValid": true, "liveAdvice": true, "pendingNotice": false, "expect": "ticketPending" },
-        { "kind": "ticketTerminal", "id": 2, "expired": false, "credentialValid": true, "liveAdvice": false, "pendingNotice": false, "expect": "ticketUnavailable:lost" },
         { "kind": "ticketStepUnit", "id": 2, "unit": 20, "event": "markDelivered", "reason": "lost", "expect": "ticketUnitUpdated" },
         { "kind": "ticketStepUnit", "id": 2, "unit": 20, "event": "markDelivered", "reason": "lost", "expect": "ticketRefused" },
-        { "kind": "ticketUnitCheck", "id": 2, "unit": 20, "expect": "ticketUnitSnapshot:finding:delivered" },
-        { "kind": "ticketTerminal", "id": 2, "expired": false, "credentialValid": true, "liveAdvice": false, "pendingNotice": false, "expect": "ticketDelivered" }
+        { "kind": "ticketUnitCheck", "id": 2, "unit": 20, "expect": "ticketUnitSnapshot:finding:delivered" }
       ],
-      "tickets": [{ "id": 2, "phase": "closed", "units": [
+      "tickets": [{ "id": 2, "units": [
         { "id": 20, "stage": "finding", "delivered": true }
       ] }]
     },
@@ -43,29 +37,34 @@
         { "kind": "ticketAddUnit", "id": 3, "unit": 30, "expect": "ticketUnitAdded" },
         { "kind": "ticketStepUnit", "id": 3, "unit": 30, "event": "failUnit", "reason": "stale", "expect": "ticketUnitUpdated" },
         { "kind": "ticketStepUnit", "id": 3, "unit": 30, "event": "findingResult", "reason": "lost", "expect": "ticketRefused" },
-        { "kind": "ticketClose", "id": 3, "expect": "ticketClosed" },
-        { "kind": "ticketTerminal", "id": 3, "expired": false, "credentialValid": true, "liveAdvice": false, "pendingNotice": false, "expect": "ticketUnavailable:stale" },
         { "kind": "ticketForget", "id": 3, "expect": "ticketForgotten" },
-        { "kind": "ticketUnitCheck", "id": 3, "unit": 30, "expect": "ticketUnitMissing" },
-        { "kind": "ticketTerminal", "id": 3, "expired": false, "credentialValid": true, "liveAdvice": false, "pendingNotice": false, "expect": "ticketRefused" }
+        { "kind": "ticketUnitCheck", "id": 3, "unit": 30, "expect": "ticketUnitMissing" }
       ],
       "tickets": []
     },
     {
-      "name": "first ticket failure and expiry and credential order are retained",
+      "name": "an empty admission has no aggregate phase; gates still order authority",
       "events": [
         { "kind": "ticketOpen", "id": 4, "expect": "ticketOpened" },
-        { "kind": "ticketFail", "id": 4, "reason": "capacity", "expect": "ticketFailed" },
-        { "kind": "ticketFail", "id": 4, "reason": "backend", "expect": "ticketFailed" },
-        { "kind": "ticketClose", "id": 4, "expect": "ticketClosed" },
-        { "kind": "ticketTerminal", "id": 4, "expired": false, "credentialValid": true, "liveAdvice": false, "pendingNotice": false, "expect": "ticketUnavailable:capacity" },
-        { "kind": "ticketTerminal", "id": 4, "expired": false, "credentialValid": false, "liveAdvice": false, "pendingNotice": false, "expect": "ticketUnavailable:credential" },
-        { "kind": "ticketTerminal", "id": 4, "expired": true, "credentialValid": false, "liveAdvice": false, "pendingNotice": false, "expect": "ticketUnavailable:expired" },
         { "kind": "ticketCollectGateCheck", "expired": true, "credentialValid": false, "expect": "ticketCollectUnavailable:expired" },
         { "kind": "ticketFinalAuthorityCheck", "admittedBlock": true, "currentBlock": false, "expect": "ticketFinalRelease" },
         { "kind": "ticketJoinedCheck", "state": "finding", "staleUnavailable": true, "hasRevision": true, "hasAdviceId": true, "expect": "ticketKeepJoined" }
       ],
-      "tickets": [{ "id": 4, "phase": "failed", "failure": "capacity", "units": [] }]
+      "tickets": [{ "id": 4, "units": [] }]
+    },
+    {
+      "name": "flat unit provenance prevents another admission from reading or settling it",
+      "events": [
+        { "kind": "ticketOpen", "id": 5, "expect": "ticketOpened" },
+        { "kind": "ticketOpen", "id": 6, "expect": "ticketOpened" },
+        { "kind": "ticketAddUnit", "id": 5, "unit": 50, "expect": "ticketUnitAdded" },
+        { "kind": "ticketUnitCheck", "id": 6, "unit": 50, "expect": "ticketUnitMissing" },
+        { "kind": "ticketStepUnit", "id": 6, "unit": 50, "event": "clearResult", "reason": "lost", "expect": "ticketRefused" },
+        { "kind": "ticketUnitCheck", "id": 5, "unit": 50, "expect": "ticketUnitSnapshot:pending" },
+        { "kind": "ticketForget", "id": 5, "expect": "ticketForgotten" },
+        { "kind": "ticketUnitCheck", "id": 5, "unit": 50, "expect": "ticketUnitMissing" }
+      ],
+      "tickets": [{ "id": 6, "units": [] }]
     }
   ]
 }

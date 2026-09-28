@@ -155,14 +155,10 @@ type CanonicalEvent is Data:
   RevisionCountCheck{}
   TicketOpen{id: Nat}
   TicketForget{id: Nat}
-  TicketFail{id: Nat, reason: Ticket.Reason}
-  TicketClose{id: Nat}
   TicketAddUnit{id: Nat, unit: Nat}
   TicketStepUnit{id: Nat, unit: Nat, event: Ticket.UnitEvent,
     reason: Ticket.Reason}
   TicketUnitCheck{id: Nat, unit: Nat}
-  TicketTerminal{id: Nat, expired: Bool, credential_valid: Bool,
-    live_advice: Bool, pending_notice: Bool}
   TicketCollectGateCheck{expired: Bool, credential_valid: Bool}
   TicketFinalAuthorityCheck{admitted_block: Bool, current_block: Bool}
   TicketJoinedCheck{joined_state: Ticket.JoinedState, stale_unavailable: Bool,
@@ -369,18 +365,11 @@ type Command is Data:
   RevisionCount{count: Nat}
   TicketOpened{}
   TicketForgotten{}
-  TicketFailed{}
-  TicketClosed{}
   TicketUnitAdded{}
   TicketUnitUpdated{}
   TicketUnitSnapshot{stage: Ticket.UnitStage, reason: Maybe<&2, Ticket.Reason>}
   TicketUnitMissing{}
   TicketRefused{}
-  TicketPending{}
-  TicketUnavailable{reason: Ticket.Reason}
-  TicketDelivered{}
-  TicketClear{}
-  TicketNoWork{}
   TicketCollectProceed{}
   TicketCollectUnavailable{reason: Ticket.Reason}
   TicketFinalProceed{}
@@ -2327,32 +2316,10 @@ def collection_of(state: State) -> CollectionState.State:
 
 def ticket_unit_snapshot(state: State, found: Maybe<&2, TicketState.TicketUnit>) -> Step:
   match found:
-    case Some{TicketState.TicketUnit{_, stage, reason}}:
+    case Some{TicketState.TicketUnit{_, _, stage, reason}}:
       Advanced{state, TicketUnitSnapshot{stage, reason} <> Nil{}}
     case None{}:
       Advanced{state, TicketUnitMissing{} <> Nil{}}
-
-def ticket_terminal_outcome(state: State, outcome: Maybe<&2, Ticket.Outcome>) -> Step:
-  match outcome:
-    case Some{Ticket.Pending{}}:
-      Advanced{state, TicketPending{} <> Nil{}}
-    case Some{Ticket.Unavailable{reason}}:
-      Advanced{state, TicketUnavailable{reason} <> Nil{}}
-    case Some{Ticket.Delivered{}}:
-      Advanced{state, TicketDelivered{} <> Nil{}}
-    case Some{Ticket.Clear{}}:
-      Advanced{state, TicketClear{} <> Nil{}}
-    case Some{Ticket.NoWork{}}:
-      Advanced{state, TicketNoWork{} <> Nil{}}
-    case None{}:
-      Advanced{state, TicketRefused{} <> Nil{}}
-
-def ticket_terminal(+state: State, id: Nat, expired: Bool,
-    credential_valid: Bool, live_advice: Bool, pending_notice: Bool) -> Step:
-  match state:
-    case State{_, _, _, _, _, _, _, collection}:
-      ticket_terminal_outcome(state, CollectionState.ticket_terminal(collection,
-        id, expired, credential_valid, live_advice, pending_notice))
 
 def ticket_collect_gate_result(state: State, result: Ticket.CollectGate) -> Step:
   match result:
@@ -2439,7 +2406,7 @@ def stop_terminal_result(state: State, result: RoundPolicy.StopTerminal) -> Step
 def cleanup_commit_eligible(state: State) -> Bool:
   match state:
     case State{Ledger.Ledger{_, _, Nil{}}, _, _, _, _, _, _,
-        CollectionState.State{_, _, _, _, _, TicketState.State{Nil{}},
+        CollectionState.State{_, _, _, _, _, TicketState.State{Nil{}, Nil{}},
           ReuseState.State{_, Nil{}}, _}}: cleanup_state_clean(state)
     case _: False{}
 
@@ -2726,12 +2693,6 @@ def step(+state: State, event: CanonicalEvent) -> Step:
     case TicketForget{id}:
       collection_decision(state, CollectionState.ticket_forget(collection_of(state), id),
         TicketForgotten{}, TicketRefused{})
-    case TicketFail{id, reason}:
-      collection_decision(state, CollectionState.ticket_fail(collection_of(state), id, reason),
-        TicketFailed{}, TicketRefused{})
-    case TicketClose{id}:
-      collection_decision(state, CollectionState.ticket_close(collection_of(state), id),
-        TicketClosed{}, TicketRefused{})
     case TicketAddUnit{id, unit}:
       collection_decision(state, CollectionState.ticket_add_unit(collection_of(state), id, unit),
         TicketUnitAdded{}, TicketRefused{})
@@ -2740,8 +2701,6 @@ def step(+state: State, event: CanonicalEvent) -> Step:
         event, reason), TicketUnitUpdated{}, TicketRefused{})
     case TicketUnitCheck{id, unit}:
       ticket_unit_snapshot(state, CollectionState.ticket_unit_snapshot(collection_of(state), id, unit))
-    case TicketTerminal{id, expired, credential_valid, live_advice, pending_notice}:
-      ticket_terminal(state, id, expired, credential_valid, live_advice, pending_notice)
     case TicketCollectGateCheck{expired, credential_valid}:
       ticket_collect_gate_result(state, Ticket.collect_gate(expired, credential_valid))
     case TicketFinalAuthorityCheck{admitted_block, current_block}:

@@ -15,6 +15,7 @@ export type ResidentControlledOptions = {
   readonly answers?: Readonly<Record<string, unknown>>;
   readonly delayMs?: number;
   readonly failure?: string;
+  readonly failureOnSourceIncludes?: string;
   readonly capturePath?: string;
   readonly outcomePath?: string;
   readonly requireCredential?: boolean;
@@ -37,6 +38,8 @@ export type ResidentDispatchContext = {
 };
 
 export type ResidentCollectionTicket = { readonly nonce: string; readonly lifetime: string };
+/** The sole on-socket CLI/resident message version. Internal response shapes remain operation-specific. */
+export const CURRENT_IPC_VERSION = 3 as const;
 export type ResidentUnavailableReason = "backend" | "credential" | "capacity" | "stale" | "lost" | "expired";
 
 export type ResidentRequest =
@@ -49,7 +52,7 @@ export type ResidentRequest =
       readonly version: 2; readonly operation: "collect"; readonly lifetime: string;
       readonly ticket: ResidentCollectionTicket; readonly root: string;
       readonly advicee: DirectAdvicee; readonly dispatch: ResidentDispatchContext;
-      readonly mode?: CollectionMode;
+      readonly mode?: CollectionMode; readonly composed?: true;
     }
   | { readonly version: 1; readonly operation: "hello" }
   | { readonly version: 1; readonly operation: "prompt-marker"; readonly lifetime: string;
@@ -108,7 +111,7 @@ export type ResidentRequest =
 export type ResidentResponse =
   | { readonly version: 2; readonly status: "accepted"; readonly ticket: ResidentCollectionTicket }
   | { readonly version: 2; readonly status: "rejected-capacity" | "rejected-stale" | "obsolete-lifetime" | "unsupported" }
-  | { readonly version: 2; readonly status: "pending" | "clear" | "delivered" | "no-work" }
+  | { readonly version: 2; readonly status: "pending" | "empty" }
   | { readonly version: 2; readonly status: "unavailable"; readonly reason: ResidentUnavailableReason }
   | { readonly version: 2; readonly status: "advice"; readonly token: string;
       readonly findingCount: number; readonly output: ClaudeHostOutput }
@@ -180,6 +183,7 @@ const controlled = (value: unknown): value is ResidentControlledOptions => {
   if (item.answers !== undefined && record(item.answers) === undefined) return false;
   if (item.delayMs !== undefined && (typeof item.delayMs !== "number" || !Number.isFinite(item.delayMs) || item.delayMs < 0)) return false;
   if (item.failure !== undefined && typeof item.failure !== "string") return false;
+  if (item.failureOnSourceIncludes !== undefined && typeof item.failureOnSourceIncludes !== "string") return false;
   if (item.capturePath !== undefined && typeof item.capturePath !== "string") return false;
   if (item.outcomePath !== undefined && typeof item.outcomePath !== "string") return false;
   if (item.requireCredential !== undefined && typeof item.requireCredential !== "boolean") return false;
@@ -253,7 +257,8 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
       return { version: 2, operation: "collect", lifetime: value.lifetime,
         ticket: { nonce: ticket.nonce, lifetime: ticket.lifetime }, root: value.root,
         advicee: value.advicee, dispatch: value.dispatch,
-        ...(value.mode === undefined ? {} : { mode: value.mode }) };
+        ...(value.mode === undefined ? {} : { mode: value.mode }),
+        ...(value.composed === true ? { composed: true } : {}) };
     }
     return undefined;
   }
@@ -358,7 +363,7 @@ const ResidentResponseSchema = Schema.Union([
   Schema.Struct({ version: Schema.Literal(2), status: Schema.Literal("accepted"),
     ticket: Schema.Struct({ nonce: Schema.NonEmptyString, lifetime: Schema.NonEmptyString }) }),
   Schema.Struct({ version: Schema.Literal(2), status: Schema.Literals(["rejected-capacity", "rejected-stale", "obsolete-lifetime", "unsupported"])}),
-  Schema.Struct({ version: Schema.Literal(2), status: Schema.Literals(["pending", "clear", "delivered", "no-work"]) }),
+  Schema.Struct({ version: Schema.Literal(2), status: Schema.Literals(["pending", "empty"]) }),
   Schema.Struct({ version: Schema.Literal(2), status: Schema.Literal("unavailable"),
     reason: Schema.Literals(["backend", "credential", "capacity", "stale", "lost", "expired"]) }),
   Schema.Struct({ version: Schema.Literal(2), status: Schema.Literal("advice"),
@@ -399,4 +404,35 @@ const ResidentResponseSchema = Schema.Union([
 export const decodeResidentResponse = (value: unknown): ResidentResponse | undefined => {
   const decoded = Schema.decodeUnknownOption(ResidentResponseSchema, { onExcessProperty: "error" })(value);
   return Option.isSome(decoded) ? decoded.value : undefined;
+};
+
+/** Encode the current wire contract; v1/v2 are implementation-only request variants. */
+export const encodeCurrentResidentRequest = (request: ResidentRequest): string => JSON.stringify({
+  ...request, version: CURRENT_IPC_VERSION,
+  ...(request.operation === "admit" && request.version === 2 ? { ticketed: true } : {}),
+});
+
+export const decodeCurrentResidentRequest = (encoded: string): ResidentRequest | undefined => {
+  let parsed: unknown;
+  try { parsed = JSON.parse(encoded); } catch { return undefined; }
+  const value = record(parsed);
+  if (value?.version !== CURRENT_IPC_VERSION || typeof value.operation !== "string") return undefined;
+  if (value.ticketed !== undefined && !(value.operation === "admit" && value.ticketed === true)) return undefined;
+  if (value.operation === "admit" && value.ticketed === true && value.ticket !== undefined) return undefined;
+  if (value.operation !== "collect" && value.ticket !== undefined) return undefined;
+  const internalVersion = value.operation === "admit" ? (value.ticketed === true ? 2 : 1)
+    : value.operation === "collect" && value.ticket !== undefined ? 2 : 1;
+  const { ticketed: _ticketed, ...fields } = value;
+  return decodeResidentRequest(JSON.stringify({ ...fields, version: internalVersion }));
+};
+
+export const encodeCurrentResidentResponse = (response: ResidentResponse): string =>
+  JSON.stringify({ ...response, version: CURRENT_IPC_VERSION });
+
+/** An old resident's response never proves readiness, clear review, or submission. */
+export const decodeCurrentResidentResponse = (value: unknown, request: ResidentRequest): ResidentResponse | undefined => {
+  const fields = record(value);
+  if (fields?.version !== CURRENT_IPC_VERSION) return undefined;
+  const { version: _version, ...body } = fields;
+  return decodeResidentResponse(request.version === 2 ? { ...body, version: 2 } : body);
 };

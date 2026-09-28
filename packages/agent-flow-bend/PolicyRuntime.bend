@@ -114,10 +114,6 @@ type Smoke is Data:
     selection_reserved: Lifecycle.OutputSelectionReservation
     selection_authorized: Lifecycle.OutputSelectionStep
     selection_consumed: Lifecycle.OutputSelectionStep
-    ticket_initial: Ticket.Phase
-    ticket_fail: Ticket.Phase
-    ticket_close: Ticket.Phase
-    ticket_terminal: Ticket.Outcome
     ticket_collect_gate: Ticket.CollectGate
     ticket_final_authority: Ticket.FinalAuthority
     ticket_joined_disposition: Ticket.JoinedDisposition
@@ -262,11 +258,6 @@ def main() -> Smoke:
     Lifecycle.selection_authorize(Lifecycle.OutputSelection{1n <> Nil{}, False{}, False{}}),
     Lifecycle.selection_consume(Lifecycle.OutputSelection{1n <> Nil{}, True{}, False{}},
       1n <> Nil{}),
-    Ticket.initial(),
-    Ticket.fail(Ticket.initial(), Ticket.Backend{}),
-    Ticket.close(Ticket.fail(Ticket.initial(), Ticket.Backend{})),
-    Ticket.terminal(Ticket.Closed{}, Ticket.Facts{False{}, True{}, 0n,
-      False{}, False{}, None{}, 0n, 0n, 1n}),
     Ticket.collect_gate(False{}, True{}),
     Ticket.final_authority(True{}, True{}),
     Ticket.joined_disposition(Ticket.JoinedFinding{}, False{}, True{}, True{}),

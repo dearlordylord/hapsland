@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:f5c54bae8957d0162ab5dbcdc828dc2233a30d9eddbf4004c023fe4d7466ea01
+// hapsland-bend-source-sha256:9f73f4fb084a7951f3d16f05fb402e9705baf989eb573bb44ffe4c3e653dfadb
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -565,38 +565,24 @@ function $Canonical$step$(_state_0, _event_0) {
   } else if (_event_0.$ === "Canonical.TicketForget") {
     const _id_1 = _event_0["id"];
     return $Canonical$collection_decision$(_state_0, ($CollectionState$ticket_forget$(($Canonical$collection_of$(_state_0)), _id_1)), {$: "Canonical.TicketForgotten"}, {$: "Canonical.TicketRefused"});
-  } else if (_event_0.$ === "Canonical.TicketFail") {
-    const _id_2 = _event_0["id"];
-    const _reason_0 = _event_0["reason"];
-    return $Canonical$collection_decision$(_state_0, ($CollectionState$ticket_fail$(($Canonical$collection_of$(_state_0)), _id_2, _reason_0)), {$: "Canonical.TicketFailed"}, {$: "Canonical.TicketRefused"});
-  } else if (_event_0.$ === "Canonical.TicketClose") {
-    const _id_3 = _event_0["id"];
-    return $Canonical$collection_decision$(_state_0, ($CollectionState$ticket_close$(($Canonical$collection_of$(_state_0)), _id_3)), {$: "Canonical.TicketClosed"}, {$: "Canonical.TicketRefused"});
   } else if (_event_0.$ === "Canonical.TicketAddUnit") {
-    const _id_4 = _event_0["id"];
+    const _id_2 = _event_0["id"];
     const _unit_1 = _event_0["unit"];
-    return $Canonical$collection_decision$(_state_0, ($CollectionState$ticket_add_unit$(($Canonical$collection_of$(_state_0)), _id_4, _unit_1)), {$: "Canonical.TicketUnitAdded"}, {$: "Canonical.TicketRefused"});
+    return $Canonical$collection_decision$(_state_0, ($CollectionState$ticket_add_unit$(($Canonical$collection_of$(_state_0)), _id_2, _unit_1)), {$: "Canonical.TicketUnitAdded"}, {$: "Canonical.TicketRefused"});
   } else if (_event_0.$ === "Canonical.TicketStepUnit") {
-    const _id_5 = _event_0["id"];
+    const _id_3 = _event_0["id"];
     const _unit_2 = _event_0["unit"];
     const _event_1 = _event_0["event"];
-    const _reason_1 = _event_0["reason"];
-    return $Canonical$collection_decision$(_state_0, ($CollectionState$ticket_step_unit$(($Canonical$collection_of$(_state_0)), _id_5, _unit_2, _event_1, _reason_1)), {$: "Canonical.TicketUnitUpdated"}, {$: "Canonical.TicketRefused"});
+    const _reason_0 = _event_0["reason"];
+    return $Canonical$collection_decision$(_state_0, ($CollectionState$ticket_step_unit$(($Canonical$collection_of$(_state_0)), _id_3, _unit_2, _event_1, _reason_0)), {$: "Canonical.TicketUnitUpdated"}, {$: "Canonical.TicketRefused"});
   } else if (_event_0.$ === "Canonical.TicketUnitCheck") {
-    const _id_6 = _event_0["id"];
+    const _id_4 = _event_0["id"];
     const _unit_3 = _event_0["unit"];
-    return $Canonical$ticket_unit_snapshot$(_state_0, ($CollectionState$ticket_unit_snapshot$(($Canonical$collection_of$(_state_0)), _id_6, _unit_3)));
-  } else if (_event_0.$ === "Canonical.TicketTerminal") {
-    const _id_7 = _event_0["id"];
+    return $Canonical$ticket_unit_snapshot$(_state_0, ($CollectionState$ticket_unit_snapshot$(($Canonical$collection_of$(_state_0)), _id_4, _unit_3)));
+  } else if (_event_0.$ === "Canonical.TicketCollectGateCheck") {
     const _expired_1 = _event_0["expired"];
     const _credential_valid_0 = _event_0["credential_valid"];
-    const _live_advice_0 = _event_0["live_advice"];
-    const _pending_notice_0 = _event_0["pending_notice"];
-    return $Canonical$ticket_terminal$(_state_0, _id_7, _expired_1, _credential_valid_0, _live_advice_0, _pending_notice_0);
-  } else if (_event_0.$ === "Canonical.TicketCollectGateCheck") {
-    const _expired_2 = _event_0["expired"];
-    const _credential_valid_1 = _event_0["credential_valid"];
-    return $Canonical$ticket_collect_gate_result$(_state_0, ($Ticket$collect_gate$(_expired_2, _credential_valid_1)));
+    return $Canonical$ticket_collect_gate_result$(_state_0, ($Ticket$collect_gate$(_expired_1, _credential_valid_0)));
   } else if (_event_0.$ === "Canonical.TicketFinalAuthorityCheck") {
     const _admitted_block_0 = _event_0["admitted_block"];
     const _current_block_0 = _event_0["current_block"];
@@ -653,17 +639,17 @@ function $Canonical$step$(_state_0, _event_0) {
     return $Canonical$candidate_route_result$(_state_0, ($Handoff$validation_route$(_owner_current_0, _status_0)));
   } else if (_event_0.$ === "Canonical.PostValidationCheck") {
     const _work_accepted_0 = _event_0["work_accepted"];
-    const _expired_3 = _event_0["expired"];
+    const _expired_2 = _event_0["expired"];
     const _has_fitting_0 = _event_0["has_fitting"];
-    return $Canonical$candidate_route_result$(_state_0, ($Handoff$post_validation$(_work_accepted_0, _expired_3, _has_fitting_0)));
+    return $Canonical$candidate_route_result$(_state_0, ($Handoff$post_validation$(_work_accepted_0, _expired_2, _has_fitting_0)));
   } else if (_event_0.$ === "Canonical.FinalCandidateCheck") {
     const _owner_current_1 = _event_0["owner_current"];
     const _credential_generation_0 = _event_0["credential_generation"];
     const _credential_authorized_0 = _event_0["credential_authorized"];
-    const _expired_4 = _event_0["expired"];
+    const _expired_3 = _event_0["expired"];
     const _work_current_0 = _event_0["work_current"];
     const _has_findings_0 = _event_0["has_findings"];
-    return $Canonical$candidate_route_result$(_state_0, ($Handoff$final_candidate$(_owner_current_1, _credential_generation_0, _credential_authorized_0, _expired_4, _work_current_0, _has_findings_0)));
+    return $Canonical$candidate_route_result$(_state_0, ($Handoff$final_candidate$(_owner_current_1, _credential_generation_0, _credential_authorized_0, _expired_3, _work_current_0, _has_findings_0)));
   } else if (_event_0.$ === "Canonical.RoundBeginStopCheck") {
     const _active_1 = _event_0["active"];
     const _has_stop_0 = _event_0["has_stop"];
@@ -785,35 +771,35 @@ function $Canonical$step$(_state_0, _event_0) {
     const _limit_1 = _event_0["limit"];
     return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RuleGate", "gate": ($RulePolicy$budget$(_position_0, _limit_1))}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.ReuseRoute") {
-    const _id_8 = _event_0["id"];
-    const _live_advice_1 = _event_0["live_advice"];
-    return $Canonical$reuse_route_result$(_state_0, ($ReuseState$route$(($CollectionState$reuse_state$(($Canonical$collection_of$(_state_0)))), _id_8, _live_advice_1)));
+    const _id_5 = _event_0["id"];
+    const _live_advice_0 = _event_0["live_advice"];
+    return $Canonical$reuse_route_result$(_state_0, ($ReuseState$route$(($CollectionState$reuse_state$(($Canonical$collection_of$(_state_0)))), _id_5, _live_advice_0)));
   } else if (_event_0.$ === "Canonical.ReuseClaim") {
-    const _id_9 = _event_0["id"];
-    return $Canonical$reuse_decision_result$(_state_0, ($ReuseState$claim$(($CollectionState$reuse_state$(($Canonical$collection_of$(_state_0)))), _id_9)), {$: "Canonical.ReuseClaimed"});
+    const _id_6 = _event_0["id"];
+    return $Canonical$reuse_decision_result$(_state_0, ($ReuseState$claim$(($CollectionState$reuse_state$(($Canonical$collection_of$(_state_0)))), _id_6)), {$: "Canonical.ReuseClaimed"});
   } else if (_event_0.$ === "Canonical.ReuseAttach") {
-    const _id_10 = _event_0["id"];
-    return $Canonical$reuse_decision_result$(_state_0, ($ReuseState$attach$(($CollectionState$reuse_state$(($Canonical$collection_of$(_state_0)))), _id_10)), {$: "Canonical.ReuseAttached"});
+    const _id_7 = _event_0["id"];
+    return $Canonical$reuse_decision_result$(_state_0, ($ReuseState$attach$(($CollectionState$reuse_state$(($Canonical$collection_of$(_state_0)))), _id_7)), {$: "Canonical.ReuseAttached"});
   } else if (_event_0.$ === "Canonical.ReuseRelease") {
-    const _id_11 = _event_0["id"];
-    return $Canonical$reuse_step$(_state_0, ($ReuseState$release$(($CollectionState$reuse_state$(($Canonical$collection_of$(_state_0)))), _id_11)), {$: "Canonical.ReuseReleased"});
+    const _id_8 = _event_0["id"];
+    return $Canonical$reuse_step$(_state_0, ($ReuseState$release$(($CollectionState$reuse_state$(($Canonical$collection_of$(_state_0)))), _id_8)), {$: "Canonical.ReuseReleased"});
   } else if (_event_0.$ === "Canonical.ReuseTouch") {
-    const _id_12 = _event_0["id"];
-    return $Canonical$reuse_route_result$(_state_0, ($ReuseState$touch$(($CollectionState$reuse_state$(($Canonical$collection_of$(_state_0)))), _id_12)));
+    const _id_9 = _event_0["id"];
+    return $Canonical$reuse_route_result$(_state_0, ($ReuseState$touch$(($CollectionState$reuse_state$(($Canonical$collection_of$(_state_0)))), _id_9)));
   } else if (_event_0.$ === "Canonical.CachePrepare") {
-    const _id_13 = _event_0["id"];
+    const _id_10 = _event_0["id"];
     const _bytes_7 = _event_0["bytes"];
     const _entry_limit_0 = _event_0["entry_limit"];
     const _byte_limit_0 = _event_0["byte_limit"];
-    return $Canonical$cache_plan_result$(_state_0, ($ReuseState$prepare$(($CollectionState$reuse_state$(($Canonical$collection_of$(_state_0)))), _id_13, _bytes_7, _entry_limit_0, _byte_limit_0)));
+    return $Canonical$cache_plan_result$(_state_0, ($ReuseState$prepare$(($CollectionState$reuse_state$(($Canonical$collection_of$(_state_0)))), _id_10, _bytes_7, _entry_limit_0, _byte_limit_0)));
   } else if (_event_0.$ === "Canonical.CacheCommit") {
-    const _id_14 = _event_0["id"];
+    const _id_11 = _event_0["id"];
     const _partition_24 = _event_0["partition"];
     const _bytes_8 = _event_0["bytes"];
     const _reservation_3 = _event_0["reservation"];
     const _entry_limit_1 = _event_0["entry_limit"];
     const _byte_limit_1 = _event_0["byte_limit"];
-    return $Canonical$cache_commit$(_state_0, _id_14, _partition_24, _bytes_8, _reservation_3, _entry_limit_1, _byte_limit_1);
+    return $Canonical$cache_commit$(_state_0, _id_11, _partition_24, _bytes_8, _reservation_3, _entry_limit_1, _byte_limit_1);
   } else if (_event_0.$ === "Canonical.CacheDiscardPartition") {
     const _partition_25 = _event_0["partition"];
     return $Canonical$cache_discard_result$(_state_0, ($ReuseState$discard$(($CollectionState$reuse_state$(($Canonical$collection_of$(_state_0)))), _partition_25)));
@@ -1642,30 +1628,6 @@ function $CollectionState$ticket_forget$(_state_0, _id_0) {
   return $CollectionState$ticket_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": __3, "revision": __4, "tickets": _tickets_0, "reuse": _reuse_0, "notices": _notices_0}, ($TicketState$forget$(_tickets_0, _id_0)));
 }
 
-function $CollectionState$ticket_fail$(_state_0, _id_0, _reason_0) {
-  const __0 = _state_0["ready"];
-  const __1 = _state_0["leases"];
-  const __2 = _state_0["claims"];
-  const __3 = _state_0["delivery"];
-  const __4 = _state_0["revision"];
-  const _tickets_0 = _state_0["tickets"];
-  const _reuse_0 = _state_0["reuse"];
-  const _notices_0 = _state_0["notices"];
-  return $CollectionState$ticket_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": __3, "revision": __4, "tickets": _tickets_0, "reuse": _reuse_0, "notices": _notices_0}, ($TicketState$fail$(_tickets_0, _id_0, _reason_0)));
-}
-
-function $CollectionState$ticket_close$(_state_0, _id_0) {
-  const __0 = _state_0["ready"];
-  const __1 = _state_0["leases"];
-  const __2 = _state_0["claims"];
-  const __3 = _state_0["delivery"];
-  const __4 = _state_0["revision"];
-  const _tickets_0 = _state_0["tickets"];
-  const _reuse_0 = _state_0["reuse"];
-  const _notices_0 = _state_0["notices"];
-  return $CollectionState$ticket_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": __3, "revision": __4, "tickets": _tickets_0, "reuse": _reuse_0, "notices": _notices_0}, ($TicketState$close$(_tickets_0, _id_0)));
-}
-
 function $CollectionState$ticket_add_unit$(_state_0, _id_0, _unit_0) {
   const __0 = _state_0["ready"];
   const __1 = _state_0["leases"];
@@ -1706,18 +1668,6 @@ function $CollectionState$ticket_unit_snapshot$(_state_0, _id_0, _unit_0) {
   return $TicketState$unit_snapshot$(_tickets_0, _id_0, _unit_0);
 }
 
-function $Canonical$ticket_terminal$(_state_0, _id_0, _expired_0, _credential_valid_0, _live_advice_0, _pending_notice_0) {
-  const __0 = _state_0["ledger"];
-  const __1 = _state_0["rounds"];
-  const __2 = _state_0["work"];
-  const __3 = _state_0["next_round"];
-  const __4 = _state_0["next_operation"];
-  const __5 = _state_0["admissions"];
-  const __6 = _state_0["dispatch"];
-  const _collection_0 = _state_0["collection"];
-  return $Canonical$ticket_terminal_outcome$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, ($CollectionState$ticket_terminal$(_collection_0, _id_0, _expired_0, _credential_valid_0, _live_advice_0, _pending_notice_0)));
-}
-
 function $Canonical$ticket_collect_gate_result$(_state_0, _result_0) {
   if (_result_0.$ === "Ticket.CollectProceed") {
     return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketCollectProceed"}, "tail": {$: "Nil"}}};
@@ -1728,7 +1678,7 @@ function $Canonical$ticket_collect_gate_result$(_state_0, _result_0) {
 }
 
 function $Ticket$collect_gate$(_expired_0, _credential_valid_0) {
-  return $Ticket$collect_gate$result$(($Ticket$terminal$(($Ticket$initial$()), {$: "Ticket.Facts", "expired": _expired_0, "credential_valid": _credential_valid_0, "pending_units": 0, "live_advice": false, "pending_notice": false, "unit_failure": {$: "None"}, "finding_units": 0, "undelivered_findings": 0, "total_units": 0})));
+  return $Bool$pick$(_expired_0, {$: "Ticket.CollectUnavailable", "reason": {$: "Ticket.Expired"}}, ($Bool$pick$(($Bool$not$(_credential_valid_0)), {$: "Ticket.CollectUnavailable", "reason": {$: "Ticket.Credential"}}, {$: "Ticket.CollectProceed"})));
 }
 
 function $Canonical$ticket_final_authority_result$(_state_0, _result_0) {
@@ -1773,7 +1723,8 @@ function $Canonical$ticket_retention_result$(_state_0, _result_0) {
 
 function $TicketState$retention$(_state_0, _limit_0) {
   const _records_0 = _state_0["records"];
-  return $Bool$pick$(($Nat$is_gt$(($List$length$(_records_0)), _limit_0)), ($TicketState$evict_found$({$: "TicketState.State", "records": _records_0}, ($TicketState$oldest$(_records_0)))), {$: "TicketState.Kept", "state": {$: "TicketState.State", "records": _records_0}});
+  const __0 = _state_0["units"];
+  return $Bool$pick$(($Nat$is_gt$(($List$length$(_records_0)), _limit_0)), ($TicketState$evict_found$({$: "TicketState.State", "records": _records_0, "units": __0}, ($TicketState$oldest$(_records_0)))), {$: "TicketState.Kept", "state": {$: "TicketState.State", "records": _records_0, "units": __0}});
 }
 
 function $CollectionState$ticket_state$(_state_0) {
@@ -3434,90 +3385,31 @@ function $CollectionState$ticket_result$(_state_0, _decision_0) {
 
 function $TicketState$open$(_state_0, _id_0) {
   const _records_0 = _state_0["records"];
-  return $TicketState$opened$({$: "TicketState.State", "records": _records_0}, _id_0, ($TicketState$find_record$(_id_0, _records_0)));
+  const __0 = _state_0["units"];
+  return $TicketState$opened$({$: "TicketState.State", "records": _records_0, "units": __0}, _id_0, ($TicketState$find_record$(_id_0, _records_0)));
 }
 
 function $TicketState$forget$(_state_0, _id_0) {
   const _records_0 = _state_0["records"];
-  return $TicketState$forgotten$({$: "TicketState.State", "records": _records_0}, _id_0, ($TicketState$find_record$(_id_0, _records_0)));
+  const __0 = _state_0["units"];
+  return $TicketState$forgotten$({$: "TicketState.State", "records": _records_0, "units": __0}, _id_0, ($TicketState$find_record$(_id_0, _records_0)));
 }
 
-function $TicketState$fail$(_state_0, _id_0, _reason_0) {
+function $TicketState$add_unit$(_state_0, _admission_0, _unit_0) {
   const _records_0 = _state_0["records"];
-  return $TicketState$failure_result$({$: "TicketState.State", "records": _records_0}, _id_0, _reason_0, ($TicketState$find_record$(_id_0, _records_0)));
+  const __0 = _state_0["units"];
+  return $TicketState$add_unit_found$({$: "TicketState.State", "records": _records_0, "units": __0}, _admission_0, _unit_0, ($TicketState$find_record$(_admission_0, _records_0)));
 }
 
-function $TicketState$close$(_state_0, _id_0) {
-  const _records_0 = _state_0["records"];
-  return $TicketState$close_result$({$: "TicketState.State", "records": _records_0}, _id_0, ($TicketState$find_record$(_id_0, _records_0)));
+function $TicketState$step_unit$(_state_0, _admission_0, _unit_0, _event_0, _reason_0) {
+  const __0 = _state_0["records"];
+  const _units_0 = _state_0["units"];
+  return $TicketState$unit_step_found$({$: "TicketState.State", "records": __0, "units": _units_0}, _admission_0, _unit_0, _event_0, _reason_0, ($TicketState$find_unit$(_unit_0, _units_0)));
 }
 
-function $TicketState$add_unit$(_state_0, _ticket_0, _unit_0) {
-  const _records_0 = _state_0["records"];
-  return $TicketState$add_unit_found$({$: "TicketState.State", "records": _records_0}, _ticket_0, _unit_0, ($TicketState$find_record$(_ticket_0, _records_0)));
-}
-
-function $TicketState$step_unit$(_state_0, _ticket_0, _unit_0, _event_0, _reason_0) {
-  const _records_0 = _state_0["records"];
-  return $TicketState$step_unit_found$({$: "TicketState.State", "records": _records_0}, _ticket_0, _unit_0, _event_0, _reason_0, ($TicketState$find_record$(_ticket_0, _records_0)));
-}
-
-function $TicketState$unit_snapshot$(_state_0, _ticket_0, _unit_0) {
-  const _records_0 = _state_0["records"];
-  return $TicketState$unit_in_record$(($TicketState$find_record$(_ticket_0, _records_0)), _unit_0);
-}
-
-function $Canonical$ticket_terminal_outcome$(_state_0, _outcome_0) {
-  if (_outcome_0.$ === "Some") {
-    const _t_0 = _outcome_0["value"];
-    if (_t_0.$ === "Ticket.Pending") {
-      return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketPending"}, "tail": {$: "Nil"}}};
-    } else if (_t_0.$ === "Ticket.Unavailable") {
-      const _reason_0 = _t_0["reason"];
-      return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketUnavailable", "reason": _reason_0}, "tail": {$: "Nil"}}};
-    } else if (_t_0.$ === "Ticket.Delivered") {
-      return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketDelivered"}, "tail": {$: "Nil"}}};
-    } else if (_t_0.$ === "Ticket.Clear") {
-      return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketClear"}, "tail": {$: "Nil"}}};
-    } else {
-      return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketNoWork"}, "tail": {$: "Nil"}}};
-    }
-  } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketRefused"}, "tail": {$: "Nil"}}};
-  }
-}
-
-function $CollectionState$ticket_terminal$(_state_0, _id_0, _expired_0, _credential_valid_0, _live_advice_0, _pending_notice_0) {
-  const _tickets_0 = _state_0["tickets"];
-  return $TicketState$terminal$(_tickets_0, _id_0, _expired_0, _credential_valid_0, _live_advice_0, _pending_notice_0);
-}
-
-function $Ticket$collect_gate$result$(_outcome_0) {
-  if (_outcome_0.$ === "Ticket.Pending") {
-    return {$: "Ticket.CollectProceed"};
-  } else if (_outcome_0.$ === "Ticket.Unavailable") {
-    const _reason_0 = _outcome_0["reason"];
-    return {$: "Ticket.CollectUnavailable", "reason": _reason_0};
-  } else {
-    return {$: "Ticket.CollectUnavailable", "reason": {$: "Ticket.Lost"}};
-  }
-}
-
-function $Ticket$terminal$(_state_0, _facts_0) {
-  const _expired_0 = _facts_0["expired"];
-  const _credential_valid_0 = _facts_0["credential_valid"];
-  const __0 = _facts_0["pending_units"];
-  const __1 = _facts_0["live_advice"];
-  const __2 = _facts_0["pending_notice"];
-  const __3 = _facts_0["unit_failure"];
-  const __4 = _facts_0["finding_units"];
-  const __5 = _facts_0["undelivered_findings"];
-  const __6 = _facts_0["total_units"];
-  return $Bool$pick$(_expired_0, {$: "Ticket.Unavailable", "reason": {$: "Ticket.Expired"}}, ($Bool$pick$(($Bool$not$(_credential_valid_0)), {$: "Ticket.Unavailable", "reason": {$: "Ticket.Credential"}}, ($Ticket$terminal$pending$(_state_0, {$: "Ticket.Facts", "expired": _expired_0, "credential_valid": _credential_valid_0, "pending_units": __0, "live_advice": __1, "pending_notice": __2, "unit_failure": __3, "finding_units": __4, "undelivered_findings": __5, "total_units": __6})))));
-}
-
-function $Ticket$initial$() {
-  return {$: "Ticket.Preparing", "failure": {$: "None"}};
+function $TicketState$unit_snapshot$(_state_0, _admission_0, _unit_0) {
+  const _units_0 = _state_0["units"];
+  return $TicketState$owned_unit$(($TicketState$find_unit$(_unit_0, _units_0)), _admission_0);
 }
 
 function $Ticket$joined$route$(_state_0, _has_revision_0, _has_advice_id_0) {
@@ -3545,11 +3437,12 @@ function $CollectionState$with_tickets$(_state_0, _replacement_0) {
 
 function $TicketState$evict_found$(_state_0, _found_0) {
   const _records_0 = _state_0["records"];
+  const _units_0 = _state_0["units"];
   if (_found_0.$ === "Some") {
     const _id_0 = _found_0["value"];
-    return {$: "TicketState.Evicted", "state": {$: "TicketState.State", "records": ($TicketState$without_record$(_id_0, _records_0))}, "id": _id_0};
+    return {$: "TicketState.Evicted", "state": {$: "TicketState.State", "records": ($TicketState$without_record$(_id_0, _records_0)), "units": ($TicketState$without_admission$(_id_0, _units_0))}, "id": _id_0};
   } else {
-    return {$: "TicketState.Kept", "state": {$: "TicketState.State", "records": _records_0}};
+    return {$: "TicketState.Kept", "state": {$: "TicketState.State", "records": _records_0, "units": _units_0}};
   }
 }
 
@@ -3681,12 +3574,17 @@ function $Canonical$cleanup_commit_eligible$(_state_0) {
     const _t_3 = _t_2["tickets"];
     const _t_4 = _t_3["records"];
     if (_t_4.$ === "Nil") {
-      const _t_5 = _t_2["reuse"];
-      const __13 = _t_5["claims"];
-      const _t_6 = _t_5["cache"];
-      if (_t_6.$ === "Nil") {
-        const __14 = _t_2["notices"];
-        return $Canonical$cleanup_state_clean$({$: "Canonical.State", "ledger": {$: "Ledger.Ledger", "limits": __0, "next_id": __1, "charges": {$: "Nil"}}, "rounds": __2, "work": __3, "next_round": __4, "next_operation": __5, "admissions": __6, "dispatch": __7, "collection": {$: "CollectionState.State", "ready": __8, "leases": __9, "claims": __10, "delivery": __11, "revision": __12, "tickets": {$: "TicketState.State", "records": {$: "Nil"}}, "reuse": {$: "ReuseState.State", "claims": __13, "cache": {$: "Nil"}}, "notices": __14}});
+      const _t_5 = _t_3["units"];
+      if (_t_5.$ === "Nil") {
+        const _t_6 = _t_2["reuse"];
+        const __13 = _t_6["claims"];
+        const _t_7 = _t_6["cache"];
+        if (_t_7.$ === "Nil") {
+          const __14 = _t_2["notices"];
+          return $Canonical$cleanup_state_clean$({$: "Canonical.State", "ledger": {$: "Ledger.Ledger", "limits": __0, "next_id": __1, "charges": {$: "Nil"}}, "rounds": __2, "work": __3, "next_round": __4, "next_operation": __5, "admissions": __6, "dispatch": __7, "collection": {$: "CollectionState.State", "ready": __8, "leases": __9, "claims": __10, "delivery": __11, "revision": __12, "tickets": {$: "TicketState.State", "records": {$: "Nil"}, "units": {$: "Nil"}}, "reuse": {$: "ReuseState.State", "claims": __13, "cache": {$: "Nil"}}, "notices": __14}});
+        } else {
+          return false;
+        }
       } else {
         return false;
       }
@@ -4120,7 +4018,7 @@ function $RevisionState$initial$() {
 }
 
 function $TicketState$initial$() {
-  return {$: "TicketState.State", "records": {$: "Nil"}};
+  return {$: "TicketState.State", "records": {$: "Nil"}, "units": {$: "Nil"}};
 }
 
 function $NoticeState$initial$() {
@@ -5017,10 +4915,11 @@ function $RevisionState$count$(_state_0) {
 
 function $TicketState$opened$(_state_0, _id_0, _found_0) {
   const _records_0 = _state_0["records"];
+  const _units_0 = _state_0["units"];
   if (_found_0.$ === "None") {
-    return {$: "TicketState.Granted", "state": {$: "TicketState.State", "records": {$: "Con", "head": {$: "TicketState.Record", "id": _id_0, "phase": ($Ticket$initial$()), "units": {$: "Nil"}}, "tail": _records_0}}};
+    return {$: "TicketState.Granted", "state": {$: "TicketState.State", "records": {$: "Con", "head": {$: "TicketState.Record", "id": _id_0}, "tail": _records_0}, "units": _units_0}};
   } else {
-    return {$: "TicketState.Refused", "state": {$: "TicketState.State", "records": _records_0}};
+    return {$: "TicketState.Refused", "state": {$: "TicketState.State", "records": _records_0, "units": _units_0}};
   }
 }
 
@@ -5036,89 +4935,53 @@ function $TicketState$find_record$(_id_0, _records_0) {
 
 function $TicketState$forgotten$(_state_0, _id_0, _found_0) {
   const _records_0 = _state_0["records"];
+  const _units_0 = _state_0["units"];
   if (_found_0.$ === "Some") {
-    return {$: "TicketState.Granted", "state": {$: "TicketState.State", "records": ($TicketState$without_record$(_id_0, _records_0))}};
+    return {$: "TicketState.Granted", "state": {$: "TicketState.State", "records": ($TicketState$without_record$(_id_0, _records_0)), "units": ($TicketState$without_admission$(_id_0, _units_0))}};
   } else {
-    return {$: "TicketState.Refused", "state": {$: "TicketState.State", "records": _records_0}};
+    return {$: "TicketState.Refused", "state": {$: "TicketState.State", "records": _records_0, "units": _units_0}};
   }
 }
 
-function $TicketState$failure_result$(_state_0, _id_0, _reason_0, _found_0) {
+function $TicketState$add_unit_found$(_state_0, _admission_0, _unit_0, _found_0) {
   const _records_0 = _state_0["records"];
+  const _units_0 = _state_0["units"];
   if (_found_0.$ === "Some") {
-    const _t_0 = _found_0["value"];
-    const _phase_0 = _t_0["phase"];
-    const _units_0 = _t_0["units"];
-    return {$: "TicketState.Granted", "state": {$: "TicketState.State", "records": {$: "Con", "head": {$: "TicketState.Record", "id": _id_0, "phase": ($Ticket$fail$(_phase_0, _reason_0)), "units": _units_0}, "tail": ($TicketState$without_record$(_id_0, _records_0))}}};
+    return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_unit_0, 0)), ($Maybe$is_none$(($TicketState$find_unit$(_unit_0, _units_0)))))), {$: "TicketState.Granted", "state": {$: "TicketState.State", "records": _records_0, "units": ($List$append$(_units_0, {$: "Con", "head": {$: "TicketState.TicketUnit", "id": _unit_0, "admission": _admission_0, "stage": ($Ticket$unit$initial$()), "reason": {$: "None"}}, "tail": {$: "Nil"}}))}}, {$: "TicketState.Refused", "state": {$: "TicketState.State", "records": _records_0, "units": _units_0}});
   } else {
-    return {$: "TicketState.Refused", "state": {$: "TicketState.State", "records": _records_0}};
+    return {$: "TicketState.Refused", "state": {$: "TicketState.State", "records": _records_0, "units": _units_0}};
   }
 }
 
-function $TicketState$close_result$(_state_0, _id_0, _found_0) {
-  const _records_0 = _state_0["records"];
+function $TicketState$unit_step_found$(_state_0, _admission_0, _unit_0, _event_0, _reason_0, _found_0) {
   if (_found_0.$ === "Some") {
     const _t_0 = _found_0["value"];
-    const _phase_0 = _t_0["phase"];
-    const _units_0 = _t_0["units"];
-    return {$: "TicketState.Granted", "state": {$: "TicketState.State", "records": {$: "Con", "head": {$: "TicketState.Record", "id": _id_0, "phase": ($Ticket$close$(_phase_0)), "units": _units_0}, "tail": ($TicketState$without_record$(_id_0, _records_0))}}};
-  } else {
-    return {$: "TicketState.Refused", "state": {$: "TicketState.State", "records": _records_0}};
-  }
-}
-
-function $TicketState$add_unit_found$(_state_0, _ticket_0, _unit_0, _found_0) {
-  const _records_0 = _state_0["records"];
-  if (_found_0.$ === "Some") {
-    const _t_0 = _found_0["value"];
-    const _phase_0 = _t_0["phase"];
-    const _units_0 = _t_0["units"];
-    return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_unit_0, 0)), ($Maybe$is_none$(($TicketState$find_unit$(_unit_0, _units_0)))))), {$: "TicketState.Granted", "state": {$: "TicketState.State", "records": {$: "Con", "head": {$: "TicketState.Record", "id": _ticket_0, "phase": _phase_0, "units": ($List$append$(_units_0, {$: "Con", "head": {$: "TicketState.TicketUnit", "id": _unit_0, "stage": ($Ticket$unit$initial$()), "reason": {$: "None"}}, "tail": {$: "Nil"}}))}, "tail": ($TicketState$without_record$(_ticket_0, _records_0))}}}, {$: "TicketState.Refused", "state": {$: "TicketState.State", "records": _records_0}});
-  } else {
-    return {$: "TicketState.Refused", "state": {$: "TicketState.State", "records": _records_0}};
-  }
-}
-
-function $TicketState$step_unit_found$(_state_0, _ticket_0, _unit_0, _event_0, _reason_0, _found_0) {
-  if (_found_0.$ === "Some") {
-    const _t_0 = _found_0["value"];
-    const __0 = _t_0["id"];
-    const __1 = _t_0["phase"];
-    const _units_0 = _t_0["units"];
-    return $TicketState$unit_step_result$(_state_0, _ticket_0, _unit_0, _event_0, _reason_0, {$: "Some", "value": {$: "TicketState.Record", "id": __0, "phase": __1, "units": _units_0}}, ($TicketState$find_unit$(_unit_0, _units_0)));
+    const _owner_0 = _t_0["admission"];
+    const _stage_0 = _t_0["stage"];
+    const _previous_reason_0 = _t_0["reason"];
+    return $TicketState$unit_step_owned$(_state_0, _admission_0, _unit_0, _owner_0, _stage_0, _previous_reason_0, _event_0, _reason_0);
   } else {
     return {$: "TicketState.Refused", "state": _state_0};
   }
 }
 
-function $TicketState$unit_in_record$(_found_0, _unit_0) {
-  if (_found_0.$ === "Some") {
-    const _t_0 = _found_0["value"];
-    const _units_0 = _t_0["units"];
-    return $TicketState$find_unit$(_unit_0, _units_0);
-  } else {
+function $TicketState$find_unit$(_id_0, _units_0) {
+  if (_units_0.$ === "Nil") {
     return {$: "None"};
+  } else {
+    const _unit_0 = _units_0["head"];
+    const _rest_0 = _units_0["tail"];
+    return $Bool$pick$(($Nat$is_eq$(_id_0, ($TicketState$unit_id$(_unit_0)))), {$: "Some", "value": _unit_0}, ($TicketState$find_unit$(_id_0, _rest_0)));
   }
 }
 
-function $TicketState$terminal$(_state_0, _ticket_0, _expired_0, _credential_valid_0, _live_advice_0, _pending_notice_0) {
-  const _records_0 = _state_0["records"];
-  return $TicketState$terminal_found$(($TicketState$find_record$(_ticket_0, _records_0)), _expired_0, _credential_valid_0, _live_advice_0, _pending_notice_0);
-}
-
-function $Ticket$terminal$pending$(_state_0, _facts_0) {
-  const _pending_units_0 = _facts_0["pending_units"];
-  const _live_advice_0 = _facts_0["live_advice"];
-  const _pending_notice_0 = _facts_0["pending_notice"];
-  const _unit_failure_0 = _facts_0["unit_failure"];
-  const _finding_units_0 = _facts_0["finding_units"];
-  const _undelivered_0 = _facts_0["undelivered_findings"];
-  const _total_0 = _facts_0["total_units"];
-  const _x_0 = ($Nat$is_gt$(_pending_units_0, 0));
-  const _x_1 = (_live_advice_0 || _pending_notice_0);
-  const _x_2 = ($Ticket$is_preparing$(_state_0));
-  const _x_3 = (_x_0 || _x_1);
-  return $Bool$pick$((_x_2 || _x_3), {$: "Ticket.Pending"}, ($Ticket$terminal$phase$(_state_0, _unit_failure_0, _finding_units_0, _undelivered_0, _total_0)));
+function $TicketState$owned_unit$(_found_0, _admission_0) {
+  if (_found_0.$ === "None") {
+    return {$: "None"};
+  } else {
+    const _unit_0 = _found_0["value"];
+    return $Bool$pick$(($Nat$is_eq$(($TicketState$unit_admission$(_unit_0)), _admission_0)), {$: "Some", "value": _unit_0}, {$: "None"});
+  }
 }
 
 function $TicketState$without_record$(_id_0, _records_0) {
@@ -5128,6 +4991,16 @@ function $TicketState$without_record$(_id_0, _records_0) {
     const _record_0 = _records_0["head"];
     const _rest_0 = _records_0["tail"];
     return $TicketState$keep_record$(_record_0, ($TicketState$without_record$(_id_0, _rest_0)), ($Nat$is_eq$(_id_0, ($TicketState$record_id$(_record_0)))));
+  }
+}
+
+function $TicketState$without_admission$(_admission_0, _units_0) {
+  if (_units_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _unit_0 = _units_0["head"];
+    const _rest_0 = _units_0["tail"];
+    return $TicketState$keep_unit$(_unit_0, ($TicketState$without_admission$(_admission_0, _rest_0)), ($Nat$is_eq$(_admission_0, ($TicketState$unit_admission$(_unit_0)))));
   }
 }
 
@@ -6470,85 +6343,24 @@ function $RevisionState$generation_found$(_found_0) {
   }
 }
 
-function $Ticket$fail$(_phase_0, _reason_0) {
-  if (_phase_0.$ === "Ticket.Preparing") {
-    const _previous_0 = _phase_0["failure"];
-    return $Ticket$fail$previous$(_previous_0, _reason_0);
-  } else {
-    return _phase_0;
-  }
-}
-
-function $Ticket$close$(_phase_0) {
-  if (_phase_0.$ === "Ticket.Preparing") {
-    const _t_0 = _phase_0["failure"];
-    if (_t_0.$ === "None") {
-      return {$: "Ticket.Closed"};
-    } else {
-      const _reason_0 = _t_0["value"];
-      return {$: "Ticket.Failed", "reason": _reason_0};
-    }
-  } else {
-    return _phase_0;
-  }
-}
-
-function $TicketState$find_unit$(_id_0, _units_0) {
-  if (_units_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _unit_0 = _units_0["head"];
-    const _rest_0 = _units_0["tail"];
-    return $Bool$pick$(($Nat$is_eq$(_id_0, ($TicketState$unit_id$(_unit_0)))), {$: "Some", "value": _unit_0}, ($TicketState$find_unit$(_id_0, _rest_0)));
-  }
-}
-
 function $Ticket$unit$initial$() {
   return {$: "Ticket.UnitPending"};
 }
 
-function $TicketState$unit_step_result$(_state_0, _ticket_0, _unit_0, _event_0, _reason_0, _found_record_0, _found_unit_0) {
-  if (_found_record_0.$ === "Some") {
-    const _t_0 = _found_record_0["value"];
-    const _phase_0 = _t_0["phase"];
-    const _units_0 = _t_0["units"];
-    if (_found_unit_0.$ === "Some") {
-      const _t_1 = _found_unit_0["value"];
-      const _stage_0 = _t_1["stage"];
-      const _previous_reason_0 = _t_1["reason"];
-      return $Bool$pick$(($TicketState$unit_allowed$(_stage_0, _event_0)), ($TicketState$unit_transition_result$(_state_0, _ticket_0, _unit_0, _phase_0, _units_0, _event_0, _reason_0, _previous_reason_0, ($Ticket$unit$step$(_stage_0, _event_0)))), {$: "TicketState.Refused", "state": _state_0});
-    } else {
-      return {$: "TicketState.Refused", "state": _state_0};
-    }
-  } else {
-    return {$: "TicketState.Refused", "state": _state_0};
-  }
+function $TicketState$unit_step_owned$(_state_0, _admission_0, _unit_0, _owner_0, _stage_0, _previous_reason_0, _event_0, _reason_0) {
+  const __0 = _state_0["records"];
+  const _units_0 = _state_0["units"];
+  return $Bool$pick$(($Bool$and$(($Nat$is_eq$(_owner_0, _admission_0)), ($TicketState$unit_allowed$(_stage_0, _event_0)))), ($TicketState$unit_transition_result$({$: "TicketState.State", "records": __0, "units": _units_0}, _admission_0, _unit_0, _units_0, _event_0, _reason_0, _previous_reason_0, ($Ticket$unit$step$(_stage_0, _event_0)))), {$: "TicketState.Refused", "state": {$: "TicketState.State", "records": __0, "units": _units_0}});
 }
 
-function $TicketState$terminal_found$(_found_0, _expired_0, _credential_valid_0, _live_advice_0, _pending_notice_0) {
-  if (_found_0.$ === "Some") {
-    const _record_0 = _found_0["value"];
-    return {$: "Some", "value": ($TicketState$terminal_record$(_record_0, _expired_0, _credential_valid_0, _live_advice_0, _pending_notice_0))};
-  } else {
-    return {$: "None"};
-  }
+function $TicketState$unit_id$(_unit_0) {
+  const _id_0 = _unit_0["id"];
+  return _id_0;
 }
 
-function $Ticket$is_preparing$(_state_0) {
-  if (_state_0.$ === "Ticket.Preparing") {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function $Ticket$terminal$phase$(_state_0, _failure_0, _finding_units_0, _undelivered_0, _total_0) {
-  if (_state_0.$ === "Ticket.Failed") {
-    const _reason_0 = _state_0["reason"];
-    return {$: "Ticket.Unavailable", "reason": _reason_0};
-  } else {
-    return $Ticket$terminal$unit$(_failure_0, _finding_units_0, _undelivered_0, _total_0);
-  }
+function $TicketState$unit_admission$(_unit_0) {
+  const _admission_0 = _unit_0["admission"];
+  return _admission_0;
 }
 
 function $TicketState$keep_record$(_record_0, _tail_0, _remove_0) {
@@ -6556,6 +6368,14 @@ function $TicketState$keep_record$(_record_0, _tail_0, _remove_0) {
     return _tail_0;
   } else {
     return {$: "Con", "head": _record_0, "tail": _tail_0};
+  }
+}
+
+function $TicketState$keep_unit$(_unit_0, _tail_0, _remove_0) {
+  if (_remove_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _unit_0, "tail": _tail_0};
   }
 }
 
@@ -7377,20 +7197,6 @@ function $RevisionState$same_subject$(_subject_0, _entry_0) {
   return $Nat$is_eq$(_subject_0, _candidate_0);
 }
 
-function $Ticket$fail$previous$(_previous_0, _reason_0) {
-  if (_previous_0.$ === "None") {
-    return {$: "Ticket.Preparing", "failure": {$: "Some", "value": _reason_0}};
-  } else {
-    const _earlier_0 = _previous_0["value"];
-    return {$: "Ticket.Preparing", "failure": {$: "Some", "value": _earlier_0}};
-  }
-}
-
-function $TicketState$unit_id$(_unit_0) {
-  const _id_0 = _unit_0["id"];
-  return _id_0;
-}
-
 function $TicketState$unit_allowed$(_stage_0, _event_0) {
   if (_event_0.$ === "Ticket.Revise") {
     return $TicketState$pending_stage$(_stage_0);
@@ -7405,13 +7211,14 @@ function $TicketState$unit_allowed$(_stage_0, _event_0) {
   }
 }
 
-function $TicketState$unit_transition_result$(_state_0, _ticket_0, _unit_0, _phase_0, _units_0, _event_0, _reason_0, _previous_reason_0, _result_0) {
+function $TicketState$unit_transition_result$(_state_0, _admission_0, _unit_0, _units_0, _event_0, _reason_0, _previous_reason_0, _result_0) {
   const _records_0 = _state_0["records"];
+  const __0 = _state_0["units"];
   if (_result_0.$ === "Ticket.UnitGranted") {
     const _replacement_0 = _result_0["stage"];
-    return {$: "TicketState.Granted", "state": {$: "TicketState.State", "records": {$: "Con", "head": {$: "TicketState.Record", "id": _ticket_0, "phase": _phase_0, "units": ($TicketState$replace_unit$(_unit_0, {$: "TicketState.TicketUnit", "id": _unit_0, "stage": _replacement_0, "reason": ($TicketState$reason_after$(_event_0, _reason_0, _previous_reason_0))}, _units_0))}, "tail": ($TicketState$without_record$(_ticket_0, _records_0))}}};
+    return {$: "TicketState.Granted", "state": {$: "TicketState.State", "records": _records_0, "units": ($TicketState$replace_unit$(_unit_0, {$: "TicketState.TicketUnit", "id": _unit_0, "admission": _admission_0, "stage": _replacement_0, "reason": ($TicketState$reason_after$(_event_0, _reason_0, _previous_reason_0))}, _units_0))}};
   } else {
-    return {$: "TicketState.Refused", "state": {$: "TicketState.State", "records": _records_0}};
+    return {$: "TicketState.Refused", "state": {$: "TicketState.State", "records": _records_0, "units": __0}};
   }
 }
 
@@ -7426,21 +7233,6 @@ function $Ticket$unit$step$(_stage_0, _event_0) {
     return {$: "Ticket.UnitGranted", "stage": {$: "Ticket.UnitUnavailable"}};
   } else {
     return $Ticket$unit$delivered$(_stage_0);
-  }
-}
-
-function $TicketState$terminal_record$(_record_0, _expired_0, _credential_valid_0, _live_advice_0, _pending_notice_0) {
-  const _phase_0 = _record_0["phase"];
-  const _units_0 = _record_0["units"];
-  return $Ticket$terminal$(_phase_0, {$: "Ticket.Facts", "expired": _expired_0, "credential_valid": _credential_valid_0, "pending_units": ($TicketState$pending_count$(_units_0)), "live_advice": _live_advice_0, "pending_notice": _pending_notice_0, "unit_failure": ($TicketState$first_failure$(_units_0)), "finding_units": ($TicketState$finding_count$(_units_0)), "undelivered_findings": ($TicketState$undelivered_count$(_units_0)), "total_units": ($List$length$(_units_0))});
-}
-
-function $Ticket$terminal$unit$(_failure_0, _finding_units_0, _undelivered_0, _total_0) {
-  if (_failure_0.$ === "Some") {
-    const _reason_0 = _failure_0["value"];
-    return {$: "Ticket.Unavailable", "reason": _reason_0};
-  } else {
-    return $Ticket$terminal$findings$(_finding_units_0, _undelivered_0, _total_0);
   }
 }
 
@@ -7872,71 +7664,6 @@ function $Ticket$unit$delivered$(_stage_0) {
   }
 }
 
-function $TicketState$pending_count$(_units_0) {
-  if (_units_0.$ === "Nil") {
-    return 0;
-  } else {
-    const _t_0 = _units_0["head"];
-    const _stage_0 = _t_0["stage"];
-    const _rest_0 = _units_0["tail"];
-    const _x_0 = ($TicketState$pending_count$(_rest_0));
-    const _x_1 = ($Bool$pick$(($TicketState$pending_stage$(_stage_0)), 1, 0));
-    return nat_chk(_x_0 + _x_1);
-  }
-}
-
-function $TicketState$first_failure$($0) {
-  for (;;) {
-    {
-      const _units_0 = $0;
-      if (_units_0.$ === "Nil") {
-        return {$: "None"};
-      } else {
-        const _t_0 = _units_0["head"];
-        const _t_1 = _t_0["stage"];
-        if (_t_1.$ === "Ticket.UnitUnavailable") {
-          const _reason_0 = _t_0["reason"];
-          return _reason_0;
-        } else {
-          const _rest_1 = _units_0["tail"];
-          $0 = _rest_1;
-          continue;
-        }
-      }
-    }
-  }
-}
-
-function $TicketState$finding_count$(_units_0) {
-  if (_units_0.$ === "Nil") {
-    return 0;
-  } else {
-    const _t_0 = _units_0["head"];
-    const _stage_0 = _t_0["stage"];
-    const _rest_0 = _units_0["tail"];
-    const _x_0 = ($TicketState$finding_count$(_rest_0));
-    const _x_1 = ($Bool$pick$(($TicketState$finding_stage$(_stage_0)), 1, 0));
-    return nat_chk(_x_0 + _x_1);
-  }
-}
-
-function $TicketState$undelivered_count$(_units_0) {
-  if (_units_0.$ === "Nil") {
-    return 0;
-  } else {
-    const _t_0 = _units_0["head"];
-    const _stage_0 = _t_0["stage"];
-    const _rest_0 = _units_0["tail"];
-    const _x_0 = ($TicketState$undelivered_count$(_rest_0));
-    const _x_1 = ($Bool$pick$(($TicketState$undelivered_stage$(_stage_0)), 1, 0));
-    return nat_chk(_x_0 + _x_1);
-  }
-}
-
-function $Ticket$terminal$findings$(_finding_units_0, _undelivered_0, _total_0) {
-  return $Bool$pick$(($Nat$is_gt$(_finding_units_0, 0)), ($Bool$pick$(($Nat$is_eq$(_undelivered_0, 0)), {$: "Ticket.Delivered"}, {$: "Ticket.Unavailable", "reason": {$: "Ticket.Lost"}})), ($Bool$pick$(($Nat$is_gt$(_total_0, 0)), {$: "Ticket.Clear"}, {$: "Ticket.NoWork"})));
-}
-
 function $Notice$bounded_add$result$(_left_0, _right_0, _maximum_0, _over_0) {
   if (_over_0) {
     return _maximum_0;
@@ -8167,14 +7894,6 @@ function $TicketState$replace_unit_choice$(_item_0, _tail_0, _replacement_0, _ma
     return {$: "Con", "head": _replacement_0, "tail": _tail_0};
   } else {
     return {$: "Con", "head": _item_0, "tail": _tail_0};
-  }
-}
-
-function $TicketState$finding_stage$(_stage_0) {
-  if (_stage_0.$ === "Ticket.UnitFinding") {
-    return true;
-  } else {
-    return false;
   }
 }
 

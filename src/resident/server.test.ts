@@ -130,7 +130,10 @@ describe("canonical resident capacity", () => {
         root, advicee: advicee(), dispatch, mode: "ordinary", composed: true });
       expect(response.status).toBe(expected);
       if (response.status === "advice") {
-        expect(response.output.hookSpecificOutput.additionalContext.split("\n").slice(1)).toHaveLength(5);
+        expect("hookSpecificOutput" in response.output).toBe(true);
+        if ("hookSpecificOutput" in response.output) {
+          expect(response.output.hookSpecificOutput.additionalContext.split("\n").slice(1)).toHaveLength(5);
+        }
         expect(server.beginComposedSubmission(response.token, "background").status).toBe("submitting");
         expect(server.acknowledge(response.token).status).toBe("acknowledged");
         expect(server.finalize(response.token).status).toBe("finalized");

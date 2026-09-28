@@ -153,12 +153,10 @@ export type CanonicalEvent =
   | { readonly kind: "revisionCurrentCheck"; readonly subject: number; readonly input: number; readonly generation: number }
   | { readonly kind: "revisionGenerationCheck"; readonly subject: number }
   | { readonly kind: "revisionCountCheck" }
-  | { readonly kind: "ticketOpen" | "ticketForget" | "ticketClose"; readonly id: number }
-  | { readonly kind: "ticketFail"; readonly id: number; readonly reason: TicketReason }
+  | { readonly kind: "ticketOpen" | "ticketForget"; readonly id: number }
   | { readonly kind: "ticketAddUnit"; readonly id: number; readonly unit: number }
   | { readonly kind: "ticketStepUnit"; readonly id: number; readonly unit: number; readonly event: TicketUnitEvent; readonly reason: TicketReason }
   | { readonly kind: "ticketUnitCheck"; readonly id: number; readonly unit: number }
-  | { readonly kind: "ticketTerminal"; readonly id: number; readonly expired: boolean; readonly credentialValid: boolean; readonly liveAdvice: boolean; readonly pendingNotice: boolean }
   | { readonly kind: "ticketCollectGateCheck"; readonly expired: boolean; readonly credentialValid: boolean }
   | { readonly kind: "ticketFinalAuthorityCheck"; readonly admittedBlock: boolean; readonly currentBlock: boolean }
   | { readonly kind: "ticketJoinedCheck"; readonly state: TicketJoinedState; readonly staleUnavailable: boolean; readonly hasRevision: boolean; readonly hasAdviceId: boolean }
@@ -263,8 +261,8 @@ export type CanonicalCommand =
   | { readonly kind: "revisionReused" | "revisionReplaced" | "revisionGeneration"; readonly generation: number }
   | { readonly kind: "revisionCount"; readonly count: number }
   | { readonly kind: "revisionReleased" | "revisionCurrent" | "revisionStale" | "revisionSuperseded" | "revisionNotSuperseded" }
-  | { readonly kind: "ticketOpened" | "ticketForgotten" | "ticketFailed" | "ticketClosed" | "ticketUnitAdded" | "ticketUnitUpdated" | "ticketRefused" | "ticketPending" | "ticketDelivered" | "ticketClear" | "ticketNoWork" | "ticketCollectProceed" | "ticketFinalProceed" | "ticketFinalRelease" | "ticketKeepJoined" | "ticketSetJoinedClear" | "ticketSetJoinedFinding" | "ticketSetJoinedUnavailable" | "ticketSetJoinedLost" }
-  | { readonly kind: "ticketUnavailable" | "ticketCollectUnavailable"; readonly reason: TicketReason }
+  | { readonly kind: "ticketOpened" | "ticketForgotten" | "ticketUnitAdded" | "ticketUnitUpdated" | "ticketRefused" | "ticketCollectProceed" | "ticketFinalProceed" | "ticketFinalRelease" | "ticketKeepJoined" | "ticketSetJoinedClear" | "ticketSetJoinedFinding" | "ticketSetJoinedUnavailable" | "ticketSetJoinedLost" }
+  | { readonly kind: "ticketCollectUnavailable"; readonly reason: TicketReason }
   | { readonly kind: "ticketUnitSnapshot"; readonly stage: "pending" | "clear" | "finding" | "unavailable"; readonly delivered?: boolean; readonly reason?: TicketReason }
   | { readonly kind: "ticketUnitMissing" }
   | { readonly kind: "ticketEvicted"; readonly id: number }
@@ -449,12 +447,10 @@ const encode = (event: CanonicalEvent): unknown => {
     case "revisionCurrentCheck": inputFields(event, ["kind", "subject", "input", "generation"]); return { $: "Canonical.RevisionCurrentCheck", subject: nat(event.subject, true), input: nat(event.input, true), generation: nat(event.generation, true) };
     case "revisionGenerationCheck": inputFields(event, ["kind", "subject"]); return { $: "Canonical.RevisionGenerationCheck", subject: nat(event.subject, true) };
     case "revisionCountCheck": inputFields(event, ["kind"]); return { $: "Canonical.RevisionCountCheck" };
-    case "ticketOpen": case "ticketForget": case "ticketClose": inputFields(event, ["kind", "id"]); return { $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`, id: nat(event.id, true) };
-    case "ticketFail": inputFields(event, ["kind", "id", "reason"]); return { $: "Canonical.TicketFail", id: nat(event.id, true), reason: ticketReason(event.reason) };
+    case "ticketOpen": case "ticketForget": inputFields(event, ["kind", "id"]); return { $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`, id: nat(event.id, true) };
     case "ticketAddUnit": inputFields(event, ["kind", "id", "unit"]); return { $: "Canonical.TicketAddUnit", id: nat(event.id, true), unit: nat(event.unit, true) };
     case "ticketStepUnit": inputFields(event, ["kind", "id", "unit", "event", "reason"]); return { $: "Canonical.TicketStepUnit", id: nat(event.id, true), unit: nat(event.unit, true), event: ticketUnitEvent(event.event), reason: ticketReason(event.reason) };
     case "ticketUnitCheck": inputFields(event, ["kind", "id", "unit"]); return { $: "Canonical.TicketUnitCheck", id: nat(event.id, true), unit: nat(event.unit, true) };
-    case "ticketTerminal": inputFields(event, ["kind", "id", "expired", "credentialValid", "liveAdvice", "pendingNotice"]); return { $: "Canonical.TicketTerminal", id: nat(event.id, true), expired: bool(event.expired), credential_valid: bool(event.credentialValid), live_advice: bool(event.liveAdvice), pending_notice: bool(event.pendingNotice) };
     case "ticketCollectGateCheck": inputFields(event, ["kind", "expired", "credentialValid"]); return { $: "Canonical.TicketCollectGateCheck", expired: bool(event.expired), credential_valid: bool(event.credentialValid) };
     case "ticketFinalAuthorityCheck": inputFields(event, ["kind", "admittedBlock", "currentBlock"]); return { $: "Canonical.TicketFinalAuthorityCheck", admitted_block: bool(event.admittedBlock), current_block: bool(event.currentBlock) };
     case "ticketJoinedCheck": inputFields(event, ["kind", "state", "staleUnavailable", "hasRevision", "hasAdviceId"]); return { $: "Canonical.TicketJoinedCheck", joined_state: ticketJoinedState(event.state), stale_unavailable: bool(event.staleUnavailable), has_revision: bool(event.hasRevision), has_advice_id: bool(event.hasAdviceId) };
@@ -736,11 +732,8 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
       const name = tag(value); fields(value, name, []);
       return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "revisionReleased" | "revisionCurrent" | "revisionStale" | "revisionSuperseded" | "revisionNotSuperseded" };
     }
-    case "Canonical.TicketUnavailable": case "Canonical.TicketCollectUnavailable": {
-      const name = tag(value);
-      return { kind: name === "Canonical.TicketUnavailable" ? "ticketUnavailable" : "ticketCollectUnavailable",
-        reason: decodeTicketReason(fields(value, name, ["reason"]).reason) };
-    }
+    case "Canonical.TicketCollectUnavailable":
+      return { kind: "ticketCollectUnavailable", reason: decodeTicketReason(fields(value, "Canonical.TicketCollectUnavailable", ["reason"]).reason) };
     case "Canonical.TicketUnitSnapshot": {
       const item = fields(value, "Canonical.TicketUnitSnapshot", ["stage", "reason"]);
       return { kind: "ticketUnitSnapshot", ...decodeTicketUnitState(item.stage, item.reason) };
@@ -860,16 +853,15 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
       const name = tag(value); fields(value, name, []);
       return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Exclude<Extract<CanonicalCommand, { kind: `reuse${string}` | `cache${string}` }>["kind"], "cachePrepared" | "cacheDiscarded"> };
     }
-    case "Canonical.TicketOpened": case "Canonical.TicketForgotten": case "Canonical.TicketFailed":
-    case "Canonical.TicketClosed": case "Canonical.TicketUnitAdded": case "Canonical.TicketUnitUpdated":
-    case "Canonical.TicketRefused": case "Canonical.TicketPending": case "Canonical.TicketDelivered":
-    case "Canonical.TicketClear": case "Canonical.TicketNoWork": case "Canonical.TicketCollectProceed":
+    case "Canonical.TicketOpened": case "Canonical.TicketForgotten":
+    case "Canonical.TicketUnitAdded": case "Canonical.TicketUnitUpdated":
+    case "Canonical.TicketRefused": case "Canonical.TicketCollectProceed":
     case "Canonical.TicketFinalProceed": case "Canonical.TicketFinalRelease":
     case "Canonical.TicketKeepJoined": case "Canonical.TicketSetJoinedClear":
     case "Canonical.TicketSetJoinedFinding": case "Canonical.TicketSetJoinedUnavailable":
     case "Canonical.TicketSetJoinedLost": {
       const name = tag(value); fields(value, name, []);
-      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Exclude<Extract<CanonicalCommand, { kind: `ticket${string}` }>["kind"], "ticketUnavailable" | "ticketCollectUnavailable" | "ticketUnitSnapshot" | "ticketUnitMissing" | "ticketEvicted"> };
+      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Exclude<Extract<CanonicalCommand, { kind: `ticket${string}` }>["kind"], "ticketCollectUnavailable" | "ticketUnitSnapshot" | "ticketUnitMissing" | "ticketEvicted"> };
     }
     case "Canonical.WriteAuthorized": return { kind: "writeAuthorized", operation: nat(fields(value, "Canonical.WriteAuthorized", ["operation"]).operation, true) };
     case "Canonical.WriteRecorded": return { kind: "writeRecorded", outcome: writeOutcome(fields(value, "Canonical.WriteRecorded", ["outcome"]).outcome) };
@@ -892,7 +884,7 @@ export type CanonicalProjection = {
   readonly pendingFindings: readonly { readonly operation: number; readonly count: number }[];
   readonly dispatch: { readonly pending: readonly DispatchEntry[]; readonly active: readonly DispatchEntry[]; readonly running: readonly DispatchEntry[]; readonly nextSequence: number; readonly cycle: number; readonly closed: boolean };
   readonly collection: { readonly ready: readonly number[]; readonly leases: readonly { readonly advice: number; readonly owner: number }[]; readonly claims: readonly { readonly group: number; readonly owner: number }[] };
-  readonly tickets: readonly { readonly id: number; readonly phase: "preparing" | "closed" | "failed"; readonly failure?: TicketReason; readonly units: readonly { readonly id: number; readonly stage: "pending" | "clear" | "finding" | "unavailable"; readonly delivered?: boolean; readonly reason?: TicketReason }[] }[];
+  readonly tickets: readonly { readonly id: number; readonly units: readonly { readonly id: number; readonly stage: "pending" | "clear" | "finding" | "unavailable"; readonly delivered?: boolean; readonly reason?: TicketReason }[] }[];
   readonly notices: readonly { readonly id: number; readonly partition: number; readonly group: number; readonly reservation: number; readonly suppressed: number; readonly pending?: { readonly id: number; readonly count: number; readonly sequence: number; readonly leased: boolean } }[];
   readonly reuse: { readonly claims: readonly { readonly id: number; readonly attached: boolean }[]; readonly cache: readonly { readonly id: number; readonly partition: number; readonly bytes: number; readonly reservation: number }[] };
   readonly revision: { readonly entries: readonly { readonly subject: number; readonly input: number; readonly generation: number; readonly members: number }[]; readonly nextGeneration: number };
@@ -949,31 +941,24 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
     return { subject: nat(entry.subject, true), input: nat(entry.input, true), generation: nat(entry.generation, true), members: nat(entry.members, true) };
   }), nextGeneration: nat(rawRevision.next_generation, true) };
   if (new Set(revision.entries.map((entry) => entry.subject)).size !== revision.entries.length) throw new TypeError("duplicate canonical revision subject");
-  const ticketState = fields(collectionState.tickets, "TicketState.State", ["records"]);
-  const tickets: CanonicalProjection["tickets"] = readList(ticketState.records, (value) => {
-    const record = fields(value, "TicketState.Record", ["id", "phase", "units"]);
-    const phaseTag = tag(record.phase);
-    let phase: "preparing" | "closed" | "failed";
-    let failure: TicketReason | undefined;
-    if (phaseTag === "Ticket.Preparing") {
-      phase = "preparing";
-      failure = maybeTicketReason(fields(record.phase, phaseTag, ["failure"]).failure);
-    } else if (phaseTag === "Ticket.Closed") {
-      fields(record.phase, phaseTag, []); phase = "closed";
-    } else if (phaseTag === "Ticket.Failed") {
-      phase = "failed";
-      failure = decodeTicketReason(fields(record.phase, phaseTag, ["reason"]).reason);
-    } else throw new TypeError("unknown ticket phase");
-    const units = readList(record.units, (value) => {
-      const item = fields(value, "TicketState.TicketUnit", ["id", "stage", "reason"]);
-      return { id: nat(item.id, true), ...decodeTicketUnitState(item.stage, item.reason) };
-    });
-    return { id: nat(record.id, true), phase, ...(failure === undefined ? {} : { failure }), units };
+  const ticketState = fields(collectionState.tickets, "TicketState.State", ["records", "units"]);
+  const ticketAdmissions = readList(ticketState.records, (value) => {
+    const record = fields(value, "TicketState.Record", ["id"]);
+    return nat(record.id, true);
   });
-  if (new Set(tickets.map((ticket) => ticket.id)).size !== tickets.length ||
-      tickets.some((ticket) => new Set(ticket.units.map((unit) => unit.id)).size !== ticket.units.length)) {
+  const units = readList(ticketState.units, (value) => {
+    const item = fields(value, "TicketState.TicketUnit", ["id", "admission", "stage", "reason"]);
+    return { id: nat(item.id, true), admission: nat(item.admission, true),
+      ...decodeTicketUnitState(item.stage, item.reason) };
+  });
+  if (new Set(ticketAdmissions).size !== ticketAdmissions.length ||
+      new Set(units.map((unit) => unit.id)).size !== units.length ||
+      units.some((unit) => !ticketAdmissions.includes(unit.admission))) {
     throw new TypeError("duplicate canonical ticket identity");
   }
+  const tickets: CanonicalProjection["tickets"] = ticketAdmissions.map((id) => ({
+    id, units: units.filter((unit) => unit.admission === id).map(({ admission: _, ...unit }) => unit),
+  }));
   const collection = {
     ready: readList(collectionState.ready, (id) => nat(id, true)),
     leases: readList(collectionState.leases, (value) => {

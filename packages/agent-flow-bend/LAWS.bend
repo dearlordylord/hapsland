@@ -16,6 +16,7 @@ import ./CollectionState.bend as CollectionState
 import ./Delivery.bend as Delivery
 import ./Cache.bend as Cache
 import ./Ticket.bend as Ticket
+import ./TicketState.bend as TicketState
 import ./Revision.bend as Revision
 import ./Reuse.bend as Reuse
 import ./Retention.bend as Retention
@@ -814,51 +815,15 @@ law prospective_gate_rejects_late_hook_clock:
       False{}, 0n, 1024n, 0n, 64n, True{}, 0n, 4096n}) ==
     Admission.PermitDenied{} : Admission.ProspectiveDecision}
 
-def ticket_facts(expired: Bool, valid: Bool, pending: Nat, live: Bool,
-    notice: Bool, failure: Maybe<&2, Ticket.Reason>, findings: Nat,
-    undelivered: Nat, total: Nat) -> Ticket.Facts:
-  Ticket.Facts{expired, valid, pending, live, notice, failure,
-    findings, undelivered, total}
+law ticket_admission_stores_only_identity_and_units:
+  {TicketState.open(TicketState.initial(), 1n) ==
+    TicketState.Granted{TicketState.State{TicketState.Record{1n} <> Nil{}, Nil{}}} : TicketState.Decision}
 
-law ticket_keeps_first_failure_until_close:
-  {Ticket.close(Ticket.fail(Ticket.fail(Ticket.initial(), Ticket.Backend{}), Ticket.Stale{})) ==
-    Ticket.Failed{Ticket.Backend{}} : Ticket.Phase}
-
-law ticket_expiry_precedes_credential_and_pending:
-  {Ticket.terminal(Ticket.initial(), ticket_facts(True{}, False{}, 1n,
-      True{}, True{}, None{}, 0n, 0n, 1n)) ==
-    Ticket.Unavailable{Ticket.Expired{}} : Ticket.Outcome}
-
-law ticket_credential_precedes_pending:
-  {Ticket.terminal(Ticket.initial(), ticket_facts(False{}, False{}, 1n,
-      True{}, False{}, None{}, 0n, 0n, 1n)) ==
-    Ticket.Unavailable{Ticket.Credential{}} : Ticket.Outcome}
-
-law ticket_waits_for_live_advice_after_work_closes:
-  {Ticket.terminal(Ticket.Closed{}, ticket_facts(False{}, True{}, 0n,
-      True{}, False{}, None{}, 1n, 0n, 1n)) == Ticket.Pending{} : Ticket.Outcome}
-
-law ticket_phase_failure_precedes_unit_failure:
-  {Ticket.terminal(Ticket.Failed{Ticket.Backend{}}, ticket_facts(False{}, True{}, 0n,
-      False{}, False{}, Some{Ticket.Stale{}}, 0n, 0n, 1n)) ==
-    Ticket.Unavailable{Ticket.Backend{}} : Ticket.Outcome}
-
-law ticket_all_findings_delivered_is_terminal:
-  {Ticket.terminal(Ticket.Closed{}, ticket_facts(False{}, True{}, 0n,
-      False{}, False{}, None{}, 2n, 0n, 2n)) == Ticket.Delivered{} : Ticket.Outcome}
-
-law ticket_undelivered_finding_is_lost:
-  {Ticket.terminal(Ticket.Closed{}, ticket_facts(False{}, True{}, 0n,
-      False{}, False{}, None{}, 1n, 1n, 1n)) ==
-    Ticket.Unavailable{Ticket.Lost{}} : Ticket.Outcome}
-
-law ticket_empty_is_no_work:
-  {Ticket.terminal(Ticket.Closed{}, ticket_facts(False{}, True{}, 0n,
-      False{}, False{}, None{}, 0n, 0n, 0n)) == Ticket.NoWork{} : Ticket.Outcome}
-
-law ticket_settled_unit_without_finding_is_clear:
-  {Ticket.terminal(Ticket.Closed{}, ticket_facts(False{}, True{}, 0n,
-      False{}, False{}, None{}, 0n, 0n, 1n)) == Ticket.Clear{} : Ticket.Outcome}
+law ticket_unit_requires_its_originating_admission:
+  {TicketState.unit_snapshot(TicketState.State{
+      TicketState.Record{1n} <> TicketState.Record{2n} <> Nil{},
+      TicketState.TicketUnit{10n, 1n, Ticket.UnitPending{}, None{}} <> Nil{}},
+    2n, 10n) == None{} : Maybe<&2, TicketState.TicketUnit>}
 
 law ticket_revision_only_updates_pending_unit:
   {Ticket.unit.step(Ticket.UnitFinding{False{}}, Ticket.Revise{}) ==

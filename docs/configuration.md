@@ -91,14 +91,18 @@ Credential selection has a user-owned exception to this precedence: a
 A project value takes effect when user configuration omits the field. If both omit
 it, the built-in `TYPESAFE_API_KEY` reference applies.
 
-Claude Code feedback defaults to `advisory`. To try the experimental stronger
-feedback after a successful direct edit, put
+Claude Code feedback defaults to `advisory`. In the candidate installed flow,
+the synchronous `PostToolUse` hook may return a current finding within its
+bounded deadline; background or Stop may offer eligible advice later. To opt
+into stronger synchronous feedback after a successful edit, put
 `"claudeFeedbackMode": "block-current-findings"` in the **user** configuration
 file. A project configuration may set `"claudeFeedbackMode": "advisory"` to
 restrict that repository. A project cannot enable block feedback; its attempt
-is an invalid configuration. The resident rechecks the current files before
-handing off a block response. This hook runs after the edit and cannot undo it
-or guarantee that Claude will repair the finding.
+is an invalid configuration. This setting governs synchronous edit feedback;
+background and Stop follow the resident's shared delivery and round decisions.
+The resident rechecks the current files before handing off a block response.
+The hook runs after the edit and cannot undo it or guarantee that Claude will
+repair the finding.
 
 ## Declarative rule packs
 

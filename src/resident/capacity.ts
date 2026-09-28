@@ -50,8 +50,8 @@ type ResidentTransition = Extract<CanonicalEvent, { readonly kind:
   "submissionReofferCheck" | "submissionExpiryCheck" |
   "revisionRegister" | "revisionRelease" | "revisionCurrentCheck" |
   "revisionSupersededCheck" | "revisionGenerationCheck" | "revisionCountCheck" |
-  "ticketOpen" | "ticketForget" | "ticketFail" | "ticketClose" |
-  "ticketAddUnit" | "ticketStepUnit" | "ticketUnitCheck" | "ticketTerminal" |
+  "ticketOpen" | "ticketForget" |
+  "ticketAddUnit" | "ticketStepUnit" | "ticketUnitCheck" |
   "ticketCollectGateCheck" | "ticketFinalAuthorityCheck" | "ticketJoinedCheck" |
   "ticketRetentionCheck" | "cleanupCheck" | "cleanupCommit" | "deliveryReleaseCheck" |
   "deliveryAcknowledgeCheck" | "deliveryFinalizeCheck" | "deliveryFindingDispositionCheck" |

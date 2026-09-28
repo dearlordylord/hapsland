@@ -206,7 +206,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       `const lifetime=${JSON.stringify(identities[0]!.lifetime)};`,
       "const observation=await Effect.runPromise(adaptCodexDirectEvent(event));",
       "const socket=connect(socketPath);",
-      "socket.once('connect',()=>socket.write(JSON.stringify({version:1,operation:'admit',lifetime,observation,controlledWriter:true,dispatch})+'\\n',()=>process.exit(0)));",
+      "socket.once('connect',()=>socket.write(JSON.stringify({version:3,operation:'admit',lifetime,observation,controlledWriter:true,dispatch})+'\\n',()=>process.exit(0)));",
     ].join("");
     const admitGate = env.REVIEW_RESIDENT_ADMIT_RESPONSE_GATE_PATH;
     await writeFile(`${admitGate}.enabled`, "enabled\n");

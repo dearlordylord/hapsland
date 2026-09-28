@@ -63,10 +63,6 @@ try {
         .some((name) => !source.includes(`function $Lifecycle$${name}$(`)) ||
       !source.includes("function $Lifecycle$reserve_selected$(") ||
       !source.includes("function $Lifecycle$release_unwritten$(") ||
-      !source.includes("function $Ticket$initial$(") ||
-      !source.includes("function $Ticket$fail$(") ||
-      !source.includes("function $Ticket$close$(") ||
-      !source.includes("function $Ticket$terminal$(") ||
       !source.includes("function $Ticket$collect_gate$(") ||
       !source.includes("function $Ticket$final_authority$(") ||
       !source.includes("function $Ticket$joined_disposition$(") ||
@@ -300,12 +296,6 @@ export const bendLifecycleReserveSelected = (round, work, token, selected) =>
     selected.reduceRight((tail, value) => ({ $: "Con", head: nat(value), tail }), { $: "Nil" })));
 export const bendLifecycleReleaseUnwritten = (round, token) =>
   run_loop($Lifecycle$release_unwritten$(round, nat(token)));
-export const bendTicketInitial = () => run_loop($Ticket$initial$());
-export const bendTicketFail = (phase, reason) =>
-  run_loop($Ticket$fail$(phase, normalize(reason)));
-export const bendTicketClose = (phase) => run_loop($Ticket$close$(phase));
-export const bendTicketTerminal = (phase, facts) =>
-  run_loop($Ticket$terminal$(phase, normalize(facts)));
 export const bendTicketCollectGate = (expired, credentialValid) =>
   run_loop($Ticket$collect_gate$(expired, credentialValid));
 export const bendTicketFinalAuthority = (admittedBlock, currentBlock) =>

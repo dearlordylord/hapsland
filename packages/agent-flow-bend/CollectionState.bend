@@ -329,16 +329,6 @@ def ticket_forget(+state: State, id: Nat) -> Decision:
     case State{_, _, _, _, _, tickets, reuse, notices}:
       ticket_result(state, TicketState.forget(tickets, id))
 
-def ticket_fail(+state: State, id: Nat, reason: Ticket.Reason) -> Decision:
-  match state:
-    case State{_, _, _, _, _, tickets, reuse, notices}:
-      ticket_result(state, TicketState.fail(tickets, id, reason))
-
-def ticket_close(+state: State, id: Nat) -> Decision:
-  match state:
-    case State{_, _, _, _, _, tickets, reuse, notices}:
-      ticket_result(state, TicketState.close(tickets, id))
-
 def ticket_add_unit(+state: State, id: Nat, unit: Nat) -> Decision:
   match state:
     case State{_, _, _, _, _, tickets, reuse, notices}:
@@ -354,14 +344,6 @@ def ticket_unit_snapshot(state: State, id: Nat, unit: Nat) -> Maybe<&2, TicketSt
   match state:
     case State{_, _, _, _, _, tickets, reuse, notices}:
       TicketState.unit_snapshot(tickets, id, unit)
-
-def ticket_terminal(state: State, id: Nat, expired: Bool,
-    credential_valid: Bool, live_advice: Bool,
-    pending_notice: Bool) -> Maybe<&2, Ticket.Outcome>:
-  match state:
-    case State{_, _, _, _, _, tickets, reuse, notices}:
-      TicketState.terminal(tickets, id, expired, credential_valid,
-        live_advice, pending_notice)
 
 def ticket_state(state: State) -> TicketState.State:
   match state:

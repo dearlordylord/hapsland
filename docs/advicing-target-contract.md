@@ -4,7 +4,7 @@
 **Status:** Accepted target; implementation and installed support are separately evidenced.
 **Authority:** Accepted product contract.
 **Expected use:** Resolve intended behavior and assess implementation against the accepted advice, work, and delivery contract.
-**Lifecycle:** Maintained through explicit accepted behavior amendments. Review whenever an owner changes advicee identity, admission, review, delivery, or finish semantics, and at #137 final authority reconciliation; update linked implementation/support evidence without treating it as a contract amendment.
+**Lifecycle:** Maintained through explicit accepted behavior amendments. Review whenever an owner changes advicee identity, admission, review, delivery, or finish semantics; update linked implementation/support evidence without treating it as a contract amendment.
 
 **Status: accepted target behavior, not an implementation or support claim.** This
 document says what Hapsland must do at the agent-runtime boundary. The candidate
@@ -97,7 +97,7 @@ An admitted edit is unfinished while it waits for source reading, while source
 is read and analyzed, while any derived review work item waits for Jev, and
 while Jev evaluates that item. One observation may yield several review units.
 A Jev finding completes its item and enters pending advice in the same logical
-step. A clear result completes the item and records clear status in that step;
+step. A clear result completes the item and can be observed as clear activity;
 there is no separate stored Jev-result queue. All unfinished items in the
 virtual round count, not just the first or latest edit.
 
@@ -129,7 +129,20 @@ cancelled work cannot create advice for that repair or a later round. The pure r
 emit the decision, response command, and cancellation IDs; the runtime side
 performs output and cancellation. No output command proves agent reception.
 
-The installed edit path automatically starts a bounded background advice wait.
+The installed Claude `PostToolUse` hook also collects current advice within its
+safe synchronous deadline. If no eligible advice is ready, it returns quietly
+and leaves later opportunities to background or Stop. Advisory output is the
+default. A synchronous `block-current-findings` response requires a user-owned
+opt-in that remains valid at the final handoff; project policy may narrow it to
+advisory. The collector may batch eligible findings from several admissions in
+the same advicee and virtual round. An admission identifies each derived review
+unit and carries authorization and lifetime facts; it does not limit the batch
+to one edit or store a second ticket-wide outcome. Operational notices use the
+same advicee scope and one delivery lease across those opportunities. The installed edit path
+automatically starts a bounded background advice wait.
+CLI and resident exchange one version 3 local IPC envelope across admission,
+collection, lifecycle, and delivery operations. An older peer's response cannot
+establish readiness, successful review, or submission.
 One waiter per advicee coalesces matching triggers, holds no advice lease while
 waiting, and exits quietly if no eligible advice becomes ready. A background
 wait with no reserved advice cannot prolong a settled finish decision. A
@@ -146,11 +159,16 @@ whether the work is still current, and the advice age. A temporary failure
 of this check leaves current advice
 eligible until a later valid attempt or expiry; stale or unattributed advice is
 suppressed. The resident grants one tokenized lease per selected advice item.
+At the final IPC handoff, the resident takes a bounded, descriptor-anchored
+capture of each selected source file and supplies its freshness as a fact to
+the Bend candidate decision. A changed or unreadable source retires its
+selected finding.
 Overlapping collectors cannot own that item together. The collector releases a
 lease on a known pre-output failure; a completed advice submission records only
 submission to the runtime. Lost acknowledgements and uncertain submissions
 remain uncertain; lease recovery requires revalidation. Current response limits are five findings
-and 2 KiB of encoded output. An individually oversized finding yields a bounded
+and 2 KiB of final encoded host output, including Claude-specific wrapping and
+notices. An individually oversized finding yields a bounded
 limitation rather than an endless retry.
 
 At most one finish collector owns an advicee's active finish attempt. A
@@ -193,8 +211,9 @@ closure, not exactly-once external output. Emit `allow` within the original
 hook deadline; cleanup can finish asynchronously after the fence takes effect,
 without producing new review or delivery work.
 
-Retain only a source-free closure marker, identity digests needed to reject old
-events, and aggregate counts and reasons. Count discarded queued, running,
+Retain only a source-free closure marker and identity digests needed to reject old
+events. Derive diagnostic counts and reasons from work and delivery facts rather
+than retaining a ticket-wide terminal result. Count discarded queued, running,
 pending, submitted, and uncertain work by lifecycle stage, without treating one
 item as several completed reviews. An interrupted or dropped result is
 incomplete, not clear. The marker contains no source, advice text, raw runtime
