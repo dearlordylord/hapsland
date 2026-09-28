@@ -131,3 +131,15 @@ follow-up outcome. It has an eight-request HTTP-boundary cutoff, no automatic
 retry, and a 240-second host ceiling. Twelve live Claude requests have been
 used; this session brings the cumulative actual maximum to 20 of 40. A
 failure or missing follow-up remains incomplete.
+
+## Declared Codex ticket-outcome observation, before execution
+
+The first real Codex session demonstrated finding submission and later repair,
+but did not retain the checked status of its second review. One independent
+native Codex CLI session will use the same synthetic payment-state fixture and
+PostToolUse hook, with source-free activity-stage capture. It has a six-request
+HTTP-boundary cutoff, no automatic retry, and a 240-second host ceiling. The
+first Codex session used two requests, so the cumulative actual maximum is
+eight of the issue's 40 requests. A second HTTP 200 or a quiet hook alone will
+not count as a follow-up result; require an explicit resident `clear` or
+`findings` stage after the repair. Preserve the first session record.
