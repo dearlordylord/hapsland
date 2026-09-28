@@ -18,13 +18,14 @@ after E and G do not fit. The owner resumed the migration in a new session.
 #119's first canonical state, events, commands, checked adapter, and independent
 traces merged through PR #144 and #119 is closed. #120's resident capacity
 slice is merged at `b90a524`. #121's canonical permit admission is merged at
-`cdb00d9`; the next migration slice is #122. Other resident decision paths
-under #122–#134 are still pending. Configurable graph limits and
+`cdb00d9`. #122's canonical observation fan-out and review outcomes are merged
+at `b8056e2`; the next migration slice is #123. Other resident decision paths
+under #123–#134 are still pending. Configurable graph limits and
 general budget/termination proofs are tracked separately in
 [#142](https://github.com/dearlordylord/hapsland/issues/142).
 
 The integrated epic is in `/workspace/typescript/jev-worktrees/bend-full-flow`
-(`feat/bend-full-flow`, merge `cdb00d9`). Start #122 in a new task worktree
+(`feat/bend-full-flow`, merge `b8056e2`). Start #123 in a new task worktree
 from the latest epic tip. The old `/tmp/hapsland-bend-handoff.md` predates #119
 and is no longer a valid resume point. The `/workspace/typescript/jev` checkout
 is older and is not the edit target.
@@ -167,6 +168,19 @@ fully markerless child tool callback is possible. Identifiable missing child IDs
 are rejected. Nine independent canonical traces, Bend proofs, 585 offline tests,
 typecheck, and build passed; two credential-gated live tests were skipped.
 
+## #122 observation and review flow (merged 2026-09-28)
+
+The resident now returns source observations, preparation, per-unit review
+starts/completions, and retained findings to `Canonical.step`, with exact
+numeric parent, round, and operation IDs. Stale and duplicate completions cannot
+publish new review effects. Canonical capacity tracks retained results and
+temporary advice rechecks; Jev, source, and host work remain native effects.
+Thirteen independent canonical traces, Bend proofs, a resident two-result
+fan-out fixture, callback-order Stop fixtures, typecheck, build, and 587 offline
+tests passed; two credential-gated live tests were skipped. Details and the
+duplicate-versus-late distinction are in `docs/issue-122-review-evidence.md`.
+The old Stop projection remains pending #124; #123 moves dispatch cycles.
+
 ## Next autonomous migration run
 
 Use the GitHub issue bodies as the task contracts. Work in a dedicated task
@@ -177,7 +191,7 @@ the issue only when its criteria have evidence. Update this handoff after each
 merged slice. Do not treat the separate #141 import-graph diagram as the final
 production replay.
 
-One valid single-agent order from here is #122, #123, #124, #125, #126,
+One valid single-agent order from here is #123, #124, #125, #126,
 #127, #128, #129, #130, #131, #132, #133, #134, #135. Dependencies allow
 #132–#134 to proceed after their own blockers while the #123–#131 chain is in
 progress; #135 needs both #131 and #134. #135 delivers the build-generated
