@@ -28,3 +28,16 @@ temporary home directories. Keep deterministic fake-effect callback-race tests
 as the primary race gate; the native runs are selected host observations, not
 a race-exhaustiveness claim. Document version/profile limits and any missing
 stage separately for each runtime.
+
+## Declared Claude diagnostic extension, before execution
+
+The first Claude run used only Edit/Write hook opportunities. It observed a
+finding and later clear in resident activity but did not record advice
+submission before the file changed, so it is retained as incomplete. A second,
+separately declared Claude run adds a Bash hook after the initial Write, matching
+the successful Codex opportunity. The prompt requires running the fixture's
+typecheck before any repair and acting on advice only if delivered. This run
+has another eight-request ceiling, no automatic retries, and the same
+240-second session ceiling. The cumulative declared Claude limit is 16 Jev
+requests, below issue #136's 40-request-per-runtime ceiling. Both outcomes
+will appear separately in the evidence; the first will not be overwritten.

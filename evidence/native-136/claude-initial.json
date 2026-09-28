@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "runtime": "Claude Code",
+  "version": "2.1.281 (Claude Code)",
+  "recordedAt": "2026-09-28T13:25:05.874Z",
+  "declaration": {
+    "maximumProviderRequests": 8,
+    "automaticRetries": 0,
+    "sessionCeilingMs": 240000
+  },
+  "hostExitCode": 0,
+  "hostSignal": null,
+  "elapsedMs": 21271,
+  "providerRequests": 2,
+  "timeline": [
+    {
+      "kind": "provider-response",
+      "durationMs": 1452,
+      "status": 200,
+      "atMs": 10693
+    },
+    {
+      "kind": "hook",
+      "tool": "Write",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "sourceHash": "5f4bcf26fcbfb2967471446efbba926e2828a2744766297b90115acbe1829e3c",
+      "sourceBytes": 138,
+      "draft": true,
+      "atMs": 8423
+    },
+    {
+      "kind": "provider-response",
+      "durationMs": 251,
+      "status": 200,
+      "atMs": 14709
+    },
+    {
+      "kind": "hook",
+      "tool": "Write",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "sourceHash": "a6fd81895d94dc81e46fb81957c6afca3db98f2f7ccab79bdd705754febf6cdb",
+      "sourceBytes": 147,
+      "draft": false,
+      "atMs": 14019
+    }
+  ],
+  "activityStages": [
+    {
+      "stage": "pending",
+      "atMs": 9167
+    },
+    {
+      "stage": "pending",
+      "atMs": 9211
+    },
+    {
+      "stage": "findings",
+      "atMs": 10707
+    },
+    {
+      "stage": "pending",
+      "atMs": 14388
+    },
+    {
+      "stage": "pending",
+      "atMs": 14435
+    },
+    {
+      "stage": "clear",
+      "atMs": 14712
+    }
+  ],
+  "checks": {
+    "initialDraftObserved": true,
+    "realFindingSubmitted": false,
+    "editAfterFinding": false,
+    "finalSourceChanged": true,
+    "validSourceCompiles": true,
+    "invalidStatesRejected": true,
+    "followupClearObserved": true
+  },
+  "resident": {
+    "queued": 0,
+    "running": 0,
+    "pendingFindingBatches": 0,
+    "pendingOperationalNotices": 0
+  },
+  "rawHostOutputRetained": false,
+  "rawBackendMaterialRetained": false,
+  "credentialRetained": false,
+  "hostOutputBytesDiscarded": 264517,
+  "verdict": "incomplete"
+}
