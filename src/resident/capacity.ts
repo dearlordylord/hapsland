@@ -37,7 +37,12 @@ type ResidentTransition = Extract<CanonicalEvent, { readonly kind:
   "retirePartition" | "reviewObserved" | "preparedOfferCheck" |
   "emptyPreparedCheck" | "reviewFailureCheck" | "queueDispatch" |
   "dispatchSettled" | "discardDispatch" | "dispatchScopeCheck" | "closeDispatch" |
-  "stopGroupPolled" | "stopGroupEnded" }>;
+  "stopGroupPolled" | "stopGroupEnded" |
+  "collectionReady" | "collectionCredentialCheck" | "collectionCandidateCheck" |
+  "collectionOrderCheck" | "collectionExpiryCheck" | "collectionFindingCheck" | "collectionNoticeCheck" |
+  "collectionFitCheck" | "collectionReserveLease" | "collectionReleaseLease" | "collectionLeaseCheck" |
+  "collectionRetireAdvice" | "collectionClaimBackground" |
+  "collectionReleaseBackground" | "collectionExpireBackground" }>;
 
 const defaultLimits: CapacityLimits = {
   globalItems: GLOBAL_ITEM_LIMIT,
@@ -67,6 +72,8 @@ export class CapacityLedger {
   readonly #reservations = new Map<number, CapacityReservation>();
   readonly #partitionIds = new Map<string, number>();
   readonly #roundIds = new Map<string, number>();
+  readonly #collectionTokens = new Map<string, number>();
+  #nextCollectionToken = 1;
   #nextPartitionId = 1;
   readonly #limits: CapacityLimits;
   #state: unknown;
@@ -82,6 +89,15 @@ export class CapacityLedger {
     if (id === undefined) {
       id = this.#nextPartitionId++;
       this.#partitionIds.set(partition, id);
+    }
+    return id;
+  }
+
+  collectionTokenId(token: string): number {
+    let id = this.#collectionTokens.get(token);
+    if (id === undefined) {
+      id = this.#nextCollectionToken++;
+      this.#collectionTokens.set(token, id);
     }
     return id;
   }

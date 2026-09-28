@@ -189,4 +189,15 @@ for (const trace of stopFixture.traces) {
     assert.equal(actual, expected, `${trace.name}: ${event.kind}`);
   }
 }
-console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length + stopFixture.traces.length} independent source-free canonical traces`);
+const collectionFixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-collection-v1.json"), "utf8"));
+for (const trace of collectionFixture.traces) {
+  let current = initialCanonical(fixture.limits);
+  for (const { expect: expected, ...event } of trace.events) {
+    const result = stepCanonical(current, event);
+    current = result.state;
+    const actual = result.rejection ? `rejected:${result.rejection}` : result.commands.map((command) => command.kind).join(",");
+    assert.equal(actual, expected, `${trace.name}: ${event.kind}`);
+  }
+  assert.deepEqual(projectCanonical(current).collection, trace.collection, trace.name);
+}
+console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length + stopFixture.traces.length + collectionFixture.traces.length} independent source-free canonical traces`);

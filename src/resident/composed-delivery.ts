@@ -11,8 +11,6 @@ import {
   bendRoundReopen, bendRoundMaxContinuations, type BendRound,
   bendLeaseInitial, bendLeaseOffer, bendLeaseAuthorize, bendLeaseTerminal,
   bendLeaseSuppresses, type BendLease, type BendLeaseSurface,
-  bendBackgroundInitial, bendBackgroundClaim, bendBackgroundRelease,
-  bendBackgroundExpire, type BendBackgroundWaiter,
   bendDeliveryTransition, bendDeliveryExpired, bendDeliveryBackgroundReofferable,
   bendDeliverySubmissionAllowed, bendDeliveryLegacyStopAllowed,
   bendDeliveryExistingTokenAllowed,
@@ -73,27 +71,25 @@ export class ComposedDelivery {
     readonly partition: string; readonly generation: number; readonly attempt: string;
     selection: BendOutputSelection; revoked: boolean;
   }>();
-  readonly #backgroundWaiters = new Map<string, { readonly token: string; readonly id: number; readonly at: number;
-    readonly policy: BendBackgroundWaiter }>();
-  #nextBackgroundId = 1;
+  readonly #backgroundWaiters = new Map<string, { readonly token: string; readonly id: number; readonly at: number }>();
 
   claimBackground(partition: string, token: string, now: number): boolean {
     this.expire(now);
-    const existing = this.#backgroundWaiters.get(partition);
-    const id = this.#nextBackgroundId++;
-    const claim = bendBackgroundClaim(existing?.policy ?? bendBackgroundInitial(), id,
-      this.isActive(partition),
-      this.#backgroundWaiters.size, MAX_COMPOSED_ROUNDS);
-    if (claim.$ !== "Granted") return false;
-    this.#backgroundWaiters.set(partition, { token, id, at: now, policy: claim.state });
+    const id = this.canonical.collectionTokenId(token);
+    const claimed = this.canonical.transition({ kind: "collectionClaimBackground",
+      group: this.canonical.partitionId(partition), token: id,
+      active: this.isActive(partition), capacity: MAX_COMPOSED_ROUNDS });
+    if (claimed.rejection !== undefined || claimed.commands[0]?.kind !== "collectionBackgroundClaimed") return false;
+    this.#backgroundWaiters.set(partition, { token, id, at: now });
     return true;
   }
 
   releaseBackground(partition: string, token: string): void {
     const waiter = this.#backgroundWaiters.get(partition);
     if (waiter === undefined) return;
-    const release = bendBackgroundRelease(waiter.policy, waiter.token === token ? waiter.id : 0);
-    if (release.$ !== "Granted") return;
+    const release = this.canonical.transition({ kind: "collectionReleaseBackground",
+      group: this.canonical.partitionId(partition), token: this.canonical.collectionTokenId(token) });
+    if (release.rejection !== undefined || release.commands[0]?.kind !== "collectionBackgroundReleased") return;
     this.#backgroundWaiters.delete(partition);
     for (const submission of this.#submissions.values()) {
       if (submission.partition !== partition) continue;
@@ -497,7 +493,8 @@ export class ComposedDelivery {
     }
     if (!close) return undefined;
     for (const [key, permit] of this.#permits) if (permit.partition === partition) this.#permits.delete(key);
-    this.#backgroundWaiters.delete(partition);
+    const waiter = this.#backgroundWaiters.get(partition);
+    if (waiter !== undefined) this.releaseBackground(partition, waiter.token);
     for (const [token, permit] of this.#finishPermits) if (permit.partition === partition) this.#finishPermits.delete(token);
     for (const [id, submission] of this.#submissions) {
       if (submission.partition === partition) this.#submissions.delete(id);
@@ -790,10 +787,12 @@ export class ComposedDelivery {
     for (const [partition, waiter] of this.#backgroundWaiters) {
       const elapsed = Math.floor(Math.min(BACKGROUND_WAITER_EXPIRY_MS,
         Math.max(0, now - waiter.at)));
-      const expired = bendBackgroundExpire(waiter.policy, elapsed,
-        BACKGROUND_WAITER_EXPIRY_MS);
-      if (expired.owner === 0n) this.#backgroundWaiters.delete(partition);
-      else this.#backgroundWaiters.set(partition, { ...waiter, policy: expired });
+      const result = this.canonical.transition({ kind: "collectionExpireBackground",
+        group: this.canonical.partitionId(partition), token: waiter.id,
+        elapsed, lifetime: BACKGROUND_WAITER_EXPIRY_MS });
+      if (result.rejection !== undefined) throw new Error("canonical background expiry refused");
+      if (result.commands[0]?.kind === "collectionBackgroundReleased") this.#backgroundWaiters.delete(partition);
+      else if (result.commands[0]?.kind !== "collectionBackgroundKept") throw new Error("invalid canonical background expiry");
     }
     const expired = new Set<string>();
     for (const submission of this.#submissions.values()) {

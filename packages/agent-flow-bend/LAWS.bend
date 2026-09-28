@@ -10,6 +10,7 @@ import ./Round.bend as Round
 import ./Background.bend as Background
 import ./Notice.bend as Notice
 import ./Collection.bend as Collection
+import ./CollectionState.bend as CollectionState
 import ./Delivery.bend as Delivery
 import ./Cache.bend as Cache
 import ./Ticket.bend as Ticket
@@ -70,10 +71,10 @@ law canonical_capacity_view_uses_bend_ledger_totals:
 law canonical_released_capacity_rejects_duplicate:
   {Canonical.capacity_release(Canonical.State{Ledger.Ledger{
     Ledger.Limits{3n, 100n, 2n, 60n}, 2n, Nil{}},
-    Nil{}, Nil{}, 1n, 1n, Nil{}, Dispatch.initial()}, 1n) ==
+    Nil{}, Nil{}, 1n, 1n, Nil{}, Dispatch.initial(), CollectionState.initial()}, 1n) ==
     Canonical.Rejected{Canonical.State{Ledger.Ledger{
       Ledger.Limits{3n, 100n, 2n, 60n}, 2n, Nil{}},
-      Nil{}, Nil{}, 1n, 1n, Nil{}, Dispatch.initial()}, Canonical.StaleOperation{}} : Canonical.Step}
+      Nil{}, Nil{}, 1n, 1n, Nil{}, Dispatch.initial(), CollectionState.initial()}, Canonical.StaleOperation{}} : Canonical.Step}
 
 law canonical_permit_issue_is_partitioned_and_round_bound:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
@@ -83,17 +84,17 @@ law canonical_permit_issue_is_partitioned_and_round_bound:
     Canonical.Advanced{Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
       Nil{}, Nil{}, 1n, 1n,
       Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n,
-        Admission.Permit{1n, 11n, 1n, 100n, 300n} <> Nil{}, Nil{}} <> Nil{}, Dispatch.initial()},
+        Admission.Permit{1n, 11n, 1n, 100n, 300n} <> Nil{}, Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial()},
       Canonical.PermitIssued{1n, 1n} <> Nil{}} : Canonical.Step}
 
 law canonical_expired_prospective_round_closes_once:
   {Canonical.step(Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Nil{}, Nil{}, 1n, 1n,
-    Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n, Nil{}, Nil{}} <> Nil{}, Dispatch.initial()},
+    Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n, Nil{}, Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial()},
     Canonical.ClosePermitRound{1n, 1n, 1n, 200n, True{}}) ==
     Canonical.Advanced{Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
       Nil{}, Nil{}, 1n, 1n,
-      Admission.AdmissionState{1n, 1n, 1n, False{}, 200n, 2n, Nil{}, Nil{}} <> Nil{}, Dispatch.initial()},
+      Admission.AdmissionState{1n, 1n, 1n, False{}, 200n, 2n, Nil{}, Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial()},
       Canonical.PermitRoundClosed{1n} <> Nil{}} : Canonical.Step}
 
 law ledger_resize_changes_purpose_without_new_reservation:

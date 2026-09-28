@@ -170,12 +170,22 @@ const previouslyValidated: FindingSelectionFacts = {
   credential: 1, currentCredential: 1, ageMs: 0, collectionReady: true,
 };
 
+export type CanonicalFindingOffer = (input: {
+  readonly selectionPartition: number; readonly selectionRound: number;
+  readonly facts: FindingSelectionFacts; readonly selectedCount: number;
+  readonly soloBytes: number; readonly prospectiveBytes: number;
+}) => "selected" | "retained" | "limited" | "expired";
+
+export type CanonicalNoticeOffer = (items: number, bytes: number,
+  skipUnfitting: boolean) => "include" | "skip" | "stop";
+
 const selectBendFindings = (
   retained: ReadonlyArray<Finding>,
   candidates: ReadonlyArray<Finding>,
   encodedBytes: (findings: ReadonlyArray<Finding>) => number,
   facts: FindingSelectionFacts = previouslyValidated,
   onLimited?: (finding: Finding) => void,
+  canonicalOffer?: CanonicalFindingOffer,
 ): ReadonlyArray<Finding> => {
   try {
     let selection: BendSelection = bendSelectionInitial(facts.partition, facts.round);
@@ -185,11 +195,21 @@ const selectBendFindings = (
     const offer = (finding: Finding, validated: boolean): boolean => {
       const prospectiveBytes = encodedBytes([...staged, finding]);
       const current = validated ? previouslyValidated : facts;
+      const soloBytes = encodedBytes([finding]);
+      if (canonicalOffer !== undefined) {
+        const decision = canonicalOffer({ selectionPartition: facts.partition,
+          selectionRound: facts.round, facts: { ...current, partition: facts.partition,
+            round: facts.round }, selectedCount: staged.length, soloBytes, prospectiveBytes });
+        if (decision === "limited" && !validated) onLimited?.(finding);
+        if (decision !== "selected") return false;
+        staged.push(finding);
+        return true;
+      }
       const advice: BendAdvice = {
         $: "Advice", id: id++, unit: current.unit, partition: facts.partition, round: facts.round,
         snapshot: current.snapshot, current_snapshot: current.currentSnapshot,
         credential: current.credential, current_credential: current.currentCredential,
-        age_ms: current.ageMs, solo_bytes: encodedBytes([finding]),
+        age_ms: current.ageMs, solo_bytes: soloBytes,
         collection_ready: current.collectionReady,
       };
       const result = bendSelectionStep(selection, advice, prospectiveBytes);
@@ -214,6 +234,7 @@ export const selectFittingCurrentFindingIndices = (
   offers: ReadonlyArray<{ readonly finding: Finding; readonly facts: FindingSelectionFacts }>,
   mode: ClaudeOutputMode | "codex",
   onLimited?: (index: number) => void,
+  canonicalOffer?: CanonicalFindingOffer,
 ): ReadonlyArray<number> => {
   if (offers.length === 0) return [];
   try {
@@ -229,6 +250,16 @@ export const selectFittingCurrentFindingIndices = (
       const soloBytes = mode === "codex"
         ? encodedHostOutputBytes(combinedReviewOutput([finding], []))
         : encodedClaudeHostOutputBytes(combinedClaudeOutput([finding], [], mode));
+      if (canonicalOffer !== undefined) {
+        const decision = canonicalOffer({ selectionPartition: first.partition,
+          selectionRound: first.round, facts, selectedCount: staged.length,
+          soloBytes, prospectiveBytes });
+        if (decision === "limited") onLimited?.(index);
+        if (decision !== "selected") continue;
+        staged.push(finding);
+        selected.push(index);
+        continue;
+      }
       const advice: BendAdvice = {
         $: "Advice", id: index + 1, unit: facts.unit,
         partition: facts.partition, round: facts.round,
@@ -266,23 +297,27 @@ export const selectFittingClaudeFindings = (
   mode: ClaudeOutputMode,
   facts?: FindingSelectionFacts,
   onLimited?: (finding: Finding) => void,
+  canonicalOffer?: CanonicalFindingOffer,
 ): ReadonlyArray<Finding> => selectBendFindings(retained, candidates,
-  (findings) => encodedClaudeHostOutputBytes(combinedClaudeOutput(findings, [], mode)), facts, onLimited);
+  (findings) => encodedClaudeHostOutputBytes(combinedClaudeOutput(findings, [], mode)), facts, onLimited, canonicalOffer);
 
 export const selectFittingClaudeNotices = (
   findings: ReadonlyArray<Finding>,
   candidates: ReadonlyArray<OperationalNotice>,
   mode: ClaudeOutputMode,
+  canonicalOffer?: CanonicalNoticeOffer,
 ): ReadonlyArray<OperationalNotice> => {
   const selected: Array<OperationalNotice> = [];
   try {
     for (const notice of candidates) {
       const next = [...selected, notice];
-      const offer = bendNoticeOffer(findings.length + next.length,
-        encodedClaudeHostOutputBytes(combinedClaudeOutput(findings, next, mode)), true);
-      if (offer.$ === "IncludeNotice") selected.push(notice);
-      else if (offer.$ === "StopNotices") break;
-      else if (offer.$ !== "SkipNotice") return [];
+      const items = findings.length + next.length;
+      const bytes = encodedClaudeHostOutputBytes(combinedClaudeOutput(findings, next, mode));
+      const offer = canonicalOffer?.(items, bytes, true) ??
+        ({ IncludeNotice: "include", SkipNotice: "skip", StopNotices: "stop" } as const)[bendNoticeOffer(items, bytes, true).$];
+      if (offer === "include") selected.push(notice);
+      else if (offer === "stop") break;
+      else if (offer !== "skip") return [];
     }
   } catch {
     return [];
@@ -306,24 +341,28 @@ export const selectFittingFindings = (
   candidates: ReadonlyArray<Finding>,
   facts?: FindingSelectionFacts,
   onLimited?: (finding: Finding) => void,
+  canonicalOffer?: CanonicalFindingOffer,
 ): ReadonlyArray<Finding> => selectBendFindings(retained, candidates,
-  (findings) => encodedHostOutputBytes(combinedReviewOutput(findings, [])), facts, onLimited);
+  (findings) => encodedHostOutputBytes(combinedReviewOutput(findings, [])), facts, onLimited, canonicalOffer);
 
 /** Findings are passed as already retained so notices can never displace them. */
 export const selectFittingNotices = (
   findings: ReadonlyArray<Finding>,
   retained: ReadonlyArray<OperationalNotice>,
   candidates: ReadonlyArray<OperationalNotice>,
+  canonicalOffer?: CanonicalNoticeOffer,
 ): ReadonlyArray<OperationalNotice> => {
   const selected: Array<OperationalNotice> = [];
   try {
     for (const notice of candidates) {
       const next = [...retained, ...selected, notice];
-      const offer = bendNoticeOffer(findings.length + next.length,
-        encodedHostOutputBytes(combinedReviewOutput(findings, next)), false);
-      if (offer.$ === "IncludeNotice") selected.push(notice);
-      else if (offer.$ === "StopNotices") break;
-      else if (offer.$ !== "SkipNotice") return [];
+      const items = findings.length + next.length;
+      const bytes = encodedHostOutputBytes(combinedReviewOutput(findings, next));
+      const offer = canonicalOffer?.(items, bytes, false) ??
+        ({ IncludeNotice: "include", SkipNotice: "skip", StopNotices: "stop" } as const)[bendNoticeOffer(items, bytes, false).$];
+      if (offer === "include") selected.push(notice);
+      else if (offer === "stop") break;
+      else if (offer !== "skip") return [];
     }
   } catch {
     return [];
