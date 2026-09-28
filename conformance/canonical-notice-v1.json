@@ -1,0 +1,332 @@
+{
+  "traces": [
+    {
+      "name": "cooldown suppression, merge, lease, fit candidate ordering, and expiry",
+      "events": [
+        {
+          "kind": "noticeAdvance",
+          "key": 1,
+          "maximumKeys": 2,
+          "proposed": 1,
+          "sequence": 1,
+          "maxCount": 10,
+          "expect": "noticeCreateKey"
+        },
+        {
+          "kind": "reserveCapacity",
+          "partition": 1,
+          "bytes": 20,
+          "purpose": "operationalNotice",
+          "expect": "capacityGranted:1"
+        },
+        {
+          "kind": "noticeCommit",
+          "key": 1,
+          "partition": 1,
+          "group": 7,
+          "reservation": 1,
+          "pending": 1,
+          "sequence": 1,
+          "maximumKeys": 2,
+          "expect": "noticeCommitted"
+        },
+        {
+          "kind": "noticeAdvance",
+          "key": 1,
+          "remaining": 1,
+          "maximumKeys": 2,
+          "proposed": 2,
+          "sequence": 2,
+          "maxCount": 10,
+          "expect": "noticeSuppressed:1"
+        },
+        {
+          "kind": "noticeAdvance",
+          "key": 1,
+          "remaining": 0,
+          "maximumKeys": 2,
+          "proposed": 2,
+          "sequence": 2,
+          "maxCount": 10,
+          "expect": "noticeMergePending:1"
+        },
+        {
+          "kind": "noticeSelect",
+          "partition": 1,
+          "group": 7,
+          "composed": false,
+          "ticketed": false,
+          "allowed": [],
+          "expect": "noticeSelected:1"
+        },
+        {
+          "kind": "noticeSelect",
+          "partition": 2,
+          "group": 7,
+          "composed": true,
+          "ticketed": false,
+          "allowed": [],
+          "expect": "noticeSelected:1"
+        },
+        {
+          "kind": "noticeSelect",
+          "partition": 1,
+          "group": 7,
+          "composed": false,
+          "ticketed": true,
+          "allowed": [],
+          "expect": "noticeSelected:"
+        },
+        {
+          "kind": "noticeSelect",
+          "partition": 1,
+          "group": 7,
+          "composed": false,
+          "ticketed": true,
+          "allowed": [
+            1
+          ],
+          "expect": "noticeSelected:1"
+        },
+        {
+          "kind": "noticeLease",
+          "key": 1,
+          "leased": true,
+          "expect": "noticeLeased"
+        },
+        {
+          "kind": "noticeAdvance",
+          "key": 1,
+          "remaining": 0,
+          "maximumKeys": 2,
+          "proposed": 2,
+          "sequence": 2,
+          "maxCount": 10,
+          "expect": "noticeKeepLeased"
+        },
+        {
+          "kind": "noticeSelect",
+          "partition": 1,
+          "group": 7,
+          "composed": false,
+          "ticketed": false,
+          "allowed": [],
+          "expect": "noticeSelected:"
+        },
+        {
+          "kind": "noticePrune",
+          "key": 1,
+          "leaseExpired": true,
+          "pendingExpired": false,
+          "excepted": false,
+          "cooldownExpired": false,
+          "expect": "noticePruned:true:false:false"
+        },
+        {
+          "kind": "noticeSelect",
+          "partition": 1,
+          "group": 7,
+          "composed": false,
+          "ticketed": false,
+          "allowed": [],
+          "expect": "noticeSelected:1"
+        },
+        {
+          "kind": "noticeClearPending",
+          "key": 1,
+          "expect": "noticePendingCleared"
+        },
+        {
+          "kind": "noticePrune",
+          "key": 1,
+          "leaseExpired": false,
+          "pendingExpired": false,
+          "excepted": false,
+          "cooldownExpired": true,
+          "expect": "noticePruned:false:false:true"
+        },
+        {
+          "kind": "releaseCapacity",
+          "reservation": 1,
+          "expect": "reservationReleased:1"
+        }
+      ],
+      "notices": []
+    },
+    {
+      "name": "table pressure and pending expiry at deadline",
+      "events": [
+        {
+          "kind": "reserveCapacity",
+          "partition": 1,
+          "bytes": 20,
+          "purpose": "operationalNotice",
+          "expect": "capacityGranted:1"
+        },
+        {
+          "kind": "noticeCommit",
+          "key": 1,
+          "partition": 1,
+          "group": 1,
+          "reservation": 1,
+          "pending": 1,
+          "sequence": 1,
+          "maximumKeys": 1,
+          "expect": "noticeCommitted"
+        },
+        {
+          "kind": "noticeAdvance",
+          "key": 2,
+          "maximumKeys": 1,
+          "proposed": 2,
+          "sequence": 2,
+          "maxCount": 10,
+          "expect": "noticeRejectedFull"
+        },
+        {
+          "kind": "noticePrune",
+          "key": 1,
+          "leaseExpired": false,
+          "pendingExpired": true,
+          "excepted": false,
+          "cooldownExpired": true,
+          "expect": "noticePruned:false:true:true"
+        },
+        {
+          "kind": "releaseCapacity",
+          "reservation": 1,
+          "expect": "reservationReleased:1"
+        },
+        {
+          "kind": "noticeAdvance",
+          "key": 2,
+          "maximumKeys": 1,
+          "proposed": 2,
+          "sequence": 2,
+          "maxCount": 10,
+          "expect": "noticeCreateKey"
+        }
+      ],
+      "notices": []
+    },
+    {
+      "name": "composed delivery orders pending notices and ticket scope narrows selection",
+      "events": [
+        {
+          "kind": "reserveCapacity",
+          "partition": 1,
+          "bytes": 20,
+          "purpose": "operationalNotice",
+          "expect": "capacityGranted:1"
+        },
+        {
+          "kind": "noticeCommit",
+          "key": 1,
+          "partition": 1,
+          "group": 9,
+          "reservation": 1,
+          "pending": 1,
+          "sequence": 2,
+          "maximumKeys": 2,
+          "expect": "noticeCommitted"
+        },
+        {
+          "kind": "reserveCapacity",
+          "partition": 2,
+          "bytes": 20,
+          "purpose": "operationalNotice",
+          "expect": "capacityGranted:2"
+        },
+        {
+          "kind": "noticeCommit",
+          "key": 2,
+          "partition": 2,
+          "group": 9,
+          "reservation": 2,
+          "pending": 2,
+          "sequence": 1,
+          "maximumKeys": 2,
+          "expect": "noticeCommitted"
+        },
+        {
+          "kind": "noticeSelect",
+          "partition": 9,
+          "group": 9,
+          "composed": true,
+          "ticketed": false,
+          "allowed": [],
+          "expect": "noticeSelected:2,1"
+        },
+        {
+          "kind": "noticeSelect",
+          "partition": 9,
+          "group": 9,
+          "composed": true,
+          "ticketed": true,
+          "allowed": [
+            1
+          ],
+          "expect": "noticeSelected:1"
+        },
+        {
+          "kind": "noticeSelect",
+          "partition": 2,
+          "group": 9,
+          "composed": false,
+          "ticketed": false,
+          "allowed": [],
+          "expect": "noticeSelected:2"
+        },
+        {
+          "kind": "collectionNoticeCheck",
+          "items": 1,
+          "bytes": 512,
+          "skipUnfitting": false,
+          "expect": "collectionNoticeIncluded"
+        },
+        {
+          "kind": "collectionNoticeCheck",
+          "items": 6,
+          "bytes": 2048,
+          "skipUnfitting": false,
+          "expect": "collectionNoticeStopped"
+        },
+        {
+          "kind": "collectionNoticeCheck",
+          "items": 6,
+          "bytes": 2048,
+          "skipUnfitting": true,
+          "expect": "collectionNoticeSkipped"
+        }
+      ],
+      "notices": [
+        {
+          "id": 2,
+          "partition": 2,
+          "group": 9,
+          "reservation": 2,
+          "suppressed": 0,
+          "pending": {
+            "id": 2,
+            "count": 0,
+            "sequence": 1,
+            "leased": false
+          }
+        },
+        {
+          "id": 1,
+          "partition": 1,
+          "group": 9,
+          "reservation": 1,
+          "suppressed": 0,
+          "pending": {
+            "id": 1,
+            "count": 0,
+            "sequence": 2,
+            "leased": false
+          }
+        }
+      ]
+    }
+  ]
+}

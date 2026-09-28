@@ -136,6 +136,12 @@ export type CanonicalEvent =
   | { readonly kind: "cacheCommit"; readonly id: number; readonly partition: number; readonly bytes: number; readonly reservation: number; readonly entryLimit: number; readonly byteLimit: number }
   | { readonly kind: "cacheDiscardPartition"; readonly partition: number }
   | { readonly kind: "cacheClear" }
+  | { readonly kind: "noticeAdvance"; readonly key: number; readonly remaining?: number; readonly maximumKeys: number; readonly proposed: number; readonly sequence: number; readonly maxCount: number }
+  | { readonly kind: "noticeCommit"; readonly key: number; readonly partition: number; readonly group: number; readonly reservation: number; readonly pending: number; readonly sequence: number; readonly maximumKeys: number }
+  | { readonly kind: "noticePrune"; readonly key: number; readonly leaseExpired: boolean; readonly pendingExpired: boolean; readonly excepted: boolean; readonly cooldownExpired: boolean }
+  | { readonly kind: "noticeDrop" | "noticeClearPending"; readonly key: number }
+  | { readonly kind: "noticeLease"; readonly key: number; readonly leased: boolean }
+  | { readonly kind: "noticeSelect"; readonly partition: number; readonly group: number; readonly composed: boolean; readonly ticketed: boolean; readonly allowed: readonly number[] }
   | { readonly kind: "outputStarted"; readonly partition: number; readonly lifetime: number; readonly round: number }
   | { readonly kind: "outputTerminal"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly outcome: "acknowledged" | "failed" | "unknown" }
   | { readonly kind: "retirePartition"; readonly partition: number; readonly lifetime: number; readonly round: number };
@@ -189,6 +195,10 @@ export type CanonicalCommand =
   | { readonly kind: "reuseJoinAdvice" | "reuseJoinPending" | "reuseJoinClaimed" | "reuseCached" | "reuseOwn" | "reuseClaimed" | "reuseAttached" | "reuseReleased" | "reuseRefused" | "cacheAlready" | "cacheRejected" | "cacheCommitted" }
   | { readonly kind: "cachePrepared"; readonly evicted: readonly number[] }
   | { readonly kind: "cacheDiscarded"; readonly ids: readonly number[] }
+  | { readonly kind: "noticeSuppressed" | "noticeCreatePending" | "noticeMergePending"; readonly count: number }
+  | { readonly kind: "noticePruned"; readonly dropLease: boolean; readonly dropPending: boolean; readonly dropKey: boolean }
+  | { readonly kind: "noticeSelected"; readonly ids: readonly number[] }
+  | { readonly kind: "noticeRejectedFull" | "noticeCreateKey" | "noticeKeepLeased" | "noticeRefused" | "noticeCommitted" | "noticeDropped" | "noticeLeased" | "noticePendingCleared" }
   | { readonly kind: "writeAuthorized"; readonly operation: number }
   | { readonly kind: "writeRecorded"; readonly outcome: "acknowledged" | "failed" | "unknown" }
   | { readonly kind: "waitForOutput" }
@@ -360,6 +370,15 @@ const encode = (event: CanonicalEvent): unknown => {
     case "cacheCommit": inputFields(event, ["kind", "id", "partition", "bytes", "reservation", "entryLimit", "byteLimit"]); return { $: "Canonical.CacheCommit", id: nat(event.id, true), partition: nat(event.partition, true), bytes: nat(event.bytes), reservation: nat(event.reservation, true), entry_limit: nat(event.entryLimit, true), byte_limit: nat(event.byteLimit, true) };
     case "cacheDiscardPartition": inputFields(event, ["kind", "partition"]); return { $: "Canonical.CacheDiscardPartition", partition: nat(event.partition, true) };
     case "cacheClear": inputFields(event, ["kind"]); return { $: "Canonical.CacheClear" };
+    case "noticeAdvance": {
+      inputFields(event, event.remaining === undefined ? ["kind", "key", "maximumKeys", "proposed", "sequence", "maxCount"] : ["kind", "key", "remaining", "maximumKeys", "proposed", "sequence", "maxCount"]);
+      return { $: "Canonical.NoticeAdvance", key: nat(event.key, true), remaining: event.remaining === undefined ? { $: "None" } : { $: "Some", value: nat(event.remaining) }, maximum_keys: nat(event.maximumKeys, true), proposed: nat(event.proposed, true), sequence: nat(event.sequence, true), max_count: nat(event.maxCount, true) };
+    }
+    case "noticeCommit": inputFields(event, ["kind", "key", "partition", "group", "reservation", "pending", "sequence", "maximumKeys"]); return { $: "Canonical.NoticeCommit", key: nat(event.key, true), partition: nat(event.partition, true), group: nat(event.group, true), reservation: nat(event.reservation, true), pending: nat(event.pending, true), sequence: nat(event.sequence, true), maximum_keys: nat(event.maximumKeys, true) };
+    case "noticePrune": inputFields(event, ["kind", "key", "leaseExpired", "pendingExpired", "excepted", "cooldownExpired"]); return { $: "Canonical.NoticePrune", key: nat(event.key, true), lease_expired: bool(event.leaseExpired), pending_expired: bool(event.pendingExpired), excepted: bool(event.excepted), cooldown_expired: bool(event.cooldownExpired) };
+    case "noticeDrop": case "noticeClearPending": inputFields(event, ["kind", "key"]); return { $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`, key: nat(event.key, true) };
+    case "noticeLease": inputFields(event, ["kind", "key", "leased"]); return { $: "Canonical.NoticeLease", key: nat(event.key, true), leased: bool(event.leased) };
+    case "noticeSelect": inputFields(event, ["kind", "partition", "group", "composed", "ticketed", "allowed"]); return { $: "Canonical.NoticeSelect", partition: nat(event.partition, true), group: nat(event.group, true), composed: bool(event.composed), ticketed: bool(event.ticketed), allowed: list(event.allowed) };
     case "outputStarted": inputFields(event, ["kind", "partition", "lifetime", "round"]); return { $: "Canonical.OutputStarted", ...identity(event), round: nat(event.round, true) };
     case "outputTerminal": {
       inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "outcome"]);
@@ -574,6 +593,20 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
       return { kind: "ticketUnitSnapshot", ...decodeTicketUnitState(item.stage, item.reason) };
     }
     case "Canonical.TicketUnitMissing": fields(value, "Canonical.TicketUnitMissing", []); return { kind: "ticketUnitMissing" };
+    case "Canonical.NoticeSuppressed": case "Canonical.NoticeCreatePending": case "Canonical.NoticeMergePending": {
+      const name = tag(value); return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "noticeSuppressed" | "noticeCreatePending" | "noticeMergePending", count: nat(fields(value, name, ["count"]).count) };
+    }
+    case "Canonical.NoticePruned": {
+      const item = fields(value, "Canonical.NoticePruned", ["drop_lease", "drop_pending", "drop_key"]);
+      return { kind: "noticePruned", dropLease: bool(item.drop_lease), dropPending: bool(item.drop_pending), dropKey: bool(item.drop_key) };
+    }
+    case "Canonical.NoticeSelected": return { kind: "noticeSelected", ids: readList(fields(value, "Canonical.NoticeSelected", ["ids"]).ids, (id) => nat(id, true)) };
+    case "Canonical.NoticeRejectedFull": case "Canonical.NoticeCreateKey": case "Canonical.NoticeKeepLeased":
+    case "Canonical.NoticeRefused": case "Canonical.NoticeCommitted": case "Canonical.NoticeDropped":
+    case "Canonical.NoticeLeased": case "Canonical.NoticePendingCleared": {
+      const name = tag(value); fields(value, name, []);
+      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "noticeRejectedFull" | "noticeCreateKey" | "noticeKeepLeased" | "noticeRefused" | "noticeCommitted" | "noticeDropped" | "noticeLeased" | "noticePendingCleared" };
+    }
     case "Canonical.CachePrepared": return { kind: "cachePrepared", evicted: readList(fields(value, "Canonical.CachePrepared", ["evicted"]).evicted, (id) => nat(id, true)) };
     case "Canonical.CacheDiscarded": return { kind: "cacheDiscarded", ids: readList(fields(value, "Canonical.CacheDiscarded", ["ids"]).ids, (id) => nat(id, true)) };
     case "Canonical.ReuseJoinAdvice": case "Canonical.ReuseJoinPending":
@@ -618,6 +651,7 @@ export type CanonicalProjection = {
   readonly dispatch: { readonly pending: readonly DispatchEntry[]; readonly active: readonly DispatchEntry[]; readonly running: readonly DispatchEntry[]; readonly nextSequence: number; readonly cycle: number; readonly closed: boolean };
   readonly collection: { readonly ready: readonly number[]; readonly leases: readonly { readonly advice: number; readonly owner: number }[]; readonly claims: readonly { readonly group: number; readonly owner: number }[] };
   readonly tickets: readonly { readonly id: number; readonly phase: "preparing" | "closed" | "failed"; readonly failure?: TicketReason; readonly units: readonly { readonly id: number; readonly stage: "pending" | "clear" | "finding" | "unavailable"; readonly delivered?: boolean; readonly reason?: TicketReason }[] }[];
+  readonly notices: readonly { readonly id: number; readonly partition: number; readonly group: number; readonly reservation: number; readonly suppressed: number; readonly pending?: { readonly id: number; readonly count: number; readonly sequence: number; readonly leased: boolean } }[];
   readonly reuse: { readonly claims: readonly { readonly id: number; readonly attached: boolean }[]; readonly cache: readonly { readonly id: number; readonly partition: number; readonly bytes: number; readonly reservation: number }[] };
   readonly revision: { readonly entries: readonly { readonly subject: number; readonly input: number; readonly generation: number; readonly members: number }[]; readonly nextGeneration: number };
   readonly delivery: { readonly slots: readonly { readonly group: number; readonly round: number; readonly attempt: number; readonly token: number; readonly selected: readonly number[]; readonly phase: "reserved" | "authorized" | "submitted" | "failed" | "uncertain" }[]; readonly counters: readonly { readonly group: number; readonly round: number; readonly used: number }[]; readonly submissions: { readonly batches: readonly { readonly advice: number; readonly group: number; readonly round: number; readonly token: number; readonly surface: "edit" | "background" | "stop"; readonly phase: "reserved" | "authorized" | "submitted" | "uncertain"; readonly fingerprints: readonly number[]; readonly units: readonly number[] }[]; readonly leases: readonly { readonly advice: number; readonly fingerprint: number; readonly round: number; readonly phase: "available" | "reserved" | "authorized" | "submitted" | "uncertain"; readonly reoffered: boolean }[] } };
@@ -638,7 +672,20 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
     running: readList(rawDispatch.running, dispatchEntry), nextSequence: nat(rawDispatch.next_sequence),
     cycle: nat(rawDispatch.cycle), closed: bool(rawDispatch.closed) };
   const dispatchEntries = [...dispatch.pending, ...dispatch.active, ...dispatch.running];
-  const collectionState = fields(s.collection, "CollectionState.State", ["ready", "leases", "claims", "delivery", "revision", "tickets", "reuse"]);
+  const collectionState = fields(s.collection, "CollectionState.State", ["ready", "leases", "claims", "delivery", "revision", "tickets", "reuse", "notices"]);
+  const noticeState = fields(collectionState.notices, "NoticeState.State", ["records"]);
+  const notices: CanonicalProjection["notices"] = readList(noticeState.records, (value) => {
+    const item = fields(value, "NoticeState.Record", ["id", "partition", "group", "reservation", "suppressed", "pending"]);
+    const pending = tag(item.pending) === "Some" ? (() => {
+      const p = fields(fields(item.pending, "Some", ["value"]).value, "NoticeState.Pending", ["id", "count", "sequence", "leased"]);
+      return { id: nat(p.id, true), count: nat(p.count), sequence: nat(p.sequence, true), leased: bool(p.leased) };
+    })() : (fields(item.pending, "None", []), undefined);
+    return { id: nat(item.id, true), partition: nat(item.partition, true), group: nat(item.group, true), reservation: nat(item.reservation, true), suppressed: nat(item.suppressed), ...(pending === undefined ? {} : { pending }) };
+  });
+  if (new Set(notices.map((item) => item.id)).size !== notices.length ||
+      new Set(notices.map((item) => item.reservation)).size !== notices.length ||
+      new Set(notices.flatMap((item) => item.pending === undefined ? [] : [item.pending.id])).size !== notices.filter((item) => item.pending !== undefined).length ||
+      new Set(notices.flatMap((item) => item.pending === undefined ? [] : [item.pending.sequence])).size !== notices.filter((item) => item.pending !== undefined).length) throw new TypeError("duplicate canonical notice identity");
   const reuseState = fields(collectionState.reuse, "ReuseState.State", ["claims", "cache"]);
   const reuse: CanonicalProjection["reuse"] = {
     claims: readList(reuseState.claims, (value) => {
@@ -809,6 +856,10 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
   }).filter((item): item is { operation: number; count: number } => item !== undefined);
   const chargeIds = new Set(charges.map((x) => x.id));
   const chargesById = new Map(charges.map((x) => [x.id, x]));
+  if (notices.some((item) => {
+    const held = chargesById.get(item.reservation);
+    return held?.purpose !== "operationalNotice" || held.partition !== item.partition;
+  })) throw new TypeError("canonical notice reservation mismatch");
   const usedBytes = charges.reduce((sum, x) => sum + x.bytes, 0);
   if (chargeIds.size !== charges.length || work.filter((x) => x.reservation !== 0).length > charges.length ||
       new Set(work.map((x) => x.operation)).size !== work.length ||
@@ -864,7 +915,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
     limits: { globalItems: nat(limits.global_items, true), globalBytes: nat(limits.global_bytes, true),
       partitionItems: nat(limits.partition_items, true), partitionBytes: nat(limits.partition_bytes, true) },
     partitions, charges, inventory, rounds, admissions, work, pendingFindings,
-    dispatch, collection, revision, tickets, reuse, delivery };
+    dispatch, collection, revision, tickets, reuse, notices, delivery };
 };
 export const initialCanonical = (limits: { readonly globalItems: number; readonly globalBytes: number; readonly partitionItems: number; readonly partitionBytes: number }): unknown => {
   const values = Object.values(limits);

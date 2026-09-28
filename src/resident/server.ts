@@ -59,13 +59,11 @@ import {
 import { DispatchCycles } from "./dispatch.ts";
 import { ComposedDelivery } from "./composed-delivery.ts";
 import { BendWorkTracker } from "./bend-work.ts";
-import type { TicketReason, TicketUnitEvent } from "../canonical/adapter.ts";
+import type { CanonicalCommand, TicketReason, TicketUnitEvent } from "../canonical/adapter.ts";
 import { bendDeliveryAcknowledge, bendDeliveryFinalize, bendDeliveryFindingDisposition,
   bendDeliveryReleaseUnacknowledged,
-  bendDeliveryNoticeCandidate,
   bendValidationRoute, bendPostValidation, bendFinalCandidate,
   bendCleanupGate, bendCleanupCommit, bendTicketRetention,
-  bendNoticePrune,
   bendDeliverySubmissionCandidate, bendDeliverySubmissionBatchGate,
   bendDeliveryCredentialObserve, bendDeliveryFinalCredentialGate,
   type BendValidationStatus } from "./bend-policy.generated.js";
@@ -88,7 +86,6 @@ import {
   type OperationalNoticeKind,
 } from "./collection.ts";
 import { EvaluationReuse, residentEvaluationIdentity } from "./evaluation-reuse.ts";
-import { operationalNoticeAdvance } from "./operational-notice-policy.ts";
 import {
   readCredentialState,
   resolveCredential,
@@ -300,6 +297,7 @@ type NoticeDelivery = {
 };
 
 type PendingNotice = {
+  readonly canonicalId: number;
   readonly id: string;
   value: OperationalNotice;
   readonly pendingAt: number;
@@ -308,6 +306,7 @@ type PendingNotice = {
 };
 
 type NoticeCooldown = {
+  readonly canonicalId: number;
   readonly partition: string;
   readonly deliveryGroup: string;
   readonly reservation: CapacityReservation;
@@ -548,6 +547,7 @@ export class ResidentServer {
   readonly #revisionIds = new Map<string, number>();
   #nextRevisionId = 1;
   #nextNoticeSequence = 1;
+  #nextNoticeKeyId = 1;
   readonly #beforeRevalidate: ((adviceId: string) => Promise<void>) | undefined;
   readonly #afterPrepare: (() => Promise<void>) | undefined;
   readonly #beforeEvaluate: ((prepared: PreparedUnit) => Promise<void>) | undefined;
@@ -1228,7 +1228,7 @@ export class ResidentServer {
     if (decision.$ === "AckEmpty") return { status: "empty" };
     if (decision.$ === "AckExpired") {
       for (const item of advice) this.#releaseAdviceLease(item);
-      for (const item of notices) delete item.delivery;
+      for (const item of notices) { this.#setNoticeLeased(item.id, false); delete item.delivery; }
       return { status: "empty" };
     }
     if (decision.$ !== "AckReady") return { status: "empty" };
@@ -1259,7 +1259,7 @@ export class ResidentServer {
     if (decision.$ === "FinalEmpty") return { status: "empty" };
     if (decision.$ === "FinalExpired") {
       for (const item of advice) this.#releaseAdviceLease(item);
-      for (const item of notices) delete item.delivery;
+      for (const item of notices) { this.#setNoticeLeased(item.id, false); delete item.delivery; }
       return { status: "empty" };
     }
     if (decision.$ !== "FinalReady") return { status: "empty" };
@@ -1302,7 +1302,10 @@ export class ResidentServer {
     }
     for (const notice of this.#noticesForToken(token)) {
       if (notice.delivery?.token === token &&
-          bendDeliveryReleaseUnacknowledged(notice.delivery.acknowledged)) delete notice.delivery;
+          bendDeliveryReleaseUnacknowledged(notice.delivery.acknowledged)) {
+        this.#setNoticeLeased(notice.id, false);
+        delete notice.delivery;
+      }
     }
   }
 
@@ -1466,10 +1469,36 @@ export class ResidentServer {
     return notices;
   }
 
+  #noticeTransition(
+    event: Extract<Parameters<CapacityLedger["transition"]>[0], { readonly kind: `notice${string}` }>,
+    expected: Extract<CanonicalCommand, { readonly kind: `notice${string}` }>["kind"],
+  ) {
+    const result = this.#ledger.transition(event);
+    const command = result.commands[0];
+    if (result.rejection !== undefined || command?.kind !== expected) {
+      throw new Error(`canonical notice transition refused: ${event.kind}`);
+    }
+    return command;
+  }
+
+  #noticeKeyForPending(id: string): number | undefined {
+    for (const cooldown of this.#noticeCooldowns.values()) {
+      if (cooldown.pending?.id === id) return cooldown.canonicalId;
+    }
+    return undefined;
+  }
+
+  #setNoticeLeased(id: string, leased: boolean): void {
+    const key = this.#noticeKeyForPending(id);
+    if (key === undefined) throw new Error("missing canonical notice owner");
+    this.#noticeTransition({ kind: "noticeLease", key, leased }, "noticeLeased");
+  }
+
   #removePendingNotice(id: string, token?: string): boolean {
     for (const cooldown of this.#noticeCooldowns.values()) {
       const pending = cooldown.pending;
       if (pending?.id !== id || (token !== undefined && pending.delivery?.token !== token)) continue;
+      this.#noticeTransition({ kind: "noticeClearPending", key: cooldown.canonicalId }, "noticePendingCleared");
       delete cooldown.pending;
       this.#noticeOwners.delete(id);
       return true;
@@ -1485,15 +1514,18 @@ export class ResidentServer {
     ticket?: TicketRecord,
     composed = false,
   ): ReadonlyArray<PendingNotice> {
-    const candidates = [...this.#noticeCooldowns.values()]
-      .filter((cooldown) => bendDeliveryNoticeCandidate(
-        composed ? cooldown.deliveryGroup === partition : cooldown.partition === partition,
-        cooldown.pending !== undefined,
-        cooldown.pending?.delivery === undefined,
-        ticket === undefined || (cooldown.pending !== undefined &&
-          this.#noticeOwners.get(cooldown.pending.id)?.has(ticket.ticket.nonce) === true)))
-      .flatMap((cooldown) => cooldown.pending === undefined ? [] : [cooldown.pending])
-      .sort((left, right) => left.sequence - right.sequence);
+    const allowed = ticket === undefined ? [] : [...this.#noticeCooldowns.values()]
+      .filter((cooldown) => cooldown.pending !== undefined &&
+        this.#noticeOwners.get(cooldown.pending.id)?.has(ticket.ticket.nonce) === true)
+      .map((cooldown) => cooldown.pending!.canonicalId);
+    const partitionId = this.#ledger.partitionId(partition);
+    const selection = this.#noticeTransition({ kind: "noticeSelect", partition: partitionId,
+      group: partitionId, composed, ticketed: ticket !== undefined, allowed }, "noticeSelected");
+    if (selection.kind !== "noticeSelected") throw new Error("invalid canonical notice selection");
+    const byId = new Map([...this.#noticeCooldowns.values()]
+      .flatMap((cooldown) => cooldown.pending === undefined ? [] : [[cooldown.pending.canonicalId, cooldown.pending] as const]));
+    const candidates = selection.ids.map((id) => byId.get(id) ??
+      (() => { throw new Error("canonical notice missing native payload"); })());
     const candidateValues = candidates.map(({ value }) => value);
     const selectedValues = ticket === undefined
       ? selectFittingNotices(findings, [], candidateValues, this.#collectionNoticeOffer)
@@ -1501,6 +1533,7 @@ export class ResidentServer {
         ticket.claudeFeedbackMode, this.#collectionNoticeOffer);
     const selected = candidates.filter((candidate) => selectedValues.includes(candidate.value));
     for (const notice of selected) {
+      this.#setNoticeLeased(notice.id, true);
       notice.delivery = {
         token,
         leaseUntil: now + DELIVERY_LEASE_MS,
@@ -1518,6 +1551,7 @@ export class ResidentServer {
     const cooldown = this.#noticeCooldowns.get(key);
     if (cooldown === undefined) return;
     if (cooldown.pending !== undefined) this.#noticeOwners.delete(cooldown.pending.id);
+    this.#noticeTransition({ kind: "noticeDrop", key: cooldown.canonicalId }, "noticeDropped");
     this.#noticeCooldowns.delete(key);
     this.#ledger.release(cooldown.reservation);
   }
@@ -1525,20 +1559,21 @@ export class ResidentServer {
   #pruneNoticeCooldowns(now: number, exceptKey?: string): void {
     for (const [key, cooldown] of this.#noticeCooldowns) {
       const pending = cooldown.pending;
-      const prune = bendNoticePrune(pending !== undefined, pending?.delivery !== undefined,
-        pending?.delivery !== undefined && pending.delivery.leaseUntil <= now,
-        pending !== undefined && this.#adviceExpired(pending, now),
-        key === exceptKey, cooldown.nextAllowedAt <= now);
-      if (prune.$ !== "Prune") throw new Error("Bend denied notice pruning");
+      const prune = this.#noticeTransition({ kind: "noticePrune", key: cooldown.canonicalId,
+        leaseExpired: pending?.delivery !== undefined && pending.delivery.leaseUntil <= now,
+        pendingExpired: pending !== undefined && this.#adviceExpired(pending, now),
+        excepted: key === exceptKey, cooldownExpired: cooldown.nextAllowedAt <= now }, "noticePruned");
+      if (prune.kind !== "noticePruned") throw new Error("invalid canonical notice pruning");
       if (pending !== undefined) {
-        if (prune.drop_lease) delete pending.delivery;
-        if (prune.drop_pending) {
+        if (prune.dropLease) delete pending.delivery;
+        if (prune.dropPending) {
           this.#noticeOwners.delete(pending.id);
           delete cooldown.pending;
         }
       }
-      if (prune.drop_key) {
-        this.#releaseNoticeCooldown(key);
+      if (prune.dropKey) {
+        this.#noticeCooldowns.delete(key);
+        this.#ledger.release(cooldown.reservation);
       }
     }
   }
@@ -1554,41 +1589,43 @@ export class ResidentServer {
     const key = this.#noticeKey(partition, kind);
     this.#pruneNoticeCooldowns(now, key);
     const retained = this.#noticeCooldowns.get(key);
-    const advance = operationalNoticeAdvance({
-      now,
-      existingNextAllowedAt: retained?.nextAllowedAt,
-      keyCount: this.#noticeCooldowns.size,
-      maximumKeys: this.#maximumOperationalNoticeKeys,
-      suppressedCount: retained?.suppressedCount ?? 0,
-      pendingSuppressedCount: retained?.pending?.value.suppressedCount,
-      pendingLeased: retained?.pending?.delivery !== undefined,
-    });
-    if (advance.$ === "RejectedFull") return;
-    if (advance.$ === "Suppressed") {
-      if (retained === undefined) return;
-      retained.suppressedCount = Number(advance.count);
+    const proposed = this.#nextNoticeSequence;
+    const candidateKey = retained?.canonicalId ?? this.#nextNoticeKeyId;
+    const remaining = retained === undefined ? undefined : Math.ceil(Math.max(0, retained.nextAllowedAt - now));
+    const advance = this.#ledger.transition({ kind: "noticeAdvance", key: candidateKey,
+      ...(remaining === undefined ? {} : { remaining }),
+      maximumKeys: this.#maximumOperationalNoticeKeys, proposed, sequence: proposed,
+      maxCount: 2 ** 48 - 1 });
+    if (advance.rejection !== undefined || advance.commands.length !== 1) throw new Error("canonical notice advance refused");
+    const action = advance.commands[0]!;
+    if (action.kind === "noticeRejectedFull") return;
+    if (action.kind === "noticeSuppressed") {
+      if (retained === undefined) throw new Error("canonical notice suppression lost native key");
+      retained.suppressedCount = action.count;
       return;
     }
-    if (advance.$ !== "CreateKey" && advance.$ !== "CreatePending" &&
-        advance.$ !== "MergePending" && advance.$ !== "KeepLeased") return;
-    if (advance.$ !== "CreateKey") {
-      if (retained === undefined) return;
-      if (advance.$ === "CreatePending" && retained.pending !== undefined) return;
-      if (advance.$ === "MergePending" &&
-          (retained.pending === undefined || retained.pending.delivery !== undefined)) return;
-      if (advance.$ === "KeepLeased" && retained.pending?.delivery === undefined) return;
+    if (action.kind !== "noticeCreateKey" && action.kind !== "noticeCreatePending" &&
+        action.kind !== "noticeMergePending" && action.kind !== "noticeKeepLeased") return;
+    if (action.kind !== "noticeCreateKey") {
+      if (retained === undefined) throw new Error("canonical notice refresh lost native key");
+      if (action.kind === "noticeCreatePending" && retained.pending !== undefined) throw new Error("canonical notice pending already exists");
+      if (action.kind === "noticeMergePending" &&
+          (retained.pending === undefined || retained.pending.delivery !== undefined)) throw new Error("canonical notice merge missing unleased pending payload");
+      if (action.kind === "noticeKeepLeased" && retained.pending?.delivery === undefined) throw new Error("canonical notice lease missing native payload");
       retained.nextAllowedAt = now + OPERATIONAL_NOTICE_COOLDOWN_MS;
       retained.suppressedCount = 0;
-      if (advance.$ === "CreatePending") {
+      if (action.kind === "noticeCreatePending") {
+        this.#nextNoticeSequence++;
         retained.pending = {
+          canonicalId: proposed,
           id: randomUUID(),
-          value: { kind, suppressedCount: Number(advance.count) },
+          value: { kind, suppressedCount: action.count },
           pendingAt: now,
-          sequence: this.#nextNoticeSequence++,
+          sequence: proposed,
         };
         if (ticket !== undefined) this.#noticeOwners.set(retained.pending.id, new Set([ticket.ticket.nonce]));
-      } else if (advance.$ === "MergePending") {
-        retained.pending!.value = { kind, suppressedCount: Number(advance.count) };
+      } else if (action.kind === "noticeMergePending") {
+        retained.pending!.value = { kind, suppressedCount: action.count };
         if (ticket !== undefined) {
           const owners = this.#noticeOwners.get(retained.pending!.id) ?? new Set<string>();
           owners.add(ticket.ticket.nonce);
@@ -1597,22 +1634,35 @@ export class ResidentServer {
       }
       return;
     }
-    if (retained !== undefined) return;
+    if (retained !== undefined) throw new Error("canonical notice created duplicate native key");
     const reservation = this.#reserve(partition, noticeReservationBytes(key, partition), "operationalNotice");
     // Retention is best effort. In particular, do not recursively turn this
     // failed reservation into another capacity failure.
     if (reservation === undefined) return;
+    const pendingId = this.#nextNoticeSequence++;
+    const keyId = this.#nextNoticeKeyId++;
+    const group = adviceeGroup(observation.root, observation.advicee);
+    const committed = this.#ledger.transition({ kind: "noticeCommit", key: keyId,
+      partition: this.#ledger.partitionId(partition), group: this.#ledger.partitionId(group),
+      reservation: reservation.id, pending: pendingId, sequence: pendingId,
+      maximumKeys: this.#maximumOperationalNoticeKeys });
+    if (committed.rejection !== undefined || committed.commands[0]?.kind !== "noticeCommitted") {
+      this.#ledger.release(reservation);
+      throw new Error("canonical notice commit refused");
+    }
     this.#noticeCooldowns.set(key, {
+      canonicalId: keyId,
       partition,
-      deliveryGroup: adviceeGroup(observation.root, observation.advicee),
+      deliveryGroup: group,
       reservation,
       nextAllowedAt: now + OPERATIONAL_NOTICE_COOLDOWN_MS,
       suppressedCount: 0,
       pending: {
+        canonicalId: pendingId,
         id: randomUUID(),
         value: { kind, suppressedCount: 0 },
         pendingAt: now,
-        sequence: this.#nextNoticeSequence++,
+        sequence: pendingId,
       },
     });
     const pending = this.#noticeCooldowns.get(key)?.pending;
@@ -3240,7 +3290,7 @@ export class ResidentServer {
       advice.retired = true;
       if (!advice.revalidationActive) this.#releaseUnit(advice);
     }
-    this.#noticeCooldowns.clear();
+    for (const key of [...this.#noticeCooldowns.keys()]) this.#releaseNoticeCooldown(key);
     this.#noticeOwners.clear();
     // Running work may be interrupted by process exit or finish later. Clear
     // its logical ownership now; its eventual terminal release is idempotent.

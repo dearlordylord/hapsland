@@ -271,4 +271,23 @@ for (const trace of reuseFixture.traces) {
   }
   assert.deepEqual(projectCanonical(current).reuse, trace.reuse, trace.name);
 }
-console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length + stopFixture.traces.length + collectionFixture.traces.length + deliveryFixture.traces.length + submissionFixture.traces.length + revisionFixture.traces.length + ticketFixture.traces.length + reuseFixture.traces.length} independent source-free canonical traces`);
+const noticeFixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-notice-v1.json"), "utf8"));
+for (const trace of noticeFixture.traces) {
+  let current = initialCanonical(fixture.limits);
+  for (const { expect: expected, ...event } of trace.events) {
+    const result = stepCanonical(current, event);
+    current = result.state;
+    const actual = result.rejection ? `rejected:${result.rejection}` : result.commands.map((command) => {
+      switch (command.kind) {
+        case "capacityGranted": case "reservationReleased": return `${command.kind}:${command.id}`;
+        case "noticeSuppressed": case "noticeCreatePending": case "noticeMergePending": return `${command.kind}:${command.count}`;
+        case "noticeSelected": return `${command.kind}:${command.ids.join(",")}`;
+        case "noticePruned": return `${command.kind}:${command.dropLease}:${command.dropPending}:${command.dropKey}`;
+        default: return command.kind;
+      }
+    }).join(",");
+    assert.equal(actual, expected, `${trace.name}: ${event.kind}`);
+  }
+  assert.deepEqual(projectCanonical(current).notices, trace.notices, trace.name);
+}
+console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length + stopFixture.traces.length + collectionFixture.traces.length + deliveryFixture.traces.length + submissionFixture.traces.length + revisionFixture.traces.length + ticketFixture.traces.length + reuseFixture.traces.length + noticeFixture.traces.length} independent source-free canonical traces`);

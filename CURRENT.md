@@ -22,14 +22,14 @@ slice is merged at `b90a524`. #121's canonical permit admission is merged at
 at `b8056e2`. #123's canonical FIFO dispatch is merged at `348604c`.
 #124's canonical Stop wait and cutoff, #125's collection and lease routing,
 and #126's delivery and terminal acknowledgement routing, #127's revision
-supersession, #128's ticket settlement, and #129's evaluation reuse are merged;
-the next migration slice is #130. Other resident decision paths under #130–#134 are
+supersession, #128's ticket settlement, and #129's evaluation reuse, and #130's operational notices are merged;
+the next migration slice is #131. Other resident decision paths under #131–#134 are
 still pending. Configurable graph limits and
 general budget/termination proofs are tracked separately in
 [#142](https://github.com/dearlordylord/hapsland/issues/142).
 
 The integrated epic is in `/workspace/typescript/jev-worktrees/bend-full-flow`
-(`feat/bend-full-flow`, merged through #129). Start #130 in a new task worktree
+(`feat/bend-full-flow`, merged through #130). Start #131 in a new task worktree
 from the latest epic tip. The old `/tmp/hapsland-bend-handoff.md` predates #119
 and is no longer a valid resume point. The `/workspace/typescript/jev` checkout
 is older and is not the edit target.
