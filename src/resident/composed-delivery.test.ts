@@ -200,6 +200,26 @@ describe("shared Hapsland rounds", () => {
     expect(state.authorizeFinishOutput("agent", "output")).toBe(false);
   });
 
+  it("refuses a prepared Stop output when one selected advice is retired before authorization", () => {
+    const state = new ComposedDelivery();
+    state.admitEdit("agent", "edit", 0);
+    const first = canonicalFinding(state);
+    const second = canonicalFinding(state);
+    expect(state.beginStop("agent", "attempt")).toBe(true);
+    expect(state.finishGate("agent", "attempt", 0, true)?.status).toBe("cutoff");
+    const advice = [
+      { id: "first", unit: first, findings: [{ rule: "one" }] },
+      { id: "second", unit: second, findings: [{ rule: "two" }] },
+    ];
+    expect(state.reserveFinishOutput("agent", "attempt", "output", advice, 1)).toBe(true);
+    expect(state.finishSelectionMatches("output", advice)).toBe(true);
+    state.forget("first");
+    expect(state.finishSelectionMatches("output", advice.slice(1))).toBe(false);
+    expect(state.authorizeFinishOutput("agent", "output")).toBe(false);
+    state.release("output");
+    expect(state.closureCounts("agent").reservedContinuations).toBe(0);
+  });
+
   it("releases a provisional continuation before output authorization", () => {
     const state = new ComposedDelivery();
     const finding = { rule: "r", advice: "repair" };

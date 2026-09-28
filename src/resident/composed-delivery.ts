@@ -9,12 +9,9 @@ import {
   bendRoundConsume, bendRoundFinishStop, bendRoundInitial, bendRoundOwnsStop,
   bendRoundStopTerminal, bendRoundExpireClose,
   bendRoundReopen, bendRoundMaxContinuations, type BendRound,
-  bendLeaseInitial, bendLeaseOffer, bendLeaseAuthorize, bendLeaseTerminal,
-  bendLeaseSuppresses, type BendLease, type BendLeaseSurface,
-  bendDeliveryTransition, bendDeliveryExpired, bendDeliveryBackgroundReofferable,
   bendDeliverySubmissionAllowed, bendDeliveryLegacyStopAllowed,
   bendDeliveryExistingTokenAllowed,
-  type BendDeliveryPhase,
+  type BendLeaseSurface,
 } from "./bend-policy.generated.js";
 
 /** Shared round and source-free handoff state for every agent runtime. */
@@ -43,7 +40,6 @@ type Submission = {
   readonly partition: string;
   readonly generation: number;
   readonly batches: Map<string, SubmissionBatch>;
-  readonly leases: Map<string, BendLease>;
 };
 
 const fingerprint = (finding: unknown): string =>
@@ -62,11 +58,11 @@ export class ComposedDelivery {
   readonly #stops = new Map<string, { token: string; id: number; generation: number; outputToken?: string }>();
   #nextStopId = 1;
   readonly #submissions = new Map<string, Submission>();
-  readonly #submissionTokenIds = new Map<string, number>();
-  #nextSubmissionTokenId = 1;
   readonly #finishPermits = new Map<string, {
     readonly partition: string; readonly generation: number; readonly attempt: string;
-    readonly selected: ReadonlyArray<number>; authorized: boolean; terminal: boolean; revoked: boolean;
+    readonly selected: ReadonlyArray<number>;
+    readonly advice: ReadonlyArray<{ readonly id: string; readonly fingerprints: ReadonlyArray<string> }>;
+    authorized: boolean; terminal: boolean; revoked: boolean;
   }>();
   readonly #backgroundWaiters = new Map<string, { readonly token: string; readonly id: number; readonly at: number }>();
 
@@ -393,17 +389,25 @@ export class ComposedDelivery {
       default: return { kind: "failed" };
     }
     const staged = advice.map((item) => [item.id,
-      this.#stageSubmission(item.id, partition, outputToken, item.findings, "stop", now, "reserved")
+      this.#stageSubmission(item.id, partition, outputToken, item.findings, "stop", now, "reserved", item.unit)
     ] as const);
     if (staged.some(([, submission]) => submission === undefined)) {
+      for (const [id, submission] of staged) if (submission !== undefined) {
+        const rollback = this.canonical.transition({ kind: "submissionRelease",
+          advice: this.#submissionAdviceId(id), token: submission.batches.get(outputToken)!.id });
+        if (rollback.rejection !== undefined || rollback.commands[0]?.kind !== "submissionReleased") {
+          throw new Error("canonical staged submission rollback refused");
+        }
+      }
       this.canonical.transition({ kind: "finishRelease", group, round: currentRound,
         attempt: stop.id, token: tokenId });
-      this.#pruneSubmissionTokenIds();
       return { kind: "failed" };
     }
     stop.outputToken = outputToken;
     this.#finishPermits.set(outputToken, { partition, generation: stop.generation, attempt,
-      selected, authorized: false, terminal: false, revoked: false });
+      selected, advice: advice.map((item) => ({ id: item.id,
+        fingerprints: item.findings.map(fingerprint) })),
+      authorized: false, terminal: false, revoked: false });
     for (const [id, submission] of staged) this.#submissions.set(id, submission!);
     return { kind: "reserved" };
   }
@@ -429,6 +433,44 @@ export class ComposedDelivery {
     return this.#finishPermits.has(token);
   }
 
+  isFinishAuthorized(token: string): boolean {
+    return this.#finishPermits.get(token)?.authorized === true;
+  }
+
+  finishSelectionMatches(token: string, advice: ReadonlyArray<{
+    readonly id: string; readonly unit: number; readonly findings: ReadonlyArray<unknown>;
+  }>): boolean {
+    const permit = this.#finishPermits.get(token);
+    if (permit === undefined || permit.revoked || permit.advice.length !== advice.length) return false;
+    const selected = advice.flatMap((item) => item.findings.map(() => item.unit));
+    if (permit.selected.length !== selected.length ||
+        permit.selected.some((unit, index) => unit !== selected[index])) return false;
+    if (!advice.every((item, index) => {
+      const expected = permit.advice[index];
+      const digests = item.findings.map(fingerprint);
+      return expected?.id === item.id && expected.fingerprints.length === digests.length &&
+        expected.fingerprints.every((digest, position) => digest === digests[position]);
+    })) return false;
+    return this.#finishBatchesCurrent(token, permit);
+  }
+
+  #finishBatchesCurrent(token: string, permit: { readonly partition: string;
+    readonly advice: ReadonlyArray<{ readonly id: string; readonly fingerprints: ReadonlyArray<string> }> }): boolean {
+    const canonical = this.canonical.canonicalProjection().delivery.submissions.batches;
+    return permit.advice.every((item) => {
+      const batch = this.#submissions.get(item.id)?.batches.get(token);
+      const canonicalBatch = canonical.find((candidate) =>
+        candidate.advice === this.#submissionAdviceId(item.id) && candidate.token === batch?.id);
+      return batch?.status === "reserved" && canonicalBatch?.phase === "reserved" &&
+        canonicalBatch.group === this.canonical.partitionId(permit.partition) &&
+        canonicalBatch.round === this.canonical.roundId(permit.partition) &&
+        canonicalBatch.fingerprints.length === new Set(item.fingerprints).size &&
+        item.fingerprints.every((digest) => batch.fingerprints.has(digest) &&
+          canonicalBatch.fingerprints.includes(
+          this.#fingerprintId(item.id, digest)));
+    });
+  }
+
   authorizeFinishOutput(partition: string, token: string): boolean {
     const permit = this.#finishPermits.get(token);
     // The non-installed legacy collector has no finish-decision permit.
@@ -439,7 +481,7 @@ export class ComposedDelivery {
     const stop = this.#stops.get(partition);
     if (permit.partition !== partition || !this.isActive(partition, permit.generation) ||
         permit.revoked || stop?.token !== permit.attempt || stop.outputToken !== token) return false;
-    if (!this.#transitionBatchStatus(token, "authorized")) return false;
+    if (!this.#finishBatchesCurrent(token, permit)) return false;
     const authorization = this.canonical.transition({ kind: "finishAuthorize",
       group: this.canonical.partitionId(partition), round: this.canonical.roundId(partition),
       attempt: stop.id, token: this.canonical.collectionTokenId(token),
@@ -449,6 +491,10 @@ export class ComposedDelivery {
       return false;
     }
     permit.authorized = true;
+    if (!this.#transitionBatchStatus(token, "authorized")) {
+      this.release(token);
+      return false;
+    }
     return true;
   }
 
@@ -515,9 +561,8 @@ export class ComposedDelivery {
     if (waiter !== undefined) this.releaseBackground(partition, waiter.token);
     for (const [token, permit] of this.#finishPermits) if (permit.partition === partition) this.#finishPermits.delete(token);
     for (const [id, submission] of this.#submissions) {
-      if (submission.partition === partition) this.#submissions.delete(id);
+      if (submission.partition === partition) this.forget(id);
     }
-    this.#pruneSubmissionTokenIds();
     return Number(round.policy.generation);
   }
 
@@ -597,103 +642,49 @@ export class ComposedDelivery {
 
   /** Reserve before writing; a crash or lost acknowledgement remains uncertain. */
   #submissionTokenId(token: string): number {
-    let id = this.#submissionTokenIds.get(token);
-    if (id === undefined) {
-      id = this.#nextSubmissionTokenId++;
-      this.#submissionTokenIds.set(token, id);
-    }
-    return id;
+    return this.canonical.collectionTokenId(token);
+  }
+
+  #submissionAdviceId(adviceId: string): number {
+    return this.canonical.collectionTokenId(`submission-advice\0${adviceId}`);
   }
 
   #leaseSurface(surface: DeliverySurface): BendLeaseSurface {
     return { $: surface === "edit" ? "Edit" : surface === "background" ? "Background" : "Stop" };
   }
 
-  #deliveryPhase(status: SubmissionBatch["status"]): BendDeliveryPhase {
-    return { $: status === "reserved" ? "Reserved" : status === "authorized" ? "Authorized"
-      : status === "submitted" ? "Submitted" : "Uncertain" };
-  }
-
-  #batchStatus(phase: BendDeliveryPhase): SubmissionBatch["status"] {
-    switch (phase.$) {
-      case "Reserved": return "reserved";
-      case "Authorized": return "authorized";
-      case "Submitted": return "submitted";
-      case "Uncertain": return "uncertain";
-    }
-  }
-
-  #rebuildLeases(submission: Submission): Map<string, BendLease> | undefined {
-    const leases = new Map<string, BendLease>();
-    try {
-      for (const batch of submission.batches.values()) {
-        for (const digest of batch.fingerprints) {
-          const previous = leases.get(digest) ?? bendLeaseInitial(1, submission.generation);
-          const offered = bendLeaseOffer(previous, submission.generation, batch.id,
-            this.#leaseSurface(batch.surface), true);
-          if (offered.$ !== "Granted") return undefined;
-          let lease = offered.state;
-          if (batch.status !== "reserved") {
-            const authorized = bendLeaseAuthorize(lease, submission.generation, batch.id);
-            if (authorized.$ !== "Granted") return undefined;
-            lease = authorized.state;
-            if (batch.status !== "authorized") {
-              const terminal = bendLeaseTerminal(lease, submission.generation, batch.id,
-                batch.status === "submitted");
-              if (terminal.$ !== "Granted") return undefined;
-              lease = terminal.state;
-            }
-          }
-          leases.set(digest, lease);
-        }
-      }
-      return leases;
-    } catch {
-      return undefined;
-    }
+  #fingerprintId(adviceId: string, digest: string): number {
+    return this.canonical.collectionTokenId(`submission-finding\0${adviceId}\0${digest}`);
   }
 
   #stageSubmission(
     adviceId: string, partition: string, token: string,
     findings: ReadonlyArray<unknown>, surface: DeliverySurface, now: number,
-    status: "reserved" | "authorized",
+    status: "reserved" | "authorized", unit?: number,
   ): Submission | undefined {
     const generation = this.generation(partition);
     if (generation === 0 || !this.isActive(partition, generation)) return undefined;
     const existing = this.#submissions.get(adviceId);
     const batches = existing?.partition === partition && existing.generation === generation
       ? new Map(existing.batches) : new Map<string, SubmissionBatch>();
-    const leases = existing?.partition === partition && existing.generation === generation
-      ? new Map(existing.leases) : new Map<string, BendLease>();
     if (batches.has(token)) return undefined;
     const fingerprints = new Set(findings.map(fingerprint));
-    if (fingerprints.size === 0) return undefined;
+    if (fingerprints.size === 0 || fingerprints.size > 5) return undefined;
     const id = this.#submissionTokenId(token);
-    try {
-      for (const digest of fingerprints) {
-        const previous = leases.get(digest) ?? bendLeaseInitial(1, generation);
-        const offered = bendLeaseOffer(previous, generation, id, this.#leaseSurface(surface), true);
-        if (offered.$ !== "Granted") {
-          this.#pruneSubmissionTokenIds();
-          return undefined;
-        }
-        if (status === "authorized") {
-          const authorized = bendLeaseAuthorize(offered.state, generation, id);
-          if (authorized.$ !== "Granted") {
-            this.#pruneSubmissionTokenIds();
-            return undefined;
-          }
-          leases.set(digest, authorized.state);
-        } else {
-          leases.set(digest, offered.state);
-        }
-      }
-    } catch {
-      this.#pruneSubmissionTokenIds();
+    const offered = this.canonical.transition({ kind: "submissionBegin",
+      advice: this.#submissionAdviceId(adviceId), group: this.canonical.partitionId(partition),
+      round: this.canonical.roundId(partition), token: id, surface,
+      authorizeNow: status === "authorized",
+      fingerprints: [...fingerprints].map((digest) => this.#fingerprintId(adviceId, digest)),
+      units: unit === undefined ? [] : findings.map(() => unit) });
+    if (offered.rejection !== undefined || offered.commands[0]?.kind !== "submissionBegun") {
       return undefined;
     }
+    if (status === "authorized" && this.canonical.canonicalProjection().delivery.submissions.batches.some(
+      (batch) => batch.advice === this.#submissionAdviceId(adviceId) && batch.token === id &&
+        batch.phase !== "authorized")) throw new Error("canonical submission authorization missing");
     batches.set(token, { id, surface, at: now, fingerprints, status });
-    return { partition, generation, batches, leases };
+    return { partition, generation, batches };
   }
 
   beginSubmission(
@@ -703,38 +694,42 @@ export class ComposedDelivery {
     findings: ReadonlyArray<unknown>,
     surface: DeliverySurface,
     now: number,
+    unit?: number,
   ): boolean {
-    const staged = this.#stageSubmission(adviceId, partition, token, findings, surface, now, "authorized");
+    const staged = this.#stageSubmission(adviceId, partition, token, findings, surface, now, "authorized", unit);
     if (staged === undefined) return false;
     this.#submissions.set(adviceId, staged);
     return true;
   }
 
   #transitionBatchStatus(token: string, status: SubmissionBatch["status"]): boolean {
-    const staged: Array<readonly [string, Submission]> = [];
-    for (const [id, submission] of this.#submissions) {
+    const matching = [...this.#submissions].flatMap(([id, submission]) => {
       const batch = submission.batches.get(token);
-      if (batch === undefined) continue;
-      const transition = bendDeliveryTransition(this.#deliveryPhase(batch.status),
-        this.#deliveryPhase(status));
-      if (transition.$ !== "Granted") return false;
-      const batches = new Map(submission.batches);
-      batches.set(token, { ...batch, status: this.#batchStatus(transition.phase) });
-      const leases = new Map(submission.leases);
-      try {
-        for (const digest of batch.fingerprints) {
-          const current = leases.get(digest);
-          if (current === undefined) return false;
-          const step = status === "authorized"
-            ? bendLeaseAuthorize(current, submission.generation, batch.id)
-            : bendLeaseTerminal(current, submission.generation, batch.id, status === "submitted");
-          if (step.$ !== "Granted") return false;
-          leases.set(digest, step.state);
-        }
-      } catch {
-        return false;
+      return batch === undefined ? [] : [{ id, submission, batch }];
+    });
+    const required = status === "authorized" ? "reserved" : "authorized";
+    const canonical = this.canonical.canonicalProjection().delivery.submissions;
+    if (matching.some(({ id, batch }) => {
+      if (batch.status !== required) return true;
+      const advice = this.#submissionAdviceId(id);
+      const owner = canonical.batches.find((item) => item.advice === advice && item.token === batch.id);
+      return owner?.phase !== required || [...batch.fingerprints].some((digest) =>
+        canonical.leases.find((lease) => lease.advice === advice &&
+          lease.fingerprint === this.#fingerprintId(id, digest))?.phase !== required);
+    })) return false;
+    const staged: Array<readonly [string, Submission]> = [];
+    for (const { id, submission, batch } of matching) {
+      const result = this.canonical.transition(status === "authorized"
+        ? { kind: "submissionAuthorize", advice: this.#submissionAdviceId(id), token: batch.id }
+        : { kind: "submissionTerminal", advice: this.#submissionAdviceId(id), token: batch.id,
+            certain: status === "submitted" });
+      const expected = status === "authorized" ? "submissionAuthorized" : "submissionRecorded";
+      if (result.rejection !== undefined || result.commands[0]?.kind !== expected) {
+        throw new Error("canonical submission transition refused resident owner");
       }
-      const next: Submission = { ...submission, batches, leases };
+      const batches = new Map(submission.batches);
+      batches.set(token, { ...batch, status });
+      const next: Submission = { ...submission, batches };
       staged.push([id, next]);
     }
     for (const [id, submission] of staged) this.#submissions.set(id, submission);
@@ -807,36 +802,32 @@ export class ComposedDelivery {
       }
     }
     for (const [adviceId, submission] of this.#submissions) {
-      if (!submission.batches.has(token)) continue;
+      const batch = submission.batches.get(token);
+      if (batch === undefined) continue;
+      if (batch.status === "reserved" || batch.status === "authorized") {
+        const rollback = this.canonical.transition({ kind: "submissionRelease",
+          advice: this.#submissionAdviceId(adviceId), token: batch.id });
+        if (rollback.rejection !== undefined || rollback.commands[0]?.kind !== "submissionReleased") {
+          throw new Error("canonical submission rollback refused");
+        }
+      }
       const batches = new Map(submission.batches);
       batches.delete(token);
       if (batches.size === 0) {
         this.#submissions.delete(adviceId);
         continue;
       }
-      // Removing a known unwritten token restores the previous Bend lease.
-      // Replay is needed only for this rollback, including an aborted Stop
-      // reoffer whose prior background terminal must remain authoritative.
-      const retained = { ...submission, batches };
-      const leases = this.#rebuildLeases(retained);
-      if (leases !== undefined) this.#submissions.set(adviceId, { ...retained, leases });
+      this.#submissions.set(adviceId, { ...submission, batches });
     }
-    this.#pruneSubmissionTokenIds();
   }
 
   forget(adviceId: string): void {
+    const result = this.canonical.transition({ kind: "submissionForget",
+      advice: this.#submissionAdviceId(adviceId) });
+    if (result.rejection !== undefined || result.commands[0]?.kind !== "submissionForgotten") {
+      throw new Error("canonical submission forget refused");
+    }
     this.#submissions.delete(adviceId);
-    this.#pruneSubmissionTokenIds();
-  }
-
-  #pruneSubmissionTokenIds(): void {
-    const active = new Set<string>();
-    for (const submission of this.#submissions.values()) {
-      for (const token of submission.batches.keys()) active.add(token);
-    }
-    for (const token of this.#submissionTokenIds.keys()) {
-      if (!active.has(token)) this.#submissionTokenIds.delete(token);
-    }
   }
 
   suppresses(adviceId: string, partition: string, finding: unknown, surface?: DeliverySurface): boolean {
@@ -844,17 +835,20 @@ export class ComposedDelivery {
     if (submission === undefined || submission.partition !== partition ||
         submission.generation !== this.generation(partition)) return false;
     const digest = fingerprint(finding);
-    const lease = submission.leases.get(digest);
-    if (lease === undefined && [...submission.batches.values()].some((batch) =>
-      batch.fingerprints.has(digest))) return true;
-    return lease !== undefined && bendLeaseSuppresses(lease, submission.generation,
-      this.#leaseSurface(surface ?? "edit"));
+    const checked = this.canonical.transition({ kind: "submissionSuppressCheck",
+      advice: this.#submissionAdviceId(adviceId), fingerprint: this.#fingerprintId(adviceId, digest),
+      round: this.canonical.roundId(partition), surface: surface ?? "edit" });
+    if (checked.rejection !== undefined) throw new Error("canonical submission suppression refused");
+    return checked.commands[0]?.kind === "submissionSuppresses";
   }
 
   backgroundReofferable(adviceId: string, token: string): boolean {
     const batch = this.#submissions.get(adviceId)?.batches.get(token);
-    return batch !== undefined && bendDeliveryBackgroundReofferable(
-      this.#deliveryPhase(batch.status), this.#leaseSurface(batch.surface));
+    if (batch === undefined) return false;
+    const checked = this.canonical.transition({ kind: "submissionReofferCheck",
+      advice: this.#submissionAdviceId(adviceId), token: batch.id });
+    if (checked.rejection !== undefined) throw new Error("canonical submission reoffer check refused");
+    return checked.commands[0]?.kind === "submissionReofferable";
   }
 
   hasToken(token: string): boolean {
@@ -873,10 +867,14 @@ export class ComposedDelivery {
       else if (result.commands[0]?.kind !== "collectionBackgroundKept") throw new Error("invalid canonical background expiry");
     }
     const expired = new Set<string>();
-    for (const submission of this.#submissions.values()) {
+    for (const [adviceId, submission] of this.#submissions) {
       for (const [token, batch] of submission.batches) {
         const elapsed = Math.floor(Math.min(DELIVERY_LEASE_MS, Math.max(0, now - batch.at)));
-        if (bendDeliveryExpired(this.#deliveryPhase(batch.status), elapsed, DELIVERY_LEASE_MS)) expired.add(token);
+        const checked = this.canonical.transition({ kind: "submissionExpiryCheck",
+          advice: this.#submissionAdviceId(adviceId), token: batch.id, elapsed,
+          lifetime: DELIVERY_LEASE_MS });
+        if (checked.rejection !== undefined) throw new Error("canonical submission expiry refused");
+        if (checked.commands[0]?.kind === "submissionExpired") expired.add(token);
       }
     }
     for (const token of expired) this.markUncertain(token);

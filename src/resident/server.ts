@@ -1299,11 +1299,15 @@ export class ResidentServer {
     const now = this.#now();
     this.#expirePending(now);
     const finishPermit = surface === "stop" && this.#composedDelivery.hasFinishPermit(token);
+    if (finishPermit && this.#composedDelivery.isFinishAuthorized(token)) return { status: "empty" };
     if (!this.#composedDelivery.canBeginExistingToken(surface, token)) return { status: "empty" };
     const advice = this.#advice.filter((item) =>
       item.delivery?.token === token && item.delivery.leaseUntil > now &&
       item.delivery.findings.length > 0);
-    const allValid = advice.every((item) => {
+    const selectionValid = !finishPermit || this.#composedDelivery.finishSelectionMatches(token,
+      advice.map((item) => ({ id: item.id, unit: item.canonicalOperationId,
+        findings: item.delivery?.findings ?? [] })));
+    const allValid = selectionValid && advice.every((item) => {
       const round = item.round;
       const delivery = item.delivery;
       const unit = item.workUnitId;
@@ -1332,7 +1336,7 @@ export class ResidentServer {
       if (finishPermit) continue;
       if (!this.#composedDelivery.beginSubmission(
         item.id, adviceeGroup(item.observation.root, item.observation.advicee),
-        token, item.delivery?.findings ?? [], surface, now,
+        token, item.delivery?.findings ?? [], surface, now, item.canonicalOperationId,
       )) {
         this.releaseComposedSubmission(token);
         return { status: "empty" };

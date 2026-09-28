@@ -1,6 +1,7 @@
 import Base
 import ./Collection.bend as Collection
 import ./DeliveryState.bend as DeliveryState
+import ./Handoff.bend as Handoff
 
 type Lease is Data:
   Lease{advice: Nat, owner: Nat}
@@ -142,7 +143,8 @@ def release(+state: State, +advice: Nat, +token: Nat) -> Decision:
 def retire(+state: State, +advice: Nat) -> State:
   match state:
     case State{ready, leases, claims, delivery}:
-      State{remove_ready(advice, ready), remove_advice_lease(advice, leases), claims, delivery}
+      State{remove_ready(advice, ready), remove_advice_lease(advice, leases), claims,
+        DeliveryState.submission_forget(delivery, advice)}
 
 def claim(+state: State, +group: Nat, +token: Nat, active: Bool, capacity: Nat) -> Decision:
   match state:
@@ -210,3 +212,59 @@ def consume_continuation(+state: State, group: Nat, round: Nat) -> Decision:
   match state:
     case State{_, _, _, delivery}:
       delivery_result(state, DeliveryState.consume(delivery, group, round))
+
+def submission_begin(+state: State, advice: Nat, group: Nat, round: Nat,
+    token: Nat, surface: Handoff.Surface, authorize_now: Bool,
+    fingerprints: List<&2, Nat>, units: List<&2, Nat>) -> Decision:
+  match state:
+    case State{_, _, _, delivery}:
+      delivery_result(state, DeliveryState.submission_begin(delivery, advice,
+        group, round, token, surface, authorize_now, fingerprints, units))
+
+def submission_authorize(+state: State, advice: Nat, token: Nat) -> Decision:
+  match state:
+    case State{_, _, _, delivery}:
+      delivery_result(state, DeliveryState.submission_authorize(delivery, advice, token))
+
+def submission_terminal(+state: State, advice: Nat, token: Nat, certain: Bool) -> Decision:
+  match state:
+    case State{_, _, _, delivery}:
+      delivery_result(state, DeliveryState.submission_terminal(delivery, advice, token, certain))
+
+def submission_release(+state: State, advice: Nat, token: Nat) -> Decision:
+  match state:
+    case State{_, _, _, delivery}:
+      delivery_result(state, DeliveryState.submission_release(delivery, advice, token))
+
+def submission_forget(state: State, advice: Nat) -> State:
+  match state:
+    case State{ready, leases, claims, delivery}:
+      State{ready, leases, claims, DeliveryState.submission_forget(delivery, advice)}
+
+def submission_suppresses(state: State, advice: Nat, fingerprint: Nat,
+    round: Nat, surface: Handoff.Surface) -> Bool:
+  match state:
+    case State{_, _, _, delivery}:
+      DeliveryState.submission_suppresses(delivery, advice, fingerprint, round, surface)
+
+def submission_reofferable(state: State, advice: Nat, token: Nat) -> Bool:
+  match state:
+    case State{_, _, _, delivery}:
+      DeliveryState.submission_reofferable(delivery, advice, token)
+
+def submission_expired(state: State, advice: Nat, token: Nat,
+    elapsed: Nat, lifetime: Nat) -> Bool:
+  match state:
+    case State{_, _, _, delivery}:
+      DeliveryState.submission_expired(delivery, advice, token, elapsed, lifetime)
+
+def submission_reservation(state: State, group: Nat, round: Nat, token: Nat) -> Bool:
+  match state:
+    case State{_, _, _, delivery}:
+      DeliveryState.submission_reservation(delivery, group, round, token)
+
+def submission_ready(state: State, group: Nat, round: Nat, token: Nat,
+    selected: List<&2, Nat>) -> Bool:
+  match state:
+    case State{_, _, _, delivery}:
+      DeliveryState.submission_ready(delivery, group, round, token, selected)

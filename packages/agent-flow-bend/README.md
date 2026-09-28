@@ -38,9 +38,12 @@ phase transitions, and successful-review cache pressure. The generated files
 are checked against source hashes before the app builds or tests.
 `Canonical.step` provides the resident's aggregate Stop wait and cutoff for an
 explicit set of edit partitions, with exact dispatch cancellation IDs and a
-decision fence. `Lifecycle.bend` still provides final output reservation using
-pending finding units and a continuation slot. A final IPC barrier can
-release an unwritten provisional slot and reserve the actual selected batch.
+decision fence. `DeliveryState.bend` retains the exact selected Stop output
+slot, authorization phase, terminal result, and continuation count.
+`SubmissionState.bend` retains per finding leases and per output token batches;
+it grants one same round Stop reoffer for terminal background advice.
+The resident reserves the selected batch before the final IPC barrier and can
+release an unwritten provisional slot.
 Other
 aggregate events remain tested models; the resident calls generated admission,
 work, round, and handoff modules at their effect barriers.

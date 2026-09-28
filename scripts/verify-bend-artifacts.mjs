@@ -17,7 +17,7 @@ for (const [artifact, sources] of [
     throw new Error(`${artifact} is stale; run npm run build in packages/agent-flow-bend`);
   }
 }
-const canonicalSources = ["Ledger.bend", "Admission.bend", "Flow.bend", "Work.bend", "Retention.bend", "Dispatch.bend", "Collection.bend", "CollectionState.bend", "DeliveryState.bend", "Handoff.bend", "Delivery.bend", "Canonical.bend", "CanonicalRuntime.bend", "scripts/build-canonical.mjs"];
+const canonicalSources = ["Ledger.bend", "Admission.bend", "Flow.bend", "Work.bend", "Retention.bend", "Dispatch.bend", "Collection.bend", "CollectionState.bend", "DeliveryState.bend", "SubmissionState.bend", "Handoff.bend", "Delivery.bend", "Canonical.bend", "CanonicalRuntime.bend", "scripts/build-canonical.mjs"];
 const canonicalDigest = createHash("sha256");
 for (const source of canonicalSources) {
   canonicalDigest.update(source).update("\0")

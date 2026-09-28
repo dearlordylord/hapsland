@@ -127,6 +127,17 @@ type CanonicalEvent is Data:
     selected: List<&2, Nat>, outcome: WriteOutcome}
   FinishEnd{group: Nat, round: Nat, attempt: Nat, token: Nat}
   ContinuationConsume{group: Nat, round: Nat}
+  SubmissionBegin{advice: Nat, group: Nat, round: Nat, token: Nat,
+    surface: Handoff.Surface, authorize_now: Bool, fingerprints: List<&2, Nat>,
+    units: List<&2, Nat>}
+  SubmissionAuthorize{advice: Nat, token: Nat}
+  SubmissionTerminal{advice: Nat, token: Nat, certain: Bool}
+  SubmissionRelease{advice: Nat, token: Nat}
+  SubmissionForget{advice: Nat}
+  SubmissionSuppressCheck{advice: Nat, fingerprint: Nat, round: Nat,
+    surface: Handoff.Surface}
+  SubmissionReofferCheck{advice: Nat, token: Nat}
+  SubmissionExpiryCheck{advice: Nat, token: Nat, elapsed: Nat, lifetime: Nat}
   OutputStarted{partition: Nat, lifetime: Nat, round: Nat}
   OutputTerminal{partition: Nat, lifetime: Nat, round: Nat,
     operation: Nat, outcome: WriteOutcome}
@@ -229,6 +240,18 @@ type Command is Data:
   FinishEnded{}
   ContinuationConsumed{}
   ContinuationRefused{}
+  SubmissionBegun{}
+  SubmissionAuthorized{}
+  SubmissionRecorded{}
+  SubmissionReleased{}
+  SubmissionRefused{}
+  SubmissionForgotten{}
+  SubmissionSuppresses{}
+  SubmissionUnsuppressed{}
+  SubmissionReofferable{}
+  SubmissionNotReofferable{}
+  SubmissionExpired{}
+  SubmissionCurrent{}
   WriteAuthorized{operation: Nat}
   WriteRecorded{outcome: WriteOutcome}
   WaitForOutput{}
@@ -1904,13 +1927,16 @@ def finish_release(+state: State, group: Nat, round: Nat,
         CollectionState.finish_release(collection, group, round, attempt, token),
         FinishReleased{}, FinishRefused{})
 
-def finish_authorize(+state: State, group: Nat, round: Nat,
-    attempt: Nat, token: Nat, selected: List<&2, Nat>) -> Step:
+def finish_authorize(+state: State, +group: Nat, +round: Nat,
+    attempt: Nat, +token: Nat, +selected: List<&2, Nat>) -> Step:
   match state:
     case State{_, _, _, _, _, _, _, collection}:
-      collection_decision(state,
-        CollectionState.finish_authorize(collection, group, round,
-          attempt, token, selected), FinishAuthorized{}, FinishRefused{})
+      Bool.pick(Step,
+        CollectionState.submission_ready(collection, group, round, token, selected),
+        collection_decision(state,
+          CollectionState.finish_authorize(collection, group, round,
+            attempt, token, selected), FinishAuthorized{}, FinishRefused{}),
+        Advanced{state, FinishRefused{} <> Nil{}})
 
 def finish_terminal_result(state: State, outcome: WriteOutcome,
     decision: CollectionState.Decision) -> Step:
@@ -1953,6 +1979,79 @@ def continuation_consume(+state: State, group: Nat, round: Nat) -> Step:
       collection_decision(state,
         CollectionState.consume_continuation(collection, group, round),
         ContinuationConsumed{}, ContinuationRefused{})
+
+def submission_round_found(group: Nat, round: Nat, found: Maybe<&2, Round>) -> Bool:
+  match found:
+    case None{}: False{}
+    case Some{Round{owner, _, current, _, _, _, _}}:
+      Bool.and(Nat.is_eq(group, owner), Nat.is_eq(round, current))
+
+def submission_stop_reservation(surface: Handoff.Surface,
+    authorize_now: Bool, reserved: Bool) -> Bool:
+  match surface:
+    case Handoff.Stop{}: Bool.or(authorize_now, reserved)
+    case _: True{}
+
+def submission_begin(+state: State, advice: Nat, +group: Nat, +round: Nat,
+    +token: Nat, +surface: Handoff.Surface, +authorize_now: Bool,
+    fingerprints: List<&2, Nat>, units: List<&2, Nat>) -> Step:
+  match state:
+    case State{_, rounds, _, _, _, _, _, collection}:
+      Bool.pick(Step, Bool.and(submission_round_found(group, round,
+        find_round(group, rounds)), submission_stop_reservation(surface,
+          authorize_now, CollectionState.submission_reservation(collection,
+            group, round, token))),
+        collection_decision(state, CollectionState.submission_begin(collection,
+          advice, group, round, token, surface, authorize_now, fingerprints, units),
+          SubmissionBegun{}, SubmissionRefused{}),
+        Advanced{state, SubmissionRefused{} <> Nil{}})
+
+def submission_authorize(+state: State, advice: Nat, token: Nat) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, _, collection}:
+      collection_decision(state, CollectionState.submission_authorize(collection,
+        advice, token), SubmissionAuthorized{}, SubmissionRefused{})
+
+def submission_terminal(+state: State, advice: Nat, token: Nat, certain: Bool) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, _, collection}:
+      collection_decision(state, CollectionState.submission_terminal(collection,
+        advice, token, certain), SubmissionRecorded{}, SubmissionRefused{})
+
+def submission_release(+state: State, advice: Nat, token: Nat) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, _, collection}:
+      collection_decision(state, CollectionState.submission_release(collection,
+        advice, token), SubmissionReleased{}, SubmissionRefused{})
+
+def submission_forget(+state: State, advice: Nat) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, _, collection}:
+      Advanced{with_collection(state, CollectionState.submission_forget(collection, advice)),
+        SubmissionForgotten{} <> Nil{}}
+
+def submission_suppress_check(+state: State, advice: Nat, fingerprint: Nat,
+    round: Nat, surface: Handoff.Surface) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, _, collection}:
+      Advanced{state, Bool.pick(Command,
+        CollectionState.submission_suppresses(collection, advice, fingerprint,
+          round, surface), SubmissionSuppresses{}, SubmissionUnsuppressed{}) <> Nil{}}
+
+def submission_reoffer_check(+state: State, advice: Nat, token: Nat) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, _, collection}:
+      Advanced{state, Bool.pick(Command,
+        CollectionState.submission_reofferable(collection, advice, token),
+        SubmissionReofferable{}, SubmissionNotReofferable{}) <> Nil{}}
+
+def submission_expiry_check(+state: State, advice: Nat, token: Nat,
+    elapsed: Nat, lifetime: Nat) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, _, collection}:
+      Advanced{state, Bool.pick(Command,
+        CollectionState.submission_expired(collection, advice, token,
+          elapsed, lifetime), SubmissionExpired{}, SubmissionCurrent{}) <> Nil{}}
 
 def step(state: State, event: CanonicalEvent) -> Step:
   match event:
@@ -2077,6 +2176,23 @@ def step(state: State, event: CanonicalEvent) -> Step:
       finish_end(state, group, round, attempt, token)
     case ContinuationConsume{group, round}:
       continuation_consume(state, group, round)
+    case SubmissionBegin{advice, group, round, token, surface, authorize_now, fingerprints, units}:
+      submission_begin(state, advice, group, round, token, surface, authorize_now,
+        fingerprints, units)
+    case SubmissionAuthorize{advice, token}:
+      submission_authorize(state, advice, token)
+    case SubmissionTerminal{advice, token, certain}:
+      submission_terminal(state, advice, token, certain)
+    case SubmissionRelease{advice, token}:
+      submission_release(state, advice, token)
+    case SubmissionForget{advice}:
+      submission_forget(state, advice)
+    case SubmissionSuppressCheck{advice, fingerprint, round, surface}:
+      submission_suppress_check(state, advice, fingerprint, round, surface)
+    case SubmissionReofferCheck{advice, token}:
+      submission_reoffer_check(state, advice, token)
+    case SubmissionExpiryCheck{advice, token, elapsed, lifetime}:
+      submission_expiry_check(state, advice, token, elapsed, lifetime)
     case OutputStarted{partition, lifetime, round}:
       output_start(state, partition, lifetime, round)
     case OutputTerminal{partition, lifetime, round, operation, outcome}:

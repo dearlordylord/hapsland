@@ -7,7 +7,7 @@ import { createHash } from "node:crypto";
 const root = resolve(import.meta.dirname, "..");
 const productRoot = resolve(root, "../..");
 const digest = createHash("sha256");
-for (const path of ["Ledger.bend", "Admission.bend", "Flow.bend", "Work.bend", "Retention.bend", "Dispatch.bend", "Collection.bend", "CollectionState.bend", "DeliveryState.bend", "Handoff.bend", "Delivery.bend", "Canonical.bend", "CanonicalRuntime.bend", "scripts/build-canonical.mjs"]) {
+for (const path of ["Ledger.bend", "Admission.bend", "Flow.bend", "Work.bend", "Retention.bend", "Dispatch.bend", "Collection.bend", "CollectionState.bend", "DeliveryState.bend", "SubmissionState.bend", "Handoff.bend", "Delivery.bend", "Canonical.bend", "CanonicalRuntime.bend", "scripts/build-canonical.mjs"]) {
   digest.update(path).update("\0").update(readFileSync(join(root, path))).update("\0");
 }
 const sourceHash = digest.digest("hex");

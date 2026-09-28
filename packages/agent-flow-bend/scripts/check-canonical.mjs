@@ -210,6 +210,22 @@ for (const trace of deliveryFixture.traces) {
       command.kind === "finishRecorded" ? `${command.kind}:${command.outcome}` : command.kind).join(",");
     assert.equal(actual, expected, `${trace.name}: ${event.kind}`);
   }
-  assert.deepEqual(projectCanonical(current).delivery, trace.delivery, trace.name);
+  const { slots, counters, submissions } = projectCanonical(current).delivery;
+  assert.deepEqual({ slots, counters }, trace.delivery, trace.name);
+  if (trace.submissions) assert.deepEqual(submissions, trace.submissions, trace.name);
 }
-console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length + stopFixture.traces.length + collectionFixture.traces.length + deliveryFixture.traces.length} independent source-free canonical traces`);
+const submissionFixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-submission-v1.json"), "utf8"));
+for (const trace of submissionFixture.traces) {
+  let current = initialCanonical(fixture.limits);
+  for (const { expect: expected, afterBatches, afterLeases, ...event } of trace.events) {
+    const result = stepCanonical(current, event);
+    current = result.state;
+    assert.equal(result.rejection ?? result.commands[0]?.kind, expected,
+      `${trace.name}: ${event.kind}`);
+    const submission = projectCanonical(current).delivery.submissions;
+    if (afterBatches) assert.deepEqual(submission.batches.map((batch) => batch.phase), afterBatches, `${trace.name}: batch phase`);
+    if (afterLeases) assert.deepEqual(submission.leases.map((lease) => `${lease.phase}:${lease.reoffered}`), afterLeases, `${trace.name}: lease phase`);
+  }
+  assert.deepEqual(projectCanonical(current).delivery.submissions, trace.submissions, trace.name);
+}
+console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length + stopFixture.traces.length + collectionFixture.traces.length + deliveryFixture.traces.length + submissionFixture.traces.length} independent source-free canonical traces`);

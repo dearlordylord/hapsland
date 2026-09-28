@@ -1,0 +1,344 @@
+{
+  "traces": [
+    {
+      "name": "terminal background finding permits one Stop reoffer after rollback",
+      "events": [
+        {
+          "kind": "openRound",
+          "partition": 1,
+          "lifetime": 1,
+          "expect": "roundStarted"
+        },
+        {
+          "kind": "submissionBegin",
+          "advice": 1,
+          "group": 1,
+          "round": 1,
+          "token": 1,
+          "surface": "background",
+          "authorizeNow": true,
+          "fingerprints": [
+            1
+          ],
+          "expect": "submissionBegun",
+          "afterBatches": [
+            "authorized"
+          ],
+          "afterLeases": [
+            "authorized:false"
+          ],
+          "units": []
+        },
+        {
+          "kind": "submissionSuppressCheck",
+          "advice": 1,
+          "fingerprint": 1,
+          "round": 1,
+          "surface": "stop",
+          "expect": "submissionSuppresses"
+        },
+        {
+          "kind": "submissionTerminal",
+          "advice": 1,
+          "token": 1,
+          "certain": true,
+          "expect": "submissionRecorded",
+          "afterBatches": [
+            "submitted"
+          ],
+          "afterLeases": [
+            "submitted:false"
+          ]
+        },
+        {
+          "kind": "submissionReofferCheck",
+          "advice": 1,
+          "token": 1,
+          "expect": "submissionReofferable"
+        },
+        {
+          "kind": "submissionSuppressCheck",
+          "advice": 1,
+          "fingerprint": 1,
+          "round": 1,
+          "surface": "stop",
+          "expect": "submissionUnsuppressed"
+        },
+        {
+          "kind": "submissionBegin",
+          "advice": 1,
+          "group": 1,
+          "round": 1,
+          "token": 2,
+          "surface": "stop",
+          "authorizeNow": false,
+          "fingerprints": [
+            1
+          ],
+          "expect": "submissionRefused",
+          "units": []
+        },
+        {
+          "kind": "submissionBegin",
+          "advice": 1,
+          "group": 1,
+          "round": 1,
+          "token": 2,
+          "surface": "stop",
+          "authorizeNow": true,
+          "fingerprints": [
+            1
+          ],
+          "expect": "submissionBegun",
+          "afterBatches": [
+            "submitted",
+            "authorized"
+          ],
+          "afterLeases": [
+            "authorized:true"
+          ],
+          "units": []
+        },
+        {
+          "kind": "submissionSuppressCheck",
+          "advice": 1,
+          "fingerprint": 1,
+          "round": 1,
+          "surface": "stop",
+          "expect": "submissionSuppresses"
+        },
+        {
+          "kind": "submissionRelease",
+          "advice": 1,
+          "token": 2,
+          "expect": "submissionReleased",
+          "afterBatches": [
+            "submitted"
+          ],
+          "afterLeases": [
+            "submitted:false"
+          ]
+        },
+        {
+          "kind": "submissionBegin",
+          "advice": 1,
+          "group": 1,
+          "round": 1,
+          "token": 3,
+          "surface": "stop",
+          "authorizeNow": true,
+          "fingerprints": [
+            1
+          ],
+          "expect": "submissionBegun",
+          "afterLeases": [
+            "authorized:true"
+          ],
+          "units": []
+        },
+        {
+          "kind": "submissionTerminal",
+          "advice": 1,
+          "token": 3,
+          "certain": false,
+          "expect": "submissionRecorded",
+          "afterLeases": [
+            "uncertain:true"
+          ]
+        },
+        {
+          "kind": "submissionTerminal",
+          "advice": 1,
+          "token": 3,
+          "certain": true,
+          "expect": "submissionRefused"
+        },
+        {
+          "kind": "submissionBegin",
+          "advice": 1,
+          "group": 1,
+          "round": 1,
+          "token": 4,
+          "surface": "stop",
+          "authorizeNow": true,
+          "fingerprints": [
+            1
+          ],
+          "expect": "submissionRefused",
+          "units": []
+        },
+        {
+          "kind": "submissionForget",
+          "advice": 1,
+          "expect": "submissionForgotten"
+        }
+      ],
+      "submissions": {
+        "batches": [],
+        "leases": []
+      }
+    },
+    {
+      "name": "authorized background expiry becomes uncertain before Stop reoffer",
+      "events": [
+        {
+          "kind": "openRound",
+          "partition": 1,
+          "lifetime": 1,
+          "expect": "roundStarted"
+        },
+        {
+          "kind": "submissionBegin",
+          "advice": 2,
+          "group": 1,
+          "round": 1,
+          "token": 5,
+          "surface": "background",
+          "authorizeNow": true,
+          "fingerprints": [
+            2
+          ],
+          "expect": "submissionBegun",
+          "units": []
+        },
+        {
+          "kind": "submissionExpiryCheck",
+          "advice": 2,
+          "token": 5,
+          "elapsed": 999,
+          "lifetime": 1000,
+          "expect": "submissionCurrent"
+        },
+        {
+          "kind": "submissionExpiryCheck",
+          "advice": 2,
+          "token": 5,
+          "elapsed": 1000,
+          "lifetime": 1000,
+          "expect": "submissionExpired"
+        },
+        {
+          "kind": "submissionTerminal",
+          "advice": 2,
+          "token": 5,
+          "certain": false,
+          "expect": "submissionRecorded",
+          "afterBatches": [
+            "uncertain"
+          ],
+          "afterLeases": [
+            "uncertain:false"
+          ]
+        },
+        {
+          "kind": "submissionReofferCheck",
+          "advice": 2,
+          "token": 5,
+          "expect": "submissionReofferable"
+        },
+        {
+          "kind": "submissionBegin",
+          "advice": 2,
+          "group": 1,
+          "round": 1,
+          "token": 6,
+          "surface": "stop",
+          "authorizeNow": true,
+          "fingerprints": [
+            2
+          ],
+          "expect": "submissionBegun",
+          "units": []
+        },
+        {
+          "kind": "submissionTerminal",
+          "advice": 2,
+          "token": 6,
+          "certain": true,
+          "expect": "submissionRecorded"
+        },
+        {
+          "kind": "submissionExpiryCheck",
+          "advice": 2,
+          "token": 6,
+          "elapsed": 1000,
+          "lifetime": 1000,
+          "expect": "submissionCurrent"
+        },
+        {
+          "kind": "submissionForget",
+          "advice": 2,
+          "expect": "submissionForgotten"
+        }
+      ],
+      "submissions": {
+        "batches": [],
+        "leases": []
+      }
+    },
+    {
+      "name": "one batch grants all fingerprints or leaves no lease",
+      "events": [
+        {
+          "kind": "openRound",
+          "partition": 1,
+          "lifetime": 1,
+          "expect": "roundStarted"
+        },
+        {
+          "kind": "submissionBegin",
+          "advice": 3,
+          "group": 1,
+          "round": 1,
+          "token": 7,
+          "surface": "edit",
+          "authorizeNow": true,
+          "fingerprints": [
+            3,
+            4
+          ],
+          "expect": "submissionBegun",
+          "afterLeases": [
+            "authorized:false",
+            "authorized:false"
+          ],
+          "units": []
+        },
+        {
+          "kind": "submissionBegin",
+          "advice": 3,
+          "group": 1,
+          "round": 1,
+          "token": 8,
+          "surface": "background",
+          "authorizeNow": true,
+          "fingerprints": [
+            5,
+            3
+          ],
+          "expect": "submissionRefused",
+          "afterBatches": [
+            "authorized"
+          ],
+          "afterLeases": [
+            "authorized:false",
+            "authorized:false"
+          ],
+          "units": []
+        },
+        {
+          "kind": "submissionRelease",
+          "advice": 3,
+          "token": 7,
+          "expect": "submissionReleased",
+          "afterBatches": [],
+          "afterLeases": []
+        }
+      ],
+      "submissions": {
+        "batches": [],
+        "leases": []
+      }
+    }
+  ]
+}

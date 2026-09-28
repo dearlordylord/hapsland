@@ -44,7 +44,10 @@ type ResidentTransition = Extract<CanonicalEvent, { readonly kind:
   "collectionRetireAdvice" | "collectionClaimBackground" |
   "collectionReleaseBackground" | "collectionExpireBackground" |
   "finishReserve" | "finishRelease" | "finishAuthorize" | "finishTerminal" |
-  "finishEnd" | "continuationConsume" }>;
+  "finishEnd" | "continuationConsume" |
+  "submissionBegin" | "submissionAuthorize" | "submissionTerminal" |
+  "submissionRelease" | "submissionForget" | "submissionSuppressCheck" |
+  "submissionReofferCheck" | "submissionExpiryCheck" }>;
 
 const defaultLimits: CapacityLimits = {
   globalItems: GLOBAL_ITEM_LIMIT,

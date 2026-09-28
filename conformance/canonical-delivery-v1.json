@@ -193,6 +193,69 @@
             3,
             3
           ],
+          "expect": "finishRefused"
+        },
+        {
+          "kind": "submissionBegin",
+          "advice": 10,
+          "group": 1,
+          "round": 1,
+          "token": 8,
+          "surface": "stop",
+          "authorizeNow": false,
+          "fingerprints": [
+            10
+          ],
+          "units": [
+            4
+          ],
+          "expect": "submissionBegun"
+        },
+        {
+          "kind": "finishAuthorize",
+          "group": 1,
+          "round": 1,
+          "attempt": 7,
+          "token": 8,
+          "selected": [
+            3,
+            3
+          ],
+          "expect": "finishRefused"
+        },
+        {
+          "kind": "submissionRelease",
+          "advice": 10,
+          "token": 8,
+          "expect": "submissionReleased"
+        },
+        {
+          "kind": "submissionBegin",
+          "advice": 10,
+          "group": 1,
+          "round": 1,
+          "token": 8,
+          "surface": "stop",
+          "authorizeNow": false,
+          "fingerprints": [
+            10
+          ],
+          "units": [
+            3,
+            3
+          ],
+          "expect": "submissionBegun"
+        },
+        {
+          "kind": "finishAuthorize",
+          "group": 1,
+          "round": 1,
+          "attempt": 7,
+          "token": 8,
+          "selected": [
+            3,
+            3
+          ],
           "expect": "finishAuthorized"
         },
         {
@@ -317,6 +380,227 @@
       "delivery": {
         "slots": [],
         "counters": []
+      }
+    },
+    {
+      "name": "two selected work units preserve advice order at Stop authorization",
+      "events": [
+        {
+          "kind": "openRound",
+          "partition": 1,
+          "lifetime": 1,
+          "expect": "roundStarted"
+        },
+        {
+          "kind": "openRound",
+          "partition": 2,
+          "lifetime": 1,
+          "expect": "roundStarted"
+        },
+        {
+          "kind": "admitObservation",
+          "partition": 2,
+          "lifetime": 1,
+          "round": 2,
+          "expect": "observationAdmitted"
+        },
+        {
+          "kind": "startObservation",
+          "partition": 2,
+          "lifetime": 1,
+          "round": 2,
+          "observation": 1,
+          "expect": "observationStarted"
+        },
+        {
+          "kind": "beginObservedPreparation",
+          "partition": 2,
+          "lifetime": 1,
+          "round": 2,
+          "observation": 1,
+          "bytes": 10,
+          "expect": "prepare"
+        },
+        {
+          "kind": "preparationCompleted",
+          "partition": 2,
+          "lifetime": 1,
+          "round": 2,
+          "operation": 2,
+          "unitBytes": [
+            5,
+            5
+          ],
+          "expect": "preparationReleased,unitAdmitted,unitAdmitted"
+        },
+        {
+          "kind": "completeObservation",
+          "partition": 2,
+          "lifetime": 1,
+          "round": 2,
+          "observation": 1,
+          "expect": "observationCompleted"
+        },
+        {
+          "kind": "queueDispatch",
+          "partition": 2,
+          "lifetime": 1,
+          "round": 2,
+          "operation": 3,
+          "expect": "dispatchStarted"
+        },
+        {
+          "kind": "startReview",
+          "partition": 2,
+          "lifetime": 1,
+          "round": 2,
+          "operation": 3,
+          "expect": "reviewStarted"
+        },
+        {
+          "kind": "queueDispatch",
+          "partition": 2,
+          "lifetime": 1,
+          "round": 2,
+          "operation": 4,
+          "expect": ""
+        },
+        {
+          "kind": "reviewObserved",
+          "partition": 2,
+          "lifetime": 1,
+          "round": 2,
+          "operation": 3,
+          "outcome": "finding",
+          "currentWork": true,
+          "expect": "reviewRecorded,retainFinding"
+        },
+        {
+          "kind": "dispatchSettled",
+          "partition": 2,
+          "lifetime": 1,
+          "round": 2,
+          "operation": 3,
+          "expect": "dispatchCycleCompleted,dispatchStarted"
+        },
+        {
+          "kind": "startReview",
+          "partition": 2,
+          "lifetime": 1,
+          "round": 2,
+          "operation": 4,
+          "expect": "reviewStarted"
+        },
+        {
+          "kind": "reviewObserved",
+          "partition": 2,
+          "lifetime": 1,
+          "round": 2,
+          "operation": 4,
+          "outcome": "finding",
+          "currentWork": true,
+          "expect": "reviewRecorded,retainFinding"
+        },
+        {
+          "kind": "stopGroupPolled",
+          "group": 1,
+          "lifetime": 1,
+          "round": 1,
+          "scopes": [
+            {
+              "partition": 2,
+              "round": 2
+            }
+          ],
+          "deadline": true,
+          "extraPending": false,
+          "continuations": 0,
+          "expect": "finishReady"
+        },
+        {
+          "kind": "finishReserve",
+          "group": 1,
+          "lifetime": 1,
+          "round": 1,
+          "attempt": 7,
+          "token": 8,
+          "selected": [
+            3,
+            4
+          ],
+          "hasNotice": false,
+          "passNotices": true,
+          "canWrite": true,
+          "bindingValid": true,
+          "deadlineReached": true,
+          "expect": "finishReserved"
+        },
+        {
+          "kind": "submissionBegin",
+          "advice": 10,
+          "group": 1,
+          "round": 1,
+          "token": 8,
+          "surface": "stop",
+          "authorizeNow": false,
+          "fingerprints": [
+            10
+          ],
+          "units": [
+            3
+          ],
+          "expect": "submissionBegun"
+        },
+        {
+          "kind": "submissionBegin",
+          "advice": 11,
+          "group": 1,
+          "round": 1,
+          "token": 8,
+          "surface": "stop",
+          "authorizeNow": false,
+          "fingerprints": [
+            11
+          ],
+          "units": [
+            4
+          ],
+          "expect": "submissionBegun"
+        },
+        {
+          "kind": "finishAuthorize",
+          "group": 1,
+          "round": 1,
+          "attempt": 7,
+          "token": 8,
+          "selected": [
+            3,
+            4
+          ],
+          "expect": "finishAuthorized"
+        }
+      ],
+      "delivery": {
+        "slots": [
+          {
+            "group": 1,
+            "round": 1,
+            "attempt": 7,
+            "token": 8,
+            "selected": [
+              3,
+              4
+            ],
+            "phase": "authorized"
+          }
+        ],
+        "counters": [
+          {
+            "group": 1,
+            "round": 1,
+            "used": 1
+          }
+        ]
       }
     }
   ]
