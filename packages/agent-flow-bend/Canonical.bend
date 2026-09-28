@@ -12,6 +12,7 @@ import ./DeliveryState.bend as DeliveryState
 import ./RevisionState.bend as RevisionState
 import ./Ticket.bend as Ticket
 import ./TicketState.bend as TicketState
+import ./ReuseState.bend as ReuseState
 
 # #119 boundary: one resident lifetime, shared ledger, active advicee rounds.
 # Native IDs are bijectively mapped to positive Nat values before entry.
@@ -161,6 +162,16 @@ type CanonicalEvent is Data:
   TicketFinalAuthorityCheck{admitted_block: Bool, current_block: Bool}
   TicketJoinedCheck{joined_state: Ticket.JoinedState, stale_unavailable: Bool,
     has_revision: Bool, has_advice_id: Bool}
+  ReuseRoute{id: Nat, live_advice: Bool}
+  ReuseClaim{id: Nat}
+  ReuseAttach{id: Nat}
+  ReuseRelease{id: Nat}
+  ReuseTouch{id: Nat}
+  CachePrepare{id: Nat, bytes: Nat, entry_limit: Nat, byte_limit: Nat}
+  CacheCommit{id: Nat, partition: Nat, bytes: Nat, reservation: Nat,
+    entry_limit: Nat, byte_limit: Nat}
+  CacheDiscardPartition{partition: Nat}
+  CacheClear{}
   OutputStarted{partition: Nat, lifetime: Nat, round: Nat}
   OutputTerminal{partition: Nat, lifetime: Nat, round: Nat,
     operation: Nat, outcome: WriteOutcome}
@@ -307,6 +318,20 @@ type Command is Data:
   TicketSetJoinedFinding{}
   TicketSetJoinedUnavailable{}
   TicketSetJoinedLost{}
+  ReuseJoinAdvice{}
+  ReuseJoinPending{}
+  ReuseJoinClaimed{}
+  ReuseCached{}
+  ReuseOwn{}
+  ReuseClaimed{}
+  ReuseAttached{}
+  ReuseReleased{}
+  ReuseRefused{}
+  CacheAlready{}
+  CacheRejected{}
+  CachePrepared{evicted: List<&2, Nat>}
+  CacheCommitted{}
+  CacheDiscarded{ids: List<&2, Nat>}
   WriteAuthorized{operation: Nat}
   WriteRecorded{outcome: WriteOutcome}
   WaitForOutput{}
@@ -2211,6 +2236,61 @@ def ticket_joined_result(state: State, result: Ticket.JoinedDisposition) -> Step
     case Ticket.SetJoinedUnavailable{}: Advanced{state, TicketSetJoinedUnavailable{} <> Nil{}}
     case Ticket.SetJoinedLost{}: Advanced{state, TicketSetJoinedLost{} <> Nil{}}
 
+def reuse_step(+state: State, replacement: ReuseState.State, command: Command) -> Step:
+  Advanced{with_collection(state,
+    CollectionState.with_reuse(collection_of(state), replacement)), command <> Nil{}}
+
+def reuse_route_result(+state: State, result: ReuseState.Route) -> Step:
+  match result:
+    case ReuseState.JoinAdvice{replacement}: reuse_step(state, replacement, ReuseJoinAdvice{})
+    case ReuseState.JoinPending{replacement}: reuse_step(state, replacement, ReuseJoinPending{})
+    case ReuseState.JoinClaimed{replacement}: reuse_step(state, replacement, ReuseJoinClaimed{})
+    case ReuseState.Cached{replacement}: reuse_step(state, replacement, ReuseCached{})
+    case ReuseState.Own{replacement}: reuse_step(state, replacement, ReuseOwn{})
+
+def reuse_decision_result(+state: State, result: ReuseState.Decision,
+    granted: Command) -> Step:
+  match result:
+    case ReuseState.Granted{replacement}: reuse_step(state, replacement, granted)
+    case ReuseState.Refused{_}: Advanced{state, ReuseRefused{} <> Nil{}}
+
+def cache_plan_result(+state: State, result: ReuseState.Plan) -> Step:
+  match result:
+    case ReuseState.Already{_}: Advanced{state, CacheAlready{} <> Nil{}}
+    case ReuseState.Reject{_}: Advanced{state, CacheRejected{} <> Nil{}}
+    case ReuseState.Prepared{replacement, ids}:
+      reuse_step(state, replacement, CachePrepared{ids})
+
+def cache_discard_result(+state: State, result: ReuseState.Discard) -> Step:
+  match result:
+    case ReuseState.Discarded{replacement, ids}:
+      reuse_step(state, replacement, CacheDiscarded{ids})
+
+def cache_charge_valid(found: Maybe<&2, Ledger.Charge>, partition: Nat, bytes: Nat) -> Bool:
+  match found:
+    case Some{Ledger.Charge{_, owner, size, Ledger.StoredResult{}}}:
+      Bool.and(Nat.is_eq(partition, owner), Nat.is_eq(bytes, size))
+    case _:
+      False{}
+
+def cache_commit_checked(+state: State, id: Nat, partition: Nat, bytes: Nat,
+    reservation: Nat, entry_limit: Nat, byte_limit: Nat, valid: Bool) -> Step:
+  match valid:
+    case True{}:
+      reuse_decision_result(state, ReuseState.commit(
+        CollectionState.reuse_state(collection_of(state)), id, partition, bytes,
+          reservation, entry_limit, byte_limit), CacheCommitted{})
+    case False{}:
+      Advanced{state, ReuseRefused{} <> Nil{}}
+
+def cache_commit(+state: State, +id: Nat, +partition: Nat, +bytes: Nat,
+    +reservation: Nat, entry_limit: Nat, byte_limit: Nat) -> Step:
+  match state:
+    case State{Ledger.Ledger{_, _, charges}, _, _, _, _, _, _, _}:
+      cache_commit_checked(state, id, partition, bytes, reservation,
+        entry_limit, byte_limit,
+        cache_charge_valid(Ledger.find(reservation, charges), partition, bytes))
+
 def step(+state: State, event: CanonicalEvent) -> Step:
   match event:
     case ReserveCapacity{partition, bytes, purpose}:
@@ -2392,6 +2472,32 @@ def step(+state: State, event: CanonicalEvent) -> Step:
     case TicketJoinedCheck{joined_state, stale_unavailable, has_revision, has_advice_id}:
       ticket_joined_result(state, Ticket.joined_disposition(joined_state, stale_unavailable,
         has_revision, has_advice_id))
+    case ReuseRoute{id, live_advice}:
+      reuse_route_result(state, ReuseState.route(
+        CollectionState.reuse_state(collection_of(state)), id, live_advice))
+    case ReuseClaim{id}:
+      reuse_decision_result(state, ReuseState.claim(
+        CollectionState.reuse_state(collection_of(state)), id), ReuseClaimed{})
+    case ReuseAttach{id}:
+      reuse_decision_result(state, ReuseState.attach(
+        CollectionState.reuse_state(collection_of(state)), id), ReuseAttached{})
+    case ReuseRelease{id}:
+      reuse_step(state, ReuseState.release(
+        CollectionState.reuse_state(collection_of(state)), id), ReuseReleased{})
+    case ReuseTouch{id}:
+      reuse_route_result(state, ReuseState.touch(
+        CollectionState.reuse_state(collection_of(state)), id))
+    case CachePrepare{id, bytes, entry_limit, byte_limit}:
+      cache_plan_result(state, ReuseState.prepare(
+        CollectionState.reuse_state(collection_of(state)), id, bytes, entry_limit, byte_limit))
+    case CacheCommit{id, partition, bytes, reservation, entry_limit, byte_limit}:
+      cache_commit(state, id, partition, bytes, reservation, entry_limit, byte_limit)
+    case CacheDiscardPartition{partition}:
+      cache_discard_result(state, ReuseState.discard(
+        CollectionState.reuse_state(collection_of(state)), partition))
+    case CacheClear{}:
+      cache_discard_result(state, ReuseState.clear(
+        CollectionState.reuse_state(collection_of(state))))
     case OutputStarted{partition, lifetime, round}:
       output_start(state, partition, lifetime, round)
     case OutputTerminal{partition, lifetime, round, operation, outcome}:

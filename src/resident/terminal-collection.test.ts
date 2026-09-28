@@ -68,6 +68,88 @@ const collectOverSocket = (server: ResidentServer, ticket: ResidentCollectionTic
   });
 
 describe("Claude terminal collection", () => {
+  it("joins a claimed evaluation before its owner attaches the request", async () => {
+    const data = await fixture();
+    const ownerClaimed = deferred();
+    const claimJoined = deferred();
+    const releaseOwner = deferred();
+    const primerEntered = deferred();
+    const releasePrimer = deferred();
+    const blockersEntered = deferred();
+    const releaseBlockers = deferred();
+    let evaluationCount = 0;
+    let holdOwner = false;
+    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), () => 1_000, {
+      beforeEvaluate: async () => {
+        evaluationCount += 1;
+        if (evaluationCount === 1) {
+          primerEntered.resolve();
+          await releasePrimer.promise;
+        } else if (evaluationCount <= 3) {
+          if (evaluationCount === 3) blockersEntered.resolve();
+          await releaseBlockers.promise;
+        }
+      },
+      afterReuseBoundary: async (phase) => {
+        if (phase === "ownerClaimed" && holdOwner) {
+          holdOwner = false;
+          ownerClaimed.resolve();
+          await releaseOwner.promise;
+        }
+        if (phase === "claimJoined") claimJoined.resolve();
+      },
+    });
+    const dispatch = data.dispatch(0);
+    const primer = { ...data.observation, advicee: { ...data.observation.advicee, sessionId: "primer" } };
+    expect(server.admit(primer, dispatch).status).toBe("accepted");
+    await primerEntered.promise;
+    for (const sessionId of ["blocker-a", "blocker-b"]) {
+      const blocker = { ...data.observation, advicee: { ...data.observation.advicee, sessionId } };
+      expect(server.admit(blocker, dispatch).status).toBe("accepted");
+    }
+    releasePrimer.resolve();
+    await blockersEntered.promise;
+    holdOwner = true;
+    const first = server.admit(data.observation, dispatch, true);
+    if (first.status !== "accepted" || !("ticket" in first)) throw new Error("owner not admitted");
+    const second = server.admit(data.observation, dispatch, true);
+    if (second.status !== "accepted" || !("ticket" in second)) throw new Error("repeat not admitted");
+    releaseBlockers.resolve();
+    await ownerClaimed.promise;
+    try {
+      await claimJoined.promise;
+      expect(await collect(server, second.ticket, data, dispatch))
+        .toEqual({ version: 2, status: "pending" });
+    } finally {
+      releaseOwner.resolve();
+    }
+    await server.whenIdle();
+    expect(await collect(server, first.ticket, data, dispatch)).toEqual({ version: 2, status: "clear" });
+    expect(await collect(server, second.ticket, data, dispatch))
+      .toEqual({ version: 2, status: "clear" });
+    expect(server.accountingMetrics()).toMatchObject({ successfulCacheEntries: 3, pendingEvaluations: 0 });
+  });
+
+  it("releases an owner claim if preparation exits before attachment", async () => {
+    const data = await fixture();
+    let failOnce = true;
+    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), () => 1_000, {
+      afterReuseBoundary: () => {
+        if (failOnce) { failOnce = false; throw new Error("fixture interruption"); }
+      },
+    });
+    const dispatch = data.dispatch(0);
+    const first = server.admit(data.observation, dispatch, true);
+    if (first.status !== "accepted" || !("ticket" in first)) throw new Error("first not admitted");
+    await server.whenIdle();
+    expect(server.accountingMetrics().pendingEvaluations).toBe(0);
+    const second = server.admit(data.observation, dispatch, true);
+    if (second.status !== "accepted" || !("ticket" in second)) throw new Error("second not admitted");
+    await server.whenIdle();
+    expect(await collect(server, second.ticket, data, dispatch)).toEqual({ version: 2, status: "clear" });
+    expect(server.accountingMetrics()).toMatchObject({ successfulCacheEntries: 1, pendingEvaluations: 0 });
+  });
+
   it("waits for admitted work and returns clear only after a successful zero-finding evaluation", async () => {
     const data = await fixture();
     const gate = deferred();

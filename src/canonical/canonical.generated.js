@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:888286c19d3b4cd451ccb9cfa7deec2440b5f6dcf9535520d248729daa0dc8c7
+// hapsland-bend-source-sha256:7836140b79e74fc99421e0fe6c2caec5e8c3efd7c626952f85c8254b5b7b7280
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -607,23 +607,58 @@ function $Canonical$step$(_state_0, _event_0) {
     const _has_revision_0 = _event_0["has_revision"];
     const _has_advice_id_0 = _event_0["has_advice_id"];
     return $Canonical$ticket_joined_result$(_state_0, ($Ticket$joined_disposition$(_joined_state_0, _stale_unavailable_0, _has_revision_0, _has_advice_id_0)));
-  } else if (_event_0.$ === "Canonical.OutputStarted") {
+  } else if (_event_0.$ === "Canonical.ReuseRoute") {
+    const _id_8 = _event_0["id"];
+    const _live_advice_1 = _event_0["live_advice"];
+    return $Canonical$reuse_route_result$(_state_0, ($ReuseState$route$(($CollectionState$reuse_state$(($Canonical$collection_of$(_state_0)))), _id_8, _live_advice_1)));
+  } else if (_event_0.$ === "Canonical.ReuseClaim") {
+    const _id_9 = _event_0["id"];
+    return $Canonical$reuse_decision_result$(_state_0, ($ReuseState$claim$(($CollectionState$reuse_state$(($Canonical$collection_of$(_state_0)))), _id_9)), {$: "Canonical.ReuseClaimed"});
+  } else if (_event_0.$ === "Canonical.ReuseAttach") {
+    const _id_10 = _event_0["id"];
+    return $Canonical$reuse_decision_result$(_state_0, ($ReuseState$attach$(($CollectionState$reuse_state$(($Canonical$collection_of$(_state_0)))), _id_10)), {$: "Canonical.ReuseAttached"});
+  } else if (_event_0.$ === "Canonical.ReuseRelease") {
+    const _id_11 = _event_0["id"];
+    return $Canonical$reuse_step$(_state_0, ($ReuseState$release$(($CollectionState$reuse_state$(($Canonical$collection_of$(_state_0)))), _id_11)), {$: "Canonical.ReuseReleased"});
+  } else if (_event_0.$ === "Canonical.ReuseTouch") {
+    const _id_12 = _event_0["id"];
+    return $Canonical$reuse_route_result$(_state_0, ($ReuseState$touch$(($CollectionState$reuse_state$(($Canonical$collection_of$(_state_0)))), _id_12)));
+  } else if (_event_0.$ === "Canonical.CachePrepare") {
+    const _id_13 = _event_0["id"];
+    const _bytes_7 = _event_0["bytes"];
+    const _entry_limit_0 = _event_0["entry_limit"];
+    const _byte_limit_0 = _event_0["byte_limit"];
+    return $Canonical$cache_plan_result$(_state_0, ($ReuseState$prepare$(($CollectionState$reuse_state$(($Canonical$collection_of$(_state_0)))), _id_13, _bytes_7, _entry_limit_0, _byte_limit_0)));
+  } else if (_event_0.$ === "Canonical.CacheCommit") {
+    const _id_14 = _event_0["id"];
     const _partition_24 = _event_0["partition"];
+    const _bytes_8 = _event_0["bytes"];
+    const _reservation_3 = _event_0["reservation"];
+    const _entry_limit_1 = _event_0["entry_limit"];
+    const _byte_limit_1 = _event_0["byte_limit"];
+    return $Canonical$cache_commit$(_state_0, _id_14, _partition_24, _bytes_8, _reservation_3, _entry_limit_1, _byte_limit_1);
+  } else if (_event_0.$ === "Canonical.CacheDiscardPartition") {
+    const _partition_25 = _event_0["partition"];
+    return $Canonical$cache_discard_result$(_state_0, ($ReuseState$discard$(($CollectionState$reuse_state$(($Canonical$collection_of$(_state_0)))), _partition_25)));
+  } else if (_event_0.$ === "Canonical.CacheClear") {
+    return $Canonical$cache_discard_result$(_state_0, ($ReuseState$clear$(($CollectionState$reuse_state$(($Canonical$collection_of$(_state_0)))))));
+  } else if (_event_0.$ === "Canonical.OutputStarted") {
+    const _partition_26 = _event_0["partition"];
     const _lifetime_28 = _event_0["lifetime"];
     const _round_28 = _event_0["round"];
-    return $Canonical$output_start$(_state_0, _partition_24, _lifetime_28, _round_28);
+    return $Canonical$output_start$(_state_0, _partition_26, _lifetime_28, _round_28);
   } else if (_event_0.$ === "Canonical.OutputTerminal") {
-    const _partition_25 = _event_0["partition"];
+    const _partition_27 = _event_0["partition"];
     const _lifetime_29 = _event_0["lifetime"];
     const _round_29 = _event_0["round"];
     const _operation_9 = _event_0["operation"];
     const _outcome_3 = _event_0["outcome"];
-    return $Canonical$output_terminal$(_state_0, _partition_25, _lifetime_29, _round_29, _operation_9, _outcome_3);
+    return $Canonical$output_terminal$(_state_0, _partition_27, _lifetime_29, _round_29, _operation_9, _outcome_3);
   } else {
-    const _partition_26 = _event_0["partition"];
+    const _partition_28 = _event_0["partition"];
     const _lifetime_30 = _event_0["lifetime"];
     const _round_30 = _event_0["round"];
-    return $Canonical$retire$(_state_0, _partition_26, _lifetime_30, _round_30);
+    return $Canonical$retire$(_state_0, _partition_28, _lifetime_30, _round_30);
   }
 }
 
@@ -1367,7 +1402,8 @@ function $CollectionState$ticket_open$(_state_0, _id_0) {
   const __3 = _state_0["delivery"];
   const __4 = _state_0["revision"];
   const _tickets_0 = _state_0["tickets"];
-  return $CollectionState$ticket_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": __3, "revision": __4, "tickets": _tickets_0}, ($TicketState$open$(_tickets_0, _id_0)));
+  const _reuse_0 = _state_0["reuse"];
+  return $CollectionState$ticket_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": __3, "revision": __4, "tickets": _tickets_0, "reuse": _reuse_0}, ($TicketState$open$(_tickets_0, _id_0)));
 }
 
 function $Canonical$collection_of$(_state_0) {
@@ -1382,7 +1418,8 @@ function $CollectionState$ticket_forget$(_state_0, _id_0) {
   const __3 = _state_0["delivery"];
   const __4 = _state_0["revision"];
   const _tickets_0 = _state_0["tickets"];
-  return $CollectionState$ticket_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": __3, "revision": __4, "tickets": _tickets_0}, ($TicketState$forget$(_tickets_0, _id_0)));
+  const _reuse_0 = _state_0["reuse"];
+  return $CollectionState$ticket_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": __3, "revision": __4, "tickets": _tickets_0, "reuse": _reuse_0}, ($TicketState$forget$(_tickets_0, _id_0)));
 }
 
 function $CollectionState$ticket_fail$(_state_0, _id_0, _reason_0) {
@@ -1392,7 +1429,8 @@ function $CollectionState$ticket_fail$(_state_0, _id_0, _reason_0) {
   const __3 = _state_0["delivery"];
   const __4 = _state_0["revision"];
   const _tickets_0 = _state_0["tickets"];
-  return $CollectionState$ticket_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": __3, "revision": __4, "tickets": _tickets_0}, ($TicketState$fail$(_tickets_0, _id_0, _reason_0)));
+  const _reuse_0 = _state_0["reuse"];
+  return $CollectionState$ticket_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": __3, "revision": __4, "tickets": _tickets_0, "reuse": _reuse_0}, ($TicketState$fail$(_tickets_0, _id_0, _reason_0)));
 }
 
 function $CollectionState$ticket_close$(_state_0, _id_0) {
@@ -1402,7 +1440,8 @@ function $CollectionState$ticket_close$(_state_0, _id_0) {
   const __3 = _state_0["delivery"];
   const __4 = _state_0["revision"];
   const _tickets_0 = _state_0["tickets"];
-  return $CollectionState$ticket_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": __3, "revision": __4, "tickets": _tickets_0}, ($TicketState$close$(_tickets_0, _id_0)));
+  const _reuse_0 = _state_0["reuse"];
+  return $CollectionState$ticket_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": __3, "revision": __4, "tickets": _tickets_0, "reuse": _reuse_0}, ($TicketState$close$(_tickets_0, _id_0)));
 }
 
 function $CollectionState$ticket_add_unit$(_state_0, _id_0, _unit_0) {
@@ -1412,7 +1451,8 @@ function $CollectionState$ticket_add_unit$(_state_0, _id_0, _unit_0) {
   const __3 = _state_0["delivery"];
   const __4 = _state_0["revision"];
   const _tickets_0 = _state_0["tickets"];
-  return $CollectionState$ticket_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": __3, "revision": __4, "tickets": _tickets_0}, ($TicketState$add_unit$(_tickets_0, _id_0, _unit_0)));
+  const _reuse_0 = _state_0["reuse"];
+  return $CollectionState$ticket_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": __3, "revision": __4, "tickets": _tickets_0, "reuse": _reuse_0}, ($TicketState$add_unit$(_tickets_0, _id_0, _unit_0)));
 }
 
 function $CollectionState$ticket_step_unit$(_state_0, _id_0, _unit_0, _event_0, _reason_0) {
@@ -1422,7 +1462,8 @@ function $CollectionState$ticket_step_unit$(_state_0, _id_0, _unit_0, _event_0, 
   const __3 = _state_0["delivery"];
   const __4 = _state_0["revision"];
   const _tickets_0 = _state_0["tickets"];
-  return $CollectionState$ticket_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": __3, "revision": __4, "tickets": _tickets_0}, ($TicketState$step_unit$(_tickets_0, _id_0, _unit_0, _event_0, _reason_0)));
+  const _reuse_0 = _state_0["reuse"];
+  return $CollectionState$ticket_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": __3, "revision": __4, "tickets": _tickets_0, "reuse": _reuse_0}, ($TicketState$step_unit$(_tickets_0, _id_0, _unit_0, _event_0, _reason_0)));
 }
 
 function $Canonical$ticket_unit_snapshot$(_state_0, _found_0) {
@@ -1496,6 +1537,125 @@ function $Ticket$joined_disposition$(_state_0, _stale_unavailable_0, _has_revisi
   return $Bool$pick$(_stale_unavailable_0, {$: "Ticket.KeepJoined"}, ($Ticket$joined$route$(_state_0, _has_revision_0, _has_advice_id_0)));
 }
 
+function $Canonical$reuse_route_result$(_state_0, _result_0) {
+  if (_result_0.$ === "ReuseState.JoinAdvice") {
+    const _replacement_0 = _result_0["state"];
+    return $Canonical$reuse_step$(_state_0, _replacement_0, {$: "Canonical.ReuseJoinAdvice"});
+  } else if (_result_0.$ === "ReuseState.JoinPending") {
+    const _replacement_1 = _result_0["state"];
+    return $Canonical$reuse_step$(_state_0, _replacement_1, {$: "Canonical.ReuseJoinPending"});
+  } else if (_result_0.$ === "ReuseState.JoinClaimed") {
+    const _replacement_2 = _result_0["state"];
+    return $Canonical$reuse_step$(_state_0, _replacement_2, {$: "Canonical.ReuseJoinClaimed"});
+  } else if (_result_0.$ === "ReuseState.Cached") {
+    const _replacement_3 = _result_0["state"];
+    return $Canonical$reuse_step$(_state_0, _replacement_3, {$: "Canonical.ReuseCached"});
+  } else {
+    const _replacement_4 = _result_0["state"];
+    return $Canonical$reuse_step$(_state_0, _replacement_4, {$: "Canonical.ReuseOwn"});
+  }
+}
+
+function $ReuseState$route$(_state_0, _id_0, _live_advice_0) {
+  const _claims_0 = _state_0["claims"];
+  const __0 = _state_0["cache"];
+  if (_live_advice_0) {
+    return {$: "ReuseState.JoinAdvice", "state": {$: "ReuseState.State", "claims": _claims_0, "cache": __0}};
+  } else {
+    return $ReuseState$route_claim$({$: "ReuseState.State", "claims": _claims_0, "cache": __0}, _id_0, ($ReuseState$find_claim$(_id_0, _claims_0)));
+  }
+}
+
+function $CollectionState$reuse_state$(_state_0) {
+  const _reuse_0 = _state_0["reuse"];
+  return _reuse_0;
+}
+
+function $Canonical$reuse_decision_result$(_state_0, _result_0, _granted_0) {
+  if (_result_0.$ === "ReuseState.Granted") {
+    const _replacement_0 = _result_0["state"];
+    return $Canonical$reuse_step$(_state_0, _replacement_0, _granted_0);
+  } else {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.ReuseRefused"}, "tail": {$: "Nil"}}};
+  }
+}
+
+function $ReuseState$claim$(_state_0, _id_0) {
+  const _claims_0 = _state_0["claims"];
+  const _cache_0 = _state_0["cache"];
+  return $Bool$pick$(($Maybe$is_none$(($ReuseState$find_claim$(_id_0, _claims_0)))), {$: "ReuseState.Granted", "state": {$: "ReuseState.State", "claims": {$: "Con", "head": {$: "ReuseState.Claim", "id": _id_0, "attached": false}, "tail": _claims_0}, "cache": _cache_0}}, {$: "ReuseState.Refused", "state": {$: "ReuseState.State", "claims": _claims_0, "cache": _cache_0}});
+}
+
+function $ReuseState$attach$(_state_0, _id_0) {
+  const _claims_0 = _state_0["claims"];
+  const __0 = _state_0["cache"];
+  return $ReuseState$attach_found$({$: "ReuseState.State", "claims": _claims_0, "cache": __0}, _id_0, ($ReuseState$find_claim$(_id_0, _claims_0)));
+}
+
+function $Canonical$reuse_step$(_state_0, _replacement_0, _command_0) {
+  return {$: "Canonical.Advanced", "state": ($Canonical$with_collection$(_state_0, ($CollectionState$with_reuse$(($Canonical$collection_of$(_state_0)), _replacement_0)))), "commands": {$: "Con", "head": _command_0, "tail": {$: "Nil"}}};
+}
+
+function $ReuseState$release$(_state_0, _id_0) {
+  const _claims_0 = _state_0["claims"];
+  const _cache_0 = _state_0["cache"];
+  return {$: "ReuseState.State", "claims": ($ReuseState$without_claim$(_id_0, _claims_0)), "cache": _cache_0};
+}
+
+function $ReuseState$touch$(_state_0, _id_0) {
+  return $ReuseState$route_cache_only$(_state_0, _id_0);
+}
+
+function $Canonical$cache_plan_result$(_state_0, _result_0) {
+  if (_result_0.$ === "ReuseState.Already") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.CacheAlready"}, "tail": {$: "Nil"}}};
+  } else if (_result_0.$ === "ReuseState.Reject") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.CacheRejected"}, "tail": {$: "Nil"}}};
+  } else {
+    const _replacement_0 = _result_0["state"];
+    const _ids_0 = _result_0["evicted"];
+    return $Canonical$reuse_step$(_state_0, _replacement_0, {$: "Canonical.CachePrepared", "evicted": _ids_0});
+  }
+}
+
+function $ReuseState$prepare$(_state_0, _id_0, _incoming_0, _entry_limit_0, _byte_limit_0) {
+  const __0 = _state_0["claims"];
+  const _cache_0 = _state_0["cache"];
+  return $ReuseState$prepare_decision$({$: "ReuseState.State", "claims": __0, "cache": _cache_0}, _incoming_0, _entry_limit_0, _byte_limit_0, ($ReuseState$find_entry$(_id_0, _cache_0)));
+}
+
+function $Canonical$cache_commit$(_state_0, _id_0, _partition_0, _bytes_0, _reservation_0, _entry_limit_0, _byte_limit_0) {
+  const _t_0 = _state_0["ledger"];
+  const __0 = _t_0["limits"];
+  const __1 = _t_0["next_id"];
+  const _charges_0 = _t_0["charges"];
+  const __2 = _state_0["rounds"];
+  const __3 = _state_0["work"];
+  const __4 = _state_0["next_round"];
+  const __5 = _state_0["next_operation"];
+  const __6 = _state_0["admissions"];
+  const __7 = _state_0["dispatch"];
+  const __8 = _state_0["collection"];
+  return $Canonical$cache_commit_checked$({$: "Canonical.State", "ledger": {$: "Ledger.Ledger", "limits": __0, "next_id": __1, "charges": _charges_0}, "rounds": __2, "work": __3, "next_round": __4, "next_operation": __5, "admissions": __6, "dispatch": __7, "collection": __8}, _id_0, _partition_0, _bytes_0, _reservation_0, _entry_limit_0, _byte_limit_0, ($Canonical$cache_charge_valid$(($Ledger$find$(_reservation_0, _charges_0)), _partition_0, _bytes_0)));
+}
+
+function $Canonical$cache_discard_result$(_state_0, _result_0) {
+  const _replacement_0 = _result_0["state"];
+  const _ids_0 = _result_0["ids"];
+  return $Canonical$reuse_step$(_state_0, _replacement_0, {$: "Canonical.CacheDiscarded", "ids": _ids_0});
+}
+
+function $ReuseState$discard$(_state_0, _partition_0) {
+  const _claims_0 = _state_0["claims"];
+  const _cache_0 = _state_0["cache"];
+  return $ReuseState$discard_with_claims$(_claims_0, ($ReuseState$discard_partition$(_cache_0, _partition_0)));
+}
+
+function $ReuseState$clear$(_state_0) {
+  const _cache_0 = _state_0["cache"];
+  return {$: "ReuseState.Discarded", "state": ($ReuseState$initial$()), "ids": ($ReuseState$entry_ids$(_cache_0))};
+}
+
 function $Canonical$output_start$(_state_0, _partition_0, _lifetime_0, _round_0) {
   const __0 = _state_0["ledger"];
   const _rounds_0 = _state_0["rounds"];
@@ -1541,7 +1701,7 @@ function $Dispatch$initial$() {
 }
 
 function $CollectionState$initial$() {
-  return {$: "CollectionState.State", "ready": {$: "Nil"}, "leases": {$: "Nil"}, "claims": {$: "Nil"}, "delivery": ($DeliveryState$initial$()), "revision": ($RevisionState$initial$()), "tickets": ($TicketState$initial$())};
+  return {$: "CollectionState.State", "ready": {$: "Nil"}, "leases": {$: "Nil"}, "claims": {$: "Nil"}, "delivery": ($DeliveryState$initial$()), "revision": ($RevisionState$initial$()), "tickets": ($TicketState$initial$()), "reuse": ($ReuseState$initial$())};
 }
 
 function $Ledger$limits_for$(_purpose_0, _limits_0) {
@@ -2256,8 +2416,9 @@ function $CollectionState$mark_ready$(_state_0, _advice_0, _eligible_now_0) {
   const _delivery_0 = _state_0["delivery"];
   const _revision_0 = _state_0["revision"];
   const _tickets_0 = _state_0["tickets"];
+  const _reuse_0 = _state_0["reuse"];
   const _x_0 = ($CollectionState$contains$(_advice_0, _ready_0));
-  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_advice_0, 0)), (_eligible_now_0 || _x_0))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": ($Bool$pick$(($CollectionState$contains$(_advice_0, _ready_0)), _ready_0, {$: "Con", "head": _advice_0, "tail": _ready_0})), "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}});
+  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_advice_0, 0)), (_eligible_now_0 || _x_0))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": ($Bool$pick$(($CollectionState$contains$(_advice_0, _ready_0)), _ready_0, {$: "Con", "head": _advice_0, "tail": _ready_0})), "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0, "reuse": _reuse_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0, "reuse": _reuse_0}});
 }
 
 function $Collection$eligible$(_already_0, _turn_end_0, _cycle_complete_0, _elapsed_0, _window_0) {
@@ -2322,7 +2483,8 @@ function $CollectionState$reserve$(_state_0, _advice_0, _token_0) {
   const _delivery_0 = _state_0["delivery"];
   const _revision_0 = _state_0["revision"];
   const _tickets_0 = _state_0["tickets"];
-  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($CollectionState$contains$(_advice_0, _ready_0)), ($Bool$not$(($CollectionState$lease_exists$(_advice_0, _leases_0)))))))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": {$: "Con", "head": {$: "CollectionState.Lease", "advice": _advice_0, "owner": _token_0}, "tail": _leases_0}, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}});
+  const _reuse_0 = _state_0["reuse"];
+  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($CollectionState$contains$(_advice_0, _ready_0)), ($Bool$not$(($CollectionState$lease_exists$(_advice_0, _leases_0)))))))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": {$: "Con", "head": {$: "CollectionState.Lease", "advice": _advice_0, "owner": _token_0}, "tail": _leases_0}, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0, "reuse": _reuse_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0, "reuse": _reuse_0}});
 }
 
 function $CollectionState$release$(_state_0, _advice_0, _token_0) {
@@ -2332,7 +2494,8 @@ function $CollectionState$release$(_state_0, _advice_0, _token_0) {
   const _delivery_0 = _state_0["delivery"];
   const _revision_0 = _state_0["revision"];
   const _tickets_0 = _state_0["tickets"];
-  return $Bool$pick$(($CollectionState$lease_owned$(_advice_0, _token_0, _leases_0)), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": ($CollectionState$remove_lease$(_advice_0, _token_0, _leases_0)), "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}});
+  const _reuse_0 = _state_0["reuse"];
+  return $Bool$pick$(($CollectionState$lease_owned$(_advice_0, _token_0, _leases_0)), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": ($CollectionState$remove_lease$(_advice_0, _token_0, _leases_0)), "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0, "reuse": _reuse_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0, "reuse": _reuse_0}});
 }
 
 function $Canonical$collection_lease_checked$(_state_0, _advice_0, _token_0, _action_0) {
@@ -2366,7 +2529,8 @@ function $CollectionState$retire$(_state_0, _advice_0) {
   const _delivery_0 = _state_0["delivery"];
   const _revision_0 = _state_0["revision"];
   const _tickets_0 = _state_0["tickets"];
-  return {$: "CollectionState.State", "ready": ($CollectionState$remove_ready$(_advice_0, _ready_0)), "leases": ($CollectionState$remove_advice_lease$(_advice_0, _leases_0)), "claims": _claims_0, "delivery": ($DeliveryState$submission_forget$(_delivery_0, _advice_0)), "revision": _revision_0, "tickets": _tickets_0};
+  const _reuse_0 = _state_0["reuse"];
+  return {$: "CollectionState.State", "ready": ($CollectionState$remove_ready$(_advice_0, _ready_0)), "leases": ($CollectionState$remove_advice_lease$(_advice_0, _leases_0)), "claims": _claims_0, "delivery": ($DeliveryState$submission_forget$(_delivery_0, _advice_0)), "revision": _revision_0, "tickets": _tickets_0, "reuse": _reuse_0};
 }
 
 function $CollectionState$claim$(_state_0, _group_0, _token_0, _active_0, _capacity_0) {
@@ -2376,8 +2540,9 @@ function $CollectionState$claim$(_state_0, _group_0, _token_0, _active_0, _capac
   const _delivery_0 = _state_0["delivery"];
   const _revision_0 = _state_0["revision"];
   const _tickets_0 = _state_0["tickets"];
+  const _reuse_0 = _state_0["reuse"];
   const _x_0 = ($List$length$(_claims_0));
-  return $Bool$pick$(($Bool$and$(_active_0, ($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($Bool$not$(($CollectionState$claim_exists$(_group_0, _claims_0)))), (_x_0 < _capacity_0))))))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": {$: "Con", "head": {$: "CollectionState.Claim", "group": _group_0, "owner": _token_0}, "tail": _claims_0}, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}});
+  return $Bool$pick$(($Bool$and$(_active_0, ($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($Bool$not$(($CollectionState$claim_exists$(_group_0, _claims_0)))), (_x_0 < _capacity_0))))))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": {$: "Con", "head": {$: "CollectionState.Claim", "group": _group_0, "owner": _token_0}, "tail": _claims_0}, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0, "reuse": _reuse_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0, "reuse": _reuse_0}});
 }
 
 function $CollectionState$release_claim$(_state_0, _group_0, _token_0) {
@@ -2387,7 +2552,8 @@ function $CollectionState$release_claim$(_state_0, _group_0, _token_0) {
   const _delivery_0 = _state_0["delivery"];
   const _revision_0 = _state_0["revision"];
   const _tickets_0 = _state_0["tickets"];
-  return $Bool$pick$(($CollectionState$claim_owned$(_group_0, _token_0, _claims_0)), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": ($CollectionState$remove_claim$(_group_0, _token_0, _claims_0)), "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}});
+  const _reuse_0 = _state_0["reuse"];
+  return $Bool$pick$(($CollectionState$claim_owned$(_group_0, _token_0, _claims_0)), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": ($CollectionState$remove_claim$(_group_0, _token_0, _claims_0)), "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0, "reuse": _reuse_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0, "reuse": _reuse_0}});
 }
 
 function $CollectionState$expire_claim$(_state_0, _group_0, _token_0, _elapsed_0, _lifetime_0) {
@@ -2446,7 +2612,8 @@ function $CollectionState$finish_release$(_state_0, _group_0, _round_0, _attempt
   const _delivery_0 = _state_0["delivery"];
   const __3 = _state_0["revision"];
   const __4 = _state_0["tickets"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4}, ($DeliveryState$release$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0)));
+  const _reuse_0 = _state_0["reuse"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4, "reuse": _reuse_0}, ($DeliveryState$release$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0)));
 }
 
 function $CollectionState$submission_ready$(_state_0, _group_0, _round_0, _token_0, _selected_0) {
@@ -2461,7 +2628,8 @@ function $CollectionState$finish_authorize$(_state_0, _group_0, _round_0, _attem
   const _delivery_0 = _state_0["delivery"];
   const __3 = _state_0["revision"];
   const __4 = _state_0["tickets"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4}, ($DeliveryState$authorize$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)));
+  const _reuse_0 = _state_0["reuse"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4, "reuse": _reuse_0}, ($DeliveryState$authorize$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)));
 }
 
 function $Canonical$finish_terminal_result$(_state_0, _outcome_0, _decision_0) {
@@ -2480,7 +2648,8 @@ function $CollectionState$finish_terminal$(_state_0, _group_0, _round_0, _attemp
   const _delivery_0 = _state_0["delivery"];
   const __3 = _state_0["revision"];
   const __4 = _state_0["tickets"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4}, ($DeliveryState$terminal$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0)));
+  const _reuse_0 = _state_0["reuse"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4, "reuse": _reuse_0}, ($DeliveryState$terminal$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0)));
 }
 
 function $CollectionState$finish_end$(_state_0, _group_0, _round_0, _attempt_0, _token_0) {
@@ -2490,7 +2659,8 @@ function $CollectionState$finish_end$(_state_0, _group_0, _round_0, _attempt_0, 
   const _delivery_0 = _state_0["delivery"];
   const __3 = _state_0["revision"];
   const __4 = _state_0["tickets"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4}, ($DeliveryState$end$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0)));
+  const _reuse_0 = _state_0["reuse"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4, "reuse": _reuse_0}, ($DeliveryState$end$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0)));
 }
 
 function $CollectionState$consume_continuation$(_state_0, _group_0, _round_0) {
@@ -2500,7 +2670,8 @@ function $CollectionState$consume_continuation$(_state_0, _group_0, _round_0) {
   const _delivery_0 = _state_0["delivery"];
   const __3 = _state_0["revision"];
   const __4 = _state_0["tickets"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4}, ($DeliveryState$consume$(_delivery_0, _group_0, _round_0)));
+  const _reuse_0 = _state_0["reuse"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4, "reuse": _reuse_0}, ($DeliveryState$consume$(_delivery_0, _group_0, _round_0)));
 }
 
 function $Canonical$submission_round_found$(_group_0, _round_0, _found_0) {
@@ -2534,7 +2705,8 @@ function $CollectionState$submission_begin$(_state_0, _advice_0, _group_0, _roun
   const _delivery_0 = _state_0["delivery"];
   const __3 = _state_0["revision"];
   const __4 = _state_0["tickets"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4}, ($DeliveryState$submission_begin$(_delivery_0, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0)));
+  const _reuse_0 = _state_0["reuse"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4, "reuse": _reuse_0}, ($DeliveryState$submission_begin$(_delivery_0, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0)));
 }
 
 function $CollectionState$submission_authorize$(_state_0, _advice_0, _token_0) {
@@ -2544,7 +2716,8 @@ function $CollectionState$submission_authorize$(_state_0, _advice_0, _token_0) {
   const _delivery_0 = _state_0["delivery"];
   const __3 = _state_0["revision"];
   const __4 = _state_0["tickets"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4}, ($DeliveryState$submission_authorize$(_delivery_0, _advice_0, _token_0)));
+  const _reuse_0 = _state_0["reuse"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4, "reuse": _reuse_0}, ($DeliveryState$submission_authorize$(_delivery_0, _advice_0, _token_0)));
 }
 
 function $CollectionState$submission_terminal$(_state_0, _advice_0, _token_0, _certain_0) {
@@ -2554,7 +2727,8 @@ function $CollectionState$submission_terminal$(_state_0, _advice_0, _token_0, _c
   const _delivery_0 = _state_0["delivery"];
   const __3 = _state_0["revision"];
   const __4 = _state_0["tickets"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4}, ($DeliveryState$submission_terminal$(_delivery_0, _advice_0, _token_0, _certain_0)));
+  const _reuse_0 = _state_0["reuse"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4, "reuse": _reuse_0}, ($DeliveryState$submission_terminal$(_delivery_0, _advice_0, _token_0, _certain_0)));
 }
 
 function $CollectionState$submission_release$(_state_0, _advice_0, _token_0) {
@@ -2564,7 +2738,8 @@ function $CollectionState$submission_release$(_state_0, _advice_0, _token_0) {
   const _delivery_0 = _state_0["delivery"];
   const __3 = _state_0["revision"];
   const __4 = _state_0["tickets"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4}, ($DeliveryState$submission_release$(_delivery_0, _advice_0, _token_0)));
+  const _reuse_0 = _state_0["reuse"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4, "reuse": _reuse_0}, ($DeliveryState$submission_release$(_delivery_0, _advice_0, _token_0)));
 }
 
 function $CollectionState$submission_forget$(_state_0, _advice_0) {
@@ -2574,7 +2749,8 @@ function $CollectionState$submission_forget$(_state_0, _advice_0) {
   const _delivery_0 = _state_0["delivery"];
   const _revision_0 = _state_0["revision"];
   const _tickets_0 = _state_0["tickets"];
-  return {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": ($DeliveryState$submission_forget$(_delivery_0, _advice_0)), "revision": _revision_0, "tickets": _tickets_0};
+  const _reuse_0 = _state_0["reuse"];
+  return {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": ($DeliveryState$submission_forget$(_delivery_0, _advice_0)), "revision": _revision_0, "tickets": _tickets_0, "reuse": _reuse_0};
 }
 
 function $CollectionState$submission_suppresses$(_state_0, _advice_0, _fingerprint_0, _round_0, _surface_0) {
@@ -2624,7 +2800,8 @@ function $CollectionState$revision_release$(_state_0, _subject_0, _generation_0)
   const _delivery_0 = _state_0["delivery"];
   const _revision_0 = _state_0["revision"];
   const _tickets_0 = _state_0["tickets"];
-  return {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": ($RevisionState$release$(_revision_0, _subject_0, _generation_0)), "tickets": _tickets_0};
+  const _reuse_0 = _state_0["reuse"];
+  return {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": ($RevisionState$release$(_revision_0, _subject_0, _generation_0)), "tickets": _tickets_0, "reuse": _reuse_0};
 }
 
 function $CollectionState$revision_current$(_state_0, _subject_0, _input_0, _generation_0) {
@@ -2654,11 +2831,12 @@ function $CollectionState$ticket_result$(_state_0, _decision_0) {
   const _delivery_0 = _state_0["delivery"];
   const _revision_0 = _state_0["revision"];
   const __0 = _state_0["tickets"];
+  const _reuse_0 = _state_0["reuse"];
   if (_decision_0.$ === "TicketState.Granted") {
     const _tickets_0 = _decision_0["state"];
-    return {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}};
+    return {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0, "reuse": _reuse_0}};
   } else {
-    return {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": __0}};
+    return {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": __0, "reuse": _reuse_0}};
   }
 }
 
@@ -2759,6 +2937,144 @@ function $Ticket$joined$route$(_state_0, _has_revision_0, _has_advice_id_0) {
     return $Bool$pick$(_has_revision_0, {$: "Ticket.SetJoinedClear"}, {$: "Ticket.SetJoinedLost"});
   } else {
     return $Bool$pick$(($Bool$and$(_has_revision_0, _has_advice_id_0)), {$: "Ticket.SetJoinedFinding"}, {$: "Ticket.SetJoinedLost"});
+  }
+}
+
+function $ReuseState$route_claim$(_state_0, _id_0, _found_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _t_1 = _t_0["attached"];
+    if (_t_1) {
+      return {$: "ReuseState.JoinPending", "state": _state_0};
+    } else {
+      return {$: "ReuseState.JoinClaimed", "state": _state_0};
+    }
+  } else {
+    return $ReuseState$route_cache$(_state_0, _id_0);
+  }
+}
+
+function $ReuseState$find_claim$(_id_0, _claims_0) {
+  if (_claims_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _claim_0 = _claims_0["head"];
+    const _rest_0 = _claims_0["tail"];
+    return $Bool$pick$(($Nat$is_eq$(_id_0, ($ReuseState$claim_id$(_claim_0)))), {$: "Some", "value": _claim_0}, ($ReuseState$find_claim$(_id_0, _rest_0)));
+  }
+}
+
+function $Maybe$is_none$(_m_0) {
+  return $Bool$not$(($Maybe$is_some$(_m_0)));
+}
+
+function $ReuseState$attach_found$(_state_0, _id_0, _found_0) {
+  const _claims_0 = _state_0["claims"];
+  const _cache_0 = _state_0["cache"];
+  if (_found_0.$ === "Some") {
+    return {$: "ReuseState.Granted", "state": {$: "ReuseState.State", "claims": {$: "Con", "head": {$: "ReuseState.Claim", "id": _id_0, "attached": true}, "tail": ($ReuseState$without_claim$(_id_0, _claims_0))}, "cache": _cache_0}};
+  } else {
+    return {$: "ReuseState.Refused", "state": {$: "ReuseState.State", "claims": _claims_0, "cache": _cache_0}};
+  }
+}
+
+function $CollectionState$with_reuse$(_state_0, _replacement_0) {
+  const _ready_0 = _state_0["ready"];
+  const _leases_0 = _state_0["leases"];
+  const _claims_0 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  const _revision_0 = _state_0["revision"];
+  const _tickets_0 = _state_0["tickets"];
+  return {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0, "reuse": _replacement_0};
+}
+
+function $ReuseState$without_claim$(_id_0, _claims_0) {
+  if (_claims_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _claim_0 = _claims_0["head"];
+    const _rest_0 = _claims_0["tail"];
+    return $ReuseState$keep_claim$(_claim_0, ($ReuseState$without_claim$(_id_0, _rest_0)), ($Nat$is_eq$(_id_0, ($ReuseState$claim_id$(_claim_0)))));
+  }
+}
+
+function $ReuseState$route_cache_only$(_state_0, _id_0) {
+  const __0 = _state_0["claims"];
+  const _cache_0 = _state_0["cache"];
+  return $ReuseState$route_cache_only_found$({$: "ReuseState.State", "claims": __0, "cache": _cache_0}, _id_0, ($ReuseState$find_entry$(_id_0, _cache_0)));
+}
+
+function $ReuseState$prepare_decision$(_state_0, _incoming_0, _entry_limit_0, _byte_limit_0, _found_0) {
+  if (_found_0.$ === "Some") {
+    return {$: "ReuseState.Already", "state": _state_0};
+  } else {
+    return $ReuseState$prepare_missing$(_state_0, _incoming_0, _entry_limit_0, _byte_limit_0, ($Nat$is_gt$(_incoming_0, _byte_limit_0)));
+  }
+}
+
+function $ReuseState$find_entry$(_id_0, _cache_0) {
+  if (_cache_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _entry_0 = _cache_0["head"];
+    const _rest_0 = _cache_0["tail"];
+    return $Bool$pick$(($Nat$is_eq$(_id_0, ($ReuseState$entry_id$(_entry_0)))), {$: "Some", "value": _entry_0}, ($ReuseState$find_entry$(_id_0, _rest_0)));
+  }
+}
+
+function $Canonical$cache_commit_checked$(_state_0, _id_0, _partition_0, _bytes_0, _reservation_0, _entry_limit_0, _byte_limit_0, _valid_0) {
+  if (_valid_0) {
+    return $Canonical$reuse_decision_result$(_state_0, ($ReuseState$commit$(($CollectionState$reuse_state$(($Canonical$collection_of$(_state_0)))), _id_0, _partition_0, _bytes_0, _reservation_0, _entry_limit_0, _byte_limit_0)), {$: "Canonical.CacheCommitted"});
+  } else {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.ReuseRefused"}, "tail": {$: "Nil"}}};
+  }
+}
+
+function $Canonical$cache_charge_valid$(_found_0, _partition_0, _bytes_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _owner_0 = _t_0["partition"];
+    const _size_0 = _t_0["bytes"];
+    const _t_1 = _t_0["purpose"];
+    if (_t_1.$ === "Ledger.StoredResult") {
+      return $Bool$and$(($Nat$is_eq$(_partition_0, _owner_0)), ($Nat$is_eq$(_bytes_0, _size_0)));
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
+function $ReuseState$discard_with_claims$(_claims_0, _result_0) {
+  const _t_0 = _result_0["state"];
+  const _kept_0 = _t_0["cache"];
+  const _ids_0 = _result_0["ids"];
+  return {$: "ReuseState.Discarded", "state": {$: "ReuseState.State", "claims": _claims_0, "cache": _kept_0}, "ids": _ids_0};
+}
+
+function $ReuseState$discard_partition$(_cache_0, _partition_0) {
+  if (_cache_0.$ === "Nil") {
+    return {$: "ReuseState.Discarded", "state": {$: "ReuseState.State", "claims": {$: "Nil"}, "cache": {$: "Nil"}}, "ids": {$: "Nil"}};
+  } else {
+    const _entry_0 = _cache_0["head"];
+    const _rest_0 = _cache_0["tail"];
+    return $ReuseState$discard_choice$(_entry_0, ($ReuseState$discard_partition$(_rest_0, _partition_0)), ($Nat$is_eq$(($ReuseState$entry_partition$(_entry_0)), _partition_0)));
+  }
+}
+
+function $ReuseState$initial$() {
+  return {$: "ReuseState.State", "claims": {$: "Nil"}, "cache": {$: "Nil"}};
+}
+
+function $ReuseState$entry_ids$(_cache_0) {
+  if (_cache_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _cache_0["head"];
+    const _id_0 = _t_0["id"];
+    const _rest_0 = _cache_0["tail"];
+    return {$: "Con", "head": _id_0, "tail": ($ReuseState$entry_ids$(_rest_0))};
   }
 }
 
@@ -3577,7 +3893,8 @@ function $CollectionState$finish_reserve$(_state_0, _group_0, _round_0, _attempt
   const _delivery_0 = _state_0["delivery"];
   const __3 = _state_0["revision"];
   const __4 = _state_0["tickets"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4}, ($DeliveryState$reserve$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)));
+  const _reuse_0 = _state_0["reuse"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3, "tickets": __4, "reuse": _reuse_0}, ($DeliveryState$reserve$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)));
 }
 
 function $CollectionState$delivery_result$(_state_0, _result_0) {
@@ -3587,11 +3904,12 @@ function $CollectionState$delivery_result$(_state_0, _result_0) {
   const __0 = _state_0["delivery"];
   const _revision_0 = _state_0["revision"];
   const _tickets_0 = _state_0["tickets"];
+  const _reuse_0 = _state_0["reuse"];
   if (_result_0.$ === "DeliveryState.Granted") {
     const _delivery_0 = _result_0["state"];
-    return {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0}};
+    return {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _tickets_0, "reuse": _reuse_0}};
   } else {
-    return {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": __0, "revision": _revision_0, "tickets": _tickets_0}};
+    return {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": __0, "revision": _revision_0, "tickets": _tickets_0, "reuse": _reuse_0}};
   }
 }
 
@@ -3691,7 +4009,8 @@ function $CollectionState$revision_replace$(_state_0, _replacement_0) {
   const _claims_0 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
   const _tickets_0 = _state_0["tickets"];
-  return {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _replacement_0, "tickets": _tickets_0};
+  const _reuse_0 = _state_0["reuse"];
+  return {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _replacement_0, "tickets": _tickets_0, "reuse": _reuse_0};
 }
 
 function $RevisionState$register$(_state_0, _subject_0, _input_0, _add_member_0) {
@@ -3830,6 +4149,87 @@ function $Ticket$terminal$pending$(_state_0, _facts_0) {
   const _x_2 = ($Ticket$is_preparing$(_state_0));
   const _x_3 = (_x_0 || _x_1);
   return $Bool$pick$((_x_2 || _x_3), {$: "Ticket.Pending"}, ($Ticket$terminal$phase$(_state_0, _unit_failure_0, _finding_units_0, _undelivered_0, _total_0)));
+}
+
+function $ReuseState$route_cache$(_state_0, _id_0) {
+  const __0 = _state_0["claims"];
+  const _cache_0 = _state_0["cache"];
+  return $ReuseState$route_cache_found$({$: "ReuseState.State", "claims": __0, "cache": _cache_0}, _id_0, ($ReuseState$find_entry$(_id_0, _cache_0)));
+}
+
+function $ReuseState$claim_id$(_claim_0) {
+  const _id_0 = _claim_0["id"];
+  return _id_0;
+}
+
+function $Maybe$is_some$(_m_0) {
+  if (_m_0.$ === "None") {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+function $ReuseState$keep_claim$(_claim_0, _tail_0, _remove_0) {
+  if (_remove_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _claim_0, "tail": _tail_0};
+  }
+}
+
+function $ReuseState$route_cache_only_found$(_state_0, _id_0, _found_0) {
+  const _claims_0 = _state_0["claims"];
+  const _cache_0 = _state_0["cache"];
+  if (_found_0.$ === "Some") {
+    const _entry_0 = _found_0["value"];
+    return {$: "ReuseState.Cached", "state": {$: "ReuseState.State", "claims": _claims_0, "cache": ($List$append$(($ReuseState$without_entry$(_id_0, _cache_0)), {$: "Con", "head": _entry_0, "tail": {$: "Nil"}}))}};
+  } else {
+    return {$: "ReuseState.Own", "state": {$: "ReuseState.State", "claims": _claims_0, "cache": _cache_0}};
+  }
+}
+
+function $ReuseState$prepare_missing$(_state_0, _incoming_0, _entry_limit_0, _byte_limit_0, _oversized_0) {
+  const _claims_0 = _state_0["claims"];
+  const _cache_0 = _state_0["cache"];
+  if (_oversized_0) {
+    return {$: "ReuseState.Reject", "state": {$: "ReuseState.State", "claims": _claims_0, "cache": _cache_0}};
+  } else {
+    return $ReuseState$prepared_after_eviction$(_claims_0, ($ReuseState$evict_for$(_cache_0, _incoming_0, _entry_limit_0, _byte_limit_0, {$: "Nil"})));
+  }
+}
+
+function $ReuseState$entry_id$(_entry_0) {
+  const _id_0 = _entry_0["id"];
+  return _id_0;
+}
+
+function $ReuseState$commit$(_state_0, _id_0, _partition_0, _bytes_0, _reservation_0, _entry_limit_0, _byte_limit_0) {
+  const _claims_0 = _state_0["claims"];
+  const _cache_0 = _state_0["cache"];
+  const _x_0 = ($List$length$(_cache_0));
+  const _x_1 = ($ReuseState$cache_bytes$(_cache_0));
+  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_id_0, 0)), ($Bool$and$(($Nat$is_gt$(_partition_0, 0)), ($Bool$and$(($Nat$is_gt$(_reservation_0, 0)), ($Bool$and$(($Maybe$is_none$(($ReuseState$find_entry$(_id_0, _cache_0)))), ($Bool$and$(($Bool$not$(($ReuseState$find_reservation$(_reservation_0, _cache_0)))), ($Bool$and$((_x_0 < _entry_limit_0), ($Nat$is_le$(nat_chk(_x_1 + _bytes_0), _byte_limit_0)))))))))))))), {$: "ReuseState.Granted", "state": {$: "ReuseState.State", "claims": _claims_0, "cache": ($List$append$(_cache_0, {$: "Con", "head": {$: "ReuseState.Entry", "id": _id_0, "partition": _partition_0, "bytes": _bytes_0, "reservation": _reservation_0}, "tail": {$: "Nil"}}))}}, {$: "ReuseState.Refused", "state": {$: "ReuseState.State", "claims": _claims_0, "cache": _cache_0}});
+}
+
+function $ReuseState$discard_choice$(_entry_0, _result_0, _selected_0) {
+  const _id_0 = _entry_0["id"];
+  const __0 = _entry_0["partition"];
+  const __1 = _entry_0["bytes"];
+  const __2 = _entry_0["reservation"];
+  const _t_0 = _result_0["state"];
+  const _kept_0 = _t_0["cache"];
+  const _ids_0 = _result_0["ids"];
+  if (_selected_0) {
+    return {$: "ReuseState.Discarded", "state": {$: "ReuseState.State", "claims": {$: "Nil"}, "cache": _kept_0}, "ids": {$: "Con", "head": _id_0, "tail": _ids_0}};
+  } else {
+    return {$: "ReuseState.Discarded", "state": {$: "ReuseState.State", "claims": {$: "Nil"}, "cache": {$: "Con", "head": {$: "ReuseState.Entry", "id": _id_0, "partition": __0, "bytes": __1, "reservation": __2}, "tail": _kept_0}}, "ids": _ids_0};
+  }
+}
+
+function $ReuseState$entry_partition$(_entry_0) {
+  const _partition_0 = _entry_0["partition"];
+  return _partition_0;
 }
 
 function $Canonical$remove_round$(_partition_0, _rounds_0) {
@@ -4935,10 +5335,6 @@ function $Ticket$close$(_phase_0) {
   }
 }
 
-function $Maybe$is_none$(_m_0) {
-  return $Bool$not$(($Maybe$is_some$(_m_0)));
-}
-
 function $TicketState$find_unit$(_id_0, _units_0) {
   if (_units_0.$ === "Nil") {
     return {$: "None"};
@@ -4994,6 +5390,75 @@ function $Ticket$terminal$phase$(_state_0, _failure_0, _finding_units_0, _undeli
     return {$: "Ticket.Unavailable", "reason": _reason_0};
   } else {
     return $Ticket$terminal$unit$(_failure_0, _finding_units_0, _undelivered_0, _total_0);
+  }
+}
+
+function $ReuseState$route_cache_found$(_state_0, _id_0, _found_0) {
+  const _claims_0 = _state_0["claims"];
+  const _cache_0 = _state_0["cache"];
+  if (_found_0.$ === "Some") {
+    const _entry_0 = _found_0["value"];
+    return {$: "ReuseState.Cached", "state": {$: "ReuseState.State", "claims": _claims_0, "cache": ($List$append$(($ReuseState$without_entry$(_id_0, _cache_0)), {$: "Con", "head": _entry_0, "tail": {$: "Nil"}}))}};
+  } else {
+    return {$: "ReuseState.Own", "state": {$: "ReuseState.State", "claims": {$: "Con", "head": {$: "ReuseState.Claim", "id": _id_0, "attached": false}, "tail": _claims_0}, "cache": _cache_0}};
+  }
+}
+
+function $ReuseState$without_entry$(_id_0, _cache_0) {
+  if (_cache_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _entry_0 = _cache_0["head"];
+    const _rest_0 = _cache_0["tail"];
+    return $ReuseState$keep_entry$(_entry_0, ($ReuseState$without_entry$(_id_0, _rest_0)), ($Nat$is_eq$(_id_0, ($ReuseState$entry_id$(_entry_0)))));
+  }
+}
+
+function $ReuseState$prepared_after_eviction$(_claims_0, _result_0) {
+  const _t_0 = _result_0["state"];
+  const _remaining_0 = _t_0["cache"];
+  const _ids_0 = _result_0["ids"];
+  return {$: "ReuseState.Prepared", "state": {$: "ReuseState.State", "claims": _claims_0, "cache": _remaining_0}, "evicted": _ids_0};
+}
+
+function $ReuseState$evict_for$(_cache_0, _incoming_0, _entry_limit_0, _byte_limit_0, _evicted_0) {
+  if (_cache_0.$ === "Nil") {
+    return {$: "ReuseState.Discarded", "state": {$: "ReuseState.State", "claims": {$: "Nil"}, "cache": {$: "Nil"}}, "ids": _evicted_0};
+  } else {
+    const _t_0 = _cache_0["head"];
+    const _id_0 = _t_0["id"];
+    const __0 = _t_0["partition"];
+    const __1 = _t_0["bytes"];
+    const __2 = _t_0["reservation"];
+    const _rest_0 = _cache_0["tail"];
+    const _x_0 = ($ReuseState$cache_bytes$({$: "Con", "head": {$: "ReuseState.Entry", "id": _id_0, "partition": __0, "bytes": __1, "reservation": __2}, "tail": _rest_0}));
+    const _x_1 = ($Nat$is_ge$(($List$length$({$: "Con", "head": {$: "ReuseState.Entry", "id": _id_0, "partition": __0, "bytes": __1, "reservation": __2}, "tail": _rest_0})), _entry_limit_0));
+    const _x_2 = ($Nat$is_gt$(nat_chk(_x_0 + _incoming_0), _byte_limit_0));
+    return $Bool$pick$((_x_1 || _x_2), ($ReuseState$evict_for$(_rest_0, _incoming_0, _entry_limit_0, _byte_limit_0, ($List$append$(_evicted_0, {$: "Con", "head": _id_0, "tail": {$: "Nil"}})))), {$: "ReuseState.Discarded", "state": {$: "ReuseState.State", "claims": {$: "Nil"}, "cache": {$: "Con", "head": {$: "ReuseState.Entry", "id": _id_0, "partition": __0, "bytes": __1, "reservation": __2}, "tail": _rest_0}}, "ids": _evicted_0});
+  }
+}
+
+function $ReuseState$find_reservation$(_reservation_0, _cache_0) {
+  if (_cache_0.$ === "Nil") {
+    return false;
+  } else {
+    const _entry_0 = _cache_0["head"];
+    const _rest_0 = _cache_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_reservation_0, ($ReuseState$entry_reservation$(_entry_0))));
+    const _x_1 = ($ReuseState$find_reservation$(_reservation_0, _rest_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $ReuseState$cache_bytes$(_cache_0) {
+  if (_cache_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _t_0 = _cache_0["head"];
+    const _bytes_0 = _t_0["bytes"];
+    const _rest_0 = _cache_0["tail"];
+    const _x_0 = ($ReuseState$cache_bytes$(_rest_0));
+    return nat_chk(_bytes_0 + _x_0);
   }
 }
 
@@ -5694,14 +6159,6 @@ function $Ticket$fail$previous$(_previous_0, _reason_0) {
   }
 }
 
-function $Maybe$is_some$(_m_0) {
-  if (_m_0.$ === "None") {
-    return false;
-  } else {
-    return true;
-  }
-}
-
 function $TicketState$unit_id$(_unit_0) {
   const _id_0 = _unit_0["id"];
   return _id_0;
@@ -5758,6 +6215,19 @@ function $Ticket$terminal$unit$(_failure_0, _finding_units_0, _undelivered_0, _t
   } else {
     return $Ticket$terminal$findings$(_finding_units_0, _undelivered_0, _total_0);
   }
+}
+
+function $ReuseState$keep_entry$(_entry_0, _tail_0, _remove_0) {
+  if (_remove_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _entry_0, "tail": _tail_0};
+  }
+}
+
+function $ReuseState$entry_reservation$(_entry_0) {
+  const _reservation_0 = _entry_0["reservation"];
+  return _reservation_0;
 }
 
 function $Canonical$cancel_pick$(_operation_0, _tail_0, _hit_0) {

@@ -79,8 +79,7 @@ describe("resident evaluation identity", () => {
   it("evicts successful LRU entries without disturbing pending joins", () => {
     const ledger = new CapacityLedger();
     const reuse = new EvaluationReuse<never>({
-      reserve: (partition, bytes) => ledger.reserve(partition, bytes, "storedResult"),
-      release: (reservation) => { ledger.release(reservation); },
+      ledger,
       logicalBytes: (value) => Buffer.byteLength(JSON.stringify(value), "utf8"),
     });
     const partition = "partition";
@@ -111,8 +110,7 @@ describe("resident evaluation identity", () => {
     const ledger = new CapacityLedger();
     let size = 70_000;
     const reuse = new EvaluationReuse<never>({
-      reserve: (partition, bytes) => ledger.reserve(partition, bytes, "storedResult"),
-      release: (reservation) => { ledger.release(reservation); },
+      ledger,
       logicalBytes: () => size,
     });
     const first = prepared(input({ path: "first.ts", rules: [] }));
@@ -128,5 +126,34 @@ describe("resident evaluation identity", () => {
     expect(reuse.snapshot()).toMatchObject({ entries: 1, bytes: 70_000 });
     expect(ledger.snapshot().bytes).toBe(70_000);
     reuse.clear();
+  });
+
+  it("keeps canonical claim and LRU order aligned with native handles through expiry", () => {
+    const ledger = new CapacityLedger();
+    const reuse = new EvaluationReuse<string>({ ledger, logicalBytes: () => 10 });
+    const first = prepared(input({ path: "first.ts", rules: [] }));
+    const second = prepared(input({ path: "second.ts", rules: [] }));
+    const firstKey = reuse.key("partition-a", first);
+    const secondKey = reuse.key("partition-b", second);
+    expect(reuse.route(firstKey, false)).toBe("owner");
+    expect(reuse.route(firstKey, false)).toBe("joinedClaimed");
+    expect(reuse.attachPending(firstKey, "active request")).toBe(true);
+    expect(reuse.route(firstKey, false)).toBe("joinedPending");
+    expect(reuse.route(firstKey, true)).toBe("joinedAdvice");
+    expect(ledger.canonicalProjection().reuse.claims).toMatchObject([{ attached: true }]);
+    reuse.releaseClaim(firstKey);
+    expect(reuse.put("partition-a", firstKey, { prepared: first, findings: [] })).toBe(true);
+    expect(reuse.put("partition-b", secondKey, { prepared: second, findings: [] })).toBe(true);
+    expect(reuse.route(firstKey, false)).toBe("cached");
+    const beforeExpiry = ledger.canonicalProjection().reuse.cache;
+    expect(beforeExpiry.map(({ partition }) => partition)).toEqual([
+      ledger.partitionId("partition-b"), ledger.partitionId("partition-a"),
+    ]);
+    reuse.discardPartition("partition-b");
+    expect(ledger.canonicalProjection().reuse.cache).toMatchObject([{ partition: ledger.partitionId("partition-a") }]);
+    expect(reuse.snapshot()).toMatchObject({ entries: 1, bytes: 10, pending: 0 });
+    reuse.clear();
+    expect(ledger.canonicalProjection().reuse).toEqual({ claims: [], cache: [] });
+    expect(ledger.snapshot()).toMatchObject({ items: 0, bytes: 0 });
   });
 });

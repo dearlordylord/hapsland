@@ -130,6 +130,12 @@ export type CanonicalEvent =
   | { readonly kind: "ticketCollectGateCheck"; readonly expired: boolean; readonly credentialValid: boolean }
   | { readonly kind: "ticketFinalAuthorityCheck"; readonly admittedBlock: boolean; readonly currentBlock: boolean }
   | { readonly kind: "ticketJoinedCheck"; readonly state: TicketJoinedState; readonly staleUnavailable: boolean; readonly hasRevision: boolean; readonly hasAdviceId: boolean }
+  | { readonly kind: "reuseRoute"; readonly id: number; readonly liveAdvice: boolean }
+  | { readonly kind: "reuseClaim" | "reuseAttach" | "reuseRelease" | "reuseTouch"; readonly id: number }
+  | { readonly kind: "cachePrepare"; readonly id: number; readonly bytes: number; readonly entryLimit: number; readonly byteLimit: number }
+  | { readonly kind: "cacheCommit"; readonly id: number; readonly partition: number; readonly bytes: number; readonly reservation: number; readonly entryLimit: number; readonly byteLimit: number }
+  | { readonly kind: "cacheDiscardPartition"; readonly partition: number }
+  | { readonly kind: "cacheClear" }
   | { readonly kind: "outputStarted"; readonly partition: number; readonly lifetime: number; readonly round: number }
   | { readonly kind: "outputTerminal"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly outcome: "acknowledged" | "failed" | "unknown" }
   | { readonly kind: "retirePartition"; readonly partition: number; readonly lifetime: number; readonly round: number };
@@ -180,6 +186,9 @@ export type CanonicalCommand =
   | { readonly kind: "ticketUnavailable" | "ticketCollectUnavailable"; readonly reason: TicketReason }
   | { readonly kind: "ticketUnitSnapshot"; readonly stage: "pending" | "clear" | "finding" | "unavailable"; readonly delivered?: boolean; readonly reason?: TicketReason }
   | { readonly kind: "ticketUnitMissing" }
+  | { readonly kind: "reuseJoinAdvice" | "reuseJoinPending" | "reuseJoinClaimed" | "reuseCached" | "reuseOwn" | "reuseClaimed" | "reuseAttached" | "reuseReleased" | "reuseRefused" | "cacheAlready" | "cacheRejected" | "cacheCommitted" }
+  | { readonly kind: "cachePrepared"; readonly evicted: readonly number[] }
+  | { readonly kind: "cacheDiscarded"; readonly ids: readonly number[] }
   | { readonly kind: "writeAuthorized"; readonly operation: number }
   | { readonly kind: "writeRecorded"; readonly outcome: "acknowledged" | "failed" | "unknown" }
   | { readonly kind: "waitForOutput" }
@@ -345,6 +354,12 @@ const encode = (event: CanonicalEvent): unknown => {
     case "ticketCollectGateCheck": inputFields(event, ["kind", "expired", "credentialValid"]); return { $: "Canonical.TicketCollectGateCheck", expired: bool(event.expired), credential_valid: bool(event.credentialValid) };
     case "ticketFinalAuthorityCheck": inputFields(event, ["kind", "admittedBlock", "currentBlock"]); return { $: "Canonical.TicketFinalAuthorityCheck", admitted_block: bool(event.admittedBlock), current_block: bool(event.currentBlock) };
     case "ticketJoinedCheck": inputFields(event, ["kind", "state", "staleUnavailable", "hasRevision", "hasAdviceId"]); return { $: "Canonical.TicketJoinedCheck", joined_state: ticketJoinedState(event.state), stale_unavailable: bool(event.staleUnavailable), has_revision: bool(event.hasRevision), has_advice_id: bool(event.hasAdviceId) };
+    case "reuseRoute": inputFields(event, ["kind", "id", "liveAdvice"]); return { $: "Canonical.ReuseRoute", id: nat(event.id, true), live_advice: bool(event.liveAdvice) };
+    case "reuseClaim": case "reuseAttach": case "reuseRelease": case "reuseTouch": inputFields(event, ["kind", "id"]); return { $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`, id: nat(event.id, true) };
+    case "cachePrepare": inputFields(event, ["kind", "id", "bytes", "entryLimit", "byteLimit"]); return { $: "Canonical.CachePrepare", id: nat(event.id, true), bytes: nat(event.bytes), entry_limit: nat(event.entryLimit, true), byte_limit: nat(event.byteLimit, true) };
+    case "cacheCommit": inputFields(event, ["kind", "id", "partition", "bytes", "reservation", "entryLimit", "byteLimit"]); return { $: "Canonical.CacheCommit", id: nat(event.id, true), partition: nat(event.partition, true), bytes: nat(event.bytes), reservation: nat(event.reservation, true), entry_limit: nat(event.entryLimit, true), byte_limit: nat(event.byteLimit, true) };
+    case "cacheDiscardPartition": inputFields(event, ["kind", "partition"]); return { $: "Canonical.CacheDiscardPartition", partition: nat(event.partition, true) };
+    case "cacheClear": inputFields(event, ["kind"]); return { $: "Canonical.CacheClear" };
     case "outputStarted": inputFields(event, ["kind", "partition", "lifetime", "round"]); return { $: "Canonical.OutputStarted", ...identity(event), round: nat(event.round, true) };
     case "outputTerminal": {
       inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "outcome"]);
@@ -559,6 +574,17 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
       return { kind: "ticketUnitSnapshot", ...decodeTicketUnitState(item.stage, item.reason) };
     }
     case "Canonical.TicketUnitMissing": fields(value, "Canonical.TicketUnitMissing", []); return { kind: "ticketUnitMissing" };
+    case "Canonical.CachePrepared": return { kind: "cachePrepared", evicted: readList(fields(value, "Canonical.CachePrepared", ["evicted"]).evicted, (id) => nat(id, true)) };
+    case "Canonical.CacheDiscarded": return { kind: "cacheDiscarded", ids: readList(fields(value, "Canonical.CacheDiscarded", ["ids"]).ids, (id) => nat(id, true)) };
+    case "Canonical.ReuseJoinAdvice": case "Canonical.ReuseJoinPending":
+    case "Canonical.ReuseJoinClaimed": case "Canonical.ReuseCached":
+    case "Canonical.ReuseOwn": case "Canonical.ReuseClaimed":
+    case "Canonical.ReuseAttached": case "Canonical.ReuseReleased":
+    case "Canonical.ReuseRefused": case "Canonical.CacheAlready":
+    case "Canonical.CacheRejected": case "Canonical.CacheCommitted": {
+      const name = tag(value); fields(value, name, []);
+      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Exclude<Extract<CanonicalCommand, { kind: `reuse${string}` | `cache${string}` }>["kind"], "cachePrepared" | "cacheDiscarded"> };
+    }
     case "Canonical.TicketOpened": case "Canonical.TicketForgotten": case "Canonical.TicketFailed":
     case "Canonical.TicketClosed": case "Canonical.TicketUnitAdded": case "Canonical.TicketUnitUpdated":
     case "Canonical.TicketRefused": case "Canonical.TicketPending": case "Canonical.TicketDelivered":
@@ -592,6 +618,7 @@ export type CanonicalProjection = {
   readonly dispatch: { readonly pending: readonly DispatchEntry[]; readonly active: readonly DispatchEntry[]; readonly running: readonly DispatchEntry[]; readonly nextSequence: number; readonly cycle: number; readonly closed: boolean };
   readonly collection: { readonly ready: readonly number[]; readonly leases: readonly { readonly advice: number; readonly owner: number }[]; readonly claims: readonly { readonly group: number; readonly owner: number }[] };
   readonly tickets: readonly { readonly id: number; readonly phase: "preparing" | "closed" | "failed"; readonly failure?: TicketReason; readonly units: readonly { readonly id: number; readonly stage: "pending" | "clear" | "finding" | "unavailable"; readonly delivered?: boolean; readonly reason?: TicketReason }[] }[];
+  readonly reuse: { readonly claims: readonly { readonly id: number; readonly attached: boolean }[]; readonly cache: readonly { readonly id: number; readonly partition: number; readonly bytes: number; readonly reservation: number }[] };
   readonly revision: { readonly entries: readonly { readonly subject: number; readonly input: number; readonly generation: number; readonly members: number }[]; readonly nextGeneration: number };
   readonly delivery: { readonly slots: readonly { readonly group: number; readonly round: number; readonly attempt: number; readonly token: number; readonly selected: readonly number[]; readonly phase: "reserved" | "authorized" | "submitted" | "failed" | "uncertain" }[]; readonly counters: readonly { readonly group: number; readonly round: number; readonly used: number }[]; readonly submissions: { readonly batches: readonly { readonly advice: number; readonly group: number; readonly round: number; readonly token: number; readonly surface: "edit" | "background" | "stop"; readonly phase: "reserved" | "authorized" | "submitted" | "uncertain"; readonly fingerprints: readonly number[]; readonly units: readonly number[] }[]; readonly leases: readonly { readonly advice: number; readonly fingerprint: number; readonly round: number; readonly phase: "available" | "reserved" | "authorized" | "submitted" | "uncertain"; readonly reoffered: boolean }[] } };
 };
@@ -611,7 +638,22 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
     running: readList(rawDispatch.running, dispatchEntry), nextSequence: nat(rawDispatch.next_sequence),
     cycle: nat(rawDispatch.cycle), closed: bool(rawDispatch.closed) };
   const dispatchEntries = [...dispatch.pending, ...dispatch.active, ...dispatch.running];
-  const collectionState = fields(s.collection, "CollectionState.State", ["ready", "leases", "claims", "delivery", "revision", "tickets"]);
+  const collectionState = fields(s.collection, "CollectionState.State", ["ready", "leases", "claims", "delivery", "revision", "tickets", "reuse"]);
+  const reuseState = fields(collectionState.reuse, "ReuseState.State", ["claims", "cache"]);
+  const reuse: CanonicalProjection["reuse"] = {
+    claims: readList(reuseState.claims, (value) => {
+      const item = fields(value, "ReuseState.Claim", ["id", "attached"]);
+      return { id: nat(item.id, true), attached: bool(item.attached) };
+    }),
+    cache: readList(reuseState.cache, (value) => {
+      const item = fields(value, "ReuseState.Entry", ["id", "partition", "bytes", "reservation"]);
+      return { id: nat(item.id, true), partition: nat(item.partition, true), bytes: nat(item.bytes), reservation: nat(item.reservation, true) };
+    }),
+  };
+  if (new Set(reuse.claims.map((item) => item.id)).size !== reuse.claims.length ||
+      new Set(reuse.cache.map((item) => item.id)).size !== reuse.cache.length) {
+    throw new TypeError("duplicate canonical evaluation identity");
+  }
   const rawRevision = fields(collectionState.revision, "RevisionState.State", ["entries", "next_generation"]);
   const revision = { entries: readList(rawRevision.entries, (value) => {
     const entry = fields(value, "RevisionState.Entry", ["subject", "input", "generation", "members"]);
@@ -783,6 +825,11 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
               : chargesById.get(x.reservation)?.purpose !== (x.kind === "preparing" ? "preparation" : "reviewUnit"))) ||
         x.operation >= (s.next_operation as number) ||
         !rounds.some((round) => round.partition === x.partition && round.lifetime === x.lifetime && round.id === x.round)) ||
+      reuse.cache.some((entry) => {
+        const charge = chargesById.get(entry.reservation);
+        return charge?.purpose !== "storedResult" || charge.partition !== entry.partition ||
+          charge.bytes !== entry.bytes;
+      }) ||
       charges.some((x) => x.id >= (ledger.next_id as number)) ||
       rounds.some((round) => {
         const local = charges.filter((charge) => charge.partition === round.partition);
@@ -817,7 +864,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
     limits: { globalItems: nat(limits.global_items, true), globalBytes: nat(limits.global_bytes, true),
       partitionItems: nat(limits.partition_items, true), partitionBytes: nat(limits.partition_bytes, true) },
     partitions, charges, inventory, rounds, admissions, work, pendingFindings,
-    dispatch, collection, revision, tickets, delivery };
+    dispatch, collection, revision, tickets, reuse, delivery };
 };
 export const initialCanonical = (limits: { readonly globalItems: number; readonly globalBytes: number; readonly partitionItems: number; readonly partitionBytes: number }): unknown => {
   const values = Object.values(limits);

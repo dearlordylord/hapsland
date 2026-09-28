@@ -102,6 +102,14 @@ reasons in canonical state. Native code supplies live advice, notice, clock,
 credential, and host handoff facts. Terminal commands distinguish pending,
 clear, delivered, no-work, and unavailable without claiming agent visibility.
 
+The #129 reuse events retain numeric evaluation claims and successful cache
+entries in oldest-first order. A single route transition decides live advice,
+attached work, bare claim, cache hit, or new owner priority. Cache preparation
+chooses admissions and evictions before native reservation; commit records a
+successful reservation. Partition expiry and cleanup return exact IDs whose
+native reservations are released. Source-derived keys, request handles,
+cached evaluations, and credential facts remain outside Bend.
+
 ## Checked TypeScript boundary
 
 [`src/canonical/adapter.ts`](../src/canonical/adapter.ts) is the only TypeScript entry for this model. It maps semantic event tags to compiled Bend constructors, validates positive numeric bounds, limits list length, and rejects unknown event and outcome tags. It checks every returned constructor and field set, state list, ledger charge, round, work kind, command, and rejection tag. An opaque state returned by `initialCanonical` or `stepCanonical` is required; a forged state is rejected. The build script verifies the compiled `Canonical.initial` and `Canonical.step` symbols before writing `src/canonical/canonical.generated.js`.
