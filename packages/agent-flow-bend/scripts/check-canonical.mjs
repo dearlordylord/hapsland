@@ -228,4 +228,19 @@ for (const trace of submissionFixture.traces) {
   }
   assert.deepEqual(projectCanonical(current).delivery.submissions, trace.submissions, trace.name);
 }
-console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length + stopFixture.traces.length + collectionFixture.traces.length + deliveryFixture.traces.length + submissionFixture.traces.length} independent source-free canonical traces`);
+const revisionFixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-revision-v1.json"), "utf8"));
+for (const trace of revisionFixture.traces) {
+  let current = initialCanonical(fixture.limits);
+  for (const { expect: expected, ...event } of trace.events) {
+    const result = stepCanonical(current, event);
+    current = result.state;
+    const actual = result.rejection ? `rejected:${result.rejection}` : result.commands.map((command) => {
+      if ("generation" in command) return `${command.kind}:${command.generation}`;
+      if (command.kind === "revisionCount") return `${command.kind}:${command.count}`;
+      return command.kind;
+    }).join(",");
+    assert.equal(actual, expected, `${trace.name}: ${event.kind}`);
+  }
+  assert.deepEqual(projectCanonical(current).revision, trace.revision, trace.name);
+}
+console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length + stopFixture.traces.length + collectionFixture.traces.length + deliveryFixture.traces.length + submissionFixture.traces.length + revisionFixture.traces.length} independent source-free canonical traces`);

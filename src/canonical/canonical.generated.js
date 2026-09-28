@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:545d6c3a27b240a3ef268e1d4eb3ef7a2c6060ddf947a0daa21f954be99856f3
+// hapsland-bend-source-sha256:7cdca1c3bf7828ab7969ebfd15ce5ad48ed6b5c9bff85cf31064f8660fec05e3
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -535,6 +535,30 @@ function $Canonical$step$(_state_0, _event_0) {
     const _elapsed_3 = _event_0["elapsed"];
     const _lifetime_27 = _event_0["lifetime"];
     return $Canonical$submission_expiry_check$(_state_0, _advice_12, _token_19, _elapsed_3, _lifetime_27);
+  } else if (_event_0.$ === "Canonical.RevisionRegister") {
+    const _subject_0 = _event_0["subject"];
+    const _input_0 = _event_0["input"];
+    const _add_member_0 = _event_0["add_member"];
+    return $Canonical$revision_register$(_state_0, _subject_0, _input_0, _add_member_0);
+  } else if (_event_0.$ === "Canonical.RevisionRelease") {
+    const _subject_1 = _event_0["subject"];
+    const _generation_0 = _event_0["generation"];
+    return $Canonical$revision_release$(_state_0, _subject_1, _generation_0);
+  } else if (_event_0.$ === "Canonical.RevisionCurrentCheck") {
+    const _subject_2 = _event_0["subject"];
+    const _input_1 = _event_0["input"];
+    const _generation_1 = _event_0["generation"];
+    return $Canonical$revision_current_check$(_state_0, _subject_2, _input_1, _generation_1);
+  } else if (_event_0.$ === "Canonical.RevisionSupersededCheck") {
+    const _subject_3 = _event_0["subject"];
+    const _candidate_subject_0 = _event_0["candidate_subject"];
+    const _generation_2 = _event_0["generation"];
+    return $Canonical$revision_superseded_check$(_state_0, _subject_3, _candidate_subject_0, _generation_2);
+  } else if (_event_0.$ === "Canonical.RevisionGenerationCheck") {
+    const _subject_4 = _event_0["subject"];
+    return $Canonical$revision_generation_check$(_state_0, _subject_4);
+  } else if (_event_0.$ === "Canonical.RevisionCountCheck") {
+    return $Canonical$revision_count_check$(_state_0);
   } else if (_event_0.$ === "Canonical.OutputStarted") {
     const _partition_24 = _event_0["partition"];
     const _lifetime_28 = _event_0["lifetime"];
@@ -1207,6 +1231,78 @@ function $Canonical$submission_expiry_check$(_state_0, _advice_0, _token_0, _ela
   return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, "commands": {$: "Con", "head": ($Bool$pick$(($CollectionState$submission_expired$(_collection_0, _advice_0, _token_0, _elapsed_0, _lifetime_0)), {$: "Canonical.SubmissionExpired"}, {$: "Canonical.SubmissionCurrent"})), "tail": {$: "Nil"}}};
 }
 
+function $Canonical$revision_register$(_state_0, _subject_0, _input_0, _add_member_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return $Canonical$revision_register_result$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, ($CollectionState$revision_register$(_collection_0, _subject_0, _input_0, _add_member_0)));
+}
+
+function $Canonical$revision_release$(_state_0, _subject_0, _generation_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return {$: "Canonical.Advanced", "state": ($Canonical$with_collection$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, ($CollectionState$revision_release$(_collection_0, _subject_0, _generation_0)))), "commands": {$: "Con", "head": {$: "Canonical.RevisionReleased"}, "tail": {$: "Nil"}}};
+}
+
+function $Canonical$revision_current_check$(_state_0, _subject_0, _input_0, _generation_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, "commands": {$: "Con", "head": ($Bool$pick$(($CollectionState$revision_current$(_collection_0, _subject_0, _input_0, _generation_0)), {$: "Canonical.RevisionCurrent"}, {$: "Canonical.RevisionStale"})), "tail": {$: "Nil"}}};
+}
+
+function $Canonical$revision_superseded_check$(_state_0, _subject_0, _candidate_subject_0, _generation_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, "commands": {$: "Con", "head": ($Bool$pick$(($CollectionState$revision_superseded$(_collection_0, _subject_0, _candidate_subject_0, _generation_0)), {$: "Canonical.RevisionSuperseded"}, {$: "Canonical.RevisionNotSuperseded"})), "tail": {$: "Nil"}}};
+}
+
+function $Canonical$revision_generation_check$(_state_0, _subject_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, "commands": {$: "Con", "head": {$: "Canonical.RevisionGeneration", "generation": ($CollectionState$revision_generation$(_collection_0, _subject_0))}, "tail": {$: "Nil"}}};
+}
+
+function $Canonical$revision_count_check$(_state_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, "commands": {$: "Con", "head": {$: "Canonical.RevisionCount", "count": ($CollectionState$revision_count$(_collection_0))}, "tail": {$: "Nil"}}};
+}
+
 function $Canonical$output_start$(_state_0, _partition_0, _lifetime_0, _round_0) {
   const __0 = _state_0["ledger"];
   const _rounds_0 = _state_0["rounds"];
@@ -1252,7 +1348,7 @@ function $Dispatch$initial$() {
 }
 
 function $CollectionState$initial$() {
-  return {$: "CollectionState.State", "ready": {$: "Nil"}, "leases": {$: "Nil"}, "claims": {$: "Nil"}, "delivery": ($DeliveryState$initial$())};
+  return {$: "CollectionState.State", "ready": {$: "Nil"}, "leases": {$: "Nil"}, "claims": {$: "Nil"}, "delivery": ($DeliveryState$initial$()), "revision": ($RevisionState$initial$())};
 }
 
 function $Ledger$limits_for$(_purpose_0, _limits_0) {
@@ -1974,8 +2070,9 @@ function $CollectionState$mark_ready$(_state_0, _advice_0, _eligible_now_0) {
   const _leases_0 = _state_0["leases"];
   const _claims_0 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
+  const _revision_0 = _state_0["revision"];
   const _x_0 = ($CollectionState$contains$(_advice_0, _ready_0));
-  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_advice_0, 0)), (_eligible_now_0 || _x_0))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": ($Bool$pick$(($CollectionState$contains$(_advice_0, _ready_0)), _ready_0, {$: "Con", "head": _advice_0, "tail": _ready_0})), "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0}});
+  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_advice_0, 0)), (_eligible_now_0 || _x_0))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": ($Bool$pick$(($CollectionState$contains$(_advice_0, _ready_0)), _ready_0, {$: "Con", "head": _advice_0, "tail": _ready_0})), "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0}});
 }
 
 function $Collection$eligible$(_already_0, _turn_end_0, _cycle_complete_0, _elapsed_0, _window_0) {
@@ -2038,7 +2135,8 @@ function $CollectionState$reserve$(_state_0, _advice_0, _token_0) {
   const _leases_0 = _state_0["leases"];
   const _claims_0 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
-  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($CollectionState$contains$(_advice_0, _ready_0)), ($Bool$not$(($CollectionState$lease_exists$(_advice_0, _leases_0)))))))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": {$: "Con", "head": {$: "CollectionState.Lease", "advice": _advice_0, "owner": _token_0}, "tail": _leases_0}, "claims": _claims_0, "delivery": _delivery_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0}});
+  const _revision_0 = _state_0["revision"];
+  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($CollectionState$contains$(_advice_0, _ready_0)), ($Bool$not$(($CollectionState$lease_exists$(_advice_0, _leases_0)))))))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": {$: "Con", "head": {$: "CollectionState.Lease", "advice": _advice_0, "owner": _token_0}, "tail": _leases_0}, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0}});
 }
 
 function $CollectionState$release$(_state_0, _advice_0, _token_0) {
@@ -2046,7 +2144,8 @@ function $CollectionState$release$(_state_0, _advice_0, _token_0) {
   const _leases_0 = _state_0["leases"];
   const _claims_0 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
-  return $Bool$pick$(($CollectionState$lease_owned$(_advice_0, _token_0, _leases_0)), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": ($CollectionState$remove_lease$(_advice_0, _token_0, _leases_0)), "claims": _claims_0, "delivery": _delivery_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0}});
+  const _revision_0 = _state_0["revision"];
+  return $Bool$pick$(($CollectionState$lease_owned$(_advice_0, _token_0, _leases_0)), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": ($CollectionState$remove_lease$(_advice_0, _token_0, _leases_0)), "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0}});
 }
 
 function $Canonical$collection_lease_checked$(_state_0, _advice_0, _token_0, _action_0) {
@@ -2078,7 +2177,8 @@ function $CollectionState$retire$(_state_0, _advice_0) {
   const _leases_0 = _state_0["leases"];
   const _claims_0 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
-  return {$: "CollectionState.State", "ready": ($CollectionState$remove_ready$(_advice_0, _ready_0)), "leases": ($CollectionState$remove_advice_lease$(_advice_0, _leases_0)), "claims": _claims_0, "delivery": ($DeliveryState$submission_forget$(_delivery_0, _advice_0))};
+  const _revision_0 = _state_0["revision"];
+  return {$: "CollectionState.State", "ready": ($CollectionState$remove_ready$(_advice_0, _ready_0)), "leases": ($CollectionState$remove_advice_lease$(_advice_0, _leases_0)), "claims": _claims_0, "delivery": ($DeliveryState$submission_forget$(_delivery_0, _advice_0)), "revision": _revision_0};
 }
 
 function $CollectionState$claim$(_state_0, _group_0, _token_0, _active_0, _capacity_0) {
@@ -2086,8 +2186,9 @@ function $CollectionState$claim$(_state_0, _group_0, _token_0, _active_0, _capac
   const _leases_0 = _state_0["leases"];
   const _claims_0 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
+  const _revision_0 = _state_0["revision"];
   const _x_0 = ($List$length$(_claims_0));
-  return $Bool$pick$(($Bool$and$(_active_0, ($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($Bool$not$(($CollectionState$claim_exists$(_group_0, _claims_0)))), (_x_0 < _capacity_0))))))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": {$: "Con", "head": {$: "CollectionState.Claim", "group": _group_0, "owner": _token_0}, "tail": _claims_0}, "delivery": _delivery_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0}});
+  return $Bool$pick$(($Bool$and$(_active_0, ($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($Bool$not$(($CollectionState$claim_exists$(_group_0, _claims_0)))), (_x_0 < _capacity_0))))))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": {$: "Con", "head": {$: "CollectionState.Claim", "group": _group_0, "owner": _token_0}, "tail": _claims_0}, "delivery": _delivery_0, "revision": _revision_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0}});
 }
 
 function $CollectionState$release_claim$(_state_0, _group_0, _token_0) {
@@ -2095,7 +2196,8 @@ function $CollectionState$release_claim$(_state_0, _group_0, _token_0) {
   const _leases_0 = _state_0["leases"];
   const _claims_0 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
-  return $Bool$pick$(($CollectionState$claim_owned$(_group_0, _token_0, _claims_0)), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": ($CollectionState$remove_claim$(_group_0, _token_0, _claims_0)), "delivery": _delivery_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0}});
+  const _revision_0 = _state_0["revision"];
+  return $Bool$pick$(($CollectionState$claim_owned$(_group_0, _token_0, _claims_0)), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": ($CollectionState$remove_claim$(_group_0, _token_0, _claims_0)), "delivery": _delivery_0, "revision": _revision_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0}});
 }
 
 function $CollectionState$expire_claim$(_state_0, _group_0, _token_0, _elapsed_0, _lifetime_0) {
@@ -2152,7 +2254,8 @@ function $CollectionState$finish_release$(_state_0, _group_0, _round_0, _attempt
   const __1 = _state_0["leases"];
   const __2 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$release$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0)));
+  const __3 = _state_0["revision"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3}, ($DeliveryState$release$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0)));
 }
 
 function $CollectionState$submission_ready$(_state_0, _group_0, _round_0, _token_0, _selected_0) {
@@ -2165,7 +2268,8 @@ function $CollectionState$finish_authorize$(_state_0, _group_0, _round_0, _attem
   const __1 = _state_0["leases"];
   const __2 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$authorize$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)));
+  const __3 = _state_0["revision"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3}, ($DeliveryState$authorize$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)));
 }
 
 function $Canonical$finish_terminal_result$(_state_0, _outcome_0, _decision_0) {
@@ -2182,7 +2286,8 @@ function $CollectionState$finish_terminal$(_state_0, _group_0, _round_0, _attemp
   const __1 = _state_0["leases"];
   const __2 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$terminal$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0)));
+  const __3 = _state_0["revision"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3}, ($DeliveryState$terminal$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0)));
 }
 
 function $CollectionState$finish_end$(_state_0, _group_0, _round_0, _attempt_0, _token_0) {
@@ -2190,7 +2295,8 @@ function $CollectionState$finish_end$(_state_0, _group_0, _round_0, _attempt_0, 
   const __1 = _state_0["leases"];
   const __2 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$end$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0)));
+  const __3 = _state_0["revision"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3}, ($DeliveryState$end$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0)));
 }
 
 function $CollectionState$consume_continuation$(_state_0, _group_0, _round_0) {
@@ -2198,7 +2304,8 @@ function $CollectionState$consume_continuation$(_state_0, _group_0, _round_0) {
   const __1 = _state_0["leases"];
   const __2 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$consume$(_delivery_0, _group_0, _round_0)));
+  const __3 = _state_0["revision"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3}, ($DeliveryState$consume$(_delivery_0, _group_0, _round_0)));
 }
 
 function $Canonical$submission_round_found$(_group_0, _round_0, _found_0) {
@@ -2230,7 +2337,8 @@ function $CollectionState$submission_begin$(_state_0, _advice_0, _group_0, _roun
   const __1 = _state_0["leases"];
   const __2 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$submission_begin$(_delivery_0, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0)));
+  const __3 = _state_0["revision"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3}, ($DeliveryState$submission_begin$(_delivery_0, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0)));
 }
 
 function $CollectionState$submission_authorize$(_state_0, _advice_0, _token_0) {
@@ -2238,7 +2346,8 @@ function $CollectionState$submission_authorize$(_state_0, _advice_0, _token_0) {
   const __1 = _state_0["leases"];
   const __2 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$submission_authorize$(_delivery_0, _advice_0, _token_0)));
+  const __3 = _state_0["revision"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3}, ($DeliveryState$submission_authorize$(_delivery_0, _advice_0, _token_0)));
 }
 
 function $CollectionState$submission_terminal$(_state_0, _advice_0, _token_0, _certain_0) {
@@ -2246,7 +2355,8 @@ function $CollectionState$submission_terminal$(_state_0, _advice_0, _token_0, _c
   const __1 = _state_0["leases"];
   const __2 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$submission_terminal$(_delivery_0, _advice_0, _token_0, _certain_0)));
+  const __3 = _state_0["revision"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3}, ($DeliveryState$submission_terminal$(_delivery_0, _advice_0, _token_0, _certain_0)));
 }
 
 function $CollectionState$submission_release$(_state_0, _advice_0, _token_0) {
@@ -2254,7 +2364,8 @@ function $CollectionState$submission_release$(_state_0, _advice_0, _token_0) {
   const __1 = _state_0["leases"];
   const __2 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$submission_release$(_delivery_0, _advice_0, _token_0)));
+  const __3 = _state_0["revision"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3}, ($DeliveryState$submission_release$(_delivery_0, _advice_0, _token_0)));
 }
 
 function $CollectionState$submission_forget$(_state_0, _advice_0) {
@@ -2262,7 +2373,8 @@ function $CollectionState$submission_forget$(_state_0, _advice_0) {
   const _leases_0 = _state_0["leases"];
   const _claims_0 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
-  return {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": ($DeliveryState$submission_forget$(_delivery_0, _advice_0))};
+  const _revision_0 = _state_0["revision"];
+  return {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": ($DeliveryState$submission_forget$(_delivery_0, _advice_0)), "revision": _revision_0};
 }
 
 function $CollectionState$submission_suppresses$(_state_0, _advice_0, _fingerprint_0, _round_0, _surface_0) {
@@ -2278,6 +2390,60 @@ function $CollectionState$submission_reofferable$(_state_0, _advice_0, _token_0)
 function $CollectionState$submission_expired$(_state_0, _advice_0, _token_0, _elapsed_0, _lifetime_0) {
   const _delivery_0 = _state_0["delivery"];
   return $DeliveryState$submission_expired$(_delivery_0, _advice_0, _token_0, _elapsed_0, _lifetime_0);
+}
+
+function $Canonical$revision_register_result$(_state_0, _result_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  if (_result_0.$ === "RevisionState.Reused") {
+    const _replacement_0 = _result_0["state"];
+    const _generation_0 = _result_0["generation"];
+    return {$: "Canonical.Advanced", "state": ($Canonical$with_collection$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, ($CollectionState$revision_replace$(_collection_0, _replacement_0)))), "commands": {$: "Con", "head": {$: "Canonical.RevisionReused", "generation": _generation_0}, "tail": {$: "Nil"}}};
+  } else {
+    const _replacement_1 = _result_0["state"];
+    const _generation_1 = _result_0["generation"];
+    return {$: "Canonical.Advanced", "state": ($Canonical$with_collection$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, ($CollectionState$revision_replace$(_collection_0, _replacement_1)))), "commands": {$: "Con", "head": {$: "Canonical.RevisionReplaced", "generation": _generation_1}, "tail": {$: "Nil"}}};
+  }
+}
+
+function $CollectionState$revision_register$(_state_0, _subject_0, _input_0, _add_member_0) {
+  const _revision_0 = _state_0["revision"];
+  return $RevisionState$register$(_revision_0, _subject_0, _input_0, _add_member_0);
+}
+
+function $CollectionState$revision_release$(_state_0, _subject_0, _generation_0) {
+  const _ready_0 = _state_0["ready"];
+  const _leases_0 = _state_0["leases"];
+  const _claims_0 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  const _revision_0 = _state_0["revision"];
+  return {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": ($RevisionState$release$(_revision_0, _subject_0, _generation_0))};
+}
+
+function $CollectionState$revision_current$(_state_0, _subject_0, _input_0, _generation_0) {
+  const _revision_0 = _state_0["revision"];
+  return $RevisionState$current$(_revision_0, _subject_0, _input_0, _generation_0);
+}
+
+function $CollectionState$revision_superseded$(_state_0, _subject_0, _candidate_subject_0, _generation_0) {
+  const _revision_0 = _state_0["revision"];
+  return $RevisionState$superseded$(_revision_0, _subject_0, _candidate_subject_0, _generation_0);
+}
+
+function $CollectionState$revision_generation$(_state_0, _subject_0) {
+  const _revision_0 = _state_0["revision"];
+  return $RevisionState$generation$(_revision_0, _subject_0);
+}
+
+function $CollectionState$revision_count$(_state_0) {
+  const _revision_0 = _state_0["revision"];
+  return $RevisionState$count$(_revision_0);
 }
 
 function $Canonical$output_start_found$(_state_0, _partition_0, _lifetime_0, _round_0, _found_0) {
@@ -2328,6 +2494,10 @@ function $Canonical$retire_found$(_state_0, _partition_0, _lifetime_0, _round_0,
 
 function $DeliveryState$initial$() {
   return {$: "DeliveryState.State", "slots": {$: "Nil"}, "counters": {$: "Nil"}, "submissions": ($SubmissionState$initial$())};
+}
+
+function $RevisionState$initial$() {
+  return {$: "RevisionState.State", "entries": {$: "Nil"}, "next_generation": 1};
 }
 
 function $Canonical$capacity_view$(_ledger_0, _partition_0) {
@@ -3085,7 +3255,8 @@ function $CollectionState$finish_reserve$(_state_0, _group_0, _round_0, _attempt
   const __1 = _state_0["leases"];
   const __2 = _state_0["claims"];
   const _delivery_0 = _state_0["delivery"];
-  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$reserve$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)));
+  const __3 = _state_0["revision"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0, "revision": __3}, ($DeliveryState$reserve$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)));
 }
 
 function $CollectionState$delivery_result$(_state_0, _result_0) {
@@ -3093,11 +3264,12 @@ function $CollectionState$delivery_result$(_state_0, _result_0) {
   const _leases_0 = _state_0["leases"];
   const _claims_0 = _state_0["claims"];
   const __0 = _state_0["delivery"];
+  const _revision_0 = _state_0["revision"];
   if (_result_0.$ === "DeliveryState.Granted") {
     const _delivery_0 = _result_0["state"];
-    return {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0}};
+    return {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0}};
   } else {
-    return {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": __0}};
+    return {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": __0, "revision": _revision_0}};
   }
 }
 
@@ -3189,6 +3361,46 @@ function $DeliveryState$submission_reofferable$(_state_0, _advice_0, _token_0) {
 function $DeliveryState$submission_expired$(_state_0, _advice_0, _token_0, _elapsed_0, _lifetime_0) {
   const _submissions_0 = _state_0["submissions"];
   return $SubmissionState$expired$(_submissions_0, _advice_0, _token_0, _elapsed_0, _lifetime_0);
+}
+
+function $CollectionState$revision_replace$(_state_0, _replacement_0) {
+  const _ready_0 = _state_0["ready"];
+  const _leases_0 = _state_0["leases"];
+  const _claims_0 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  return {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _replacement_0};
+}
+
+function $RevisionState$register$(_state_0, _subject_0, _input_0, _add_member_0) {
+  const _entries_0 = _state_0["entries"];
+  const __0 = _state_0["next_generation"];
+  return $RevisionState$register_found$({$: "RevisionState.State", "entries": _entries_0, "next_generation": __0}, _subject_0, _input_0, _add_member_0, ($RevisionState$find$(_subject_0, _entries_0)));
+}
+
+function $RevisionState$release$(_state_0, _subject_0, _generation_0) {
+  const _entries_0 = _state_0["entries"];
+  const __0 = _state_0["next_generation"];
+  return $RevisionState$release_found$({$: "RevisionState.State", "entries": _entries_0, "next_generation": __0}, _subject_0, _generation_0, ($RevisionState$find$(_subject_0, _entries_0)));
+}
+
+function $RevisionState$current$(_state_0, _subject_0, _input_0, _generation_0) {
+  const _entries_0 = _state_0["entries"];
+  return $RevisionState$current_found$(_input_0, _generation_0, ($RevisionState$find$(_subject_0, _entries_0)));
+}
+
+function $RevisionState$superseded$(_state_0, _subject_0, _candidate_subject_0, _candidate_0) {
+  const _entries_0 = _state_0["entries"];
+  return $Bool$and$(($Nat$is_eq$(_subject_0, _candidate_subject_0)), ($RevisionState$superseded_found$(_candidate_0, ($RevisionState$find$(_subject_0, _entries_0)))));
+}
+
+function $RevisionState$generation$(_state_0, _subject_0) {
+  const _entries_0 = _state_0["entries"];
+  return $RevisionState$generation_found$(($RevisionState$find$(_subject_0, _entries_0)));
+}
+
+function $RevisionState$count$(_state_0) {
+  const _entries_0 = _state_0["entries"];
+  return $List$length$(_entries_0);
 }
 
 function $Canonical$remove_round$(_partition_0, _rounds_0) {
@@ -4186,6 +4398,76 @@ function $SubmissionState$expired$(_state_0, _advice_0, _token_0, _elapsed_0, _l
   return $SubmissionState$expired_found$(_elapsed_0, _lifetime_0, ($SubmissionState$find_batch$(_advice_0, _token_0, _batches_0)));
 }
 
+function $RevisionState$register_found$(_state_0, _subject_0, _input_0, _add_member_0, _found_0) {
+  const _entries_0 = _state_0["entries"];
+  const _next_generation_0 = _state_0["next_generation"];
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _old_input_0 = _t_0["input"];
+    const _generation_0 = _t_0["generation"];
+    const _members_0 = _t_0["members"];
+    const _updated_0 = ($Bool$pick$(_add_member_0, nat_chk(_members_0 + 1), _members_0));
+    return $Bool$pick$(($Nat$is_eq$(_old_input_0, _input_0)), {$: "RevisionState.Reused", "state": {$: "RevisionState.State", "entries": {$: "Con", "head": {$: "RevisionState.Entry", "subject": _subject_0, "input": _input_0, "generation": _generation_0, "members": _updated_0}, "tail": ($RevisionState$without$(_subject_0, _entries_0))}, "next_generation": _next_generation_0}, "generation": _generation_0}, {$: "RevisionState.Replaced", "state": {$: "RevisionState.State", "entries": {$: "Con", "head": {$: "RevisionState.Entry", "subject": _subject_0, "input": _input_0, "generation": _next_generation_0, "members": 1}, "tail": ($RevisionState$without$(_subject_0, _entries_0))}, "next_generation": nat_chk(_next_generation_0 + 1)}, "generation": _next_generation_0});
+  } else {
+    return {$: "RevisionState.Replaced", "state": {$: "RevisionState.State", "entries": {$: "Con", "head": {$: "RevisionState.Entry", "subject": _subject_0, "input": _input_0, "generation": _next_generation_0, "members": 1}, "tail": _entries_0}, "next_generation": nat_chk(_next_generation_0 + 1)}, "generation": _next_generation_0};
+  }
+}
+
+function $RevisionState$find$(_subject_0, _entries_0) {
+  if (_entries_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _entry_0 = _entries_0["head"];
+    const _rest_0 = _entries_0["tail"];
+    return $Bool$pick$(($RevisionState$same_subject$(_subject_0, _entry_0)), {$: "Some", "value": _entry_0}, ($RevisionState$find$(_subject_0, _rest_0)));
+  }
+}
+
+function $RevisionState$release_found$(_state_0, _subject_0, _generation_0, _found_0) {
+  const _entries_0 = _state_0["entries"];
+  const _next_generation_0 = _state_0["next_generation"];
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _input_0 = _t_0["input"];
+    const _current_0 = _t_0["generation"];
+    const _members_0 = _t_0["members"];
+    return $Bool$pick$(($Nat$is_eq$(_current_0, _generation_0)), ($Bool$pick$((1 < _members_0), {$: "RevisionState.State", "entries": {$: "Con", "head": {$: "RevisionState.Entry", "subject": _subject_0, "input": _input_0, "generation": _current_0, "members": (_members_0 < 1 ? 0 : _members_0 - 1)}, "tail": ($RevisionState$without$(_subject_0, _entries_0))}, "next_generation": _next_generation_0}, {$: "RevisionState.State", "entries": ($RevisionState$without$(_subject_0, _entries_0)), "next_generation": _next_generation_0})), {$: "RevisionState.State", "entries": _entries_0, "next_generation": _next_generation_0});
+  } else {
+    return {$: "RevisionState.State", "entries": _entries_0, "next_generation": _next_generation_0};
+  }
+}
+
+function $RevisionState$current_found$(_input_0, _generation_0, _found_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _retained_input_0 = _t_0["input"];
+    const _retained_generation_0 = _t_0["generation"];
+    return $Bool$and$(($Nat$is_eq$(_input_0, _retained_input_0)), ($Nat$is_eq$(_generation_0, _retained_generation_0)));
+  } else {
+    return false;
+  }
+}
+
+function $RevisionState$superseded_found$(_candidate_0, _found_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _current_0 = _t_0["generation"];
+    return (_candidate_0 < _current_0);
+  } else {
+    return false;
+  }
+}
+
+function $RevisionState$generation_found$(_found_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _current_0 = _t_0["generation"];
+    return _current_0;
+  } else {
+    return 0;
+  }
+}
+
 function $Canonical$remove_round_pick$(_round_0, _tail_0, _hit_0) {
   if (_hit_0) {
     return _tail_0;
@@ -4851,6 +5133,21 @@ function $SubmissionState$expired_found$(_elapsed_0, _lifetime_0, _found_0) {
   }
 }
 
+function $RevisionState$without$(_subject_0, _entries_0) {
+  if (_entries_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _entry_0 = _entries_0["head"];
+    const _rest_0 = _entries_0["tail"];
+    return $RevisionState$keep_entry$(_entry_0, ($RevisionState$without$(_subject_0, _rest_0)), ($RevisionState$same_subject$(_subject_0, _entry_0)));
+  }
+}
+
+function $RevisionState$same_subject$(_subject_0, _entry_0) {
+  const _candidate_0 = _entry_0["subject"];
+  return $Nat$is_eq$(_subject_0, _candidate_0);
+}
+
 function $Canonical$cancel_pick$(_operation_0, _tail_0, _hit_0) {
   if (_hit_0) {
     return {$: "Con", "head": {$: "Canonical.CancelWork", "operation": _operation_0}, "tail": _tail_0};
@@ -5170,6 +5467,14 @@ function $Delivery$expired$(_phase_0, _elapsed_0, _lifetime_0) {
     return $Nat$is_ge$(_elapsed_0, _lifetime_0);
   } else {
     return false;
+  }
+}
+
+function $RevisionState$keep_entry$(_entry_0, _tail_0, _remove_0) {
+  if (_remove_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _entry_0, "tail": _tail_0};
   }
 }
 
