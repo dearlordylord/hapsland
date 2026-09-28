@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { IMPORT_GRAPH_SCENARIOS, importGraphView } from "./import-graph-view";
 import { timelineView } from "./timeline-view";
 import { flowInput, initialBend, projectBend, stepBend } from "./bend-flow";
 import { TIMELINE_CASES } from "./timeline";
@@ -14,6 +15,8 @@ import {
 } from "./view-contract";
 
 export const Model = Schema.Struct({
+  importScenario: Schema.Number,
+  importCursor: Schema.Number,
   trace: Schema.Number,
   timeline: Schema.Number,
   cursor: Schema.Number,
@@ -45,6 +48,8 @@ export const Model = Schema.Struct({
 export type Model = typeof Model.Type;
 
 export const Message = defineMessageUnion({
+  SelectedImportScenario: { index: Schema.Number },
+  MovedImportCursor: { cursor: Schema.Number },
   SelectedTrace: { index: Schema.Number },
   SelectedTimeline: { index: Schema.Number },
   Advanced: {},
@@ -60,7 +65,7 @@ export type Message = typeof Message.Type;
 const reset = (trace: number): Model => {
   const bend = initialBend();
   return {
-    trace, timeline: 0, cursor: 0, bend, guidedBindings: [], historyPosition: 0,
+    importScenario: 0, importCursor: 0, trace, timeline: 0, cursor: 0, bend, guidedBindings: [], historyPosition: 0,
     history: [], lastChangeEvents: [], emissions: [], lastFinishDecision: null,
     feedback: "No live virtual round or review work yet. Events are example inputs; no agent runtime or Jev connection is attached.",
   };
@@ -151,7 +156,7 @@ const applyCapacity = (model: Model, capacityType: "source" | "jev", capacity: n
 
 const replayHistory = (model: Model, count: number): Model => {
   const position = Math.max(0, Math.min(model.history.length, count));
-  let replayed = { ...reset(model.trace), timeline: model.timeline };
+  let replayed = { ...reset(model.trace), timeline: model.timeline, importScenario: model.importScenario, importCursor: model.importCursor };
   for (const step of model.history.slice(0, position)) {
     if (step.kind === "capacity") replayed = applyCapacity(replayed, step.capacityType, step.capacity);
     else {
@@ -165,9 +170,11 @@ const replayHistory = (model: Model, count: number): Model => {
 
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
+    SelectedImportScenario: ({ index }) => ({ model: { ...model, importScenario: index >= 0 && index < IMPORT_GRAPH_SCENARIOS.length ? index : 0, importCursor: 0 } }),
+    MovedImportCursor: ({ cursor }) => ({ model: { ...model, importCursor: Math.max(0, Math.min(IMPORT_GRAPH_SCENARIOS[model.importScenario].steps.length, cursor)) } }),
     SelectedTimeline: ({ index }) => ({ model: { ...model, timeline: index >= 0 && index < TIMELINE_CASES.length ? index : 0 } }),
-    SelectedTrace: ({ index }) => ({ model: { ...reset(index >= 0 && index < TRACES.length ? index : 0), timeline: model.timeline } }),
-    Reset: () => ({ model: { ...reset(model.trace), timeline: model.timeline } }),
+    SelectedTrace: ({ index }) => ({ model: { ...reset(index >= 0 && index < TRACES.length ? index : 0), timeline: model.timeline, importScenario: model.importScenario, importCursor: model.importCursor } }),
+    Reset: () => ({ model: { ...reset(model.trace), timeline: model.timeline, importScenario: model.importScenario, importCursor: model.importCursor } }),
     Advanced: () => {
       const input = guidedInput(model);
       if (input === null) return { model };
@@ -367,6 +374,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         h.p([h.Class("eyebrow")], ["COMPILED BEND FLOW MODEL · FOLDKIT"]),
         h.h1([], ["From agent edit to Jev and back"]),
         h.a([h.Href("#timing-diagrams"), h.Class("timing-jump")], ["Jump to timing diagrams ↓"]),
+        h.a([h.Href("#import-graph"), h.Class("timing-jump")], ["Jump to import exploration ↓"]),
         h.p([h.Class("intro")], [
           "One agent reports edits and receives advice through Claude Code or Codex. The runtime adapter identifies the agent. Compiled Flow.bend accepts and rejects the example inputs below.",
         ]),
@@ -506,6 +514,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         ]),
         h.p([], ["The runtime calls its Stop hook when the agent attempts to finish. Hapsland may hold that call open for a finish-decision wait. Returning block with advice asks the runtime to continue the same virtual round; returning allow closes Hapsland’s virtual round and discards its resources. A fresh edit can open another virtual round even if a different hook kept the agent’s actual round going. The hook response alone does not prove advice use or the actual end of the agent’s round."]),
       ]),
+      importGraphView(h, model.importScenario, model.importCursor, (index) => Message.SelectedImportScenario({ index }), (cursor) => Message.MovedImportCursor({ cursor })),
       timelineView(h, model.timeline, (index) => Message.SelectedTimeline({ index })),
     ]),
   };

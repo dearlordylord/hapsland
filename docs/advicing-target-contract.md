@@ -47,8 +47,12 @@ failed delivery.
 Review and advice belong to an exact advicee partition: canonical physical
 working root, agent runtime and supported version, session ID, and supplied
 subagent ID or null. Native `agent_id` maps to Hapsland's `subagentId` at the
-adapter boundary. Main and child agents use the same review and delivery rules;
-the resident does not need a parent-child tree. Separate sessions and isolated
+adapter boundary. Today an omitted ID maps to null, the main-agent scope. That
+mapping does not prove an event came from the main agent. If a runtime can omit
+the ID for a child event, Hapsland needs another reliable attribution fact or
+must withhold child-specific advice. Main and identified child agents use the
+same review and delivery rules; the resident does not need a parent-child tree.
+Separate sessions and isolated
 working roots remain separate. A shared-root change of unknown origin has no
 advicee and cannot produce addressed advice. Native turn IDs are event metadata,
 not advicee or virtual-round identity.
@@ -123,22 +127,23 @@ The installed edit path automatically starts a bounded background advice wait.
 One waiter per advicee coalesces matching triggers, holds no advice lease while
 waiting, and exits quietly if no eligible advice becomes ready. A background
 wait with no reserved advice cannot prolong a settled finish decision. A
-reserved background write can finish during the open finish call; its submitted
+reserved background advice submission can finish during the open finish call; its submitted
 or uncertain advice can then be considered for a same-round reoffer. Background
 output does not interrupt an in-flight model request or tool call and does not
 guarantee a later model-visible opportunity.
 
 ## Handoff, reoffer, and continuation count
 
-Every collection revalidates root and advicee identity, enablement, credential
-generation, source eligibility, current work and snapshot, and advice age at the
-final handoff barrier. Transient revalidation failure leaves current advice
+Before Hapsland gives advice, it checks the working root and advicee, the
+current Jev credential generation, file settings, each file needed by the review unit,
+whether the work is still current, and the advice age. A temporary failure
+of this check leaves current advice
 eligible until a later valid attempt or expiry; stale or unattributed advice is
 suppressed. The resident grants one tokenized lease per selected advice item.
 Overlapping collectors cannot own that item together. The collector releases a
-lease on a known pre-output failure; a completed write records only host
-submission. Lost acknowledgements and uncertain writes remain uncertain;
-lease recovery requires revalidation. Current response limits are five findings
+lease on a known pre-output failure; a completed advice submission records only
+submission to the runtime. Lost acknowledgements and uncertain submissions
+remain uncertain; lease recovery requires revalidation. Current response limits are five findings
 and 2 KiB of encoded output. An individually oversized finding yields a bounded
 limitation rather than an endless retry.
 
@@ -146,8 +151,8 @@ At most one finish collector owns an advicee's active finish attempt. A
 continue-with-advice response reserves one of four continuation numbers in
 resident state **before** output authorization. The output permit binds the
 round, attempt, collector, and advice IDs; reuse cannot authorize another
-write. Once output may have reached the writer, partial or uncertain writes,
-process death, and lost acknowledgement consume that reservation. A proven
+submission. Once output may have reached the runtime, partial or uncertain
+submissions, process death, and lost acknowledgement consume that reservation. A proven
 failure before authorization may release a provisional reservation. A later
 finish attempt cannot replay that attempt or spend a new slot on the same
 advice. When four are reserved, the next finish attempt may allow immediately,
@@ -156,10 +161,11 @@ without waiting for work whose advice cannot be presented.
 Background-submitted or uncertain advice may be offered **once** at a finish
 attempt in the same active virtual round when model consumption is unproven.
 This uses its existing advice identity and a fresh eligibility check, never a
-second Jev evaluation. A live background writer keeps its lease; the finish
-collector may wait within its existing deadline or revoke an output permit
-that has not reached that writer. Only resolved or explicitly uncertain
-handoffs enter final selection. An uncertain finish write consumes the reoffer.
+second Jev evaluation. A live background advice submission keeps its lease;
+the finish collector may wait within its existing deadline or revoke an output
+permit that has not reached the runtime output boundary. Only resolved or
+explicitly uncertain handoffs enter final selection. An uncertain advice
+submission at Stop consumes the reoffer.
 The resident reserves each item's one reoffer atomically with the finish output
 permit.
 No submitted advice crosses a closed-round boundary.

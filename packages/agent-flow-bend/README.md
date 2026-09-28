@@ -1,5 +1,17 @@
 # Hapsland agent flow in Bend
 
+`ImportGraph.bend` defines the #141 source-free supporting-reference traversal
+for one review unit. Its compiled graph and checked TypeScript adapter drive a
+separate dashboard state machine; production cross-file capture is still pending
+#133/#138. Run `npm run test:import-graph` for its laws and independent traces.
+Supporting tree contributions that do not fit the remaining budget emit `SkipImport(TreeLimit)` while
+later pending edges continue within the file, read, work, depth, and deadline
+limits. The accepted tree remains within 20 KiB, and a unit with any skipped
+import finishes incomplete with no Jev request.
+Denied import paths emit `SkipImport(Excluded)` before any source read and also leave
+later edges pending. If both a denied path and a tree-budget skip occur, the final
+incomplete reason is `TreeLimit`; otherwise a denied path finishes `Excluded`.
+
 `Flow.bend` drives the abstract discussion visualization. Its state holds all live review items, two
 independent capacities, the virtual round, finish wait, one delivery lease,
 and background submission history. The pure `step` function returns an accepted
@@ -50,3 +62,11 @@ finding at the final handoff and writer barriers, and keeps source capture,
 Jev Effect calls, IPC, and output formatting in TypeScript. The accepted
 contract in `../../docs/advicing-target-contract.md` remains the target for
 the aggregate lifecycle and installed runtime behavior.
+
+`Canonical.bend` and `canonical-adapter.ts` define the #119 first-slice canonical
+state/event/command interface. It owns one global ledger across advicee
+partitions, ordered partial replacement, exact logical release, round and
+operation identities, Stop waiting/cutoff, and uncertain background output.
+The resident has not switched to it yet. See
+[`docs/bend-canonical-transition-interface.md`](../../docs/bend-canonical-transition-interface.md).
+Run `npm run test:canonical` for Bend proofs and independent source-free traces.

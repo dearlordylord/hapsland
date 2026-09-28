@@ -12,6 +12,14 @@ backend, including native interactive trust review. This does not establish a re
 for Codex CLI 0.155.1 or other platform profiles. Package metadata and `hapsland-doctor`
 reject undeclared versions and other platform profiles rather than inferring support.
 
+The accepted [target review specification](issue-93-type-function-review-spec.md)
+now requires checked cross-file supporting evidence, a 256 KiB per-source-file
+ceiling, and a 20 KiB evidence-tree ceiling. Those changes are **not yet
+implemented or established by this v1 conformance record**. Keep this matrix
+as the factual current profile until a new validated support record replaces it.
+The target also removes the separate repository grant and uses file settings
+alone; the grant checks below still describe the running code.
+
 The machine-checked authoritative mapping is
 [`conformance/direct-event-v1.json`](../conformance/direct-event-v1.json). Its validator
 requires all twelve groups, resolves every check to an existing test title, and rejects

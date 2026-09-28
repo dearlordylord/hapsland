@@ -1,6 +1,42 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.canonical_cross_advicee_identity_is_distinct():
+  {==}
+
+def Laws.canonical_pending_work_blocks_finish():
+  {==}
+
+def Laws.canonical_deadline_releases_exact_charge():
+  {==}
+
+def Laws.canonical_uncertain_write_is_not_acknowledged():
+  {==}
+
+def Laws.import_graph_exclusion_has_no_read_command():
+  {==}
+
+def Laws.import_graph_exclusion_keeps_remaining_edges():
+  {==}
+
+def Laws.import_graph_excluded_finishes_incomplete():
+  {==}
+
+def Laws.import_graph_tree_limit_precedes_exclusion():
+  {==}
+
+def Laws.import_graph_cycle_does_not_request_source():
+  {==}
+
+def Laws.import_graph_full_tree_can_inspect_remaining_edges():
+  {==}
+
+def Laws.import_graph_no_fit_support_skips_and_keeps_pending():
+  {==}
+
+def Laws.import_graph_skipped_tree_finishes_incomplete():
+  {==}
+
 def Laws.rotated_in_scope_advice_is_retired():
   {==}
 

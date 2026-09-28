@@ -6,6 +6,11 @@ the proposed v2 path for explicit type/function targets. Choice and Score
 remain separate, undecided result-form work. Those declarations are unsupported
 today; v1 files retain their present probability behavior.
 
+This guide describes the running release, which still asks for a separate
+repository grant. The accepted target in [#132](https://github.com/dearlordylord/hapsland/issues/132)
+removes that extra step. File settings will then select reviewable files,
+with all otherwise eligible files selected when no file settings exist.
+
 Project configuration is read once from the Git working-tree root. The supported
 project names are `.review.jsonc` and `.realtime-review.jsonc`; finding both is an
 error. User defaults are read from
