@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "runtime": "Claude Code",
+  "version": "2.1.218 (Claude Code)",
+  "recordedAt": "2026-09-28T13:32:45.217Z",
+  "declaration": {
+    "maximumProviderRequests": 8,
+    "automaticRetries": 0,
+    "sessionCeilingMs": 240000
+  },
+  "hostExitCode": 0,
+  "hostSignal": null,
+  "elapsedMs": 15669,
+  "providerRequests": 1,
+  "timeline": [
+    {
+      "kind": "composed-prompt",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "atMs": 1170
+    },
+    {
+      "kind": "composed-before-edit",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "atMs": 8785
+    },
+    {
+      "kind": "hook",
+      "tool": "Write",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "sourceHash": "5f4bcf26fcbfb2967471446efbba926e2828a2744766297b90115acbe1829e3c",
+      "sourceBytes": 138,
+      "draft": true,
+      "atMs": 9184
+    },
+    {
+      "kind": "provider-failure",
+      "atMs": 15249
+    },
+    {
+      "kind": "composed-stop",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "atMs": 11762
+    }
+  ],
+  "activityStages": [
+    {
+      "stage": "pending",
+      "atMs": 9560
+    },
+    {
+      "stage": "pending",
+      "atMs": 9607
+    },
+    {
+      "stage": "incomplete",
+      "atMs": 15242
+    },
+    {
+      "stage": "unavailable",
+      "atMs": 15250
+    }
+  ],
+  "checks": {
+    "initialDraftObserved": true,
+    "realFindingSubmitted": false,
+    "editAfterFinding": false,
+    "finalSourceChanged": false,
+    "validSourceCompiles": true,
+    "invalidStatesRejected": false,
+    "followupClearObserved": false
+  },
+  "resident": {
+    "queued": 0,
+    "running": 0,
+    "pendingFindingBatches": 0,
+    "pendingOperationalNotices": 0
+  },
+  "rawHostOutputRetained": false,
+  "rawBackendMaterialRetained": false,
+  "credentialRetained": false,
+  "hostOutputBytesDiscarded": 136137,
+  "verdict": "incomplete"
+}
