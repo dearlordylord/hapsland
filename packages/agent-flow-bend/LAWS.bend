@@ -498,6 +498,18 @@ law canonical_stop_begin_requires_active_unowned_round:
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
       Canonical.RoundStopBegun{} <> Nil{}} : Canonical.Step}
 
+law canonical_prospective_first_round_is_active_before_callback:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.RoundActivityCheck{True{}, True{}, 0n, False{}, 0n, 1n}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.RoundActive{} <> Nil{}} : Canonical.Step}
+
+law canonical_stop_barrier_uses_continuations_since_claim:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.RoundBarrierCheck{True{}, 1n, 2n}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.RoundBarrierRaised{} <> Nil{}} : Canonical.Step}
+
 law canonical_deciding_stop_is_not_owned_for_new_decision:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Canonical.RoundOwnsStopCheck{True{}, True{}, True{}}) ==

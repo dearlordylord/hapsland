@@ -177,6 +177,8 @@ export type CanonicalEvent =
   | { readonly kind: "postValidationCheck"; readonly workAccepted: boolean; readonly expired: boolean; readonly hasFitting: boolean }
   | { readonly kind: "finalCandidateCheck"; readonly ownerCurrent: boolean; readonly credentialGeneration: boolean; readonly credentialAuthorized: boolean; readonly expired: boolean; readonly workCurrent: boolean; readonly hasFindings: boolean }
   | { readonly kind: "roundBeginStopCheck"; readonly active: boolean; readonly hasStop: boolean; readonly token: number }
+  | { readonly kind: "roundActivityCheck"; readonly bound: boolean; readonly hasAdmission: boolean; readonly round: number; readonly active: boolean; readonly closedAt: number; readonly expectedGeneration: number }
+  | { readonly kind: "roundBarrierCheck"; readonly hasStop: boolean; readonly usedAtStart: number; readonly usedNow: number }
   | { readonly kind: "roundOwnsStopCheck"; readonly active: boolean; readonly tokenMatches: boolean; readonly deciding: boolean }
   | { readonly kind: "roundStopTerminalCheck"; readonly hasOutput: boolean; readonly authorized: boolean; readonly requestedClose: boolean }
   | { readonly kind: "roundExpireCloseCheck"; readonly barrier: boolean; readonly authorizedOutput: boolean }
@@ -270,7 +272,7 @@ export type CanonicalCommand =
   | { readonly kind: "deliveryAckReady" | "deliveryAckExpired" | "deliveryAckEmpty" | "deliveryFinalReady" | "deliveryFinalExpired" | "deliveryFinalEmpty" | "deliveryRetireAdvice" | "deliveryKeepRemaining" | "deliveryKeepForReoffer" }
   | { readonly kind: "deliverySubmissionCandidate" | "deliverySubmissionRefused" | "deliveryBatchProceed" | "deliveryBatchRelease" | "deliveryCredentialInvalid" | "deliveryCredentialValid" }
   | { readonly kind: "ignoreCandidate" | "releaseCandidate" | "retireCandidate" | "continueCandidate" | "retainCandidate" }
-  | { readonly kind: "roundStopBegun" | "roundStopRefused" | "roundStopOwned" | "roundStopNotOwned" | "roundExpireCloses" | "roundExpireKeeps" | "roundContinuationAvailable" | "roundContinuationExhausted" | "deliverySubmissionAllowed" | "deliverySubmissionDenied" | "deliveryExistingTokenAllowed" | "deliveryExistingTokenDenied" | "deliveryLegacyStopAllowed" | "deliveryLegacyStopDenied" }
+  | { readonly kind: "roundStopBegun" | "roundStopRefused" | "roundActive" | "roundInactive" | "roundBarrierRaised" | "roundBarrierClear" | "roundStopOwned" | "roundStopNotOwned" | "roundExpireCloses" | "roundExpireKeeps" | "roundContinuationAvailable" | "roundContinuationExhausted" | "deliverySubmissionAllowed" | "deliverySubmissionDenied" | "deliveryExistingTokenAllowed" | "deliveryExistingTokenDenied" | "deliveryLegacyStopAllowed" | "deliveryLegacyStopDenied" }
   | { readonly kind: "roundStopTerminal"; readonly revokeProvisional: boolean; readonly close: boolean }
   | { readonly kind: "reuseJoinAdvice" | "reuseJoinPending" | "reuseJoinClaimed" | "reuseCached" | "reuseOwn" | "reuseClaimed" | "reuseAttached" | "reuseReleased" | "reuseRefused" | "cacheAlready" | "cacheRejected" | "cacheCommitted" }
   | { readonly kind: "cachePrepared"; readonly evicted: readonly number[] }
@@ -490,6 +492,8 @@ const encode = (event: CanonicalEvent): unknown => {
     case "postValidationCheck": inputFields(event, ["kind", "workAccepted", "expired", "hasFitting"]); return { $: "Canonical.PostValidationCheck", work_accepted: bool(event.workAccepted), expired: bool(event.expired), has_fitting: bool(event.hasFitting) };
     case "finalCandidateCheck": inputFields(event, ["kind", "ownerCurrent", "credentialGeneration", "credentialAuthorized", "expired", "workCurrent", "hasFindings"]); return { $: "Canonical.FinalCandidateCheck", owner_current: bool(event.ownerCurrent), credential_generation: bool(event.credentialGeneration), credential_authorized: bool(event.credentialAuthorized), expired: bool(event.expired), work_current: bool(event.workCurrent), has_findings: bool(event.hasFindings) };
     case "roundBeginStopCheck": inputFields(event, ["kind", "active", "hasStop", "token"]); return { $: "Canonical.RoundBeginStopCheck", active: bool(event.active), has_stop: bool(event.hasStop), token: nat(event.token, true) };
+    case "roundActivityCheck": inputFields(event, ["kind", "bound", "hasAdmission", "round", "active", "closedAt", "expectedGeneration"]); return { $: "Canonical.RoundActivityCheck", bound: bool(event.bound), has_admission: bool(event.hasAdmission), round: nat(event.round), active: bool(event.active), closed_at: nat(event.closedAt), expected_generation: nat(event.expectedGeneration) };
+    case "roundBarrierCheck": inputFields(event, ["kind", "hasStop", "usedAtStart", "usedNow"]); return { $: "Canonical.RoundBarrierCheck", has_stop: bool(event.hasStop), used_at_start: nat(event.usedAtStart), used_now: nat(event.usedNow) };
     case "roundOwnsStopCheck": inputFields(event, ["kind", "active", "tokenMatches", "deciding"]); return { $: "Canonical.RoundOwnsStopCheck", active: bool(event.active), token_matches: bool(event.tokenMatches), deciding: bool(event.deciding) };
     case "roundStopTerminalCheck": inputFields(event, ["kind", "hasOutput", "authorized", "requestedClose"]); return { $: "Canonical.RoundStopTerminalCheck", has_output: bool(event.hasOutput), authorized: bool(event.authorized), requested_close: bool(event.requestedClose) };
     case "roundExpireCloseCheck": inputFields(event, ["kind", "barrier", "authorizedOutput"]); return { $: "Canonical.RoundExpireCloseCheck", barrier: bool(event.barrier), authorized_output: bool(event.authorizedOutput) };
@@ -763,6 +767,8 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
       return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "ignoreCandidate" | "releaseCandidate" | "retireCandidate" | "continueCandidate" | "retainCandidate" };
     }
     case "Canonical.RoundStopBegun": case "Canonical.RoundStopRefused":
+    case "Canonical.RoundActive": case "Canonical.RoundInactive":
+    case "Canonical.RoundBarrierRaised": case "Canonical.RoundBarrierClear":
     case "Canonical.RoundStopOwned": case "Canonical.RoundStopNotOwned":
     case "Canonical.RoundExpireCloses": case "Canonical.RoundExpireKeeps":
     case "Canonical.RoundContinuationAvailable": case "Canonical.RoundContinuationExhausted":
@@ -770,7 +776,7 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
     case "Canonical.DeliveryExistingTokenAllowed": case "Canonical.DeliveryExistingTokenDenied":
     case "Canonical.DeliveryLegacyStopAllowed": case "Canonical.DeliveryLegacyStopDenied": {
       const name = tag(value); fields(value, name, []);
-      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "roundStopBegun" | "roundStopRefused" | "roundStopOwned" | "roundStopNotOwned" | "roundExpireCloses" | "roundExpireKeeps" | "roundContinuationAvailable" | "roundContinuationExhausted" | "deliverySubmissionAllowed" | "deliverySubmissionDenied" | "deliveryExistingTokenAllowed" | "deliveryExistingTokenDenied" | "deliveryLegacyStopAllowed" | "deliveryLegacyStopDenied" };
+      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "roundStopBegun" | "roundStopRefused" | "roundActive" | "roundInactive" | "roundBarrierRaised" | "roundBarrierClear" | "roundStopOwned" | "roundStopNotOwned" | "roundExpireCloses" | "roundExpireKeeps" | "roundContinuationAvailable" | "roundContinuationExhausted" | "deliverySubmissionAllowed" | "deliverySubmissionDenied" | "deliveryExistingTokenAllowed" | "deliveryExistingTokenDenied" | "deliveryLegacyStopAllowed" | "deliveryLegacyStopDenied" };
     }
     case "Canonical.RoundStopTerminal": {
       const command = fields(value, "Canonical.RoundStopTerminal", ["revoke_provisional", "close"]);

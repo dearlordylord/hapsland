@@ -266,13 +266,16 @@ export class ComposedDelivery {
   }
 
   isActive(partition: string, generation = this.generation(partition)): boolean {
-    if (!this.#rounds.has(partition)) return false;
     const admission = this.canonical.canonicalProjection().admissions.find(
       (item) => item.partition === this.canonical.partitionId(partition));
     // An issued first permit creates a virtual round before the edit callback
     // consumes it. Its admission round remains zero until that callback.
-    return admission !== undefined && generation === this.generation(partition) &&
-      ((admission.round === 0 && admission.closedAt === 0) || admission.active);
+    const result = this.canonical.transition({ kind: "roundActivityCheck",
+      bound: this.#rounds.has(partition), hasAdmission: admission !== undefined,
+      round: admission?.round ?? 0, active: admission?.active ?? false,
+      closedAt: admission?.closedAt ?? 0, expectedGeneration: generation });
+    if (result.rejection !== undefined || result.commands.length !== 1) throw new Error("canonical round activity refused");
+    return result.commands[0]?.kind === "roundActive";
   }
 
   beginStop(partition: string, token: string): boolean {
@@ -628,7 +631,11 @@ export class ComposedDelivery {
 
   #stopBarrier(partition: string): boolean {
     const stop = this.#stops.get(partition);
-    return stop !== undefined && this.#continuationCount(partition) > stop.continuationsAtStart;
+    const result = this.canonical.transition({ kind: "roundBarrierCheck",
+      hasStop: stop !== undefined, usedAtStart: stop?.continuationsAtStart ?? 0,
+      usedNow: stop === undefined ? 0 : this.#continuationCount(partition) });
+    if (result.rejection !== undefined || result.commands.length !== 1) throw new Error("canonical Stop barrier refused");
+    return result.commands[0]?.kind === "roundBarrierRaised";
   }
 
   #continuationCount(partition: string): number {

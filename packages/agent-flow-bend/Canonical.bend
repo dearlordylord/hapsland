@@ -185,6 +185,9 @@ type CanonicalEvent is Data:
     credential_authorized: Bool, expired: Bool, work_current: Bool,
     has_findings: Bool}
   RoundBeginStopCheck{active: Bool, has_stop: Bool, token: Nat}
+  RoundActivityCheck{bound: Bool, has_admission: Bool, round: Nat,
+    active: Bool, closed_at: Nat, expected_generation: Nat}
+  RoundBarrierCheck{has_stop: Bool, used_at_start: Nat, used_now: Nat}
   RoundOwnsStopCheck{active: Bool, token_matches: Bool, deciding: Bool}
   RoundStopTerminalCheck{has_output: Bool, authorized: Bool,
     requested_close: Bool}
@@ -416,6 +419,10 @@ type Command is Data:
   RetainCandidate{}
   RoundStopBegun{}
   RoundStopRefused{}
+  RoundActive{}
+  RoundInactive{}
+  RoundBarrierRaised{}
+  RoundBarrierClear{}
   RoundStopOwned{}
   RoundStopNotOwned{}
   RoundStopTerminal{revoke_provisional: Bool, close: Bool}
@@ -2780,6 +2787,15 @@ def step(+state: State, event: CanonicalEvent) -> Step:
       Advanced{state, Bool.pick(Command, Bool.and(active,
         Bool.and(Bool.not(has_stop), Nat.is_gt(token, 0n))),
         RoundStopBegun{}, RoundStopRefused{}) <> Nil{}}
+    case RoundActivityCheck{bound, has_admission, +round, active, closed_at,
+        expected_generation}:
+      Advanced{state, Bool.pick(Command, Bool.and(bound, Bool.and(has_admission,
+        Bool.and(Nat.is_eq(expected_generation, Nat.max(1n, round)),
+          Bool.or(Bool.and(Nat.is_eq(round, 0n), Nat.is_eq(closed_at, 0n)), active)))),
+        RoundActive{}, RoundInactive{}) <> Nil{}}
+    case RoundBarrierCheck{has_stop, used_at_start, used_now}:
+      Advanced{state, Bool.pick(Command, Bool.and(has_stop,
+        Nat.is_gt(used_now, used_at_start)), RoundBarrierRaised{}, RoundBarrierClear{}) <> Nil{}}
     case RoundOwnsStopCheck{active, token_matches, deciding}:
       Advanced{state, Bool.pick(Command, Bool.and(active,
         Bool.and(token_matches, Bool.not(deciding))),

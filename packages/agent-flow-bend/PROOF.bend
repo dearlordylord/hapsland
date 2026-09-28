@@ -316,6 +316,12 @@ def Laws.canonical_final_candidate_retires_expired_work():
 def Laws.canonical_stop_begin_requires_active_unowned_round():
   {==}
 
+def Laws.canonical_prospective_first_round_is_active_before_callback():
+  {==}
+
+def Laws.canonical_stop_barrier_uses_continuations_since_claim():
+  {==}
+
 def Laws.canonical_deciding_stop_is_not_owned_for_new_decision():
   {==}
 
