@@ -290,4 +290,25 @@ for (const trace of noticeFixture.traces) {
   }
   assert.deepEqual(projectCanonical(current).notices, trace.notices, trace.name);
 }
-console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length + stopFixture.traces.length + collectionFixture.traces.length + deliveryFixture.traces.length + submissionFixture.traces.length + revisionFixture.traces.length + ticketFixture.traces.length + reuseFixture.traces.length + noticeFixture.traces.length} independent source-free canonical traces`);
+const retentionFixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-retention-v1.json"), "utf8"));
+for (const trace of retentionFixture.traces) {
+  let current = initialCanonical(fixture.limits);
+  for (const { expect: expected, ...event } of trace.events) {
+    const result = stepCanonical(current, event);
+    current = result.state;
+    const actual = result.rejection ? `rejected:${result.rejection}` : result.commands.map((command) => {
+      switch (command.kind) {
+        case "ticketEvicted": case "capacityGranted": case "reservationReleased": case "roundStarted":
+          return `${command.kind}:${command.id}`;
+        case "prepare": return `${command.kind}:${command.operation}:${command.reservation}`;
+        default: return command.kind;
+      }
+    }).join(",");
+    assert.equal(actual, expected, `${trace.name}: ${event.kind}`);
+  }
+  const projection = projectCanonical(current);
+  assert.deepEqual(projection.tickets, trace.tickets, trace.name);
+  assert.equal(projection.dispatch.closed, trace.closed, trace.name);
+  if (trace.rounds) assert.deepEqual(projection.rounds.map((round) => round.id).sort((a, b) => a - b), trace.rounds, trace.name);
+}
+console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length + stopFixture.traces.length + collectionFixture.traces.length + deliveryFixture.traces.length + submissionFixture.traces.length + revisionFixture.traces.length + ticketFixture.traces.length + reuseFixture.traces.length + noticeFixture.traces.length + retentionFixture.traces.length} independent source-free canonical traces`);

@@ -1,0 +1,207 @@
+{
+  "traces": [
+    {
+      "name": "oldest admission evicts after ticket phase reorder and cleanup closes once",
+      "events": [
+        {
+          "kind": "ticketOpen",
+          "id": 1,
+          "expect": "ticketOpened"
+        },
+        {
+          "kind": "ticketOpen",
+          "id": 2,
+          "expect": "ticketOpened"
+        },
+        {
+          "kind": "ticketOpen",
+          "id": 3,
+          "expect": "ticketOpened"
+        },
+        {
+          "kind": "ticketFail",
+          "id": 1,
+          "reason": "backend",
+          "expect": "ticketFailed"
+        },
+        {
+          "kind": "ticketRetentionCheck",
+          "limit": 2,
+          "expect": "ticketEvicted:1"
+        },
+        {
+          "kind": "ticketRetentionCheck",
+          "limit": 2,
+          "expect": "ticketKept"
+        },
+        {
+          "kind": "cleanupCheck",
+          "facts": {
+            "active": true,
+            "dispatcherIdle": true,
+            "noAdvice": true,
+            "noNotices": true,
+            "noPendingEvaluations": true,
+            "noCurrentWork": true,
+            "noCooldowns": true,
+            "connectionCountOk": true,
+            "cacheMatchesLedger": true
+          },
+          "expect": "cleanupReady"
+        },
+        {
+          "kind": "ticketRetentionCheck",
+          "limit": 0,
+          "expect": "ticketEvicted:2"
+        },
+        {
+          "kind": "ticketRetentionCheck",
+          "limit": 0,
+          "expect": "ticketEvicted:3"
+        },
+        {
+          "kind": "ticketRetentionCheck",
+          "limit": 0,
+          "expect": "ticketKept"
+        },
+        {
+          "kind": "cleanupCommit",
+          "expect": "cleanupCommitted"
+        },
+        {
+          "kind": "cleanupCheck",
+          "facts": {
+            "active": true,
+            "dispatcherIdle": true,
+            "noAdvice": true,
+            "noNotices": true,
+            "noPendingEvaluations": true,
+            "noCurrentWork": true,
+            "noCooldowns": true,
+            "connectionCountOk": true,
+            "cacheMatchesLedger": true
+          },
+          "expect": "cleanupBusy"
+        },
+        {
+          "kind": "cleanupCommit",
+          "expect": "cleanupBusy"
+        }
+      ],
+      "tickets": [],
+      "closed": true
+    },
+    {
+      "name": "capacity remains charged until terminal release and blocks cleanup commit",
+      "events": [
+        {
+          "kind": "reserveCapacity",
+          "partition": 1,
+          "bytes": 20,
+          "purpose": "preparation",
+          "expect": "capacityGranted:1"
+        },
+        {
+          "kind": "cleanupCheck",
+          "facts": {
+            "active": true,
+            "dispatcherIdle": true,
+            "noAdvice": true,
+            "noNotices": true,
+            "noPendingEvaluations": true,
+            "noCurrentWork": true,
+            "noCooldowns": true,
+            "connectionCountOk": true,
+            "cacheMatchesLedger": false
+          },
+          "expect": "cleanupBusy"
+        },
+        {
+          "kind": "cleanupCommit",
+          "expect": "cleanupBusy"
+        },
+        {
+          "kind": "releaseCapacity",
+          "reservation": 1,
+          "expect": "reservationReleased:1"
+        },
+        {
+          "kind": "releaseCapacity",
+          "reservation": 1,
+          "expect": "rejected:StaleOperation"
+        },
+        {
+          "kind": "cleanupCheck",
+          "facts": {
+            "active": true,
+            "dispatcherIdle": true,
+            "noAdvice": true,
+            "noNotices": true,
+            "noPendingEvaluations": true,
+            "noCurrentWork": true,
+            "noCooldowns": true,
+            "connectionCountOk": true,
+            "cacheMatchesLedger": true
+          },
+          "expect": "cleanupReady"
+        },
+        {
+          "kind": "cleanupCommit",
+          "expect": "cleanupCommitted"
+        }
+      ],
+      "tickets": [],
+      "closed": true
+    },
+    {
+      "name": "unsettled work in one advicee leaves another current round and its charge intact",
+      "events": [
+        {
+          "kind": "openRound",
+          "partition": 1,
+          "lifetime": 1,
+          "expect": "roundStarted:1"
+        },
+        {
+          "kind": "openRound",
+          "partition": 2,
+          "lifetime": 1,
+          "expect": "roundStarted:2"
+        },
+        {
+          "kind": "beginPreparation",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "bytes": 20,
+          "expect": "prepare:1:1"
+        },
+        {
+          "kind": "cleanupCheck",
+          "facts": {
+            "active": true,
+            "dispatcherIdle": true,
+            "noAdvice": true,
+            "noNotices": true,
+            "noPendingEvaluations": true,
+            "noCurrentWork": true,
+            "noCooldowns": true,
+            "connectionCountOk": true,
+            "cacheMatchesLedger": true
+          },
+          "expect": "cleanupBusy"
+        },
+        {
+          "kind": "cleanupCommit",
+          "expect": "cleanupBusy"
+        }
+      ],
+      "tickets": [],
+      "closed": false,
+      "rounds": [
+        1,
+        2
+      ]
+    }
+  ]
+}

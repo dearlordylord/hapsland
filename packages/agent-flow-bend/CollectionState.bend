@@ -363,6 +363,15 @@ def ticket_terminal(state: State, id: Nat, expired: Bool,
       TicketState.terminal(tickets, id, expired, credential_valid,
         live_advice, pending_notice)
 
+def ticket_state(state: State) -> TicketState.State:
+  match state:
+    case State{_, _, _, _, _, tickets, _, _}: tickets
+
+def with_tickets(state: State, replacement: TicketState.State) -> State:
+  match state:
+    case State{ready, leases, claims, delivery, revision, _, reuse, notices}:
+      State{ready, leases, claims, delivery, revision, replacement, reuse, notices}
+
 def reuse_state(state: State) -> ReuseState.State:
   match state:
     case State{_, _, _, _, _, _, reuse, notices}: reuse

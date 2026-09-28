@@ -16,6 +16,10 @@ type Decision is Data:
   Granted{state: State}
   Refused{state: State}
 
+type Retention is Data:
+  Kept{state: State}
+  Evicted{state: State, id: Nat}
+
 def initial() -> State:
   State{Nil{}}
 
@@ -109,6 +113,28 @@ def forget(+state: State, +id: Nat) -> Decision:
   match state:
     case State{records}:
       forgotten(state, id, find_record(id, records))
+
+def older(+candidate: Nat, current: Maybe<&2, Nat>) -> Maybe<&2, Nat>:
+  match current:
+    case None{}: Some{candidate}
+    case Some{+id}: Some{Bool.pick(Nat, Nat.is_lt(candidate, id), candidate, id)}
+
+def oldest(records: List<&2, Record>) -> Maybe<&2, Nat>:
+  match records:
+    case Nil{}: None{}
+    case record <> rest: older(record_id(record), oldest(rest))
+
+def evict_found(state: State, found: Maybe<&2, Nat>) -> Retention:
+  match state found:
+    case State{records} Some{+id}:
+      Evicted{State{without_record(id, records)}, id}
+    case _ None{}: Kept{state}
+
+def retention(+state: State, limit: Nat) -> Retention:
+  match state:
+    case State{records}:
+      Bool.pick(Retention, Nat.is_gt(List.length(&2, Record, records), limit),
+        evict_found(state, oldest(records)), Kept{state})
 
 def failure_result(state: State, +id: Nat, reason: Ticket.Reason,
     found: Maybe<&2, Record>) -> Decision:

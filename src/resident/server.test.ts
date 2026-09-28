@@ -528,7 +528,9 @@ describe("resident delivery lease", () => {
     expect(activity.roundClosures?.[0]?.discarded.running).toBe(1);
     expect(JSON.stringify(activity.roundClosures)).not.toContain(root);
     expect(JSON.stringify(activity.roundClosures)).not.toContain("OrderCount");
+    expect(server.stats().retainedBytes).toBe(0);
     await server.close();
+    expect(server.stats().retainedBytes).toBe(0);
   });
 
   it("reoffers uncertain background advice once at Stop and clears every record on allow", async () => {
@@ -578,7 +580,9 @@ describe("resident delivery lease", () => {
     expect(activity.roundClosures?.[0]?.discarded).toMatchObject({ pendingAdvice: 1, submitted: 1, uncertain: 1 });
     expect(JSON.stringify(activity.roundClosures)).not.toContain(root);
     expect(JSON.stringify(activity.roundClosures)).not.toContain("OrderCount");
+    expect(server.stats().retainedBytes).toBe(0);
     await server.close();
+    expect(server.stats().retainedBytes).toBe(0);
   });
 
   it("does not reoffer a live background writer when the Stop deadline forces a decision", async () => {
@@ -1344,6 +1348,7 @@ describe("resident delivery lease", () => {
       operation: "stats",
       lifetime: server.lifetime,
     })).toEqual({ status: "obsolete-lifetime" });
+    expect(server.cleanup()).toBe("busy");
     expect(server.stats()).toMatchObject({
       queued: 0,
       running: 0,
