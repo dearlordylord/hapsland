@@ -76,3 +76,18 @@ repair. It has an eight-request cutoff, no automatic retry, and a 240-second
 session ceiling. Across all five Claude sessions the declared worst-case
 request ceiling is 40, exactly the issue limit. No further live session is
 planned; missing advice or repair leaves #136 incomplete.
+
+## Configured Claude feedback observation, before execution
+
+An offline native Claude Code 2.1.218 fixture passed with explicit review
+consent and the user setting `claudeFeedbackMode: block-current-findings`;
+the prior live runner omitted both. Those sessions therefore remain useful
+negative observations but do not validate this configured profile. One final
+selected session will use the supported composed hooks, explicit disposable
+review consent, and that feedback setting. Its independent Jev cutoff is eight
+requests with no automatic retry. The five prior Claude sessions actually
+used eight requests, so the new cumulative actual maximum is 16, below the
+issue's 40-request ceiling. This supersedes the prior no-further-session plan
+because the offline fixture identified a concrete configuration difference.
+If advice or repair still does not occur, stop live execution and keep #136
+incomplete.

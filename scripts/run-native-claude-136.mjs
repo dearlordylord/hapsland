@@ -127,11 +127,26 @@ process.exitCode=result.status??1;
     Stop: [{ hooks: [{ type: "command", command: composed("stop"), timeout: 5 }] }],
     UserPromptSubmit: [{ hooks: [{ type: "command", command: composed("prompt"), timeout: 4 }] }],
   } }));
+  const statePath = join(root, "consent-state");
+  const userConfigPath = join(root, "user-config.jsonc");
+  writeFileSync(userConfigPath, JSON.stringify({ version: 1, claudeFeedbackMode: "block-current-findings" }));
   const env = { ...process.env, TYPESAFE_API_KEY: key, REVIEW_RESIDENT_DIR: runtime,
-    REVIEW_ACTIVITY_PATH: activity, REVIEW_USER_CONFIG_PATH: join(root, "absent-user-config.jsonc"),
+    REVIEW_ACTIVITY_PATH: activity, REVIEW_STATE_PATH: statePath, REVIEW_USER_CONFIG_PATH: userConfigPath,
     HAPSLAND_136_EVENTS: events, HAPSLAND_136_CALLS: calls,
     NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --import=${observer}`.trim() };
   delete env.REVIEW_CONTROL_JSON;
+  const cli = join(project, "src/cli.ts");
+  const enable = spawnSync(process.execPath, [cli, "--enable"], { cwd: project, env,
+    input: JSON.stringify({ version: 1, operation: "enable", cwd: repo }), encoding: "utf8", timeout: 10_000 });
+  if (enable.status !== 0) throw new Error("Disposable review consent preview failed");
+  const digest = JSON.parse(enable.stdout)?.proposal?.digest;
+  if (typeof digest !== "string") throw new Error("Disposable review consent digest missing");
+  const confirm = spawnSync(process.execPath, [cli, "--enable-confirm"], { cwd: project, env,
+    input: JSON.stringify({ version: 1, operation: "enable-confirm", cwd: repo, proposalDigest: digest }),
+    encoding: "utf8", timeout: 10_000 });
+  if (confirm.status !== 0 || JSON.parse(confirm.stdout)?.status !== "enabled") {
+    throw new Error("Disposable review consent confirmation failed");
+  }
   const prompt = `Implement the payment-state example in README.md. First use the native Write tool to create payment.ts with this initial draft exactly:
 export interface PaymentState {
   status: "pending" | "succeeded" | "failed";
@@ -167,7 +182,8 @@ const contradictory: PaymentState = { status: 'succeeded', receipt: 'r', failure
       pendingFindingBatches: result.pendingFindingBatches, pendingOperationalNotices: result.pendingOperationalNotices };
   } catch { /* native path may not start a resident */ }
   const record = { schemaVersion: 1, runtime: "Claude Code", version: spawnSync(claudeBinary, ["--version"], { encoding: "utf8" }).stdout.trim(),
-    recordedAt: new Date().toISOString(), declaration: { maximumProviderRequests: ceiling, automaticRetries: 0, sessionCeilingMs: 240_000 },
+    recordedAt: new Date().toISOString(), declaration: { maximumProviderRequests: ceiling, automaticRetries: 0, sessionCeilingMs: 240_000,
+      consent: "explicit-disposable", claudeFeedbackMode: "block-current-findings" },
     hostExitCode: host.code, hostSignal: host.signal, elapsedMs: Date.now() - started, providerRequests: readLines(calls).length,
     timeline, activityStages, checks: { initialDraftObserved: timeline.some((entry) => entry.draft), realFindingSubmitted: !!finding,
       editAfterFinding: editedAfterFinding, finalSourceChanged: !!source && !source.includes("receipt: string | null"),
@@ -177,7 +193,7 @@ const contradictory: PaymentState = { status: 'succeeded', receipt: 'r', failure
     hostOutputBytesDiscarded: Buffer.byteLength(host.stdout) + host.stderrBytes };
   record.verdict = host.code === 0 && Object.values(record.checks).every(Boolean) ? "demonstrated" : "incomplete";
   mkdirSync(join(project, "evidence/native-136"), { recursive: true });
-  writeFileSync(join(project, "evidence/native-136/claude-stop.json"), JSON.stringify(record, null, 2) + "\n");
+  writeFileSync(join(project, "evidence/native-136/claude-configured.json"), JSON.stringify(record, null, 2) + "\n");
   console.log(JSON.stringify(record, null, 2));
   if (record.verdict !== "demonstrated") process.exitCode = 1;
 } finally {
