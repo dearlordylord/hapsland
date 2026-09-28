@@ -38,20 +38,15 @@ export class DispatchCycles<K, A> {
   }
 
   enqueue(key: K, value: A): boolean {
-    if (this.#terminal) return false;
     if (typeof key !== "string") throw new TypeError("dispatch partition must be a string");
     const identity = this.#ledger.dispatchIdentity(key);
-    if (identity === undefined) return false;
     const operation = this.#operation(value);
-    if (this.#entries.has(operation)) return false;
     const entry = { key, value, operation, ...identity };
-    this.#entries.set(operation, entry);
     const result = this.#ledger.transition({ kind: "queueDispatch", partition: identity.partition,
       lifetime: 1, round: identity.round, operation });
-    if (result.rejection !== undefined) {
-      this.#entries.delete(operation);
-      return false;
-    }
+    if (result.rejection !== undefined) return false;
+    if (this.#entries.has(operation) || this.#terminal) throw new Error("canonical dispatch admission violated native handle fence");
+    this.#entries.set(operation, entry);
     this.#apply(result.commands);
     return true;
   }
@@ -119,6 +114,14 @@ export class DispatchCycles<K, A> {
     for (const resolve of this.#idleWaiters.splice(0)) resolve();
   }
 
+  #assertNativeHandles(): void {
+    const live = this.#liveOperations();
+    if (live.some((operation) => !this.#entries.has(operation)) ||
+        (!this.#terminal && live.length !== this.#entries.size)) {
+      throw new Error("canonical dispatch and native job handles diverged");
+    }
+  }
+
   #apply(commands: readonly CanonicalCommand[]): A[] {
     const discarded: A[] = [];
     for (const command of commands) {
@@ -153,6 +156,7 @@ export class DispatchCycles<K, A> {
         default: throw new Error("unexpected canonical dispatch command");
       }
     }
+    this.#assertNativeHandles();
     this.#settleIdle();
     return discarded;
   }

@@ -82,9 +82,8 @@ export class CapacityLedger {
     return id;
   }
 
-  dispatchIdentity(partition: string): { readonly partition: number; readonly round: number } | undefined {
-    const round = this.#roundIds.get(partition);
-    return round === undefined ? undefined : { partition: this.partitionId(partition), round };
+  dispatchIdentity(partition: string): { readonly partition: number; readonly round: number } {
+    return { partition: this.partitionId(partition), round: this.#roundIds.get(partition) ?? 1 };
   }
 
   dispatchScope(namedCount: number, cancelledCount: number, hasUnnamed: boolean): boolean {

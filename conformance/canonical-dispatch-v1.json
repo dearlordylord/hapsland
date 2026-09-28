@@ -8,6 +8,7 @@
         { "kind": "queueDispatch", "partition": 1, "lifetime": 1, "round": 1, "operation": 1, "expect": "dispatchStarted:1:0:1" },
         { "kind": "admitObservation", "partition": 1, "lifetime": 1, "round": 1, "expect": "observationAdmitted:2" },
         { "kind": "queueDispatch", "partition": 1, "lifetime": 1, "round": 1, "operation": 2, "expect": "" },
+        { "kind": "queueDispatch", "partition": 1, "lifetime": 1, "round": 1, "operation": 2, "expect": "rejected:StaleOperation" },
         { "kind": "admitObservation", "partition": 1, "lifetime": 1, "round": 1, "expect": "observationAdmitted:3" },
         { "kind": "queueDispatch", "partition": 1, "lifetime": 1, "round": 1, "operation": 3, "expect": "" },
         { "kind": "dispatchSettled", "partition": 1, "lifetime": 2, "round": 1, "operation": 1, "expect": "rejected:StaleOperation" },

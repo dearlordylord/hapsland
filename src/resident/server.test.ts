@@ -90,6 +90,53 @@ const waitUntilIdle = async (server: ResidentServer): Promise<void> => {
 };
 
 describe("canonical resident capacity", () => {
+  it("keeps a finite review cycle open when the second Jev result arrives first", async () => {
+    const root = await makeGitFixture();
+    await put(root, "first.ts", "type FirstCount = number\n");
+    await put(root, "second.ts", "type SecondCount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root,
+      ["first.ts", "second.ts"])));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const firstStarted = deferred();
+    const secondStarted = deferred();
+    const firstGate = deferred();
+    let clock = 100;
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock, {
+      beforeEvaluate: async (prepared) => {
+        if (prepared.input.path === "first.ts") {
+          firstStarted.resolve();
+          await firstGate.promise;
+        } else if (prepared.input.path === "second.ts") secondStarted.resolve();
+      },
+    });
+    try {
+      expect(server.admit(observation, allFindingsDispatch(statePath)).status).toBe("accepted");
+      clock = 101;
+      await firstStarted.promise;
+      await secondStarted.promise;
+      for (let attempt = 0; attempt < 200 &&
+          !server.pendingAdviceMetadata().some((item) => item.path === "second.ts"); attempt += 1) {
+        await new Promise<void>((resolveTimeout) => setTimeout(resolveTimeout, 5));
+      }
+      expect(server.pendingAdviceMetadata().map((item) => ({ path: item.path,
+        cycle: item.cycle, sequence: item.sequence, cycleComplete: item.cycleComplete })))
+        .toEqual([{ path: "second.ts", cycle: 2, sequence: 2, cycleComplete: false }]);
+      firstGate.resolve();
+      await server.whenIdle();
+      expect(server.pendingAdviceMetadata().map((item) => ({ path: item.path,
+        cycle: item.cycle, sequence: item.sequence, cycleComplete: item.cycleComplete }))
+        .sort((left, right) => left.sequence - right.sequence)).toEqual([
+        { path: "first.ts", cycle: 2, sequence: 1, cycleComplete: true },
+        { path: "second.ts", cycle: 2, sequence: 2, cycleComplete: true },
+      ]);
+    } finally {
+      firstGate.resolve();
+      await server.close();
+    }
+  });
+
   it("fans one observation into two charged review outcomes under a fake clock", async () => {
     const root = await makeGitFixture();
     await put(root, "first.ts", "type FirstCount = number\n");
@@ -183,6 +230,9 @@ describe("resident delivery lease", () => {
       expect(activity.roundClosures?.[0]?.reason).toBe("deadline");
       expect(activity.roundClosures?.[0]?.discarded?.queued).toBeGreaterThan(0);
       expect(activity.roundClosures?.[0]?.discarded?.running).toBeGreaterThan(0);
+      gate.resolve();
+      await server.whenIdle();
+      expect(server.pendingAdviceMetadata()).toEqual([]);
     } finally {
       gate.resolve();
       await server.close();
