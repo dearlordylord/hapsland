@@ -36,9 +36,10 @@ background-writer claims,
 notice cooldown admission, collection order, readiness, expiry, output-token
 phase transitions, and successful-review cache pressure. The generated files
 are checked against source hashes before the app builds or tests.
-`Lifecycle.bend` now provides the resident's aggregate Stop wait, cutoff, and final
-output reservation, combining the Round decision fence, Work cancellation
-IDs, pending finding units, and continuation slot. A final IPC barrier can
+`Canonical.step` provides the resident's aggregate Stop wait and cutoff for an
+explicit set of edit partitions, with exact dispatch cancellation IDs and a
+decision fence. `Lifecycle.bend` still provides final output reservation using
+pending finding units and a continuation slot. A final IPC barrier can
 release an unwritten provisional slot and reserve the actual selected batch.
 Other
 aggregate events remain tested models; the resident calls generated admission,
