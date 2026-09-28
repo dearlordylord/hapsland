@@ -7,9 +7,13 @@ one authoritative Bend transition for Hapsland decisions, shared by production
 and the final visualization. The [#117 authority audit](docs/bend-logic-authority-map.md)
 and [#118 requirements crosswalk](docs/bend-requirements-crosswalk.md) are written.
 #141's [Bend import graph and separate dashboard diagram](docs/import-graph-bend-state-machine.md)
-are ready for owner review. **Stop here for diagram review.** No #119–#137
-implementation has landed in this task worktree. After review, the next step
-is #119's canonical events, state, commands, and checked adapter.
+were checked by the owner. The owner requested a segmented tree-budget bar as
+the final dashboard enhancement, then paused the migration until a new session.
+**Do not start #119 in this session.** No #119–#137 implementation has landed
+in this task worktree. On explicit resumption, the next step is #119's canonical
+events, state, commands, and checked adapter. Configurable graph limits and
+general budget/termination proofs are tracked separately in
+[#142](https://github.com/dearlordylord/hapsland/issues/142).
 
 Work here is in `/workspace/typescript/jev-worktrees/bend-authority-audit`
 (`task/bend-authority-audit`, based on `origin/feat/bend-full-flow`). The
