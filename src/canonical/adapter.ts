@@ -130,6 +130,10 @@ export type CanonicalEvent =
   | { readonly kind: "ticketCollectGateCheck"; readonly expired: boolean; readonly credentialValid: boolean }
   | { readonly kind: "ticketFinalAuthorityCheck"; readonly admittedBlock: boolean; readonly currentBlock: boolean }
   | { readonly kind: "ticketJoinedCheck"; readonly state: TicketJoinedState; readonly staleUnavailable: boolean; readonly hasRevision: boolean; readonly hasAdviceId: boolean }
+  | { readonly kind: "ticketRetentionCheck"; readonly limit: number }
+  | { readonly kind: "cleanupCheck"; readonly facts: CleanupFacts }
+  | { readonly kind: "cleanupCommit" }
+  | { readonly kind: "deliveryReleaseCheck"; readonly acknowledged: boolean }
   | { readonly kind: "reuseRoute"; readonly id: number; readonly liveAdvice: boolean }
   | { readonly kind: "reuseClaim" | "reuseAttach" | "reuseRelease" | "reuseTouch"; readonly id: number }
   | { readonly kind: "cachePrepare"; readonly id: number; readonly bytes: number; readonly entryLimit: number; readonly byteLimit: number }
@@ -145,6 +149,13 @@ export type CanonicalEvent =
   | { readonly kind: "outputStarted"; readonly partition: number; readonly lifetime: number; readonly round: number }
   | { readonly kind: "outputTerminal"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly outcome: "acknowledged" | "failed" | "unknown" }
   | { readonly kind: "retirePartition"; readonly partition: number; readonly lifetime: number; readonly round: number };
+
+export type CleanupFacts = {
+  readonly active: boolean; readonly dispatcherIdle: boolean; readonly noAdvice: boolean;
+  readonly noNotices: boolean; readonly noPendingEvaluations: boolean;
+  readonly noCurrentWork: boolean; readonly noCooldowns: boolean;
+  readonly connectionCountOk: boolean; readonly cacheMatchesLedger: boolean;
+};
 
 export type TicketReason = "backend" | "credential" | "capacity" | "stale" | "lost" | "expired";
 export type TicketUnitEvent = "revise" | "clearResult" | "findingResult" | "failUnit" | "markDelivered";
@@ -192,6 +203,8 @@ export type CanonicalCommand =
   | { readonly kind: "ticketUnavailable" | "ticketCollectUnavailable"; readonly reason: TicketReason }
   | { readonly kind: "ticketUnitSnapshot"; readonly stage: "pending" | "clear" | "finding" | "unavailable"; readonly delivered?: boolean; readonly reason?: TicketReason }
   | { readonly kind: "ticketUnitMissing" }
+  | { readonly kind: "ticketEvicted"; readonly id: number }
+  | { readonly kind: "ticketKept" | "cleanupReady" | "cleanupBusy" | "cleanupCommitted" | "deliveryReleaseUnacknowledged" | "deliveryKeepAcknowledged" }
   | { readonly kind: "reuseJoinAdvice" | "reuseJoinPending" | "reuseJoinClaimed" | "reuseCached" | "reuseOwn" | "reuseClaimed" | "reuseAttached" | "reuseReleased" | "reuseRefused" | "cacheAlready" | "cacheRejected" | "cacheCommitted" }
   | { readonly kind: "cachePrepared"; readonly evicted: readonly number[] }
   | { readonly kind: "cacheDiscarded"; readonly ids: readonly number[] }
@@ -364,6 +377,15 @@ const encode = (event: CanonicalEvent): unknown => {
     case "ticketCollectGateCheck": inputFields(event, ["kind", "expired", "credentialValid"]); return { $: "Canonical.TicketCollectGateCheck", expired: bool(event.expired), credential_valid: bool(event.credentialValid) };
     case "ticketFinalAuthorityCheck": inputFields(event, ["kind", "admittedBlock", "currentBlock"]); return { $: "Canonical.TicketFinalAuthorityCheck", admitted_block: bool(event.admittedBlock), current_block: bool(event.currentBlock) };
     case "ticketJoinedCheck": inputFields(event, ["kind", "state", "staleUnavailable", "hasRevision", "hasAdviceId"]); return { $: "Canonical.TicketJoinedCheck", joined_state: ticketJoinedState(event.state), stale_unavailable: bool(event.staleUnavailable), has_revision: bool(event.hasRevision), has_advice_id: bool(event.hasAdviceId) };
+    case "ticketRetentionCheck": inputFields(event, ["kind", "limit"]); return { $: "Canonical.TicketRetentionCheck", limit: nat(event.limit) };
+    case "cleanupCheck": {
+      inputFields(event, ["kind", "facts"]);
+      const facts = event.facts;
+      inputFields(facts, ["active", "dispatcherIdle", "noAdvice", "noNotices", "noPendingEvaluations", "noCurrentWork", "noCooldowns", "connectionCountOk", "cacheMatchesLedger"]);
+      return { $: "Canonical.CleanupCheck", facts: { $: "Retention.CleanupFacts", active: bool(facts.active), dispatcher_idle: bool(facts.dispatcherIdle), no_advice: bool(facts.noAdvice), no_notices: bool(facts.noNotices), no_pending_evaluations: bool(facts.noPendingEvaluations), no_current_work: bool(facts.noCurrentWork), no_cooldowns: bool(facts.noCooldowns), connection_count_ok: bool(facts.connectionCountOk), cache_matches_ledger: bool(facts.cacheMatchesLedger) } };
+    }
+    case "cleanupCommit": inputFields(event, ["kind"]); return { $: "Canonical.CleanupCommit" };
+    case "deliveryReleaseCheck": inputFields(event, ["kind", "acknowledged"]); return { $: "Canonical.DeliveryReleaseCheck", acknowledged: bool(event.acknowledged) };
     case "reuseRoute": inputFields(event, ["kind", "id", "liveAdvice"]); return { $: "Canonical.ReuseRoute", id: nat(event.id, true), live_advice: bool(event.liveAdvice) };
     case "reuseClaim": case "reuseAttach": case "reuseRelease": case "reuseTouch": inputFields(event, ["kind", "id"]); return { $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`, id: nat(event.id, true) };
     case "cachePrepare": inputFields(event, ["kind", "id", "bytes", "entryLimit", "byteLimit"]); return { $: "Canonical.CachePrepare", id: nat(event.id, true), bytes: nat(event.bytes), entry_limit: nat(event.entryLimit, true), byte_limit: nat(event.byteLimit, true) };
@@ -593,6 +615,12 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
       return { kind: "ticketUnitSnapshot", ...decodeTicketUnitState(item.stage, item.reason) };
     }
     case "Canonical.TicketUnitMissing": fields(value, "Canonical.TicketUnitMissing", []); return { kind: "ticketUnitMissing" };
+    case "Canonical.TicketEvicted": return { kind: "ticketEvicted", id: nat(fields(value, "Canonical.TicketEvicted", ["id"]).id, true) };
+    case "Canonical.TicketKept": case "Canonical.CleanupReady": case "Canonical.CleanupBusy": case "Canonical.CleanupCommitted":
+    case "Canonical.DeliveryReleaseUnacknowledged": case "Canonical.DeliveryKeepAcknowledged": {
+      const name = tag(value); fields(value, name, []);
+      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "ticketKept" | "cleanupReady" | "cleanupBusy" | "cleanupCommitted" | "deliveryReleaseUnacknowledged" | "deliveryKeepAcknowledged" };
+    }
     case "Canonical.NoticeSuppressed": case "Canonical.NoticeCreatePending": case "Canonical.NoticeMergePending": {
       const name = tag(value); return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "noticeSuppressed" | "noticeCreatePending" | "noticeMergePending", count: nat(fields(value, name, ["count"]).count) };
     }
@@ -627,7 +655,7 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
     case "Canonical.TicketSetJoinedFinding": case "Canonical.TicketSetJoinedUnavailable":
     case "Canonical.TicketSetJoinedLost": {
       const name = tag(value); fields(value, name, []);
-      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Exclude<Extract<CanonicalCommand, { kind: `ticket${string}` }>["kind"], "ticketUnavailable" | "ticketCollectUnavailable" | "ticketUnitSnapshot" | "ticketUnitMissing"> };
+      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Exclude<Extract<CanonicalCommand, { kind: `ticket${string}` }>["kind"], "ticketUnavailable" | "ticketCollectUnavailable" | "ticketUnitSnapshot" | "ticketUnitMissing" | "ticketEvicted"> };
     }
     case "Canonical.WriteAuthorized": return { kind: "writeAuthorized", operation: nat(fields(value, "Canonical.WriteAuthorized", ["operation"]).operation, true) };
     case "Canonical.WriteRecorded": return { kind: "writeRecorded", outcome: writeOutcome(fields(value, "Canonical.WriteRecorded", ["outcome"]).outcome) };

@@ -61,9 +61,7 @@ import { ComposedDelivery } from "./composed-delivery.ts";
 import { BendWorkTracker } from "./bend-work.ts";
 import type { CanonicalCommand, TicketReason, TicketUnitEvent } from "../canonical/adapter.ts";
 import { bendDeliveryAcknowledge, bendDeliveryFinalize, bendDeliveryFindingDisposition,
-  bendDeliveryReleaseUnacknowledged,
   bendValidationRoute, bendPostValidation, bendFinalCandidate,
-  bendCleanupGate, bendCleanupCommit, bendTicketRetention,
   bendDeliverySubmissionCandidate, bendDeliverySubmissionBatchGate,
   bendDeliveryCredentialObserve, bendDeliveryFinalCredentialGate,
   type BendValidationStatus } from "./bend-policy.generated.js";
@@ -662,34 +660,52 @@ export class ResidentServer {
    * reached a terminal state. Successful cache entries are then discarded as
    * part of ending this lifetime; they never authorize source reconstruction.
    */
+  #evictRetainedTickets(limit: number): void {
+    while (true) {
+      const result = this.#ledger.transition({ kind: "ticketRetentionCheck", limit });
+      const command = result.commands[0];
+      if (result.rejection !== undefined || command === undefined) throw new Error("canonical ticket retention refused");
+      if (command.kind === "ticketKept") return;
+      if (command.kind !== "ticketEvicted") throw new Error("invalid canonical ticket retention");
+      const retained = [...this.#tickets].find(([, ticket]) => ticket.generation === command.id);
+      if (retained === undefined) throw new Error("canonical ticket eviction lost native handle");
+      if (retained[0] !== this.#tickets.keys().next().value) {
+        throw new Error("canonical ticket admission order differs from native retention");
+      }
+      this.#tickets.delete(retained[0]);
+    }
+  }
+
   cleanup(): "busy" | "cleaned" {
-    if (bendCleanupGate({ $: "CleanupFacts", active: this.#lifecycle === "active",
-      dispatcher_idle: true, no_advice: true, no_notices: true,
-      no_pending_evaluations: true, no_current_work: true,
-      no_cooldowns: true, connection_count_ok: true,
-      cache_matches_ledger: true }).$ !== "CleanupReady") return "busy";
+    if (this.#lifecycle !== "active") return "busy";
     const now = this.#now();
     this.#expirePending(now);
     this.#pruneNoticeCooldowns(now);
     const dispatch = this.#dispatcher.snapshot();
     const reuse = this.#reuse.snapshot();
     const capacity = this.#ledger.snapshot();
-    if (bendCleanupGate({ $: "CleanupFacts", active: true,
-      dispatcher_idle: dispatch.queued === 0 && dispatch.running === 0,
-      no_advice: this.#advice.length === 0,
-      no_notices: this.#pendingNoticeCount() === 0,
-      no_pending_evaluations: reuse.pending === 0,
-      no_current_work: this.#revisionCount() === 0,
-      no_cooldowns: this.#noticeCooldowns.size === 0,
-      connection_count_ok: this.#connections <= 1,
-      cache_matches_ledger: capacity.items === reuse.entries && capacity.bytes === reuse.bytes
-    }).$ !== "CleanupReady") return "busy";
+    const check = this.#ledger.transition({ kind: "cleanupCheck", facts: {
+      active: this.#lifecycle === "active",
+      dispatcherIdle: dispatch.queued === 0 && dispatch.running === 0,
+      noAdvice: this.#advice.length === 0,
+      noNotices: this.#pendingNoticeCount() === 0,
+      noPendingEvaluations: reuse.pending === 0,
+      noCurrentWork: this.#revisionCount() === 0,
+      noCooldowns: this.#noticeCooldowns.size === 0,
+      connectionCountOk: this.#connections <= 1,
+      cacheMatchesLedger: capacity.items === reuse.entries && capacity.bytes === reuse.bytes,
+    } });
+    if (check.rejection !== undefined || check.commands.length !== 1) throw new Error("canonical cleanup check refused");
+    if (check.commands[0]?.kind === "cleanupBusy") return "busy";
+    if (check.commands[0]?.kind !== "cleanupReady") throw new Error("invalid canonical cleanup check");
     this.#reuse.clear();
-    if (bendCleanupCommit(this.#ledger.snapshot().items === 0).$ !== "CleanupReady") return "busy";
-    // This synchronous state transition is the cleanup commit point. Node
-    // cannot interleave another handler between the idle proof above and this
-    // assignment; the response may be delayed, but this lifetime is already
-    // obsolete and can acquire no new ownership.
+    this.#evictRetainedTickets(0);
+    const commit = this.#ledger.transition({ kind: "cleanupCommit" });
+    if (commit.rejection !== undefined || commit.commands.length !== 1) throw new Error("canonical cleanup commit refused");
+    if (commit.commands[0]?.kind === "cleanupBusy") return "busy";
+    if (commit.commands[0]?.kind !== "cleanupCommitted") throw new Error("invalid canonical cleanup commit");
+    // The canonical closed-dispatch marker and this native phase commit in the
+    // same synchronous turn. Subsequent callbacks cannot acquire ownership.
     this.#lifecycle = "retiring";
     return "cleaned";
   }
@@ -772,14 +788,7 @@ export class ResidentServer {
     }
     if (ticket !== undefined) {
       this.#tickets.set(ticket.ticket.nonce, ticket);
-      while (true) {
-        const oldest = this.#tickets.keys().next().value;
-        if (bendTicketRetention(this.#tickets.size, this.#maximumTickets,
-          oldest !== undefined).$ !== "EvictOldest" || oldest === undefined) break;
-        const evicted = this.#tickets.get(oldest);
-        this.#tickets.delete(oldest);
-        if (evicted !== undefined) this.#ledger.transition({ kind: "ticketForget", id: evicted.generation });
-      }
+      this.#evictRetainedTickets(this.#maximumTickets);
     }
     const acceptedPath = process.env.REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH;
     if (acceptedPath !== undefined) void writeFile(acceptedPath, "accepted\n").catch(() => undefined);
@@ -1295,14 +1304,22 @@ export class ResidentServer {
     return { status: "finalized" };
   }
 
+  #releaseUnacknowledged(acknowledged: boolean): boolean {
+    const result = this.#ledger.transition({ kind: "deliveryReleaseCheck", acknowledged });
+    if (result.rejection !== undefined || result.commands.length !== 1) throw new Error("canonical delivery release refused");
+    if (result.commands[0]?.kind === "deliveryReleaseUnacknowledged") return true;
+    if (result.commands[0]?.kind === "deliveryKeepAcknowledged") return false;
+    throw new Error("invalid canonical delivery release");
+  }
+
   releaseDelivery(token: string): void {
     for (const advice of this.#advice) {
       if (advice.delivery?.token === token &&
-          bendDeliveryReleaseUnacknowledged(advice.delivery.acknowledged)) this.#releaseAdviceLease(advice);
+          this.#releaseUnacknowledged(advice.delivery.acknowledged)) this.#releaseAdviceLease(advice);
     }
     for (const notice of this.#noticesForToken(token)) {
       if (notice.delivery?.token === token &&
-          bendDeliveryReleaseUnacknowledged(notice.delivery.acknowledged)) {
+          this.#releaseUnacknowledged(notice.delivery.acknowledged)) {
         this.#setNoticeLeased(notice.id, false);
         delete notice.delivery;
       }

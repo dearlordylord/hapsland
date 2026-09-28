@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:2c231fb182e22ef95a34b4ce98160f418cd9157c1918a579e30d58e54e9a4f43
+// hapsland-bend-source-sha256:caa82727b1b5d577122fe0ec278e2719e5bc2f205ca4c5358df1b9e140cf5942
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -607,6 +607,17 @@ function $Canonical$step$(_state_0, _event_0) {
     const _has_revision_0 = _event_0["has_revision"];
     const _has_advice_id_0 = _event_0["has_advice_id"];
     return $Canonical$ticket_joined_result$(_state_0, ($Ticket$joined_disposition$(_joined_state_0, _stale_unavailable_0, _has_revision_0, _has_advice_id_0)));
+  } else if (_event_0.$ === "Canonical.TicketRetentionCheck") {
+    const _limit_0 = _event_0["limit"];
+    return $Canonical$ticket_retention_result$(_state_0, ($TicketState$retention$(($CollectionState$ticket_state$(($Canonical$collection_of$(_state_0)))), _limit_0)));
+  } else if (_event_0.$ === "Canonical.CleanupCheck") {
+    const _facts_1 = _event_0["facts"];
+    return $Canonical$cleanup_check_result$(_state_0, ($Retention$cleanup_gate$(_facts_1)));
+  } else if (_event_0.$ === "Canonical.CleanupCommit") {
+    return $Canonical$cleanup_commit$(_state_0);
+  } else if (_event_0.$ === "Canonical.DeliveryReleaseCheck") {
+    const _acknowledged_0 = _event_0["acknowledged"];
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Delivery$release_unacknowledged$(_acknowledged_0)), {$: "Canonical.DeliveryReleaseUnacknowledged"}, {$: "Canonical.DeliveryKeepAcknowledged"})), "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.ReuseRoute") {
     const _id_8 = _event_0["id"];
     const _live_advice_1 = _event_0["live_advice"];
@@ -1584,6 +1595,63 @@ function $Ticket$joined_disposition$(_state_0, _stale_unavailable_0, _has_revisi
   return $Bool$pick$(_stale_unavailable_0, {$: "Ticket.KeepJoined"}, ($Ticket$joined$route$(_state_0, _has_revision_0, _has_advice_id_0)));
 }
 
+function $Canonical$ticket_retention_result$(_state_0, _result_0) {
+  if (_result_0.$ === "TicketState.Kept") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.TicketKept"}, "tail": {$: "Nil"}}};
+  } else {
+    const _replacement_0 = _result_0["state"];
+    const _id_0 = _result_0["id"];
+    return {$: "Canonical.Advanced", "state": ($Canonical$with_collection$(_state_0, ($CollectionState$with_tickets$(($Canonical$collection_of$(_state_0)), _replacement_0)))), "commands": {$: "Con", "head": {$: "Canonical.TicketEvicted", "id": _id_0}, "tail": {$: "Nil"}}};
+  }
+}
+
+function $TicketState$retention$(_state_0, _limit_0) {
+  const _records_0 = _state_0["records"];
+  return $Bool$pick$(($Nat$is_gt$(($List$length$(_records_0)), _limit_0)), ($TicketState$evict_found$({$: "TicketState.State", "records": _records_0}, ($TicketState$oldest$(_records_0)))), {$: "TicketState.Kept", "state": {$: "TicketState.State", "records": _records_0}});
+}
+
+function $CollectionState$ticket_state$(_state_0) {
+  const _tickets_0 = _state_0["tickets"];
+  return _tickets_0;
+}
+
+function $Canonical$cleanup_check_result$(_state_0, _result_0) {
+  if (_result_0.$ === "Retention.CleanupReady") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Canonical$cleanup_state_clean$(_state_0)), {$: "Canonical.CleanupReady"}, {$: "Canonical.CleanupBusy"})), "tail": {$: "Nil"}}};
+  } else {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.CleanupBusy"}, "tail": {$: "Nil"}}};
+  }
+}
+
+function $Retention$cleanup_gate$(_facts_0) {
+  const _active_0 = _facts_0["active"];
+  const _dispatcher_idle_0 = _facts_0["dispatcher_idle"];
+  const _no_advice_0 = _facts_0["no_advice"];
+  const _no_notices_0 = _facts_0["no_notices"];
+  const _no_pending_evaluations_0 = _facts_0["no_pending_evaluations"];
+  const _no_current_work_0 = _facts_0["no_current_work"];
+  const _no_cooldowns_0 = _facts_0["no_cooldowns"];
+  const _connection_count_ok_0 = _facts_0["connection_count_ok"];
+  const _cache_matches_ledger_0 = _facts_0["cache_matches_ledger"];
+  return $Bool$pick$(($Bool$and$(_active_0, ($Bool$and$(_dispatcher_idle_0, ($Bool$and$(_no_advice_0, ($Bool$and$(_no_notices_0, ($Bool$and$(_no_pending_evaluations_0, ($Bool$and$(_no_current_work_0, ($Bool$and$(_no_cooldowns_0, ($Bool$and$(_connection_count_ok_0, _cache_matches_ledger_0)))))))))))))))), {$: "Retention.CleanupReady"}, {$: "Retention.CleanupBusy"});
+}
+
+function $Canonical$cleanup_commit$(_state_0) {
+  return $Canonical$cleanup_commit_checked$(_state_0, ($Canonical$cleanup_commit_eligible$(_state_0)));
+}
+
+function $Bool$pick$(_c_0, _a_0, _b_0) {
+  if (!_c_0) {
+    return _b_0;
+  } else {
+    return _a_0;
+  }
+}
+
+function $Delivery$release_unacknowledged$(_acknowledged_0) {
+  return $Bool$not$(_acknowledged_0);
+}
+
 function $Canonical$reuse_route_result$(_state_0, _result_0) {
   if (_result_0.$ === "ReuseState.JoinAdvice") {
     const _replacement_0 = _result_0["state"];
@@ -2376,14 +2444,6 @@ function $Canonical$finding_count_found$(_state_0, _operation_0, _count_0, _foun
   }
 }
 
-function $Bool$pick$(_c_0, _a_0, _b_0) {
-  if (!_c_0) {
-    return _b_0;
-  } else {
-    return _a_0;
-  }
-}
-
 function $Canonical$work_dispatchable$(_found_0) {
   if (_found_0.$ === "Some") {
     const _t_0 = _found_0["value"];
@@ -3102,6 +3162,172 @@ function $Ticket$joined$route$(_state_0, _has_revision_0, _has_advice_id_0) {
     return $Bool$pick$(_has_revision_0, {$: "Ticket.SetJoinedClear"}, {$: "Ticket.SetJoinedLost"});
   } else {
     return $Bool$pick$(($Bool$and$(_has_revision_0, _has_advice_id_0)), {$: "Ticket.SetJoinedFinding"}, {$: "Ticket.SetJoinedLost"});
+  }
+}
+
+function $CollectionState$with_tickets$(_state_0, _replacement_0) {
+  const _ready_0 = _state_0["ready"];
+  const _leases_0 = _state_0["leases"];
+  const _claims_0 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  const _revision_0 = _state_0["revision"];
+  const _reuse_0 = _state_0["reuse"];
+  const _notices_0 = _state_0["notices"];
+  return {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "tickets": _replacement_0, "reuse": _reuse_0, "notices": _notices_0};
+}
+
+function $TicketState$evict_found$(_state_0, _found_0) {
+  const _records_0 = _state_0["records"];
+  if (_found_0.$ === "Some") {
+    const _id_0 = _found_0["value"];
+    return {$: "TicketState.Evicted", "state": {$: "TicketState.State", "records": ($TicketState$without_record$(_id_0, _records_0))}, "id": _id_0};
+  } else {
+    return {$: "TicketState.Kept", "state": {$: "TicketState.State", "records": _records_0}};
+  }
+}
+
+function $TicketState$oldest$(_records_0) {
+  if (_records_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _record_0 = _records_0["head"];
+    const _rest_0 = _records_0["tail"];
+    return $TicketState$older$(($TicketState$record_id$(_record_0)), ($TicketState$oldest$(_rest_0)));
+  }
+}
+
+function $Canonical$cleanup_state_clean$(_state_0) {
+  const _t_0 = _state_0["work"];
+  if (_t_0.$ === "Nil") {
+    const _t_1 = _state_0["dispatch"];
+    const _t_2 = _t_1["pending"];
+    if (_t_2.$ === "Nil") {
+      const _t_3 = _t_1["active"];
+      if (_t_3.$ === "Nil") {
+        const _t_4 = _t_1["running"];
+        if (_t_4.$ === "Nil") {
+          const _t_5 = _t_1["closed"];
+          if (!_t_5) {
+            const _t_6 = _state_0["collection"];
+            const _t_7 = _t_6["ready"];
+            if (_t_7.$ === "Nil") {
+              const _t_8 = _t_6["leases"];
+              if (_t_8.$ === "Nil") {
+                const _t_9 = _t_6["claims"];
+                if (_t_9.$ === "Nil") {
+                  const _t_10 = _t_6["delivery"];
+                  const _t_11 = _t_10["slots"];
+                  if (_t_11.$ === "Nil") {
+                    const _t_12 = _t_10["submissions"];
+                    const _t_13 = _t_12["leases"];
+                    if (_t_13.$ === "Nil") {
+                      const _t_14 = _t_12["batches"];
+                      if (_t_14.$ === "Nil") {
+                        const _t_15 = _t_6["revision"];
+                        const _t_16 = _t_15["entries"];
+                        if (_t_16.$ === "Nil") {
+                          const _t_17 = _t_6["reuse"];
+                          const _t_18 = _t_17["claims"];
+                          if (_t_18.$ === "Nil") {
+                            const _t_19 = _t_6["notices"];
+                            const _t_20 = _t_19["records"];
+                            if (_t_20.$ === "Nil") {
+                              return true;
+                            } else {
+                              return false;
+                            }
+                          } else {
+                            return false;
+                          }
+                        } else {
+                          return false;
+                        }
+                      } else {
+                        return false;
+                      }
+                    } else {
+                      return false;
+                    }
+                  } else {
+                    return false;
+                  }
+                } else {
+                  return false;
+                }
+              } else {
+                return false;
+              }
+            } else {
+              return false;
+            }
+          } else {
+            return false;
+          }
+        } else {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
+function $Canonical$cleanup_commit_checked$(_state_0, _valid_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const _dispatch_0 = _state_0["dispatch"];
+  const __6 = _state_0["collection"];
+  if (_valid_0) {
+    return $Canonical$cleanup_closed$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6}, ($Dispatch$close$(_dispatch_0)));
+  } else {
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6}, "commands": {$: "Con", "head": {$: "Canonical.CleanupBusy"}, "tail": {$: "Nil"}}};
+  }
+}
+
+function $Canonical$cleanup_commit_eligible$(_state_0) {
+  const _t_0 = _state_0["ledger"];
+  const __0 = _t_0["limits"];
+  const __1 = _t_0["next_id"];
+  const _t_1 = _t_0["charges"];
+  if (_t_1.$ === "Nil") {
+    const __2 = _state_0["rounds"];
+    const __3 = _state_0["work"];
+    const __4 = _state_0["next_round"];
+    const __5 = _state_0["next_operation"];
+    const __6 = _state_0["admissions"];
+    const __7 = _state_0["dispatch"];
+    const _t_2 = _state_0["collection"];
+    const __8 = _t_2["ready"];
+    const __9 = _t_2["leases"];
+    const __10 = _t_2["claims"];
+    const __11 = _t_2["delivery"];
+    const __12 = _t_2["revision"];
+    const _t_3 = _t_2["tickets"];
+    const _t_4 = _t_3["records"];
+    if (_t_4.$ === "Nil") {
+      const _t_5 = _t_2["reuse"];
+      const __13 = _t_5["claims"];
+      const _t_6 = _t_5["cache"];
+      if (_t_6.$ === "Nil") {
+        const __14 = _t_2["notices"];
+        return $Canonical$cleanup_state_clean$({$: "Canonical.State", "ledger": {$: "Ledger.Ledger", "limits": __0, "next_id": __1, "charges": {$: "Nil"}}, "rounds": __2, "work": __3, "next_round": __4, "next_operation": __5, "admissions": __6, "dispatch": __7, "collection": {$: "CollectionState.State", "ready": __8, "leases": __9, "claims": __10, "delivery": __11, "revision": __12, "tickets": {$: "TicketState.State", "records": {$: "Nil"}}, "reuse": {$: "ReuseState.State", "claims": __13, "cache": {$: "Nil"}}, "notices": __14}});
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  } else {
+    return false;
   }
 }
 
@@ -4468,6 +4694,52 @@ function $Ticket$terminal$pending$(_state_0, _facts_0) {
   return $Bool$pick$((_x_2 || _x_3), {$: "Ticket.Pending"}, ($Ticket$terminal$phase$(_state_0, _unit_failure_0, _finding_units_0, _undelivered_0, _total_0)));
 }
 
+function $TicketState$without_record$(_id_0, _records_0) {
+  if (_records_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _record_0 = _records_0["head"];
+    const _rest_0 = _records_0["tail"];
+    return $TicketState$keep_record$(_record_0, ($TicketState$without_record$(_id_0, _rest_0)), ($Nat$is_eq$(_id_0, ($TicketState$record_id$(_record_0)))));
+  }
+}
+
+function $TicketState$older$(_candidate_0, _current_0) {
+  if (_current_0.$ === "None") {
+    return {$: "Some", "value": _candidate_0};
+  } else {
+    const _id_0 = _current_0["value"];
+    return {$: "Some", "value": ($Bool$pick$((_candidate_0 < _id_0), _candidate_0, _id_0))};
+  }
+}
+
+function $TicketState$record_id$(_record_0) {
+  const _id_0 = _record_0["id"];
+  return _id_0;
+}
+
+function $Canonical$cleanup_closed$(_state_0, _result_0) {
+  const _ledger_0 = _state_0["ledger"];
+  const _rounds_0 = _state_0["rounds"];
+  const _work_0 = _state_0["work"];
+  const _next_round_0 = _state_0["next_round"];
+  const _next_operation_0 = _state_0["next_operation"];
+  const _admissions_0 = _state_0["admissions"];
+  const __0 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  if (_result_0.$ === "Dispatch.Advanced") {
+    const _replacement_0 = _result_0["state"];
+    const _t_0 = _result_0["commands"];
+    if (_t_0.$ === "Nil") {
+      return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _replacement_0, "collection": _collection_0}, "commands": {$: "Con", "head": {$: "Canonical.CleanupCommitted"}, "tail": {$: "Nil"}}};
+    } else {
+      return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": __0, "collection": _collection_0}, "commands": {$: "Con", "head": {$: "Canonical.CleanupBusy"}, "tail": {$: "Nil"}}};
+    }
+  } else {
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": __0, "collection": _collection_0}, "commands": {$: "Con", "head": {$: "Canonical.CleanupBusy"}, "tail": {$: "Nil"}}};
+  }
+}
+
 function $ReuseState$route_cache$(_state_0, _id_0) {
   const __0 = _state_0["claims"];
   const _cache_0 = _state_0["cache"];
@@ -5771,21 +6043,6 @@ function $RevisionState$generation_found$(_found_0) {
   }
 }
 
-function $TicketState$record_id$(_record_0) {
-  const _id_0 = _record_0["id"];
-  return _id_0;
-}
-
-function $TicketState$without_record$(_id_0, _records_0) {
-  if (_records_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _record_0 = _records_0["head"];
-    const _rest_0 = _records_0["tail"];
-    return $TicketState$keep_record$(_record_0, ($TicketState$without_record$(_id_0, _rest_0)), ($Nat$is_eq$(_id_0, ($TicketState$record_id$(_record_0)))));
-  }
-}
-
 function $Ticket$fail$(_phase_0, _reason_0) {
   if (_phase_0.$ === "Ticket.Preparing") {
     const _previous_0 = _phase_0["failure"];
@@ -5864,6 +6121,14 @@ function $Ticket$terminal$phase$(_state_0, _failure_0, _finding_units_0, _undeli
     return {$: "Ticket.Unavailable", "reason": _reason_0};
   } else {
     return $Ticket$terminal$unit$(_failure_0, _finding_units_0, _undelivered_0, _total_0);
+  }
+}
+
+function $TicketState$keep_record$(_record_0, _tail_0, _remove_0) {
+  if (_remove_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _record_0, "tail": _tail_0};
   }
 }
 
@@ -6683,14 +6948,6 @@ function $RevisionState$without$(_subject_0, _entries_0) {
 function $RevisionState$same_subject$(_subject_0, _entry_0) {
   const _candidate_0 = _entry_0["subject"];
   return $Nat$is_eq$(_subject_0, _candidate_0);
-}
-
-function $TicketState$keep_record$(_record_0, _tail_0, _remove_0) {
-  if (_remove_0) {
-    return _tail_0;
-  } else {
-    return {$: "Con", "head": _record_0, "tail": _tail_0};
-  }
 }
 
 function $Ticket$fail$previous$(_previous_0, _reason_0) {

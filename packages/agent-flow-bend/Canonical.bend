@@ -9,6 +9,7 @@ import ./CollectionState.bend as CollectionState
 import ./Handoff.bend as Handoff
 import ./Delivery.bend as Delivery
 import ./DeliveryState.bend as DeliveryState
+import ./SubmissionState.bend as SubmissionState
 import ./RevisionState.bend as RevisionState
 import ./Ticket.bend as Ticket
 import ./TicketState.bend as TicketState
@@ -163,6 +164,10 @@ type CanonicalEvent is Data:
   TicketFinalAuthorityCheck{admitted_block: Bool, current_block: Bool}
   TicketJoinedCheck{joined_state: Ticket.JoinedState, stale_unavailable: Bool,
     has_revision: Bool, has_advice_id: Bool}
+  TicketRetentionCheck{limit: Nat}
+  CleanupCheck{facts: Retention.CleanupFacts}
+  CleanupCommit{}
+  DeliveryReleaseCheck{acknowledged: Bool}
   ReuseRoute{id: Nat, live_advice: Bool}
   ReuseClaim{id: Nat}
   ReuseAttach{id: Nat}
@@ -330,6 +335,13 @@ type Command is Data:
   TicketSetJoinedFinding{}
   TicketSetJoinedUnavailable{}
   TicketSetJoinedLost{}
+  TicketKept{}
+  TicketEvicted{id: Nat}
+  CleanupReady{}
+  CleanupBusy{}
+  CleanupCommitted{}
+  DeliveryReleaseUnacknowledged{}
+  DeliveryKeepAcknowledged{}
   ReuseJoinAdvice{}
   ReuseJoinPending{}
   ReuseJoinClaimed{}
@@ -2261,6 +2273,54 @@ def ticket_joined_result(state: State, result: Ticket.JoinedDisposition) -> Step
     case Ticket.SetJoinedUnavailable{}: Advanced{state, TicketSetJoinedUnavailable{} <> Nil{}}
     case Ticket.SetJoinedLost{}: Advanced{state, TicketSetJoinedLost{} <> Nil{}}
 
+def ticket_retention_result(+state: State, result: TicketState.Retention) -> Step:
+  match result:
+    case TicketState.Kept{_}: Advanced{state, TicketKept{} <> Nil{}}
+    case TicketState.Evicted{replacement, id}:
+      Advanced{with_collection(state, CollectionState.with_tickets(
+        collection_of(state), replacement)), TicketEvicted{id} <> Nil{}}
+
+def cleanup_state_clean(state: State) -> Bool:
+  match state:
+    case State{_, _, Nil{}, _, _, _,
+        Dispatch.State{Nil{}, Nil{}, Nil{}, _, _, False{}},
+        CollectionState.State{Nil{}, Nil{}, Nil{},
+          DeliveryState.State{Nil{}, _, SubmissionState.State{Nil{}, Nil{}}},
+          RevisionState.State{Nil{}, _}, _,
+          ReuseState.State{Nil{}, _}, NoticeState.State{Nil{}}}}: True{}
+    case _: False{}
+
+def cleanup_check_result(+state: State, result: Retention.CleanupGate) -> Step:
+  match result:
+    case Retention.CleanupReady{}:
+      Advanced{state, Bool.pick(Command, cleanup_state_clean(state),
+        CleanupReady{}, CleanupBusy{}) <> Nil{}}
+    case Retention.CleanupBusy{}: Advanced{state, CleanupBusy{} <> Nil{}}
+
+def cleanup_commit_eligible(state: State) -> Bool:
+  match state:
+    case State{Ledger.Ledger{_, _, Nil{}}, _, _, _, _, _, _,
+        CollectionState.State{_, _, _, _, _, TicketState.State{Nil{}},
+          ReuseState.State{_, Nil{}}, _}}: cleanup_state_clean(state)
+    case _: False{}
+
+def cleanup_closed(+state: State, result: Dispatch.DispatchResult) -> Step:
+  match state result:
+    case State{ledger, rounds, work, next_round, next_operation, admissions, _, collection}
+        Dispatch.Advanced{replacement, Nil{}}:
+      Advanced{State{ledger, rounds, work, next_round, next_operation,
+        admissions, replacement, collection}, CleanupCommitted{} <> Nil{}}
+    case _ _: Advanced{state, CleanupBusy{} <> Nil{}}
+
+def cleanup_commit_checked(+state: State, valid: Bool) -> Step:
+  match state valid:
+    case State{_, _, _, _, _, _, dispatch, _} True{}:
+      cleanup_closed(state, Dispatch.close(dispatch))
+    case _ False{}: Advanced{state, CleanupBusy{} <> Nil{}}
+
+def cleanup_commit(+state: State) -> Step:
+  cleanup_commit_checked(state, cleanup_commit_eligible(state))
+
 def reuse_step(+state: State, replacement: ReuseState.State, command: Command) -> Step:
   Advanced{with_collection(state,
     CollectionState.with_reuse(collection_of(state), replacement)), command <> Nil{}}
@@ -2550,6 +2610,16 @@ def step(+state: State, event: CanonicalEvent) -> Step:
     case TicketJoinedCheck{joined_state, stale_unavailable, has_revision, has_advice_id}:
       ticket_joined_result(state, Ticket.joined_disposition(joined_state, stale_unavailable,
         has_revision, has_advice_id))
+    case TicketRetentionCheck{limit}:
+      ticket_retention_result(state, TicketState.retention(
+        CollectionState.ticket_state(collection_of(state)), limit))
+    case CleanupCheck{facts}:
+      cleanup_check_result(state, Retention.cleanup_gate(facts))
+    case CleanupCommit{}:
+      cleanup_commit(state)
+    case DeliveryReleaseCheck{acknowledged}:
+      Advanced{state, Bool.pick(Command, Delivery.release_unacknowledged(acknowledged),
+        DeliveryReleaseUnacknowledged{}, DeliveryKeepAcknowledged{}) <> Nil{}}
     case ReuseRoute{id, live_advice}:
       reuse_route_result(state, ReuseState.route(
         CollectionState.reuse_state(collection_of(state)), id, live_advice))
