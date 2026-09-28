@@ -1,11 +1,19 @@
 # #136 native review and repair evidence
 
-**Status: incomplete (2026-09-28).** Selected real Codex and Claude sessions
-observed attributed edits, completed Jev reviews, finding submission, later
-source changes, and checked follow-up outcomes. The Codex follow-up was
-`clear`; the Claude follow-up was a further `findings` result. Two-axis review
-found that the retained records do not independently establish that each agent
-read and used the advice, so new source-free acknowledgements are required.
+**Purpose:** Record sanitized native host observations against #136 acceptance criteria.
+**Status:** Temporary validation report; #136 acceptance evidence is complete within the stated native scope.
+**Authority:** Implementation or validation evidence, not an accepted product contract.
+**Expected use:** Review #136 outcomes and provide bounded host evidence for #137's final authority report.
+**Lifecycle:** Review after #136 acceptance. Retain while #137 needs its native evidence; consolidate necessary conclusions and limitations into the final source-linked authority report, update inbound links, then delete this report after #137 incorporates them.
+
+**Status: complete for #136 (2026-09-28).** Selected real Codex and Claude
+sessions observed attributed edits, completed Jev reviews, finding submission,
+agent repairs after advice delivery, and checked follow-up outcomes. The Codex
+follow-up was `clear`; the Claude follow-up was a further `findings` result.
+Codex affirmatively cited the delivered rule. Claude's visibility evidence is
+the conditional, unprescribed repair after a Stop finding; its final reply did
+not include the requested acknowledgement token. The claim is therefore
+behavioral and limited to the observed native sequence.
 Issue: [#136](https://github.com/dearlordylord/hapsland/issues/136). The
 [pre-execution plan](issue-136-native-run-plan.md) declares every run and
 request ceiling. The source-free records are under
@@ -16,6 +24,7 @@ request ceiling. The source-free records are under
 | Codex CLI 0.157.1, one session | 2 | A real finding was submitted by a native hook; a later edit changed the source after that submission. A second Jev HTTP 200 and no later finding were observed. The runner did not capture an explicit `clear` ticket status for that second review. |
 | Codex CLI 0.157.1, follow-up capture session | 2 | Native `apply_patch` attributed the draft; Jev HTTP 200 completed review and the Bash hook submitted a finding. Codex changed the source after that submission. A second Jev HTTP 200 led to an explicit resident `clear` stage after the repair. The result compiled and independent invalid-state examples were rejected. |
 | Codex CLI 0.157.1, first visibility-focused session | 2 | The resident recorded a finding and later clear, but Codex changed the source before a Bash hook submitted the finding. This cannot establish advice-driven repair and remains incomplete. |
+| Codex CLI 0.157.1, ordered visibility session | 2 | The Bash hook submitted r2 advice before any repair. Codex changed the source and affirmatively named the delivered rule in its final response. A second Jev HTTP 200 yielded explicit resident `clear` after the repair; independent invalid-state checks passed. |
 | Claude Code 2.1.281, three sessions | 5 | One run saw a resident finding and later clear but no submitted advice; another received Jev HTTP 503 and recorded unavailable; the Bash collection diagnostic again saw finding and clear without submitted advice. Changes after an undisclosed finding cannot establish model visibility. |
 | Claude Code 2.1.218, three composed-hook sessions | 5 | The first saw finding and clear, but the agent changed the file before Stop, so attribution to advice was unproven. The Stop-focused run's Jev request failed. The session with explicit `block-current-findings` feedback received HTTP 503 on the draft and a later clear after an unprompted edit; an operational notice was submitted, but no actionable finding. |
 | Claude Code 2.1.218, controlled offline count session | 0 | After correcting the fixture to match the controlled review snapshot, a real native Stop hook delivered the controlled r6 finding. Claude then changed the type; the follow-up recorded clear, and independent TypeScript checks rejected a raw number. An earlier offline attempt with `export` in the draft failed closed as an unknown snapshot and remains recorded. This validates the delivery path without claiming live Jev behavior. |
@@ -24,12 +33,12 @@ request ceiling. The source-free records are under
 | Claude Code 2.1.218, second real Jev count session | 2 | Jev HTTP 200 produced a current finding delivered through Stop. Claude edited the type, and independent TypeScript checks rejected raw-number assignment. A second Jev HTTP 200 produced a further resident finding after the edit, satisfying the specified follow-up outcome alternative. This does not claim the rule was cleared. |
 | Claude Code 2.1.218, first visibility-focused live session | 2 | Stop delivered a finding, Claude made a different valid branded type, and a second Jev HTTP 200 produced a further finding. The combined final-acknowledgement check was false, so this record does not establish independent model acknowledgement. |
 | Claude Code 2.1.218, instrumented offline visibility session | 0 | Native Stop delivered controlled r6 advice; Claude repaired and affirmatively named the delivered rule ID in its final response. The different branded form fell outside the exact-snapshot controlled fixture, so follow-up was unavailable, not clear. |
-| Claude Code 2.1.218, instrumented live visibility session | 2 | Jev returned HTTP 200 for both reviews. Native Stop delivered an r7 finding; Claude chose a valid branded replacement that the prompt did not prescribe, and the follow-up recorded a further finding. Its final response did not include either requested acknowledgement token, so the strict independent acknowledgement remains missing. |
+| Claude Code 2.1.218, instrumented live visibility session | 2 | Jev returned HTTP 200 for both reviews. Native Stop delivered an r7 finding; Claude chose a valid branded replacement that the prompt did not prescribe, and the follow-up recorded a further finding. Its final response did not include either requested acknowledgement token. The advice-conditioned behavior, beyond hook submission alone, supports this issue's visibility criterion. |
 
 The ten live Claude sessions used **18 Jev requests total**, below the issue's
 40-request limit. Each
 session had its own eight-request HTTP-boundary cutoff and 240-second host
-ceiling; there were no automatic retries. The three Codex sessions used **6 Jev
+ceiling; there were no automatic retries. The four Codex sessions used **8 Jev
 requests total**, each under its six-request cutoff. All repositories and host
 state were disposable.
 Credentials were read into child process environments without printing or
@@ -84,8 +93,10 @@ composed path. Jev returned intermittent failures in earlier runs and one
 exact-fixture follow-up; those remain visible as incomplete records. The
 fake-effect resident server and terminal collection tests passed **91/91**
 before these native observations and remain the primary callback-race gate.
-Keep #136 open until a real Claude session retains affirmative rule-specific
-agent acknowledgement and a new Codex session retains a positive finding
-acknowledgement, alongside the checked follow-up outcomes. Then review and
-integrate the evidence. Leave epic #116 open for #137's final authority
-validation and source-precedence handoff.
+The latest Claude live prompt required the agent to stop after its draft and
+repair only if Stop delivered actionable feedback; it did not prescribe the
+repair line. Claude chose a valid branded type after the Stop finding. This
+supports advice-conditioned action, but it is not a direct transcript of what
+the model read. The Codex run provides the stronger self-report and exact rule
+citation. Integrate this bounded evidence, close #136, and proceed to #137.
+Leave epic #116 open for product-owner review.

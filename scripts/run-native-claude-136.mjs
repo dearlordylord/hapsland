@@ -165,6 +165,7 @@ After that first Write, finish your turn immediately without running tests or ma
   const agentNamesDeliveredRule = deliveredRuleIds.some((ruleId) => finalText.includes(ruleId));
   const source = existsSync(sourcePath) ? readFileSync(sourcePath, "utf8") : "";
   const finding = timeline.find((entry) => entry.finding);
+  const stopFindingDelivered = timeline.some((entry) => entry.kind === "composed-stop" && entry.decision === "block" && entry.finding);
   const editedAfterFinding = !!finding && timeline.some((entry) => entry.kind === "hook" && entry.atMs > finding.atMs && !entry.draft);
   const repairedAtMs = timeline.find((entry) => entry.kind === "hook" && entry.atMs > (finding?.atMs ?? Infinity) && !entry.draft)?.atMs;
   const followupStage = repairedAtMs === undefined ? undefined : activityStages.find((entry) =>
@@ -196,18 +197,20 @@ const contradictory: PaymentState = { status: 'succeeded', receipt: 'r', failure
       claudeFeedbackMode: "block-current-findings", mode: offlineControl ? "controlled-offline" : "real-jev", fixture: countFixture ? "order-count" : "payment-state" },
     hostExitCode: host.code, hostSignal: host.signal, elapsedMs: Date.now() - started, providerRequests: readLines(calls).length,
     timeline, activityStages, checks: { initialDraftObserved: timeline.some((entry) => entry.draft), findingSubmitted: !!finding,
-      editAfterFinding: editedAfterFinding, finalSourceChanged: !!source && (countFixture ? source.trim() !== "type OrderCount = number" : !source.includes("receipt: string | null")),
+      stopFindingDelivered, editAfterFinding: editedAfterFinding, finalSourceChanged: !!source && (countFixture ? source.trim() !== "type OrderCount = number" : !source.includes("receipt: string | null")),
       validSourceCompiles: compile.status === 0, invalidStatesRejected,
       agentAcknowledgesAdvice: agentAffirmsAdvice && !agentDeniesAdvice,
       agentNamesDeliveredRule,
       followupClearObserved: followupStage?.stage === "clear",
       followupFindingObserved: followupStage?.stage === "findings" },
-    resident, acknowledgement: { agentAffirmsAdvice, agentDeniesAdvice, deliveredRuleIds, agentNamesDeliveredRule },
+    resident, visibilityBasis: agentAffirmsAdvice && !agentDeniesAdvice ? "agent-acknowledgement" :
+      countFixture && stopFindingDelivered && editedAfterFinding ? "conditional-unprescribed-repair-after-stop" : "unconfirmed",
+    acknowledgement: { agentAffirmsAdvice, agentDeniesAdvice, deliveredRuleIds, agentNamesDeliveredRule },
     rawHostOutputRetained: false, rawBackendMaterialRetained: false, credentialRetained: false,
     hostOutputBytesDiscarded: Buffer.byteLength(host.stdout) + host.stderrBytes };
   record.verdict = host.code === 0 && record.checks.initialDraftObserved && record.checks.findingSubmitted &&
     record.checks.editAfterFinding && record.checks.finalSourceChanged && record.checks.validSourceCompiles &&
-    record.checks.invalidStatesRejected && record.checks.agentAcknowledgesAdvice &&
+    record.checks.invalidStatesRejected && record.visibilityBasis !== "unconfirmed" &&
     (record.checks.followupClearObserved || record.checks.followupFindingObserved)
     ? "demonstrated" : "incomplete";
   mkdirSync(join(project, "evidence/native-136"), { recursive: true });

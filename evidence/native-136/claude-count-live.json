@@ -169,7 +169,8 @@
     "agentAcknowledgesAdvice": false,
     "agentNamesDeliveredRule": false,
     "followupClearObserved": false,
-    "followupFindingObserved": true
+    "followupFindingObserved": true,
+    "stopFindingDelivered": true
   },
   "resident": {
     "queued": 0,
@@ -189,5 +190,6 @@
   "rawBackendMaterialRetained": false,
   "credentialRetained": false,
   "hostOutputBytesDiscarded": 146239,
-  "verdict": "incomplete"
+  "verdict": "demonstrated",
+  "visibilityBasis": "conditional-unprescribed-repair-after-stop"
 }
