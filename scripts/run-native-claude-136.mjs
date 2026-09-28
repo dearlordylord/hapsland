@@ -155,7 +155,7 @@ const contradictory: PaymentState = { status: 'succeeded', receipt: 'r', failure
     hostOutputBytesDiscarded: Buffer.byteLength(host.stdout) + host.stderrBytes };
   record.verdict = host.code === 0 && Object.values(record.checks).every(Boolean) ? "demonstrated" : "incomplete";
   mkdirSync(join(project, "evidence/native-136"), { recursive: true });
-  writeFileSync(join(project, "evidence/native-136/claude-diagnostic.json"), JSON.stringify(record, null, 2) + "\n");
+  writeFileSync(join(project, "evidence/native-136/claude-final.json"), JSON.stringify(record, null, 2) + "\n");
   console.log(JSON.stringify(record, null, 2));
   if (record.verdict !== "demonstrated") process.exitCode = 1;
 } finally {

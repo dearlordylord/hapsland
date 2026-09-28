@@ -41,3 +41,14 @@ has another eight-request ceiling, no automatic retries, and the same
 240-second session ceiling. The cumulative declared Claude limit is 16 Jev
 requests, below issue #136's 40-request-per-runtime ceiling. Both outcomes
 will appear separately in the evidence; the first will not be overwritten.
+
+## Declared final Claude observation, before execution
+
+The second Claude run encountered an external Jev HTTP 503. It made one Jev
+request, produced an unavailable resident outcome, and did not receive advice;
+that result remains in the evidence. A final independent native session will
+repeat the same Write → Bash collection opportunity once, with an eight-request
+cutoff and no automatic retry. This is a new declared observation after the
+external failure, not a hidden retry of the second session. The cumulative
+Claude ceiling is now 24 requests, still below the issue limit of 40. If Jev
+is unavailable again or advice is not observed, #136 remains incomplete.
