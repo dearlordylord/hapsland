@@ -38,6 +38,12 @@ const bendCommands = bendConstructors("Command");
 const decodedCommands = matches(between(adapter, "const decodeCommand =", "export type CanonicalProjection ="),
   /case "Canonical\.([A-Z][A-Za-z0-9_]*)"/g);
 sameSet(decodedCommands, bendCommands, "Bend Command and runtime decoder coverage");
+const commandType = between(adapter, "export type CanonicalCommand =", "export type ProspectiveFacts =");
+const commandKindFields = matches(commandType, /readonly kind:\s*([^;]+);/g);
+const declaredCommandKinds = new Set([...commandKindFields].flatMap((kind) =>
+  [...kind.matchAll(/"([A-Za-z][A-Za-z0-9]*)"/g)].map((match) => match[1])));
+const bendCommandKinds = new Set([...bendCommands].map((name) => name[0].toLowerCase() + name.slice(1)));
+sameSet(declaredCommandKinds, bendCommandKinds, "CanonicalCommand type and Bend Command coverage");
 assert.match(adapter, /default:\s*throw new TypeError\("unknown canonical command"\)/);
 for (const command of bendCommands) {
   assert.ok(generated.includes(`"Canonical.${command}"`), `compiled Bend lacks Command ${command}`);
