@@ -1147,7 +1147,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
 export const initialCanonical = (limits: { readonly globalItems: number; readonly globalBytes: number; readonly partitionItems: number; readonly partitionBytes: number }): unknown => {
   const values = Object.values(limits);
   if (values.length !== 4 || values.some((value) => !Number.isSafeInteger(value) || value <= 0 || value > MAX_NAT) ||
-      limits.globalItems > 256 || limits.partitionItems > 16 ||
+      limits.globalItems > 512 || limits.partitionItems > 16 ||
       limits.globalBytes > MAX_BYTES || limits.partitionBytes > MAX_BYTES) throw new TypeError("invalid canonical limits");
   const state = bendCanonicalInitial({ $: "Ledger.Limits", global_items: limits.globalItems, global_bytes: limits.globalBytes, partition_items: limits.partitionItems, partition_bytes: limits.partitionBytes });
   known.add(object(state)); projectCanonical(state);

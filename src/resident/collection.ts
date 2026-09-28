@@ -3,6 +3,7 @@ import { DIRECT_EVENT_ADVISORY_HEADING, toCodexDirectEventOutput } from "../dire
 import { encodedCodexHostOutputBytes } from "../direct-event/writer.ts";
 import { encodeClaudeHostOutputLine, type ClaudeHostOutput } from "../direct-event/claude-output.ts";
 import { initialCanonical, stepCanonical, type CanonicalEvent } from "../canonical/adapter.ts";
+import { GLOBAL_BYTE_LIMIT, GLOBAL_ITEM_LIMIT, PARTITION_BYTE_LIMIT, PARTITION_ITEM_LIMIT } from "./capacity.ts";
 export type { ClaudeBlockOutput, ClaudeHostOutput } from "../direct-event/claude-output.ts";
 
 export const ADVICE_COLLECTION_WINDOW_MS = 50;
@@ -33,8 +34,8 @@ export type CollectionCandidate = {
 
 export type CollectionMode = "ordinary" | "turn-end";
 
-const standaloneLimits = { globalItems: 64, globalBytes: 8 * 1024 * 1024,
-  partitionItems: 16, partitionBytes: 2 * 1024 * 1024 };
+const standaloneLimits = { globalItems: GLOBAL_ITEM_LIMIT, globalBytes: GLOBAL_BYTE_LIMIT,
+  partitionItems: PARTITION_ITEM_LIMIT, partitionBytes: PARTITION_BYTE_LIMIT };
 
 const canonicalCollectionCommand = (event: CanonicalEvent): string => {
   const result = stepCanonical(initialCanonical(standaloneLimits), event);

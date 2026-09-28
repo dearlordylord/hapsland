@@ -142,22 +142,22 @@ describe("resident logical capacity ledger", () => {
     expect(ledger.snapshot()).toEqual({ items: 0, bytes: 0, partitions: {} });
   });
 
-  it("enforces the profile's exact 64/8MiB and 16/2MiB boundaries", () => {
+  it("enforces the profile's exact 512/64MiB and 16/2MiB boundaries", () => {
     const counts = new CapacityLedger();
     for (let index = 0; index < 16; index += 1) expect(counts.reserve("one", 1, "reviewUnit")).toBeDefined();
     expect(counts.reserve("one", 1, "reviewUnit")).toBeUndefined();
-    for (let index = 16; index < 64; index += 1) {
+    for (let index = 16; index < 512; index += 1) {
       expect(counts.reserve(`partition-${Math.floor(index / 16)}`, 1, "reviewUnit")).toBeDefined();
     }
     expect(counts.reserve("overflow", 0, "reviewUnit")).toBeUndefined();
-    expect(counts.snapshot()).toMatchObject({ items: 64, bytes: 64 });
+    expect(counts.snapshot()).toMatchObject({ items: 512, bytes: 512 });
 
     const bytes = new CapacityLedger();
-    for (let index = 0; index < 4; index += 1) {
+    for (let index = 0; index < 32; index += 1) {
       expect(bytes.reserve(`bytes-${index}`, 2 * 1024 * 1024, "reviewUnit")).toBeDefined();
     }
     expect(bytes.reserve("overflow", 1, "reviewUnit")).toBeUndefined();
-    expect(bytes.snapshot()).toMatchObject({ items: 4, bytes: 8 * 1024 * 1024 });
+    expect(bytes.snapshot()).toMatchObject({ items: 32, bytes: 64 * 1024 * 1024 });
   });
 
   it("accepts exact count boundaries and isolates partition pressure", () => {

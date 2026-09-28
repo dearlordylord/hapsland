@@ -1,8 +1,8 @@
 import { CANONICAL_MAX_BYTES, CANONICAL_MAX_UNITS, initialCanonical, projectCanonical, stepCanonical, type CanonicalEvent, type CapacityPurpose } from "../canonical/adapter.ts";
 export type { CapacityPurpose } from "../canonical/adapter.ts";
 
-export const GLOBAL_ITEM_LIMIT = 64;
-export const GLOBAL_BYTE_LIMIT = 8 * 1024 * 1024;
+export const GLOBAL_ITEM_LIMIT = 512;
+export const GLOBAL_BYTE_LIMIT = 64 * 1024 * 1024;
 export const PARTITION_ITEM_LIMIT = 16;
 export const PARTITION_BYTE_LIMIT = 2 * 1024 * 1024;
 // A retired partition has no mapped round. This positive candidate lets

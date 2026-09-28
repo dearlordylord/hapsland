@@ -37,7 +37,7 @@ secret- or source-bearing fields in the new evidence records.
 | 5 | Join and reuse identity | Complete partition/path/evidence/rules/contract input; event ID excluded; pending join independent of cache; success-only 8-entry/128 KiB LRU reuse; failure/malformed non-reuse; A→B→A restoration | 3 obligations |
 | 6 | Revalidation and publication authority | Relevant root/reference/rule/contract changes stale; unrelated comments/siblings remain current; no whole-file fallback; late/superseded work and uncertain writer attribution do not publish | 3 obligations |
 | 7 | Resident dispatch and collection | Prompt lone dispatch; finite cycles; concurrency 2; completion or 50 ms collection; deterministic 5-finding/2 KiB response; overflow retained; expiry at 600,000 ms equality | 4 obligations |
-| 8 | Logical capacity and transport | Global 64 items/8 MiB; advicee/root 16 items/2 MiB; accounting through work/cache/outcomes/advice; bounded 256 KiB IPC before decode; explicit rejection and terminal cleanup; no RSS claim | 4 obligations |
+| 8 | Logical capacity and transport | Global 512 items/64 MiB; partition 16 items/2 MiB; accounting through work/cache/outcomes/advice; bounded 256 KiB IPC before decode; explicit rejection and terminal cleanup; no RSS claim | 4 obligations |
 | 9 | Operational notices | First capacity/backend failure eligible; same kind/partition suppressed before 60,000 ms and eligible at equality; no timer-only notice; 64 bounded keys; restart reset; no recursive notice or finding displacement | 3 obligations |
 | 10 | Singleton lifecycle | 10 s readiness; 1.5 s client deadline; 100 starters/eight processes converge; timeout/disconnect does not cancel accepted work; kill/restart loses memory; old lifetime rejected; cleanup only idle; worktree roots distinct | 4 obligations |
 | 11 | Effective file settings | Default selection, accumulated exclusions, protected paths, and current settings before dispatch; retired grant operations leave saved files untouched | 3 obligations |
@@ -85,7 +85,7 @@ unverified rather than inferred from the packaged hook run.
 | --- | --- |
 | Native patch command / named candidates | 64 KiB / 1–16 |
 | Source capture / declarations / referenced names | 32 KiB per file / 64 / 16 excluding the root |
-| Logical capacity | 64 items and 8 MiB global; 16 items and 2 MiB per advicee/root |
+| Logical capacity | 512 items and 64 MiB per resident; 16 items and 2 MiB per partition. Children have separate partitions. Claude partitions also separate tool calls; composed rounds separate generations. All partitions share the resident limit. |
 | Successful cache | 8 entries and 128 KiB, charged to capacity |
 | Backend concurrency | 2 |
 | Combined host handoff | 5 findings/notices and 2 KiB |
