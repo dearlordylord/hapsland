@@ -38,10 +38,10 @@ the installed path against direct legacy Stop decision calls.
 
 Verification: `npm run test:canonical` passed Bend proofs and 18 independent
 canonical traces. Root `npm test -- --reporter=dot` passed 65 test files and
-586 offline tests, with one file and two credential-gated tests skipped.
-After adding the two new group boundary tests, the focused
-`composed-delivery.test.ts` run passed 24 tests. Typecheck and installed
-`npm run build` passed. The full suite is rerun after review.
+589 offline tests, with one file and two credential-gated tests skipped.
+The focused `composed-delivery.test.ts` run passed 24 tests, and the held
+callback resident regression passed. Typecheck and installed `npm run build`
+passed. The final full suite ran after both reviews and the callback fix.
 
 Canonical state contains numeric IDs, stage facts, capacity charges, and
 source-free commands. Source text, credentials, Jev request and response
