@@ -156,6 +156,9 @@ After that first Write, finish your turn immediately without running tests or ma
   const source = existsSync(sourcePath) ? readFileSync(sourcePath, "utf8") : "";
   const finding = timeline.find((entry) => entry.finding);
   const editedAfterFinding = !!finding && timeline.some((entry) => entry.kind === "hook" && entry.atMs > finding.atMs && !entry.draft);
+  const repairedAtMs = timeline.find((entry) => entry.kind === "hook" && entry.atMs > (finding?.atMs ?? Infinity) && !entry.draft)?.atMs;
+  const followupStage = repairedAtMs === undefined ? undefined : activityStages.find((entry) =>
+    entry.atMs > repairedAtMs && (entry.stage === "clear" || entry.stage === "findings"));
   const compile = spawnSync("npm", ["test"], { cwd: repo, env, encoding: "utf8", timeout: 30_000 });
   let invalidStatesRejected = false;
   if (source) {
@@ -185,10 +188,14 @@ const contradictory: PaymentState = { status: 'succeeded', receipt: 'r', failure
     timeline, activityStages, checks: { initialDraftObserved: timeline.some((entry) => entry.draft), findingSubmitted: !!finding,
       editAfterFinding: editedAfterFinding, finalSourceChanged: !!source && (countFixture ? source.trim() !== "type OrderCount = number" : !source.includes("receipt: string | null")),
       validSourceCompiles: compile.status === 0, invalidStatesRejected,
-      followupClearObserved: activityStages.some((entry) => entry.stage === "clear") },
+      followupClearObserved: followupStage?.stage === "clear",
+      followupFindingObserved: followupStage?.stage === "findings" },
     resident, rawHostOutputRetained: false, rawBackendMaterialRetained: false, credentialRetained: false,
     hostOutputBytesDiscarded: Buffer.byteLength(host.stdout) + host.stderrBytes };
-  record.verdict = host.code === 0 && Object.values(record.checks).every(Boolean) ? "demonstrated" : "incomplete";
+  record.verdict = host.code === 0 && record.checks.initialDraftObserved && record.checks.findingSubmitted &&
+    record.checks.editAfterFinding && record.checks.finalSourceChanged && record.checks.validSourceCompiles &&
+    record.checks.invalidStatesRejected && (record.checks.followupClearObserved || record.checks.followupFindingObserved)
+    ? "demonstrated" : "incomplete";
   mkdirSync(join(project, "evidence/native-136"), { recursive: true });
   writeFileSync(join(project, `evidence/native-136/${offlineControl ? "claude-count-offline" : countFixture ? "claude-count-live" : "claude-configured"}.json`), JSON.stringify(record, null, 2) + "\n");
   console.log(JSON.stringify(record, null, 2));

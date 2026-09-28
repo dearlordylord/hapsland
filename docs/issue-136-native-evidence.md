@@ -1,8 +1,9 @@
 # #136 native review and repair evidence
 
-**Status: incomplete (2026-09-28).** A new native Claude session establishes
-finding delivery and a subsequent agent repair, but its follow-up Jev request
-failed, so it does not establish a clear or further finding after repair.
+**Status: incomplete (2026-09-28).** A second exact-fixture native Claude
+session establishes finding delivery, subsequent agent repair, and a checked
+further finding after repair. The Codex session still lacks an explicit
+follow-up ticket outcome.
 Issue: [#136](https://github.com/dearlordylord/hapsland/issues/136). The
 [pre-execution plan](issue-136-native-run-plan.md) declares every run and
 request ceiling. The source-free records are under
@@ -15,8 +16,9 @@ request ceiling. The source-free records are under
 | Claude Code 2.1.218, three composed-hook sessions | 5 | The first saw finding and clear, but the agent changed the file before Stop, so attribution to advice was unproven. The Stop-focused run's Jev request failed. The session with explicit `block-current-findings` feedback received HTTP 503 on the draft and a later clear after an unprompted edit; an operational notice was submitted, but no actionable finding. |
 | Claude Code 2.1.218, controlled offline count session | 0 | After correcting the fixture to match the controlled review snapshot, a real native Stop hook delivered the controlled r6 finding. Claude then changed the type; the follow-up recorded clear, and independent TypeScript checks rejected a raw number. An earlier offline attempt with `export` in the draft failed closed as an unknown snapshot and remains recorded. This validates the delivery path without claiming live Jev behavior. |
 | Claude Code 2.1.218, real Jev count session | 2 | Jev HTTP 200 produced a current finding; the native Stop hook blocked and Claude then changed the type. The replacement compiled and independent invalid-assignment check passed. The follow-up Jev request failed and the resident recorded incomplete/unavailable, not clear. |
+| Claude Code 2.1.218, second real Jev count session | 2 | Jev HTTP 200 produced a current finding delivered through Stop. Claude edited the type, and independent TypeScript checks rejected raw-number assignment. A second Jev HTTP 200 produced a further resident finding after the edit, satisfying the specified follow-up outcome alternative. This does not claim the rule was cleared. |
 
-The seven live Claude sessions used **12 Jev requests total**, below the issue's
+The eight live Claude sessions used **14 Jev requests total**, below the issue's
 40-request limit. Each
 session had its own eight-request HTTP-boundary cutoff and 240-second host
 ceiling; there were no automatic retries. The Codex session used 2 requests
@@ -45,11 +47,12 @@ shell-sourcing the primary checkout's ignored `.env` file.
   runs were direct-hook diagnostics, not an installed-profile claim. The final
   2.1.218 run used the user-level `block-current-findings` setting without a
   separate repository grant, consistent with #132.
-- The exact count fixture separates the earlier delivery problem from later
-  backend availability. The controlled native run saw finding submission,
-  repair, and clear. In the live run, the first Jev response produced the same
-  finding and repair ordering; only the second review failed. The live evidence
-  is therefore still incomplete at the follow-up outcome stage.
+- The exact count fixture separates the earlier delivery problem from backend
+  availability. The controlled native run saw finding submission, repair, and
+  clear. The first live count run saw the finding and repair but its second
+  request failed. The second live count run saw the finding and repair followed
+  by a further finding. It proves a checked follow-up outcome, not a clean
+  outcome; the rule's persistence is outside this native delivery observation.
 - The resident server and terminal-collection fake-effect tests passed:
   **91/91**. They remain the callback-race gate. These selected native sessions
   do not establish race completeness or population reliability.
@@ -62,8 +65,7 @@ acknowledgement alone is not treated as proof the model saw advice.
 
 ## Remaining gate
 
-Keep #136 and #116 open. A future separately declared native run must
-directly observe Claude advice submission, subsequent model repair, and an
-explicit follow-up clear or further finding. Capture an explicit Codex
-follow-up ticket outcome as well. #137's final authority validation and
+Keep #136 and #116 open. Capture an explicit Codex follow-up ticket outcome;
+the earlier Codex record only showed a second HTTP 200 and no later finding.
+#137's final authority validation and
 crosswalk-retirement decision follow only after that evidence is assembled.
