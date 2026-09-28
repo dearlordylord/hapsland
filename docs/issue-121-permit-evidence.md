@@ -68,11 +68,14 @@ completed fixture edits, and separate Codex turns. Codex ran with inline hooks
 and an unrestricted sandbox in its disposable fixture because this container's
 `bwrap` could not create a user namespace. Neither run invoked Jev.
 
-Abide is not a child-attribution precedent: its pinned [hook schema](https://github.com/coldteadotai/abide/blob/cd1685309cb29269e650411e0153858fb7e8703d/packages/schema/src/hooks.ts)
-does not preserve `agent_id`, and its [edit handler](https://github.com/coldteadotai/abide/blob/cd1685309cb29269e650411e0153858fb7e8703d/packages/cli/src/hooks/postToolUse.ts)
-groups work by session and prompt/turn ID. Abide checks each edit immediately;
-Hapsland also retains addressed advice for later delivery, so it keeps the
-supplied child ID in the advicee partition.
+Abide is set up to check edits made inside child agents: its [installed `PostToolUse`
+hook](https://github.com/coldteadotai/abide/blob/cd1685309cb29269e650411e0153858fb7e8703d/packages/cli/src/lib/settings.ts)
+matches edit tools, which both hosts run inside children. Its pinned [hook schema](https://github.com/coldteadotai/abide/blob/cd1685309cb29269e650411e0153858fb7e8703d/packages/schema/src/hooks.ts)
+does not retain `agent_id`; the [edit handler](https://github.com/coldteadotai/abide/blob/cd1685309cb29269e650411e0153858fb7e8703d/packages/cli/src/hooks/postToolUse.ts)
+keys turn state by session and prompt/turn ID, and Abide installs `Stop` but
+no `SubagentStop` hook. This code does not prove child-specific turn isolation
+or failure. Hapsland retains advice for later addressed delivery, so it keeps
+the supplied child ID in the advicee partition.
 
 ## Review boundary
 
