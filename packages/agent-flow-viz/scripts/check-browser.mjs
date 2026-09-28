@@ -85,14 +85,28 @@ try {
   await imports.getByRole("button", { name: "Cumulative tree cap skips E and G", exact: true }).click();
   await waitForText(".import-graph-progress", "Import step 0 of 26");
   assert.equal(await imports.getByRole("button", { name: "Previous import step", exact: true }).isDisabled(), true);
+  const budget = imports.locator(".import-tree-budget");
+  const bar = budget.getByRole("img");
+  assert.match(await bar.getAttribute("aria-label"), /0 KiB of 20 KiB accepted; 20 KiB remaining/);
+  assert.equal(await budget.locator(".import-tree-segment").count(), 0);
   for (let step = 1; step <= 26; step++) {
     await imports.getByRole("button", { name: "Next import step", exact: true }).click();
     await waitForText(".import-graph-progress", `Import step ${step} of 26`);
     if (step === 17) {
       assert.match(await fileDiagram.textContent(), /E\.tsTreeLimitreported tree \+2048 B.*accepted total 19456 B/s);
       assert.match(await imports.locator(".import-graph-facts").innerText(), /A.ts · ready/);
+      assert.match(await bar.getAttribute("aria-label"), /19 KiB of 20 KiB accepted; 1 KiB remaining/);
+      assert.deepEqual(await budget.locator(".import-tree-segment").allTextContents(), ["A", "B", "C", "D"]);
+      assert.equal(await budget.locator(".import-tree-remaining").evaluate((element) => element.style.width), "5%");
+      assert.match(await budget.locator(".import-tree-skipped").innerText(), /E.ts \(2 KiB reported\)/);
     }
   }
+  assert.match(await bar.getAttribute("aria-label"), /20 KiB of 20 KiB accepted; 0 KiB remaining/);
+  assert.deepEqual(await budget.locator(".import-tree-segment").allTextContents(), ["A", "B", "C", "D", "F"]);
+  assert.deepEqual(await budget.locator(".import-tree-segment").evaluateAll((elements) => elements.map((element) => element.style.width)), ["25%", "25%", "25%", "20%", "5%"]);
+  assert.equal(await budget.locator(".import-tree-remaining").count(), 0);
+  assert.match(await budget.locator(".import-tree-contributions").innerText(), /F.ts: 1 KiB accepted; cumulative 20 KiB/);
+  assert.match(await budget.locator(".import-tree-skipped").innerText(), /E.ts \(2 KiB reported\), G.ts \(2 KiB reported\)/);
   assert.match(await fileDiagram.textContent(), /A\.ts.*B\.ts.*C\.ts.*D\.ts.*E\.ts.*F\.ts.*G\.ts/s);
   const filePosition = async (name) => {
     const label = fileDiagram.locator("text").filter({ hasText: new RegExp(`^${name.replace(".", "\\.")}$`) });
@@ -109,6 +123,19 @@ try {
   assert.match(await imports.locator(".import-graph-facts").innerText(), /A.ts · incomplete \(TreeLimit\)/);
   assert.match(await imports.locator(".import-graph-facts").innerText(), /accepted tree bytes: 20480\/20480/);
   assert.match(await imports.locator(".import-graph-facts").innerText(), /Import skipped for remaining tree budget: yes/);
+  for (let step = 25; step >= 20; step--) {
+    await imports.getByRole("button", { name: "Previous import step", exact: true }).click();
+    await waitForText(".import-graph-progress", `Import step ${step} of 26`);
+  }
+  assert.match(await bar.getAttribute("aria-label"), /19 KiB of 20 KiB accepted; 1 KiB remaining/);
+  assert.deepEqual(await budget.locator(".import-tree-segment").allTextContents(), ["A", "B", "C", "D"]);
+  await page.setViewportSize({ width: 390, height: 844 });
+  const barBounds = await bar.boundingBox();
+  assert.ok(barBounds.x >= 0 && barBounds.x + barBounds.width <= 390, "tree bar fits the mobile viewport");
+  await imports.getByRole("button", { name: "Reset import example", exact: true }).click();
+  await waitForText(".import-graph-progress", "Import step 0 of 26");
+  assert.match(await bar.getAttribute("aria-label"), /0 KiB of 20 KiB accepted; 20 KiB remaining/);
+  assert.equal(await budget.locator(".import-tree-segment").count(), 0);
   assert.deepEqual(errors, []);
   console.log("Browser controls passed: guided, manual, disabled rejection, capacity, finish, rewind, redo, and independent import exploration");
 } finally {

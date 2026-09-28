@@ -73,6 +73,32 @@ const projectFileGraphs = (unitCount: number, history: readonly HistoryStep[]): 
   }
   return graphs;
 };
+
+const treeLimitBytes = 20 * 1024;
+const treeSize = (bytes: number) => bytes % 1024 === 0 ? `${bytes / 1024} KiB` : `${bytes} B`;
+
+export const importTreeBudgetView = <Message>(h: HtmlBuilder<Message>, units: readonly string[],
+  names: Readonly<Record<number, string>>, history: readonly HistoryStep[], states: readonly ImportGraphProjection[]) =>
+  h.div([h.Class("import-tree-budgets")], projectFileGraphs(units.length, history).map((graph, unit) => {
+    // Acceptance and cumulative totals come from the same Bend replay projection as the file graph.
+    const accepted = [...graph.nodes.values()].filter((node) => node.sizeAccepted === true);
+    const skipped = [...graph.nodes.values()].filter((node) => node.reason === "TreeLimit" && node.sizeAccepted === false);
+    const used = states[unit]!.treeBytes;
+    const remaining = treeLimitBytes - used;
+    const name = (node: FileNode) => names[node.target] ?? `target #${node.target}`;
+    const contributions = accepted.map((node) => `${name(node)}: ${treeSize(node.treeBytes!)} accepted; cumulative ${treeSize(node.acceptedTotal!)}`);
+    const summary = `${units[unit]} tree budget: ${treeSize(used)} of 20 KiB accepted; ${treeSize(remaining)} remaining`;
+    return h.div([h.Class("import-tree-budget")], [
+      h.h3([], [summary]),
+      h.div([h.Class("import-tree-bar"), h.Role("img"), h.AriaLabel([summary, ...contributions].join(". "))], [
+        ...accepted.map((node) => h.span([h.Class("import-tree-segment"), h.Style({ width: `${node.treeBytes! / treeLimitBytes * 100}%` })], [name(node).replace(/\.ts$/, "")])),
+        ...(remaining > 0 ? [h.span([h.Class("import-tree-remaining"), h.Style({ width: `${remaining / treeLimitBytes * 100}%` })], ["Free"])] : []),
+      ]),
+      h.ul([h.Class("import-tree-contributions"), h.AriaLabel("Accepted tree contributions in traversal order")], contributions.map((label) => h.li([], [label]))),
+      h.p([h.Class("import-tree-skipped")], [skipped.length ? `Skipped by Bend: ${skipped.map((node) => `${name(node)} (${treeSize(node.treeBytes!)} reported)`).join(", ")}. These files use no bar space.` : "No tree-budget skips in the replay so far."]),
+    ]);
+  }));
+
 const fileGraph = <Message>(h: HtmlBuilder<Message>, units: readonly string[],
   names: Readonly<Record<number, string>>, history: readonly HistoryStep[], states: readonly ImportGraphProjection[]) => {
   const graphs = projectFileGraphs(units.length, history);

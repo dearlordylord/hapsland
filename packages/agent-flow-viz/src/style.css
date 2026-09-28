@@ -118,3 +118,13 @@ p { line-height: 1.5; }
 .import-graph-log { max-height: 300px; overflow: auto; padding-left: 24px; color: #425570; font-size: .82rem; }
 .import-graph-log li { margin: 8px 0; }
 .import-graph-log .current { color: #973c1e; font-weight: 700; }
+.import-tree-budget { margin: 18px 0; padding: 16px; border: 1px solid #dce3ec; border-radius: 8px; }
+.import-tree-budget h3 { margin: 0 0 12px; font-size: .95rem; }
+.import-tree-bar { display: flex; height: 40px; overflow: hidden; border: 1px solid #687e98; border-radius: 6px; }
+.import-tree-segment, .import-tree-remaining { display: flex; align-items: center; justify-content: center; flex-shrink: 0; min-width: 0; overflow: hidden; box-sizing: border-box; font-size: .8rem; font-weight: 700; }
+.import-tree-segment { color: #fff; background: #294976; box-shadow: inset -2px 0 #fff; }
+.import-tree-segment:nth-child(2n) { background: #205f4a; }
+.import-tree-segment:nth-child(3n) { background: #65438a; }
+.import-tree-remaining { color: #425570; background: repeating-linear-gradient(135deg, #edf1f6, #edf1f6 5px, #fff 5px, #fff 10px); }
+.import-tree-contributions { display: flex; flex-wrap: wrap; gap: 6px 24px; padding-left: 18px; margin: 12px 0; font-size: .8rem; color: #425570; }
+.import-tree-skipped { margin: 10px 0 0; color: #52647d; font-size: .8rem; }

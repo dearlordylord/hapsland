@@ -1,6 +1,6 @@
 import type { HtmlBuilder } from "foldkit/html";
 import { initialImportGraph, projectImportGraph, stepImportGraph } from "../../agent-flow-bend/import-graph-adapter";
-import { importGraphDiagram, type ImportGraphStage } from "./import-graph-diagram";
+import { importGraphDiagram, importTreeBudgetView, type ImportGraphStage } from "./import-graph-diagram";
 
 type Input = Parameters<typeof stepImportGraph>[1];
 type ExampleStep = { readonly unit: number; readonly label: string; readonly event: Input };
@@ -55,6 +55,7 @@ export const importGraphView = <Message>(h: HtmlBuilder<Message>, scenarioIndex:
       h.button([h.OnClick(move(0))], ["Reset import example"]),
       h.span([h.Class("import-graph-progress")], [`Import step ${cursor} of ${scenario.steps.length}`]),
     ]),
+    importTreeBudgetView(h, scenario.units, scenario.targetNames, history, states),
     h.div([h.Class("import-graph-facts")], states.map((state, index) => h.div([], [
       h.strong([], [`${scenario.units[index]} · ${state.phase}${state.reason ? ` (${state.reason})` : ""}`]),
       h.span([], [`Pending edges: ${ids(state.pending)} · visited targets: ${ids(state.visited)}`]),
