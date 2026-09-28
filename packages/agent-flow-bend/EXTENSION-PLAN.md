@@ -8,8 +8,7 @@ links are pinned; probe records are not copied into this branch.
 Implementation note: this plan's single Bend reducer instance was a target,
 not the final architecture. Production now composes generated Bend policy
 gates with native TypeScript state and effects. See the
-[completion report](../../docs/bend-full-flow-completion-report.md) and
-[production boundary diagrams](../../docs/bend-production-backbone-diagrams.md).
+[completion report](../../docs/bend-full-flow-completion-report.md).
 
 The Bend model implements admission, fan-out, outcome tracking,
 per-finding selection, finish reservation, lease transitions, logical capacity,

@@ -1,9 +1,9 @@
 # Hapsland agent flow in Bend
 
-`ImportGraph.bend` defines the #141 source-free supporting-reference traversal
-for one review unit. Its compiled graph and checked TypeScript adapter drive a
-separate dashboard state machine; production cross-file capture is still pending
-#133/#138. Run `npm run test:import-graph` for its laws and independent traces.
+`ImportGraph.bend` defines source-free supporting-reference traversal for one
+review unit. Its compiled graph and checked TypeScript adapter support the
+visualization's replay. Run `npm run test:import-graph` for its laws and
+independent traces.
 Supporting tree contributions that do not fit the remaining budget emit `SkipImport(TreeLimit)` while
 later pending edges continue within the file, read, work, depth, and deadline
 limits. The accepted tree remains within 20 KiB, and a unit with any skipped
@@ -78,10 +78,11 @@ Jev Effect calls, IPC, and output formatting in TypeScript. The accepted
 contract in `../../docs/advicing-target-contract.md` remains the target for
 the aggregate lifecycle and installed runtime behavior.
 
-`Canonical.bend` and [`src/canonical/adapter.ts`](../../src/canonical/adapter.ts) define the canonical
-state/event/command interface. It owns one global ledger across advicee
-partitions, ordered partial replacement, exact logical release, round and
-operation identities, Stop waiting/cutoff, and uncertain background output.
-The resident's capacity reservations and later resident decision paths now use
-its checked transition.
+`Canonical.bend` and [`src/canonical/adapter.ts`](../../src/canonical/adapter.ts)
+define the resident's checked state/event/command interface. It composes a
+global ledger across advicee partitions with round and operation identities,
+Stop waiting and cutoff, and uncertain background output. The resident uses
+this interface for capacity and integrated decision paths; TypeScript owns
+runtime orchestration and effects, with generated Bend policy modules at the
+other decision boundaries.
 Run `npm run test:canonical` for Bend proofs and independent source-free traces.
