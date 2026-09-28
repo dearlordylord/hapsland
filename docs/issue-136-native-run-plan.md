@@ -4,7 +4,7 @@
 **Status:** Temporary #136 run plan; dated later sections are separate declarations, not retroactive changes to earlier runs.
 **Authority:** Implementation or validation evidence protocol, not an accepted product contract.
 **Expected use:** Audit #136 request ceilings, host instructions, and the sequence of selected native observations; supply provenance for #137.
-**Lifecycle:** Review after #136 acceptance. Keep through #137 while its final authority report needs these declarations; then consolidate necessary conclusions into that report, update inbound links, and delete this plan after #137 incorporates them.
+**Lifecycle:** Reviewed after #136 acceptance and incorporated by the #137 final authority report. Retain as linked declaration provenance through #116 owner review; then transfer any still-needed limits to the accepted evidence owner, update inbound links, and delete or consolidate this plan.
 
 Recorded before live execution on 2026-09-28. The purpose is to observe the
 current Hapsland resident and checked Bend decisions in real Codex CLI and

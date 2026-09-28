@@ -4,7 +4,7 @@
 **Status:** Temporary validation report; #136 acceptance evidence is complete within the stated native scope.
 **Authority:** Implementation or validation evidence, not an accepted product contract.
 **Expected use:** Review #136 outcomes and provide bounded host evidence for #137's final authority report.
-**Lifecycle:** Review after #136 acceptance. Retain while #137 needs its native evidence; consolidate necessary conclusions and limitations into the final source-linked authority report, update inbound links, then delete this report after #137 incorporates them.
+**Lifecycle:** Reviewed after #136 acceptance; its conclusions and limits are incorporated in the #137 final authority report. Retain as linked native observation evidence through #116 owner review; then transfer any still-needed evidence summary to its accepted owner, update inbound links, and delete or consolidate this report.
 
 **Status: complete for #136 (2026-09-28).** Selected real Codex and Claude
 sessions observed attributed edits, completed Jev reviews, finding submission,
