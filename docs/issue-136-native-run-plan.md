@@ -64,3 +64,15 @@ the repository-supported Claude Code 2.1.218 binary. Its eight-request
 cutoff brings the cumulative declared Claude ceiling to 32 requests, still
 below 40. No automatic retries are enabled. A missing delivery or downstream
 repair will remain an incomplete #136 result.
+
+## Stop-focused Claude observation, before execution
+
+The composed-hook run observed the agent repair before its Stop hook, so it
+cannot attribute the repair to Hapsland advice. One final selected session
+keeps the supported composed hooks but instructs Claude to finish immediately
+after the initial Write and to repair only if the Stop response supplies an
+actionable finding. This gives Stop the first delivery opportunity before any
+repair. It has an eight-request cutoff, no automatic retry, and a 240-second
+session ceiling. Across all five Claude sessions the declared worst-case
+request ceiling is 40, exactly the issue limit. No further live session is
+planned; missing advice or repair leaves #136 incomplete.

@@ -139,7 +139,7 @@ export interface PaymentState {
   receipt: string | null;
   failureReason: string | null;
 }
-Immediately after that first Write, run npm test using Bash before making any repair. Do not repair this initial draft before Hapsland feedback. If an actionable Hapsland finding arrives on either hook, repair the type using Edit or Write so invalid combinations are impossible, then run npm test again. If no finding arrives, say so truthfully. Stay in this repository; do not inspect integration configuration, credentials, or environment variables. Make at most three source edits. In your final reply state whether automated review affected the change; do not invent feedback.`;
+After that first Write, finish your turn immediately without running tests or making another edit. Do not repair this initial draft before Hapsland feedback. If an actionable Hapsland finding is returned by the Stop hook, repair the type using Edit or Write so invalid combinations are impossible, then run npm test and finish. If no finding arrives, leave the draft unchanged and say so truthfully. Stay in this repository; do not inspect integration configuration, credentials, or environment variables. Make at most two source edits. In your final reply state whether automated review affected the change; do not invent feedback.`;
   const host = await run(claudeBinary, ["-p", "--output-format", "stream-json", "--verbose", "--no-session-persistence",
     "--allowedTools", "Read,Edit,Write,Bash", "--permission-mode", "acceptEdits", prompt], env, repo, 240_000);
   const timeline = readLines(events).map((entry) => ({ ...entry, atMs: entry.at - started, at: undefined, doneAt: undefined }));
@@ -178,7 +178,7 @@ const contradictory: PaymentState = { status: 'succeeded', receipt: 'r', failure
     hostOutputBytesDiscarded: Buffer.byteLength(host.stdout) + host.stderrBytes };
   record.verdict = host.code === 0 && Object.values(record.checks).every(Boolean) ? "demonstrated" : "incomplete";
   mkdirSync(join(project, "evidence/native-136"), { recursive: true });
-  writeFileSync(join(project, "evidence/native-136/claude-composed.json"), JSON.stringify(record, null, 2) + "\n");
+  writeFileSync(join(project, "evidence/native-136/claude-stop.json"), JSON.stringify(record, null, 2) + "\n");
   console.log(JSON.stringify(record, null, 2));
   if (record.verdict !== "demonstrated") process.exitCode = 1;
 } finally {
