@@ -132,6 +132,7 @@ export type ResidentResponse =
         | "unsupported"
         | "busy"
         | "cleaned";
+      readonly reason?: string;
     }
   | {
       readonly status: "advice";
@@ -372,7 +373,7 @@ const ResidentResponseSchema = Schema.Union([
     "continuation-allowed", "continuation-denied", "background-claimed", "submitting", "released",
     "acknowledged", "finalized", "unsupported",
     "busy", "cleaned",
-  ]) }),
+  ]), reason: Schema.optionalKey(Schema.String.check(Schema.isMaxLength(64))) }),
   Schema.Struct({
     status: Schema.Literal("advice"),
     token: Schema.NonEmptyString,

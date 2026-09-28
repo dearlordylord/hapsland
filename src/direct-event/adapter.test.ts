@@ -24,6 +24,13 @@ describe("direct-event Codex Add adapter", () => {
       hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
       session_id: "claude", tool_use_id: "tool", agent_id: "",
     }, "claude-code", "PostToolUse"))).toBeUndefined();
+    for (const host of ["codex-cli", "claude-code"] as const) {
+      const edit = { hook_event_name: "PostToolUse", tool_name: host === "codex-cli" ? "apply_patch" : "Write",
+        cwd: root, session_id: "session", tool_use_id: "tool", agent_type: "child" };
+      expect(await Effect.runPromise(adaptComposedHookIdentity(edit, host, "PostToolUse"))).toBeUndefined();
+      expect(await Effect.runPromise(adaptComposedHookIdentity({ ...edit, hook_event_name: "PreToolUse" }, host, "PreToolUse"))).toBeUndefined();
+      expect(await Effect.runPromise(adaptComposedHookIdentity({ ...edit, hook_event_name: "Stop" }, host, "Stop"))).toBeUndefined();
+    }
   });
   it("requires an explicit child identity on SubagentStop for both hosts", async () => {
     const root = await makeGitFixture();

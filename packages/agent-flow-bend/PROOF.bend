@@ -22,6 +22,12 @@ def Laws.canonical_capacity_view_uses_bend_ledger_totals():
 def Laws.canonical_released_capacity_rejects_duplicate():
   {==}
 
+def Laws.canonical_permit_issue_is_partitioned_and_round_bound():
+  {==}
+
+def Laws.canonical_expired_prospective_round_closes_once():
+  {==}
+
 def Laws.ledger_resize_changes_purpose_without_new_reservation():
   {==}
 

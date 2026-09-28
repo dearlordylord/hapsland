@@ -57,6 +57,9 @@ describe("shared Hapsland rounds", () => {
   it("requires a prospective permit, rejects expired or orphaned prehooks and consumes once", () => {
     const state = new ComposedDelivery();
     expect(state.admitEdit("agent", "no-pre", 100, true)).toBeUndefined();
+    expect(state.registerEditDecision("agent", "bad-clock", 200, 100)).toEqual({
+      accepted: false, reason: "InvalidClock",
+    });
     expect(state.registerEdit("agent", "expired", 100, 2600)).toBe(false);
     expect(state.registerEdit("agent", "edit", 100, 110)).toBe(true);
     expect(state.admitEdit("agent", "edit", 120, true)).toBe(1);
@@ -80,6 +83,31 @@ describe("shared Hapsland rounds", () => {
     expect(state.closureCounts("agent").editPermits).toBe(0);
     expect(state.admitEdit("agent", "fractional", startedAt + EDIT_PERMIT_EXPIRY_MS, true))
       .toBeUndefined();
+  });
+
+  it("closes an expired prospective round and admits a fresh tool in the next round", () => {
+    const state = new ComposedDelivery();
+    expect(state.registerEdit("agent", "first", 100, 101)).toBe(true);
+    state.expirePermits(100 + EDIT_PERMIT_EXPIRY_MS);
+    expect(state.beginStop("agent", "stop")).toBe(true);
+    expect(state.finishStop("agent", "stop", true, 100 + EDIT_PERMIT_EXPIRY_MS + 1)).toBe(1);
+    expect(state.admitEdit("agent", "first", 100 + EDIT_PERMIT_EXPIRY_MS + 2, true)).toBeUndefined();
+    expect(state.registerEdit("agent", "second", 100 + EDIT_PERMIT_EXPIRY_MS + 3,
+      100 + EDIT_PERMIT_EXPIRY_MS + 4)).toBe(true);
+    expect(state.admitEdit("agent", "second", 100 + EDIT_PERMIT_EXPIRY_MS + 5, true)).toBe(2);
+  });
+
+  it("keeps native tool identity across duplicate and cross-advicee callbacks", () => {
+    const state = new ComposedDelivery();
+    expect(state.registerEdit("child", "tool-use-original", 100, 110)).toBe(true);
+    expect(state.registerEdit("child", "tool-use-original", 100, 111)).toBe(false);
+    expect(state.admitEdit("parent", "tool-use-original", 115, true)).toBeUndefined();
+    expect(state.admitEdit("child", "other-tool", 116, true)).toBeUndefined();
+    expect(state.admitEdit("child", "tool-use-original", 117, true)).toBe(1);
+    expect(state.admitEdit("child", "tool-use-original", 118, true)).toBeUndefined();
+    const child = state.canonical.canonicalProjection().admissions[0];
+    expect(child?.used).toHaveLength(1);
+    expect(child?.permits).toHaveLength(0);
   });
 
   it("closes abandoned pre-output Stop attempts but preserves uncertain continuations", () => {
@@ -190,6 +218,15 @@ describe("shared Hapsland rounds", () => {
     expect(state.admitEdit("agent", "uncompleted", 101, true)).toBeUndefined();
     expect(state.registerEdit("agent", "fresh", 102, 103)).toBe(true);
     expect(state.admitEdit("agent", "fresh", 104, true)).toBe(2);
+  });
+
+  it("releases pending permits in canonical state at a Stop cutoff", () => {
+    const state = new ComposedDelivery();
+    expect(state.registerEdit("agent", "pending", 10, 11)).toBe(true);
+    expect(state.beginStop("agent", "stop")).toBe(true);
+    expect(state.finishGate("agent", "stop", 0, true)?.status).toBe("cutoff");
+    expect(state.closureCounts("agent").editPermits).toBe(0);
+    expect(state.canonical.canonicalProjection().admissions[0]?.permits).toHaveLength(0);
   });
 
   it("coalesces background waiters and forbids submission after the Stop barrier", () => {
