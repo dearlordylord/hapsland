@@ -17,6 +17,25 @@ import ./Revision.bend as Revision
 import ./Reuse.bend as Reuse
 import ./Retention.bend as Retention
 import ./ImportGraph.bend as ImportGraph
+import ./Canonical.bend as Canonical
+
+law canonical_cross_advicee_identity_is_distinct:
+  {Canonical.same_ids(1n, 1n, 1n, 2n, 1n, 1n) == False{} : Bool}
+
+law canonical_pending_work_blocks_finish:
+  {Canonical.pending(1n, 1n, 1n,
+    Canonical.Work{1n, 1n, 1n, 3n, 2n, Canonical.Reviewing{}} <> Nil{}) ==
+    True{} : Bool}
+
+law canonical_deadline_releases_exact_charge:
+  {Canonical.release_round_charges(
+    Canonical.Work{1n, 1n, 1n, 3n, 2n, Canonical.Preparing{}} <> Nil{},
+    Ledger.Ledger{Ledger.Limits{3n, 100n, 2n, 60n}, 3n,
+      Ledger.Charge{2n, 1n, 20n} <> Nil{}}, 1n, 1n, 1n) ==
+    Ledger.Ledger{Ledger.Limits{3n, 100n, 2n, 60n}, 3n, Nil{}} : Ledger.Ledger}
+
+law canonical_uncertain_write_is_not_acknowledged:
+  {Canonical.write_is_unknown(Canonical.Unknown{}) == True{} : Bool}
 
 law import_graph_exclusion_has_no_read_command:
   {ImportGraph.checked(ImportGraph.Edge{2n, 1n}, 2n, False{},

@@ -1,0 +1,383 @@
+{
+  "source": "Independent #119 expected behavior, derived from the accepted resident contract and ordered CapacityLedger.replace semantics; no TypeScript reference reducer",
+  "limits": {
+    "globalItems": 3,
+    "globalBytes": 100,
+    "partitionItems": 2,
+    "partitionBytes": 60
+  },
+  "traces": [
+    {
+      "name": "competing advicees share one global ledger",
+      "events": [
+        {
+          "kind": "openRound",
+          "partition": 1,
+          "lifetime": 1
+        },
+        {
+          "kind": "openRound",
+          "partition": 2,
+          "lifetime": 1
+        },
+        {
+          "kind": "beginPreparation",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "bytes": 30
+        },
+        {
+          "kind": "beginPreparation",
+          "partition": 2,
+          "lifetime": 1,
+          "round": 2,
+          "bytes": 40
+        },
+        {
+          "kind": "preparationCompleted",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "operation": 1,
+          "unitBytes": [
+            20,
+            20
+          ]
+        },
+        {
+          "kind": "preparationCompleted",
+          "partition": 2,
+          "lifetime": 1,
+          "round": 2,
+          "operation": 2,
+          "unitBytes": [
+            40,
+            40
+          ]
+        },
+        {
+          "kind": "reviewCompleted",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "operation": 3,
+          "outcome": "clear"
+        },
+        {
+          "kind": "reviewCompleted",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "operation": 3,
+          "outcome": "clear"
+        }
+      ],
+      "commands": [
+        "roundStarted:1",
+        "roundStarted:2",
+        "prepare:1:1",
+        "prepare:2:2",
+        "reservationReleased:1,unitAdmitted:3:3,unitAdmitted:4:4",
+        "reservationReleased:2,unitAdmitted:5:5,unitRefused",
+        "reservationReleased:3,reviewRecorded:clear",
+        "rejected:StaleOperation"
+      ],
+      "global": {
+        "items": 2,
+        "bytes": 60
+      },
+      "expectedDecisionPending": false
+    },
+    {
+      "name": "zero prepared units release workspace",
+      "events": [
+        {
+          "kind": "openRound",
+          "partition": 1,
+          "lifetime": 1
+        },
+        {
+          "kind": "beginPreparation",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "bytes": 20
+        },
+        {
+          "kind": "preparationCompleted",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "operation": 1,
+          "unitBytes": []
+        },
+        {
+          "kind": "stopPolled",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "deadline": false
+        },
+        {
+          "kind": "stopPolled",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "deadline": false
+        },
+        {
+          "kind": "beginPreparation",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "bytes": 10
+        }
+      ],
+      "commands": [
+        "roundStarted:1",
+        "prepare:1:1",
+        "reservationReleased:1",
+        "finishReady",
+        "rejected:StaleRound",
+        "rejected:StaleRound"
+      ],
+      "global": {
+        "items": 0,
+        "bytes": 0
+      },
+      "expectedDecisionPending": true
+    },
+    {
+      "name": "many units admit in order and Stop waits",
+      "events": [
+        {
+          "kind": "openRound",
+          "partition": 1,
+          "lifetime": 1
+        },
+        {
+          "kind": "beginPreparation",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "bytes": 20
+        },
+        {
+          "kind": "preparationCompleted",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "operation": 1,
+          "unitBytes": [
+            10,
+            20,
+            40
+          ]
+        },
+        {
+          "kind": "stopPolled",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "deadline": false
+        },
+        {
+          "kind": "reviewCompleted",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "operation": 2,
+          "outcome": "clear"
+        },
+        {
+          "kind": "reviewCompleted",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "operation": 3,
+          "outcome": "unavailable"
+        },
+        {
+          "kind": "stopPolled",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "deadline": false
+        }
+      ],
+      "commands": [
+        "roundStarted:1",
+        "prepare:1:1",
+        "reservationReleased:1,unitAdmitted:2:2,unitAdmitted:3:3,unitRefused",
+        "waitForWork",
+        "reservationReleased:2,reviewRecorded:clear",
+        "reservationReleased:3,reviewRecorded:unavailable",
+        "finishReady"
+      ],
+      "global": {
+        "items": 0,
+        "bytes": 0
+      },
+      "expectedDecisionPending": true
+    },
+    {
+      "name": "unknown output is reoffered at Stop",
+      "events": [
+        {
+          "kind": "openRound",
+          "partition": 1,
+          "lifetime": 1
+        },
+        {
+          "kind": "outputStarted",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1
+        },
+        {
+          "kind": "stopPolled",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "deadline": false
+        },
+        {
+          "kind": "outputTerminal",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "operation": 1,
+          "outcome": "unknown"
+        },
+        {
+          "kind": "outputTerminal",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "operation": 1,
+          "outcome": "acknowledged"
+        },
+        {
+          "kind": "stopPolled",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "deadline": false
+        }
+      ],
+      "commands": [
+        "roundStarted:1",
+        "writeAuthorized:1",
+        "waitForOutput",
+        "writeRecorded:unknown",
+        "rejected:StaleOperation",
+        "reofferAtStop"
+      ],
+      "global": {
+        "items": 0,
+        "bytes": 0
+      },
+      "expectedDecisionPending": true
+    },
+    {
+      "name": "deadline requests exact cancellations",
+      "events": [
+        {
+          "kind": "openRound",
+          "partition": 1,
+          "lifetime": 1
+        },
+        {
+          "kind": "beginPreparation",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "bytes": 20
+        },
+        {
+          "kind": "stopPolled",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "deadline": true
+        },
+        {
+          "kind": "preparationCompleted",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "operation": 1,
+          "unitBytes": []
+        }
+      ],
+      "commands": [
+        "roundStarted:1",
+        "prepare:1:1",
+        "reservationReleased:1,cancelWork:1,finishReady",
+        "rejected:StaleOperation"
+      ],
+      "global": {
+        "items": 0,
+        "bytes": 0
+      },
+      "expectedDecisionPending": true
+    },
+    {
+      "name": "retired lifetime rejects late callback and permits next lifetime",
+      "events": [
+        {
+          "kind": "openRound",
+          "partition": 1,
+          "lifetime": 1
+        },
+        {
+          "kind": "beginPreparation",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "bytes": 20
+        },
+        {
+          "kind": "retirePartition",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1
+        },
+        {
+          "kind": "preparationCompleted",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "operation": 1,
+          "unitBytes": []
+        },
+        {
+          "kind": "openRound",
+          "partition": 1,
+          "lifetime": 2
+        },
+        {
+          "kind": "beginPreparation",
+          "partition": 1,
+          "lifetime": 1,
+          "round": 1,
+          "bytes": 10
+        }
+      ],
+      "commands": [
+        "roundStarted:1",
+        "prepare:1:1",
+        "reservationReleased:1,cancelWork:1,partitionRetired:1",
+        "rejected:StaleOperation",
+        "roundStarted:2",
+        "rejected:StaleRound"
+      ],
+      "global": {
+        "items": 0,
+        "bytes": 0
+      },
+      "expectedDecisionPending": false
+    }
+  ]
+}

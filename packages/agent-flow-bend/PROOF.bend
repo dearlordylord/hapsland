@@ -1,6 +1,18 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.canonical_cross_advicee_identity_is_distinct():
+  {==}
+
+def Laws.canonical_pending_work_blocks_finish():
+  {==}
+
+def Laws.canonical_deadline_releases_exact_charge():
+  {==}
+
+def Laws.canonical_uncertain_write_is_not_acknowledged():
+  {==}
+
 def Laws.import_graph_exclusion_has_no_read_command():
   {==}
 

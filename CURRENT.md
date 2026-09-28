@@ -1,6 +1,6 @@
 # Current
 
-## Objective and stopping point
+## Objective and current step
 
 Implement [#117–#137](https://github.com/dearlordylord/hapsland/issues/116):
 one authoritative Bend transition for Hapsland decisions, shared by production
@@ -10,10 +10,10 @@ and [#118 requirements crosswalk](docs/bend-requirements-crosswalk.md) are writt
 were checked by the owner. The dashboard now shows a segmented tree-budget bar
 and a denied A → X permission edge in the branching tree. Bend skips X without
 reading it, continues pending branches, and ends that trace with `TreeLimit`
-after E and G do not fit. The owner paused the migration until a new session.
-**Do not start #119 in this session.** No #119–#137 implementation has landed
-in this task worktree. On explicit resumption, the next step is #119's canonical
-events, state, commands, and checked adapter. Configurable graph limits and
+after E and G do not fit. The owner resumed the migration in a new session.
+#119's first canonical state, events, commands, checked adapter, and independent
+traces are now in this task worktree. Resident switching under #121–#134 is
+still pending. Configurable graph limits and
 general budget/termination proofs are tracked separately in
 [#142](https://github.com/dearlordylord/hapsland/issues/142).
 
@@ -92,7 +92,7 @@ or Jev-request-size claim.
 3. **Capacity:** #120/#122 bump or rework the ledger with 256 KiB capture.
    Keep accounting bounded and test concurrent advicees. This is supporting
    work for the review change.
-4. **Migration:** #119 defines the canonical transition; #121–#134 move the
+4. **Migration:** #119 defines the first canonical transition; #121–#134 move the
    production decision slices; #135–#137 complete visualization, host
    validation, and evidence-backed verification. The installed 32 KiB
    supported-profile remains the truthful runtime claim until code and
@@ -101,3 +101,18 @@ or Jev-request-size claim.
 The exact Jev input format and finite initial full-request limit remain
 engineering decisions. Changed review inputs must not reuse an old result
 by mistake; public “v1/v2” naming is optional.
+
+## #119 first boundary (2026-09-27)
+
+The first canonical Bend state/event/command boundary is implemented in
+`packages/agent-flow-bend/Canonical.bend`, with a checked adapter and independent
+fixture. Six source-free traces cover competing advicees, zero/many units,
+pending Stop, unknown output, deadline cleanup, and lifetime retirement.
+`npm run test:canonical` and adapter typecheck pass. The package-wide `npm test`
+currently stops in the existing Flow build script because the installed Bend
+compiler emits a `process.argv.slice(1)` footer while that builder expects
+`slice(2)`; relaxing that footer check exposes another legacy generated-contract
+shape mismatch in `check-lifecycle.mjs`. Those unrelated builders were restored.
+This does not switch resident paths or make the installed cross-file
+profile available. The design and current boundary are in
+[`docs/bend-canonical-transition-interface.md`](docs/bend-canonical-transition-interface.md).
