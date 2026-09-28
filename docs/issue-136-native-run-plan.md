@@ -93,3 +93,15 @@ issue's 40-request ceiling. This supersedes the prior no-further-session plan
 because current code and the fixture identified a concrete feedback-setting difference.
 If advice or repair still does not occur, stop live execution and keep #136
 incomplete.
+
+## Offline delivery diagnostic before any further Jev run
+
+Use the same supported Claude composed hook arrangement and user feedback
+setting with a controlled, source-free reviewer. The synthetic fixture asks for
+one bare `OrderCount` type, then requires Claude to stop before any proactive
+repair. A controlled r6 finding should be offered through background or Stop;
+the subsequent edit and clear must occur after that offer. This diagnostic
+makes no Jev request and does not alter the live request count. Retain only
+sanitized event, timing, and outcome data. If the host fails to receive this
+controlled advice, investigate the adapter/collection path offline before a
+new paid run.
