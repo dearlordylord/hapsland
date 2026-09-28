@@ -39,6 +39,9 @@ for (const trace of fixture.traces) {
   }
 }
 const state = initialCanonical(fixture.limits);
+assert.deepEqual(projectCanonical(state).inventory, [
+  "observationDispatch", "preparation", "reviewUnit", "storedResult", "operationalNotice", "adviceRecheck",
+].map((purpose) => ({ purpose, limits: fixture.limits })));
 assert.throws(() => stepCanonical(state, { kind: "openRound", partition: -1, lifetime: 1 }), TypeError);
 assert.throws(() => stepCanonical(state, { kind: "openRound", partition: 1, lifetime: 1, extra: true }), TypeError);
 assert.throws(() => stepCanonical(state, { kind: "openRound", partition: 2 ** 48, lifetime: 1 }), TypeError);

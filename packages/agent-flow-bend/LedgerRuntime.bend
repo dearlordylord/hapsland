@@ -8,7 +8,7 @@ type Smoke is Data:
 
 def sample() -> Ledger.Ledger:
   Ledger.Ledger{Ledger.Limits{4n, 100n, 2n, 60n}, 2n,
-    Ledger.Charge{1n, 1n, 20n} <> Nil{}}
+    Ledger.Charge{1n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}}
 
 def main() -> Smoke:
   Smoke{
@@ -17,6 +17,6 @@ def main() -> Smoke:
     Ledger.release(sample(), 1n),
     Ledger.resize(sample(), 1n, 30n),
     Ledger.clear(sample()),
-    Ledger.total(Ledger.Charge{1n, 1n, 20n} <> Nil{}),
-    Ledger.partition_usage(Ledger.Charge{1n, 1n, 20n} <> Nil{}, 1n)
+    Ledger.total(Ledger.Charge{1n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}),
+    Ledger.partition_usage(Ledger.Charge{1n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}, 1n)
   }

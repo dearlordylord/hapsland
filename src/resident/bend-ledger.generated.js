@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:b9595ec4ecbd0a89b069b1dfccfca1a2ee4f07a8e156704d9269d75f675784de
+// hapsland-bend-source-sha256:f04cfe83658a17f955c87c0b5abd17790bc5e25a8fed24c6e56b546e57fc6aec
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -162,7 +162,7 @@ function io_eff(k, run, need) {
 // =======
 
 function $main$() {
-  return {$: "Smoke", "initial": ($Ledger$initial$({$: "Ledger.Limits", "global_items": 4, "global_bytes": 100, "partition_items": 2, "partition_bytes": 60})), "reserved": ($Ledger$reserve$(($sample$()), 1, 40)), "released": ($Ledger$release$(($sample$()), 1)), "resized": ($Ledger$resize$(($sample$()), 1, 30)), "cleared": ($Ledger$clear$(($sample$()))), "total": ($Ledger$total$({$: "Con", "head": {$: "Ledger.Charge", "id": 1, "partition": 1, "bytes": 20}, "tail": {$: "Nil"}})), "local": ($Ledger$partition_usage$({$: "Con", "head": {$: "Ledger.Charge", "id": 1, "partition": 1, "bytes": 20}, "tail": {$: "Nil"}}, 1))};
+  return {$: "Smoke", "initial": ($Ledger$initial$({$: "Ledger.Limits", "global_items": 4, "global_bytes": 100, "partition_items": 2, "partition_bytes": 60})), "reserved": ($Ledger$reserve$(($sample$()), 1, 40)), "released": ($Ledger$release$(($sample$()), 1)), "resized": ($Ledger$resize$(($sample$()), 1, 30)), "cleared": ($Ledger$clear$(($sample$()))), "total": ($Ledger$total$({$: "Con", "head": {$: "Ledger.Charge", "id": 1, "partition": 1, "bytes": 20, "purpose": {$: "Ledger.ReviewUnit"}}, "tail": {$: "Nil"}})), "local": ($Ledger$partition_usage$({$: "Con", "head": {$: "Ledger.Charge", "id": 1, "partition": 1, "bytes": 20, "purpose": {$: "Ledger.ReviewUnit"}}, "tail": {$: "Nil"}}, 1))};
 }
 
 function $Ledger$initial$(_limits_0) {
@@ -170,14 +170,11 @@ function $Ledger$initial$(_limits_0) {
 }
 
 function $Ledger$reserve$(_state_0, _partition_0, _bytes_0) {
-  const _limits_0 = _state_0["limits"];
-  const _next_id_0 = _state_0["next_id"];
-  const _charges_0 = _state_0["charges"];
-  return $Ledger$reserve$check$(_limits_0, _next_id_0, _charges_0, _partition_0, _bytes_0, ($Ledger$fits$(_limits_0, ($Ledger$total$(_charges_0)), ($Ledger$partition_usage$(_charges_0, _partition_0)), _bytes_0)));
+  return $Ledger$reserve_for$(_state_0, _partition_0, _bytes_0, {$: "Ledger.ReviewUnit"});
 }
 
 function $sample$() {
-  return {$: "Ledger.Ledger", "limits": {$: "Ledger.Limits", "global_items": 4, "global_bytes": 100, "partition_items": 2, "partition_bytes": 60}, "next_id": 2, "charges": {$: "Con", "head": {$: "Ledger.Charge", "id": 1, "partition": 1, "bytes": 20}, "tail": {$: "Nil"}}};
+  return {$: "Ledger.Ledger", "limits": {$: "Ledger.Limits", "global_items": 4, "global_bytes": 100, "partition_items": 2, "partition_bytes": 60}, "next_id": 2, "charges": {$: "Con", "head": {$: "Ledger.Charge", "id": 1, "partition": 1, "bytes": 20, "purpose": {$: "Ledger.ReviewUnit"}}, "tail": {$: "Nil"}}};
 }
 
 function $Ledger$release$(_state_0, _id_0) {
@@ -223,16 +220,11 @@ function $Ledger$partition_usage$(_charges_0, _partition_0) {
   }
 }
 
-function $Ledger$reserve$check$(_limits_0, _next_id_0, _charges_0, _partition_0, _bytes_0, _allowed_0) {
-  if (_allowed_0) {
-    return {$: "Ledger.Granted", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": nat_chk(_next_id_0 + 1), "charges": ($List$append$(_charges_0, {$: "Con", "head": {$: "Ledger.Charge", "id": _next_id_0, "partition": _partition_0, "bytes": _bytes_0}, "tail": {$: "Nil"}}))}, "id": _next_id_0};
-  } else {
-    return {$: "Ledger.Rejected", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": _charges_0}};
-  }
-}
-
-function $Ledger$fits$(_limits_0, _global_0, _local_0, _bytes_0) {
-  return $Ledger$decision_fits$(($Ledger$fit_decision$(_limits_0, _global_0, _local_0, _bytes_0)));
+function $Ledger$reserve_for$(_state_0, _partition_0, _bytes_0, _purpose_0) {
+  const _limits_0 = _state_0["limits"];
+  const _next_id_0 = _state_0["next_id"];
+  const _charges_0 = _state_0["charges"];
+  return $Ledger$reserve$check$(_limits_0, _next_id_0, _charges_0, _partition_0, _bytes_0, _purpose_0, ($Ledger$fits$(($Ledger$limits_for$(_purpose_0, _limits_0)), ($Ledger$total$(_charges_0)), ($Ledger$partition_usage$(_charges_0, _partition_0)), _bytes_0)));
 }
 
 function $Ledger$release$found$(_state_0, _id_0, _found_0) {
@@ -254,8 +246,9 @@ function $Ledger$find$(_id_0, _charges_0) {
     const _current_0 = _t_0["id"];
     const __0 = _t_0["partition"];
     const __1 = _t_0["bytes"];
+    const __2 = _t_0["purpose"];
     const _rest_0 = _charges_0["tail"];
-    return $Ledger$find$pick$({$: "Ledger.Charge", "id": _current_0, "partition": __0, "bytes": __1}, ($Ledger$find$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+    return $Ledger$find$pick$({$: "Ledger.Charge", "id": _current_0, "partition": __0, "bytes": __1, "purpose": __2}, ($Ledger$find$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
   }
 }
 
@@ -293,6 +286,74 @@ function $Nat$is_eq$(_a_0, _b_0) {
   return $Cmp$is_eq$(cmp_new(_a_0, _b_0));
 }
 
+function $Ledger$reserve$check$(_limits_0, _next_id_0, _charges_0, _partition_0, _bytes_0, _purpose_0, _allowed_0) {
+  if (_allowed_0) {
+    return {$: "Ledger.Granted", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": nat_chk(_next_id_0 + 1), "charges": ($List$append$(_charges_0, {$: "Con", "head": {$: "Ledger.Charge", "id": _next_id_0, "partition": _partition_0, "bytes": _bytes_0, "purpose": _purpose_0}, "tail": {$: "Nil"}}))}, "id": _next_id_0};
+  } else {
+    return {$: "Ledger.Rejected", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": _charges_0}};
+  }
+}
+
+function $Ledger$fits$(_limits_0, _global_0, _local_0, _bytes_0) {
+  return $Ledger$decision_fits$(($Ledger$fit_decision$(_limits_0, _global_0, _local_0, _bytes_0)));
+}
+
+function $Ledger$limits_for$(_purpose_0, _limits_0) {
+  if (_purpose_0.$ === "Ledger.ObservationDispatch") {
+    return _limits_0;
+  } else if (_purpose_0.$ === "Ledger.Preparation") {
+    return _limits_0;
+  } else if (_purpose_0.$ === "Ledger.ReviewUnit") {
+    return _limits_0;
+  } else if (_purpose_0.$ === "Ledger.StoredResult") {
+    return _limits_0;
+  } else if (_purpose_0.$ === "Ledger.OperationalNotice") {
+    return _limits_0;
+  } else {
+    return _limits_0;
+  }
+}
+
+function $Ledger$remove$(_id_0, _charges_0) {
+  if (_charges_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _charges_0["head"];
+    const _current_0 = _t_0["id"];
+    const __0 = _t_0["partition"];
+    const __1 = _t_0["bytes"];
+    const __2 = _t_0["purpose"];
+    const _rest_0 = _charges_0["tail"];
+    return $Ledger$remove$pick$({$: "Ledger.Charge", "id": _current_0, "partition": __0, "bytes": __1, "purpose": __2}, ($Ledger$remove$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+  }
+}
+
+function $Ledger$find$pick$(_charge_0, _fallback_0, _hit_0) {
+  if (_hit_0) {
+    return {$: "Some", "value": _charge_0};
+  } else {
+    return _fallback_0;
+  }
+}
+
+function $Ledger$resize$check$(_limits_0, _next_id_0, _charges_0, _id_0, _partition_0, _bytes_0, _allowed_0) {
+  if (_allowed_0) {
+    return {$: "Ledger.Granted", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": ($Ledger$replace$(_id_0, _bytes_0, _charges_0))}, "id": _id_0};
+  } else {
+    return {$: "Ledger.Rejected", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": _charges_0}};
+  }
+}
+
+function $Cmp$is_eq$(_c_0) {
+  if (_c_0.$ === "LT") {
+    return false;
+  } else if (_c_0.$ === "EQ") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 function $List$append$(_xs_0, _ys_0) {
   if (_xs_0.$ === "Nil") {
     return _ys_0;
@@ -323,57 +384,6 @@ function $Ledger$fit_decision$(_limits_0, _global_0, _local_0, _bytes_0) {
   return $Bool$pick$(($Nat$is_gt$(nat_chk(_used_items_0 + 1), _global_items_0)), {$: "Ledger.GlobalItemLimit"}, ($Bool$pick$(($Nat$is_gt$(nat_chk(_used_bytes_0 + _bytes_0), _global_bytes_0)), {$: "Ledger.GlobalByteLimit"}, ($Bool$pick$(($Nat$is_gt$(nat_chk(_local_items_0 + 1), _partition_items_0)), {$: "Ledger.PartitionItemLimit"}, ($Bool$pick$(($Nat$is_gt$(nat_chk(_local_bytes_0 + _bytes_0), _partition_bytes_0)), {$: "Ledger.PartitionByteLimit"}, {$: "Ledger.Fits"})))))));
 }
 
-function $Ledger$remove$(_id_0, _charges_0) {
-  if (_charges_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _charges_0["head"];
-    const _current_0 = _t_0["id"];
-    const __0 = _t_0["partition"];
-    const __1 = _t_0["bytes"];
-    const _rest_0 = _charges_0["tail"];
-    return $Ledger$remove$pick$({$: "Ledger.Charge", "id": _current_0, "partition": __0, "bytes": __1}, ($Ledger$remove$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
-  }
-}
-
-function $Ledger$find$pick$(_charge_0, _fallback_0, _hit_0) {
-  if (_hit_0) {
-    return {$: "Some", "value": _charge_0};
-  } else {
-    return _fallback_0;
-  }
-}
-
-function $Ledger$resize$check$(_limits_0, _next_id_0, _charges_0, _id_0, _partition_0, _bytes_0, _allowed_0) {
-  if (_allowed_0) {
-    return {$: "Ledger.Granted", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": ($Ledger$replace$(_id_0, _bytes_0, _charges_0))}, "id": _id_0};
-  } else {
-    return {$: "Ledger.Rejected", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": _charges_0}};
-  }
-}
-
-function $Cmp$is_eq$(_c_0) {
-  if (_c_0.$ === "LT") {
-    return false;
-  } else if (_c_0.$ === "EQ") {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function $Bool$pick$(_c_0, _a_0, _b_0) {
-  if (!_c_0) {
-    return _b_0;
-  } else {
-    return _a_0;
-  }
-}
-
-function $Nat$is_gt$(_a_0, _b_0) {
-  return $Cmp$is_gt$(cmp_new(_a_0, _b_0));
-}
-
 function $Ledger$remove$pick$(_charge_0, _tail_0, _hit_0) {
   if (_hit_0) {
     return _tail_0;
@@ -390,8 +400,29 @@ function $Ledger$replace$(_id_0, _bytes_0, _charges_0) {
     const _current_0 = _t_0["id"];
     const _partition_0 = _t_0["partition"];
     const _old_bytes_0 = _t_0["bytes"];
+    const _purpose_0 = _t_0["purpose"];
     const _rest_0 = _charges_0["tail"];
-    return $Ledger$replace$pick$({$: "Ledger.Charge", "id": _current_0, "partition": _partition_0, "bytes": _old_bytes_0}, {$: "Ledger.Charge", "id": _current_0, "partition": _partition_0, "bytes": _bytes_0}, ($Ledger$replace$(_id_0, _bytes_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+    return $Ledger$replace$pick$({$: "Ledger.Charge", "id": _current_0, "partition": _partition_0, "bytes": _old_bytes_0, "purpose": _purpose_0}, {$: "Ledger.Charge", "id": _current_0, "partition": _partition_0, "bytes": _bytes_0, "purpose": _purpose_0}, ($Ledger$replace$(_id_0, _bytes_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+  }
+}
+
+function $Bool$pick$(_c_0, _a_0, _b_0) {
+  if (!_c_0) {
+    return _b_0;
+  } else {
+    return _a_0;
+  }
+}
+
+function $Nat$is_gt$(_a_0, _b_0) {
+  return $Cmp$is_gt$(cmp_new(_a_0, _b_0));
+}
+
+function $Ledger$replace$pick$(_charge_0, _replacement_0, _tail_0, _hit_0) {
+  if (_hit_0) {
+    return {$: "Con", "head": _replacement_0, "tail": _tail_0};
+  } else {
+    return {$: "Con", "head": _charge_0, "tail": _tail_0};
   }
 }
 
@@ -402,14 +433,6 @@ function $Cmp$is_gt$(_c_0) {
     return false;
   } else {
     return true;
-  }
-}
-
-function $Ledger$replace$pick$(_charge_0, _replacement_0, _tail_0, _hit_0) {
-  if (_hit_0) {
-    return {$: "Con", "head": _replacement_0, "tail": _tail_0};
-  } else {
-    return {$: "Con", "head": _charge_0, "tail": _tail_0};
   }
 }
 

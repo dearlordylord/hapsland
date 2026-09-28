@@ -104,12 +104,14 @@
         {
           "id": 4,
           "partition": 1,
-          "bytes": 20
+          "bytes": 20,
+          "purpose": "reviewUnit"
         },
         {
           "id": 5,
           "partition": 2,
-          "bytes": 40
+          "bytes": 40,
+          "purpose": "reviewUnit"
         }
       ],
       "capacity": [
@@ -124,7 +126,8 @@
               {
                 "id": 2,
                 "partition": 2,
-                "bytes": 40
+                "bytes": 40,
+                "purpose": "preparation"
               }
             ],
             "global": {
@@ -144,12 +147,14 @@
               {
                 "id": 2,
                 "partition": 2,
-                "bytes": 40
+                "bytes": 40,
+                "purpose": "preparation"
               },
               {
                 "id": 3,
                 "partition": 1,
-                "bytes": 20
+                "bytes": 20,
+                "purpose": "reviewUnit"
               }
             ],
             "global": {
@@ -169,17 +174,20 @@
               {
                 "id": 2,
                 "partition": 2,
-                "bytes": 40
+                "bytes": 40,
+                "purpose": "preparation"
               },
               {
                 "id": 3,
                 "partition": 1,
-                "bytes": 20
+                "bytes": 20,
+                "purpose": "reviewUnit"
               },
               {
                 "id": 4,
                 "partition": 1,
-                "bytes": 20
+                "bytes": 20,
+                "purpose": "reviewUnit"
               }
             ],
             "global": {
@@ -199,12 +207,14 @@
               {
                 "id": 3,
                 "partition": 1,
-                "bytes": 20
+                "bytes": 20,
+                "purpose": "reviewUnit"
               },
               {
                 "id": 4,
                 "partition": 1,
-                "bytes": 20
+                "bytes": 20,
+                "purpose": "reviewUnit"
               }
             ],
             "global": {
@@ -224,17 +234,20 @@
               {
                 "id": 3,
                 "partition": 1,
-                "bytes": 20
+                "bytes": 20,
+                "purpose": "reviewUnit"
               },
               {
                 "id": 4,
                 "partition": 1,
-                "bytes": 20
+                "bytes": 20,
+                "purpose": "reviewUnit"
               },
               {
                 "id": 5,
                 "partition": 2,
-                "bytes": 40
+                "bytes": 40,
+                "purpose": "reviewUnit"
               }
             ],
             "global": {
@@ -255,17 +268,20 @@
               {
                 "id": 3,
                 "partition": 1,
-                "bytes": 20
+                "bytes": 20,
+                "purpose": "reviewUnit"
               },
               {
                 "id": 4,
                 "partition": 1,
-                "bytes": 20
+                "bytes": 20,
+                "purpose": "reviewUnit"
               },
               {
                 "id": 5,
                 "partition": 2,
-                "bytes": 40
+                "bytes": 40,
+                "purpose": "reviewUnit"
               }
             ],
             "global": {
@@ -447,7 +463,8 @@
               {
                 "id": 2,
                 "partition": 1,
-                "bytes": 10
+                "bytes": 10,
+                "purpose": "reviewUnit"
               }
             ],
             "global": {
@@ -468,7 +485,8 @@
               {
                 "id": 2,
                 "partition": 1,
-                "bytes": 10
+                "bytes": 10,
+                "purpose": "reviewUnit"
               }
             ],
             "global": {
@@ -488,12 +506,14 @@
               {
                 "id": 2,
                 "partition": 1,
-                "bytes": 10
+                "bytes": 10,
+                "purpose": "reviewUnit"
               },
               {
                 "id": 3,
                 "partition": 1,
-                "bytes": 20
+                "bytes": 20,
+                "purpose": "reviewUnit"
               }
             ],
             "global": {

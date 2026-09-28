@@ -13,7 +13,8 @@ try {
   if (!footer.test(source) || !source.includes("function $Canonical$step$(") ||
       !source.includes("function $Canonical$initial$(") ||
       !source.includes("function $Ledger$total$(") ||
-      !source.includes("function $Ledger$partition_usage$(")) {
+      !source.includes("function $Ledger$partition_usage$(") ||
+      !source.includes("function $Ledger$inventory$(")) {
     throw new Error("Bend canonical JavaScript layout changed");
   }
   source = source.replace(footer, `
@@ -40,6 +41,8 @@ export const bendCanonicalTotal = (state) =>
   run_loop($Ledger$total$(state.ledger.charges));
 export const bendCanonicalPartitionUsage = (state, partition) =>
   run_loop($Ledger$partition_usage$(state.ledger.charges, nat(partition)));
+export const bendCanonicalInventory = (state) =>
+  run_loop($Ledger$inventory$(state.ledger.limits));
 `);
   writeFileSync(join(root, "canonical.generated.js"), source);
 } finally {

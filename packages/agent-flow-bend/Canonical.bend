@@ -269,7 +269,7 @@ def begin_found(+state: State, +partition: Nat, +lifetime: Nat, +round: Nat,
       Bool.pick(Step, Bool.and(same_round(partition, lifetime, round, current),
         Bool.and(Bool.not(is_deciding(current)), Nat.is_gt(bytes, 0n))),
         begin_result(state, partition, lifetime, round,
-          Ledger.reserve(ledger, partition, bytes)),
+          Ledger.reserve_for(ledger, partition, bytes, Ledger.Preparation{})),
         Rejected{state, StaleRound{}})
     case _ None{}:
       Rejected{state, StaleRound{}}
@@ -314,7 +314,7 @@ def admit_units(sizes: List<&2, Nat>, batch: Batch, +partition: Nat,
       match batch:
         case Batch{ledger, work, operation, commands}:
           admit_units(rest,
-            admit_one(Ledger.reserve(ledger, partition, size), partition,
+            admit_one(Ledger.reserve_for(ledger, partition, size, Ledger.ReviewUnit{}), partition,
               lifetime, round, operation, position, size, work, commands),
             partition, lifetime, round, (position + 1n : Nat))
 

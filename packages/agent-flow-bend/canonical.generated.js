@@ -161,7 +161,7 @@ function io_eff(k, run, need) {
 // =======
 
 function $main$() {
-  return $Canonical$step$(($Canonical$initial$({$: "Ledger.Limits", "global_items": 4, "global_bytes": 100, "partition_items": 2, "partition_bytes": 60})), {$: "Canonical.OpenRound", "partition": 1, "lifetime": 1});
+  return {$: "Tuple", "fst": ($Canonical$step$(($Canonical$initial$({$: "Ledger.Limits", "global_items": 4, "global_bytes": 100, "partition_items": 2, "partition_bytes": 60})), {$: "Canonical.OpenRound", "partition": 1, "lifetime": 1})), "snd": ($Ledger$inventory$({$: "Ledger.Limits", "global_items": 4, "global_bytes": 100, "partition_items": 2, "partition_bytes": 60}))};
 }
 
 function $Canonical$step$(_state_0, _event_0) {
@@ -217,6 +217,10 @@ function $Canonical$step$(_state_0, _event_0) {
 
 function $Canonical$initial$(_limits_0) {
   return {$: "Canonical.State", "ledger": ($Ledger$initial$(_limits_0)), "rounds": {$: "Nil"}, "work": {$: "Nil"}, "next_round": 1, "next_operation": 1};
+}
+
+function $Ledger$inventory$(_limits_0) {
+  return {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.ObservationDispatch"}, "limits": ($Ledger$limits_for$({$: "Ledger.ObservationDispatch"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.Preparation"}, "limits": ($Ledger$limits_for$({$: "Ledger.Preparation"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.ReviewUnit"}, "limits": ($Ledger$limits_for$({$: "Ledger.ReviewUnit"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.StoredResult"}, "limits": ($Ledger$limits_for$({$: "Ledger.StoredResult"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.OperationalNotice"}, "limits": ($Ledger$limits_for$({$: "Ledger.OperationalNotice"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.AdviceRecheck"}, "limits": ($Ledger$limits_for$({$: "Ledger.AdviceRecheck"}, _limits_0))}, "tail": {$: "Nil"}}}}}}};
 }
 
 function $Canonical$open$(_state_0, _partition_0, _lifetime_0) {
@@ -295,6 +299,22 @@ function $Ledger$initial$(_limits_0) {
   return {$: "Ledger.Ledger", "limits": _limits_0, "next_id": 1, "charges": {$: "Nil"}};
 }
 
+function $Ledger$limits_for$(_purpose_0, _limits_0) {
+  if (_purpose_0.$ === "Ledger.ObservationDispatch") {
+    return _limits_0;
+  } else if (_purpose_0.$ === "Ledger.Preparation") {
+    return _limits_0;
+  } else if (_purpose_0.$ === "Ledger.ReviewUnit") {
+    return _limits_0;
+  } else if (_purpose_0.$ === "Ledger.StoredResult") {
+    return _limits_0;
+  } else if (_purpose_0.$ === "Ledger.OperationalNotice") {
+    return _limits_0;
+  } else {
+    return _limits_0;
+  }
+}
+
 function $Canonical$open_found$(_state_0, _partition_0, _lifetime_0, _found_0) {
   const _ledger_0 = _state_0["ledger"];
   const _rounds_0 = _state_0["rounds"];
@@ -327,7 +347,7 @@ function $Canonical$begin_found$(_state_0, _partition_0, _lifetime_0, _round_0, 
   const __3 = _state_0["next_operation"];
   if (_found_0.$ === "Some") {
     const _current_0 = _found_0["value"];
-    return $Bool$pick$(($Bool$and$(($Canonical$same_round$(_partition_0, _lifetime_0, _round_0, _current_0)), ($Bool$and$(($Bool$not$(($Canonical$is_deciding$(_current_0)))), ($Nat$is_gt$(_bytes_0, 0)))))), ($Canonical$begin_result$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3}, _partition_0, _lifetime_0, _round_0, ($Ledger$reserve$(_ledger_0, _partition_0, _bytes_0)))), {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3}, "reason": {$: "Canonical.StaleRound"}});
+    return $Bool$pick$(($Bool$and$(($Canonical$same_round$(_partition_0, _lifetime_0, _round_0, _current_0)), ($Bool$and$(($Bool$not$(($Canonical$is_deciding$(_current_0)))), ($Nat$is_gt$(_bytes_0, 0)))))), ($Canonical$begin_result$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3}, _partition_0, _lifetime_0, _round_0, ($Ledger$reserve_for$(_ledger_0, _partition_0, _bytes_0, {$: "Ledger.Preparation"})))), {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3}, "reason": {$: "Canonical.StaleRound"}});
   } else {
     return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3}, "reason": {$: "Canonical.StaleRound"}};
   }
@@ -504,11 +524,11 @@ function $Canonical$begin_result$(_state_0, _partition_0, _lifetime_0, _round_0,
   }
 }
 
-function $Ledger$reserve$(_state_0, _partition_0, _bytes_0) {
+function $Ledger$reserve_for$(_state_0, _partition_0, _bytes_0, _purpose_0) {
   const _limits_0 = _state_0["limits"];
   const _next_id_0 = _state_0["next_id"];
   const _charges_0 = _state_0["charges"];
-  return $Ledger$reserve$check$(_limits_0, _next_id_0, _charges_0, _partition_0, _bytes_0, ($Ledger$fits$(_limits_0, ($Ledger$total$(_charges_0)), ($Ledger$partition_usage$(_charges_0, _partition_0)), _bytes_0)));
+  return $Ledger$reserve$check$(_limits_0, _next_id_0, _charges_0, _partition_0, _bytes_0, _purpose_0, ($Ledger$fits$(($Ledger$limits_for$(_purpose_0, _limits_0)), ($Ledger$total$(_charges_0)), ($Ledger$partition_usage$(_charges_0, _partition_0)), _bytes_0)));
 }
 
 function $Canonical$prepared_release$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _charge_0, _bytes_0) {
@@ -624,9 +644,9 @@ function $List$append$(_xs_0, _ys_0) {
   }
 }
 
-function $Ledger$reserve$check$(_limits_0, _next_id_0, _charges_0, _partition_0, _bytes_0, _allowed_0) {
+function $Ledger$reserve$check$(_limits_0, _next_id_0, _charges_0, _partition_0, _bytes_0, _purpose_0, _allowed_0) {
   if (_allowed_0) {
-    return {$: "Ledger.Granted", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": nat_chk(_next_id_0 + 1), "charges": ($List$append$(_charges_0, {$: "Con", "head": {$: "Ledger.Charge", "id": _next_id_0, "partition": _partition_0, "bytes": _bytes_0}, "tail": {$: "Nil"}}))}, "id": _next_id_0};
+    return {$: "Ledger.Granted", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": nat_chk(_next_id_0 + 1), "charges": ($List$append$(_charges_0, {$: "Con", "head": {$: "Ledger.Charge", "id": _next_id_0, "partition": _partition_0, "bytes": _bytes_0, "purpose": _purpose_0}, "tail": {$: "Nil"}}))}, "id": _next_id_0};
   } else {
     return {$: "Ledger.Rejected", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": _charges_0}};
   }
@@ -723,8 +743,9 @@ function $Ledger$find$(_id_0, _charges_0) {
     const _current_0 = _t_0["id"];
     const __0 = _t_0["partition"];
     const __1 = _t_0["bytes"];
+    const __2 = _t_0["purpose"];
     const _rest_0 = _charges_0["tail"];
-    return $Ledger$find$pick$({$: "Ledger.Charge", "id": _current_0, "partition": __0, "bytes": __1}, ($Ledger$find$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+    return $Ledger$find$pick$({$: "Ledger.Charge", "id": _current_0, "partition": __0, "bytes": __1, "purpose": __2}, ($Ledger$find$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
   }
 }
 
@@ -916,7 +937,7 @@ function $Canonical$admit_units$($0, $1, $2, $3, $4, $5) {
         const _operation_0 = _batch_0["next_operation"];
         const _commands_0 = _batch_0["commands"];
         $0 = _rest_0;
-        $1 = ($Canonical$admit_one$(($Ledger$reserve$(_ledger_0, _partition_0, _size_0)), _partition_0, _lifetime_0, _round_0, _operation_0, _position_0, _size_0, _work_0, _commands_0));
+        $1 = ($Canonical$admit_one$(($Ledger$reserve_for$(_ledger_0, _partition_0, _size_0, {$: "Ledger.ReviewUnit"})), _partition_0, _lifetime_0, _round_0, _operation_0, _position_0, _size_0, _work_0, _commands_0));
         $2 = _partition_0;
         $3 = _lifetime_0;
         $4 = _round_0;
@@ -943,8 +964,9 @@ function $Ledger$remove$(_id_0, _charges_0) {
     const _current_0 = _t_0["id"];
     const __0 = _t_0["partition"];
     const __1 = _t_0["bytes"];
+    const __2 = _t_0["purpose"];
     const _rest_0 = _charges_0["tail"];
-    return $Ledger$remove$pick$({$: "Ledger.Charge", "id": _current_0, "partition": __0, "bytes": __1}, ($Ledger$remove$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+    return $Ledger$remove$pick$({$: "Ledger.Charge", "id": _current_0, "partition": __0, "bytes": __1, "purpose": __2}, ($Ledger$remove$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
   }
 }
 
@@ -1354,3 +1376,5 @@ export const bendCanonicalTotal = (state) =>
   run_loop($Ledger$total$(state.ledger.charges));
 export const bendCanonicalPartitionUsage = (state, partition) =>
   run_loop($Ledger$partition_usage$(state.ledger.charges, nat(partition)));
+export const bendCanonicalInventory = (state) =>
+  run_loop($Ledger$inventory$(state.ledger.limits));

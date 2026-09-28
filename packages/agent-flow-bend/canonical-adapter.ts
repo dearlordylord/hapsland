@@ -1,4 +1,4 @@
-import { bendCanonicalInitial, bendCanonicalPartitionUsage, bendCanonicalStep, bendCanonicalTotal } from "./canonical.generated.js";
+import { bendCanonicalInitial, bendCanonicalInventory, bendCanonicalPartitionUsage, bendCanonicalStep, bendCanonicalTotal } from "./canonical.generated.js";
 
 const MAX_NAT = 2 ** 48 - 1;
 const MAX_BYTES = 2 ** 47 - 1;
@@ -127,7 +127,25 @@ export type CapacityRefusal = "globalItems" | "globalBytes" | "partitionItems" |
 export type CapacityView = {
   readonly global: { readonly items: number; readonly bytes: number };
   readonly local: { readonly items: number; readonly bytes: number };
-  readonly charges: readonly { readonly id: number; readonly partition: number; readonly bytes: number }[];
+  readonly charges: readonly CapacityCharge[];
+};
+export type CapacityPurpose = "observationDispatch" | "preparation" | "reviewUnit" | "storedResult" | "operationalNotice" | "adviceRecheck";
+export type CapacityCharge = { readonly id: number; readonly partition: number; readonly bytes: number; readonly purpose: CapacityPurpose };
+const purpose = (value: unknown): CapacityPurpose => {
+  const names: Record<string, CapacityPurpose> = {
+    "Ledger.ObservationDispatch": "observationDispatch", "Ledger.Preparation": "preparation",
+    "Ledger.ReviewUnit": "reviewUnit", "Ledger.StoredResult": "storedResult",
+    "Ledger.OperationalNotice": "operationalNotice", "Ledger.AdviceRecheck": "adviceRecheck",
+  };
+  const name = tag(value);
+  const result = names[name];
+  if (!result) throw new TypeError("unknown capacity purpose");
+  fields(value, name, []);
+  return result;
+};
+const charge = (value: unknown): CapacityCharge => {
+  const x = fields(value, "Ledger.Charge", ["id", "partition", "bytes", "purpose"]);
+  return { id: nat(x.id, true), partition: nat(x.partition, true), bytes: nat(x.bytes), purpose: purpose(x.purpose) };
 };
 const usage = (value: unknown): { readonly items: number; readonly bytes: number } => {
   const x = fields(value, "Ledger.Usage", ["items", "bytes"]);
@@ -135,10 +153,7 @@ const usage = (value: unknown): { readonly items: number; readonly bytes: number
 };
 const capacityView = (value: unknown): CapacityView => {
   const x = fields(value, "Canonical.CapacityView", ["global", "local", "charges"]);
-  const charges = readList(x.charges, (item) => {
-    const charge = fields(item, "Ledger.Charge", ["id", "partition", "bytes"]);
-    return { id: nat(charge.id, true), partition: nat(charge.partition, true), bytes: nat(charge.bytes) };
-  });
+  const charges = readList(x.charges, charge);
   const global = usage(x.global);
   const local = usage(x.local);
   if (charges.length !== global.items || charges.reduce((sum, charge) => sum + charge.bytes, 0) !== global.bytes ||
@@ -181,7 +196,8 @@ export type CanonicalProjection = {
   readonly global: { readonly items: number; readonly bytes: number };
   readonly limits: { readonly globalItems: number; readonly globalBytes: number; readonly partitionItems: number; readonly partitionBytes: number };
   readonly partitions: readonly { readonly partition: number; readonly items: number; readonly bytes: number }[];
-  readonly charges: readonly { readonly id: number; readonly partition: number; readonly bytes: number }[];
+  readonly charges: readonly CapacityCharge[];
+  readonly inventory: readonly { readonly purpose: CapacityPurpose; readonly limits: CanonicalProjection["limits"] }[];
   readonly rounds: readonly { readonly partition: number; readonly lifetime: number; readonly id: number; readonly waiting: boolean; readonly deciding: boolean; readonly write?: number; readonly uncertain: boolean }[];
   readonly work: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly reservation: number; readonly kind: "preparing" | "reviewing" }[];
 };
@@ -194,10 +210,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
   nat(ledger.next_id, true);
   const limits = fields(ledger.limits, "Ledger.Limits", ["global_items", "global_bytes", "partition_items", "partition_bytes"]);
   for (const value of Object.values(limits).slice(1)) nat(value, true);
-  const charges = readList(ledger.charges, (value) => {
-    const x = fields(value, "Ledger.Charge", ["id", "partition", "bytes"]);
-    return { id: nat(x.id, true), partition: nat(x.partition, true), bytes: nat(x.bytes) };
-  });
+  const charges = readList(ledger.charges, charge);
   const rounds = readList(s.rounds, (value) => {
     const x = fields(value, "Canonical.Round", ["partition", "lifetime", "id", "waiting", "deciding", "write", "uncertain"]);
     const write = tag(x.write) === "Some" ? nat(fields(x.write, "Some", ["value"]).value, true) : undefined;
@@ -237,10 +250,23 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
     const usage = fields(bendCanonicalPartitionUsage(state, round.partition), "Ledger.Usage", ["items", "bytes"]);
     return { partition: round.partition, items: nat(usage.items), bytes: nat(usage.bytes) };
   });
+  const inventory = readList(bendCanonicalInventory(state), (entry) => {
+    const x = fields(entry, "Ledger.InventoryEntry", ["purpose", "limits"]);
+    const entryLimits = fields(x.limits, "Ledger.Limits", ["global_items", "global_bytes", "partition_items", "partition_bytes"]);
+    return { purpose: purpose(x.purpose), limits: {
+      globalItems: nat(entryLimits.global_items, true), globalBytes: nat(entryLimits.global_bytes, true),
+      partitionItems: nat(entryLimits.partition_items, true), partitionBytes: nat(entryLimits.partition_bytes, true),
+    } };
+  });
+  if (inventory.length !== 6 || new Set(inventory.map((entry) => entry.purpose)).size !== 6 ||
+      inventory.some((entry) => entry.limits.globalItems !== limits.global_items ||
+        entry.limits.globalBytes !== limits.global_bytes ||
+        entry.limits.partitionItems !== limits.partition_items ||
+        entry.limits.partitionBytes !== limits.partition_bytes)) throw new TypeError("inconsistent capacity inventory");
   return { global,
     limits: { globalItems: nat(limits.global_items, true), globalBytes: nat(limits.global_bytes, true),
       partitionItems: nat(limits.partition_items, true), partitionBytes: nat(limits.partition_bytes, true) },
-    partitions, charges, rounds, work };
+    partitions, charges, inventory, rounds, work };
 };
 export const initialCanonical = (limits: { readonly globalItems: number; readonly globalBytes: number; readonly partitionItems: number; readonly partitionBytes: number }): unknown => {
   const values = Object.values(limits);

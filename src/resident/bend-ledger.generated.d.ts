@@ -12,6 +12,7 @@ export type BendCharge = {
   readonly id: number;
   readonly partition: number;
   readonly bytes: number;
+  readonly purpose: { readonly $: "Ledger.ReviewUnit" };
 };
 export type BendLedger = {
   readonly $: "Ledger.Ledger";
