@@ -79,6 +79,25 @@ const run = (
   );
 
 describe("review orchestration", () => {
+  it.effect("refuses a Git-ignored file before the older source reader", () =>
+    Effect.scoped(Effect.gen(function* () {
+      const root = yield* fixture;
+      execFileSync("git", ["init", "--quiet", root]);
+      yield* Effect.promise(() => writeFile(join(root, ".gitignore"), "src/example.ts\n"));
+      const settings = yield* loadReviewSettings(root);
+      const noRead = Layer.succeed(SnapshotReader.Service, SnapshotReader.Service.of({
+        read: () => Effect.die(new Error("ignored source was read")),
+      }));
+      const backend = Layer.succeed(ReviewBackend.Service, ReviewBackend.Service.of({
+        evaluate: () => Effect.die(new Error("ignored source reached Jev")),
+      }));
+      const result = yield* review(request(root), { _tag: "authorized", root, settings }).pipe(
+        Effect.provide(Layer.mergeAll(noRead, DedupeStore.testLayer, backend)),
+      );
+      expect(result.results[0]).toMatchObject({ status: "skipped", code: "excluded" });
+    })),
+  );
+
   it.effect("rechecks current file settings before dispatch and advice", () =>
     Effect.scoped(Effect.gen(function* () {
       const root = yield* fixture;

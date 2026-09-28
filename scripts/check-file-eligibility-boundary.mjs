@@ -10,7 +10,7 @@ const filePolicy = source("src/policy/file-policy.ts");
 const direct = source("src/direct-event/selection.ts");
 const decision = source("src/configuration/decision.ts");
 if (!filePolicy.includes("pathFacts(path)") ||
-    !filePolicy.includes("classifyFileProtection(facts)") ||
+    !filePolicy.includes("classifyFileProtection({ kind:") ||
     !direct.includes("protectedPathReason(path)") ||
     !direct.includes("admitCandidateFile({ gitAdmin") ||
     !direct.includes("admitCandidateFile({ gitAdmin: false") ||

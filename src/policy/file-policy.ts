@@ -34,8 +34,12 @@ export type SelectionDecision =
 
 /** Filesystem-independent gates. SnapshotReader repeats regular/size/symlink checks. */
 export const protectedPathReason = (path: string): ProtectedGate | undefined => {
-  const { normalized: _normalized, ...facts } = pathFacts(path);
-  const protection = classifyFileProtection(facts);
+  const observed = pathFacts(path);
+  const protection = observed.kind === "invalid"
+    ? classifyFileProtection({ kind: "invalid" })
+    : classifyFileProtection({ kind: "valid", sensitiveName: observed.sensitiveName,
+      generatedName: observed.generatedName, generatedSegment: observed.generatedSegment,
+      allowedExtension: observed.allowedExtension });
   switch (protection) {
     case "allowedPath": return undefined;
     case "repositoryBoundary": return "repository-boundary";
@@ -54,7 +58,8 @@ export const selectGlobalPath = (
   policy: ResolvedPolicy,
   path: string,
 ): SelectionDecision => {
-  const value = pathFacts(path).normalized;
+  const observed = pathFacts(path);
+  const value = observed.kind === "valid" ? observed.normalized : undefined;
   // Compute configured matches before protected gates so explain can account for
   // an attempted sensitive/generated path without implying that it was eligible.
   const matchingIncludes = value === undefined ? [] : matching(policy.includes, value);

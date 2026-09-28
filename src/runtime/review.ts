@@ -8,7 +8,8 @@ import type {
   ReviewResult,
   SnapshotRef,
 } from "../domain/contracts.ts";
-import { rootRelativePath } from "../repository/root.ts";
+import { discoverWorkingTreeRoot, rootRelativePath } from "../repository/root.ts";
+import { eligibleNamedPath } from "../direct-event/selection.ts";
 import type { Consent } from "./consent.ts";
 import type { ReviewSettings } from "./review-config.ts";
 import { resolveConfiguration } from "../configuration/resolve.ts";
@@ -157,6 +158,19 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
     retryable: true,
     code: "invalid_configuration" as const,
   };
+
+  if (context._tag === "authorized") {
+    const workingTree = yield* discoverWorkingTreeRoot(context.root).pipe(Effect.option);
+    if (Option.isSome(workingTree)) {
+      const candidate = yield* eligibleNamedPath(context.root, relativePath);
+      if (candidate === undefined) return {
+        status: "skipped" as const,
+        path: relativePath,
+        reason: "file is ignored by Git or is not a safe regular path",
+        code: "excluded" as const,
+      };
+    }
+  }
 
   const snapshots = yield* SnapshotReader.Service;
   const backend = yield* ReviewBackend.Service;

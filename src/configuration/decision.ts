@@ -31,14 +31,18 @@ export const selectFile = (facts: {
   return command.selection;
 };
 
-export const classifyFileProtection = (facts: {
-  readonly validRelative: boolean;
+export const classifyFileProtection = (facts: { readonly kind: "invalid" } | {
+  readonly kind: "valid";
   readonly sensitiveName: boolean;
   readonly generatedName: boolean;
   readonly generatedSegment: boolean;
   readonly allowedExtension: boolean;
 }): "allowedPath" | "repositoryBoundary" | "sensitivePath" | "generatedOrVendor" | "fileExtension" => {
-  const command = decide({ kind: "fileProtectionCheck", ...facts });
+  const command = decide(facts.kind === "invalid"
+    ? { kind: "fileProtectionInvalid" }
+    : { kind: "fileProtectionCheck", sensitiveName: facts.sensitiveName,
+      generatedName: facts.generatedName, generatedSegment: facts.generatedSegment,
+      allowedExtension: facts.allowedExtension });
   if (command?.kind !== "fileProtection") throw new Error("canonical file protection missing");
   return command.protection;
 };

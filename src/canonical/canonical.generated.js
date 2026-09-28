@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:56c02c1fea10309fed327e6fa558345b0a65e6afc3a154cefe237be59f007726
+// hapsland-bend-source-sha256:232328115b21e598c0cb1928a173b3d12103d1a53d7122cccf4b84e864149efb
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -629,13 +629,14 @@ function $Canonical$step$(_state_0, _event_0) {
     const _includes_empty_0 = _event_0["includes_empty"];
     const _included_0 = _event_0["included"];
     return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.FileSelection", "selection": ($Configuration$select$(_protected_0, _excluded_0, _includes_empty_0, _included_0))}, "tail": {$: "Nil"}}};
+  } else if (_event_0.$ === "Canonical.FileProtectionInvalid") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.FileProtection", "protection": {$: "Configuration.RepositoryBoundary"}}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.FileProtectionCheck") {
-    const _valid_relative_0 = _event_0["valid_relative"];
     const _sensitive_name_0 = _event_0["sensitive_name"];
     const _generated_name_0 = _event_0["generated_name"];
     const _generated_segment_0 = _event_0["generated_segment"];
     const _allowed_extension_0 = _event_0["allowed_extension"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.FileProtection", "protection": ($Configuration$protection$(_valid_relative_0, _sensitive_name_0, _generated_name_0, _generated_segment_0, _allowed_extension_0))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.FileProtection", "protection": ($Configuration$protection$(_sensitive_name_0, _generated_name_0, _generated_segment_0, _allowed_extension_0))}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.CandidateFileCheck") {
     const _git_admin_0 = _event_0["git_admin"];
     const _physical_safe_0 = _event_0["physical_safe"];
@@ -1689,8 +1690,8 @@ function $Configuration$select$(_protected_0, _excluded_0, _includes_empty_0, _i
   return $Bool$pick$(_protected_0, {$: "Configuration.Protected"}, ($Bool$pick$(_excluded_0, {$: "Configuration.Excluded"}, ($Bool$pick$(_includes_empty_0, {$: "Configuration.EmptyIncludes"}, ($Bool$pick$(_included_0, {$: "Configuration.Selected"}, {$: "Configuration.NotIncluded"})))))));
 }
 
-function $Configuration$protection$(_valid_relative_0, _sensitive_name_0, _generated_name_0, _generated_segment_0, _allowed_extension_0) {
-  return $Bool$pick$(($Bool$not$(_valid_relative_0)), {$: "Configuration.RepositoryBoundary"}, ($Bool$pick$(_sensitive_name_0, {$: "Configuration.SensitivePath"}, ($Bool$pick$((_generated_name_0 || _generated_segment_0), {$: "Configuration.GeneratedOrVendor"}, ($Bool$pick$(($Bool$not$(_allowed_extension_0)), {$: "Configuration.FileExtension"}, {$: "Configuration.AllowedPath"})))))));
+function $Configuration$protection$(_sensitive_name_0, _generated_name_0, _generated_segment_0, _allowed_extension_0) {
+  return $Bool$pick$(_sensitive_name_0, {$: "Configuration.SensitivePath"}, ($Bool$pick$((_generated_name_0 || _generated_segment_0), {$: "Configuration.GeneratedOrVendor"}, ($Bool$pick$(($Bool$not$(_allowed_extension_0)), {$: "Configuration.FileExtension"}, {$: "Configuration.AllowedPath"})))));
 }
 
 function $Configuration$candidate$(_git_admin_0, _physical_safe_0, _git_allowed_0) {

@@ -172,7 +172,8 @@ type CanonicalEvent is Data:
   IncludeLayerCheck{supplied: Bool, current_rank: Nat, candidate_rank: Nat}
   FileSelectionCheck{protected: Bool, excluded: Bool,
     includes_empty: Bool, included: Bool}
-  FileProtectionCheck{valid_relative: Bool, sensitive_name: Bool,
+  FileProtectionInvalid{}
+  FileProtectionCheck{sensitive_name: Bool,
     generated_name: Bool, generated_segment: Bool, allowed_extension: Bool}
   CandidateFileCheck{git_admin: Bool, physical_safe: Bool, git_allowed: Bool}
   ReviewAdmissionCheck{root_valid: Bool, configuration_valid: Bool,
@@ -2640,10 +2641,12 @@ def step(+state: State, event: CanonicalEvent) -> Step:
     case FileSelectionCheck{protected, excluded, includes_empty, included}:
       Advanced{state, FileSelection{Configuration.select(protected, excluded,
         includes_empty, included)} <> Nil{}}
-    case FileProtectionCheck{valid_relative, sensitive_name, generated_name,
+    case FileProtectionInvalid{}:
+      Advanced{state, FileProtection{Configuration.RepositoryBoundary{}} <> Nil{}}
+    case FileProtectionCheck{sensitive_name, generated_name,
         generated_segment, allowed_extension}:
-      Advanced{state, FileProtection{Configuration.protection(valid_relative,
-        sensitive_name, generated_name, generated_segment,
+      Advanced{state, FileProtection{Configuration.protection(sensitive_name,
+        generated_name, generated_segment,
         allowed_extension)} <> Nil{}}
     case CandidateFileCheck{git_admin, physical_safe, git_allowed}:
       Advanced{state, CandidateFile{Configuration.candidate(git_admin,

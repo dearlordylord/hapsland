@@ -90,12 +90,14 @@ const waitUntilIdle = async (server: ResidentServer): Promise<void> => {
 };
 
 describe("canonical resident capacity", () => {
-  it("refuses a protected sibling before resident review while an eligible callback waits", async () => {
+  it.each([
+    ["build/blocked.ts", "safe.ts"],
+    ["safe.ts", "build/blocked.ts"],
+  ])("refuses a protected sibling before resident review in callback order %j, %j", async (first, second) => {
     const root = await makeGitFixture();
     await put(root, "safe.ts", "type SafeCount = number\n");
     await put(root, "build/blocked.ts", "type BlockedCount = number\n");
-    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root,
-      ["build/blocked.ts", "safe.ts"])));
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, [first, second])));
     if (observation === undefined) throw new Error("missing fixture observation");
     const started = deferred();
     const release = deferred();

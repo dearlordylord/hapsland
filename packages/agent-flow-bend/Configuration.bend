@@ -46,15 +46,14 @@ def select(protected: Bool, excluded: Bool, includes_empty: Bool,
       Bool.pick(Selection, includes_empty, EmptyIncludes{},
         Bool.pick(Selection, included, Selected{}, NotIncluded{}))))
 
-def protection(valid_relative: Bool, sensitive_name: Bool,
+def protection(sensitive_name: Bool,
     generated_name: Bool, generated_segment: Bool,
     allowed_extension: Bool) -> Protection:
-  Bool.pick(Protection, Bool.not(valid_relative), RepositoryBoundary{},
-    Bool.pick(Protection, sensitive_name, SensitivePath{},
+  Bool.pick(Protection, sensitive_name, SensitivePath{},
       Bool.pick(Protection, Bool.or(generated_name, generated_segment),
         GeneratedOrVendor{},
         Bool.pick(Protection, Bool.not(allowed_extension), FileExtension{},
-          AllowedPath{}))))
+          AllowedPath{})))
 
 def candidate(git_admin: Bool, physical_safe: Bool,
     git_allowed: Bool) -> Candidate:
