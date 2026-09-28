@@ -135,8 +135,10 @@ and leaves later opportunities to background or Stop. Advisory output is the
 default. A synchronous `block-current-findings` response requires a user-owned
 opt-in that remains valid at the final handoff; project policy may narrow it to
 advisory. The collector may batch eligible findings from several admissions in
-the same advicee and virtual round. An admission identifies each derived review
-unit and carries authorization and lifetime facts; it does not limit the batch
+the same advicee and virtual round. For example, edit B's synchronous response
+may include a still-current finding from edit A in that round, even when the
+finding was not ready during edit A's hook. An admission identifies each
+derived review unit and carries authorization and lifetime facts; it does not limit the batch
 to one edit or store a second ticket-wide outcome. Operational notices use the
 same advicee scope and one delivery lease across those opportunities. The installed edit path
 automatically starts a bounded background advice wait.
