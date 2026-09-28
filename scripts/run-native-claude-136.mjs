@@ -142,7 +142,7 @@ process.exitCode=result.status??1;
     delete env.TYPESAFE_API_KEY;
     env.REVIEW_CONTROL_JSON = JSON.stringify({ syntheticR6BrandedRepair: "finding" });
   } else delete env.REVIEW_CONTROL_JSON;
-  const prompt = countFixture ? `Use native Write to create order-count.ts containing exactly this one line and a final newline: type OrderCount = number. Then finish your turn immediately. Do not repair before Hapsland feedback. If an actionable Hapsland finding is returned by the Stop hook, repair the type using Edit or Write so a raw number is not assignable to OrderCount; use exactly this line: type OrderCount = number & { readonly __brand: "OrderCount" }. Then finish. If no finding arrives, leave the draft unchanged. Stay in this repository and do not inspect integration configuration, credentials, or environment variables. Make at most two source edits; say truthfully whether review affected the change.` : `Implement the payment-state example in README.md. First use the native Write tool to create payment.ts with this initial draft exactly:
+  const prompt = countFixture ? `Use native Write to create order-count.ts containing exactly this one line and a final newline: type OrderCount = number. Then finish your turn immediately. Do not repair before Hapsland feedback. If an actionable Hapsland finding is returned by the Stop hook, repair the type using Edit or Write so a raw number is not assignable to OrderCount; then finish. If no finding arrives, leave the draft unchanged. Stay in this repository and do not inspect integration configuration, credentials, or environment variables. Make at most two source edits. In your final reply include HAPSLAND_ADVICE_APPLIED only if you personally received actionable Hapsland advice and changed the type because of it; otherwise include HAPSLAND_ADVICE_NOT_APPLIED. State the rule ID from the advice if you received one. Be truthful.` : `Implement the payment-state example in README.md. First use the native Write tool to create payment.ts with this initial draft exactly:
 export interface PaymentState {
   status: "pending" | "succeeded" | "failed";
   receipt: string | null;
@@ -151,6 +151,12 @@ export interface PaymentState {
 After that first Write, finish your turn immediately without running tests or making another edit. Do not repair this initial draft before Hapsland feedback. If an actionable Hapsland finding is returned by the Stop hook, repair the type using Edit or Write so invalid combinations are impossible, then run npm test and finish. If no finding arrives, leave the draft unchanged and say so truthfully. Stay in this repository; do not inspect integration configuration, credentials, or environment variables. Make at most two source edits. In your final reply state whether automated review affected the change; do not invent feedback.`;
   const host = await run(claudeBinary, ["-p", "--output-format", "stream-json", "--verbose", "--no-session-persistence",
     "--allowedTools", "Read,Edit,Write,Bash", "--permission-mode", "acceptEdits", prompt], env, repo, 240_000);
+  const finalText = host.stdout.split("\n").filter(Boolean).flatMap((line) => {
+    try {
+      const event = JSON.parse(line);
+      return event?.type === "result" && typeof event.result === "string" ? [event.result] : [];
+    } catch { return []; }
+  }).join("\n");
   const timeline = readLines(events).map((entry) => ({ ...entry, atMs: entry.at - started, at: undefined, doneAt: undefined }));
   const activityStages = stages(activity);
   const source = existsSync(sourcePath) ? readFileSync(sourcePath, "utf8") : "";
@@ -188,13 +194,16 @@ const contradictory: PaymentState = { status: 'succeeded', receipt: 'r', failure
     timeline, activityStages, checks: { initialDraftObserved: timeline.some((entry) => entry.draft), findingSubmitted: !!finding,
       editAfterFinding: editedAfterFinding, finalSourceChanged: !!source && (countFixture ? source.trim() !== "type OrderCount = number" : !source.includes("receipt: string | null")),
       validSourceCompiles: compile.status === 0, invalidStatesRejected,
+      agentAcknowledgesAdvice: finalText.includes("HAPSLAND_ADVICE_APPLIED") &&
+        !finalText.includes("HAPSLAND_ADVICE_NOT_APPLIED") && finalText.includes("r6_bare_domain_value"),
       followupClearObserved: followupStage?.stage === "clear",
       followupFindingObserved: followupStage?.stage === "findings" },
     resident, rawHostOutputRetained: false, rawBackendMaterialRetained: false, credentialRetained: false,
     hostOutputBytesDiscarded: Buffer.byteLength(host.stdout) + host.stderrBytes };
   record.verdict = host.code === 0 && record.checks.initialDraftObserved && record.checks.findingSubmitted &&
     record.checks.editAfterFinding && record.checks.finalSourceChanged && record.checks.validSourceCompiles &&
-    record.checks.invalidStatesRejected && (record.checks.followupClearObserved || record.checks.followupFindingObserved)
+    record.checks.invalidStatesRejected && record.checks.agentAcknowledgesAdvice &&
+    (record.checks.followupClearObserved || record.checks.followupFindingObserved)
     ? "demonstrated" : "incomplete";
   mkdirSync(join(project, "evidence/native-136"), { recursive: true });
   writeFileSync(join(project, `evidence/native-136/${offlineControl ? "claude-count-offline" : countFixture ? "claude-count-live" : "claude-configured"}.json`), JSON.stringify(record, null, 2) + "\n");

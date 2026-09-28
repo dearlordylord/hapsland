@@ -1,12 +1,11 @@
 # #136 native review and repair evidence
 
-**Status: complete for issue #136 (2026-09-28).** Selected real Codex and
-Claude sessions each observed an attributed edit, completed Jev review,
-finding submission through a native hook, an agent repair after that finding,
-and a checked follow-up outcome. The Codex follow-up was `clear`; the Claude
-follow-up was a further `findings` result. These are bounded host observations,
-not a claim that Jev reliably clears every repaired type or that callback
-races are exhausted.
+**Status: incomplete (2026-09-28).** Selected real Codex and Claude sessions
+observed attributed edits, completed Jev reviews, finding submission, later
+source changes, and checked follow-up outcomes. The Codex follow-up was
+`clear`; the Claude follow-up was a further `findings` result. Two-axis review
+found that the retained records do not independently establish that each agent
+read and used the advice, so new source-free acknowledgements are required.
 Issue: [#136](https://github.com/dearlordylord/hapsland/issues/136). The
 [pre-execution plan](issue-136-native-run-plan.md) declares every run and
 request ceiling. The source-free records are under
@@ -19,6 +18,7 @@ request ceiling. The source-free records are under
 | Claude Code 2.1.281, three sessions | 5 | One run saw a resident finding and later clear but no submitted advice; another received Jev HTTP 503 and recorded unavailable; the Bash collection diagnostic again saw finding and clear without submitted advice. Changes after an undisclosed finding cannot establish model visibility. |
 | Claude Code 2.1.218, three composed-hook sessions | 5 | The first saw finding and clear, but the agent changed the file before Stop, so attribution to advice was unproven. The Stop-focused run's Jev request failed. The session with explicit `block-current-findings` feedback received HTTP 503 on the draft and a later clear after an unprompted edit; an operational notice was submitted, but no actionable finding. |
 | Claude Code 2.1.218, controlled offline count session | 0 | After correcting the fixture to match the controlled review snapshot, a real native Stop hook delivered the controlled r6 finding. Claude then changed the type; the follow-up recorded clear, and independent TypeScript checks rejected a raw number. An earlier offline attempt with `export` in the draft failed closed as an unknown snapshot and remains recorded. This validates the delivery path without claiming live Jev behavior. |
+| Claude Code 2.1.218, visibility-focused offline session | 0 | The Stop hook delivered a controlled r6 finding; Claude changed the type and its final response affirmatively identified the actual rule ID. The agent chose a different valid branded representation, so the exact-snapshot controlled reviewer marked the follow-up unavailable. This is visibility evidence, not a complete follow-up validation. |
 | Claude Code 2.1.218, real Jev count session | 2 | Jev HTTP 200 produced a current finding; the native Stop hook blocked and Claude then changed the type. The replacement compiled and independent invalid-assignment check passed. The follow-up Jev request failed and the resident recorded incomplete/unavailable, not clear. |
 | Claude Code 2.1.218, second real Jev count session | 2 | Jev HTTP 200 produced a current finding delivered through Stop. Claude edited the type, and independent TypeScript checks rejected raw-number assignment. A second Jev HTTP 200 produced a further resident finding after the edit, satisfying the specified follow-up outcome alternative. This does not claim the rule was cleared. |
 
@@ -80,5 +80,8 @@ composed path. Jev returned intermittent failures in earlier runs and one
 exact-fixture follow-up; those remain visible as incomplete records. The
 fake-effect resident server and terminal collection tests passed **91/91**
 before these native observations and remain the primary callback-race gate.
-Close #136 only after this evidence is reviewed and integrated. Leave epic
-#116 open for #137's final authority validation and source-precedence handoff.
+Keep #136 open until a real Claude session retains affirmative rule-specific
+agent acknowledgement and a new Codex session retains a positive finding
+acknowledgement, alongside the checked follow-up outcomes. Then review and
+integrate the evidence. Leave epic #116 open for #137's final authority
+validation and source-precedence handoff.

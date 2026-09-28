@@ -143,3 +143,20 @@ first Codex session used two requests, so the cumulative actual maximum is
 eight of the issue's 40 requests. A second HTTP 200 or a quiet hook alone will
 not count as a follow-up result; require an explicit resident `clear` or
 `findings` stage after the repair. Preserve the first session record.
+
+## Visibility-evidence correction after two-axis review
+
+Review of the selected runs found that ordered hook output and a later edit do
+not independently show what the agent read. The next controlled Claude run
+will require a source-free final acknowledgement plus the rule ID from actual
+advice, and will no longer prescribe the exact repair line. The native runner
+records only boolean recognition, never raw agent text. If that offline run
+observes the acknowledgement and repair, one independent real Claude run may
+use the same prompt and an
+eight-request cutoff, no automatic retry, and 240-second host ceiling. Fourteen
+Claude requests have been used; the maximum after that live run is 22 of 40.
+The Codex runner will likewise require a positive final acknowledgement and
+capture it without retaining the raw message; a separately declared Codex
+session is needed because the old transcript was discarded. Four Codex
+requests have been used, so one six-request run has a cumulative maximum of
+ten of 40. Keep #136 open until both visibility observations are present.
