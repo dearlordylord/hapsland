@@ -16,13 +16,14 @@ and a denied A → X permission edge in the branching tree. Bend skips X without
 reading it, continues pending branches, and ends that trace with `TreeLimit`
 after E and G do not fit. The owner resumed the migration in a new session.
 #119's first canonical state, events, commands, checked adapter, and independent
-traces merged through PR #144 and #119 is closed. The next migration slice is
-#120. Resident switching under #120–#134 is still pending. Configurable graph limits and
+traces merged through PR #144 and #119 is closed. #120's resident capacity
+slice is merged at `b90a524`; the next migration slice is #121. Other resident
+decision paths under #121–#134 are still pending. Configurable graph limits and
 general budget/termination proofs are tracked separately in
 [#142](https://github.com/dearlordylord/hapsland/issues/142).
 
 The integrated epic is in `/workspace/typescript/jev-worktrees/bend-full-flow`
-(`feat/bend-full-flow`, merge `ea6584b`). Start #120 in a new task worktree
+(`feat/bend-full-flow`, merge `b90a524`). Start #121 in a new task worktree
 from the latest epic tip. The old `/tmp/hapsland-bend-handoff.md` predates #119
 and is no longer a valid resume point. The `/workspace/typescript/jev` checkout
 is older and is not the edit target.
@@ -95,10 +96,12 @@ or Jev-request-size claim.
    complete/incomplete decisions. The visualization was built by an Astra
    medium agent. Proposed import forms and limits are recorded for review,
    not claimed as installed behavior.
-3. **Capacity:** #120/#122 bump or rework the ledger with 256 KiB capture.
-   Keep accounting bounded and test concurrent advicees. This is supporting
-   work for the review change.
-4. **Migration:** #119 defined the first canonical transition; #120–#134 move the
+3. **Capacity:** #120 routes installed reservations through the canonical Bend
+   transition and labels their purposes. #122 must revisit the current 64-item/
+   8 MiB resident and 16-item/2 MiB advicee limits for the 256 KiB file target;
+   the installed capture cap remains 32 KiB. Keep accounting bounded and test
+   concurrent advicees.
+4. **Migration:** #119 defined the first canonical transition; #121–#134 move the
    production decision slices; #135–#137 complete visualization, host
    validation, and evidence-backed verification. The installed 32 KiB
    supported-profile remains the truthful runtime claim until code and
@@ -129,6 +132,25 @@ This does not switch resident paths or make the installed cross-file
 profile available. The design and current boundary are in
 [`docs/bend-canonical-transition-interface.md`](docs/bend-canonical-transition-interface.md).
 
+## #120 resident capacity (merged 2026-09-28)
+
+The resident's logical capacity now advances through `Canonical.step` using
+the checked shared adapter in `src/canonical/adapter.ts`. `CapacityLedger`
+retains native reservation object identity and maps advicee partitions to
+numeric IDs; Bend owns reserve, resize, ordered replacement, release, usage,
+limit refusal, and purpose changes. The direct generated ledger export was
+removed and `scripts/check-capacity-boundary.mjs` guards against its return.
+Compiled Bend output supplies six installed reservation purposes, their four
+limit connections, live charge owners/IDs/bytes/purposes, and each preparation
+release or unit decision with its position, size, reason, and capacity snapshot.
+Source-free traces check competing advicees, accepted → refused → accepted,
+duplicate/stale operations, and exact release. A resident fixture exercises two
+advicees with a fake clock, source fixture, and offline Jev responses. `npm run
+test:canonical`, root `npm test` (65 files and 581 tests passed; one file and
+two tests skipped), typecheck, and the installed build passed before merge.
+The installed byte limits and 32 KiB source cap did not change in this slice;
+the 256 KiB target and cross-file evidence remain future work.
+
 ## Next autonomous migration run
 
 Use the GitHub issue bodies as the task contracts. Work in a dedicated task
@@ -139,7 +161,7 @@ the issue only when its criteria have evidence. Update this handoff after each
 merged slice. Do not treat the separate #141 import-graph diagram as the final
 production replay.
 
-One valid single-agent order is #120, #121, #122, #123, #124, #125, #126,
+One valid single-agent order from here is #121, #122, #123, #124, #125, #126,
 #127, #128, #129, #130, #131, #132, #133, #134, #135. Dependencies allow
 #132–#134 to proceed after their own blockers while the #123–#131 chain is in
 progress; #135 needs both #131 and #134. #135 delivers the build-generated
