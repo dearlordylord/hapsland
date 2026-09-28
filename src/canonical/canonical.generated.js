@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:ee830cadcfba0c5743cf39c0875fbc32833667baf8ef672cff7e93c1b7f6621c
+// hapsland-bend-source-sha256:6ace7c1709f09058b75fe6de7eccfe08af0d90d8916badcf80689748656ba96f
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -1749,7 +1749,7 @@ function $Canonical$collection_lease_checked$(_state_0, _advice_0, _token_0, _ac
   if (_action_0.$ === "Delivery.DropLease") {
     return $Canonical$collection_release$(_state_0, _advice_0, _token_0);
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.CollectionLeaseKept"}, "tail": {$: "Nil"}}};
+    return $Canonical$collection_lease_keep$(_state_0, _advice_0, _token_0);
   }
 }
 
@@ -2504,6 +2504,18 @@ function $CollectionState$remove_lease$(_id_0, _token_0, _items_0) {
   }
 }
 
+function $Canonical$collection_lease_keep$(_state_0, _advice_0, _token_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, "commands": {$: "Con", "head": ($Bool$pick$(($CollectionState$owns_lease$(_collection_0, _advice_0, _token_0)), {$: "Canonical.CollectionLeaseKept"}, {$: "Canonical.CollectionLeaseRefused"})), "tail": {$: "Nil"}}};
+}
+
 function $CollectionState$remove_ready$(_id_0, _items_0) {
   if (_items_0.$ === "Nil") {
     return {$: "Nil"};
@@ -3217,6 +3229,11 @@ function $CollectionState$keep_lease$(_item_0, _tail_0, _remove_0) {
   } else {
     return {$: "Con", "head": _item_0, "tail": _tail_0};
   }
+}
+
+function $CollectionState$owns_lease$(_state_0, _advice_0, _token_0) {
+  const _leases_0 = _state_0["leases"];
+  return $CollectionState$lease_owned$(_advice_0, _token_0, _leases_0);
 }
 
 function $CollectionState$keep_ready$(_item_0, _tail_0, _remove_0) {

@@ -18,7 +18,8 @@ uses a native elapsed time fact. Stop-specific reoffer rules remain in the
 delivery slice (#126).
 
 `conformance/canonical-collection-v1.json` contains independent, source-free
-expected outcomes for readiness and overlapping leases, live background
+expected outcomes for readiness and overlapping leases (including wrong owner
+checks), live background
 writer exclusion and expiry, and cycle, expiry, finding, and notice fit. The
 resident tests exercise overlapping collection and callback order using fake
 clock, temporary source files, offline Jev responses, and synthetic host

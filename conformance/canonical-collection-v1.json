@@ -9,6 +9,7 @@
         { "kind": "collectionReserveLease", "advice": 9, "token": 1, "expect": "collectionLeaseReserved" },
         { "kind": "collectionReserveLease", "advice": 9, "token": 2, "expect": "collectionLeaseRefused" },
         { "kind": "collectionLeaseCheck", "advice": 9, "token": 1, "expired": false, "stopCollector": false, "sameGroup": true, "reofferable": false, "expect": "collectionLeaseKept" },
+        { "kind": "collectionLeaseCheck", "advice": 9, "token": 2, "expired": false, "stopCollector": false, "sameGroup": true, "reofferable": false, "expect": "collectionLeaseRefused" },
         { "kind": "collectionReleaseLease", "advice": 9, "token": 2, "expect": "collectionLeaseRefused" },
         { "kind": "collectionReleaseLease", "advice": 9, "token": 1, "expect": "collectionLeaseReleased" },
         { "kind": "collectionReserveLease", "advice": 9, "token": 2, "expect": "collectionLeaseReserved" },

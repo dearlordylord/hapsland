@@ -77,6 +77,11 @@ def lease_owned(+id: Nat, +token: Nat, items: List<&2, Lease>) -> Bool:
       Bool.or(Bool.and(Nat.is_eq(id, advice), Nat.is_eq(token, owner)),
         lease_owned(id, token, rest))
 
+def owns_lease(state: State, advice: Nat, token: Nat) -> Bool:
+  match state:
+    case State{_, leases, _}:
+      lease_owned(advice, token, leases)
+
 def remove_advice_lease(+id: Nat, items: List<&2, Lease>) -> List<&2, Lease>:
   match items:
     case Nil{}:

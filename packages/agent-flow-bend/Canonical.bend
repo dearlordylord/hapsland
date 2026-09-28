@@ -1725,13 +1725,20 @@ def collection_release(+state: State, advice: Nat, token: Nat) -> Step:
       collection_decision(state, CollectionState.release(collection, advice, token),
         CollectionLeaseReleased{}, CollectionLeaseRefused{})
 
+def collection_lease_keep(+state: State, advice: Nat, token: Nat) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, _, collection}:
+      Advanced{state, Bool.pick(Command,
+        CollectionState.owns_lease(collection, advice, token),
+        CollectionLeaseKept{}, CollectionLeaseRefused{}) <> Nil{}}
+
 def collection_lease_checked(+state: State, advice: Nat, token: Nat,
     action: Delivery.CollectionLeaseAction) -> Step:
   match action:
     case Delivery.DropLease{}:
       collection_release(state, advice, token)
     case Delivery.KeepLease{}:
-      Advanced{state, CollectionLeaseKept{} <> Nil{}}
+      collection_lease_keep(state, advice, token)
 
 def collection_lease_check(state: State, advice: Nat, token: Nat,
     expired: Bool, stop_collector: Bool, same_group: Bool,
