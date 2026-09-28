@@ -123,19 +123,18 @@ Generated artifact: [`src/resident/bend-policy.generated.js`](../src/resident/be
 | `bendTicketRetention` | [`src/resident/server.ts` lines 755](../src/resident/server.ts#L755) |
 | `bendDiscardScope` | [`src/resident/server.ts` lines 1641](../src/resident/server.ts#L1641) |
 
-## Resident ledger (7)
+## Resident capacity after #120
 
-Generated artifact: [`src/resident/bend-ledger.generated.js`](../src/resident/bend-ledger.generated.js).
-
-| Export | Static non-test application calls |
-| --- | --- |
-| `bendLedgerInitial` | [`src/resident/capacity.ts` lines 67](../src/resident/capacity.ts#L67) |
-| `bendLedgerReserve` | [`src/resident/capacity.ts` lines 85](../src/resident/capacity.ts#L85) |
-| `bendLedgerRelease` | [`src/resident/capacity.ts` lines 131](../src/resident/capacity.ts#L131) |
-| `bendLedgerResize` | [`src/resident/capacity.ts` lines 104](../src/resident/capacity.ts#L104) |
-| `bendLedgerClear` | [`src/resident/capacity.ts` lines 147](../src/resident/capacity.ts#L147) |
-| `bendLedgerTotal` | [`src/resident/capacity.ts` lines 153](../src/resident/capacity.ts#L153) |
-| `bendLedgerPartitionUsage` | [`src/resident/capacity.ts` lines 140, 156](../src/resident/capacity.ts#L140) |
+The direct `bend-ledger.generated.js` export was retired. Production
+[`CapacityLedger`](../src/resident/capacity.ts) calls the checked
+[`src/canonical/adapter.ts`](../src/canonical/adapter.ts) boundary for reserve,
+resize, replacement, release, and projection. That boundary alone imports
+[`canonical.generated.js`](../src/canonical/canonical.generated.js). Its
+compiled `Canonical.step` owns the shared ledger, purpose, limit checks, and
+ordered replacement; the native wrapper retains reservation object identity
+and maps partition strings to positive IDs. The artifact hash and
+[`check-capacity-boundary.mjs`](../scripts/check-capacity-boundary.mjs) guard
+against restoring the direct ledger path.
 
 ## Abstract page (3)
 

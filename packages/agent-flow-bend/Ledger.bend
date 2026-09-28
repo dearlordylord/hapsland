@@ -202,6 +202,17 @@ def replace(+id: Nat, +bytes: Nat, charges: List<&2, Charge>) -> List<&2, Charge
           replace.pick(charge, Charge{current, partition, bytes, purpose},
             replace(id, bytes, rest), Nat.is_eq(current, id))
 
+def replace_for(+id: Nat, +bytes: Nat, +purpose: Purpose,
+    charges: List<&2, Charge>) -> List<&2, Charge>:
+  match charges:
+    case Nil{}:
+      Nil{}
+    case +charge <> rest:
+      match charge:
+        case Charge{current, partition, _, _}:
+          replace.pick(charge, Charge{current, partition, bytes, purpose},
+            replace_for(id, bytes, purpose, rest), Nat.is_eq(current, id))
+
 def resize.check(limits: Limits, next_id: Nat, charges: List<&2, Charge>,
     +id: Nat, partition: Nat, bytes: Nat, allowed: Bool) -> LedgerResult:
   match allowed:
@@ -209,6 +220,31 @@ def resize.check(limits: Limits, next_id: Nat, charges: List<&2, Charge>,
       Granted{Ledger{limits, next_id, replace(id, bytes, charges)}, id}
     case False{}:
       Rejected{Ledger{limits, next_id, charges}}
+
+def resize_for.check(limits: Limits, next_id: Nat, charges: List<&2, Charge>,
+    +id: Nat, partition: Nat, bytes: Nat, purpose: Purpose, allowed: Bool) -> LedgerResult:
+  match allowed:
+    case True{}:
+      Granted{Ledger{limits, next_id, replace_for(id, bytes, purpose, charges)}, id}
+    case False{}:
+      Rejected{Ledger{limits, next_id, charges}}
+
+def resize_for.found(state: Ledger, +id: Nat, +bytes: Nat, +purpose: Purpose,
+    found: Maybe<&2, Charge>) -> LedgerResult:
+  match state:
+    case Ledger{+limits, next_id, +charges}:
+      match found:
+        case None{}:
+          Rejected{Ledger{limits, next_id, charges}}
+        case Some{Charge{_, +partition, _, _}}:
+          +others = remove(id, charges)
+          resize_for.check(limits, next_id, charges, id, partition, bytes, purpose,
+            fits(limits_for(purpose, limits), total(others), partition_usage(others, partition), bytes))
+
+def resize_for(+state: Ledger, +id: Nat, bytes: Nat, purpose: Purpose) -> LedgerResult:
+  match state:
+    case Ledger{_, _, charges}:
+      resize_for.found(state, id, bytes, purpose, find(id, charges))
 
 def resize.found(state: Ledger, +id: Nat, +bytes: Nat, found: Maybe<&2, Charge>) -> LedgerResult:
   match state:

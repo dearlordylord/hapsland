@@ -1,7 +1,9 @@
 # Review capacity on the Hapsland dashboard
 
 Plan for [#135](https://github.com/dearlordylord/hapsland/issues/135).
-The current page and installed resident do not yet use `Canonical.step`.
+The current page does not yet use `Canonical.step`. The installed resident now
+uses it for capacity reservations through the checked adapter; other decision
+families still move in later issues.
 
 ## What to show
 
@@ -30,11 +32,11 @@ Each reservation faces four checks: resident item count, resident bytes, agent
 item count, and agent bytes. Four checks do not mean four kinds of work. There
 are no separate pools for preparation and units.
 
-That two-purpose inventory is incomplete for the installed resident. It also
-reserves capacity for observation and dispatch data, stored review results,
-operational notices, and temporary space when checking advice again. #120/#122
-must bring these purposes into the canonical Bend capacity model before #135
-labels the inventory as complete. Until then, label it **Canonical Bend model**.
+The #120 Bend inventory includes observation and dispatch data, preparation,
+review units, stored results, operational notices, and temporary advice recheck
+space. The resident labels each reservation or purpose change. #122 may extend
+the result and retention lifetime model before #135 labels the inventory as
+complete. Until then, label it **Canonical Bend model**.
 Example numeric limits must be labelled as examples; live limits must come
 from the selected Bend state.
 
@@ -68,10 +70,11 @@ refused, and issued IDs for accepted units. Each animated step needs Bend's capa
 segmented bars also need its reservation snapshot. Name a specific refusal
 reason only when Bend returns it. Otherwise show **No capacity**.
 
-The #119 projection exposes limits, reservations, and totals from compiled
-`Ledger.total` and `Ledger.partition_usage`. Its admission commands still lack
-unit positions, refused sizes, intermediate snapshots, and a complete purpose
-inventory. #120/#122 add that Bend output; #135 renders it in a dedicated task
+The #120 projection exposes limits, reservations, purposes, and totals from compiled
+`Ledger.total` and `Ledger.partition_usage`. Its preparation commands now carry
+unit positions, refused sizes, limit reasons, and intermediate snapshots. Bend
+also supplies the purpose inventory from the limit definitions used in admission.
+#122 checks the remaining result and retention lifetimes; #135 renders it in a dedicated task
 worktree based on the then-current integrated `feat/bend-full-flow` branch.
 Tests must compare displayed decisions and values with
 Bend output, including **accepted → refused → accepted** and competing agents.

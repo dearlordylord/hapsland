@@ -1,8 +1,10 @@
 import { bendCanonicalInitial, bendCanonicalInventory, bendCanonicalPartitionUsage, bendCanonicalStep, bendCanonicalTotal } from "./canonical.generated.js";
 
 const MAX_NAT = 2 ** 48 - 1;
-const MAX_BYTES = 2 ** 47 - 1;
-const MAX_UNITS = 16;
+export const CANONICAL_MAX_BYTES = 2 ** 47 - 1;
+const MAX_BYTES = CANONICAL_MAX_BYTES;
+export const CANONICAL_MAX_UNITS = 1024;
+const MAX_UNITS = CANONICAL_MAX_UNITS;
 type RecordValue = Record<string, unknown>;
 const object = (value: unknown): RecordValue => {
   if (value === null || typeof value !== "object" || Array.isArray(value)) throw new TypeError("invalid canonical object");
@@ -43,7 +45,7 @@ const list = (values: readonly number[]): unknown => {
   if (!Array.isArray(values) || values.length > MAX_UNITS) throw new TypeError("too many units");
   return values.reduceRight<unknown>((tail, value) => ({ $: "Con", head: bytes(value), tail }), { $: "Nil" });
 };
-const readList = <T>(value: unknown, decode: (item: unknown) => T, limit = 256): T[] => {
+const readList = <T>(value: unknown, decode: (item: unknown) => T, limit = 2048): T[] => {
   const result: T[] = [];
   let cursor = value;
   while (tag(cursor) === "Con") {
@@ -57,6 +59,10 @@ const readList = <T>(value: unknown, decode: (item: unknown) => T, limit = 256):
 };
 
 export type CanonicalEvent =
+  | { readonly kind: "reserveCapacity"; readonly partition: number; readonly bytes: number; readonly purpose: CapacityPurpose }
+  | { readonly kind: "resizeCapacity"; readonly reservation: number; readonly bytes: number; readonly purpose: CapacityPurpose }
+  | { readonly kind: "releaseCapacity"; readonly reservation: number }
+  | { readonly kind: "replaceCapacity"; readonly reservation: number; readonly unitBytes: readonly number[] }
   | { readonly kind: "openRound"; readonly partition: number; readonly lifetime: number }
   | { readonly kind: "beginPreparation"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly bytes: number }
   | { readonly kind: "preparationCompleted"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly unitBytes: readonly number[] }
@@ -67,6 +73,11 @@ export type CanonicalEvent =
   | { readonly kind: "retirePartition"; readonly partition: number; readonly lifetime: number; readonly round: number };
 
 export type CanonicalCommand =
+  | { readonly kind: "capacityGranted"; readonly id: number; readonly after: CapacityView }
+  | { readonly kind: "capacityRefused"; readonly reason: CapacityRefusal; readonly after: CapacityView }
+  | { readonly kind: "capacityResized"; readonly id: number; readonly after: CapacityView }
+  | { readonly kind: "capacityUnitAdmitted"; readonly reservation: number; readonly position: number; readonly bytes: number; readonly after: CapacityView }
+  | { readonly kind: "capacityUnitRefused"; readonly position: number; readonly bytes: number; readonly reason: CapacityRefusal; readonly after: CapacityView }
   | { readonly kind: "roundStarted"; readonly id: number }
   | { readonly kind: "prepare"; readonly operation: number; readonly reservation: number }
   | { readonly kind: "preparationRefused" }
@@ -84,28 +95,41 @@ export type CanonicalCommand =
   | { readonly kind: "reofferAtStop" }
   | { readonly kind: "partitionRetired"; readonly round: number };
 
-const identity = (event: CanonicalEvent) => ({ partition: nat(event.partition, true), lifetime: nat(event.lifetime, true) });
+const encodePurpose = (value: CapacityPurpose): unknown => {
+  const names: Record<CapacityPurpose, string> = {
+    observationDispatch: "Ledger.ObservationDispatch", preparation: "Ledger.Preparation",
+    reviewUnit: "Ledger.ReviewUnit", storedResult: "Ledger.StoredResult",
+    operationalNotice: "Ledger.OperationalNotice", adviceRecheck: "Ledger.AdviceRecheck",
+  };
+  const name = names[value];
+  if (!name) throw new TypeError("invalid capacity purpose");
+  return { $: name };
+};
+const identity = (event: Extract<CanonicalEvent, { readonly lifetime: number }>) => ({ partition: nat(event.partition, true), lifetime: nat(event.lifetime, true) });
 const encode = (event: CanonicalEvent): unknown => {
-  const ids = identity(event);
   switch (event.kind) {
-    case "openRound": inputFields(event, ["kind", "partition", "lifetime"]); return { $: "Canonical.OpenRound", ...ids };
-    case "beginPreparation": inputFields(event, ["kind", "partition", "lifetime", "round", "bytes"]); return { $: "Canonical.BeginPreparation", ...ids, round: nat(event.round, true), bytes: bytes(event.bytes) };
-    case "preparationCompleted": inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "unitBytes"]); return { $: "Canonical.PreparationCompleted", ...ids, round: nat(event.round, true), operation: nat(event.operation, true), unit_bytes: list(event.unitBytes) };
+    case "reserveCapacity": inputFields(event, ["kind", "partition", "bytes", "purpose"]); return { $: "Canonical.ReserveCapacity", partition: nat(event.partition, true), bytes: bytes(event.bytes), purpose: encodePurpose(event.purpose) };
+    case "resizeCapacity": inputFields(event, ["kind", "reservation", "bytes", "purpose"]); return { $: "Canonical.ResizeCapacity", reservation: nat(event.reservation, true), bytes: nat(event.bytes), purpose: encodePurpose(event.purpose) };
+    case "releaseCapacity": inputFields(event, ["kind", "reservation"]); return { $: "Canonical.ReleaseCapacity", reservation: nat(event.reservation, true) };
+    case "replaceCapacity": inputFields(event, ["kind", "reservation", "unitBytes"]); return { $: "Canonical.ReplaceCapacity", reservation: nat(event.reservation, true), unit_bytes: list(event.unitBytes) };
+    case "openRound": inputFields(event, ["kind", "partition", "lifetime"]); return { $: "Canonical.OpenRound", ...identity(event) };
+    case "beginPreparation": inputFields(event, ["kind", "partition", "lifetime", "round", "bytes"]); return { $: "Canonical.BeginPreparation", ...identity(event), round: nat(event.round, true), bytes: bytes(event.bytes) };
+    case "preparationCompleted": inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "unitBytes"]); return { $: "Canonical.PreparationCompleted", ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true), unit_bytes: list(event.unitBytes) };
     case "reviewCompleted": {
       inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "outcome"]);
       const outcome = { finding: "Canonical.Finding", clear: "Canonical.Clear", unavailable: "Canonical.Unavailable" }[event.outcome];
       if (!outcome) throw new TypeError("invalid review outcome");
-      return { $: "Canonical.ReviewCompleted", ...ids, round: nat(event.round, true), operation: nat(event.operation, true), outcome: { $: outcome } };
+      return { $: "Canonical.ReviewCompleted", ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true), outcome: { $: outcome } };
     }
-    case "stopPolled": inputFields(event, ["kind", "partition", "lifetime", "round", "deadline"]); return { $: "Canonical.StopPolled", ...ids, round: nat(event.round, true), deadline: bool(event.deadline) };
-    case "outputStarted": inputFields(event, ["kind", "partition", "lifetime", "round"]); return { $: "Canonical.OutputStarted", ...ids, round: nat(event.round, true) };
+    case "stopPolled": inputFields(event, ["kind", "partition", "lifetime", "round", "deadline"]); return { $: "Canonical.StopPolled", ...identity(event), round: nat(event.round, true), deadline: bool(event.deadline) };
+    case "outputStarted": inputFields(event, ["kind", "partition", "lifetime", "round"]); return { $: "Canonical.OutputStarted", ...identity(event), round: nat(event.round, true) };
     case "outputTerminal": {
       inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "outcome"]);
       const outcome = { acknowledged: "Canonical.Acknowledged", failed: "Canonical.Failed", unknown: "Canonical.Unknown" }[event.outcome];
       if (!outcome) throw new TypeError("invalid write outcome");
-      return { $: "Canonical.OutputTerminal", ...ids, round: nat(event.round, true), operation: nat(event.operation, true), outcome: { $: outcome } };
+      return { $: "Canonical.OutputTerminal", ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true), outcome: { $: outcome } };
     }
-    case "retirePartition": inputFields(event, ["kind", "partition", "lifetime", "round"]); return { $: "Canonical.RetirePartition", ...ids, round: nat(event.round, true) };
+    case "retirePartition": inputFields(event, ["kind", "partition", "lifetime", "round"]); return { $: "Canonical.RetirePartition", ...identity(event), round: nat(event.round, true) };
     default: throw new TypeError("unknown canonical event");
   }
 };
@@ -172,6 +196,11 @@ const capacityRefusal = (value: unknown): CapacityRefusal => {
 };
 const decodeCommand = (value: unknown): CanonicalCommand => {
   switch (tag(value)) {
+    case "Canonical.CapacityGranted": { const x = fields(value, "Canonical.CapacityGranted", ["id", "after"]); return { kind: "capacityGranted", id: nat(x.id, true), after: capacityView(x.after) }; }
+    case "Canonical.CapacityRefused": { const x = fields(value, "Canonical.CapacityRefused", ["reason", "after"]); return { kind: "capacityRefused", reason: capacityRefusal(x.reason), after: capacityView(x.after) }; }
+    case "Canonical.CapacityResized": { const x = fields(value, "Canonical.CapacityResized", ["id", "after"]); return { kind: "capacityResized", id: nat(x.id, true), after: capacityView(x.after) }; }
+    case "Canonical.CapacityUnitAdmitted": { const x = fields(value, "Canonical.CapacityUnitAdmitted", ["reservation", "position", "bytes", "after"]); return { kind: "capacityUnitAdmitted", reservation: nat(x.reservation, true), position: nat(x.position, true), bytes: bytes(x.bytes), after: capacityView(x.after) }; }
+    case "Canonical.CapacityUnitRefused": { const x = fields(value, "Canonical.CapacityUnitRefused", ["position", "bytes", "reason", "after"]); return { kind: "capacityUnitRefused", position: nat(x.position, true), bytes: bytes(x.bytes), reason: capacityRefusal(x.reason), after: capacityView(x.after) }; }
     case "Canonical.RoundStarted": return { kind: "roundStarted", id: nat(fields(value, "Canonical.RoundStarted", ["id"]).id, true) };
     case "Canonical.Prepare": { const x = fields(value, "Canonical.Prepare", ["operation", "reservation"]); return { kind: "prepare", operation: nat(x.operation, true), reservation: nat(x.reservation, true) }; }
     case "Canonical.PreparationRefused": fields(value, "Canonical.PreparationRefused", []); return { kind: "preparationRefused" };
@@ -226,7 +255,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
   const chargeIds = new Set(charges.map((x) => x.id));
   const chargesById = new Map(charges.map((x) => [x.id, x]));
   const usedBytes = charges.reduce((sum, x) => sum + x.bytes, 0);
-  if (chargeIds.size !== charges.length || charges.length !== work.length ||
+  if (chargeIds.size !== charges.length || work.length > charges.length ||
       new Set(work.map((x) => x.operation)).size !== work.length ||
       new Set(work.map((x) => x.reservation)).size !== work.length ||
       new Set(rounds.map((x) => x.partition)).size !== rounds.length ||
@@ -246,9 +275,10 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
   const total = fields(bendCanonicalTotal(state), "Ledger.Usage", ["items", "bytes"]);
   const global = { items: nat(total.items), bytes: nat(total.bytes) };
   if (global.items !== charges.length || global.bytes !== usedBytes) throw new TypeError("Bend ledger total mismatch");
-  const partitions = rounds.map((round) => {
-    const usage = fields(bendCanonicalPartitionUsage(state, round.partition), "Ledger.Usage", ["items", "bytes"]);
-    return { partition: round.partition, items: nat(usage.items), bytes: nat(usage.bytes) };
+  const partitionIds = [...new Set([...rounds.map((round) => round.partition), ...charges.map((item) => item.partition)])];
+  const partitions = partitionIds.map((partition) => {
+    const usage = fields(bendCanonicalPartitionUsage(state, partition), "Ledger.Usage", ["items", "bytes"]);
+    return { partition, items: nat(usage.items), bytes: nat(usage.bytes) };
   });
   const inventory = readList(bendCanonicalInventory(state), (entry) => {
     const x = fields(entry, "Ledger.InventoryEntry", ["purpose", "limits"]);

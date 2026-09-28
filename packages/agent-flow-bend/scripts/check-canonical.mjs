@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { initialCanonical, projectCanonical, stepCanonical } from "../canonical-adapter.ts";
+import { initialCanonical, projectCanonical, stepCanonical } from "../../../src/canonical/adapter.ts";
 
 const fixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-v1.json"), "utf8"));
 const format = (commands) => commands.map((item) => {
@@ -48,8 +48,11 @@ assert.throws(() => stepCanonical(state, { kind: "openRound", partition: 2 ** 48
 assert.throws(() => initialCanonical({ ...fixture.limits, globalBytes: 2 ** 47 }), TypeError);
 assert.throws(() => initialCanonical({ ...fixture.limits, globalItems: 257 }), TypeError);
 assert.throws(() => stepCanonical(state, { kind: "beginPreparation", partition: 1, lifetime: 1, round: 1, bytes: 2 ** 47 }), TypeError);
-assert.throws(() => stepCanonical(state, { kind: "preparationCompleted", partition: 1, lifetime: 1, round: 1, operation: 1, unitBytes: new Array(17).fill(1) }), TypeError);
+assert.throws(() => stepCanonical(state, { kind: "preparationCompleted", partition: 1, lifetime: 1, round: 1, operation: 1, unitBytes: new Array(1025).fill(1) }), TypeError);
 assert.throws(() => stepCanonical(state, { kind: "reviewCompleted", partition: 1, lifetime: 1, round: 1, operation: 1, outcome: "unexpected" }), TypeError);
+assert.throws(() => stepCanonical(state, { kind: "reserveCapacity", partition: 1, bytes: 1, purpose: "unknown" }), TypeError);
+assert.throws(() => stepCanonical(state, { kind: "reserveCapacity", partition: 1, bytes: 2 ** 47, purpose: "preparation" }), TypeError);
+assert.throws(() => stepCanonical(state, { kind: "resizeCapacity", reservation: 1, bytes: 1, purpose: "unknown" }), TypeError);
 assert.throws(() => stepCanonical({ $: "Canonical.State" }, { kind: "openRound", partition: 1, lifetime: 1 }), TypeError);
 let edge = initialCanonical({ globalItems: 2, globalBytes: 2 ** 47 - 1, partitionItems: 2, partitionBytes: 2 ** 47 - 1 });
 edge = stepCanonical(edge, { kind: "openRound", partition: 1, lifetime: 1 }).state;
@@ -57,4 +60,28 @@ edge = stepCanonical(edge, { kind: "beginPreparation", partition: 1, lifetime: 1
 const nearLimit = stepCanonical(edge, { kind: "preparationCompleted", partition: 1, lifetime: 1, round: 1, operation: 1, unitBytes: [2 ** 47 - 1, 2 ** 47 - 1] });
 assert.deepEqual(nearLimit.commands.map((command) => command.kind), ["preparationReleased", "unitAdmitted", "unitRefused"]);
 assert.equal(projectCanonical(nearLimit.state).global.bytes, 2 ** 47 - 1);
+const usageText = (usage) => `${usage.items}/${usage.bytes}`;
+const capacityCommand = (command) => {
+  const after = "after" in command ? `:${usageText(command.after.global)}:${usageText(command.after.local)}` : "";
+  switch (command.kind) {
+    case "capacityGranted": case "capacityResized": return `${command.kind}:${command.id}${after}`;
+    case "preparationReleased": return `${command.kind}:${command.id}${after}`;
+    case "capacityUnitAdmitted": return `${command.kind}:${command.position}:${command.reservation}${after}`;
+    case "capacityUnitRefused": return `${command.kind}:${command.position}:${command.reason}${after}`;
+    case "reservationReleased": return `${command.kind}:${command.id}`;
+    default: throw new Error(`unexpected capacity trace command ${command.kind}`);
+  }
+};
+let capacityState = initialCanonical(fixture.limits);
+const capacityCommands = [];
+for (const [index, event] of fixture.capacityTrace.events.entries()) {
+  const result = stepCanonical(capacityState, event);
+  capacityState = result.state;
+  capacityCommands.push(result.rejection ? `rejected:${result.rejection}` :
+    result.commands.map(capacityCommand).join(","));
+  if (index === 7) assert.deepEqual(projectCanonical(capacityState).charges,
+    fixture.capacityTrace.afterResizeCharges, "purpose change and competing ownership");
+}
+assert.deepEqual(capacityCommands, fixture.capacityTrace.commands, "resident capacity transition contract");
+assert.deepEqual(projectCanonical(capacityState).global, fixture.capacityTrace.finalGlobal, "exact capacity release");
 console.log(`checked ${fixture.traces.length} independent source-free canonical traces`);

@@ -6,5 +6,6 @@ const destination = resolve(root, "dist/resident");
 mkdirSync(destination, { recursive: true });
 copyFileSync(resolve(root, "src/resident/bend-policy.generated.js"),
   resolve(destination, "bend-policy.generated.js"));
-copyFileSync(resolve(root, "src/resident/bend-ledger.generated.js"),
-  resolve(destination, "bend-ledger.generated.js"));
+mkdirSync(resolve(root, "dist/canonical"), { recursive: true });
+copyFileSync(resolve(root, "src/canonical/canonical.generated.js"),
+  resolve(root, "dist/canonical/canonical.generated.js"));

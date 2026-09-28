@@ -53,6 +53,7 @@ import {
 } from "./protocol.ts";
 import {
   CapacityLedger,
+  type CapacityPurpose,
   type CapacityReservation,
 } from "./capacity.ts";
 import { DispatchCycles } from "./dispatch.ts";
@@ -607,7 +608,7 @@ export class ResidentServer {
     this.#offlineHttpClient = options.offlineHttpClient;
     this.#beforeResponseHandoff = options.beforeResponseHandoff;
     this.#reuse = new EvaluationReuse({
-      reserve: (partition, bytes) => this.#reserve(partition, bytes),
+      reserve: (partition, bytes) => this.#reserve(partition, bytes, "storedResult"),
       release: (reservation) => { this.#ledger.release(reservation); },
       logicalBytes,
     });
@@ -712,7 +713,7 @@ export class ResidentServer {
       (generation === undefined ? "" : `\0round:${generation}`);
     round?.partitions.add(partition);
     if (round !== undefined) this.#roundActivity.set(group, { root: observation.root, advicee: observation.advicee, activityPath: dispatch.activityPath });
-    const reservation = this.#reserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES);
+    const reservation = this.#reserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES, "observationDispatch");
     if (reservation === undefined) {
       this.#rejectedCapacity += 1;
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
@@ -1440,7 +1441,7 @@ export class ResidentServer {
       return;
     }
     if (retained !== undefined) return;
-    const reservation = this.#reserve(partition, noticeReservationBytes(key, partition));
+    const reservation = this.#reserve(partition, noticeReservationBytes(key, partition), "operationalNotice");
     // Retention is best effort. In particular, do not recursively turn this
     // failed reservation into another capacity failure.
     if (reservation === undefined) return;
@@ -1461,8 +1462,8 @@ export class ResidentServer {
     if (ticket !== undefined && pending !== undefined) this.#noticeOwners.set(pending.id, new Set([ticket.ticket.nonce]));
   }
 
-  #reserve(partition: string, bytes: number): CapacityReservation | undefined {
-    const reservation = this.#ledger.reserve(partition, bytes);
+  #reserve(partition: string, bytes: number, purpose: CapacityPurpose): CapacityReservation | undefined {
+    const reservation = this.#ledger.reserve(partition, bytes, purpose);
     if (reservation !== undefined) {
       this.#peakLedgerBytes = Math.max(this.#peakLedgerBytes, this.#ledger.snapshot().bytes);
     }
@@ -1783,7 +1784,7 @@ export class ResidentServer {
       // inputs outside the ledger.
       for (const candidate of job.observation.candidates) {
         if (!this.#jobActive(job)) return;
-        const workspace = this.#reserve(job.partition, captureWorkspaceBytes(candidate.path));
+        const workspace = this.#reserve(job.partition, captureWorkspaceBytes(candidate.path), "preparation");
         if (workspace === undefined) {
           if (job.ticket !== undefined) ticketFail(job.ticket, "capacity");
           this.#rejectedCapacity += 1;
@@ -2353,6 +2354,9 @@ export class ResidentServer {
       this.#releaseUnit(job);
       return;
     }
+    if (!this.#ledger.resize(job.reservation, job.reservation.bytes, "storedResult")) {
+      throw new Error("Bend denied review result retention reservation");
+    }
     const advice: Advice = {
       id: randomUUID(),
       ...(job.round === undefined ? {} : { round: job.round }),
@@ -2417,6 +2421,7 @@ export class ResidentServer {
     if (!this.#ledger.resize(
       advice.reservation,
       retainedBytes + captureWorkspaceBytes(candidate.path),
+      "adviceRecheck",
     )) return { status: "unavailable", findings: [] };
     this.#peakLedgerBytes = Math.max(this.#peakLedgerBytes, this.#ledger.snapshot().bytes);
     advice.revalidationActive = true;
@@ -2456,7 +2461,7 @@ export class ResidentServer {
     } finally {
       advice.revalidationActive = false;
       if (advice.retired) this.#releaseUnit(advice);
-      else this.#ledger.resize(advice.reservation, retainedBytes);
+      else this.#ledger.resize(advice.reservation, retainedBytes, "storedResult");
     }
   }
 

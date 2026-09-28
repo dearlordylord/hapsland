@@ -30,6 +30,10 @@ type WriteOutcome is Data:
   Unknown{}
 
 type CanonicalEvent is Data:
+  ReserveCapacity{partition: Nat, bytes: Nat, purpose: Ledger.Purpose}
+  ResizeCapacity{reservation: Nat, bytes: Nat, purpose: Ledger.Purpose}
+  ReleaseCapacity{reservation: Nat}
+  ReplaceCapacity{reservation: Nat, unit_bytes: List<&2, Nat>}
   OpenRound{partition: Nat, lifetime: Nat}
   BeginPreparation{partition: Nat, lifetime: Nat, round: Nat, bytes: Nat}
   PreparationCompleted{partition: Nat, lifetime: Nat, round: Nat,
@@ -47,6 +51,12 @@ type CapacityView is Data:
     charges: List<&2, Ledger.Charge>}
 
 type Command is Data:
+  CapacityGranted{id: Nat, after: CapacityView}
+  CapacityRefused{reason: Ledger.FitDecision, after: CapacityView}
+  CapacityResized{id: Nat, after: CapacityView}
+  CapacityUnitAdmitted{reservation: Nat, position: Nat, bytes: Nat, after: CapacityView}
+  CapacityUnitRefused{position: Nat, bytes: Nat, reason: Ledger.FitDecision,
+    after: CapacityView}
   RoundStarted{id: Nat}
   Prepare{operation: Nat, reservation: Nat}
   PreparationRefused{}
@@ -547,8 +557,139 @@ def retire(+state: State, +partition: Nat, +lifetime: Nat, +round: Nat) -> Step:
     case State{_, rounds, _, _, _}:
       retire_found(state, partition, lifetime, round, find_round(partition, rounds))
 
+def capacity_reserve_result(state: State, +partition: Nat, +bytes: Nat,
+    result: Ledger.LedgerResult) -> Step:
+  match state result:
+    case State{_, rounds, work, next_round, next_operation} Ledger.Granted{+ledger, id}:
+      Advanced{State{ledger, rounds, work, next_round, next_operation},
+        CapacityGranted{id, capacity_view(ledger, partition)} <> Nil{}}
+    case _ Ledger.Rejected{+ledger}:
+      Advanced{state, CapacityRefused{Ledger.admission(ledger, partition, bytes),
+        capacity_view(ledger, partition)} <> Nil{}}
+
+def capacity_reserve(+state: State, +partition: Nat, +bytes: Nat,
+    purpose: Ledger.Purpose) -> Step:
+  match state:
+    case State{ledger, _, _, _, _}:
+      capacity_reserve_result(state, partition, bytes,
+        Ledger.reserve_for(ledger, partition, bytes, purpose))
+
+def capacity_resize_result(state: State, +id: Nat, +partition: Nat, +bytes: Nat,
+    result: Ledger.LedgerResult) -> Step:
+  match state result:
+    case State{_, rounds, work, next_round, next_operation} Ledger.Granted{+ledger, _}:
+      Advanced{State{ledger, rounds, work, next_round, next_operation},
+        CapacityResized{id, capacity_view(ledger, partition)} <> Nil{}}
+    case State{_, _, _, _, _} Ledger.Rejected{+ledger}:
+      match ledger:
+        case Ledger.Ledger{limits, next_id, charges}:
+          +others : Ledger.Ledger = Ledger.Ledger{limits, next_id, Ledger.remove(id, charges)}
+          Advanced{state, CapacityRefused{Ledger.admission(others, partition, bytes),
+            capacity_view(ledger, partition)} <> Nil{}}
+
+def capacity_resize_found(+state: State, +id: Nat, +bytes: Nat,
+    purpose: Ledger.Purpose,
+    found: Maybe<&2, Ledger.Charge>) -> Step:
+  match state found:
+    case _ None{}:
+      Rejected{state, StaleOperation{}}
+    case State{ledger, _, _, _, _} Some{Ledger.Charge{_, partition, _, _}}:
+      capacity_resize_result(state, id, partition, bytes,
+        Ledger.resize_for(ledger, id, bytes, purpose))
+
+def capacity_resize(+state: State, +id: Nat, +bytes: Nat,
+    purpose: Ledger.Purpose) -> Step:
+  match state:
+    case State{ledger, _, _, _, _}:
+      match ledger:
+        case Ledger.Ledger{_, _, charges}:
+          capacity_resize_found(state, id, bytes, purpose, Ledger.find(id, charges))
+
+def capacity_release_result(state: State, +id: Nat,
+    result: Ledger.LedgerResult) -> Step:
+  match state result:
+    case State{_, rounds, work, next_round, next_operation} Ledger.Granted{ledger, _}:
+      Advanced{State{ledger, rounds, work, next_round, next_operation},
+        ReservationReleased{id} <> Nil{}}
+    case _ Ledger.Rejected{_}:
+      Rejected{state, StaleOperation{}}
+
+def capacity_release(+state: State, +id: Nat) -> Step:
+  match state:
+    case State{ledger, _, _, _, _}:
+      capacity_release_result(state, id, Ledger.release(ledger, id))
+
+type CapacityBatch is Data:
+  CapacityBatch{ledger: Ledger.Ledger, commands: List<&2, Command>}
+
+def capacity_replace_one(+partition: Nat, +position: Nat, +bytes: Nat,
+    commands: List<&2, Command>, result: Ledger.LedgerResult) -> CapacityBatch:
+  match result:
+    case Ledger.Granted{+ledger, id}:
+      CapacityBatch{ledger, List.append(&2, Command, commands,
+        CapacityUnitAdmitted{id, position, bytes,
+          capacity_view(ledger, partition)} <> Nil{})}
+    case Ledger.Rejected{+ledger}:
+      CapacityBatch{ledger, List.append(&2, Command, commands,
+        CapacityUnitRefused{position, bytes,
+          Ledger.admission(ledger, partition, bytes),
+          capacity_view(ledger, partition)} <> Nil{})}
+
+def capacity_replace_units(sizes: List<&2, Nat>, batch: CapacityBatch,
+    +partition: Nat, +position: Nat) -> CapacityBatch:
+  match sizes:
+    case Nil{}:
+      batch
+    case +size <> rest:
+      match batch:
+        case CapacityBatch{ledger, commands}:
+          capacity_replace_units(rest,
+            capacity_replace_one(partition, position, size, commands,
+              Ledger.reserve_for(ledger, partition, size, Ledger.ReviewUnit{})),
+            partition, (position + 1n : Nat))
+
+def capacity_replace_batch(state: State, +id: Nat, +partition: Nat,
+    released: Ledger.Ledger, batch: CapacityBatch) -> Step:
+  match state batch:
+    case State{_, rounds, work, next_round, next_operation} CapacityBatch{ledger, commands}:
+      Advanced{State{ledger, rounds, work, next_round, next_operation},
+        PreparationReleased{id, capacity_view(released, partition)} <> commands}
+
+def capacity_replace_released(state: State, +id: Nat, +partition: Nat,
+    sizes: List<&2, Nat>, result: Ledger.LedgerResult) -> Step:
+  match state result:
+    case State{_, rounds, work, next_round, next_operation} Ledger.Granted{+released, _}:
+      capacity_replace_batch(state, id, partition, released,
+        capacity_replace_units(sizes, CapacityBatch{released, Nil{}}, partition, 1n))
+    case _ Ledger.Rejected{_}:
+      Rejected{state, StaleOperation{}}
+
+def capacity_replace_found(+state: State, +id: Nat, sizes: List<&2, Nat>,
+    found: Maybe<&2, Ledger.Charge>) -> Step:
+  match state found:
+    case State{ledger, _, _, _, _} Some{Ledger.Charge{_, partition, _, Ledger.Preparation{}}}:
+      capacity_replace_released(state, id, partition, sizes,
+        Ledger.release(ledger, id))
+    case _ _:
+      Rejected{state, StaleOperation{}}
+
+def capacity_replace(+state: State, +id: Nat, sizes: List<&2, Nat>) -> Step:
+  match state:
+    case State{ledger, _, _, _, _}:
+      match ledger:
+        case Ledger.Ledger{_, _, charges}:
+          capacity_replace_found(state, id, sizes, Ledger.find(id, charges))
+
 def step(state: State, event: CanonicalEvent) -> Step:
   match event:
+    case ReserveCapacity{partition, bytes, purpose}:
+      capacity_reserve(state, partition, bytes, purpose)
+    case ResizeCapacity{reservation, bytes, purpose}:
+      capacity_resize(state, reservation, bytes, purpose)
+    case ReleaseCapacity{reservation}:
+      capacity_release(state, reservation)
+    case ReplaceCapacity{reservation, unit_bytes}:
+      capacity_replace(state, reservation, unit_bytes)
     case OpenRound{partition, lifetime}:
       open(state, partition, lifetime)
     case BeginPreparation{partition, lifetime, round, bytes}:

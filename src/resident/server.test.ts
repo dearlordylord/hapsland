@@ -89,6 +89,39 @@ const waitUntilIdle = async (server: ResidentServer): Promise<void> => {
   throw new Error("resident did not become idle");
 };
 
+describe("canonical resident capacity", () => {
+  it("keeps two advicees in one shared capacity ledger through preparation and cleanup", async () => {
+    const root = await makeGitFixture();
+    await put(root, "agent-a.ts", "type AgentACount = number\n");
+    await put(root, "agent-b.ts", "type AgentBCount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const a = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["agent-a.ts"],
+      { session_id: "agent-a", tool_use_id: "edit-a" })));
+    const b = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["agent-b.ts"],
+      { session_id: "agent-b", tool_use_id: "edit-b" })));
+    if (a === undefined || b === undefined) throw new Error("missing fixture observation");
+    let clock = 100;
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock);
+    const dispatch = allFindingsDispatch(statePath);
+    try {
+      expect(server.admit(a, dispatch).status).toBe("accepted");
+      expect(server.admit(b, dispatch).status).toBe("accepted");
+      expect(server.stats().retainedBytes).toBeGreaterThan(0);
+      clock = 101;
+      await server.whenIdle();
+      const metadata = server.pendingAdviceMetadata();
+      expect(metadata).toHaveLength(2);
+      expect(new Set(metadata.map((item) => item.partition)).size).toBe(2);
+      expect(new Set(metadata.map((item) => item.path))).toEqual(new Set(["agent-a.ts", "agent-b.ts"]));
+      expect(server.stats().rejectedCapacity).toBe(0);
+    } finally {
+      await server.close();
+    }
+    expect(server.stats().retainedBytes).toBe(0);
+  });
+});
+
 describe("resident delivery lease", () => {
   it("cancels a queued and running review fanout using Bend work identities", async () => {
     const root = await makeGitFixture();

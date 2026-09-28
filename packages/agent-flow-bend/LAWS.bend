@@ -49,6 +49,22 @@ law canonical_capacity_view_uses_bend_ledger_totals:
       Ledger.Charge{1n, 1n, 10n, Ledger.ReviewUnit{}} <> Ledger.Charge{2n, 2n, 20n, Ledger.ReviewUnit{}} <> Nil{}} :
     Canonical.CapacityView}
 
+law canonical_released_capacity_rejects_duplicate:
+  {Canonical.capacity_release(Canonical.State{Ledger.Ledger{
+    Ledger.Limits{3n, 100n, 2n, 60n}, 2n, Nil{}},
+    Nil{}, Nil{}, 1n, 1n}, 1n) ==
+    Canonical.Rejected{Canonical.State{Ledger.Ledger{
+      Ledger.Limits{3n, 100n, 2n, 60n}, 2n, Nil{}},
+      Nil{}, Nil{}, 1n, 1n}, Canonical.StaleOperation{}} : Canonical.Step}
+
+law ledger_resize_changes_purpose_without_new_reservation:
+  {Ledger.resize_for(Ledger.Ledger{Ledger.Limits{3n, 100n, 2n, 60n}, 2n,
+    Ledger.Charge{1n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}},
+    1n, 20n, Ledger.StoredResult{}) ==
+    Ledger.Granted{Ledger.Ledger{Ledger.Limits{3n, 100n, 2n, 60n}, 2n,
+      Ledger.Charge{1n, 1n, 20n, Ledger.StoredResult{}} <> Nil{}}, 1n}
+    : Ledger.LedgerResult}
+
 law import_graph_exclusion_has_no_read_command:
   {ImportGraph.checked(ImportGraph.Edge{2n, 1n}, 2n, False{},
     Nil{}, 1n <> Nil{}, 1n, 100n, 100n, 1n, False{}, False{}) ==

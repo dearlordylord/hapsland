@@ -1,13 +1,5 @@
-import {
-  bendLedgerClear,
-  bendLedgerInitial,
-  bendLedgerPartitionUsage,
-  bendLedgerRelease,
-  bendLedgerReserve,
-  bendLedgerResize,
-  bendLedgerTotal,
-  type BendLedger,
-} from "./bend-ledger.generated.js";
+import { CANONICAL_MAX_BYTES, CANONICAL_MAX_UNITS, initialCanonical, projectCanonical, stepCanonical, type CapacityPurpose } from "../canonical/adapter.ts";
+export type { CapacityPurpose } from "../canonical/adapter.ts";
 
 export const GLOBAL_ITEM_LIMIT = 64;
 export const GLOBAL_BYTE_LIMIT = 8 * 1024 * 1024;
@@ -25,6 +17,7 @@ export type CapacityReservation = {
   readonly id: number;
   readonly partition: string;
   readonly bytes: number;
+  readonly purpose: CapacityPurpose;
 };
 
 export type CapacitySnapshot = {
@@ -61,54 +54,47 @@ export class CapacityLedger {
   readonly #reservations = new Map<number, CapacityReservation>();
   readonly #partitionIds = new Map<string, number>();
   #nextPartitionId = 1;
-  #state: BendLedger;
+  readonly #limits: CapacityLimits;
+  #state: unknown;
 
   constructor(limits: CapacityLimits = defaultLimits) {
-    this.#state = bendLedgerInitial({
-      $: "Ledger.Limits",
-      global_items: limits.globalItems,
-      global_bytes: limits.globalBytes,
-      partition_items: limits.partitionItems,
-      partition_bytes: limits.partitionBytes,
-    });
+    this.#limits = limits;
+    this.#state = initialCanonical(limits);
   }
 
-  reserve(partition: string, bytes: number): CapacityReservation | undefined {
-    if (!Number.isSafeInteger(bytes) || bytes < 0) return undefined;
+  reserve(partition: string, bytes: number, purpose: CapacityPurpose): CapacityReservation | undefined {
+    if (!Number.isSafeInteger(bytes) || bytes <= 0 || bytes > CANONICAL_MAX_BYTES) return undefined;
     let partitionId = this.#partitionIds.get(partition);
     if (partitionId === undefined) {
       partitionId = this.#nextPartitionId++;
       this.#partitionIds.set(partition, partitionId);
     }
-    let result;
-    try {
-      result = bendLedgerReserve(this.#state, partitionId, bytes);
-    } catch {
-      return undefined;
-    }
-    if (result.$ !== "Ledger.Granted" || !Number.isSafeInteger(result.id) ||
-        result.state.$ !== "Ledger.Ledger") return undefined;
-    const id = result.id;
-    if (this.#reservations.has(id)) return undefined;
+    const result = stepCanonical(this.#state, { kind: "reserveCapacity", partition: partitionId, bytes, purpose });
+    const command = result.commands[0];
+    if (result.rejection !== undefined || result.commands.length !== 1 || command === undefined) throw new Error("invalid Bend capacity reservation result");
+    if (command.kind === "capacityRefused") return undefined;
+    if (command.kind !== "capacityGranted") throw new Error("unexpected Bend capacity reservation command");
+    const id = command.id;
+    if (this.#reservations.has(id)) throw new Error("Bend reused a live capacity reservation ID");
     this.#state = result.state;
-    const reservation = { id, partition, bytes };
+    const reservation = { id, partition, bytes, purpose };
     this.#reservations.set(reservation.id, reservation);
     return reservation;
   }
 
-  resize(reservation: CapacityReservation, bytes: number): boolean {
+  resize(reservation: CapacityReservation, bytes: number,
+    purpose: CapacityPurpose = reservation.purpose): boolean {
     const retained = this.#reservations.get(reservation.id);
-    if (retained !== reservation || !Number.isSafeInteger(bytes) || bytes < 0) return false;
-    let result;
-    try {
-      result = bendLedgerResize(this.#state, reservation.id, bytes);
-    } catch {
-      return false;
-    }
-    if (result.$ !== "Ledger.Granted" || result.id !== reservation.id ||
-        result.state.$ !== "Ledger.Ledger") return false;
+    if (retained !== reservation || !Number.isSafeInteger(bytes) || bytes < 0 ||
+        bytes > CANONICAL_MAX_BYTES) return false;
+    const result = stepCanonical(this.#state, { kind: "resizeCapacity", reservation: reservation.id, bytes, purpose });
+    const command = result.commands[0];
+    if (result.rejection !== undefined || result.commands.length !== 1 || command === undefined) throw new Error("invalid Bend capacity resize result");
+    if (command.kind === "capacityRefused") return false;
+    if (command.kind !== "capacityResized" || command.id !== reservation.id) throw new Error("unexpected Bend capacity resize command");
     this.#state = result.state;
-    (reservation as { bytes: number }).bytes = bytes;
+    (reservation as { bytes: number; purpose: CapacityPurpose }).bytes = bytes;
+    (reservation as { purpose: CapacityPurpose }).purpose = purpose;
     return true;
   }
 
@@ -118,49 +104,64 @@ export class CapacityLedger {
     bytes: ReadonlyArray<number>,
   ): ReadonlyArray<CapacityReservation | undefined> {
     if (this.#reservations.get(reservation.id) !== reservation) return bytes.map(() => undefined);
-    const partition = reservation.partition;
-    if (!this.release(reservation)) return bytes.map(() => undefined);
-    return bytes.map((size) => this.reserve(partition, size));
+    if (bytes.length > CANONICAL_MAX_UNITS ||
+        bytes.some((size) => !Number.isSafeInteger(size) || size <= 0 || size > CANONICAL_MAX_BYTES)) {
+      this.release(reservation);
+      throw new TypeError("invalid measured review unit size");
+    }
+    const result = stepCanonical(this.#state, { kind: "replaceCapacity", reservation: reservation.id, unitBytes: bytes });
+    if (result.rejection !== undefined || result.commands[0]?.kind !== "preparationReleased" ||
+        result.commands[0].id !== reservation.id || result.commands.length !== bytes.length + 1) {
+      throw new Error("invalid Bend capacity replacement result");
+    }
+    const replacements = result.commands.slice(1).map((command, index) => {
+      if (command.kind === "capacityUnitRefused" && command.position === index + 1 && command.bytes === bytes[index]) return undefined;
+      if (command.kind !== "capacityUnitAdmitted" || command.position !== index + 1 || command.bytes !== bytes[index]) {
+        throw new Error("unexpected Bend capacity replacement command");
+      }
+      return { id: command.reservation, partition: reservation.partition, bytes: command.bytes, purpose: "reviewUnit" as const };
+    });
+    const replacementIds = replacements.flatMap((item) => item === undefined ? [] : [item.id]);
+    if (new Set(replacementIds).size !== replacementIds.length ||
+        replacementIds.some((id) => this.#reservations.has(id))) {
+      throw new Error("Bend reused a live capacity reservation ID");
+    }
+    this.#state = result.state;
+    this.#reservations.delete(reservation.id);
+    for (const item of replacements) if (item !== undefined) this.#reservations.set(item.id, item);
+    return replacements;
   }
 
   release(reservation: CapacityReservation): boolean {
     const retained = this.#reservations.get(reservation.id);
     if (retained !== reservation) return false;
-    let result;
-    try {
-      result = bendLedgerRelease(this.#state, reservation.id);
-    } catch {
-      return false;
+    const result = stepCanonical(this.#state, { kind: "releaseCapacity", reservation: reservation.id });
+    if (result.rejection !== undefined || result.commands.length !== 1 ||
+        result.commands[0]?.kind !== "reservationReleased" || result.commands[0].id !== reservation.id) {
+      throw new Error("invalid Bend capacity release result");
     }
-    if (result.$ !== "Ledger.Granted" || result.id !== reservation.id ||
-        result.state.$ !== "Ledger.Ledger") return false;
     this.#state = result.state;
     this.#reservations.delete(reservation.id);
-    const partitionId = this.#partitionIds.get(reservation.partition);
-    if (partitionId !== undefined && bendLedgerPartitionUsage(this.#state, partitionId).items === 0) {
-      this.#partitionIds.delete(reservation.partition);
-    }
     return true;
   }
 
   clear(): void {
-    this.#state = bendLedgerClear(this.#state);
+    this.#state = initialCanonical(this.#limits);
     this.#reservations.clear();
     this.#partitionIds.clear();
+    this.#nextPartitionId = 1;
   }
 
   snapshot(): CapacitySnapshot {
-    const total = bendLedgerTotal(this.#state);
+    const projection = projectCanonical(this.#state);
     const entries: Array<[string, { items: number; bytes: number }]> = [];
     for (const [partition, id] of this.#partitionIds) {
-      const usage = bendLedgerPartitionUsage(this.#state, id);
-      if (usage.items > 0) entries.push([partition, {
-        items: Number(usage.items), bytes: Number(usage.bytes),
-      }]);
+      const usage = projection.partitions.find((item) => item.partition === id);
+      if (usage !== undefined && usage.items > 0) entries.push([partition, { items: usage.items, bytes: usage.bytes }]);
     }
     return {
-      items: Number(total.items),
-      bytes: Number(total.bytes),
+      items: projection.global.items,
+      bytes: projection.global.bytes,
       partitions: Object.fromEntries(entries),
     };
   }

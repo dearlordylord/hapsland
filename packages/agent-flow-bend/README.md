@@ -63,10 +63,11 @@ Jev Effect calls, IPC, and output formatting in TypeScript. The accepted
 contract in `../../docs/advicing-target-contract.md` remains the target for
 the aggregate lifecycle and installed runtime behavior.
 
-`Canonical.bend` and `canonical-adapter.ts` define the #119 first-slice canonical
+`Canonical.bend` and [`src/canonical/adapter.ts`](../../src/canonical/adapter.ts) define the canonical
 state/event/command interface. It owns one global ledger across advicee
 partitions, ordered partial replacement, exact logical release, round and
 operation identities, Stop waiting/cutoff, and uncertain background output.
-The resident has not switched to it yet. See
+The resident's capacity reservations now use its checked transition; the other
+resident decision paths move in later slices. See
 [`docs/bend-canonical-transition-interface.md`](../../docs/bend-canonical-transition-interface.md).
 Run `npm run test:canonical` for Bend proofs and independent source-free traces.

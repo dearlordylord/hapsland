@@ -19,6 +19,12 @@ def Laws.canonical_capacity_reason_uses_first_exceeded_limit():
 def Laws.canonical_capacity_view_uses_bend_ledger_totals():
   {==}
 
+def Laws.canonical_released_capacity_rejects_duplicate():
+  {==}
+
+def Laws.ledger_resize_changes_purpose_without_new_reservation():
+  {==}
+
 def Laws.import_graph_exclusion_has_no_read_command():
   {==}
 
