@@ -4,7 +4,7 @@
 **Status:** Historical #117 source inventory; row locations and call counts are not a current runtime-coverage claim.
 **Authority:** Implementation or validation evidence.
 **Expected use:** Support #117 export/reachability review, #118 source reconciliation, and #137 retirement checks.
-**Lifecycle:** Temporary. Review at #117 acceptance and #118 reconciliation; #137 must refresh or replace the static inventory with final source-linked coverage. Once its useful ownership and exception conclusions are incorporated in the #137 final authority report, update inbound links and delete this snapshot. Executable or generated replacement inventories retain their native format.
+**Lifecycle:** Temporary. Review at #117 acceptance and #118 reconciliation against the #137 final source-linked coverage. Retain until both #117 and #118 review gates are satisfied; then transfer any still-useful ownership or exception conclusion to the final report or its contract owner, update inbound links, and delete this snapshot. Executable or generated replacement inventories retain their native format.
 
 Static source inventory at the #117 audit checkpoint. A listed call is a lexical call in non-test application source; it does not prove a supported runtime witness or that every branch executes. Build generators and test scripts are excluded. Installed-host reachability is classified in the [authority map](bend-logic-authority-map.md).
 
