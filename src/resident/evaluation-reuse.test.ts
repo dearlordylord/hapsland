@@ -79,7 +79,7 @@ describe("resident evaluation identity", () => {
   it("evicts successful LRU entries without disturbing pending joins", () => {
     const ledger = new CapacityLedger();
     const reuse = new EvaluationReuse<never>({
-      reserve: (partition, bytes) => ledger.reserve(partition, bytes),
+      reserve: (partition, bytes) => ledger.reserve(partition, bytes, "storedResult"),
       release: (reservation) => { ledger.release(reservation); },
       logicalBytes: (value) => Buffer.byteLength(JSON.stringify(value), "utf8"),
     });
@@ -111,7 +111,7 @@ describe("resident evaluation identity", () => {
     const ledger = new CapacityLedger();
     let size = 70_000;
     const reuse = new EvaluationReuse<never>({
-      reserve: (partition, bytes) => ledger.reserve(partition, bytes),
+      reserve: (partition, bytes) => ledger.reserve(partition, bytes, "storedResult"),
       release: (reservation) => { ledger.release(reservation); },
       logicalBytes: () => size,
     });

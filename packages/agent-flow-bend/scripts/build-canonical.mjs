@@ -2,8 +2,15 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { createHash } from "node:crypto";
 
 const root = resolve(import.meta.dirname, "..");
+const productRoot = resolve(root, "../..");
+const digest = createHash("sha256");
+for (const path of ["Ledger.bend", "Canonical.bend", "CanonicalRuntime.bend", "scripts/build-canonical.mjs"]) {
+  digest.update(path).update("\0").update(readFileSync(join(root, path))).update("\0");
+}
+const sourceHash = digest.digest("hex");
 const temporary = mkdtempSync(join(tmpdir(), "hapsland-canonical-bend-"));
 try {
   const compiled = join(temporary, "canonical.js");
@@ -13,7 +20,8 @@ try {
   if (!footer.test(source) || !source.includes("function $Canonical$step$(") ||
       !source.includes("function $Canonical$initial$(") ||
       !source.includes("function $Ledger$total$(") ||
-      !source.includes("function $Ledger$partition_usage$(")) {
+      !source.includes("function $Ledger$partition_usage$(") ||
+      !source.includes("function $Ledger$inventory$(")) {
     throw new Error("Bend canonical JavaScript layout changed");
   }
   source = source.replace(footer, `
@@ -40,8 +48,11 @@ export const bendCanonicalTotal = (state) =>
   run_loop($Ledger$total$(state.ledger.charges));
 export const bendCanonicalPartitionUsage = (state, partition) =>
   run_loop($Ledger$partition_usage$(state.ledger.charges, nat(partition)));
+export const bendCanonicalInventory = (state) =>
+  run_loop($Ledger$inventory$(state.ledger.limits));
 `);
-  writeFileSync(join(root, "canonical.generated.js"), source);
+  writeFileSync(join(productRoot, "src/canonical/canonical.generated.js"),
+    `// hapsland-bend-source-sha256:${sourceHash}\n${source}`);
 } finally {
   rmSync(temporary, { recursive: true, force: true });
 }

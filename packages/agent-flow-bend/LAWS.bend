@@ -31,11 +31,39 @@ law canonical_deadline_releases_exact_charge:
   {Canonical.release_round_charges(
     Canonical.Work{1n, 1n, 1n, 3n, 2n, Canonical.Preparing{}} <> Nil{},
     Ledger.Ledger{Ledger.Limits{3n, 100n, 2n, 60n}, 3n,
-      Ledger.Charge{2n, 1n, 20n} <> Nil{}}, 1n, 1n, 1n) ==
+      Ledger.Charge{2n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}}, 1n, 1n, 1n) ==
     Ledger.Ledger{Ledger.Limits{3n, 100n, 2n, 60n}, 3n, Nil{}} : Ledger.Ledger}
 
 law canonical_uncertain_write_is_not_acknowledged:
   {Canonical.write_is_unknown(Canonical.Unknown{}) == True{} : Bool}
+
+law canonical_capacity_reason_uses_first_exceeded_limit:
+  {Ledger.fit_decision(Ledger.Limits{3n, 100n, 2n, 60n},
+    Ledger.Usage{3n, 80n}, Ledger.Usage{1n, 40n}, 40n) ==
+    Ledger.GlobalItemLimit{} : Ledger.FitDecision}
+
+law canonical_capacity_view_uses_bend_ledger_totals:
+  {Canonical.capacity_view(Ledger.Ledger{Ledger.Limits{3n, 100n, 2n, 60n},
+    3n, Ledger.Charge{1n, 1n, 10n, Ledger.ReviewUnit{}} <> Ledger.Charge{2n, 2n, 20n, Ledger.ReviewUnit{}} <> Nil{}}, 1n) ==
+    Canonical.CapacityView{Ledger.Usage{2n, 30n}, Ledger.Usage{1n, 10n},
+      Ledger.Charge{1n, 1n, 10n, Ledger.ReviewUnit{}} <> Ledger.Charge{2n, 2n, 20n, Ledger.ReviewUnit{}} <> Nil{}} :
+    Canonical.CapacityView}
+
+law canonical_released_capacity_rejects_duplicate:
+  {Canonical.capacity_release(Canonical.State{Ledger.Ledger{
+    Ledger.Limits{3n, 100n, 2n, 60n}, 2n, Nil{}},
+    Nil{}, Nil{}, 1n, 1n}, 1n) ==
+    Canonical.Rejected{Canonical.State{Ledger.Ledger{
+      Ledger.Limits{3n, 100n, 2n, 60n}, 2n, Nil{}},
+      Nil{}, Nil{}, 1n, 1n}, Canonical.StaleOperation{}} : Canonical.Step}
+
+law ledger_resize_changes_purpose_without_new_reservation:
+  {Ledger.resize_for(Ledger.Ledger{Ledger.Limits{3n, 100n, 2n, 60n}, 2n,
+    Ledger.Charge{1n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}},
+    1n, 20n, Ledger.StoredResult{}) ==
+    Ledger.Granted{Ledger.Ledger{Ledger.Limits{3n, 100n, 2n, 60n}, 2n,
+      Ledger.Charge{1n, 1n, 20n, Ledger.StoredResult{}} <> Nil{}}, 1n}
+    : Ledger.LedgerResult}
 
 law import_graph_exclusion_has_no_read_command:
   {ImportGraph.checked(ImportGraph.Edge{2n, 1n}, 2n, False{},
@@ -1313,16 +1341,16 @@ def small_limits() -> Ledger.Limits:
 
 law ledger_accepts_exact_partition_byte_limit:
   {Ledger.reserve(Ledger.Ledger{small_limits(), 2n,
-      Ledger.Charge{1n, 1n, 20n} <> Nil{}}, 1n, 40n) ==
+      Ledger.Charge{1n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}}, 1n, 40n) ==
     Ledger.Granted{Ledger.Ledger{small_limits(), 3n,
-      Ledger.Charge{1n, 1n, 20n} <>
-      Ledger.Charge{2n, 1n, 40n} <> Nil{}}, 2n} : Ledger.LedgerResult}
+      Ledger.Charge{1n, 1n, 20n, Ledger.ReviewUnit{}} <>
+      Ledger.Charge{2n, 1n, 40n, Ledger.ReviewUnit{}} <> Nil{}}, 2n} : Ledger.LedgerResult}
 
 law ledger_rejects_one_byte_over_partition_limit:
   {Ledger.reserve(Ledger.Ledger{small_limits(), 2n,
-      Ledger.Charge{1n, 1n, 20n} <> Nil{}}, 1n, 41n) ==
+      Ledger.Charge{1n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}}, 1n, 41n) ==
     Ledger.Rejected{Ledger.Ledger{small_limits(), 2n,
-      Ledger.Charge{1n, 1n, 20n} <> Nil{}}} : Ledger.LedgerResult}
+      Ledger.Charge{1n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}}} : Ledger.LedgerResult}
 
 law ledger_unknown_release_cannot_change_state:
   {Ledger.release(Ledger.initial(small_limits()), 1n) ==
@@ -1330,11 +1358,11 @@ law ledger_unknown_release_cannot_change_state:
 
 law ledger_resize_preserves_id_and_count:
   {Ledger.resize(Ledger.Ledger{small_limits(), 2n,
-      Ledger.Charge{1n, 1n, 20n} <> Nil{}}, 1n, 60n) ==
+      Ledger.Charge{1n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}}, 1n, 60n) ==
     Ledger.Granted{Ledger.Ledger{small_limits(), 2n,
-      Ledger.Charge{1n, 1n, 60n} <> Nil{}}, 1n} : Ledger.LedgerResult}
+      Ledger.Charge{1n, 1n, 60n, Ledger.ReviewUnit{}} <> Nil{}}, 1n} : Ledger.LedgerResult}
 
 law ledger_clear_keeps_monotonic_reservation_ids:
   {Ledger.clear(Ledger.Ledger{small_limits(), 2n,
-      Ledger.Charge{1n, 1n, 20n} <> Nil{}}) ==
+      Ledger.Charge{1n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}}) ==
     Ledger.Ledger{small_limits(), 2n, Nil{}} : Ledger.Ledger}
