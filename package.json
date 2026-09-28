@@ -42,13 +42,13 @@
     "./resident": "./dist/resident/main.js"
   },
   "scripts": {
-    "build": "node scripts/verify-bend-artifacts.mjs && node scripts/clean-dist.mjs && tsc -p tsconfig.build.json && node scripts/copy-bend-policy.mjs && node scripts/build-capture-helper.mjs",
+    "build": "node scripts/verify-bend-artifacts.mjs && node scripts/check-canonical-authority.mjs && node scripts/clean-dist.mjs && tsc -p tsconfig.build.json && node scripts/copy-bend-policy.mjs && node scripts/build-capture-helper.mjs",
     "prepack": "npm run build",
     "verify:release-native": "node scripts/verify-native-release.mjs",
     "pack:release": "npm run build && npm run verify:release-native && npm pack --ignore-scripts=true",
     "audit:release": "node scripts/audit-release-tarball.mjs",
     "local-release": "node scripts/local-release.mjs",
-    "test": "npm run config:check && node scripts/verify-bend-artifacts.mjs && node scripts/check-capacity-boundary.mjs && node scripts/check-permit-boundary.mjs && node scripts/check-review-boundary.mjs && node scripts/check-dispatch-boundary.mjs && node scripts/check-stop-boundary.mjs && node scripts/check-collection-boundary.mjs && node scripts/check-delivery-boundary.mjs && node scripts/check-revision-boundary.mjs && node scripts/check-ticket-boundary.mjs && node scripts/check-reuse-boundary.mjs && node scripts/check-notice-boundary.mjs && node scripts/check-retention-boundary.mjs && node scripts/check-configuration-boundary.mjs && node scripts/check-file-eligibility-boundary.mjs && node scripts/check-rule-boundary.mjs && vitest run --maxWorkers=1",
+    "test": "npm run config:check && node scripts/verify-bend-artifacts.mjs && node scripts/check-canonical-authority.mjs && node scripts/check-capacity-boundary.mjs && node scripts/check-permit-boundary.mjs && node scripts/check-review-boundary.mjs && node scripts/check-dispatch-boundary.mjs && node scripts/check-stop-boundary.mjs && node scripts/check-collection-boundary.mjs && node scripts/check-delivery-boundary.mjs && node scripts/check-revision-boundary.mjs && node scripts/check-ticket-boundary.mjs && node scripts/check-reuse-boundary.mjs && node scripts/check-notice-boundary.mjs && node scripts/check-retention-boundary.mjs && node scripts/check-configuration-boundary.mjs && node scripts/check-file-eligibility-boundary.mjs && node scripts/check-rule-boundary.mjs && vitest run --maxWorkers=1",
     "test:live": "RUN_LIVE_JEV=1 vitest run src/jev-live.test.ts",
     "benchmark:live": "node evidence/codex/0.155.1/probe/benchmark-live.mjs --runs=100",
     "test:watch": "vitest",
