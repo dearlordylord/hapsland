@@ -22,13 +22,13 @@ slice is merged at `b90a524`. #121's canonical permit admission is merged at
 at `b8056e2`. #123's canonical FIFO dispatch is merged at `348604c`.
 #124's canonical Stop wait and cutoff, #125's collection and lease routing,
 and #126's delivery and terminal acknowledgement routing, #127's revision
-supersession, #128's ticket settlement, #129's evaluation reuse, #130's operational notices, #131's retention and lifetime cleanup, #132's effective file-selection and admission routing, #133's file eligibility routing, and #134's rule and finding decisions are merged;
-the next migration slice is #135. Configurable graph limits and
+supersession, #128's ticket settlement, #129's evaluation reuse, #130's operational notices, #131's retention and lifetime cleanup, #132's effective file-selection and admission routing, #133's file eligibility routing, #134's rule and finding decisions, and #135's production replay visualization are merged;
+the next migration slice is #136. Configurable graph limits and
 general budget/termination proofs are tracked separately in
 [#142](https://github.com/dearlordylord/hapsland/issues/142).
 
 The integrated epic is in `/workspace/typescript/jev-worktrees/bend-full-flow`
-(`feat/bend-full-flow`, merged through #134). Start #135 in a new task worktree
+(`feat/bend-full-flow`, merged through #135). Start #136 in a new task worktree
 from the latest epic tip. The old `/tmp/hapsland-bend-handoff.md` predates #119
 and is no longer a valid resume point. The `/workspace/typescript/jev` checkout
 is older and is not the edit target.
@@ -41,7 +41,7 @@ is older and is not the edit target.
 | Review evidence | Same-file named types only. | One selected root plus a complete bounded graph that may contain several files; **20 KiB canonical encoded evidence tree per review unit**. A missing, excluded, unsupported, or capped required edge makes that unit incomplete and produces no Jev request. Independent complete units continue. |
 | File settings | #132 removed the separate repository grant. With Jev credentials, otherwise eligible files are selected by default; user and project file settings narrow selection. | Preserve this boundary while adding checked supporting files. Protected and ignored files stay excluded. |
 | Resident capacity | 64 work items/8 MiB shared by agents in one resident; each agent scope may use up to 16 items/2 MiB. Temporary preparation space is released, then review units request space in order. | Preserve ordered partial admission. Raise/rework byte limits with the 256 KiB file limit so valid files can be prepared and checked again. Model every installed reservation purpose in Bend. |
-| Visualization | #115's simplified Bend `Flow.step` drives the interim page. | Production and the final full-flow page use the same canonical checked transition. #135 adds a build-generated inventory of what reserves review capacity and a live capacity panel; #120/#122 supply complete Bend data first. A separate import-graph state-machine diagram follows reconciliation under [#141](https://github.com/dearlordylord/hapsland/issues/141). |
+| Visualization | The full-flow page replays the checked production `Canonical.step` adapter. A build-generated capacity inventory and live shared/per-agent ledger panel show checked Bend facts; native observations and Jev responses are separate. | Keep this replay aligned with production through #136 validation and #137 final authority review. The separate import-graph diagram follows [#141](https://github.com/dearlordylord/hapsland/issues/141). |
 
 In this checkout, 8 of 180 TypeScript files under `src` and `packages`
 exceed 32 KiB; none exceed 256 KiB. A file near 32 KiB is about 500–800
@@ -108,8 +108,8 @@ or Jev-request-size claim.
    concurrent advicees.
 4. **Migration:** #119 defined the first canonical transition; #121 moved permit
    admission; #122–#134 move the remaining
-   production decision slices; #135–#137 complete visualization, host
-   validation, and evidence-backed verification. The installed 32 KiB
+   production decision slices; #135 completes visualization, while #136–#137
+   complete host validation and evidence-backed verification. The installed 32 KiB
    supported-profile remains the truthful runtime claim until code and
    conformance evidence change.
 
@@ -286,6 +286,24 @@ were skipped. Spec and standards reviewers found no remaining material defect.
 See `docs/issue-134-rule-evidence.md`. The #119 transition-interface document
 was distilled into code comments and deleted.
 
+## #135 production replay visualization (merged 2026-09-28)
+
+The full-flow page now replays guided and manual source-free events through the
+same checked canonical adapter used by the resident. It distinguishes native
+observations and effects, Jev responses, and Bend commands. The capacity
+inventory is generated from compiled Bend admission output; the live panel
+shows shared and per-agent reservations. Preparation completion and direct
+capacity replacement show release, accepted → refused → accepted unit outcomes,
+before/after usage, and intermediate command snapshots within one atomic
+transition. Independent fixture assertions check every guided command and
+terminal fact, while browser checks cover replay, rewind, result variants, and
+capacity frames. The simplified Flow page consumer and offline reference
+oracle were removed after their distinct evidence was replaced. `Flow.bend`
+remains a type dependency of the Work policy artifact. Bend proofs, package
+tests, root build, visualization build and browser checks passed; the full root
+suite passed 602 tests with 2 skipped. Both review axes found no remaining
+material defect. See `docs/issue-135-visualization-evidence.md`.
+
 ## Next autonomous migration run
 
 Use the GitHub issue bodies as the task contracts. Work in a dedicated task
@@ -296,10 +314,8 @@ the issue only when its criteria have evidence. Update this handoff after each
 merged slice. Do not treat the separate #141 import-graph diagram as the final
 production replay.
 
-One valid single-agent order from here is #135, #136, #137.
-#135 now has both #131 and #134. #135 delivers the build-generated
-capacity inventory and live ledger panel from compiled Bend output. #136
-validates native Codex and Claude flows after #131/#134; #137 is the final
+One valid single-agent order from here is #136, #137.
+#136 validates native Codex and Claude flows after #131/#134; #137 is the final
 authority review after #135/#136. #143 is a separate resident-process lifetime
 task, not part of the Bend state-cleanup task #131. #139/#140/#142 remain
 separate follow-ups.
