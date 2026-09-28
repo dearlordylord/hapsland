@@ -52,7 +52,9 @@ type ResidentTransition = Extract<CanonicalEvent, { readonly kind:
   "revisionSupersededCheck" | "revisionGenerationCheck" | "revisionCountCheck" |
   "ticketOpen" | "ticketForget" | "ticketFail" | "ticketClose" |
   "ticketAddUnit" | "ticketStepUnit" | "ticketUnitCheck" | "ticketTerminal" |
-  "ticketCollectGateCheck" | "ticketFinalAuthorityCheck" | "ticketJoinedCheck" }>;
+  "ticketCollectGateCheck" | "ticketFinalAuthorityCheck" | "ticketJoinedCheck" |
+  "reuseRoute" | "reuseClaim" | "reuseAttach" | "reuseRelease" | "reuseTouch" |
+  "cachePrepare" | "cacheCommit" | "cacheDiscardPartition" | "cacheClear" }>;
 
 const defaultLimits: CapacityLimits = {
   globalItems: GLOBAL_ITEM_LIMIT,

@@ -60,8 +60,7 @@ import { DispatchCycles } from "./dispatch.ts";
 import { ComposedDelivery } from "./composed-delivery.ts";
 import { BendWorkTracker } from "./bend-work.ts";
 import type { TicketReason, TicketUnitEvent } from "../canonical/adapter.ts";
-import { bendReuseRoute, bendReuseCacheRoute,
-  bendDeliveryAcknowledge, bendDeliveryFinalize, bendDeliveryFindingDisposition,
+import { bendDeliveryAcknowledge, bendDeliveryFinalize, bendDeliveryFindingDisposition,
   bendDeliveryReleaseUnacknowledged,
   bendDeliveryNoticeCandidate,
   bendValidationRoute, bendPostValidation, bendFinalCandidate,
@@ -554,6 +553,7 @@ export class ResidentServer {
   readonly #beforeEvaluate: ((prepared: PreparedUnit) => Promise<void>) | undefined;
   readonly #afterRevalidationWorkspaceReserved: ((adviceId: string) => Promise<void>) | undefined;
   readonly #afterAdvicePending: ((adviceId: string) => Promise<void> | void) | undefined;
+  readonly #afterReuseBoundary: ((phase: "ownerClaimed" | "claimJoined") => Promise<void> | void) | undefined;
   readonly #beforeFinalRevalidate: ((adviceId: string) => Promise<void>) | undefined;
   readonly #afterAuthorizeBeforeCredential: (() => Promise<void>) | undefined;
   readonly #afterCredentialBeforeDispatch: (() => Promise<void>) | undefined;
@@ -572,6 +572,8 @@ export class ResidentServer {
       readonly beforeEvaluate?: (prepared: PreparedUnit) => Promise<void>;
       readonly afterRevalidationWorkspaceReserved?: (adviceId: string) => Promise<void>;
       readonly afterAdvicePending?: (adviceId: string) => Promise<void> | void;
+      /** Fixture-only callback-order gate for evaluation reuse. */
+      readonly afterReuseBoundary?: (phase: "ownerClaimed" | "claimJoined") => Promise<void> | void;
       readonly beforeFinalRevalidate?: (adviceId: string) => Promise<void>;
       readonly afterAuthorizeBeforeCredential?: () => Promise<void>;
       readonly afterCredentialBeforeDispatch?: () => Promise<void>;
@@ -605,6 +607,7 @@ export class ResidentServer {
     this.#beforeEvaluate = options.beforeEvaluate;
     this.#afterRevalidationWorkspaceReserved = options.afterRevalidationWorkspaceReserved;
     this.#afterAdvicePending = options.afterAdvicePending;
+    this.#afterReuseBoundary = options.afterReuseBoundary;
     this.#beforeFinalRevalidate = options.beforeFinalRevalidate;
     this.#afterAuthorizeBeforeCredential = options.afterAuthorizeBeforeCredential;
     this.#afterCredentialBeforeDispatch = options.afterCredentialBeforeDispatch;
@@ -612,8 +615,7 @@ export class ResidentServer {
     this.#offlineHttpClient = options.offlineHttpClient;
     this.#beforeResponseHandoff = options.beforeResponseHandoff;
     this.#reuse = new EvaluationReuse({
-      reserve: (partition, bytes) => this.#reserve(partition, bytes, "storedResult"),
-      release: (reservation) => { this.#ledger.release(reservation); },
+      ledger: this.#ledger,
       logicalBytes,
     });
     this.#dispatcher = new DispatchCycles(
@@ -1861,7 +1863,7 @@ export class ResidentServer {
     if (job.kind === "unit") {
       if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "lost");
       this.#settleJoined(job.evaluationKey, "unavailable", "lost");
-      this.#reuse.releaseClaim(job.evaluationKey);
+      this.#releaseReuseClaim(job.evaluationKey);
       this.#releaseUnit(job);
     } else this.#ledger.release(job.reservation);
     recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
@@ -1940,6 +1942,7 @@ export class ResidentServer {
 
   async #prepare(job: IngressJob, cycle: number, sequence: number): Promise<void> {
     const expectedActivityUnits: Array<string> = [];
+    const unassignedClaims = new Set<string>();
     try {
       if (job.round !== undefined && job.workObservationId !== undefined &&
           !job.round.policyWork.startSource(job.workObservationId)) {
@@ -2061,30 +2064,28 @@ export class ResidentServer {
           const generationPartition = `${job.partition}\0work:${job.work?.id ?? "legacy"}\0credential-generation:${job.dispatch.credential?.generation ?? "controlled"}`;
           const evaluationKey = this.#reuse.key(generationPartition, outcome.prepared);
           const liveAdvice = this.#advice.some((advice) => advice.evaluationKey === evaluationKey);
-          const pending = this.#reuse.pending(evaluationKey);
-          const route = bendReuseRoute(liveAdvice, pending !== undefined,
-            this.#reuse.hasPending(evaluationKey));
-          switch (route.$) {
-            case "JoinAdvice":
-            case "JoinClaimed":
-              return { kind: "joined" as const, outcome, evaluationKey };
-            case "JoinPending":
-              if (pending === undefined) throw new Error("Bend reuse route lacks pending evaluation");
+          switch (this.#reuse.route(evaluationKey, liveAdvice)) {
+            case "joinedAdvice":
+              return { kind: "joined" as const, join: "advice" as const, outcome, evaluationKey };
+            case "joinedClaimed":
+              return { kind: "joined" as const, join: "claimed" as const, outcome, evaluationKey };
+            case "joinedPending": {
+              const pending = this.#reuse.pending(evaluationKey);
+              if (pending === undefined) throw new Error("canonical reuse route lacks pending evaluation");
               pending.revision = this.#restoreCurrentWork(job.partition, outcome.prepared);
-              return { kind: "joined" as const, outcome, evaluationKey };
-            case "LookupCache": {
-              const cached = this.#reuse.get(evaluationKey);
-              switch (bendReuseCacheRoute(cached !== undefined).$) {
-                case "Cached":
-                  if (cached === undefined) throw new Error("Bend cache route lacks evaluation");
-                  return { kind: "cached" as const, outcome, evaluationKey, cached };
-                case "Own":
-                  this.#reuse.claim(evaluationKey);
-                  return { kind: "owner" as const, outcome, evaluationKey };
-              }
+              return { kind: "joined" as const, join: "pending" as const, outcome, evaluationKey };
             }
+            case "cached":
+              return { kind: "cached" as const, outcome, evaluationKey,
+                cached: this.#reuse.cached(evaluationKey) };
+            case "owner":
+              unassignedClaims.add(evaluationKey);
+              return { kind: "owner" as const, outcome, evaluationKey };
           }
         });
+        if (this.#afterReuseBoundary !== undefined && planned.some((item) => item.kind === "owner")) {
+          await this.#afterReuseBoundary("ownerClaimed");
+        }
         const ticketUnitOffset = job.ticket?.units.length ?? 0;
         const retained = planned.filter((item) =>
           item.kind === "owner" || (item.kind === "cached" && item.cached.evaluation.findings.length > 0));
@@ -2125,7 +2126,11 @@ export class ResidentServer {
               } else {
                 const pending = this.#reuse.pending(item.evaluationKey);
                 if (pending === undefined) {
-                  unitUnavailable(ticketUnit, "lost");
+                  if (item.join === "claimed") {
+                    const joined = this.#joinedTicketUnits.get(item.evaluationKey) ?? [];
+                    joined.push(ticketUnit);
+                    this.#joinedTicketUnits.set(item.evaluationKey, joined);
+                  } else unitUnavailable(ticketUnit, "lost");
                 } else {
                   unitRevision(ticketUnit, pending.revision);
                   const joined = this.#joinedTicketUnits.get(item.evaluationKey) ?? [];
@@ -2137,13 +2142,17 @@ export class ResidentServer {
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
           }
         }
+        if (this.#afterReuseBoundary !== undefined &&
+            planned.some((item) => item.kind === "joined" && item.join === "claimed")) {
+          await this.#afterReuseBoundary("claimJoined");
+        }
         for (const [index, item] of retained.entries()) {
           if (!this.#jobActive(job)) {
             for (let remaining = index; remaining < retained.length; remaining++) {
               const admitted = reservations[remaining];
               if (admitted !== undefined) this.#ledger.release(admitted.reservation);
               const pending = retained[remaining];
-              if (pending?.kind === "owner") this.#reuse.releaseClaim(pending.evaluationKey);
+              if (pending?.kind === "owner") this.#releaseReuseClaim(pending.evaluationKey);
             }
             return;
           }
@@ -2151,7 +2160,7 @@ export class ResidentServer {
           const admitted = reservations[index];
           if (admitted === undefined) {
             if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "capacity");
-            if (item.kind === "owner") this.#reuse.releaseClaim(item.evaluationKey);
+            if (item.kind === "owner") this.#releaseReuseClaim(item.evaluationKey, "capacity");
             this.#rejectedCapacity += 1;
             this.#recordOperationalFailure(job.observation, "capacity", job.ticket);
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
@@ -2167,7 +2176,7 @@ export class ResidentServer {
               : job.round.policyWork.spawn(job.workObservationId);
           if (job.round !== undefined && workUnitId === undefined) {
             if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "lost");
-            if (item.kind === "owner") this.#reuse.releaseClaim(item.evaluationKey);
+            if (item.kind === "owner") this.#releaseReuseClaim(item.evaluationKey);
             this.#ledger.release(reservation);
             this.#releaseCurrentWork(revision);
             continue;
@@ -2218,11 +2227,15 @@ export class ResidentServer {
             }
             continue;
           }
-          this.#reuse.attachPending(item.evaluationKey, unit);
+          if (!this.#reuse.attachPending(item.evaluationKey, unit)) {
+            throw new Error("canonical evaluation attachment refused");
+          }
+          unassignedClaims.delete(item.evaluationKey);
+          this.#attachClaimedJoined(item.evaluationKey, revision);
           if (!this.#dispatcher.enqueue(job.partition, unit)) {
             if (job.round !== undefined && workUnitId !== undefined) job.round.policyWork.interruptUnit(workUnitId);
             if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "capacity");
-            this.#reuse.releaseClaim(item.evaluationKey);
+            this.#releaseReuseClaim(item.evaluationKey, "capacity");
             this.#releaseUnit(unit);
             this.#rejectedCapacity += 1;
             this.#recordOperationalFailure(job.observation, "capacity", job.ticket);
@@ -2256,6 +2269,7 @@ export class ResidentServer {
       this.#ledger.release(job.reservation);
       recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
     } finally {
+      for (const key of unassignedClaims) this.#releaseReuseClaim(key);
       if (!job.completed && job.round !== undefined && job.workObservationId !== undefined) {
         job.round.policyWork.interruptSource(job.workObservationId);
       }
@@ -2268,12 +2282,12 @@ export class ResidentServer {
     try {
       if (job.round !== undefined && job.workUnitId !== undefined &&
           !job.round.policyWork.startUnit(job.workUnitId)) {
-        this.#reuse.releaseClaim(job.evaluationKey);
+        this.#releaseReuseClaim(job.evaluationKey);
         this.#releaseUnit(job);
         return;
       }
       if (!this.#ledger.startReview(job.partition, job.canonicalOperationId)) {
-        this.#reuse.releaseClaim(job.evaluationKey);
+        this.#releaseReuseClaim(job.evaluationKey);
         this.#releaseUnit(job);
         return;
       }
@@ -2282,7 +2296,7 @@ export class ResidentServer {
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "stale");
         this.#settleJoined(job.evaluationKey, "unavailable", "stale");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "incomplete", unitIdentity: job.evaluationKey });
-        this.#reuse.releaseClaim(job.evaluationKey);
+        this.#releaseReuseClaim(job.evaluationKey);
         this.#releaseUnit(job);
         return;
       }
@@ -2435,7 +2449,7 @@ export class ResidentServer {
           : evaluation.pipe(Effect.provide(credentialProvider)));
       }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))),
         { signal: job.work?.controller.signal });
-      if (!this.#jobActive(job)) { this.#reuse.releaseClaim(job.evaluationKey); this.#releaseUnit(job); return; }
+      if (!this.#jobActive(job)) { this.#releaseReuseClaim(job.evaluationKey); this.#releaseUnit(job); return; }
       if (result?.status === "evaluated" && this.#lifecycle === "active") {
         if (job.round !== undefined && job.workUnitId !== undefined &&
             !job.round.policyWork.outcome(job.workUnitId, result.findings.length === 0
@@ -2452,7 +2466,7 @@ export class ResidentServer {
         });
         const evaluation = { prepared: job.prepared, findings: result.findings };
         this.#reuse.put(job.partition, job.evaluationKey, evaluation);
-        this.#reuse.releaseClaim(job.evaluationKey);
+        this.#releaseReuseClaim(job.evaluationKey);
         recordActivity({
           statePath: job.dispatch.activityPath,
           root: job.observation.root,
@@ -2530,8 +2544,29 @@ export class ResidentServer {
         }
       }
     }
-    this.#reuse.releaseClaim(job.evaluationKey);
+    this.#releaseReuseClaim(job.evaluationKey);
     this.#releaseUnit(job);
+  }
+
+  #attachClaimedJoined(key: string, revision: WorkRevision): void {
+    for (const unit of this.#joinedTicketUnits.get(key) ?? []) {
+      if (unit.current.revision === undefined && ticketUnitStageOrUndefined(unit)?.stage === "pending") {
+        unitRevision(unit, revision);
+      }
+    }
+  }
+
+  #releaseReuseClaim(key: string, reason: ResidentUnavailableReason = "lost"): void {
+    this.#reuse.releaseClaim(key);
+    const joined = this.#joinedTicketUnits.get(key);
+    if (joined === undefined) return;
+    const attached: TicketUnit[] = [];
+    for (const unit of joined) {
+      if (unit.current.revision !== undefined) attached.push(unit);
+      else unitUnavailable(unit, reason);
+    }
+    if (attached.length > 0) this.#joinedTicketUnits.set(key, attached);
+    else this.#joinedTicketUnits.delete(key);
   }
 
   #settleJoined(key: string, state: "pending" | "clear" | "finding" | "unavailable", reason?: ResidentUnavailableReason,
@@ -3196,7 +3231,7 @@ export class ResidentServer {
     this.#lifecycle = "closed";
     for (const job of this.#dispatcher.close()) {
       if (job.kind === "unit") {
-        this.#reuse.releaseClaim(job.evaluationKey);
+        this.#releaseReuseClaim(job.evaluationKey);
         this.#releaseUnit(job);
       }
       else this.#ledger.release(job.reservation);

@@ -256,4 +256,19 @@ for (const trace of ticketFixture.traces) {
   }
   assert.deepEqual(projectCanonical(current).tickets, trace.tickets, trace.name);
 }
-console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length + stopFixture.traces.length + collectionFixture.traces.length + deliveryFixture.traces.length + submissionFixture.traces.length + revisionFixture.traces.length + ticketFixture.traces.length} independent source-free canonical traces`);
+const reuseFixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-reuse-v1.json"), "utf8"));
+for (const trace of reuseFixture.traces) {
+  let current = initialCanonical(fixture.limits);
+  for (const { expect: expected, ...event } of trace.events) {
+    const result = stepCanonical(current, event);
+    current = result.state;
+    const actual = result.rejection ? `rejected:${result.rejection}` : result.commands.map((command) =>
+      command.kind === "cachePrepared" ? `${command.kind}:${command.evicted.join(",")}` :
+        command.kind === "cacheDiscarded" ? `${command.kind}:${command.ids.join(",")}` :
+          command.kind === "capacityGranted" || command.kind === "reservationReleased"
+            ? `${command.kind}:${command.id}` : command.kind).join(",");
+    assert.equal(actual, expected, `${trace.name}: ${event.kind}`);
+  }
+  assert.deepEqual(projectCanonical(current).reuse, trace.reuse, trace.name);
+}
+console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length + stopFixture.traces.length + collectionFixture.traces.length + deliveryFixture.traces.length + submissionFixture.traces.length + revisionFixture.traces.length + ticketFixture.traces.length + reuseFixture.traces.length} independent source-free canonical traces`);

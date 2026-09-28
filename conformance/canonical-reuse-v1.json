@@ -1,0 +1,281 @@
+{
+  "traces": [
+    {
+      "name": "live advice, attached work, bare claim, and new owner priority",
+      "events": [
+        {
+          "kind": "reuseRoute",
+          "id": 1,
+          "liveAdvice": false,
+          "expect": "reuseOwn"
+        },
+        {
+          "kind": "reuseRoute",
+          "id": 1,
+          "liveAdvice": false,
+          "expect": "reuseJoinClaimed"
+        },
+        {
+          "kind": "reuseAttach",
+          "id": 1,
+          "expect": "reuseAttached"
+        },
+        {
+          "kind": "reuseRoute",
+          "id": 1,
+          "liveAdvice": false,
+          "expect": "reuseJoinPending"
+        },
+        {
+          "kind": "reuseRoute",
+          "id": 1,
+          "liveAdvice": true,
+          "expect": "reuseJoinAdvice"
+        },
+        {
+          "kind": "reuseRelease",
+          "id": 1,
+          "expect": "reuseReleased"
+        },
+        {
+          "kind": "reuseRoute",
+          "id": 1,
+          "liveAdvice": false,
+          "expect": "reuseOwn"
+        },
+        {
+          "kind": "reuseRelease",
+          "id": 1,
+          "expect": "reuseReleased"
+        }
+      ],
+      "reuse": {
+        "claims": [],
+        "cache": []
+      }
+    },
+    {
+      "name": "byte pressure evicts oldest success and partition expiry releases the rest",
+      "events": [
+        {
+          "kind": "cacheCommit",
+          "id": 1,
+          "partition": 5,
+          "bytes": 40,
+          "reservation": 1,
+          "entryLimit": 8,
+          "byteLimit": 60,
+          "expect": "reuseRefused"
+        },
+        {
+          "kind": "reserveCapacity",
+          "partition": 5,
+          "bytes": 40,
+          "purpose": "storedResult",
+          "expect": "capacityGranted:1"
+        },
+        {
+          "kind": "cachePrepare",
+          "id": 1,
+          "bytes": 40,
+          "entryLimit": 8,
+          "byteLimit": 60,
+          "expect": "cachePrepared:"
+        },
+        {
+          "kind": "cacheCommit",
+          "id": 1,
+          "partition": 5,
+          "bytes": 40,
+          "entryLimit": 8,
+          "byteLimit": 60,
+          "expect": "cacheCommitted",
+          "reservation": 1
+        },
+        {
+          "kind": "cachePrepare",
+          "id": 2,
+          "bytes": 40,
+          "entryLimit": 8,
+          "byteLimit": 60,
+          "expect": "cachePrepared:1"
+        },
+        {
+          "kind": "releaseCapacity",
+          "reservation": 1,
+          "expect": "reservationReleased:1"
+        },
+        {
+          "kind": "reserveCapacity",
+          "partition": 5,
+          "bytes": 40,
+          "purpose": "storedResult",
+          "expect": "capacityGranted:2"
+        },
+        {
+          "kind": "cacheCommit",
+          "id": 2,
+          "partition": 5,
+          "bytes": 40,
+          "entryLimit": 8,
+          "byteLimit": 60,
+          "expect": "cacheCommitted",
+          "reservation": 2
+        },
+        {
+          "kind": "reuseTouch",
+          "id": 1,
+          "expect": "reuseOwn"
+        },
+        {
+          "kind": "reuseTouch",
+          "id": 2,
+          "expect": "reuseCached"
+        },
+        {
+          "kind": "cachePrepare",
+          "id": 3,
+          "bytes": 61,
+          "entryLimit": 8,
+          "byteLimit": 60,
+          "expect": "cacheRejected"
+        },
+        {
+          "kind": "cacheDiscardPartition",
+          "partition": 5,
+          "expect": "cacheDiscarded:2"
+        },
+        {
+          "kind": "releaseCapacity",
+          "reservation": 2,
+          "expect": "reservationReleased:2"
+        }
+      ],
+      "reuse": {
+        "claims": [],
+        "cache": []
+      }
+    },
+    {
+      "name": "entry pressure observes LRU touch without disturbing a pending owner",
+      "events": [
+        {
+          "kind": "reuseClaim",
+          "id": 50,
+          "expect": "reuseClaimed"
+        },
+        {
+          "kind": "cachePrepare",
+          "id": 1,
+          "bytes": 1,
+          "entryLimit": 2,
+          "byteLimit": 100,
+          "expect": "cachePrepared:"
+        },
+        {
+          "kind": "reserveCapacity",
+          "partition": 5,
+          "bytes": 1,
+          "purpose": "storedResult",
+          "expect": "capacityGranted:1"
+        },
+        {
+          "kind": "cacheCommit",
+          "id": 1,
+          "partition": 5,
+          "bytes": 1,
+          "entryLimit": 2,
+          "byteLimit": 100,
+          "expect": "cacheCommitted",
+          "reservation": 1
+        },
+        {
+          "kind": "cachePrepare",
+          "id": 2,
+          "bytes": 1,
+          "entryLimit": 2,
+          "byteLimit": 100,
+          "expect": "cachePrepared:"
+        },
+        {
+          "kind": "reserveCapacity",
+          "partition": 6,
+          "bytes": 1,
+          "purpose": "storedResult",
+          "expect": "capacityGranted:2"
+        },
+        {
+          "kind": "cacheCommit",
+          "id": 2,
+          "partition": 6,
+          "bytes": 1,
+          "entryLimit": 2,
+          "byteLimit": 100,
+          "expect": "cacheCommitted",
+          "reservation": 2
+        },
+        {
+          "kind": "reuseTouch",
+          "id": 1,
+          "expect": "reuseCached"
+        },
+        {
+          "kind": "cachePrepare",
+          "id": 3,
+          "bytes": 1,
+          "entryLimit": 2,
+          "byteLimit": 100,
+          "expect": "cachePrepared:2"
+        },
+        {
+          "kind": "reserveCapacity",
+          "partition": 5,
+          "bytes": 1,
+          "purpose": "storedResult",
+          "expect": "capacityGranted:3"
+        },
+        {
+          "kind": "releaseCapacity",
+          "reservation": 2,
+          "expect": "reservationReleased:2"
+        },
+        {
+          "kind": "cacheCommit",
+          "id": 3,
+          "partition": 5,
+          "bytes": 1,
+          "entryLimit": 2,
+          "byteLimit": 100,
+          "expect": "cacheCommitted",
+          "reservation": 3
+        },
+        {
+          "kind": "cachePrepare",
+          "id": 1,
+          "bytes": 200,
+          "entryLimit": 2,
+          "byteLimit": 100,
+          "expect": "cacheAlready"
+        },
+        {
+          "kind": "cacheClear",
+          "expect": "cacheDiscarded:1,3"
+        },
+        {
+          "kind": "releaseCapacity",
+          "reservation": 1,
+          "expect": "reservationReleased:1"
+        },
+        {
+          "kind": "releaseCapacity",
+          "reservation": 3,
+          "expect": "reservationReleased:3"
+        }
+      ],
+      "reuse": {
+        "claims": [],
+        "cache": []
+      }
+    }
+  ]
+}
