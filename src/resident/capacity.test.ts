@@ -2,6 +2,23 @@ import { describe, expect, it } from "vitest";
 import { CapacityLedger, encodedBytesWithin } from "./capacity.ts";
 
 describe("resident logical capacity ledger", () => {
+  it("routes delivery terminal and finding decisions through canonical Bend", () => {
+    const ledger = new CapacityLedger();
+    for (const [event, kind] of [
+      [{ kind: "deliveryAcknowledgeCheck", items: 0, anyExpired: false }, "deliveryAckEmpty"],
+      [{ kind: "deliveryAcknowledgeCheck", items: 1, anyExpired: true }, "deliveryAckExpired"],
+      [{ kind: "deliveryAcknowledgeCheck", items: 1, anyExpired: false }, "deliveryAckReady"],
+      [{ kind: "deliveryFinalizeCheck", items: 1, allAcknowledged: false, anyExpired: false }, "deliveryFinalEmpty"],
+      [{ kind: "deliveryFinalizeCheck", items: 1, allAcknowledged: true, anyExpired: true }, "deliveryFinalExpired"],
+      [{ kind: "deliveryFinalizeCheck", items: 1, allAcknowledged: true, anyExpired: false }, "deliveryFinalReady"],
+      [{ kind: "deliveryFindingDispositionCheck", composed: true, remaining: 0 }, "deliveryKeepForReoffer"],
+      [{ kind: "deliveryFindingDispositionCheck", composed: false, remaining: 1 }, "deliveryKeepRemaining"],
+      [{ kind: "deliveryFindingDispositionCheck", composed: false, remaining: 0 }, "deliveryRetireAdvice"],
+    ] as const) {
+      expect(ledger.transition(event).commands).toEqual([{ kind }]);
+    }
+  });
+
   it("keeps permit and capacity transitions in one canonical resident state", () => {
     const ledger = new CapacityLedger();
     const partition = ledger.partitionId("agent");

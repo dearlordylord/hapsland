@@ -283,6 +283,15 @@ def Laws.noncomposed_partial_delivery_retains_remaining():
 def Laws.noncomposed_complete_delivery_retires_advice():
   {==}
 
+def Laws.canonical_delivery_acknowledgement_uses_delivery_rule():
+  {==}
+
+def Laws.canonical_delivery_finalization_uses_delivery_rule():
+  {==}
+
+def Laws.canonical_delivery_disposition_uses_delivery_rule():
+  {==}
+
 def Laws.output_selection_reserves_pending_unit():
   {==}
 

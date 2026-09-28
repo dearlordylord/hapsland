@@ -166,6 +166,9 @@ export type CanonicalEvent =
   | { readonly kind: "cleanupCheck"; readonly facts: CleanupFacts }
   | { readonly kind: "cleanupCommit" }
   | { readonly kind: "deliveryReleaseCheck"; readonly acknowledged: boolean }
+  | { readonly kind: "deliveryAcknowledgeCheck"; readonly items: number; readonly anyExpired: boolean }
+  | { readonly kind: "deliveryFinalizeCheck"; readonly items: number; readonly allAcknowledged: boolean; readonly anyExpired: boolean }
+  | { readonly kind: "deliveryFindingDispositionCheck"; readonly composed: boolean; readonly remaining: number }
   | { readonly kind: "includeLayerCheck"; readonly supplied: boolean; readonly currentRank: number; readonly candidateRank: number }
   | { readonly kind: "fileSelectionCheck"; readonly protected: boolean; readonly excluded: boolean; readonly includesEmpty: boolean; readonly included: boolean }
   | { readonly kind: "fileProtectionInvalid" }
@@ -249,6 +252,7 @@ export type CanonicalCommand =
   | { readonly kind: "ticketUnitMissing" }
   | { readonly kind: "ticketEvicted"; readonly id: number }
   | { readonly kind: "ticketKept" | "cleanupReady" | "cleanupBusy" | "cleanupCommitted" | "deliveryReleaseUnacknowledged" | "deliveryKeepAcknowledged" }
+  | { readonly kind: "deliveryAckReady" | "deliveryAckExpired" | "deliveryAckEmpty" | "deliveryFinalReady" | "deliveryFinalExpired" | "deliveryFinalEmpty" | "deliveryRetireAdvice" | "deliveryKeepRemaining" | "deliveryKeepForReoffer" }
   | { readonly kind: "reuseJoinAdvice" | "reuseJoinPending" | "reuseJoinClaimed" | "reuseCached" | "reuseOwn" | "reuseClaimed" | "reuseAttached" | "reuseReleased" | "reuseRefused" | "cacheAlready" | "cacheRejected" | "cacheCommitted" }
   | { readonly kind: "cachePrepared"; readonly evicted: readonly number[] }
   | { readonly kind: "cacheDiscarded"; readonly ids: readonly number[] }
@@ -437,6 +441,9 @@ const encode = (event: CanonicalEvent): unknown => {
     }
     case "cleanupCommit": inputFields(event, ["kind"]); return { $: "Canonical.CleanupCommit" };
     case "deliveryReleaseCheck": inputFields(event, ["kind", "acknowledged"]); return { $: "Canonical.DeliveryReleaseCheck", acknowledged: bool(event.acknowledged) };
+    case "deliveryAcknowledgeCheck": inputFields(event, ["kind", "items", "anyExpired"]); return { $: "Canonical.DeliveryAcknowledgeCheck", items: nat(event.items), any_expired: bool(event.anyExpired) };
+    case "deliveryFinalizeCheck": inputFields(event, ["kind", "items", "allAcknowledged", "anyExpired"]); return { $: "Canonical.DeliveryFinalizeCheck", items: nat(event.items), all_acknowledged: bool(event.allAcknowledged), any_expired: bool(event.anyExpired) };
+    case "deliveryFindingDispositionCheck": inputFields(event, ["kind", "composed", "remaining"]); return { $: "Canonical.DeliveryFindingDispositionCheck", composed: bool(event.composed), remaining: nat(event.remaining) };
     case "includeLayerCheck": inputFields(event, ["kind", "supplied", "currentRank", "candidateRank"]); return { $: "Canonical.IncludeLayerCheck", supplied: bool(event.supplied), current_rank: nat(event.currentRank), candidate_rank: nat(event.candidateRank) };
     case "fileSelectionCheck": inputFields(event, ["kind", "protected", "excluded", "includesEmpty", "included"]); return { $: "Canonical.FileSelectionCheck", protected: bool(event.protected), excluded: bool(event.excluded), includes_empty: bool(event.includesEmpty), included: bool(event.included) };
     case "fileProtectionInvalid": inputFields(event, ["kind"]); return { $: "Canonical.FileProtectionInvalid" };
@@ -684,9 +691,12 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
     case "Canonical.TicketUnitMissing": fields(value, "Canonical.TicketUnitMissing", []); return { kind: "ticketUnitMissing" };
     case "Canonical.TicketEvicted": return { kind: "ticketEvicted", id: nat(fields(value, "Canonical.TicketEvicted", ["id"]).id, true) };
     case "Canonical.TicketKept": case "Canonical.CleanupReady": case "Canonical.CleanupBusy": case "Canonical.CleanupCommitted":
-    case "Canonical.DeliveryReleaseUnacknowledged": case "Canonical.DeliveryKeepAcknowledged": {
+    case "Canonical.DeliveryReleaseUnacknowledged": case "Canonical.DeliveryKeepAcknowledged":
+    case "Canonical.DeliveryAckReady": case "Canonical.DeliveryAckExpired": case "Canonical.DeliveryAckEmpty":
+    case "Canonical.DeliveryFinalReady": case "Canonical.DeliveryFinalExpired": case "Canonical.DeliveryFinalEmpty":
+    case "Canonical.DeliveryRetireAdvice": case "Canonical.DeliveryKeepRemaining": case "Canonical.DeliveryKeepForReoffer": {
       const name = tag(value); fields(value, name, []);
-      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "ticketKept" | "cleanupReady" | "cleanupBusy" | "cleanupCommitted" | "deliveryReleaseUnacknowledged" | "deliveryKeepAcknowledged" };
+      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "ticketKept" | "cleanupReady" | "cleanupBusy" | "cleanupCommitted" | "deliveryReleaseUnacknowledged" | "deliveryKeepAcknowledged" | "deliveryAckReady" | "deliveryAckExpired" | "deliveryAckEmpty" | "deliveryFinalReady" | "deliveryFinalExpired" | "deliveryFinalEmpty" | "deliveryRetireAdvice" | "deliveryKeepRemaining" | "deliveryKeepForReoffer" };
     }
     case "Canonical.NoticeSuppressed": case "Canonical.NoticeCreatePending": case "Canonical.NoticeMergePending": {
       const name = tag(value); return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "noticeSuppressed" | "noticeCreatePending" | "noticeMergePending", count: nat(fields(value, name, ["count"]).count) };

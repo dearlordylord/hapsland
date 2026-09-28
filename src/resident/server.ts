@@ -61,8 +61,7 @@ import { DispatchCycles } from "./dispatch.ts";
 import { ComposedDelivery } from "./composed-delivery.ts";
 import { BendWorkTracker } from "./bend-work.ts";
 import type { CanonicalCommand, TicketReason, TicketUnitEvent } from "../canonical/adapter.ts";
-import { bendDeliveryAcknowledge, bendDeliveryFinalize, bendDeliveryFindingDisposition,
-  bendValidationRoute, bendPostValidation, bendFinalCandidate,
+import { bendValidationRoute, bendPostValidation, bendFinalCandidate,
   bendDeliverySubmissionCandidate, bendDeliverySubmissionBatchGate,
   bendDeliveryCredentialObserve, bendDeliveryFinalCredentialGate,
   type BendValidationStatus } from "./bend-policy.generated.js";
@@ -1228,14 +1227,16 @@ export class ResidentServer {
     const notices = this.#noticesForToken(token);
     const expired = advice.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now) ||
       notices.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now);
-    const decision = bendDeliveryAcknowledge(advice.length + notices.length, expired);
-    if (decision.$ === "AckEmpty") return { status: "empty" };
-    if (decision.$ === "AckExpired") {
+    const decision = this.#ledger.transition({ kind: "deliveryAcknowledgeCheck",
+      items: advice.length + notices.length, anyExpired: expired });
+    if (decision.rejection !== undefined || decision.commands.length !== 1) throw new Error("canonical acknowledgement refused");
+    if (decision.commands[0]?.kind === "deliveryAckEmpty") return { status: "empty" };
+    if (decision.commands[0]?.kind === "deliveryAckExpired") {
       for (const item of advice) this.#releaseAdviceLease(item);
       for (const item of notices) { this.#setNoticeLeased(item.id, false); delete item.delivery; }
       return { status: "empty" };
     }
-    if (decision.$ !== "AckReady") return { status: "empty" };
+    if (decision.commands[0]?.kind !== "deliveryAckReady") throw new Error("invalid canonical acknowledgement");
     if (!this.#composedDelivery.markSubmitted(token,
       advice.flatMap((item) => (item.delivery?.findings ?? []).map(() => item.canonicalOperationId)))) {
       return { status: "empty" };
@@ -1259,24 +1260,28 @@ export class ResidentServer {
       notices.every((item) => item.delivery?.acknowledged === true);
     const expired = advice.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now) ||
       notices.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now);
-    const decision = bendDeliveryFinalize(advice.length + notices.length, allAcknowledged, expired);
-    if (decision.$ === "FinalEmpty") return { status: "empty" };
-    if (decision.$ === "FinalExpired") {
+    const decision = this.#ledger.transition({ kind: "deliveryFinalizeCheck",
+      items: advice.length + notices.length, allAcknowledged, anyExpired: expired });
+    if (decision.rejection !== undefined || decision.commands.length !== 1) throw new Error("canonical finalization refused");
+    if (decision.commands[0]?.kind === "deliveryFinalEmpty") return { status: "empty" };
+    if (decision.commands[0]?.kind === "deliveryFinalExpired") {
       for (const item of advice) this.#releaseAdviceLease(item);
       for (const item of notices) { this.#setNoticeLeased(item.id, false); delete item.delivery; }
       return { status: "empty" };
     }
-    if (decision.$ !== "FinalReady") return { status: "empty" };
+    if (decision.commands[0]?.kind !== "deliveryFinalReady") throw new Error("invalid canonical finalization");
     const composed = this.#composedDelivery.hasToken(token);
     for (const item of advice) {
       const delivered = item.delivery?.findings ?? [];
       const remaining = composed ? [] : withoutDeliveredFindings(item.findings, delivered);
-      const disposition = bendDeliveryFindingDisposition(composed, remaining.length);
-      if (disposition.$ === "KeepForReoffer") {
+      const disposition = this.#ledger.transition({ kind: "deliveryFindingDispositionCheck",
+        composed, remaining: remaining.length });
+      if (disposition.rejection !== undefined || disposition.commands.length !== 1) throw new Error("canonical finding disposition refused");
+      if (disposition.commands[0]?.kind === "deliveryKeepForReoffer") {
         this.#releaseAdviceLease(item);
         continue;
       }
-      if (disposition.$ === "RetireAdvice") {
+      if (disposition.commands[0]?.kind === "deliveryRetireAdvice") {
         for (const ticket of this.#tickets.values()) {
           for (const unit of ticket.units) {
             if (ticketUnitStage(unit).stage === "finding" && unit.current.adviceId === item.id) {
@@ -1287,7 +1292,7 @@ export class ResidentServer {
         this.#removeAdvice(item.id, token);
         continue;
       }
-      if (disposition.$ !== "KeepRemaining") throw new Error("invalid Bend delivery disposition");
+      if (disposition.commands[0]?.kind !== "deliveryKeepRemaining") throw new Error("invalid canonical delivery disposition");
       item.findings = remaining;
       item.evaluations = item.evaluations.map((evaluation) => ({
         ...evaluation,

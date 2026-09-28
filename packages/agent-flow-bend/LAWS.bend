@@ -431,6 +431,24 @@ law noncomposed_partial_delivery_retains_remaining:
 law noncomposed_complete_delivery_retires_advice:
   {Delivery.finding_disposition(False{}, 0n) == Delivery.RetireAdvice{} : Delivery.FindingDisposition}
 
+law canonical_delivery_acknowledgement_uses_delivery_rule:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.DeliveryAcknowledgeCheck{1n, False{}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.DeliveryAckReady{} <> Nil{}} : Canonical.Step}
+
+law canonical_delivery_finalization_uses_delivery_rule:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.DeliveryFinalizeCheck{1n, True{}, True{}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.DeliveryFinalExpired{} <> Nil{}} : Canonical.Step}
+
+law canonical_delivery_disposition_uses_delivery_rule:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.DeliveryFindingDispositionCheck{False{}, 0n}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.DeliveryRetireAdvice{} <> Nil{}} : Canonical.Step}
+
 def reserved_output_selection() -> Lifecycle.OutputSelection:
   Lifecycle.OutputSelection{1n <> 2n <> Nil{}, False{}, False{}}
 

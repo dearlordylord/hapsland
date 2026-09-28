@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:2d62a34bb026a3eebc634dfa258a9d4c1b0dd6277aed64c15a39e3f48c3180f2
+// hapsland-bend-source-sha256:ce492ae74010c202881f6af83a1efe50f126f8030473a9c8369c27e2edb2ba09
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -618,6 +618,19 @@ function $Canonical$step$(_state_0, _event_0) {
   } else if (_event_0.$ === "Canonical.DeliveryReleaseCheck") {
     const _acknowledged_0 = _event_0["acknowledged"];
     return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Delivery$release_unacknowledged$(_acknowledged_0)), {$: "Canonical.DeliveryReleaseUnacknowledged"}, {$: "Canonical.DeliveryKeepAcknowledged"})), "tail": {$: "Nil"}}};
+  } else if (_event_0.$ === "Canonical.DeliveryAcknowledgeCheck") {
+    const _items_2 = _event_0["items"];
+    const _any_expired_0 = _event_0["any_expired"];
+    return $Canonical$delivery_ack_result$(_state_0, ($Delivery$acknowledge$(_items_2, _any_expired_0)));
+  } else if (_event_0.$ === "Canonical.DeliveryFinalizeCheck") {
+    const _items_3 = _event_0["items"];
+    const _all_acknowledged_0 = _event_0["all_acknowledged"];
+    const _any_expired_1 = _event_0["any_expired"];
+    return $Canonical$delivery_final_result$(_state_0, ($Delivery$finalize$(_items_3, _all_acknowledged_0, _any_expired_1)));
+  } else if (_event_0.$ === "Canonical.DeliveryFindingDispositionCheck") {
+    const _composed_0 = _event_0["composed"];
+    const _remaining_0 = _event_0["remaining"];
+    return $Canonical$delivery_disposition_result$(_state_0, ($Delivery$finding_disposition$(_composed_0, _remaining_0)));
   } else if (_event_0.$ === "Canonical.IncludeLayerCheck") {
     const _supplied_0 = _event_0["supplied"];
     const _current_rank_0 = _event_0["current_rank"];
@@ -720,12 +733,12 @@ function $Canonical$step$(_state_0, _event_0) {
     return $Canonical$cache_discard_result$(_state_0, ($ReuseState$clear$(($CollectionState$reuse_state$(($Canonical$collection_of$(_state_0)))))));
   } else if (_event_0.$ === "Canonical.NoticeAdvance") {
     const _key_0 = _event_0["key"];
-    const _remaining_0 = _event_0["remaining"];
+    const _remaining_1 = _event_0["remaining"];
     const _maximum_keys_0 = _event_0["maximum_keys"];
     const _proposed_0 = _event_0["proposed"];
     const _sequence_0 = _event_0["sequence"];
     const _max_count_0 = _event_0["max_count"];
-    return $Canonical$notice_advance_result$(_state_0, ($NoticeState$advance$(($CollectionState$notice_state$(($Canonical$collection_of$(_state_0)))), _key_0, _remaining_0, _maximum_keys_0, _proposed_0, _sequence_0, _max_count_0)));
+    return $Canonical$notice_advance_result$(_state_0, ($NoticeState$advance$(($CollectionState$notice_state$(($Canonical$collection_of$(_state_0)))), _key_0, _remaining_1, _maximum_keys_0, _proposed_0, _sequence_0, _max_count_0)));
   } else if (_event_0.$ === "Canonical.NoticeCommit") {
     const _key_1 = _event_0["key"];
     const _partition_26 = _event_0["partition"];
@@ -755,10 +768,10 @@ function $Canonical$step$(_state_0, _event_0) {
   } else if (_event_0.$ === "Canonical.NoticeSelect") {
     const _partition_27 = _event_0["partition"];
     const _group_13 = _event_0["group"];
-    const _composed_0 = _event_0["composed"];
+    const _composed_1 = _event_0["composed"];
     const _ticketed_1 = _event_0["ticketed"];
     const _allowed_0 = _event_0["allowed"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.NoticeSelected", "ids": ($NoticeState$select$(($CollectionState$notice_state$(($Canonical$collection_of$(_state_0)))), _partition_27, _group_13, _composed_0, _ticketed_1, _allowed_0))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.NoticeSelected", "ids": ($NoticeState$select$(($CollectionState$notice_state$(($Canonical$collection_of$(_state_0)))), _partition_27, _group_13, _composed_1, _ticketed_1, _allowed_0))}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.OutputStarted") {
     const _partition_28 = _event_0["partition"];
     const _lifetime_28 = _event_0["lifetime"];
@@ -1715,6 +1728,50 @@ function $Bool$pick$(_c_0, _a_0, _b_0) {
 
 function $Delivery$release_unacknowledged$(_acknowledged_0) {
   return $Bool$not$(_acknowledged_0);
+}
+
+function $Canonical$delivery_ack_result$(_state_0, _decision_0) {
+  if (_decision_0.$ === "Delivery.AckReady") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DeliveryAckReady"}, "tail": {$: "Nil"}}};
+  } else if (_decision_0.$ === "Delivery.AckExpired") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DeliveryAckExpired"}, "tail": {$: "Nil"}}};
+  } else {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DeliveryAckEmpty"}, "tail": {$: "Nil"}}};
+  }
+}
+
+function $Delivery$acknowledge$(_items_0, _any_expired_0) {
+  return $Bool$pick$(($Nat$is_eq$(_items_0, 0)), {$: "Delivery.AckEmpty"}, ($Bool$pick$(_any_expired_0, {$: "Delivery.AckExpired"}, {$: "Delivery.AckReady"})));
+}
+
+function $Canonical$delivery_final_result$(_state_0, _decision_0) {
+  if (_decision_0.$ === "Delivery.FinalReady") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DeliveryFinalReady"}, "tail": {$: "Nil"}}};
+  } else if (_decision_0.$ === "Delivery.FinalExpired") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DeliveryFinalExpired"}, "tail": {$: "Nil"}}};
+  } else {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DeliveryFinalEmpty"}, "tail": {$: "Nil"}}};
+  }
+}
+
+function $Delivery$finalize$(_items_0, _all_acknowledged_0, _any_expired_0) {
+  const _x_0 = ($Nat$is_eq$(_items_0, 0));
+  const _x_1 = ($Bool$not$(_all_acknowledged_0));
+  return $Bool$pick$((_x_0 || _x_1), {$: "Delivery.FinalEmpty"}, ($Bool$pick$(_any_expired_0, {$: "Delivery.FinalExpired"}, {$: "Delivery.FinalReady"})));
+}
+
+function $Canonical$delivery_disposition_result$(_state_0, _decision_0) {
+  if (_decision_0.$ === "Delivery.RetireAdvice") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DeliveryRetireAdvice"}, "tail": {$: "Nil"}}};
+  } else if (_decision_0.$ === "Delivery.KeepRemaining") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DeliveryKeepRemaining"}, "tail": {$: "Nil"}}};
+  } else {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DeliveryKeepForReoffer"}, "tail": {$: "Nil"}}};
+  }
+}
+
+function $Delivery$finding_disposition$(_composed_0, _remaining_0) {
+  return $Bool$pick$(_composed_0, {$: "Delivery.KeepForReoffer"}, ($Bool$pick$(($Nat$is_eq$(_remaining_0, 0)), {$: "Delivery.RetireAdvice"}, {$: "Delivery.KeepRemaining"})));
 }
 
 function $Configuration$include_choice$(_supplied_0, _current_rank_0, _candidate_rank_0) {

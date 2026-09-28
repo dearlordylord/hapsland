@@ -170,6 +170,9 @@ type CanonicalEvent is Data:
   CleanupCheck{facts: Retention.CleanupFacts}
   CleanupCommit{}
   DeliveryReleaseCheck{acknowledged: Bool}
+  DeliveryAcknowledgeCheck{items: Nat, any_expired: Bool}
+  DeliveryFinalizeCheck{items: Nat, all_acknowledged: Bool, any_expired: Bool}
+  DeliveryFindingDispositionCheck{composed: Bool, remaining: Nat}
   IncludeLayerCheck{supplied: Bool, current_rank: Nat, candidate_rank: Nat}
   FileSelectionCheck{protected: Bool, excluded: Bool,
     includes_empty: Bool, included: Bool}
@@ -368,6 +371,15 @@ type Command is Data:
   CleanupCommitted{}
   DeliveryReleaseUnacknowledged{}
   DeliveryKeepAcknowledged{}
+  DeliveryAckReady{}
+  DeliveryAckExpired{}
+  DeliveryAckEmpty{}
+  DeliveryFinalReady{}
+  DeliveryFinalExpired{}
+  DeliveryFinalEmpty{}
+  DeliveryRetireAdvice{}
+  DeliveryKeepRemaining{}
+  DeliveryKeepForReoffer{}
   ReuseJoinAdvice{}
   ReuseJoinPending{}
   ReuseJoinClaimed{}
@@ -2332,6 +2344,24 @@ def cleanup_check_result(+state: State, result: Retention.CleanupGate) -> Step:
         CleanupReady{}, CleanupBusy{}) <> Nil{}}
     case Retention.CleanupBusy{}: Advanced{state, CleanupBusy{} <> Nil{}}
 
+def delivery_ack_result(state: State, decision: Delivery.AckDecision) -> Step:
+  match decision:
+    case Delivery.AckReady{}: Advanced{state, DeliveryAckReady{} <> Nil{}}
+    case Delivery.AckExpired{}: Advanced{state, DeliveryAckExpired{} <> Nil{}}
+    case Delivery.AckEmpty{}: Advanced{state, DeliveryAckEmpty{} <> Nil{}}
+
+def delivery_final_result(state: State, decision: Delivery.FinalDecision) -> Step:
+  match decision:
+    case Delivery.FinalReady{}: Advanced{state, DeliveryFinalReady{} <> Nil{}}
+    case Delivery.FinalExpired{}: Advanced{state, DeliveryFinalExpired{} <> Nil{}}
+    case Delivery.FinalEmpty{}: Advanced{state, DeliveryFinalEmpty{} <> Nil{}}
+
+def delivery_disposition_result(state: State, decision: Delivery.FindingDisposition) -> Step:
+  match decision:
+    case Delivery.RetireAdvice{}: Advanced{state, DeliveryRetireAdvice{} <> Nil{}}
+    case Delivery.KeepRemaining{}: Advanced{state, DeliveryKeepRemaining{} <> Nil{}}
+    case Delivery.KeepForReoffer{}: Advanced{state, DeliveryKeepForReoffer{} <> Nil{}}
+
 def cleanup_commit_eligible(state: State) -> Bool:
   match state:
     case State{Ledger.Ledger{_, _, Nil{}}, _, _, _, _, _, _,
@@ -2655,6 +2685,12 @@ def step(+state: State, event: CanonicalEvent) -> Step:
     case DeliveryReleaseCheck{acknowledged}:
       Advanced{state, Bool.pick(Command, Delivery.release_unacknowledged(acknowledged),
         DeliveryReleaseUnacknowledged{}, DeliveryKeepAcknowledged{}) <> Nil{}}
+    case DeliveryAcknowledgeCheck{items, any_expired}:
+      delivery_ack_result(state, Delivery.acknowledge(items, any_expired))
+    case DeliveryFinalizeCheck{items, all_acknowledged, any_expired}:
+      delivery_final_result(state, Delivery.finalize(items, all_acknowledged, any_expired))
+    case DeliveryFindingDispositionCheck{composed, remaining}:
+      delivery_disposition_result(state, Delivery.finding_disposition(composed, remaining))
     case IncludeLayerCheck{supplied, current_rank, candidate_rank}:
       Advanced{state, IncludeChoice{Configuration.include_choice(supplied,
         current_rank, candidate_rank)} <> Nil{}}
