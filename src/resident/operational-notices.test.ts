@@ -15,7 +15,7 @@ import {
 } from "./server.ts";
 import { residentPaths } from "./paths.ts";
 import { PENDING_ADVICE_EXPIRY_MS } from "./collection.ts";
-import { operationalNoticeAdmission, operationalNoticeAdvance } from "./operational-notice-policy.ts";
+import { initialCanonical, projectCanonical, stepCanonical } from "../canonical/adapter.ts";
 
 const enable = (root: string, statePath: string) => Effect.runPromise(Effect.gen(function* () {
   const consent = yield* Consent.Service;
@@ -318,57 +318,28 @@ console.log('{"version":1,"status":"interaction-required"}');
     await excludedServer.close();
   });
 
-  it("preserves active suppression under full-table pressure from another eligible key", () => {
-    const nextAllowedByKey = new Map<string, number>(
-      Array.from({ length: MAX_OPERATIONAL_NOTICE_KEYS }, (_, index) => [
-        `eligible-partition-${index}`,
-        OPERATIONAL_NOTICE_COOLDOWN_MS,
-      ] as const),
-    );
-    const pressure = operationalNoticeAdmission({
-      now: 1,
-      existingNextAllowedAt: nextAllowedByKey.get("another-eligible-partition"),
-      keyCount: nextAllowedByKey.size,
-      maximumKeys: MAX_OPERATIONAL_NOTICE_KEYS,
-    });
-    expect(pressure).toEqual({ action: "reject-full", emit: false });
-    expect(nextAllowedByKey.size).toBe(MAX_OPERATIONAL_NOTICE_KEYS);
-
-    const existingKey = "eligible-partition-0";
-    const repeated = operationalNoticeAdmission({
-      now: OPERATIONAL_NOTICE_COOLDOWN_MS - 1,
-      existingNextAllowedAt: nextAllowedByKey.get(existingKey),
-      keyCount: nextAllowedByKey.size,
-      maximumKeys: MAX_OPERATIONAL_NOTICE_KEYS,
-    });
-    expect(repeated).toEqual({ action: "suppress", emit: false });
-    expect(nextAllowedByKey.get(existingKey)).toBe(OPERATIONAL_NOTICE_COOLDOWN_MS);
-    expect(nextAllowedByKey.size).toBe(MAX_OPERATIONAL_NOTICE_KEYS);
-  });
-
-  it("keeps a fractional-time notice cooldown until the exact deadline", () => {
-    expect(operationalNoticeAdmission({ now: 10.0001,
-      existingNextAllowedAt: 10.0009, keyCount: 1, maximumKeys: 64 }))
-      .toEqual({ action: "suppress", emit: false });
-    expect(operationalNoticeAdmission({ now: 10.0009,
-      existingNextAllowedAt: 10.0009, keyCount: 1, maximumKeys: 64 }))
-      .toEqual({ action: "refresh", emit: true });
-  });
-
-  it("saturates notice counts at the generated Bend Nat boundary", () => {
-    const maximum = Number((1n << 48n) - 1n);
-    const common = {
-      now: 1, existingNextAllowedAt: 2, keyCount: 1, maximumKeys: 64,
-      suppressedCount: maximum, pendingSuppressedCount: undefined,
-      pendingLeased: false,
+  it("saturates canonical suppression counts and keeps a leased pending notice stable", () => {
+    let state = initialCanonical({ globalItems: 4, globalBytes: 1000, partitionItems: 4, partitionBytes: 1000 });
+    const apply = (event: Parameters<typeof stepCanonical>[1]) => {
+      const result = stepCanonical(state, event);
+      state = result.state;
+      return result.commands[0];
     };
-    expect(operationalNoticeAdvance(common)).toEqual({ $: "Suppressed", count: BigInt(maximum) });
-    expect(operationalNoticeAdvance({ ...common, now: 2,
-      suppressedCount: 1, pendingSuppressedCount: maximum }))
-      .toEqual({ $: "MergePending", count: BigInt(maximum) });
-    expect(operationalNoticeAdvance({ ...common, now: 2,
-      suppressedCount: 1, pendingSuppressedCount: maximum, pendingLeased: true }))
-      .toEqual({ $: "KeepLeased" });
+    expect(apply({ kind: "reserveCapacity", partition: 1, bytes: 20,
+      purpose: "operationalNotice" })?.kind).toBe("capacityGranted");
+    expect(apply({ kind: "noticeCommit", key: 1, partition: 1, group: 1,
+      reservation: 1, pending: 1, sequence: 1, maximumKeys: 4 })?.kind).toBe("noticeCommitted");
+    const suppressed = { kind: "noticeAdvance" as const, key: 1, remaining: 1,
+      maximumKeys: 4, proposed: 2, sequence: 2, maxCount: 2 };
+    expect(apply(suppressed)).toEqual({ kind: "noticeSuppressed", count: 1 });
+    expect(apply(suppressed)).toEqual({ kind: "noticeSuppressed", count: 2 });
+    expect(apply(suppressed)).toEqual({ kind: "noticeSuppressed", count: 2 });
+    expect(apply({ ...suppressed, remaining: 0 })).toEqual({ kind: "noticeMergePending", count: 2 });
+    expect(apply({ kind: "noticeLease", key: 1, leased: true })?.kind).toBe("noticeLeased");
+    expect(apply({ ...suppressed, remaining: 0 })?.kind).toBe("noticeKeepLeased");
+    expect(projectCanonical(state).notices[0]).toMatchObject({
+      suppressed: 0, pending: { id: 1, count: 2, leased: true },
+    });
   });
 
   it("reclaims pending notice state at the exact expiry boundary", async () => {

@@ -13,6 +13,7 @@ import ./RevisionState.bend as RevisionState
 import ./Ticket.bend as Ticket
 import ./TicketState.bend as TicketState
 import ./ReuseState.bend as ReuseState
+import ./NoticeState.bend as NoticeState
 
 # #119 boundary: one resident lifetime, shared ledger, active advicee rounds.
 # Native IDs are bijectively mapped to positive Nat values before entry.
@@ -172,6 +173,17 @@ type CanonicalEvent is Data:
     entry_limit: Nat, byte_limit: Nat}
   CacheDiscardPartition{partition: Nat}
   CacheClear{}
+  NoticeAdvance{key: Nat, remaining: Maybe<&2, Nat>, maximum_keys: Nat,
+    proposed: Nat, sequence: Nat, max_count: Nat}
+  NoticeCommit{key: Nat, partition: Nat, group: Nat, reservation: Nat,
+    pending: Nat, sequence: Nat, maximum_keys: Nat}
+  NoticePrune{key: Nat, lease_expired: Bool, pending_expired: Bool,
+    excepted: Bool, cooldown_expired: Bool}
+  NoticeDrop{key: Nat}
+  NoticeLease{key: Nat, leased: Bool}
+  NoticeClearPending{key: Nat}
+  NoticeSelect{partition: Nat, group: Nat, composed: Bool,
+    ticketed: Bool, allowed: List<&2, Nat>}
   OutputStarted{partition: Nat, lifetime: Nat, round: Nat}
   OutputTerminal{partition: Nat, lifetime: Nat, round: Nat,
     operation: Nat, outcome: WriteOutcome}
@@ -332,6 +344,19 @@ type Command is Data:
   CachePrepared{evicted: List<&2, Nat>}
   CacheCommitted{}
   CacheDiscarded{ids: List<&2, Nat>}
+  NoticeSuppressed{count: Nat}
+  NoticeRejectedFull{}
+  NoticeCreateKey{}
+  NoticeCreatePending{count: Nat}
+  NoticeMergePending{count: Nat}
+  NoticeKeepLeased{}
+  NoticeRefused{}
+  NoticeCommitted{}
+  NoticePruned{drop_lease: Bool, drop_pending: Bool, drop_key: Bool}
+  NoticeDropped{}
+  NoticeLeased{}
+  NoticePendingCleared{}
+  NoticeSelected{ids: List<&2, Nat>}
   WriteAuthorized{operation: Nat}
   WriteRecorded{outcome: WriteOutcome}
   WaitForOutput{}
@@ -2291,6 +2316,59 @@ def cache_commit(+state: State, +id: Nat, +partition: Nat, +bytes: Nat,
         entry_limit, byte_limit,
         cache_charge_valid(Ledger.find(reservation, charges), partition, bytes))
 
+def notice_step(+state: State, replacement: NoticeState.State, command: Command) -> Step:
+  Advanced{with_collection(state,
+    CollectionState.with_notices(collection_of(state), replacement)), command <> Nil{}}
+
+def notice_advance_result(+state: State, result: NoticeState.Advance) -> Step:
+  match result:
+    case NoticeState.Suppressed{replacement, count}:
+      notice_step(state, replacement, NoticeSuppressed{count})
+    case NoticeState.RejectedFull{_}: Advanced{state, NoticeRejectedFull{} <> Nil{}}
+    case NoticeState.CreateKey{_}: Advanced{state, NoticeCreateKey{} <> Nil{}}
+    case NoticeState.CreatePending{replacement, count}:
+      notice_step(state, replacement, NoticeCreatePending{count})
+    case NoticeState.MergePending{replacement, count}:
+      notice_step(state, replacement, NoticeMergePending{count})
+    case NoticeState.KeepLeased{replacement}:
+      notice_step(state, replacement, NoticeKeepLeased{})
+    case NoticeState.RefusedAdvance{_}: Advanced{state, NoticeRefused{} <> Nil{}}
+
+def notice_decision_result(+state: State, result: NoticeState.Decision,
+    granted: Command) -> Step:
+  match result:
+    case NoticeState.Granted{replacement}: notice_step(state, replacement, granted)
+    case NoticeState.Refused{_}: Advanced{state, NoticeRefused{} <> Nil{}}
+
+def notice_prune_result(+state: State, result: NoticeState.PruneResult) -> Step:
+  match result:
+    case NoticeState.Pruned{replacement, drop_lease, drop_pending, drop_key}:
+      notice_step(state, replacement, NoticePruned{drop_lease, drop_pending, drop_key})
+    case NoticeState.PruneMissing{_}: Advanced{state, NoticeRefused{} <> Nil{}}
+
+def notice_charge_valid(found: Maybe<&2, Ledger.Charge>, partition: Nat) -> Bool:
+  match found:
+    case Some{Ledger.Charge{_, owner, _, Ledger.OperationalNotice{}}}:
+      Nat.is_eq(partition, owner)
+    case _: False{}
+
+def notice_commit_checked(+state: State, +key: Nat, +partition: Nat, +group: Nat,
+    +reservation: Nat, +pending: Nat, sequence: Nat, maximum_keys: Nat, valid: Bool) -> Step:
+  match valid:
+    case True{}:
+      notice_decision_result(state, NoticeState.commit(
+        CollectionState.notice_state(collection_of(state)), key, partition,
+        group, reservation, pending, sequence, maximum_keys), NoticeCommitted{})
+    case False{}: Advanced{state, NoticeRefused{} <> Nil{}}
+
+def notice_commit(+state: State, +key: Nat, +partition: Nat, +group: Nat,
+    +reservation: Nat, +pending: Nat, sequence: Nat, maximum_keys: Nat) -> Step:
+  match state:
+    case State{Ledger.Ledger{_, _, charges}, _, _, _, _, _, _, _}:
+      notice_commit_checked(state, key, partition, group, reservation, pending,
+        sequence, maximum_keys,
+        notice_charge_valid(Ledger.find(reservation, charges), partition))
+
 def step(+state: State, event: CanonicalEvent) -> Step:
   match event:
     case ReserveCapacity{partition, bytes, purpose}:
@@ -2498,6 +2576,29 @@ def step(+state: State, event: CanonicalEvent) -> Step:
     case CacheClear{}:
       cache_discard_result(state, ReuseState.clear(
         CollectionState.reuse_state(collection_of(state))))
+    case NoticeAdvance{key, remaining, maximum_keys, proposed, sequence, max_count}:
+      notice_advance_result(state, NoticeState.advance(
+        CollectionState.notice_state(collection_of(state)), key, remaining,
+        maximum_keys, proposed, sequence, max_count))
+    case NoticeCommit{key, partition, group, reservation, pending, sequence, maximum_keys}:
+      notice_commit(state, key, partition, group, reservation, pending, sequence, maximum_keys)
+    case NoticePrune{key, lease_expired, pending_expired, excepted, cooldown_expired}:
+      notice_prune_result(state, NoticeState.prune(
+        CollectionState.notice_state(collection_of(state)), key, lease_expired,
+        pending_expired, excepted, cooldown_expired))
+    case NoticeDrop{key}:
+      notice_step(state, NoticeState.drop(
+        CollectionState.notice_state(collection_of(state)), key), NoticeDropped{})
+    case NoticeLease{key, leased}:
+      notice_decision_result(state, NoticeState.lease(
+        CollectionState.notice_state(collection_of(state)), key, leased), NoticeLeased{})
+    case NoticeClearPending{key}:
+      notice_decision_result(state, NoticeState.clear_pending(
+        CollectionState.notice_state(collection_of(state)), key), NoticePendingCleared{})
+    case NoticeSelect{partition, group, composed, ticketed, allowed}:
+      Advanced{state, NoticeSelected{NoticeState.select(
+        CollectionState.notice_state(collection_of(state)), partition, group,
+        composed, ticketed, allowed)} <> Nil{}}
     case OutputStarted{partition, lifetime, round}:
       output_start(state, partition, lifetime, round)
     case OutputTerminal{partition, lifetime, round, operation, outcome}:
