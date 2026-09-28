@@ -26,6 +26,7 @@ export class DispatchCycles<K, A> {
   readonly #run: (entry: DispatchEntry<K, A>) => Promise<void>;
   readonly #onCycleComplete: ((cycle: number) => void) | undefined;
   readonly #idleWaiters: Array<() => void> = [];
+  readonly #terminalRunning = new Set<number>();
   #terminal = false;
 
   constructor(ledger: CapacityLedger, operation: (value: A) => number,
@@ -95,6 +96,9 @@ export class DispatchCycles<K, A> {
   close(): ReadonlyArray<A> {
     const result = this.#ledger.transition({ kind: "closeDispatch" });
     if (result.rejection !== undefined) throw new Error("canonical dispatch close refused");
+    for (const entry of this.#ledger.canonicalProjection().dispatch.running) {
+      this.#terminalRunning.add(entry.operation);
+    }
     this.#terminal = true;
     return this.#apply(result.commands);
   }
@@ -117,7 +121,10 @@ export class DispatchCycles<K, A> {
   #assertNativeHandles(): void {
     const live = this.#liveOperations();
     if (live.some((operation) => !this.#entries.has(operation)) ||
-        (!this.#terminal && live.length !== this.#entries.size)) {
+        (this.#terminal
+          ? this.#entries.size !== this.#terminalRunning.size ||
+            [...this.#entries.keys()].some((operation) => !this.#terminalRunning.has(operation))
+          : live.length !== this.#entries.size)) {
       throw new Error("canonical dispatch and native job handles diverged");
     }
   }
@@ -132,6 +139,7 @@ export class DispatchCycles<K, A> {
           void this.#run({ key: entry.key, value: entry.value, sequence: command.sequence,
             cycle: command.cycle }).catch(() => undefined).finally(() => {
             this.#entries.delete(command.operation);
+            this.#terminalRunning.delete(command.operation);
             if (this.#terminal && !this.#ledger.canonicalProjection().dispatch.running
               .some((running) => running.operation === command.operation)) {
               this.#settleIdle();

@@ -5,6 +5,9 @@ export const GLOBAL_ITEM_LIMIT = 64;
 export const GLOBAL_BYTE_LIMIT = 8 * 1024 * 1024;
 export const PARTITION_ITEM_LIMIT = 16;
 export const PARTITION_BYTE_LIMIT = 2 * 1024 * 1024;
+// A retired partition has no mapped round. This positive candidate lets
+// QueueDispatch reject it by missing canonical Work instead of native policy.
+const RETIRED_DISPATCH_ROUND_CANDIDATE = 1;
 
 export type CapacityLimits = {
   readonly globalItems: number;
@@ -83,7 +86,7 @@ export class CapacityLedger {
   }
 
   dispatchIdentity(partition: string): { readonly partition: number; readonly round: number } {
-    return { partition: this.partitionId(partition), round: this.#roundIds.get(partition) ?? 1 };
+    return { partition: this.partitionId(partition), round: this.#roundIds.get(partition) ?? RETIRED_DISPATCH_ROUND_CANDIDATE };
   }
 
   dispatchScope(namedCount: number, cancelledCount: number, hasUnnamed: boolean): boolean {
