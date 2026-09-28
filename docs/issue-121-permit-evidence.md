@@ -45,17 +45,34 @@ post-edit callbacks without retaining source in the canonical fixture.
 | [Codex hooks reference](https://learn.chatgpt.com/docs/hooks) | Host documentation | Project claim, current page checked 2026-09-28 | `SubagentStop` carries `agent_id`. The published per-tool schema does not establish whether child tool hooks always carry it. |
 | `evidence/host-94/claude-2.1.218-local-probe.json` | Local runtime probe | Observed main-thread Edit/Write only | Main-thread edit callbacks omitted `agent_id`; this is expected and cannot identify a child. |
 | Adapter regression cases | Offline simulation | Executed | A missing `agent_id` alongside `agent_type` or `agent_transcript_path` is rejected. Missing `agent_id` on `SubagentStop` is rejected. |
+| [Pinned child probes](../evidence/subagent-identity/probe.mjs) | Native CLI run, Linux arm64, 2026-09-28 | One completed child and parent edit per version | Claude 2.1.218 and Codex 0.155.1/0.156.0 carried one matching child `agent_id` through start, pre-edit, post-edit, and stop. Parent edit hooks omitted child markers. All assertions passed in the [Claude](../evidence/subagent-identity/claude-2.1.218-linux-arm64.json), [Codex 0.155.1](../evidence/subagent-identity/codex-0.155.1-linux-arm64.json), and [Codex 0.156.0](../evidence/subagent-identity/codex-0.156.0-linux-arm64.json) source-free records. |
 
-No retained local probe exercised a child edit and its Stop callback on the
-supported host versions. An event with `agent_id`, `agent_type`, and
-`agent_transcript_path` all absent is indistinguishable from a main-thread event
-using the installed payload alone. Hapsland cannot safely attribute such an
-event to a child without another host-owned identity signal. The current
-adapter therefore rejects identifiable ambiguity and documents the remaining
-host contract dependency; it does not infer a child from a shared session ID.
-This conservative rule can also suppress a main-thread event from a Claude
-session launched with `--agent`, where the host documents `agent_type` without
-`agent_id`.
+The probes ran the real CLIs in disposable Git repositories with project or
+inline observer hooks. Claude used `Write`; Codex used `apply_patch`. The
+observer retained only field presence, hashed IDs, tool names, and exact
+fixture-completion booleans. It retained no prompt, source, credential, or
+model response. These three runs establish the identity fields for those
+versions and this headless Linux arm64 mode. Codex's child shared the parent
+session ID but had a different turn ID. These runs do not establish every host
+path, other platforms, or child-specific Hapsland advice delivery. A wholly
+markerless child callback would still be indistinguishable from a main-agent
+callback; the adapter rejects partial child markers without an ID, but cannot
+recognize a wholly markerless child from the payload alone. A Claude session
+launched with `--agent` can also supply `agent_type` without `agent_id`, so the
+conservative rejection can suppress its main-thread event.
+
+To repeat the check, point `HAP_CLAUDE_BIN` or `HAP_CODEX_BIN` at the exact
+version and run `node evidence/subagent-identity/probe.mjs claude` or `codex`.
+The runner asserts matching child IDs, unmarked parent edits, a shared session,
+completed fixture edits, and separate Codex turns. Codex ran with inline hooks
+and an unrestricted sandbox in its disposable fixture because this container's
+`bwrap` could not create a user namespace. Neither run invoked Jev.
+
+Abide is not a child-attribution precedent: its pinned [hook schema](https://github.com/coldteadotai/abide/blob/cd1685309cb29269e650411e0153858fb7e8703d/packages/schema/src/hooks.ts)
+does not preserve `agent_id`, and its [edit handler](https://github.com/coldteadotai/abide/blob/cd1685309cb29269e650411e0153858fb7e8703d/packages/cli/src/hooks/postToolUse.ts)
+groups work by session and prompt/turn ID. Abide checks each edit immediately;
+Hapsland also retains addressed advice for later delivery, so it keeps the
+supplied child ID in the advicee partition.
 
 ## Review boundary
 

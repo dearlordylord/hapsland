@@ -1,0 +1,179 @@
+{
+  "host": "claude",
+  "version": "2.1.218",
+  "platform": "linux",
+  "arch": "arm64",
+  "mode": "headless print, project hooks, acceptEdits",
+  "assertions": {
+    "hostCompleted": true,
+    "bothEditsCompleted": true,
+    "childIdentityConsistent": true,
+    "childMarkersPresent": true,
+    "parentUnmarked": true,
+    "sharedSession": true,
+    "separateCodexTurns": true
+  },
+  "events": [
+    {
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "fields": {
+        "agent_id": false,
+        "agent_type": false,
+        "agent_transcript_path": false,
+        "session_id": true,
+        "turn_id": false,
+        "tool_use_id": true
+      },
+      "session": "78fdb8e672ce",
+      "turn": null,
+      "agent": null,
+      "agentType": null,
+      "toolUse": "e71cd35398d7"
+    },
+    {
+      "event": "SubagentStart",
+      "tool": null,
+      "fields": {
+        "agent_id": true,
+        "agent_type": true,
+        "agent_transcript_path": false,
+        "session_id": true,
+        "turn_id": false,
+        "tool_use_id": false
+      },
+      "session": "78fdb8e672ce",
+      "turn": null,
+      "agent": "bc3dc5f6309c",
+      "agentType": "claude",
+      "toolUse": null
+    },
+    {
+      "event": "PreToolUse",
+      "tool": "Write",
+      "fields": {
+        "agent_id": true,
+        "agent_type": true,
+        "agent_transcript_path": false,
+        "session_id": true,
+        "turn_id": false,
+        "tool_use_id": true
+      },
+      "session": "78fdb8e672ce",
+      "turn": null,
+      "agent": "bc3dc5f6309c",
+      "agentType": "claude",
+      "toolUse": "46f48d6e3294"
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "Write",
+      "fields": {
+        "agent_id": true,
+        "agent_type": true,
+        "agent_transcript_path": false,
+        "session_id": true,
+        "turn_id": false,
+        "tool_use_id": true
+      },
+      "session": "78fdb8e672ce",
+      "turn": null,
+      "agent": "bc3dc5f6309c",
+      "agentType": "claude",
+      "toolUse": "46f48d6e3294"
+    },
+    {
+      "event": "SubagentStop",
+      "tool": null,
+      "fields": {
+        "agent_id": true,
+        "agent_type": true,
+        "agent_transcript_path": true,
+        "session_id": true,
+        "turn_id": false,
+        "tool_use_id": false
+      },
+      "session": "78fdb8e672ce",
+      "turn": null,
+      "agent": "bc3dc5f6309c",
+      "agentType": "claude",
+      "toolUse": null
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "Agent",
+      "fields": {
+        "agent_id": false,
+        "agent_type": false,
+        "agent_transcript_path": false,
+        "session_id": true,
+        "turn_id": false,
+        "tool_use_id": true
+      },
+      "session": "78fdb8e672ce",
+      "turn": null,
+      "agent": null,
+      "agentType": null,
+      "toolUse": "e71cd35398d7"
+    },
+    {
+      "event": "PreToolUse",
+      "tool": "Write",
+      "fields": {
+        "agent_id": false,
+        "agent_type": false,
+        "agent_transcript_path": false,
+        "session_id": true,
+        "turn_id": false,
+        "tool_use_id": true
+      },
+      "session": "78fdb8e672ce",
+      "turn": null,
+      "agent": null,
+      "agentType": null,
+      "toolUse": "2724a0c91ed8"
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "Write",
+      "fields": {
+        "agent_id": false,
+        "agent_type": false,
+        "agent_transcript_path": false,
+        "session_id": true,
+        "turn_id": false,
+        "tool_use_id": true
+      },
+      "session": "78fdb8e672ce",
+      "turn": null,
+      "agent": null,
+      "agentType": null,
+      "toolUse": "2724a0c91ed8"
+    },
+    {
+      "event": "Stop",
+      "tool": null,
+      "fields": {
+        "agent_id": false,
+        "agent_type": false,
+        "agent_transcript_path": false,
+        "session_id": true,
+        "turn_id": false,
+        "tool_use_id": false
+      },
+      "session": "78fdb8e672ce",
+      "turn": null,
+      "agent": null,
+      "agentType": null,
+      "toolUse": null
+    }
+  ],
+  "hostOutput": {
+    "stdoutBytes": 1707,
+    "stderrBytes": 0,
+    "eventTypes": [],
+    "stderrHasError": false,
+    "stderrHasWarning": false,
+    "stderrTopics": []
+  }
+}

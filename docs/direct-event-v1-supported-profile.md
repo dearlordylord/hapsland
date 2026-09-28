@@ -130,8 +130,12 @@ model visibility required exact repetition of a randomized hook-only value absen
 prompt. That single observation does not establish reliable model visibility. Update and multi-file support
 is separately grounded in native `0.155.1` payload captures plus deterministic production
 pipeline gates; it was not rerun live in this final Add conformance. Real child-specific
-delivery is unvalidated, although child identity preservation and partition isolation are
-deterministically checked.
+delivery is unvalidated. [Pinned native child probes](../evidence/subagent-identity/probe.mjs)
+and their [Claude](../evidence/subagent-identity/claude-2.1.218-linux-arm64.json),
+[Codex 0.155.1](../evidence/subagent-identity/codex-0.155.1-linux-arm64.json), and
+[Codex 0.156.0](../evidence/subagent-identity/codex-0.156.0-linux-arm64.json)
+records verify child identity fields under Linux arm64, alongside deterministic
+partition isolation checks.
 
 ## Bounded live Jev evidence and gaps
 
