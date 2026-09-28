@@ -19,14 +19,15 @@ after E and G do not fit. The owner resumed the migration in a new session.
 traces merged through PR #144 and #119 is closed. #120's resident capacity
 slice is merged at `b90a524`. #121's canonical permit admission is merged at
 `cdb00d9`. #122's canonical observation fan-out and review outcomes are merged
-at `b8056e2`. #123's canonical FIFO dispatch is merged at `348604c`; the next
-migration slice is #124. Other resident decision paths under #124–#134 are
+at `b8056e2`. #123's canonical FIFO dispatch is merged at `348604c`.
+#124's canonical Stop wait and cutoff is merged; the next migration slice is
+#125. Other resident decision paths under #125–#134 are
 still pending. Configurable graph limits and
 general budget/termination proofs are tracked separately in
 [#142](https://github.com/dearlordylord/hapsland/issues/142).
 
 The integrated epic is in `/workspace/typescript/jev-worktrees/bend-full-flow`
-(`feat/bend-full-flow`, merge `348604c`). Start #124 in a new task worktree
+(`feat/bend-full-flow`, merged through #124). Start #125 in a new task worktree
 from the latest epic tip. The old `/tmp/hapsland-bend-handoff.md` predates #119
 and is no longer a valid resume point. The `/workspace/typescript/jev` checkout
 is older and is not the edit target.
@@ -196,6 +197,21 @@ after discard. Bend proofs, 15 total canonical traces, typecheck, build, and
 588 offline tests passed; two credential-gated live tests were skipped.
 See `docs/issue-123-dispatch-evidence.md` for the boundary and evidence.
 
+## #124 Stop waiting and cutoff (merged 2026-09-28)
+
+`Canonical.step` now polls Stop over an exact group of edit partition and
+round identities, waits for unfinished source/review work and native external
+owners until deadline, then fences the group and its partitions in one
+transition. Bend releases unfinished review charges, emits only unfinished
+dispatch IDs to cancel, and decides readiness versus the four-continuation
+limit. A held `afterAdvicePending` callback regression verifies completed
+findings are retained while dispatch cleanup is still running. Continuing
+Stop clears the fence; closure retires it. The direct legacy aggregate Stop
+decision calls were removed from the resident path and guarded. Eighteen
+independent canonical traces, Bend proofs, typecheck, build, and 589 offline
+tests passed; two credential-gated live tests were skipped. Both reviews found
+no remaining blocking issue. See `docs/issue-124-stop-evidence.md`.
+
 ## Next autonomous migration run
 
 Use the GitHub issue bodies as the task contracts. Work in a dedicated task
@@ -206,7 +222,7 @@ the issue only when its criteria have evidence. Update this handoff after each
 merged slice. Do not treat the separate #141 import-graph diagram as the final
 production replay.
 
-One valid single-agent order from here is #124, #125, #126,
+One valid single-agent order from here is #125, #126,
 #127, #128, #129, #130, #131, #132, #133, #134, #135. Dependencies allow
 #132–#134 to proceed after their own blockers while the #123–#131 chain is in
 progress; #135 needs both #131 and #134. #135 delivers the build-generated
