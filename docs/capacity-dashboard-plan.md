@@ -22,9 +22,13 @@ Generate the inventory from checked, compiled Bend output during the build.
 Its reservation purposes and limit connections must come from the same Bend
 definitions used by admission, with a build check that every purpose and limit
 is represented. The renderer supplies wording and layout, not policy edges.
-For the current #119 model, **Preparing review** and **Review unit** each use
-the same four limits: resident item count, resident bytes, agent item count,
-and agent bytes. There are no separate pools for those two purposes.
+For the current #119 model, **Preparing review** and **Review unit** are two
+reservation lifetimes in one review flow. Preparing review is still review:
+Hapsland holds temporary space while it makes review units, then releases that
+space and reserves space for each unit. These are not arbitrary review phases.
+Each reservation faces four checks: resident item count, resident bytes, agent
+item count, and agent bytes. Four checks do not mean four kinds of work. There
+are no separate pools for preparation and units.
 
 That two-purpose inventory is incomplete for the installed resident. It also
 reserves capacity for observation and dispatch data, stored review results,

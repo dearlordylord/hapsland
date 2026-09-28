@@ -2,15 +2,35 @@
 
 ## In plain language
 
-Hapsland runs a local process called the **resident**. Hook clients using the
-same resident directory connect to it, so several agents can use one resident.
-This includes a parent agent and an identified subagent. Each has a separate
-review and advice scope, called an **advicee partition** in the model. The
-resident shares review capacity across those scopes. Its **review capacity
-ledger** records temporary reservations against two limits: work items and
-measured bytes. A preparation job or review unit reserves one item and its
-bytes. The Bend code calls a reservation `Charge`; this is not money, process
-RAM, or a Jev request. Each agent's usage is part of the shared total.
+When an agent edits a file, its agent runtime starts a short Hapsland command.
+That command sends the edit event to Hapsland's **resident**: a local background
+process that schedules review work and calls Jev. The resident keeps a **review
+capacity ledger** in its own memory. The ledger tracks how much space its
+review-related records reserve. It is not a record of all process memory or of
+Jev's own capacity.
+
+The command reaches the resident through a socket in a filesystem directory.
+This **resident connection directory** contains no source files or ledger data.
+By default it is outside Git worktrees and shared by Hapsland commands run by
+the same operating-system user. Thus different worktrees, and Codex and Claude
+Code commands with the same directory setting, can reach one resident. Their
+source files stay in their own worktrees. The resident keeps review and advice
+separate by exact working root, runtime, session, and supplied subagent ID.
+The model calls each such scope an **advicee partition**. A missing subagent ID
+currently maps to the main-agent scope; it does not prove the event came from
+the main agent. Child-specific advice needs reliable child attribution.
+
+The ledger checks four limits for each reservation: item count and bytes for
+the whole resident, and item count and bytes for that agent scope. These are
+two measurements at two scopes, not four kinds of work. Each agent's usage is
+part of the resident total. The current #119 Bend slice describes two
+reservation lifetimes: space used while Hapsland prepares review units, and
+space held for each unit it sends to Jev. Preparing a unit is part of review.
+The split exists because the first record ends when preparation yields zero or
+more unit records. It does not divide review into arbitrary named phases.
+The installed resident reserves space for other records too; #119 does not yet
+model them all. Bend calls a reservation `Charge`; that is a code name, not a
+payment or a Jev request.
 
 When preparation finds several review units, Hapsland releases its temporary
 reservation and checks the units in order. If a unit does not fit, it

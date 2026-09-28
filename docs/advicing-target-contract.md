@@ -47,8 +47,12 @@ failed delivery.
 Review and advice belong to an exact advicee partition: canonical physical
 working root, agent runtime and supported version, session ID, and supplied
 subagent ID or null. Native `agent_id` maps to Hapsland's `subagentId` at the
-adapter boundary. Main and child agents use the same review and delivery rules;
-the resident does not need a parent-child tree. Separate sessions and isolated
+adapter boundary. Today an omitted ID maps to null, the main-agent scope. That
+mapping does not prove an event came from the main agent. If a runtime can omit
+the ID for a child event, Hapsland needs another reliable attribution fact or
+must withhold child-specific advice. Main and identified child agents use the
+same review and delivery rules; the resident does not need a parent-child tree.
+Separate sessions and isolated
 working roots remain separate. A shared-root change of unknown origin has no
 advicee and cannot produce addressed advice. Native turn IDs are event metadata,
 not advicee or virtual-round identity.
