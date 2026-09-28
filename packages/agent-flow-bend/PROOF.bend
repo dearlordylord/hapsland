@@ -13,6 +13,9 @@ def Laws.canonical_completed_finding_does_not_block_finish():
 def Laws.canonical_source_without_charge_blocks_finish():
   {==}
 
+def Laws.dispatch_first_item_starts_cycle_one():
+  {==}
+
 def Laws.canonical_deadline_releases_exact_charge():
   {==}
 

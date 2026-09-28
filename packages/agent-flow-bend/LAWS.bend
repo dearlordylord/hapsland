@@ -18,6 +18,7 @@ import ./Reuse.bend as Reuse
 import ./Retention.bend as Retention
 import ./ImportGraph.bend as ImportGraph
 import ./Canonical.bend as Canonical
+import ./Dispatch.bend as Dispatch
 
 law canonical_cross_advicee_identity_is_distinct:
   {Canonical.same_ids(1n, 1n, 1n, 2n, 1n, 1n) == False{} : Bool}
@@ -36,6 +37,13 @@ law canonical_source_without_charge_blocks_finish:
   {Canonical.pending(1n, 1n, 1n,
     Canonical.Work{1n, 1n, 1n, 2n, 0n, Canonical.SourceReading{}, 0n} <> Nil{}) ==
     True{} : Bool}
+
+law dispatch_first_item_starts_cycle_one:
+  {Dispatch.enqueue(Dispatch.initial(), 1n, 1n, 1n, 7n) ==
+    Dispatch.Advanced{Dispatch.State{Nil{}, Nil{},
+      Dispatch.Entry{1n, 1n, 1n, 7n, 0n, 1n, False{}} <> Nil{},
+      1n, 1n, False{}},
+      Dispatch.Started{7n, 0n, 1n} <> Nil{}} : Dispatch.DispatchResult}
 
 law canonical_deadline_releases_exact_charge:
   {Canonical.release_round_charges(
@@ -62,10 +70,10 @@ law canonical_capacity_view_uses_bend_ledger_totals:
 law canonical_released_capacity_rejects_duplicate:
   {Canonical.capacity_release(Canonical.State{Ledger.Ledger{
     Ledger.Limits{3n, 100n, 2n, 60n}, 2n, Nil{}},
-    Nil{}, Nil{}, 1n, 1n, Nil{}}, 1n) ==
+    Nil{}, Nil{}, 1n, 1n, Nil{}, Dispatch.initial()}, 1n) ==
     Canonical.Rejected{Canonical.State{Ledger.Ledger{
       Ledger.Limits{3n, 100n, 2n, 60n}, 2n, Nil{}},
-      Nil{}, Nil{}, 1n, 1n, Nil{}}, Canonical.StaleOperation{}} : Canonical.Step}
+      Nil{}, Nil{}, 1n, 1n, Nil{}, Dispatch.initial()}, Canonical.StaleOperation{}} : Canonical.Step}
 
 law canonical_permit_issue_is_partitioned_and_round_bound:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
@@ -75,17 +83,17 @@ law canonical_permit_issue_is_partitioned_and_round_bound:
     Canonical.Advanced{Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
       Nil{}, Nil{}, 1n, 1n,
       Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n,
-        Admission.Permit{1n, 11n, 1n, 100n, 300n} <> Nil{}, Nil{}} <> Nil{}},
+        Admission.Permit{1n, 11n, 1n, 100n, 300n} <> Nil{}, Nil{}} <> Nil{}, Dispatch.initial()},
       Canonical.PermitIssued{1n, 1n} <> Nil{}} : Canonical.Step}
 
 law canonical_expired_prospective_round_closes_once:
   {Canonical.step(Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Nil{}, Nil{}, 1n, 1n,
-    Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n, Nil{}, Nil{}} <> Nil{}},
+    Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n, Nil{}, Nil{}} <> Nil{}, Dispatch.initial()},
     Canonical.ClosePermitRound{1n, 1n, 1n, 200n, True{}}) ==
     Canonical.Advanced{Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
       Nil{}, Nil{}, 1n, 1n,
-      Admission.AdmissionState{1n, 1n, 1n, False{}, 200n, 2n, Nil{}, Nil{}} <> Nil{}},
+      Admission.AdmissionState{1n, 1n, 1n, False{}, 200n, 2n, Nil{}, Nil{}} <> Nil{}, Dispatch.initial()},
       Canonical.PermitRoundClosed{1n} <> Nil{}} : Canonical.Step}
 
 law ledger_resize_changes_purpose_without_new_reservation:

@@ -1,5 +1,25 @@
 import { describe, expect, it } from "vitest";
 import { DispatchCycles } from "./dispatch.ts";
+import { CapacityLedger } from "./capacity.ts";
+
+const createDispatch = (concurrency: number,
+  run: (entry: { readonly key: string; readonly value: number; readonly sequence: number; readonly cycle: number }) => Promise<void>,
+  onCycleComplete?: (cycle: number) => void) => {
+  if (concurrency < 1 || concurrency > 2) throw new Error("invalid fixture concurrency");
+  const ledger = new CapacityLedger();
+  const ids = new Map<number, number>();
+  const dispatch = new DispatchCycles<string, number>(ledger, (value) => ids.get(value)!, run, onCycleComplete);
+  return {
+    enqueue: (key: string, value: number) => {
+      ids.set(value, ledger.admitObservation(key));
+      return dispatch.enqueue(key, value);
+    },
+    hasWork: (key: string) => dispatch.hasWork(key),
+    whenIdle: () => dispatch.whenIdle(),
+    snapshot: () => dispatch.snapshot(),
+    close: () => dispatch.close(),
+  };
+};
 
 const gate = () => {
   let open: (() => void) | undefined;
@@ -17,7 +37,7 @@ const eventually = async (predicate: () => boolean) => {
 describe("resident finite dispatch cycles", () => {
   it("reports work only for the advicee with queued or running entries", async () => {
     const first = gate();
-    const dispatcher = new DispatchCycles<string, number>(1, async ({ value }) => {
+    const dispatcher = createDispatch(1, async ({ value }) => {
       if (value === 1) await first.wait();
     });
     dispatcher.enqueue("a", 1);
@@ -34,7 +54,7 @@ describe("resident finite dispatch cycles", () => {
   it("dispatches an idle lone item immediately and puts sustained later arrivals in later cycles", async () => {
     const first = gate();
     const started: Array<{ value: number; cycle: number }> = [];
-    const dispatcher = new DispatchCycles<string, number>(2, async ({ value, cycle }) => {
+    const dispatcher = createDispatch(2, async ({ value, cycle }) => {
       started.push({ value, cycle });
       if (value === 0) await first.wait();
     });
@@ -54,7 +74,7 @@ describe("resident finite dispatch cycles", () => {
     const releases: Array<() => void> = [];
     let running = 0;
     let maximum = 0;
-    const dispatcher = new DispatchCycles<string, number>(2, async () => {
+    const dispatcher = createDispatch(2, async () => {
       running += 1;
       maximum = Math.max(maximum, running);
       await new Promise<void>((resolve) => releases.push(resolve));
@@ -76,7 +96,7 @@ describe("resident finite dispatch cycles", () => {
 
   it("returns every not-yet-running item on lifecycle close", async () => {
     const first = gate();
-    const dispatcher = new DispatchCycles<string, number>(1, async ({ value }) => {
+    const dispatcher = createDispatch(1, async ({ value }) => {
       if (value === 1) await first.wait();
     });
     dispatcher.enqueue("partition", 1);
@@ -92,7 +112,7 @@ describe("resident finite dispatch cycles", () => {
     const first = gate();
     const entries: Array<{ key: string; value: number; sequence: number; cycle: number }> = [];
     const completed: Array<number> = [];
-    const dispatcher = new DispatchCycles<string, number>(
+    const dispatcher = createDispatch(
       2,
       async ({ key, value, sequence, cycle }) => {
         entries.push({ key, value, sequence, cycle });

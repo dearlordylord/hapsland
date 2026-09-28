@@ -107,6 +107,12 @@ describe("canonical resident capacity", () => {
       await server.whenIdle();
       expect(server.pendingAdviceMetadata().map((item) => item.path).sort())
         .toEqual(["first.ts", "second.ts"]);
+      expect(server.pendingAdviceMetadata().map((item) => ({
+        cycle: item.cycle, sequence: item.sequence, cycleComplete: item.cycleComplete,
+      })).sort((left, right) => left.sequence - right.sequence)).toEqual([
+        { cycle: 2, sequence: 1, cycleComplete: true },
+        { cycle: 2, sequence: 2, cycleComplete: true },
+      ]);
       expect(server.stats().retainedBytes).toBeGreaterThan(0);
       expect(server.stats().rejectedCapacity).toBe(0);
     } finally {

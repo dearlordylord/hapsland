@@ -32,7 +32,8 @@ type ResidentTransition = Extract<CanonicalEvent, { readonly kind:
   "interruptObservation" | "beginObservedPreparation" | "interruptPreparation" |
   "preparationCompleted" | "startReview" | "reviewCompleted" | "retireReview" |
   "retirePartition" | "reviewObserved" | "preparedOfferCheck" |
-  "emptyPreparedCheck" | "reviewFailureCheck" }>;
+  "emptyPreparedCheck" | "reviewFailureCheck" | "queueDispatch" |
+  "dispatchSettled" | "discardDispatch" | "dispatchScopeCheck" | "closeDispatch" }>;
 
 const defaultLimits: CapacityLimits = {
   globalItems: GLOBAL_ITEM_LIMIT,
@@ -79,6 +80,20 @@ export class CapacityLedger {
       this.#partitionIds.set(partition, id);
     }
     return id;
+  }
+
+  dispatchIdentity(partition: string): { readonly partition: number; readonly round: number } | undefined {
+    const round = this.#roundIds.get(partition);
+    return round === undefined ? undefined : { partition: this.partitionId(partition), round };
+  }
+
+  dispatchScope(namedCount: number, cancelledCount: number, hasUnnamed: boolean): boolean {
+    const result = this.transition({ kind: "dispatchScopeCheck", namedCount, cancelledCount, hasUnnamed });
+    if (result.rejection !== undefined || result.commands.length !== 1) throw new Error("canonical dispatch scope refused");
+    const command = result.commands[0];
+    if (command?.kind === "discardNamedOnly") return true;
+    if (command?.kind === "discardAllUnfinished") return false;
+    throw new Error("invalid canonical dispatch scope command");
   }
 
   transition(event: ResidentTransition): ReturnType<typeof stepCanonical> {

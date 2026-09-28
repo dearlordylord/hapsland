@@ -69,7 +69,7 @@ import { bendTicketInitial, bendTicketFail, bendTicketClose, bendTicketTerminal,
   bendDeliveryCollectionLease, bendDeliveryAdviceCandidate,
   bendDeliveryNoticeCandidate, bendDeliveryReserveCandidate,
   bendValidationRoute, bendPostValidation, bendFinalCandidate,
-  bendCleanupGate, bendCleanupCommit, bendTicketRetention, bendDiscardScope,
+  bendCleanupGate, bendCleanupCommit, bendTicketRetention,
   bendTicketJoinedDisposition,
   bendNoticePrune,
   bendDeliverySubmissionCandidate, bendDeliverySubmissionBatchGate,
@@ -106,7 +106,6 @@ import { recordActivity } from "../activity/status.ts";
 import { claimDemoBudget } from "../onboarding/demo-budget.ts";
 import { recordDemoTrace } from "../onboarding/demo-trace.ts";
 
-const BACKEND_CONCURRENCY = 2;
 const validationStatus = (status: RevalidationResult["status"]): BendValidationStatus =>
   ({ $: status === "current" ? "Current" : status === "stale" ? "Stale" :
     status === "unavailable" ? "Unavailable" : "Unattributed" });
@@ -614,7 +613,8 @@ export class ResidentServer {
       logicalBytes,
     });
     this.#dispatcher = new DispatchCycles(
-      BACKEND_CONCURRENCY,
+      this.#ledger,
+      (job) => job.kind === "ingress" ? job.canonicalObservationId : job.canonicalOperationId,
       async (entry) => this.#run(entry.value, entry.cycle, entry.sequence),
       (cycle) => {
         for (const advice of this.#advice) {
@@ -1652,8 +1652,8 @@ export class ResidentServer {
     const namedCounts = this.#dispatcher.snapshotWhere(({ value }) => value.work === work && !value.completed && named(value));
     const hasUnnamed = this.#dispatcher.hasWorkWhere(({ value }) =>
       value.work === work && !value.completed && !named(value));
-    const matched = bendDiscardScope(namedCounts.queued + namedCounts.running,
-      sourceIds.size + unitIds.size, hasUnnamed).$ === "NamedOnly";
+    const matched = this.#ledger.dispatchScope(namedCounts.queued + namedCounts.running,
+      sourceIds.size + unitIds.size, hasUnnamed);
     const counts = matched ? namedCounts : this.#dispatcher.snapshotWhere(({ value }) => value.work === work && !value.completed);
     round.discarded.queued += counts.queued;
     round.discarded.running += counts.running;

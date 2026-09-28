@@ -1,3 +1,6 @@
+import type { CanonicalCommand } from "../canonical/adapter.ts";
+import { CapacityLedger } from "./capacity.ts";
+
 export type DispatchEntry<K, A> = {
   readonly key: K;
   readonly sequence: number;
@@ -5,118 +8,152 @@ export type DispatchEntry<K, A> = {
   readonly value: A;
 };
 
-export type DispatchSnapshot = {
-  readonly queued: number;
-  readonly running: number;
-  readonly cycle: number;
+export type DispatchSnapshot = { readonly queued: number; readonly running: number; readonly cycle: number };
+
+type NativeEntry<K, A> = {
+  readonly key: K;
+  readonly value: A;
+  readonly operation: number;
+  readonly partition: number;
+  readonly round: number;
 };
 
-/** Finite FIFO cycles with a fixed concurrency ceiling. */
+/** Executes canonical dispatch commands while retaining native job handles. */
 export class DispatchCycles<K, A> {
-  readonly #pending: Array<{ readonly key: K; readonly sequence: number; readonly value: A }> = [];
-  #active: Array<DispatchEntry<K, A>> = [];
-  readonly #runningEntries = new Set<DispatchEntry<K, A>>();
+  readonly #entries = new Map<number, NativeEntry<K, A>>();
+  readonly #ledger: CapacityLedger;
+  readonly #operation: (value: A) => number;
   readonly #run: (entry: DispatchEntry<K, A>) => Promise<void>;
   readonly #onCycleComplete: ((cycle: number) => void) | undefined;
-  readonly #concurrency: number;
   readonly #idleWaiters: Array<() => void> = [];
-  #sequence = 0;
-  #cycle = 0;
-  #running = 0;
-  #closed = false;
+  #terminal = false;
 
-  constructor(
-    concurrency: number,
+  constructor(ledger: CapacityLedger, operation: (value: A) => number,
     run: (entry: DispatchEntry<K, A>) => Promise<void>,
-    onCycleComplete?: (cycle: number) => void,
-  ) {
-    if (!Number.isSafeInteger(concurrency) || concurrency < 1) throw new Error("concurrency must be positive");
-    this.#concurrency = concurrency;
+    onCycleComplete?: (cycle: number) => void) {
+    this.#ledger = ledger;
+    this.#operation = operation;
     this.#run = run;
     this.#onCycleComplete = onCycleComplete;
   }
 
   enqueue(key: K, value: A): boolean {
-    if (this.#closed) return false;
-    this.#pending.push({ key, sequence: this.#sequence++, value });
-    this.#pump();
+    if (this.#terminal) return false;
+    if (typeof key !== "string") throw new TypeError("dispatch partition must be a string");
+    const identity = this.#ledger.dispatchIdentity(key);
+    if (identity === undefined) return false;
+    const operation = this.#operation(value);
+    if (this.#entries.has(operation)) return false;
+    const entry = { key, value, operation, ...identity };
+    this.#entries.set(operation, entry);
+    const result = this.#ledger.transition({ kind: "queueDispatch", partition: identity.partition,
+      lifetime: 1, round: identity.round, operation });
+    if (result.rejection !== undefined) {
+      this.#entries.delete(operation);
+      return false;
+    }
+    this.#apply(result.commands);
     return true;
   }
 
   snapshot(): DispatchSnapshot {
-    return { queued: this.#pending.length + this.#active.length, running: this.#running, cycle: this.#cycle };
+    const dispatch = this.#ledger.canonicalProjection().dispatch;
+    return { queued: dispatch.pending.length + dispatch.active.length,
+      running: dispatch.running.length, cycle: dispatch.cycle };
   }
 
-  /** Advicee-scoped work includes pending, active, and currently executing entries. */
-  hasWork(key: K): boolean {
-    return this.#pending.some((entry) => entry.key === key) ||
-      this.#active.some((entry) => entry.key === key) ||
-      [...this.#runningEntries].some((entry) => entry.key === key);
-  }
+  hasWork(key: K): boolean { return this.hasWorkWhere((entry) => entry.key === key); }
 
   hasWorkWhere(predicate: (entry: { readonly key: K; readonly value: A }) => boolean): boolean {
-    return this.#pending.some(predicate) || this.#active.some(predicate) ||
-      [...this.#runningEntries].some(predicate);
+    return this.#liveOperations().some((operation) => {
+      const entry = this.#entries.get(operation);
+      return entry !== undefined && predicate(entry);
+    });
   }
 
   snapshotWhere(predicate: (entry: { readonly key: K; readonly value: A }) => boolean): { queued: number; running: number } {
-    return { queued: this.#pending.filter(predicate).length + this.#active.filter(predicate).length,
-      running: [...this.#runningEntries].filter(predicate).length };
+    const dispatch = this.#ledger.canonicalProjection().dispatch;
+    const matches = (operation: number) => {
+      const entry = this.#entries.get(operation);
+      return entry !== undefined && predicate(entry);
+    };
+    return { queued: [...dispatch.pending, ...dispatch.active].filter((entry) => matches(entry.operation)).length,
+      running: dispatch.running.filter((entry) => matches(entry.operation)).length };
   }
 
-  /** Remove queued entries; running owners are returned for cooperative cancellation. */
+  /** Bend selects exact queued removals and running cancellation commands. */
   discardWhere(predicate: (entry: { readonly key: K; readonly value: A }) => boolean): ReadonlyArray<A> {
-    const removed: A[] = [];
-    for (let index = this.#pending.length - 1; index >= 0; index--) {
-      const entry = this.#pending[index]!;
-      if (predicate(entry)) { removed.push(entry.value); this.#pending.splice(index, 1); }
-    }
-    this.#active = this.#active.filter((entry) => {
-      if (!predicate(entry)) return true;
-      removed.push(entry.value); return false;
+    const operations = this.#liveOperations().filter((operation) => {
+      const entry = this.#entries.get(operation);
+      return entry !== undefined && predicate(entry);
     });
-    for (const entry of this.#runningEntries) if (predicate(entry)) removed.push(entry.value);
-    this.#settleIdle();
-    return removed;
+    const result = this.#ledger.transition({ kind: "discardDispatch", operations });
+    if (result.rejection !== undefined) throw new Error("canonical dispatch discard refused");
+    return this.#apply(result.commands);
   }
 
   whenIdle(): Promise<void> {
-    if (this.#running === 0 && this.#active.length === 0 && this.#pending.length === 0) return Promise.resolve();
+    if (this.#isIdle()) return Promise.resolve();
     return new Promise((resolve) => this.#idleWaiters.push(resolve));
   }
 
   close(): ReadonlyArray<A> {
-    this.#closed = true;
-    const abandoned = [...this.#active.map(({ value }) => value), ...this.#pending.map(({ value }) => value)];
-    this.#pending.length = 0;
-    this.#active.length = 0;
-    this.#settleIdle();
-    return abandoned;
+    const result = this.#ledger.transition({ kind: "closeDispatch" });
+    if (result.rejection !== undefined) throw new Error("canonical dispatch close refused");
+    this.#terminal = true;
+    return this.#apply(result.commands);
   }
 
-  #pump(): void {
-    if (this.#active.length === 0 && this.#running === 0 && this.#pending.length > 0) {
-      this.#cycle += 1;
-      const finite = this.#pending.splice(0);
-      this.#active = finite.map((item) => ({ ...item, cycle: this.#cycle }));
-    }
-    while (this.#running < this.#concurrency) {
-      const entry = this.#active.shift();
-      if (entry === undefined) break;
-      this.#running += 1;
-      this.#runningEntries.add(entry);
-      void this.#run(entry).catch(() => undefined).finally(() => {
-        this.#running -= 1;
-        this.#runningEntries.delete(entry);
-        if (this.#running === 0 && this.#active.length === 0) this.#onCycleComplete?.(entry.cycle);
-        this.#pump();
-        this.#settleIdle();
-      });
-    }
+  #liveOperations(): number[] {
+    const dispatch = this.#ledger.canonicalProjection().dispatch;
+    return [...dispatch.pending, ...dispatch.active, ...dispatch.running].map((entry) => entry.operation);
+  }
+
+  #isIdle(): boolean {
+    const dispatch = this.#ledger.canonicalProjection().dispatch;
+    return dispatch.pending.length === 0 && dispatch.active.length === 0 && dispatch.running.length === 0;
   }
 
   #settleIdle(): void {
-    if (this.#running !== 0 || this.#active.length !== 0 || this.#pending.length !== 0) return;
+    if (!this.#isIdle()) return;
     for (const resolve of this.#idleWaiters.splice(0)) resolve();
+  }
+
+  #apply(commands: readonly CanonicalCommand[]): A[] {
+    const discarded: A[] = [];
+    for (const command of commands) {
+      switch (command.kind) {
+        case "dispatchStarted": {
+          const entry = this.#entries.get(command.operation);
+          if (entry === undefined) throw new Error("canonical dispatch started unknown job");
+          void this.#run({ key: entry.key, value: entry.value, sequence: command.sequence,
+            cycle: command.cycle }).catch(() => undefined).finally(() => {
+            this.#entries.delete(command.operation);
+            if (this.#terminal && !this.#ledger.canonicalProjection().dispatch.running
+              .some((running) => running.operation === command.operation)) {
+              this.#settleIdle();
+              return;
+            }
+            const result = this.#ledger.transition({ kind: "dispatchSettled",
+              partition: entry.partition, lifetime: 1, round: entry.round, operation: entry.operation });
+            if (result.rejection !== undefined) throw new Error("canonical dispatch settlement refused");
+            this.#apply(result.commands);
+            this.#settleIdle();
+          });
+          break;
+        }
+        case "dispatchCycleCompleted": this.#onCycleComplete?.(command.cycle); break;
+        case "dispatchDiscarded": {
+          const entry = this.#entries.get(command.operation);
+          if (entry === undefined) throw new Error("canonical dispatch discarded unknown job");
+          discarded.push(entry.value);
+          if (!command.running) this.#entries.delete(command.operation);
+          break;
+        }
+        default: throw new Error("unexpected canonical dispatch command");
+      }
+    }
+    this.#settleIdle();
+    return discarded;
   }
 }
