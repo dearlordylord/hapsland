@@ -15,7 +15,9 @@ const root = mkdtempSync(join(tmpdir(), "hapsland-native-136-claude-"));
 const repo = join(root, "repo"), runtime = join(root, "resident");
 const events = join(root, "events.jsonl"), calls = join(root, "calls.jsonl");
 const activity = join(root, "activity"), observer = join(root, "observe-fetch.mjs");
-const bridge = join(root, "hook.mjs"), sourcePath = join(repo, "payment.ts");
+const bridge = join(root, "hook.mjs"), composedBridge = join(root, "composed-hook.mjs");
+const sourcePath = join(repo, "payment.ts");
+const claudeBinary = "/home/node/.local/share/claude/versions/2.1.218";
 const started = Date.now();
 const quote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
 const readLines = (path) => {
@@ -94,7 +96,7 @@ import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 const input=readFileSync(0,'utf8');let event;try{event=JSON.parse(input)}catch{}
 const at=Date.now();
-const result=spawnSync(process.execPath,[${JSON.stringify(join(project, "src/cli.ts"))},'--claude-hook','--controlled-writer'],{input,encoding:'utf8',env:process.env,timeout:30000,maxBuffer:1048576});
+const result=spawnSync(process.execPath,[${JSON.stringify(join(project, "src/cli.ts"))},'--claude-hook','--controlled-writer','--composed-edit-hook'],{input,encoding:'utf8',env:process.env,timeout:30000,maxBuffer:1048576});
 let out;try{out=JSON.parse(result.stdout)}catch{}
 const reason=out?.reason??out?.hookSpecificOutput?.additionalContext??'';
 const source=${JSON.stringify(sourcePath)};
@@ -103,8 +105,29 @@ appendFileSync(process.env.HAPSLAND_136_EVENTS,JSON.stringify({kind:'hook',at,do
 if(result.status===0)process.stdout.write(result.stdout??'');
 process.exitCode=result.status??1;
 `);
+  writeFileSync(composedBridge, `import {readFileSync,appendFileSync} from 'node:fs';
+import {spawnSync} from 'node:child_process';
+const kind=process.argv[2];
+const input=readFileSync(0,'utf8');
+const at=Date.now();
+const result=spawnSync(process.execPath,[${JSON.stringify(join(project, "src/cli.ts"))},'--composed-'+kind+'-hook','--composed-host=claude-code'],{input,encoding:'utf8',env:process.env,timeout:30000,maxBuffer:1048576});
+let output;try{output=JSON.parse(result.stdout)}catch{}
+const message=output?.reason??output?.hookSpecificOutput?.additionalContext??output?.systemMessage??'';
+appendFileSync(process.env.HAPSLAND_136_EVENTS,JSON.stringify({kind:'composed-'+kind,at,doneAt:Date.now(),exitCode:result.status,decision:output?.decision??null,finding:output?.decision==='block'||message.includes('[r6_bare_domain_value, p='),notice:message.includes('Operational notice:')})+'\\n',{mode:0o600});
+if(result.status===0)process.stdout.write(result.stdout??'');
+process.exitCode=result.status??1;
+`);
   mkdirSync(join(repo, ".claude"));
-  writeFileSync(join(repo, ".claude", "settings.json"), JSON.stringify({ hooks: { PostToolUse: [{ matcher: "Edit|Write|Bash", hooks: [{ type: "command", command: `${quote(process.execPath)} ${quote(bridge)}`, timeout: 30 }] }] } }));
+  const composed = (kind) => `${quote(process.execPath)} ${quote(composedBridge)} ${kind}`;
+  writeFileSync(join(repo, ".claude", "settings.json"), JSON.stringify({ hooks: {
+    PreToolUse: [{ matcher: "Edit|Write", hooks: [{ type: "command", command: composed("before-edit"), timeout: 5 }] }],
+    PostToolUse: [{ matcher: "Edit|Write", hooks: [
+      { type: "command", command: `${quote(process.execPath)} ${quote(bridge)}`, timeout: 5 },
+      { type: "command", command: composed("background"), timeout: 25, async: true },
+    ] }],
+    Stop: [{ hooks: [{ type: "command", command: composed("stop"), timeout: 5 }] }],
+    UserPromptSubmit: [{ hooks: [{ type: "command", command: composed("prompt"), timeout: 4 }] }],
+  } }));
   const env = { ...process.env, TYPESAFE_API_KEY: key, REVIEW_RESIDENT_DIR: runtime,
     REVIEW_ACTIVITY_PATH: activity, REVIEW_USER_CONFIG_PATH: join(root, "absent-user-config.jsonc"),
     HAPSLAND_136_EVENTS: events, HAPSLAND_136_CALLS: calls,
@@ -117,13 +140,13 @@ export interface PaymentState {
   failureReason: string | null;
 }
 Immediately after that first Write, run npm test using Bash before making any repair. Do not repair this initial draft before Hapsland feedback. If an actionable Hapsland finding arrives on either hook, repair the type using Edit or Write so invalid combinations are impossible, then run npm test again. If no finding arrives, say so truthfully. Stay in this repository; do not inspect integration configuration, credentials, or environment variables. Make at most three source edits. In your final reply state whether automated review affected the change; do not invent feedback.`;
-  const host = await run("claude", ["-p", "--output-format", "stream-json", "--verbose", "--no-session-persistence",
+  const host = await run(claudeBinary, ["-p", "--output-format", "stream-json", "--verbose", "--no-session-persistence",
     "--allowedTools", "Read,Edit,Write,Bash", "--permission-mode", "acceptEdits", prompt], env, repo, 240_000);
   const timeline = readLines(events).map((entry) => ({ ...entry, atMs: entry.at - started, at: undefined, doneAt: undefined }));
   const activityStages = stages(activity);
   const source = existsSync(sourcePath) ? readFileSync(sourcePath, "utf8") : "";
-  const finding = timeline.find((entry) => entry.kind === "hook" && entry.finding);
-  const editedAfterFinding = !!finding && timeline.some((entry) => entry.kind === "hook" && entry.atMs > finding.atMs && entry.sourceHash !== finding.sourceHash);
+  const finding = timeline.find((entry) => entry.finding);
+  const editedAfterFinding = !!finding && timeline.some((entry) => entry.kind === "hook" && entry.atMs > finding.atMs && !entry.draft);
   const compile = spawnSync("npm", ["test"], { cwd: repo, env, encoding: "utf8", timeout: 30_000 });
   let invalidStatesRejected = false;
   if (source) {
@@ -144,7 +167,7 @@ const contradictory: PaymentState = { status: 'succeeded', receipt: 'r', failure
     if (result?.status === "stats") resident = { queued: result.queued, running: result.running,
       pendingFindingBatches: result.pendingFindingBatches, pendingOperationalNotices: result.pendingOperationalNotices };
   } catch { /* native path may not start a resident */ }
-  const record = { schemaVersion: 1, runtime: "Claude Code", version: spawnSync("claude", ["--version"], { encoding: "utf8" }).stdout.trim(),
+  const record = { schemaVersion: 1, runtime: "Claude Code", version: spawnSync(claudeBinary, ["--version"], { encoding: "utf8" }).stdout.trim(),
     recordedAt: new Date().toISOString(), declaration: { maximumProviderRequests: ceiling, automaticRetries: 0, sessionCeilingMs: 240_000 },
     hostExitCode: host.code, hostSignal: host.signal, elapsedMs: Date.now() - started, providerRequests: readLines(calls).length,
     timeline, activityStages, checks: { initialDraftObserved: timeline.some((entry) => entry.draft), realFindingSubmitted: !!finding,
@@ -155,7 +178,7 @@ const contradictory: PaymentState = { status: 'succeeded', receipt: 'r', failure
     hostOutputBytesDiscarded: Buffer.byteLength(host.stdout) + host.stderrBytes };
   record.verdict = host.code === 0 && Object.values(record.checks).every(Boolean) ? "demonstrated" : "incomplete";
   mkdirSync(join(project, "evidence/native-136"), { recursive: true });
-  writeFileSync(join(project, "evidence/native-136/claude-final.json"), JSON.stringify(record, null, 2) + "\n");
+  writeFileSync(join(project, "evidence/native-136/claude-composed.json"), JSON.stringify(record, null, 2) + "\n");
   console.log(JSON.stringify(record, null, 2));
   if (record.verdict !== "demonstrated") process.exitCode = 1;
 } finally {

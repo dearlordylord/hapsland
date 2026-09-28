@@ -52,3 +52,15 @@ cutoff and no automatic retry. This is a new declared observation after the
 external failure, not a hidden retry of the second session. The cumulative
 Claude ceiling is now 24 requests, still below the issue limit of 40. If Jev
 is unavailable again or advice is not observed, #136 remains incomplete.
+
+## Composed Claude path correction, before execution
+
+The third session used the direct edit hook and a Bash hook. The actual
+installed Claude integration admits the edit, then uses asynchronous
+background collection and a Stop hook for later advice. The third observation
+therefore cannot validate that path and remains separately recorded. One
+selected run will use the same composed hook arrangement as the installer and
+the repository-supported Claude Code 2.1.218 binary. Its eight-request
+cutoff brings the cumulative declared Claude ceiling to 32 requests, still
+below 40. No automatic retries are enabled. A missing delivery or downstream
+repair will remain an incomplete #136 result.
