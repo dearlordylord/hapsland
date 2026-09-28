@@ -87,7 +87,31 @@
         "items": 2,
         "bytes": 60
       },
-      "expectedDecisionPending": false
+      "expectedDecisionPending": false,
+      "partitions": [
+        {
+          "partition": 2,
+          "items": 1,
+          "bytes": 40
+        },
+        {
+          "partition": 1,
+          "items": 1,
+          "bytes": 20
+        }
+      ],
+      "charges": [
+        {
+          "id": 4,
+          "partition": 1,
+          "bytes": 20
+        },
+        {
+          "id": 5,
+          "partition": 2,
+          "bytes": 40
+        }
+      ]
     },
     {
       "name": "zero prepared units release workspace",
@@ -146,7 +170,14 @@
         "items": 0,
         "bytes": 0
       },
-      "expectedDecisionPending": true
+      "expectedDecisionPending": true,
+      "partitions": [
+        {
+          "partition": 1,
+          "items": 0,
+          "bytes": 0
+        }
+      ]
     },
     {
       "name": "many units admit in order and Stop waits",
@@ -171,8 +202,8 @@
           "operation": 1,
           "unitBytes": [
             10,
-            20,
-            40
+            60,
+            20
           ]
         },
         {
@@ -209,7 +240,7 @@
       "commands": [
         "roundStarted:1",
         "prepare:1:1",
-        "reservationReleased:1,unitAdmitted:2:2,unitAdmitted:3:3,unitRefused",
+        "reservationReleased:1,unitAdmitted:2:2,unitRefused,unitAdmitted:3:3",
         "waitForWork",
         "reservationReleased:2,reviewRecorded:clear",
         "reservationReleased:3,reviewRecorded:unavailable",
@@ -219,7 +250,14 @@
         "items": 0,
         "bytes": 0
       },
-      "expectedDecisionPending": true
+      "expectedDecisionPending": true,
+      "partitions": [
+        {
+          "partition": 1,
+          "items": 0,
+          "bytes": 0
+        }
+      ]
     },
     {
       "name": "unknown output is reoffered at Stop",
@@ -278,7 +316,14 @@
         "items": 0,
         "bytes": 0
       },
-      "expectedDecisionPending": true
+      "expectedDecisionPending": true,
+      "partitions": [
+        {
+          "partition": 1,
+          "items": 0,
+          "bytes": 0
+        }
+      ]
     },
     {
       "name": "deadline requests exact cancellations",
@@ -321,7 +366,14 @@
         "items": 0,
         "bytes": 0
       },
-      "expectedDecisionPending": true
+      "expectedDecisionPending": true,
+      "partitions": [
+        {
+          "partition": 1,
+          "items": 0,
+          "bytes": 0
+        }
+      ]
     },
     {
       "name": "retired lifetime rejects late callback and permits next lifetime",
@@ -377,7 +429,14 @@
         "items": 0,
         "bytes": 0
       },
-      "expectedDecisionPending": false
+      "expectedDecisionPending": false,
+      "partitions": [
+        {
+          "partition": 1,
+          "items": 0,
+          "bytes": 0
+        }
+      ]
     }
   ]
 }

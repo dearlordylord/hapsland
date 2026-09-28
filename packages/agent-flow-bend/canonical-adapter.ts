@@ -1,4 +1,4 @@
-import { bendCanonicalInitial, bendCanonicalStep } from "./canonical.generated.js";
+import { bendCanonicalInitial, bendCanonicalPartitionUsage, bendCanonicalStep, bendCanonicalTotal } from "./canonical.generated.js";
 
 const MAX_NAT = 2 ** 48 - 1;
 const MAX_BYTES = 2 ** 47 - 1;
@@ -145,6 +145,9 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
 
 export type CanonicalProjection = {
   readonly global: { readonly items: number; readonly bytes: number };
+  readonly limits: { readonly globalItems: number; readonly globalBytes: number; readonly partitionItems: number; readonly partitionBytes: number };
+  readonly partitions: readonly { readonly partition: number; readonly items: number; readonly bytes: number }[];
+  readonly charges: readonly { readonly id: number; readonly partition: number; readonly bytes: number }[];
   readonly rounds: readonly { readonly partition: number; readonly lifetime: number; readonly id: number; readonly waiting: boolean; readonly deciding: boolean; readonly write?: number; readonly uncertain: boolean }[];
   readonly work: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly reservation: number; readonly kind: "preparing" | "reviewing" }[];
 };
@@ -193,7 +196,17 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
       charges.length > (limits.global_items as number) || usedBytes > (limits.global_bytes as number)) {
     throw new TypeError("inconsistent canonical state");
   }
-  return { global: { items: charges.length, bytes: usedBytes }, rounds, work };
+  const total = fields(bendCanonicalTotal(state), "Ledger.Usage", ["items", "bytes"]);
+  const global = { items: nat(total.items), bytes: nat(total.bytes) };
+  if (global.items !== charges.length || global.bytes !== usedBytes) throw new TypeError("Bend ledger total mismatch");
+  const partitions = rounds.map((round) => {
+    const usage = fields(bendCanonicalPartitionUsage(state, round.partition), "Ledger.Usage", ["items", "bytes"]);
+    return { partition: round.partition, items: nat(usage.items), bytes: nat(usage.bytes) };
+  });
+  return { global,
+    limits: { globalItems: nat(limits.global_items, true), globalBytes: nat(limits.global_bytes, true),
+      partitionItems: nat(limits.partition_items, true), partitionBytes: nat(limits.partition_bytes, true) },
+    partitions, charges, rounds, work };
 };
 export const initialCanonical = (limits: { readonly globalItems: number; readonly globalBytes: number; readonly partitionItems: number; readonly partitionBytes: number }): unknown => {
   const values = Object.values(limits);

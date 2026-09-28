@@ -1320,3 +1320,7 @@ export const bendCanonicalInitial = (limits) =>
   run_loop($Canonical$initial$(normalize(limits)));
 export const bendCanonicalStep = (state, event) =>
   run_loop($Canonical$step$(state, normalize(event)));
+export const bendCanonicalTotal = (state) =>
+  run_loop($Ledger$total$(state.ledger.charges));
+export const bendCanonicalPartitionUsage = (state, partition) =>
+  run_loop($Ledger$partition_usage$(state.ledger.charges, nat(partition)));

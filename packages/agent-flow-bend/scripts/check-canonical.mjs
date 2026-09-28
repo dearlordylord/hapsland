@@ -24,6 +24,8 @@ for (const trace of fixture.traces) {
   }
   assert.deepEqual(commands, trace.commands, trace.name);
   assert.deepEqual(projectCanonical(state).global, trace.global, `${trace.name}: ledger`);
+  assert.deepEqual(projectCanonical(state).partitions, trace.partitions, `${trace.name}: advicee usage`);
+  if (trace.charges) assert.deepEqual(projectCanonical(state).charges, trace.charges, `${trace.name}: reservations`);
   if (trace.expectedDecisionPending) {
     assert.equal(projectCanonical(state).rounds[0]?.deciding, true, `${trace.name}: decision fence`);
   }

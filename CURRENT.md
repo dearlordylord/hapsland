@@ -107,7 +107,12 @@ by mistake; public “v1/v2” naming is optional.
 The first canonical Bend state/event/command boundary is implemented in
 `packages/agent-flow-bend/Canonical.bend`, with a checked adapter and independent
 fixture. Six source-free traces cover competing advicees, zero/many units,
-pending Stop, unknown output, deadline cleanup, and lifetime retirement.
+pending Stop, unknown output, deadline cleanup, and lifetime retirement. The
+many-unit trace now checks accepted → refused → accepted; a refusal does not
+stop later units. Shared and advicee capacity totals in the checked projection
+come from compiled Bend functions. The proposed full-flow display and the
+still-needed per-unit Bend output are in
+[`docs/capacity-dashboard-plan.md`](docs/capacity-dashboard-plan.md).
 `npm run test:canonical` and adapter typecheck pass. The package-wide `npm test`
 currently stops in the existing Flow build script because the installed Bend
 compiler emits a `process.argv.slice(1)` footer while that builder expects

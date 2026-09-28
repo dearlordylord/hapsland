@@ -26,8 +26,10 @@ must state that scope until #119–#137 change the production boundary.
   offered by a capture that Bend rejects must be labeled "reported"; only a
   size accepted into Bend state may be labeled "accepted". Unread files have
   unknown sizes rather than invented estimates.
-- Running accepted-tree totals beside file nodes come from the Bend state
-  returned for that capture step, not a dashboard accumulator.
+- Every displayed Hapsland fact must come from the compiled Bend result for
+  that replay step. Native facts are inputs; the page may format them and
+  format Bend output, but it must not compute a product decision or invent a
+  state between transitions.
 - A skipped-import label only when Bend emits `SkipImport`; subsequent graph
   branches appear only as later native facts are replayed through Bend.
 - Rendering, responsive layout, history navigation, and source-free summaries

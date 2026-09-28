@@ -40,6 +40,7 @@ implementation specification.
 | Review dispatch cycle | A finite group of review work items selected together for evaluation; work arriving after selection belongs to a later cycle. |
 | Review result | The operational result of evaluating one actual review work item. |
 | Advicee | The agent that Hapsland can advise about an attributed edit. A working root or the latest caller does not identify that agent by itself. |
+| Advicee partition | The separate review and advice scope for one exact advicee identity in a shared resident. Advice stays in its partition, while capacity is shared with other partitions. |
 | Stop continuation | More work that Hapsland asks an agent to do when it tries to finish, so it can act on advice. |
 | Stop allowance | Permission for Hapsland to request a Stop continuation from an agent. |
 | Pending advice | Advice from a completed review that remains eligible for delivery to its intended advicee. |
@@ -50,7 +51,9 @@ implementation specification.
 | Review input contract | A versioned definition of the source, path, domain text, completeness metadata, and rendering presented to a review backend. Different input contracts are distinct evaluation scenarios even when they describe the same edit. |
 | Review input | The exact semantic payload rendered from one review unit under a review input contract for backend evaluation. |
 | Evidence completeness | Whether the evidence required for a checked rule expectation is present. Missing required evidence is incomplete, not evidence that the source is clear. |
-| Capacity ledger | The transient account of admitted review work and preparation resources, tracked across advicees and their shared resident. It is distinct from the number of Jev requests waiting to run. |
+| Capacity ledger | The transient account of admitted preparation and review work across all advicee partitions in one resident. It records how many work items and bytes currently use the resident's capacity. It is distinct from Jev request concurrency. |
+| Capacity charge | One temporary capacity reservation for a preparation job or review work item in an advicee partition. It counts one item and its measured bytes until Hapsland releases it. It is not a payment or a Jev request. |
+| Background advice submission | An attempt to give an agent advice after an edit, before the agent asks to finish. A successful submission to the agent runtime does not prove that the agent saw the advice. |
 | Rule | A user-configurable criterion evaluated against an action, edit, diff, or related context. |
 | Finding | Evidence produced by a rule evaluation, including its explanation, location, severity, and confidence where available. |
 | Decision | The operational result of a review: allow, ask, block, advisory, context, or observe. |
