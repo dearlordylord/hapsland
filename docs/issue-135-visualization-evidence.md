@@ -18,8 +18,9 @@ labels and shows their shared resident and per-agent item/byte limits. Live
 capacity rows, totals, and reservations come from `projectCanonical`. The
 accepted → refused → accepted strip reads ordered commands and intermediate
 capacity snapshots emitted by one atomic transition, including refusal reason,
-unit position, and global/local usage. It does not mutate the canonical state
-between frames.
+unit position, and global/local usage. The true `preparationCompleted` result
+and direct capacity replacement both display all four release/unit frames with
+before and after event usage. The strip does not mutate the canonical state.
 
 The simplified Flow page adapter, its offline TypeScript oracle, and their
 generated JavaScript consumer were retired. `Flow.bend` remains a shared
@@ -32,7 +33,9 @@ Checks: Bend package `npm test` (proofs, 56 canonical source-free
 traces, four import-graph traces); root `npm run build`; visualization
 `npm run build` (TypeScript, projection, Vite); and Chromium
 `npm run test:browser` using a temporary local library directory because the
-workspace image lacks Chromium system libraries. The browser check covers
-guided/manual canonical events, intermediate command frames, rewind/redo,
-capacity rows, independent import replay, and native timing visibility. The
+workspace image lacks Chromium system libraries. The projection check compares
+every guided command and terminal usage against independent source-free fixtures.
+The browser check covers guided/manual events, preparation completion and
+replacement frames, rewind/redo, capacity rows, result outcomes, import replay,
+and native timing. The
 root `npm test -- --silent` suite passed: 602 tests passed and 2 skipped.

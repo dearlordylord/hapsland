@@ -55,6 +55,22 @@ try {
     await waitForText(".canonical-progress", `Guided step ${step} of 6`);
   }
   assert.match(await canonical.innerText(), /reofferAtStop/);
+  await canonical.getByRole("button", { name: "many units admit in order and Stop waits", exact: true }).click();
+  await waitForText(".canonical-progress", "Guided step 0 of 7");
+  for (let step = 1; step <= 3; step++) {
+    await canonical.getByRole("button", { name: /^Next canonical step:/ }).click();
+    await waitForText(".canonical-progress", `Guided step ${step} of 7`);
+  }
+  assert.match(await canonical.innerText(), /Preparation completion decisions.*Before event.*Unit 1: accepted.*Unit 2: no capacity.*Unit 3: accepted.*After event/s);
+  await canonical.getByRole("button", { name: /Unit 2: no capacity/ }).click();
+  await waitForText(".capacity-frames", "Frame 3 of 4");
+  assert.match(await canonical.innerText(), /Frame 3 of 4 · 1 shared items · 10 shared bytes/);
+  for (let step = 4; step <= 6; step++) {
+    await canonical.getByRole("button", { name: /^Next canonical step:/ }).click();
+    await waitForText(".canonical-progress", `Guided step ${step} of 7`);
+  }
+  assert.match(await canonical.innerText(), /reviewRecorded · outcome: unavailable/);
+  assert.match(await page.locator(".production-flow").innerText(), /Observed unavailable result supplied to Bend/);
 
   const imports = page.locator("#import-graph");
   assert.match(await imports.innerText(), /Native: resolution, permission facts, source capture/);

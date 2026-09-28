@@ -6,6 +6,35 @@ import { inertHtml } from "foldkit/html";
 import { Scene } from "foldkit/test";
 
 const fixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-v1.json"), "utf8"));
+const usageText = (usage) => `${usage.items}/${usage.bytes}`;
+const capacityCommand = (command) => {
+  const after = "after" in command ? `:${usageText(command.after.global)}:${usageText(command.after.local)}` : "";
+  switch (command.kind) {
+    case "capacityGranted": case "capacityResized": case "preparationReleased":
+      return `${command.kind}:${command.id}${after}`;
+    case "capacityUnitAdmitted": return `${command.kind}:${command.position}:${command.reservation}${after}`;
+    case "capacityUnitRefused": return `${command.kind}:${command.position}:${command.reason}${after}`;
+    case "reservationReleased": return `${command.kind}:${command.id}`;
+    default: throw new Error(`unexpected capacity command ${command.kind}`);
+  }
+};
+const canonicalCommand = (command) => {
+  switch (command.kind) {
+    case "prepare": case "unitAdmitted": return `${command.kind}:${command.operation}:${command.reservation}`;
+    case "roundStarted": case "reservationReleased": return `${command.kind}:${command.id}`;
+    case "preparationReleased": return `reservationReleased:${command.id}`;
+    case "partitionRetired": return `${command.kind}:${command.round}`;
+    case "writeAuthorized": case "cancelWork": return `${command.kind}:${command.operation}`;
+    case "reviewRecorded": case "writeRecorded": return `${command.kind}:${command.outcome}`;
+    default: return command.kind;
+  }
+};
+const expectedCommand = (step, formatter) => step.rejection
+  ? `rejected:${step.rejection}` : step.commands.map(formatter).join(",");
+const capacityFrame = (command) => ({ kind: command.kind,
+  ...( "position" in command ? { position: command.position, bytes: command.bytes } : {}),
+  ...( "reason" in command ? { reason: command.reason } : {}),
+  global: command.after.global, local: command.after.local, charges: command.after.charges });
 const server = await createServer({ server: { middlewareMode: true }, appType: "custom" });
 try {
   const main = await server.ssrLoadModule("/src/production-main.ts");
@@ -42,13 +71,25 @@ try {
     assert.deepEqual(replay.steps[index].event, fixture.capacityTrace.events[index]);
   }
   assert.equal(canonical.guidedIndex(model.history, model.position), fixture.capacityTrace.events.length);
-  assert.deepEqual(canonical.replayCanonical(model.history, model.position).projection.global, fixture.capacityTrace.finalGlobal);
+  const capacityReplay = canonical.replayCanonical(model.history, model.position);
+  assert.deepEqual(capacityReplay.steps.map((step) => expectedCommand(step, capacityCommand)),
+    fixture.capacityTrace.commands, "every capacity command matches the independent trace");
+  assert.deepEqual(capacityReplay.steps[7].after.charges, fixture.capacityTrace.afterResizeCharges);
+  assert.deepEqual(capacityReplay.projection.global, fixture.capacityTrace.finalGlobal);
   for (const [index, trace] of fixture.traces.entries()) {
     let alternate = send(initial, main.Message.SelectedScenario({ index: index + 1 }));
     for (const event of trace.events) alternate = send(alternate, main.Message.Advanced());
     assert.equal(alternate.position, trace.events.length, `${trace.name}: guided replay includes every result variant`);
-    assert.deepEqual(canonical.replayCanonical(alternate.history, alternate.position).projection.global,
-      trace.global, `${trace.name}: displayed state matches independent expected total`);
+    const replay = canonical.replayCanonical(alternate.history, alternate.position);
+    assert.deepEqual(replay.steps.map((step) => expectedCommand(step, canonicalCommand)),
+      trace.commands, `${trace.name}: every displayed command matches the independent trace`);
+    assert.deepEqual(replay.projection.global, trace.global, `${trace.name}: displayed state matches independent expected total`);
+    assert.deepEqual(replay.projection.partitions, trace.partitions, `${trace.name}: each agent's usage matches`);
+    if (trace.charges) assert.deepEqual(replay.projection.charges, trace.charges, `${trace.name}: reservations match`);
+    if (trace.capacity) assert.deepEqual(replay.steps.filter((step) => step.event.kind === "preparationCompleted")
+      .map((step) => step.commands.filter((command) => "after" in command).map(capacityFrame)),
+      trace.capacity, `${trace.name}: preparation order and values match`);
+    if (trace.expectedDecisionPending) assert.equal(replay.projection.rounds[0]?.deciding, true);
     assert.match(text(alternate), new RegExp(`Guided step ${trace.events.length} of ${trace.events.length}`));
   }
   model = send(initial, main.Message.Advanced());
@@ -60,6 +101,13 @@ try {
   assert.deepEqual(third.commands.map((command) => command.after.global),
     [{ items: 1, bytes: 40 }, { items: 2, bytes: 50 }, { items: 2, bytes: 50 }, { items: 3, bytes: 70 }]);
   assert.match(text(model), /Unit 1: accepted.*Unit 2: no capacity.*Unit 3: accepted/s);
+  assert.match(text(model), /Before event · 2 shared items · 70 shared bytes/);
+  assert.match(text(model), /After event · 3 shared items · 70 shared bytes/);
+  let preparation = send(initial, main.Message.SelectedScenario({ index: 3 }));
+  for (let index = 0; index < 3; index += 1) preparation = send(preparation, main.Message.Advanced());
+  assert.match(text(preparation), /Preparation completion decisions/);
+  assert.match(text(preparation), /Unit 1: accepted.*Unit 2: no capacity.*Unit 3: accepted/s);
+  assert.match(text(preparation), /Before event.*After event/s);
   model = send(model, main.Message.MovedFrame({ frame: 2 }));
   assert.match(text(model), /Frame 3 of 4 · 2 shared items · 50 shared bytes/);
   model = send(model, main.Message.Rewound());

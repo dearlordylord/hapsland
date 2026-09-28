@@ -1,5 +1,3 @@
-type EventId = string;
-
 export type Lane = "runtime" | "review" | "delivery" | "result" | "unknown";
 export const LANES = {
   runtime: "Agent runtime observations",
@@ -10,11 +8,9 @@ export const LANES = {
 } as const satisfies Record<Lane, string>;
 
 type Timed = { readonly label: string; readonly lane: Lane; readonly at: number; readonly until?: number };
-export type TimelineEntry =
+export type NativeEntry =
   | (Timed & { readonly kind: "native observation"; readonly source: string })
-  | (Timed & { readonly kind: "unknown"; readonly explanation: string })
-  | { readonly kind: "reducer event"; readonly event: EventId; readonly order: number };
-export type NativeEntry = Exclude<TimelineEntry, { readonly kind: "reducer event" }>;
+  | (Timed & { readonly kind: "unknown"; readonly explanation: string });
 export type TimelinePanel = {
   readonly title: string;
   readonly status: "OBSERVED" | "UNPROVEN";
@@ -26,9 +22,6 @@ export type TimelineCase = {
   readonly requirement: "REQUIRED PRODUCT BEHAVIOR" | "EXPLORATORY TIMING PROBE";
   readonly summary: string;
   readonly panels: readonly TimelinePanel[];
-  readonly reducerEvents: readonly EventId[];
-  readonly reducerScope: string;
-  readonly reducerTitle?: string;
   readonly sources: readonly string[];
 };
 
@@ -47,13 +40,6 @@ const unknown = (at: number, until: number): NativeEntry => ({
   kind: "unknown", lane: "unknown", label: "Advice receipt time unknown", at, until,
   explanation: "The advice output and later repair are observed separately. No receipt timestamp identifies when the agent received advice; with two writes, the evidence does not identify which one prompted repair. This band marks missing timing evidence, not a measured runtime stage.",
 });
-const review: readonly EventId[] = ["EditObserved", "ReviewUnitPrepared", "JevFindingReceived"];
-const stop: readonly EventId[] = [...review.slice(0, 2), "StopHookFired", "JevFindingReceived", "StopHookFired"];
-const duringStopReoffer: readonly EventId[] = [...review, "AdviceLeasedByBackground", "StopHookFired", "HostOutputSubmitted", "StopHookFired"];
-const reoffer: readonly EventId[] = [...review, "AdviceLeasedByBackground", "HostOutputSubmitted", "StopHookFired", "StopHookFired"];
-const cleanup: readonly EventId[] = ["EditObserved", "ReviewUnitPrepared", "StopHookFired", "FinishDecisionDeadlineReached"];
-const backgroundFlow: readonly EventId[] = [...review, "AdviceLeasedByBackground", "HostOutputSubmitted"];
-
 export const TIMELINE_CASES: readonly TimelineCase[] = [
   {
     title: "Before / after: advice via Stop leads to repair",
@@ -74,8 +60,7 @@ export const TIMELINE_CASES: readonly TimelineCase[] = [
         native(matched, "runtime", "UserPromptSubmit hook returned", 1089), native(matched, "runtime", "PreToolUse hook returned", 6487), native(matched, "runtime", "Edit hook returned", 6832), native(matched, "review", "Finding review completed", 11874), native(matched, "delivery", "Advice via Stop hook; block finish", 11963),
         unknown(11963, 16157), native(matched, "runtime", "Repair PreToolUse hook returned", 16157), native(matched, "result", "Repair edit hook returned", 16478), native(matched, "review", "Clear follow-up completed", 21501), native(matched, "delivery", "Allow finish; virtual round closes", 21520), native(matched, "runtime", "Runtime exited", 21615),
       ] },
-    ], reducerEvents: stop, reducerTitle: "Finish-decision wait → continue-with-advice command → later allow",
-    reducerScope: "The companion path checks review → finish response command → close. The reducer chooses a response but does not establish a completed hook write. Baseline behavior, native times, repair observation and file verification are outside the reducer. The abstract path omits the repair review shown above.",
+    ],
     sources: [matched, "linux-repeatability-final-2.json", "linux-repeatability-final-3.json"],
   },
   {
@@ -91,7 +76,7 @@ export const TIMELINE_CASES: readonly TimelineCase[] = [
         native(background, "runtime", "Edit hook returned", 10028), native(background, "review", "Finding review completed", 11267), native(background, "delivery", "Advice output via background hook", 11311), unknown(11311, 22986),
         native(background, "result", "Repair edit hook returned", 22986), native(background, "review", "Clear follow-up completed", 24212), native(background, "delivery", "Allow finish; virtual round closes", 25936), native(background, "runtime", "Runtime exited", 26027),
       ] },
-    ], reducerEvents: backgroundFlow, reducerScope: "Checks review → background reservation → observed write. This companion omits the later repair and clear review; those remain native observations here.", sources: [background],
+    ], sources: [background],
   },
   {
     title: "Background hook write during finish-decision wait; advice reoffered",
@@ -101,7 +86,7 @@ export const TIMELINE_CASES: readonly TimelineCase[] = [
       native(remaining, "runtime", "Edit hook returned", 7516), native(remaining, "delivery", "Hapsland Stop hook process", 9960, 10680), native(remaining, "review", "Finding review completed", 10559),
       native(remaining, "delivery", "Advice output via background hook", 10607), native(remaining, "delivery", "Advice again via Stop; block finish", 10677), unknown(10607, 14480),
       native(remaining, "result", "Repair edit hook returned", 14480), native(remaining, "review", "Clear follow-up completed", 17504), native(remaining, "delivery", "Allow finish; virtual round closes", 17544), native(remaining, "runtime", "Runtime exited", 17585),
-    ] }], reducerEvents: duringStopReoffer, reducerTitle: "Background lease → finish-decision wait → background write → reoffer", reducerScope: "This companion checks overlapping background output and an open finish decision after advice was reserved for background. The native run has a different order: its finish attempt began before Jev's finding. The current reducer chooses immediately if the last review item finishes without a reserved background write, so this companion does not reproduce that exact race. Native timestamps show write order and repair, not proof that unfinished resources were cancelled; cancellation has separate deterministic evidence.", sources: [remaining, "native-background-timing-linux.md", "round-contract-linux.md"],
+    ] }], sources: [remaining, "native-background-timing-linux.md", "round-contract-linux.md"],
   },
   {
     title: "Codex: advice arrives while Bash runs",
@@ -110,7 +95,7 @@ export const TIMELINE_CASES: readonly TimelineCase[] = [
     panels: [{ title: "Codex · foreground Bash", status: "OBSERVED", outcome: "Repair without Stop block. Follow-up review did not clear before cleanup, so this is not a complete repair-and-clear acceptance run.", entries: [
       native(tools, "runtime", "Edit hook returned", 7133), native(tools, "runtime", "Bash PreToolUse → PostToolUse", 9081, 34143), native(tools, "review", "Finding review completed", 17169),
       native(tools, "delivery", "Advice output via background hook", 17223), unknown(17223, 37621), native(tools, "result", "Repair edit hook returned", 37621), native(tools, "delivery", "Allow finish; virtual round closes", 42715), native(tools, "runtime", "Runtime exited", 43376),
-    ] }], reducerEvents: backgroundFlow, reducerScope: "Checks the abstract background delivery path only. Bash boundaries, delayed clear review and observed repair are outside the reducer.", sources: [tools, "native-background-timing-linux.md"],
+    ] }], sources: [tools, "native-background-timing-linux.md"],
   },
   {
     title: "Claude: background hook output during a streamed message",
@@ -120,7 +105,7 @@ export const TIMELINE_CASES: readonly TimelineCase[] = [
       native(remaining, "runtime", "Edit hook returned", 7120), native(remaining, "review", "Finding review completed", 8352), native(remaining, "runtime", "Native streamed-message interval", 8404, 30478),
       native(remaining, "delivery", "Advice output via background hook", 8454), native(remaining, "delivery", "Advice again via Stop; block finish", 30810), unknown(8454, 34992), native(remaining, "result", "Repair edit hook returned", 34992),
       native(remaining, "review", "Clear follow-up completed", 36231), native(remaining, "delivery", "Allow finish; virtual round closes", 37226), native(remaining, "runtime", "Runtime exited", 37262),
-    ] }], reducerEvents: reoffer, reducerScope: "Checks a background hook write → finish response command reoffering that advice → close. Stream boundaries, completion of that finish response write, and advice consumption are not modeled. Codex exposes completed assistant items in these records, not an equivalent measured in-progress interval.", sources: [remaining, "native-background-timing-linux.md"],
+    ] }], sources: [remaining, "native-background-timing-linux.md"],
   },
   {
     title: "Claude: actionable foreground-tool window unproven",
@@ -133,7 +118,7 @@ export const TIMELINE_CASES: readonly TimelineCase[] = [
         native(recovery, "review", "Repair review completed clear", 59020), native(recovery, "runtime", "Timeout signal initiated", 100000), native(recovery, "runtime", "Process / pipes returned", 106201),
       ] },
       { title: "Attempt 3 · no Bash call", status: "UNPROVEN", outcome: "Stop reoffer and repair observed; exit 0. No Bash call; follow-up did not clear before cleanup.", entries: [native(recovery, "review", "Finding review completed", 18168), native(recovery, "delivery", "Advice output via background hook", 18267), native(recovery, "delivery", "Advice again via Stop; block finish", 20950), native(recovery, "runtime", "Runtime exited", 33186)] },
-    ], reducerEvents: [], reducerScope: "Native probe evidence only. The reducer has no tool scheduler, model timing or timeout-process lifecycle and cannot validate whether this target interval occurred.", sources: [recovery, "linux-claude-tool-reset-attempt-1.json", "linux-claude-tool-reset-attempt-2.json", "linux-claude-tool-reset-attempt-3.json"],
+    ], sources: [recovery, "linux-claude-tool-reset-attempt-1.json", "linux-claude-tool-reset-attempt-2.json", "linux-claude-tool-reset-attempt-3.json"],
   },
   {
     title: "Finish-decision wait expires → allow and clean up",
@@ -142,7 +127,7 @@ export const TIMELINE_CASES: readonly TimelineCase[] = [
     panels: [
       { title: "Codex · delayed review", status: "OBSERVED", outcome: "Stop allowed completion. Round-owned cleanup is established by the separate deterministic contract, not by this native timestamp alone.", entries: [native(remaining, "runtime", "Edit hook returned", 4855), native(remaining, "delivery", "Allow finish; virtual round closes", 10295)] },
       { title: "Claude · delayed review", status: "OBSERVED", outcome: "Stop allowed completion. The native trace does not observe every cancelled or discarded resource.", entries: [native(remaining, "runtime", "Edit hook returned", 6316), native(remaining, "delivery", "Allow finish; virtual round closes", 12901)] },
-    ], reducerEvents: cleanup, reducerTitle: "Finish-decision deadline → allow-finish command → discard owned work", reducerScope: "Deadline expiry is an input event; this reducer has no clock. The allow-finish decision removes modeled work while review is running and emits cancellation IDs and a hook response command. The resident contract separately checks cancellation/discard and fencing. The native allow timestamps do not by themselves prove those internal effects.", sources: [remaining, "native-background-timing-linux.md", "round-contract-linux.md"],
+    ], sources: [remaining, "native-background-timing-linux.md", "round-contract-linux.md"],
   },
   {
     title: "After exit: bounded observation of no late output",
@@ -151,6 +136,6 @@ export const TIMELINE_CASES: readonly TimelineCase[] = [
     panels: [
       { title: "Codex · delayed review", status: "OBSERVED", outcome: "No late output observed for two seconds after exit. Cancellation and late-callback rules also have separate deterministic evidence.", entries: [native(remaining, "runtime", "Edit hook returned", 4855), native(remaining, "delivery", "Allow finish; virtual round closes", 10295), native(remaining, "runtime", "Runtime exited", 10865)] },
       { title: "Claude · delayed review", status: "OBSERVED", outcome: "No late output observed for two seconds after exit. No claim about all possible later external responses.", entries: [native(remaining, "runtime", "Edit hook returned", 6316), native(remaining, "delivery", "Allow finish; virtual round closes", 12901), native(remaining, "runtime", "Runtime exited", 13326)] },
-    ], reducerEvents: [], reducerTitle: "Native observation only", reducerScope: "The two-second window is a native observation, not a reducer-checked duration. The preceding required cleanup has its own case and separate deterministic resident contract. No finite observation proves absence of every possible late external response.", sources: [remaining, "native-background-timing-linux.md"],
+    ], sources: [remaining, "native-background-timing-linux.md"],
   },
 ];

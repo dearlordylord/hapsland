@@ -88,13 +88,25 @@ const limitLabels = {
   globalItems: "Resident work items", globalBytes: "Resident reserved bytes",
   partitionItems: "Agent work items", partitionBytes: "Agent reserved bytes",
 } as const;
-const commandLabel = (command: CanonicalCommand): string => {
+type CapacityFrameCommand = Extract<CanonicalCommand, { readonly kind:
+  "preparationReleased" | "unitAdmitted" | "unitRefused" | "capacityUnitAdmitted" | "capacityUnitRefused" }>;
+const isCapacityFrame = (command: CanonicalCommand): command is CapacityFrameCommand =>
+  command.kind === "preparationReleased" || command.kind === "unitAdmitted" || command.kind === "unitRefused" ||
+  command.kind === "capacityUnitAdmitted" || command.kind === "capacityUnitRefused";
+const frameLabel = (command: CapacityFrameCommand): string => {
   switch (command.kind) {
     case "preparationReleased": return `Preparation space released · reservation #${command.id}`;
     case "capacityUnitAdmitted": return `Unit ${command.position}: accepted · ${command.bytes} B · reservation #${command.reservation}`;
     case "capacityUnitRefused": return `Unit ${command.position}: no capacity · ${command.bytes} B · ${command.reason}`;
-    default: return command.kind;
+    case "unitAdmitted": return `Unit ${command.position}: accepted · ${command.bytes} B · reservation #${command.reservation}`;
+    case "unitRefused": return `Unit ${command.position}: no capacity · ${command.bytes} B · ${command.reason}`;
   }
+};
+const commandLabel = (command: CanonicalCommand): string => {
+  if (isCapacityFrame(command)) return frameLabel(command);
+  const details = Object.entries(command).filter(([key]) => key !== "kind" && key !== "after")
+    .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : String(value)}`);
+  return [command.kind, ...details].join(" · ");
 };
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
@@ -102,9 +114,10 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const replay = replayCanonical(history, model.position);
   const projection = replay.projection;
   const last = replay.steps.at(-1);
-  const frames = last?.commands.filter((command) => "after" in command &&
-    (command.kind === "preparationReleased" || command.kind === "capacityUnitAdmitted" || command.kind === "capacityUnitRefused")) ?? [];
+  const frames = last?.commands.filter(isCapacityFrame) ?? [];
   const frame = frames[Math.min(Math.max(model.frame, 0), Math.max(0, frames.length - 1))];
+  const eventBefore = last?.before.global ?? projection.global;
+  const eventAfter = last?.after.global ?? projection.global;
   const scenario = CANONICAL_SCENARIOS[model.scenario];
   const next = nextGuidedEvent(history, model.position, model.scenario);
   const guided = guidedIndex(history, model.position);
@@ -131,7 +144,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           h.div([h.Class("flow-stage native")], [h.strong([], ["Native Hapsland effects"]),
             h.p([], ["Source capture, clock readings, Jev calls, and host writes execute outside Bend state."])]),
           h.div([h.Class("flow-stage external")], [h.strong([], ["Jev response · external"]),
-            h.p([], ["The review backend returns a probability or failure fact; Bend decides finding disposition from supplied facts."])]),
+            h.p([], [last?.event.kind === "reviewCompleted" ? `Observed ${last.event.outcome} result supplied to Bend.` :
+              "The review backend returns a probability or failure fact; Bend decides finding disposition from supplied facts."])]),
           h.div([h.Class("flow-stage state")], [h.strong([], ["Canonical retained state"]),
             h.p([], [`${projection.work.length} work records · ${projection.charges.length} capacity reservations`])]),
         ]),
@@ -181,12 +195,14 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           h.ul([], lastCommands.map((command) => h.li([], [commandLabel(command)]))),
         ]),
         ...(frames.length > 0 ? [h.div([h.Class("capacity-frames")], [
-          h.h3([], ["Decisions within this preparation result"]),
+          h.h3([], [last?.event.kind === "preparationCompleted" ? "Preparation completion decisions" : "Decisions within this atomic capacity transition"]),
           h.p([], ["These frames explain one atomic Bend transition; they are not extra resident states."]),
+          h.p([], [`Before event · ${eventBefore.items} shared items · ${eventBefore.bytes} shared bytes`]),
           h.div([], frames.map((command, index) => h.button([
             h.OnClick(Message.MovedFrame({ frame: index })), h.Class(index === model.frame ? "selected" : ""),
           ], [commandLabel(command)]))),
           h.p([], [`Frame ${Math.min(model.frame + 1, frames.length)} of ${frames.length} · ${frame.after.global.items} shared items · ${frame.after.global.bytes} shared bytes · ${frame.after.local.items} items and ${frame.after.local.bytes} bytes for this agent`]),
+          h.p([], [`After event · ${eventAfter.items} shared items · ${eventAfter.bytes} shared bytes`]),
           h.div([h.Class("capacity-bar"), h.Role("img"), h.AriaLabel(`${frame.after.global.bytes} of ${projection.limits.globalBytes} reserved review bytes within transition`)],
             frame.after.charges.map((charge) => h.span([h.Class(`capacity-segment agent-${charge.partition}`),
               h.Style({ width: `${charge.bytes / projection.limits.globalBytes * 100}%` })], [`Agent ${charge.partition}`]))),
