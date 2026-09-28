@@ -66,24 +66,21 @@ import { bendTicketInitial, bendTicketFail, bendTicketClose, bendTicketTerminal,
   bendReuseRoute, bendReuseCacheRoute,
   bendDeliveryAcknowledge, bendDeliveryFinalize, bendDeliveryFindingDisposition,
   bendDeliveryReleaseUnacknowledged,
-  bendDeliveryCollectionLease, bendDeliveryAdviceCandidate,
-  bendDeliveryNoticeCandidate, bendDeliveryReserveCandidate,
+  bendDeliveryNoticeCandidate,
   bendValidationRoute, bendPostValidation, bendFinalCandidate,
   bendCleanupGate, bendCleanupCommit, bendTicketRetention,
   bendTicketJoinedDisposition,
   bendNoticePrune,
   bendDeliverySubmissionCandidate, bendDeliverySubmissionBatchGate,
   bendDeliveryCredentialObserve, bendDeliveryFinalCredentialGate,
-  bendCollectionCredentialDisposition,
   type BendTicketPhase, type BendTicketReason,
   type BendTicketUnitEvent, type BendTicketUnitStage,
   type BendValidationStatus } from "./bend-policy.generated.js";
 import {
-  collectionOrder,
+  ADVICE_COLLECTION_WINDOW_MS,
+  PENDING_ADVICE_EXPIRY_MS,
   combinedClaudeOutput,
   combinedReviewOutput,
-  isCollectionEligible,
-  isPendingAdviceExpired,
   selectFittingFindings,
   selectFittingCurrentFindingIndices,
   selectFittingClaudeFindings,
@@ -92,6 +89,8 @@ import {
   type ClaudeOutputMode,
   type CollectionMode,
   type FindingSelectionFacts,
+  type CanonicalFindingOffer,
+  type CanonicalNoticeOffer,
   type OperationalNotice,
   type OperationalNoticeKind,
 } from "./collection.ts";
@@ -785,6 +784,114 @@ export class ResidentServer {
     return ticket === undefined ? { status: "accepted" } : { version: 2, status: "accepted", ticket: ticket.ticket };
   }
 
+  #collectionElapsed(now: number, started: number, limit: number): number {
+    const elapsed = Math.min(limit, Math.max(0, now - started));
+    return Number.isNaN(elapsed) ? 0 : Math.floor(elapsed);
+  }
+
+  #adviceExpired(advice: Pick<Advice, "pendingAt">, now: number): boolean {
+    const result = this.#ledger.transition({ kind: "collectionExpiryCheck",
+      elapsed: this.#collectionElapsed(now, advice.pendingAt, PENDING_ADVICE_EXPIRY_MS),
+      lifetime: PENDING_ADVICE_EXPIRY_MS });
+    if (result.rejection !== undefined) throw new Error("canonical advice expiry refused");
+    const command = result.commands[0]?.kind;
+    if (command !== "collectionExpired" && command !== "collectionCurrent") throw new Error("invalid canonical advice expiry");
+    return command === "collectionExpired";
+  }
+
+  #collectionOrder(left: Pick<Advice, "cycle" | "sequence">,
+    right: Pick<Advice, "cycle" | "sequence">): number {
+    const result = this.#ledger.transition({ kind: "collectionOrderCheck",
+      leftCycle: left.cycle, leftSequence: left.sequence,
+      rightCycle: right.cycle, rightSequence: right.sequence });
+    if (result.rejection !== undefined) throw new Error("canonical collection order refused");
+    switch (result.commands[0]?.kind) {
+      case "collectionBefore": return -1;
+      case "collectionEqual": return 0;
+      case "collectionAfter": return 1;
+      default: throw new Error("invalid canonical collection order");
+    }
+  }
+
+  #collectionReady(advice: Advice, now: number, mode: CollectionMode,
+    oldestPendingAt: number): boolean {
+    const result = this.#ledger.transition({ kind: "collectionReady",
+      advice: advice.canonicalOperationId, already: advice.collectionEligible,
+      turnEnd: mode === "turn-end", cycleComplete: advice.cycleComplete,
+      elapsed: this.#collectionElapsed(now, oldestPendingAt, ADVICE_COLLECTION_WINDOW_MS),
+      window: ADVICE_COLLECTION_WINDOW_MS });
+    if (result.rejection !== undefined) throw new Error("canonical collection readiness refused");
+    const command = result.commands[0]?.kind;
+    if (command !== "collectionEligible" && command !== "collectionWaiting") throw new Error("invalid canonical collection readiness");
+    return command === "collectionEligible";
+  }
+
+  #collectionFindingOffer: CanonicalFindingOffer = (input) => {
+    const facts = input.facts;
+    const result = this.#ledger.transition({ kind: "collectionFindingCheck",
+      selectionPartition: input.selectionPartition, selectionRound: input.selectionRound,
+      unit: facts.unit, partition: facts.partition, round: facts.round,
+      snapshot: facts.snapshot, currentSnapshot: facts.currentSnapshot,
+      credential: facts.credential, currentCredential: facts.currentCredential,
+      ageMs: facts.ageMs, soloBytes: input.soloBytes,
+      collectionReady: facts.collectionReady, selectedCount: input.selectedCount,
+      prospectiveBytes: input.prospectiveBytes });
+    if (result.rejection !== undefined) throw new Error("canonical finding fit refused");
+    switch (result.commands[0]?.kind) {
+      case "collectionFindingSelected": return "selected";
+      case "collectionFindingRetained": return "retained";
+      case "collectionFindingLimited": return "limited";
+      case "collectionFindingExpired": return "expired";
+      default: throw new Error("invalid canonical finding fit");
+    }
+  };
+
+  #collectionNoticeOffer: CanonicalNoticeOffer = (items, bytes, skipUnfitting) => {
+    const result = this.#ledger.transition({ kind: "collectionNoticeCheck",
+      items, bytes, skipUnfitting });
+    if (result.rejection !== undefined) throw new Error("canonical notice fit refused");
+    switch (result.commands[0]?.kind) {
+      case "collectionNoticeIncluded": return "include";
+      case "collectionNoticeSkipped": return "skip";
+      case "collectionNoticeStopped": return "stop";
+      default: throw new Error("invalid canonical notice fit");
+    }
+  };
+
+  #reserveAdviceLease(advice: Advice, token: string): boolean {
+    const result = this.#ledger.transition({ kind: "collectionReserveLease",
+      advice: advice.canonicalOperationId, token: this.#ledger.collectionTokenId(token) });
+    if (result.rejection !== undefined) throw new Error("canonical advice lease refused");
+    const command = result.commands[0]?.kind;
+    if (command !== "collectionLeaseReserved" && command !== "collectionLeaseRefused") throw new Error("invalid canonical lease reservation");
+    return command === "collectionLeaseReserved";
+  }
+
+  #releaseAdviceLease(advice: Advice): void {
+    const delivery = advice.delivery;
+    if (delivery === undefined) return;
+    const result = this.#ledger.transition({ kind: "collectionReleaseLease",
+      advice: advice.canonicalOperationId, token: this.#ledger.collectionTokenId(delivery.token) });
+    if (result.rejection !== undefined || result.commands[0]?.kind !== "collectionLeaseReleased") {
+      throw new Error("canonical advice lease release refused");
+    }
+    delete advice.delivery;
+  }
+
+  #checkAdviceLease(advice: Advice, now: number, stopCollector: boolean,
+    sameGroup: boolean): void {
+    const delivery = advice.delivery;
+    if (delivery === undefined) return;
+    const result = this.#ledger.transition({ kind: "collectionLeaseCheck",
+      advice: advice.canonicalOperationId, token: this.#ledger.collectionTokenId(delivery.token),
+      expired: delivery.leaseUntil <= now, stopCollector, sameGroup,
+      reofferable: stopCollector && sameGroup &&
+        this.#composedDelivery.backgroundReofferable(advice.id, delivery.token) });
+    if (result.rejection !== undefined) throw new Error("canonical collection lease check refused");
+    if (result.commands[0]?.kind === "collectionLeaseReleased") delete advice.delivery;
+    else if (result.commands[0]?.kind !== "collectionLeaseKept") throw new Error("invalid canonical collection lease check");
+  }
+
   collect(
     root: string,
     advicee: DirectAdvicee,
@@ -824,12 +931,13 @@ export class ResidentServer {
     for (const item of [...this.#advice]) {
       const sameScope = composed ? adviceeGroup(item.observation.root, item.observation.advicee) === partition
         : item.partition === partition;
-      const disposition = bendCollectionCredentialDisposition(sameScope,
-        item.credentialGeneration === credentialGeneration);
-      if (disposition.$ === "RetireAdvice") {
+      const disposition = this.#ledger.transition({ kind: "collectionCredentialCheck",
+        sameScope, generationValid: item.credentialGeneration === credentialGeneration });
+      if (disposition.rejection !== undefined) throw new Error("canonical credential check refused");
+      if (disposition.commands[0]?.kind === "collectionRetireCredential") {
         this.#removeAdvice(item.id);
-      } else if (disposition.$ !== "RetainAdvice") {
-        throw new Error("Bend denied collection credential disposition");
+      } else if (disposition.commands[0]?.kind !== "collectionRetainCredential") {
+        throw new Error("invalid canonical credential decision");
       }
     }
     // Stop can reoffer only after the background writer has reached a terminal
@@ -837,11 +945,7 @@ export class ResidentServer {
     for (const item of this.#advice) {
       const delivery = item.delivery;
       const sameGroup = adviceeGroup(item.observation.root, item.observation.advicee) === partition;
-      const action = bendDeliveryCollectionLease(delivery !== undefined,
-        delivery !== undefined && delivery.leaseUntil <= now, stopCollector, sameGroup,
-        delivery !== undefined && stopCollector && sameGroup &&
-          this.#composedDelivery.backgroundReofferable(item.id, delivery.token));
-      if (action.$ === "DropLease") delete item.delivery;
+      if (delivery !== undefined) this.#checkAdviceLease(item, now, stopCollector, sameGroup);
     }
     const available = this.#advice.filter((item) => {
       const samePartition = composed
@@ -854,7 +958,13 @@ export class ResidentServer {
           stopCollector ? "stop" : undefined));
       const ticketOwns = ticket === undefined || ticket.units.some((unit) =>
         unit.current.stage.$ === "UnitFinding" && unit.current.adviceId === item.id);
-      return bendDeliveryAdviceCandidate(samePartition, unleased, hasUnsuppressed, ticketOwns);
+      const result = this.#ledger.transition({ kind: "collectionCandidateCheck",
+        samePartition, unleased, hasUnsuppressed, ticketOwns });
+      if (result.rejection !== undefined) throw new Error("canonical advice candidate refused");
+      if (result.commands[0]?.kind !== "collectionCandidate" && result.commands[0]?.kind !== "collectionSkip") {
+        throw new Error("invalid canonical advice candidate");
+      }
+      return result.commands[0]?.kind === "collectionCandidate";
     });
     const cycles = new Map<number, Array<Advice>>();
     for (const item of available) {
@@ -868,11 +978,11 @@ export class ResidentServer {
         Number.POSITIVE_INFINITY,
       );
       for (const item of cohort) {
-        if (isCollectionEligible(item, now, mode, oldestPendingAt)) item.collectionEligible = true;
+        if (this.#collectionReady(item, now, mode, oldestPendingAt)) item.collectionEligible = true;
       }
     }
     const eligible = available.filter((item) => item.collectionEligible)
-      .sort(collectionOrder)
+      .sort((left, right) => this.#collectionOrder(left, right))
       .map((item) => item.id);
     const token = randomUUID();
     const fittingFindings = (
@@ -884,16 +994,17 @@ export class ResidentServer {
         ? () => this.#recordOperationalFailure(advice.observation, "output-limit", advice.ticket)
         : undefined;
       return ticket === undefined
-        ? selectFittingFindings(retained, candidates, facts, onLimited)
-        : selectFittingClaudeFindings(retained, candidates, ticket.claudeFeedbackMode, facts, onLimited);
+        ? selectFittingFindings(retained, candidates, facts, onLimited, this.#collectionFindingOffer)
+        : selectFittingClaudeFindings(retained, candidates, ticket.claudeFeedbackMode,
+          facts, onLimited, this.#collectionFindingOffer);
     };
     let handoffFindings: Array<Finding> = [];
     const selected: Array<Advice> = [];
     let selectedFindings: Array<Finding> = [];
     for (const id of eligible) {
-      const advice = this.#advice.find((item) => item.id === id &&
-        bendDeliveryReserveCandidate(item.delivery === undefined));
+      const advice = this.#advice.find((item) => item.id === id && item.delivery === undefined);
       if (advice === undefined) continue;
+      if (!this.#reserveAdviceLease(advice, token)) continue;
       advice.delivery = {
         token,
         findings: [],
@@ -907,7 +1018,7 @@ export class ResidentServer {
         validationStatus(validity.status));
       if (route.$ === "IgnoreCandidate") continue;
       if (route.$ === "ReleaseCandidate") {
-        delete advice.delivery;
+        this.#releaseAdviceLease(advice);
         continue;
       }
       if (route.$ === "RetireCandidate") {
@@ -915,7 +1026,7 @@ export class ResidentServer {
         continue;
       }
       if (route.$ !== "ContinueCandidate" || validity.status !== "current") {
-        delete advice.delivery;
+        this.#releaseAdviceLease(advice);
         continue;
       }
       const workAccepted = advice.round === undefined || advice.workUnitId === undefined ||
@@ -924,16 +1035,16 @@ export class ResidentServer {
       const workRoute = bendPostValidation(workAccepted, false, true);
       if (workRoute.$ !== "RetainCandidate") {
         if (workRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
-        else delete advice.delivery;
+        else this.#releaseAdviceLease(advice);
         continue;
       }
       advice.evaluations = validity.evaluations;
       advice.findings = validity.findings;
       const handoffNow = this.#now();
-      const expiryRoute = bendPostValidation(true, isPendingAdviceExpired(advice, handoffNow), true);
+      const expiryRoute = bendPostValidation(true, this.#adviceExpired(advice, handoffNow), true);
       if (expiryRoute.$ !== "RetainCandidate") {
         if (expiryRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
-        else delete advice.delivery;
+        else this.#releaseAdviceLease(advice);
         continue;
       }
       const fitting = fittingFindings(selectedFindings, advice.findings.filter((finding) =>
@@ -942,7 +1053,7 @@ export class ResidentServer {
       const fittingRoute = bendPostValidation(true, false, fitting.length > 0);
       if (fittingRoute.$ !== "RetainCandidate") {
         if (fittingRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
-        else delete advice.delivery;
+        else this.#releaseAdviceLease(advice);
         continue;
       }
       advice.delivery.findings = fitting;
@@ -960,7 +1071,7 @@ export class ResidentServer {
           validationStatus(validity.status));
         if (route.$ === "IgnoreCandidate") continue;
         if (route.$ === "ReleaseCandidate") {
-          delete advice.delivery;
+          this.#releaseAdviceLease(advice);
           continue;
         }
         if (route.$ === "RetireCandidate") {
@@ -968,7 +1079,7 @@ export class ResidentServer {
           continue;
         }
         if (route.$ !== "ContinueCandidate" || validity.status !== "current") {
-          delete advice.delivery;
+          this.#releaseAdviceLease(advice);
           continue;
         }
         const workAccepted = advice.round === undefined || advice.workUnitId === undefined ||
@@ -977,16 +1088,16 @@ export class ResidentServer {
         const workRoute = bendPostValidation(workAccepted, false, true);
         if (workRoute.$ !== "RetainCandidate") {
           if (workRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
-          else delete advice.delivery;
+          else this.#releaseAdviceLease(advice);
           continue;
         }
         advice.evaluations = validity.evaluations;
         advice.findings = validity.findings;
         const handoffNow = this.#now();
-        const expiryRoute = bendPostValidation(true, isPendingAdviceExpired(advice, handoffNow), true);
+        const expiryRoute = bendPostValidation(true, this.#adviceExpired(advice, handoffNow), true);
         if (expiryRoute.$ !== "RetainCandidate") {
           if (expiryRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
-          else delete advice.delivery;
+          else this.#releaseAdviceLease(advice);
           continue;
         }
         const fitting = fittingFindings(finalFindings, advice.findings.filter((finding) =>
@@ -995,7 +1106,7 @@ export class ResidentServer {
         const fittingRoute = bendPostValidation(true, false, fitting.length > 0);
         if (fittingRoute.$ !== "RetainCandidate") {
           if (fittingRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
-          else delete advice.delivery;
+          else this.#releaseAdviceLease(advice);
           continue;
         }
         if (advice.delivery?.token !== token) continue;
@@ -1025,7 +1136,7 @@ export class ResidentServer {
           const route = bendFinalCandidate(ownerCurrent, credentialGenerationValid,
             credentialAuthorized,
             ownerCurrent && credentialGenerationValid && credentialAuthorized &&
-              isPendingAdviceExpired(advice, handoffNow),
+              this.#adviceExpired(advice, handoffNow),
             ownerCurrent && credentialGenerationValid && credentialAuthorized &&
               this.#isCurrentWork(advice.revision, advice.prepared),
             delivery !== undefined && delivery.findings.length > 0);
@@ -1035,7 +1146,7 @@ export class ResidentServer {
             continue;
           }
           if (route.$ === "ReleaseCandidate") {
-            delete advice.delivery;
+            this.#releaseAdviceLease(advice);
             continue;
           }
           if (route.$ !== "RetainCandidate" || delivery === undefined) continue;
@@ -1050,13 +1161,14 @@ export class ResidentServer {
         const accepted = new Set(selectFittingCurrentFindingIndices(offers,
           ticket === undefined ? "codex" : ticket.claudeFeedbackMode,
           (index) => this.#recordOperationalFailure(offers[index]!.advice.observation,
-            "output-limit", offers[index]!.advice.ticket, handoffNow)));
+            "output-limit", offers[index]!.advice.ticket, handoffNow),
+          this.#collectionFindingOffer));
         let index = 0;
         for (const advice of handoff) {
           const delivery = advice.delivery;
           if (delivery === undefined) continue;
           delivery.findings = delivery.findings.filter(() => accepted.has(index++));
-          if (delivery.findings.length === 0) delete advice.delivery;
+          if (delivery.findings.length === 0) this.#releaseAdviceLease(advice);
         }
         handoffFindings = handoff.flatMap((advice) => advice.delivery?.findings ?? []);
       }
@@ -1082,7 +1194,7 @@ export class ResidentServer {
     const decision = bendDeliveryAcknowledge(advice.length + notices.length, expired);
     if (decision.$ === "AckEmpty") return { status: "empty" };
     if (decision.$ === "AckExpired") {
-      for (const item of advice) delete item.delivery;
+      for (const item of advice) this.#releaseAdviceLease(item);
       for (const item of notices) delete item.delivery;
       return { status: "empty" };
     }
@@ -1113,7 +1225,7 @@ export class ResidentServer {
     const decision = bendDeliveryFinalize(advice.length + notices.length, allAcknowledged, expired);
     if (decision.$ === "FinalEmpty") return { status: "empty" };
     if (decision.$ === "FinalExpired") {
-      for (const item of advice) delete item.delivery;
+      for (const item of advice) this.#releaseAdviceLease(item);
       for (const item of notices) delete item.delivery;
       return { status: "empty" };
     }
@@ -1124,7 +1236,7 @@ export class ResidentServer {
       const remaining = composed ? [] : withoutDeliveredFindings(item.findings, delivered);
       const disposition = bendDeliveryFindingDisposition(composed, remaining.length);
       if (disposition.$ === "KeepForReoffer") {
-        delete item.delivery;
+        this.#releaseAdviceLease(item);
         continue;
       }
       if (disposition.$ === "RetireAdvice") {
@@ -1147,7 +1259,7 @@ export class ResidentServer {
         ...evaluation,
         findings: withoutDeliveredFindings(evaluation.findings, delivered),
       })).filter((evaluation) => evaluation.findings.length > 0);
-      delete item.delivery;
+      this.#releaseAdviceLease(item);
     }
     for (const item of notices) this.#removePendingNotice(item.id, token);
     return { status: "finalized" };
@@ -1156,7 +1268,7 @@ export class ResidentServer {
   releaseDelivery(token: string): void {
     for (const advice of this.#advice) {
       if (advice.delivery?.token === token &&
-          bendDeliveryReleaseUnacknowledged(advice.delivery.acknowledged)) delete advice.delivery;
+          bendDeliveryReleaseUnacknowledged(advice.delivery.acknowledged)) this.#releaseAdviceLease(advice);
     }
     for (const notice of this.#noticesForToken(token)) {
       if (notice.delivery?.token === token &&
@@ -1350,8 +1462,9 @@ export class ResidentServer {
       .sort((left, right) => left.sequence - right.sequence);
     const candidateValues = candidates.map(({ value }) => value);
     const selectedValues = ticket === undefined
-      ? selectFittingNotices(findings, [], candidateValues)
-      : selectFittingClaudeNotices(findings, candidateValues, ticket.claudeFeedbackMode);
+      ? selectFittingNotices(findings, [], candidateValues, this.#collectionNoticeOffer)
+      : selectFittingClaudeNotices(findings, candidateValues,
+        ticket.claudeFeedbackMode, this.#collectionNoticeOffer);
     const selected = candidates.filter((candidate) => selectedValues.includes(candidate.value));
     for (const notice of selected) {
       notice.delivery = {
@@ -1380,7 +1493,7 @@ export class ResidentServer {
       const pending = cooldown.pending;
       const prune = bendNoticePrune(pending !== undefined, pending?.delivery !== undefined,
         pending?.delivery !== undefined && pending.delivery.leaseUntil <= now,
-        pending !== undefined && isPendingAdviceExpired(pending, now),
+        pending !== undefined && this.#adviceExpired(pending, now),
         key === exceptKey, cooldown.nextAllowedAt <= now);
       if (prune.$ !== "Prune") throw new Error("Bend denied notice pruning");
       if (pending !== undefined) {
@@ -1601,6 +1714,11 @@ export class ResidentServer {
     if (index < 0) return false;
     const [removed] = this.#advice.splice(index, 1);
     if (removed !== undefined) {
+      const retired = this.#ledger.transition({ kind: "collectionRetireAdvice",
+        advice: removed.canonicalOperationId });
+      if (retired.rejection !== undefined || retired.commands[0]?.kind !== "collectionAdviceRetired") {
+        throw new Error("canonical advice retirement refused");
+      }
       if (removed.round !== undefined && removed.workUnitId !== undefined) {
         removed.round.policyWork.retire(removed.workUnitId);
       }
@@ -1608,7 +1726,7 @@ export class ResidentServer {
       for (const ticket of this.#tickets.values()) {
         for (const unit of ticket.units) {
           if (unit.current.stage.$ === "UnitFinding" && unit.current.adviceId === id && !unit.current.stage.delivered) {
-            unitUnavailable(unit, isPendingAdviceExpired(removed, this.#now()) ? "expired" : "stale");
+            unitUnavailable(unit, this.#adviceExpired(removed, this.#now()) ? "expired" : "stale");
           }
         }
       }
@@ -1621,7 +1739,7 @@ export class ResidentServer {
   #expirePending(now: number): void {
     this.#composedDelivery.expire(now);
     for (const advice of [...this.#advice]) {
-      if (isPendingAdviceExpired(advice, now)) this.#removeAdvice(advice.id);
+      if (this.#adviceExpired(advice, now)) this.#removeAdvice(advice.id);
     }
   }
 
@@ -2598,7 +2716,7 @@ export class ResidentServer {
         this.#pruneNoticeCooldowns(this.#now());
         for (const advice of this.#advice) {
           if (adviceeGroup(advice.observation.root, advice.observation.advicee) === group &&
-              advice.delivery !== undefined && advice.delivery.leaseUntil <= this.#now()) delete advice.delivery;
+              advice.delivery !== undefined && advice.delivery.leaseUntil <= this.#now()) this.#releaseAdviceLease(advice);
         }
         const round = this.#rounds.get(group);
         const totalUnfinished = this.#collectionWorkCount(request.root, request.advicee, true);
@@ -2800,7 +2918,7 @@ export class ResidentServer {
     for (const advice of [...this.#advice]) {
       if (advice.delivery?.token !== response.token) continue;
       const route = bendFinalCandidate(true, true, true,
-        !this.#roundActive(advice.round) || isPendingAdviceExpired(advice, now),
+        !this.#roundActive(advice.round) || this.#adviceExpired(advice, now),
         this.#isCurrentWork(advice.revision, advice.prepared),
         advice.delivery.findings.length > 0);
       if (route.$ === "RetireCandidate") {
@@ -2808,7 +2926,7 @@ export class ResidentServer {
         continue;
       }
       if (route.$ === "ReleaseCandidate") {
-        delete advice.delivery;
+        this.#releaseAdviceLease(advice);
         continue;
       }
       if (route.$ !== "RetainCandidate") continue;
@@ -2832,7 +2950,7 @@ export class ResidentServer {
         if (advice.delivery !== undefined && (advice.round === undefined ||
             advice.workUnitId === undefined ||
             advice.delivery.findings.length > advice.round.policyWork.pendingFor(advice.workUnitId))) {
-          delete advice.delivery;
+          this.#releaseAdviceLease(advice);
         }
       }
       const offers = handoff.flatMap((advice) => (advice.delivery?.findings ?? []).map((finding) => ({
@@ -2840,12 +2958,13 @@ export class ResidentServer {
         facts: this.#findingSelectionFacts(advice, partition, generation, now, composed),
       })));
       const accepted = new Set(selectFittingCurrentFindingIndices(offers,
-        ticket === undefined ? "codex" : ticket.claudeFeedbackMode));
+        ticket === undefined ? "codex" : ticket.claudeFeedbackMode,
+        undefined, this.#collectionFindingOffer));
       let index = 0;
       for (const advice of handoff) {
         if (advice.delivery === undefined) continue;
         advice.delivery.findings = advice.delivery.findings.filter(() => accepted.has(index++));
-        if (advice.delivery.findings.length === 0) delete advice.delivery;
+        if (advice.delivery.findings.length === 0) this.#releaseAdviceLease(advice);
       }
     }
     const findings = handoff.flatMap((advice) => advice.delivery?.findings ?? []);

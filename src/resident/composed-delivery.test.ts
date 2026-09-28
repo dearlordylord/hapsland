@@ -277,6 +277,19 @@ describe("shared Hapsland rounds", () => {
     expect(state.canSubmit("agent", "background")).toBe(true);
   });
 
+  it("keeps one canonical background owner through wrong release and expiry", () => {
+    const state = new ComposedDelivery();
+    state.admitEdit("agent", "edit", 0);
+    expect(state.claimBackground("agent", "writer", 100)).toBe(true);
+    expect(state.canonical.canonicalProjection().collection.claims).toHaveLength(1);
+    state.releaseBackground("agent", "wrong");
+    expect(state.canonical.canonicalProjection().collection.claims).toHaveLength(1);
+    state.expire(100 + BACKGROUND_WAITER_EXPIRY_MS - 1);
+    expect(state.canonical.canonicalProjection().collection.claims).toHaveLength(1);
+    state.expire(100 + BACKGROUND_WAITER_EXPIRY_MS);
+    expect(state.canonical.canonicalProjection().collection.claims).toEqual([]);
+  });
+
   it("keeps a fractional-time background claim until its full lifetime elapses", () => {
     const state = new ComposedDelivery();
     state.admitEdit("agent", "edit", 0);

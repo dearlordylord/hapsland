@@ -88,6 +88,20 @@ export type CanonicalEvent =
   | { readonly kind: "stopPolled"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly deadline: boolean }
   | { readonly kind: "stopGroupPolled"; readonly group: number; readonly lifetime: number; readonly round: number; readonly scopes: readonly { readonly partition: number; readonly round: number }[]; readonly deadline: boolean; readonly extraPending: boolean; readonly continuations: number }
   | { readonly kind: "stopGroupEnded"; readonly group: number; readonly lifetime: number; readonly round: number; readonly scopes: readonly { readonly partition: number; readonly round: number }[] }
+  | { readonly kind: "collectionReady"; readonly advice: number; readonly already: boolean; readonly turnEnd: boolean; readonly cycleComplete: boolean; readonly elapsed: number; readonly window: number }
+  | { readonly kind: "collectionCredentialCheck"; readonly sameScope: boolean; readonly generationValid: boolean }
+  | { readonly kind: "collectionCandidateCheck"; readonly samePartition: boolean; readonly unleased: boolean; readonly hasUnsuppressed: boolean; readonly ticketOwns: boolean }
+  | { readonly kind: "collectionOrderCheck"; readonly leftCycle: number; readonly leftSequence: number; readonly rightCycle: number; readonly rightSequence: number }
+  | { readonly kind: "collectionExpiryCheck"; readonly elapsed: number; readonly lifetime: number }
+  | { readonly kind: "collectionFitCheck"; readonly items: number; readonly bytes: number }
+  | { readonly kind: "collectionFindingCheck"; readonly selectionPartition: number; readonly selectionRound: number; readonly unit: number; readonly partition: number; readonly round: number; readonly snapshot: number; readonly currentSnapshot: number; readonly credential: number; readonly currentCredential: number; readonly ageMs: number; readonly soloBytes: number; readonly collectionReady: boolean; readonly selectedCount: number; readonly prospectiveBytes: number }
+  | { readonly kind: "collectionNoticeCheck"; readonly items: number; readonly bytes: number; readonly skipUnfitting: boolean }
+  | { readonly kind: "collectionReserveLease" | "collectionReleaseLease"; readonly advice: number; readonly token: number }
+  | { readonly kind: "collectionLeaseCheck"; readonly advice: number; readonly token: number; readonly expired: boolean; readonly stopCollector: boolean; readonly sameGroup: boolean; readonly reofferable: boolean }
+  | { readonly kind: "collectionRetireAdvice"; readonly advice: number }
+  | { readonly kind: "collectionClaimBackground"; readonly group: number; readonly token: number; readonly active: boolean; readonly capacity: number }
+  | { readonly kind: "collectionReleaseBackground"; readonly group: number; readonly token: number }
+  | { readonly kind: "collectionExpireBackground"; readonly group: number; readonly token: number; readonly elapsed: number; readonly lifetime: number }
   | { readonly kind: "outputStarted"; readonly partition: number; readonly lifetime: number; readonly round: number }
   | { readonly kind: "outputTerminal"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly outcome: "acknowledged" | "failed" | "unknown" }
   | { readonly kind: "retirePartition"; readonly partition: number; readonly lifetime: number; readonly round: number };
@@ -123,6 +137,7 @@ export type CanonicalCommand =
   | { readonly kind: "finishReady" }
   | { readonly kind: "finishLimit" }
   | { readonly kind: "stopEnded" }
+  | { readonly kind: "collectionEligible" | "collectionWaiting" | "collectionRetireCredential" | "collectionRetainCredential" | "collectionCandidate" | "collectionSkip" | "collectionBefore" | "collectionEqual" | "collectionAfter" | "collectionExpired" | "collectionCurrent" | "collectionFits" | "collectionLimited" | "collectionFindingSelected" | "collectionFindingRetained" | "collectionFindingLimited" | "collectionFindingExpired" | "collectionNoticeIncluded" | "collectionNoticeSkipped" | "collectionNoticeStopped" | "collectionLeaseReserved" | "collectionLeaseRefused" | "collectionLeaseReleased" | "collectionLeaseKept" | "collectionAdviceRetired" | "collectionBackgroundClaimed" | "collectionBackgroundRefused" | "collectionBackgroundReleased" | "collectionBackgroundKept" }
   | { readonly kind: "writeAuthorized"; readonly operation: number }
   | { readonly kind: "writeRecorded"; readonly outcome: "acknowledged" | "failed" | "unknown" }
   | { readonly kind: "waitForOutput" }
@@ -218,6 +233,20 @@ const encode = (event: CanonicalEvent): unknown => {
       return polled ? { $: "Canonical.StopGroupPolled", ...common, deadline: bool(event.deadline), extra_pending: bool(event.extraPending), continuations: nat(event.continuations) }
         : { $: "Canonical.StopGroupEnded", ...common };
     }
+    case "collectionReady": inputFields(event, ["kind", "advice", "already", "turnEnd", "cycleComplete", "elapsed", "window"]); return { $: "Canonical.CollectionReady", advice: nat(event.advice, true), already: bool(event.already), turn_end: bool(event.turnEnd), cycle_complete: bool(event.cycleComplete), elapsed: nat(event.elapsed), window: nat(event.window, true) };
+    case "collectionCredentialCheck": inputFields(event, ["kind", "sameScope", "generationValid"]); return { $: "Canonical.CollectionCredentialCheck", same_scope: bool(event.sameScope), generation_valid: bool(event.generationValid) };
+    case "collectionCandidateCheck": inputFields(event, ["kind", "samePartition", "unleased", "hasUnsuppressed", "ticketOwns"]); return { $: "Canonical.CollectionCandidateCheck", same_partition: bool(event.samePartition), unleased: bool(event.unleased), has_unsuppressed: bool(event.hasUnsuppressed), ticket_owns: bool(event.ticketOwns) };
+    case "collectionOrderCheck": inputFields(event, ["kind", "leftCycle", "leftSequence", "rightCycle", "rightSequence"]); return { $: "Canonical.CollectionOrderCheck", left_cycle: nat(event.leftCycle), left_sequence: nat(event.leftSequence), right_cycle: nat(event.rightCycle), right_sequence: nat(event.rightSequence) };
+    case "collectionExpiryCheck": inputFields(event, ["kind", "elapsed", "lifetime"]); return { $: "Canonical.CollectionExpiryCheck", elapsed: nat(event.elapsed), lifetime: nat(event.lifetime, true) };
+    case "collectionFitCheck": inputFields(event, ["kind", "items", "bytes"]); return { $: "Canonical.CollectionFitCheck", items: nat(event.items), bytes: nat(event.bytes) };
+    case "collectionFindingCheck": inputFields(event, ["kind", "selectionPartition", "selectionRound", "unit", "partition", "round", "snapshot", "currentSnapshot", "credential", "currentCredential", "ageMs", "soloBytes", "collectionReady", "selectedCount", "prospectiveBytes"]); return { $: "Canonical.CollectionFindingCheck", selection_partition: nat(event.selectionPartition, true), selection_round: nat(event.selectionRound), unit: nat(event.unit), partition: nat(event.partition, true), round: nat(event.round), snapshot: nat(event.snapshot), current_snapshot: nat(event.currentSnapshot), credential: nat(event.credential), current_credential: nat(event.currentCredential), age_ms: nat(event.ageMs), solo_bytes: nat(event.soloBytes), collection_ready: bool(event.collectionReady), selected_count: nat(event.selectedCount), prospective_bytes: nat(event.prospectiveBytes) };
+    case "collectionNoticeCheck": inputFields(event, ["kind", "items", "bytes", "skipUnfitting"]); return { $: "Canonical.CollectionNoticeCheck", items: nat(event.items), bytes: nat(event.bytes), skip_unfitting: bool(event.skipUnfitting) };
+    case "collectionReserveLease": case "collectionReleaseLease": inputFields(event, ["kind", "advice", "token"]); return { $: event.kind === "collectionReserveLease" ? "Canonical.CollectionReserveLease" : "Canonical.CollectionReleaseLease", advice: nat(event.advice, true), token: nat(event.token, true) };
+    case "collectionLeaseCheck": inputFields(event, ["kind", "advice", "token", "expired", "stopCollector", "sameGroup", "reofferable"]); return { $: "Canonical.CollectionLeaseCheck", advice: nat(event.advice, true), token: nat(event.token, true), expired: bool(event.expired), stop_collector: bool(event.stopCollector), same_group: bool(event.sameGroup), reofferable: bool(event.reofferable) };
+    case "collectionRetireAdvice": inputFields(event, ["kind", "advice"]); return { $: "Canonical.CollectionRetireAdvice", advice: nat(event.advice, true) };
+    case "collectionClaimBackground": inputFields(event, ["kind", "group", "token", "active", "capacity"]); return { $: "Canonical.CollectionClaimBackground", group: nat(event.group, true), token: nat(event.token, true), active: bool(event.active), capacity: nat(event.capacity, true) };
+    case "collectionReleaseBackground": inputFields(event, ["kind", "group", "token"]); return { $: "Canonical.CollectionReleaseBackground", group: nat(event.group, true), token: nat(event.token, true) };
+    case "collectionExpireBackground": inputFields(event, ["kind", "group", "token", "elapsed", "lifetime"]); return { $: "Canonical.CollectionExpireBackground", group: nat(event.group, true), token: nat(event.token, true), elapsed: nat(event.elapsed), lifetime: nat(event.lifetime, true) };
     case "outputStarted": inputFields(event, ["kind", "partition", "lifetime", "round"]); return { $: "Canonical.OutputStarted", ...identity(event), round: nat(event.round, true) };
     case "outputTerminal": {
       inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "outcome"]);
@@ -341,6 +370,23 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
     case "Canonical.FinishReady": fields(value, "Canonical.FinishReady", []); return { kind: "finishReady" };
     case "Canonical.FinishLimit": fields(value, "Canonical.FinishLimit", []); return { kind: "finishLimit" };
     case "Canonical.StopEnded": fields(value, "Canonical.StopEnded", []); return { kind: "stopEnded" };
+    case "Canonical.CollectionEligible": case "Canonical.CollectionWaiting":
+    case "Canonical.CollectionRetireCredential": case "Canonical.CollectionRetainCredential":
+    case "Canonical.CollectionCandidate": case "Canonical.CollectionSkip":
+    case "Canonical.CollectionBefore": case "Canonical.CollectionEqual": case "Canonical.CollectionAfter":
+    case "Canonical.CollectionExpired": case "Canonical.CollectionCurrent":
+    case "Canonical.CollectionFits": case "Canonical.CollectionLimited":
+    case "Canonical.CollectionFindingSelected": case "Canonical.CollectionFindingRetained":
+    case "Canonical.CollectionFindingLimited": case "Canonical.CollectionFindingExpired":
+    case "Canonical.CollectionNoticeIncluded": case "Canonical.CollectionNoticeSkipped": case "Canonical.CollectionNoticeStopped":
+    case "Canonical.CollectionLeaseReserved": case "Canonical.CollectionLeaseRefused":
+    case "Canonical.CollectionLeaseReleased": case "Canonical.CollectionLeaseKept": case "Canonical.CollectionAdviceRetired":
+    case "Canonical.CollectionBackgroundClaimed": case "Canonical.CollectionBackgroundRefused":
+    case "Canonical.CollectionBackgroundReleased": case "Canonical.CollectionBackgroundKept": {
+      const name = tag(value);
+      fields(value, name, []);
+      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Extract<CanonicalCommand, { kind: `collection${string}` }>["kind"] };
+    }
     case "Canonical.WriteAuthorized": return { kind: "writeAuthorized", operation: nat(fields(value, "Canonical.WriteAuthorized", ["operation"]).operation, true) };
     case "Canonical.WriteRecorded": return { kind: "writeRecorded", outcome: writeOutcome(fields(value, "Canonical.WriteRecorded", ["outcome"]).outcome) };
     case "Canonical.WaitForOutput": fields(value, "Canonical.WaitForOutput", []); return { kind: "waitForOutput" };
@@ -360,12 +406,13 @@ export type CanonicalProjection = {
   readonly admissions: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly active: boolean; readonly closedAt: number; readonly permits: readonly { readonly token: number; readonly tool: number; readonly round: number; readonly deadline: number }[]; readonly used: readonly { readonly token: number; readonly tool: number }[] }[];
   readonly work: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly reservation: number; readonly parent: number; readonly kind: "sourceQueued" | "sourceReading" | "preparing" | "reviewing" | "atJev" | "pendingFinding" }[];
   readonly dispatch: { readonly pending: readonly DispatchEntry[]; readonly active: readonly DispatchEntry[]; readonly running: readonly DispatchEntry[]; readonly nextSequence: number; readonly cycle: number; readonly closed: boolean };
+  readonly collection: { readonly ready: readonly number[]; readonly leases: readonly { readonly advice: number; readonly owner: number }[]; readonly claims: readonly { readonly group: number; readonly owner: number }[] };
 };
 type DispatchEntry = { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly sequence: number; readonly cycle: number; readonly cancelled: boolean };
 const known = new WeakSet<object>();
 export const projectCanonical = (state: unknown): CanonicalProjection => {
   if (!known.has(object(state))) throw new TypeError("foreign canonical state");
-  const s = fields(state, "Canonical.State", ["ledger", "rounds", "work", "next_round", "next_operation", "admissions", "dispatch"]);
+  const s = fields(state, "Canonical.State", ["ledger", "rounds", "work", "next_round", "next_operation", "admissions", "dispatch", "collection"]);
   nat(s.next_round, true); nat(s.next_operation, true);
   const rawDispatch = fields(s.dispatch, "Dispatch.State", ["pending", "active", "running", "next_sequence", "cycle", "closed"]);
   const dispatchEntry = (value: unknown): DispatchEntry => {
@@ -377,6 +424,24 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
     running: readList(rawDispatch.running, dispatchEntry), nextSequence: nat(rawDispatch.next_sequence),
     cycle: nat(rawDispatch.cycle), closed: bool(rawDispatch.closed) };
   const dispatchEntries = [...dispatch.pending, ...dispatch.active, ...dispatch.running];
+  const collectionState = fields(s.collection, "CollectionState.State", ["ready", "leases", "claims"]);
+  const collection = {
+    ready: readList(collectionState.ready, (id) => nat(id, true)),
+    leases: readList(collectionState.leases, (value) => {
+      const item = fields(value, "CollectionState.Lease", ["advice", "owner"]);
+      return { advice: nat(item.advice, true), owner: nat(item.owner, true) };
+    }),
+    claims: readList(collectionState.claims, (value) => {
+      const item = fields(value, "CollectionState.Claim", ["group", "owner"]);
+      return { group: nat(item.group, true), owner: nat(item.owner, true) };
+    }),
+  };
+  if (new Set(collection.ready).size !== collection.ready.length ||
+      new Set(collection.leases.map((item) => item.advice)).size !== collection.leases.length ||
+      collection.leases.some((item) => !collection.ready.includes(item.advice)) ||
+      new Set(collection.claims.map((item) => item.group)).size !== collection.claims.length) {
+    throw new TypeError("inconsistent canonical collection state");
+  }
   if (dispatch.running.length > 2 || new Set(dispatchEntries.map((x) => x.operation)).size !== dispatchEntries.length ||
       new Set(dispatchEntries.map((x) => x.sequence)).size !== dispatchEntries.length ||
       dispatchEntries.some((x) => x.sequence >= dispatch.nextSequence || x.cycle > dispatch.cycle) ||
@@ -475,7 +540,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
   return { global,
     limits: { globalItems: nat(limits.global_items, true), globalBytes: nat(limits.global_bytes, true),
       partitionItems: nat(limits.partition_items, true), partitionBytes: nat(limits.partition_bytes, true) },
-    partitions, charges, inventory, rounds, admissions, work, dispatch };
+    partitions, charges, inventory, rounds, admissions, work, dispatch, collection };
 };
 export const initialCanonical = (limits: { readonly globalItems: number; readonly globalBytes: number; readonly partitionItems: number; readonly partitionBytes: number }): unknown => {
   const values = Object.values(limits);

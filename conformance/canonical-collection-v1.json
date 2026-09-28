@@ -1,0 +1,52 @@
+{
+  "traces": [
+    {
+      "name": "readiness and exact lease exclude overlapping collectors",
+      "events": [
+        { "kind": "collectionReserveLease", "advice": 9, "token": 1, "expect": "collectionLeaseRefused" },
+        { "kind": "collectionReady", "advice": 9, "already": false, "turnEnd": false, "cycleComplete": false, "elapsed": 49, "window": 50, "expect": "collectionWaiting" },
+        { "kind": "collectionReady", "advice": 9, "already": false, "turnEnd": false, "cycleComplete": false, "elapsed": 50, "window": 50, "expect": "collectionEligible" },
+        { "kind": "collectionReserveLease", "advice": 9, "token": 1, "expect": "collectionLeaseReserved" },
+        { "kind": "collectionReserveLease", "advice": 9, "token": 2, "expect": "collectionLeaseRefused" },
+        { "kind": "collectionLeaseCheck", "advice": 9, "token": 1, "expired": false, "stopCollector": false, "sameGroup": true, "reofferable": false, "expect": "collectionLeaseKept" },
+        { "kind": "collectionLeaseCheck", "advice": 9, "token": 2, "expired": false, "stopCollector": false, "sameGroup": true, "reofferable": false, "expect": "collectionLeaseRefused" },
+        { "kind": "collectionReleaseLease", "advice": 9, "token": 2, "expect": "collectionLeaseRefused" },
+        { "kind": "collectionReleaseLease", "advice": 9, "token": 1, "expect": "collectionLeaseReleased" },
+        { "kind": "collectionReserveLease", "advice": 9, "token": 2, "expect": "collectionLeaseReserved" },
+        { "kind": "collectionRetireAdvice", "advice": 9, "expect": "collectionAdviceRetired" },
+        { "kind": "collectionReserveLease", "advice": 9, "token": 1, "expect": "collectionLeaseRefused" }
+      ],
+      "collection": { "ready": [], "leases": [], "claims": [] }
+    },
+    {
+      "name": "background writer claim expires by supplied clock fact",
+      "events": [
+        { "kind": "collectionClaimBackground", "group": 1, "token": 7, "active": true, "capacity": 1, "expect": "collectionBackgroundClaimed" },
+        { "kind": "collectionClaimBackground", "group": 1, "token": 8, "active": true, "capacity": 1, "expect": "collectionBackgroundRefused" },
+        { "kind": "collectionClaimBackground", "group": 2, "token": 9, "active": true, "capacity": 1, "expect": "collectionBackgroundRefused" },
+        { "kind": "collectionExpireBackground", "group": 1, "token": 7, "elapsed": 19999, "lifetime": 20000, "expect": "collectionBackgroundKept" },
+        { "kind": "collectionExpireBackground", "group": 1, "token": 7, "elapsed": 20000, "lifetime": 20000, "expect": "collectionBackgroundReleased" },
+        { "kind": "collectionClaimBackground", "group": 2, "token": 9, "active": true, "capacity": 1, "expect": "collectionBackgroundClaimed" },
+        { "kind": "collectionReleaseBackground", "group": 2, "token": 8, "expect": "collectionBackgroundRefused" }
+      ],
+      "collection": { "ready": [], "leases": [], "claims": [{ "group": 2, "owner": 9 }] }
+    },
+    {
+      "name": "cycle order, expiry, and encoded finding and notice fit",
+      "events": [
+        { "kind": "collectionOrderCheck", "leftCycle": 1, "leftSequence": 2, "rightCycle": 2, "rightSequence": 1, "expect": "collectionBefore" },
+        { "kind": "collectionOrderCheck", "leftCycle": 1, "leftSequence": 3, "rightCycle": 1, "rightSequence": 2, "expect": "collectionAfter" },
+        { "kind": "collectionExpiryCheck", "elapsed": 599999, "lifetime": 600000, "expect": "collectionCurrent" },
+        { "kind": "collectionExpiryCheck", "elapsed": 600000, "lifetime": 600000, "expect": "collectionExpired" },
+        { "kind": "collectionFitCheck", "items": 5, "bytes": 2048, "expect": "collectionFits" },
+        { "kind": "collectionFitCheck", "items": 6, "bytes": 2048, "expect": "collectionLimited" },
+        { "kind": "collectionFindingCheck", "selectionPartition": 1, "selectionRound": 1, "unit": 1, "partition": 1, "round": 1, "snapshot": 1, "currentSnapshot": 1, "credential": 0, "currentCredential": 0, "ageMs": 0, "soloBytes": 100, "collectionReady": true, "selectedCount": 0, "prospectiveBytes": 100, "expect": "collectionFindingSelected" },
+        { "kind": "collectionFindingCheck", "selectionPartition": 1, "selectionRound": 1, "unit": 1, "partition": 1, "round": 1, "snapshot": 1, "currentSnapshot": 2, "credential": 0, "currentCredential": 0, "ageMs": 0, "soloBytes": 100, "collectionReady": true, "selectedCount": 0, "prospectiveBytes": 100, "expect": "collectionFindingExpired" },
+        { "kind": "collectionFindingCheck", "selectionPartition": 1, "selectionRound": 1, "unit": 1, "partition": 1, "round": 1, "snapshot": 1, "currentSnapshot": 1, "credential": 0, "currentCredential": 0, "ageMs": 0, "soloBytes": 2049, "collectionReady": true, "selectedCount": 0, "prospectiveBytes": 2049, "expect": "collectionFindingLimited" },
+        { "kind": "collectionNoticeCheck", "items": 6, "bytes": 2048, "skipUnfitting": true, "expect": "collectionNoticeSkipped" },
+        { "kind": "collectionNoticeCheck", "items": 6, "bytes": 2048, "skipUnfitting": false, "expect": "collectionNoticeStopped" }
+      ],
+      "collection": { "ready": [], "leases": [], "claims": [] }
+    }
+  ]
+}
