@@ -173,3 +173,17 @@ independent real Jev session will use that instrumentation. It has an
 eight-request HTTP-boundary cutoff, no automatic retry, and 240-second host
 ceiling. Sixteen live Claude requests have been used; the cumulative actual
 maximum is 24 of 40. Preserve the earlier incomplete live record.
+
+## Declared Codex collection-order observation, before execution
+
+The first strict-acknowledgement Codex session made two Jev requests, but
+Codex repaired the source before a Bash hook collected and submitted the
+initial finding. Its later clear does not establish advice-driven repair.
+Preserve that run as incomplete. One independent native Codex session will
+require a Bash test/collection tool call immediately after the initial draft
+and before any further edit. The agent is instructed to act only on advice it
+actually receives and to affirm that in its final reply. The run has a
+six-request HTTP-boundary cutoff, no automatic retry, and a 240-second host
+ceiling. Six Codex requests have been used across three sessions, so the
+cumulative actual maximum is 12 of 40. A finding submitted after the repair
+will not satisfy this observation.

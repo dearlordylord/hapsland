@@ -15,6 +15,7 @@ request ceiling. The source-free records are under
 | --- | ---: | --- |
 | Codex CLI 0.157.1, one session | 2 | A real finding was submitted by a native hook; a later edit changed the source after that submission. A second Jev HTTP 200 and no later finding were observed. The runner did not capture an explicit `clear` ticket status for that second review. |
 | Codex CLI 0.157.1, follow-up capture session | 2 | Native `apply_patch` attributed the draft; Jev HTTP 200 completed review and the Bash hook submitted a finding. Codex changed the source after that submission. A second Jev HTTP 200 led to an explicit resident `clear` stage after the repair. The result compiled and independent invalid-state examples were rejected. |
+| Codex CLI 0.157.1, first visibility-focused session | 2 | The resident recorded a finding and later clear, but Codex changed the source before a Bash hook submitted the finding. This cannot establish advice-driven repair and remains incomplete. |
 | Claude Code 2.1.281, three sessions | 5 | One run saw a resident finding and later clear but no submitted advice; another received Jev HTTP 503 and recorded unavailable; the Bash collection diagnostic again saw finding and clear without submitted advice. Changes after an undisclosed finding cannot establish model visibility. |
 | Claude Code 2.1.218, three composed-hook sessions | 5 | The first saw finding and clear, but the agent changed the file before Stop, so attribution to advice was unproven. The Stop-focused run's Jev request failed. The session with explicit `block-current-findings` feedback received HTTP 503 on the draft and a later clear after an unprompted edit; an operational notice was submitted, but no actionable finding. |
 | Claude Code 2.1.218, controlled offline count session | 0 | After correcting the fixture to match the controlled review snapshot, a real native Stop hook delivered the controlled r6 finding. Claude then changed the type; the follow-up recorded clear, and independent TypeScript checks rejected a raw number. An earlier offline attempt with `export` in the draft failed closed as an unknown snapshot and remains recorded. This validates the delivery path without claiming live Jev behavior. |
@@ -23,11 +24,12 @@ request ceiling. The source-free records are under
 | Claude Code 2.1.218, second real Jev count session | 2 | Jev HTTP 200 produced a current finding delivered through Stop. Claude edited the type, and independent TypeScript checks rejected raw-number assignment. A second Jev HTTP 200 produced a further resident finding after the edit, satisfying the specified follow-up outcome alternative. This does not claim the rule was cleared. |
 | Claude Code 2.1.218, first visibility-focused live session | 2 | Stop delivered a finding, Claude made a different valid branded type, and a second Jev HTTP 200 produced a further finding. The combined final-acknowledgement check was false, so this record does not establish independent model acknowledgement. |
 | Claude Code 2.1.218, instrumented offline visibility session | 0 | Native Stop delivered controlled r6 advice; Claude repaired and affirmatively named the delivered rule ID in its final response. The different branded form fell outside the exact-snapshot controlled fixture, so follow-up was unavailable, not clear. |
+| Claude Code 2.1.218, instrumented live visibility session | 2 | Jev returned HTTP 200 for both reviews. Native Stop delivered an r7 finding; Claude chose a valid branded replacement that the prompt did not prescribe, and the follow-up recorded a further finding. Its final response did not include either requested acknowledgement token, so the strict independent acknowledgement remains missing. |
 
-The nine live Claude sessions used **16 Jev requests total**, below the issue's
+The ten live Claude sessions used **18 Jev requests total**, below the issue's
 40-request limit. Each
 session had its own eight-request HTTP-boundary cutoff and 240-second host
-ceiling; there were no automatic retries. The two Codex sessions used **4 Jev
+ceiling; there were no automatic retries. The three Codex sessions used **6 Jev
 requests total**, each under its six-request cutoff. All repositories and host
 state were disposable.
 Credentials were read into child process environments without printing or
