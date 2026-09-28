@@ -79,15 +79,17 @@ planned; missing advice or repair leaves #136 incomplete.
 
 ## Configured Claude feedback observation, before execution
 
-An offline native Claude Code 2.1.218 fixture passed with explicit review
-consent and the user setting `claudeFeedbackMode: block-current-findings`;
-the prior live runner omitted both. Those sessions therefore remain useful
-negative observations but do not validate this configured profile. One final
-selected session will use the supported composed hooks, explicit disposable
-review consent, and that feedback setting. Its independent Jev cutoff is eight
-requests with no automatic retry. The five prior Claude sessions actually
+An older offline native Claude Code 2.1.218 fixture passed with the user
+setting `claudeFeedbackMode: block-current-findings`; the prior live runner
+omitted that setting. The fixture also used the now-retired repository consent
+command, so its consent result does not describe the current #132 boundary.
+Current source makes file settings the selection gate and returns `retired` for
+the old enable command. One final selected session will use the supported
+composed hooks and the explicit user feedback setting. No separate repository
+grant will be created. This session has an eight-request Jev cutoff with no
+automatic retry. The five prior Claude sessions actually
 used eight requests, so the new cumulative actual maximum is 16, below the
 issue's 40-request ceiling. This supersedes the prior no-further-session plan
-because the offline fixture identified a concrete configuration difference.
+because current code and the fixture identified a concrete feedback-setting difference.
 If advice or repair still does not occur, stop live execution and keep #136
 incomplete.
