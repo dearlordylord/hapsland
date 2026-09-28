@@ -20,14 +20,15 @@ traces merged through PR #144 and #119 is closed. #120's resident capacity
 slice is merged at `b90a524`. #121's canonical permit admission is merged at
 `cdb00d9`. #122's canonical observation fan-out and review outcomes are merged
 at `b8056e2`. #123's canonical FIFO dispatch is merged at `348604c`.
-#124's canonical Stop wait and cutoff and #125's collection and lease routing
-are merged; the next migration slice is #126. Other resident decision paths under #126–#134 are
+#124's canonical Stop wait and cutoff, #125's collection and lease routing,
+and #126's delivery and terminal acknowledgement routing are merged; the next
+migration slice is #127. Other resident decision paths under #127–#134 are
 still pending. Configurable graph limits and
 general budget/termination proofs are tracked separately in
 [#142](https://github.com/dearlordylord/hapsland/issues/142).
 
 The integrated epic is in `/workspace/typescript/jev-worktrees/bend-full-flow`
-(`feat/bend-full-flow`, merged through #125). Start #126 in a new task worktree
+(`feat/bend-full-flow`, merged through #126). Start #127 in a new task worktree
 from the latest epic tip. The old `/tmp/hapsland-bend-handoff.md` predates #119
 and is no longer a valid resume point. The `/workspace/typescript/jev` checkout
 is older and is not the edit target.
@@ -223,6 +224,19 @@ independent canonical traces, Bend proofs, build, and 590 offline tests passed;
 two credential-gated live tests were skipped. Both review findings were fixed
 and rechecked. See `docs/issue-125-collection-evidence.md`.
 
+## #126 delivery and terminal acknowledgement (merged 2026-09-28)
+
+`Canonical.step` now retains Stop output slots, continuation use, exact selected
+work units, submission batches, and terminal acknowledgement phases. The
+resident rechecks all selected advice and source facts before the final writer
+claim, reserves one of four continuation slots before output, and fences late
+or duplicate results. One same-round Stop reoffer of acknowledged background
+advice is supported without another Jev review. The direct native handoff
+policy owner was removed and guarded. Twenty-seven independent source-free
+traces, Bend proofs, build, and 591 offline tests passed; two credential-gated
+live tests were skipped. Both reviews found no remaining blocking issue. See
+`docs/issue-126-delivery-evidence.md`.
+
 ## Next autonomous migration run
 
 Use the GitHub issue bodies as the task contracts. Work in a dedicated task
@@ -233,8 +247,8 @@ the issue only when its criteria have evidence. Update this handoff after each
 merged slice. Do not treat the separate #141 import-graph diagram as the final
 production replay.
 
-One valid single-agent order from here is #126,
-#127, #128, #129, #130, #131, #132, #133, #134, #135. Dependencies allow
+One valid single-agent order from here is #127, #128, #129, #130, #131,
+#132, #133, #134, #135. Dependencies allow
 #132–#134 to proceed after their own blockers while the #123–#131 chain is in
 progress; #135 needs both #131 and #134. #135 delivers the build-generated
 capacity inventory and live ledger panel from compiled Bend output. #136
