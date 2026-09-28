@@ -1334,7 +1334,7 @@ const program = Effect.gen(function* () {
     if (isClaudeHook && !isComposedEditHook) return {};
     const nativeEvent = yield* decodeJson(input);
     const observation = isClaudeHook
-      ? yield* adaptClaudeDirectEvent(nativeEvent)
+      ? yield* adaptClaudeDirectEvent(nativeEvent, userConfigPath === undefined ? {} : { userConfigPath })
       : yield* adaptOpenCodeDirectEvent(nativeEvent);
     return yield* Effect.tryPromise(() => runDirectBoundedHook(
       observation, controlled, statePath, activityPath, userConfigPath,

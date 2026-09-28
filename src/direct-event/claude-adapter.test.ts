@@ -20,6 +20,33 @@ const base = (root: string, path: string) => ({
 });
 
 describe("Claude Code 2.1.218 direct adapter", () => {
+  it("selects configured files before the first source read", async () => {
+    const root = await makeGitFixture();
+    await writeFile(join(root, ".review.jsonc"), '{"version":1,"excludes":["excluded.ts"]}\n');
+    const userConfigPath = join(root, "user-selection.jsonc");
+    await writeFile(userConfigPath, '{"version":1,"excludes":["user-excluded.ts"]}\n');
+    await writeFile(join(root, ".gitignore"), "ignored.ts\n");
+    const reads: string[] = [];
+    const options = { userConfigPath, captureHooks: { sourceRead: (path: string) => { reads.push(path); } } };
+    const eventFor = async (name: string) => {
+      const path = join(root, name);
+      const content = "export type Item = string;\n";
+      await writeFile(path, content);
+      return {
+        ...base(root, path), tool_name: "Write",
+        tool_input: { file_path: path, content },
+        tool_response: { filePath: path, content, originalFile: null, userModified: false },
+      };
+    };
+    for (const name of ["excluded.ts", "user-excluded.ts", ".env.local", "ignored.ts"]) {
+      expect(await Effect.runPromise(adaptClaudeDirectEvent(await eventFor(name), options))).toBeUndefined();
+      expect(reads, name).toEqual([]);
+    }
+    expect((await Effect.runPromise(adaptClaudeDirectEvent(await eventFor("allowed.ts"), options)))?.candidates)
+      .toMatchObject([{ path: "allowed.ts" }]);
+    expect(reads).toEqual(["allowed.ts", "allowed.ts"]);
+  });
+
   it("attributes a completed Edit to the exact tool call and carries the changed line", async () => {
     const root = await makeGitFixture();
     const path = join(root, "item.ts");

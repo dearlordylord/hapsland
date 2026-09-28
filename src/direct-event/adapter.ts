@@ -3,6 +3,7 @@ import { realpath, stat } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import * as Effect from "effect/Effect";
+import { loadConfiguration } from "../configuration/load.ts";
 import type {
   DirectCandidate,
   DirectObservation,
@@ -10,8 +11,8 @@ import type {
   PhysicalRootIdentity,
   CodexHostVersion,
 } from "./model.ts";
-import { MAX_SOURCE_BYTES, captureStable } from "./capture.ts";
-import { eligibleNamedPath } from "./selection.ts";
+import { MAX_SOURCE_BYTES, captureStable, type CaptureHooks } from "./capture.ts";
+import { eligibleNamedPath, resolvedDirectFilePolicy } from "./selection.ts";
 
 const execFileAsync = promisify(execFile);
 export const MAX_CODEX_COMMAND_BYTES = 65_536;
@@ -285,7 +286,14 @@ const boundedSource = (value: unknown): value is string =>
   typeof value === "string" && Buffer.byteLength(value, "utf8") <= MAX_SOURCE_BYTES;
 
 /** Claude has no observed turn ID; preserve supplied child identity. */
-export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEvent")(function* (value: unknown) {
+export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEvent")(function* (
+  value: unknown,
+  options: {
+    readonly userConfigPath?: string;
+    /** Test observation of the attribution capture. */
+    readonly captureHooks?: CaptureHooks;
+  } = {},
+) {
   const event = record(value);
   if (event?.hook_event_name !== "PostToolUse" ||
     (event.tool_name !== "Edit" && event.tool_name !== "Write") ||
@@ -315,9 +323,20 @@ export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEv
   const fromCwd = relative(resolve(event.cwd), resolve(path));
   if (fromCwd === ".." || fromCwd.startsWith(`..${sep}`) || isAbsolute(fromCwd)) return undefined;
   const relativePath = [fromRoot, fromCwd].filter(Boolean).join(sep).replaceAll(sep, "/");
-  const eligible = yield* eligibleNamedPath(root.value.root, relativePath, undefined, root.value.rootIdentity);
+  // Exact edit attribution needs a current file snapshot. Apply the same
+  // configured selection as resident preparation before taking that snapshot.
+  const configuration = yield* loadConfiguration(
+    root.value.root,
+    options.userConfigPath === undefined ? {} : { userConfigPath: options.userConfigPath },
+  );
+  const eligible = yield* eligibleNamedPath(
+    root.value.root,
+    relativePath,
+    resolvedDirectFilePolicy(configuration.policy),
+    root.value.rootIdentity,
+  );
   if (eligible === undefined) return undefined;
-  const content = yield* captureStable(root.value.root, eligible, undefined, root.value.rootIdentity);
+  const content = yield* captureStable(root.value.root, eligible, options.captureHooks, root.value.rootIdentity);
   if (content === undefined) return undefined;
   let candidate: DirectCandidate;
   if (event.tool_name === "Edit") {
