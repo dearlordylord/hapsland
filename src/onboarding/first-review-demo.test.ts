@@ -54,7 +54,6 @@ const liveRequest = (value: Extract<Preview, { status: "preview" }>) => ({
   selection: "live" as const,
   demoId: value.demo.id,
   selectionDigest: value.authorization.selectionDigest,
-  consentProposalDigest: value.authorization.consentProposalDigest,
 });
 
 const completed: DemoExecution = {
@@ -162,7 +161,7 @@ describe("installed-product first-review demo", () => {
     expect(existsSync(result.demo.disposableRoot)).toBe(false);
   });
 
-  it("requires both the live-selection digest and separate disposable-root consent digest", async () => {
+  it("requires the exact live-selection digest", async () => {
     const test = fixture();
     const proposal = await preview(test);
     if (proposal.status !== "preview") throw new Error("expected preview");
@@ -173,7 +172,7 @@ describe("installed-product first-review demo", () => {
     };
     const result = await run(test, runFirstReviewDemo({
       ...liveRequest(proposal),
-      consentProposalDigest: "0".repeat(64),
+      selectionDigest: "0".repeat(64),
     }, { statePath: test.demoStatePath, execute }));
     expect(result.status).toBe("proposal-mismatch");
     expect(executions).toBe(0);
@@ -192,7 +191,6 @@ describe("installed-product first-review demo", () => {
     writeFileSync(workerInputPath, JSON.stringify({
       request: liveRequest(proposal),
       demoStatePath: test.demoStatePath,
-      consentStatePath: test.consentStatePath,
       dispatchMarkerPath,
     }));
     const worker = new URL("../../scripts/first-review-race-worker.mjs", import.meta.url).pathname;
@@ -248,7 +246,7 @@ describe("installed-product first-review demo", () => {
     });
     expect(result.setup).toEqual({ actions: 0, durationMs: 0 });
     expect(result.reviewLatencyMs).toBe(420);
-    expect(result.cleanup).toEqual({ disposableRootRemoved: true, consentRevoked: true });
+    expect(result.cleanup).toEqual({ disposableRootRemoved: true });
     expect(existsSync(proposal.demo.disposableRoot)).toBe(false);
     const grants = await run(test, Effect.gen(function* () {
       return yield* (yield* Consent.Service).list();

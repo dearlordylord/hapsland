@@ -1,0 +1,32 @@
+{
+  "traces": [
+    { "name": "omitted settings inherit default all", "events": [
+      { "kind": "includeLayerCheck", "supplied": false, "currentRank": 0, "candidateRank": 1, "expect": "includeChoice:keepIncludes" },
+      { "kind": "fileSelectionCheck", "protected": false, "excluded": false, "includesEmpty": false, "included": true, "expect": "fileSelection:selected" },
+      { "kind": "reviewAdmissionCheck", "rootValid": true, "configurationValid": true, "credentialReady": true, "selected": true, "expect": "reviewAdmission:admitReview" }
+    ] },
+    { "name": "explicit empty include replaces inherited list", "events": [
+      { "kind": "includeLayerCheck", "supplied": true, "currentRank": 1, "candidateRank": 2, "expect": "includeChoice:replaceIncludes" },
+      { "kind": "fileSelectionCheck", "protected": false, "excluded": false, "includesEmpty": true, "included": false, "expect": "fileSelection:emptyIncludes" },
+      { "kind": "reviewAdmissionCheck", "rootValid": true, "configurationValid": true, "credentialReady": true, "selected": false, "expect": "reviewAdmission:refuseSelection" }
+    ] },
+    { "name": "lower precedence include cannot displace project", "events": [
+      { "kind": "includeLayerCheck", "supplied": true, "currentRank": 2, "candidateRank": 1, "expect": "includeChoice:keepIncludes" }
+    ] },
+    { "name": "user exclusion defeats project include", "events": [
+      { "kind": "includeLayerCheck", "supplied": true, "currentRank": 1, "candidateRank": 2, "expect": "includeChoice:replaceIncludes" },
+      { "kind": "fileSelectionCheck", "protected": false, "excluded": true, "includesEmpty": false, "included": true, "expect": "fileSelection:excluded" }
+    ] },
+    { "name": "protected path defeats configured include", "events": [
+      { "kind": "fileSelectionCheck", "protected": true, "excluded": false, "includesEmpty": false, "included": true, "expect": "fileSelection:protected" }
+    ] },
+    { "name": "nonmatching include refuses review", "events": [
+      { "kind": "fileSelectionCheck", "protected": false, "excluded": false, "includesEmpty": false, "included": false, "expect": "fileSelection:notIncluded" }
+    ] },
+    { "name": "root, configuration, credential admission order", "events": [
+      { "kind": "reviewAdmissionCheck", "rootValid": false, "configurationValid": false, "credentialReady": false, "selected": false, "expect": "reviewAdmission:refuseRoot" },
+      { "kind": "reviewAdmissionCheck", "rootValid": true, "configurationValid": false, "credentialReady": false, "selected": false, "expect": "reviewAdmission:refuseConfiguration" },
+      { "kind": "reviewAdmissionCheck", "rootValid": true, "configurationValid": true, "credentialReady": false, "selected": true, "expect": "reviewAdmission:refuseCredential" }
+    ] }
+  ]
+}

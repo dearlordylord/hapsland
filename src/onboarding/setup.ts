@@ -1,5 +1,5 @@
 import * as Effect from "effect/Effect";
-import { Consent } from "../runtime/consent.ts";
+import { discoverWorkingTreeRoot } from "../repository/root.ts";
 import { loadReviewSettings } from "../runtime/review-config.ts";
 import { resolveCredential, saveCredential } from "../credentials/secret-service.ts";
 import {
@@ -21,7 +21,6 @@ export type SetupRequest = {
   readonly codexHome?: string;
   readonly codexExecutable?: string;
   readonly installProposalDigest?: string;
-  readonly consentProposalDigest?: string;
   readonly interactive?: boolean;
 };
 
@@ -154,8 +153,7 @@ export const runSetup = Effect.fn("Setup.run")(function* (
     pending.push("resolve the reported installation problem");
   }
 
-  const consent = yield* Consent.Service;
-  const rootResult = yield* consent.discoverRoot(request.scope.cwd).pipe(Effect.result);
+  const rootResult = yield* discoverWorkingTreeRoot(request.scope.cwd).pipe(Effect.result);
   const settingsResult = rootResult._tag === "Success"
     ? yield* loadReviewSettings(
         rootResult.success,
@@ -317,71 +315,27 @@ export const runSetup = Effect.fn("Setup.run")(function* (
       }
     }
 
-    const authorization = yield* consent.authorize(
-      request.scope.cwd,
-      settings.backend,
-      settings.destination,
-    );
     if (request.scope.review === "disabled") {
-      const disabled = authorization.status === "approved"
-        ? yield* consent.disable(request.scope.cwd, settings.backend, settings.destination).pipe(Effect.result)
-        : undefined;
-      if (disabled !== undefined && disabled._tag === "Failure") {
-        stages.push({
-          stage: "repository",
-          status: "pending",
-          summary: "repository consent could not be revoked",
-          observed: { canonicalRoot: rootResult.success, backend: settings.backend, destination: settings.destination, scope: "repository-wide eligible source files" },
-        });
-        actions.push({
-          stage: "repository",
-          code: "retry-repository-disable",
-          action: "restore access to the user consent state, then rerun setup with review disabled",
-        });
-        pending.push("revoke active repository consent");
-      } else {
-        stages.push({
-          stage: "repository",
-          status: "complete",
-          summary: "repository review is disabled as requested",
-          observed: { canonicalRoot: rootResult.success, backend: settings.backend, destination: settings.destination, scope: "repository-wide eligible source files" },
-        });
-        completed.push("repository review disabled");
-      }
-    } else if (authorization.status === "approved") {
+      const excludedAll = settings.configuration.policy.excludes.some((entry) => entry.origin.layer === "user" && entry.value === "**/*");
       stages.push({
         stage: "repository",
-        status: "complete",
-        summary: "existing repository consent remains valid",
-        observed: { canonicalRoot: authorization.identity.root, backend: authorization.identity.backend, destination: authorization.identity.destination, scope: "repository-wide eligible source files" },
+        status: excludedAll ? "complete" : "pending",
+        summary: excludedAll ? "user file settings exclude all files" : "review disablement requires a user exclusion",
+        observed: { canonicalRoot: rootResult.success, effectiveIncludes: settings.configuration.policy.includes.map((entry) => entry.value) },
       });
-      completed.push("repository consent reused");
-    } else {
-      const consentProposal = yield* consent.preview(request.scope.cwd, settings.backend, settings.destination);
-      if (installed && request.consentProposalDigest === consentProposal.digest) {
-        const identity = yield* consent.enable(consentProposal);
-        stages.push({
-          stage: "repository",
-          status: "complete",
-          summary: "repository review was enabled with matching-digest consent",
-          observed: { canonicalRoot: identity.root, backend: identity.backend, destination: identity.destination, scope: consentProposal.scope },
-        });
-        completed.push("repository review enabled");
-      } else {
-        stages.push({
-          stage: "repository",
-          status: "pending",
-          summary: "repository review requires explicit consent",
-          observed: { canonicalRoot: consentProposal.target.root, backend: consentProposal.target.backend, destination: consentProposal.target.destination, scope: consentProposal.scope },
-        });
-        actions.push({
-          stage: "repository",
-          code: "approve-repository-consent",
-          action: "review the canonical repository, destination, and eligible-source scope, then rerun setup with its consent proposal digest",
-          authorization: { consentProposalDigest: consentProposal.digest },
-        });
-        pending.push("approve repository source-egress consent");
+      if (excludedAll) completed.push("user file settings disable review");
+      else {
+        actions.push({ stage: "repository", code: "exclude-all-files",
+          action: "set excludes to [\"**/*\"] in user review settings, then rerun setup" });
+        pending.push("exclude all files in user review settings");
       }
+    } else {
+      stages.push({ stage: "repository", status: "complete",
+        summary: "effective file settings loaded",
+        observed: { canonicalRoot: rootResult.success,
+          effectiveIncludes: settings.configuration.policy.includes.map((entry) => entry.value),
+          effectiveExcludes: settings.configuration.policy.excludes.map((entry) => entry.value) } });
+      completed.push("effective file settings loaded");
     }
   }
 
@@ -441,7 +395,7 @@ export const runSetup = Effect.fn("Setup.run")(function* (
             operation: "demo" as const,
             selection: "preview" as const,
             paid: false as const,
-            action: "optionally preview the separate synthetic first-review demo; live execution requires another explicit selection and disposable-root consent",
+            action: "optionally preview the separate synthetic first-review demo; live execution requires an explicit selection for its disposable root",
           }],
         }
       : {}),

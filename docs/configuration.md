@@ -6,10 +6,9 @@ the proposed v2 path for explicit type/function targets. Choice and Score
 remain separate, undecided result-form work. Those declarations are unsupported
 today; v1 files retain their present probability behavior.
 
-This guide describes the running release, which still asks for a separate
-repository grant. The accepted target in [#132](https://github.com/dearlordylord/hapsland/issues/132)
-removes that extra step. File settings will then select reviewable files,
-with all otherwise eligible files selected when no file settings exist.
+File settings select reviewable files. With no file settings, all otherwise
+eligible files are selected when Jev credentials are available. User exclusions
+accumulate with project exclusions; a user `"**/*"` exclusion turns review off.
 
 Project configuration is read once from the Git working-tree root. The supported
 project names are `.review.jsonc` and `.realtime-review.jsonc`; finding both is an
@@ -106,8 +105,8 @@ or guarantee that Claude will repair the finding.
 The bundled `noul` pack (nine binary Noul questions) is loaded through the same
 schema/compiler boundary as local packs. It retains the historical assessment
 keys (`r1_inferred_case` through `r9_body_reaches_undeclared`) and the built-in
-source-rung applicability checks. Repository consent is still required before
-any selected source is sent to Jev.
+source-rung applicability checks. Effective file settings and credentials govern
+selected source dispatch to Jev.
 
 Local packs use [`../schemas/review-rule-pack-v1.schema.json`](../schemas/review-rule-pack-v1.schema.json):
 
@@ -232,7 +231,7 @@ initial request and retry independently, and the review backend can apply its ow
 billing or rate limits.
 
 For the whole-file path, resolved settings and file-selection policy are captured
-once per event. Consent is checked immediately before dispatch, and the file is
+once per event. Current file settings are checked immediately before dispatch, and the file is
 reread before any finding is delivered. A changed file produces an unavailable
 stale-snapshot result. Eligible questions for one file are sent as one logical
 batch per attempt. Results from all files are combined, sorted by probability
@@ -242,9 +241,8 @@ not duplicate advice.
 
 Credentials are references only. The value is read from the named environment
 variable at dispatch and is never persisted, printed, or included in diagnostics.
-Repository consent remains a separate user-owned grant. The configuration schema
-rejects `consent` and `enabled` fields; configuration cannot authorize source
-transmission. The Jev destination is fixed for version 1 at
+The configuration schema rejects retired `consent` and `enabled` fields. The
+Jev destination is fixed for version 1 at
 `https://api.typesafe.ai/v1/systemone`; endpoint routing cannot be configured.
 
 The version-1 whole-file JSON request/response process contract is unchanged. A

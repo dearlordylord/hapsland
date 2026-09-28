@@ -775,7 +775,7 @@ describe("direct-event vertical slice", () => {
     }),
   );
 
-  it.effect("rechecks consent immediately before dispatch and makes no call after revocation", () =>
+  it.effect("does not use a retired grant as a dispatch gate", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture);
       yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number"));
@@ -785,13 +785,13 @@ describe("direct-event vertical slice", () => {
         onRequest: Effect.sync(() => { calls += 1; }),
       }, (base) => ({
         ...base,
-        beforeDispatch: base.consent.disable(root, DEFAULT_BACKEND, DEFAULT_DESTINATION).pipe(
+        beforeDispatch: base.consent!.disable(root, DEFAULT_BACKEND, DEFAULT_DESTINATION).pipe(
           Effect.asVoid,
           Effect.orDie,
         ),
       }));
-      expect(result).toEqual({ status: "unavailable", reason: "consent", output: undefined });
-      expect(calls).toBe(0);
+      expect(result.status).toBe("ready");
+      expect(calls).toBe(1);
     }),
   );
 

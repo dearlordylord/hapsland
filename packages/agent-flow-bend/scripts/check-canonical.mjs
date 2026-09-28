@@ -311,4 +311,20 @@ for (const trace of retentionFixture.traces) {
   assert.equal(projection.dispatch.closed, trace.closed, trace.name);
   if (trace.rounds) assert.deepEqual(projection.rounds.map((round) => round.id).sort((a, b) => a - b), trace.rounds, trace.name);
 }
-console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length + stopFixture.traces.length + collectionFixture.traces.length + deliveryFixture.traces.length + submissionFixture.traces.length + revisionFixture.traces.length + ticketFixture.traces.length + reuseFixture.traces.length + noticeFixture.traces.length + retentionFixture.traces.length} independent source-free canonical traces`);
+const configurationFixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-configuration-v1.json"), "utf8"));
+for (const trace of configurationFixture.traces) {
+  let current = initialCanonical(fixture.limits);
+  for (const { expect: expected, ...event } of trace.events) {
+    const result = stepCanonical(current, event);
+    current = result.state;
+    assert.equal(result.rejection, undefined, trace.name);
+    assert.equal(result.commands.length, 1, trace.name);
+    const command = result.commands[0];
+    const actual = command.kind === "includeChoice" ? `includeChoice:${command.choice}`
+      : command.kind === "fileSelection" ? `fileSelection:${command.selection}`
+      : command.kind === "reviewAdmission" ? `reviewAdmission:${command.admission}`
+      : command.kind;
+    assert.equal(actual, expected, trace.name);
+  }
+}
+console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length + stopFixture.traces.length + collectionFixture.traces.length + deliveryFixture.traces.length + submissionFixture.traces.length + revisionFixture.traces.length + ticketFixture.traces.length + reuseFixture.traces.length + noticeFixture.traces.length + retentionFixture.traces.length + configurationFixture.traces.length} independent source-free canonical traces`);

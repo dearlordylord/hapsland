@@ -505,6 +505,7 @@ try {
   const env = {
     ...process.env,
     REVIEW_STATE_PATH: state,
+    REVIEW_USER_CONFIG_PATH: join(temporary, "state", "user.jsonc"),
     REVIEW_RESIDENT_DIR: runtime,
     REVIEW_CONTROL_JSON: JSON.stringify({
       answers,
@@ -684,7 +685,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   const packagedRuntimes = [...runtimePaths, ...await Promise.all(runtimePaths.map((path) => realpath(path).catch(() => path)))];
   const previewChecks = {
     preview: installPreview.status === "preview",
-    disabled: installPreview.sourceEgressAuthorized === false,
+    fileSelection: !("sourceEgressAuthorized" in installPreview),
     changes: Array.isArray(installPreview.proposal?.changes),
     runtime: packagedRuntimes.includes(ownedPreview?.runtime?.executable),
     entrypoint: typeof ownedPreview?.runtime?.entrypoint === "string",
@@ -707,8 +708,8 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
     input: JSON.stringify({ version: 1, operation: "install", codexHome, codexExecutable: fakeCodex, proposalDigest: installPreview.proposal.digest }),
   });
   const installResult = parseJson(installRun.stdout, "installation result");
-  if (installResult.status !== "installed" || installResult.sourceEgressAuthorized !== false) {
-    throw new Error("packaged installation did not complete without source consent");
+  if (installResult.status !== "installed" || "sourceEgressAuthorized" in installResult) {
+    throw new Error("packaged installation retained a retired repository grant field");
   }
   const installedDoctorRun = await mustRun(cli, ["--doctor"], {
     cwd: temporary,
@@ -718,7 +719,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   const installedDoctor = parseJson(installedDoctorRun.stdout, "installed integration doctor");
   if (installedDoctor.offline !== true || installedDoctor.readOnly !== true || installedDoctor.providerCalls !== 0 ||
       !installedDoctor.checks?.some((check) => check.stage === "configuration-ownership" && check.status === "ready") ||
-      !installedDoctor.checks?.some((check) => check.stage === "repository-enablement" && check.status === "missing") ||
+      !installedDoctor.checks?.some((check) => check.stage === "file-selection" && check.status === "ready") ||
       (exerciseCredentialLifecycle && !installedDoctor.checks?.some((check) =>
         check.stage === "credential-accessibility" && check.status === "ready" &&
         check.observed?.savedCredentialAccessibility === "present"))) {
@@ -738,14 +739,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   if (parseJson(repeatInstallRun.stdout, "repeat installation").status !== "already-installed") {
     throw new Error("packaged repeated installation was not idempotent");
   }
-  const preview = await mustRun(cli, ["--enable"], {
-    cwd: temporary, env, input: JSON.stringify({ version: 1, operation: "enable", cwd: repository }),
-  });
-  const digest = parseJson(preview.stdout, "consent preview").proposal?.digest;
-  if (typeof digest !== "string") throw new Error("consent preview omitted its digest");
-  await mustRun(cli, ["--enable-confirm"], {
-    cwd: temporary, env, input: JSON.stringify({ version: 1, operation: "enable-confirm", cwd: repository, proposalDigest: digest }),
-  });
+  await mkdir(state, { recursive: true, mode: 0o700 });
   const consentBeforeUpdate = await snapshotJsonDirectory(state);
   progress("exercise-local-package-update");
   const hooksBeforeIncompatible = await readFile(join(codexHome, "hooks.json"), "utf8");
@@ -809,7 +803,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   }
   activeCli = targetPackage.cli;
   if (JSON.stringify(await snapshotJsonDirectory(state)) !== JSON.stringify(consentBeforeUpdate)) {
-    throw new Error("local package update changed repository consent state");
+    throw new Error("local package update changed old grant files");
   }
   const source = "export interface Delivery { id: string; destination: string }\n";
   await writeFile(join(repository, "profile.ts"), source, { mode: 0o600 });
@@ -942,9 +936,8 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
     await mustRun(activeCli, ["--codex-hook", "--controlled-reviewer", "--controlled-writer"], {
       cwd: temporary, env, input: JSON.stringify(loggedOutEvent),
     });
-    // The repository is still enabled here. Give the resident enough time to
-    // attempt the eligible edit, then prove the missing credential stopped the
-    // provider boundary itself.
+    // File settings still select this edit. Give the resident enough time to
+    // attempt it, then prove the missing credential stopped provider egress.
     for (let attempt = 0; attempt < 10; attempt += 1) {
       await new Promise((resolveWait) => setTimeout(resolveWait, 50));
       await mustRun(activeCli, ["--codex-hook", "--controlled-reviewer", "--controlled-writer"], {
@@ -954,7 +947,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
     }
     const submissionsAfterLogout = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
     if (submissionsAfterLogout !== submissions) {
-      throw new Error("logged-out credential dispatched a provider request while the repository remained enabled");
+      throw new Error("logged-out credential dispatched a provider request for an otherwise eligible file");
     }
     credentialEvidence = { ...credentialEvidence, logoutBeforeFutureDispatch: "passed" };
   }
@@ -976,10 +969,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   if (independentObservationsAfterUpdate < 2) {
     throw new Error("independent hook was not observed through the updated installed host configuration");
   }
-  const disabledRun = await mustRun(activeCli, ["--disable"], {
-    cwd: temporary, env, input: JSON.stringify({ version: 1, operation: "disable", cwd: repository }),
-  });
-  if (parseJson(disabledRun.stdout, "disable result").status !== "disabled") throw new Error("packaged disable did not revoke repository dispatch");
+  await writeFile(env.REVIEW_USER_CONFIG_PATH, JSON.stringify({ version: 1, excludes: ["**/*"] }));
   await writeFile(join(repository, "disabled.ts"), "export interface Disabled { id: string }\n", { mode: 0o600 });
   await runInstalledHooks(codexHome, {
       ...addEvent,
@@ -989,14 +979,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   await new Promise((resolveWait) => setTimeout(resolveWait, 100));
   const submissionsAfterDisable = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
   if (submissionsAfterDisable !== submissions) throw new Error("disabled repository dispatched a provider request");
-  const reenablePreview = await mustRun(activeCli, ["--enable"], {
-    cwd: temporary, env, input: JSON.stringify({ version: 1, operation: "enable", cwd: repository }),
-  });
-  await mustRun(activeCli, ["--enable-confirm"], {
-    cwd: temporary,
-    env,
-    input: JSON.stringify({ version: 1, operation: "enable-confirm", cwd: repository, proposalDigest: parseJson(reenablePreview.stdout, "reenable preview").proposal.digest }),
-  });
+  await rm(env.REVIEW_USER_CONFIG_PATH, { force: true });
   if (exerciseCredentialLifecycle) {
     await mustRun(activeCli, ["--login", "--credential-stdin"], {
       cwd: temporary, env, input: `${syntheticCredential}\n`,
@@ -1318,7 +1301,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
       scopedUninstall: "passed",
       customQuotedHome: true,
       independentHookPreserved: true,
-      sourceEgressAuthorized: false,
+      fileSelection: "effective-settings",
       disableDispatchGate: "passed",
       update: {
         fromVersion: installedManifest.version,
@@ -1327,7 +1310,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
         protocolIncompatibility: "rejected-before-write",
         partialRecovery: "resumed",
         previousHookRetainedOnPartialFailure: true,
-        consentPreserved: true,
+        oldGrantFilesPreserved: true,
         credentialState: exerciseSecretService ? "preserved-external-native-store" : exerciseCredentialFixture ? "preserved-controlled-helper" : "not-configured",
         trustRecordsModified: false,
         processesStopped: false,

@@ -251,9 +251,9 @@ const preview = (kind: Kind, request: ClaudeInstallationRequest) => {
         ...(next.beforeRecord === next.afterRecord ? [] : [{ path: input.paths.ownership, description: "Claude ownership record" }]),
       ], ownedChanges: { event: "PostToolUse", matcher: "Edit|Write", command: input.command, timeoutSeconds: 5,
         ownershipRecord: input.paths.ownership } },
-      installed: kind !== "uninstall", sourceEgressAuthorized: false,
+      installed: kind !== "uninstall",
       trust: { status: "native-confirmation-required", guidance: "Claude Code owns workspace trust and hook approval; open the repository normally and review native prompts." },
-      pending: ["apply this proposal digest", "enable source egress for each repository separately"] };
+      pending: ["apply this proposal digest", "review effective file settings and credential access"] };
   } catch (cause) { return resultError(operation, cause, request.claudeHome); }
 };
 
@@ -283,7 +283,7 @@ const apply = (kind: Kind, request: ClaudeInstallationRequest) => {
         throw cause;
       }
       return { version: 1 as const, operation, status: "complete" as const,
-        sourceEgressAuthorized: false, trust: { status: "native-confirmation-required" } };
+        trust: { status: "native-confirmation-required" } };
     } finally { rmSync(input.paths.lock, { recursive: true, force: true }); }
   } catch (cause) { return resultError(operation, cause, request.claudeHome); }
 };
@@ -330,7 +330,7 @@ export const diagnoseClaudeIntegration = (request: ClaudeInstallationRequest) =>
     { stage: "runtime", status: compatibility.runtime.observed === compatibility.runtime.required ? "ready" : "unsupported", observed: compatibility.runtime },
     { stage: "configuration-ownership", status: inspection.status === "conflict" ? "conflict" : inspection.installed ? "ready" : "missing", observed: inspection },
     { stage: "native-trust", status: "unknown", observed: "Claude Code workspace trust and hook approval are host-owned" },
-    { stage: "repository-egress-consent", status: "unknown", observed: "inspect the separate repository consent state" },
+    { stage: "file-selection", status: "unknown", observed: "inspect effective file settings" },
   ];
   return { version: 1 as const, operation: "doctor" as const,
     status: checks.some((check) => check.status === "conflict" || check.status === "unsupported" || check.status === "missing") ? "not-ready" as const : "unknown" as const,

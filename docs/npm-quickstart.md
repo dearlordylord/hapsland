@@ -34,9 +34,8 @@ unattributed.
 
 3. In the Git repository you want reviewed, run
    `"$HOME/.local/bin/hapsland" --pilot` in your terminal. Hapsland previews the exact
-   Codex changes, accepts a Jev key through masked terminal entry, and asks
-   separately for the canonical repository and eligible-source consent. You can
-   stop and resume without enabling review.
+   Codex changes and accepts a Jev key through masked terminal entry. Effective
+   file settings select otherwise eligible files by default. You can stop and resume setup.
 
 4. Start Codex normally and complete its repository and exact-hook trust prompts.
    Make a supported TypeScript edit, then inspect readiness and observed review
@@ -44,9 +43,8 @@ unattributed.
    key alone does not prove that review ran.
 
 The [installation guide](./codex-installation.md) has the JSON setup, explicit
-update, disable, logout, and scoped uninstall operations. A separate, opt-in
-synthetic demo can show a live Jev finding and Codex repair after its own source
-consent; it has request, source, and time limits.
+update, file-selection disablement, logout, and scoped uninstall operations. A
+separate, opt-in synthetic demo has request, source, and time limits.
 
 ## Move from the pilot archive
 
@@ -56,7 +54,7 @@ package in place while installing `@hapsland/hapsland@0.1.0`; their command name
 collide. Use the new `hapsland` executable to preview and explicitly apply the update
 from the pilot hook. The preview identifies both package versions, the owned hook
 change, and any Codex trust or restart step. Hapsland keeps the existing ownership
-record, repository grants, and saved native credential identity. Recheck doctor
+record, old grant files, and saved native credential identity. Recheck doctor
 and an observed review before removing the pilot package. If update is partial,
 use its reported recovery command while the pilot package is still installed.
 

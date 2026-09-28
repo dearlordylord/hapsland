@@ -202,7 +202,6 @@ try {
     selection: "live",
     demoId: preview.output.demo.id,
     selectionDigest: preview.output.authorization.selectionDigest,
-    consentProposalDigest: preview.output.authorization.consentProposalDigest,
     codexHome,
     codexExecutable: "codex",
   }, 195_000, [0, 6]);
@@ -268,7 +267,7 @@ const evidence = {
     syntheticOnly: preview.output.demo.syntheticOnly === true,
     deliberatelyFlawed: preview.output.demo.disclosure.deliberatelyFlawed === true,
     repairPrescribed: preview.output.demo.disclosure.repairPrescribed === true,
-    separateDisposableConsent: typeof preview.output.authorization.consentProposalDigest === "string",
+    exactDisposableSelection: typeof preview.output.authorization.selectionDigest === "string",
     supervisedNativeTrust: supervisedTrust,
     hostSandboxMode: testSandboxBypass ? "test-bypass" : "workspace-write",
     hostModel: process.env.REVIEW_DEMO_TEST_CODEX_MODEL ?? "Codex default",
@@ -286,7 +285,7 @@ const evidence = {
     repair: "not-validated",
     followUpReview: "unavailable",
   },
-  cleanup: result?.cleanup ?? { disposableRootRemoved: false, consentRevoked: false },
+  cleanup: result?.cleanup ?? { disposableRootRemoved: false },
   retained: { source: false, providerResponse: false, credential: false, paths: false, digests: false },
 };
 

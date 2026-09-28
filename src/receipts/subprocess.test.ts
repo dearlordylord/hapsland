@@ -30,20 +30,6 @@ const initializeRepository = (root: string) => {
     REVIEW_RECEIPT_PATH: receipts,
     REVIEW_DIAGNOSTIC_PATH: diagnostics,
   };
-  const preview = spawnSync(process.execPath, ["src/cli.ts", "--enable"], {
-    cwd: process.cwd(),
-    input: JSON.stringify({ version: 1, operation: "enable", cwd: root }),
-    encoding: "utf8",
-    env: environment,
-  });
-  const digest = (JSON.parse(preview.stdout) as { proposal: { digest: string } }).proposal.digest;
-  const enabled = spawnSync(process.execPath, ["src/cli.ts", "--enable-confirm"], {
-    cwd: process.cwd(),
-    input: JSON.stringify({ version: 1, operation: "enable-confirm", cwd: root, proposalDigest: digest }),
-    encoding: "utf8",
-    env: environment,
-  });
-  expect(enabled.status).toBe(0);
   return { consent, receipts, diagnostics, environment };
 };
 
@@ -106,7 +92,7 @@ describe("session receipt subprocess contract", { timeout }, () => {
           modelReaction: { status: "unavailable", reason: "host-model-reaction-not-instrumented" },
         },
       },
-      readiness: { configuration: "ready", consent: "approved" },
+      readiness: { configuration: "ready", fileSelection: "configured" },
     });
   });
 

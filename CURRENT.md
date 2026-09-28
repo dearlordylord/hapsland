@@ -22,14 +22,14 @@ slice is merged at `b90a524`. #121's canonical permit admission is merged at
 at `b8056e2`. #123's canonical FIFO dispatch is merged at `348604c`.
 #124's canonical Stop wait and cutoff, #125's collection and lease routing,
 and #126's delivery and terminal acknowledgement routing, #127's revision
-supersession, #128's ticket settlement, and #129's evaluation reuse, and #130's operational notices, and #131's retention and lifetime cleanup are merged;
-the next migration slice is #132. Other resident decision paths under #132–#134 are
+supersession, #128's ticket settlement, #129's evaluation reuse, #130's operational notices, #131's retention and lifetime cleanup, and #132's effective file-selection and admission routing are merged;
+the next migration slice is #133. Other resident decision paths under #133–#134 are
 still pending. Configurable graph limits and
 general budget/termination proofs are tracked separately in
 [#142](https://github.com/dearlordylord/hapsland/issues/142).
 
 The integrated epic is in `/workspace/typescript/jev-worktrees/bend-full-flow`
-(`feat/bend-full-flow`, merged through #131). Start #132 in a new task worktree
+(`feat/bend-full-flow`, merged through #132). Start #133 in a new task worktree
 from the latest epic tip. The old `/tmp/hapsland-bend-handoff.md` predates #119
 and is no longer a valid resume point. The `/workspace/typescript/jev` checkout
 is older and is not the edit target.
@@ -40,7 +40,7 @@ is older and is not the edit target.
 | --- | --- | --- |
 | Source capture | Event-named paths are captured independently, up to 32 KiB each; an import makes the current type analyzer unsupported. | Follow supported references into eligible supporting files. Check every path before reading source. Capture up to **256 KiB per file**. |
 | Review evidence | Same-file named types only. | One selected root plus a complete bounded graph that may contain several files; **20 KiB canonical encoded evidence tree per review unit**. A missing, excluded, unsupported, or capped required edge makes that unit incomplete and produces no Jev request. Independent complete units continue. |
-| File settings | The resident also requires a separate repository grant before it sends source to Jev. | Remove that grant. When the installed runtime runs Hapsland and Jev credentials are available, review all otherwise eligible files by default. Includes/excludes can narrow the set; protected and ignored files stay excluded. |
+| File settings | #132 removed the separate repository grant. With Jev credentials, otherwise eligible files are selected by default; user and project file settings narrow selection. | Preserve this boundary while adding checked supporting files. Protected and ignored files stay excluded. |
 | Resident capacity | 64 work items/8 MiB shared by agents in one resident; each agent scope may use up to 16 items/2 MiB. Temporary preparation space is released, then review units request space in order. | Preserve ordered partial admission. Raise/rework byte limits with the 256 KiB file limit so valid files can be prepared and checked again. Model every installed reservation purpose in Bend. |
 | Visualization | #115's simplified Bend `Flow.step` drives the interim page. | Production and the final full-flow page use the same canonical checked transition. #135 adds a build-generated inventory of what reserves review capacity and a live capacity panel; #120/#122 supply complete Bend data first. A separate import-graph state-machine diagram follows reconciliation under [#141](https://github.com/dearlordylord/hapsland/issues/141). |
 
@@ -64,8 +64,8 @@ or Jev-request-size claim.
   [#140](https://github.com/dearlordylord/hapsland/issues/140), with a finite
   conservative full-request gate required for initial adoption.
 - File settings are the only Hapsland file permission settings. There is no
-  separate repository approval in the target design. The old grant check
-  still exists in running code and must be removed in #132. Installation,
+  separate repository approval in the running code after #132. Old grant
+  files remain untouched. Installation,
   the agent runtime's trust check, and Jev credentials remain distinct
   operational steps.
 - Before Hapsland sends a review unit to Jev, it checks that the root and
@@ -283,10 +283,9 @@ the issue only when its criteria have evidence. Update this handoff after each
 merged slice. Do not treat the separate #141 import-graph diagram as the final
 production replay.
 
-One valid single-agent order from here is #130, #131,
-#132, #133, #134, #135. Dependencies allow
-#132–#134 to proceed after their own blockers while the #123–#131 chain is in
-progress; #135 needs both #131 and #134. #135 delivers the build-generated
+One valid single-agent order from here is #133, #134, #135, #136, #137.
+#133–#134 can proceed after their own blockers; #135 needs both #131 and
+#134. #135 delivers the build-generated
 capacity inventory and live ledger panel from compiled Bend output. #136
 validates native Codex and Claude flows after #131/#134; #137 is the final
 authority review after #135/#136. #143 is a separate resident-process lifetime

@@ -92,20 +92,6 @@ try {
     REVIEW_RESIDENT_DIR: runtime,
     ...(credential === undefined ? {} : { TYPESAFE_API_KEY: credential.value }),
   };
-  const preview = await run(process.execPath, [join(root, "src/cli.ts"), "--enable"], {
-    cwd: root, env, input: JSON.stringify({ version: 1, operation: "enable", cwd: repository }),
-  });
-  const digest = (() => { try { return JSON.parse(preview.stdout).proposal?.digest; } catch { return undefined; } })();
-  if (typeof digest !== "string") gaps.push("repository consent preview unavailable");
-  else {
-    const confirmed = await run(process.execPath, [join(root, "src/cli.ts"), "--enable-confirm"], {
-      cwd: root, env, input: JSON.stringify({ version: 1, operation: "enable-confirm", cwd: repository, proposalDigest: digest }),
-    });
-    let confirmation;
-    try { confirmation = JSON.parse(confirmed.stdout); } catch { confirmation = undefined; }
-    if (confirmation?.status !== "enabled") gaps.push("repository consent confirmation unavailable");
-  }
-
   let contractOutcome = "not-run";
   let hostOutputKind = "none";
   let successfulEvaluation = false;

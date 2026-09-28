@@ -17,8 +17,9 @@ now requires checked cross-file supporting evidence, a 256 KiB per-source-file
 ceiling, and a 20 KiB evidence-tree ceiling. Those changes are **not yet
 implemented or established by this v1 conformance record**. Keep this matrix
 as the factual current profile until a new validated support record replaces it.
-The target also removes the separate repository grant and uses file settings
-alone; the grant checks below still describe the running code.
+File settings now select all otherwise eligible files by default when Jev
+credentials are available. User exclusions can turn review off; old grant files
+remain untouched and are no longer dispatch gates.
 
 The machine-checked authoritative mapping is
 [`conformance/direct-event-v1.json`](../conformance/direct-event-v1.json). Its validator
@@ -39,10 +40,10 @@ secret- or source-bearing fields in the new evidence records.
 | 8 | Logical capacity and transport | Global 64 items/8 MiB; advicee/root 16 items/2 MiB; accounting through work/cache/outcomes/advice; bounded 256 KiB IPC before decode; explicit rejection and terminal cleanup; no RSS claim | 4 obligations |
 | 9 | Operational notices | First capacity/backend failure eligible; same kind/partition suppressed before 60,000 ms and eligible at equality; no timer-only notice; 64 bounded keys; restart reset; no recursive notice or finding displacement | 3 obligations |
 | 10 | Singleton lifecycle | 10 s readiness; 1.5 s client deadline; 100 starters/eight processes converge; timeout/disconnect does not cancel accepted work; kill/restart loses memory; old lifetime rejected; cleanup only idle; worktree roots distinct | 4 obligations |
-| 11 | Consent boundary | User preview plus matching digest confirmation; fixed repository/backend/destination authority; project config cannot grant; disable/revocation prevents future dispatch and is rechecked immediately before provider use | 3 obligations |
+| 11 | Effective file settings | Default selection, accumulated exclusions, protected paths, and current settings before dispatch; retired grant operations leave saved files untouched | 3 obligations |
 | 12 | Jev request/evidence boundary | One provider-neutral `DecisionModel` request per unit; 15-second deadline; zero automatic retries; source-free live outcome classification; admission is not a provider-call counter | 3 obligations |
 
-All 39 obligations and 93 unique mapped checks pass through product boundaries or narrowly focused external
+All 39 obligations and 95 unique mapped checks pass through product boundaries or narrowly focused external
 boundaries. Ordinary `npm test` and `npm run conformance:direct-event` are deterministic
 and offline. The live Jev script is separate and explicit.
 
@@ -51,7 +52,7 @@ and offline. The live Jev script is separate and explicit.
 The locally packed release contains compiled JavaScript entry points for the CLI, parser,
 resident, and package doctor. `npm run conformance:package` installs that tarball into a fresh
 temporary prefix with production dependencies only and runs from outside the development
-checkout. It verifies parser loading, resident launch, consent, one controlled offline backend
+checkout. It verifies parser loading, resident launch, file selection, one controlled offline backend
 submission, advice collection, and actionable missing-command diagnosis. No package acquisition
 occurs during hook edits.
 
@@ -97,13 +98,13 @@ These are supported profile boundaries, not latency or process-memory service le
 Configuration may narrow paths and select applicable rules; it cannot broaden host,
 platform, extraction, attribution, or safety boundaries.
 
-## Consent and asynchronous delivery
+## File selection and asynchronous delivery
 
-Enablement first previews the canonical Git root, fixed Jev backend/destination, and
-repository-wide eligible-source scope. Only confirmation of that exact digest grants
-egress. Project configuration cannot grant consent. Disablement and dispatch-time
-revocation stop future calls; they do not recall a request already sent. Hooks never
-prompt and missing consent or credentials never starts a Jev call.
+Effective file settings select all otherwise eligible files by default. User
+exclusions accumulate with project exclusions, and an exclude-all user setting
+turns review off. Current settings are checked before dispatch; a change cannot
+recall a request already sent. Hooks never prompt. Missing credentials prevent
+Jev dispatch.
 
 The Add hook admits work to the resident reviewer and normally returns before evaluation.
 A later mapped hook may collect current advice. Exclusions, unsupported operations, no

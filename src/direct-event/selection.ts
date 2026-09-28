@@ -4,6 +4,7 @@ import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import * as Effect from "effect/Effect";
 import { matchesAnyGlob } from "../matcher/glob.ts";
+import { selectFile } from "../configuration/decision.ts";
 import type { PhysicalRootIdentity } from "./model.ts";
 
 const execFileAsync = promisify(execFile);
@@ -50,9 +51,12 @@ const hardExcluded = (path: string): boolean => {
 
 /** Pure path-policy decision shared by initial capture and queued dispatch. */
 export const selectedByDirectFilePolicy = (path: string, policy: DirectFilePolicy): boolean =>
-  !hardExcluded(path) &&
-  (policy.excludes.length === 0 || !matchesAnyGlob(policy.excludes, path)) &&
-  policy.includes.length > 0 && matchesAnyGlob(policy.includes, path);
+  selectFile({
+    protected: hardExcluded(path),
+    excluded: matchesAnyGlob(policy.excludes, path),
+    includesEmpty: policy.includes.length === 0,
+    included: matchesAnyGlob(policy.includes, path),
+  }) === "selected";
 
 const equalToOrWithin = (parent: string, candidate: string): boolean => {
   const path = relative(parent, candidate);

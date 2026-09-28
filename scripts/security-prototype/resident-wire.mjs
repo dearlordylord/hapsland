@@ -7,8 +7,7 @@ import { join } from "node:path";
 import * as Effect from "effect/Effect";
 import { adaptCodexDirectEvent } from "../../src/direct-event/adapter.ts";
 import { makeGitFixture, put, updateEvent } from "../../src/direct-event/test-fixtures.ts";
-import { Consent } from "../../src/runtime/consent.ts";
-import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../../src/runtime/review-config.ts";
+import { DEFAULT_DESTINATION } from "../../src/runtime/review-config.ts";
 import { residentRequest } from "../../src/resident/client.ts";
 import { residentPaths } from "../../src/resident/paths.ts";
 import { ResidentServer } from "../../src/resident/server.ts";
@@ -62,14 +61,10 @@ try {
   if (scenario === "exclude-at-admission") config.excludes = [path];
   await put(root, ".review.jsonc", JSON.stringify(config));
   const statePath = join(root, "consent");
-  await Effect.runPromise(Effect.gen(function* () {
-    const consent = yield* Consent.Service;
-    yield* consent.enable(yield* consent.preview(root, DEFAULT_BACKEND, DEFAULT_DESTINATION));
-  }).pipe(Effect.provide(Consent.layer({ statePath }))));
   event("fixtureAuthority", {
     phase: "admission", repoId: "fixture-repo", path,
     destination: DEFAULT_DESTINATION, policyRevision: scenario === "exclude-at-admission" ? "excluded" : "initial",
-    consent: "approved", source: "fixture",
+    source: "fixture",
   });
   const observation = await Effect.runPromise(adaptCodexDirectEvent(
     updateEvent(root, path, [manifest.positive.root]),
@@ -112,13 +107,13 @@ try {
     await put(root, ".review.jsonc", JSON.stringify({ ...config, excludes: [path] }));
     event("fixtureAuthority", {
       phase: "dispatch", repoId: "fixture-repo", path, destination: DEFAULT_DESTINATION,
-      policyRevision: "excluded", consent: "approved", source: "fixture",
+      policyRevision: "excluded", source: "fixture",
     });
   } else {
     event("fixtureAuthority", {
       phase: "dispatch", repoId: "fixture-repo", path, destination: DEFAULT_DESTINATION,
       policyRevision: scenario === "allowed" ? "initial" : "excluded",
-      consent: "approved", source: "fixture",
+      source: "fixture",
     });
   }
   release();
@@ -138,8 +133,7 @@ try {
         !/^[a-f0-9]{64}$/.test(authority.policyDigest) ||
         authority.selected !== expectedSelection ||
         authority.decision !== (expectedSelection ? "allow" : "deny") ||
-        authority.consentStatus !== "approved" ||
-        !/^[a-f0-9]{64}$/.test(authority.consentIdentitySha256 ?? "") ||
+        authority.admission !== (expectedSelection ? "admitReview" : "refuseSelection") ||
         authority.physicalRootVerified !== true ||
         !/^[a-f0-9]{64}$/.test(authority.expectedRootIdentitySha256) ||
         authority.credentialStatus !== "present" || authority.credentialGeneration !== 0) {

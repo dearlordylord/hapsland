@@ -5,8 +5,6 @@ import { mkdtemp, mkdir, readFile, realpath, rename, rm, writeFile } from "node:
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { promisify } from "node:util";
-import { Consent } from "../runtime/consent.ts";
-import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts";
 import { readActivity } from "../activity/status.ts";
 import { inspectResident } from "../resident/client.ts";
 import { inspectCodexInstallation } from "./codex-installation.ts";
@@ -72,7 +70,6 @@ export type FirstReviewDemoRequest = {
   readonly codexExecutable?: string;
   readonly demoId?: string;
   readonly selectionDigest?: string;
-  readonly consentProposalDigest?: string;
 };
 
 export type DemoExecution = {
@@ -413,7 +410,6 @@ export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
     readonly installationReady?: (request: FirstReviewDemoRequest) => boolean;
   },
 ) {
-  const consent = yield* Consent.Service;
   if (request.selection === "preview") {
     const installationReady = options.installationReady?.(request) ?? (() => {
       const inspection = inspectCodexInstallation({
@@ -431,7 +427,6 @@ export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
     }
     const setupStarted = Date.now();
     const record = yield* Effect.promise(() => makeFixture(options.statePath));
-    const consentProposal = yield* consent.preview(record.root, DEFAULT_BACKEND, DEFAULT_DESTINATION);
     return {
       version: 1 as const,
       operation: "demo" as const,
@@ -440,10 +435,10 @@ export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
       paidVerificationPerformed: false as const,
       demo: { id: record.id, disposableRoot: record.root, syntheticOnly: true as const, disclosure: DEMO_DISCLOSURE },
       budget: { sourceBytes: DEMO_SOURCE_BYTE_BUDGET, providerCalls: DEMO_PROVIDER_CALL_BUDGET, timeMs: DEMO_TIME_BUDGET_MS },
-      authorization: { selectionDigest: record.selectionDigest, consentProposalDigest: consentProposal.digest },
+      authorization: { selectionDigest: record.selectionDigest },
       setup: { actions: 1, durationMs: Math.max(0, Date.now() - setupStarted) },
       reviewLatencyMs: undefined,
-      action: "review the synthetic input, budgets, disposable root, and both digests; then explicitly select live execution",
+      action: "review the synthetic input, budgets, disposable root, and selection digest; then explicitly select live execution",
     };
   }
   if (request.demoId === undefined) {
@@ -462,24 +457,14 @@ export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
     if (!claimed) {
       return { version: 1 as const, operation: "demo" as const, status: "conflict" as const, reason: "demo preview was already claimed" };
     }
-    yield* consent.disable(record.root, DEFAULT_BACKEND, DEFAULT_DESTINATION).pipe(Effect.ignore);
     yield* Effect.promise(() => cleanFixture(options.statePath, record));
     return { version: 1 as const, operation: "demo" as const, status: "cleaned" as const, cleaned: true as const, providerCalls: 0 as const };
   }
-  const currentProposalResult = yield* consent.preview(record.root, DEFAULT_BACKEND, DEFAULT_DESTINATION).pipe(Effect.result);
-  if (currentProposalResult._tag === "Failure") {
-    return {
-      version: 1 as const, operation: "demo" as const, status: "conflict" as const,
-      reason: "demo preview is no longer available", liveSelected: false as const,
-      paidVerificationPerformed: false as const, providerCalls: 0 as const,
-    };
-  }
-  const currentProposal = currentProposalResult.success;
-  if (request.selectionDigest !== record.selectionDigest || request.consentProposalDigest !== currentProposal.digest) {
+  if (request.selectionDigest !== record.selectionDigest) {
     return {
       version: 1 as const, operation: "demo" as const, status: "proposal-mismatch" as const,
       liveSelected: false as const, paidVerificationPerformed: false as const, providerCalls: 0 as const,
-      action: "cancel this preview or submit both exact preview digests",
+      action: "cancel this preview or submit the exact selection digest",
     };
   }
   const claimed = yield* Effect.tryPromise(() => claimRecord(options.statePath, record)).pipe(
@@ -493,13 +478,9 @@ export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
       paidVerificationPerformed: false as const, providerCalls: 0 as const,
     };
   }
-  const consentEnabled = yield* consent.enable(currentProposal).pipe(
-    Effect.as(true),
-    Effect.catch(() => Effect.succeed(false)),
-  );
   const reviewStarted = Date.now();
   const selectedBudgetPath = budgetPath(options.statePath, record.id);
-  const budgetReady = consentEnabled && (yield* Effect.try(() => initializeDemoBudget(selectedBudgetPath, {
+  const budgetReady = yield* Effect.try(() => initializeDemoBudget(selectedBudgetPath, {
       root: record.root,
       expiresAt: reviewStarted + DEMO_TIME_BUDGET_MS,
       sourceByteBudget: DEMO_SOURCE_BYTE_BUDGET,
@@ -507,7 +488,7 @@ export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
     })).pipe(
       Effect.as(true),
       Effect.catch(() => Effect.succeed(false)),
-    ));
+    );
   const execution = !budgetReady
     ? { status: "incomplete" as const, value: undefined }
     : yield* Effect.tryPromise(() => (options.execute ?? executeInstalledCodexDemo)({
@@ -521,10 +502,6 @@ export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
         Effect.map((value) => ({ status: "completed" as const, value })),
         Effect.catch(() => Effect.succeed({ status: "incomplete" as const, value: undefined })),
       );
-  const consentRevoked = yield* consent.disable(record.root, DEFAULT_BACKEND, DEFAULT_DESTINATION).pipe(
-    Effect.as(true),
-    Effect.catch(() => Effect.succeed(false)),
-  );
   const disposableRootRemoved = yield* Effect.promise(() => cleanFixture(options.statePath, record)).pipe(
     Effect.as(true),
     Effect.catch(() => Effect.succeed(false)),
@@ -576,7 +553,7 @@ export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
       sourceRetained: false as const,
       responsesRetained: false as const,
     },
-    cleanup: { disposableRootRemoved, consentRevoked },
+    cleanup: { disposableRootRemoved },
   };
 });
 
