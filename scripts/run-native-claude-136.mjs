@@ -105,7 +105,7 @@ let out;try{out=JSON.parse(result.stdout)}catch{}
 const reason=out?.reason??out?.hookSpecificOutput?.additionalContext??'';
 const source=${JSON.stringify(sourcePath)};
 const value=existsSync(source)?readFileSync(source,'utf8'):'';
-appendFileSync(process.env.HAPSLAND_136_EVENTS,JSON.stringify({kind:'hook',at,doneAt:Date.now(),tool:event?.tool_name??'unknown',exitCode:result.status,decision:out?.decision??null,finding:(out?.decision==='block'||reason.includes('[r6_bare_domain_value, p=')||reason.includes('Hapsland found a current rule finding'))&&!reason.includes('Operational notice:'),notice:reason.includes('Operational notice:'),sourceHash:value?createHash('sha256').update(value).digest('hex'):null,sourceBytes:Buffer.byteLength(value),draft:${countFixture ? "value.trim()==='export type OrderCount = number'" : "value.includes('receipt: string | null')&&value.includes('failureReason: string | null')"}})+'\\n',{mode:0o600});
+appendFileSync(process.env.HAPSLAND_136_EVENTS,JSON.stringify({kind:'hook',at,doneAt:Date.now(),tool:event?.tool_name??'unknown',exitCode:result.status,decision:out?.decision??null,finding:(out?.decision==='block'||reason.includes('[r6_bare_domain_value, p=')||reason.includes('Hapsland found a current rule finding'))&&!reason.includes('Operational notice:'),notice:reason.includes('Operational notice:'),sourceHash:value?createHash('sha256').update(value).digest('hex'):null,sourceBytes:Buffer.byteLength(value),draft:${countFixture ? "value.trim()==='type OrderCount = number'" : "value.includes('receipt: string | null')&&value.includes('failureReason: string | null')"}})+'\\n',{mode:0o600});
 if(result.status===0)process.stdout.write(result.stdout??'');
 process.exitCode=result.status??1;
 `);
@@ -142,7 +142,7 @@ process.exitCode=result.status??1;
     delete env.TYPESAFE_API_KEY;
     env.REVIEW_CONTROL_JSON = JSON.stringify({ syntheticR6BrandedRepair: "finding" });
   } else delete env.REVIEW_CONTROL_JSON;
-  const prompt = countFixture ? `Use native Write to create order-count.ts containing exactly this one line and a final newline: export type OrderCount = number. Then finish your turn immediately. Do not repair before Hapsland feedback. If an actionable Hapsland finding is returned by the Stop hook, repair the type using Edit or Write so a raw number is not assignable to OrderCount; then finish. If no finding arrives, leave the draft unchanged. Stay in this repository and do not inspect integration configuration, credentials, or environment variables. Make at most two source edits; say truthfully whether review affected the change.` : `Implement the payment-state example in README.md. First use the native Write tool to create payment.ts with this initial draft exactly:
+  const prompt = countFixture ? `Use native Write to create order-count.ts containing exactly this one line and a final newline: type OrderCount = number. Then finish your turn immediately. Do not repair before Hapsland feedback. If an actionable Hapsland finding is returned by the Stop hook, repair the type using Edit or Write so a raw number is not assignable to OrderCount; use exactly this line: type OrderCount = number & { readonly __brand: "OrderCount" }. Then finish. If no finding arrives, leave the draft unchanged. Stay in this repository and do not inspect integration configuration, credentials, or environment variables. Make at most two source edits; say truthfully whether review affected the change.` : `Implement the payment-state example in README.md. First use the native Write tool to create payment.ts with this initial draft exactly:
 export interface PaymentState {
   status: "pending" | "succeeded" | "failed";
   receipt: string | null;
@@ -159,8 +159,7 @@ After that first Write, finish your turn immediately without running tests or ma
   const compile = spawnSync("npm", ["test"], { cwd: repo, env, encoding: "utf8", timeout: 30_000 });
   let invalidStatesRejected = false;
   if (source) {
-    writeFileSync(join(repo, "invalid-states.ts"), countFixture ? `import type { OrderCount } from './order-count.js';
-// @ts-expect-error a raw number is not a branded order count
+    writeFileSync(join(repo, "invalid-states.ts"), countFixture ? `// @ts-expect-error a raw number is not a branded order count
 const invalid: OrderCount = 2;
 ` : `import type { PaymentState } from './payment.js';
 // @ts-expect-error success requires receipt
@@ -184,7 +183,7 @@ const contradictory: PaymentState = { status: 'succeeded', receipt: 'r', failure
       claudeFeedbackMode: "block-current-findings", mode: offlineControl ? "controlled-offline" : "real-jev", fixture: countFixture ? "order-count" : "payment-state" },
     hostExitCode: host.code, hostSignal: host.signal, elapsedMs: Date.now() - started, providerRequests: readLines(calls).length,
     timeline, activityStages, checks: { initialDraftObserved: timeline.some((entry) => entry.draft), findingSubmitted: !!finding,
-      editAfterFinding: editedAfterFinding, finalSourceChanged: !!source && (countFixture ? source.trim() !== "export type OrderCount = number" : !source.includes("receipt: string | null")),
+      editAfterFinding: editedAfterFinding, finalSourceChanged: !!source && (countFixture ? source.trim() !== "type OrderCount = number" : !source.includes("receipt: string | null")),
       validSourceCompiles: compile.status === 0, invalidStatesRejected,
       followupClearObserved: activityStages.some((entry) => entry.stage === "clear") },
     resident, rawHostOutputRetained: false, rawBackendMaterialRetained: false, credentialRetained: false,

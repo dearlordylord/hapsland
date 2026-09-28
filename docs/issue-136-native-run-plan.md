@@ -105,3 +105,17 @@ makes no Jev request and does not alter the live request count. Retain only
 sanitized event, timing, and outcome data. If the host fails to receive this
 controlled advice, investigate the adapter/collection path offline before a
 new paid run.
+
+## Declared exact-fixture live observation, before execution
+
+The controlled Claude Code 2.1.218 run now demonstrates draft attribution,
+finding delivery at Stop, repair by the agent, and a clear follow-up using the
+same composed hooks and user feedback setting. The initial diagnostic failed
+because its `export` keyword did not match the controlled review fixture; that
+failure remains recorded separately. One real Jev session will use the exact
+bare `OrderCount` draft and the same Stop-first instruction. It has an
+eight-request HTTP-boundary cutoff, no automatic retry, and a 240-second host
+ceiling. The six prior live Claude sessions used ten requests, so the
+cumulative actual maximum after this run is 18 of the issue's 40 requests.
+The live backend may return a different decision; record that result as
+observed rather than attributing a repair to undelivered advice.
