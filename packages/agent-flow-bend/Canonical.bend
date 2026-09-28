@@ -26,7 +26,7 @@ type WorkKind is Data:
   Preparing{}
   Reviewing{}
   AtJev{}
-  PendingFinding{}
+  PendingFinding{count: Nat}
 
 type StopScope is Data:
   StopScope{partition: Nat, round: Nat}
@@ -77,6 +77,8 @@ type CanonicalEvent is Data:
   RetireReview{partition: Nat, lifetime: Nat, round: Nat, operation: Nat}
   ReviewObserved{partition: Nat, lifetime: Nat, round: Nat,
     operation: Nat, outcome: Outcome, current_work: Bool}
+  FindingCountUpdated{partition: Nat, lifetime: Nat, round: Nat,
+    operation: Nat, count: Nat}
   QueueDispatch{partition: Nat, lifetime: Nat, round: Nat, operation: Nat}
   DispatchSettled{partition: Nat, lifetime: Nat, round: Nat, operation: Nat}
   DiscardDispatch{operations: List<&2, Nat>}
@@ -163,6 +165,7 @@ type Command is Data:
   ReservationReleased{id: Nat}
   ReviewRecorded{outcome: Outcome}
   RetainFinding{}
+  FindingCountRecorded{}
   SettleClear{}
   SettleStaleClear{}
   RetireStaleFinding{}
@@ -499,7 +502,7 @@ def remove_work(+operation: Nat, items: List<&2, Work>) -> List<&2, Work>:
 
 def unfinished(kind: WorkKind) -> Bool:
   match kind:
-    case PendingFinding{}:
+    case PendingFinding{_}:
       False{}
     case _:
       True{}
@@ -908,7 +911,7 @@ def reviewed_retained_result(+state: State, +operation: Nat,
     case State{_, rounds, work, next_round, next_operation, +admissions, +dispatch, +collection}
         Ledger.Granted{updated, _}:
       Advanced{State{updated, rounds,
-        replace_work_kind(operation, PendingFinding{}, work),
+        replace_work_kind(operation, PendingFinding{1n}, work),
         next_round, next_operation, admissions, dispatch, collection},
         ReviewRecorded{Finding{}} <> Nil{}}
     case _ Ledger.Rejected{_}:
@@ -967,7 +970,7 @@ def retire_review_found(+state: State, +operation: Nat,
     found: Maybe<&2, Work>) -> Step:
   match state found:
     case State{ledger, _, _, _, _, _, +dispatch, +collection}
-        Some{Work{_, _, _, _, +charge, PendingFinding{}, _}}:
+        Some{Work{_, _, _, _, +charge, PendingFinding{_}, _}}:
       reviewed_released(state, operation, Discarded{}, charge,
         Ledger.release(ledger, charge))
     case _ _:
@@ -978,6 +981,28 @@ def retire_review(+state: State, +partition: Nat, +lifetime: Nat,
   match state:
     case State{_, _, work, _, _, _, +dispatch, +collection}:
       retire_review_found(state, operation,
+        find_work(partition, lifetime, round, operation, work))
+
+def finding_count_found(+state: State, operation: Nat, +count: Nat,
+    found: Maybe<&2, Work>) -> Step:
+  match state found:
+    case State{ledger, rounds, work, next_round, next_operation,
+        admissions, dispatch, collection}
+        Some{Work{_, _, _, _, _, PendingFinding{_}, _}}:
+      Bool.pick(Step, Nat.is_gt(count, 0n),
+        Advanced{State{ledger, rounds,
+          replace_work_kind(operation, PendingFinding{count}, work),
+          next_round, next_operation, admissions, dispatch, collection},
+          FindingCountRecorded{} <> Nil{}},
+        Rejected{state, WrongStage{}})
+    case _ _:
+      Rejected{state, WrongStage{}}
+
+def finding_count_update(+state: State, partition: Nat, lifetime: Nat,
+    round: Nat, +operation: Nat, count: Nat) -> Step:
+  match state:
+    case State{_, _, work, _, _, _, _, _}:
+      finding_count_found(state, operation, count,
         find_work(partition, lifetime, round, operation, work))
 
 def append_review_disposition(step: Step, command: Command) -> Step:
@@ -1799,23 +1824,38 @@ def collection_expire_background(+state: State, group: Nat, token: Nat,
         CollectionState.expire_claim(collection, group, token, elapsed, lifetime),
         CollectionBackgroundReleased{}, CollectionBackgroundKept{})
 
-def pending_operation(+operation: Nat, items: List<&2, Work>) -> Bool:
+def pending_count(+operation: Nat, items: List<&2, Work>) -> Nat:
   match items:
     case Nil{}:
-      False{}
+      0n
     case Work{_, _, _, candidate, _, kind, _} <> rest:
       match kind:
-        case PendingFinding{}:
-          Bool.or(Nat.is_eq(operation, candidate), pending_operation(operation, rest))
+        case PendingFinding{count}:
+          Bool.pick(Nat, Nat.is_eq(operation, candidate), count,
+            pending_count(operation, rest))
         case _:
-          pending_operation(operation, rest)
+          pending_count(operation, rest)
 
-def selected_pending(+selected: List<&2, Nat>, +work: List<&2, Work>) -> Bool:
+def selected_count(+operation: Nat, selected: List<&2, Nat>) -> Nat:
   match selected:
     case Nil{}:
+      0n
+    case candidate <> rest:
+      (Bool.pick(Nat, Nat.is_eq(operation, candidate), 1n, 0n) +
+        selected_count(operation, rest) : Nat)
+
+def selected_valid(+all: List<&2, Nat>, remaining: List<&2, Nat>,
+    +work: List<&2, Work>) -> Bool:
+  match remaining:
+    case Nil{}:
       True{}
-    case operation <> rest:
-      Bool.and(pending_operation(operation, work), selected_pending(rest, work))
+    case +operation <> rest:
+      Bool.and(Nat.is_gt(operation, 0n),
+        Bool.and(Nat.is_le(selected_count(operation, all),
+          pending_count(operation, work)), selected_valid(all, rest, work)))
+
+def selected_pending(+selected: List<&2, Nat>, work: List<&2, Work>) -> Bool:
+  selected_valid(selected, selected, work)
 
 def deciding_round(found: Maybe<&2, Round>, group: Nat,
     lifetime: Nat, round: Nat) -> Bool:
@@ -1960,6 +2000,8 @@ def step(state: State, event: CanonicalEvent) -> Step:
       retire_review(state, partition, lifetime, round, operation)
     case ReviewObserved{partition, lifetime, round, operation, outcome, current_work}:
       review_observed(state, partition, lifetime, round, operation, outcome, current_work)
+    case FindingCountUpdated{partition, lifetime, round, operation, count}:
+      finding_count_update(state, partition, lifetime, round, operation, count)
     case QueueDispatch{partition, lifetime, round, operation}:
       queue_dispatch(state, partition, lifetime, round, operation)
     case DispatchSettled{partition, lifetime, round, operation}:

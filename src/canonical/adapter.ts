@@ -78,6 +78,7 @@ export type CanonicalEvent =
   | { readonly kind: "startReview" | "retireReview"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number }
   | { readonly kind: "reviewCompleted"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly outcome: "finding" | "clear" | "unavailable" | "interrupted" | "discarded" }
   | { readonly kind: "reviewObserved"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly outcome: "finding" | "clear"; readonly currentWork: boolean }
+  | { readonly kind: "findingCountUpdated"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly count: number }
   | { readonly kind: "queueDispatch" | "dispatchSettled"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number }
   | { readonly kind: "discardDispatch"; readonly operations: readonly number[] }
   | { readonly kind: "dispatchScopeCheck"; readonly namedCount: number; readonly cancelledCount: number; readonly hasUnnamed: boolean }
@@ -132,7 +133,7 @@ export type CanonicalCommand =
   | { readonly kind: "preparationReleased"; readonly id: number; readonly after: CapacityView }
   | { readonly kind: "reservationReleased"; readonly id: number }
   | { readonly kind: "reviewRecorded"; readonly outcome: "finding" | "clear" | "unavailable" | "interrupted" | "discarded" }
-  | { readonly kind: "retainFinding" | "settleClear" | "settleStaleClear" | "retireStaleFinding" }
+  | { readonly kind: "retainFinding" | "settleClear" | "settleStaleClear" | "retireStaleFinding" | "findingCountRecorded" }
   | { readonly kind: "preparedSkipped" | "preparedAdmitted" | "preparedCapacityRefused" | "emptyLost" | "emptyAccepted" | "failureBackend" | "failureCredential" | "failureLost" | "failureNone" }
   | { readonly kind: "dispatchStarted"; readonly operation: number; readonly sequence: number; readonly cycle: number }
   | { readonly kind: "dispatchCycleCompleted"; readonly cycle: number }
@@ -218,6 +219,7 @@ const encode = (event: CanonicalEvent): unknown => {
         operation: nat(event.operation, true), outcome: { $: event.outcome === "finding" ? "Canonical.Finding" : "Canonical.Clear" },
         current_work: bool(event.currentWork) };
     }
+    case "findingCountUpdated": inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "count"]); return { $: "Canonical.FindingCountUpdated", ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true), count: nat(event.count, true) };
     case "queueDispatch": case "dispatchSettled":
       inputFields(event, ["kind", "partition", "lifetime", "round", "operation"]);
       return { $: event.kind === "queueDispatch" ? "Canonical.QueueDispatch" : "Canonical.DispatchSettled",
@@ -367,6 +369,7 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
     case "Canonical.ReservationReleased": return { kind: "reservationReleased", id: nat(fields(value, "Canonical.ReservationReleased", ["id"]).id, true) };
     case "Canonical.ReviewRecorded": return { kind: "reviewRecorded", outcome: outcome(fields(value, "Canonical.ReviewRecorded", ["outcome"]).outcome) };
     case "Canonical.RetainFinding": fields(value, "Canonical.RetainFinding", []); return { kind: "retainFinding" };
+    case "Canonical.FindingCountRecorded": fields(value, "Canonical.FindingCountRecorded", []); return { kind: "findingCountRecorded" };
     case "Canonical.SettleClear": fields(value, "Canonical.SettleClear", []); return { kind: "settleClear" };
     case "Canonical.SettleStaleClear": fields(value, "Canonical.SettleStaleClear", []); return { kind: "settleStaleClear" };
     case "Canonical.RetireStaleFinding": fields(value, "Canonical.RetireStaleFinding", []); return { kind: "retireStaleFinding" };
@@ -438,6 +441,7 @@ export type CanonicalProjection = {
   readonly rounds: readonly { readonly partition: number; readonly lifetime: number; readonly id: number; readonly waiting: boolean; readonly deciding: boolean; readonly write?: number; readonly uncertain: boolean }[];
   readonly admissions: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly active: boolean; readonly closedAt: number; readonly permits: readonly { readonly token: number; readonly tool: number; readonly round: number; readonly deadline: number }[]; readonly used: readonly { readonly token: number; readonly tool: number }[] }[];
   readonly work: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly reservation: number; readonly parent: number; readonly kind: "sourceQueued" | "sourceReading" | "preparing" | "reviewing" | "atJev" | "pendingFinding" }[];
+  readonly pendingFindings: readonly { readonly operation: number; readonly count: number }[];
   readonly dispatch: { readonly pending: readonly DispatchEntry[]; readonly active: readonly DispatchEntry[]; readonly running: readonly DispatchEntry[]; readonly nextSequence: number; readonly cycle: number; readonly closed: boolean };
   readonly collection: { readonly ready: readonly number[]; readonly leases: readonly { readonly advice: number; readonly owner: number }[]; readonly claims: readonly { readonly group: number; readonly owner: number }[] };
   readonly delivery: { readonly slots: readonly { readonly group: number; readonly round: number; readonly attempt: number; readonly token: number; readonly selected: readonly number[]; readonly phase: "reserved" | "authorized" | "submitted" | "failed" | "uncertain" }[]; readonly counters: readonly { readonly group: number; readonly round: number; readonly used: number }[] };
@@ -541,6 +545,12 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
     return { partition: nat(x.partition, true), lifetime: nat(x.lifetime, true), round: nat(x.round, true),
       operation: nat(x.operation, true), reservation: nat(x.charge), parent: nat(x.parent), kind: stage };
   });
+  const pendingFindings = readList(s.work, (value) => {
+    const x = fields(value, "Canonical.Work", ["partition", "lifetime", "round", "operation", "charge", "kind", "parent"]);
+    return tag(x.kind) === "Canonical.PendingFinding"
+      ? { operation: nat(x.operation, true), count: nat(fields(x.kind, "Canonical.PendingFinding", ["count"]).count, true) }
+      : undefined;
+  }).filter((item): item is { operation: number; count: number } => item !== undefined);
   const chargeIds = new Set(charges.map((x) => x.id));
   const chargesById = new Map(charges.map((x) => [x.id, x]));
   const usedBytes = charges.reduce((sum, x) => sum + x.bytes, 0);
@@ -592,7 +602,8 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
   return { global,
     limits: { globalItems: nat(limits.global_items, true), globalBytes: nat(limits.global_bytes, true),
       partitionItems: nat(limits.partition_items, true), partitionBytes: nat(limits.partition_bytes, true) },
-    partitions, charges, inventory, rounds, admissions, work, dispatch, collection, delivery };
+    partitions, charges, inventory, rounds, admissions, work, pendingFindings,
+    dispatch, collection, delivery };
 };
 export const initialCanonical = (limits: { readonly globalItems: number; readonly globalBytes: number; readonly partitionItems: number; readonly partitionBytes: number }): unknown => {
   const values = Object.values(limits);

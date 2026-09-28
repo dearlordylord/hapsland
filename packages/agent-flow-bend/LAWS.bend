@@ -31,7 +31,7 @@ law canonical_pending_work_blocks_finish:
 
 law canonical_completed_finding_does_not_block_finish:
   {Canonical.pending(1n, 1n, 1n,
-    Canonical.Work{1n, 1n, 1n, 3n, 2n, Canonical.PendingFinding{}, 1n} <> Nil{}) ==
+    Canonical.Work{1n, 1n, 1n, 3n, 2n, Canonical.PendingFinding{1n}, 1n} <> Nil{}) ==
     False{} : Bool}
 
 law canonical_source_without_charge_blocks_finish:

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { BendWorkTracker } from "./bend-work.ts";
-import { bendRoundBeginStop, bendRoundBeginDecision, bendRoundInitial } from "./bend-policy.generated.js";
 
 describe("generated Bend work authority", () => {
   it("keeps source open during streaming fanout and settles review units independently", () => {
@@ -75,24 +74,6 @@ describe("generated Bend work authority", () => {
     expect(work.unfinished()).toBe(0);
     expect(work.pendingFor(first)).toBe(1);
     expect(work.pendingFor(second)).toBe(0);
-  });
-
-  it("reserves final output only for exact pending finding units", () => {
-    const work = new BendWorkTracker();
-    const source = work.admit();
-    const unit = work.spawn(source)!;
-    expect(work.outcome(unit, { $: "Finding", count: 2, bytes: 20 })).toBe(true);
-    expect(work.completeSource(source)).toBe(true);
-    const claimed = bendRoundBeginStop(bendRoundInitial(), 7);
-    if (claimed.$ !== "Granted") throw new Error("round claim failed");
-    const decision = bendRoundBeginDecision(claimed.state, 7);
-    if (decision.$ !== "Granted") throw new Error("round decision failed");
-    expect(work.reserveSelected(decision.state, 7, [])).toBeUndefined();
-    expect(work.reserveSelected(decision.state, 7, [unit, unit, unit])).toBeUndefined();
-    expect(work.reserveSelected(decision.state, 7, [unit + 1])).toBeUndefined();
-    const reserved = work.reserveSelected(decision.state, 7, [unit, unit]);
-    expect(reserved).toMatchObject({ continuations: 1n, output_reserved: true });
-    expect(work.reserveSelected(reserved!, 7, [unit])).toBeUndefined();
   });
 
   it("conserves unfinished work across interleaved source and review callbacks", () => {

@@ -4,6 +4,34 @@ import { BACKGROUND_WAITER_EXPIRY_MS, ComposedDelivery, EDIT_PERMIT_EXPIRY_MS,
 import { DELIVERY_LEASE_MS } from "./protocol.ts";
 import { BendWorkTracker } from "./bend-work.ts";
 
+const canonicalFinding = (state: ComposedDelivery, partition = "agent"): number => {
+  const owner = state.canonical.partitionId(partition);
+  const round = state.canonical.roundId(partition);
+  const observation = state.canonical.transition({ kind: "admitObservation",
+    partition: owner, lifetime: 1, round }).commands[0];
+  if (observation?.kind !== "observationAdmitted") throw new Error("canonical source admission failed");
+  state.canonical.transition({ kind: "startObservation", partition: owner,
+    lifetime: 1, round, observation: observation.id });
+  const preparation = state.canonical.transition({ kind: "beginObservedPreparation",
+    partition: owner, lifetime: 1, round, observation: observation.id, bytes: 10 }).commands[0];
+  if (preparation?.kind !== "prepare") throw new Error("canonical preparation failed");
+  const admitted = state.canonical.transition({ kind: "preparationCompleted",
+    partition: owner, lifetime: 1, round, operation: preparation.operation,
+    unitBytes: [5] }).commands.find((command) => command.kind === "unitAdmitted");
+  if (admitted?.kind !== "unitAdmitted") throw new Error("canonical unit admission failed");
+  state.canonical.transition({ kind: "completeObservation", partition: owner,
+    lifetime: 1, round, observation: observation.id });
+  state.canonical.transition({ kind: "queueDispatch", partition: owner,
+    lifetime: 1, round, operation: admitted.operation });
+  state.canonical.transition({ kind: "startReview", partition: owner,
+    lifetime: 1, round, operation: admitted.operation });
+  const reviewed = state.canonical.transition({ kind: "reviewObserved", partition: owner,
+    lifetime: 1, round, operation: admitted.operation, outcome: "finding",
+    currentWork: true });
+  if (reviewed.commands.at(-1)?.kind !== "retainFinding") throw new Error("canonical finding not retained");
+  return admitted.operation;
+};
+
 describe("shared Hapsland rounds", () => {
   it("denies a fresh background token after a Stop continuation installs its barrier", () => {
     const state = new ComposedDelivery();
@@ -130,6 +158,7 @@ describe("shared Hapsland rounds", () => {
     const finding = { rule: "r", advice: "repair" };
     state.admitEdit("agent", "edit", 0);
     state.beginStop("agent", "attempt");
+    const canonicalUnit = canonicalFinding(state);
     const work = new BendWorkTracker();
     const source = work.admit();
     const unit = work.spawn(source)!;
@@ -137,7 +166,7 @@ describe("shared Hapsland rounds", () => {
     expect(work.completeSource(source)).toBe(true);
     state.finishGate("agent", "attempt", 0, true, work);
     expect(state.reserveFinishOutput("agent", "attempt", "output",
-      [{ id: "advice", unit, findings: [finding] }], 1, work)).toBe(true);
+      [{ id: "advice", unit: canonicalUnit, findings: [finding] }], 1)).toBe(true);
     expect(state.expireStop("agent", "attempt")).toBe(1);
     expect(state.isActive("agent")).toBe(false);
     expect(state.suppresses("advice", "agent", finding, "stop")).toBe(false);
@@ -152,6 +181,7 @@ describe("shared Hapsland rounds", () => {
     const finding = { rule: "r", advice: "repair" };
     state.admitEdit("agent", "edit", 0);
     state.beginStop("agent", "attempt");
+    const canonicalUnit = canonicalFinding(state);
     const work = new BendWorkTracker();
     const source = work.admit();
     const unit = work.spawn(source)!;
@@ -159,11 +189,11 @@ describe("shared Hapsland rounds", () => {
     expect(work.completeSource(source)).toBe(true);
     state.finishGate("agent", "attempt", 0, true, work);
     expect(state.reserveFinishOutput("agent", "attempt", "output",
-      [{ id: "advice", unit, findings: [finding] }], 1, work)).toBe(true);
+      [{ id: "advice", unit: canonicalUnit, findings: [finding] }], 1)).toBe(true);
     expect(state.authorizeFinishOutput("agent", "output")).toBe(true);
-    expect(state.markSubmitted("output", [unit + 1])).toBe(false);
-    expect(state.markSubmitted("output", [unit])).toBe(true);
-    expect(state.markSubmitted("output", [unit])).toBe(false);
+    expect(state.markSubmitted("output", [canonicalUnit + 1])).toBe(false);
+    expect(state.markSubmitted("output", [canonicalUnit])).toBe(true);
+    expect(state.markSubmitted("output", [canonicalUnit])).toBe(false);
     expect(state.expireStop("agent", "attempt")).toBeUndefined();
     expect(state.isActive("agent")).toBe(true);
     expect(state.closureCounts("agent").reservedContinuations).toBe(1);
@@ -175,6 +205,7 @@ describe("shared Hapsland rounds", () => {
     const finding = { rule: "r", advice: "repair" };
     state.admitEdit("agent", "edit", 0);
     expect(state.beginStop("agent", "attempt")).toBe(true);
+    const canonicalUnit = canonicalFinding(state);
     const work = new BendWorkTracker();
     const source = work.admit();
     const unit = work.spawn(source)!;
@@ -182,7 +213,7 @@ describe("shared Hapsland rounds", () => {
     expect(work.completeSource(source)).toBe(true);
     expect(state.finishGate("agent", "attempt", 0, true, work)?.status).toBe("cutoff");
     expect(state.reserveFinishOutput("agent", "attempt", "output",
-      [{ id: "advice", unit, findings: [finding] }], 1, work)).toBe(true);
+      [{ id: "advice", unit: canonicalUnit, findings: [finding] }], 1)).toBe(true);
     expect(state.closureCounts("agent").reservedContinuations).toBe(1);
     expect(state.revokeProvisionalFinishOutput("agent", "attempt", "output")).toBe(true);
     expect(state.closureCounts("agent").reservedContinuations).toBe(0);

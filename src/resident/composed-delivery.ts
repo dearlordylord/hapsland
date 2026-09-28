@@ -15,9 +15,6 @@ import {
   bendDeliverySubmissionAllowed, bendDeliveryLegacyStopAllowed,
   bendDeliveryExistingTokenAllowed,
   type BendDeliveryPhase,
-  bendLifecycleReleaseUnwritten,
-  bendLifecycleSelectionAuthorize, bendLifecycleSelectionConsume,
-  type BendOutputSelection,
 } from "./bend-policy.generated.js";
 
 /** Shared round and source-free handoff state for every agent runtime. */
@@ -69,7 +66,7 @@ export class ComposedDelivery {
   #nextSubmissionTokenId = 1;
   readonly #finishPermits = new Map<string, {
     readonly partition: string; readonly generation: number; readonly attempt: string;
-    selection: BendOutputSelection; revoked: boolean;
+    readonly selected: ReadonlyArray<number>; authorized: boolean; terminal: boolean; revoked: boolean;
   }>();
   readonly #backgroundWaiters = new Map<string, { readonly token: string; readonly id: number; readonly at: number }>();
 
@@ -335,7 +332,7 @@ export class ComposedDelivery {
       group: this.canonical.partitionId(partition), lifetime: 1,
       round: this.canonical.roundId(partition), scopes,
       deadline: deadlineReached, extraPending: extraUnfinished > 0,
-      continuations: Number(round.policy.continuations) });
+      continuations: this.#continuationCount(partition) });
     if (cutoff.rejection !== undefined) return undefined;
     if (cutoff.commands[0]?.kind === "waitForWork") return { status: "waiting" };
     const terminal = cutoff.commands.at(-1)?.kind;
@@ -364,14 +361,14 @@ export class ComposedDelivery {
 
   reserveFinishOutput(partition: string, attempt: string, outputToken: string,
     advice: ReadonlyArray<{ readonly id: string; readonly unit: number;
-      readonly findings: ReadonlyArray<unknown> }>, now: number, work: BendWorkTracker): boolean {
-    return this.decideFinishOutput(partition, attempt, outputToken, advice, now, work,
+      readonly findings: ReadonlyArray<unknown> }>, now: number): boolean {
+    return this.decideFinishOutput(partition, attempt, outputToken, advice, now,
       false, false, true, true, false).kind === "reserved";
   }
 
   decideFinishOutput(partition: string, attempt: string, outputToken: string,
     advice: ReadonlyArray<{ readonly id: string; readonly unit: number;
-      readonly findings: ReadonlyArray<unknown> }>, now: number, work: BendWorkTracker,
+      readonly findings: ReadonlyArray<unknown> }>, now: number,
     hasNotice: boolean, passNotices: boolean, canWrite: boolean,
     bindingValid: boolean, deadlineReached: boolean):
     { readonly kind: "reserved" | "notices" | "failed" } |
@@ -380,29 +377,33 @@ export class ComposedDelivery {
     const round = this.#rounds.get(partition);
     if (stop?.token !== attempt || round === undefined) return { kind: "failed" };
     const selected = advice.flatMap((item) => item.findings.map(() => item.unit));
-    const decision = work.finishOutput(round.policy, stop.id, selected,
-      hasNotice, passNotices, canWrite, bindingValid, deadlineReached);
-    if (decision.$ === "OutputNotices") return { kind: "notices" };
-    if (decision.$ === "OutputAllowed") {
-      switch (decision.reason.$) {
-        case "AllowNoAdvice": return { kind: "allowed", reason: "no-advice" };
-        case "AllowDeadline": return { kind: "allowed", reason: "deadline" };
-        case "AllowUnavailable": return { kind: "allowed", reason: "unavailable" };
-        default: return { kind: "failed" };
-      }
+    const group = this.canonical.partitionId(partition);
+    const currentRound = this.canonical.roundId(partition);
+    const tokenId = this.canonical.collectionTokenId(outputToken);
+    const decision = this.canonical.transition({ kind: "finishReserve", group,
+      lifetime: 1, round: currentRound, attempt: stop.id, token: tokenId,
+      selected, hasNotice, passNotices, canWrite, bindingValid, deadlineReached });
+    if (decision.rejection !== undefined) return { kind: "failed" };
+    switch (decision.commands[0]?.kind) {
+      case "finishNotices": return { kind: "notices" };
+      case "finishAllowedNoAdvice": return { kind: "allowed", reason: "no-advice" };
+      case "finishAllowedDeadline": return { kind: "allowed", reason: "deadline" };
+      case "finishAllowedUnavailable": return { kind: "allowed", reason: "unavailable" };
+      case "finishReserved": break;
+      default: return { kind: "failed" };
     }
-    if (decision.$ !== "OutputReserved") return { kind: "failed" };
     const staged = advice.map((item) => [item.id,
       this.#stageSubmission(item.id, partition, outputToken, item.findings, "stop", now, "reserved")
     ] as const);
     if (staged.some(([, submission]) => submission === undefined)) {
+      this.canonical.transition({ kind: "finishRelease", group, round: currentRound,
+        attempt: stop.id, token: tokenId });
       this.#pruneSubmissionTokenIds();
       return { kind: "failed" };
     }
-    this.#rounds.set(partition, { ...round, policy: decision.round });
     stop.outputToken = outputToken;
     this.#finishPermits.set(outputToken, { partition, generation: stop.generation, attempt,
-      selection: decision.selection, revoked: false });
+      selected, authorized: false, terminal: false, revoked: false });
     for (const [id, submission] of staged) this.#submissions.set(id, submission!);
     return { kind: "reserved" };
   }
@@ -412,10 +413,12 @@ export class ComposedDelivery {
     const round = this.#rounds.get(partition);
     const permit = this.#finishPermits.get(outputToken);
     if (stop?.token !== attempt || stop.outputToken !== outputToken || round === undefined ||
-        permit?.selection.authorized === true) return false;
-    const released = bendLifecycleReleaseUnwritten(round.policy, stop.id);
-    if (released.$ !== "Granted") return false;
-    this.#rounds.set(partition, { ...round, policy: released.state });
+        permit === undefined || permit.authorized) return false;
+    const released = this.canonical.transition({ kind: "finishRelease",
+      group: this.canonical.partitionId(partition), round: this.canonical.roundId(partition),
+      attempt: stop.id, token: this.canonical.collectionTokenId(outputToken) });
+    if (released.rejection !== undefined || released.commands[0]?.kind !== "finishReleased") return false;
+    permit.revoked = true;
     this.release(outputToken);
     this.#finishPermits.delete(outputToken);
     delete stop.outputToken;
@@ -436,10 +439,16 @@ export class ComposedDelivery {
     const stop = this.#stops.get(partition);
     if (permit.partition !== partition || !this.isActive(partition, permit.generation) ||
         permit.revoked || stop?.token !== permit.attempt || stop.outputToken !== token) return false;
-    const authorization = bendLifecycleSelectionAuthorize(permit.selection);
-    if (authorization.$ !== "SelectionGranted") return false;
     if (!this.#transitionBatchStatus(token, "authorized")) return false;
-    permit.selection = authorization.state;
+    const authorization = this.canonical.transition({ kind: "finishAuthorize",
+      group: this.canonical.partitionId(partition), round: this.canonical.roundId(partition),
+      attempt: stop.id, token: this.canonical.collectionTokenId(token),
+      selected: permit.selected });
+    if (authorization.rejection !== undefined || authorization.commands[0]?.kind !== "finishAuthorized") {
+      this.release(token);
+      return false;
+    }
+    permit.authorized = true;
     return true;
   }
 
@@ -452,7 +461,7 @@ export class ComposedDelivery {
     // ends while that response is gated, release its slot and close the round.
     const terminal = bendRoundStopTerminal(stop.outputToken !== undefined,
       stop.outputToken !== undefined &&
-        this.#finishPermits.get(stop.outputToken)?.selection.authorized === true, close);
+        this.#finishPermits.get(stop.outputToken)?.authorized === true, close);
     if (terminal.$ !== "StopTerminal") return undefined;
     if (terminal.revoke_provisional && stop.outputToken !== undefined) {
       if (!this.revokeProvisionalFinishOutput(partition, token, stop.outputToken)) return undefined;
@@ -471,6 +480,15 @@ export class ComposedDelivery {
     const ended = this.canonical.transition({ kind: "stopGroupEnded", group: this.canonical.partitionId(partition),
       lifetime: 1, round: this.canonical.roundId(partition), scopes });
     if (ended.rejection !== undefined || ended.commands[0]?.kind !== "stopEnded") throw new Error("canonical Stop end refused");
+    const outputPermit = stop.outputToken === undefined ? undefined : this.#finishPermits.get(stop.outputToken);
+    if (stop.outputToken !== undefined && outputPermit?.authorized === true) {
+      const outputEnded = this.canonical.transition({ kind: "finishEnd",
+        group: this.canonical.partitionId(partition), round: this.canonical.roundId(partition),
+        attempt: stop.id, token: this.canonical.collectionTokenId(stop.outputToken) });
+      if (outputEnded.rejection !== undefined || outputEnded.commands[0]?.kind !== "finishEnded") {
+        throw new Error("canonical finish slot end refused");
+      }
+    }
     if (close) {
       if (Number(round.policy.generation) !== stop.generation) return undefined;
       // Publish the canonical fence before changing the resident's Stop view.
@@ -508,7 +526,7 @@ export class ComposedDelivery {
     for (const submission of this.#submissions.values()) if (submission.partition === partition) {
       for (const [token, batch] of submission.batches) batches.set(token, batch.status);
     }
-    return { reservedContinuations: Number(this.#rounds.get(partition)?.policy.continuations ?? 0n),
+    return { reservedContinuations: this.#rounds.has(partition) ? this.#continuationCount(partition) : 0,
       submitted: [...batches.values()].filter((status) => status === "submitted").length,
       uncertain: [...batches.values()].filter((status) => status === "uncertain").length,
       editPermits: [...this.#permits.values()].filter((permit) => permit.partition === partition).length };
@@ -519,8 +537,10 @@ export class ComposedDelivery {
     if (stop?.token !== token) return undefined;
     // An authorized output may have reached the runtime. Preserve its count
     // and round; finishStop releases any provisional output before closing.
+    const authorizedOutput = stop.outputToken !== undefined &&
+      this.#finishPermits.get(stop.outputToken)?.authorized === true;
     return this.finishStop(partition, token,
-      bendRoundExpireClose(this.#rounds.get(partition)?.policy.barrier === true));
+      !authorizedOutput && bendRoundExpireClose(this.#rounds.get(partition)?.policy.barrier === true));
   }
 
   isDeciding(partition: string): boolean {
@@ -553,8 +573,11 @@ export class ComposedDelivery {
   consumeStop(partition: string, continuationDigest?: string): boolean {
     const chain = this.#rounds.get(partition);
     if (chain === undefined) return false;
+    const consumed = this.canonical.transition({ kind: "continuationConsume",
+      group: this.canonical.partitionId(partition), round: this.canonical.roundId(partition) });
+    if (consumed.rejection !== undefined || consumed.commands[0]?.kind !== "continuationConsumed") return false;
     const result = bendRoundConsume(chain.policy);
-    if (result.$ !== "Granted") return false;
+    if (result.$ !== "Granted") throw new Error("legacy round projection refused canonical continuation");
     this.#rounds.set(partition, { ...chain, policy: result.state,
       ...(continuationDigest === undefined ? {} : { continuationDigest }) });
     return true;
@@ -562,7 +585,14 @@ export class ComposedDelivery {
 
   hasVirtualRoundContinuationBudget(partition: string): boolean {
     const chain = this.#rounds.get(partition);
-    return chain !== undefined && bendRoundBudget(chain.policy);
+    return chain !== undefined && chain.policy.active && this.#continuationCount(partition) < MAX_STOP_CONTINUATIONS;
+  }
+
+  #continuationCount(partition: string): number {
+    const group = this.canonical.partitionId(partition);
+    const round = this.canonical.roundId(partition);
+    return this.canonical.canonicalProjection().delivery.counters.find((item) =>
+      item.group === group && item.round === round)?.used ?? 0;
   }
 
   /** Reserve before writing; a crash or lost acknowledgement remains uncertain. */
@@ -713,21 +743,69 @@ export class ComposedDelivery {
 
   markSubmitted(token: string, selectedUnits: ReadonlyArray<number> = []): boolean {
     const permit = this.#finishPermits.get(token);
-    const consumed = permit === undefined ? undefined :
-      bendLifecycleSelectionConsume(permit.selection, selectedUnits);
-    if (consumed !== undefined && consumed.$ !== "SelectionGranted") return false;
+    if (permit !== undefined && (!permit.authorized || permit.terminal ||
+        permit.selected.length !== selectedUnits.length ||
+        permit.selected.some((unit, index) => unit !== selectedUnits[index]))) return false;
     if (!this.#transitionBatchStatus(token, "submitted")) return false;
-    if (permit !== undefined && consumed !== undefined) permit.selection = consumed.state;
+    if (permit !== undefined) {
+      const stop = this.#stops.get(permit.partition);
+      if (stop === undefined) throw new Error("canonical finish owner missing at submission");
+      const recorded = this.canonical.transition({ kind: "finishTerminal",
+        group: this.canonical.partitionId(permit.partition),
+        round: this.canonical.roundId(permit.partition), attempt: stop.id,
+        token: this.canonical.collectionTokenId(token), selected: permit.selected,
+        outcome: "acknowledged" });
+      if (recorded.rejection !== undefined || recorded.commands[0]?.kind !== "finishRecorded") {
+        throw new Error("canonical finish submission refused");
+      }
+      permit.terminal = true;
+    }
     return true;
   }
 
   markUncertain(token: string): boolean {
-    return this.#transitionBatchStatus(token, "uncertain");
+    if (!this.#transitionBatchStatus(token, "uncertain")) return false;
+    const permit = this.#finishPermits.get(token);
+    if (permit !== undefined && permit.authorized && !permit.terminal) {
+      const stop = this.#stops.get(permit.partition);
+      if (stop === undefined) throw new Error("canonical finish owner missing at uncertain result");
+      const recorded = this.canonical.transition({ kind: "finishTerminal",
+        group: this.canonical.partitionId(permit.partition),
+        round: this.canonical.roundId(permit.partition), attempt: stop.id,
+        token: this.canonical.collectionTokenId(token), selected: permit.selected,
+        outcome: "unknown" });
+      if (recorded.rejection !== undefined || recorded.commands[0]?.kind !== "finishRecorded") {
+        throw new Error("canonical uncertain submission refused");
+      }
+      permit.terminal = true;
+    }
+    return true;
   }
 
   release(token: string): void {
     const permit = this.#finishPermits.get(token);
-    if (permit !== undefined) permit.revoked = true;
+    if (permit !== undefined && !permit.revoked) {
+      const stop = this.#stops.get(permit.partition);
+      if (stop !== undefined && !permit.terminal) {
+        const common = { group: this.canonical.partitionId(permit.partition),
+          round: this.canonical.roundId(permit.partition), attempt: stop.id,
+          token: this.canonical.collectionTokenId(token) };
+        const result = permit.authorized
+          ? this.canonical.transition({ kind: "finishTerminal", ...common,
+              selected: permit.selected, outcome: "failed" })
+          : this.canonical.transition({ kind: "finishRelease", ...common });
+        const expected = permit.authorized ? "finishRecorded" : "finishReleased";
+        if (result.rejection !== undefined || result.commands[0]?.kind !== expected) {
+          throw new Error("canonical finish release refused");
+        }
+        permit.terminal = permit.authorized;
+      }
+      permit.revoked = true;
+      if (!permit.authorized) {
+        this.#finishPermits.delete(token);
+        if (stop?.outputToken === token) delete stop.outputToken;
+      }
+    }
     for (const [adviceId, submission] of this.#submissions) {
       if (!submission.batches.has(token)) continue;
       const batches = new Map(submission.batches);

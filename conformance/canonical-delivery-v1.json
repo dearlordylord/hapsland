@@ -85,6 +85,15 @@
           "expect": "reviewRecorded,retainFinding"
         },
         {
+          "kind": "findingCountUpdated",
+          "partition": 2,
+          "lifetime": 1,
+          "round": 2,
+          "operation": 3,
+          "count": 2,
+          "expect": "findingCountRecorded"
+        },
+        {
           "kind": "stopGroupPolled",
           "group": 1,
           "lifetime": 1,
@@ -108,6 +117,26 @@
           "attempt": 7,
           "token": 8,
           "selected": [
+            3,
+            3,
+            3
+          ],
+          "hasNotice": false,
+          "passNotices": true,
+          "canWrite": true,
+          "bindingValid": true,
+          "deadlineReached": true,
+          "expect": "finishAllowedUnavailable"
+        },
+        {
+          "kind": "finishReserve",
+          "group": 1,
+          "lifetime": 1,
+          "round": 1,
+          "attempt": 7,
+          "token": 8,
+          "selected": [
+            3,
             3
           ],
           "hasNotice": false,
@@ -125,6 +154,7 @@
           "attempt": 7,
           "token": 9,
           "selected": [
+            3,
             3
           ],
           "hasNotice": false,
@@ -160,6 +190,7 @@
           "attempt": 7,
           "token": 8,
           "selected": [
+            3,
             3
           ],
           "expect": "finishAuthorized"
@@ -191,6 +222,7 @@
           "attempt": 7,
           "token": 8,
           "selected": [
+            3,
             3
           ],
           "outcome": "unknown",
@@ -203,6 +235,7 @@
           "attempt": 7,
           "token": 8,
           "selected": [
+            3,
             3
           ],
           "outcome": "acknowledged",
@@ -217,6 +250,7 @@
             "attempt": 7,
             "token": 8,
             "selected": [
+              3,
               3
             ],
             "phase": "uncertain"

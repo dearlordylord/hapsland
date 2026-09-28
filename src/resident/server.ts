@@ -789,6 +789,21 @@ export class ResidentServer {
     return Number.isNaN(elapsed) ? 0 : Math.floor(elapsed);
   }
 
+  #recordFindingCount(partition: string, operation: number, count: number): void {
+    if (count < 1) return;
+    const result = this.#ledger.transition({ kind: "findingCountUpdated",
+      partition: this.#ledger.partitionId(partition), lifetime: 1,
+      round: this.#ledger.roundId(partition), operation, count });
+    if (result.rejection !== undefined || result.commands[0]?.kind !== "findingCountRecorded") {
+      throw new Error("canonical finding count update refused");
+    }
+  }
+
+  #pendingCanonicalFindings(operation: number): number {
+    return this.#ledger.canonicalProjection().pendingFindings.find((item) =>
+      item.operation === operation)?.count ?? 0;
+  }
+
   #adviceExpired(advice: Pick<Advice, "pendingAt">, now: number): boolean {
     const result = this.#ledger.transition({ kind: "collectionExpiryCheck",
       elapsed: this.#collectionElapsed(now, advice.pendingAt, PENDING_ADVICE_EXPIRY_MS),
@@ -1040,6 +1055,8 @@ export class ResidentServer {
       }
       advice.evaluations = validity.evaluations;
       advice.findings = validity.findings;
+      if (advice.round !== undefined) this.#recordFindingCount(advice.partition,
+        advice.canonicalOperationId, validity.findings.length);
       const handoffNow = this.#now();
       const expiryRoute = bendPostValidation(true, this.#adviceExpired(advice, handoffNow), true);
       if (expiryRoute.$ !== "RetainCandidate") {
@@ -1093,6 +1110,8 @@ export class ResidentServer {
         }
         advice.evaluations = validity.evaluations;
         advice.findings = validity.findings;
+        if (advice.round !== undefined) this.#recordFindingCount(advice.partition,
+          advice.canonicalOperationId, validity.findings.length);
         const handoffNow = this.#now();
         const expiryRoute = bendPostValidation(true, this.#adviceExpired(advice, handoffNow), true);
         if (expiryRoute.$ !== "RetainCandidate") {
@@ -1200,7 +1219,7 @@ export class ResidentServer {
     }
     if (decision.$ !== "AckReady") return { status: "empty" };
     if (!this.#composedDelivery.markSubmitted(token,
-      advice.flatMap((item) => (item.delivery?.findings ?? []).map(() => item.workUnitId ?? 0)))) {
+      advice.flatMap((item) => (item.delivery?.findings ?? []).map(() => item.canonicalOperationId)))) {
       return { status: "empty" };
     }
     for (const item of advice) {
@@ -1294,7 +1313,7 @@ export class ResidentServer {
         has_unit: unit !== undefined,
         has_delivery: delivery !== undefined,
         pending_capacity: round !== undefined && unit !== undefined && delivery !== undefined &&
-          delivery.findings.length <= round.policyWork.pendingFor(unit),
+          delivery.findings.length <= this.#pendingCanonicalFindings(item.canonicalOperationId),
         submission_allowed: this.#composedDelivery.canBeginSubmission(
           adviceeGroup(item.observation.root, item.observation.advicee), surface, token),
         current_work: this.#isCurrentWork(item.revision, item.prepared),
@@ -2515,6 +2534,8 @@ export class ResidentServer {
     if (!this.#ledger.resize(job.reservation, job.reservation.bytes, "storedResult")) {
       throw new Error("Bend denied review result retention reservation");
     }
+    if (job.round !== undefined) this.#recordFindingCount(job.partition,
+      job.canonicalOperationId, evaluation.findings.length);
     const advice: Advice = {
       id: randomUUID(),
       ...(job.round === undefined ? {} : { round: job.round }),
@@ -2745,16 +2766,15 @@ export class ResidentServer {
         const selectedAdvice = collected.status === "advice"
           ? this.#advice.filter((advice) => advice.delivery?.token === collected.token) : [];
         const selected = selectedAdvice.map((advice) => ({ id: advice.id,
-          unit: advice.workUnitId ?? 0, findings: advice.delivery?.findings ?? [] }));
+          unit: advice.canonicalOperationId, findings: advice.delivery?.findings ?? [] }));
         const selectedCount = selected.reduce((count, item) => count + item.findings.length, 0);
         const bindingValid = collected.status !== "advice" || collected.findingCount === 0 ||
           (round !== undefined && selectedCount === collected.findingCount &&
             selectedAdvice.every((advice) => advice.round === round &&
               advice.workUnitId !== undefined && advice.delivery !== undefined &&
-              advice.delivery.findings.length <= round.policyWork.pendingFor(advice.workUnitId)));
+              advice.delivery.findings.length <= this.#pendingCanonicalFindings(advice.canonicalOperationId)));
         const output = this.#composedDelivery.decideFinishOutput(group, request.finish.token,
           collected.status === "advice" ? collected.token : "", selected, this.#now(),
-          round?.policyWork ?? new BendWorkTracker(),
           collected.status === "advice" && collected.findingCount === 0,
           true, true, bindingValid, request.finish.deadlineReached);
         if (output.kind === "failed") {
@@ -2949,7 +2969,7 @@ export class ResidentServer {
       if (composed) for (const advice of handoff) {
         if (advice.delivery !== undefined && (advice.round === undefined ||
             advice.workUnitId === undefined ||
-            advice.delivery.findings.length > advice.round.policyWork.pendingFor(advice.workUnitId))) {
+            advice.delivery.findings.length > this.#pendingCanonicalFindings(advice.canonicalOperationId))) {
           this.#releaseAdviceLease(advice);
         }
       }
@@ -3016,14 +3036,14 @@ export class ResidentServer {
       ? this.#advice.filter((advice) => advice.delivery?.token === final.token) : [];
     const selectedCount = selectedAdvice.reduce((count, advice) =>
       count + (advice.delivery?.findings.length ?? 0), 0);
-    const selected = selectedAdvice.map((advice) => ({ id: advice.id, unit: advice.workUnitId ?? 0,
+    const selected = selectedAdvice.map((advice) => ({ id: advice.id, unit: advice.canonicalOperationId,
       findings: advice.delivery?.findings ?? [] }));
     const bindingValid = final.status !== "advice" || final.findingCount === 0 ||
       (round !== undefined && selectedCount === final.findingCount && selectedAdvice.every((advice) =>
-        advice.round === round && advice.workUnitId !== undefined && advice.delivery !== undefined));
+        advice.round === round && advice.workUnitId !== undefined && advice.delivery !== undefined &&
+        advice.delivery.findings.length <= this.#pendingCanonicalFindings(advice.canonicalOperationId)));
     const output = this.#composedDelivery.decideFinishOutput(group, request.finish.token,
       final.status === "advice" ? final.token : "", selected, this.#now(),
-      round?.policyWork ?? new BendWorkTracker(),
       final.status === "advice" && final.findingCount === 0,
       false, canWrite && final.status === "advice" && final.token === provisional.token,
       bindingValid, request.finish.deadlineReached);
