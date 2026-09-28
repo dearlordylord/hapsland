@@ -10,6 +10,13 @@ closure times; `Canonical.step` decides whether to issue, consume, release,
 expire, or close a permit. Its `Admission.AdmissionState` is part of the same
 canonical state as the capacity ledger. The resident retains only the native
 identity and deadline lookup needed to correlate callbacks and retire tokens.
+Stop continuation and output selection still use the older Round policy until
+their later migration slices. They cannot issue or consume edit permits.
+Canonical admission supplies the installed pre-edit round and closure fence;
+Stop cutoff releases pending permits through canonical transitions before
+removing their native correlation entries. A rejected pre-edit IPC response
+includes a source-free reason derived from the canonical refusal and the
+measured native clock and identity facts.
 
 The installed hook requires the matching pre-edit permit. The non-installed
 fixture path creates and consumes a synthetic permit through the same canonical

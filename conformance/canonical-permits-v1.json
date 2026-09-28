@@ -19,9 +19,11 @@
       "events": [
         { "kind": "issue", "partition": 1, "tool": 11, "started": 1000, "now": 1100, "deadline": 2000, "expect": "permitIssued:1:1" },
         { "kind": "expire", "partition": 1, "token": 1, "due": false, "expect": "permitKept" },
+        { "kind": "expire", "partition": 1, "lifetime": 2, "token": 1, "due": true, "expect": "rejected:WrongLifetime" },
         { "kind": "expire", "partition": 1, "token": 1, "due": true, "expect": "permitExpired" },
         { "kind": "consume", "partition": 1, "token": 1, "tool": 11, "now": 2001, "expect": "rejected:NoPermit" },
         { "kind": "issue", "partition": 1, "tool": 12, "started": 2100, "now": 2200, "deadline": 32000, "expect": "permitIssued:2:1" },
+        { "kind": "close", "partition": 1, "lifetime": 2, "round": 1, "at": 2300, "prospective": true, "expect": "rejected:WrongLifetime" },
         { "kind": "close", "partition": 1, "round": 1, "at": 2300, "prospective": true, "expect": "permitRoundClosed:1" },
         { "kind": "consume", "partition": 1, "token": 2, "tool": 12, "now": 2400, "expect": "rejected:NoPermit" },
         { "kind": "issue", "partition": 1, "tool": 13, "started": 2200, "now": 2500, "deadline": 32000, "afterClosure": false, "expect": "rejected:ProspectiveDenied" },

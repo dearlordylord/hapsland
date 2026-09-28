@@ -2531,7 +2531,8 @@ export class ResidentServer {
     if (request.operation === "release") return this.releaseComposedSubmission(request.token);
     if (request.operation === "register-edit") {
       const group = adviceeGroup(request.root, request.advicee);
-      if (!this.#composedDelivery.registerEdit(group, request.advicee.toolUseId, request.startedAt)) return { status: "rejected-stale" };
+      const decision = this.#composedDelivery.registerEditDecision(group, request.advicee.toolUseId, request.startedAt);
+      if (!decision.accepted) return { status: "rejected-stale", reason: decision.reason };
       this.#roundActivity.set(group, { root: request.root, advicee: request.advicee, activityPath: request.activityPath });
       return { status: "advanced" };
     }

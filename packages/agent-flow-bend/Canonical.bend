@@ -241,10 +241,19 @@ def expire_permit_result(state: State, +partition: Nat,
     case Admission.RemovePermit{admission}:
       Advanced{with_admission(state, partition, admission), PermitExpired{} <> Nil{}}
 
+def expire_permit_checked(+state: State, +partition: Nat, +lifetime: Nat,
+    +token: Nat, deadline_reached: Bool, admission: Admission.AdmissionState) -> Step:
+  match admission:
+    case Admission.AdmissionState{_, +owner_lifetime, _, _, _, _, _, _}:
+      Bool.pick(Step, Nat.is_eq(owner_lifetime, lifetime),
+        expire_permit_result(state, partition,
+          Admission.expire(admission, token, deadline_reached)),
+        Rejected{state, PermitDenied{Admission.WrongLifetime{}}})
+
 def expire_permit(+state: State, +partition: Nat, +lifetime: Nat,
     +token: Nat, deadline_reached: Bool) -> Step:
-  expire_permit_result(state, partition,
-    Admission.expire(current_admission(state, partition, lifetime), token, deadline_reached))
+  expire_permit_checked(state, partition, lifetime, token, deadline_reached,
+    current_admission(state, partition, lifetime))
 
 
 def close_prospective_permit(+state: State, +partition: Nat, +at: Nat,
@@ -276,10 +285,12 @@ def close_permit_checked(+state: State, +partition: Nat, +lifetime: Nat,
     +expected: Nat, +at: Nat, prospective: Bool,
     admission: Admission.AdmissionState) -> Step:
   match admission:
-    case Admission.AdmissionState{_, _, +round, +active, _, _, _, _}:
-      Bool.pick(Step, Nat.is_eq(expected, Admission.candidate_round(round, active)),
-        close_permit_apply(state, partition, lifetime, at, prospective, admission),
-        Rejected{state, StaleRound{}})
+    case Admission.AdmissionState{_, +owner_lifetime, +round, +active, _, _, _, _}:
+      Bool.pick(Step, Nat.is_eq(owner_lifetime, lifetime),
+        Bool.pick(Step, Nat.is_eq(expected, Admission.candidate_round(round, active)),
+          close_permit_apply(state, partition, lifetime, at, prospective, admission),
+          Rejected{state, StaleRound{}}),
+        Rejected{state, PermitDenied{Admission.WrongLifetime{}}})
 
 def close_permit_round(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, +at: Nat, prospective: Bool) -> Step:

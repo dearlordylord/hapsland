@@ -360,8 +360,10 @@ describe("resident delivery lease", () => {
     expect((await server.handle(admission)).status).toBe("rejected-stale");
     expect((await server.handle({ version: 1, operation: "register-edit", lifetime: server.lifetime,
       root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
-    expect((await server.handle({ version: 1, operation: "register-edit", lifetime: server.lifetime,
-      root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("rejected-stale");
+    expect(await server.handle({ version: 1, operation: "register-edit", lifetime: server.lifetime,
+      root, advicee: observation.advicee, startedAt: monotonicNow() })).toMatchObject({
+      status: "rejected-stale", reason: "DuplicateTool",
+    });
     expect((await server.handle({ ...admission,
       observation: { ...observation, advicee: { ...observation.advicee, subagentId: "child" } } })).status)
       .toBe("rejected-stale");

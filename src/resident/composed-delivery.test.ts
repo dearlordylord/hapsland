@@ -57,6 +57,9 @@ describe("shared Hapsland rounds", () => {
   it("requires a prospective permit, rejects expired or orphaned prehooks and consumes once", () => {
     const state = new ComposedDelivery();
     expect(state.admitEdit("agent", "no-pre", 100, true)).toBeUndefined();
+    expect(state.registerEditDecision("agent", "bad-clock", 200, 100)).toEqual({
+      accepted: false, reason: "InvalidClock",
+    });
     expect(state.registerEdit("agent", "expired", 100, 2600)).toBe(false);
     expect(state.registerEdit("agent", "edit", 100, 110)).toBe(true);
     expect(state.admitEdit("agent", "edit", 120, true)).toBe(1);
@@ -215,6 +218,15 @@ describe("shared Hapsland rounds", () => {
     expect(state.admitEdit("agent", "uncompleted", 101, true)).toBeUndefined();
     expect(state.registerEdit("agent", "fresh", 102, 103)).toBe(true);
     expect(state.admitEdit("agent", "fresh", 104, true)).toBe(2);
+  });
+
+  it("releases pending permits in canonical state at a Stop cutoff", () => {
+    const state = new ComposedDelivery();
+    expect(state.registerEdit("agent", "pending", 10, 11)).toBe(true);
+    expect(state.beginStop("agent", "stop")).toBe(true);
+    expect(state.finishGate("agent", "stop", 0, true)?.status).toBe("cutoff");
+    expect(state.closureCounts("agent").editPermits).toBe(0);
+    expect(state.canonical.canonicalProjection().admissions[0]?.permits).toHaveLength(0);
   });
 
   it("coalesces background waiters and forbids submission after the Stop barrier", () => {
