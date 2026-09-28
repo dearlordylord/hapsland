@@ -21,44 +21,33 @@ try {
     send(model, main.Message.TriggeredEvent({ event, itemId }));
   const initial = main.init().model;
   const imports = await server.ssrLoadModule("/src/import-graph-view.ts");
-  const excluded = imports.projectImportExample(0, 10);
-  assert.deepEqual(excluded.states.map((state) => state.phase), ["incomplete", "complete"]);
+  const excluded = imports.projectImportExample(0, 8);
+  assert.deepEqual(excluded.states.map((state) => state.phase), ["incomplete"]);
   assert.equal(excluded.states[0].reason.toLowerCase(), "excluded");
   assert.deepEqual(excluded.history.filter((entry) => entry.command.kind === "readSource").map((entry) => entry.command.target), [2], "excluded C never receives a read request");
-  const cycle = imports.projectImportExample(1, 12);
-  assert.equal(cycle.states[0].phase, "complete");
-  assert.deepEqual(cycle.history.filter((entry) => entry.command.kind === "resolveEdge").map((entry) => entry.command.edge), [10, 20, 30]);
-  assert.equal(cycle.states[0].files, 3, "cycle does not recapture A");
-  for (let index = 2; index < imports.IMPORT_GRAPH_SCENARIOS.length; index++) {
-    const example = imports.projectImportExample(index, imports.IMPORT_GRAPH_SCENARIOS[index].steps.length);
-    assert.equal(example.states[0].phase, "incomplete", imports.IMPORT_GRAPH_SCENARIOS[index].title);
-  }
-  const treeLimit = imports.projectImportExample(4, 2);
-  assert.equal(treeLimit.states[0].reason, "TreeLimit");
-  assert.equal(treeLimit.history.some((entry) => ["resolveEdge", "readSource"].includes(entry.command.kind)), false);
-  const treeOverflow = imports.projectImportExample(7, 5);
-  assert.deepEqual(treeOverflow.history.map((entry) => entry.state.phase), ["ready", "resolving", "checking", "capturing", "incomplete"]);
-  assert.deepEqual(treeOverflow.history.map((entry) => entry.command.kind), ["none", "resolveEdge", "checkPath", "readSource", "unitIncomplete"]);
+  assert.equal(imports.IMPORT_GRAPH_SCENARIOS.length, 2, "the dashboard shows only the two requested A-root traces");
+  const treeOverflow = imports.projectImportExample(1, 26);
+  assert.equal(treeOverflow.history.length, 26);
+  assert.deepEqual(treeOverflow.history.filter((entry) => entry.command.kind === "skipImport").map((entry) => entry.command.target), [5, 7]);
+  assert.equal(treeOverflow.history[16].state.phase, "ready", "E skip leaves later imports available");
+  assert.equal(treeOverflow.history[20].state.treeBytes, 18000, "F is accepted after E is skipped");
+  assert.equal(treeOverflow.history[24].state.phase, "ready", "G skip leaves a finalization step");
   assert.equal(treeOverflow.states[0].reason, "TreeLimit");
-  assert.equal(treeOverflow.states[0].treeBytes, 20400, "rejected B contribution is not charged to the accepted tree");
-  assert.equal(treeOverflow.states[0].files, 1, "rejected B is not counted as captured");
-  const totalRead = imports.projectImportExample(5, imports.IMPORT_GRAPH_SCENARIOS[5].steps.length);
-  assert.equal(totalRead.states[0].reason, "ReadLimit");
-  assert.equal(totalRead.states[0].readBytes, 1572864);
-  assert.equal(totalRead.states[0].files, 6);
-  assert.equal(totalRead.history.filter((entry) => entry.command.kind === "readSource").length, 5);
-  let importModel = send(initial, main.Message.MovedImportCursor({ cursor: 10 }));
+  assert.equal(treeOverflow.states[0].treeBytes, 18000, "E and G are not charged to the accepted tree");
+  assert.equal(treeOverflow.states[0].readBytes, 7000, "all seven source reads count toward the read budget");
+  assert.equal(treeOverflow.states[0].files, 7, "all seven file reads count toward the file budget");
+  let importModel = send(initial, main.Message.MovedImportCursor({ cursor: 8 }));
   assert.match(renderText(importModel), /A.ts · incomplete/);
-  assert.match(renderText(importModel), /D.ts · complete/);
+  assert.doesNotMatch(renderText(importModel), /D.ts review unit/);
   importModel = send(importModel, main.Message.Reset());
-  assert.equal(importModel.importCursor, 10, "full-flow reset preserves separate import replay");
+  assert.equal(importModel.importCursor, 8, "full-flow reset preserves separate import replay");
   assert.equal(importModel.historyPosition, 0);
   Scene.scene({ update: main.update, view: main.view },
     Scene.given(initial),
     Scene.click(Scene.getByRole("button", { name: "Next import step", exact: true })),
-    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Import step 1 of 10/)),
+    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Import step 1 of 8/)),
     Scene.click(Scene.getByRole("button", { name: "Previous import step", exact: true })),
-    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Import step 0 of 10/)));
+    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Import step 0 of 8/)));
 
   assert.match(renderText(initial), /COMPILED BEND FLOW MODEL/);
   assert.match(renderText(initial), /IMPORT \/ REFERENCE GRAPH/);

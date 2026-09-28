@@ -15,7 +15,8 @@ export type ImportGraphCommand =
   | { readonly kind: "checkPath"; readonly target: number }
   | { readonly kind: "readSource"; readonly target: number }
   | { readonly kind: "unitComplete" }
-  | { readonly kind: "unitIncomplete"; readonly reason: string };
+  | { readonly kind: "unitIncomplete"; readonly reason: string }
+  | { readonly kind: "skipImport"; readonly target: number; readonly reason: string };
 
 type RecordValue = Record<string, unknown>;
 const record = (value: unknown): RecordValue => {
@@ -34,6 +35,10 @@ const number = (value: unknown): number => {
     throw new TypeError("invalid Bend Nat");
   }
   return result;
+};
+const bool = (value: unknown): boolean => {
+  if (typeof value !== "boolean") throw new TypeError("invalid Bend boolean");
+  return value;
 };
 const nat = (value: number): number => {
   if (!Number.isSafeInteger(value) || value < 0 || value >= 2 ** 48) throw new TypeError("invalid graph Nat");
@@ -82,6 +87,7 @@ const command = (value: unknown): ImportGraphCommand => {
     case "ReadSource": return { kind: "readSource", target: number(object.target) };
     case "UnitComplete": return { kind: "unitComplete" };
     case "UnitIncomplete": return { kind: "unitIncomplete", reason: reason(object.reason) };
+    case "SkipImport": return { kind: "skipImport", target: number(object.target), reason: reason(object.reason) };
     default: throw new TypeError(`unknown Bend graph command ${tag(value)}`);
   }
 };
@@ -94,6 +100,7 @@ export type ImportGraphProjection = {
   readonly readBytes: number;
   readonly treeBytes: number;
   readonly work: number;
+  readonly skippedTree: boolean;
 };
 const phases = { Idle: "idle", Ready: "ready", Resolving: "resolving", Checking: "checking", Capturing: "capturing", Complete: "complete", Incomplete: "incomplete" } as const;
 export const projectImportGraph = (state: unknown): ImportGraphProjection => {
@@ -106,7 +113,7 @@ export const projectImportGraph = (state: unknown): ImportGraphProjection => {
   return { phase, ...(phase === "incomplete" ? { reason: reason(phaseObject.reason) } : {}),
     pending: readList(object.pending, (edge) => { if (kind(edge) !== "Edge") throw new TypeError("invalid Bend graph edge"); return number(record(edge).id); }),
     visited: readList(object.visited, number), files: number(object.files), readBytes: number(object.read_bytes),
-    treeBytes: number(object.tree_bytes), work: number(object.work) };
+    treeBytes: number(object.tree_bytes), work: number(object.work), skippedTree: bool(object.skipped_tree) };
 };
 export const initialImportGraph = (): unknown => {
   const state = bendImportGraphInitial();

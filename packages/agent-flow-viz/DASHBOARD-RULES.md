@@ -26,6 +26,8 @@ must state that scope until #119–#137 change the production boundary.
   offered by a capture that Bend rejects must be labeled "reported"; only a
   size accepted into Bend state may be labeled "accepted". Unread files have
   unknown sizes rather than invented estimates.
+- A skipped-import label only when Bend emits `SkipImport`; subsequent graph
+  branches appear only as later native facts are replayed through Bend.
 - Rendering, responsive layout, history navigation, and source-free summaries
   of the Bend result. These cannot change what an event does or whether a unit
   can reach Jev.
@@ -55,4 +57,4 @@ possible transitions and highlight the phase returned by Bend. The independent
 [`conformance/import-graph-v1.json`](../../conformance/import-graph-v1.json)
 fixture checks phases and commands at every step and final states. Projection and browser checks
 verify that the visible graph follows replay, including excluded C receiving
-no `ReadSource` command while independent D completes.
+no `ReadSource` command and no unrelated root appearing.

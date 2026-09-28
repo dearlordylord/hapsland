@@ -204,19 +204,19 @@ The separate import exploration section uses `ImportGraph.bend` through
 `import-graph-adapter.ts`. Its own scenario controls preserve the full-flow replay
 position. Grey boxes represent supplied native resolution/capture facts; blue
 boxes represent Bend decisions; the green downstream boundary identifies Jev
-outcomes without simulating a request or result. Eight source-free examples cover
-excluded C with an independent complete D unit, ordered imports and cycles,
-missing/ambiguous targets, the 20 KiB evidence-tree cap, the 1.5 MiB total-read cap,
-and an oversized per-file capture. These are synthetic policy examples, not
+outcomes without simulating a request or result. Two source-free examples show
+the A → B → excluded C path and a branching A → B,C → D,E,F,G tree in which
+E and G exceed the 20 KiB accepted-tree cap. These are synthetic policy examples, not
 observed filesystem or production execution traces. The build checks the shared
 adapter projections and Foldkit controls; `test:browser` checks the rendered
 independent replay controls as well.
 
-The "Tree overflows during B import" example starts with 20,400 B of accepted
-tree data for A. B's reported 100 B contribution would exceed the 20,480 B
-bound, so Bend emits `UnitIncomplete(TreeLimit)` after the capture fact and
-keeps the accepted tree at 20,400 B. File boxes display accepted or reported
-tree and source sizes; unread files show unknown sizes.
+In the branching-tree example, A, B, C, and D contribute 16,000 B. E reports
+5,000 B and Bend emits `SkipImport(TreeLimit)` without adding E to the accepted
+tree. F contributes 2,000 B; G reports 3,000 B and is skipped too. Bend then
+ends A's unit incomplete with an 18,000 B accepted tree and no Jev request.
+File boxes display accepted or reported tree and source sizes; unread files
+show unknown sizes.
 The saved [tree overflow view](../../docs/assets/import-graph-tree-overflow.png)
 shows the rejected contribution at the final step.
 

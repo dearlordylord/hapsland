@@ -20,22 +20,38 @@ import ./ImportGraph.bend as ImportGraph
 
 law import_graph_exclusion_has_no_read_command:
   {ImportGraph.checked(ImportGraph.Edge{2n, 1n}, 2n, False{},
-    Nil{}, 1n <> Nil{}, 1n, 100n, 100n, 1n) ==
+    Nil{}, 1n <> Nil{}, 1n, 100n, 100n, 1n, False{}) ==
     ImportGraph.Step{ImportGraph.Graph{ImportGraph.Incomplete{ImportGraph.Excluded{}},
-      Nil{}, 1n <> Nil{}, 1n, 100n, 100n, 1n},
+      Nil{}, 1n <> Nil{}, 1n, 100n, 100n, 1n, False{}},
       ImportGraph.UnitIncomplete{ImportGraph.Excluded{}}} : ImportGraph.Step}
 
 law import_graph_cycle_does_not_request_source:
   {ImportGraph.resolved(ImportGraph.Edge{2n, 1n}, 1n, ImportGraph.Found{},
-    Nil{}, 1n <> Nil{}, 1n, 100n, 100n, 1n) ==
+    Nil{}, 1n <> Nil{}, 1n, 100n, 100n, 1n, False{}) ==
     ImportGraph.Step{ImportGraph.Graph{ImportGraph.Ready{}, Nil{},
-      1n <> Nil{}, 1n, 100n, 100n, 1n}, ImportGraph.NoCommand{}} : ImportGraph.Step}
+      1n <> Nil{}, 1n, 100n, 100n, 1n, False{}}, ImportGraph.NoCommand{}} : ImportGraph.Step}
 
-law import_graph_exhausted_tree_stops_before_resolve:
+law import_graph_full_tree_can_inspect_remaining_edges:
   {ImportGraph.next(ImportGraph.Edge{2n, 1n} <> Nil{}, 1n <> Nil{},
-    1n, 100n, 20480n, 0n) ==
+    1n, 100n, 20480n, 0n, False{}) ==
+    ImportGraph.Step{ImportGraph.Graph{ImportGraph.Resolving{ImportGraph.Edge{2n, 1n}},
+      Nil{}, 1n <> Nil{}, 1n, 100n, 20480n, 1n, False{}},
+      ImportGraph.ResolveEdge{2n}} : ImportGraph.Step}
+
+law import_graph_oversized_support_skips_and_keeps_pending:
+  {ImportGraph.captured(ImportGraph.Edge{2n, 1n}, 2n, 100n, 1000n, Nil{},
+    ImportGraph.Edge{3n, 1n} <> Nil{}, 1n <> Nil{}, 1n, 100n, 20000n,
+    1n, False{}) ==
+    ImportGraph.Step{ImportGraph.Graph{ImportGraph.Ready{},
+      ImportGraph.Edge{3n, 1n} <> Nil{}, 2n <> 1n <> Nil{},
+      2n, 200n, 20000n, 1n, True{}},
+      ImportGraph.SkipImport{2n, ImportGraph.TreeLimit{}}} : ImportGraph.Step}
+
+law import_graph_skipped_tree_finishes_incomplete:
+  {ImportGraph.next(Nil{}, 2n <> 1n <> Nil{}, 2n, 200n, 20000n,
+    1n, True{}) ==
     ImportGraph.Step{ImportGraph.Graph{ImportGraph.Incomplete{ImportGraph.TreeLimit{}},
-      ImportGraph.Edge{2n, 1n} <> Nil{}, 1n <> Nil{}, 1n, 100n, 20480n, 0n},
+      Nil{}, 2n <> 1n <> Nil{}, 2n, 200n, 20000n, 1n, True{}},
       ImportGraph.UnitIncomplete{ImportGraph.TreeLimit{}}} : ImportGraph.Step}
 
 law rotated_in_scope_advice_is_retired:

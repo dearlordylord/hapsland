@@ -13,7 +13,7 @@ for (const trace of fixture.traces) {
     state = result.state;
     phases.push(projectImportGraph(state).phase);
     const command = result.command;
-    commands.push(command.kind + ("edge" in command ? `:${command.edge}` : "target" in command ? `:${command.target}` : "reason" in command ? `:${command.reason}` : ""));
+    commands.push(command.kind + ("edge" in command ? `:${command.edge}` : "target" in command ? `:${command.target}` : "") + ("reason" in command ? `:${command.reason}` : ""));
   }
   assert.deepEqual(commands, trace.commands, `${trace.name}: command sequence`);
   assert.deepEqual(phases, trace.phases, `${trace.name}: phase sequence`);
@@ -21,7 +21,9 @@ for (const trace of fixture.traces) {
   for (const [key, expected] of Object.entries(trace.expected)) {
     assert.deepEqual(projected[key], expected, `${trace.name}: ${key}`);
   }
-  assert.equal(commands.some((item) => item === "readSource:3"), false, `${trace.name}: excluded C read`);
+  if (trace.name === "A to B to excluded C") {
+    assert.equal(commands.some((item) => item === "readSource:3"), false, `${trace.name}: excluded C read`);
+  }
   const afterDeadline = stepImportGraph(state, { kind: "deadlineReached" });
   assert.deepEqual(projectImportGraph(afterDeadline.state), projected, `${trace.name}: terminal result is stable`);
   assert.equal(afterDeadline.command.kind, "none", `${trace.name}: terminal deadline has no command`);

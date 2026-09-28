@@ -7,7 +7,13 @@ def Laws.import_graph_exclusion_has_no_read_command():
 def Laws.import_graph_cycle_does_not_request_source():
   {==}
 
-def Laws.import_graph_exhausted_tree_stops_before_resolve():
+def Laws.import_graph_full_tree_can_inspect_remaining_edges():
+  {==}
+
+def Laws.import_graph_oversized_support_skips_and_keeps_pending():
+  {==}
+
+def Laws.import_graph_skipped_tree_finishes_incomplete():
   {==}
 
 def Laws.rotated_in_scope_advice_is_retired():

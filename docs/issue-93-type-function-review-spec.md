@@ -133,9 +133,12 @@ The target per-source-file stable-capture ceiling is **256 KiB inclusive**. The
 target evidence-tree ceiling is **20 KiB of canonical UTF-8 encoded root, nodes,
 edges, and required metadata per review unit**, including evidence reached from
 multiple files. The exact canonical encoding is an adoption gate. Check the
-remaining tree budget before expanding an edge; once exhausted, stop expansion
-and make no further supporting-file source reads for that unit. If a captured
-node cannot fit, mark the unit incomplete and stop its expansion. Keep at most
+remaining tree budget before accepting a captured contribution. If a supporting
+node cannot fit, skip that import's tree contribution, record the skipped target,
+and continue inspecting later pending edges within the finite file, read, work,
+depth, and deadline budgets. Keep the accepted tree at or below 20 KiB. A unit
+with any skipped import remains incomplete after its pending edges are examined
+and makes no Jev request. Keep at most
 64 parsed declarations per file, 16 distinct outbound targets per root, and four
 reference edges in a path as initial ceilings; fix finite total-file, total-read,
 and analysis-work/deadline ceilings before activation. The complete serialized
@@ -273,7 +276,8 @@ delivery policy. Coverage is never reported as a clean semantic judgment.
    unit-wide completeness, schema-v1 isolation and strict v2 target validation,
    exact request shape, per-path file selection before any source read
    (including A → B → excluded C),
-   no read of excluded C, no further read after tree exhaustion, stale suppression, and source-free
+   no read of excluded C, continued bounded traversal after an oversized import,
+   accepted tree size at or below 20 KiB, stale suppression, and source-free
    coverage. A controlled backend checks one request per eligible unit and no
    request for any incomplete or rule-empty unit. Typecheck and run the
    focused and full suites before any adoption claim.
