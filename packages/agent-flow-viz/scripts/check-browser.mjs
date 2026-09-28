@@ -82,14 +82,14 @@ try {
   assert.match(await fileDiagram.textContent(), /C\.tsExcludedtree size unknownsource size unknown/);
   await imports.getByRole("button", { name: "Previous import step", exact: true }).click();
   await waitForText(".import-graph-progress", "Import step 7 of 8");
-  await imports.getByRole("button", { name: "Branching tree skips E and G", exact: true }).click();
+  await imports.getByRole("button", { name: "Cumulative tree cap skips E and G", exact: true }).click();
   await waitForText(".import-graph-progress", "Import step 0 of 26");
   assert.equal(await imports.getByRole("button", { name: "Previous import step", exact: true }).isDisabled(), true);
   for (let step = 1; step <= 26; step++) {
     await imports.getByRole("button", { name: "Next import step", exact: true }).click();
     await waitForText(".import-graph-progress", `Import step ${step} of 26`);
     if (step === 17) {
-      assert.match(await fileDiagram.textContent(), /E\.tsTreeLimitreported tree \+5000 B/);
+      assert.match(await fileDiagram.textContent(), /E\.tsTreeLimitreported tree \+2048 B.*accepted total 19456 B/s);
       assert.match(await imports.locator(".import-graph-facts").innerText(), /A.ts · ready/);
     }
   }
@@ -103,11 +103,12 @@ try {
   assert.equal(b.x, c.x);
   assert.ok([d, e, f, g].every((file) => file.x === d.x));
   assert.ok(d.y < e.y && e.y < f.y && f.y < g.y, "the four leaves occupy separate rows");
-  assert.match(await fileDiagram.textContent(), /F\.tscaptured supportaccepted tree \+2000 B/);
-  assert.match(await fileDiagram.textContent(), /G\.tsTreeLimitreported tree \+3000 B/);
+  assert.match(await fileDiagram.textContent(), /B\.tscaptured supportaccepted tree \+5120 B.*accepted total 10240 B/s);
+  assert.match(await fileDiagram.textContent(), /F\.tscaptured supportaccepted tree \+1024 B.*accepted total 20480 B/s);
+  assert.match(await fileDiagram.textContent(), /G\.tsTreeLimitreported tree \+2048 B.*accepted total 20480 B/s);
   assert.match(await imports.locator(".import-graph-facts").innerText(), /A.ts · incomplete \(TreeLimit\)/);
-  assert.match(await imports.locator(".import-graph-facts").innerText(), /accepted tree bytes: 18000\/20480/);
-  assert.match(await imports.locator(".import-graph-facts").innerText(), /Oversized tree import skipped: yes/);
+  assert.match(await imports.locator(".import-graph-facts").innerText(), /accepted tree bytes: 20480\/20480/);
+  assert.match(await imports.locator(".import-graph-facts").innerText(), /Import skipped for remaining tree budget: yes/);
   assert.deepEqual(errors, []);
   console.log("Browser controls passed: guided, manual, disabled rejection, capacity, finish, rewind, redo, and independent import exploration");
 } finally {

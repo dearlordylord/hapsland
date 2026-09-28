@@ -206,15 +206,17 @@ position. Grey boxes represent supplied native resolution/capture facts; blue
 boxes represent Bend decisions; the green downstream boundary identifies Jev
 outcomes without simulating a request or result. Two source-free examples show
 the A → B → excluded C path and a branching A → B,C → D,E,F,G tree in which
-E and G exceed the 20 KiB accepted-tree cap. These are synthetic policy examples, not
+E and G do not fit the remaining 20 KiB tree budget. These are synthetic policy examples, not
 observed filesystem or production execution traces. The build checks the shared
 adapter projections and Foldkit controls; `test:browser` checks the rendered
 independent replay controls as well.
 
-In the branching-tree example, A, B, C, and D contribute 16,000 B. E reports
-5,000 B and Bend emits `SkipImport(TreeLimit)` without adding E to the accepted
-tree. F contributes 2,000 B; G reports 3,000 B and is skipped too. Bend then
-ends A's unit incomplete with an 18,000 B accepted tree and no Jev request.
+In the branching-tree example, A and B each contribute 5 KiB, so the accepted
+total reaches 10 KiB. C adds 5 KiB and D adds 4 KiB, reaching 19 KiB. E's
+2 KiB contribution does not fit the remaining 1 KiB, so Bend emits
+`SkipImport(TreeLimit)`. F adds 1 KiB, filling the 20 KiB tree; G's 2 KiB
+contribution is skipped too. Bend then ends A's unit incomplete with no Jev
+request. Each file box shows the accepted running total returned by Bend.
 File boxes display accepted or reported tree and source sizes; unread files
 show unknown sizes.
 The saved [tree overflow view](../../docs/assets/import-graph-tree-overflow.png)

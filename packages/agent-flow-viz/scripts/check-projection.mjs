@@ -30,10 +30,13 @@ try {
   assert.equal(treeOverflow.history.length, 26);
   assert.deepEqual(treeOverflow.history.filter((entry) => entry.command.kind === "skipImport").map((entry) => entry.command.target), [5, 7]);
   assert.equal(treeOverflow.history[16].state.phase, "ready", "E skip leaves later imports available");
-  assert.equal(treeOverflow.history[20].state.treeBytes, 18000, "F is accepted after E is skipped");
+  assert.equal(treeOverflow.history[4].state.treeBytes, 10240, "A and B use 10 KiB together");
+  assert.equal(treeOverflow.history[12].state.treeBytes, 19456, "A, B, C, and D use 19 KiB together");
+  assert.equal(treeOverflow.history[16].state.treeBytes, 19456, "E does not fit the remaining 1 KiB");
+  assert.equal(treeOverflow.history[20].state.treeBytes, 20480, "F is accepted after E and fills the tree");
   assert.equal(treeOverflow.history[24].state.phase, "ready", "G skip leaves a finalization step");
   assert.equal(treeOverflow.states[0].reason, "TreeLimit");
-  assert.equal(treeOverflow.states[0].treeBytes, 18000, "E and G are not charged to the accepted tree");
+  assert.equal(treeOverflow.states[0].treeBytes, 20480, "E and G are not charged to the accepted tree");
   assert.equal(treeOverflow.states[0].readBytes, 7000, "all seven source reads count toward the read budget");
   assert.equal(treeOverflow.states[0].files, 7, "all seven file reads count toward the file budget");
   let importModel = send(initial, main.Message.MovedImportCursor({ cursor: 8 }));

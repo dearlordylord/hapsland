@@ -4,7 +4,7 @@
 for one review unit. Its compiled graph and checked TypeScript adapter drive a
 separate dashboard state machine; production cross-file capture is still pending
 #133/#138. Run `npm run test:import-graph` for its laws and independent traces.
-Oversized supporting tree contributions emit `SkipImport(TreeLimit)` while
+Supporting tree contributions that do not fit the remaining budget emit `SkipImport(TreeLimit)` while
 later pending edges continue within the file, read, work, depth, and deadline
 limits. The accepted tree remains within 20 KiB, and a unit with any skipped
 import finishes incomplete with no Jev request.

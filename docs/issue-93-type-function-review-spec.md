@@ -276,7 +276,8 @@ delivery policy. Coverage is never reported as a clean semantic judgment.
    unit-wide completeness, schema-v1 isolation and strict v2 target validation,
    exact request shape, per-path file selection before any source read
    (including A → B → excluded C),
-   no read of excluded C, continued bounded traversal after an oversized import,
+   no read of excluded C, continued bounded traversal after a contribution
+   exceeds the remaining tree budget,
    accepted tree size at or below 20 KiB, stale suppression, and source-free
    coverage. A controlled backend checks one request per eligible unit and no
    request for any incomplete or rule-empty unit. Typecheck and run the
