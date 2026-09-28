@@ -89,7 +89,8 @@ try {
     if (trace.capacity) assert.deepEqual(replay.steps.filter((step) => step.event.kind === "preparationCompleted")
       .map((step) => step.commands.filter((command) => "after" in command).map(capacityFrame)),
       trace.capacity, `${trace.name}: preparation order and values match`);
-    if (trace.expectedDecisionPending) assert.equal(replay.projection.rounds[0]?.deciding, true);
+    assert.equal(replay.projection.rounds.some((round) => round.deciding),
+      trace.expectedDecisionPending, `${trace.name}: terminal decision wait matches the independent trace`);
     assert.match(text(alternate), new RegExp(`Guided step ${trace.events.length} of ${trace.events.length}`));
   }
   model = send(initial, main.Message.Advanced());
