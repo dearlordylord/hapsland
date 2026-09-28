@@ -56,7 +56,7 @@ const consumedTags = matches(adapter, /"((?:Canonical|Ledger|Admission|Work|Disp
 const compilerElidedTags = new Set([
   "RulePolicy.Words", "Admission.ProspectiveFacts", "Canonical.StopScope",
   "Retention.CleanupFacts", "Canonical.RetirePartition", "Ticket.Backend",
-  "Ticket.Capacity", "Ticket.Stale",
+  "Ticket.Capacity", "Ticket.Stale", "Delivery.SubmissionFacts",
 ]);
 const missingTags = new Set([...consumedTags].filter((name) => !generated.includes(`"${name}"`)));
 sameSet(missingTags, compilerElidedTags, "compiled Bend tag exceptions");

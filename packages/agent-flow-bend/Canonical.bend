@@ -173,6 +173,11 @@ type CanonicalEvent is Data:
   DeliveryAcknowledgeCheck{items: Nat, any_expired: Bool}
   DeliveryFinalizeCheck{items: Nat, all_acknowledged: Bool, any_expired: Bool}
   DeliveryFindingDispositionCheck{composed: Bool, remaining: Nat}
+  DeliverySubmissionCandidateCheck{facts: Delivery.SubmissionFacts}
+  DeliverySubmissionBatchCheck{count: Nat, all_valid: Bool}
+  DeliveryCredentialObserveCheck{invalid_seen: Bool, generation_valid: Bool,
+    authorized: Bool}
+  DeliveryFinalCredentialCheck{legacy_collect: Bool, invalid_seen: Bool}
   IncludeLayerCheck{supplied: Bool, current_rank: Nat, candidate_rank: Nat}
   FileSelectionCheck{protected: Bool, excluded: Bool,
     includes_empty: Bool, included: Bool}
@@ -380,6 +385,12 @@ type Command is Data:
   DeliveryRetireAdvice{}
   DeliveryKeepRemaining{}
   DeliveryKeepForReoffer{}
+  DeliverySubmissionCandidate{}
+  DeliverySubmissionRefused{}
+  DeliveryBatchProceed{}
+  DeliveryBatchRelease{}
+  DeliveryCredentialInvalid{}
+  DeliveryCredentialValid{}
   ReuseJoinAdvice{}
   ReuseJoinPending{}
   ReuseJoinClaimed{}
@@ -2362,6 +2373,11 @@ def delivery_disposition_result(state: State, decision: Delivery.FindingDisposit
     case Delivery.KeepRemaining{}: Advanced{state, DeliveryKeepRemaining{} <> Nil{}}
     case Delivery.KeepForReoffer{}: Advanced{state, DeliveryKeepForReoffer{} <> Nil{}}
 
+def delivery_batch_result(state: State, decision: Delivery.BatchGate) -> Step:
+  match decision:
+    case Delivery.BatchProceed{}: Advanced{state, DeliveryBatchProceed{} <> Nil{}}
+    case Delivery.BatchRelease{}: Advanced{state, DeliveryBatchRelease{} <> Nil{}}
+
 def cleanup_commit_eligible(state: State) -> Bool:
   match state:
     case State{Ledger.Ledger{_, _, Nil{}}, _, _, _, _, _, _,
@@ -2691,6 +2707,16 @@ def step(+state: State, event: CanonicalEvent) -> Step:
       delivery_final_result(state, Delivery.finalize(items, all_acknowledged, any_expired))
     case DeliveryFindingDispositionCheck{composed, remaining}:
       delivery_disposition_result(state, Delivery.finding_disposition(composed, remaining))
+    case DeliverySubmissionCandidateCheck{facts}:
+      Advanced{state, Bool.pick(Command, Delivery.submission_candidate(facts),
+        DeliverySubmissionCandidate{}, DeliverySubmissionRefused{}) <> Nil{}}
+    case DeliverySubmissionBatchCheck{count, all_valid}:
+      delivery_batch_result(state, Delivery.submission_batch_gate(count, all_valid))
+    case DeliveryCredentialObserveCheck{invalid_seen, generation_valid, authorized}:
+      Advanced{state, Bool.pick(Command, Delivery.credential_observe(invalid_seen,
+        generation_valid, authorized), DeliveryCredentialInvalid{}, DeliveryCredentialValid{}) <> Nil{}}
+    case DeliveryFinalCredentialCheck{legacy_collect, invalid_seen}:
+      delivery_batch_result(state, Delivery.final_credential_gate(legacy_collect, invalid_seen))
     case IncludeLayerCheck{supplied, current_rank, candidate_rank}:
       Advanced{state, IncludeChoice{Configuration.include_choice(supplied,
         current_rank, candidate_rank)} <> Nil{}}

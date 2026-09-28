@@ -19,6 +19,34 @@ describe("resident logical capacity ledger", () => {
     }
   });
 
+  it("routes composed submission and credential gates through canonical Bend", () => {
+    const ledger = new CapacityLedger();
+    const valid = { roundActive: true, hasRound: true, hasUnit: true,
+      hasDelivery: true, pendingCapacity: true, submissionAllowed: true,
+      currentWork: true, credentialAuthorized: true };
+    expect(ledger.transition({ kind: "deliverySubmissionCandidateCheck", facts: valid }).commands)
+      .toEqual([{ kind: "deliverySubmissionCandidate" }]);
+    expect(ledger.transition({ kind: "deliverySubmissionCandidateCheck",
+      facts: { ...valid, currentWork: false } }).commands)
+      .toEqual([{ kind: "deliverySubmissionRefused" }]);
+    expect(ledger.transition({ kind: "deliverySubmissionBatchCheck", count: 0, allValid: true }).commands)
+      .toEqual([{ kind: "deliveryBatchRelease" }]);
+    expect(ledger.transition({ kind: "deliverySubmissionBatchCheck", count: 1, allValid: true }).commands)
+      .toEqual([{ kind: "deliveryBatchProceed" }]);
+    expect(ledger.transition({ kind: "deliveryCredentialObserveCheck",
+      invalidSeen: false, generationValid: true, authorized: true }).commands)
+      .toEqual([{ kind: "deliveryCredentialValid" }]);
+    expect(ledger.transition({ kind: "deliveryCredentialObserveCheck",
+      invalidSeen: false, generationValid: false, authorized: false }).commands)
+      .toEqual([{ kind: "deliveryCredentialInvalid" }]);
+    expect(ledger.transition({ kind: "deliveryFinalCredentialCheck",
+      legacyCollect: true, invalidSeen: true }).commands)
+      .toEqual([{ kind: "deliveryBatchRelease" }]);
+    expect(ledger.transition({ kind: "deliveryFinalCredentialCheck",
+      legacyCollect: false, invalidSeen: true }).commands)
+      .toEqual([{ kind: "deliveryBatchProceed" }]);
+  });
+
   it("keeps permit and capacity transitions in one canonical resident state", () => {
     const ledger = new CapacityLedger();
     const partition = ledger.partitionId("agent");

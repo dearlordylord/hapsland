@@ -449,6 +449,31 @@ law canonical_delivery_disposition_uses_delivery_rule:
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
       Canonical.DeliveryRetireAdvice{} <> Nil{}} : Canonical.Step}
 
+law canonical_delivery_submission_candidate_uses_delivery_rule:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.DeliverySubmissionCandidateCheck{Delivery.SubmissionFacts{
+      True{}, True{}, True{}, True{}, True{}, True{}, True{}, True{}}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.DeliverySubmissionCandidate{} <> Nil{}} : Canonical.Step}
+
+law canonical_delivery_submission_batch_uses_delivery_rule:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.DeliverySubmissionBatchCheck{0n, True{}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.DeliveryBatchRelease{} <> Nil{}} : Canonical.Step}
+
+law canonical_delivery_credential_fold_uses_delivery_rule:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.DeliveryCredentialObserveCheck{False{}, False{}, False{}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.DeliveryCredentialInvalid{} <> Nil{}} : Canonical.Step}
+
+law canonical_delivery_final_credential_uses_delivery_rule:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.DeliveryFinalCredentialCheck{True{}, True{}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.DeliveryBatchRelease{} <> Nil{}} : Canonical.Step}
+
 def reserved_output_selection() -> Lifecycle.OutputSelection:
   Lifecycle.OutputSelection{1n <> 2n <> Nil{}, False{}, False{}}
 

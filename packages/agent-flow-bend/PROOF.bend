@@ -292,6 +292,18 @@ def Laws.canonical_delivery_finalization_uses_delivery_rule():
 def Laws.canonical_delivery_disposition_uses_delivery_rule():
   {==}
 
+def Laws.canonical_delivery_submission_candidate_uses_delivery_rule():
+  {==}
+
+def Laws.canonical_delivery_submission_batch_uses_delivery_rule():
+  {==}
+
+def Laws.canonical_delivery_credential_fold_uses_delivery_rule():
+  {==}
+
+def Laws.canonical_delivery_final_credential_uses_delivery_rule():
+  {==}
+
 def Laws.output_selection_reserves_pending_unit():
   {==}
 

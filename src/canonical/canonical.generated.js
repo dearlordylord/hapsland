@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:ce492ae74010c202881f6af83a1efe50f126f8030473a9c8369c27e2edb2ba09
+// hapsland-bend-source-sha256:65da6c6c082e9f90cdb52ad0404c70c712b4616f939e7eeb992426b024207f9e
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -631,6 +631,22 @@ function $Canonical$step$(_state_0, _event_0) {
     const _composed_0 = _event_0["composed"];
     const _remaining_0 = _event_0["remaining"];
     return $Canonical$delivery_disposition_result$(_state_0, ($Delivery$finding_disposition$(_composed_0, _remaining_0)));
+  } else if (_event_0.$ === "Canonical.DeliverySubmissionCandidateCheck") {
+    const _facts_2 = _event_0["facts"];
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Delivery$submission_candidate$(_facts_2)), {$: "Canonical.DeliverySubmissionCandidate"}, {$: "Canonical.DeliverySubmissionRefused"})), "tail": {$: "Nil"}}};
+  } else if (_event_0.$ === "Canonical.DeliverySubmissionBatchCheck") {
+    const _count_1 = _event_0["count"];
+    const _all_valid_0 = _event_0["all_valid"];
+    return $Canonical$delivery_batch_result$(_state_0, ($Delivery$submission_batch_gate$(_count_1, _all_valid_0)));
+  } else if (_event_0.$ === "Canonical.DeliveryCredentialObserveCheck") {
+    const _invalid_seen_0 = _event_0["invalid_seen"];
+    const _generation_valid_1 = _event_0["generation_valid"];
+    const _authorized_0 = _event_0["authorized"];
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Delivery$credential_observe$(_invalid_seen_0, _generation_valid_1, _authorized_0)), {$: "Canonical.DeliveryCredentialInvalid"}, {$: "Canonical.DeliveryCredentialValid"})), "tail": {$: "Nil"}}};
+  } else if (_event_0.$ === "Canonical.DeliveryFinalCredentialCheck") {
+    const _legacy_collect_0 = _event_0["legacy_collect"];
+    const _invalid_seen_1 = _event_0["invalid_seen"];
+    return $Canonical$delivery_batch_result$(_state_0, ($Delivery$final_credential_gate$(_legacy_collect_0, _invalid_seen_1)));
   } else if (_event_0.$ === "Canonical.IncludeLayerCheck") {
     const _supplied_0 = _event_0["supplied"];
     const _current_rank_0 = _event_0["current_rank"];
@@ -1772,6 +1788,39 @@ function $Canonical$delivery_disposition_result$(_state_0, _decision_0) {
 
 function $Delivery$finding_disposition$(_composed_0, _remaining_0) {
   return $Bool$pick$(_composed_0, {$: "Delivery.KeepForReoffer"}, ($Bool$pick$(($Nat$is_eq$(_remaining_0, 0)), {$: "Delivery.RetireAdvice"}, {$: "Delivery.KeepRemaining"})));
+}
+
+function $Delivery$submission_candidate$(_facts_0) {
+  const _round_active_0 = _facts_0["round_active"];
+  const _has_round_0 = _facts_0["has_round"];
+  const _has_unit_0 = _facts_0["has_unit"];
+  const _has_delivery_0 = _facts_0["has_delivery"];
+  const _pending_capacity_0 = _facts_0["pending_capacity"];
+  const _submission_allowed_0 = _facts_0["submission_allowed"];
+  const _current_work_0 = _facts_0["current_work"];
+  const _credential_authorized_0 = _facts_0["credential_authorized"];
+  return $Bool$and$(_round_active_0, ($Bool$and$(_has_round_0, ($Bool$and$(_has_unit_0, ($Bool$and$(_has_delivery_0, ($Bool$and$(_pending_capacity_0, ($Bool$and$(_submission_allowed_0, ($Bool$and$(_current_work_0, _credential_authorized_0)))))))))))));
+}
+
+function $Canonical$delivery_batch_result$(_state_0, _decision_0) {
+  if (_decision_0.$ === "Delivery.BatchProceed") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DeliveryBatchProceed"}, "tail": {$: "Nil"}}};
+  } else {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DeliveryBatchRelease"}, "tail": {$: "Nil"}}};
+  }
+}
+
+function $Delivery$submission_batch_gate$(_count_0, _all_valid_0) {
+  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_count_0, 0)), _all_valid_0)), {$: "Delivery.BatchProceed"}, {$: "Delivery.BatchRelease"});
+}
+
+function $Delivery$credential_observe$(_invalid_seen_0, _generation_valid_0, _authorized_0) {
+  const _x_0 = ($Bool$not$(($Bool$and$(_generation_valid_0, _authorized_0))));
+  return (_invalid_seen_0 || _x_0);
+}
+
+function $Delivery$final_credential_gate$(_legacy_collect_0, _invalid_seen_0) {
+  return $Bool$pick$(($Bool$and$(_legacy_collect_0, _invalid_seen_0)), {$: "Delivery.BatchRelease"}, {$: "Delivery.BatchProceed"});
 }
 
 function $Configuration$include_choice$(_supplied_0, _current_rank_0, _candidate_rank_0) {

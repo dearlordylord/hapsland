@@ -62,8 +62,6 @@ import { ComposedDelivery } from "./composed-delivery.ts";
 import { BendWorkTracker } from "./bend-work.ts";
 import type { CanonicalCommand, TicketReason, TicketUnitEvent } from "../canonical/adapter.ts";
 import { bendValidationRoute, bendPostValidation, bendFinalCandidate,
-  bendDeliverySubmissionCandidate, bendDeliverySubmissionBatchGate,
-  bendDeliveryCredentialObserve, bendDeliveryFinalCredentialGate,
   type BendValidationStatus } from "./bend-policy.generated.js";
 import {
   ADVICE_COLLECTION_WINDOW_MS,
@@ -1342,20 +1340,25 @@ export class ResidentServer {
       const round = item.round;
       const delivery = item.delivery;
       const unit = item.workUnitId;
-      return bendDeliverySubmissionCandidate({ $: "SubmissionFacts",
-        round_active: this.#roundActive(round),
-        has_round: round !== undefined,
-        has_unit: unit !== undefined,
-        has_delivery: delivery !== undefined,
-        pending_capacity: round !== undefined && unit !== undefined && delivery !== undefined &&
+      const decision = this.#ledger.transition({ kind: "deliverySubmissionCandidateCheck", facts: {
+        roundActive: this.#roundActive(round),
+        hasRound: round !== undefined,
+        hasUnit: unit !== undefined,
+        hasDelivery: delivery !== undefined,
+        pendingCapacity: round !== undefined && unit !== undefined && delivery !== undefined &&
           delivery.findings.length <= this.#pendingCanonicalFindings(item.canonicalOperationId),
-        submission_allowed: this.#composedDelivery.canBeginSubmission(
+        submissionAllowed: this.#composedDelivery.canBeginSubmission(
           adviceeGroup(item.observation.root, item.observation.advicee), surface, token),
-        current_work: this.#isCurrentWork(item.revision, item.prepared),
-        credential_authorized: this.#adviceCredentialAuthority(item),
-      }) === true;
+        currentWork: this.#isCurrentWork(item.revision, item.prepared),
+        credentialAuthorized: this.#adviceCredentialAuthority(item),
+      } });
+      if (decision.rejection !== undefined || decision.commands.length !== 1) throw new Error("canonical submission candidate refused");
+      return decision.commands[0]?.kind === "deliverySubmissionCandidate";
     });
-    if (bendDeliverySubmissionBatchGate(advice.length, allValid).$ !== "BatchProceed") {
+    const batch = this.#ledger.transition({ kind: "deliverySubmissionBatchCheck",
+      count: advice.length, allValid });
+    if (batch.rejection !== undefined || batch.commands.length !== 1) throw new Error("canonical submission batch refused");
+    if (batch.commands[0]?.kind !== "deliveryBatchProceed") {
       this.releaseComposedSubmission(token);
       return { status: "empty" };
     }
@@ -3012,10 +3015,16 @@ export class ResidentServer {
     if (legacyCollect) for (const advice of this.#advice) {
       if (advice.delivery?.token !== response.token || invalidCredential) continue;
       const generationValid = advice.credentialGeneration === (request.dispatch.credential?.generation ?? null);
-      invalidCredential = bendDeliveryCredentialObserve(invalidCredential, generationValid,
-        generationValid && this.#adviceCredentialAuthority(advice)) !== false;
+      const observed = this.#ledger.transition({ kind: "deliveryCredentialObserveCheck",
+        invalidSeen: invalidCredential, generationValid,
+        authorized: generationValid && this.#adviceCredentialAuthority(advice) });
+      if (observed.rejection !== undefined || observed.commands.length !== 1) throw new Error("canonical credential observation refused");
+      invalidCredential = observed.commands[0]?.kind === "deliveryCredentialInvalid";
     }
-    if (bendDeliveryFinalCredentialGate(legacyCollect, invalidCredential).$ !== "BatchProceed") {
+    const credentialGate = this.#ledger.transition({ kind: "deliveryFinalCredentialCheck",
+      legacyCollect, invalidSeen: invalidCredential });
+    if (credentialGate.rejection !== undefined || credentialGate.commands.length !== 1) throw new Error("canonical final credential gate refused");
+    if (credentialGate.commands[0]?.kind !== "deliveryBatchProceed") {
       this.releaseComposedSubmission(response.token);
       return { status: "empty" };
     }
