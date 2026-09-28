@@ -5,7 +5,7 @@ import { BendWorkTracker } from "./bend-work.ts";
 import { CapacityLedger } from "./capacity.ts";
 import { DELIVERY_LEASE_MS } from "./protocol.ts";
 import {
-  bendRoundActive, bendRoundBeginStop, bendRoundBudget,
+  bendRoundActive, bendRoundBeginStop, bendRoundBeginDecision, bendRoundBudget,
   bendRoundConsume, bendRoundFinishStop, bendRoundInitial, bendRoundOwnsStop,
   bendRoundStopTerminal, bendRoundExpireClose,
   bendRoundReopen, bendRoundMaxContinuations, type BendRound,
@@ -309,6 +309,7 @@ export class ComposedDelivery {
     if (result.$ !== "Granted") return false;
     this.#rounds.set(partition, { ...round, policy: result.state });
     this.#stops.set(partition, { token, id, generation: this.generation(partition) });
+    this.canonical.roundId(partition);
     return true;
   }
 
@@ -320,16 +321,38 @@ export class ComposedDelivery {
   }
 
   finishGate(partition: string, token: string, extraUnfinished: number,
-    deadlineReached: boolean, work = new BendWorkTracker()):
+    deadlineReached: boolean, work = new BendWorkTracker(), scopePartitions: readonly string[] = []):
     { readonly status: "waiting" } |
     { readonly status: "cutoff"; readonly cancelledSource: number[];
-      readonly cancelledJev: number[] } | undefined {
+      readonly cancelledJev: number[]; readonly limited: boolean } | undefined {
     const stop = this.#stops.get(partition);
     const round = this.#rounds.get(partition);
     if (stop?.token !== token || round === undefined) return undefined;
-    const result = work.finishGate(round.policy, stop.id, extraUnfinished, deadlineReached);
-    if (result === undefined) return undefined;
-    if (result.status === "waiting") return { status: "waiting" };
+    const projection = this.canonical.canonicalProjection();
+    const scopes = scopePartitions.map((name) => {
+      const partition = this.canonical.partitionId(name);
+      const current = projection.rounds.find((item) => item.partition === partition);
+      if (current === undefined) throw new Error("canonical stop scope missing");
+      return { partition, round: current.id };
+    });
+    const cutoff = this.canonical.transition({ kind: "stopGroupPolled",
+      group: this.canonical.partitionId(partition), lifetime: 1,
+      round: this.canonical.roundId(partition), scopes,
+      deadline: deadlineReached, extraPending: extraUnfinished > 0,
+      continuations: Number(round.policy.continuations) });
+    if (cutoff.rejection !== undefined) return undefined;
+    if (cutoff.commands[0]?.kind === "waitForWork") return { status: "waiting" };
+    const terminal = cutoff.commands.at(-1)?.kind;
+    if (terminal !== "finishReady" && terminal !== "finishLimit") throw new Error("invalid canonical Stop command");
+    const source = new Set(projection.work.filter((item) => scopes.some((scope) => scope.partition === item.partition && scope.round === item.round) &&
+      (item.kind === "sourceQueued" || item.kind === "sourceReading")).map((item) => item.operation));
+    const cancelled = cutoff.commands.filter((item) => item.kind === "cancelWork").map((item) => item.operation);
+    for (const command of cutoff.commands) if (command.kind === "reservationReleased") {
+      this.canonical.acknowledgeStopRelease(command.id);
+    }
+    work.cancelUnfinished(); // Keep the legacy output projection synchronized until #125.
+    const decision = bendRoundBeginDecision(round.policy, stop.id);
+    if (decision.$ !== "Granted") throw new Error("legacy output projection refused canonical Stop");
     for (const [key, permit] of this.#permits) if (permit.partition === partition) {
       const released = this.canonical.transition({ kind: "releasePermit",
         partition: this.canonical.partitionId(partition), lifetime: 1, token: permit.token });
@@ -338,9 +361,9 @@ export class ComposedDelivery {
       }
       this.#permits.delete(key);
     }
-    this.#rounds.set(partition, { ...round, policy: result.round });
-    return { status: "cutoff", cancelledSource: result.cancelledSource,
-      cancelledJev: result.cancelledJev };
+    this.#rounds.set(partition, { ...round, policy: decision.state });
+    return { status: "cutoff", cancelledSource: cancelled.filter((id) => source.has(id)),
+      cancelledJev: cancelled.filter((id) => !source.has(id)), limited: terminal === "finishLimit" };
   }
 
   reserveFinishOutput(partition: string, attempt: string, outputToken: string,
@@ -424,7 +447,8 @@ export class ComposedDelivery {
     return true;
   }
 
-  finishStop(partition: string, token: string, close: boolean, closedAt = monotonicNow()): number | undefined {
+  finishStop(partition: string, token: string, close: boolean, closedAt = monotonicNow(),
+    scopePartitions: readonly string[] = []): number | undefined {
     const stop = this.#stops.get(partition);
     let round = this.#rounds.get(partition);
     if (stop?.token !== token || round === undefined) return undefined;
@@ -442,6 +466,15 @@ export class ComposedDelivery {
     close = terminal.close;
     const result = bendRoundFinishStop(round.policy, stop.id, close, Math.floor(Math.max(0, closedAt)));
     if (result.$ !== "Granted") return undefined;
+    const scopes = scopePartitions.map((name) => {
+      const owner = this.canonical.partitionId(name);
+      const current = this.canonical.canonicalProjection().rounds.find((item) => item.partition === owner);
+      if (current === undefined) throw new Error("canonical Stop scope retired before finish");
+      return { partition: owner, round: current.id };
+    });
+    const ended = this.canonical.transition({ kind: "stopGroupEnded", group: this.canonical.partitionId(partition),
+      lifetime: 1, round: this.canonical.roundId(partition), scopes });
+    if (ended.rejection !== undefined || ended.commands[0]?.kind !== "stopEnded") throw new Error("canonical Stop end refused");
     if (close) {
       if (Number(round.policy.generation) !== stop.generation) return undefined;
       // Publish the canonical fence before changing the resident's Stop view.
@@ -457,6 +490,7 @@ export class ComposedDelivery {
     }
     this.#rounds.set(partition, { ...round, policy: result.state });
     this.#stops.delete(partition);
+    if (close) this.canonical.retireRound(partition);
     if (stop.outputToken !== undefined) {
       const permit = this.#finishPermits.get(stop.outputToken);
       if (permit !== undefined) permit.revoked = true;

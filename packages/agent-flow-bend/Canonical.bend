@@ -23,6 +23,9 @@ type WorkKind is Data:
   AtJev{}
   PendingFinding{}
 
+type StopScope is Data:
+  StopScope{partition: Nat, round: Nat}
+
 type State is Data:
   State{ledger: Ledger.Ledger, rounds: List<&2, Round>,
     work: List<&2, Work>, next_round: Nat, next_operation: Nat,
@@ -77,6 +80,11 @@ type CanonicalEvent is Data:
   EmptyPreparedCheck{ready_count: Nat, has_non_skipped: Bool, ticketed: Bool}
   ReviewFailureCheck{backend_or_timeout: Bool, credential: Bool, missing: Bool}
   StopPolled{partition: Nat, lifetime: Nat, round: Nat, deadline: Bool}
+  StopGroupPolled{group: Nat, lifetime: Nat, round: Nat,
+    scopes: List<&2, StopScope>, deadline: Bool, extra_pending: Bool,
+    continuations: Nat}
+  StopGroupEnded{group: Nat, lifetime: Nat, round: Nat,
+    scopes: List<&2, StopScope>}
   OutputStarted{partition: Nat, lifetime: Nat, round: Nat}
   OutputTerminal{partition: Nat, lifetime: Nat, round: Nat,
     operation: Nat, outcome: WriteOutcome}
@@ -135,6 +143,8 @@ type Command is Data:
   WaitForWork{}
   CancelWork{operation: Nat}
   FinishReady{}
+  FinishLimit{}
+  StopEnded{}
   WriteAuthorized{operation: Nat}
   WriteRecorded{outcome: WriteOutcome}
   WaitForOutput{}
@@ -548,11 +558,17 @@ def open(+state: State, +partition: Nat, +lifetime: Nat) -> Step:
     case State{_, rounds, _, _, _, _, +dispatch}:
       open_found(state, partition, lifetime, find_round(partition, rounds))
 
+def is_deciding(current: Round) -> Bool:
+  match current:
+    case Round{_, _, _, _, deciding, _, _}:
+      deciding
+
 def admit_observation_found(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, found: Maybe<&2, Round>) -> Step:
   match state found:
-    case State{ledger, rounds, work, next_round, +next_operation, admissions, +dispatch} Some{current}:
-      Bool.pick(Step, same_round(partition, lifetime, round, current),
+    case State{ledger, rounds, work, next_round, +next_operation, admissions, +dispatch} Some{+current}:
+      Bool.pick(Step, Bool.and(same_round(partition, lifetime, round, current),
+          Bool.not(is_deciding(current))),
         Advanced{State{ledger, rounds,
           Work{partition, lifetime, round, next_operation, 0n, SourceQueued{}, 0n} <> work,
           next_round, (next_operation + 1n : Nat), admissions, dispatch},
@@ -653,11 +669,6 @@ def begin_result(state: State, +partition: Nat, +lifetime: Nat, +round: Nat,
             Prepare{next_operation, charge} <> Nil{}}
         case Ledger.Rejected{_}:
           Advanced{state, PreparationRefused{} <> Nil{}}
-
-def is_deciding(current: Round) -> Bool:
-  match current:
-    case Round{_, _, _, _, deciding, _, _}:
-      deciding
 
 def begin_found(+state: State, +partition: Nat, +lifetime: Nat, +round: Nat,
     +bytes: Nat, +parent: Nat, found: Maybe<&2, Round>) -> Step:
@@ -982,6 +993,241 @@ def review_failure_check(state: State, backend_or_timeout: Bool,
     credential: Bool, missing: Bool) -> Step:
   review_failure_result(state,
     WorkPolicy.failure_disposition(backend_or_timeout, credential, missing))
+
+def scope_matches(scope: StopScope, +partition: Nat, +round: Nat) -> Bool:
+  match scope:
+    case StopScope{owner, current}:
+      Bool.and(Nat.is_eq(owner, partition), Nat.is_eq(current, round))
+
+def scope_contains(scopes: List<&2, StopScope>, +partition: Nat, +round: Nat) -> Bool:
+  match scopes:
+    case Nil{}:
+      False{}
+    case +scope <> rest:
+      Bool.or(scope_matches(scope, partition, round),
+        scope_contains(rest, partition, round))
+
+def scope_partition_seen(scopes: List<&2, StopScope>, +partition: Nat) -> Bool:
+  match scopes:
+    case Nil{}:
+      False{}
+    case StopScope{owner, _} <> rest:
+      Bool.or(Nat.is_eq(owner, partition), scope_partition_seen(rest, partition))
+
+def scope_round_valid(found: Maybe<&2, Round>, partition: Nat,
+    lifetime: Nat, round: Nat) -> Bool:
+  match found:
+    case Some{+current}:
+      Bool.and(same_round(partition, lifetime, round, current),
+        Bool.not(is_deciding(current)))
+    case None{}:
+      False{}
+
+def valid_stop_scopes(+rounds: List<&2, Round>, +lifetime: Nat,
+    scopes: List<&2, StopScope>) -> Bool:
+  match scopes:
+    case Nil{}:
+      True{}
+    case StopScope{+partition, round} <> +rest:
+      Bool.and(Bool.not(scope_partition_seen(rest, partition)),
+        Bool.and(scope_round_valid(find_round(partition, rounds), partition, lifetime, round),
+          valid_stop_scopes(rounds, lifetime, rest)))
+
+def end_scope_valid(found: Maybe<&2, Round>, partition: Nat,
+    lifetime: Nat, round: Nat) -> Bool:
+  match found:
+    case Some{current}:
+      same_round(partition, lifetime, round, current)
+    case None{}:
+      False{}
+
+def valid_end_scopes(+rounds: List<&2, Round>, +lifetime: Nat,
+    scopes: List<&2, StopScope>) -> Bool:
+  match scopes:
+    case Nil{}:
+      True{}
+    case StopScope{+partition, round} <> +rest:
+      Bool.and(Bool.not(scope_partition_seen(rest, partition)),
+        Bool.and(end_scope_valid(find_round(partition, rounds), partition, lifetime, round),
+          valid_end_scopes(rounds, lifetime, rest)))
+
+def scoped_pending(items: List<&2, Work>, +lifetime: Nat,
+    +scopes: List<&2, StopScope>) -> Bool:
+  match items:
+    case Nil{}:
+      False{}
+    case Work{partition, generation, round, _, _, kind, _} <> rest:
+      Bool.or(Bool.and(Nat.is_eq(generation, lifetime),
+          Bool.and(scope_contains(scopes, partition, round), unfinished(kind))),
+        scoped_pending(rest, lifetime, scopes))
+
+def mark_stop_rounds_hit(item: Round, tail: List<&2, Round>,
+    waiting: Bool, deciding: Bool) -> List<&2, Round>:
+  match item:
+    case Round{partition, generation, current, _, _, write, uncertain}:
+      Round{partition, generation, current, waiting, deciding, write, uncertain} <> tail
+
+def mark_stop_rounds_one(item: Round, tail: List<&2, Round>, hit: Bool,
+    waiting: Bool, deciding: Bool) -> List<&2, Round>:
+  match hit:
+    case True{}:
+      mark_stop_rounds_hit(item, tail, waiting, deciding)
+    case False{}:
+      item <> tail
+
+def mark_stop_rounds(items: List<&2, Round>, +group: Nat,
+    +lifetime: Nat, +round: Nat, +scopes: List<&2, StopScope>,
+    +waiting: Bool, +deciding: Bool) -> List<&2, Round>:
+  match items:
+    case Nil{}:
+      Nil{}
+    case +item <> rest:
+      match item:
+        case Round{partition, generation, current, _, _, _, _}:
+          mark_stop_rounds_one(item,
+            mark_stop_rounds(rest, group, lifetime, round, scopes, waiting, deciding),
+            Bool.and(Nat.is_eq(generation, lifetime),
+              Bool.or(same_round(group, lifetime, round, item),
+                scope_contains(scopes, partition, current))), waiting, deciding)
+
+def release_scoped_charges(items: List<&2, Work>, +ledger: Ledger.Ledger,
+    +lifetime: Nat, +scopes: List<&2, StopScope>) -> Ledger.Ledger:
+  match items:
+    case Nil{}:
+      ledger
+    case Work{partition, generation, round, _, +charge, kind, _} <> rest:
+      release_scoped_charges(rest,
+        Bool.pick(Ledger.Ledger,
+          Bool.and(Nat.is_gt(charge, 0n),
+            Bool.and(Nat.is_eq(generation, lifetime),
+              Bool.and(scope_contains(scopes, partition, round), unfinished(kind)))),
+          release_charge(ledger, charge), ledger), lifetime, scopes)
+
+def retain_scoped_work(items: List<&2, Work>, +lifetime: Nat,
+    +scopes: List<&2, StopScope>) -> List<&2, Work>:
+  match items:
+    case Nil{}:
+      Nil{}
+    case +item <> rest:
+      match item:
+        case Work{partition, generation, round, _, _, kind, _}:
+          retain_work_pick(item, retain_scoped_work(rest, lifetime, scopes),
+            Bool.and(Nat.is_eq(generation, lifetime),
+              Bool.and(scope_contains(scopes, partition, round), unfinished(kind))))
+
+def release_scoped_commands(items: List<&2, Work>, +lifetime: Nat,
+    +scopes: List<&2, StopScope>) -> List<&2, Command>:
+  match items:
+    case Nil{}:
+      Nil{}
+    case Work{partition, generation, round, _, +charge, kind, _} <> rest:
+      release_pick(charge, release_scoped_commands(rest, lifetime, scopes),
+        Bool.and(Nat.is_gt(charge, 0n),
+          Bool.and(Nat.is_eq(generation, lifetime),
+            Bool.and(scope_contains(scopes, partition, round), unfinished(kind)))))
+
+def dispatch_work_unfinished(found: Maybe<&2, Work>) -> Bool:
+  match found:
+    case Some{Work{_, _, _, _, _, kind, _}}:
+      unfinished(kind)
+    case None{}:
+      False{}
+
+def cancel_dispatch_entries(items: List<&2, Dispatch.Entry>, +work: List<&2, Work>,
+    +lifetime: Nat, +scopes: List<&2, StopScope>) -> List<&2, Command>:
+  match items:
+    case Nil{}:
+      Nil{}
+    case Dispatch.Entry{+partition, +generation, +round, +operation, _, _, cancelled} <> rest:
+      cancel_pick(operation, cancel_dispatch_entries(rest, work, lifetime, scopes),
+        Bool.and(Bool.not(cancelled), Bool.and(Nat.is_eq(generation, lifetime),
+          Bool.and(scope_contains(scopes, partition, round),
+            dispatch_work_unfinished(find_work(partition, generation, round, operation, work))))))
+
+def cancel_scoped_dispatch(dispatch: Dispatch.State, +work: List<&2, Work>, +lifetime: Nat,
+    +scopes: List<&2, StopScope>) -> List<&2, Command>:
+  match dispatch:
+    case Dispatch.State{pending, active, running, _, _, _}:
+      List.append(&2, Command, cancel_dispatch_entries(pending, work, lifetime, scopes),
+        List.append(&2, Command, cancel_dispatch_entries(active, work, lifetime, scopes),
+          cancel_dispatch_entries(running, work, lifetime, scopes)))
+
+def stop_group_wait(+state: State, +group: Nat, +lifetime: Nat,
+    +round: Nat, scopes: List<&2, StopScope>) -> Step:
+  match state:
+    case State{ledger, rounds, work, next_round, next_operation, admissions, dispatch}:
+      Advanced{State{ledger, mark_stop_rounds(rounds, group, lifetime, round,
+        scopes, True{}, False{}), work, next_round, next_operation, admissions, dispatch},
+        WaitForWork{} <> Nil{}}
+
+def stop_group_ready(+state: State, +group: Nat, +lifetime: Nat,
+    +round: Nat, +scopes: List<&2, StopScope>, continuations: Nat) -> Step:
+  match state:
+    case State{ledger, rounds, +work, next_round, next_operation, admissions, +dispatch}:
+      Advanced{State{release_scoped_charges(work, ledger, lifetime, scopes),
+        mark_stop_rounds(rounds, group, lifetime, round, scopes, False{}, True{}),
+        retain_scoped_work(work, lifetime, scopes), next_round, next_operation,
+        admissions, dispatch},
+        List.append(&2, Command, release_scoped_commands(work, lifetime, scopes),
+          List.append(&2, Command, cancel_scoped_dispatch(dispatch, work, lifetime, scopes),
+            Bool.pick(Command, Nat.is_lt(continuations, 4n),
+              FinishReady{}, FinishLimit{}) <> Nil{}))}
+
+def stop_group_checked(+state: State, +group: Nat, +lifetime: Nat,
+    +round: Nat, +scopes: List<&2, StopScope>, deadline: Bool,
+    extra_pending: Bool, continuations: Nat, found: Maybe<&2, Round>) -> Step:
+  match state found:
+    case State{_, rounds, work, _, _, _, _} Some{+current}:
+      Bool.pick(Step,
+        Bool.and(same_round(group, lifetime, round, current),
+          Bool.and(Bool.not(is_deciding(current)),
+            valid_stop_scopes(rounds, lifetime, scopes))),
+        Bool.pick(Step,
+          Bool.and(Bool.not(deadline),
+            Bool.or(extra_pending, scoped_pending(work, lifetime, scopes))),
+          stop_group_wait(state, group, lifetime, round, scopes),
+          stop_group_ready(state, group, lifetime, round, scopes, continuations)),
+        Rejected{state, StaleRound{}})
+    case _ _:
+      Rejected{state, StaleRound{}}
+
+def stop_group(+state: State, +group: Nat, +lifetime: Nat, +round: Nat,
+    +scopes: List<&2, StopScope>, deadline: Bool, extra_pending: Bool,
+    continuations: Nat) -> Step:
+  match state:
+    case State{_, rounds, _, _, _, _, _}:
+      stop_group_checked(state, group, lifetime, round, scopes, deadline,
+        extra_pending, continuations, find_round(group, rounds))
+
+def stop_group_end_apply(state: State, group: Nat, lifetime: Nat,
+    round: Nat, scopes: List<&2, StopScope>) -> Step:
+  match state:
+    case State{ledger, rounds, work, next_round, next_operation, admissions, dispatch}:
+      Advanced{State{ledger, mark_stop_rounds(rounds, group, lifetime, round,
+        scopes, False{}, False{}), work, next_round, next_operation, admissions,
+        dispatch}, StopEnded{} <> Nil{}}
+
+def stop_group_end_valid(+state: State, group: Nat, lifetime: Nat,
+    round: Nat, scopes: List<&2, StopScope>, valid: Bool) -> Step:
+  Bool.pick(Step, valid, stop_group_end_apply(state, group, lifetime, round, scopes),
+    Rejected{state, StaleRound{}})
+
+def stop_group_end_checked(+state: State, +group: Nat, +lifetime: Nat,
+    +round: Nat, +scopes: List<&2, StopScope>, found: Maybe<&2, Round>) -> Step:
+  match state found:
+    case State{_, rounds, _, _, _, _, _} Some{current}:
+      stop_group_end_valid(state, group, lifetime, round, scopes,
+        Bool.and(same_round(group, lifetime, round, current),
+          valid_end_scopes(rounds, lifetime, scopes)))
+    case _ _:
+      Rejected{state, StaleRound{}}
+
+def stop_group_end(+state: State, +group: Nat, +lifetime: Nat, +round: Nat,
+    scopes: List<&2, StopScope>) -> Step:
+  match state:
+    case State{_, rounds, _, _, _, _, _}:
+      stop_group_end_checked(state, group, lifetime, round, scopes,
+        find_round(group, rounds))
 
 def stop_ready(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, deadline: Bool, +uncertain: Bool) -> Step:
@@ -1392,6 +1638,11 @@ def step(state: State, event: CanonicalEvent) -> Step:
       review_failure_check(state, backend_or_timeout, credential, missing)
     case StopPolled{partition, lifetime, round, deadline}:
       stop(state, partition, lifetime, round, deadline)
+    case StopGroupPolled{group, lifetime, round, scopes, deadline, extra_pending, continuations}:
+      stop_group(state, group, lifetime, round, scopes, deadline, extra_pending,
+        continuations)
+    case StopGroupEnded{group, lifetime, round, scopes}:
+      stop_group_end(state, group, lifetime, round, scopes)
     case OutputStarted{partition, lifetime, round}:
       output_start(state, partition, lifetime, round)
     case OutputTerminal{partition, lifetime, round, operation, outcome}:

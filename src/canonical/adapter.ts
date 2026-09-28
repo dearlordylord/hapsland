@@ -86,6 +86,8 @@ export type CanonicalEvent =
   | { readonly kind: "emptyPreparedCheck"; readonly readyCount: number; readonly hasNonSkipped: boolean; readonly ticketed: boolean }
   | { readonly kind: "reviewFailureCheck"; readonly backendOrTimeout: boolean; readonly credential: boolean; readonly missing: boolean }
   | { readonly kind: "stopPolled"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly deadline: boolean }
+  | { readonly kind: "stopGroupPolled"; readonly group: number; readonly lifetime: number; readonly round: number; readonly scopes: readonly { readonly partition: number; readonly round: number }[]; readonly deadline: boolean; readonly extraPending: boolean; readonly continuations: number }
+  | { readonly kind: "stopGroupEnded"; readonly group: number; readonly lifetime: number; readonly round: number; readonly scopes: readonly { readonly partition: number; readonly round: number }[] }
   | { readonly kind: "outputStarted"; readonly partition: number; readonly lifetime: number; readonly round: number }
   | { readonly kind: "outputTerminal"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly outcome: "acknowledged" | "failed" | "unknown" }
   | { readonly kind: "retirePartition"; readonly partition: number; readonly lifetime: number; readonly round: number };
@@ -119,6 +121,8 @@ export type CanonicalCommand =
   | { readonly kind: "waitForWork" }
   | { readonly kind: "cancelWork"; readonly operation: number }
   | { readonly kind: "finishReady" }
+  | { readonly kind: "finishLimit" }
+  | { readonly kind: "stopEnded" }
   | { readonly kind: "writeAuthorized"; readonly operation: number }
   | { readonly kind: "writeRecorded"; readonly outcome: "acknowledged" | "failed" | "unknown" }
   | { readonly kind: "waitForOutput" }
@@ -152,7 +156,7 @@ const encodePurpose = (value: CapacityPurpose): unknown => {
   if (!name) throw new TypeError("invalid capacity purpose");
   return { $: name };
 };
-const identity = (event: Extract<CanonicalEvent, { readonly lifetime: number }>) => ({ partition: nat(event.partition, true), lifetime: nat(event.lifetime, true) });
+const identity = (event: Extract<CanonicalEvent, { readonly partition: number; readonly lifetime: number }>) => ({ partition: nat(event.partition, true), lifetime: nat(event.lifetime, true) });
 const encode = (event: CanonicalEvent): unknown => {
   switch (event.kind) {
     case "reserveCapacity": inputFields(event, ["kind", "partition", "bytes", "purpose"]); return { $: "Canonical.ReserveCapacity", partition: nat(event.partition, true), bytes: bytes(event.bytes), purpose: encodePurpose(event.purpose) };
@@ -202,6 +206,18 @@ const encode = (event: CanonicalEvent): unknown => {
     case "emptyPreparedCheck": inputFields(event, ["kind", "readyCount", "hasNonSkipped", "ticketed"]); return { $: "Canonical.EmptyPreparedCheck", ready_count: nat(event.readyCount), has_non_skipped: bool(event.hasNonSkipped), ticketed: bool(event.ticketed) };
     case "reviewFailureCheck": inputFields(event, ["kind", "backendOrTimeout", "credential", "missing"]); return { $: "Canonical.ReviewFailureCheck", backend_or_timeout: bool(event.backendOrTimeout), credential: bool(event.credential), missing: bool(event.missing) };
     case "stopPolled": inputFields(event, ["kind", "partition", "lifetime", "round", "deadline"]); return { $: "Canonical.StopPolled", ...identity(event), round: nat(event.round, true), deadline: bool(event.deadline) };
+    case "stopGroupPolled": case "stopGroupEnded": {
+      const polled = event.kind === "stopGroupPolled";
+      inputFields(event, polled ? ["kind", "group", "lifetime", "round", "scopes", "deadline", "extraPending", "continuations"] : ["kind", "group", "lifetime", "round", "scopes"]);
+      if (!Array.isArray(event.scopes) || event.scopes.length > MAX_UNITS) throw new TypeError("invalid stop scopes");
+      const scopes = event.scopes.reduceRight<unknown>((tail, scope) => {
+        inputFields(scope, ["partition", "round"]);
+        return { $: "Con", head: { $: "Canonical.StopScope", partition: nat(scope.partition, true), round: nat(scope.round, true) }, tail };
+      }, { $: "Nil" });
+      const common = { group: nat(event.group, true), lifetime: nat(event.lifetime, true), round: nat(event.round, true), scopes };
+      return polled ? { $: "Canonical.StopGroupPolled", ...common, deadline: bool(event.deadline), extra_pending: bool(event.extraPending), continuations: nat(event.continuations) }
+        : { $: "Canonical.StopGroupEnded", ...common };
+    }
     case "outputStarted": inputFields(event, ["kind", "partition", "lifetime", "round"]); return { $: "Canonical.OutputStarted", ...identity(event), round: nat(event.round, true) };
     case "outputTerminal": {
       inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "outcome"]);
@@ -323,6 +339,8 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
     case "Canonical.WaitForWork": fields(value, "Canonical.WaitForWork", []); return { kind: "waitForWork" };
     case "Canonical.CancelWork": return { kind: "cancelWork", operation: nat(fields(value, "Canonical.CancelWork", ["operation"]).operation, true) };
     case "Canonical.FinishReady": fields(value, "Canonical.FinishReady", []); return { kind: "finishReady" };
+    case "Canonical.FinishLimit": fields(value, "Canonical.FinishLimit", []); return { kind: "finishLimit" };
+    case "Canonical.StopEnded": fields(value, "Canonical.StopEnded", []); return { kind: "stopEnded" };
     case "Canonical.WriteAuthorized": return { kind: "writeAuthorized", operation: nat(fields(value, "Canonical.WriteAuthorized", ["operation"]).operation, true) };
     case "Canonical.WriteRecorded": return { kind: "writeRecorded", outcome: writeOutcome(fields(value, "Canonical.WriteRecorded", ["outcome"]).outcome) };
     case "Canonical.WaitForOutput": fields(value, "Canonical.WaitForOutput", []); return { kind: "waitForOutput" };

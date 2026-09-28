@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { BendWorkTracker } from "./bend-work.ts";
-import { bendRoundBeginStop, bendRoundInitial } from "./bend-policy.generated.js";
+import { bendRoundBeginStop, bendRoundBeginDecision, bendRoundInitial } from "./bend-policy.generated.js";
 
 describe("generated Bend work authority", () => {
   it("keeps source open during streaming fanout and settles review units independently", () => {
@@ -77,40 +77,6 @@ describe("generated Bend work authority", () => {
     expect(work.pendingFor(second)).toBe(0);
   });
 
-  it("publishes the Stop decision fence and work cancellations in one Bend transition", () => {
-    const work = new BendWorkTracker();
-    const source = work.admit();
-    const finding = work.spawn(source)!;
-    const pending = work.spawn(source)!;
-    expect(work.outcome(finding, { $: "Finding", count: 1, bytes: 10 })).toBe(true);
-    const claimed = bendRoundBeginStop(bendRoundInitial(), 7);
-    expect(claimed.$).toBe("Granted");
-    if (claimed.$ !== "Granted") throw new Error("round claim failed");
-    expect(work.cutoff(claimed.state, 8)).toBeUndefined();
-    expect(work.unfinished()).toBe(2);
-    const cutoff = work.cutoff(claimed.state, 7);
-    expect(cutoff).toMatchObject({ cancelledSource: [source], cancelledJev: [pending],
-      round: { deciding: true, stop_token: 7n } });
-    expect(work.unfinished()).toBe(0);
-    expect(work.pendingFor(finding)).toBe(1);
-    expect(work.cutoff(cutoff!.round, 7)).toBeUndefined();
-  });
-
-  it("keeps the Stop poll waiting for external owners then cuts off exact work at deadline", () => {
-    const work = new BendWorkTracker();
-    const source = work.admit();
-    const unit = work.spawn(source)!;
-    const claimed = bendRoundBeginStop(bendRoundInitial(), 7);
-    if (claimed.$ !== "Granted") throw new Error("round claim failed");
-    expect(work.finishGate(claimed.state, 8, 0, true)).toBeUndefined();
-    expect(work.finishGate(claimed.state, 7, 1, false)).toMatchObject({ status: "waiting" });
-    expect(work.unfinished()).toBe(2);
-    const cutoff = work.finishGate(claimed.state, 7, 1, true);
-    expect(cutoff).toMatchObject({ status: "cutoff", cancelledSource: [source],
-      cancelledJev: [unit], round: { deciding: true, stop_token: 7n } });
-    expect(work.unfinished()).toBe(0);
-  });
-
   it("reserves final output only for exact pending finding units", () => {
     const work = new BendWorkTracker();
     const source = work.admit();
@@ -119,12 +85,12 @@ describe("generated Bend work authority", () => {
     expect(work.completeSource(source)).toBe(true);
     const claimed = bendRoundBeginStop(bendRoundInitial(), 7);
     if (claimed.$ !== "Granted") throw new Error("round claim failed");
-    const cutoff = work.cutoff(claimed.state, 7);
-    expect(cutoff).toBeDefined();
-    expect(work.reserveSelected(cutoff!.round, 7, [])).toBeUndefined();
-    expect(work.reserveSelected(cutoff!.round, 7, [unit, unit, unit])).toBeUndefined();
-    expect(work.reserveSelected(cutoff!.round, 7, [unit + 1])).toBeUndefined();
-    const reserved = work.reserveSelected(cutoff!.round, 7, [unit, unit]);
+    const decision = bendRoundBeginDecision(claimed.state, 7);
+    if (decision.$ !== "Granted") throw new Error("round decision failed");
+    expect(work.reserveSelected(decision.state, 7, [])).toBeUndefined();
+    expect(work.reserveSelected(decision.state, 7, [unit, unit, unit])).toBeUndefined();
+    expect(work.reserveSelected(decision.state, 7, [unit + 1])).toBeUndefined();
+    const reserved = work.reserveSelected(decision.state, 7, [unit, unit]);
     expect(reserved).toMatchObject({ continuations: 1n, output_reserved: true });
     expect(work.reserveSelected(reserved!, 7, [unit])).toBeUndefined();
   });

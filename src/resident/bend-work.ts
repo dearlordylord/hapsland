@@ -5,8 +5,6 @@ import {
   bendWorkOutcome, bendWorkPendingFindings, bendWorkRetire, bendWorkSpawn,
   bendWorkStartSource, bendWorkStartUnit, bendWorkUnfinished, bendWorkReviseFinding,
   bendWorkPendingFor,
-  bendLifecycleCutoff,
-  bendLifecycleFinishGate,
   bendLifecycleFinishDisposition,
   bendLifecycleFinishOutput,
   bendLifecycleSelectionReserve,
@@ -115,29 +113,6 @@ export class BendWorkTracker {
     const cancelled = bendWorkCancelUnfinished(this.#state);
     this.#state = cancelled.state;
     return { cancelledSource: ids(cancelled.cancelled_source), cancelledJev: ids(cancelled.cancelled_jev) };
-  }
-
-  cutoff(round: BendRound, token: number): { readonly round: BendRound;
-    readonly cancelledSource: number[]; readonly cancelledJev: number[] } | undefined {
-    const cutoff = bendLifecycleCutoff(round, this.#state, token);
-    if (cutoff.$ !== "CutoffGranted") return undefined;
-    const cancelledSource = ids(cutoff.cancelled_source);
-    const cancelledJev = ids(cutoff.cancelled_jev);
-    this.#state = cutoff.work;
-    return { round: cutoff.round, cancelledSource, cancelledJev };
-  }
-
-  finishGate(round: BendRound, token: number, extraUnfinished: number, deadlineReached: boolean):
-    { readonly status: "waiting"; readonly round: BendRound } |
-    { readonly status: "cutoff"; readonly round: BendRound;
-      readonly cancelledSource: number[]; readonly cancelledJev: number[] } | undefined {
-    const result = bendLifecycleFinishGate(round, this.#state, token, extraUnfinished, deadlineReached);
-    if (result.$ === "GateDenied") return undefined;
-    if (result.$ === "GateWaiting") return { status: "waiting", round: result.round };
-    const cancelledSource = ids(result.cancelled_source);
-    const cancelledJev = ids(result.cancelled_jev);
-    this.#state = result.work;
-    return { status: "cutoff", round: result.round, cancelledSource, cancelledJev };
   }
 
   reserveSelected(round: BendRound, token: number, selectedUnits: ReadonlyArray<number>): BendRound | undefined {

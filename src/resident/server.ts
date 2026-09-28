@@ -1632,7 +1632,8 @@ export class ResidentServer {
 
   #allowFinish(group: string, token: string, reason: RoundCloseReason): void {
     const counts = this.#composedDelivery.closureCounts(group);
-    const closed = this.#composedDelivery.finishStop(group, token, true);
+    const closed = this.#composedDelivery.finishStop(group, token, true,
+      this.#now(), [...(this.#rounds.get(group)?.partitions ?? [])]);
     if (closed !== undefined) this.#closeRound(group, closed, reason, counts);
   }
 
@@ -1647,8 +1648,8 @@ export class ResidentServer {
     const sourceIds = new Set(cancellation.cancelledSource);
     const unitIds = new Set(cancellation.cancelledJev);
     const named = (job: Job): boolean => job.kind === "ingress"
-      ? job.workObservationId !== undefined && sourceIds.has(job.workObservationId)
-      : job.workUnitId !== undefined && unitIds.has(job.workUnitId);
+      ? sourceIds.has(job.canonicalObservationId)
+      : unitIds.has(job.canonicalOperationId);
     const namedCounts = this.#dispatcher.snapshotWhere(({ value }) => value.work === work && !value.completed && named(value));
     const hasUnnamed = this.#dispatcher.hasWorkWhere(({ value }) =>
       value.work === work && !value.completed && !named(value));
@@ -2543,7 +2544,8 @@ export class ResidentServer {
       this.#stopTimers.delete(request.token);
       const group = adviceeGroup(request.root, request.advicee);
       const counts = this.#composedDelivery.closureCounts(group);
-      const closed = this.#composedDelivery.finishStop(group, request.token, request.close === true);
+      const closed = this.#composedDelivery.finishStop(group, request.token, request.close === true,
+        this.#now(), [...(this.#rounds.get(group)?.partitions ?? [])]);
       if (closed !== undefined) this.#closeRound(group, closed, request.reason ?? "no-advice", counts);
       return { status: "advanced" };
     }
@@ -2601,19 +2603,17 @@ export class ResidentServer {
         const round = this.#rounds.get(group);
         const totalUnfinished = this.#collectionWorkCount(request.root, request.advicee, true);
         const ownUnfinished = round?.policyWork.unfinished() ?? 0;
-        if (totalUnfinished < ownUnfinished) {
-          this.#allowFinish(group, request.finish.token, "unavailable");
-          return { status: "empty" };
-        }
+        const extraUnfinished = Math.max(0, totalUnfinished - ownUnfinished);
         const gate = this.#composedDelivery.finishGate(group, request.finish.token,
-          totalUnfinished - ownUnfinished, request.finish.deadlineReached, round?.policyWork);
+          extraUnfinished, request.finish.deadlineReached, round?.policyWork,
+          [...(round?.partitions ?? [])]);
         if (gate === undefined) return { status: "empty" };
         if (gate.status === "waiting") return { status: "pending" };
         if (round !== undefined && !this.#discardUnfinishedWork(round, gate)) {
           this.#allowFinish(group, request.finish.token, "unavailable");
           return { status: "empty" };
         }
-        if (!this.#composedDelivery.hasVirtualRoundContinuationBudget(group)) {
+        if (gate.limited) {
           this.#allowFinish(group, request.finish.token, "limit");
           return { status: "empty" };
         }
