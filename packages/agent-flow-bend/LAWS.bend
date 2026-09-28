@@ -49,6 +49,9 @@ law dispatch_first_item_starts_cycle_one:
       1n, 1n, False{}},
       Dispatch.Started{7n, 0n, 1n} <> Nil{}} : Dispatch.DispatchResult}
 
+law dispatch_has_eight_shared_slots:
+  {Dispatch.max_running() == 8n : Nat}
+
 law canonical_deadline_releases_exact_charge:
   {Canonical.release_round_charges(
     Canonical.Work{1n, 1n, 1n, 3n, 2n, Canonical.Preparing{}, 0n} <> Nil{},

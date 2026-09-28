@@ -1028,7 +1028,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
       new Set(delivery.submissions.leases.map((item) => `${item.advice}:${item.fingerprint}`)).size !== delivery.submissions.leases.length) {
     throw new TypeError("inconsistent canonical submission state");
   }
-  if (dispatch.running.length > 2 || new Set(dispatchEntries.map((x) => x.operation)).size !== dispatchEntries.length ||
+  if (dispatch.running.length > 8 || new Set(dispatchEntries.map((x) => x.operation)).size !== dispatchEntries.length ||
       new Set(dispatchEntries.map((x) => x.sequence)).size !== dispatchEntries.length ||
       dispatchEntries.some((x) => x.sequence >= dispatch.nextSequence || x.cycle > dispatch.cycle) ||
       dispatch.pending.some((x) => x.cycle !== 0) ||

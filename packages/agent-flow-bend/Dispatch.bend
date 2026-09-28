@@ -22,6 +22,10 @@ type DispatchResult is Data:
 def initial() -> State:
   State{Nil{}, Nil{}, Nil{}, 0n, 0n, False{}}
 
+# Shared preparation and unit-evaluation jobs, not a Jev-only call limit.
+def max_running() -> Nat:
+  8n
+
 def same_entry(entry: Entry, +partition: Nat, +lifetime: Nat,
     +round: Nat, +operation: Nat) -> Bool:
   match entry:
@@ -70,7 +74,7 @@ def pump_one(state: State) -> DispatchResult:
     case _:
       Advanced{state, Nil{}}
 
-def pump_second_result(first: State, commands: List<&2, Command>,
+def pump_next_result(first: State, commands: List<&2, Command>,
     result: DispatchResult) -> DispatchResult:
   match result:
     case Advanced{second, more}:
@@ -78,22 +82,29 @@ def pump_second_result(first: State, commands: List<&2, Command>,
     case Denied{_}:
       Denied{first}
 
-def pump_second(+first: State, commands: List<&2, Command>) -> DispatchResult:
-  pump_second_result(first, commands, pump_one(first))
+def pump_next(+first: State, commands: List<&2, Command>) -> DispatchResult:
+  pump_next_result(first, commands, pump_one(first))
 
-def pump_two_result(state: State, result: DispatchResult) -> DispatchResult:
-  match result:
-    case Advanced{+first, +commands}:
-      match first:
-        case State{_, _, running, _, _, _}:
-          Bool.pick(DispatchResult, Nat.is_lt(List.length(&2, Entry, running), 2n),
-            pump_second(first, commands),
-            Advanced{first, commands})
-    case Denied{_}:
-      Denied{state}
+def pump_remaining(remaining: Nat, result: DispatchResult) -> DispatchResult:
+  match remaining:
+    case 0n:
+      result
+    case 1n+rest:
+      match result:
+        case Advanced{+state, +commands}:
+          match state:
+            case State{_, _, running, _, _, _}:
+              Bool.pick(DispatchResult, Nat.is_lt(List.length(&2, Entry, running), max_running()),
+                pump_remaining(rest, pump_next(state, commands)),
+                Advanced{state, commands})
+        case Denied{state}:
+          Denied{state}
 
-def pump_two(+state: State) -> DispatchResult:
-  pump_two_result(state, pump_one(state))
+def pump_available(+state: State) -> DispatchResult:
+  match state:
+    case State{_, active, _, _, _, _}:
+      # A cancelled entry consumes no slot but must still leave the active cohort.
+      pump_remaining(List.length(&2, Entry, active), Advanced{state, Nil{}})
 
 def enqueue(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, +operation: Nat) -> DispatchResult:
@@ -105,7 +116,7 @@ def enqueue(+state: State, +partition: Nat, +lifetime: Nat,
         Bool.pick(DispatchResult,
           Bool.and(Nat.is_eq(List.length(&2, Entry, active), 0n),
             Nat.is_eq(List.length(&2, Entry, running), 0n)),
-          pump_two(State{pending,
+          pump_available(State{pending,
             Entry{partition, lifetime, round, operation, next_sequence,
               (cycle + 1n : Nat), False{}} <> Nil{}, running,
             (next_sequence + 1n : Nat), (cycle + 1n : Nat), closed}),
@@ -139,7 +150,7 @@ def promoted_pumped(state: State, +cycle: Nat, result: DispatchResult) -> Dispat
 def promoted_result(state: State, +pending: List<&2, Entry>, +next_sequence: Nat,
     +cycle: Nat, closed: Bool) -> DispatchResult:
   promoted_pumped(state, cycle,
-    pump_two(State{Nil{}, promote(pending, (cycle + 1n : Nat)), Nil{},
+    pump_available(State{Nil{}, promote(pending, (cycle + 1n : Nat)), Nil{},
       next_sequence, (cycle + 1n : Nat), closed}))
 
 def after_settle(+state: State) -> DispatchResult:
@@ -151,7 +162,7 @@ def after_settle(+state: State) -> DispatchResult:
         Bool.pick(DispatchResult, Nat.is_eq(List.length(&2, Entry, pending), 0n),
           Advanced{state, CycleCompleted{cycle} <> Nil{}},
           promoted_result(state, pending, next_sequence, cycle, closed)),
-        pump_two(state))
+        pump_available(state))
 
 def settle(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, +operation: Nat) -> DispatchResult:

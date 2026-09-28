@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:9f73f4fb084a7951f3d16f05fb402e9705baf989eb573bb44ffe4c3e653dfadb
+// hapsland-bend-source-sha256:925ecc658784971b9a7d8462b1660592f55791c32558d4e23cca40b2719a2f4e
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -2828,7 +2828,7 @@ function $Dispatch$enqueue$(_state_0, _partition_0, _lifetime_0, _round_0, _oper
   const _cycle_0 = _state_0["cycle"];
   const _closed_0 = _state_0["closed"];
   const _x_0 = ($Dispatch$known$({$: "Dispatch.State", "pending": _pending_0, "active": _active_0, "running": _running_0, "next_sequence": _next_sequence_0, "cycle": _cycle_0, "closed": _closed_0}, _partition_0, _lifetime_0, _round_0, _operation_0));
-  return $Bool$pick$((_closed_0 || _x_0), {$: "Dispatch.Denied", "state": {$: "Dispatch.State", "pending": _pending_0, "active": _active_0, "running": _running_0, "next_sequence": _next_sequence_0, "cycle": _cycle_0, "closed": _closed_0}}, ($Bool$pick$(($Bool$and$(($Nat$is_eq$(($List$length$(_active_0)), 0)), ($Nat$is_eq$(($List$length$(_running_0)), 0)))), ($Dispatch$pump_two$({$: "Dispatch.State", "pending": _pending_0, "active": {$: "Con", "head": {$: "Dispatch.Entry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _next_sequence_0, "cycle": nat_chk(_cycle_0 + 1), "cancelled": false}, "tail": {$: "Nil"}}, "running": _running_0, "next_sequence": nat_chk(_next_sequence_0 + 1), "cycle": nat_chk(_cycle_0 + 1), "closed": _closed_0})), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "pending": ($List$append$(_pending_0, {$: "Con", "head": {$: "Dispatch.Entry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _next_sequence_0, "cycle": 0, "cancelled": false}, "tail": {$: "Nil"}})), "active": _active_0, "running": _running_0, "next_sequence": nat_chk(_next_sequence_0 + 1), "cycle": _cycle_0, "closed": _closed_0}, "commands": {$: "Nil"}})));
+  return $Bool$pick$((_closed_0 || _x_0), {$: "Dispatch.Denied", "state": {$: "Dispatch.State", "pending": _pending_0, "active": _active_0, "running": _running_0, "next_sequence": _next_sequence_0, "cycle": _cycle_0, "closed": _closed_0}}, ($Bool$pick$(($Bool$and$(($Nat$is_eq$(($List$length$(_active_0)), 0)), ($Nat$is_eq$(($List$length$(_running_0)), 0)))), ($Dispatch$pump_available$({$: "Dispatch.State", "pending": _pending_0, "active": {$: "Con", "head": {$: "Dispatch.Entry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _next_sequence_0, "cycle": nat_chk(_cycle_0 + 1), "cancelled": false}, "tail": {$: "Nil"}}, "running": _running_0, "next_sequence": nat_chk(_next_sequence_0 + 1), "cycle": nat_chk(_cycle_0 + 1), "closed": _closed_0})), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "pending": ($List$append$(_pending_0, {$: "Con", "head": {$: "Dispatch.Entry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _next_sequence_0, "cycle": 0, "cancelled": false}, "tail": {$: "Nil"}})), "active": _active_0, "running": _running_0, "next_sequence": nat_chk(_next_sequence_0 + 1), "cycle": _cycle_0, "closed": _closed_0}, "commands": {$: "Nil"}})));
 }
 
 function $Dispatch$settle$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
@@ -4421,8 +4421,14 @@ function $Dispatch$known$(_state_0, _partition_0, _lifetime_0, _round_0, _operat
   return (_x_2 || _x_3);
 }
 
-function $Dispatch$pump_two$(_state_0) {
-  return $Dispatch$pump_two_result$(_state_0, ($Dispatch$pump_one$(_state_0)));
+function $Dispatch$pump_available$(_state_0) {
+  const __0 = _state_0["pending"];
+  const _active_0 = _state_0["active"];
+  const __1 = _state_0["running"];
+  const __2 = _state_0["next_sequence"];
+  const __3 = _state_0["cycle"];
+  const __4 = _state_0["closed"];
+  return $Dispatch$pump_remaining$(($List$length$(_active_0)), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "pending": __0, "active": _active_0, "running": __1, "next_sequence": __2, "cycle": __3, "closed": __4}, "commands": {$: "Nil"}});
 }
 
 function $List$append$(_xs_0, _ys_0) {
@@ -4454,7 +4460,7 @@ function $Dispatch$after_settle$(_state_0) {
   const _next_sequence_0 = _state_0["next_sequence"];
   const _cycle_0 = _state_0["cycle"];
   const _closed_0 = _state_0["closed"];
-  return $Bool$pick$(($Bool$and$(($Nat$is_eq$(($List$length$(_active_0)), 0)), ($Nat$is_eq$(($List$length$(_running_0)), 0)))), ($Bool$pick$(($Nat$is_eq$(($List$length$(_pending_0)), 0)), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "pending": _pending_0, "active": _active_0, "running": _running_0, "next_sequence": _next_sequence_0, "cycle": _cycle_0, "closed": _closed_0}, "commands": {$: "Con", "head": {$: "Dispatch.CycleCompleted", "cycle": _cycle_0}, "tail": {$: "Nil"}}}, ($Dispatch$promoted_result$({$: "Dispatch.State", "pending": _pending_0, "active": _active_0, "running": _running_0, "next_sequence": _next_sequence_0, "cycle": _cycle_0, "closed": _closed_0}, _pending_0, _next_sequence_0, _cycle_0, _closed_0)))), ($Dispatch$pump_two$({$: "Dispatch.State", "pending": _pending_0, "active": _active_0, "running": _running_0, "next_sequence": _next_sequence_0, "cycle": _cycle_0, "closed": _closed_0})));
+  return $Bool$pick$(($Bool$and$(($Nat$is_eq$(($List$length$(_active_0)), 0)), ($Nat$is_eq$(($List$length$(_running_0)), 0)))), ($Bool$pick$(($Nat$is_eq$(($List$length$(_pending_0)), 0)), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "pending": _pending_0, "active": _active_0, "running": _running_0, "next_sequence": _next_sequence_0, "cycle": _cycle_0, "closed": _closed_0}, "commands": {$: "Con", "head": {$: "Dispatch.CycleCompleted", "cycle": _cycle_0}, "tail": {$: "Nil"}}}, ($Dispatch$promoted_result$({$: "Dispatch.State", "pending": _pending_0, "active": _active_0, "running": _running_0, "next_sequence": _next_sequence_0, "cycle": _cycle_0, "closed": _closed_0}, _pending_0, _next_sequence_0, _cycle_0, _closed_0)))), ($Dispatch$pump_available$({$: "Dispatch.State", "pending": _pending_0, "active": _active_0, "running": _running_0, "next_sequence": _next_sequence_0, "cycle": _cycle_0, "closed": _closed_0})));
 }
 
 function $Dispatch$remove_entry$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
@@ -5614,62 +5620,26 @@ function $Canonical$reviewed_stale_found$(_state_0, _operation_0, _found_0) {
   }
 }
 
-function $Dispatch$pump_two_result$(_state_0, _result_0) {
-  if (_result_0.$ === "Dispatch.Advanced") {
-    const _t_0 = _result_0["state"];
-    const __0 = _t_0["pending"];
-    const __1 = _t_0["active"];
-    const _running_0 = _t_0["running"];
-    const __2 = _t_0["next_sequence"];
-    const __3 = _t_0["cycle"];
-    const __4 = _t_0["closed"];
-    const _commands_0 = _result_0["commands"];
-    const _x_0 = ($List$length$(_running_0));
-    return $Bool$pick$((_x_0 < 2), ($Dispatch$pump_second$({$: "Dispatch.State", "pending": __0, "active": __1, "running": _running_0, "next_sequence": __2, "cycle": __3, "closed": __4}, _commands_0)), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "pending": __0, "active": __1, "running": _running_0, "next_sequence": __2, "cycle": __3, "closed": __4}, "commands": _commands_0});
+function $Dispatch$pump_remaining$(_remaining_0, _result_0) {
+  if (_remaining_0 === 0) {
+    return _result_0;
   } else {
-    return {$: "Dispatch.Denied", "state": _state_0};
-  }
-}
-
-function $Dispatch$pump_one$($0) {
-  for (;;) {
-    {
-      const _state_0 = $0;
-      const _pending_0 = _state_0["pending"];
-      const _t_0 = _state_0["active"];
-      if (_t_0.$ === "Con") {
-        const _t_1 = _t_0["head"];
-        const __0 = _t_1["partition"];
-        const __1 = _t_1["lifetime"];
-        const __2 = _t_1["round"];
-        const __3 = _t_1["operation"];
-        const __4 = _t_1["sequence"];
-        const __5 = _t_1["cycle"];
-        const _t_2 = _t_1["cancelled"];
-        if (_t_2) {
-          const _active_0 = _t_0["tail"];
-          const _running_0 = _state_0["running"];
-          const _next_sequence_0 = _state_0["next_sequence"];
-          const _cycle_0 = _state_0["cycle"];
-          const _closed_0 = _state_0["closed"];
-          $0 = {$: "Dispatch.State", "pending": _pending_0, "active": _active_0, "running": _running_0, "next_sequence": _next_sequence_0, "cycle": _cycle_0, "closed": _closed_0};
-          continue;
-        } else {
-          const _active_1 = _t_0["tail"];
-          const _running_1 = _state_0["running"];
-          const _next_sequence_1 = _state_0["next_sequence"];
-          const _cycle_1 = _state_0["cycle"];
-          const _closed_1 = _state_0["closed"];
-          const _next_0 = ($Dispatch$start$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cycle": __5, "cancelled": _t_2}, _cycle_1));
-          return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "pending": _pending_0, "active": _active_1, "running": ($List$append$(_running_1, {$: "Con", "head": _next_0, "tail": {$: "Nil"}})), "next_sequence": _next_sequence_1, "cycle": _cycle_1, "closed": _closed_1}, "commands": {$: "Con", "head": ($Dispatch$start_command$(_next_0)), "tail": {$: "Nil"}}};
-        }
-      } else {
-        const _running_2 = _state_0["running"];
-        const _next_sequence_2 = _state_0["next_sequence"];
-        const _cycle_2 = _state_0["cycle"];
-        const _closed_2 = _state_0["closed"];
-        return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "pending": _pending_0, "active": _t_0, "running": _running_2, "next_sequence": _next_sequence_2, "cycle": _cycle_2, "closed": _closed_2}, "commands": {$: "Nil"}};
-      }
+    const _rest_0 = (_remaining_0 - 1);
+    if (_result_0.$ === "Dispatch.Advanced") {
+      const _t_0 = _result_0["state"];
+      const __0 = _t_0["pending"];
+      const __1 = _t_0["active"];
+      const _running_0 = _t_0["running"];
+      const __2 = _t_0["next_sequence"];
+      const __3 = _t_0["cycle"];
+      const __4 = _t_0["closed"];
+      const _commands_0 = _result_0["commands"];
+      const _x_0 = ($List$length$(_running_0));
+      const _x_1 = ($Dispatch$max_running$());
+      return $Bool$pick$((_x_0 < _x_1), ($Dispatch$pump_remaining$(_rest_0, ($Dispatch$pump_next$({$: "Dispatch.State", "pending": __0, "active": __1, "running": _running_0, "next_sequence": __2, "cycle": __3, "closed": __4}, _commands_0)))), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "pending": __0, "active": __1, "running": _running_0, "next_sequence": __2, "cycle": __3, "closed": __4}, "commands": _commands_0});
+    } else {
+      const _state_0 = _result_0["state"];
+      return {$: "Dispatch.Denied", "state": _state_0};
     }
   }
 }
@@ -5683,7 +5653,7 @@ function $Dispatch$same_entry$(_entry_0, _partition_0, _lifetime_0, _round_0, _o
 }
 
 function $Dispatch$promoted_result$(_state_0, _pending_0, _next_sequence_0, _cycle_0, _closed_0) {
-  return $Dispatch$promoted_pumped$(_state_0, _cycle_0, ($Dispatch$pump_two$({$: "Dispatch.State", "pending": {$: "Nil"}, "active": ($Dispatch$promote$(_pending_0, nat_chk(_cycle_0 + 1))), "running": {$: "Nil"}, "next_sequence": _next_sequence_0, "cycle": nat_chk(_cycle_0 + 1), "closed": _closed_0})));
+  return $Dispatch$promoted_pumped$(_state_0, _cycle_0, ($Dispatch$pump_available$({$: "Dispatch.State", "pending": {$: "Nil"}, "active": ($Dispatch$promote$(_pending_0, nat_chk(_cycle_0 + 1))), "running": {$: "Nil"}, "next_sequence": _next_sequence_0, "cycle": nat_chk(_cycle_0 + 1), "closed": _closed_0})));
 }
 
 function $Dispatch$filter_queued_one$(_entry_0, _hit_0, _tail_0) {
@@ -6793,25 +6763,12 @@ function $Canonical$reviewed_retained_charge$(_state_0, _operation_0, _charge_0,
   }
 }
 
-function $Dispatch$pump_second$(_first_0, _commands_0) {
-  return $Dispatch$pump_second_result$(_first_0, _commands_0, ($Dispatch$pump_one$(_first_0)));
+function $Dispatch$max_running$() {
+  return 8;
 }
 
-function $Dispatch$start$(_entry_0, _cycle_0) {
-  const _partition_0 = _entry_0["partition"];
-  const _lifetime_0 = _entry_0["lifetime"];
-  const _round_0 = _entry_0["round"];
-  const _operation_0 = _entry_0["operation"];
-  const _sequence_0 = _entry_0["sequence"];
-  const _cancelled_0 = _entry_0["cancelled"];
-  return {$: "Dispatch.Entry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _sequence_0, "cycle": _cycle_0, "cancelled": _cancelled_0};
-}
-
-function $Dispatch$start_command$(_entry_0) {
-  const _operation_0 = _entry_0["operation"];
-  const _sequence_0 = _entry_0["sequence"];
-  const _cycle_0 = _entry_0["cycle"];
-  return {$: "Dispatch.Started", "operation": _operation_0, "sequence": _sequence_0, "cycle": _cycle_0};
+function $Dispatch$pump_next$(_first_0, _commands_0) {
+  return $Dispatch$pump_next_result$(_first_0, _commands_0, ($Dispatch$pump_one$(_first_0)));
 }
 
 function $Dispatch$promoted_pumped$(_state_0, _cycle_0, _result_0) {
@@ -7395,7 +7352,7 @@ function $Canonical$reviewed_retained_result$(_state_0, _operation_0, _result_0)
   }
 }
 
-function $Dispatch$pump_second_result$(_first_0, _commands_0, _result_0) {
+function $Dispatch$pump_next_result$(_first_0, _commands_0, _result_0) {
   if (_result_0.$ === "Dispatch.Advanced") {
     const _second_0 = _result_0["state"];
     const _more_0 = _result_0["commands"];
@@ -7403,6 +7360,59 @@ function $Dispatch$pump_second_result$(_first_0, _commands_0, _result_0) {
   } else {
     return {$: "Dispatch.Denied", "state": _first_0};
   }
+}
+
+function $Dispatch$pump_one$($0) {
+  for (;;) {
+    {
+      const _state_0 = $0;
+      const _pending_0 = _state_0["pending"];
+      const _t_0 = _state_0["active"];
+      if (_t_0.$ === "Con") {
+        const _t_1 = _t_0["head"];
+        const __0 = _t_1["partition"];
+        const __1 = _t_1["lifetime"];
+        const __2 = _t_1["round"];
+        const __3 = _t_1["operation"];
+        const __4 = _t_1["sequence"];
+        const __5 = _t_1["cycle"];
+        const _t_2 = _t_1["cancelled"];
+        if (_t_2) {
+          const _active_0 = _t_0["tail"];
+          const _running_0 = _state_0["running"];
+          const _next_sequence_0 = _state_0["next_sequence"];
+          const _cycle_0 = _state_0["cycle"];
+          const _closed_0 = _state_0["closed"];
+          $0 = {$: "Dispatch.State", "pending": _pending_0, "active": _active_0, "running": _running_0, "next_sequence": _next_sequence_0, "cycle": _cycle_0, "closed": _closed_0};
+          continue;
+        } else {
+          const _active_1 = _t_0["tail"];
+          const _running_1 = _state_0["running"];
+          const _next_sequence_1 = _state_0["next_sequence"];
+          const _cycle_1 = _state_0["cycle"];
+          const _closed_1 = _state_0["closed"];
+          const _next_0 = ($Dispatch$start$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cycle": __5, "cancelled": _t_2}, _cycle_1));
+          return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "pending": _pending_0, "active": _active_1, "running": ($List$append$(_running_1, {$: "Con", "head": _next_0, "tail": {$: "Nil"}})), "next_sequence": _next_sequence_1, "cycle": _cycle_1, "closed": _closed_1}, "commands": {$: "Con", "head": ($Dispatch$start_command$(_next_0)), "tail": {$: "Nil"}}};
+        }
+      } else {
+        const _running_2 = _state_0["running"];
+        const _next_sequence_2 = _state_0["next_sequence"];
+        const _cycle_2 = _state_0["cycle"];
+        const _closed_2 = _state_0["closed"];
+        return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "pending": _pending_0, "active": _t_0, "running": _running_2, "next_sequence": _next_sequence_2, "cycle": _cycle_2, "closed": _closed_2}, "commands": {$: "Nil"}};
+      }
+    }
+  }
+}
+
+function $Dispatch$start$(_entry_0, _cycle_0) {
+  const _partition_0 = _entry_0["partition"];
+  const _lifetime_0 = _entry_0["lifetime"];
+  const _round_0 = _entry_0["round"];
+  const _operation_0 = _entry_0["operation"];
+  const _sequence_0 = _entry_0["sequence"];
+  const _cancelled_0 = _entry_0["cancelled"];
+  return {$: "Dispatch.Entry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _sequence_0, "cycle": _cycle_0, "cancelled": _cancelled_0};
 }
 
 function $Dispatch$cancelled_entry$(_entry_0) {
@@ -7766,6 +7776,13 @@ function $Admission$close_round$time$(_state_0, _partition_0, _lifetime_0, _roun
   } else {
     return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": false, "closed_at": _at_0, "next_token": _next_token_0, "permits": {$: "Nil"}, "used": _used_0}, "token": {$: "None"}, "round": {$: "Some", "value": _round_0}};
   }
+}
+
+function $Dispatch$start_command$(_entry_0) {
+  const _operation_0 = _entry_0["operation"];
+  const _sequence_0 = _entry_0["sequence"];
+  const _cycle_0 = _entry_0["cycle"];
+  return {$: "Dispatch.Started", "operation": _operation_0, "sequence": _sequence_0, "cycle": _cycle_0};
 }
 
 function $Canonical$release_unfinished_charges$($0, $1, $2, $3, $4) {
