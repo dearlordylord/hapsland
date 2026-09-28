@@ -329,4 +329,21 @@ for (const trace of configurationFixture.traces) {
     assert.equal(actual, expected, trace.name);
   }
 }
-console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length + stopFixture.traces.length + collectionFixture.traces.length + deliveryFixture.traces.length + submissionFixture.traces.length + revisionFixture.traces.length + ticketFixture.traces.length + reuseFixture.traces.length + noticeFixture.traces.length + retentionFixture.traces.length + configurationFixture.traces.length} independent source-free canonical traces`);
+const ruleFixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-rules-v1.json"), "utf8"));
+for (const trace of ruleFixture.traces) {
+  let current = initialCanonical(fixture.limits);
+  const before = projectCanonical(current);
+  for (const { expect: expected, ...event } of trace.events) {
+    const result = stepCanonical(current, event);
+    current = result.state;
+    assert.equal(result.rejection, undefined, trace.name);
+    assert.equal(result.commands.length, 1, trace.name);
+    const command = result.commands[0];
+    const actual = command.kind === "ruleGate" ? `ruleGate:${command.gate}`
+      : command.kind === "ruleOrder" ? `ruleOrder:${command.order}` : command.kind;
+    assert.equal(actual, expected, `${trace.name}: ${event.kind}`);
+  }
+  assert.deepEqual(projectCanonical(current), before, `${trace.name}: rule facts are not retained`);
+  assert.deepEqual(current, initialCanonical(fixture.limits), `${trace.name}: canonical state is unchanged`);
+}
+console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length + stopFixture.traces.length + collectionFixture.traces.length + deliveryFixture.traces.length + submissionFixture.traces.length + revisionFixture.traces.length + ticketFixture.traces.length + reuseFixture.traces.length + noticeFixture.traces.length + retentionFixture.traces.length + configurationFixture.traces.length + ruleFixture.traces.length} independent source-free canonical traces`);

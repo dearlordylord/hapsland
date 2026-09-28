@@ -17,6 +17,8 @@ import { DEFAULT_RUNTIME_SETTINGS } from "../configuration/types.ts";
 import type { ResolvedPolicy } from "../configuration/types.ts";
 import { selectGlobalPath } from "../policy/file-policy.ts";
 import { applicableRules, deriveAdvice } from "../policy/rules.ts";
+import { compareAdviceOrder, withinAdviceBudget } from "../rules/decision.ts";
+import { V1_LEGACY_FILE_INPUT_CONTRACT } from "../rules/contracts.ts";
 import { ReviewBackend } from "../ports/review-backend.ts";
 import { DedupeStore } from "../ports/dedupe-store.ts";
 import { SnapshotReader } from "../ports/snapshot-reader.ts";
@@ -197,6 +199,8 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
     context._tag === "authorized" && context.settings.rules !== undefined
       ? context.settings.rules
       : undefined,
+    { artifactKind: "typeShape", inputContract: V1_LEGACY_FILE_INPUT_CONTRACT,
+      complete: true },
   );
   if (rules.length === 0) {
     return {
@@ -370,15 +374,10 @@ export const review = Effect.fn("Review.run")(function* (
   );
   const advice = results
     .flatMap((result) => (result.status === "reviewed" ? result.advice : []))
-    .sort(
-      (left, right) =>
-        right.probability - left.probability ||
-        left.snapshot.path.localeCompare(right.snapshot.path) ||
-        left.ruleId.localeCompare(right.ruleId),
-    )
-    .slice(
-      0,
-      runtime.adviceBudget,
-    );
+    .sort((left, right) => compareAdviceOrder(
+      { probability: left.probability, path: left.snapshot.path, ruleId: left.ruleId },
+      { probability: right.probability, path: right.snapshot.path, ruleId: right.ruleId },
+    ))
+    .filter((_, position) => withinAdviceBudget(position, runtime.adviceBudget));
   return { version: 1 as const, eventId: request.event.id, results, advice } satisfies ReviewResponse;
 });

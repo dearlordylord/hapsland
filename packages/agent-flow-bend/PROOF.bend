@@ -873,3 +873,18 @@ def Laws.generated_protection_precedes_kind():
 
 def Laws.git_admin_precedes_file_kind_and_ignore():
   {==}
+
+def Laws.incomplete_rule_unit_is_omitted():
+  {==}
+
+def Laws.exact_threshold_is_not_a_finding():
+  {==}
+
+def Laws.next_binary64_probability_is_a_finding():
+  {==}
+
+def Laws.probability_precedes_rule_rank():
+  {==}
+
+def Laws.advice_budget_is_exclusive():
+  {==}

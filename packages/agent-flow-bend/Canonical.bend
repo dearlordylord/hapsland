@@ -16,6 +16,7 @@ import ./TicketState.bend as TicketState
 import ./ReuseState.bend as ReuseState
 import ./NoticeState.bend as NoticeState
 import ./Configuration.bend as Configuration
+import ./RulePolicy.bend as RulePolicy
 
 # #119 boundary: one resident lifetime, shared ledger, active advicee rounds.
 # Native IDs are bijectively mapped to positive Nat values before entry.
@@ -178,6 +179,20 @@ type CanonicalEvent is Data:
   CandidateFileCheck{git_admin: Bool, physical_safe: Bool, git_allowed: Bool}
   ReviewAdmissionCheck{root_valid: Bool, configuration_valid: Bool,
     credential_ready: Bool, selected: Bool}
+  RuleEnableCheck{pack_enabled: Bool, rule_enabled: Bool}
+  RuleApplicabilityCheck{consent: Bool, complete: Bool, target: RulePolicy.Target,
+    global_included: Bool, global_excluded: Bool,
+    pack_enabled: Bool, rule_enabled: Bool,
+    rule_included: Bool, rule_excluded: Bool,
+    semantic_applicable: Bool}
+  RuleFindingCheck{prob_high: Nat, prob_low: Nat,
+    threshold_high: Nat, threshold_low: Nat}
+  RuleRankOrderCheck{left_high: Nat, left_low: Nat,
+    right_high: Nat, right_low: Nat, left_rank: Nat, right_rank: Nat}
+  AdviceOrderCheck{left_high: Nat, left_low: Nat,
+    right_high: Nat, right_low: Nat,
+    path_order: RulePolicy.Order, id_order: RulePolicy.Order}
+  RuleBudgetCheck{position: Nat, limit: Nat}
   ReuseRoute{id: Nat, live_advice: Bool}
   ReuseClaim{id: Nat}
   ReuseAttach{id: Nat}
@@ -384,6 +399,8 @@ type Command is Data:
   FileProtection{protection: Configuration.Protection}
   CandidateFile{candidate: Configuration.Candidate}
   ReviewAdmission{admission: Configuration.Admission}
+  RuleGate{gate: RulePolicy.Gate}
+  RuleOrder{order: RulePolicy.Order}
   WriteAuthorized{operation: Nat}
   WriteRecorded{outcome: WriteOutcome}
   WaitForOutput{}
@@ -2653,6 +2670,27 @@ def step(+state: State, event: CanonicalEvent) -> Step:
     case ReviewAdmissionCheck{root_valid, configuration_valid, credential_ready, selected}:
       Advanced{state, ReviewAdmission{Configuration.admit(root_valid,
         configuration_valid, credential_ready, selected)} <> Nil{}}
+    case RuleEnableCheck{pack_enabled, rule_enabled}:
+      Advanced{state, RuleGate{RulePolicy.enabled(pack_enabled, rule_enabled)} <> Nil{}}
+    case RuleApplicabilityCheck{consent, complete, target,
+        global_included, global_excluded, pack_enabled, rule_enabled,
+        rule_included, rule_excluded, semantic_applicable}:
+      Advanced{state, RuleGate{RulePolicy.applicable(consent, complete, target,
+        global_included, global_excluded, pack_enabled, rule_enabled,
+        rule_included, rule_excluded, semantic_applicable)} <> Nil{}}
+    case RuleFindingCheck{prob_high, prob_low, threshold_high, threshold_low}:
+      Advanced{state, RuleGate{RulePolicy.finding(prob_high, prob_low,
+        threshold_high, threshold_low)} <> Nil{}}
+    case RuleRankOrderCheck{left_high, left_low, right_high, right_low,
+        left_rank, right_rank}:
+      Advanced{state, RuleOrder{RulePolicy.rank_order(left_high, left_low,
+        right_high, right_low, left_rank, right_rank)} <> Nil{}}
+    case AdviceOrderCheck{left_high, left_low, right_high, right_low,
+        path_order, id_order}:
+      Advanced{state, RuleOrder{RulePolicy.advice_order(left_high, left_low,
+        right_high, right_low, path_order, id_order)} <> Nil{}}
+    case RuleBudgetCheck{position, limit}:
+      Advanced{state, RuleGate{RulePolicy.budget(position, limit)} <> Nil{}}
     case ReuseRoute{id, live_advice}:
       reuse_route_result(state, ReuseState.route(
         CollectionState.reuse_state(collection_of(state)), id, live_advice))

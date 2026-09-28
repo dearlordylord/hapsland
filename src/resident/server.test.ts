@@ -92,6 +92,52 @@ const waitUntilIdle = async (server: ResidentServer): Promise<void> => {
 
 describe("canonical resident capacity", () => {
   it.each([
+    [0.7, "empty"],
+    [0.7000000000000001, "advice"],
+  ] as const)("routes resident probability %s to %s through bounded host output", async (probability, expected) => {
+    const root = await makeGitFixture();
+    const text = "type OrderCount = number\n";
+    await put(root, "type.ts", text);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const dispatch: ResidentDispatchContext = {
+      ...findingDispatch(join(root, "state")),
+      controlled: { answers: Object.fromEntries(configuredRules.map((rule) => [
+        rule.id, { _tag: "Probability", probability },
+      ])) },
+    };
+    const started = deferred();
+    const release = deferred();
+    const captured: Array<string> = [];
+    let clock = 100;
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock, {
+      captureSource: (_root, path) => Effect.sync(() => {
+        captured.push(path.relativePath);
+        const bytes = new TextEncoder().encode(text);
+        return { text, bytes, byteLength: bytes.byteLength,
+          contentHash: createHash("sha256").update(bytes).digest("hex"), metadata: "rule-fixture" };
+      }),
+      beforeEvaluate: async () => { started.resolve(); await release.promise; },
+    });
+    try {
+      expect(server.admit(observation, dispatch).status).toBe("accepted");
+      await started.promise;
+      expect(captured).toEqual(["type.ts"]);
+      clock = 200;
+      release.resolve();
+      await server.whenIdle();
+      const response = await server.collect(root, advicee(), dispatch);
+      expect(response.status).toBe(expected);
+      if (response.status === "advice") {
+        expect(response.output.hookSpecificOutput.additionalContext.split("\n").slice(1)).toHaveLength(5);
+      }
+    } finally {
+      release.resolve();
+      await server.close();
+    }
+  });
+
+  it.each([
     ["build/blocked.ts", "safe.ts"],
     ["safe.ts", "build/blocked.ts"],
   ])("refuses a protected sibling before resident review in callback order %j, %j", async (first, second) => {

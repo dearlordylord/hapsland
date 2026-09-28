@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:864bf19927b9e171391d8e259d305ffcc5f826a43e426bac03f018799c914079
+// hapsland-bend-source-sha256:241e44ed7181831a13f8e56b64d66e8a3ace990710a4f1a13865f0b711924902
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -647,6 +647,48 @@ function $Canonical$step$(_state_0, _event_0) {
     const _credential_ready_0 = _event_0["credential_ready"];
     const _selected_3 = _event_0["selected"];
     return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.ReviewAdmission", "admission": ($Configuration$admit$(_root_valid_0, _configuration_valid_0, _credential_ready_0, _selected_3))}, "tail": {$: "Nil"}}};
+  } else if (_event_0.$ === "Canonical.RuleEnableCheck") {
+    const _pack_enabled_0 = _event_0["pack_enabled"];
+    const _rule_enabled_0 = _event_0["rule_enabled"];
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RuleGate", "gate": ($RulePolicy$enabled$(_pack_enabled_0, _rule_enabled_0))}, "tail": {$: "Nil"}}};
+  } else if (_event_0.$ === "Canonical.RuleApplicabilityCheck") {
+    const _consent_0 = _event_0["consent"];
+    const _complete_0 = _event_0["complete"];
+    const _target_0 = _event_0["target"];
+    const _global_included_0 = _event_0["global_included"];
+    const _global_excluded_0 = _event_0["global_excluded"];
+    const _pack_enabled_1 = _event_0["pack_enabled"];
+    const _rule_enabled_1 = _event_0["rule_enabled"];
+    const _rule_included_0 = _event_0["rule_included"];
+    const _rule_excluded_0 = _event_0["rule_excluded"];
+    const _semantic_applicable_0 = _event_0["semantic_applicable"];
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RuleGate", "gate": ($RulePolicy$applicable$(_consent_0, _complete_0, _target_0, _global_included_0, _global_excluded_0, _pack_enabled_1, _rule_enabled_1, _rule_included_0, _rule_excluded_0, _semantic_applicable_0))}, "tail": {$: "Nil"}}};
+  } else if (_event_0.$ === "Canonical.RuleFindingCheck") {
+    const _prob_high_0 = _event_0["prob_high"];
+    const _prob_low_0 = _event_0["prob_low"];
+    const _threshold_high_0 = _event_0["threshold_high"];
+    const _threshold_low_0 = _event_0["threshold_low"];
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RuleGate", "gate": ($RulePolicy$finding$(_prob_high_0, _prob_low_0, _threshold_high_0, _threshold_low_0))}, "tail": {$: "Nil"}}};
+  } else if (_event_0.$ === "Canonical.RuleRankOrderCheck") {
+    const _left_high_0 = _event_0["left_high"];
+    const _left_low_0 = _event_0["left_low"];
+    const _right_high_0 = _event_0["right_high"];
+    const _right_low_0 = _event_0["right_low"];
+    const _left_rank_0 = _event_0["left_rank"];
+    const _right_rank_0 = _event_0["right_rank"];
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RuleOrder", "order": ($RulePolicy$rank_order$(_left_high_0, _left_low_0, _right_high_0, _right_low_0, _left_rank_0, _right_rank_0))}, "tail": {$: "Nil"}}};
+  } else if (_event_0.$ === "Canonical.AdviceOrderCheck") {
+    const _left_high_1 = _event_0["left_high"];
+    const _left_low_1 = _event_0["left_low"];
+    const _right_high_1 = _event_0["right_high"];
+    const _right_low_1 = _event_0["right_low"];
+    const _path_order_0 = _event_0["path_order"];
+    const _id_order_0 = _event_0["id_order"];
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RuleOrder", "order": ($RulePolicy$advice_order$(_left_high_1, _left_low_1, _right_high_1, _right_low_1, _path_order_0, _id_order_0))}, "tail": {$: "Nil"}}};
+  } else if (_event_0.$ === "Canonical.RuleBudgetCheck") {
+    const _position_0 = _event_0["position"];
+    const _limit_1 = _event_0["limit"];
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RuleGate", "gate": ($RulePolicy$budget$(_position_0, _limit_1))}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.ReuseRoute") {
     const _id_8 = _event_0["id"];
     const _live_advice_1 = _event_0["live_advice"];
@@ -1699,6 +1741,30 @@ function $Configuration$candidate$(_git_admin_0, _physical_safe_0, _git_allowed_
 
 function $Configuration$admit$(_root_valid_0, _configuration_valid_0, _credential_ready_0, _selected_0) {
   return $Bool$pick$(($Bool$not$(_root_valid_0)), {$: "Configuration.RefuseRoot"}, ($Bool$pick$(($Bool$not$(_configuration_valid_0)), {$: "Configuration.RefuseConfiguration"}, ($Bool$pick$(($Bool$not$(_credential_ready_0)), {$: "Configuration.RefuseCredential"}, ($Bool$pick$(($Bool$not$(_selected_0)), {$: "Configuration.RefuseSelection"}, {$: "Configuration.AdmitReview"})))))));
+}
+
+function $RulePolicy$enabled$(_pack_enabled_0, _rule_enabled_0) {
+  return $Bool$pick$(($Bool$and$(_pack_enabled_0, _rule_enabled_0)), {$: "RulePolicy.Admit"}, {$: "RulePolicy.Omit"});
+}
+
+function $RulePolicy$applicable$(_consent_0, _complete_0, _target_0, _global_included_0, _global_excluded_0, _pack_enabled_0, _rule_enabled_0, _rule_included_0, _rule_excluded_0, _semantic_applicable_0) {
+  return $Bool$pick$(($Bool$and$(_consent_0, ($Bool$and$(_complete_0, ($Bool$and$(($RulePolicy$target_compatible$(_target_0)), ($Bool$and$(_global_included_0, ($Bool$and$(($Bool$not$(_global_excluded_0)), ($Bool$and$(_pack_enabled_0, ($Bool$and$(_rule_enabled_0, ($Bool$and$(_rule_included_0, ($Bool$and$(($Bool$not$(_rule_excluded_0)), _semantic_applicable_0)))))))))))))))))), {$: "RulePolicy.Admit"}, {$: "RulePolicy.Omit"});
+}
+
+function $RulePolicy$finding$(_prob_high_0, _prob_low_0, _threshold_high_0, _threshold_low_0) {
+  return $Bool$pick$(($RulePolicy$greater_words$(_prob_high_0, _prob_low_0, _threshold_high_0, _threshold_low_0)), {$: "RulePolicy.Admit"}, {$: "RulePolicy.Omit"});
+}
+
+function $RulePolicy$rank_order$(_left_high_0, _left_low_0, _right_high_0, _right_low_0, _left_rank_0, _right_rank_0) {
+  return $RulePolicy$rank_order_result$(($RulePolicy$probability_order$(_left_high_0, _left_low_0, _right_high_0, _right_low_0)), _left_rank_0, _right_rank_0);
+}
+
+function $RulePolicy$advice_order$(_left_high_0, _left_low_0, _right_high_0, _right_low_0, _path_order_0, _id_order_0) {
+  return $RulePolicy$advice_order_result$(($RulePolicy$probability_order$(_left_high_0, _left_low_0, _right_high_0, _right_low_0)), _path_order_0, _id_order_0);
+}
+
+function $RulePolicy$budget$(_position_0, _limit_0) {
+  return $Bool$pick$((_position_0 < _limit_0), {$: "RulePolicy.Admit"}, {$: "RulePolicy.Omit"});
 }
 
 function $Canonical$reuse_route_result$(_state_0, _result_0) {
@@ -3382,6 +3448,54 @@ function $Canonical$cleanup_commit_eligible$(_state_0) {
 
 function $Nat$is_ge$(_a_0, _b_0) {
   return $Cmp$is_ge$(cmp_new(_a_0, _b_0));
+}
+
+function $RulePolicy$target_compatible$(_target_0) {
+  if (_target_0.$ === "RulePolicy.DirectTypeShape") {
+    return true;
+  } else if (_target_0.$ === "RulePolicy.LegacyFileTypeShape") {
+    return true;
+  } else if (_target_0.$ === "RulePolicy.OtherTypeShape") {
+    return false;
+  } else {
+    return false;
+  }
+}
+
+function $RulePolicy$greater_words$(_left_high_0, _left_low_0, _right_high_0, _right_low_0) {
+  const _x_0 = ($Nat$is_gt$(_left_high_0, _right_high_0));
+  const _x_1 = ($Bool$and$(($Nat$is_eq$(_left_high_0, _right_high_0)), ($Nat$is_gt$(_left_low_0, _right_low_0))));
+  return (_x_0 || _x_1);
+}
+
+function $RulePolicy$rank_order_result$(_order_0, _left_rank_0, _right_rank_0) {
+  if (_order_0.$ === "RulePolicy.Before") {
+    return {$: "RulePolicy.Before"};
+  } else if (_order_0.$ === "RulePolicy.After") {
+    return {$: "RulePolicy.After"};
+  } else {
+    return $Bool$pick$((_left_rank_0 < _right_rank_0), {$: "RulePolicy.Before"}, ($Bool$pick$(($Nat$is_gt$(_left_rank_0, _right_rank_0)), {$: "RulePolicy.After"}, {$: "RulePolicy.Equal"})));
+  }
+}
+
+function $RulePolicy$probability_order$(_left_high_0, _left_low_0, _right_high_0, _right_low_0) {
+  return $Bool$pick$(($RulePolicy$greater_words$(_left_high_0, _left_low_0, _right_high_0, _right_low_0)), {$: "RulePolicy.Before"}, ($Bool$pick$(($RulePolicy$greater_words$(_right_high_0, _right_low_0, _left_high_0, _left_low_0)), {$: "RulePolicy.After"}, {$: "RulePolicy.Equal"})));
+}
+
+function $RulePolicy$advice_order_result$(_order_0, _path_order_0, _id_order_0) {
+  if (_order_0.$ === "RulePolicy.Before") {
+    return {$: "RulePolicy.Before"};
+  } else if (_order_0.$ === "RulePolicy.After") {
+    return {$: "RulePolicy.After"};
+  } else {
+    if (_path_order_0.$ === "RulePolicy.Equal") {
+      return _id_order_0;
+    } else if (_path_order_0.$ === "RulePolicy.Before") {
+      return {$: "RulePolicy.Before"};
+    } else {
+      return {$: "RulePolicy.After"};
+    }
+  }
 }
 
 function $ReuseState$route_claim$(_state_0, _id_0, _found_0) {
