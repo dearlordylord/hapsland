@@ -1,9 +1,12 @@
 # #136 native review and repair evidence
 
-**Status: incomplete (2026-09-28).** A second exact-fixture native Claude
-session establishes finding delivery, subsequent agent repair, and a checked
-further finding after repair. The Codex session still lacks an explicit
-follow-up ticket outcome.
+**Status: complete for issue #136 (2026-09-28).** Selected real Codex and
+Claude sessions each observed an attributed edit, completed Jev review,
+finding submission through a native hook, an agent repair after that finding,
+and a checked follow-up outcome. The Codex follow-up was `clear`; the Claude
+follow-up was a further `findings` result. These are bounded host observations,
+not a claim that Jev reliably clears every repaired type or that callback
+races are exhausted.
 Issue: [#136](https://github.com/dearlordylord/hapsland/issues/136). The
 [pre-execution plan](issue-136-native-run-plan.md) declares every run and
 request ceiling. The source-free records are under
@@ -12,6 +15,7 @@ request ceiling. The source-free records are under
 | Runtime and selected sessions | Jev requests observed | Result |
 | --- | ---: | --- |
 | Codex CLI 0.157.1, one session | 2 | A real finding was submitted by a native hook; a later edit changed the source after that submission. A second Jev HTTP 200 and no later finding were observed. The runner did not capture an explicit `clear` ticket status for that second review. |
+| Codex CLI 0.157.1, follow-up capture session | 2 | Native `apply_patch` attributed the draft; Jev HTTP 200 completed review and the Bash hook submitted a finding. Codex changed the source after that submission. A second Jev HTTP 200 led to an explicit resident `clear` stage after the repair. The result compiled and independent invalid-state examples were rejected. |
 | Claude Code 2.1.281, three sessions | 5 | One run saw a resident finding and later clear but no submitted advice; another received Jev HTTP 503 and recorded unavailable; the Bash collection diagnostic again saw finding and clear without submitted advice. Changes after an undisclosed finding cannot establish model visibility. |
 | Claude Code 2.1.218, three composed-hook sessions | 5 | The first saw finding and clear, but the agent changed the file before Stop, so attribution to advice was unproven. The Stop-focused run's Jev request failed. The session with explicit `block-current-findings` feedback received HTTP 503 on the draft and a later clear after an unprompted edit; an operational notice was submitted, but no actionable finding. |
 | Claude Code 2.1.218, controlled offline count session | 0 | After correcting the fixture to match the controlled review snapshot, a real native Stop hook delivered the controlled r6 finding. Claude then changed the type; the follow-up recorded clear, and independent TypeScript checks rejected a raw number. An earlier offline attempt with `export` in the draft failed closed as an unknown snapshot and remains recorded. This validates the delivery path without claiming live Jev behavior. |
@@ -21,8 +25,9 @@ request ceiling. The source-free records are under
 The eight live Claude sessions used **14 Jev requests total**, below the issue's
 40-request limit. Each
 session had its own eight-request HTTP-boundary cutoff and 240-second host
-ceiling; there were no automatic retries. The Codex session used 2 requests
-under its six-request cutoff. All repositories and host state were disposable.
+ceiling; there were no automatic retries. The two Codex sessions used **4 Jev
+requests total**, each under its six-request cutoff. All repositories and host
+state were disposable.
 Credentials were read into child process environments without printing or
 shell-sourcing the primary checkout's ignored `.env` file.
 
@@ -33,9 +38,12 @@ shell-sourcing the primary checkout's ignored `.env` file.
   changed the file; Jev returned HTTP 200 for follow-up. The repaired code
   compiled and independent invalid-state type checks were rejected. Submission
   plus changed source and the agent's review acknowledgement support a repair
-  observation, but the record does not contain an explicit follow-up clear
-  contract status.
-- Claude: the native Write hook attributed the draft. Selected sessions
+  observation, but that first record does not contain an explicit follow-up
+  clear contract status. The independent second Codex session captured the
+  `findings` stage before the repair and a `clear` stage after it. It also
+  recorded an intermediate `incomplete` stage while follow-up collection was
+  pending; the terminal checked result was `clear`.
+- Claude: the native Write hook attributed the draft. Earlier sessions
   recorded resident `findings` and later `clear` stages, but **no
   finding-bearing submitted stage or hook output**. A changed file therefore
   cannot be credited to Hapsland advice. The Jev HTTP 503 responses and request
@@ -63,9 +71,14 @@ kinds, relative timing, request/status counts, fixed synthetic source hashes
 and byte counts, contract stages, and outcome flags. A hook write or
 acknowledgement alone is not treated as proof the model saw advice.
 
-## Remaining gate
+## Scope and next gate
 
-Keep #136 and #116 open. Capture an explicit Codex follow-up ticket outcome;
-the earlier Codex record only showed a second HTTP 200 and no later finding.
-#137's final authority validation and
-crosswalk-retirement decision follow only after that evidence is assembled.
+The native claim covers Codex CLI 0.157.1 and Claude Code 2.1.218 with the
+selected synthetic fixtures and installed-style hook arrangements. Earlier
+Claude Code 2.1.281 direct-hook diagnostics do not establish the supported
+composed path. Jev returned intermittent failures in earlier runs and one
+exact-fixture follow-up; those remain visible as incomplete records. The
+fake-effect resident server and terminal collection tests passed **91/91**
+before these native observations and remain the primary callback-race gate.
+Close #136 only after this evidence is reviewed and integrated. Leave epic
+#116 open for #137's final authority validation and source-precedence handoff.
