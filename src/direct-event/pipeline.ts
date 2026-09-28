@@ -6,6 +6,7 @@ import { Decision, DecisionModel } from "effect/unstable/ai";
 import type { CompiledRule } from "../rules/compiler.ts";
 import { applicableRules, configuredRules } from "../policy/rules.ts";
 import type { Consent } from "../runtime/consent.ts";
+import { admitReview } from "../configuration/decision.ts";
 import type { ReviewSettings } from "../runtime/review-config.ts";
 import { adaptCodexDirectEvent, verifyObservationRoot } from "./adapter.ts";
 import {
@@ -34,6 +35,7 @@ import {
   DEFAULT_DIRECT_FILE_POLICY,
   eligibleNamedPath,
   resolvedDirectFilePolicy,
+  selectedByDirectFilePolicy,
   type DirectFilePolicy,
 } from "./selection.ts";
 
@@ -44,7 +46,8 @@ export type DirectReviewContext = {
   readonly controlledWriter: boolean;
   /** The only advicee for whom this invocation may produce advice. */
   readonly advicee: DirectAdvicee;
-  readonly consent: Consent.Interface;
+  /** Retained only for callers that still supply the retired grant service. */
+  readonly consent?: Consent.Interface;
   readonly settings: Pick<ReviewSettings, "backend" | "destination"> &
     Partial<Pick<ReviewSettings, "configuration" | "rules">>;
   readonly policy?: DirectFilePolicy | (() => DirectFilePolicy);
@@ -104,7 +107,7 @@ export type DirectReviewResult =
   | { readonly status: "unsupported"; readonly output: undefined }
   | { readonly status: "unattributed"; readonly output: undefined }
   | { readonly status: "no-advice"; readonly output: undefined }
-  | { readonly status: "unavailable"; readonly reason: "consent" | "backend" | "timeout" | "stale"; readonly output: undefined }
+  | { readonly status: "unavailable"; readonly reason: "backend" | "timeout" | "stale"; readonly output: undefined }
   | {
       readonly status: "ready";
       readonly findings: ReadonlyArray<Finding>;
@@ -398,18 +401,6 @@ export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(functi
   return { status: "evaluated", findings } satisfies Evaluation;
 });
 
-const authorize = (
-  root: string,
-  context: DirectReviewContext,
-) => context.consent.authorize(
-  root,
-  context.settings.backend,
-  context.settings.destination,
-).pipe(
-  Effect.map((authorization) => authorization.status === "approved"),
-  Effect.catch(() => Effect.succeed(false)),
-);
-
 export const DIRECT_EVENT_ADVISORY_HEADING =
   "Advisory direct-event review (the edit already succeeded):";
 
@@ -431,14 +422,12 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
   observation: DirectObservation,
   context: DirectReviewContext,
 ) {
-  if (!(yield* verifyObservationRoot(observation))) {
+  if (admitReview({ rootValid: yield* verifyObservationRoot(observation),
+    configurationValid: true, credentialReady: true, selected: true }) !== "admitReview") {
     return { status: "unsupported", output: undefined } satisfies DirectReviewResult;
   }
   if (!context.controlledWriter || !sameAdvicee(observation.advicee, context.advicee)) {
     return { status: "unattributed", output: undefined } satisfies DirectReviewResult;
-  }
-  if (!(yield* authorize(observation.root, context))) {
-    return { status: "unavailable", reason: "consent", output: undefined } satisfies DirectReviewResult;
   }
   yield* context.beforePrepare ?? Effect.void;
   const prepared = yield* prepareObservation(observation, context);
@@ -454,13 +443,13 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
   let unavailable: "backend" | "timeout" | undefined;
   for (const outcome of ready) {
     yield* context.beforeDispatch ?? Effect.void;
-    // Consent is mutable user authority and is checked at the actual egress edge.
-    if (!(yield* authorize(observation.root, context))) {
-      return { status: "unavailable", reason: "consent", output: undefined } satisfies DirectReviewResult;
-    }
-    if (!(yield* verifyObservationRoot(observation))) {
+    const admission = admitReview({ rootValid: yield* verifyObservationRoot(observation),
+      configurationValid: true, credentialReady: true,
+      selected: selectedByDirectFilePolicy(outcome.prepared.input.path, currentPolicy(context)) });
+    if (admission === "refuseRoot") {
       return { status: "unavailable", reason: "stale", output: undefined } satisfies DirectReviewResult;
     }
+    if (admission !== "admitReview") continue;
     const evaluation = yield* evaluatePrepared(outcome.prepared);
     if (evaluation.status !== "evaluated") {
       unavailable ??= evaluation.status;
@@ -518,7 +507,7 @@ const revalidateForPublication = Effect.fn("DirectEvent.revalidateForPublication
     evaluations.length === 0 ||
     evaluations.some((evaluation) => !validEvaluation(evaluation))
   ) return { status: "unavailable", findings: [] };
-  if (!(yield* verifyObservationRoot(observation)) || !(yield* authorize(observation.root, context))) {
+  if (!(yield* verifyObservationRoot(observation))) {
     return { status: "unavailable", findings: [] };
   }
   const frozenNames = new Map<string, Set<string>>();
@@ -606,8 +595,7 @@ export const revalidateFindings = Effect.fn("DirectEvent.revalidateFindings")(fu
   if (
     !context.controlledWriter ||
     !sameAdvicee(observation.advicee, context.advicee) ||
-    !(yield* verifyObservationRoot(observation)) ||
-    !(yield* authorize(observation.root, context))
+    !(yield* verifyObservationRoot(observation))
   ) return false;
   const prepared = yield* prepareObservation(observation, context, names);
   for (const [key] of grouped.entries()) {

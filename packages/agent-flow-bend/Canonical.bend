@@ -15,6 +15,7 @@ import ./Ticket.bend as Ticket
 import ./TicketState.bend as TicketState
 import ./ReuseState.bend as ReuseState
 import ./NoticeState.bend as NoticeState
+import ./Configuration.bend as Configuration
 
 # #119 boundary: one resident lifetime, shared ledger, active advicee rounds.
 # Native IDs are bijectively mapped to positive Nat values before entry.
@@ -168,6 +169,11 @@ type CanonicalEvent is Data:
   CleanupCheck{facts: Retention.CleanupFacts}
   CleanupCommit{}
   DeliveryReleaseCheck{acknowledged: Bool}
+  IncludeLayerCheck{supplied: Bool, current_rank: Nat, candidate_rank: Nat}
+  FileSelectionCheck{protected: Bool, excluded: Bool,
+    includes_empty: Bool, included: Bool}
+  ReviewAdmissionCheck{root_valid: Bool, configuration_valid: Bool,
+    credential_ready: Bool, selected: Bool}
   ReuseRoute{id: Nat, live_advice: Bool}
   ReuseClaim{id: Nat}
   ReuseAttach{id: Nat}
@@ -369,6 +375,9 @@ type Command is Data:
   NoticeLeased{}
   NoticePendingCleared{}
   NoticeSelected{ids: List<&2, Nat>}
+  IncludeChoice{choice: Configuration.IncludeChoice}
+  FileSelection{selection: Configuration.Selection}
+  ReviewAdmission{admission: Configuration.Admission}
   WriteAuthorized{operation: Nat}
   WriteRecorded{outcome: WriteOutcome}
   WaitForOutput{}
@@ -2620,6 +2629,15 @@ def step(+state: State, event: CanonicalEvent) -> Step:
     case DeliveryReleaseCheck{acknowledged}:
       Advanced{state, Bool.pick(Command, Delivery.release_unacknowledged(acknowledged),
         DeliveryReleaseUnacknowledged{}, DeliveryKeepAcknowledged{}) <> Nil{}}
+    case IncludeLayerCheck{supplied, current_rank, candidate_rank}:
+      Advanced{state, IncludeChoice{Configuration.include_choice(supplied,
+        current_rank, candidate_rank)} <> Nil{}}
+    case FileSelectionCheck{protected, excluded, includes_empty, included}:
+      Advanced{state, FileSelection{Configuration.select(protected, excluded,
+        includes_empty, included)} <> Nil{}}
+    case ReviewAdmissionCheck{root_valid, configuration_valid, credential_ready, selected}:
+      Advanced{state, ReviewAdmission{Configuration.admit(root_valid,
+        configuration_valid, credential_ready, selected)} <> Nil{}}
     case ReuseRoute{id, live_advice}:
       reuse_route_result(state, ReuseState.route(
         CollectionState.reuse_state(collection_of(state)), id, live_advice))

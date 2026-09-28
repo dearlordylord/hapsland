@@ -25,8 +25,8 @@ import { MAX_TYPE_DECLARATIONS } from "../direct-event/analyzer.ts";
 import type { AnalyzerMaterializationPreflight } from "../direct-event/analyzer.ts";
 import { MAX_SOURCE_BYTES } from "../direct-event/capture.ts";
 import { resolvedDirectFilePolicy, selectedByDirectFilePolicy } from "../direct-event/selection.ts";
+import { admitReview } from "../configuration/decision.ts";
 import { liveLayer as jevDecisionModelLiveLayer } from "../jev-decision.ts";
-import { Consent } from "../runtime/consent.ts";
 import { loadReviewSettings } from "../runtime/review-config.ts";
 import { loadConfiguration } from "../configuration/load.ts";
 import { readCurrentClaudeFeedbackAuthority } from "../configuration/current-claude-authority.ts";
@@ -325,13 +325,6 @@ type CurrentWork = {
   readonly input: PreparedUnit["input"];
 };
 
-type DispatchAuthorityConsentStatus =
-  | "not-checked"
-  | "unavailable"
-  | "approved"
-  | "missing-consent"
-  | "unsupported";
-
 type DispatchAuthorityCredentialStatus = CredentialResolution["status"] | "not-checked" | "not-required";
 
 type DispatchAuthorityObservation = {
@@ -343,8 +336,7 @@ type DispatchAuthorityObservation = {
   readonly reason: string;
   readonly policyDigest: string;
   readonly selected: boolean | null;
-  readonly consentStatus: DispatchAuthorityConsentStatus;
-  readonly consentIdentitySha256: string | null;
+  readonly admission: ReturnType<typeof admitReview>;
   readonly physicalRootVerified: boolean | null;
   readonly expectedRootIdentitySha256: string;
   readonly credentialStatus: DispatchAuthorityCredentialStatus;
@@ -356,8 +348,7 @@ type DispatchAuthorityObservationDetails = {
   readonly reason: string;
   readonly policyDigest: string;
   readonly selected: boolean | null;
-  readonly consentStatus: DispatchAuthorityConsentStatus;
-  readonly consentIdentity: { readonly root: string; readonly backend: string; readonly destination: string } | null;
+  readonly admission: ReturnType<typeof admitReview>;
   readonly physicalRootVerified: boolean | null;
   readonly credentialStatus: DispatchAuthorityCredentialStatus;
   readonly credentialGeneration: number | null;
@@ -1985,17 +1976,12 @@ export class ResidentServer {
   ): void {
     const observer = this.#dispatchAuthorityObserver;
     if (observer === undefined) return;
-    const identity = details.consentIdentity === null
-      ? null
-      : createHash("sha256").update(canonicalValue(details.consentIdentity), "utf8").digest("hex");
-    const { consentIdentity: _consentIdentity, ...recordDetails } = details;
     const observation: DispatchAuthorityObservation = {
       kind: "dispatchAuthority",
       sequence: this.#nextDispatchAuthoritySequence++,
       evaluationId: createHash("sha256").update(job.evaluationKey, "utf8").digest("hex"),
       path: job.prepared.input.path,
-      ...recordDetails,
-      consentIdentitySha256: identity,
+      ...details,
       expectedRootIdentitySha256: createHash("sha256")
         .update(canonicalValue(job.observation.rootIdentity), "utf8")
         .digest("hex"),
@@ -2033,19 +2019,13 @@ export class ResidentServer {
         const credentialRequired = controlled === undefined || controlled.requireCredential === true;
         if (credentialRequired && job.dispatch.credential?.name !== settings.credentialEnvVar) return undefined;
         if (credentialRequired && job.dispatch.credential === null) return undefined;
-        const consent = yield* Consent.Service;
-        const authorization = yield* consent.authorize(
-          job.observation.root,
-          settings.backend,
-          settings.destination,
-        ).pipe(Effect.catch(() => Effect.succeed({ status: "denied" as const })));
-        if (authorization.status !== "approved" || !(yield* verifyObservationRoot(job.observation))) return undefined;
+        if (!(yield* verifyObservationRoot(job.observation))) return undefined;
         if (
           credentialRequired && job.dispatch.credential !== null &&
           readCredentialState(job.dispatch.credential.statePath).generation !== job.dispatch.credential.generation
         ) return undefined;
         return settings;
-      }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))),
+      }),
         { signal: job.work?.controller.signal });
       this.#ledger.release(job.reservation);
       if (settings === undefined || this.#lifecycle !== "active" || !this.#jobActive(job)) {
@@ -2074,11 +2054,9 @@ export class ResidentServer {
         let prepared: PreparedObservation;
         try {
           prepared = await Effect.runPromise(Effect.gen(function* () {
-            const consent = yield* Consent.Service;
             return yield* prepareObservation(pathObservation, {
               controlledWriter: true,
               advicee: pathObservation.advicee,
-              consent,
               settings,
               beforeAnalyze: (path, sourceBytes, preflight) => Effect.sync(() => {
                 const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules);
@@ -2091,7 +2069,7 @@ export class ResidentServer {
                 return resized;
               }),
             });
-          }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))),
+          }),
         { signal: job.work?.controller.signal });
         } catch (cause) {
           this.#ledger.release(workspace);
@@ -2385,13 +2363,7 @@ export class ResidentServer {
         if (credentialRequired && job.dispatch.credential?.name !== settings.credentialEnvVar) return undefined;
         const dispatchCredential = job.dispatch.credential;
         if (credentialRequired && dispatchCredential === null) return undefined;
-        const consent = yield* Consent.Service;
-        const authorization = yield* consent.authorize(
-          job.observation.root,
-          settings.backend,
-          settings.destination,
-        ).pipe(Effect.catch(() => Effect.succeed({ status: "denied" as const })));
-        if (authorization.status !== "approved" || !(yield* verifyObservationRoot(job.observation))) return undefined;
+        if (!(yield* verifyObservationRoot(job.observation))) return undefined;
         if (afterAuthorizeBeforeCredential !== undefined) {
           yield* Effect.promise(afterAuthorizeBeforeCredential);
         }
@@ -2428,25 +2400,6 @@ export class ResidentServer {
           userConfigPath === undefined ? {} : { userConfigPath },
         );
         if (credentialRequired && dispatchCredential?.name !== dispatchConfiguration.policy.credentialEnvVar.value) return undefined;
-        const dispatchAuthorization = yield* consent.authorize(
-          job.observation.root,
-          settings.backend,
-          settings.destination,
-        ).pipe(Effect.catch(() => Effect.succeed({ status: "unavailable" as const })));
-        if (dispatchAuthorization.status !== "approved") {
-          observeDispatchAuthority({
-            decision: "deny",
-            reason: "consent-not-approved",
-            policyDigest: dispatchConfiguration.policy.digest,
-            selected: null,
-            consentStatus: dispatchAuthorization.status,
-            consentIdentity: "identity" in dispatchAuthorization ? dispatchAuthorization.identity : null,
-            physicalRootVerified: null,
-            credentialStatus: credential?.status ?? "not-required",
-            credentialGeneration: credential?.generation ?? null,
-          });
-          return undefined;
-        }
         const dispatchRootVerified = yield* verifyObservationRoot(job.observation);
         if (!dispatchRootVerified) {
           observeDispatchAuthority({
@@ -2454,8 +2407,7 @@ export class ResidentServer {
             reason: "physical-root-mismatch",
             policyDigest: dispatchConfiguration.policy.digest,
             selected: null,
-            consentStatus: dispatchAuthorization.status,
-            consentIdentity: "identity" in dispatchAuthorization ? dispatchAuthorization.identity : null,
+            admission: "refuseRoot",
             physicalRootVerified: false,
             credentialStatus: credential?.status ?? "not-required",
             credentialGeneration: credential?.generation ?? null,
@@ -2466,18 +2418,20 @@ export class ResidentServer {
           job.prepared.input.path,
           resolvedDirectFilePolicy(dispatchConfiguration.policy),
         );
+        const admission = admitReview({ rootValid: dispatchRootVerified,
+          configurationValid: true, credentialReady: !credentialRequired || credential?.status === "present",
+          selected });
         observeDispatchAuthority({
-          decision: selected ? "allow" : "deny",
-          reason: selected ? "approved-and-selected" : "excluded-by-file-policy",
+          decision: admission === "admitReview" ? "allow" : "deny",
+          reason: admission === "admitReview" ? "selected-by-file-policy" : "excluded-by-file-policy",
           policyDigest: dispatchConfiguration.policy.digest,
           selected,
-          consentStatus: dispatchAuthorization.status,
-          consentIdentity: "identity" in dispatchAuthorization ? dispatchAuthorization.identity : null,
+          admission,
           physicalRootVerified: true,
           credentialStatus: credential?.status ?? "not-required",
           credentialGeneration: credential?.generation ?? null,
         });
-        if (!selected) return undefined;
+        if (admission !== "admitReview") return undefined;
         const credentialProvider = credential?.status !== "present"
           ? undefined
           : ConfigProvider.layer(ConfigProvider.fromUnknown({
@@ -2514,7 +2468,7 @@ export class ResidentServer {
         return yield* (credentialProvider === undefined
           ? evaluation
           : evaluation.pipe(Effect.provide(credentialProvider)));
-      }).pipe(Effect.provide(Consent.layer({ statePath: job.dispatch.statePath }))),
+      }),
         { signal: job.work?.controller.signal });
       if (!this.#jobActive(job)) { this.#releaseReuseClaim(job.evaluationKey); this.#releaseUnit(job); return; }
       if (result?.status === "evaluated" && this.#lifecycle === "active") {
@@ -2770,11 +2724,9 @@ export class ResidentServer {
           advice.observation.root,
           userConfigPath === undefined ? {} : { userConfigPath },
         );
-        const consent = yield* Consent.Service;
         return yield* revalidateEvaluations(advice.observation, advice.evaluations, {
           controlledWriter: true,
           advicee: advice.observation.advicee,
-          consent,
           settings,
           beforeAnalyze: (path, sourceBytes, preflight) => Effect.sync(() => {
             const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules);
@@ -2788,7 +2740,7 @@ export class ResidentServer {
           isCurrentWork: (prepared) => Effect.sync(() =>
             server.#isCurrentWork(advice.revision, prepared)),
         });
-      }).pipe(Effect.provide(Consent.layer({ statePath: dispatch.statePath }))),
+      }),
         { signal: advice.round?.controller.signal });
       return capacityUnavailable ? { status: "unavailable", findings: [] } : current;
     } catch {

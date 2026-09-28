@@ -170,15 +170,6 @@ appendFileSync(process.env.REVIEW_HOST_STAGE_PATH, JSON.stringify({
     throw new Error("real-host hook does not point exclusively at the installed package");
   }
 
-  const preview = await run(installedCli, ["--enable"], {
-    cwd: root, env, input: JSON.stringify({ version: 1, operation: "enable", cwd: repository }),
-  });
-  const digest = JSON.parse(preview.stdout).proposal?.digest;
-  if (typeof digest !== "string") gaps.push("consent preview failed");
-  else await run(installedCli, ["--enable-confirm"], {
-    cwd: root, env, input: JSON.stringify({ version: 1, operation: "enable-confirm", cwd: repository, proposalDigest: digest }),
-  });
-
   let host = { code: null, signal: null, stdout: "", stderr: "" };
   if (gaps.length === 0 && hostAuthentication === "available") {
     host = await run("codex", [

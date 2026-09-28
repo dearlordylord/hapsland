@@ -313,7 +313,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     expect(await collectReady(root, advicee({ turnId: "later-2", toolUseId: "bash-2" }), dispatch, paths)).toBeUndefined();
   });
 
-  it("rechecks consent after admission and before backend dispatch", async () => {
+  it("rechecks file exclusions after admission and before backend dispatch", async () => {
     const root = await makeGitFixture();
     const temporary = await mkdtemp(join(tmpdir(), "product-resident-revoke-"));
     directories.push(root, temporary);
@@ -345,10 +345,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     expect((await residentRequest(paths, {
       version: 1, operation: "admit", lifetime: owner.lifetime, observation, controlledWriter: true, dispatch,
     })).status).toBe("accepted");
-    await Effect.runPromise(Effect.gen(function* () {
-      const consent = yield* Consent.Service;
-      yield* consent.disable(root, "jev", "https://api.typesafe.ai/v1/systemone");
-    }).pipe(Effect.provide(Consent.layer({ statePath }))));
+    await put(root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}');
     await writeFile(gate, "release\n");
     await waitFor(async () => {
       const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
@@ -544,7 +541,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     expect(await collectReady(root, advicee(), dispatch, paths)).toBeUndefined();
 
     // One two-unit batch, one child partition, and one distinct existing Git
-    // worktree travel through the new process. Revocation after admission keeps
+    // worktree travel through the new process. Exclusion after admission keeps
     // the other worktree from dispatching and cannot leak its advice.
     const batch = await observe(root, ["type.ts", "second.ts"], { tool_use_id: "batch" });
     const child = await observe(root, ["type.ts"], { agent_id: "child-2", tool_use_id: "child" });
@@ -556,10 +553,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
         observation, controlledWriter: true, dispatch,
       })).status).toBe("accepted");
     }
-    await Effect.runPromise(Effect.gen(function* () {
-      const consent = yield* Consent.Service;
-      yield* consent.disable(otherRoot, "jev", "https://api.typesafe.ai/v1/systemone");
-    }).pipe(Effect.provide(Consent.layer({ statePath }))));
+    await put(otherRoot, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}');
     await writeFile(backendGate, "release\n");
     await waitFor(async () => {
       const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: second.lifetime });

@@ -92,8 +92,8 @@ Hapsland supports Codex CLI 0.155.1 on Linux arm64 and Codex CLI 0.156.0 on macO
 
 2. In the Git repository you want reviewed, run `"$HOME/.local/bin/hapsland" --pilot`.
    The guided setup previews the Codex hook changes, accepts a Jev key through masked terminal
-   input, and separately asks you to enable review for that repository. Installing Hapsland or
-   saving a key does not authorize sending repository source to Jev.
+   input. Effective file settings select otherwise eligible files; with no file settings,
+   all otherwise eligible files are selected when Jev credentials are available.
 3. Start Codex normally, review its repository and hook trust prompts, and make a supported
    TypeScript edit. Follow the [status guide](./docs/status.md) to check observed review activity
    with the host session ID; installation alone does not establish that a review ran.
@@ -105,7 +105,7 @@ uninstall, and an optional first-review demo.
 
 ## Configuration
 
-Configure file selection and exclusions, whole-file JSON request settings, local rule packs, per-rule overrides, and the credential environment-variable reference. The product accepts layered JSONC files; repository enablement remains a separate user-owned grant.
+Configure file selection and exclusions, whole-file JSON request settings, local rule packs, per-rule overrides, and the credential environment-variable reference. The product accepts layered JSONC files. With no file settings, all otherwise eligible files are selected; user exclusions can turn review off.
 
 A small project configuration:
 
@@ -157,8 +157,9 @@ For the proposed registry release, use the
 `hapsland`. The product is Hapsland and Jev is the external backend. The registry release is pending
 the [release record](./docs/npm-release-record.md).
 After setup completes, the [installation guide](./docs/codex-installation.md) also documents the separate `hapsland --demo` preview and
-live-confirmation flow. Its default preview is offline; a live run requires a new consent
-digest for a generated disposable repository and explicit request, source, and time limits.
+live-confirmation flow. Its default preview is offline; a live run requires an exact
+selection digest for a generated disposable repository and has explicit request,
+source, and time limits.
 
 `npm run conformance:package` packs into an isolated temporary prefix, installs with production
 dependencies only, and runs the parser and controlled offline review outside the checkout. Add
@@ -177,19 +178,12 @@ does not call Jev or perform an authenticated Codex retry.
 The local single-repository opt-in pilot is scoped in
 [`docs/codex-opt-in-pilot.md`](./docs/codex-opt-in-pilot.md).
 
-Review dispatch is repository opt-in. The explicit enable operation first previews the
-canonical Git working-tree root, fixed Jev backend, actual destination, and
-repository-wide eligible-source scope. Confirm that proposal with its digest to record
-a user-owned grant; project configuration cannot create that grant. For a temporary
-state directory (useful in tests), set `REVIEW_STATE_PATH`:
+Review dispatch uses effective file settings. With no file settings, every otherwise
+eligible file is selected. User `excludes` accumulate with project exclusions and
+`["**/*"]` turns review off even when a project supplies includes. Protected paths,
+Git ignore rules, and invalid configuration still stop the relevant work.
 
 ```sh
-printf '%s\n' '{"version":1,"operation":"enable","cwd":"/absolute/repo"}' \\
-  | REVIEW_STATE_PATH="$HOME/.config/realtime-review-tool/consent" node src/cli.ts --enable
-printf '%s\n' '{"version":1,"operation":"enable-confirm","cwd":"/absolute/repo","proposalDigest":"<digest-from-preview>"}' \\
-  | REVIEW_STATE_PATH="$HOME/.config/realtime-review-tool/consent" node src/cli.ts --enable-confirm
-printf '%s\n' '{"version":1,"operation":"disable","cwd":"/absolute/repo"}' \\
-  | node src/cli.ts --disable
 printf '%s\n' '{"version":1,"operation":"credentials","cwd":"/absolute/repo"}' \\
   | node src/cli.ts --inspect-credentials
 ```
@@ -201,10 +195,9 @@ terminal input with the platform's native credential store;
 `hapsland --logout` removes the owned saved item. Project configuration refers to a
 credential environment-variable name; secret values and environment files are never
 stored in project files or printed. The Jev backend and `/v1/systemone` destination are
-fixed in this phase; arbitrary endpoint routing is not supported. Configuration cannot
-grant repository approval. Hooks do not prompt: without a matching root/backend/destination
-grant, review returns a bounded `skipped` result and makes no provider request. Disabling
-affects future dispatches and does not claim to recall a request already sent.
+fixed in this phase; arbitrary endpoint routing is not supported. Hooks do not prompt.
+An unavailable credential prevents provider dispatch. Changing effective exclusions
+affects future dispatches and cannot recall a request already sent.
 
 The supported Codex event boundary is documented in the
 [direct-event profile](./docs/direct-event-v1-supported-profile.md). During development, a

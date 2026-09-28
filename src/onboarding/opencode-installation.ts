@@ -92,11 +92,11 @@ const preview = (kind: Kind, request: OpenCodeInstallationRequest) => {
         ...(next.beforeRecord === next.afterRecord ? [] : [{ path: next.input.paths.ownership, description: "ownership record" }]),
       ], ownedChanges: { plugin: next.input.paths.plugin, hook: "tool.execute.after", tools: ["edit", "write"],
         timeoutMilliseconds: 4500 } },
-      installed: kind !== "uninstall", sourceEgressAuthorized: false,
-      trust: { status: "host-owned", guidance: "OpenCode controls plugin loading; repository source egress needs separate consent." },
+      installed: kind !== "uninstall",
+      trust: { status: "host-owned", guidance: "OpenCode controls plugin loading; effective file settings and credentials govern review." },
       unsupported: ["existing-file write", "edit without unique changed whole lines", "OpenCode --pure",
         "shell writes", "file.edited", "OpenCode v2"],
-      pending: ["apply this proposal digest", "enable source egress for each repository separately"] };
+      pending: ["apply this proposal digest", "review effective file settings and credential access"] };
   } catch (cause) { return conflict(operation, cause); }
 };
 const apply = (kind: Kind, request: OpenCodeInstallationRequest) => {
@@ -124,7 +124,7 @@ const apply = (kind: Kind, request: OpenCodeInstallationRequest) => {
         if (read(input.paths.plugin) === next.beforePlugin) atomicInstallationFile(input.paths.ownership, next.beforeRecord);
         throw cause;
       }
-      return { version: 1 as const, operation: kind, status: "complete" as const, sourceEgressAuthorized: false };
+      return { version: 1 as const, operation: kind, status: "complete" as const };
     } finally { rmSync(input.paths.lock, { recursive: true, force: true }); }
   } catch (cause) { return conflict(kind, cause); }
 };
@@ -149,7 +149,7 @@ export const diagnoseOpenCodeIntegration = (request: OpenCodeInstallationRequest
     { stage: "runtime", status: input.compatibility.runtime.observed === "v24.20.0" ? "ready" : "unsupported", observed: input.compatibility.runtime },
     { stage: "configuration-ownership", status: inspection.status === "conflict" ? "conflict" : inspection.installed ? "ready" : "missing", observed: inspection },
     { stage: "plugin-loading", status: "unknown", observed: "OpenCode host-owned; --pure disables plugins" },
-    { stage: "repository-egress-consent", status: "unknown", observed: "inspect separate repository consent state" },
+    { stage: "file-selection", status: "unknown", observed: "inspect effective file settings" },
   ];
   return { version: 1 as const, operation: "doctor" as const,
     status: checks.some((check) => ["conflict", "unsupported", "missing"].includes(check.status)) ? "not-ready" as const : "unknown" as const,

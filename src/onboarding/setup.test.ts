@@ -34,6 +34,7 @@ const fixture = () => {
   const environment: NodeJS.ProcessEnv = {
     ...process.env,
     REVIEW_STATE_PATH: join(root, "consent"),
+    REVIEW_USER_CONFIG_PATH: join(root, "user.jsonc"),
     REVIEW_CREDENTIAL_STATE_PATH: join(root, "credential-state.json"),
     TYPESAFE_API_KEY: "setup-environment-secret",
   };
@@ -92,30 +93,10 @@ const invoke = (
 const authorization = (output: SetupOutput) => ({
   installProposalDigest: output.actions.find((action) => action.code === "approve-installation")
     ?.authorization?.installProposalDigest,
-  consentProposalDigest: output.actions.find((action) => action.code === "approve-repository-consent")
-    ?.authorization?.consentProposalDigest,
 });
 
-const enableConsent = (test: ReturnType<typeof fixture>) => {
-  const entrypoint = setupEntrypoint();
-  const preview = spawnSync(process.execPath, [entrypoint, "--enable"], {
-    cwd: test.repository,
-    env: test.environment,
-    input: JSON.stringify({ version: 1, operation: "enable", cwd: test.repository }),
-    encoding: "utf8",
-  });
-  expect(preview.status).toBe(0);
-  const digest = (JSON.parse(preview.stdout) as { proposal: { digest: string } }).proposal.digest;
-  const confirmed = spawnSync(process.execPath, [entrypoint, "--enable-confirm"], {
-    cwd: test.repository,
-    env: test.environment,
-    input: JSON.stringify({ version: 1, operation: "enable-confirm", cwd: test.repository, proposalDigest: digest }),
-    encoding: "utf8",
-  });
-  expect(confirmed.status).toBe(0);
-};
-
 const installDisabled = (test: ReturnType<typeof fixture>) => {
+  writeFileSync(join(test.root, "user.jsonc"), '{"version":1,"excludes":["**/*"]}');
   const request = { scope: { cwd: test.repository, review: "disabled" }, credential: "skip" };
   const preview = invoke(test, request);
   const installProposalDigest = authorization(preview).installProposalDigest;
@@ -185,7 +166,7 @@ const invokeMaskedSetup = async (
 };
 
 describe("public resumable setup operation", { timeout: 30_000 }, () => {
-  it("installs and enables from exact approvals, then reuses completed steps without duplicate hooks or consent", () => {
+  it("installs with exact approval and effective file settings without a repository grant", () => {
     const test = fixture();
     const preview = invoke(test, {});
     expect(preview.status).toBe("needs-user-action");
@@ -193,12 +174,11 @@ describe("public resumable setup operation", { timeout: 30_000 }, () => {
       expect.objectContaining({ stage: "compatibility", status: "complete" }),
       expect.objectContaining({ stage: "installation", status: "pending" }),
       expect.objectContaining({ stage: "credential", status: "complete" }),
-      expect.objectContaining({ stage: "repository", status: "pending" }),
+      expect.objectContaining({ stage: "repository", status: "complete" }),
       expect.objectContaining({ stage: "execution-context", status: "unknown" }),
     ]));
     const approvals = authorization(preview);
     expect(approvals.installProposalDigest).toMatch(/^[a-f0-9]{64}$/);
-    expect(approvals.consentProposalDigest).toMatch(/^[a-f0-9]{64}$/);
     const installationStage = preview.stages.find((stage) => stage.stage === "installation");
     expect(installationStage?.observed).toMatchObject({
       proposal: {
@@ -229,16 +209,13 @@ describe("public resumable setup operation", { timeout: 30_000 }, () => {
     const repeated = invoke(test, approvals);
     expect(repeated.stages).toEqual(expect.arrayContaining([
       expect.objectContaining({ stage: "installation", summary: expect.stringContaining("already installed") }),
-      expect.objectContaining({ stage: "repository", summary: expect.stringContaining("consent remains valid") }),
+      expect.objectContaining({ stage: "repository", summary: expect.stringContaining("file settings loaded") }),
     ]));
     const hooks = JSON.parse(readFileSync(join(test.codexHome, "hooks.json"), "utf8")) as {
       hooks: { PostToolUse: ReadonlyArray<unknown> };
     };
     expect(hooks.hooks.PostToolUse).toHaveLength(1);
-    const grantFile = readdirSync(join(test.root, "consent")).find((name) => name.endsWith(".json"));
-    if (grantFile === undefined) throw new Error("expected the approved repository grant");
-    expect(readFileSync(join(test.root, "consent", grantFile), "utf8"))
-      .not.toContain("setup-environment-secret");
+    expect(existsSync(join(test.root, "consent"))).toBe(false);
   });
 
   it("resumes an interrupted owned installation with the same approval", () => {
@@ -266,52 +243,33 @@ describe("public resumable setup operation", { timeout: 30_000 }, () => {
     expect(existsSync(join(test.codexHome, ".realtime-review-tool", "journal-v1.json"))).toBe(false);
   });
 
-  it("revokes existing consent even when installation is partial", () => {
+  it("keeps legacy grant files untouched during setup", () => {
     const test = fixture();
-    enableConsent(test);
-    const preview = invoke(test, { scope: { cwd: test.repository, review: "disabled" } });
-    const installProposalDigest = authorization(preview).installProposalDigest;
-    const partial = invoke(test, {
-      scope: { cwd: test.repository, review: "disabled" },
-      installProposalDigest,
-    }, {
-      ...test.environment,
-      REVIEW_INSTALL_FAIL_AFTER_WRITES: "1",
-    });
-    expect(partial.status).toBe("partial");
-    expect(partial.stages).toEqual(expect.arrayContaining([
-      expect.objectContaining({ stage: "installation", status: "partial" }),
-      expect.objectContaining({ stage: "repository", status: "complete", summary: expect.stringContaining("disabled") }),
+    mkdirSync(join(test.root, "consent"));
+    const oldGrant = join(test.root, "consent", "legacy.json");
+    writeFileSync(oldGrant, "legacy-grant-sentinel\n");
+    const preview = invoke(test, {});
+    const installed = invoke(test, authorization(preview));
+    expect(installed.stages).toEqual(expect.arrayContaining([
+      expect.objectContaining({ stage: "repository", status: "complete" }),
     ]));
-    expect(readdirSync(join(test.root, "consent")).filter((name) => name.endsWith(".json"))).toEqual([]);
-
-    const after = invoke(test, {});
-    expect(after.stages).toEqual(expect.arrayContaining([
-      expect.objectContaining({ stage: "repository", status: "pending", summary: expect.stringContaining("requires explicit consent") }),
-    ]));
+    expect(readFileSync(oldGrant, "utf8")).toBe("legacy-grant-sentinel\n");
   });
 
-  it("reports repository disable as pending when active consent cannot be removed", () => {
+  it("asks for user exclude-all when review disabled is requested", () => {
     const test = fixture();
-    enableConsent(test);
-    const consentDirectory = join(test.root, "consent");
-    chmodSync(consentDirectory, 0o500);
-    try {
-      const result = invoke(test, { scope: { cwd: test.repository, review: "disabled" } });
-      expect(result.stages).toEqual(expect.arrayContaining([
-        expect.objectContaining({ stage: "repository", status: "pending", summary: expect.stringContaining("could not be revoked") }),
-      ]));
-      expect(result.actions).toEqual(expect.arrayContaining([
-        expect.objectContaining({ code: "retry-repository-disable" }),
-      ]));
-      expect(readdirSync(consentDirectory).filter((name) => name.endsWith(".json"))).toHaveLength(1);
-    } finally {
-      chmodSync(consentDirectory, 0o700);
-    }
+    const pending = invoke(test, { scope: { cwd: test.repository, review: "disabled" }, credential: "skip" });
+    expect(pending.stages).toEqual(expect.arrayContaining([
+      expect.objectContaining({ stage: "repository", status: "pending" }),
+    ]));
+    expect(pending.actions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "exclude-all-files" }),
+    ]));
   });
 
   it("completes with review disabled and no credential", () => {
     const test = fixture();
+    writeFileSync(join(test.root, "user.jsonc"), '{"version":1,"excludes":["**/*"]}');
     const preview = invoke(test, {
       scope: { cwd: test.repository, review: "disabled" },
       credential: "skip",
@@ -325,13 +283,13 @@ describe("public resumable setup operation", { timeout: 30_000 }, () => {
     expect(completed.status).toBe("completed");
     expect(completed.stages).toEqual(expect.arrayContaining([
       expect.objectContaining({ stage: "credential", status: "skipped" }),
-      expect.objectContaining({ stage: "repository", status: "complete", summary: expect.stringContaining("disabled") }),
+      expect.objectContaining({ stage: "repository", status: "complete", summary: expect.stringContaining("exclude all files") }),
       expect.objectContaining({ stage: "execution-context", status: "unknown" }),
     ]));
     expect(existsSync(join(test.root, "consent"))).toBe(false);
   });
 
-  it("bounds noninteractive missing-secret and consent handoffs", () => {
+  it("bounds noninteractive missing-secret handoff", () => {
     const test = fixture();
     const environment = { ...test.environment };
     delete environment.TYPESAFE_API_KEY;
@@ -339,7 +297,6 @@ describe("public resumable setup operation", { timeout: 30_000 }, () => {
     expect(output.status).toBe("needs-user-action");
     expect(output.actions).toEqual(expect.arrayContaining([
       expect.objectContaining({ code: "provide-credential" }),
-      expect.objectContaining({ code: "approve-repository-consent" }),
     ]));
     expect(output.actions.length).toBeLessThanOrEqual(4);
   });
@@ -472,5 +429,5 @@ else if (operation === "probe") console.log('{"status":"available"}');
         expect(recovery?.action).toContain("hapsland --logout");
       }
     }
-  }, 20_000);
+  }, 45_000);
 });

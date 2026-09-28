@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:caa82727b1b5d577122fe0ec278e2719e5bc2f205ca4c5358df1b9e140cf5942
+// hapsland-bend-source-sha256:adf6e0846d35acaabdbed10d947fa33485e51d310478d4f5d6948c96bc67d5a4
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -618,6 +618,23 @@ function $Canonical$step$(_state_0, _event_0) {
   } else if (_event_0.$ === "Canonical.DeliveryReleaseCheck") {
     const _acknowledged_0 = _event_0["acknowledged"];
     return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Delivery$release_unacknowledged$(_acknowledged_0)), {$: "Canonical.DeliveryReleaseUnacknowledged"}, {$: "Canonical.DeliveryKeepAcknowledged"})), "tail": {$: "Nil"}}};
+  } else if (_event_0.$ === "Canonical.IncludeLayerCheck") {
+    const _supplied_0 = _event_0["supplied"];
+    const _current_rank_0 = _event_0["current_rank"];
+    const _candidate_rank_0 = _event_0["candidate_rank"];
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.IncludeChoice", "choice": ($Configuration$include_choice$(_supplied_0, _current_rank_0, _candidate_rank_0))}, "tail": {$: "Nil"}}};
+  } else if (_event_0.$ === "Canonical.FileSelectionCheck") {
+    const _protected_0 = _event_0["protected"];
+    const _excluded_0 = _event_0["excluded"];
+    const _includes_empty_0 = _event_0["includes_empty"];
+    const _included_0 = _event_0["included"];
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.FileSelection", "selection": ($Configuration$select$(_protected_0, _excluded_0, _includes_empty_0, _included_0))}, "tail": {$: "Nil"}}};
+  } else if (_event_0.$ === "Canonical.ReviewAdmissionCheck") {
+    const _root_valid_0 = _event_0["root_valid"];
+    const _configuration_valid_0 = _event_0["configuration_valid"];
+    const _credential_ready_0 = _event_0["credential_ready"];
+    const _selected_3 = _event_0["selected"];
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.ReviewAdmission", "admission": ($Configuration$admit$(_root_valid_0, _configuration_valid_0, _credential_ready_0, _selected_3))}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.ReuseRoute") {
     const _id_8 = _event_0["id"];
     const _live_advice_1 = _event_0["live_advice"];
@@ -1650,6 +1667,18 @@ function $Bool$pick$(_c_0, _a_0, _b_0) {
 
 function $Delivery$release_unacknowledged$(_acknowledged_0) {
   return $Bool$not$(_acknowledged_0);
+}
+
+function $Configuration$include_choice$(_supplied_0, _current_rank_0, _candidate_rank_0) {
+  return $Bool$pick$(($Bool$and$(_supplied_0, ($Nat$is_ge$(_candidate_rank_0, _current_rank_0)))), {$: "Configuration.ReplaceIncludes"}, {$: "Configuration.KeepIncludes"});
+}
+
+function $Configuration$select$(_protected_0, _excluded_0, _includes_empty_0, _included_0) {
+  return $Bool$pick$(_protected_0, {$: "Configuration.Protected"}, ($Bool$pick$(_excluded_0, {$: "Configuration.Excluded"}, ($Bool$pick$(_includes_empty_0, {$: "Configuration.EmptyIncludes"}, ($Bool$pick$(_included_0, {$: "Configuration.Selected"}, {$: "Configuration.NotIncluded"})))))));
+}
+
+function $Configuration$admit$(_root_valid_0, _configuration_valid_0, _credential_ready_0, _selected_0) {
+  return $Bool$pick$(($Bool$not$(_root_valid_0)), {$: "Configuration.RefuseRoot"}, ($Bool$pick$(($Bool$not$(_configuration_valid_0)), {$: "Configuration.RefuseConfiguration"}, ($Bool$pick$(($Bool$not$(_credential_ready_0)), {$: "Configuration.RefuseCredential"}, ($Bool$pick$(($Bool$not$(_selected_0)), {$: "Configuration.RefuseSelection"}, {$: "Configuration.AdmitReview"})))))));
 }
 
 function $Canonical$reuse_route_result$(_state_0, _result_0) {
@@ -3331,6 +3360,10 @@ function $Canonical$cleanup_commit_eligible$(_state_0) {
   }
 }
 
+function $Nat$is_ge$(_a_0, _b_0) {
+  return $Cmp$is_ge$(cmp_new(_a_0, _b_0));
+}
+
 function $ReuseState$route_claim$(_state_0, _id_0, _found_0) {
   if (_found_0.$ === "Some") {
     const _t_0 = _found_0["value"];
@@ -4269,10 +4302,6 @@ function $CollectionState$contains$(_id_0, _items_0) {
   }
 }
 
-function $Nat$is_ge$(_a_0, _b_0) {
-  return $Cmp$is_ge$(cmp_new(_a_0, _b_0));
-}
-
 function $Cmp$is_gt$(_c_0) {
   if (_c_0.$ === "LT") {
     return false;
@@ -4737,6 +4766,16 @@ function $Canonical$cleanup_closed$(_state_0, _result_0) {
     }
   } else {
     return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": __0, "collection": _collection_0}, "commands": {$: "Con", "head": {$: "Canonical.CleanupBusy"}, "tail": {$: "Nil"}}};
+  }
+}
+
+function $Cmp$is_ge$(_c_0) {
+  if (_c_0.$ === "LT") {
+    return false;
+  } else if (_c_0.$ === "EQ") {
+    return true;
+  } else {
+    return true;
   }
 }
 
@@ -5595,16 +5634,6 @@ function $Canonical$end_scope_valid$(_found_0, _partition_0, _lifetime_0, _round
     return $Canonical$same_round$(_partition_0, _lifetime_0, _round_0, _current_0);
   } else {
     return false;
-  }
-}
-
-function $Cmp$is_ge$(_c_0) {
-  if (_c_0.$ === "LT") {
-    return false;
-  } else if (_c_0.$ === "EQ") {
-    return true;
-  } else {
-    return true;
   }
 }
 

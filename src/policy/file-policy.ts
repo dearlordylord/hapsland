@@ -8,6 +8,7 @@ import {
   matchesAnyGlob,
   normalizeRepositoryPath,
 } from "../matcher/glob.ts";
+import { selectFile } from "../configuration/decision.ts";
 
 const allowedExtensions = new Set([
   ".c", ".cc", ".cpp", ".cs", ".css", ".go", ".h", ".hpp", ".html", ".java",
@@ -77,36 +78,23 @@ export const selectGlobalPath = (
     ? []
     : matching([...policy.excludes, ...policy.protectedExcludes], value);
   const gate = protectedPathReason(path);
-  if (value === undefined || gate === "repository-boundary") {
-    return {
-      path,
-      selected: false,
-      reason: "protected",
-      gate: "repository-boundary",
-      matchingIncludes,
-      matchingExcludes,
-    };
-  }
-  if (gate !== undefined) {
-    return {
-      path: value,
-      selected: false,
-      reason: "protected",
-      gate,
-      matchingIncludes,
-      matchingExcludes,
-    };
-  }
-  if (matchingExcludes.length > 0) {
-    return { path: value, selected: false, reason: "excluded", matchingIncludes, matchingExcludes };
-  }
-  if (policy.includes.length === 0) {
-    return { path: value, selected: false, reason: "empty-includes", matchingIncludes, matchingExcludes };
-  }
-  if (matchingIncludes.length === 0) {
-    return { path: value, selected: false, reason: "not-included", matchingIncludes, matchingExcludes };
-  }
-  return { path: value, selected: true, reason: "selected", matchingIncludes, matchingExcludes };
+  const reason = selectFile({
+    protected: gate !== undefined,
+    excluded: matchingExcludes.length > 0,
+    includesEmpty: policy.includes.length === 0,
+    included: matchingIncludes.length > 0,
+  });
+  if (reason === "protected") return {
+    path: value ?? path, selected: false, reason,
+    gate: gate ?? "repository-boundary", matchingIncludes, matchingExcludes,
+  };
+  return {
+    path: value ?? path,
+    selected: reason === "selected",
+    reason,
+    matchingIncludes,
+    matchingExcludes,
+  } as SelectionDecision;
 };
 
 export const originLabel = (value: ConfigurationOrigin): string =>

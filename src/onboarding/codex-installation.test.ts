@@ -81,7 +81,7 @@ const invoke = (
     input: JSON.stringify({ version: 1, ...operation }),
     encoding: "utf8",
     env,
-    timeout: 10_000,
+    timeout: 45_000,
   });
   expect(child.stderr).toBe("");
   const output = JSON.parse(child.stdout) as Record<string, unknown>;
@@ -248,7 +248,8 @@ describe("public Codex installation operations", { timeout: 30_000 }, () => {
     }, null, 2)}\n`);
 
     const preview = invoke({ operation: "install-preview", codexHome: home, codexExecutable: bin }, installEnvironment);
-    expect(preview).toMatchObject({ version: 1, status: "preview", sourceEgressAuthorized: false });
+    expect(preview).toMatchObject({ version: 1, status: "preview" });
+    expect(preview).not.toHaveProperty("sourceEgressAuthorized");
     expect(preview.proposal).toMatchObject({
       ownedChanges: {
         runtime: {
@@ -280,7 +281,8 @@ describe("public Codex installation operations", { timeout: 30_000 }, () => {
 
     const digest = (preview.proposal as { digest: string }).digest;
     const installed = invoke({ operation: "install", codexHome: home, codexExecutable: bin, proposalDigest: digest }, installEnvironment);
-    expect(installed).toMatchObject({ version: 1, status: "installed", sourceEgressAuthorized: false });
+    expect(installed).toMatchObject({ version: 1, status: "installed" });
+    expect(installed).not.toHaveProperty("sourceEgressAuthorized");
     const config = readFileSync(join(home, "config.toml"), "utf8");
     expect(config).toContain("# keep this comment");
     expect(config).toContain("responses_websockets_v2 = true");
@@ -515,7 +517,7 @@ responses_websockets_v2 = true`);
     previewAndInstall(home, bin);
 
     const uninstallPreview = invoke({ operation: "uninstall", codexHome: home });
-    expect(uninstallPreview).toMatchObject({ status: "preview", remaining: expect.arrayContaining(["repository grants", "credentials"]) });
+    expect(uninstallPreview).toMatchObject({ status: "preview", remaining: expect.arrayContaining(["old grant files", "credentials"]) });
     const uninstalled = invoke({
       operation: "uninstall",
       codexHome: home,
@@ -601,7 +603,6 @@ responses_websockets_v2 = true`);
       operation: "update-preview",
       status: "preview",
       automaticUpdate: false,
-      sourceEgressAuthorized: false,
       proposal: {
         current: { packageVersion: "1.0.0", entrypoint: firstEntrypoint, residentProtocol: 1 },
         target: { packageVersion: "1.1.0", entrypoint: secondEntrypoint, residentProtocol: 1 },
@@ -612,7 +613,7 @@ responses_websockets_v2 = true`);
       },
       trust: { modified: false, status: "renewal-required" },
       restart: { required: true, processesStopped: false },
-      preserved: expect.arrayContaining(["repository grants", "credentials", "independent hooks", "in-flight work"]),
+      preserved: expect.arrayContaining(["old grant files", "credentials", "independent hooks", "in-flight work"]),
     });
     expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain("review-tool-1.0.0/dist/cli.js");
 

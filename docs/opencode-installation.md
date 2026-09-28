@@ -2,7 +2,7 @@
 
 Hapsland's OpenCode adapter targets the exact `1.14.44` global plugin API. The plugin listens to `tool.execute.after` for direct `edit` and `write` calls. It sends an attributed event to the local Hapsland CLI, waits within the hook's 4.5 second watchdog, and appends a ready finding to that tool's output. The observed 1.14.44 probe showed appended output in the next local provider request for both tools. That probe did **not** observe a real model reacting to a finding, so this path is pending support validation.
 
-The adapter requires a session ID, call ID, named file, current file evidence, and an eligible semantic root. It skips ambiguous input quietly. The local plugin runs with the user's filesystem privileges. Host plugin loading and per-repository source-egress consent are separate decisions.
+The adapter requires a session ID, call ID, named file, current file evidence, and an eligible semantic root. It skips ambiguous input quietly. The local plugin runs with the user's filesystem privileges. Effective file settings select otherwise eligible files when Jev credentials are available.
 
 | OpenCode 1.14.44 event | Adapter result |
 | --- | --- |
@@ -14,7 +14,7 @@ The adapter requires a session ID, call ID, named file, current file evidence, a
 
 ## Installation operations
 
-Use the versioned installation operation in the Hapsland CLI with `host: "opencode"` and `opencodeConfigHome` when a nondefault XDG configuration location is desired. Preview returns a digest and the exact paths that will change. Pass that digest to install, update, or uninstall. Doctor is read-only and reports host version, runtime, owned plugin integrity, plugin-loading uncertainty, and separate repository consent.
+Use the versioned installation operation in the Hapsland CLI with `host: "opencode"` and `opencodeConfigHome` when a nondefault XDG configuration location is desired. Preview returns a digest and the exact paths that will change. Pass that digest to install, update, or uninstall. Doctor is read-only and reports host version, runtime, owned plugin integrity, plugin-loading uncertainty, file settings, and credential accessibility.
 
 ```sh
 printf '%s\n' '{"version":1,"operation":"install-preview","host":"opencode"}' | hapsland --install-preview
@@ -23,11 +23,11 @@ printf '%s\n' '{"version":1,"operation":"install","host":"opencode","proposalDig
 printf '%s\n' '{"version":1,"operation":"doctor","host":"opencode","cwd":"."}' | hapsland --doctor
 ```
 
-For an update, use `update-preview` followed by `update` with its fresh digest. For removal, call `uninstall` without a digest to preview, then repeat with that preview's digest. The request `cwd` for doctor identifies the repository; consent readiness remains a separate check.
+For an update, use `update-preview` followed by `update` with its fresh digest. For removal, call `uninstall` without a digest to preview, then repeat with that preview's digest. The request `cwd` for doctor identifies the repository.
 
 The installer owns only `plugins/hapsland.mjs` and `.realtime-review-tool/opencode-installation-v1.json` under the OpenCode configuration directory. It preserves every other plugin and config file. A preexisting plugin at the owned path, missing ownership record, or local modification causes a conflict. Update replaces the owned plugin after a fresh preview. Uninstall removes only the owned plugin and record. A global plugin may load alongside other plugins; installing another copy through project configuration is outside this installer and should be checked during host validation.
 
-Use a normal OpenCode session to confirm host plugin loading. `--pure` is unsupported. No source is sent to Jev until the repository's Hapsland consent and rule policy admit it.
+Use a normal OpenCode session to confirm host plugin loading. `--pure` is unsupported. Source is sent to Jev only for attributed, selected, otherwise eligible files when credentials are available.
 
 ## Validation status
 

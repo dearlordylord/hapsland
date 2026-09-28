@@ -200,6 +200,7 @@ try {
   const baseEnvironment = {
     ...process.env,
     REVIEW_STATE_PATH: join(stateRoot, "consent"),
+    REVIEW_USER_CONFIG_PATH: join(stateRoot, "user.jsonc"),
     REVIEW_CREDENTIAL_STATE_PATH: join(stateRoot, "credential-state.json"),
     REVIEW_CONTROL_JSON: JSON.stringify({ capturePath }),
   };
@@ -217,9 +218,8 @@ try {
   "unexecutable credential helper did not produce a bounded setup result");
 
   const handoff = await invokeSetup(cli, repository, baseEnvironment, baseRequest, 6, "noninteractive handoff");
-  expect(handoff.status === "needs-user-action", "missing secret/consent did not need user action");
+  expect(handoff.status === "needs-user-action", "missing secret or installation approval did not need user action");
   expect(handoff.actions.some((action) => action.code === "provide-credential"), "missing secret handoff was absent");
-  expect(handoff.actions.some((action) => action.code === "approve-repository-consent"), "consent handoff was absent");
   expect(handoff.actions.length <= 4, "noninteractive handoff was unbounded");
   const installationProposal = handoff.stages.find((stage) => stage.stage === "installation")?.observed?.proposal;
   expect(Array.isArray(installationProposal?.changes) && installationProposal.changes.every((change) =>
@@ -233,10 +233,9 @@ try {
     typeof installationProposal?.ownedChanges?.ownership?.file === "string",
   "setup omitted exact owned runtime, hook, or ownership changes");
   const installProposalDigest = actionDigest(handoff, "approve-installation", "installProposalDigest");
-  const consentProposalDigest = actionDigest(handoff, "approve-repository-consent", "consentProposalDigest");
-  expect(typeof installProposalDigest === "string" && typeof consentProposalDigest === "string", "setup approvals were absent");
+  expect(typeof installProposalDigest === "string", "installation approval was absent");
 
-  const authorizedRequest = { ...baseRequest, installProposalDigest, consentProposalDigest };
+  const authorizedRequest = { ...baseRequest, installProposalDigest };
   const authorizedEnvironment = { ...baseEnvironment, TYPESAFE_API_KEY: "package-setup-environment-secret" };
   const interrupted = await invokeSetup(cli, repository, {
     ...authorizedEnvironment,
@@ -247,11 +246,11 @@ try {
 
   const resumed = await invokeSetup(cli, repository, authorizedEnvironment, authorizedRequest, 6, "resumed setup");
   expect(resumed.stages.some((stage) => stage.stage === "installation" && stage.status === "complete"), "installation did not resume");
-  expect(resumed.stages.some((stage) => stage.stage === "repository" && stage.status === "complete"), "repository consent was not completed");
+  expect(resumed.stages.some((stage) => stage.stage === "repository" && stage.status === "complete"), "file settings were not loaded");
   const repeated = await invokeSetup(cli, repository, authorizedEnvironment, authorizedRequest, 6, "repeated setup");
   expect(!JSON.stringify([interrupted, resumed, repeated]).includes("package-setup-environment-secret"), "setup disclosed the environment credential");
   expect(repeated.stages.some((stage) => stage.stage === "installation" && stage.summary.includes("already installed")), "repeat setup did not reuse installation");
-  expect(repeated.stages.some((stage) => stage.stage === "repository" && stage.summary.includes("consent remains valid")), "repeat setup did not reuse consent");
+  expect(repeated.stages.some((stage) => stage.stage === "repository" && stage.summary.includes("file settings loaded")), "repeat setup did not reload file settings");
   const hooks = JSON.parse(await readFile(join(codexHome, "hooks.json"), "utf8"));
   expect(hooks.hooks.PostToolUse.length === 1, "repeat setup duplicated the owned hook");
 
@@ -281,13 +280,12 @@ try {
     operation: "demo",
     selection: "live",
     demoId: demoPreview.demo.id,
-    selectionDigest: demoPreview.authorization.selectionDigest,
-    consentProposalDigest: "0".repeat(64),
+    selectionDigest: "0".repeat(64),
     codexHome,
     codexExecutable,
-  }, 4, "mismatched disposable-root consent");
+  }, 4, "mismatched disposable-root selection");
   expect(mismatchedDemo.status === "proposal-mismatch" && mismatchedDemo.providerCalls === 0 &&
-    mismatchedDemo.paidVerificationPerformed === false, "mismatched demo consent crossed the live boundary");
+    mismatchedDemo.paidVerificationPerformed === false, "mismatched demo selection crossed the live boundary");
   const cancelledDemo = await invokeDemo(cli, repository, {
     ...authorizedEnvironment,
     REVIEW_DEMO_STATE_PATH: join(stateRoot, "demos"),
@@ -303,6 +301,7 @@ try {
     () => { throw new Error("cancelled demo retained its disposable root"); },
     () => undefined,
   );
+  await writeFile(join(stateRoot, "user.jsonc"), JSON.stringify({ version: 1, excludes: ["**/*"] }));
 
   const partialHome = join(temporary, "partial-codex-home");
   await mkdir(partialHome, { recursive: true });
@@ -320,7 +319,7 @@ try {
     REVIEW_INSTALL_FAIL_AFTER_WRITES: "1",
   }, { ...partialDisabledRequest, installProposalDigest: partialDigest }, 5, "partial installation disable");
   expect(partialDisabled.stages.some((stage) => stage.stage === "installation" && stage.status === "partial"), "partial installation was not reported");
-  expect(partialDisabled.stages.some((stage) => stage.stage === "repository" && stage.status === "complete"), "active consent survived a partial installation disable request");
+  expect(partialDisabled.stages.some((stage) => stage.stage === "repository" && stage.status === "complete"), "user exclude-all was not preserved during partial installation");
 
   const disabled = await invokeSetup(cli, repository, authorizedEnvironment, {
     ...baseRequest,
@@ -344,7 +343,6 @@ else if (operation === "probe") console.log('{"status":"available"}');
   await writeFile(requestPath, JSON.stringify({
     ...baseRequest,
     credential: "saved",
-    consentProposalDigest,
     interactive: true,
   }));
   const interactiveEnvironment = {
@@ -371,6 +369,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
     ...interactiveEnvironment,
     TEST_SECRET_VAULT: pilotVault,
     REVIEW_STATE_PATH: pilotState,
+    REVIEW_USER_CONFIG_PATH: join(stateRoot, "pilot-user.jsonc"),
     REVIEW_CREDENTIAL_STATE_PATH: join(stateRoot, "pilot-credential-state.json"),
   };
   const pilotMarker = "package-guided-pilot-secret";
@@ -378,17 +377,13 @@ else if (operation === "probe") console.log('{"status":"available"}');
   const declinedPilot = await runGuidedPilot(cli, pilotRepository, pilotEnvironment, pilotHome, pilotCodexExecutable, [
     { prompt: "Install these entries", value: "y" },
     { prompt: "Jev API key:", value: pilotMarker },
-    { prompt: "Enable review for this repository", value: "n" },
   ]);
   expect(declinedPilot.includes(`Jev key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}`),
     "guided login did not confirm credential storage");
   expect(declinedPilot.includes("No paid verification or review was sent"), "guided login overstated verification");
-  expect(declinedPilot.includes("Repository review remains disabled"), "declined consent was unclear");
   expect(!declinedPilot.includes(pilotMarker), "guided credential appeared in terminal output");
   expect(await readFile(pilotVault, "utf8") === pilotMarker, "guided credential was not saved");
-  const approvedPilot = await runGuidedPilot(cli, pilotRepository, pilotEnvironment, pilotHome, pilotCodexExecutable, [
-    { prompt: "Enable review for this repository", value: "y" },
-  ]);
+  const approvedPilot = await runGuidedPilot(cli, pilotRepository, pilotEnvironment, pilotHome, pilotCodexExecutable, []);
   expect(approvedPilot.includes("Offline readiness: unknown"), "guided pilot overstated native trust");
   expect(approvedPilot.includes("native trust or hook review prompt"), "guided pilot omitted trust handoff");
   expect(!approvedPilot.includes(pilotMarker), "guided rerun disclosed saved credential");

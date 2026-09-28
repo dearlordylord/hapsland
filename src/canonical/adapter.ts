@@ -134,6 +134,9 @@ export type CanonicalEvent =
   | { readonly kind: "cleanupCheck"; readonly facts: CleanupFacts }
   | { readonly kind: "cleanupCommit" }
   | { readonly kind: "deliveryReleaseCheck"; readonly acknowledged: boolean }
+  | { readonly kind: "includeLayerCheck"; readonly supplied: boolean; readonly currentRank: number; readonly candidateRank: number }
+  | { readonly kind: "fileSelectionCheck"; readonly protected: boolean; readonly excluded: boolean; readonly includesEmpty: boolean; readonly included: boolean }
+  | { readonly kind: "reviewAdmissionCheck"; readonly rootValid: boolean; readonly configurationValid: boolean; readonly credentialReady: boolean; readonly selected: boolean }
   | { readonly kind: "reuseRoute"; readonly id: number; readonly liveAdvice: boolean }
   | { readonly kind: "reuseClaim" | "reuseAttach" | "reuseRelease" | "reuseTouch"; readonly id: number }
   | { readonly kind: "cachePrepare"; readonly id: number; readonly bytes: number; readonly entryLimit: number; readonly byteLimit: number }
@@ -211,6 +214,9 @@ export type CanonicalCommand =
   | { readonly kind: "noticeSuppressed" | "noticeCreatePending" | "noticeMergePending"; readonly count: number }
   | { readonly kind: "noticePruned"; readonly dropLease: boolean; readonly dropPending: boolean; readonly dropKey: boolean }
   | { readonly kind: "noticeSelected"; readonly ids: readonly number[] }
+  | { readonly kind: "includeChoice"; readonly choice: "replaceIncludes" | "keepIncludes" }
+  | { readonly kind: "fileSelection"; readonly selection: "protected" | "excluded" | "emptyIncludes" | "notIncluded" | "selected" }
+  | { readonly kind: "reviewAdmission"; readonly admission: "admitReview" | "refuseRoot" | "refuseConfiguration" | "refuseCredential" | "refuseSelection" }
   | { readonly kind: "noticeRejectedFull" | "noticeCreateKey" | "noticeKeepLeased" | "noticeRefused" | "noticeCommitted" | "noticeDropped" | "noticeLeased" | "noticePendingCleared" }
   | { readonly kind: "writeAuthorized"; readonly operation: number }
   | { readonly kind: "writeRecorded"; readonly outcome: "acknowledged" | "failed" | "unknown" }
@@ -386,6 +392,9 @@ const encode = (event: CanonicalEvent): unknown => {
     }
     case "cleanupCommit": inputFields(event, ["kind"]); return { $: "Canonical.CleanupCommit" };
     case "deliveryReleaseCheck": inputFields(event, ["kind", "acknowledged"]); return { $: "Canonical.DeliveryReleaseCheck", acknowledged: bool(event.acknowledged) };
+    case "includeLayerCheck": inputFields(event, ["kind", "supplied", "currentRank", "candidateRank"]); return { $: "Canonical.IncludeLayerCheck", supplied: bool(event.supplied), current_rank: nat(event.currentRank), candidate_rank: nat(event.candidateRank) };
+    case "fileSelectionCheck": inputFields(event, ["kind", "protected", "excluded", "includesEmpty", "included"]); return { $: "Canonical.FileSelectionCheck", protected: bool(event.protected), excluded: bool(event.excluded), includes_empty: bool(event.includesEmpty), included: bool(event.included) };
+    case "reviewAdmissionCheck": inputFields(event, ["kind", "rootValid", "configurationValid", "credentialReady", "selected"]); return { $: "Canonical.ReviewAdmissionCheck", root_valid: bool(event.rootValid), configuration_valid: bool(event.configurationValid), credential_ready: bool(event.credentialReady), selected: bool(event.selected) };
     case "reuseRoute": inputFields(event, ["kind", "id", "liveAdvice"]); return { $: "Canonical.ReuseRoute", id: nat(event.id, true), live_advice: bool(event.liveAdvice) };
     case "reuseClaim": case "reuseAttach": case "reuseRelease": case "reuseTouch": inputFields(event, ["kind", "id"]); return { $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`, id: nat(event.id, true) };
     case "cachePrepare": inputFields(event, ["kind", "id", "bytes", "entryLimit", "byteLimit"]); return { $: "Canonical.CachePrepare", id: nat(event.id, true), bytes: nat(event.bytes), entry_limit: nat(event.entryLimit, true), byte_limit: nat(event.byteLimit, true) };
@@ -629,6 +638,29 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
       return { kind: "noticePruned", dropLease: bool(item.drop_lease), dropPending: bool(item.drop_pending), dropKey: bool(item.drop_key) };
     }
     case "Canonical.NoticeSelected": return { kind: "noticeSelected", ids: readList(fields(value, "Canonical.NoticeSelected", ["ids"]).ids, (id) => nat(id, true)) };
+    case "Canonical.IncludeChoice": {
+      const choice = fields(value, "Canonical.IncludeChoice", ["choice"]).choice;
+      const name = tag(choice);
+      if (name !== "Configuration.ReplaceIncludes" && name !== "Configuration.KeepIncludes") throw new TypeError("invalid include choice");
+      fields(choice, name, []);
+      return { kind: "includeChoice", choice: name === "Configuration.ReplaceIncludes" ? "replaceIncludes" : "keepIncludes" };
+    }
+    case "Canonical.FileSelection": {
+      const selection = fields(value, "Canonical.FileSelection", ["selection"]).selection;
+      const names = ["Protected", "Excluded", "EmptyIncludes", "NotIncluded", "Selected"];
+      const name = tag(selection);
+      if (!names.some((item) => name === `Configuration.${item}`)) throw new TypeError("invalid file selection");
+      fields(selection, name, []);
+      return { kind: "fileSelection", selection: name.slice("Configuration.".length).replace(/^./, (first) => first.toLowerCase()) as "protected" | "excluded" | "emptyIncludes" | "notIncluded" | "selected" };
+    }
+    case "Canonical.ReviewAdmission": {
+      const admission = fields(value, "Canonical.ReviewAdmission", ["admission"]).admission;
+      const names = ["AdmitReview", "RefuseRoot", "RefuseConfiguration", "RefuseCredential", "RefuseSelection"];
+      const name = tag(admission);
+      if (!names.some((item) => name === `Configuration.${item}`)) throw new TypeError("invalid review admission");
+      fields(admission, name, []);
+      return { kind: "reviewAdmission", admission: name.slice("Configuration.".length).replace(/^./, (first) => first.toLowerCase()) as "admitReview" | "refuseRoot" | "refuseConfiguration" | "refuseCredential" | "refuseSelection" };
+    }
     case "Canonical.NoticeRejectedFull": case "Canonical.NoticeCreateKey": case "Canonical.NoticeKeepLeased":
     case "Canonical.NoticeRefused": case "Canonical.NoticeCommitted": case "Canonical.NoticeDropped":
     case "Canonical.NoticeLeased": case "Canonical.NoticePendingCleared": {
