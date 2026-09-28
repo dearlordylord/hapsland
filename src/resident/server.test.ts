@@ -349,7 +349,8 @@ describe("resident delivery lease", () => {
       expect(decision.findingCount).toBe(1);
       expect(server.stats().pendingEvaluations).toBe(0);
       expect(server.beginComposedSubmission(decision.token, "stop").status).toBe("submitting");
-      server.acknowledge(decision.token); server.finalize(decision.token);
+      expect(server.acknowledge(decision.token).status).toBe("acknowledged");
+      expect(server.finalize(decision.token).status).toBe("finalized");
       await server.handle({ version: 1, operation: "finish-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "finish", close: false });
       gate.resolve(); hold = false;
@@ -395,7 +396,8 @@ describe("resident delivery lease", () => {
       expect((await server.handle(request)).status).toBe("empty");
       expect(server.beginComposedSubmission(decision.token, "stop").status).toBe("submitting");
       expect(server.beginComposedSubmission(decision.token, "stop").status).toBe("empty");
-      server.acknowledge(decision.token); server.finalize(decision.token);
+      expect(server.acknowledge(decision.token).status).toBe("acknowledged");
+      expect(server.finalize(decision.token).status).toBe("finalized");
       await server.handle({ version: 1, operation: "finish-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "finish", close: false });
       await server.handle({ version: 1, operation: "begin-stop", lifetime: server.lifetime,
@@ -916,6 +918,46 @@ describe("resident delivery lease", () => {
     expect(collected.status).toBe("advice");
     if (collected.status === "advice") {
       expect(claudeHostOutputText(collected.output)).toContain("first.ts");
+    }
+  });
+
+  it("refuses a prepared two-advice Stop output when one advice expires before submission", async () => {
+    const root = await makeGitFixture();
+    await put(root, "a.ts", "type ACount = number\n");
+    await put(root, "b.ts", "type BCount = number\n");
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const first = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"], {
+      tool_use_id: "first", turn_id: "same-turn",
+    })));
+    const second = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["b.ts"], {
+      tool_use_id: "second", turn_id: "same-turn",
+    })));
+    if (first === undefined || second === undefined) throw new Error("missing fixture observation");
+    let now = 0;
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => now);
+    const dispatch = findingDispatch(statePath);
+    try {
+      expect(server.admit(first, dispatch, false, true).status).toBe("accepted");
+      await server.whenIdle();
+      now = Math.floor(PENDING_ADVICE_EXPIRY_MS / 2);
+      expect(server.admit(second, dispatch, false, true).status).toBe("accepted");
+      await server.whenIdle();
+      expect(server.stats().pendingAdvice).toBe(2);
+      expect(await server.handle({ version: 1, operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: first.advicee, token: "finish" })).toEqual({ status: "advanced" });
+      const selected = await server.handle({ version: 1, operation: "collect", lifetime: server.lifetime,
+        root, advicee: first.advicee, dispatch, mode: "turn-end", composed: true,
+        finish: { token: "finish", deadlineReached: true } });
+      expect(selected.status).toBe("advice");
+      if (selected.status !== "advice") return;
+      expect(selected.findingCount).toBe(2);
+      now = PENDING_ADVICE_EXPIRY_MS + 1;
+      expect(server.beginComposedSubmission(selected.token, "stop")).toEqual({ status: "empty" });
+      expect(server.acknowledge(selected.token)).toEqual({ status: "empty" });
+      expect(server.pendingAdviceMetadata().map(({ path }) => path)).toEqual(["b.ts"]);
+    } finally {
+      await server.close();
     }
   });
 

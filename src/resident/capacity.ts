@@ -34,7 +34,7 @@ type ResidentTransition = Extract<CanonicalEvent, { readonly kind:
   "openRound" | "admitObservation" | "startObservation" | "completeObservation" |
   "interruptObservation" | "beginObservedPreparation" | "interruptPreparation" |
   "preparationCompleted" | "startReview" | "reviewCompleted" | "retireReview" |
-  "retirePartition" | "reviewObserved" | "preparedOfferCheck" |
+  "retirePartition" | "reviewObserved" | "findingCountUpdated" | "preparedOfferCheck" |
   "emptyPreparedCheck" | "reviewFailureCheck" | "queueDispatch" |
   "dispatchSettled" | "discardDispatch" | "dispatchScopeCheck" | "closeDispatch" |
   "stopGroupPolled" | "stopGroupEnded" |
@@ -42,7 +42,12 @@ type ResidentTransition = Extract<CanonicalEvent, { readonly kind:
   "collectionOrderCheck" | "collectionExpiryCheck" | "collectionFindingCheck" | "collectionNoticeCheck" |
   "collectionFitCheck" | "collectionReserveLease" | "collectionReleaseLease" | "collectionLeaseCheck" |
   "collectionRetireAdvice" | "collectionClaimBackground" |
-  "collectionReleaseBackground" | "collectionExpireBackground" }>;
+  "collectionReleaseBackground" | "collectionExpireBackground" |
+  "finishReserve" | "finishRelease" | "finishAuthorize" | "finishTerminal" |
+  "finishEnd" | "continuationConsume" |
+  "submissionBegin" | "submissionAuthorize" | "submissionTerminal" |
+  "submissionRelease" | "submissionForget" | "submissionSuppressCheck" |
+  "submissionReofferCheck" | "submissionExpiryCheck" }>;
 
 const defaultLimits: CapacityLimits = {
   globalItems: GLOBAL_ITEM_LIMIT,

@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:6ace7c1709f09058b75fe6de7eccfe08af0d90d8916badcf80689748656ba96f
+// hapsland-bend-source-sha256:545d6c3a27b240a3ef268e1d4eb3ef7a2c6060ddf947a0daa21f954be99856f3
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -297,18 +297,25 @@ function $Canonical$step$(_state_0, _event_0) {
     const _outcome_1 = _event_0["outcome"];
     const _current_work_0 = _event_0["current_work"];
     return $Canonical$review_observed$(_state_0, _partition_18, _lifetime_17, _round_12, _operation_5, _outcome_1, _current_work_0);
-  } else if (_event_0.$ === "Canonical.QueueDispatch") {
+  } else if (_event_0.$ === "Canonical.FindingCountUpdated") {
     const _partition_19 = _event_0["partition"];
     const _lifetime_18 = _event_0["lifetime"];
     const _round_13 = _event_0["round"];
     const _operation_6 = _event_0["operation"];
-    return $Canonical$queue_dispatch$(_state_0, _partition_19, _lifetime_18, _round_13, _operation_6);
-  } else if (_event_0.$ === "Canonical.DispatchSettled") {
+    const _count_0 = _event_0["count"];
+    return $Canonical$finding_count_update$(_state_0, _partition_19, _lifetime_18, _round_13, _operation_6, _count_0);
+  } else if (_event_0.$ === "Canonical.QueueDispatch") {
     const _partition_20 = _event_0["partition"];
     const _lifetime_19 = _event_0["lifetime"];
     const _round_14 = _event_0["round"];
     const _operation_7 = _event_0["operation"];
-    return $Canonical$settle_dispatch$(_state_0, _partition_20, _lifetime_19, _round_14, _operation_7);
+    return $Canonical$queue_dispatch$(_state_0, _partition_20, _lifetime_19, _round_14, _operation_7);
+  } else if (_event_0.$ === "Canonical.DispatchSettled") {
+    const _partition_21 = _event_0["partition"];
+    const _lifetime_20 = _event_0["lifetime"];
+    const _round_15 = _event_0["round"];
+    const _operation_8 = _event_0["operation"];
+    return $Canonical$settle_dispatch$(_state_0, _partition_21, _lifetime_20, _round_15, _operation_8);
   } else if (_event_0.$ === "Canonical.DiscardDispatch") {
     const _operations_0 = _event_0["operations"];
     return $Canonical$discard_dispatch$(_state_0, _operations_0);
@@ -334,26 +341,26 @@ function $Canonical$step$(_state_0, _event_0) {
     const _missing_0 = _event_0["missing"];
     return $Canonical$review_failure_check$(_state_0, _backend_or_timeout_0, _credential_0, _missing_0);
   } else if (_event_0.$ === "Canonical.StopPolled") {
-    const _partition_21 = _event_0["partition"];
-    const _lifetime_20 = _event_0["lifetime"];
-    const _round_15 = _event_0["round"];
-    const _deadline_1 = _event_0["deadline"];
-    return $Canonical$stop$(_state_0, _partition_21, _lifetime_20, _round_15, _deadline_1);
-  } else if (_event_0.$ === "Canonical.StopGroupPolled") {
-    const _group_0 = _event_0["group"];
+    const _partition_22 = _event_0["partition"];
     const _lifetime_21 = _event_0["lifetime"];
     const _round_16 = _event_0["round"];
+    const _deadline_1 = _event_0["deadline"];
+    return $Canonical$stop$(_state_0, _partition_22, _lifetime_21, _round_16, _deadline_1);
+  } else if (_event_0.$ === "Canonical.StopGroupPolled") {
+    const _group_0 = _event_0["group"];
+    const _lifetime_22 = _event_0["lifetime"];
+    const _round_17 = _event_0["round"];
     const _scopes_0 = _event_0["scopes"];
     const _deadline_2 = _event_0["deadline"];
     const _extra_pending_0 = _event_0["extra_pending"];
     const _continuations_0 = _event_0["continuations"];
-    return $Canonical$stop_group$(_state_0, _group_0, _lifetime_21, _round_16, _scopes_0, _deadline_2, _extra_pending_0, _continuations_0);
+    return $Canonical$stop_group$(_state_0, _group_0, _lifetime_22, _round_17, _scopes_0, _deadline_2, _extra_pending_0, _continuations_0);
   } else if (_event_0.$ === "Canonical.StopGroupEnded") {
     const _group_1 = _event_0["group"];
-    const _lifetime_22 = _event_0["lifetime"];
-    const _round_17 = _event_0["round"];
+    const _lifetime_23 = _event_0["lifetime"];
+    const _round_18 = _event_0["round"];
     const _scopes_1 = _event_0["scopes"];
-    return $Canonical$stop_group_end$(_state_0, _group_1, _lifetime_22, _round_17, _scopes_1);
+    return $Canonical$stop_group_end$(_state_0, _group_1, _lifetime_23, _round_18, _scopes_1);
   } else if (_event_0.$ === "Canonical.CollectionReady") {
     const _advice_0 = _event_0["advice"];
     const _already_0 = _event_0["already"];
@@ -380,8 +387,8 @@ function $Canonical$step$(_state_0, _event_0) {
     return $Canonical$collection_order_result$(_state_0, ($Collection$order$(_left_cycle_0, _left_sequence_0, _right_cycle_0, _right_sequence_0)));
   } else if (_event_0.$ === "Canonical.CollectionExpiryCheck") {
     const _elapsed_1 = _event_0["elapsed"];
-    const _lifetime_23 = _event_0["lifetime"];
-    return $Canonical$collection_expiry$(_state_0, _elapsed_1, _lifetime_23);
+    const _lifetime_24 = _event_0["lifetime"];
+    return $Canonical$collection_expiry$(_state_0, _elapsed_1, _lifetime_24);
   } else if (_event_0.$ === "Canonical.CollectionFitCheck") {
     const _items_0 = _event_0["items"];
     const _bytes_5 = _event_0["bytes"];
@@ -390,8 +397,8 @@ function $Canonical$step$(_state_0, _event_0) {
     const _selection_partition_0 = _event_0["selection_partition"];
     const _selection_round_0 = _event_0["selection_round"];
     const _unit_0 = _event_0["unit"];
-    const _partition_22 = _event_0["partition"];
-    const _round_18 = _event_0["round"];
+    const _partition_23 = _event_0["partition"];
+    const _round_19 = _event_0["round"];
     const _snapshot_0 = _event_0["snapshot"];
     const _current_snapshot_0 = _event_0["current_snapshot"];
     const _credential_1 = _event_0["credential"];
@@ -401,7 +408,7 @@ function $Canonical$step$(_state_0, _event_0) {
     const _collection_ready_0 = _event_0["collection_ready"];
     const _selected_count_0 = _event_0["selected_count"];
     const _prospective_bytes_0 = _event_0["prospective_bytes"];
-    return $Canonical$collection_finding$(_state_0, _selection_partition_0, _selection_round_0, _unit_0, _partition_22, _round_18, _snapshot_0, _current_snapshot_0, _credential_1, _current_credential_0, _age_ms_0, _solo_bytes_0, _collection_ready_0, _selected_count_0, _prospective_bytes_0);
+    return $Canonical$collection_finding$(_state_0, _selection_partition_0, _selection_round_0, _unit_0, _partition_23, _round_19, _snapshot_0, _current_snapshot_0, _credential_1, _current_credential_0, _age_ms_0, _solo_bytes_0, _collection_ready_0, _selected_count_0, _prospective_bytes_0);
   } else if (_event_0.$ === "Canonical.CollectionNoticeCheck") {
     const _items_1 = _event_0["items"];
     const _bytes_6 = _event_0["bytes"];
@@ -440,25 +447,111 @@ function $Canonical$step$(_state_0, _event_0) {
     const _group_4 = _event_0["group"];
     const _token_8 = _event_0["token"];
     const _elapsed_2 = _event_0["elapsed"];
-    const _lifetime_24 = _event_0["lifetime"];
-    return $Canonical$collection_expire_background$(_state_0, _group_4, _token_8, _elapsed_2, _lifetime_24);
-  } else if (_event_0.$ === "Canonical.OutputStarted") {
-    const _partition_23 = _event_0["partition"];
     const _lifetime_25 = _event_0["lifetime"];
-    const _round_19 = _event_0["round"];
-    return $Canonical$output_start$(_state_0, _partition_23, _lifetime_25, _round_19);
-  } else if (_event_0.$ === "Canonical.OutputTerminal") {
-    const _partition_24 = _event_0["partition"];
+    return $Canonical$collection_expire_background$(_state_0, _group_4, _token_8, _elapsed_2, _lifetime_25);
+  } else if (_event_0.$ === "Canonical.FinishReserve") {
+    const _group_5 = _event_0["group"];
     const _lifetime_26 = _event_0["lifetime"];
     const _round_20 = _event_0["round"];
-    const _operation_8 = _event_0["operation"];
-    const _outcome_2 = _event_0["outcome"];
-    return $Canonical$output_terminal$(_state_0, _partition_24, _lifetime_26, _round_20, _operation_8, _outcome_2);
-  } else {
-    const _partition_25 = _event_0["partition"];
-    const _lifetime_27 = _event_0["lifetime"];
+    const _attempt_0 = _event_0["attempt"];
+    const _token_9 = _event_0["token"];
+    const _selected_0 = _event_0["selected"];
+    const _has_notice_0 = _event_0["has_notice"];
+    const _pass_notices_0 = _event_0["pass_notices"];
+    const _can_write_0 = _event_0["can_write"];
+    const _binding_valid_0 = _event_0["binding_valid"];
+    const _deadline_reached_1 = _event_0["deadline_reached"];
+    return $Canonical$finish_reserve$(_state_0, _group_5, _lifetime_26, _round_20, _attempt_0, _token_9, _selected_0, _has_notice_0, _pass_notices_0, _can_write_0, _binding_valid_0, _deadline_reached_1);
+  } else if (_event_0.$ === "Canonical.FinishRelease") {
+    const _group_6 = _event_0["group"];
     const _round_21 = _event_0["round"];
-    return $Canonical$retire$(_state_0, _partition_25, _lifetime_27, _round_21);
+    const _attempt_1 = _event_0["attempt"];
+    const _token_10 = _event_0["token"];
+    return $Canonical$finish_release$(_state_0, _group_6, _round_21, _attempt_1, _token_10);
+  } else if (_event_0.$ === "Canonical.FinishAuthorize") {
+    const _group_7 = _event_0["group"];
+    const _round_22 = _event_0["round"];
+    const _attempt_2 = _event_0["attempt"];
+    const _token_11 = _event_0["token"];
+    const _selected_1 = _event_0["selected"];
+    return $Canonical$finish_authorize$(_state_0, _group_7, _round_22, _attempt_2, _token_11, _selected_1);
+  } else if (_event_0.$ === "Canonical.FinishTerminal") {
+    const _group_8 = _event_0["group"];
+    const _round_23 = _event_0["round"];
+    const _attempt_3 = _event_0["attempt"];
+    const _token_12 = _event_0["token"];
+    const _selected_2 = _event_0["selected"];
+    const _outcome_2 = _event_0["outcome"];
+    return $Canonical$finish_terminal$(_state_0, _group_8, _round_23, _attempt_3, _token_12, _selected_2, _outcome_2);
+  } else if (_event_0.$ === "Canonical.FinishEnd") {
+    const _group_9 = _event_0["group"];
+    const _round_24 = _event_0["round"];
+    const _attempt_4 = _event_0["attempt"];
+    const _token_13 = _event_0["token"];
+    return $Canonical$finish_end$(_state_0, _group_9, _round_24, _attempt_4, _token_13);
+  } else if (_event_0.$ === "Canonical.ContinuationConsume") {
+    const _group_10 = _event_0["group"];
+    const _round_25 = _event_0["round"];
+    return $Canonical$continuation_consume$(_state_0, _group_10, _round_25);
+  } else if (_event_0.$ === "Canonical.SubmissionBegin") {
+    const _advice_5 = _event_0["advice"];
+    const _group_11 = _event_0["group"];
+    const _round_26 = _event_0["round"];
+    const _token_14 = _event_0["token"];
+    const _surface_0 = _event_0["surface"];
+    const _authorize_now_0 = _event_0["authorize_now"];
+    const _fingerprints_0 = _event_0["fingerprints"];
+    const _units_0 = _event_0["units"];
+    return $Canonical$submission_begin$(_state_0, _advice_5, _group_11, _round_26, _token_14, _surface_0, _authorize_now_0, _fingerprints_0, _units_0);
+  } else if (_event_0.$ === "Canonical.SubmissionAuthorize") {
+    const _advice_6 = _event_0["advice"];
+    const _token_15 = _event_0["token"];
+    return $Canonical$submission_authorize$(_state_0, _advice_6, _token_15);
+  } else if (_event_0.$ === "Canonical.SubmissionTerminal") {
+    const _advice_7 = _event_0["advice"];
+    const _token_16 = _event_0["token"];
+    const _certain_0 = _event_0["certain"];
+    return $Canonical$submission_terminal$(_state_0, _advice_7, _token_16, _certain_0);
+  } else if (_event_0.$ === "Canonical.SubmissionRelease") {
+    const _advice_8 = _event_0["advice"];
+    const _token_17 = _event_0["token"];
+    return $Canonical$submission_release$(_state_0, _advice_8, _token_17);
+  } else if (_event_0.$ === "Canonical.SubmissionForget") {
+    const _advice_9 = _event_0["advice"];
+    return $Canonical$submission_forget$(_state_0, _advice_9);
+  } else if (_event_0.$ === "Canonical.SubmissionSuppressCheck") {
+    const _advice_10 = _event_0["advice"];
+    const _fingerprint_0 = _event_0["fingerprint"];
+    const _round_27 = _event_0["round"];
+    const _surface_1 = _event_0["surface"];
+    return $Canonical$submission_suppress_check$(_state_0, _advice_10, _fingerprint_0, _round_27, _surface_1);
+  } else if (_event_0.$ === "Canonical.SubmissionReofferCheck") {
+    const _advice_11 = _event_0["advice"];
+    const _token_18 = _event_0["token"];
+    return $Canonical$submission_reoffer_check$(_state_0, _advice_11, _token_18);
+  } else if (_event_0.$ === "Canonical.SubmissionExpiryCheck") {
+    const _advice_12 = _event_0["advice"];
+    const _token_19 = _event_0["token"];
+    const _elapsed_3 = _event_0["elapsed"];
+    const _lifetime_27 = _event_0["lifetime"];
+    return $Canonical$submission_expiry_check$(_state_0, _advice_12, _token_19, _elapsed_3, _lifetime_27);
+  } else if (_event_0.$ === "Canonical.OutputStarted") {
+    const _partition_24 = _event_0["partition"];
+    const _lifetime_28 = _event_0["lifetime"];
+    const _round_28 = _event_0["round"];
+    return $Canonical$output_start$(_state_0, _partition_24, _lifetime_28, _round_28);
+  } else if (_event_0.$ === "Canonical.OutputTerminal") {
+    const _partition_25 = _event_0["partition"];
+    const _lifetime_29 = _event_0["lifetime"];
+    const _round_29 = _event_0["round"];
+    const _operation_9 = _event_0["operation"];
+    const _outcome_3 = _event_0["outcome"];
+    return $Canonical$output_terminal$(_state_0, _partition_25, _lifetime_29, _round_29, _operation_9, _outcome_3);
+  } else {
+    const _partition_26 = _event_0["partition"];
+    const _lifetime_30 = _event_0["lifetime"];
+    const _round_30 = _event_0["round"];
+    return $Canonical$retire$(_state_0, _partition_26, _lifetime_30, _round_30);
   }
 }
 
@@ -682,6 +775,18 @@ function $Canonical$retire_review$(_state_0, _partition_0, _lifetime_0, _round_0
 
 function $Canonical$review_observed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0, _current_work_0) {
   return $Canonical$review_observed_choice$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0, ($Work$evaluated_disposition$(($Canonical$is_finding$(_outcome_0)), _current_work_0)));
+}
+
+function $Canonical$finding_count_update$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _count_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const _work_0 = _state_0["work"];
+  const __2 = _state_0["next_round"];
+  const __3 = _state_0["next_operation"];
+  const __4 = _state_0["admissions"];
+  const __5 = _state_0["dispatch"];
+  const __6 = _state_0["collection"];
+  return $Canonical$finding_count_found$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": _work_0, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": __5, "collection": __6}, _operation_0, _count_0, ($Canonical$find_work$(_partition_0, _lifetime_0, _round_0, _operation_0, _work_0)));
 }
 
 function $Canonical$queue_dispatch$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
@@ -928,6 +1033,180 @@ function $Canonical$collection_expire_background$(_state_0, _group_0, _token_0, 
   return $Canonical$collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, ($CollectionState$expire_claim$(_collection_0, _group_0, _token_0, _elapsed_0, _lifetime_0)), {$: "Canonical.CollectionBackgroundReleased"}, {$: "Canonical.CollectionBackgroundKept"});
 }
 
+function $Canonical$finish_reserve$(_state_0, _group_0, _lifetime_0, _round_0, _attempt_0, _token_0, _selected_0, _has_notice_0, _pass_notices_0, _can_write_0, _binding_valid_0, _deadline_reached_0) {
+  const __0 = _state_0["ledger"];
+  const _rounds_0 = _state_0["rounds"];
+  const _work_0 = _state_0["work"];
+  const __1 = _state_0["next_round"];
+  const __2 = _state_0["next_operation"];
+  const __3 = _state_0["admissions"];
+  const __4 = _state_0["dispatch"];
+  const __5 = _state_0["collection"];
+  return $Bool$pick$(($Bool$not$(_can_write_0)), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": __5}, "commands": {$: "Con", "head": ($Bool$pick$(_deadline_reached_0, {$: "Canonical.FinishAllowedDeadline"}, {$: "Canonical.FinishAllowedNoAdvice"})), "tail": {$: "Nil"}}}, ($Bool$pick$(($Nat$is_eq$(($List$length$(_selected_0)), 0)), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": __5}, "commands": {$: "Con", "head": ($Bool$pick$(($Bool$and$(_has_notice_0, _pass_notices_0)), {$: "Canonical.FinishNotices"}, ($Bool$pick$(_deadline_reached_0, {$: "Canonical.FinishAllowedDeadline"}, {$: "Canonical.FinishAllowedNoAdvice"})))), "tail": {$: "Nil"}}}, ($Bool$pick$(($Bool$and$(_binding_valid_0, ($Bool$and$(($Canonical$deciding_round$(($Canonical$find_round$(_group_0, _rounds_0)), _group_0, _lifetime_0, _round_0)), ($Canonical$selected_pending$(_selected_0, _work_0)))))), ($Canonical$finish_reserve_decision$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": __5}, _group_0, _round_0, _attempt_0, _token_0, _selected_0)), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": __5}, "commands": {$: "Con", "head": {$: "Canonical.FinishAllowedUnavailable"}, "tail": {$: "Nil"}}})))));
+}
+
+function $Canonical$finish_release$(_state_0, _group_0, _round_0, _attempt_0, _token_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return $Canonical$collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, ($CollectionState$finish_release$(_collection_0, _group_0, _round_0, _attempt_0, _token_0)), {$: "Canonical.FinishReleased"}, {$: "Canonical.FinishRefused"});
+}
+
+function $Canonical$finish_authorize$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return $Bool$pick$(($CollectionState$submission_ready$(_collection_0, _group_0, _round_0, _token_0, _selected_0)), ($Canonical$collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, ($CollectionState$finish_authorize$(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)), {$: "Canonical.FinishAuthorized"}, {$: "Canonical.FinishRefused"})), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, "commands": {$: "Con", "head": {$: "Canonical.FinishRefused"}, "tail": {$: "Nil"}}});
+}
+
+function $Canonical$finish_terminal$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, _outcome_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  if (_outcome_0.$ === "Canonical.Acknowledged") {
+    return $Canonical$finish_terminal_result$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, {$: "Canonical.Acknowledged"}, ($CollectionState$finish_terminal$(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, {$: "DeliveryState.Submitted"})));
+  } else if (_outcome_0.$ === "Canonical.Failed") {
+    return $Canonical$finish_terminal_result$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, {$: "Canonical.Failed"}, ($CollectionState$finish_terminal$(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, {$: "DeliveryState.Failed"})));
+  } else {
+    return $Canonical$finish_terminal_result$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, {$: "Canonical.Unknown"}, ($CollectionState$finish_terminal$(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, {$: "DeliveryState.Uncertain"})));
+  }
+}
+
+function $Canonical$finish_end$(_state_0, _group_0, _round_0, _attempt_0, _token_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return $Canonical$collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, ($CollectionState$finish_end$(_collection_0, _group_0, _round_0, _attempt_0, _token_0)), {$: "Canonical.FinishEnded"}, {$: "Canonical.FinishRefused"});
+}
+
+function $Canonical$continuation_consume$(_state_0, _group_0, _round_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return $Canonical$collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, ($CollectionState$consume_continuation$(_collection_0, _group_0, _round_0)), {$: "Canonical.ContinuationConsumed"}, {$: "Canonical.ContinuationRefused"});
+}
+
+function $Canonical$submission_begin$(_state_0, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0) {
+  const __0 = _state_0["ledger"];
+  const _rounds_0 = _state_0["rounds"];
+  const __1 = _state_0["work"];
+  const __2 = _state_0["next_round"];
+  const __3 = _state_0["next_operation"];
+  const __4 = _state_0["admissions"];
+  const __5 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return $Bool$pick$(($Bool$and$(($Canonical$submission_round_found$(_group_0, _round_0, ($Canonical$find_round$(_group_0, _rounds_0)))), ($Canonical$submission_stop_reservation$(_surface_0, _authorize_now_0, ($CollectionState$submission_reservation$(_collection_0, _group_0, _round_0, _token_0)))))), ($Canonical$collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": __5, "collection": _collection_0}, ($CollectionState$submission_begin$(_collection_0, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0)), {$: "Canonical.SubmissionBegun"}, {$: "Canonical.SubmissionRefused"})), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": __5, "collection": _collection_0}, "commands": {$: "Con", "head": {$: "Canonical.SubmissionRefused"}, "tail": {$: "Nil"}}});
+}
+
+function $Canonical$submission_authorize$(_state_0, _advice_0, _token_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return $Canonical$collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, ($CollectionState$submission_authorize$(_collection_0, _advice_0, _token_0)), {$: "Canonical.SubmissionAuthorized"}, {$: "Canonical.SubmissionRefused"});
+}
+
+function $Canonical$submission_terminal$(_state_0, _advice_0, _token_0, _certain_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return $Canonical$collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, ($CollectionState$submission_terminal$(_collection_0, _advice_0, _token_0, _certain_0)), {$: "Canonical.SubmissionRecorded"}, {$: "Canonical.SubmissionRefused"});
+}
+
+function $Canonical$submission_release$(_state_0, _advice_0, _token_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return $Canonical$collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, ($CollectionState$submission_release$(_collection_0, _advice_0, _token_0)), {$: "Canonical.SubmissionReleased"}, {$: "Canonical.SubmissionRefused"});
+}
+
+function $Canonical$submission_forget$(_state_0, _advice_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return {$: "Canonical.Advanced", "state": ($Canonical$with_collection$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, ($CollectionState$submission_forget$(_collection_0, _advice_0)))), "commands": {$: "Con", "head": {$: "Canonical.SubmissionForgotten"}, "tail": {$: "Nil"}}};
+}
+
+function $Canonical$submission_suppress_check$(_state_0, _advice_0, _fingerprint_0, _round_0, _surface_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, "commands": {$: "Con", "head": ($Bool$pick$(($CollectionState$submission_suppresses$(_collection_0, _advice_0, _fingerprint_0, _round_0, _surface_0)), {$: "Canonical.SubmissionSuppresses"}, {$: "Canonical.SubmissionUnsuppressed"})), "tail": {$: "Nil"}}};
+}
+
+function $Canonical$submission_reoffer_check$(_state_0, _advice_0, _token_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, "commands": {$: "Con", "head": ($Bool$pick$(($CollectionState$submission_reofferable$(_collection_0, _advice_0, _token_0)), {$: "Canonical.SubmissionReofferable"}, {$: "Canonical.SubmissionNotReofferable"})), "tail": {$: "Nil"}}};
+}
+
+function $Canonical$submission_expiry_check$(_state_0, _advice_0, _token_0, _elapsed_0, _lifetime_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, "commands": {$: "Con", "head": ($Bool$pick$(($CollectionState$submission_expired$(_collection_0, _advice_0, _token_0, _elapsed_0, _lifetime_0)), {$: "Canonical.SubmissionExpired"}, {$: "Canonical.SubmissionCurrent"})), "tail": {$: "Nil"}}};
+}
+
 function $Canonical$output_start$(_state_0, _partition_0, _lifetime_0, _round_0) {
   const __0 = _state_0["ledger"];
   const _rounds_0 = _state_0["rounds"];
@@ -973,7 +1252,7 @@ function $Dispatch$initial$() {
 }
 
 function $CollectionState$initial$() {
-  return {$: "CollectionState.State", "ready": {$: "Nil"}, "leases": {$: "Nil"}, "claims": {$: "Nil"}};
+  return {$: "CollectionState.State", "ready": {$: "Nil"}, "leases": {$: "Nil"}, "claims": {$: "Nil"}, "delivery": ($DeliveryState$initial$())};
 }
 
 function $Ledger$limits_for$(_purpose_0, _limits_0) {
@@ -1479,6 +1758,28 @@ function $Canonical$is_finding$(_outcome_0) {
   }
 }
 
+function $Canonical$finding_count_found$(_state_0, _operation_0, _count_0, _found_0) {
+  const _ledger_0 = _state_0["ledger"];
+  const _rounds_0 = _state_0["rounds"];
+  const _work_0 = _state_0["work"];
+  const _next_round_0 = _state_0["next_round"];
+  const _next_operation_0 = _state_0["next_operation"];
+  const _admissions_0 = _state_0["admissions"];
+  const _dispatch_0 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _t_1 = _t_0["kind"];
+    if (_t_1.$ === "Canonical.PendingFinding") {
+      return $Bool$pick$(($Nat$is_gt$(_count_0, 0)), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($Canonical$replace_work_kind$(_operation_0, {$: "Canonical.PendingFinding", "count": _count_0}, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0}, "commands": {$: "Con", "head": {$: "Canonical.FindingCountRecorded"}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0}, "reason": {$: "Canonical.WrongStage"}});
+    } else {
+      return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0}, "reason": {$: "Canonical.WrongStage"}};
+    }
+  } else {
+    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0}, "reason": {$: "Canonical.WrongStage"}};
+  }
+}
+
 function $Bool$pick$(_c_0, _a_0, _b_0) {
   if (!_c_0) {
     return _b_0;
@@ -1672,8 +1973,9 @@ function $CollectionState$mark_ready$(_state_0, _advice_0, _eligible_now_0) {
   const _ready_0 = _state_0["ready"];
   const _leases_0 = _state_0["leases"];
   const _claims_0 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
   const _x_0 = ($CollectionState$contains$(_advice_0, _ready_0));
-  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_advice_0, 0)), (_eligible_now_0 || _x_0))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": ($Bool$pick$(($CollectionState$contains$(_advice_0, _ready_0)), _ready_0, {$: "Con", "head": _advice_0, "tail": _ready_0})), "leases": _leases_0, "claims": _claims_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0}});
+  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_advice_0, 0)), (_eligible_now_0 || _x_0))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": ($Bool$pick$(($CollectionState$contains$(_advice_0, _ready_0)), _ready_0, {$: "Con", "head": _advice_0, "tail": _ready_0})), "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0}});
 }
 
 function $Collection$eligible$(_already_0, _turn_end_0, _cycle_complete_0, _elapsed_0, _window_0) {
@@ -1735,14 +2037,16 @@ function $CollectionState$reserve$(_state_0, _advice_0, _token_0) {
   const _ready_0 = _state_0["ready"];
   const _leases_0 = _state_0["leases"];
   const _claims_0 = _state_0["claims"];
-  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($CollectionState$contains$(_advice_0, _ready_0)), ($Bool$not$(($CollectionState$lease_exists$(_advice_0, _leases_0)))))))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": {$: "Con", "head": {$: "CollectionState.Lease", "advice": _advice_0, "owner": _token_0}, "tail": _leases_0}, "claims": _claims_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0}});
+  const _delivery_0 = _state_0["delivery"];
+  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($CollectionState$contains$(_advice_0, _ready_0)), ($Bool$not$(($CollectionState$lease_exists$(_advice_0, _leases_0)))))))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": {$: "Con", "head": {$: "CollectionState.Lease", "advice": _advice_0, "owner": _token_0}, "tail": _leases_0}, "claims": _claims_0, "delivery": _delivery_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0}});
 }
 
 function $CollectionState$release$(_state_0, _advice_0, _token_0) {
   const _ready_0 = _state_0["ready"];
   const _leases_0 = _state_0["leases"];
   const _claims_0 = _state_0["claims"];
-  return $Bool$pick$(($CollectionState$lease_owned$(_advice_0, _token_0, _leases_0)), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": ($CollectionState$remove_lease$(_advice_0, _token_0, _leases_0)), "claims": _claims_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0}});
+  const _delivery_0 = _state_0["delivery"];
+  return $Bool$pick$(($CollectionState$lease_owned$(_advice_0, _token_0, _leases_0)), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": ($CollectionState$remove_lease$(_advice_0, _token_0, _leases_0)), "claims": _claims_0, "delivery": _delivery_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0}});
 }
 
 function $Canonical$collection_lease_checked$(_state_0, _advice_0, _token_0, _action_0) {
@@ -1773,26 +2077,207 @@ function $CollectionState$retire$(_state_0, _advice_0) {
   const _ready_0 = _state_0["ready"];
   const _leases_0 = _state_0["leases"];
   const _claims_0 = _state_0["claims"];
-  return {$: "CollectionState.State", "ready": ($CollectionState$remove_ready$(_advice_0, _ready_0)), "leases": ($CollectionState$remove_advice_lease$(_advice_0, _leases_0)), "claims": _claims_0};
+  const _delivery_0 = _state_0["delivery"];
+  return {$: "CollectionState.State", "ready": ($CollectionState$remove_ready$(_advice_0, _ready_0)), "leases": ($CollectionState$remove_advice_lease$(_advice_0, _leases_0)), "claims": _claims_0, "delivery": ($DeliveryState$submission_forget$(_delivery_0, _advice_0))};
 }
 
 function $CollectionState$claim$(_state_0, _group_0, _token_0, _active_0, _capacity_0) {
   const _ready_0 = _state_0["ready"];
   const _leases_0 = _state_0["leases"];
   const _claims_0 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
   const _x_0 = ($List$length$(_claims_0));
-  return $Bool$pick$(($Bool$and$(_active_0, ($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($Bool$not$(($CollectionState$claim_exists$(_group_0, _claims_0)))), (_x_0 < _capacity_0))))))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": {$: "Con", "head": {$: "CollectionState.Claim", "group": _group_0, "owner": _token_0}, "tail": _claims_0}}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0}});
+  return $Bool$pick$(($Bool$and$(_active_0, ($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($Bool$not$(($CollectionState$claim_exists$(_group_0, _claims_0)))), (_x_0 < _capacity_0))))))), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": {$: "Con", "head": {$: "CollectionState.Claim", "group": _group_0, "owner": _token_0}, "tail": _claims_0}, "delivery": _delivery_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0}});
 }
 
 function $CollectionState$release_claim$(_state_0, _group_0, _token_0) {
   const _ready_0 = _state_0["ready"];
   const _leases_0 = _state_0["leases"];
   const _claims_0 = _state_0["claims"];
-  return $Bool$pick$(($CollectionState$claim_owned$(_group_0, _token_0, _claims_0)), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": ($CollectionState$remove_claim$(_group_0, _token_0, _claims_0))}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0}});
+  const _delivery_0 = _state_0["delivery"];
+  return $Bool$pick$(($CollectionState$claim_owned$(_group_0, _token_0, _claims_0)), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": ($CollectionState$remove_claim$(_group_0, _token_0, _claims_0)), "delivery": _delivery_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0}});
 }
 
 function $CollectionState$expire_claim$(_state_0, _group_0, _token_0, _elapsed_0, _lifetime_0) {
   return $Bool$pick$(($Collection$expired$(_elapsed_0, _lifetime_0)), ($CollectionState$release_claim$(_state_0, _group_0, _token_0)), {$: "CollectionState.Refused", "state": _state_0});
+}
+
+function $Nat$is_eq$(_a_0, _b_0) {
+  return $Cmp$is_eq$(cmp_new(_a_0, _b_0));
+}
+
+function $List$length$(_xs_0) {
+  if (_xs_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _t_0 = _xs_0["tail"];
+    return nat_chk(($List$length$(_t_0)) + 1);
+  }
+}
+
+function $Canonical$deciding_round$(_found_0, _group_0, _lifetime_0, _round_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const __0 = _t_0["partition"];
+    const __1 = _t_0["lifetime"];
+    const __2 = _t_0["id"];
+    const __3 = _t_0["waiting"];
+    const _deciding_0 = _t_0["deciding"];
+    const __4 = _t_0["write"];
+    const __5 = _t_0["uncertain"];
+    return $Bool$and$(_deciding_0, ($Canonical$same_round$(_group_0, _lifetime_0, _round_0, {$: "Canonical.Round", "partition": __0, "lifetime": __1, "id": __2, "waiting": __3, "deciding": _deciding_0, "write": __4, "uncertain": __5})));
+  } else {
+    return false;
+  }
+}
+
+function $Canonical$selected_pending$(_selected_0, _work_0) {
+  return $Canonical$selected_valid$(_selected_0, _selected_0, _work_0);
+}
+
+function $Canonical$finish_reserve_decision$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const __5 = _state_0["admissions"];
+  const __6 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return $Canonical$collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0}, ($CollectionState$finish_reserve$(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)), {$: "Canonical.FinishReserved"}, {$: "Canonical.FinishRefused"});
+}
+
+function $CollectionState$finish_release$(_state_0, _group_0, _round_0, _attempt_0, _token_0) {
+  const __0 = _state_0["ready"];
+  const __1 = _state_0["leases"];
+  const __2 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$release$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0)));
+}
+
+function $CollectionState$submission_ready$(_state_0, _group_0, _round_0, _token_0, _selected_0) {
+  const _delivery_0 = _state_0["delivery"];
+  return $DeliveryState$submission_ready$(_delivery_0, _group_0, _round_0, _token_0, _selected_0);
+}
+
+function $CollectionState$finish_authorize$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0) {
+  const __0 = _state_0["ready"];
+  const __1 = _state_0["leases"];
+  const __2 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$authorize$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)));
+}
+
+function $Canonical$finish_terminal_result$(_state_0, _outcome_0, _decision_0) {
+  if (_decision_0.$ === "CollectionState.Accepted") {
+    const _collection_0 = _decision_0["state"];
+    return {$: "Canonical.Advanced", "state": ($Canonical$with_collection$(_state_0, _collection_0)), "commands": {$: "Con", "head": {$: "Canonical.FinishRecorded", "outcome": _outcome_0}, "tail": {$: "Nil"}}};
+  } else {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.FinishRefused"}, "tail": {$: "Nil"}}};
+  }
+}
+
+function $CollectionState$finish_terminal$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0) {
+  const __0 = _state_0["ready"];
+  const __1 = _state_0["leases"];
+  const __2 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$terminal$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0)));
+}
+
+function $CollectionState$finish_end$(_state_0, _group_0, _round_0, _attempt_0, _token_0) {
+  const __0 = _state_0["ready"];
+  const __1 = _state_0["leases"];
+  const __2 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$end$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0)));
+}
+
+function $CollectionState$consume_continuation$(_state_0, _group_0, _round_0) {
+  const __0 = _state_0["ready"];
+  const __1 = _state_0["leases"];
+  const __2 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$consume$(_delivery_0, _group_0, _round_0)));
+}
+
+function $Canonical$submission_round_found$(_group_0, _round_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return false;
+  } else {
+    const _t_0 = _found_0["value"];
+    const _owner_0 = _t_0["partition"];
+    const _current_0 = _t_0["id"];
+    return $Bool$and$(($Nat$is_eq$(_group_0, _owner_0)), ($Nat$is_eq$(_round_0, _current_0)));
+  }
+}
+
+function $Canonical$submission_stop_reservation$(_surface_0, _authorize_now_0, _reserved_0) {
+  if (_surface_0.$ === "Handoff.Stop") {
+    return (_authorize_now_0 || _reserved_0);
+  } else {
+    return true;
+  }
+}
+
+function $CollectionState$submission_reservation$(_state_0, _group_0, _round_0, _token_0) {
+  const _delivery_0 = _state_0["delivery"];
+  return $DeliveryState$submission_reservation$(_delivery_0, _group_0, _round_0, _token_0);
+}
+
+function $CollectionState$submission_begin$(_state_0, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0) {
+  const __0 = _state_0["ready"];
+  const __1 = _state_0["leases"];
+  const __2 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$submission_begin$(_delivery_0, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0)));
+}
+
+function $CollectionState$submission_authorize$(_state_0, _advice_0, _token_0) {
+  const __0 = _state_0["ready"];
+  const __1 = _state_0["leases"];
+  const __2 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$submission_authorize$(_delivery_0, _advice_0, _token_0)));
+}
+
+function $CollectionState$submission_terminal$(_state_0, _advice_0, _token_0, _certain_0) {
+  const __0 = _state_0["ready"];
+  const __1 = _state_0["leases"];
+  const __2 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$submission_terminal$(_delivery_0, _advice_0, _token_0, _certain_0)));
+}
+
+function $CollectionState$submission_release$(_state_0, _advice_0, _token_0) {
+  const __0 = _state_0["ready"];
+  const __1 = _state_0["leases"];
+  const __2 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$submission_release$(_delivery_0, _advice_0, _token_0)));
+}
+
+function $CollectionState$submission_forget$(_state_0, _advice_0) {
+  const _ready_0 = _state_0["ready"];
+  const _leases_0 = _state_0["leases"];
+  const _claims_0 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  return {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": ($DeliveryState$submission_forget$(_delivery_0, _advice_0))};
+}
+
+function $CollectionState$submission_suppresses$(_state_0, _advice_0, _fingerprint_0, _round_0, _surface_0) {
+  const _delivery_0 = _state_0["delivery"];
+  return $DeliveryState$submission_suppresses$(_delivery_0, _advice_0, _fingerprint_0, _round_0, _surface_0);
+}
+
+function $CollectionState$submission_reofferable$(_state_0, _advice_0, _token_0) {
+  const _delivery_0 = _state_0["delivery"];
+  return $DeliveryState$submission_reofferable$(_delivery_0, _advice_0, _token_0);
+}
+
+function $CollectionState$submission_expired$(_state_0, _advice_0, _token_0, _elapsed_0, _lifetime_0) {
+  const _delivery_0 = _state_0["delivery"];
+  return $DeliveryState$submission_expired$(_delivery_0, _advice_0, _token_0, _elapsed_0, _lifetime_0);
 }
 
 function $Canonical$output_start_found$(_state_0, _partition_0, _lifetime_0, _round_0, _found_0) {
@@ -1839,6 +2324,10 @@ function $Canonical$retire_found$(_state_0, _partition_0, _lifetime_0, _round_0,
   } else {
     return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.StaleRound"}};
   }
+}
+
+function $DeliveryState$initial$() {
+  return {$: "DeliveryState.State", "slots": {$: "Nil"}, "counters": {$: "Nil"}, "submissions": ($SubmissionState$initial$())};
 }
 
 function $Canonical$capacity_view$(_ledger_0, _partition_0) {
@@ -1922,10 +2411,6 @@ function $Ledger$find$pick$(_charge_0, _fallback_0, _hit_0) {
   } else {
     return _fallback_0;
   }
-}
-
-function $Nat$is_eq$(_a_0, _b_0) {
-  return $Cmp$is_eq$(cmp_new(_a_0, _b_0));
 }
 
 function $Ledger$release$found$(_state_0, _id_0, _found_0) {
@@ -2051,15 +2536,6 @@ function $Canonical$close_permit_apply$(_state_0, _partition_0, _lifetime_0, _at
     return $Canonical$close_prospective_permit$(_state_0, _partition_0, _at_0, _admission_0);
   } else {
     return $Canonical$close_permit_result$(_state_0, _partition_0, ($Admission$step$(_admission_0, _partition_0, _lifetime_0, {$: "Admission.CloseRound", "at": _at_0})));
-  }
-}
-
-function $List$length$(_xs_0) {
-  if (_xs_0.$ === "Nil") {
-    return 0;
-  } else {
-    const _t_0 = _xs_0["tail"];
-    return nat_chk(($List$length$(_t_0)) + 1);
   }
 }
 
@@ -2538,6 +3014,13 @@ function $CollectionState$remove_advice_lease$(_id_0, _items_0) {
   }
 }
 
+function $DeliveryState$submission_forget$(_state_0, _advice_0) {
+  const _slots_0 = _state_0["slots"];
+  const _counters_0 = _state_0["counters"];
+  const _submissions_0 = _state_0["submissions"];
+  return {$: "DeliveryState.State", "slots": _slots_0, "counters": _counters_0, "submissions": ($SubmissionState$forget$(_submissions_0, _advice_0))};
+}
+
 function $CollectionState$claim_exists$(_group_0, _items_0) {
   if (_items_0.$ === "Nil") {
     return false;
@@ -2575,6 +3058,137 @@ function $CollectionState$remove_claim$(_group_0, _token_0, _items_0) {
     const _rest_0 = _items_0["tail"];
     return $CollectionState$keep_claim$({$: "CollectionState.Claim", "group": _candidate_group_0, "owner": _candidate_token_0}, ($CollectionState$remove_claim$(_group_0, _token_0, _rest_0)), ($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Nat$is_eq$(_token_0, _candidate_token_0)))));
   }
+}
+
+function $Cmp$is_eq$(_c_0) {
+  if (_c_0.$ === "LT") {
+    return false;
+  } else if (_c_0.$ === "EQ") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $Canonical$selected_valid$(_all_0, _remaining_0, _work_0) {
+  if (_remaining_0.$ === "Nil") {
+    return true;
+  } else {
+    const _operation_0 = _remaining_0["head"];
+    const _rest_0 = _remaining_0["tail"];
+    return $Bool$and$(($Nat$is_gt$(_operation_0, 0)), ($Bool$and$(($Nat$is_le$(($Canonical$selected_count$(_operation_0, _all_0)), ($Canonical$pending_count$(_operation_0, _work_0)))), ($Canonical$selected_valid$(_all_0, _rest_0, _work_0)))));
+  }
+}
+
+function $CollectionState$finish_reserve$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0) {
+  const __0 = _state_0["ready"];
+  const __1 = _state_0["leases"];
+  const __2 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  return $CollectionState$delivery_result$({$: "CollectionState.State", "ready": __0, "leases": __1, "claims": __2, "delivery": _delivery_0}, ($DeliveryState$reserve$(_delivery_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)));
+}
+
+function $CollectionState$delivery_result$(_state_0, _result_0) {
+  const _ready_0 = _state_0["ready"];
+  const _leases_0 = _state_0["leases"];
+  const _claims_0 = _state_0["claims"];
+  const __0 = _state_0["delivery"];
+  if (_result_0.$ === "DeliveryState.Granted") {
+    const _delivery_0 = _result_0["state"];
+    return {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0}};
+  } else {
+    return {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": __0}};
+  }
+}
+
+function $DeliveryState$release$(_state_0, _group_0, _round_0, _attempt_0, _token_0) {
+  const _slots_0 = _state_0["slots"];
+  const _counters_0 = _state_0["counters"];
+  const _submissions_0 = _state_0["submissions"];
+  const _used_0 = ($DeliveryState$count$(_group_0, _round_0, _counters_0));
+  return $Bool$pick$(($Bool$and$(($DeliveryState$reserved_owned$(_group_0, _round_0, _attempt_0, _token_0, _slots_0)), ($Nat$is_gt$(_used_0, 0)))), {$: "DeliveryState.Granted", "state": ($DeliveryState$set_count$({$: "DeliveryState.State", "slots": ($DeliveryState$without_slot$(_group_0, _round_0, _attempt_0, _token_0, _slots_0)), "counters": _counters_0, "submissions": _submissions_0}, _group_0, _round_0, (_used_0 < 1 ? 0 : _used_0 - 1)))}, {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": _counters_0, "submissions": _submissions_0}});
+}
+
+function $DeliveryState$submission_ready$(_state_0, _group_0, _round_0, _token_0, _selected_0) {
+  const _submissions_0 = _state_0["submissions"];
+  return $SubmissionState$token_ready$(_submissions_0, _group_0, _round_0, _token_0, _selected_0);
+}
+
+function $DeliveryState$authorize$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0) {
+  const _slots_0 = _state_0["slots"];
+  const _counters_0 = _state_0["counters"];
+  const _submissions_0 = _state_0["submissions"];
+  return $Bool$pick$(($DeliveryState$authorizable$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _slots_0)), {$: "DeliveryState.Granted", "state": {$: "DeliveryState.State", "slots": ($DeliveryState$update_slot$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, {$: "DeliveryState.Authorized"}, _slots_0)), "counters": _counters_0, "submissions": _submissions_0}}, {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": _counters_0, "submissions": _submissions_0}});
+}
+
+function $DeliveryState$terminal$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0) {
+  const _slots_0 = _state_0["slots"];
+  const _counters_0 = _state_0["counters"];
+  const _submissions_0 = _state_0["submissions"];
+  return $Bool$pick$(($DeliveryState$terminal_owned$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _slots_0)), {$: "DeliveryState.Granted", "state": {$: "DeliveryState.State", "slots": ($DeliveryState$update_slot$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0, _slots_0)), "counters": _counters_0, "submissions": _submissions_0}}, {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": _counters_0, "submissions": _submissions_0}});
+}
+
+function $DeliveryState$end$(_state_0, _group_0, _round_0, _attempt_0, _token_0) {
+  const _slots_0 = _state_0["slots"];
+  const _counters_0 = _state_0["counters"];
+  const _submissions_0 = _state_0["submissions"];
+  return $Bool$pick$(($DeliveryState$durable_owned$(_group_0, _round_0, _attempt_0, _token_0, _slots_0)), {$: "DeliveryState.Granted", "state": {$: "DeliveryState.State", "slots": ($DeliveryState$without_slot$(_group_0, _round_0, _attempt_0, _token_0, _slots_0)), "counters": _counters_0, "submissions": _submissions_0}}, {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": _counters_0, "submissions": _submissions_0}});
+}
+
+function $DeliveryState$consume$(_state_0, _group_0, _round_0) {
+  const __0 = _state_0["slots"];
+  const _counters_0 = _state_0["counters"];
+  const __1 = _state_0["submissions"];
+  const _used_0 = ($DeliveryState$count$(_group_0, _round_0, _counters_0));
+  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_group_0, 0)), ($Bool$and$(($Nat$is_gt$(_round_0, 0)), (_used_0 < 4))))), {$: "DeliveryState.Granted", "state": ($DeliveryState$set_count$({$: "DeliveryState.State", "slots": __0, "counters": _counters_0, "submissions": __1}, _group_0, _round_0, nat_chk(_used_0 + 1)))}, {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": __0, "counters": _counters_0, "submissions": __1}});
+}
+
+function $DeliveryState$submission_reservation$(_state_0, _group_0, _round_0, _token_0) {
+  const _slots_0 = _state_0["slots"];
+  return $DeliveryState$reserved_token$(_group_0, _round_0, _token_0, _slots_0);
+}
+
+function $DeliveryState$submission_begin$(_state_0, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0) {
+  const __0 = _state_0["slots"];
+  const __1 = _state_0["counters"];
+  const _submissions_0 = _state_0["submissions"];
+  return $DeliveryState$submission_result$({$: "DeliveryState.State", "slots": __0, "counters": __1, "submissions": _submissions_0}, ($SubmissionState$begin$(_submissions_0, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0)));
+}
+
+function $DeliveryState$submission_authorize$(_state_0, _advice_0, _token_0) {
+  const __0 = _state_0["slots"];
+  const __1 = _state_0["counters"];
+  const _submissions_0 = _state_0["submissions"];
+  return $DeliveryState$submission_result$({$: "DeliveryState.State", "slots": __0, "counters": __1, "submissions": _submissions_0}, ($SubmissionState$authorize$(_submissions_0, _advice_0, _token_0)));
+}
+
+function $DeliveryState$submission_terminal$(_state_0, _advice_0, _token_0, _certain_0) {
+  const __0 = _state_0["slots"];
+  const __1 = _state_0["counters"];
+  const _submissions_0 = _state_0["submissions"];
+  return $DeliveryState$submission_result$({$: "DeliveryState.State", "slots": __0, "counters": __1, "submissions": _submissions_0}, ($SubmissionState$terminal$(_submissions_0, _advice_0, _token_0, _certain_0)));
+}
+
+function $DeliveryState$submission_release$(_state_0, _advice_0, _token_0) {
+  const __0 = _state_0["slots"];
+  const __1 = _state_0["counters"];
+  const _submissions_0 = _state_0["submissions"];
+  return $DeliveryState$submission_result$({$: "DeliveryState.State", "slots": __0, "counters": __1, "submissions": _submissions_0}, ($SubmissionState$release$(_submissions_0, _advice_0, _token_0)));
+}
+
+function $DeliveryState$submission_suppresses$(_state_0, _advice_0, _fingerprint_0, _round_0, _surface_0) {
+  const _submissions_0 = _state_0["submissions"];
+  return $SubmissionState$suppresses$(_submissions_0, _advice_0, _fingerprint_0, _round_0, _surface_0);
+}
+
+function $DeliveryState$submission_reofferable$(_state_0, _advice_0, _token_0) {
+  const _submissions_0 = _state_0["submissions"];
+  return $SubmissionState$background_reofferable$(_submissions_0, _advice_0, _token_0);
+}
+
+function $DeliveryState$submission_expired$(_state_0, _advice_0, _token_0, _elapsed_0, _lifetime_0) {
+  const _submissions_0 = _state_0["submissions"];
+  return $SubmissionState$expired$(_submissions_0, _advice_0, _token_0, _elapsed_0, _lifetime_0);
 }
 
 function $Canonical$remove_round$(_partition_0, _rounds_0) {
@@ -2621,6 +3235,10 @@ function $Canonical$retire_current$(_state_0, _partition_0, _lifetime_0, _round_
   const _dispatch_0 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($Canonical$release_round_charges$(_work_0, _ledger_0, _partition_0, _lifetime_0, _round_0)), "rounds": ($Canonical$remove_round$(_partition_0, _rounds_0)), "work": ($Canonical$retain_other_work$(_work_0, _partition_0, _lifetime_0, _round_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0}, "commands": ($List$append$(($Canonical$release_all_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), ($List$append$(($Canonical$cancel_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), {$: "Con", "head": {$: "Canonical.PartitionRetired", "round": _round_0}, "tail": {$: "Nil"}}))))};
+}
+
+function $SubmissionState$initial$() {
+  return {$: "SubmissionState.State", "leases": {$: "Nil"}, "batches": {$: "Nil"}};
 }
 
 function $Ledger$fit_decision$(_limits_0, _global_0, _local_0, _bytes_0) {
@@ -2684,16 +3302,6 @@ function $Ledger$resize_for$found$(_state_0, _id_0, _bytes_0, _purpose_0, _found
     const _partition_0 = _t_0["partition"];
     const _others_0 = ($Ledger$remove$(_id_0, _charges_0));
     return $Ledger$resize_for$check$(_limits_0, _next_id_0, _charges_0, _id_0, _partition_0, _bytes_0, _purpose_0, ($Ledger$fits$(($Ledger$limits_for$(_purpose_0, _limits_0)), ($Ledger$total$(_others_0)), ($Ledger$partition_usage$(_others_0, _partition_0)), _bytes_0)));
-  }
-}
-
-function $Cmp$is_eq$(_c_0) {
-  if (_c_0.$ === "LT") {
-    return false;
-  } else if (_c_0.$ === "EQ") {
-    return true;
-  } else {
-    return false;
   }
 }
 
@@ -3244,12 +3852,338 @@ function $CollectionState$keep_ready$(_item_0, _tail_0, _remove_0) {
   }
 }
 
+function $SubmissionState$forget$(_state_0, _advice_0) {
+  const _leases_0 = _state_0["leases"];
+  const _batches_0 = _state_0["batches"];
+  return {$: "SubmissionState.State", "leases": ($SubmissionState$remove_advice_leases$(_advice_0, _leases_0)), "batches": ($SubmissionState$remove_advice_batches$(_advice_0, _batches_0))};
+}
+
 function $CollectionState$keep_claim$(_item_0, _tail_0, _remove_0) {
   if (_remove_0) {
     return _tail_0;
   } else {
     return {$: "Con", "head": _item_0, "tail": _tail_0};
   }
+}
+
+function $Canonical$selected_count$(_operation_0, _selected_0) {
+  if (_selected_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _candidate_0 = _selected_0["head"];
+    const _rest_0 = _selected_0["tail"];
+    const _x_0 = ($Bool$pick$(($Nat$is_eq$(_operation_0, _candidate_0)), 1, 0));
+    const _x_1 = ($Canonical$selected_count$(_operation_0, _rest_0));
+    return nat_chk(_x_0 + _x_1);
+  }
+}
+
+function $Canonical$pending_count$($0, $1) {
+  for (;;) {
+    {
+      const _operation_0 = $0;
+      const _items_0 = $1;
+      if (_items_0.$ === "Nil") {
+        return 0;
+      } else {
+        const _t_0 = _items_0["head"];
+        const _candidate_0 = _t_0["operation"];
+        const _t_1 = _t_0["kind"];
+        if (_t_1.$ === "Canonical.PendingFinding") {
+          const _count_0 = _t_1["count"];
+          const _rest_0 = _items_0["tail"];
+          return $Bool$pick$(($Nat$is_eq$(_operation_0, _candidate_0)), _count_0, ($Canonical$pending_count$(_operation_0, _rest_0)));
+        } else {
+          const _rest_1 = _items_0["tail"];
+          $0 = _operation_0;
+          $1 = _rest_1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $DeliveryState$reserve$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0) {
+  const _slots_0 = _state_0["slots"];
+  const _counters_0 = _state_0["counters"];
+  const _submissions_0 = _state_0["submissions"];
+  const _used_0 = ($DeliveryState$count$(_group_0, _round_0, _counters_0));
+  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_group_0, 0)), ($Bool$and$(($Nat$is_gt$(_round_0, 0)), ($Bool$and$(($Nat$is_gt$(_attempt_0, 0)), ($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($Bool$not$(($DeliveryState$has_group$(_group_0, _slots_0)))), ($Bool$and$((_used_0 < 4), ($Bool$and$(($Nat$is_gt$(($List$length$(_selected_0)), 0)), ($Nat$is_le$(($List$length$(_selected_0)), 5)))))))))))))))), {$: "DeliveryState.Granted", "state": ($DeliveryState$set_count$({$: "DeliveryState.State", "slots": {$: "Con", "head": {$: "DeliveryState.Slot", "group": _group_0, "round": _round_0, "attempt": _attempt_0, "token": _token_0, "selected": _selected_0, "phase": {$: "DeliveryState.Reserved"}}, "tail": _slots_0}, "counters": _counters_0, "submissions": _submissions_0}, _group_0, _round_0, nat_chk(_used_0 + 1)))}, {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": _counters_0, "submissions": _submissions_0}});
+}
+
+function $DeliveryState$count$(_group_0, _round_0, _counters_0) {
+  if (_counters_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _t_0 = _counters_0["head"];
+    const _candidate_group_0 = _t_0["group"];
+    const _candidate_round_0 = _t_0["round"];
+    const _used_0 = _t_0["used"];
+    const _rest_0 = _counters_0["tail"];
+    return $Bool$pick$(($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Nat$is_eq$(_round_0, _candidate_round_0)))), _used_0, ($DeliveryState$count$(_group_0, _round_0, _rest_0)));
+  }
+}
+
+function $DeliveryState$reserved_owned$($0, $1, $2, $3, $4) {
+  for (;;) {
+    {
+      const _group_0 = $0;
+      const _round_0 = $1;
+      const _attempt_0 = $2;
+      const _token_0 = $3;
+      const _slots_0 = $4;
+      if (_slots_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _slots_0["head"];
+        const _candidate_group_0 = _t_0["group"];
+        const _candidate_round_0 = _t_0["round"];
+        const _candidate_attempt_0 = _t_0["attempt"];
+        const _candidate_token_0 = _t_0["token"];
+        const _t_1 = _t_0["phase"];
+        if (_t_1.$ === "DeliveryState.Reserved") {
+          const _rest_0 = _slots_0["tail"];
+          const _x_0 = ($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Bool$and$(($Nat$is_eq$(_round_0, _candidate_round_0)), ($Bool$and$(($Nat$is_eq$(_attempt_0, _candidate_attempt_0)), ($Nat$is_eq$(_token_0, _candidate_token_0))))))));
+          const _x_1 = ($DeliveryState$reserved_owned$(_group_0, _round_0, _attempt_0, _token_0, _rest_0));
+          return (_x_0 || _x_1);
+        } else {
+          const _rest_1 = _slots_0["tail"];
+          $0 = _group_0;
+          $1 = _round_0;
+          $2 = _attempt_0;
+          $3 = _token_0;
+          $4 = _rest_1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $DeliveryState$set_count$(_state_0, _group_0, _round_0, _used_0) {
+  const _slots_0 = _state_0["slots"];
+  const _counters_0 = _state_0["counters"];
+  const _submissions_0 = _state_0["submissions"];
+  return {$: "DeliveryState.State", "slots": _slots_0, "counters": {$: "Con", "head": {$: "DeliveryState.Counter", "group": _group_0, "round": _round_0, "used": _used_0}, "tail": ($DeliveryState$without_counter$(_group_0, _round_0, _counters_0))}, "submissions": _submissions_0};
+}
+
+function $DeliveryState$without_slot$(_group_0, _round_0, _attempt_0, _token_0, _slots_0) {
+  if (_slots_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _slots_0["head"];
+    const _candidate_group_0 = _t_0["group"];
+    const _candidate_round_0 = _t_0["round"];
+    const _candidate_attempt_0 = _t_0["attempt"];
+    const _candidate_token_0 = _t_0["token"];
+    const __0 = _t_0["selected"];
+    const __1 = _t_0["phase"];
+    const _rest_0 = _slots_0["tail"];
+    return $DeliveryState$keep_slot$({$: "DeliveryState.Slot", "group": _candidate_group_0, "round": _candidate_round_0, "attempt": _candidate_attempt_0, "token": _candidate_token_0, "selected": __0, "phase": __1}, ($DeliveryState$without_slot$(_group_0, _round_0, _attempt_0, _token_0, _rest_0)), ($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Bool$and$(($Nat$is_eq$(_round_0, _candidate_round_0)), ($Bool$and$(($Nat$is_eq$(_attempt_0, _candidate_attempt_0)), ($Nat$is_eq$(_token_0, _candidate_token_0)))))))));
+  }
+}
+
+function $SubmissionState$token_ready$(_state_0, _group_0, _round_0, _token_0, _selected_0) {
+  const _batches_0 = _state_0["batches"];
+  return $Bool$and$(($SubmissionState$token_exists$(_token_0, _batches_0)), ($Bool$and$(($SubmissionState$token_ready_items$(_group_0, _round_0, _token_0, _batches_0)), ($SubmissionState$same_units$(($SubmissionState$token_units$(_token_0, _batches_0)), _selected_0)))));
+}
+
+function $DeliveryState$authorizable$($0, $1, $2, $3, $4, $5) {
+  for (;;) {
+    {
+      const _group_0 = $0;
+      const _round_0 = $1;
+      const _attempt_0 = $2;
+      const _token_0 = $3;
+      const _selected_0 = $4;
+      const _slots_0 = $5;
+      if (_slots_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _slots_0["head"];
+        const _candidate_group_0 = _t_0["group"];
+        const _candidate_round_0 = _t_0["round"];
+        const _candidate_attempt_0 = _t_0["attempt"];
+        const _candidate_token_0 = _t_0["token"];
+        const _candidate_selected_0 = _t_0["selected"];
+        const _t_1 = _t_0["phase"];
+        if (_t_1.$ === "DeliveryState.Reserved") {
+          const _rest_0 = _slots_0["tail"];
+          const _x_0 = ($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Bool$and$(($Nat$is_eq$(_round_0, _candidate_round_0)), ($Bool$and$(($Nat$is_eq$(_attempt_0, _candidate_attempt_0)), ($Bool$and$(($Nat$is_eq$(_token_0, _candidate_token_0)), ($DeliveryState$same_selected$(_selected_0, _candidate_selected_0))))))))));
+          const _x_1 = ($DeliveryState$authorizable$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _rest_0));
+          return (_x_0 || _x_1);
+        } else {
+          const _rest_1 = _slots_0["tail"];
+          $0 = _group_0;
+          $1 = _round_0;
+          $2 = _attempt_0;
+          $3 = _token_0;
+          $4 = _selected_0;
+          $5 = _rest_1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $DeliveryState$update_slot$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _candidate_group_0 = _t_0["group"];
+    const _candidate_round_0 = _t_0["round"];
+    const _candidate_attempt_0 = _t_0["attempt"];
+    const _candidate_token_0 = _t_0["token"];
+    const __0 = _t_0["selected"];
+    const __1 = _t_0["phase"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$pick$(($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Bool$and$(($Nat$is_eq$(_round_0, _candidate_round_0)), ($Bool$and$(($Nat$is_eq$(_attempt_0, _candidate_attempt_0)), ($Nat$is_eq$(_token_0, _candidate_token_0)))))))), {$: "Con", "head": {$: "DeliveryState.Slot", "group": _group_0, "round": _round_0, "attempt": _attempt_0, "token": _token_0, "selected": _selected_0, "phase": _phase_0}, "tail": _rest_0}, {$: "Con", "head": {$: "DeliveryState.Slot", "group": _candidate_group_0, "round": _candidate_round_0, "attempt": _candidate_attempt_0, "token": _candidate_token_0, "selected": __0, "phase": __1}, "tail": ($DeliveryState$update_slot$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0, _rest_0))});
+  }
+}
+
+function $DeliveryState$terminal_owned$($0, $1, $2, $3, $4, $5) {
+  for (;;) {
+    {
+      const _group_0 = $0;
+      const _round_0 = $1;
+      const _attempt_0 = $2;
+      const _token_0 = $3;
+      const _selected_0 = $4;
+      const _slots_0 = $5;
+      if (_slots_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _slots_0["head"];
+        const _candidate_group_0 = _t_0["group"];
+        const _candidate_round_0 = _t_0["round"];
+        const _candidate_attempt_0 = _t_0["attempt"];
+        const _candidate_token_0 = _t_0["token"];
+        const _candidate_selected_0 = _t_0["selected"];
+        const _t_1 = _t_0["phase"];
+        if (_t_1.$ === "DeliveryState.Authorized") {
+          const _rest_0 = _slots_0["tail"];
+          const _x_0 = ($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Bool$and$(($Nat$is_eq$(_round_0, _candidate_round_0)), ($Bool$and$(($Nat$is_eq$(_attempt_0, _candidate_attempt_0)), ($Bool$and$(($Nat$is_eq$(_token_0, _candidate_token_0)), ($DeliveryState$same_selected$(_selected_0, _candidate_selected_0))))))))));
+          const _x_1 = ($DeliveryState$terminal_owned$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _rest_0));
+          return (_x_0 || _x_1);
+        } else {
+          const _rest_1 = _slots_0["tail"];
+          $0 = _group_0;
+          $1 = _round_0;
+          $2 = _attempt_0;
+          $3 = _token_0;
+          $4 = _selected_0;
+          $5 = _rest_1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $DeliveryState$durable_owned$($0, $1, $2, $3, $4) {
+  for (;;) {
+    {
+      const _group_0 = $0;
+      const _round_0 = $1;
+      const _attempt_0 = $2;
+      const _token_0 = $3;
+      const _slots_0 = $4;
+      if (_slots_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _slots_0["head"];
+        const _candidate_group_0 = _t_0["group"];
+        const _candidate_round_0 = _t_0["round"];
+        const _candidate_attempt_0 = _t_0["attempt"];
+        const _candidate_token_0 = _t_0["token"];
+        const _t_1 = _t_0["phase"];
+        if (_t_1.$ === "DeliveryState.Reserved") {
+          const _rest_0 = _slots_0["tail"];
+          $0 = _group_0;
+          $1 = _round_0;
+          $2 = _attempt_0;
+          $3 = _token_0;
+          $4 = _rest_0;
+          continue;
+        } else {
+          const _rest_1 = _slots_0["tail"];
+          const _x_0 = ($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Bool$and$(($Nat$is_eq$(_round_0, _candidate_round_0)), ($Bool$and$(($Nat$is_eq$(_attempt_0, _candidate_attempt_0)), ($Nat$is_eq$(_token_0, _candidate_token_0))))))));
+          const _x_1 = ($DeliveryState$durable_owned$(_group_0, _round_0, _attempt_0, _token_0, _rest_1));
+          return (_x_0 || _x_1);
+        }
+      }
+    }
+  }
+}
+
+function $DeliveryState$reserved_token$(_group_0, _round_0, _token_0, _slots_0) {
+  if (_slots_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _slots_0["head"];
+    const _candidate_group_0 = _t_0["group"];
+    const _candidate_round_0 = _t_0["round"];
+    const _candidate_token_0 = _t_0["token"];
+    const _phase_0 = _t_0["phase"];
+    const _rest_0 = _slots_0["tail"];
+    const _x_0 = ($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Bool$and$(($Nat$is_eq$(_round_0, _candidate_round_0)), ($Bool$and$(($Nat$is_eq$(_token_0, _candidate_token_0)), ($DeliveryState$phase_is_reserved$(_phase_0))))))));
+    const _x_1 = ($DeliveryState$reserved_token$(_group_0, _round_0, _token_0, _rest_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $DeliveryState$submission_result$(_state_0, _result_0) {
+  const _slots_0 = _state_0["slots"];
+  const _counters_0 = _state_0["counters"];
+  const __0 = _state_0["submissions"];
+  if (_result_0.$ === "SubmissionState.Granted") {
+    const _submissions_0 = _result_0["state"];
+    return {$: "DeliveryState.Granted", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": _counters_0, "submissions": _submissions_0}};
+  } else {
+    return {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": _counters_0, "submissions": __0}};
+  }
+}
+
+function $SubmissionState$begin$(_state_0, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0) {
+  const _leases_0 = _state_0["leases"];
+  const _batches_0 = _state_0["batches"];
+  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_advice_0, 0)), ($Bool$and$(($Nat$is_gt$(_group_0, 0)), ($Bool$and$(($Nat$is_gt$(_round_0, 0)), ($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($Bool$not$(($SubmissionState$has_batch$(_advice_0, _token_0, _batches_0)))), ($Bool$and$(($Nat$is_gt$(($List$length$(_fingerprints_0)), 0)), ($Bool$and$(($Nat$is_le$(($List$length$(_fingerprints_0)), 5)), ($Nat$is_le$(($List$length$(_units_0)), 5)))))))))))))))), ($SubmissionState$begin_result$({$: "SubmissionState.State", "leases": _leases_0, "batches": _batches_0}, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0, ($SubmissionState$begin_many$(_fingerprints_0, {$: "Some", "value": {$: "SubmissionState.State", "leases": _leases_0, "batches": _batches_0}}, _advice_0, _round_0, _token_0, _surface_0, _authorize_now_0)))), {$: "SubmissionState.Denied", "state": {$: "SubmissionState.State", "leases": _leases_0, "batches": _batches_0}});
+}
+
+function $SubmissionState$authorize$(_state_0, _advice_0, _token_0) {
+  return $SubmissionState$transition$(_state_0, _advice_0, _token_0, {$: "Delivery.Authorized"}, {$: "Delivery.Reserved"});
+}
+
+function $SubmissionState$terminal$(_state_0, _advice_0, _token_0, _certain_0) {
+  if (_certain_0) {
+    return $SubmissionState$transition$(_state_0, _advice_0, _token_0, {$: "Delivery.Submitted"}, {$: "Delivery.Authorized"});
+  } else {
+    return $SubmissionState$transition$(_state_0, _advice_0, _token_0, {$: "Delivery.Uncertain"}, {$: "Delivery.Authorized"});
+  }
+}
+
+function $SubmissionState$release$(_state_0, _advice_0, _token_0) {
+  const __0 = _state_0["leases"];
+  const _batches_0 = _state_0["batches"];
+  return $SubmissionState$release_lookup$({$: "SubmissionState.State", "leases": __0, "batches": _batches_0}, ($SubmissionState$find_batch$(_advice_0, _token_0, _batches_0)));
+}
+
+function $SubmissionState$suppresses$(_state_0, _advice_0, _fingerprint_0, _round_0, _surface_0) {
+  const _leases_0 = _state_0["leases"];
+  return $SubmissionState$suppresses_found$(_round_0, _surface_0, ($SubmissionState$find_lease$(_advice_0, _fingerprint_0, _leases_0)));
+}
+
+function $SubmissionState$background_reofferable$(_state_0, _advice_0, _token_0) {
+  const _batches_0 = _state_0["batches"];
+  return $SubmissionState$reofferable_found$(($SubmissionState$find_batch$(_advice_0, _token_0, _batches_0)));
+}
+
+function $SubmissionState$expired$(_state_0, _advice_0, _token_0, _elapsed_0, _lifetime_0) {
+  const _batches_0 = _state_0["batches"];
+  return $SubmissionState$expired_found$(_elapsed_0, _lifetime_0, ($SubmissionState$find_batch$(_advice_0, _token_0, _batches_0)));
 }
 
 function $Canonical$remove_round_pick$(_round_0, _tail_0, _hit_0) {
@@ -3645,6 +4579,278 @@ function $Canonical$cancel_dispatch_entries$(_items_0, _work_0, _lifetime_0, _sc
   }
 }
 
+function $SubmissionState$remove_advice_leases$(_advice_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _candidate_0 = _t_0["advice"];
+    const __0 = _t_0["fingerprint"];
+    const __1 = _t_0["current"];
+    const __2 = _t_0["previous"];
+    const _rest_0 = _items_0["tail"];
+    return $SubmissionState$keep_record$({$: "SubmissionState.LeaseRecord", "advice": _candidate_0, "fingerprint": __0, "current": __1, "previous": __2}, ($SubmissionState$remove_advice_leases$(_advice_0, _rest_0)), ($Nat$is_eq$(_advice_0, _candidate_0)));
+  }
+}
+
+function $SubmissionState$remove_advice_batches$(_advice_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _candidate_0 = _t_0["advice"];
+    const __0 = _t_0["group"];
+    const __1 = _t_0["round"];
+    const __2 = _t_0["token"];
+    const __3 = _t_0["surface"];
+    const __4 = _t_0["phase"];
+    const __5 = _t_0["fingerprints"];
+    const __6 = _t_0["units"];
+    const _rest_0 = _items_0["tail"];
+    return $SubmissionState$keep_batch$({$: "SubmissionState.Batch", "advice": _candidate_0, "group": __0, "round": __1, "token": __2, "surface": __3, "phase": __4, "fingerprints": __5, "units": __6}, ($SubmissionState$remove_advice_batches$(_advice_0, _rest_0)), ($Nat$is_eq$(_advice_0, _candidate_0)));
+  }
+}
+
+function $DeliveryState$has_group$(_group_0, _slots_0) {
+  if (_slots_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _slots_0["head"];
+    const _candidate_group_0 = _t_0["group"];
+    const _rest_0 = _slots_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_group_0, _candidate_group_0));
+    const _x_1 = ($DeliveryState$has_group$(_group_0, _rest_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $DeliveryState$without_counter$(_group_0, _round_0, _counters_0) {
+  if (_counters_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _counters_0["head"];
+    const _candidate_group_0 = _t_0["group"];
+    const _candidate_round_0 = _t_0["round"];
+    const __0 = _t_0["used"];
+    const _rest_0 = _counters_0["tail"];
+    return $DeliveryState$keep_counter$({$: "DeliveryState.Counter", "group": _candidate_group_0, "round": _candidate_round_0, "used": __0}, ($DeliveryState$without_counter$(_group_0, _round_0, _rest_0)), ($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Nat$is_eq$(_round_0, _candidate_round_0)))));
+  }
+}
+
+function $DeliveryState$keep_slot$(_item_0, _rest_0, _remove_0) {
+  if (_remove_0) {
+    return _rest_0;
+  } else {
+    return {$: "Con", "head": _item_0, "tail": _rest_0};
+  }
+}
+
+function $SubmissionState$token_exists$(_token_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _items_0["head"];
+    const _candidate_0 = _t_0["token"];
+    const _rest_0 = _items_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_token_0, _candidate_0));
+    const _x_1 = ($SubmissionState$token_exists$(_token_0, _rest_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $SubmissionState$token_ready_items$(_group_0, _round_0, _token_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return true;
+  } else {
+    const _t_0 = _items_0["head"];
+    const _candidate_group_0 = _t_0["group"];
+    const _candidate_round_0 = _t_0["round"];
+    const _candidate_token_0 = _t_0["token"];
+    const _phase_0 = _t_0["phase"];
+    const _rest_0 = _items_0["tail"];
+    const _x_0 = ($Bool$not$(($Nat$is_eq$(_token_0, _candidate_token_0))));
+    const _x_1 = ($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Bool$and$(($Nat$is_eq$(_round_0, _candidate_round_0)), ($SubmissionState$phase_is$(_phase_0, {$: "Delivery.Reserved"}))))));
+    return $Bool$and$((_x_0 || _x_1), ($SubmissionState$token_ready_items$(_group_0, _round_0, _token_0, _rest_0)));
+  }
+}
+
+function $SubmissionState$same_units$(_left_0, _right_0) {
+  if (_left_0.$ === "Nil") {
+    if (_right_0.$ === "Nil") {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    const _left_head_0 = _left_0["head"];
+    const _left_rest_0 = _left_0["tail"];
+    if (_right_0.$ === "Con") {
+      const _right_head_0 = _right_0["head"];
+      const _right_rest_0 = _right_0["tail"];
+      return $Bool$and$(($Nat$is_eq$(_left_head_0, _right_head_0)), ($SubmissionState$same_units$(_left_rest_0, _right_rest_0)));
+    } else {
+      return false;
+    }
+  }
+}
+
+function $SubmissionState$token_units$(_token_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _candidate_0 = _t_0["token"];
+    const _units_0 = _t_0["units"];
+    const _rest_0 = _items_0["tail"];
+    return $SubmissionState$token_units_keep$(_units_0, ($SubmissionState$token_units$(_token_0, _rest_0)), ($Nat$is_eq$(_token_0, _candidate_0)));
+  }
+}
+
+function $DeliveryState$same_selected$(_left_0, _right_0) {
+  if (_left_0.$ === "Nil") {
+    if (_right_0.$ === "Nil") {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    const _head_0 = _left_0["head"];
+    const _tail_0 = _left_0["tail"];
+    if (_right_0.$ === "Nil") {
+      return false;
+    } else {
+      const _other_0 = _right_0["head"];
+      const _rest_0 = _right_0["tail"];
+      return $Bool$and$(($Nat$is_eq$(_head_0, _other_0)), ($DeliveryState$same_selected$(_tail_0, _rest_0)));
+    }
+  }
+}
+
+function $DeliveryState$phase_is_reserved$(_phase_0) {
+  if (_phase_0.$ === "DeliveryState.Reserved") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $SubmissionState$has_batch$(_advice_0, _token_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return false;
+  } else {
+    const _item_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    const _x_0 = ($SubmissionState$batch_matches$(_advice_0, _token_0, _item_0));
+    const _x_1 = ($SubmissionState$has_batch$(_advice_0, _token_0, _rest_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $SubmissionState$begin_result$(_original_0, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0, _result_0) {
+  if (_result_0.$ === "None") {
+    return {$: "SubmissionState.Denied", "state": _original_0};
+  } else {
+    const _t_0 = _result_0["value"];
+    const _leases_0 = _t_0["leases"];
+    const _batches_0 = _t_0["batches"];
+    return {$: "SubmissionState.Granted", "state": {$: "SubmissionState.State", "leases": _leases_0, "batches": ($List$append$(_batches_0, {$: "Con", "head": {$: "SubmissionState.Batch", "advice": _advice_0, "group": _group_0, "round": _round_0, "token": _token_0, "surface": _surface_0, "phase": ($Bool$pick$(_authorize_now_0, {$: "Delivery.Authorized"}, {$: "Delivery.Reserved"})), "fingerprints": _fingerprints_0, "units": _units_0}, "tail": {$: "Nil"}}))}};
+  }
+}
+
+function $SubmissionState$begin_many$($0, $1, $2, $3, $4, $5, $6) {
+  for (;;) {
+    {
+      const _fingerprints_0 = $0;
+      const _current_0 = $1;
+      const _advice_0 = $2;
+      const _round_0 = $3;
+      const _token_0 = $4;
+      const _surface_0 = $5;
+      const _authorize_now_0 = $6;
+      if (_fingerprints_0.$ === "Nil") {
+        return _current_0;
+      } else {
+        const _fingerprint_0 = _fingerprints_0["head"];
+        const _rest_0 = _fingerprints_0["tail"];
+        $0 = _rest_0;
+        $1 = ($SubmissionState$begin_one_if$(_current_0, _advice_0, _fingerprint_0, _round_0, _token_0, _surface_0, _authorize_now_0));
+        $2 = _advice_0;
+        $3 = _round_0;
+        $4 = _token_0;
+        $5 = _surface_0;
+        $6 = _authorize_now_0;
+        continue;
+      }
+    }
+  }
+}
+
+function $SubmissionState$transition$(_state_0, _advice_0, _token_0, _target_0, _required_0) {
+  const __0 = _state_0["leases"];
+  const _batches_0 = _state_0["batches"];
+  return $SubmissionState$transition_lookup$({$: "SubmissionState.State", "leases": __0, "batches": _batches_0}, _target_0, _required_0, ($SubmissionState$find_batch$(_advice_0, _token_0, _batches_0)));
+}
+
+function $SubmissionState$release_lookup$(_state_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return {$: "SubmissionState.Denied", "state": _state_0};
+  } else {
+    const _batch_0 = _found_0["value"];
+    return $SubmissionState$release_found$(_state_0, _batch_0);
+  }
+}
+
+function $SubmissionState$find_batch$(_advice_0, _token_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _item_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$pick$(($SubmissionState$batch_matches$(_advice_0, _token_0, _item_0)), {$: "Some", "value": _item_0}, ($SubmissionState$find_batch$(_advice_0, _token_0, _rest_0)));
+  }
+}
+
+function $SubmissionState$suppresses_found$(_round_0, _surface_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return false;
+  } else {
+    const _t_0 = _found_0["value"];
+    const _current_0 = _t_0["current"];
+    return $Handoff$lease$suppresses$(_current_0, _round_0, _surface_0);
+  }
+}
+
+function $SubmissionState$find_lease$(_advice_0, _fingerprint_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _item_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$pick$(($SubmissionState$record_matches$(_advice_0, _fingerprint_0, _item_0)), {$: "Some", "value": _item_0}, ($SubmissionState$find_lease$(_advice_0, _fingerprint_0, _rest_0)));
+  }
+}
+
+function $SubmissionState$reofferable_found$(_found_0) {
+  if (_found_0.$ === "None") {
+    return false;
+  } else {
+    const _t_0 = _found_0["value"];
+    const _surface_0 = _t_0["surface"];
+    const _phase_0 = _t_0["phase"];
+    return $Delivery$background_reofferable$(_phase_0, ($SubmissionState$delivery_surface$(_surface_0)));
+  }
+}
+
+function $SubmissionState$expired_found$(_elapsed_0, _lifetime_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return false;
+  } else {
+    const _t_0 = _found_0["value"];
+    const _phase_0 = _t_0["phase"];
+    return $Delivery$expired$(_phase_0, _elapsed_0, _lifetime_0);
+  }
+}
+
 function $Canonical$cancel_pick$(_operation_0, _tail_0, _hit_0) {
   if (_hit_0) {
     return {$: "Con", "head": {$: "Canonical.CancelWork", "operation": _operation_0}, "tail": _tail_0};
@@ -3767,7 +4973,7 @@ function $Canonical$reviewed_retained_result$(_state_0, _operation_0, _result_0)
   const _collection_0 = _state_0["collection"];
   if (_result_0.$ === "Ledger.Granted") {
     const _updated_0 = _result_0["state"];
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _updated_0, "rounds": _rounds_0, "work": ($Canonical$replace_work_kind$(_operation_0, {$: "Canonical.PendingFinding"}, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0}, "commands": {$: "Con", "head": {$: "Canonical.ReviewRecorded", "outcome": {$: "Canonical.Finding"}}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _updated_0, "rounds": _rounds_0, "work": ($Canonical$replace_work_kind$(_operation_0, {$: "Canonical.PendingFinding", "count": 1}, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0}, "commands": {$: "Con", "head": {$: "Canonical.ReviewRecorded", "outcome": {$: "Canonical.Finding"}}, "tail": {$: "Nil"}}};
   } else {
     return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0}, "reason": {$: "Canonical.InconsistentLedger"}};
   }
@@ -3819,6 +5025,149 @@ function $Canonical$dispatch_work_unfinished$(_found_0) {
     const _t_0 = _found_0["value"];
     const _kind_0 = _t_0["kind"];
     return $Canonical$unfinished$(_kind_0);
+  } else {
+    return false;
+  }
+}
+
+function $SubmissionState$keep_record$(_item_0, _tail_0, _remove_0) {
+  if (_remove_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _item_0, "tail": _tail_0};
+  }
+}
+
+function $SubmissionState$keep_batch$(_item_0, _tail_0, _remove_0) {
+  if (_remove_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _item_0, "tail": _tail_0};
+  }
+}
+
+function $DeliveryState$keep_counter$(_item_0, _rest_0, _remove_0) {
+  if (_remove_0) {
+    return _rest_0;
+  } else {
+    return {$: "Con", "head": _item_0, "tail": _rest_0};
+  }
+}
+
+function $SubmissionState$phase_is$(_phase_0, _required_0) {
+  if (_phase_0.$ === "Delivery.Reserved") {
+    if (_required_0.$ === "Delivery.Reserved") {
+      return true;
+    } else {
+      return false;
+    }
+  } else if (_phase_0.$ === "Delivery.Authorized") {
+    if (_required_0.$ === "Delivery.Authorized") {
+      return true;
+    } else {
+      return false;
+    }
+  } else if (_phase_0.$ === "Delivery.Submitted") {
+    if (_required_0.$ === "Delivery.Submitted") {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    if (_required_0.$ === "Delivery.Uncertain") {
+      return true;
+    } else {
+      return false;
+    }
+  }
+}
+
+function $SubmissionState$token_units_keep$(_units_0, _tail_0, _hit_0) {
+  if (_hit_0) {
+    return $List$append$(_units_0, _tail_0);
+  } else {
+    return _tail_0;
+  }
+}
+
+function $SubmissionState$batch_matches$(_advice_0, _token_0, _item_0) {
+  const _candidate_advice_0 = _item_0["advice"];
+  const _candidate_token_0 = _item_0["token"];
+  return $Bool$and$(($Nat$is_eq$(_advice_0, _candidate_advice_0)), ($Nat$is_eq$(_token_0, _candidate_token_0)));
+}
+
+function $SubmissionState$begin_one_if$(_current_0, _advice_0, _fingerprint_0, _round_0, _token_0, _surface_0, _authorize_now_0) {
+  if (_current_0.$ === "None") {
+    return {$: "None"};
+  } else {
+    const _state_0 = _current_0["value"];
+    return $SubmissionState$begin_one$(_state_0, _advice_0, _fingerprint_0, _round_0, _token_0, _surface_0, _authorize_now_0);
+  }
+}
+
+function $SubmissionState$transition_lookup$(_state_0, _target_0, _required_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return {$: "SubmissionState.Denied", "state": _state_0};
+  } else {
+    const _batch_0 = _found_0["value"];
+    return $SubmissionState$transition_found$(_state_0, _batch_0, _target_0, _required_0);
+  }
+}
+
+function $SubmissionState$release_found$(_state_0, _batch_0) {
+  const _advice_0 = _batch_0["advice"];
+  const _token_0 = _batch_0["token"];
+  const _phase_0 = _batch_0["phase"];
+  const _fingerprints_0 = _batch_0["fingerprints"];
+  const _x_0 = ($SubmissionState$phase_is$(_phase_0, {$: "Delivery.Reserved"}));
+  const _x_1 = ($SubmissionState$phase_is$(_phase_0, {$: "Delivery.Authorized"}));
+  return $Bool$pick$((_x_0 || _x_1), {$: "SubmissionState.Granted", "state": ($SubmissionState$without_batch$(($SubmissionState$restore_many$(_fingerprints_0, _state_0, _advice_0)), _advice_0, _token_0))}, {$: "SubmissionState.Denied", "state": _state_0});
+}
+
+function $Handoff$lease$suppresses$(_state_0, _round_0, _requested_0) {
+  const _owner_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const _phase_0 = _state_0["phase"];
+  return $Bool$and$(($Nat$is_eq$(_owner_0, _round_0)), ($Bool$and$(($Bool$not$(_closed_0)), ($Handoff$lease$suppress_phase$(_phase_0, _requested_0)))));
+}
+
+function $SubmissionState$record_matches$(_advice_0, _fingerprint_0, _item_0) {
+  const _candidate_advice_0 = _item_0["advice"];
+  const _candidate_fingerprint_0 = _item_0["fingerprint"];
+  return $Bool$and$(($Nat$is_eq$(_advice_0, _candidate_advice_0)), ($Nat$is_eq$(_fingerprint_0, _candidate_fingerprint_0)));
+}
+
+function $Delivery$background_reofferable$(_phase_0, _surface_0) {
+  if (_phase_0.$ === "Delivery.Submitted") {
+    if (_surface_0.$ === "Delivery.Background") {
+      return true;
+    } else {
+      return false;
+    }
+  } else if (_phase_0.$ === "Delivery.Uncertain") {
+    if (_surface_0.$ === "Delivery.Background") {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
+function $SubmissionState$delivery_surface$(_surface_0) {
+  if (_surface_0.$ === "Handoff.Edit") {
+    return {$: "Delivery.Edit"};
+  } else if (_surface_0.$ === "Handoff.Background") {
+    return {$: "Delivery.Background"};
+  } else {
+    return {$: "Delivery.Stop"};
+  }
+}
+
+function $Delivery$expired$(_phase_0, _elapsed_0, _lifetime_0) {
+  if (_phase_0.$ === "Delivery.Authorized") {
+    return $Nat$is_ge$(_elapsed_0, _lifetime_0);
   } else {
     return false;
   }
@@ -3973,6 +5322,66 @@ function $Canonical$release_commands$(_partition_0, _lifetime_0, _round_0, _item
   }
 }
 
+function $SubmissionState$begin_one$(_state_0, _advice_0, _fingerprint_0, _round_0, _token_0, _surface_0, _authorize_now_0) {
+  const _leases_0 = _state_0["leases"];
+  const __0 = _state_0["batches"];
+  return $SubmissionState$begin_one_result$({$: "SubmissionState.State", "leases": _leases_0, "batches": __0}, _advice_0, _fingerprint_0, ($SubmissionState$staged_lease$(_advice_0, _fingerprint_0, _round_0, _token_0, _surface_0, _authorize_now_0, ($SubmissionState$find_lease$(_advice_0, _fingerprint_0, _leases_0)))));
+}
+
+function $SubmissionState$transition_found$(_state_0, _batch_0, _target_0, _required_0) {
+  const _advice_0 = _batch_0["advice"];
+  const __0 = _batch_0["group"];
+  const _round_0 = _batch_0["round"];
+  const _token_0 = _batch_0["token"];
+  const __1 = _batch_0["surface"];
+  const _phase_0 = _batch_0["phase"];
+  const _fingerprints_0 = _batch_0["fingerprints"];
+  const __2 = _batch_0["units"];
+  return $Bool$pick$(($SubmissionState$phase_is$(_phase_0, _required_0)), ($SubmissionState$transition_result$(_state_0, {$: "SubmissionState.Batch", "advice": _advice_0, "group": __0, "round": _round_0, "token": _token_0, "surface": __1, "phase": _phase_0, "fingerprints": _fingerprints_0, "units": __2}, _target_0, ($SubmissionState$update_many$(_fingerprints_0, {$: "Some", "value": _state_0}, _advice_0, _round_0, _token_0, _target_0)))), {$: "SubmissionState.Denied", "state": _state_0});
+}
+
+function $SubmissionState$without_batch$(_state_0, _advice_0, _token_0) {
+  const _leases_0 = _state_0["leases"];
+  const _batches_0 = _state_0["batches"];
+  return {$: "SubmissionState.State", "leases": _leases_0, "batches": ($SubmissionState$remove_batch$(_advice_0, _token_0, _batches_0))};
+}
+
+function $SubmissionState$restore_many$($0, $1, $2) {
+  for (;;) {
+    {
+      const _fingerprints_0 = $0;
+      const _state_0 = $1;
+      const _advice_0 = $2;
+      if (_fingerprints_0.$ === "Nil") {
+        return _state_0;
+      } else {
+        const _fingerprint_0 = _fingerprints_0["head"];
+        const _rest_0 = _fingerprints_0["tail"];
+        $0 = _rest_0;
+        $1 = ($SubmissionState$restore_one$(_state_0, _advice_0, _fingerprint_0));
+        $2 = _advice_0;
+        continue;
+      }
+    }
+  }
+}
+
+function $Handoff$lease$suppress_phase$(_phase_0, _requested_0) {
+  if (_phase_0.$ === "Handoff.Available") {
+    return false;
+  } else if (_phase_0.$ === "Handoff.Reserved") {
+    return true;
+  } else if (_phase_0.$ === "Handoff.Authorized") {
+    return true;
+  } else if (_phase_0.$ === "Handoff.Submitted") {
+    const _surface_0 = _phase_0["surface"];
+    return $Handoff$lease$suppress_surface$(_surface_0, _requested_0);
+  } else {
+    const _surface_1 = _phase_0["surface"];
+    return $Handoff$lease$suppress_surface$(_surface_1, _requested_0);
+  }
+}
+
 function $Admission$consume$check$(_state_0, _token_0, _tool_0, _now_0, _permitted_tool_0, _permitted_round_0, _started_0, _deadline_0) {
   const _partition_0 = _state_0["partition"];
   const _lifetime_0 = _state_0["lifetime"];
@@ -3985,11 +5394,147 @@ function $Admission$consume$check$(_state_0, _token_0, _tool_0, _now_0, _permitt
   return $Admission$consume$tool$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0, "used": _used_0}, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _token_0, _tool_0, _now_0, _permitted_round_0, _started_0, _deadline_0, ($Nat$is_eq$(_tool_0, _permitted_tool_0)));
 }
 
+function $SubmissionState$begin_one_result$(_state_0, _advice_0, _fingerprint_0, _result_0) {
+  const _leases_0 = _state_0["leases"];
+  const _batches_0 = _state_0["batches"];
+  if (_result_0.$ === "Some") {
+    const _record_0 = _result_0["value"];
+    return {$: "Some", "value": {$: "SubmissionState.State", "leases": {$: "Con", "head": _record_0, "tail": ($SubmissionState$remove_record$(_advice_0, _fingerprint_0, _leases_0))}, "batches": _batches_0}};
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $SubmissionState$staged_lease$(_advice_0, _fingerprint_0, _round_0, _token_0, _surface_0, _authorize_now_0, _previous_0) {
+  if (_previous_0.$ === "None") {
+    return $SubmissionState$staged_lease_from$(_advice_0, _fingerprint_0, _round_0, _token_0, _surface_0, _authorize_now_0, ($Handoff$lease$initial$(_fingerprint_0, _round_0)), {$: "None"});
+  } else {
+    const _t_0 = _previous_0["value"];
+    const _current_0 = _t_0["current"];
+    return $SubmissionState$staged_lease_from$(_advice_0, _fingerprint_0, _round_0, _token_0, _surface_0, _authorize_now_0, _current_0, {$: "Some", "value": _current_0});
+  }
+}
+
+function $SubmissionState$transition_result$(_original_0, _batch_0, _target_0, _result_0) {
+  if (_result_0.$ === "None") {
+    return {$: "SubmissionState.Denied", "state": _original_0};
+  } else {
+    const _state_0 = _result_0["value"];
+    return $SubmissionState$transition_success$(_state_0, _batch_0, _target_0);
+  }
+}
+
+function $SubmissionState$update_many$($0, $1, $2, $3, $4, $5) {
+  for (;;) {
+    {
+      const _fingerprints_0 = $0;
+      const _current_0 = $1;
+      const _advice_0 = $2;
+      const _round_0 = $3;
+      const _token_0 = $4;
+      const _target_0 = $5;
+      if (_fingerprints_0.$ === "Nil") {
+        return _current_0;
+      } else {
+        const _fingerprint_0 = _fingerprints_0["head"];
+        const _rest_0 = _fingerprints_0["tail"];
+        $0 = _rest_0;
+        $1 = ($SubmissionState$update_one_if$(_current_0, _advice_0, _fingerprint_0, _round_0, _token_0, _target_0));
+        $2 = _advice_0;
+        $3 = _round_0;
+        $4 = _token_0;
+        $5 = _target_0;
+        continue;
+      }
+    }
+  }
+}
+
+function $SubmissionState$remove_batch$(_advice_0, _token_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _item_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    return $SubmissionState$keep_batch$(_item_0, ($SubmissionState$remove_batch$(_advice_0, _token_0, _rest_0)), ($SubmissionState$batch_matches$(_advice_0, _token_0, _item_0)));
+  }
+}
+
+function $SubmissionState$restore_one$(_state_0, _advice_0, _fingerprint_0) {
+  const _leases_0 = _state_0["leases"];
+  const __0 = _state_0["batches"];
+  return $SubmissionState$restore_found$({$: "SubmissionState.State", "leases": _leases_0, "batches": __0}, _advice_0, _fingerprint_0, ($SubmissionState$find_lease$(_advice_0, _fingerprint_0, _leases_0)));
+}
+
+function $Handoff$lease$suppress_surface$(_own_0, _requested_0) {
+  if (_own_0.$ === "Handoff.Background") {
+    if (_requested_0.$ === "Handoff.Stop") {
+      return false;
+    } else {
+      return true;
+    }
+  } else {
+    return true;
+  }
+}
+
 function $Admission$consume$tool$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _token_0, _tool_0, _now_0, _permitted_round_0, _started_0, _deadline_0, _correct_tool_0) {
   if (!_correct_tool_0) {
     return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.WrongTool"}};
   } else {
     return $Admission$consume$time$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _token_0, _now_0, _permitted_round_0, ($Bool$and$(($Nat$is_gt$(_started_0, _closed_at_0)), ($Bool$and$(($Nat$is_le$(_started_0, _now_0)), ($Nat$is_le$(_now_0, _deadline_0)))))));
+  }
+}
+
+function $SubmissionState$remove_record$(_advice_0, _fingerprint_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _item_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    return $SubmissionState$keep_record$(_item_0, ($SubmissionState$remove_record$(_advice_0, _fingerprint_0, _rest_0)), ($SubmissionState$record_matches$(_advice_0, _fingerprint_0, _item_0)));
+  }
+}
+
+function $SubmissionState$staged_lease_from$(_advice_0, _fingerprint_0, _round_0, _token_0, _surface_0, _authorize_now_0, _current_0, _previous_0) {
+  return $SubmissionState$staged_lease_offered$(_advice_0, _fingerprint_0, _round_0, _token_0, _authorize_now_0, _previous_0, ($Handoff$lease$offer$(_current_0, _round_0, _token_0, _surface_0, true)));
+}
+
+function $Handoff$lease$initial$(_item_0, _round_0) {
+  return {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": false, "reoffered": false, "phase": {$: "Handoff.Available"}};
+}
+
+function $SubmissionState$transition_success$(_state_0, _batch_0, _target_0) {
+  const _leases_0 = _state_0["leases"];
+  const _batches_0 = _state_0["batches"];
+  const _advice_0 = _batch_0["advice"];
+  const __0 = _batch_0["group"];
+  const __1 = _batch_0["round"];
+  const _token_0 = _batch_0["token"];
+  const __2 = _batch_0["surface"];
+  const __3 = _batch_0["phase"];
+  const __4 = _batch_0["fingerprints"];
+  const __5 = _batch_0["units"];
+  return {$: "SubmissionState.Granted", "state": {$: "SubmissionState.State", "leases": _leases_0, "batches": ($List$append$(($SubmissionState$remove_batch$(_advice_0, _token_0, _batches_0)), {$: "Con", "head": ($SubmissionState$batch_phase$({$: "SubmissionState.Batch", "advice": _advice_0, "group": __0, "round": __1, "token": _token_0, "surface": __2, "phase": __3, "fingerprints": __4, "units": __5}, _target_0)), "tail": {$: "Nil"}}))}};
+}
+
+function $SubmissionState$update_one_if$(_current_0, _advice_0, _fingerprint_0, _round_0, _token_0, _target_0) {
+  if (_current_0.$ === "None") {
+    return {$: "None"};
+  } else {
+    const _state_0 = _current_0["value"];
+    return $SubmissionState$update_one$(_state_0, _advice_0, _fingerprint_0, _round_0, _token_0, _target_0);
+  }
+}
+
+function $SubmissionState$restore_found$(_state_0, _advice_0, _fingerprint_0, _found_0) {
+  const _leases_0 = _state_0["leases"];
+  const _batches_0 = _state_0["batches"];
+  if (_found_0.$ === "None") {
+    return {$: "SubmissionState.State", "leases": _leases_0, "batches": _batches_0};
+  } else {
+    const _record_0 = _found_0["value"];
+    return $SubmissionState$restore_previous$(_advice_0, _fingerprint_0, _leases_0, _batches_0, ($SubmissionState$restore_record$(_record_0)));
   }
 }
 
@@ -4001,6 +5546,62 @@ function $Admission$consume$time$(_state_0, _partition_0, _lifetime_0, _round_0,
   }
 }
 
+function $SubmissionState$staged_lease_offered$(_advice_0, _fingerprint_0, _round_0, _token_0, _authorize_now_0, _previous_0, _result_0) {
+  if (_result_0.$ === "Handoff.Granted") {
+    const _current_0 = _result_0["state"];
+    return $SubmissionState$staged_lease_granted$(_advice_0, _fingerprint_0, _round_0, _token_0, _authorize_now_0, _previous_0, _current_0);
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $Handoff$lease$offer$(_state_0, _round_0, _token_0, _surface_0, _fresh_0) {
+  const __0 = _state_0["item"];
+  const __1 = _state_0["round"];
+  const __2 = _state_0["closed"];
+  const __3 = _state_0["reoffered"];
+  const _phase_0 = _state_0["phase"];
+  return $Handoff$lease$offer$phase$({$: "Handoff.Lease", "item": __0, "round": __1, "closed": __2, "reoffered": __3, "phase": _phase_0}, _round_0, _token_0, _surface_0, _fresh_0, _phase_0);
+}
+
+function $SubmissionState$batch_phase$(_batch_0, _phase_0) {
+  const _advice_0 = _batch_0["advice"];
+  const _group_0 = _batch_0["group"];
+  const _round_0 = _batch_0["round"];
+  const _token_0 = _batch_0["token"];
+  const _surface_0 = _batch_0["surface"];
+  const _fingerprints_0 = _batch_0["fingerprints"];
+  const _units_0 = _batch_0["units"];
+  return {$: "SubmissionState.Batch", "advice": _advice_0, "group": _group_0, "round": _round_0, "token": _token_0, "surface": _surface_0, "phase": _phase_0, "fingerprints": _fingerprints_0, "units": _units_0};
+}
+
+function $SubmissionState$update_one$(_state_0, _advice_0, _fingerprint_0, _round_0, _token_0, _target_0) {
+  const _leases_0 = _state_0["leases"];
+  const __0 = _state_0["batches"];
+  return $SubmissionState$update_one_found$({$: "SubmissionState.State", "leases": _leases_0, "batches": __0}, _advice_0, _fingerprint_0, _round_0, _token_0, _target_0, ($SubmissionState$find_lease$(_advice_0, _fingerprint_0, _leases_0)));
+}
+
+function $SubmissionState$restore_previous$(_advice_0, _fingerprint_0, _leases_0, _batches_0, _previous_0) {
+  if (_previous_0.$ === "None") {
+    return {$: "SubmissionState.State", "leases": ($SubmissionState$remove_record$(_advice_0, _fingerprint_0, _leases_0)), "batches": _batches_0};
+  } else {
+    const _record_0 = _previous_0["value"];
+    return {$: "SubmissionState.State", "leases": {$: "Con", "head": _record_0, "tail": ($SubmissionState$remove_record$(_advice_0, _fingerprint_0, _leases_0))}, "batches": _batches_0};
+  }
+}
+
+function $SubmissionState$restore_record$(_record_0) {
+  const _advice_0 = _record_0["advice"];
+  const _fingerprint_0 = _record_0["fingerprint"];
+  const _t_0 = _record_0["previous"];
+  if (_t_0.$ === "None") {
+    return {$: "None"};
+  } else {
+    const _current_0 = _t_0["value"];
+    return {$: "Some", "value": {$: "SubmissionState.LeaseRecord", "advice": _advice_0, "fingerprint": _fingerprint_0, "current": _current_0, "previous": {$: "None"}}};
+  }
+}
+
 function $Admission$consume$round$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _token_0, _permitted_round_0, _correct_round_0) {
   if (!_correct_round_0) {
     return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.OldRound"}};
@@ -4009,8 +5610,99 @@ function $Admission$consume$round$(_state_0, _partition_0, _lifetime_0, _round_0
   }
 }
 
+function $SubmissionState$staged_lease_granted$(_advice_0, _fingerprint_0, _round_0, _token_0, _authorize_now_0, _previous_0, _current_0) {
+  if (_authorize_now_0) {
+    return $SubmissionState$staged_lease_authorize$(_advice_0, _fingerprint_0, _round_0, _token_0, _previous_0, ($Handoff$lease$authorize$(_current_0, _round_0, _token_0)));
+  } else {
+    return {$: "Some", "value": {$: "SubmissionState.LeaseRecord", "advice": _advice_0, "fingerprint": _fingerprint_0, "current": _current_0, "previous": _previous_0}};
+  }
+}
+
+function $Handoff$lease$offer$phase$(_state_0, _round_0, _token_0, _surface_0, _fresh_0, _phase_0) {
+  if (_phase_0.$ === "Handoff.Submitted") {
+    const _t_0 = _phase_0["surface"];
+    if (_t_0.$ === "Handoff.Background") {
+      return $Handoff$lease$offer$background$(_state_0, _round_0, _token_0, _surface_0, _fresh_0);
+    } else {
+      return $Handoff$lease$reserve$(_state_0, _round_0, _token_0, _surface_0);
+    }
+  } else if (_phase_0.$ === "Handoff.Uncertain") {
+    const _t_1 = _phase_0["surface"];
+    if (_t_1.$ === "Handoff.Background") {
+      return $Handoff$lease$offer$background$(_state_0, _round_0, _token_0, _surface_0, _fresh_0);
+    } else {
+      return $Handoff$lease$reserve$(_state_0, _round_0, _token_0, _surface_0);
+    }
+  } else {
+    return $Handoff$lease$reserve$(_state_0, _round_0, _token_0, _surface_0);
+  }
+}
+
+function $SubmissionState$update_one_found$(_state_0, _advice_0, _fingerprint_0, _round_0, _token_0, _target_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return {$: "None"};
+  } else {
+    const _record_0 = _found_0["value"];
+    return $SubmissionState$update_one_result$(_state_0, _advice_0, _fingerprint_0, ($SubmissionState$step_record$(_record_0, _round_0, _token_0, _target_0)));
+  }
+}
+
 function $Admission$record_used$(_token_0, _permits_0, _used_0) {
   return $Admission$record_used$found$(($Admission$find_permit$(_token_0, _permits_0)), _used_0);
+}
+
+function $SubmissionState$staged_lease_authorize$(_advice_0, _fingerprint_0, _round_0, _token_0, _previous_0, _result_0) {
+  if (_result_0.$ === "Handoff.Granted") {
+    const _current_0 = _result_0["state"];
+    return {$: "Some", "value": {$: "SubmissionState.LeaseRecord", "advice": _advice_0, "fingerprint": _fingerprint_0, "current": _current_0, "previous": _previous_0}};
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $Handoff$lease$authorize$(_state_0, _round_0, _token_0) {
+  const __0 = _state_0["item"];
+  const _own_round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const __1 = _state_0["reoffered"];
+  const __2 = _state_0["phase"];
+  return $Handoff$lease$authorize$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": __1, "phase": __2}, _token_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$not$(_closed_0)))));
+}
+
+function $Handoff$lease$offer$background$(_state_0, _round_0, _token_0, _surface_0, _fresh_0) {
+  if (_surface_0.$ === "Handoff.Stop") {
+    return $Handoff$lease$reoffer$(_state_0, _round_0, _token_0, _fresh_0);
+  } else {
+    return $Handoff$lease$reserve$(_state_0, _round_0, _token_0, _surface_0);
+  }
+}
+
+function $Handoff$lease$reserve$(_state_0, _round_0, _token_0, _surface_0) {
+  const __0 = _state_0["item"];
+  const _own_round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const __1 = _state_0["reoffered"];
+  const __2 = _state_0["phase"];
+  return $Handoff$lease$reserve$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": __1, "phase": __2}, _token_0, _surface_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$not$(_closed_0)))));
+}
+
+function $SubmissionState$update_one_result$(_state_0, _advice_0, _fingerprint_0, _result_0) {
+  const _leases_0 = _state_0["leases"];
+  const _batches_0 = _state_0["batches"];
+  if (_result_0.$ === "Some") {
+    const _record_0 = _result_0["value"];
+    return {$: "Some", "value": {$: "SubmissionState.State", "leases": {$: "Con", "head": _record_0, "tail": ($SubmissionState$remove_record$(_advice_0, _fingerprint_0, _leases_0))}, "batches": _batches_0}};
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $SubmissionState$step_record$(_record_0, _round_0, _token_0, _target_0) {
+  const __0 = _record_0["advice"];
+  const __1 = _record_0["fingerprint"];
+  const _current_0 = _record_0["current"];
+  const __2 = _record_0["previous"];
+  return $SubmissionState$step_record_result$({$: "SubmissionState.LeaseRecord", "advice": __0, "fingerprint": __1, "current": _current_0, "previous": __2}, ($SubmissionState$lease_step$(_current_0, _round_0, _token_0, _target_0)));
 }
 
 function $Admission$record_used$found$(_permit_0, _used_0) {
@@ -4021,6 +5713,178 @@ function $Admission$record_used$found$(_permit_0, _used_0) {
     const _found_0 = _t_0["token"];
     const _tool_0 = _t_0["tool"];
     return {$: "Con", "head": {$: "Admission.Used", "token": _found_0, "tool": _tool_0}, "tail": _used_0};
+  }
+}
+
+function $Handoff$lease$authorize$guard$(_state_0, _token_0, _allowed_0) {
+  const _item_0 = _state_0["item"];
+  const _round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const _reoffered_0 = _state_0["reoffered"];
+  const _phase_0 = _state_0["phase"];
+  if (_allowed_0) {
+    return $Handoff$lease$authorize$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0);
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $Handoff$lease$reoffer$(_state_0, _round_0, _token_0, _fresh_0) {
+  const __0 = _state_0["item"];
+  const _own_round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const _reoffered_0 = _state_0["reoffered"];
+  const __1 = _state_0["phase"];
+  return $Handoff$lease$reoffer$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": __1}, _token_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$and$(($Bool$not$(_closed_0)), ($Bool$and$(($Bool$not$(_reoffered_0)), _fresh_0)))))));
+}
+
+function $Handoff$lease$reserve$guard$(_state_0, _token_0, _surface_0, _allowed_0) {
+  const _item_0 = _state_0["item"];
+  const _round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const _reoffered_0 = _state_0["reoffered"];
+  const _phase_0 = _state_0["phase"];
+  if (_allowed_0) {
+    return $Handoff$lease$reserve$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0, _surface_0);
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $SubmissionState$step_record_result$(_record_0, _result_0) {
+  const _advice_0 = _record_0["advice"];
+  const _fingerprint_0 = _record_0["fingerprint"];
+  const _previous_0 = _record_0["previous"];
+  if (_result_0.$ === "Handoff.Granted") {
+    const _current_0 = _result_0["state"];
+    return {$: "Some", "value": {$: "SubmissionState.LeaseRecord", "advice": _advice_0, "fingerprint": _fingerprint_0, "current": _current_0, "previous": _previous_0}};
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $SubmissionState$lease_step$(_current_0, _round_0, _token_0, _target_0) {
+  if (_target_0.$ === "Delivery.Authorized") {
+    return $Handoff$lease$authorize$(_current_0, _round_0, _token_0);
+  } else if (_target_0.$ === "Delivery.Submitted") {
+    return $Handoff$lease$terminal$(_current_0, _round_0, _token_0, true);
+  } else if (_target_0.$ === "Delivery.Uncertain") {
+    return $Handoff$lease$terminal$(_current_0, _round_0, _token_0, false);
+  } else {
+    return {$: "Handoff.Denied", "state": _current_0};
+  }
+}
+
+function $Handoff$lease$authorize$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0) {
+  if (_phase_0.$ === "Handoff.Reserved") {
+    const _own_token_0 = _phase_0["token"];
+    const _surface_0 = _phase_0["surface"];
+    return $Handoff$lease$authorize$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, ($Nat$is_eq$(_own_token_0, _token_0)));
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $Handoff$lease$reoffer$guard$(_state_0, _token_0, _allowed_0) {
+  const _item_0 = _state_0["item"];
+  const _round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const _reoffered_0 = _state_0["reoffered"];
+  const _phase_0 = _state_0["phase"];
+  if (_allowed_0) {
+    return $Handoff$lease$reoffer$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0);
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $Handoff$lease$reserve$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0, _surface_0) {
+  if (_phase_0.$ === "Handoff.Available") {
+    return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Reserved", "token": _token_0, "surface": _surface_0}}};
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $Handoff$lease$terminal$(_state_0, _round_0, _token_0, _certain_0) {
+  const __0 = _state_0["item"];
+  const _own_round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const __1 = _state_0["reoffered"];
+  const __2 = _state_0["phase"];
+  return $Handoff$lease$terminal$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": __1, "phase": __2}, _token_0, _certain_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$not$(_closed_0)))));
+}
+
+function $Handoff$lease$authorize$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, _same_0) {
+  if (_same_0) {
+    return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Authorized", "token": _own_token_0, "surface": _surface_0}}};
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Reserved", "token": _own_token_0, "surface": _surface_0}}};
+  }
+}
+
+function $Handoff$lease$reoffer$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0) {
+  if (_phase_0.$ === "Handoff.Submitted") {
+    const _surface_0 = _phase_0["surface"];
+    return $Handoff$lease$reoffer$surface$(_item_0, _round_0, _closed_0, _reoffered_0, _surface_0, false, _token_0);
+  } else if (_phase_0.$ === "Handoff.Uncertain") {
+    const _surface_1 = _phase_0["surface"];
+    return $Handoff$lease$reoffer$surface$(_item_0, _round_0, _closed_0, _reoffered_0, _surface_1, true, _token_0);
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $Handoff$lease$terminal$guard$(_state_0, _token_0, _certain_0, _allowed_0) {
+  const _item_0 = _state_0["item"];
+  const _round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const _reoffered_0 = _state_0["reoffered"];
+  const _phase_0 = _state_0["phase"];
+  if (_allowed_0) {
+    return $Handoff$lease$terminal$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0, _certain_0);
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $Handoff$lease$reoffer$surface$(_item_0, _round_0, _closed_0, _reoffered_0, _surface_0, _uncertain_0, _token_0) {
+  if (_surface_0.$ === "Handoff.Edit") {
+    if (_uncertain_0) {
+      return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Uncertain", "surface": {$: "Handoff.Edit"}}}};
+    } else {
+      return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Submitted", "surface": {$: "Handoff.Edit"}}}};
+    }
+  } else if (_surface_0.$ === "Handoff.Background") {
+    return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": true, "phase": {$: "Handoff.Reserved", "token": _token_0, "surface": {$: "Handoff.Stop"}}}};
+  } else {
+    if (_uncertain_0) {
+      return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Uncertain", "surface": {$: "Handoff.Stop"}}}};
+    } else {
+      return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Submitted", "surface": {$: "Handoff.Stop"}}}};
+    }
+  }
+}
+
+function $Handoff$lease$terminal$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0, _certain_0) {
+  if (_phase_0.$ === "Handoff.Authorized") {
+    const _own_token_0 = _phase_0["token"];
+    const _surface_0 = _phase_0["surface"];
+    return $Handoff$lease$terminal$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, ($Nat$is_eq$(_own_token_0, _token_0)), _certain_0);
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $Handoff$lease$terminal$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, _same_0, _certain_0) {
+  if (_same_0) {
+    if (_certain_0) {
+      return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Submitted", "surface": _surface_0}}};
+    } else {
+      return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Uncertain", "surface": _surface_0}}};
+    }
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Authorized", "token": _own_token_0, "surface": _surface_0}}};
   }
 }
 

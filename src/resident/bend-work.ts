@@ -5,14 +5,7 @@ import {
   bendWorkOutcome, bendWorkPendingFindings, bendWorkRetire, bendWorkSpawn,
   bendWorkStartSource, bendWorkStartUnit, bendWorkUnfinished, bendWorkReviseFinding,
   bendWorkPendingFor,
-  bendLifecycleFinishDisposition,
-  bendLifecycleFinishOutput,
-  bendLifecycleSelectionReserve,
-  bendLifecycleReserveSelected,
-  type BendList, type BendRound, type BendWorkOutcome, type BendWorkState,
-  type BendLifecycleFinishDisposition,
-  type BendLifecycleFinishOutput,
-  type BendOutputSelection,
+  type BendList, type BendWorkOutcome, type BendWorkState,
   type BendWorkStep,
 } from "./bend-policy.generated.js";
 
@@ -115,27 +108,4 @@ export class BendWorkTracker {
     return { cancelledSource: ids(cancelled.cancelled_source), cancelledJev: ids(cancelled.cancelled_jev) };
   }
 
-  reserveSelected(round: BendRound, token: number, selectedUnits: ReadonlyArray<number>): BendRound | undefined {
-    const result = bendLifecycleReserveSelected(round, this.#state, token, selectedUnits);
-    return result.$ === "Granted" ? result.state : undefined;
-  }
-
-  reserveOutputSelection(selectedUnits: ReadonlyArray<number>): BendOutputSelection | undefined {
-    const result = bendLifecycleSelectionReserve(this.#state, selectedUnits);
-    return result.$ === "SelectionReserved" ? result.state : undefined;
-  }
-
-  finishDisposition(selectedUnits: ReadonlyArray<number>, hasNotice: boolean,
-    passNotices: boolean, canWrite: boolean, bindingValid: boolean,
-    deadlineReached: boolean): BendLifecycleFinishDisposition {
-    return bendLifecycleFinishDisposition(this.#state, selectedUnits, hasNotice,
-      passNotices, canWrite, bindingValid, deadlineReached);
-  }
-
-  finishOutput(round: BendRound, token: number, selectedUnits: ReadonlyArray<number>,
-    hasNotice: boolean, passNotices: boolean, canWrite: boolean,
-    bindingValid: boolean, deadlineReached: boolean): BendLifecycleFinishOutput {
-    return bendLifecycleFinishOutput(round, this.#state, token, selectedUnits,
-      hasNotice, passNotices, canWrite, bindingValid, deadlineReached);
-  }
 }
