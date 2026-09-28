@@ -23,12 +23,12 @@ at `b8056e2`. #123's canonical FIFO dispatch is merged at `348604c`.
 #124's canonical Stop wait and cutoff, #125's collection and lease routing,
 and #126's delivery and terminal acknowledgement routing, #127's revision
 supersession, #128's ticket settlement, #129's evaluation reuse, #130's operational notices, #131's retention and lifetime cleanup, #132's effective file-selection and admission routing, #133's file eligibility routing, #134's rule and finding decisions, and #135's production replay visualization are merged;
-the next migration slice is #136. Configurable graph limits and
+the #136 native validation is in progress and incomplete. Configurable graph limits and
 general budget/termination proofs are tracked separately in
 [#142](https://github.com/dearlordylord/hapsland/issues/142).
 
 The integrated epic is in `/workspace/typescript/jev-worktrees/bend-full-flow`
-(`feat/bend-full-flow`, merged through #135). Start #136 in a new task worktree
+(`feat/bend-full-flow`, #135 merged with partial #136 evidence). Continue #136 in a task worktree
 from the latest epic tip. The old `/tmp/hapsland-bend-handoff.md` predates #119
 and is no longer a valid resume point. The `/workspace/typescript/jev` checkout
 is older and is not the edit target.
@@ -304,6 +304,21 @@ tests, root build, visualization build and browser checks passed; the full root
 suite passed 602 tests with 2 skipped. Both review axes found no remaining
 material defect. See `docs/issue-135-visualization-evidence.md`.
 
+## #136 native validation (incomplete, 2026-09-28)
+
+A bounded real Codex session observed native edit attribution, a Jev finding
+submitted through the hook, an agent edit after that submission, and a second
+HTTP 200 review. The record did not capture an explicit follow-up clear ticket.
+Five separately declared Claude sessions used eight Jev requests total. Some
+recorded resident findings and later clear outcomes, but none recorded advice
+submission to Claude before repair; an HTTP 503 and a later request failure
+were recorded as unavailable/incomplete. The supported 2.1.218 composed-hook
+path was included. The 91 focused deterministic resident tests passed. Do not
+infer Claude model visibility from a backend finding or a changed file. Keep
+#136 open; diagnose the collection/delivery gap offline, then declare a new
+bounded live validation before claiming completion. See
+`docs/issue-136-native-evidence.md`.
+
 ## Next autonomous migration run
 
 Use the GitHub issue bodies as the task contracts. Work in a dedicated task
@@ -314,8 +329,8 @@ the issue only when its criteria have evidence. Update this handoff after each
 merged slice. Do not treat the separate #141 import-graph diagram as the final
 production replay.
 
-One valid single-agent order from here is #136, #137.
-#136 validates native Codex and Claude flows after #131/#134; #137 is the final
+One valid single-agent order from here is complete #136, then #137.
+#136 must validate native Codex and Claude flows; #137 is the final
 authority review after #135/#136. #143 is a separate resident-process lifetime
 task, not part of the Bend state-cleanup task #131. #139/#140/#142 remain
 separate follow-ups.

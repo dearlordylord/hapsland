@@ -1,7 +1,6 @@
 // One bounded real Claude Code + Jev observation. Raw host and backend data stay temporary.
 import { spawn, spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
-import { appendFileSync, chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { residentRequest } from "../src/resident/client.ts";
