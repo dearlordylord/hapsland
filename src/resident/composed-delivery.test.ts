@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { BACKGROUND_WAITER_EXPIRY_MS, ComposedDelivery, EDIT_PERMIT_EXPIRY_MS,
   MAX_COMPOSED_ROUNDS } from "./composed-delivery.ts";
 import { DELIVERY_LEASE_MS } from "./protocol.ts";
-import { BendWorkTracker } from "./bend-work.ts";
 
 const canonicalFinding = (state: ComposedDelivery, partition = "agent"): number => {
   const owner = state.canonical.partitionId(partition);
@@ -159,12 +158,7 @@ describe("shared Hapsland rounds", () => {
     state.admitEdit("agent", "edit", 0);
     state.beginStop("agent", "attempt");
     const canonicalUnit = canonicalFinding(state);
-    const work = new BendWorkTracker();
-    const source = work.admit();
-    const unit = work.spawn(source)!;
-    expect(work.outcome(unit, { $: "Finding", count: 1, bytes: 20 })).toBe(true);
-    expect(work.completeSource(source)).toBe(true);
-    state.finishGate("agent", "attempt", 0, true, work);
+    state.finishGate("agent", "attempt", 0, true);
     expect(state.reserveFinishOutput("agent", "attempt", "output",
       [{ id: "advice", unit: canonicalUnit, findings: [finding] }], 1)).toBe(true);
     expect(state.expireStop("agent", "attempt")).toBe(1);
@@ -182,12 +176,7 @@ describe("shared Hapsland rounds", () => {
     state.admitEdit("agent", "edit", 0);
     state.beginStop("agent", "attempt");
     const canonicalUnit = canonicalFinding(state);
-    const work = new BendWorkTracker();
-    const source = work.admit();
-    const unit = work.spawn(source)!;
-    expect(work.outcome(unit, { $: "Finding", count: 1, bytes: 20 })).toBe(true);
-    expect(work.completeSource(source)).toBe(true);
-    state.finishGate("agent", "attempt", 0, true, work);
+    state.finishGate("agent", "attempt", 0, true);
     expect(state.reserveFinishOutput("agent", "attempt", "output",
       [{ id: "advice", unit: canonicalUnit, findings: [finding] }], 1)).toBe(true);
     expect(state.authorizeFinishOutput("agent", "output")).toBe(true);
@@ -226,12 +215,7 @@ describe("shared Hapsland rounds", () => {
     state.admitEdit("agent", "edit", 0);
     expect(state.beginStop("agent", "attempt")).toBe(true);
     const canonicalUnit = canonicalFinding(state);
-    const work = new BendWorkTracker();
-    const source = work.admit();
-    const unit = work.spawn(source)!;
-    expect(work.outcome(unit, { $: "Finding", count: 1, bytes: 20 })).toBe(true);
-    expect(work.completeSource(source)).toBe(true);
-    expect(state.finishGate("agent", "attempt", 0, true, work)?.status).toBe("cutoff");
+    expect(state.finishGate("agent", "attempt", 0, true)?.status).toBe("cutoff");
     expect(state.reserveFinishOutput("agent", "attempt", "output",
       [{ id: "advice", unit: canonicalUnit, findings: [finding] }], 1)).toBe(true);
     expect(state.closureCounts("agent").reservedContinuations).toBe(1);
@@ -287,14 +271,14 @@ describe("shared Hapsland rounds", () => {
     const second = state.canonical.admitObservation("agent\0edit-2");
     expect(state.beginStop("agent", "stop")).toBe(true);
     const scopes = ["agent\0edit-1", "agent\0edit-2"];
-    expect(state.finishGate("agent", "stop", 0, false, new BendWorkTracker(), scopes))
+    expect(state.finishGate("agent", "stop", 0, false, scopes))
       .toMatchObject({ status: "waiting" });
     expect(state.canonical.observation(scopes[0]!, first, "completeObservation")).toBe(false);
     expect(state.canonical.observation(scopes[0]!, first, "startObservation")).toBe(true);
     expect(state.canonical.observation(scopes[0]!, first, "completeObservation")).toBe(true);
-    expect(state.finishGate("agent", "stop", 0, false, new BendWorkTracker(), scopes))
+    expect(state.finishGate("agent", "stop", 0, false, scopes))
       .toMatchObject({ status: "waiting" });
-    const cutoff = state.finishGate("agent", "stop", 0, true, new BendWorkTracker(), scopes);
+    const cutoff = state.finishGate("agent", "stop", 0, true, scopes);
     expect(cutoff).toMatchObject({ status: "cutoff", cancelledSource: [] });
     expect(state.canonical.canonicalProjection().rounds.filter((item) =>
       scopes.some((scope) => item.partition === state.canonical.partitionId(scope)))

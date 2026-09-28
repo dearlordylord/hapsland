@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import { monotonicNow, PRE_EDIT_ADMISSION_DEADLINE_MS } from "./hook-clock.ts";
 import { canonicalValue } from "../direct-event/model.ts";
-import { BendWorkTracker } from "./bend-work.ts";
 import { CapacityLedger } from "./capacity.ts";
 import { DELIVERY_LEASE_MS } from "./protocol.ts";
 import {
@@ -310,7 +309,7 @@ export class ComposedDelivery {
   }
 
   finishGate(partition: string, token: string, extraUnfinished: number,
-    deadlineReached: boolean, work = new BendWorkTracker(), scopePartitions: readonly string[] = []):
+    deadlineReached: boolean, scopePartitions: readonly string[] = []):
     { readonly status: "waiting" } |
     { readonly status: "cutoff"; readonly cancelledSource: number[];
       readonly cancelledJev: number[]; readonly limited: boolean } | undefined {
@@ -339,7 +338,6 @@ export class ComposedDelivery {
     for (const command of cutoff.commands) if (command.kind === "reservationReleased") {
       this.canonical.acknowledgeStopRelease(command.id);
     }
-    work.cancelUnfinished(); // Keep the legacy output projection synchronized until #125.
     const decision = bendRoundBeginDecision(round.policy, stop.id);
     if (decision.$ !== "Granted") throw new Error("legacy output projection refused canonical Stop");
     for (const [key, permit] of this.#permits) if (permit.partition === partition) {

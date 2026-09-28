@@ -1,110 +1,42 @@
 import { describe, expect, it } from "vitest";
 import { BendWorkTracker } from "./bend-work.ts";
+import { CapacityLedger } from "./capacity.ts";
 
-describe("generated Bend work authority", () => {
-  it("keeps source open during streaming fanout and settles review units independently", () => {
-    const work = new BendWorkTracker();
-    const source = work.admit();
-    const first = work.spawn(source);
-    const second = work.spawn(source);
-    expect([first, second]).toEqual([1, 2]);
-    expect(work.unfinished()).toBe(3);
-    expect(work.outcome(first!, { $: "Finding", count: 1, bytes: 20 })).toBe(true);
-    expect(work.unfinished()).toBe(2);
-    expect(work.pendingFindings()).toBe(1);
-    expect(work.pendingFor(first!)).toBe(1);
-    expect(work.pendingFor(second!)).toBe(0);
-    expect(work.completeSource(source)).toBe(true);
-    expect(work.unfinished()).toBe(1);
-    expect(work.outcome(second!, { $: "Clear" })).toBe(true);
-    expect(work.unfinished()).toBe(0);
-    expect(work.retire(first!)).toBe(true);
-    expect(work.pendingFindings()).toBe(0);
-    expect(work.pendingFor(first!)).toBe(0);
-    expect(work.completeSource(source)).toBe(false);
+const limits = { globalItems: 8, globalBytes: 1000, partitionItems: 8, partitionBytes: 1000 };
+
+describe("canonical work projection", () => {
+  it("reads source stages from the shared ledger without advancing another state", () => {
+    const ledger = new CapacityLedger(limits);
+    const partitions = new Set(["agent"]);
+    const view = new BendWorkTracker(ledger, partitions);
+    const source = ledger.admitObservation("agent");
+    expect(view.admit(source)).toBe(source);
+    expect(view.startSource(source)).toBe(true);
+    expect(view.unfinished()).toBe(1);
+    expect(ledger.observation("agent", source, "startObservation")).toBe(true);
+    expect(view.completeSource(source)).toBe(true);
+    expect(ledger.observation("agent", source, "completeObservation")).toBe(true);
+    expect(view.unfinished()).toBe(0);
+    expect(view.pendingFindings()).toBe(0);
   });
 
-  it("records cached findings without inventing unfinished Jev work", () => {
-    const work = new BendWorkTracker();
-    const source = work.admit();
-    const cached = work.cachedFinding(source, 2, 30);
-    expect(cached).toBe(1);
-    expect(work.unfinished()).toBe(1);
-    expect(work.pendingFindings()).toBe(2);
-    expect(work.reviseFinding(cached!, 1, 15)).toBe(true);
-    expect(work.pendingFindings()).toBe(1);
-    expect(work.reviseFinding(cached!, 0, 0)).toBe(false);
-    expect(work.completeSource(source)).toBe(true);
-    expect(work.unfinished()).toBe(0);
-    expect(work.retire(cached!)).toBe(true);
-    expect(work.pendingFindings()).toBe(0);
-  });
-
-  it("accepts actual dispatcher starts when its logical capacity projection queued the job", () => {
-    const work = new BendWorkTracker();
-    const sources = Array.from({ length: 4 }, () => work.admit());
-    expect(work.startSource(sources[3]!)).toBe(true);
-    const units = Array.from({ length: 4 }, () => work.spawn(sources[3]!));
-    expect(units).toEqual([1, 2, 3, 4]);
-    expect(work.startUnit(units[3]!)).toBe(true);
-    expect(work.outcome(units[3]!, { $: "Finding", count: 1, bytes: 10 })).toBe(true);
-    expect(work.pendingFindings()).toBe(1);
-    expect(work.unfinished()).toBe(7);
-  });
-
-  it("interrupts abandoned work once and reports remaining work at close", () => {
-    const work = new BendWorkTracker();
-    const source = work.admit();
-    const unit = work.spawn(source);
-    expect(work.interruptUnit(unit!)).toBe(true);
-    expect(work.interruptUnit(unit!)).toBe(false);
-    expect(work.unfinished()).toBe(1);
-    expect(work.close().cancelledSource).toEqual([source]);
-    expect(work.unfinished()).toBe(0);
-  });
-
-  it("uses Bend cancellation IDs to cut off unfinished work while retaining findings", () => {
-    const work = new BendWorkTracker();
-    const source = work.admit();
-    const first = work.spawn(source)!;
-    const second = work.spawn(source)!;
-    expect(work.startUnit(first)).toBe(true);
-    expect(work.outcome(first, { $: "Finding", count: 1, bytes: 10 })).toBe(true);
-    expect(work.cancelUnfinished()).toEqual({ cancelledSource: [source], cancelledJev: [second] });
-    expect(work.unfinished()).toBe(0);
-    expect(work.pendingFor(first)).toBe(1);
-    expect(work.pendingFor(second)).toBe(0);
-  });
-
-  it("conserves unfinished work across interleaved source and review callbacks", () => {
-    const work = new BendWorkTracker();
-    const sources = Array.from({ length: 8 }, () => work.admit());
-    let unfinished = sources.length;
-    const units: number[] = [];
-    for (const source of sources.toReversed()) {
-      expect(work.startSource(source)).toBe(true);
-      for (let index = 0; index < 4; index++) {
-        const unit = work.spawn(source);
-        expect(unit).toBeDefined();
-        units.push(unit!);
-        unfinished += 1;
-      }
-      expect(work.unfinished()).toBe(unfinished);
-      expect(work.completeSource(source)).toBe(true);
-      unfinished -= 1;
-    }
-    let findings = 0;
-    for (const [index, unit] of units.toReversed().entries()) {
-      expect(work.startUnit(unit)).toBe(true);
-      if (index % 3 === 0) {
-        expect(work.outcome(unit, { $: "Finding", count: 1, bytes: 10 })).toBe(true);
-        findings += 1;
-      } else if (index % 3 === 1) expect(work.outcome(unit, { $: "Clear" })).toBe(true);
-      else expect(work.outcome(unit, { $: "Unavailable" })).toBe(true);
-      unfinished -= 1;
-      expect(work.unfinished()).toBe(unfinished);
-      expect(work.pendingFindings()).toBe(findings);
-    }
-    expect(work.unfinished()).toBe(0);
+  it("uses canonical review identities and pending finding counts", () => {
+    const ledger = new CapacityLedger(limits);
+    const view = new BendWorkTracker(ledger, new Set(["agent"]));
+    const source = ledger.admitObservation("agent");
+    ledger.observation("agent", source, "startObservation");
+    const preparation = ledger.beginObservedPreparation("agent", source, 100)!;
+    const unit = ledger.completePreparation("agent", preparation.operation, preparation.reservation, [20])[0]!;
+    expect(view.spawn(source, unit.operation)).toBe(unit.operation);
+    expect(view.startUnit(unit.operation)).toBe(true);
+    expect(ledger.startReview("agent", unit.operation)).toBe(true);
+    expect(view.outcome(unit.operation, { $: "Finding" })).toBe(true);
+    expect(ledger.completeReview("agent", unit.operation, unit.reservation, "finding")).toBe(true);
+    expect(view.reviseFinding(unit.operation, 2, 20)).toBe(true);
+    ledger.transition({ kind: "findingCountUpdated", partition: ledger.partitionId("agent"), lifetime: 1,
+      round: ledger.roundId("agent"), operation: unit.operation, count: 2 });
+    expect(view.pendingFor(unit.operation)).toBe(2);
+    expect(view.pendingFindings()).toBe(2);
+    expect(view.unfinished()).toBe(1);
   });
 });

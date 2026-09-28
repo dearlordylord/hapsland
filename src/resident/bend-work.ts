@@ -1,111 +1,51 @@
-import {
-  bendWorkAdmit, bendWorkCachedFinding, bendWorkClose, bendWorkCompleteSource,
-  bendWorkCancelUnfinished,
-  bendWorkInitial, bendWorkInterruptObservation, bendWorkInterruptUnit,
-  bendWorkOutcome, bendWorkPendingFindings, bendWorkRetire, bendWorkSpawn,
-  bendWorkStartSource, bendWorkStartUnit, bendWorkUnfinished, bendWorkReviseFinding,
-  bendWorkPendingFor,
-  type BendList, type BendWorkOutcome, type BendWorkState,
-  type BendWorkStep,
-} from "./bend-policy.generated.js";
+import type { CapacityLedger } from "./capacity.ts";
 
-const ids = (values: BendList<bigint>): number[] => {
-  const result: number[] = [];
-  for (let node = values; node.$ === "Con"; node = node.tail) {
-    const id = Number(node.head);
-    if (!Number.isSafeInteger(id) || id < 1) throw new Error("invalid Bend work identity");
-    result.push(id);
-  }
-  return result;
-};
-
-/** Source-free work authority for one composed advicee round. */
+/** Read-only work view over the shared canonical state for one composed round. */
 export class BendWorkTracker {
-  #state: BendWorkState = bendWorkInitial();
+  constructor(private readonly ledger: CapacityLedger, private readonly partitions: ReadonlySet<string>) {}
 
-  #accept(step: BendWorkStep): number[] | undefined {
-    if (step.$ !== "Accepted") return undefined;
-    const admitted = ids(step.admitted);
-    this.#state = step.state;
-    return admitted;
+  #work(operation: number) {
+    const ids = new Set([...this.partitions].map((partition) => this.ledger.partitionId(partition)));
+    return this.ledger.canonicalProjection().work.find((item) =>
+      ids.has(item.partition) && item.operation === operation);
   }
 
-  admit(): number {
-    const admitted = this.#accept(bendWorkAdmit(this.#state));
-    if (admitted?.length !== 1) throw new Error("Bend did not admit one source observation");
-    return admitted[0]!;
+  admit(observation: number): number {
+    if (this.#work(observation)?.kind !== "sourceQueued") throw new Error("canonical source admission missing");
+    return observation;
   }
 
-  spawn(observation: number): number | undefined {
-    const admitted = this.#accept(bendWorkSpawn(this.#state, observation, 1));
-    return admitted?.length === 1 ? admitted[0] : undefined;
+  spawn(observation: number, operation: number): number | undefined {
+    const work = this.#work(operation);
+    return work?.parent === observation && work.kind === "reviewing" ? operation : undefined;
   }
 
-  startSource(observation: number): boolean {
-    return this.#accept(bendWorkStartSource(this.#state, observation)) !== undefined;
+  cachedFinding(observation: number, _count: number, _bytes: number, operation: number): number | undefined {
+    const work = this.#work(operation);
+    return work?.parent === observation && work.kind === "pendingFinding" ? operation : undefined;
   }
 
-  startUnit(unit: number): boolean {
-    return this.#accept(bendWorkStartUnit(this.#state, unit)) !== undefined;
+  startSource(observation: number): boolean { return this.#work(observation)?.kind === "sourceQueued"; }
+  completeSource(observation: number): boolean { return this.#work(observation)?.kind === "sourceReading"; }
+  startUnit(operation: number): boolean { return this.#work(operation)?.kind === "reviewing"; }
+  outcome(operation: number, _outcome: unknown): boolean { return this.#work(operation)?.kind === "atJev"; }
+  reviseFinding(operation: number, _count: number, _bytes: number): boolean {
+    return this.#work(operation)?.kind === "pendingFinding";
   }
-
-  cachedFinding(observation: number, count: number, bytes: number): number | undefined {
-    const admitted = this.#accept(bendWorkCachedFinding(this.#state, observation, count, bytes));
-    return admitted?.length === 1 ? admitted[0] : undefined;
-  }
-
-  completeSource(observation: number): boolean {
-    return this.#accept(bendWorkCompleteSource(this.#state, observation)) !== undefined;
-  }
-
-  interruptSource(observation: number): boolean {
-    return this.#accept(bendWorkInterruptObservation(this.#state, observation)) !== undefined;
-  }
-
-  outcome(unit: number, outcome: BendWorkOutcome): boolean {
-    const accepted = this.#accept(bendWorkOutcome(this.#state, unit, outcome)) !== undefined;
-    if (accepted && outcome.$ !== "Finding") this.retire(unit);
-    return accepted;
-  }
-
-  interruptUnit(unit: number): boolean {
-    const accepted = this.#accept(bendWorkInterruptUnit(this.#state, unit)) !== undefined;
-    if (accepted) this.retire(unit);
-    return accepted;
-  }
-
-  retire(unit: number): boolean {
-    return this.#accept(bendWorkRetire(this.#state, unit)) !== undefined;
-  }
-
-  reviseFinding(unit: number, count: number, bytes: number): boolean {
-    return this.#accept(bendWorkReviseFinding(this.#state, unit, count, bytes)) !== undefined;
-  }
+  retire(operation: number): boolean { return this.#work(operation)?.kind === "pendingFinding"; }
 
   unfinished(): number {
-    return Number(bendWorkUnfinished(this.#state));
+    const ids = new Set([...this.partitions].map((partition) => this.ledger.partitionId(partition)));
+    return this.ledger.canonicalProjection().work.filter((item) =>
+      ids.has(item.partition) && item.kind !== "pendingFinding").length;
   }
-
   pendingFindings(): number {
-    return Number(bendWorkPendingFindings(this.#state));
+    return this.ledger.canonicalProjection().pendingFindings.reduce((count, entry) =>
+      count + (this.#work(entry.operation)?.kind === "pendingFinding" ? entry.count : 0), 0);
   }
-
-  pendingFor(unit: number): number {
-    return Number(bendWorkPendingFor(this.#state, unit));
+  pendingFor(operation: number): number {
+    return this.#work(operation)?.kind === "pendingFinding"
+      ? this.ledger.canonicalProjection().pendingFindings.find((entry) => entry.operation === operation)?.count ?? 0
+      : 0;
   }
-
-  close(): { readonly cancelledSource: number[]; readonly cancelledJev: number[];
-    readonly discardedFindings: number[] } {
-    const closed = bendWorkClose(this.#state);
-    this.#state = closed.state;
-    return { cancelledSource: ids(closed.cancelled_source), cancelledJev: ids(closed.cancelled_jev),
-      discardedFindings: ids(closed.discarded_findings) };
-  }
-
-  cancelUnfinished(): { readonly cancelledSource: number[]; readonly cancelledJev: number[] } {
-    const cancelled = bendWorkCancelUnfinished(this.#state);
-    this.#state = cancelled.state;
-    return { cancelledSource: ids(cancelled.cancelled_source), cancelledJev: ids(cancelled.cancelled_jev) };
-  }
-
 }
