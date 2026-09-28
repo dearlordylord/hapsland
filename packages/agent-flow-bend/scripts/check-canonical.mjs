@@ -39,6 +39,7 @@ for (const trace of fixture.traces) {
   }
 }
 const state = initialCanonical(fixture.limits);
+assert.throws(() => stepCanonical(state, { kind: "unknownTransition" }), TypeError);
 assert.deepEqual(projectCanonical(state).inventory, [
   "observationDispatch", "preparation", "reviewUnit", "storedResult", "operationalNotice", "adviceRecheck",
 ].map((purpose) => ({ purpose, limits: fixture.limits })));
@@ -53,6 +54,9 @@ assert.throws(() => stepCanonical(state, { kind: "reviewCompleted", partition: 1
 assert.throws(() => stepCanonical(state, { kind: "reserveCapacity", partition: 1, bytes: 1, purpose: "unknown" }), TypeError);
 assert.throws(() => stepCanonical(state, { kind: "reserveCapacity", partition: 1, bytes: 2 ** 47, purpose: "preparation" }), TypeError);
 assert.throws(() => stepCanonical(state, { kind: "resizeCapacity", reservation: 1, bytes: 1, purpose: "unknown" }), TypeError);
+assert.throws(() => stepCanonical(state, { kind: "deliverySubmissionAllowedCheck", active: true,
+  barrier: false, deciding: false, surface: "unknown", existingToken: false,
+  finishPermit: false }), TypeError);
 assert.throws(() => stepCanonical({ $: "Canonical.State" }, { kind: "openRound", partition: 1, lifetime: 1 }), TypeError);
 let edge = initialCanonical({ globalItems: 2, globalBytes: 2 ** 47 - 1, partitionItems: 2, partitionBytes: 2 ** 47 - 1 });
 edge = stepCanonical(edge, { kind: "openRound", partition: 1, lifetime: 1 }).state;
