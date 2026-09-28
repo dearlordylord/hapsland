@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "runtime": "Claude Code",
   "version": "2.1.218 (Claude Code)",
-  "recordedAt": "2026-09-28T14:02:23.677Z",
+  "recordedAt": "2026-09-28T13:57:54.894Z",
   "declaration": {
     "maximumProviderRequests": 8,
     "automaticRetries": 0,
@@ -13,7 +13,7 @@
   },
   "hostExitCode": 0,
   "hostSignal": null,
-  "elapsedMs": 64922,
+  "elapsedMs": 21764,
   "providerRequests": 0,
   "timeline": [
     {
@@ -22,8 +22,7 @@
       "decision": null,
       "finding": false,
       "notice": false,
-      "ruleIds": [],
-      "atMs": 1303
+      "atMs": 1085
     },
     {
       "kind": "composed-before-edit",
@@ -31,8 +30,7 @@
       "decision": null,
       "finding": false,
       "notice": false,
-      "ruleIds": [],
-      "atMs": 48684
+      "atMs": 6986
     },
     {
       "kind": "hook",
@@ -44,7 +42,7 @@
       "sourceHash": "cae206a9c36f719eaea8c03197c45a7f43317facf631994e0f4cf58b21f3a877",
       "sourceBytes": 25,
       "draft": true,
-      "atMs": 49080
+      "atMs": 7378
     },
     {
       "kind": "composed-background",
@@ -52,10 +50,7 @@
       "decision": null,
       "finding": true,
       "notice": false,
-      "ruleIds": [
-        "r6_bare_domain_value"
-      ],
-      "atMs": 49078
+      "atMs": 7375
     },
     {
       "kind": "composed-stop",
@@ -63,10 +58,7 @@
       "decision": "block",
       "finding": true,
       "notice": false,
-      "ruleIds": [
-        "r6_bare_domain_value"
-      ],
-      "atMs": 53733
+      "atMs": 10541
     },
     {
       "kind": "composed-before-edit",
@@ -74,8 +66,7 @@
       "decision": null,
       "finding": false,
       "notice": false,
-      "ruleIds": [],
-      "atMs": 59123
+      "atMs": 14716
     },
     {
       "kind": "hook",
@@ -87,7 +78,7 @@
       "sourceHash": "3177755e4e9f7e11f9bb9f0a36de227fbd2db83d63c088c1b39d067730a5658a",
       "sourceBytes": 62,
       "draft": false,
-      "atMs": 59501
+      "atMs": 15167
     },
     {
       "kind": "composed-background",
@@ -95,8 +86,7 @@
       "decision": null,
       "finding": false,
       "notice": true,
-      "ruleIds": [],
-      "atMs": 59496
+      "atMs": 15162
     },
     {
       "kind": "composed-stop",
@@ -104,34 +94,33 @@
       "decision": null,
       "finding": false,
       "notice": false,
-      "ruleIds": [],
-      "atMs": 63896
+      "atMs": 20556
     }
   ],
   "activityStages": [
     {
       "stage": "pending",
-      "atMs": 49454
+      "atMs": 7747
     },
     {
       "stage": "pending",
-      "atMs": 49494
+      "atMs": 7786
     },
     {
       "stage": "findings",
-      "atMs": 49516
+      "atMs": 7811
     },
     {
       "stage": "pending",
-      "atMs": 59847
+      "atMs": 15864
     },
     {
       "stage": "pending",
-      "atMs": 59870
+      "atMs": 15911
     },
     {
       "stage": "unavailable",
-      "atMs": 59888
+      "atMs": 15951
     }
   ],
   "checks": {
@@ -142,7 +131,6 @@
     "validSourceCompiles": true,
     "invalidStatesRejected": true,
     "agentAcknowledgesAdvice": true,
-    "agentNamesDeliveredRule": true,
     "followupClearObserved": false,
     "followupFindingObserved": false
   },
@@ -152,17 +140,9 @@
     "pendingFindingBatches": 0,
     "pendingOperationalNotices": 0
   },
-  "acknowledgement": {
-    "agentAffirmsAdvice": true,
-    "agentDeniesAdvice": false,
-    "deliveredRuleIds": [
-      "r6_bare_domain_value"
-    ],
-    "agentNamesDeliveredRule": true
-  },
   "rawHostOutputRetained": false,
   "rawBackendMaterialRetained": false,
   "credentialRetained": false,
-  "hostOutputBytesDiscarded": 142979,
+  "hostOutputBytesDiscarded": 142093,
   "verdict": "incomplete"
 }

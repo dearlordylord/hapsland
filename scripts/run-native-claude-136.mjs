@@ -117,7 +117,7 @@ const at=Date.now();
 const result=spawnSync(process.execPath,[${JSON.stringify(join(project, "src/cli.ts"))},'--composed-'+kind+'-hook','--composed-host=claude-code'${offlineControl ? ",'--controlled-reviewer'" : ""}],{input,encoding:'utf8',env:process.env,timeout:30000,maxBuffer:1048576});
 let output;try{output=JSON.parse(result.stdout)}catch{}
 const message=output?.reason??output?.hookSpecificOutput?.additionalContext??output?.systemMessage??'';
-appendFileSync(process.env.HAPSLAND_136_EVENTS,JSON.stringify({kind:'composed-'+kind,at,doneAt:Date.now(),exitCode:result.status,decision:output?.decision??null,finding:output?.decision==='block'||message.includes('[r6_bare_domain_value, p='),notice:message.includes('Operational notice:')})+'\\n',{mode:0o600});
+appendFileSync(process.env.HAPSLAND_136_EVENTS,JSON.stringify({kind:'composed-'+kind,at,doneAt:Date.now(),exitCode:result.status,decision:output?.decision??null,finding:output?.decision==='block'||message.includes('[r6_bare_domain_value, p='),notice:message.includes('Operational notice:'),ruleIds:[...message.matchAll(/\\[([a-z0-9_]+), p=/g)].map(match=>match[1])})+'\\n',{mode:0o600});
 if(result.status===0)process.stdout.write(result.stdout??'');
 process.exitCode=result.status??1;
 `);
@@ -159,6 +159,10 @@ After that first Write, finish your turn immediately without running tests or ma
   }).join("\n");
   const timeline = readLines(events).map((entry) => ({ ...entry, atMs: entry.at - started, at: undefined, doneAt: undefined }));
   const activityStages = stages(activity);
+  const deliveredRuleIds = [...new Set(timeline.filter((entry) => entry.finding).flatMap((entry) => entry.ruleIds ?? []))];
+  const agentAffirmsAdvice = finalText.includes("HAPSLAND_ADVICE_APPLIED");
+  const agentDeniesAdvice = finalText.includes("HAPSLAND_ADVICE_NOT_APPLIED");
+  const agentNamesDeliveredRule = deliveredRuleIds.some((ruleId) => finalText.includes(ruleId));
   const source = existsSync(sourcePath) ? readFileSync(sourcePath, "utf8") : "";
   const finding = timeline.find((entry) => entry.finding);
   const editedAfterFinding = !!finding && timeline.some((entry) => entry.kind === "hook" && entry.atMs > finding.atMs && !entry.draft);
@@ -194,11 +198,12 @@ const contradictory: PaymentState = { status: 'succeeded', receipt: 'r', failure
     timeline, activityStages, checks: { initialDraftObserved: timeline.some((entry) => entry.draft), findingSubmitted: !!finding,
       editAfterFinding: editedAfterFinding, finalSourceChanged: !!source && (countFixture ? source.trim() !== "type OrderCount = number" : !source.includes("receipt: string | null")),
       validSourceCompiles: compile.status === 0, invalidStatesRejected,
-      agentAcknowledgesAdvice: finalText.includes("HAPSLAND_ADVICE_APPLIED") &&
-        !finalText.includes("HAPSLAND_ADVICE_NOT_APPLIED") && finalText.includes("r6_bare_domain_value"),
+      agentAcknowledgesAdvice: agentAffirmsAdvice && !agentDeniesAdvice,
+      agentNamesDeliveredRule,
       followupClearObserved: followupStage?.stage === "clear",
       followupFindingObserved: followupStage?.stage === "findings" },
-    resident, rawHostOutputRetained: false, rawBackendMaterialRetained: false, credentialRetained: false,
+    resident, acknowledgement: { agentAffirmsAdvice, agentDeniesAdvice, deliveredRuleIds, agentNamesDeliveredRule },
+    rawHostOutputRetained: false, rawBackendMaterialRetained: false, credentialRetained: false,
     hostOutputBytesDiscarded: Buffer.byteLength(host.stdout) + host.stderrBytes };
   record.verdict = host.code === 0 && record.checks.initialDraftObserved && record.checks.findingSubmitted &&
     record.checks.editAfterFinding && record.checks.finalSourceChanged && record.checks.validSourceCompiles &&

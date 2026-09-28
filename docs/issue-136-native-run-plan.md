@@ -160,3 +160,16 @@ capture it without retaining the raw message; a separately declared Codex
 session is needed because the old transcript was discarded. Four Codex
 requests have been used, so one six-request run has a cumulative maximum of
 ten of 40. Keep #136 open until both visibility observations are present.
+
+## Declared visibility diagnostic live observation, before execution
+
+The first visibility-focused live Claude session delivered advice and reached
+a checked further finding, but the combined acknowledgement check was false
+and did not identify which condition failed. A subsequent offline run records
+separate source-free flags for agent affirmation, denial, and citation of a
+rule ID actually present in the delivered hook result; all three showed an
+affirmative rule-specific acknowledgement after the agent's edit. One new
+independent real Jev session will use that instrumentation. It has an
+eight-request HTTP-boundary cutoff, no automatic retry, and 240-second host
+ceiling. Sixteen live Claude requests have been used; the cumulative actual
+maximum is 24 of 40. Preserve the earlier incomplete live record.

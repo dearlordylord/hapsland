@@ -21,8 +21,10 @@ request ceiling. The source-free records are under
 | Claude Code 2.1.218, visibility-focused offline session | 0 | The Stop hook delivered a controlled r6 finding; Claude changed the type and its final response affirmatively identified the actual rule ID. The agent chose a different valid branded representation, so the exact-snapshot controlled reviewer marked the follow-up unavailable. This is visibility evidence, not a complete follow-up validation. |
 | Claude Code 2.1.218, real Jev count session | 2 | Jev HTTP 200 produced a current finding; the native Stop hook blocked and Claude then changed the type. The replacement compiled and independent invalid-assignment check passed. The follow-up Jev request failed and the resident recorded incomplete/unavailable, not clear. |
 | Claude Code 2.1.218, second real Jev count session | 2 | Jev HTTP 200 produced a current finding delivered through Stop. Claude edited the type, and independent TypeScript checks rejected raw-number assignment. A second Jev HTTP 200 produced a further resident finding after the edit, satisfying the specified follow-up outcome alternative. This does not claim the rule was cleared. |
+| Claude Code 2.1.218, first visibility-focused live session | 2 | Stop delivered a finding, Claude made a different valid branded type, and a second Jev HTTP 200 produced a further finding. The combined final-acknowledgement check was false, so this record does not establish independent model acknowledgement. |
+| Claude Code 2.1.218, instrumented offline visibility session | 0 | Native Stop delivered controlled r6 advice; Claude repaired and affirmatively named the delivered rule ID in its final response. The different branded form fell outside the exact-snapshot controlled fixture, so follow-up was unavailable, not clear. |
 
-The eight live Claude sessions used **14 Jev requests total**, below the issue's
+The nine live Claude sessions used **16 Jev requests total**, below the issue's
 40-request limit. Each
 session had its own eight-request HTTP-boundary cutoff and 240-second host
 ceiling; there were no automatic retries. The two Codex sessions used **4 Jev
