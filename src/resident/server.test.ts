@@ -223,11 +223,14 @@ describe("resident delivery lease", () => {
       await server.handle({ version: 1, operation: "collect", lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true,
         finish: { token: "held", deadlineReached: true } });
+      expect(server.pendingAdviceMetadata()).toHaveLength(1);
+      await server.handle({ version: 1, operation: "finish-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "held", close: true, reason: "no-advice" });
       release.resolve();
       await server.whenIdle();
-      expect(server.pendingAdviceMetadata()).toHaveLength(1);
       const activity = readActivity({ statePath: activityPath, root,
         sessionId: observation.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
+      expect(activity.roundClosures?.[0]).toBeDefined();
       expect(activity.roundClosures?.[0]?.reason).not.toBe("unavailable");
     } finally {
       release.resolve();
