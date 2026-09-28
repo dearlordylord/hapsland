@@ -59,22 +59,16 @@ import {
 import { DispatchCycles } from "./dispatch.ts";
 import { ComposedDelivery } from "./composed-delivery.ts";
 import { BendWorkTracker } from "./bend-work.ts";
-import { bendTicketInitial, bendTicketFail, bendTicketClose, bendTicketTerminal,
-  bendTicketCollectGate,
-  bendTicketFinalAuthority,
-  bendTicketUnitStep, bendTicketUnitInitial,
-  bendReuseRoute, bendReuseCacheRoute,
+import type { TicketReason, TicketUnitEvent } from "../canonical/adapter.ts";
+import { bendReuseRoute, bendReuseCacheRoute,
   bendDeliveryAcknowledge, bendDeliveryFinalize, bendDeliveryFindingDisposition,
   bendDeliveryReleaseUnacknowledged,
   bendDeliveryNoticeCandidate,
   bendValidationRoute, bendPostValidation, bendFinalCandidate,
   bendCleanupGate, bendCleanupCommit, bendTicketRetention,
-  bendTicketJoinedDisposition,
   bendNoticePrune,
   bendDeliverySubmissionCandidate, bendDeliverySubmissionBatchGate,
   bendDeliveryCredentialObserve, bendDeliveryFinalCredentialGate,
-  type BendTicketPhase, type BendTicketReason,
-  type BendTicketUnitEvent, type BendTicketUnitStage,
   type BendValidationStatus } from "./bend-policy.generated.js";
 import {
   ADVICE_COLLECTION_WINDOW_MS,
@@ -184,36 +178,53 @@ type IngressJob = {
   readonly ticket?: TicketRecord;
 };
 
-type TicketUnitState = { readonly stage: BendTicketUnitStage;
-  readonly revision?: WorkRevision; readonly adviceId?: string;
-  readonly reason?: ResidentUnavailableReason };
-type TicketUnit = { current: TicketUnitState };
-const ticketUnitTransition = (unit: TicketUnit, event: BendTicketUnitEvent) =>
-  bendTicketUnitStep(unit.current.stage, event);
+type TicketUnitState = { readonly revision?: WorkRevision; readonly adviceId?: string };
+type TicketUnit = { readonly id: number; readonly ticketId: number;
+  readonly ledger: CapacityLedger; current: TicketUnitState };
+const ticketUnitStageOrUndefined = (unit: TicketUnit) => {
+  const command = unit.ledger.transition({ kind: "ticketUnitCheck", id: unit.ticketId,
+    unit: unit.id }).commands[0];
+  if (command?.kind === "ticketUnitSnapshot") return command;
+  if (command?.kind === "ticketUnitMissing") return undefined;
+  throw new Error("canonical ticket unit check refused");
+};
+const ticketUnitStage = (unit: TicketUnit) => {
+  const stage = ticketUnitStageOrUndefined(unit);
+  if (stage === undefined) throw new Error("canonical ticket unit missing");
+  return stage;
+};
+const ticketUnitTransition = (unit: TicketUnit, event: TicketUnitEvent,
+  reason: TicketReason = "lost"): boolean => {
+  if (ticketUnitStageOrUndefined(unit) === undefined) return false;
+  const result = unit.ledger.transition({ kind: "ticketStepUnit", id: unit.ticketId,
+    unit: unit.id, event, reason });
+  const command = result.commands[0]?.kind;
+  if (command === "ticketUnitUpdated") return true;
+  if (command === "ticketRefused") return false;
+  throw new Error("canonical ticket unit transition refused");
+};
 const unitUnavailable = (unit: TicketUnit, reason: ResidentUnavailableReason): void => {
-  const result = ticketUnitTransition(unit, { $: "FailUnit" });
-  if (result.$ !== "UnitGranted" || result.stage.$ !== "UnitUnavailable") {
-    throw new Error("Bend denied ticket unit failure");
+  const before = ticketUnitStageOrUndefined(unit);
+  if (before === undefined || before.stage === "unavailable") return;
+  if (!ticketUnitTransition(unit, "failUnit", reason) || ticketUnitStage(unit).stage !== "unavailable") {
+    throw new Error("canonical ticket unit failure refused");
   }
-  unit.current = { stage: result.stage, reason };
+  unit.current = {};
 };
 const unitRevision = (unit: TicketUnit, revision: WorkRevision): void => {
-  const result = ticketUnitTransition(unit, { $: "Revise" });
-  if (result.$ === "UnitDenied") return;
-  if (result.stage.$ !== "UnitPending") throw new Error("invalid Bend ticket revision stage");
-  unit.current = { stage: result.stage, revision };
+  if (!ticketUnitTransition(unit, "revise")) return;
+  if (ticketUnitStage(unit).stage !== "pending") throw new Error("invalid canonical ticket revision stage");
+  unit.current = { revision };
 };
 const unitClear = (unit: TicketUnit, revision: WorkRevision): void => {
-  const result = ticketUnitTransition(unit, { $: "ClearResult" });
-  if (result.$ === "UnitDenied") return;
-  if (result.stage.$ !== "UnitClear") throw new Error("invalid Bend ticket clear stage");
-  unit.current = { stage: result.stage, revision };
+  if (!ticketUnitTransition(unit, "clearResult")) return;
+  if (ticketUnitStage(unit).stage !== "clear") throw new Error("invalid canonical ticket clear stage");
+  unit.current = { revision };
 };
 const unitFinding = (unit: TicketUnit, revision: WorkRevision, adviceId: string): void => {
-  const result = ticketUnitTransition(unit, { $: "FindingResult" });
-  if (result.$ === "UnitDenied") return;
-  if (result.stage.$ !== "UnitFinding") throw new Error("invalid Bend ticket finding stage");
-  unit.current = { stage: result.stage, revision, adviceId };
+  if (!ticketUnitTransition(unit, "findingResult")) return;
+  if (ticketUnitStage(unit).stage !== "finding") throw new Error("invalid canonical ticket finding stage");
+  unit.current = { revision, adviceId };
 };
 type TicketRecord = { readonly ticket: ResidentCollectionTicket; readonly generation: number;
   readonly partition: string; readonly credentialGeneration: number | null;
@@ -221,26 +232,19 @@ type TicketRecord = { readonly ticket: ResidentCollectionTicket; readonly genera
   readonly credentialStatePath: string | null; readonly credentialRequired: boolean;
   readonly credentialEnvironmentOnly: boolean;
   readonly expiresAt: number; readonly units: Array<TicketUnit>;
-  phase: BendTicketPhase };
-const ticketReasons: Record<ResidentUnavailableReason, BendTicketReason> = {
-  backend: { $: "Backend" }, credential: { $: "Credential" }, capacity: { $: "Capacity" },
-  stale: { $: "Stale" }, lost: { $: "Lost" }, expired: { $: "Expired" },
-};
-const nativeTicketReason = (reason: BendTicketReason): ResidentUnavailableReason => {
-  switch (reason.$) {
-    case "Backend": return "backend";
-    case "Credential": return "credential";
-    case "Capacity": return "capacity";
-    case "Stale": return "stale";
-    case "Lost": return "lost";
-    case "Expired": return "expired";
+  readonly ledger: CapacityLedger };
+const ticketFail = (ticket: TicketRecord, reason: ResidentUnavailableReason): void => {
+  const command = ticket.ledger.transition({ kind: "ticketFail", id: ticket.generation,
+    reason }).commands[0]?.kind;
+  if (command !== "ticketFailed" && command !== "ticketRefused") {
+    throw new Error("canonical ticket failure refused");
   }
 };
-const ticketFail = (ticket: TicketRecord, reason: ResidentUnavailableReason): void => {
-  ticket.phase = bendTicketFail(ticket.phase, ticketReasons[reason]);
-};
 const ticketClose = (ticket: TicketRecord): void => {
-  ticket.phase = bendTicketClose(ticket.phase);
+  const command = ticket.ledger.transition({ kind: "ticketClose", id: ticket.generation }).commands[0]?.kind;
+  if (command !== "ticketClosed" && command !== "ticketRefused") {
+    throw new Error("canonical ticket close refused");
+  }
 };
 const TICKET_RETENTION_MS = 600_000;
 const MAX_TICKETS = 256;
@@ -524,6 +528,7 @@ export class ResidentServer {
   readonly #tickets = new Map<string, TicketRecord>();
   readonly #joinedTicketUnits = new Map<string, Array<TicketUnit>>();
   #nextAdmissionGeneration = 1;
+  #nextTicketUnitId = 1;
   readonly #ledger = new CapacityLedger();
   readonly #reuse: EvaluationReuse<UnitJob>;
   readonly #dispatcher: DispatchCycles<string, Job>;
@@ -735,8 +740,12 @@ export class ResidentServer {
       credentialStatePath: dispatch.credential?.statePath ?? null,
       credentialRequired: dispatch.controlled === null || dispatch.controlled.requireCredential === true,
       credentialEnvironmentOnly: dispatch.credential?.environmentOnly ?? false,
-      expiresAt: now + TICKET_RETENTION_MS, phase: bendTicketInitial(), units: [],
+      expiresAt: now + TICKET_RETENTION_MS, ledger: this.#ledger, units: [],
     } : undefined;
+    if (ticket !== undefined && this.#ledger.transition({ kind: "ticketOpen",
+      id: ticket.generation }).commands[0]?.kind !== "ticketOpened") {
+      throw new Error("canonical ticket open refused");
+    }
     const job = {
       kind: "ingress" as const,
       ...(round === undefined ? {} : { round, work: round.work,
@@ -749,6 +758,7 @@ export class ResidentServer {
       ...(ticket === undefined ? {} : { ticket }),
     };
     if (!this.#dispatcher.enqueue(partition, job)) {
+      if (ticket !== undefined) this.#ledger.transition({ kind: "ticketForget", id: ticket.generation });
       this.#ledger.observation(partition, canonicalObservationId, "interruptObservation");
       if (round !== undefined && job.workObservationId !== undefined) {
         round.policyWork.interruptSource(job.workObservationId);
@@ -764,7 +774,9 @@ export class ResidentServer {
         const oldest = this.#tickets.keys().next().value;
         if (bendTicketRetention(this.#tickets.size, this.#maximumTickets,
           oldest !== undefined).$ !== "EvictOldest" || oldest === undefined) break;
+        const evicted = this.#tickets.get(oldest);
         this.#tickets.delete(oldest);
+        if (evicted !== undefined) this.#ledger.transition({ kind: "ticketForget", id: evicted.generation });
       }
     }
     const acceptedPath = process.env.REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH;
@@ -972,7 +984,7 @@ export class ResidentServer {
           adviceeGroup(item.observation.root, item.observation.advicee), finding,
           stopCollector ? "stop" : undefined));
       const ticketOwns = ticket === undefined || ticket.units.some((unit) =>
-        unit.current.stage.$ === "UnitFinding" && unit.current.adviceId === item.id);
+        ticketUnitStage(unit).stage === "finding" && unit.current.adviceId === item.id);
       const result = this.#ledger.transition({ kind: "collectionCandidateCheck",
         samePartition, unleased, hasUnsuppressed, ticketOwns });
       if (result.rejection !== undefined) throw new Error("canonical advice candidate refused");
@@ -1261,11 +1273,8 @@ export class ResidentServer {
       if (disposition.$ === "RetireAdvice") {
         for (const ticket of this.#tickets.values()) {
           for (const unit of ticket.units) {
-            if (unit.current.stage.$ === "UnitFinding" && unit.current.adviceId === item.id) {
-              const transition = ticketUnitTransition(unit, { $: "MarkDelivered" });
-              if (transition.$ === "UnitGranted" && transition.stage.$ === "UnitFinding") {
-                unit.current = { ...unit.current, stage: transition.stage };
-              }
+            if (ticketUnitStage(unit).stage === "finding" && unit.current.adviceId === item.id) {
+              ticketUnitTransition(unit, "markDelivered");
             }
           }
         }
@@ -1778,7 +1787,8 @@ export class ResidentServer {
       this.#composedDelivery.forget(id);
       for (const ticket of this.#tickets.values()) {
         for (const unit of ticket.units) {
-          if (unit.current.stage.$ === "UnitFinding" && unit.current.adviceId === id && !unit.current.stage.delivered) {
+          const stage = ticketUnitStage(unit);
+          if (stage.stage === "finding" && unit.current.adviceId === id && !stage.delivered) {
             unitUnavailable(unit, this.#adviceExpired(removed, this.#now()) ? "expired" : "stale");
           }
         }
@@ -1888,7 +1898,10 @@ export class ResidentServer {
       if (round.partitions.has(notice.partition) || notice.deliveryGroup === group) this.#releaseNoticeCooldown(key);
     }
     for (const partition of round.partitions) this.#reuse.discardPartition(partition);
-    for (const [key, ticket] of this.#tickets) if (round.partitions.has(ticket.partition)) this.#tickets.delete(key);
+    for (const [key, ticket] of this.#tickets) if (round.partitions.has(ticket.partition)) {
+      this.#tickets.delete(key);
+      this.#ledger.transition({ kind: "ticketForget", id: ticket.generation });
+    }
     for (const partition of round.partitions) this.#ledger.retireRound(partition);
   }
 
@@ -2089,8 +2102,14 @@ export class ResidentServer {
           recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
         }
         for (const item of planned) {
-          const ticketUnit: TicketUnit | undefined = job.ticket === undefined ? undefined :
-            { current: { stage: bendTicketUnitInitial() } };
+          const ticketUnit: TicketUnit | undefined = job.ticket === undefined ? undefined : {
+            id: this.#nextTicketUnitId++, ticketId: job.ticket.generation,
+            ledger: this.#ledger, current: {},
+          };
+          if (ticketUnit !== undefined && this.#ledger.transition({ kind: "ticketAddUnit",
+            id: ticketUnit.ticketId, unit: ticketUnit.id }).commands[0]?.kind !== "ticketUnitAdded") {
+            throw new Error("canonical ticket unit admission refused");
+          }
           if (ticketUnit !== undefined) job.ticket?.units.push(ticketUnit);
           if (item.kind === "cached" && item.cached.evaluation.findings.length === 0) {
             const revision = this.#registerCurrentWork(job.partition, item.outcome.prepared);
@@ -2521,21 +2540,21 @@ export class ResidentServer {
     if (joined === undefined) return;
     this.#joinedTicketUnits.delete(key);
     for (const unit of joined) {
+      if (ticketUnitStageOrUndefined(unit) === undefined) continue;
       const revision = unit.current.revision;
-      const disposition = bendTicketJoinedDisposition({ $: state === "clear" ? "JoinedClear" :
-        state === "finding" ? "JoinedFinding" :
-        state === "unavailable" ? "JoinedUnavailable" : "JoinedPending" },
-      unit.current.stage.$ === "UnitUnavailable" && unit.current.reason === "stale",
-      revision !== undefined, adviceId !== undefined);
-      switch (disposition.$) {
-        case "KeepJoined": break;
-        case "SetJoinedUnavailable": unitUnavailable(unit, reason ?? "lost"); break;
-        case "SetJoinedLost": unitUnavailable(unit, "lost"); break;
-        case "SetJoinedClear":
+      const stage = ticketUnitStage(unit);
+      const disposition = this.#ledger.transition({ kind: "ticketJoinedCheck", state,
+        staleUnavailable: stage.stage === "unavailable" && stage.reason === "stale",
+        hasRevision: revision !== undefined, hasAdviceId: adviceId !== undefined }).commands[0]?.kind;
+      switch (disposition) {
+        case "ticketKeepJoined": break;
+        case "ticketSetJoinedUnavailable": unitUnavailable(unit, reason ?? "lost"); break;
+        case "ticketSetJoinedLost": unitUnavailable(unit, "lost"); break;
+        case "ticketSetJoinedClear":
           if (revision === undefined) throw new Error("Bend joined clear lacks revision");
           unitClear(unit, revision);
           break;
-        case "SetJoinedFinding":
+        case "ticketSetJoinedFinding":
           if (revision === undefined || adviceId === undefined) throw new Error("Bend joined finding lacks identity");
           unitFinding(unit, revision, adviceId);
           break;
@@ -2854,44 +2873,32 @@ export class ResidentServer {
 
   #ticketCollectGate(ticket: TicketRecord, dispatch: ResidentDispatchContext,
     now: number): ResidentResponse | undefined {
-    const gate = bendTicketCollectGate(now >= ticket.expiresAt,
-      ticket.credentialGeneration === (dispatch.credential?.generation ?? null) &&
-      this.#credentialAuthority(ticket));
-    if (gate.$ === "CollectProceed") return undefined;
-    if (gate.$ !== "CollectUnavailable") throw new Error("invalid Bend ticket collect gate");
-    return { version: 2, status: "unavailable", reason: nativeTicketReason(gate.reason) };
+    const command = this.#ledger.transition({ kind: "ticketCollectGateCheck",
+      expired: now >= ticket.expiresAt,
+      credentialValid: ticket.credentialGeneration === (dispatch.credential?.generation ?? null) &&
+        this.#credentialAuthority(ticket) }).commands[0];
+    if (command?.kind === "ticketCollectProceed") return undefined;
+    if (command?.kind === "ticketCollectUnavailable") {
+      return { version: 2, status: "unavailable", reason: command.reason };
+    }
+    throw new Error("canonical ticket collect gate refused");
   }
 
   #terminalStatus(ticket: TicketRecord, now: number): ResidentResponse {
-    const pendingUnits = ticket.units.filter((unit) => unit.current.stage.$ === "UnitPending").length;
-    const findingUnits = ticket.units.filter((unit) => unit.current.stage.$ === "UnitFinding");
-    const liveAdvice = this.#advice.some((item) => findingUnits.some((unit) =>
-      unit.current.stage.$ === "UnitFinding" && unit.current.adviceId === item.id));
+    const liveAdvice = this.#advice.some((item) => ticket.units.some((unit) =>
+      ticketUnitStage(unit).stage === "finding" && unit.current.adviceId === item.id));
     const pendingNotice = [...this.#noticeCooldowns.values()].some((item) =>
       item.partition === ticket.partition && item.pending !== undefined);
-    const failedUnit = ticket.units.map((unit) => unit.current)
-      .find((state) => state.stage.$ === "UnitUnavailable");
-    if (failedUnit !== undefined && failedUnit.reason === undefined) {
-      throw new Error("missing reason for Bend ticket unit failure");
-    }
-    const outcome = bendTicketTerminal(ticket.phase, { $: "Facts",
-      expired: now >= ticket.expiresAt,
-      credential_valid: this.#credentialAuthority(ticket), pending_units: pendingUnits,
-      live_advice: liveAdvice, pending_notice: pendingNotice,
-      unit_failure: failedUnit?.reason === undefined ? { $: "None" }
-        : { $: "Some", value: ticketReasons[failedUnit.reason] },
-      finding_units: findingUnits.length,
-      undelivered_findings: findingUnits.filter((unit) =>
-        unit.current.stage.$ === "UnitFinding" && !unit.current.stage.delivered).length,
-      total_units: ticket.units.length,
-    });
-    switch (outcome.$) {
-      case "Pending": return { version: 2, status: "pending" };
-      case "Unavailable": return { version: 2, status: "unavailable",
-        reason: nativeTicketReason(outcome.reason) };
-      case "Delivered": return { version: 2, status: "delivered" };
-      case "Clear": return { version: 2, status: "clear" };
-      case "NoWork": return { version: 2, status: "no-work" };
+    const command = this.#ledger.transition({ kind: "ticketTerminal", id: ticket.generation,
+      expired: now >= ticket.expiresAt, credentialValid: this.#credentialAuthority(ticket),
+      liveAdvice, pendingNotice }).commands[0];
+    switch (command?.kind) {
+      case "ticketPending": return { version: 2, status: "pending" };
+      case "ticketUnavailable": return { version: 2, status: "unavailable", reason: command.reason };
+      case "ticketDelivered": return { version: 2, status: "delivered" };
+      case "ticketClear": return { version: 2, status: "clear" };
+      case "ticketNoWork": return { version: 2, status: "no-work" };
+      default: throw new Error("canonical ticket terminal status refused");
     }
   }
 
@@ -3036,7 +3043,8 @@ export class ResidentServer {
     const admittedBlock = ticket?.claudeFeedbackMode === "block-current-findings";
     const currentBlock = admittedBlock && ticket !== undefined &&
       this.#currentClaudeFeedbackMode(ticket.root, ticket.userConfigPath) === "block-current-findings";
-    if (ticket !== undefined && bendTicketFinalAuthority(admittedBlock, currentBlock).$ !== "FinalProceed") {
+    if (ticket !== undefined && this.#ledger.transition({ kind: "ticketFinalAuthorityCheck", admittedBlock,
+      currentBlock }).commands[0]?.kind !== "ticketFinalProceed") {
       // A revoked opt-in cannot turn the old selection into an advisory lease.
       this.releaseDelivery(response.token);
       return this.#terminalStatus(ticket, now);

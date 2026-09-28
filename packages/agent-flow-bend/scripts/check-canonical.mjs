@@ -243,4 +243,17 @@ for (const trace of revisionFixture.traces) {
   }
   assert.deepEqual(projectCanonical(current).revision, trace.revision, trace.name);
 }
-console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length + stopFixture.traces.length + collectionFixture.traces.length + deliveryFixture.traces.length + submissionFixture.traces.length + revisionFixture.traces.length} independent source-free canonical traces`);
+const ticketFixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-ticket-v1.json"), "utf8"));
+for (const trace of ticketFixture.traces) {
+  let current = initialCanonical(fixture.limits);
+  for (const { expect: expected, ...event } of trace.events) {
+    const result = stepCanonical(current, event);
+    current = result.state;
+    const actual = result.rejection ? `rejected:${result.rejection}` : result.commands.map((command) =>
+      command.kind === "ticketUnitSnapshot" ? `${command.kind}:${command.stage}${command.delivered ? ":delivered" : ""}${command.reason ? `:${command.reason}` : ""}` :
+        "reason" in command ? `${command.kind}:${command.reason}` : command.kind).join(",");
+    assert.equal(actual, expected, `${trace.name}: ${event.kind}`);
+  }
+  assert.deepEqual(projectCanonical(current).tickets, trace.tickets, trace.name);
+}
+console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length + stopFixture.traces.length + collectionFixture.traces.length + deliveryFixture.traces.length + submissionFixture.traces.length + revisionFixture.traces.length + ticketFixture.traces.length} independent source-free canonical traces`);
