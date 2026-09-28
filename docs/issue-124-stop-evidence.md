@@ -23,16 +23,20 @@ on closure, the group and edit rounds are retired.
 `conformance/canonical-stop-v1.json` is an independent source-free expected
 outcome fixture. It checks two partition waiting, deadline cancellation,
 late source completion, denied new admission, duplicate cutoff, stale scope
-identity, exact review unit charge release, and the four continuation limit.
+identity, exact review unit charge release, the four continuation limit,
+and a completed finding whose dispatch callback is still running. Cutoff
+cancels only dispatch entries whose canonical work remains unfinished.
 Resident tests use temporary source files, offline Jev results, gated
 callbacks, synthetic host events, and fake clock inputs. They check waiting
 through later edits, queued and running Jev cancellation, late callback
-cleanup, preserved advice, and continued repair work. Additional
+cleanup, preserved advice, and continued repair work. A held
+`afterAdvicePending` callback checks that completed advice is retained and
+closure is not misreported as unavailable. Additional
 `ComposedDelivery` tests check cross-partition fences and an external owner
 that keeps the hook waiting until deadline. `check-stop-boundary.mjs` guards
 the installed path against direct legacy Stop decision calls.
 
-Verification: `npm run test:canonical` passed Bend proofs and 17 independent
+Verification: `npm run test:canonical` passed Bend proofs and 18 independent
 canonical traces. Root `npm test -- --reporter=dot` passed 65 test files and
 586 offline tests, with one file and two credential-gated tests skipped.
 After adding the two new group boundary tests, the focused

@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:3f59cabaa44478e7e80a42e0d86c67ba7736026f5124f71abc83d33880afbb81
+// hapsland-bend-source-sha256:f6256a87035bec0c1889fe1d0a305996dd3a379cd8c3264d043e40bef4428d46
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -2011,7 +2011,7 @@ function $Canonical$stop_group_ready$(_state_0, _group_0, _lifetime_0, _round_0,
   const _next_operation_0 = _state_0["next_operation"];
   const _admissions_0 = _state_0["admissions"];
   const _dispatch_0 = _state_0["dispatch"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($Canonical$release_scoped_charges$(_work_0, _ledger_0, _lifetime_0, _scopes_0)), "rounds": ($Canonical$mark_stop_rounds$(_rounds_0, _group_0, _lifetime_0, _round_0, _scopes_0, false, true)), "work": ($Canonical$retain_scoped_work$(_work_0, _lifetime_0, _scopes_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0}, "commands": ($List$append$(($Canonical$release_scoped_commands$(_work_0, _lifetime_0, _scopes_0)), ($List$append$(($Canonical$cancel_scoped_dispatch$(_dispatch_0, _lifetime_0, _scopes_0)), {$: "Con", "head": ($Bool$pick$((_continuations_0 < 4), {$: "Canonical.FinishReady"}, {$: "Canonical.FinishLimit"})), "tail": {$: "Nil"}}))))};
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($Canonical$release_scoped_charges$(_work_0, _ledger_0, _lifetime_0, _scopes_0)), "rounds": ($Canonical$mark_stop_rounds$(_rounds_0, _group_0, _lifetime_0, _round_0, _scopes_0, false, true)), "work": ($Canonical$retain_scoped_work$(_work_0, _lifetime_0, _scopes_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0}, "commands": ($List$append$(($Canonical$release_scoped_commands$(_work_0, _lifetime_0, _scopes_0)), ($List$append$(($Canonical$cancel_scoped_dispatch$(_dispatch_0, _work_0, _lifetime_0, _scopes_0)), {$: "Con", "head": ($Bool$pick$((_continuations_0 < 4), {$: "Canonical.FinishReady"}, {$: "Canonical.FinishLimit"})), "tail": {$: "Nil"}}))))};
 }
 
 function $Canonical$stop_group_end_valid$(_state_0, _group_0, _lifetime_0, _round_0, _scopes_0, _valid_0) {
@@ -2632,11 +2632,11 @@ function $Canonical$release_scoped_commands$(_items_0, _lifetime_0, _scopes_0) {
   }
 }
 
-function $Canonical$cancel_scoped_dispatch$(_dispatch_0, _lifetime_0, _scopes_0) {
+function $Canonical$cancel_scoped_dispatch$(_dispatch_0, _work_0, _lifetime_0, _scopes_0) {
   const _pending_0 = _dispatch_0["pending"];
   const _active_0 = _dispatch_0["active"];
   const _running_0 = _dispatch_0["running"];
-  return $List$append$(($Canonical$cancel_dispatch_entries$(_pending_0, _lifetime_0, _scopes_0)), ($List$append$(($Canonical$cancel_dispatch_entries$(_active_0, _lifetime_0, _scopes_0)), ($Canonical$cancel_dispatch_entries$(_running_0, _lifetime_0, _scopes_0)))));
+  return $List$append$(($Canonical$cancel_dispatch_entries$(_pending_0, _work_0, _lifetime_0, _scopes_0)), ($List$append$(($Canonical$cancel_dispatch_entries$(_active_0, _work_0, _lifetime_0, _scopes_0)), ($Canonical$cancel_dispatch_entries$(_running_0, _work_0, _lifetime_0, _scopes_0)))));
 }
 
 function $Canonical$stop_group_end_apply$(_state_0, _group_0, _lifetime_0, _round_0, _scopes_0) {
@@ -3039,7 +3039,7 @@ function $Canonical$release_pick$(_charge_0, _tail_0, _hit_0) {
   }
 }
 
-function $Canonical$cancel_dispatch_entries$(_items_0, _lifetime_0, _scopes_0) {
+function $Canonical$cancel_dispatch_entries$(_items_0, _work_0, _lifetime_0, _scopes_0) {
   if (_items_0.$ === "Nil") {
     return {$: "Nil"};
   } else {
@@ -3050,7 +3050,7 @@ function $Canonical$cancel_dispatch_entries$(_items_0, _lifetime_0, _scopes_0) {
     const _operation_0 = _t_0["operation"];
     const _cancelled_0 = _t_0["cancelled"];
     const _rest_0 = _items_0["tail"];
-    return $Canonical$cancel_pick$(_operation_0, ($Canonical$cancel_dispatch_entries$(_rest_0, _lifetime_0, _scopes_0)), ($Bool$and$(($Bool$not$(_cancelled_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Canonical$scope_contains$(_scopes_0, _partition_0, _round_0)))))));
+    return $Canonical$cancel_pick$(_operation_0, ($Canonical$cancel_dispatch_entries$(_rest_0, _work_0, _lifetime_0, _scopes_0)), ($Bool$and$(($Bool$not$(_cancelled_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($Canonical$scope_contains$(_scopes_0, _partition_0, _round_0)), ($Canonical$dispatch_work_unfinished$(($Canonical$find_work$(_partition_0, _generation_0, _round_0, _operation_0, _work_0)))))))))));
   }
 }
 
@@ -3233,6 +3233,16 @@ function $Canonical$mark_stop_rounds_hit$(_item_0, _tail_0, _waiting_0, _decidin
   const _write_0 = _item_0["write"];
   const _uncertain_0 = _item_0["uncertain"];
   return {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _generation_0, "id": _current_0, "waiting": _waiting_0, "deciding": _deciding_0, "write": _write_0, "uncertain": _uncertain_0}, "tail": _tail_0};
+}
+
+function $Canonical$dispatch_work_unfinished$(_found_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _kind_0 = _t_0["kind"];
+    return $Canonical$unfinished$(_kind_0);
+  } else {
+    return false;
+  }
 }
 
 function $Ledger$replace$pick$(_charge_0, _replacement_0, _tail_0, _hit_0) {

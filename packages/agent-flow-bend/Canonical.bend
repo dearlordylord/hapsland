@@ -1126,23 +1126,31 @@ def release_scoped_commands(items: List<&2, Work>, +lifetime: Nat,
           Bool.and(Nat.is_eq(generation, lifetime),
             Bool.and(scope_contains(scopes, partition, round), unfinished(kind)))))
 
-def cancel_dispatch_entries(items: List<&2, Dispatch.Entry>, +lifetime: Nat,
-    +scopes: List<&2, StopScope>) -> List<&2, Command>:
+def dispatch_work_unfinished(found: Maybe<&2, Work>) -> Bool:
+  match found:
+    case Some{Work{_, _, _, _, _, kind, _}}:
+      unfinished(kind)
+    case None{}:
+      False{}
+
+def cancel_dispatch_entries(items: List<&2, Dispatch.Entry>, +work: List<&2, Work>,
+    +lifetime: Nat, +scopes: List<&2, StopScope>) -> List<&2, Command>:
   match items:
     case Nil{}:
       Nil{}
-    case Dispatch.Entry{partition, generation, round, operation, _, _, cancelled} <> rest:
-      cancel_pick(operation, cancel_dispatch_entries(rest, lifetime, scopes),
+    case Dispatch.Entry{+partition, +generation, +round, +operation, _, _, cancelled} <> rest:
+      cancel_pick(operation, cancel_dispatch_entries(rest, work, lifetime, scopes),
         Bool.and(Bool.not(cancelled), Bool.and(Nat.is_eq(generation, lifetime),
-          scope_contains(scopes, partition, round))))
+          Bool.and(scope_contains(scopes, partition, round),
+            dispatch_work_unfinished(find_work(partition, generation, round, operation, work))))))
 
-def cancel_scoped_dispatch(dispatch: Dispatch.State, +lifetime: Nat,
+def cancel_scoped_dispatch(dispatch: Dispatch.State, +work: List<&2, Work>, +lifetime: Nat,
     +scopes: List<&2, StopScope>) -> List<&2, Command>:
   match dispatch:
     case Dispatch.State{pending, active, running, _, _, _}:
-      List.append(&2, Command, cancel_dispatch_entries(pending, lifetime, scopes),
-        List.append(&2, Command, cancel_dispatch_entries(active, lifetime, scopes),
-          cancel_dispatch_entries(running, lifetime, scopes)))
+      List.append(&2, Command, cancel_dispatch_entries(pending, work, lifetime, scopes),
+        List.append(&2, Command, cancel_dispatch_entries(active, work, lifetime, scopes),
+          cancel_dispatch_entries(running, work, lifetime, scopes)))
 
 def stop_group_wait(+state: State, +group: Nat, +lifetime: Nat,
     +round: Nat, scopes: List<&2, StopScope>) -> Step:
@@ -1161,7 +1169,7 @@ def stop_group_ready(+state: State, +group: Nat, +lifetime: Nat,
         retain_scoped_work(work, lifetime, scopes), next_round, next_operation,
         admissions, dispatch},
         List.append(&2, Command, release_scoped_commands(work, lifetime, scopes),
-          List.append(&2, Command, cancel_scoped_dispatch(dispatch, lifetime, scopes),
+          List.append(&2, Command, cancel_scoped_dispatch(dispatch, work, lifetime, scopes),
             Bool.pick(Command, Nat.is_lt(continuations, 4n),
               FinishReady{}, FinishLimit{}) <> Nil{}))}
 

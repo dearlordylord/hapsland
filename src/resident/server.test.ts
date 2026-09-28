@@ -201,6 +201,40 @@ describe("canonical resident capacity", () => {
 });
 
 describe("resident delivery lease", () => {
+  it("does not cancel a completed finding held in a running dispatch callback at Stop", async () => {
+    const root = await makeGitFixture();
+    await put(root, "held.ts", "type HeldCount = number\n");
+    const statePath = join(root, "consent");
+    const activityPath = join(root, "activity");
+    await enable(root, statePath);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["held.ts"])));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const entered = deferred();
+    const release = deferred();
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => performance.now(), {
+      afterAdvicePending: async () => { entered.resolve(); await release.promise; },
+    });
+    const dispatch = { ...findingDispatch(statePath), activityPath };
+    try {
+      expect(server.admit(observation, dispatch, false, true).status).toBe("accepted");
+      await entered.promise;
+      expect((await server.handle({ version: 1, operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "held" })).status).toBe("advanced");
+      await server.handle({ version: 1, operation: "collect", lifetime: server.lifetime,
+        root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true,
+        finish: { token: "held", deadlineReached: true } });
+      release.resolve();
+      await server.whenIdle();
+      expect(server.pendingAdviceMetadata()).toHaveLength(1);
+      const activity = readActivity({ statePath: activityPath, root,
+        sessionId: observation.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
+      expect(activity.roundClosures?.[0]?.reason).not.toBe("unavailable");
+    } finally {
+      release.resolve();
+      await server.close();
+    }
+  });
+
   it("cancels a queued and running review fanout using Bend work identities", async () => {
     const root = await makeGitFixture();
     const paths = Array.from({ length: 5 }, (_, index) => `item-${index}.ts`);
