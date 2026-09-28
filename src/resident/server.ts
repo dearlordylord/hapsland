@@ -532,7 +532,7 @@ export class ResidentServer {
   readonly #roundActivity = new Map<string, { root: string; advicee: DirectAdvicee; activityPath: string | undefined }>();
   readonly #stopTimers = new Map<string, ReturnType<typeof setTimeout>>();
   readonly #rounds = new Map<string, RoundWork>();
-  readonly #composedDelivery = new ComposedDelivery();
+  readonly #composedDelivery = new ComposedDelivery(this.#ledger);
   readonly #now: () => number;
   readonly #maximumOperationalNoticeKeys: number;
   readonly #maximumTickets: number;

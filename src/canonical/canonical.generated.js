@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:cace2ab5a9fcfde4049eacce9ac6fde70be8df5c63bc78316c4dd58569b67bcc
+// hapsland-bend-source-sha256:3f64d5b4fda51fe81c4caa2e56875927e1a694c67ff2fcf86f5bf02b5ce9f5c4
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -183,58 +183,92 @@ function $Canonical$step$(_state_0, _event_0) {
     const _reservation_2 = _event_0["reservation"];
     const _unit_bytes_0 = _event_0["unit_bytes"];
     return $Canonical$capacity_replace$(_state_0, _reservation_2, _unit_bytes_0);
-  } else if (_event_0.$ === "Canonical.OpenRound") {
+  } else if (_event_0.$ === "Canonical.IssuePermit") {
     const _partition_1 = _event_0["partition"];
     const _lifetime_0 = _event_0["lifetime"];
-    return $Canonical$open$(_state_0, _partition_1, _lifetime_0);
-  } else if (_event_0.$ === "Canonical.BeginPreparation") {
+    const _tool_0 = _event_0["tool"];
+    const _started_0 = _event_0["started"];
+    const _deadline_0 = _event_0["deadline"];
+    const _now_0 = _event_0["now"];
+    const _facts_0 = _event_0["facts"];
+    return $Canonical$issue_permit$(_state_0, _partition_1, _lifetime_0, _tool_0, _started_0, _deadline_0, _now_0, _facts_0);
+  } else if (_event_0.$ === "Canonical.ConsumePermit") {
     const _partition_2 = _event_0["partition"];
     const _lifetime_1 = _event_0["lifetime"];
-    const _round_0 = _event_0["round"];
-    const _bytes_2 = _event_0["bytes"];
-    return $Canonical$begin$(_state_0, _partition_2, _lifetime_1, _round_0, _bytes_2);
-  } else if (_event_0.$ === "Canonical.PreparationCompleted") {
+    const _token_0 = _event_0["token"];
+    const _tool_1 = _event_0["tool"];
+    const _now_1 = _event_0["now"];
+    return $Canonical$consume_permit$(_state_0, _partition_2, _lifetime_1, _token_0, _tool_1, _now_1);
+  } else if (_event_0.$ === "Canonical.ReleasePermit") {
     const _partition_3 = _event_0["partition"];
     const _lifetime_2 = _event_0["lifetime"];
-    const _round_1 = _event_0["round"];
-    const _operation_0 = _event_0["operation"];
-    const _bytes_3 = _event_0["unit_bytes"];
-    return $Canonical$prepared$(_state_0, _partition_3, _lifetime_2, _round_1, _operation_0, _bytes_3);
-  } else if (_event_0.$ === "Canonical.ReviewCompleted") {
+    const _token_1 = _event_0["token"];
+    return $Canonical$release_permit$(_state_0, _partition_3, _lifetime_2, _token_1);
+  } else if (_event_0.$ === "Canonical.ExpirePermit") {
     const _partition_4 = _event_0["partition"];
     const _lifetime_3 = _event_0["lifetime"];
-    const _round_2 = _event_0["round"];
-    const _operation_1 = _event_0["operation"];
-    const _outcome_0 = _event_0["outcome"];
-    return $Canonical$reviewed$(_state_0, _partition_4, _lifetime_3, _round_2, _operation_1, _outcome_0);
-  } else if (_event_0.$ === "Canonical.StopPolled") {
+    const _token_2 = _event_0["token"];
+    const _deadline_reached_0 = _event_0["deadline_reached"];
+    return $Canonical$expire_permit$(_state_0, _partition_4, _lifetime_3, _token_2, _deadline_reached_0);
+  } else if (_event_0.$ === "Canonical.ClosePermitRound") {
     const _partition_5 = _event_0["partition"];
     const _lifetime_4 = _event_0["lifetime"];
-    const _round_3 = _event_0["round"];
-    const _deadline_0 = _event_0["deadline"];
-    return $Canonical$stop$(_state_0, _partition_5, _lifetime_4, _round_3, _deadline_0);
-  } else if (_event_0.$ === "Canonical.OutputStarted") {
+    const _round_0 = _event_0["round"];
+    const _at_0 = _event_0["at"];
+    const _prospective_0 = _event_0["prospective"];
+    return $Canonical$close_permit_round$(_state_0, _partition_5, _lifetime_4, _round_0, _at_0, _prospective_0);
+  } else if (_event_0.$ === "Canonical.OpenRound") {
     const _partition_6 = _event_0["partition"];
     const _lifetime_5 = _event_0["lifetime"];
-    const _round_4 = _event_0["round"];
-    return $Canonical$output_start$(_state_0, _partition_6, _lifetime_5, _round_4);
-  } else if (_event_0.$ === "Canonical.OutputTerminal") {
+    return $Canonical$open$(_state_0, _partition_6, _lifetime_5);
+  } else if (_event_0.$ === "Canonical.BeginPreparation") {
     const _partition_7 = _event_0["partition"];
     const _lifetime_6 = _event_0["lifetime"];
-    const _round_5 = _event_0["round"];
-    const _operation_2 = _event_0["operation"];
-    const _outcome_1 = _event_0["outcome"];
-    return $Canonical$output_terminal$(_state_0, _partition_7, _lifetime_6, _round_5, _operation_2, _outcome_1);
-  } else {
+    const _round_1 = _event_0["round"];
+    const _bytes_2 = _event_0["bytes"];
+    return $Canonical$begin$(_state_0, _partition_7, _lifetime_6, _round_1, _bytes_2);
+  } else if (_event_0.$ === "Canonical.PreparationCompleted") {
     const _partition_8 = _event_0["partition"];
     const _lifetime_7 = _event_0["lifetime"];
+    const _round_2 = _event_0["round"];
+    const _operation_0 = _event_0["operation"];
+    const _bytes_3 = _event_0["unit_bytes"];
+    return $Canonical$prepared$(_state_0, _partition_8, _lifetime_7, _round_2, _operation_0, _bytes_3);
+  } else if (_event_0.$ === "Canonical.ReviewCompleted") {
+    const _partition_9 = _event_0["partition"];
+    const _lifetime_8 = _event_0["lifetime"];
+    const _round_3 = _event_0["round"];
+    const _operation_1 = _event_0["operation"];
+    const _outcome_0 = _event_0["outcome"];
+    return $Canonical$reviewed$(_state_0, _partition_9, _lifetime_8, _round_3, _operation_1, _outcome_0);
+  } else if (_event_0.$ === "Canonical.StopPolled") {
+    const _partition_10 = _event_0["partition"];
+    const _lifetime_9 = _event_0["lifetime"];
+    const _round_4 = _event_0["round"];
+    const _deadline_1 = _event_0["deadline"];
+    return $Canonical$stop$(_state_0, _partition_10, _lifetime_9, _round_4, _deadline_1);
+  } else if (_event_0.$ === "Canonical.OutputStarted") {
+    const _partition_11 = _event_0["partition"];
+    const _lifetime_10 = _event_0["lifetime"];
+    const _round_5 = _event_0["round"];
+    return $Canonical$output_start$(_state_0, _partition_11, _lifetime_10, _round_5);
+  } else if (_event_0.$ === "Canonical.OutputTerminal") {
+    const _partition_12 = _event_0["partition"];
+    const _lifetime_11 = _event_0["lifetime"];
     const _round_6 = _event_0["round"];
-    return $Canonical$retire$(_state_0, _partition_8, _lifetime_7, _round_6);
+    const _operation_2 = _event_0["operation"];
+    const _outcome_1 = _event_0["outcome"];
+    return $Canonical$output_terminal$(_state_0, _partition_12, _lifetime_11, _round_6, _operation_2, _outcome_1);
+  } else {
+    const _partition_13 = _event_0["partition"];
+    const _lifetime_12 = _event_0["lifetime"];
+    const _round_7 = _event_0["round"];
+    return $Canonical$retire$(_state_0, _partition_13, _lifetime_12, _round_7);
   }
 }
 
 function $Canonical$initial$(_limits_0) {
-  return {$: "Canonical.State", "ledger": ($Ledger$initial$(_limits_0)), "rounds": {$: "Nil"}, "work": {$: "Nil"}, "next_round": 1, "next_operation": 1};
+  return {$: "Canonical.State", "ledger": ($Ledger$initial$(_limits_0)), "rounds": {$: "Nil"}, "work": {$: "Nil"}, "next_round": 1, "next_operation": 1, "admissions": {$: "Nil"}};
 }
 
 function $Ledger$inventory$(_limits_0) {
@@ -247,7 +281,8 @@ function $Canonical$capacity_reserve$(_state_0, _partition_0, _bytes_0, _purpose
   const __1 = _state_0["work"];
   const __2 = _state_0["next_round"];
   const __3 = _state_0["next_operation"];
-  return $Canonical$capacity_reserve_result$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3}, _partition_0, _bytes_0, ($Ledger$reserve_for$(_ledger_0, _partition_0, _bytes_0, _purpose_0)));
+  const __4 = _state_0["admissions"];
+  return $Canonical$capacity_reserve_result$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _partition_0, _bytes_0, ($Ledger$reserve_for$(_ledger_0, _partition_0, _bytes_0, _purpose_0)));
 }
 
 function $Canonical$capacity_resize$(_state_0, _id_0, _bytes_0, _purpose_0) {
@@ -259,7 +294,8 @@ function $Canonical$capacity_resize$(_state_0, _id_0, _bytes_0, _purpose_0) {
   const __3 = _state_0["work"];
   const __4 = _state_0["next_round"];
   const __5 = _state_0["next_operation"];
-  return $Canonical$capacity_resize_found$({$: "Canonical.State", "ledger": {$: "Ledger.Ledger", "limits": __0, "next_id": __1, "charges": _charges_0}, "rounds": __2, "work": __3, "next_round": __4, "next_operation": __5}, _id_0, _bytes_0, _purpose_0, ($Ledger$find$(_id_0, _charges_0)));
+  const __6 = _state_0["admissions"];
+  return $Canonical$capacity_resize_found$({$: "Canonical.State", "ledger": {$: "Ledger.Ledger", "limits": __0, "next_id": __1, "charges": _charges_0}, "rounds": __2, "work": __3, "next_round": __4, "next_operation": __5, "admissions": __6}, _id_0, _bytes_0, _purpose_0, ($Ledger$find$(_id_0, _charges_0)));
 }
 
 function $Canonical$capacity_release$(_state_0, _id_0) {
@@ -268,7 +304,8 @@ function $Canonical$capacity_release$(_state_0, _id_0) {
   const __1 = _state_0["work"];
   const __2 = _state_0["next_round"];
   const __3 = _state_0["next_operation"];
-  return $Canonical$capacity_release_result$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3}, _id_0, ($Ledger$release$(_ledger_0, _id_0)));
+  const __4 = _state_0["admissions"];
+  return $Canonical$capacity_release_result$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _id_0, ($Ledger$release$(_ledger_0, _id_0)));
 }
 
 function $Canonical$capacity_replace$(_state_0, _id_0, _sizes_0) {
@@ -280,7 +317,28 @@ function $Canonical$capacity_replace$(_state_0, _id_0, _sizes_0) {
   const __3 = _state_0["work"];
   const __4 = _state_0["next_round"];
   const __5 = _state_0["next_operation"];
-  return $Canonical$capacity_replace_found$({$: "Canonical.State", "ledger": {$: "Ledger.Ledger", "limits": __0, "next_id": __1, "charges": _charges_0}, "rounds": __2, "work": __3, "next_round": __4, "next_operation": __5}, _id_0, _sizes_0, ($Ledger$find$(_id_0, _charges_0)));
+  const __6 = _state_0["admissions"];
+  return $Canonical$capacity_replace_found$({$: "Canonical.State", "ledger": {$: "Ledger.Ledger", "limits": __0, "next_id": __1, "charges": _charges_0}, "rounds": __2, "work": __3, "next_round": __4, "next_operation": __5, "admissions": __6}, _id_0, _sizes_0, ($Ledger$find$(_id_0, _charges_0)));
+}
+
+function $Canonical$issue_permit$(_state_0, _partition_0, _lifetime_0, _tool_0, _started_0, _deadline_0, _now_0, _facts_0) {
+  return $Canonical$issue_permit_gate$(_state_0, _partition_0, _lifetime_0, _tool_0, _started_0, _deadline_0, _now_0, ($Admission$prospective_gate$(_facts_0)));
+}
+
+function $Canonical$consume_permit$(_state_0, _partition_0, _lifetime_0, _token_0, _tool_0, _now_0) {
+  return $Canonical$consume_result$(_state_0, _partition_0, ($Admission$step$(($Canonical$current_admission$(_state_0, _partition_0, _lifetime_0)), _partition_0, _lifetime_0, {$: "Admission.Consume", "token": _token_0, "tool": _tool_0, "now": _now_0})));
+}
+
+function $Canonical$release_permit$(_state_0, _partition_0, _lifetime_0, _token_0) {
+  return $Canonical$permit_result$(_state_0, _partition_0, ($Admission$step$(($Canonical$current_admission$(_state_0, _partition_0, _lifetime_0)), _partition_0, _lifetime_0, {$: "Admission.Release", "token": _token_0})), {$: "Canonical.PermitReleased"});
+}
+
+function $Canonical$expire_permit$(_state_0, _partition_0, _lifetime_0, _token_0, _deadline_reached_0) {
+  return $Canonical$expire_permit_result$(_state_0, _partition_0, ($Admission$expire$(($Canonical$current_admission$(_state_0, _partition_0, _lifetime_0)), _token_0, _deadline_reached_0)));
+}
+
+function $Canonical$close_permit_round$(_state_0, _partition_0, _lifetime_0, _round_0, _at_0, _prospective_0) {
+  return $Canonical$close_permit_checked$(_state_0, _partition_0, _lifetime_0, _round_0, _at_0, _prospective_0, ($Canonical$current_admission$(_state_0, _partition_0, _lifetime_0)));
 }
 
 function $Canonical$open$(_state_0, _partition_0, _lifetime_0) {
@@ -289,7 +347,8 @@ function $Canonical$open$(_state_0, _partition_0, _lifetime_0) {
   const __1 = _state_0["work"];
   const __2 = _state_0["next_round"];
   const __3 = _state_0["next_operation"];
-  return $Canonical$open_found$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3}, _partition_0, _lifetime_0, ($Canonical$find_round$(_partition_0, _rounds_0)));
+  const __4 = _state_0["admissions"];
+  return $Canonical$open_found$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _partition_0, _lifetime_0, ($Canonical$find_round$(_partition_0, _rounds_0)));
 }
 
 function $Canonical$begin$(_state_0, _partition_0, _lifetime_0, _round_0, _bytes_0) {
@@ -298,7 +357,8 @@ function $Canonical$begin$(_state_0, _partition_0, _lifetime_0, _round_0, _bytes
   const __1 = _state_0["work"];
   const __2 = _state_0["next_round"];
   const __3 = _state_0["next_operation"];
-  return $Canonical$begin_found$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3}, _partition_0, _lifetime_0, _round_0, _bytes_0, ($Canonical$find_round$(_partition_0, _rounds_0)));
+  const __4 = _state_0["admissions"];
+  return $Canonical$begin_found$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _partition_0, _lifetime_0, _round_0, _bytes_0, ($Canonical$find_round$(_partition_0, _rounds_0)));
 }
 
 function $Canonical$prepared$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _bytes_0) {
@@ -307,7 +367,8 @@ function $Canonical$prepared$(_state_0, _partition_0, _lifetime_0, _round_0, _op
   const _work_0 = _state_0["work"];
   const __1 = _state_0["next_round"];
   const __2 = _state_0["next_operation"];
-  return $Canonical$prepared_found$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2}, _partition_0, _lifetime_0, _round_0, _operation_0, _bytes_0, ($Canonical$find_round$(_partition_0, _rounds_0)), ($Canonical$find_work$(_partition_0, _lifetime_0, _round_0, _operation_0, _work_0)));
+  const __3 = _state_0["admissions"];
+  return $Canonical$prepared_found$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3}, _partition_0, _lifetime_0, _round_0, _operation_0, _bytes_0, ($Canonical$find_round$(_partition_0, _rounds_0)), ($Canonical$find_work$(_partition_0, _lifetime_0, _round_0, _operation_0, _work_0)));
 }
 
 function $Canonical$reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0) {
@@ -316,7 +377,8 @@ function $Canonical$reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _op
   const _work_0 = _state_0["work"];
   const __2 = _state_0["next_round"];
   const __3 = _state_0["next_operation"];
-  return $Canonical$reviewed_found$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": _work_0, "next_round": __2, "next_operation": __3}, _operation_0, _outcome_0, ($Canonical$find_work$(_partition_0, _lifetime_0, _round_0, _operation_0, _work_0)));
+  const __4 = _state_0["admissions"];
+  return $Canonical$reviewed_found$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": _work_0, "next_round": __2, "next_operation": __3, "admissions": __4}, _operation_0, _outcome_0, ($Canonical$find_work$(_partition_0, _lifetime_0, _round_0, _operation_0, _work_0)));
 }
 
 function $Canonical$stop$(_state_0, _partition_0, _lifetime_0, _round_0, _deadline_0) {
@@ -325,7 +387,8 @@ function $Canonical$stop$(_state_0, _partition_0, _lifetime_0, _round_0, _deadli
   const __1 = _state_0["work"];
   const __2 = _state_0["next_round"];
   const __3 = _state_0["next_operation"];
-  return $Canonical$stop_found$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3}, _partition_0, _lifetime_0, _round_0, _deadline_0, ($Canonical$find_round$(_partition_0, _rounds_0)));
+  const __4 = _state_0["admissions"];
+  return $Canonical$stop_found$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _partition_0, _lifetime_0, _round_0, _deadline_0, ($Canonical$find_round$(_partition_0, _rounds_0)));
 }
 
 function $Canonical$output_start$(_state_0, _partition_0, _lifetime_0, _round_0) {
@@ -334,7 +397,8 @@ function $Canonical$output_start$(_state_0, _partition_0, _lifetime_0, _round_0)
   const __1 = _state_0["work"];
   const __2 = _state_0["next_round"];
   const __3 = _state_0["next_operation"];
-  return $Canonical$output_start_found$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3}, _partition_0, _lifetime_0, _round_0, ($Canonical$find_round$(_partition_0, _rounds_0)));
+  const __4 = _state_0["admissions"];
+  return $Canonical$output_start_found$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _partition_0, _lifetime_0, _round_0, ($Canonical$find_round$(_partition_0, _rounds_0)));
 }
 
 function $Canonical$output_terminal$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0) {
@@ -343,7 +407,8 @@ function $Canonical$output_terminal$(_state_0, _partition_0, _lifetime_0, _round
   const __1 = _state_0["work"];
   const __2 = _state_0["next_round"];
   const __3 = _state_0["next_operation"];
-  return $Canonical$output_terminal_found$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3}, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0, ($Canonical$find_round$(_partition_0, _rounds_0)));
+  const __4 = _state_0["admissions"];
+  return $Canonical$output_terminal_found$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0, ($Canonical$find_round$(_partition_0, _rounds_0)));
 }
 
 function $Canonical$retire$(_state_0, _partition_0, _lifetime_0, _round_0) {
@@ -352,7 +417,8 @@ function $Canonical$retire$(_state_0, _partition_0, _lifetime_0, _round_0) {
   const __1 = _state_0["work"];
   const __2 = _state_0["next_round"];
   const __3 = _state_0["next_operation"];
-  return $Canonical$retire_found$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3}, _partition_0, _lifetime_0, _round_0, ($Canonical$find_round$(_partition_0, _rounds_0)));
+  const __4 = _state_0["admissions"];
+  return $Canonical$retire_found$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _partition_0, _lifetime_0, _round_0, ($Canonical$find_round$(_partition_0, _rounds_0)));
 }
 
 function $Ledger$initial$(_limits_0) {
@@ -381,13 +447,14 @@ function $Canonical$capacity_reserve_result$(_state_0, _partition_0, _bytes_0, _
   const _work_0 = _state_0["work"];
   const _next_round_0 = _state_0["next_round"];
   const _next_operation_0 = _state_0["next_operation"];
+  const _admissions_0 = _state_0["admissions"];
   if (_result_0.$ === "Ledger.Granted") {
     const _ledger_0 = _result_0["state"];
     const _id_0 = _result_0["id"];
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0}, "commands": {$: "Con", "head": {$: "Canonical.CapacityGranted", "id": _id_0, "after": ($Canonical$capacity_view$(_ledger_0, _partition_0))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.CapacityGranted", "id": _id_0, "after": ($Canonical$capacity_view$(_ledger_0, _partition_0))}, "tail": {$: "Nil"}}};
   } else {
     const _ledger_1 = _result_0["state"];
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0}, "commands": {$: "Con", "head": {$: "Canonical.CapacityRefused", "reason": ($Ledger$admission$(_ledger_1, _partition_0, _bytes_0)), "after": ($Canonical$capacity_view$(_ledger_1, _partition_0))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.CapacityRefused", "reason": ($Ledger$admission$(_ledger_1, _partition_0, _bytes_0)), "after": ($Canonical$capacity_view$(_ledger_1, _partition_0))}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -404,12 +471,13 @@ function $Canonical$capacity_resize_found$(_state_0, _id_0, _bytes_0, _purpose_0
   const __1 = _state_0["work"];
   const __2 = _state_0["next_round"];
   const __3 = _state_0["next_operation"];
+  const __4 = _state_0["admissions"];
   if (_found_0.$ === "None") {
-    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3}, "reason": {$: "Canonical.StaleOperation"}};
+    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, "reason": {$: "Canonical.StaleOperation"}};
   } else {
     const _t_0 = _found_0["value"];
     const _partition_0 = _t_0["partition"];
-    return $Canonical$capacity_resize_result$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3}, _id_0, _partition_0, _bytes_0, ($Ledger$resize_for$(_ledger_0, _id_0, _bytes_0, _purpose_0)));
+    return $Canonical$capacity_resize_result$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _id_0, _partition_0, _bytes_0, ($Ledger$resize_for$(_ledger_0, _id_0, _bytes_0, _purpose_0)));
   }
 }
 
@@ -433,11 +501,12 @@ function $Canonical$capacity_release_result$(_state_0, _id_0, _result_0) {
   const _work_0 = _state_0["work"];
   const _next_round_0 = _state_0["next_round"];
   const _next_operation_0 = _state_0["next_operation"];
+  const _admissions_0 = _state_0["admissions"];
   if (_result_0.$ === "Ledger.Granted") {
     const _ledger_0 = _result_0["state"];
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0}, "commands": {$: "Con", "head": {$: "Canonical.ReservationReleased", "id": _id_0}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.ReservationReleased", "id": _id_0}, "tail": {$: "Nil"}}};
   } else {
-    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0}, "reason": {$: "Canonical.StaleOperation"}};
+    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": {$: "Canonical.StaleOperation"}};
   }
 }
 
@@ -454,18 +523,116 @@ function $Canonical$capacity_replace_found$(_state_0, _id_0, _sizes_0, _found_0)
   const __1 = _state_0["work"];
   const __2 = _state_0["next_round"];
   const __3 = _state_0["next_operation"];
+  const __4 = _state_0["admissions"];
   if (_found_0.$ === "Some") {
     const _t_0 = _found_0["value"];
     const _partition_0 = _t_0["partition"];
     const _t_1 = _t_0["purpose"];
     if (_t_1.$ === "Ledger.Preparation") {
-      return $Canonical$capacity_replace_released$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3}, _id_0, _partition_0, _sizes_0, ($Ledger$release$(_ledger_0, _id_0)));
+      return $Canonical$capacity_replace_released$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _id_0, _partition_0, _sizes_0, ($Ledger$release$(_ledger_0, _id_0)));
     } else {
-      return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3}, "reason": {$: "Canonical.StaleOperation"}};
+      return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, "reason": {$: "Canonical.StaleOperation"}};
     }
   } else {
-    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3}, "reason": {$: "Canonical.StaleOperation"}};
+    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, "reason": {$: "Canonical.StaleOperation"}};
   }
+}
+
+function $Canonical$issue_permit_gate$(_state_0, _partition_0, _lifetime_0, _tool_0, _started_0, _deadline_0, _now_0, _gate_0) {
+  if (_gate_0.$ === "Admission.PermitDenied") {
+    return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.ProspectiveDenied"}};
+  } else {
+    return $Canonical$issue_result$(_state_0, _partition_0, ($Admission$step$(($Canonical$current_admission$(_state_0, _partition_0, _lifetime_0)), _partition_0, _lifetime_0, {$: "Admission.Issue", "tool": _tool_0, "started": _started_0, "deadline": _deadline_0, "now": _now_0})));
+  }
+}
+
+function $Admission$prospective_gate$(_facts_0) {
+  const _clock_valid_0 = _facts_0["clock_valid"];
+  const _within_hook_window_0 = _facts_0["within_hook_window"];
+  const _started_after_closure_0 = _facts_0["started_after_closure"];
+  const _duplicate_event_0 = _facts_0["duplicate_event"];
+  const _permit_count_0 = _facts_0["permit_count"];
+  const _permit_limit_0 = _facts_0["permit_limit"];
+  const _round_count_0 = _facts_0["round_count"];
+  const _round_limit_0 = _facts_0["round_limit"];
+  const _new_round_0 = _facts_0["new_round"];
+  const _event_count_0 = _facts_0["event_count"];
+  const _event_limit_0 = _facts_0["event_limit"];
+  const _x_0 = ($Bool$not$(_new_round_0));
+  const _x_1 = (_round_count_0 < _round_limit_0);
+  return $Bool$pick$(($Bool$and$(_clock_valid_0, ($Bool$and$(_within_hook_window_0, ($Bool$and$(_started_after_closure_0, ($Bool$and$(($Bool$not$(_duplicate_event_0)), ($Bool$and$((_permit_count_0 < _permit_limit_0), ($Bool$and$((_x_0 || _x_1), (_event_count_0 < _event_limit_0))))))))))))), {$: "Admission.PermitAllowed"}, {$: "Admission.PermitDenied"});
+}
+
+function $Canonical$consume_result$(_state_0, _partition_0, _result_0) {
+  if (_result_0.$ === "Admission.Accepted") {
+    const _admission_0 = _result_0["state"];
+    const _t_0 = _result_0["round"];
+    if (_t_0.$ === "Some") {
+      const _round_0 = _t_0["value"];
+      return {$: "Canonical.Advanced", "state": ($Canonical$with_admission$(_state_0, _partition_0, _admission_0)), "commands": {$: "Con", "head": {$: "Canonical.PermitConsumed", "round": _round_0}, "tail": {$: "Nil"}}};
+    } else {
+      return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.InconsistentLedger"}};
+    }
+  } else {
+    const _reason_0 = _result_0["reason"];
+    return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.PermitDenied", "reason": _reason_0}};
+  }
+}
+
+function $Admission$step$(_state_0, _partition_0, _lifetime_0, _event_0) {
+  const _owner_0 = _state_0["partition"];
+  const _live_0 = _state_0["lifetime"];
+  const __0 = _state_0["round"];
+  const __1 = _state_0["active"];
+  const __2 = _state_0["closed_at"];
+  const __3 = _state_0["next_token"];
+  const __4 = _state_0["permits"];
+  const __5 = _state_0["used"];
+  return $Admission$step$partition$({$: "Admission.AdmissionState", "partition": _owner_0, "lifetime": _live_0, "round": __0, "active": __1, "closed_at": __2, "next_token": __3, "permits": __4, "used": __5}, _partition_0, _lifetime_0, _event_0, ($Nat$is_eq$(_owner_0, _partition_0)), ($Nat$is_eq$(_live_0, _lifetime_0)));
+}
+
+function $Canonical$current_admission$(_state_0, _partition_0, _lifetime_0) {
+  const _admissions_0 = _state_0["admissions"];
+  return $Canonical$current_admission_found$(_partition_0, _lifetime_0, ($Canonical$find_admission$(_partition_0, _admissions_0)));
+}
+
+function $Canonical$permit_result$(_state_0, _partition_0, _result_0, _command_0) {
+  if (_result_0.$ === "Admission.Accepted") {
+    const _admission_0 = _result_0["state"];
+    return {$: "Canonical.Advanced", "state": ($Canonical$with_admission$(_state_0, _partition_0, _admission_0)), "commands": {$: "Con", "head": _command_0, "tail": {$: "Nil"}}};
+  } else {
+    const _reason_0 = _result_0["reason"];
+    return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.PermitDenied", "reason": _reason_0}};
+  }
+}
+
+function $Canonical$expire_permit_result$(_state_0, _partition_0, _result_0) {
+  if (_result_0.$ === "Admission.KeepPermit") {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.PermitKept"}, "tail": {$: "Nil"}}};
+  } else {
+    const _admission_0 = _result_0["state"];
+    return {$: "Canonical.Advanced", "state": ($Canonical$with_admission$(_state_0, _partition_0, _admission_0)), "commands": {$: "Con", "head": {$: "Canonical.PermitExpired"}, "tail": {$: "Nil"}}};
+  }
+}
+
+function $Admission$expire$(_state_0, _token_0, _deadline_reached_0) {
+  if (!_deadline_reached_0) {
+    return {$: "Admission.KeepPermit", "state": _state_0};
+  } else {
+    return $Admission$expire$due$(_state_0, _token_0);
+  }
+}
+
+function $Canonical$close_permit_checked$(_state_0, _partition_0, _lifetime_0, _expected_0, _at_0, _prospective_0, _admission_0) {
+  const __0 = _admission_0["partition"];
+  const __1 = _admission_0["lifetime"];
+  const _round_0 = _admission_0["round"];
+  const _active_0 = _admission_0["active"];
+  const __2 = _admission_0["closed_at"];
+  const __3 = _admission_0["next_token"];
+  const __4 = _admission_0["permits"];
+  const __5 = _admission_0["used"];
+  return $Bool$pick$(($Nat$is_eq$(_expected_0, ($Admission$candidate_round$(_round_0, _active_0)))), ($Canonical$close_permit_apply$(_state_0, _partition_0, _lifetime_0, _at_0, _prospective_0, {$: "Admission.AdmissionState", "partition": __0, "lifetime": __1, "round": _round_0, "active": _active_0, "closed_at": __2, "next_token": __3, "permits": __4, "used": __5})), {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.StaleRound"}});
 }
 
 function $Canonical$open_found$(_state_0, _partition_0, _lifetime_0, _found_0) {
@@ -474,11 +641,12 @@ function $Canonical$open_found$(_state_0, _partition_0, _lifetime_0, _found_0) {
   const _work_0 = _state_0["work"];
   const _next_round_0 = _state_0["next_round"];
   const _next_operation_0 = _state_0["next_operation"];
+  const _admissions_0 = _state_0["admissions"];
   if (_found_0.$ === "Some") {
-    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0}, "reason": {$: "Canonical.StaleRound"}};
+    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": {$: "Canonical.StaleRound"}};
   } else {
     const _x_0 = ($List$length$(_rounds_0));
-    return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_partition_0, 0)), ($Bool$and$(($Nat$is_gt$(_lifetime_0, 0)), (_x_0 < 256))))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _next_round_0, "waiting": false, "deciding": false, "write": {$: "None"}, "uncertain": false}, "tail": _rounds_0}, "work": _work_0, "next_round": nat_chk(_next_round_0 + 1), "next_operation": _next_operation_0}, "commands": {$: "Con", "head": {$: "Canonical.RoundStarted", "id": _next_round_0}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0}, "reason": ($Bool$pick$(($Bool$and$(($Nat$is_gt$(_partition_0, 0)), ($Nat$is_gt$(_lifetime_0, 0)))), {$: "Canonical.RoundLimit"}, {$: "Canonical.InvalidIdentity"}))});
+    return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_partition_0, 0)), ($Bool$and$(($Nat$is_gt$(_lifetime_0, 0)), (_x_0 < 256))))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _next_round_0, "waiting": false, "deciding": false, "write": {$: "None"}, "uncertain": false}, "tail": _rounds_0}, "work": _work_0, "next_round": nat_chk(_next_round_0 + 1), "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.RoundStarted", "id": _next_round_0}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": ($Bool$pick$(($Bool$and$(($Nat$is_gt$(_partition_0, 0)), ($Nat$is_gt$(_lifetime_0, 0)))), {$: "Canonical.RoundLimit"}, {$: "Canonical.InvalidIdentity"}))});
   }
 }
 
@@ -498,11 +666,12 @@ function $Canonical$begin_found$(_state_0, _partition_0, _lifetime_0, _round_0, 
   const __1 = _state_0["work"];
   const __2 = _state_0["next_round"];
   const __3 = _state_0["next_operation"];
+  const __4 = _state_0["admissions"];
   if (_found_0.$ === "Some") {
     const _current_0 = _found_0["value"];
-    return $Bool$pick$(($Bool$and$(($Canonical$same_round$(_partition_0, _lifetime_0, _round_0, _current_0)), ($Bool$and$(($Bool$not$(($Canonical$is_deciding$(_current_0)))), ($Nat$is_gt$(_bytes_0, 0)))))), ($Canonical$begin_result$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3}, _partition_0, _lifetime_0, _round_0, ($Ledger$reserve_for$(_ledger_0, _partition_0, _bytes_0, {$: "Ledger.Preparation"})))), {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3}, "reason": {$: "Canonical.StaleRound"}});
+    return $Bool$pick$(($Bool$and$(($Canonical$same_round$(_partition_0, _lifetime_0, _round_0, _current_0)), ($Bool$and$(($Bool$not$(($Canonical$is_deciding$(_current_0)))), ($Nat$is_gt$(_bytes_0, 0)))))), ($Canonical$begin_result$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _partition_0, _lifetime_0, _round_0, ($Ledger$reserve_for$(_ledger_0, _partition_0, _bytes_0, {$: "Ledger.Preparation"})))), {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, "reason": {$: "Canonical.StaleRound"}});
   } else {
-    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3}, "reason": {$: "Canonical.StaleRound"}};
+    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, "reason": {$: "Canonical.StaleRound"}};
   }
 }
 
@@ -542,17 +711,18 @@ function $Canonical$reviewed_found$(_state_0, _operation_0, _outcome_0, _found_0
   const __1 = _state_0["work"];
   const __2 = _state_0["next_round"];
   const __3 = _state_0["next_operation"];
+  const __4 = _state_0["admissions"];
   if (_found_0.$ === "Some") {
     const _t_0 = _found_0["value"];
     const _charge_0 = _t_0["charge"];
     const _t_1 = _t_0["kind"];
     if (_t_1.$ === "Canonical.Reviewing") {
-      return $Canonical$reviewed_released$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3}, _operation_0, _outcome_0, _charge_0, ($Ledger$release$(_ledger_0, _charge_0)));
+      return $Canonical$reviewed_released$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _operation_0, _outcome_0, _charge_0, ($Ledger$release$(_ledger_0, _charge_0)));
     } else {
-      return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3}, "reason": {$: "Canonical.StaleOperation"}};
+      return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, "reason": {$: "Canonical.StaleOperation"}};
     }
   } else {
-    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3}, "reason": {$: "Canonical.StaleOperation"}};
+    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, "reason": {$: "Canonical.StaleOperation"}};
   }
 }
 
@@ -571,6 +741,7 @@ function $Canonical$output_start_found$(_state_0, _partition_0, _lifetime_0, _ro
   const _work_0 = _state_0["work"];
   const _next_round_0 = _state_0["next_round"];
   const _next_operation_0 = _state_0["next_operation"];
+  const _admissions_0 = _state_0["admissions"];
   if (_found_0.$ === "Some") {
     const _t_0 = _found_0["value"];
     const __0 = _t_0["partition"];
@@ -581,12 +752,12 @@ function $Canonical$output_start_found$(_state_0, _partition_0, _lifetime_0, _ro
     const _t_1 = _t_0["write"];
     if (_t_1.$ === "None") {
       const _uncertain_0 = _t_0["uncertain"];
-      return $Bool$pick$(($Bool$and$(($Canonical$same_round$(_partition_0, _lifetime_0, _round_0, {$: "Canonical.Round", "partition": __0, "lifetime": __1, "id": __2, "waiting": _waiting_0, "deciding": _deciding_0, "write": {$: "None"}, "uncertain": _uncertain_0})), ($Bool$not$(_deciding_0)))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _round_0, "waiting": _waiting_0, "deciding": false, "write": {$: "Some", "value": _next_operation_0}, "uncertain": _uncertain_0}, "tail": ($Canonical$remove_round$(_partition_0, _rounds_0))}, "work": _work_0, "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1)}, "commands": {$: "Con", "head": {$: "Canonical.WriteAuthorized", "operation": _next_operation_0}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0}, "reason": {$: "Canonical.StaleRound"}});
+      return $Bool$pick$(($Bool$and$(($Canonical$same_round$(_partition_0, _lifetime_0, _round_0, {$: "Canonical.Round", "partition": __0, "lifetime": __1, "id": __2, "waiting": _waiting_0, "deciding": _deciding_0, "write": {$: "None"}, "uncertain": _uncertain_0})), ($Bool$not$(_deciding_0)))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _round_0, "waiting": _waiting_0, "deciding": false, "write": {$: "Some", "value": _next_operation_0}, "uncertain": _uncertain_0}, "tail": ($Canonical$remove_round$(_partition_0, _rounds_0))}, "work": _work_0, "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.WriteAuthorized", "operation": _next_operation_0}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": {$: "Canonical.StaleRound"}});
     } else {
-      return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0}, "reason": {$: "Canonical.StaleOperation"}};
+      return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": {$: "Canonical.StaleOperation"}};
     }
   } else {
-    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0}, "reason": {$: "Canonical.StaleRound"}};
+    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": {$: "Canonical.StaleRound"}};
   }
 }
 
@@ -660,16 +831,17 @@ function $Canonical$capacity_resize_result$(_state_0, _id_0, _partition_0, _byte
   const _work_0 = _state_0["work"];
   const _next_round_0 = _state_0["next_round"];
   const _next_operation_0 = _state_0["next_operation"];
+  const _admissions_0 = _state_0["admissions"];
   if (_result_0.$ === "Ledger.Granted") {
     const _ledger_0 = _result_0["state"];
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0}, "commands": {$: "Con", "head": {$: "Canonical.CapacityResized", "id": _id_0, "after": ($Canonical$capacity_view$(_ledger_0, _partition_0))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.CapacityResized", "id": _id_0, "after": ($Canonical$capacity_view$(_ledger_0, _partition_0))}, "tail": {$: "Nil"}}};
   } else {
     const _t_0 = _result_0["state"];
     const _limits_0 = _t_0["limits"];
     const _next_id_0 = _t_0["next_id"];
     const _charges_0 = _t_0["charges"];
     const _others_0 = {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": ($Ledger$remove$(_id_0, _charges_0))};
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0}, "commands": {$: "Con", "head": {$: "Canonical.CapacityRefused", "reason": ($Ledger$admission$(_others_0, _partition_0, _bytes_0)), "after": ($Canonical$capacity_view$({$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": _charges_0}, _partition_0))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.CapacityRefused", "reason": ($Ledger$admission$(_others_0, _partition_0, _bytes_0)), "after": ($Canonical$capacity_view$({$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": _charges_0}, _partition_0))}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -709,11 +881,34 @@ function $Canonical$capacity_replace_released$(_state_0, _id_0, _partition_0, _s
   const _work_0 = _state_0["work"];
   const _next_round_0 = _state_0["next_round"];
   const _next_operation_0 = _state_0["next_operation"];
+  const __1 = _state_0["admissions"];
   if (_result_0.$ === "Ledger.Granted") {
     const _released_0 = _result_0["state"];
-    return $Canonical$capacity_replace_batch$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0}, _id_0, _partition_0, _released_0, ($Canonical$capacity_replace_units$(_sizes_0, {$: "Canonical.CapacityBatch", "ledger": _released_0, "commands": {$: "Nil"}}, _partition_0, 1)));
+    return $Canonical$capacity_replace_batch$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": __1}, _id_0, _partition_0, _released_0, ($Canonical$capacity_replace_units$(_sizes_0, {$: "Canonical.CapacityBatch", "ledger": _released_0, "commands": {$: "Nil"}}, _partition_0, 1)));
   } else {
-    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0}, "reason": {$: "Canonical.StaleOperation"}};
+    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": __1}, "reason": {$: "Canonical.StaleOperation"}};
+  }
+}
+
+function $Canonical$issue_result$(_state_0, _partition_0, _result_0) {
+  if (_result_0.$ === "Admission.Accepted") {
+    const _admission_0 = _result_0["state"];
+    const _t_0 = _result_0["token"];
+    if (_t_0.$ === "Some") {
+      const _token_0 = _t_0["value"];
+      const _t_1 = _result_0["round"];
+      if (_t_1.$ === "Some") {
+        const _round_0 = _t_1["value"];
+        return {$: "Canonical.Advanced", "state": ($Canonical$with_admission$(_state_0, _partition_0, _admission_0)), "commands": {$: "Con", "head": {$: "Canonical.PermitIssued", "token": _token_0, "round": _round_0}, "tail": {$: "Nil"}}};
+      } else {
+        return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.InconsistentLedger"}};
+      }
+    } else {
+      return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.InconsistentLedger"}};
+    }
+  } else {
+    const _reason_0 = _result_0["reason"];
+    return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.PermitDenied", "reason": _reason_0}};
   }
 }
 
@@ -730,6 +925,83 @@ function $Bool$and$(_a_0, _b_0) {
     return false;
   } else {
     return _b_0;
+  }
+}
+
+function $Bool$not$(_b_0) {
+  if (!_b_0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $Canonical$with_admission$(_state_0, _partition_0, _admission_0) {
+  const _ledger_0 = _state_0["ledger"];
+  const _rounds_0 = _state_0["rounds"];
+  const _work_0 = _state_0["work"];
+  const _next_round_0 = _state_0["next_round"];
+  const _next_operation_0 = _state_0["next_operation"];
+  const _admissions_0 = _state_0["admissions"];
+  return {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": {$: "Con", "head": _admission_0, "tail": ($Canonical$remove_admission$(_partition_0, _admissions_0))}};
+}
+
+function $Admission$step$partition$(_state_0, _partition_0, _lifetime_0, _event_0, _correct_partition_0, _correct_lifetime_0) {
+  if (!_correct_partition_0) {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.WrongPartition"}};
+  } else {
+    if (!_correct_lifetime_0) {
+      return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.WrongLifetime"}};
+    } else {
+      return $Admission$apply_event$(_state_0, _event_0);
+    }
+  }
+}
+
+function $Canonical$current_admission_found$(_partition_0, _lifetime_0, _found_0) {
+  if (_found_0.$ === "Some") {
+    const _item_0 = _found_0["value"];
+    return _item_0;
+  } else {
+    return $Admission$initial$(_partition_0, _lifetime_0);
+  }
+}
+
+function $Canonical$find_admission$(_partition_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _item_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$pick$(($Canonical$admission_matches$(_partition_0, _item_0)), {$: "Some", "value": _item_0}, ($Canonical$find_admission$(_partition_0, _rest_0)));
+  }
+}
+
+function $Admission$expire$due$(_state_0, _token_0) {
+  const _partition_0 = _state_0["partition"];
+  const _lifetime_0 = _state_0["lifetime"];
+  const _round_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_at_0 = _state_0["closed_at"];
+  const _next_token_0 = _state_0["next_token"];
+  const _permits_0 = _state_0["permits"];
+  const _used_0 = _state_0["used"];
+  return {$: "Admission.RemovePermit", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": ($Admission$remove_permit$(_token_0, _permits_0)), "used": _used_0}};
+}
+
+function $Admission$candidate_round$(_round_0, _active_0) {
+  if (_active_0) {
+    return _round_0;
+  } else {
+    return nat_chk(_round_0 + 1);
+  }
+}
+
+function $Canonical$close_permit_apply$(_state_0, _partition_0, _lifetime_0, _at_0, _prospective_0, _admission_0) {
+  if (_prospective_0) {
+    return $Canonical$close_prospective_permit$(_state_0, _partition_0, _at_0, _admission_0);
+  } else {
+    return $Canonical$close_permit_result$(_state_0, _partition_0, ($Admission$step$(_admission_0, _partition_0, _lifetime_0, {$: "Admission.CloseRound", "at": _at_0})));
   }
 }
 
@@ -758,14 +1030,6 @@ function $Canonical$same_round$(_partition_0, _lifetime_0, _id_0, _round_0) {
   return $Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Nat$is_eq$(_current_0, _id_0)))));
 }
 
-function $Bool$not$(_b_0) {
-  if (!_b_0) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
 function $Canonical$is_deciding$(_current_0) {
   const _deciding_0 = _current_0["deciding"];
   return _deciding_0;
@@ -777,12 +1041,13 @@ function $Canonical$begin_result$(_state_0, _partition_0, _lifetime_0, _round_0,
   const _work_0 = _state_0["work"];
   const _next_round_0 = _state_0["next_round"];
   const _next_operation_0 = _state_0["next_operation"];
+  const _admissions_0 = _state_0["admissions"];
   if (_result_0.$ === "Ledger.Granted") {
     const _ledger_0 = _result_0["state"];
     const _charge_0 = _result_0["id"];
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($List$append$(_work_0, {$: "Con", "head": {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _next_operation_0, "charge": _charge_0, "kind": {$: "Canonical.Preparing"}}, "tail": {$: "Nil"}})), "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1)}, "commands": {$: "Con", "head": {$: "Canonical.Prepare", "operation": _next_operation_0, "reservation": _charge_0}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($List$append$(_work_0, {$: "Con", "head": {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _next_operation_0, "charge": _charge_0, "kind": {$: "Canonical.Preparing"}}, "tail": {$: "Nil"}})), "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.Prepare", "operation": _next_operation_0, "reservation": _charge_0}, "tail": {$: "Nil"}}};
   } else {
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0}, "commands": {$: "Con", "head": {$: "Canonical.PreparationRefused"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.PreparationRefused"}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -792,7 +1057,8 @@ function $Canonical$prepared_release$(_state_0, _partition_0, _lifetime_0, _roun
   const __1 = _state_0["work"];
   const __2 = _state_0["next_round"];
   const __3 = _state_0["next_operation"];
-  return $Canonical$prepared_released$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3}, _partition_0, _lifetime_0, _round_0, _operation_0, _charge_0, _bytes_0, ($Ledger$release$(_ledger_0, _charge_0)));
+  const __4 = _state_0["admissions"];
+  return $Canonical$prepared_released$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4}, _partition_0, _lifetime_0, _round_0, _operation_0, _charge_0, _bytes_0, ($Ledger$release$(_ledger_0, _charge_0)));
 }
 
 function $Canonical$work_matches$(_partition_0, _lifetime_0, _round_0, _operation_0, _item_0) {
@@ -809,11 +1075,12 @@ function $Canonical$reviewed_released$(_state_0, _operation_0, _outcome_0, _char
   const _work_0 = _state_0["work"];
   const _next_round_0 = _state_0["next_round"];
   const _next_operation_0 = _state_0["next_operation"];
+  const _admissions_0 = _state_0["admissions"];
   if (_result_0.$ === "Ledger.Granted") {
     const _updated_0 = _result_0["state"];
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _updated_0, "rounds": _rounds_0, "work": ($Canonical$remove_work$(_operation_0, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0}, "commands": {$: "Con", "head": {$: "Canonical.ReservationReleased", "id": _charge_0}, "tail": {$: "Con", "head": {$: "Canonical.ReviewRecorded", "outcome": _outcome_0}, "tail": {$: "Nil"}}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _updated_0, "rounds": _rounds_0, "work": ($Canonical$remove_work$(_operation_0, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.ReservationReleased", "id": _charge_0}, "tail": {$: "Con", "head": {$: "Canonical.ReviewRecorded", "outcome": _outcome_0}, "tail": {$: "Nil"}}}};
   } else {
-    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0}, "reason": {$: "Canonical.InconsistentLedger"}};
+    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": {$: "Canonical.InconsistentLedger"}};
   }
 }
 
@@ -823,9 +1090,10 @@ function $Canonical$match_pending$(_state_0, _partition_0, _lifetime_0, _round_0
   const _work_0 = _state_0["work"];
   const __2 = _state_0["next_round"];
   const __3 = _state_0["next_operation"];
+  const __4 = _state_0["admissions"];
   const _write_0 = _current_0["write"];
   const _uncertain_0 = _current_0["uncertain"];
-  return $Canonical$stop_current$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": _work_0, "next_round": __2, "next_operation": __3}, _partition_0, _lifetime_0, _round_0, _deadline_0, ($Canonical$pending$(_partition_0, _lifetime_0, _round_0, _work_0)), _write_0, _uncertain_0);
+  return $Canonical$stop_current$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": _work_0, "next_round": __2, "next_operation": __3, "admissions": __4}, _partition_0, _lifetime_0, _round_0, _deadline_0, ($Canonical$pending$(_partition_0, _lifetime_0, _round_0, _work_0)), _write_0, _uncertain_0);
 }
 
 function $Canonical$remove_round$(_partition_0, _rounds_0) {
@@ -844,6 +1112,7 @@ function $Canonical$output_terminal_current$(_state_0, _partition_0, _lifetime_0
   const _work_0 = _state_0["work"];
   const _next_round_0 = _state_0["next_round"];
   const _next_operation_0 = _state_0["next_operation"];
+  const _admissions_0 = _state_0["admissions"];
   const __0 = _current_0["partition"];
   const __1 = _current_0["lifetime"];
   const __2 = _current_0["id"];
@@ -853,9 +1122,9 @@ function $Canonical$output_terminal_current$(_state_0, _partition_0, _lifetime_0
   if (_t_0.$ === "Some") {
     const _token_0 = _t_0["value"];
     const __3 = _current_0["uncertain"];
-    return $Bool$pick$(($Bool$and$(($Canonical$same_round$(_partition_0, _lifetime_0, _round_0, {$: "Canonical.Round", "partition": __0, "lifetime": __1, "id": __2, "waiting": _waiting_0, "deciding": _deciding_0, "write": {$: "Some", "value": _token_0}, "uncertain": __3})), ($Nat$is_eq$(_token_0, _operation_0)))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _round_0, "waiting": _waiting_0, "deciding": _deciding_0, "write": {$: "None"}, "uncertain": ($Canonical$write_is_unknown$(_outcome_0))}, "tail": ($Canonical$remove_round$(_partition_0, _rounds_0))}, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0}, "commands": {$: "Con", "head": {$: "Canonical.WriteRecorded", "outcome": _outcome_0}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0}, "reason": {$: "Canonical.StaleOperation"}});
+    return $Bool$pick$(($Bool$and$(($Canonical$same_round$(_partition_0, _lifetime_0, _round_0, {$: "Canonical.Round", "partition": __0, "lifetime": __1, "id": __2, "waiting": _waiting_0, "deciding": _deciding_0, "write": {$: "Some", "value": _token_0}, "uncertain": __3})), ($Nat$is_eq$(_token_0, _operation_0)))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _round_0, "waiting": _waiting_0, "deciding": _deciding_0, "write": {$: "None"}, "uncertain": ($Canonical$write_is_unknown$(_outcome_0))}, "tail": ($Canonical$remove_round$(_partition_0, _rounds_0))}, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.WriteRecorded", "outcome": _outcome_0}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": {$: "Canonical.StaleOperation"}});
   } else {
-    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0}, "reason": {$: "Canonical.StaleOperation"}};
+    return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "reason": {$: "Canonical.StaleOperation"}};
   }
 }
 
@@ -865,7 +1134,8 @@ function $Canonical$retire_current$(_state_0, _partition_0, _lifetime_0, _round_
   const _work_0 = _state_0["work"];
   const _next_round_0 = _state_0["next_round"];
   const _next_operation_0 = _state_0["next_operation"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($Canonical$release_round_charges$(_work_0, _ledger_0, _partition_0, _lifetime_0, _round_0)), "rounds": ($Canonical$remove_round$(_partition_0, _rounds_0)), "work": ($Canonical$retain_other_work$(_work_0, _partition_0, _lifetime_0, _round_0)), "next_round": _next_round_0, "next_operation": _next_operation_0}, "commands": ($List$append$(($Canonical$release_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), ($List$append$(($Canonical$cancel_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), {$: "Con", "head": {$: "Canonical.PartitionRetired", "round": _round_0}, "tail": {$: "Nil"}}))))};
+  const _admissions_0 = _state_0["admissions"];
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($Canonical$release_round_charges$(_work_0, _ledger_0, _partition_0, _lifetime_0, _round_0)), "rounds": ($Canonical$remove_round$(_partition_0, _rounds_0)), "work": ($Canonical$retain_other_work$(_work_0, _partition_0, _lifetime_0, _round_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": ($List$append$(($Canonical$release_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), ($List$append$(($Canonical$cancel_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), {$: "Con", "head": {$: "Canonical.PartitionRetired", "round": _round_0}, "tail": {$: "Nil"}}))))};
 }
 
 function $Ledger$fit_decision$(_limits_0, _global_0, _local_0, _bytes_0) {
@@ -957,9 +1227,10 @@ function $Canonical$capacity_replace_batch$(_state_0, _id_0, _partition_0, _rele
   const _work_0 = _state_0["work"];
   const _next_round_0 = _state_0["next_round"];
   const _next_operation_0 = _state_0["next_operation"];
+  const _admissions_0 = _state_0["admissions"];
   const _ledger_0 = _batch_0["ledger"];
   const _commands_0 = _batch_0["commands"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0}, "commands": {$: "Con", "head": {$: "Canonical.PreparationReleased", "id": _id_0, "after": ($Canonical$capacity_view$(_released_0, _partition_0))}, "tail": _commands_0}};
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.PreparationReleased", "id": _id_0, "after": ($Canonical$capacity_view$(_released_0, _partition_0))}, "tail": _commands_0}};
 }
 
 function $Canonical$capacity_replace_units$($0, $1, $2, $3) {
@@ -986,6 +1257,106 @@ function $Canonical$capacity_replace_units$($0, $1, $2, $3) {
   }
 }
 
+function $Canonical$remove_admission$(_partition_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _item_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    return $Canonical$retain_admission$(_item_0, ($Canonical$remove_admission$(_partition_0, _rest_0)), ($Canonical$admission_matches$(_partition_0, _item_0)));
+  }
+}
+
+function $Admission$apply_event$(_state_0, _event_0) {
+  if (_event_0.$ === "Admission.Issue") {
+    const _tool_0 = _event_0["tool"];
+    const _started_0 = _event_0["started"];
+    const _deadline_0 = _event_0["deadline"];
+    const _now_0 = _event_0["now"];
+    return $Admission$issue$(_state_0, _tool_0, _started_0, _deadline_0, _now_0);
+  } else if (_event_0.$ === "Admission.Consume") {
+    const _token_0 = _event_0["token"];
+    const _tool_1 = _event_0["tool"];
+    const _now_1 = _event_0["now"];
+    return $Admission$consume$(_state_0, _token_0, _tool_1, _now_1);
+  } else if (_event_0.$ === "Admission.Release") {
+    const _token_1 = _event_0["token"];
+    return $Admission$release$(_state_0, _token_1);
+  } else if (_event_0.$ === "Admission.CloseRound") {
+    const _at_0 = _event_0["at"];
+    return $Admission$close_round$(_state_0, _at_0);
+  } else {
+    const _new_lifetime_0 = _event_0["new_lifetime"];
+    const _at_1 = _event_0["at"];
+    return $Admission$restart$(_state_0, _new_lifetime_0, _at_1);
+  }
+}
+
+function $Admission$initial$(_partition_0, _lifetime_0) {
+  return {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": 0, "active": false, "closed_at": 0, "next_token": 1, "permits": {$: "Nil"}, "used": {$: "Nil"}};
+}
+
+function $Canonical$admission_matches$(_partition_0, _item_0) {
+  const _owner_0 = _item_0["partition"];
+  return $Nat$is_eq$(_owner_0, _partition_0);
+}
+
+function $Admission$remove_permit$(_token_0, _permits_0) {
+  if (_permits_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _permits_0["head"];
+    const _current_0 = _t_0["token"];
+    const __0 = _t_0["tool"];
+    const __1 = _t_0["round"];
+    const __2 = _t_0["started"];
+    const __3 = _t_0["deadline"];
+    const _rest_0 = _permits_0["tail"];
+    return $Admission$remove_permit$pick$({$: "Admission.Permit", "token": _current_0, "tool": __0, "round": __1, "started": __2, "deadline": __3}, ($Admission$remove_permit$(_token_0, _rest_0)), ($Nat$is_eq$(_current_0, _token_0)));
+  }
+}
+
+function $Canonical$close_prospective_permit$(_state_0, _partition_0, _at_0, _admission_0) {
+  const _owner_0 = _admission_0["partition"];
+  const _lifetime_0 = _admission_0["lifetime"];
+  const _round_0 = _admission_0["round"];
+  const _t_0 = _admission_0["active"];
+  if (!_t_0) {
+    const _closed_at_0 = _admission_0["closed_at"];
+    const _next_token_0 = _admission_0["next_token"];
+    const _t_1 = _admission_0["permits"];
+    if (_t_1.$ === "Nil") {
+      const _used_0 = _admission_0["used"];
+      return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_next_token_0, 1)), ($Nat$is_ge$(_at_0, _closed_at_0)))), {$: "Canonical.Advanced", "state": ($Canonical$with_admission$(_state_0, _partition_0, {$: "Admission.AdmissionState", "partition": _owner_0, "lifetime": _lifetime_0, "round": nat_chk(_round_0 + 1), "active": false, "closed_at": _at_0, "next_token": _next_token_0, "permits": {$: "Nil"}, "used": _used_0})), "commands": {$: "Con", "head": {$: "Canonical.PermitRoundClosed", "round": nat_chk(_round_0 + 1)}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.PermitDenied", "reason": {$: "Admission.RoundAlreadyClosed"}}});
+    } else {
+      const _used_1 = _admission_0["used"];
+      return $Canonical$close_permit_result$(_state_0, _partition_0, ($Admission$close_prospective$({$: "Admission.AdmissionState", "partition": _owner_0, "lifetime": _lifetime_0, "round": _round_0, "active": false, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _t_1, "used": _used_1}, _at_0)));
+    }
+  } else {
+    const _closed_at_1 = _admission_0["closed_at"];
+    const _next_token_1 = _admission_0["next_token"];
+    const _30_0 = _admission_0["permits"];
+    const _used_2 = _admission_0["used"];
+    return $Canonical$close_permit_result$(_state_0, _partition_0, ($Admission$close_prospective$({$: "Admission.AdmissionState", "partition": _owner_0, "lifetime": _lifetime_0, "round": _round_0, "active": _t_0, "closed_at": _closed_at_1, "next_token": _next_token_1, "permits": _30_0, "used": _used_2}, _at_0)));
+  }
+}
+
+function $Canonical$close_permit_result$(_state_0, _partition_0, _result_0) {
+  if (_result_0.$ === "Admission.Accepted") {
+    const _admission_0 = _result_0["state"];
+    const _t_0 = _result_0["round"];
+    if (_t_0.$ === "Some") {
+      const _round_0 = _t_0["value"];
+      return {$: "Canonical.Advanced", "state": ($Canonical$with_admission$(_state_0, _partition_0, _admission_0)), "commands": {$: "Con", "head": {$: "Canonical.PermitRoundClosed", "round": _round_0}, "tail": {$: "Nil"}}};
+    } else {
+      return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.InconsistentLedger"}};
+    }
+  } else {
+    const _reason_0 = _result_0["reason"];
+    return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.PermitDenied", "reason": _reason_0}};
+  }
+}
+
 function $Cmp$is_gt$(_c_0) {
   if (_c_0.$ === "LT") {
     return false;
@@ -1002,21 +1373,22 @@ function $Canonical$prepared_released$(_state_0, _partition_0, _lifetime_0, _rou
   const __2 = _state_0["work"];
   const __3 = _state_0["next_round"];
   const _next_operation_0 = _state_0["next_operation"];
+  const __4 = _state_0["admissions"];
   if (_bytes_0.$ === "Nil") {
     if (_result_0.$ === "Ledger.Rejected") {
-      return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0}, "reason": {$: "Canonical.InconsistentLedger"}};
+      return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4}, "reason": {$: "Canonical.InconsistentLedger"}};
     } else {
       const _released_0 = _result_0["state"];
-      return $Canonical$prepared_batch$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0}, _operation_0, _charge_0, _partition_0, _released_0, {$: "Canonical.Batch", "ledger": _released_0, "work": {$: "Nil"}, "next_operation": _next_operation_0, "commands": {$: "Nil"}});
+      return $Canonical$prepared_batch$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4}, _operation_0, _charge_0, _partition_0, _released_0, {$: "Canonical.Batch", "ledger": _released_0, "work": {$: "Nil"}, "next_operation": _next_operation_0, "commands": {$: "Nil"}});
     }
   } else {
     const _size_0 = _bytes_0["head"];
     const _rest_0 = _bytes_0["tail"];
     if (_result_0.$ === "Ledger.Rejected") {
-      return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0}, "reason": {$: "Canonical.InconsistentLedger"}};
+      return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4}, "reason": {$: "Canonical.InconsistentLedger"}};
     } else {
       const _released_1 = _result_0["state"];
-      return $Canonical$prepared_batch$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0}, _operation_0, _charge_0, _partition_0, _released_1, ($Canonical$admit_units$({$: "Con", "head": _size_0, "tail": _rest_0}, {$: "Canonical.Batch", "ledger": _released_1, "work": {$: "Nil"}, "next_operation": _next_operation_0, "commands": {$: "Nil"}}, _partition_0, _lifetime_0, _round_0, 1)));
+      return $Canonical$prepared_batch$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4}, _operation_0, _charge_0, _partition_0, _released_1, ($Canonical$admit_units$({$: "Con", "head": _size_0, "tail": _rest_0}, {$: "Canonical.Batch", "ledger": _released_1, "work": {$: "Nil"}, "next_operation": _next_operation_0, "commands": {$: "Nil"}}, _partition_0, _lifetime_0, _round_0, 1)));
     }
   }
 }
@@ -1047,7 +1419,8 @@ function $Canonical$stop_current$(_state_0, _partition_0, _lifetime_0, _round_0,
   const _work_0 = _state_0["work"];
   const _next_round_0 = _state_0["next_round"];
   const _next_operation_0 = _state_0["next_operation"];
-  return $Bool$pick$(($Bool$and$(_has_pending_0, ($Bool$not$(_deadline_0)))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _round_0, "waiting": true, "deciding": false, "write": _write_0, "uncertain": _uncertain_0}, "tail": ($Canonical$remove_round$(_partition_0, _rounds_0))}, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0}, "commands": {$: "Con", "head": {$: "Canonical.WaitForWork"}, "tail": {$: "Nil"}}}, ($Canonical$stop_output$({$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0}, _partition_0, _lifetime_0, _round_0, _deadline_0, _write_0, _uncertain_0)));
+  const _admissions_0 = _state_0["admissions"];
+  return $Bool$pick$(($Bool$and$(_has_pending_0, ($Bool$not$(_deadline_0)))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _round_0, "waiting": true, "deciding": false, "write": _write_0, "uncertain": _uncertain_0}, "tail": ($Canonical$remove_round$(_partition_0, _rounds_0))}, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.WaitForWork"}, "tail": {$: "Nil"}}}, ($Canonical$stop_output$({$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, _partition_0, _lifetime_0, _round_0, _deadline_0, _write_0, _uncertain_0)));
 }
 
 function $Canonical$pending$(_partition_0, _lifetime_0, _round_0, _items_0) {
@@ -1180,15 +1553,108 @@ function $Canonical$capacity_replace_one$(_partition_0, _position_0, _bytes_0, _
   }
 }
 
+function $Canonical$retain_admission$(_item_0, _tail_0, _match_owner_0) {
+  if (_match_owner_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _item_0, "tail": _tail_0};
+  }
+}
+
+function $Admission$issue$(_state_0, _tool_0, _started_0, _deadline_0, _now_0) {
+  const _partition_0 = _state_0["partition"];
+  const _lifetime_0 = _state_0["lifetime"];
+  const _round_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_at_0 = _state_0["closed_at"];
+  const _next_token_0 = _state_0["next_token"];
+  const _permits_0 = _state_0["permits"];
+  const _used_0 = _state_0["used"];
+  return $Admission$issue$guard$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0, "used": _used_0}, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _tool_0, _started_0, _deadline_0, _now_0, ($Bool$and$(($Nat$is_gt$(_started_0, _closed_at_0)), ($Bool$and$(($Nat$is_le$(_started_0, _now_0)), ($Nat$is_le$(_now_0, _deadline_0)))))));
+}
+
+function $Admission$consume$(_state_0, _token_0, _tool_0, _now_0) {
+  const __0 = _state_0["partition"];
+  const __1 = _state_0["lifetime"];
+  const __2 = _state_0["round"];
+  const __3 = _state_0["active"];
+  const __4 = _state_0["closed_at"];
+  const __5 = _state_0["next_token"];
+  const _permits_0 = _state_0["permits"];
+  const _used_0 = _state_0["used"];
+  return $Admission$consume$used$({$: "Admission.AdmissionState", "partition": __0, "lifetime": __1, "round": __2, "active": __3, "closed_at": __4, "next_token": __5, "permits": _permits_0, "used": _used_0}, _token_0, _tool_0, _now_0, ($Admission$has_token$(_token_0, _used_0)), ($Admission$find_permit$(_token_0, _permits_0)));
+}
+
+function $Admission$release$(_state_0, _token_0) {
+  const __0 = _state_0["partition"];
+  const __1 = _state_0["lifetime"];
+  const __2 = _state_0["round"];
+  const __3 = _state_0["active"];
+  const __4 = _state_0["closed_at"];
+  const __5 = _state_0["next_token"];
+  const _permits_0 = _state_0["permits"];
+  const _used_0 = _state_0["used"];
+  return $Admission$release$used$({$: "Admission.AdmissionState", "partition": __0, "lifetime": __1, "round": __2, "active": __3, "closed_at": __4, "next_token": __5, "permits": _permits_0, "used": _used_0}, _token_0, ($Admission$has_token$(_token_0, _used_0)), ($Admission$find_permit$(_token_0, _permits_0)));
+}
+
+function $Admission$close_round$(_state_0, _at_0) {
+  const _partition_0 = _state_0["partition"];
+  const _lifetime_0 = _state_0["lifetime"];
+  const _round_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_at_0 = _state_0["closed_at"];
+  const _next_token_0 = _state_0["next_token"];
+  const __0 = _state_0["permits"];
+  const _used_0 = _state_0["used"];
+  return $Admission$close_round$active$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": __0, "used": _used_0}, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _used_0, _at_0);
+}
+
+function $Admission$restart$(_state_0, _new_lifetime_0, _at_0) {
+  const _partition_0 = _state_0["partition"];
+  const _lifetime_0 = _state_0["lifetime"];
+  const __0 = _state_0["round"];
+  const __1 = _state_0["active"];
+  const _closed_at_0 = _state_0["closed_at"];
+  const __2 = _state_0["next_token"];
+  const __3 = _state_0["permits"];
+  const __4 = _state_0["used"];
+  return $Admission$restart$fresh$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": __0, "active": __1, "closed_at": _closed_at_0, "next_token": __2, "permits": __3, "used": __4}, _partition_0, _lifetime_0, _closed_at_0, _new_lifetime_0, _at_0, ($Bool$and$(($Nat$is_gt$(_new_lifetime_0, _lifetime_0)), ($Nat$is_ge$(_at_0, _closed_at_0)))));
+}
+
+function $Admission$remove_permit$pick$(_permit_0, _tail_0, _hit_0) {
+  if (_hit_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _permit_0, "tail": _tail_0};
+  }
+}
+
+function $Nat$is_ge$(_a_0, _b_0) {
+  return $Cmp$is_ge$(cmp_new(_a_0, _b_0));
+}
+
+function $Admission$close_prospective$(_state_0, _at_0) {
+  const _partition_0 = _state_0["partition"];
+  const _lifetime_0 = _state_0["lifetime"];
+  const _round_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_at_0 = _state_0["closed_at"];
+  const _next_token_0 = _state_0["next_token"];
+  const _permits_0 = _state_0["permits"];
+  const _used_0 = _state_0["used"];
+  return $Bool$pick$(($Bool$and$(($Bool$not$(_active_0)), ($Bool$and$(($Nat$is_ge$(_at_0, _closed_at_0)), ($Nat$is_gt$(($List$length$(_permits_0)), 0)))))), {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": nat_chk(_round_0 + 1), "active": false, "closed_at": _at_0, "next_token": _next_token_0, "permits": {$: "Nil"}, "used": _used_0}, "token": {$: "None"}, "round": {$: "Some", "value": nat_chk(_round_0 + 1)}}, {$: "Admission.Rejected", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0, "used": _used_0}, "reason": {$: "Admission.RoundAlreadyClosed"}});
+}
+
 function $Canonical$prepared_batch$(_state_0, _operation_0, _charge_0, _partition_0, _released_0, _batch_0) {
   const _rounds_0 = _state_0["rounds"];
   const _work_0 = _state_0["work"];
   const _next_round_0 = _state_0["next_round"];
+  const _admissions_0 = _state_0["admissions"];
   const _ledger_0 = _batch_0["ledger"];
   const _units_0 = _batch_0["work"];
   const _next_0 = _batch_0["next_operation"];
   const _commands_0 = _batch_0["commands"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($List$append$(($Canonical$remove_work$(_operation_0, _work_0)), _units_0)), "next_round": _next_round_0, "next_operation": _next_0}, "commands": {$: "Con", "head": {$: "Canonical.PreparationReleased", "id": _charge_0, "after": ($Canonical$capacity_view$(_released_0, _partition_0))}, "tail": _commands_0}};
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($List$append$(($Canonical$remove_work$(_operation_0, _work_0)), _units_0)), "next_round": _next_round_0, "next_operation": _next_0, "admissions": _admissions_0}, "commands": {$: "Con", "head": {$: "Canonical.PreparationReleased", "id": _charge_0, "after": ($Canonical$capacity_view$(_released_0, _partition_0))}, "tail": _commands_0}};
 }
 
 function $Canonical$admit_units$($0, $1, $2, $3, $4, $5) {
@@ -1286,6 +1752,90 @@ function $Ledger$replace_for$(_id_0, _bytes_0, _purpose_0, _charges_0) {
   }
 }
 
+function $Admission$issue$guard$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _tool_0, _started_0, _deadline_0, _now_0, _clock_valid_0) {
+  if (!_clock_valid_0) {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.StaleInvocation"}};
+  } else {
+    const _x_0 = ($Admission$has_tool$(_tool_0, _permits_0));
+    const _x_1 = ($Admission$has_used_tool$(_tool_0, _used_0));
+    return $Admission$issue$tool$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _tool_0, _started_0, _deadline_0, (_x_0 || _x_1));
+  }
+}
+
+function $Nat$is_le$(_a_0, _b_0) {
+  return $Cmp$is_le$(cmp_new(_a_0, _b_0));
+}
+
+function $Admission$consume$used$(_state_0, _token_0, _tool_0, _now_0, _was_used_0, _permit_0) {
+  if (_was_used_0) {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.UsedPermit"}};
+  } else {
+    return $Admission$consume$found$(_state_0, _token_0, _tool_0, _now_0, _permit_0);
+  }
+}
+
+function $Admission$has_token$(_token_0, _used_0) {
+  if (_used_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _used_0["head"];
+    const _current_0 = _t_0["token"];
+    const _rest_0 = _used_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_token_0, _current_0));
+    const _x_1 = ($Admission$has_token$(_token_0, _rest_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $Admission$find_permit$(_token_0, _permits_0) {
+  if (_permits_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _permits_0["head"];
+    const _current_0 = _t_0["token"];
+    const __0 = _t_0["tool"];
+    const __1 = _t_0["round"];
+    const __2 = _t_0["started"];
+    const __3 = _t_0["deadline"];
+    const _rest_0 = _permits_0["tail"];
+    return $Admission$find_permit$pick$({$: "Admission.Permit", "token": _current_0, "tool": __0, "round": __1, "started": __2, "deadline": __3}, ($Admission$find_permit$(_token_0, _rest_0)), ($Nat$is_eq$(_current_0, _token_0)));
+  }
+}
+
+function $Admission$release$used$(_state_0, _token_0, _used_0, _found_0) {
+  if (_used_0) {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.UsedPermit"}};
+  } else {
+    return $Admission$release$found$(_state_0, _token_0, _found_0);
+  }
+}
+
+function $Admission$close_round$active$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _used_0, _at_0) {
+  if (!_active_0) {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.RoundAlreadyClosed"}};
+  } else {
+    return $Admission$close_round$time$(_state_0, _partition_0, _lifetime_0, _round_0, _next_token_0, _used_0, _at_0, ($Nat$is_ge$(_at_0, _closed_at_0)));
+  }
+}
+
+function $Admission$restart$fresh$(_state_0, _partition_0, _lifetime_0, _closed_at_0, _new_lifetime_0, _at_0, _valid_0) {
+  if (!_valid_0) {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.LifetimeNotFresh"}};
+  } else {
+    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _new_lifetime_0, "round": 0, "active": false, "closed_at": _at_0, "next_token": 1, "permits": {$: "Nil"}, "used": {$: "Nil"}}, "token": {$: "None"}, "round": {$: "None"}};
+  }
+}
+
+function $Cmp$is_ge$(_c_0) {
+  if (_c_0.$ === "LT") {
+    return false;
+  } else if (_c_0.$ === "EQ") {
+    return true;
+  } else {
+    return true;
+  }
+}
+
 function $Canonical$admit_one$(_result_0, _partition_0, _lifetime_0, _round_0, _operation_0, _position_0, _bytes_0, _work_0, _commands_0) {
   if (_result_0.$ === "Ledger.Granted") {
     const _granted_0 = _result_0["state"];
@@ -1303,7 +1853,8 @@ function $Canonical$stop_ready$(_state_0, _partition_0, _lifetime_0, _round_0, _
   const _work_0 = _state_0["work"];
   const _next_round_0 = _state_0["next_round"];
   const _next_operation_0 = _state_0["next_operation"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($Canonical$release_round_charges$(_work_0, _ledger_0, _partition_0, _lifetime_0, _round_0)), "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _round_0, "waiting": false, "deciding": true, "write": {$: "None"}, "uncertain": _uncertain_0}, "tail": ($Canonical$remove_round$(_partition_0, _rounds_0))}, "work": ($Canonical$retain_other_work$(_work_0, _partition_0, _lifetime_0, _round_0)), "next_round": _next_round_0, "next_operation": _next_operation_0}, "commands": ($List$append$(($Canonical$release_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), ($List$append$(($Canonical$cancel_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), {$: "Con", "head": ($Bool$pick$(($Bool$and$(_uncertain_0, ($Bool$not$(_deadline_0)))), {$: "Canonical.ReofferAtStop"}, {$: "Canonical.FinishReady"})), "tail": {$: "Nil"}}))))};
+  const _admissions_0 = _state_0["admissions"];
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($Canonical$release_round_charges$(_work_0, _ledger_0, _partition_0, _lifetime_0, _round_0)), "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _round_0, "waiting": false, "deciding": true, "write": {$: "None"}, "uncertain": _uncertain_0}, "tail": ($Canonical$remove_round$(_partition_0, _rounds_0))}, "work": ($Canonical$retain_other_work$(_work_0, _partition_0, _lifetime_0, _round_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0}, "commands": ($List$append$(($Canonical$release_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), ($List$append$(($Canonical$cancel_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), {$: "Con", "head": ($Bool$pick$(($Bool$and$(_uncertain_0, ($Bool$not$(_deadline_0)))), {$: "Canonical.ReofferAtStop"}, {$: "Canonical.FinishReady"})), "tail": {$: "Nil"}}))))};
 }
 
 function $Ledger$replace$pick$(_charge_0, _replacement_0, _tail_0, _hit_0) {
@@ -1311,6 +1862,147 @@ function $Ledger$replace$pick$(_charge_0, _replacement_0, _tail_0, _hit_0) {
     return {$: "Con", "head": _replacement_0, "tail": _tail_0};
   } else {
     return {$: "Con", "head": _charge_0, "tail": _tail_0};
+  }
+}
+
+function $Admission$issue$tool$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _tool_0, _started_0, _deadline_0, _duplicate_0) {
+  if (_duplicate_0) {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.DuplicateTool"}};
+  } else {
+    const _expected_round_0 = ($Admission$candidate_round$(_round_0, _active_0));
+    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": nat_chk(_next_token_0 + 1), "permits": ($List$append$(_permits_0, {$: "Con", "head": {$: "Admission.Permit", "token": _next_token_0, "tool": _tool_0, "round": _expected_round_0, "started": _started_0, "deadline": _deadline_0}, "tail": {$: "Nil"}})), "used": _used_0}, "token": {$: "Some", "value": _next_token_0}, "round": {$: "Some", "value": _expected_round_0}};
+  }
+}
+
+function $Admission$has_tool$(_tool_0, _permits_0) {
+  if (_permits_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _permits_0["head"];
+    const _current_0 = _t_0["tool"];
+    const _rest_0 = _permits_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_tool_0, _current_0));
+    const _x_1 = ($Admission$has_tool$(_tool_0, _rest_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $Admission$has_used_tool$(_tool_0, _used_0) {
+  if (_used_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _used_0["head"];
+    const _current_0 = _t_0["tool"];
+    const _rest_0 = _used_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_tool_0, _current_0));
+    const _x_1 = ($Admission$has_used_tool$(_tool_0, _rest_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $Cmp$is_le$(_c_0) {
+  if (_c_0.$ === "LT") {
+    return true;
+  } else if (_c_0.$ === "EQ") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $Admission$consume$found$(_state_0, _token_0, _tool_0, _now_0, _permit_0) {
+  if (_permit_0.$ === "None") {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.NoPermit"}};
+  } else {
+    const _t_0 = _permit_0["value"];
+    const _permitted_tool_0 = _t_0["tool"];
+    const _permitted_round_0 = _t_0["round"];
+    const _started_0 = _t_0["started"];
+    const _deadline_0 = _t_0["deadline"];
+    return $Admission$consume$check$(_state_0, _token_0, _tool_0, _now_0, _permitted_tool_0, _permitted_round_0, _started_0, _deadline_0);
+  }
+}
+
+function $Admission$find_permit$pick$(_permit_0, _fallback_0, _hit_0) {
+  if (_hit_0) {
+    return {$: "Some", "value": _permit_0};
+  } else {
+    return _fallback_0;
+  }
+}
+
+function $Admission$release$found$(_state_0, _token_0, _found_0) {
+  const _partition_0 = _state_0["partition"];
+  const _lifetime_0 = _state_0["lifetime"];
+  const _round_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_at_0 = _state_0["closed_at"];
+  const _next_token_0 = _state_0["next_token"];
+  const _permits_0 = _state_0["permits"];
+  const _used_0 = _state_0["used"];
+  if (_found_0.$ === "None") {
+    return {$: "Admission.Rejected", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0, "used": _used_0}, "reason": {$: "Admission.NoPermit"}};
+  } else {
+    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": ($Admission$remove_permit$(_token_0, _permits_0)), "used": _used_0}, "token": {$: "None"}, "round": {$: "None"}};
+  }
+}
+
+function $Admission$close_round$time$(_state_0, _partition_0, _lifetime_0, _round_0, _next_token_0, _used_0, _at_0, _valid_0) {
+  if (!_valid_0) {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.InvalidClock"}};
+  } else {
+    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": false, "closed_at": _at_0, "next_token": _next_token_0, "permits": {$: "Nil"}, "used": _used_0}, "token": {$: "None"}, "round": {$: "Some", "value": _round_0}};
+  }
+}
+
+function $Admission$consume$check$(_state_0, _token_0, _tool_0, _now_0, _permitted_tool_0, _permitted_round_0, _started_0, _deadline_0) {
+  const _partition_0 = _state_0["partition"];
+  const _lifetime_0 = _state_0["lifetime"];
+  const _round_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_at_0 = _state_0["closed_at"];
+  const _next_token_0 = _state_0["next_token"];
+  const _permits_0 = _state_0["permits"];
+  const _used_0 = _state_0["used"];
+  return $Admission$consume$tool$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0, "used": _used_0}, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _token_0, _tool_0, _now_0, _permitted_round_0, _started_0, _deadline_0, ($Nat$is_eq$(_tool_0, _permitted_tool_0)));
+}
+
+function $Admission$consume$tool$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _token_0, _tool_0, _now_0, _permitted_round_0, _started_0, _deadline_0, _correct_tool_0) {
+  if (!_correct_tool_0) {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.WrongTool"}};
+  } else {
+    return $Admission$consume$time$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _token_0, _now_0, _permitted_round_0, ($Bool$and$(($Nat$is_gt$(_started_0, _closed_at_0)), ($Bool$and$(($Nat$is_le$(_started_0, _now_0)), ($Nat$is_le$(_now_0, _deadline_0)))))));
+  }
+}
+
+function $Admission$consume$time$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _token_0, _now_0, _permitted_round_0, _valid_0) {
+  if (!_valid_0) {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.Expired"}};
+  } else {
+    return $Admission$consume$round$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _token_0, _permitted_round_0, ($Nat$is_eq$(_permitted_round_0, ($Admission$candidate_round$(_round_0, _active_0)))));
+  }
+}
+
+function $Admission$consume$round$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _token_0, _permitted_round_0, _correct_round_0) {
+  if (!_correct_round_0) {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.OldRound"}};
+  } else {
+    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _permitted_round_0, "active": true, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": ($Admission$remove_permit$(_token_0, _permits_0)), "used": ($Admission$record_used$(_token_0, _permits_0, _used_0))}, "token": {$: "Some", "value": _token_0}, "round": {$: "Some", "value": _permitted_round_0}};
+  }
+}
+
+function $Admission$record_used$(_token_0, _permits_0, _used_0) {
+  return $Admission$record_used$found$(($Admission$find_permit$(_token_0, _permits_0)), _used_0);
+}
+
+function $Admission$record_used$found$(_permit_0, _used_0) {
+  if (_permit_0.$ === "None") {
+    return _used_0;
+  } else {
+    const _t_0 = _permit_0["value"];
+    const _found_0 = _t_0["token"];
+    const _tool_0 = _t_0["tool"];
+    return {$: "Con", "head": {$: "Admission.Used", "token": _found_0, "tool": _tool_0}, "tail": _used_0};
   }
 }
 

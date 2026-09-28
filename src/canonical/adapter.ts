@@ -63,6 +63,11 @@ export type CanonicalEvent =
   | { readonly kind: "resizeCapacity"; readonly reservation: number; readonly bytes: number; readonly purpose: CapacityPurpose }
   | { readonly kind: "releaseCapacity"; readonly reservation: number }
   | { readonly kind: "replaceCapacity"; readonly reservation: number; readonly unitBytes: readonly number[] }
+  | { readonly kind: "issuePermit"; readonly partition: number; readonly lifetime: number; readonly tool: number; readonly started: number; readonly deadline: number; readonly now: number; readonly facts: ProspectiveFacts }
+  | { readonly kind: "consumePermit"; readonly partition: number; readonly lifetime: number; readonly token: number; readonly tool: number; readonly now: number }
+  | { readonly kind: "releasePermit"; readonly partition: number; readonly lifetime: number; readonly token: number }
+  | { readonly kind: "expirePermit"; readonly partition: number; readonly lifetime: number; readonly token: number; readonly deadlineReached: boolean }
+  | { readonly kind: "closePermitRound"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly at: number; readonly prospective: boolean }
   | { readonly kind: "openRound"; readonly partition: number; readonly lifetime: number }
   | { readonly kind: "beginPreparation"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly bytes: number }
   | { readonly kind: "preparationCompleted"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly unitBytes: readonly number[] }
@@ -78,6 +83,10 @@ export type CanonicalCommand =
   | { readonly kind: "capacityResized"; readonly id: number; readonly after: CapacityView }
   | { readonly kind: "capacityUnitAdmitted"; readonly reservation: number; readonly position: number; readonly bytes: number; readonly after: CapacityView }
   | { readonly kind: "capacityUnitRefused"; readonly position: number; readonly bytes: number; readonly reason: CapacityRefusal; readonly after: CapacityView }
+  | { readonly kind: "permitIssued"; readonly token: number; readonly round: number }
+  | { readonly kind: "permitConsumed"; readonly round: number }
+  | { readonly kind: "permitReleased" | "permitExpired" | "permitKept" }
+  | { readonly kind: "permitRoundClosed"; readonly round: number }
   | { readonly kind: "roundStarted"; readonly id: number }
   | { readonly kind: "prepare"; readonly operation: number; readonly reservation: number }
   | { readonly kind: "preparationRefused" }
@@ -94,6 +103,23 @@ export type CanonicalCommand =
   | { readonly kind: "waitForOutput" }
   | { readonly kind: "reofferAtStop" }
   | { readonly kind: "partitionRetired"; readonly round: number };
+
+export type ProspectiveFacts = {
+  readonly clockValid: boolean; readonly withinHookWindow: boolean;
+  readonly startedAfterClosure: boolean; readonly duplicateEvent: boolean;
+  readonly permitCount: number; readonly permitLimit: number;
+  readonly roundCount: number; readonly roundLimit: number; readonly newRound: boolean;
+  readonly eventCount: number; readonly eventLimit: number;
+};
+
+const encodeFacts = (facts: ProspectiveFacts): unknown => {
+  inputFields(facts, ["clockValid", "withinHookWindow", "startedAfterClosure", "duplicateEvent", "permitCount", "permitLimit", "roundCount", "roundLimit", "newRound", "eventCount", "eventLimit"]);
+  return { $: "Admission.ProspectiveFacts", clock_valid: bool(facts.clockValid), within_hook_window: bool(facts.withinHookWindow),
+    started_after_closure: bool(facts.startedAfterClosure), duplicate_event: bool(facts.duplicateEvent),
+    permit_count: nat(facts.permitCount), permit_limit: nat(facts.permitLimit, true),
+    round_count: nat(facts.roundCount), round_limit: nat(facts.roundLimit, true), new_round: bool(facts.newRound),
+    event_count: nat(facts.eventCount), event_limit: nat(facts.eventLimit, true) };
+};
 
 const encodePurpose = (value: CapacityPurpose): unknown => {
   const names: Record<CapacityPurpose, string> = {
@@ -112,6 +138,11 @@ const encode = (event: CanonicalEvent): unknown => {
     case "resizeCapacity": inputFields(event, ["kind", "reservation", "bytes", "purpose"]); return { $: "Canonical.ResizeCapacity", reservation: nat(event.reservation, true), bytes: nat(event.bytes), purpose: encodePurpose(event.purpose) };
     case "releaseCapacity": inputFields(event, ["kind", "reservation"]); return { $: "Canonical.ReleaseCapacity", reservation: nat(event.reservation, true) };
     case "replaceCapacity": inputFields(event, ["kind", "reservation", "unitBytes"]); return { $: "Canonical.ReplaceCapacity", reservation: nat(event.reservation, true), unit_bytes: list(event.unitBytes) };
+    case "issuePermit": inputFields(event, ["kind", "partition", "lifetime", "tool", "started", "deadline", "now", "facts"]); return { $: "Canonical.IssuePermit", ...identity(event), tool: nat(event.tool, true), started: nat(event.started), deadline: nat(event.deadline), now: nat(event.now), facts: encodeFacts(event.facts) };
+    case "consumePermit": inputFields(event, ["kind", "partition", "lifetime", "token", "tool", "now"]); return { $: "Canonical.ConsumePermit", ...identity(event), token: nat(event.token, true), tool: nat(event.tool, true), now: nat(event.now) };
+    case "releasePermit": inputFields(event, ["kind", "partition", "lifetime", "token"]); return { $: "Canonical.ReleasePermit", ...identity(event), token: nat(event.token, true) };
+    case "expirePermit": inputFields(event, ["kind", "partition", "lifetime", "token", "deadlineReached"]); return { $: "Canonical.ExpirePermit", ...identity(event), token: nat(event.token, true), deadline_reached: bool(event.deadlineReached) };
+    case "closePermitRound": inputFields(event, ["kind", "partition", "lifetime", "round", "at", "prospective"]); return { $: "Canonical.ClosePermitRound", ...identity(event), round: nat(event.round, true), at: nat(event.at), prospective: bool(event.prospective) };
     case "openRound": inputFields(event, ["kind", "partition", "lifetime"]); return { $: "Canonical.OpenRound", ...identity(event) };
     case "beginPreparation": inputFields(event, ["kind", "partition", "lifetime", "round", "bytes"]); return { $: "Canonical.BeginPreparation", ...identity(event), round: nat(event.round, true), bytes: bytes(event.bytes) };
     case "preparationCompleted": inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "unitBytes"]); return { $: "Canonical.PreparationCompleted", ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true), unit_bytes: list(event.unitBytes) };
@@ -201,6 +232,12 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
     case "Canonical.CapacityResized": { const x = fields(value, "Canonical.CapacityResized", ["id", "after"]); return { kind: "capacityResized", id: nat(x.id, true), after: capacityView(x.after) }; }
     case "Canonical.CapacityUnitAdmitted": { const x = fields(value, "Canonical.CapacityUnitAdmitted", ["reservation", "position", "bytes", "after"]); return { kind: "capacityUnitAdmitted", reservation: nat(x.reservation, true), position: nat(x.position, true), bytes: bytes(x.bytes), after: capacityView(x.after) }; }
     case "Canonical.CapacityUnitRefused": { const x = fields(value, "Canonical.CapacityUnitRefused", ["position", "bytes", "reason", "after"]); return { kind: "capacityUnitRefused", position: nat(x.position, true), bytes: bytes(x.bytes), reason: capacityRefusal(x.reason), after: capacityView(x.after) }; }
+    case "Canonical.PermitIssued": { const x = fields(value, "Canonical.PermitIssued", ["token", "round"]); return { kind: "permitIssued", token: nat(x.token, true), round: nat(x.round, true) }; }
+    case "Canonical.PermitConsumed": return { kind: "permitConsumed", round: nat(fields(value, "Canonical.PermitConsumed", ["round"]).round, true) };
+    case "Canonical.PermitReleased": fields(value, "Canonical.PermitReleased", []); return { kind: "permitReleased" };
+    case "Canonical.PermitExpired": fields(value, "Canonical.PermitExpired", []); return { kind: "permitExpired" };
+    case "Canonical.PermitKept": fields(value, "Canonical.PermitKept", []); return { kind: "permitKept" };
+    case "Canonical.PermitRoundClosed": return { kind: "permitRoundClosed", round: nat(fields(value, "Canonical.PermitRoundClosed", ["round"]).round, true) };
     case "Canonical.RoundStarted": return { kind: "roundStarted", id: nat(fields(value, "Canonical.RoundStarted", ["id"]).id, true) };
     case "Canonical.Prepare": { const x = fields(value, "Canonical.Prepare", ["operation", "reservation"]); return { kind: "prepare", operation: nat(x.operation, true), reservation: nat(x.reservation, true) }; }
     case "Canonical.PreparationRefused": fields(value, "Canonical.PreparationRefused", []); return { kind: "preparationRefused" };
@@ -228,12 +265,13 @@ export type CanonicalProjection = {
   readonly charges: readonly CapacityCharge[];
   readonly inventory: readonly { readonly purpose: CapacityPurpose; readonly limits: CanonicalProjection["limits"] }[];
   readonly rounds: readonly { readonly partition: number; readonly lifetime: number; readonly id: number; readonly waiting: boolean; readonly deciding: boolean; readonly write?: number; readonly uncertain: boolean }[];
+  readonly admissions: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly active: boolean; readonly closedAt: number; readonly permits: readonly { readonly token: number; readonly tool: number; readonly round: number; readonly deadline: number }[]; readonly used: readonly { readonly token: number; readonly tool: number }[] }[];
   readonly work: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly reservation: number; readonly kind: "preparing" | "reviewing" }[];
 };
 const known = new WeakSet<object>();
 export const projectCanonical = (state: unknown): CanonicalProjection => {
   if (!known.has(object(state))) throw new TypeError("foreign canonical state");
-  const s = fields(state, "Canonical.State", ["ledger", "rounds", "work", "next_round", "next_operation"]);
+  const s = fields(state, "Canonical.State", ["ledger", "rounds", "work", "next_round", "next_operation", "admissions"]);
   nat(s.next_round, true); nat(s.next_operation, true);
   const ledger = fields(s.ledger, "Ledger.Ledger", ["limits", "next_id", "charges"]);
   nat(ledger.next_id, true);
@@ -245,6 +283,24 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
     const write = tag(x.write) === "Some" ? nat(fields(x.write, "Some", ["value"]).value, true) : undefined;
     if (write === undefined) fields(x.write, "None", []);
     return { partition: nat(x.partition, true), lifetime: nat(x.lifetime, true), id: nat(x.id, true), waiting: bool(x.waiting), deciding: bool(x.deciding), ...(write === undefined ? {} : { write }), uncertain: bool(x.uncertain) };
+  });
+  const admissions = readList(s.admissions, (value) => {
+    const x = fields(value, "Admission.AdmissionState", ["partition", "lifetime", "round", "active", "closed_at", "next_token", "permits", "used"]);
+    const permits = readList(x.permits, (entry) => {
+      const permit = fields(entry, "Admission.Permit", ["token", "tool", "round", "started", "deadline"]);
+      const started = nat(permit.started); const deadline = nat(permit.deadline);
+      if (deadline < started) throw new TypeError("invalid permit deadline");
+      return { token: nat(permit.token, true), tool: nat(permit.tool, true), round: nat(permit.round, true), deadline };
+    });
+    const used = readList(x.used, (entry) => {
+      const item = fields(entry, "Admission.Used", ["token", "tool"]);
+      return { token: nat(item.token, true), tool: nat(item.tool, true) };
+    }, 65_536);
+    const next = nat(x.next_token, true);
+    if (permits.some((item) => item.token >= next) || used.some((item) => item.token >= next) ||
+        new Set([...permits, ...used].map((item) => item.token)).size !== permits.length + used.length ||
+        new Set([...permits, ...used].map((item) => item.tool)).size !== permits.length + used.length) throw new TypeError("invalid admission tokens");
+    return { partition: nat(x.partition, true), lifetime: nat(x.lifetime, true), round: nat(x.round), active: bool(x.active), closedAt: nat(x.closed_at), permits, used };
   });
   const work = readList(s.work, (value) => {
     const x = fields(value, "Canonical.Work", ["partition", "lifetime", "round", "operation", "charge", "kind"]);
@@ -259,6 +315,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
       new Set(work.map((x) => x.operation)).size !== work.length ||
       new Set(work.map((x) => x.reservation)).size !== work.length ||
       new Set(rounds.map((x) => x.partition)).size !== rounds.length ||
+      new Set(admissions.map((x) => x.partition)).size !== admissions.length ||
       rounds.some((x) => x.id >= (s.next_round as number) || (x.write !== undefined && x.write >= (s.next_operation as number))) ||
       work.some((x) => chargesById.get(x.reservation)?.partition !== x.partition ||
         x.operation >= (s.next_operation as number) ||
@@ -296,7 +353,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
   return { global,
     limits: { globalItems: nat(limits.global_items, true), globalBytes: nat(limits.global_bytes, true),
       partitionItems: nat(limits.partition_items, true), partitionBytes: nat(limits.partition_bytes, true) },
-    partitions, charges, inventory, rounds, work };
+    partitions, charges, inventory, rounds, admissions, work };
 };
 export const initialCanonical = (limits: { readonly globalItems: number; readonly globalBytes: number; readonly partitionItems: number; readonly partitionBytes: number }): unknown => {
   const values = Object.values(limits);
@@ -320,7 +377,12 @@ export const stepCanonical = (state: unknown, event: CanonicalEvent): { readonly
       const x = fields(raw, "Canonical.Rejected", ["state", "reason"]);
       known.add(object(x.state)); projectCanonical(x.state);
       const reason = tag(x.reason);
-      if (!/^Canonical\.(InvalidIdentity|RoundLimit|StaleRound|StaleOperation|InconsistentLedger)$/.test(reason)) throw new TypeError("unknown rejection");
+      if (reason === "Canonical.PermitDenied") {
+        const detail = tag(fields(x.reason, "Canonical.PermitDenied", ["reason"]).reason);
+        if (!/^Admission\.(WrongPartition|WrongLifetime|StaleInvocation|Expired|DuplicateTool|NoPermit|UsedPermit|WrongTool|OldRound|InvalidClock|RoundAlreadyClosed|LifetimeNotFresh)$/.test(detail)) throw new TypeError("unknown permit refusal");
+        return { state: x.state, commands: [], rejection: detail.slice("Admission.".length) };
+      }
+      if (!/^Canonical\.(InvalidIdentity|RoundLimit|StaleRound|StaleOperation|InconsistentLedger|ProspectiveDenied)$/.test(reason)) throw new TypeError("unknown rejection");
       return { state: x.state, commands: [], rejection: reason.slice("Canonical.".length) };
     }
     default: throw new TypeError("unknown canonical step");

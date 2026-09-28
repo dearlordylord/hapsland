@@ -84,4 +84,38 @@ for (const [index, event] of fixture.capacityTrace.events.entries()) {
 }
 assert.deepEqual(capacityCommands, fixture.capacityTrace.commands, "resident capacity transition contract");
 assert.deepEqual(projectCanonical(capacityState).global, fixture.capacityTrace.finalGlobal, "exact capacity release");
-console.log(`checked ${fixture.traces.length} independent source-free canonical traces`);
+const permitFixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-permits-v1.json"), "utf8"));
+for (const trace of permitFixture.traces) {
+  let current = initialCanonical(fixture.limits);
+  for (const item of trace.events) {
+    const { expect: expected, kind, ...input } = item;
+    const partition = input.partition;
+    const lifetime = input.lifetime ?? 1;
+    let event;
+    if (kind === "issue") event = { kind: "issuePermit", partition, lifetime,
+      tool: input.tool, started: input.started, now: input.now, deadline: input.deadline,
+      facts: { clockValid: true, withinHookWindow: true, startedAfterClosure: input.afterClosure ?? true,
+        duplicateEvent: false, permitCount: 0, permitLimit: 1024,
+        roundCount: 0, roundLimit: 64, newRound: true, eventCount: 0, eventLimit: 4096 } };
+    else if (kind === "consume") event = { kind: "consumePermit", partition, lifetime,
+      token: input.token, tool: input.tool, now: input.now };
+    else if (kind === "expire") event = { kind: "expirePermit", partition, lifetime,
+      token: input.token, deadlineReached: input.due };
+    else if (kind === "close") event = { kind: "closePermitRound", partition, lifetime,
+      round: input.round, at: input.at, prospective: input.prospective };
+    else throw new Error(`unknown permit fixture event ${kind}`);
+    const result = stepCanonical(current, event);
+    current = result.state;
+    const actual = result.rejection ? `rejected:${result.rejection}` : result.commands.map((command) => {
+      if (command.kind === "permitIssued") return `permitIssued:${command.token}:${command.round}`;
+      if (command.kind === "permitConsumed" || command.kind === "permitRoundClosed") return `${command.kind}:${command.round}`;
+      return command.kind;
+    }).join(",");
+    assert.equal(actual, expected, `${trace.name}: ${kind}`);
+  }
+  assert.deepEqual(projectCanonical(current).admissions.map((entry) => ({
+    partition: entry.partition, round: entry.round, active: entry.active,
+    permits: entry.permits.length, used: entry.used.length,
+  })), trace.rounds, trace.name);
+}
+console.log(`checked ${fixture.traces.length + permitFixture.traces.length} independent source-free canonical traces`);

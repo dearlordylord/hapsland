@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { monotonicNow, PRE_EDIT_ADMISSION_DEADLINE_MS } from "./hook-clock.ts";
 import { canonicalValue } from "../direct-event/model.ts";
 import { BendWorkTracker } from "./bend-work.ts";
+import { CapacityLedger } from "./capacity.ts";
 import { DELIVERY_LEASE_MS } from "./protocol.ts";
 import {
   bendRoundActive, bendRoundBeginStop, bendRoundBudget,
@@ -10,9 +11,6 @@ import {
   bendRoundReopen, bendRoundMaxContinuations, type BendRound,
   bendLeaseInitial, bendLeaseOffer, bendLeaseAuthorize, bendLeaseTerminal,
   bendLeaseSuppresses, type BendLease, type BendLeaseSurface,
-  bendAdmissionInitial, bendAdmissionStep, bendAdmissionCloseProspective,
-  bendAdmissionProspectiveGate, bendAdmissionExpire,
-  type BendAdmissionState,
   bendBackgroundInitial, bendBackgroundClaim, bendBackgroundRelease,
   bendBackgroundExpire, type BendBackgroundWaiter,
   bendDeliveryTransition, bendDeliveryExpired, bendDeliveryBackgroundReofferable,
@@ -57,13 +55,14 @@ const fingerprint = (finding: unknown): string =>
   createHash("sha256").update(canonicalValue(finding)).digest("hex");
 
 export class ComposedDelivery {
+  readonly canonical: CapacityLedger;
+  constructor(canonical = new CapacityLedger()) {
+    this.canonical = canonical;
+  }
   readonly #rounds = new Map<string, Round>();
   readonly #permits = new Map<string, { readonly partition: string; readonly generation: number;
     readonly expiresAt: number; readonly token: number; readonly tool: number }>();
-  readonly #admissions = new Map<string, BendAdmissionState>();
-  readonly #partitionIds = new Map<string, number>();
   readonly #toolIds = new Map<string, number>();
-  #nextPartitionId = 1;
   #nextToolId = 1;
   readonly #stops = new Map<string, { token: string; id: number; generation: number; outputToken?: string }>();
   #nextStopId = 1;
@@ -123,15 +122,6 @@ export class ComposedDelivery {
     return round;
   }
 
-  #partitionId(partition: string): number {
-    let id = this.#partitionIds.get(partition);
-    if (id === undefined) {
-      id = this.#nextPartitionId++;
-      this.#partitionIds.set(partition, id);
-    }
-    return id;
-  }
-
   #toolId(partition: string, event: string): number {
     const key = `${partition}\0${event}`;
     let id = this.#toolIds.get(key);
@@ -146,24 +136,9 @@ export class ComposedDelivery {
     return Math.floor(ms * 1000);
   }
 
-  #admissionFor(partition: string, round: Round | undefined): BendAdmissionState {
-    const retained = this.#admissions.get(partition);
-    if (retained !== undefined) return retained;
-    const initial = bendAdmissionInitial(this.#partitionId(partition), 1);
-    if (round === undefined) return initial;
-    return { ...initial, round: round.policy.generation, active: round.policy.active,
-      closed_at: round.policy.active ? initial.closed_at :
-        BigInt(this.#bendTime(Number(round.policy.closed_at) + 1)) };
-  }
-
-  #releaseAdmissionPermit(partition: string, admission: BendAdmissionState, token: number): void {
-    try {
-      const released = bendAdmissionStep(admission, this.#partitionId(partition), 1,
-        { $: "Release", token });
-      if (released.$ === "Accepted") this.#admissions.set(partition, released.state);
-    } catch {
-      // The caller has already denied the edit; the retained permit can only expire.
-    }
+  #releaseAdmissionPermit(partition: string, token: number): void {
+    this.canonical.transition({ kind: "releasePermit", partition: this.canonical.partitionId(partition),
+      lifetime: 1, token });
   }
 
   ensureFromHostTurn(partition: string, marker: string, now: number): boolean {
@@ -174,110 +149,128 @@ export class ComposedDelivery {
   registerEdit(partition: string, eventId: string, startedAt: number, now = monotonicNow()): boolean {
     this.expirePermits(now);
     let round = this.#rounds.get(partition);
-    const event = fingerprint(eventId);
+    const event = eventId;
     // A hook that began before closure cannot reopen by arriving late. The
     // 1ms margin rejects uncertain clock sampling at the boundary.
-    const gate = bendAdmissionProspectiveGate({ $: "ProspectiveFacts",
-      clock_valid: Number.isFinite(now) && Number.isFinite(startedAt) &&
+    const facts = {
+      clockValid: Number.isFinite(now) && Number.isFinite(startedAt) &&
         startedAt > 0 && startedAt <= now,
-      within_hook_window: now - startedAt < PRE_EDIT_ADMISSION_DEADLINE_MS,
-      started_after_closure: round === undefined || round.policy.active ||
+      withinHookWindow: now - startedAt < PRE_EDIT_ADMISSION_DEADLINE_MS,
+      startedAfterClosure: round === undefined || round.policy.active ||
         startedAt > Number(round.policy.closed_at) + 1,
-      duplicate_event: round?.events.has(event) ?? false,
-      permit_count: this.#permits.size, permit_limit: 1024,
-      round_count: this.#rounds.size, round_limit: MAX_COMPOSED_ROUNDS,
-      new_round: round === undefined,
-      event_count: round?.events.size ?? 0, event_limit: 4096,
-    });
-    if (gate.$ !== "PermitAllowed") return false;
+      duplicateEvent: round?.events.has(event) ?? false,
+      permitCount: this.#permits.size, permitLimit: 1024,
+      roundCount: this.#rounds.size, roundLimit: MAX_COMPOSED_ROUNDS,
+      newRound: round === undefined,
+      eventCount: round?.events.size ?? 0, eventLimit: 4096,
+    };
     const tool = this.#toolId(partition, event);
-    const admission = this.#admissionFor(partition, round);
     let issued;
     try {
-      issued = bendAdmissionStep(admission, this.#partitionId(partition), 1, {
-        $: "Issue", tool, started: this.#bendTime(startedAt),
-        deadline: this.#bendTime(startedAt + EDIT_PERMIT_EXPIRY_MS), now: this.#bendTime(now),
+      issued = this.canonical.transition({ kind: "issuePermit",
+        partition: this.canonical.partitionId(partition), lifetime: 1, tool,
+        started: this.#bendTime(startedAt), deadline: this.#bendTime(startedAt + EDIT_PERMIT_EXPIRY_MS),
+        now: this.#bendTime(now), facts,
       });
     } catch {
       return false;
     }
-    if (issued.$ !== "Accepted" || issued.token.$ !== "Some" || issued.round.$ !== "Some") return false;
+    const command = issued.commands[0];
+    if (issued.rejection !== undefined || command?.kind !== "permitIssued") return false;
     const expectedGeneration = round === undefined ? 1 :
       Number(round.policy.generation) + (round.policy.active ? 0 : 1);
-    if (Number(issued.round.value) !== expectedGeneration) return false;
+    if (command.round !== expectedGeneration) {
+      this.#releaseAdmissionPermit(partition, command.token);
+      return false;
+    }
     if (round === undefined) {
       round = this.#startRound(partition, event, now);
       if (round === undefined) return false;
     }
-    this.#admissions.set(partition, issued.state);
     this.#rounds.set(partition, { ...round, events: new Set([...round.events, event]) });
     this.#permits.set(`${partition}\0${event}`, { partition,
-      generation: Number(issued.round.value), expiresAt: startedAt + EDIT_PERMIT_EXPIRY_MS,
-      token: Number(issued.token.value), tool });
+      generation: command.round, expiresAt: startedAt + EDIT_PERMIT_EXPIRY_MS,
+      token: command.token, tool });
     return true;
   }
 
   admitEdit(partition: string, eventId: string, now: number, requirePermit = false): number | undefined {
     let previous = this.#rounds.get(partition);
-    const event = fingerprint(eventId);
+    const event = eventId;
     const key = `${partition}\0${event}`;
     if (requirePermit) {
       this.expirePermits(now);
       const permit = this.#permits.get(key);
       this.#permits.delete(key);
       if (previous === undefined || permit === undefined) return undefined;
-      const admission = this.#admissions.get(partition);
-      if (admission === undefined) return undefined;
       if (permit.generation !== Number(previous.policy.generation) + (previous.policy.active ? 0 : 1)) {
-        this.#releaseAdmissionPermit(partition, admission, permit.token);
+        this.#releaseAdmissionPermit(partition, permit.token);
         return undefined;
       }
       let consumed;
       try {
-        consumed = bendAdmissionStep(admission, this.#partitionId(partition), 1,
-          { $: "Consume", token: permit.token, tool: permit.tool, now: this.#bendTime(now) });
+        consumed = this.canonical.transition({ kind: "consumePermit",
+          partition: this.canonical.partitionId(partition), lifetime: 1,
+          token: permit.token, tool: permit.tool, now: this.#bendTime(now) });
       } catch {
-        this.#releaseAdmissionPermit(partition, admission, permit.token);
+        this.#releaseAdmissionPermit(partition, permit.token);
         return undefined;
       }
-      if (consumed.$ !== "Accepted" || consumed.round.$ !== "Some" ||
-          Number(consumed.round.value) !== permit.generation) {
-        this.#releaseAdmissionPermit(partition, admission, permit.token);
+      if (consumed.rejection !== undefined || consumed.commands[0]?.kind !== "permitConsumed" ||
+          consumed.commands[0].round !== permit.generation) {
+        this.#releaseAdmissionPermit(partition, permit.token);
         return undefined;
       }
       if (!previous.policy.active) {
         const reopened = bendRoundReopen(previous.policy, permit.generation);
         if (reopened.$ !== "Granted") {
-          this.#releaseAdmissionPermit(partition, admission, permit.token);
+          this.#releaseAdmissionPermit(partition, permit.token);
           return undefined;
         }
         this.#rounds.set(partition, { marker: event, policy: reopened.state,
           lastSeenAt: now, events: previous.events });
       }
-      this.#admissions.set(partition, consumed.state);
       return this.generation(partition);
     }
     // Internal deterministic fixtures and the non-installed API may start a
     // first round; reopening always requires the runtime's prospective permit.
+    if ((previous !== undefined && (!previous.policy.active || previous.events.has(event) || previous.events.size >= 4096)) ||
+        (previous === undefined && this.#rounds.size >= MAX_COMPOSED_ROUNDS)) return undefined;
+    const partitionId = this.canonical.partitionId(partition);
+    const tool = this.#toolId(partition, event);
+    const syntheticNow = this.#bendTime(Math.max(1, now));
+    const issued = this.canonical.transition({ kind: "issuePermit", partition: partitionId,
+      lifetime: 1, tool, started: syntheticNow, deadline: syntheticNow + this.#bendTime(EDIT_PERMIT_EXPIRY_MS),
+      now: syntheticNow, facts: { clockValid: true, withinHookWindow: true,
+        startedAfterClosure: true, duplicateEvent: false,
+        permitCount: this.#permits.size, permitLimit: 1024,
+        roundCount: this.#rounds.size, roundLimit: MAX_COMPOSED_ROUNDS,
+        newRound: previous === undefined, eventCount: previous?.events.size ?? 0, eventLimit: 4096 } });
+    const permit = issued.commands[0];
+    if (permit?.kind !== "permitIssued") return undefined;
+    const consumed = this.canonical.transition({ kind: "consumePermit", partition: partitionId,
+      lifetime: 1, token: permit.token, tool, now: syntheticNow });
+    if (consumed.commands[0]?.kind !== "permitConsumed") {
+      this.#releaseAdmissionPermit(partition, permit.token);
+      return undefined;
+    }
     if (previous === undefined) {
       previous = this.#startRound(partition, event, now);
       if (previous === undefined) return undefined;
     }
-    if (!previous.policy.active || previous.events.has(event) || previous.events.size >= 4096) return undefined;
+    if (consumed.commands[0].round !== Number(previous.policy.generation)) return undefined;
     this.#rounds.set(partition, { ...previous, events: new Set([...previous.events, event]) });
     return Number(previous.policy.generation);
   }
 
   expirePermits(now = monotonicNow()): void {
     for (const [key, permit] of this.#permits) {
-      const admission = this.#admissions.get(permit.partition);
-      const result = bendAdmissionExpire(admission ??
-        bendAdmissionInitial(this.#partitionId(permit.partition), 1),
-      permit.token, permit.expiresAt <= now);
-      if (result.$ === "KeepPermit") continue;
-      if (result.$ !== "RemovePermit") throw new Error("invalid Bend permit expiry");
+      const result = this.canonical.transition({ kind: "expirePermit",
+        partition: this.canonical.partitionId(permit.partition), lifetime: 1,
+        token: permit.token, deadlineReached: permit.expiresAt <= now });
+      if (result.commands[0]?.kind === "permitKept") continue;
+      if (result.rejection !== undefined || result.commands[0]?.kind !== "permitExpired") throw new Error("invalid Bend permit expiry");
       this.#permits.delete(key);
-      if (admission !== undefined) this.#admissions.set(permit.partition, result.state);
     }
   }
 
@@ -434,15 +427,15 @@ export class ComposedDelivery {
     if (!close) return undefined;
     if (Number(round.policy.generation) !== stop.generation) return undefined;
     // Bend publishes the fence synchronously before resource cleanup.
-    const admission = this.#admissions.get(partition);
-    if (admission !== undefined) {
-      const at = Math.max(this.#bendTime(closedAt + 1), Number(admission.closed_at));
-      const closed = admission.active
-        ? bendAdmissionStep(admission, this.#partitionId(partition), 1,
-          { $: "CloseRound", at })
-        : bendAdmissionCloseProspective(admission, at);
-      if (closed.$ === "Accepted") this.#admissions.set(partition, closed.state);
-    }
+    const admission = this.canonical.canonicalProjection().admissions.find(
+      (item) => item.partition === this.canonical.partitionId(partition));
+    if (admission === undefined) throw new Error("canonical admission missing at round closure");
+    const at = Math.max(this.#bendTime(closedAt + 1), admission.closedAt);
+    const closed = this.canonical.transition({ kind: "closePermitRound",
+      partition: admission.partition, lifetime: admission.lifetime,
+      round: stop.generation, at, prospective: !admission.active });
+    if (closed.rejection !== undefined || closed.commands[0]?.kind !== "permitRoundClosed" ||
+        closed.commands[0].round !== stop.generation) throw new Error("canonical permit closure disagrees with round");
     for (const [key, permit] of this.#permits) if (permit.partition === partition) this.#permits.delete(key);
     this.#backgroundWaiters.delete(partition);
     for (const [token, permit] of this.#finishPermits) if (permit.partition === partition) this.#finishPermits.delete(token);

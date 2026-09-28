@@ -25,6 +25,11 @@ const record = (value: unknown): Readonly<Record<string, unknown>> | undefined =
 const nonEmpty = (value: unknown): value is string =>
   typeof value === "string" && value.length > 0;
 
+// A child marker without a usable child ID cannot safely become parent advice.
+const ambiguousAgentIdentity = (event: Readonly<Record<string, unknown>>): boolean =>
+  !nonEmpty(event.agent_id) &&
+  (nonEmpty(event.agent_type) || nonEmpty(event.agent_transcript_path));
+
 export const isCodexNativeApplyPatch = (value: unknown): boolean => {
   const event = record(value);
   return event?.hook_event_name === "PostToolUse" && event.tool_name === "apply_patch";
@@ -157,7 +162,7 @@ export const adaptCodexDirectEvent = Effect.fn("DirectEvent.adaptCodexDirectEven
     !nonEmpty(event.turn_id) ||
     !nonEmpty(event.tool_use_id) ||
     !nonEmpty(event.cwd) ||
-    (event.agent_id !== undefined && !nonEmpty(event.agent_id))
+    ((event.agent_id !== undefined && !nonEmpty(event.agent_id)) || ambiguousAgentIdentity(event))
   ) return undefined;
   const input = record(event.tool_input);
   if (input === undefined || !nonEmpty(input.command)) return undefined;
@@ -216,7 +221,7 @@ export const adaptCodexReply = Effect.fn("DirectEvent.adaptCodexReply")(function
     event === undefined || event.hook_event_name !== "PostToolUse" ||
     !nonEmpty(event.session_id) || !nonEmpty(event.turn_id) ||
     !nonEmpty(event.tool_use_id) || !nonEmpty(event.cwd) ||
-    (event.agent_id !== undefined && !nonEmpty(event.agent_id))
+    ((event.agent_id !== undefined && !nonEmpty(event.agent_id)) || ambiguousAgentIdentity(event))
   ) return undefined;
   const rootOption = yield* canonicalGitRoot(event.cwd);
   if (rootOption._tag === "None") return undefined;
@@ -243,7 +248,7 @@ export const adaptComposedHookIdentity = Effect.fn("DirectEvent.adaptComposedHoo
   const event = record(value);
   if (event?.hook_event_name !== eventName || !nonEmpty(event.session_id) ||
       !nonEmpty(event.cwd) ||
-      (event.agent_id !== undefined && !nonEmpty(event.agent_id))) return undefined;
+      ((event.agent_id !== undefined && !nonEmpty(event.agent_id)) || ambiguousAgentIdentity(event))) return undefined;
   if (eventName === "SubagentStop" && !nonEmpty(event.agent_id)) return undefined;
   if (eventName === "PostToolUse" || eventName === "PreToolUse") {
     if (!nonEmpty(event.tool_use_id)) return undefined;
@@ -286,7 +291,7 @@ export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEv
     (event.tool_name !== "Edit" && event.tool_name !== "Write") ||
     !nonEmpty(event.session_id) || !nonEmpty(event.tool_use_id) || !nonEmpty(event.cwd) ||
     event.turn_id !== undefined ||
-    (event.agent_id !== undefined && !nonEmpty(event.agent_id))) return undefined;
+    ((event.agent_id !== undefined && !nonEmpty(event.agent_id)) || ambiguousAgentIdentity(event))) return undefined;
   const input = record(event.tool_input);
   const response = record(event.tool_response);
   if (input === undefined || response === undefined ||

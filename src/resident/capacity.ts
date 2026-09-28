@@ -1,4 +1,4 @@
-import { CANONICAL_MAX_BYTES, CANONICAL_MAX_UNITS, initialCanonical, projectCanonical, stepCanonical, type CapacityPurpose } from "../canonical/adapter.ts";
+import { CANONICAL_MAX_BYTES, CANONICAL_MAX_UNITS, initialCanonical, projectCanonical, stepCanonical, type CanonicalEvent, type CapacityPurpose } from "../canonical/adapter.ts";
 export type { CapacityPurpose } from "../canonical/adapter.ts";
 
 export const GLOBAL_ITEM_LIMIT = 64;
@@ -25,6 +25,9 @@ export type CapacitySnapshot = {
   readonly bytes: number;
   readonly partitions: Readonly<Record<string, { readonly items: number; readonly bytes: number }>>;
 };
+
+type PermitTransition = Extract<CanonicalEvent, { readonly kind:
+  "issuePermit" | "consumePermit" | "releasePermit" | "expirePermit" | "closePermitRound" }>;
 
 const defaultLimits: CapacityLimits = {
   globalItems: GLOBAL_ITEM_LIMIT,
@@ -62,13 +65,29 @@ export class CapacityLedger {
     this.#state = initialCanonical(limits);
   }
 
+  /** Shared canonical state for resident admission and capacity transitions. */
+  partitionId(partition: string): number {
+    let id = this.#partitionIds.get(partition);
+    if (id === undefined) {
+      id = this.#nextPartitionId++;
+      this.#partitionIds.set(partition, id);
+    }
+    return id;
+  }
+
+  transition(event: PermitTransition): ReturnType<typeof stepCanonical> {
+    const result = stepCanonical(this.#state, event);
+    if (result.rejection === undefined) this.#state = result.state;
+    return result;
+  }
+
+  canonicalProjection(): ReturnType<typeof projectCanonical> {
+    return projectCanonical(this.#state);
+  }
+
   reserve(partition: string, bytes: number, purpose: CapacityPurpose): CapacityReservation | undefined {
     if (!Number.isSafeInteger(bytes) || bytes <= 0 || bytes > CANONICAL_MAX_BYTES) return undefined;
-    let partitionId = this.#partitionIds.get(partition);
-    if (partitionId === undefined) {
-      partitionId = this.#nextPartitionId++;
-      this.#partitionIds.set(partition, partitionId);
-    }
+    const partitionId = this.partitionId(partition);
     const result = stepCanonical(this.#state, { kind: "reserveCapacity", partition: partitionId, bytes, purpose });
     const command = result.commands[0];
     if (result.rejection !== undefined || result.commands.length !== 1 || command === undefined) throw new Error("invalid Bend capacity reservation result");

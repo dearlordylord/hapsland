@@ -2,6 +2,29 @@ import { describe, expect, it } from "vitest";
 import { CapacityLedger, encodedBytesWithin } from "./capacity.ts";
 
 describe("resident logical capacity ledger", () => {
+  it("keeps permit and capacity transitions in one canonical resident state", () => {
+    const ledger = new CapacityLedger();
+    const partition = ledger.partitionId("agent");
+    const issued = ledger.transition({ kind: "issuePermit", partition, lifetime: 1,
+      tool: 7, started: 100, deadline: 300, now: 110,
+      facts: { clockValid: true, withinHookWindow: true, startedAfterClosure: true,
+        duplicateEvent: false, permitCount: 0, permitLimit: 1024,
+        roundCount: 0, roundLimit: 64, newRound: true, eventCount: 0, eventLimit: 4096 } });
+    expect(issued.commands[0]).toEqual({ kind: "permitIssued", token: 1, round: 1 });
+    const charge = ledger.reserve("agent", 10, "observationDispatch");
+    expect(charge).toBeDefined();
+    expect(ledger.canonicalProjection()).toMatchObject({
+      global: { items: 1, bytes: 10 },
+      admissions: [{ partition, permits: [{ token: 1, tool: 7, round: 1 }] }],
+    });
+    expect(ledger.transition({ kind: "consumePermit", partition, lifetime: 1,
+      token: 1, tool: 7, now: 120 }).commands[0]).toEqual({ kind: "permitConsumed", round: 1 });
+    if (charge !== undefined) expect(ledger.release(charge)).toBe(true);
+    expect(ledger.canonicalProjection()).toMatchObject({
+      global: { items: 0, bytes: 0 }, admissions: [{ partition, active: true, used: [{ token: 1, tool: 7 }] }],
+    });
+  });
+
   it("enforces the profile's exact 64/8MiB and 16/2MiB boundaries", () => {
     const counts = new CapacityLedger();
     for (let index = 0; index < 16; index += 1) expect(counts.reserve("one", 1, "reviewUnit")).toBeDefined();
