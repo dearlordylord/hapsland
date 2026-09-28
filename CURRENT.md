@@ -7,8 +7,10 @@ one authoritative Bend transition for Hapsland decisions, shared by production
 and the final visualization. The [#117 authority audit](docs/bend-logic-authority-map.md)
 and [#118 requirements crosswalk](docs/bend-requirements-crosswalk.md) are written.
 #141's [Bend import graph and separate dashboard diagram](docs/import-graph-bend-state-machine.md)
-were checked by the owner. The owner requested a segmented tree-budget bar as
-the final dashboard enhancement, then paused the migration until a new session.
+were checked by the owner. The dashboard now shows a segmented tree-budget bar
+and a denied A → X permission edge in the branching tree. Bend skips X without
+reading it, continues pending branches, and ends that trace with `TreeLimit`
+after E and G do not fit. The owner paused the migration until a new session.
 **Do not start #119 in this session.** No #119–#137 implementation has landed
 in this task worktree. On explicit resumption, the next step is #119's canonical
 events, state, commands, and checked adapter. Configurable graph limits and
