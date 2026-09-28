@@ -30,6 +30,7 @@ import { claimDemoBudget, readDemoBudgetUsage, writeDemoBudget } from "../onboar
 import { attemptCodexHostOutput } from "./writer.ts";
 import { addEvent, makeGitFixture, put, advicee, updateEvent } from "./test-fixtures.ts";
 import { adaptCodexAdd } from "./adapter.ts";
+import { DIRECT_EVENT_INPUT_CONTRACT } from "./model.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -616,6 +617,34 @@ describe("direct-event vertical slice", () => {
     }),
   );
 
+  it.effect("does not opt schema-v1 rules into a different review input contract", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture);
+      yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number"));
+      let calls = 0;
+      const result = yield* enabledReview(root, addEvent(root), {
+        answers: findingAnswers(),
+        onRequest: Effect.sync(() => { calls += 1; }),
+      }, (base) => ({ ...base, inputContract: "direct-event/function/v1" }));
+      expect(result.status).toBe("no-advice");
+      expect(calls).toBe(0);
+    }),
+  );
+
+  it.effect("preserves all standalone direct findings after canonical rule decisions", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture);
+      yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number"));
+      const result = yield* enabledReview(root, addEvent(root), {
+        answers: Object.fromEntries(configuredRules.map((rule) => [
+          rule.id, { _tag: "Probability" as const, probability: 0.9 },
+        ])),
+      });
+      expect(result.status).toBe("ready");
+      if (result.status === "ready") expect(result.findings).toHaveLength(configuredRules.length);
+    }),
+  );
+
   it.effect("keeps file selection distinct from analyzer applicability", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture);
@@ -938,7 +967,7 @@ describe("direct-event vertical slice", () => {
         expect(result).toEqual({ status: "unavailable", reason: "stale", output: undefined });
       }
 
-      let contract = "direct-event/same-file-single-named-type/v1";
+      let contract: string = DIRECT_EVENT_INPUT_CONTRACT;
       const changedContract = yield* enabledReview(root, addEvent(root), undefined, (base) => ({
         ...base,
         inputContract: () => contract,

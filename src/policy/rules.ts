@@ -1,7 +1,8 @@
 import type { Probability, RuleId, SnapshotRef } from "../domain/contracts.ts";
 import { BUNDLED_NOUL_PACK } from "../rules/bundled.ts";
-import { compileRules, selectApplicableRules, type CompiledRule } from "../rules/compiler.ts";
+import { compileRules, selectApplicableRules, type CompiledRule, type RuleTargetContext } from "../rules/compiler.ts";
 import type { LoadedRulePack } from "../rules/loader.ts";
+import { compareRuleRank, findingFromProbability, withinAdviceBudget } from "../rules/decision.ts";
 
 /** Runtime rule shape shared by the backend, assessment and advice policy. */
 export type Rule = CompiledRule;
@@ -26,10 +27,11 @@ export const applicableRules = (
   source: string,
   pathOrRules?: string | ReadonlyArray<Rule>,
   maybeRules?: ReadonlyArray<Rule>,
+  target?: RuleTargetContext,
 ): ReadonlyArray<Rule> => {
   const path = typeof pathOrRules === "string" ? pathOrRules : undefined;
   const rules = Array.isArray(pathOrRules) ? pathOrRules : maybeRules ?? configuredRules;
-  return selectApplicableRules(rules, source, path);
+  return selectApplicableRules(rules, source, path, target);
 };
 
 export const deriveAdvice = (
@@ -41,15 +43,15 @@ export const deriveAdvice = (
   rules
     .flatMap((rule) => {
       const probability = assessment[rule.id];
-      return probability !== undefined && probability > rule.threshold
+      return probability !== undefined && findingFromProbability(probability, rule.threshold)
         ? [{ rule, probability }]
         : [];
     })
-    .sort(
-      (left, right) =>
-        right.probability - left.probability || left.rule.rank - right.rule.rank,
-    )
-    .slice(0, Math.max(0, limit))
+    .sort((left, right) => compareRuleRank(
+      { probability: left.probability, rank: left.rule.rank },
+      { probability: right.probability, rank: right.rule.rank },
+    ))
+    .filter((_, position) => withinAdviceBudget(position, Math.max(0, limit)))
     .map(({ rule, probability }) => ({
       ruleId: rule.id as RuleId,
       probability,

@@ -5,6 +5,7 @@ import * as Schema from "effect/Schema";
 import { Decision, DecisionModel } from "effect/unstable/ai";
 import type { CompiledRule } from "../rules/compiler.ts";
 import { applicableRules, configuredRules } from "../policy/rules.ts";
+import { compareRuleRank, findingFromProbability } from "../rules/decision.ts";
 import type { Consent } from "../runtime/consent.ts";
 import { admitReview } from "../configuration/decision.ts";
 import type { ReviewSettings } from "../runtime/review-config.ts";
@@ -293,7 +294,11 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
     }
     for (const unit of units) {
       const declaration = unit.root.artifact;
-      const rules = applicableRules(declaration.source, eligible.relativePath, currentRules(context));
+      const rules = applicableRules(declaration.source, eligible.relativePath, currentRules(context), {
+        artifactKind: "typeShape",
+        inputContract: currentInputContract(context),
+        complete: true,
+      });
       if (rules.length === 0) continue;
       const input = freezeInput({
         contract: currentInputContract(context),
@@ -380,7 +385,7 @@ export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(functi
     expected.length !== actual.length ||
     expected.some((key, index) => key !== actual[index])
   ) return { status: "backend" } as const;
-  const findings: Array<Finding> = [];
+  const ranked: Array<{ readonly finding: Finding; readonly rank: number }> = [];
   for (const rule of prepared.input.rules) {
     const answer = answers[rule.id];
     if (
@@ -389,17 +394,21 @@ export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(functi
       answer.probability < 0 ||
       answer.probability > 1
     ) return { status: "backend" } as const;
-    if (answer.probability > rule.threshold) {
-      findings.push({
+    if (findingFromProbability(answer.probability, rule.threshold)) {
+      ranked.push({ rank: rule.rank, finding: {
         path: prepared.input.path,
         declaration: prepared.input.declaration.name,
         ruleId: rule.id,
         probability: answer.probability,
         message: rule.message,
         semanticIdentity: prepared.identity,
-      });
+      } });
     }
   }
+  const findings = ranked.sort((left, right) => compareRuleRank(
+    { probability: left.finding.probability, rank: left.rank },
+    { probability: right.finding.probability, rank: right.rank },
+  )).map(({ finding }) => finding);
   return { status: "evaluated", findings } satisfies Evaluation;
 });
 

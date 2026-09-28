@@ -13,6 +13,7 @@ type Purpose is Data:
   OperationalNotice{}
   AdviceRecheck{}
 
+# Logical review-data reservation, not measured process memory or Jev capacity.
 type Charge is Data:
   Charge{id: Nat, partition: Nat, bytes: Nat, purpose: Purpose}
 

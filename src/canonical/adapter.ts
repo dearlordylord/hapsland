@@ -1,6 +1,7 @@
 import { bendCanonicalInitial, bendCanonicalInventory, bendCanonicalPartitionUsage, bendCanonicalStep, bendCanonicalTotal } from "./canonical.generated.js";
 
 const MAX_NAT = 2 ** 48 - 1;
+// Keep reserved + requested bytes within Bend's 48-bit immediate Nat range.
 export const CANONICAL_MAX_BYTES = 2 ** 47 - 1;
 const MAX_BYTES = CANONICAL_MAX_BYTES;
 export const CANONICAL_MAX_UNITS = 1024;
@@ -29,6 +30,10 @@ const bool = (value: unknown): boolean => {
   if (typeof value !== "boolean") throw new TypeError("invalid canonical Bool");
   return value;
 };
+const ruleOrderTag = (value: unknown): string => {
+  if (value !== "before" && value !== "equal" && value !== "after") throw new TypeError("invalid rule order fact");
+  return `RulePolicy.${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
+};
 const fields = (value: unknown, expectedTag: string, names: readonly string[]): RecordValue => {
   const item = object(value);
   if (tag(item) !== expectedTag || Object.keys(item).sort().join() !== ["$", ...names].sort().join()) {
@@ -40,6 +45,33 @@ const inputFields = (value: unknown, names: readonly string[]): void => {
   if (Object.keys(object(value)).sort().join() !== names.slice().sort().join()) {
     throw new TypeError("invalid canonical event fields");
   }
+};
+declare const probabilityWordsBrand: unique symbol;
+export type ProbabilityWords = Readonly<{
+  high: number; low: number; [probabilityWordsBrand]: true;
+}>;
+export const probabilityWords = (value: number): ProbabilityWords => {
+  if (!Number.isFinite(value) || value < 0 || value > 1) {
+    throw new RangeError("probability must be finite in [0, 1]");
+  }
+  const bytes = new DataView(new ArrayBuffer(8));
+  bytes.setFloat64(0, Object.is(value, -0) ? 0 : value, false);
+  return { high: bytes.getUint32(0, false), low: bytes.getUint32(4, false) } as ProbabilityWords;
+};
+const encodedProbabilityWords = (value: unknown): unknown => {
+  inputFields(value, ["high", "low"]);
+  const word = object(value);
+  const high = nat(word.high);
+  const low = nat(word.low);
+  if (high > 0xffffffff || low > 0xffffffff) throw new TypeError("invalid probability word");
+  const bytes = new DataView(new ArrayBuffer(8));
+  bytes.setUint32(0, high, false);
+  bytes.setUint32(4, low, false);
+  const probability = bytes.getFloat64(0, false);
+  if (!Number.isFinite(probability) || probability < 0 || probability > 1 || Object.is(probability, -0)) {
+    throw new TypeError("invalid probability words");
+  }
+  return { $: "RulePolicy.Words", high, low };
 };
 const list = (values: readonly number[]): unknown => {
   if (!Array.isArray(values) || values.length > MAX_UNITS) throw new TypeError("too many units");
@@ -140,6 +172,12 @@ export type CanonicalEvent =
   | { readonly kind: "fileProtectionCheck"; readonly sensitiveName: boolean; readonly generatedOrVendor: boolean; readonly allowedExtension: boolean }
   | { readonly kind: "candidateFileCheck"; readonly gitAdmin: boolean; readonly physicalSafe: boolean; readonly gitAllowed: boolean }
   | { readonly kind: "reviewAdmissionCheck"; readonly rootValid: boolean; readonly configurationValid: boolean; readonly credentialReady: boolean; readonly selected: boolean }
+  | { readonly kind: "ruleEnableCheck"; readonly packEnabled: boolean; readonly ruleEnabled: boolean }
+  | { readonly kind: "ruleApplicabilityCheck"; readonly consent: boolean; readonly complete: boolean; readonly target: "directTypeShape" | "legacyFileTypeShape" | "otherTypeShape" | "functionTarget"; readonly globalIncluded: boolean; readonly globalExcluded: boolean; readonly packEnabled: boolean; readonly ruleEnabled: boolean; readonly ruleIncluded: boolean; readonly ruleExcluded: boolean; readonly semanticApplicable: boolean }
+  | { readonly kind: "ruleFindingCheck"; readonly probability: ProbabilityWords; readonly threshold: ProbabilityWords }
+  | { readonly kind: "ruleRankOrderCheck"; readonly left: ProbabilityWords; readonly right: ProbabilityWords; readonly leftRank: number; readonly rightRank: number }
+  | { readonly kind: "adviceOrderCheck"; readonly left: ProbabilityWords; readonly right: ProbabilityWords; readonly pathOrder: "before" | "equal" | "after"; readonly idOrder: "before" | "equal" | "after" }
+  | { readonly kind: "ruleBudgetCheck"; readonly position: number; readonly limit: number }
   | { readonly kind: "reuseRoute"; readonly id: number; readonly liveAdvice: boolean }
   | { readonly kind: "reuseClaim" | "reuseAttach" | "reuseRelease" | "reuseTouch"; readonly id: number }
   | { readonly kind: "cachePrepare"; readonly id: number; readonly bytes: number; readonly entryLimit: number; readonly byteLimit: number }
@@ -222,6 +260,8 @@ export type CanonicalCommand =
   | { readonly kind: "fileProtection"; readonly protection: "allowedPath" | "repositoryBoundary" | "sensitivePath" | "generatedOrVendor" | "fileExtension" }
   | { readonly kind: "candidateFile"; readonly candidate: "candidateAllowed" | "refuseGitAdmin" | "refuseFileKind" | "refuseGitIgnore" }
   | { readonly kind: "reviewAdmission"; readonly admission: "admitReview" | "refuseRoot" | "refuseConfiguration" | "refuseCredential" | "refuseSelection" }
+  | { readonly kind: "ruleGate"; readonly gate: "admit" | "omit" }
+  | { readonly kind: "ruleOrder"; readonly order: "before" | "equal" | "after" }
   | { readonly kind: "noticeRejectedFull" | "noticeCreateKey" | "noticeKeepLeased" | "noticeRefused" | "noticeCommitted" | "noticeDropped" | "noticeLeased" | "noticePendingCleared" }
   | { readonly kind: "writeAuthorized"; readonly operation: number }
   | { readonly kind: "writeRecorded"; readonly outcome: "acknowledged" | "failed" | "unknown" }
@@ -403,6 +443,16 @@ const encode = (event: CanonicalEvent): unknown => {
     case "fileProtectionCheck": inputFields(event, ["kind", "sensitiveName", "generatedOrVendor", "allowedExtension"]); return { $: "Canonical.FileProtectionCheck", sensitive_name: bool(event.sensitiveName), generated_or_vendor: bool(event.generatedOrVendor), allowed_extension: bool(event.allowedExtension) };
     case "candidateFileCheck": inputFields(event, ["kind", "gitAdmin", "physicalSafe", "gitAllowed"]); return { $: "Canonical.CandidateFileCheck", git_admin: bool(event.gitAdmin), physical_safe: bool(event.physicalSafe), git_allowed: bool(event.gitAllowed) };
     case "reviewAdmissionCheck": inputFields(event, ["kind", "rootValid", "configurationValid", "credentialReady", "selected"]); return { $: "Canonical.ReviewAdmissionCheck", root_valid: bool(event.rootValid), configuration_valid: bool(event.configurationValid), credential_ready: bool(event.credentialReady), selected: bool(event.selected) };
+    case "ruleEnableCheck": inputFields(event, ["kind", "packEnabled", "ruleEnabled"]); return { $: "Canonical.RuleEnableCheck", pack_enabled: bool(event.packEnabled), rule_enabled: bool(event.ruleEnabled) };
+    case "ruleApplicabilityCheck": {
+      inputFields(event, ["kind", "consent", "complete", "target", "globalIncluded", "globalExcluded", "packEnabled", "ruleEnabled", "ruleIncluded", "ruleExcluded", "semanticApplicable"]);
+      if (!["directTypeShape", "legacyFileTypeShape", "otherTypeShape", "functionTarget"].includes(event.target)) throw new TypeError("invalid rule target fact");
+      return { $: "Canonical.RuleApplicabilityCheck", consent: bool(event.consent), complete: bool(event.complete), target: { $: `RulePolicy.${event.target.slice(0, 1).toUpperCase()}${event.target.slice(1)}` }, global_included: bool(event.globalIncluded), global_excluded: bool(event.globalExcluded), pack_enabled: bool(event.packEnabled), rule_enabled: bool(event.ruleEnabled), rule_included: bool(event.ruleIncluded), rule_excluded: bool(event.ruleExcluded), semantic_applicable: bool(event.semanticApplicable) };
+    }
+    case "ruleFindingCheck": inputFields(event, ["kind", "probability", "threshold"]); return { $: "Canonical.RuleFindingCheck", probability: encodedProbabilityWords(event.probability), threshold: encodedProbabilityWords(event.threshold) };
+    case "ruleRankOrderCheck": inputFields(event, ["kind", "left", "right", "leftRank", "rightRank"]); return { $: "Canonical.RuleRankOrderCheck", left: encodedProbabilityWords(event.left), right: encodedProbabilityWords(event.right), left_rank: nat(event.leftRank), right_rank: nat(event.rightRank) };
+    case "adviceOrderCheck": inputFields(event, ["kind", "left", "right", "pathOrder", "idOrder"]); return { $: "Canonical.AdviceOrderCheck", left: encodedProbabilityWords(event.left), right: encodedProbabilityWords(event.right), path_order: { $: ruleOrderTag(event.pathOrder) }, id_order: { $: ruleOrderTag(event.idOrder) } };
+    case "ruleBudgetCheck": inputFields(event, ["kind", "position", "limit"]); return { $: "Canonical.RuleBudgetCheck", position: nat(event.position), limit: nat(event.limit) };
     case "reuseRoute": inputFields(event, ["kind", "id", "liveAdvice"]); return { $: "Canonical.ReuseRoute", id: nat(event.id, true), live_advice: bool(event.liveAdvice) };
     case "reuseClaim": case "reuseAttach": case "reuseRelease": case "reuseTouch": inputFields(event, ["kind", "id"]); return { $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`, id: nat(event.id, true) };
     case "cachePrepare": inputFields(event, ["kind", "id", "bytes", "entryLimit", "byteLimit"]); return { $: "Canonical.CachePrepare", id: nat(event.id, true), bytes: nat(event.bytes), entry_limit: nat(event.entryLimit, true), byte_limit: nat(event.byteLimit, true) };
@@ -684,6 +734,20 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
       if (!names.some((item) => name === `Configuration.${item}`)) throw new TypeError("invalid review admission");
       fields(admission, name, []);
       return { kind: "reviewAdmission", admission: name.slice("Configuration.".length).replace(/^./, (first) => first.toLowerCase()) as "admitReview" | "refuseRoot" | "refuseConfiguration" | "refuseCredential" | "refuseSelection" };
+    }
+    case "Canonical.RuleGate": {
+      const gate = fields(value, "Canonical.RuleGate", ["gate"]).gate;
+      const name = tag(gate);
+      if (name !== "RulePolicy.Admit" && name !== "RulePolicy.Omit") throw new TypeError("invalid rule gate");
+      fields(gate, name, []);
+      return { kind: "ruleGate", gate: name === "RulePolicy.Admit" ? "admit" : "omit" };
+    }
+    case "Canonical.RuleOrder": {
+      const order = fields(value, "Canonical.RuleOrder", ["order"]).order;
+      const name = tag(order);
+      if (name !== "RulePolicy.Before" && name !== "RulePolicy.Equal" && name !== "RulePolicy.After") throw new TypeError("invalid rule order");
+      fields(order, name, []);
+      return { kind: "ruleOrder", order: name === "RulePolicy.Before" ? "before" : name === "RulePolicy.After" ? "after" : "equal" };
     }
     case "Canonical.NoticeRejectedFull": case "Canonical.NoticeCreateKey": case "Canonical.NoticeKeepLeased":
     case "Canonical.NoticeRefused": case "Canonical.NoticeCommitted": case "Canonical.NoticeDropped":
@@ -1010,6 +1074,7 @@ export const initialCanonical = (limits: { readonly globalItems: number; readonl
   known.add(object(state)); projectCanonical(state);
   return state;
 };
+/** Callers must supply measured byte counts, authenticated attribution, and correct deadline facts. */
 export const stepCanonical = (state: unknown, event: CanonicalEvent): { readonly state: unknown; readonly commands: readonly CanonicalCommand[]; readonly rejection?: string } => {
   projectCanonical(state);
   const raw = bendCanonicalStep(state, encode(event));

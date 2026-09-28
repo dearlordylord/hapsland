@@ -173,6 +173,12 @@ describe("layered local pack loading and compilation", () => {
       expect(selectApplicableRules(localRules, "const x = 1", "src/a.ts")).toHaveLength(1);
       expect(selectApplicableRules(localRules, "const x = 1", "src/generated/a.ts")).toHaveLength(0);
       expect(selectApplicableRules(localRules, "const x = 1", "docs/a.ts")).toHaveLength(0);
+      expect(selectApplicableRules(localRules, "const x = 1", "src/a.ts", {
+        artifactKind: "typeShape", inputContract: "direct-event/same-file-named-types/v1", complete: false,
+      })).toHaveLength(0);
+      expect(selectApplicableRules(localRules, "const x = 1", "src/a.ts", {
+        artifactKind: "function", inputContract: "direct-event/function/v1", complete: true,
+      })).toHaveLength(0);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

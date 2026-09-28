@@ -7,6 +7,7 @@ import ./Handoff.bend as Handoff
 import ./Lifecycle.bend as Lifecycle
 import ./Ledger.bend as Ledger
 import ./Configuration.bend as Configuration
+import ./RulePolicy.bend as RulePolicy
 import ./Round.bend as Round
 import ./Background.bend as Background
 import ./Notice.bend as Notice
@@ -1419,3 +1420,21 @@ law generated_protection_precedes_kind:
 law git_admin_precedes_file_kind_and_ignore:
   {Configuration.candidate(True{}, False{}, False{}) ==
     Configuration.RefuseGitAdmin{} : Configuration.Candidate}
+
+law incomplete_rule_unit_is_omitted:
+  {RulePolicy.applicable(True{}, False{}, RulePolicy.DirectTypeShape{}, True{}, False{},
+    True{}, True{}, True{}, False{}, True{}) ==
+    RulePolicy.Omit{} : RulePolicy.Gate}
+
+law exact_threshold_is_not_a_finding:
+  {RulePolicy.finding(RulePolicy.Words{2n, 3n}, RulePolicy.Words{2n, 3n}) == RulePolicy.Omit{} : RulePolicy.Gate}
+
+law next_binary64_probability_is_a_finding:
+  {RulePolicy.finding(RulePolicy.Words{2n, 4n}, RulePolicy.Words{2n, 3n}) == RulePolicy.Admit{} : RulePolicy.Gate}
+
+law probability_precedes_rule_rank:
+  {RulePolicy.rank_order(RulePolicy.Words{3n, 0n}, RulePolicy.Words{2n, 3n},
+    9n, 0n) == RulePolicy.Before{} : RulePolicy.Order}
+
+law advice_budget_is_exclusive:
+  {RulePolicy.budget(2n, 2n) == RulePolicy.Omit{} : RulePolicy.Gate}

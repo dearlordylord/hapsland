@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "traces": [
+    { "name": "disabled and incompatible rules never enter a complete unit", "events": [
+      { "kind": "ruleEnableCheck", "packEnabled": false, "ruleEnabled": true, "expect": "ruleGate:omit" },
+      { "kind": "ruleEnableCheck", "packEnabled": true, "ruleEnabled": true, "expect": "ruleGate:admit" },
+      { "kind": "ruleApplicabilityCheck", "consent": true, "complete": false, "target": "directTypeShape", "globalIncluded": true, "globalExcluded": false, "packEnabled": true, "ruleEnabled": true, "ruleIncluded": true, "ruleExcluded": false, "semanticApplicable": true, "expect": "ruleGate:omit" },
+      { "kind": "ruleApplicabilityCheck", "consent": true, "complete": true, "target": "functionTarget", "globalIncluded": true, "globalExcluded": false, "packEnabled": true, "ruleEnabled": true, "ruleIncluded": true, "ruleExcluded": false, "semanticApplicable": true, "expect": "ruleGate:omit" },
+      { "kind": "ruleApplicabilityCheck", "consent": true, "complete": true, "target": "otherTypeShape", "globalIncluded": true, "globalExcluded": false, "packEnabled": true, "ruleEnabled": true, "ruleIncluded": true, "ruleExcluded": false, "semanticApplicable": true, "expect": "ruleGate:omit" },
+      { "kind": "ruleApplicabilityCheck", "consent": true, "complete": true, "target": "legacyFileTypeShape", "globalIncluded": true, "globalExcluded": false, "packEnabled": true, "ruleEnabled": true, "ruleIncluded": true, "ruleExcluded": false, "semanticApplicable": true, "expect": "ruleGate:admit" },
+      { "kind": "ruleApplicabilityCheck", "consent": true, "complete": true, "target": "directTypeShape", "globalIncluded": true, "globalExcluded": false, "packEnabled": true, "ruleEnabled": true, "ruleIncluded": false, "ruleExcluded": false, "semanticApplicable": true, "expect": "ruleGate:omit" },
+      { "kind": "ruleApplicabilityCheck", "consent": true, "complete": true, "target": "directTypeShape", "globalIncluded": true, "globalExcluded": false, "packEnabled": true, "ruleEnabled": true, "ruleIncluded": true, "ruleExcluded": false, "semanticApplicable": true, "expect": "ruleGate:admit" }
+    ] },
+    { "name": "strict threshold distinguishes adjacent binary64 values", "events": [
+      { "kind": "ruleFindingCheck", "probability": { "high": 1072064102, "low": 1717986918 }, "threshold": { "high": 1072064102, "low": 1717986918 }, "expect": "ruleGate:omit" },
+      { "kind": "ruleFindingCheck", "probability": { "high": 1072064102, "low": 1717986919 }, "threshold": { "high": 1072064102, "low": 1717986918 }, "expect": "ruleGate:admit" },
+      { "kind": "ruleFindingCheck", "probability": { "high": 0, "low": 0 }, "threshold": { "high": 1072064102, "low": 1717986918 }, "expect": "ruleGate:omit" }
+    ] },
+    { "name": "probability precedes rank then path and rule identity", "events": [
+      { "kind": "ruleRankOrderCheck", "left": { "high": 1072693248, "low": 0 }, "right": { "high": 1072064102, "low": 1717986918 }, "leftRank": 9, "rightRank": 0, "expect": "ruleOrder:before" },
+      { "kind": "ruleRankOrderCheck", "left": { "high": 1072064102, "low": 1717986918 }, "right": { "high": 1072064102, "low": 1717986918 }, "leftRank": 2, "rightRank": 3, "expect": "ruleOrder:before" },
+      { "kind": "adviceOrderCheck", "left": { "high": 1072064102, "low": 1717986918 }, "right": { "high": 1072064102, "low": 1717986918 }, "pathOrder": "before", "idOrder": "after", "expect": "ruleOrder:before" },
+      { "kind": "adviceOrderCheck", "left": { "high": 1072064102, "low": 1717986918 }, "right": { "high": 1072064102, "low": 1717986918 }, "pathOrder": "equal", "idOrder": "after", "expect": "ruleOrder:after" }
+    ] },
+    { "name": "count budget truncates after the configured limit", "events": [
+      { "kind": "ruleBudgetCheck", "position": 0, "limit": 2, "expect": "ruleGate:admit" },
+      { "kind": "ruleBudgetCheck", "position": 1, "limit": 2, "expect": "ruleGate:admit" },
+      { "kind": "ruleBudgetCheck", "position": 2, "limit": 2, "expect": "ruleGate:omit" },
+      { "kind": "ruleBudgetCheck", "position": 0, "limit": 0, "expect": "ruleGate:omit" }
+    ] }
+  ]
+}

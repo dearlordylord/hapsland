@@ -92,6 +92,7 @@ import {
 } from "../credentials/secret-service.ts";
 import { recordActivity } from "../activity/status.ts";
 import { claimDemoBudget } from "../onboarding/demo-budget.ts";
+import { findingFromProbability } from "../rules/decision.ts";
 import { recordDemoTrace } from "../onboarding/demo-trace.ts";
 
 const validationStatus = (status: RevalidationResult["status"]): BendValidationStatus =>
@@ -386,7 +387,7 @@ const reservedRevision = (partition: string, prepared: PreparedUnit): WorkRevisi
 });
 
 const worstCaseFindings = (prepared: PreparedUnit): ReadonlyArray<Finding> =>
-  prepared.input.rules.flatMap((rule) => rule.threshold < 1
+  prepared.input.rules.flatMap((rule) => findingFromProbability(1, rule.threshold)
     ? [{
         path: prepared.input.path,
         declaration: prepared.input.declaration.name,

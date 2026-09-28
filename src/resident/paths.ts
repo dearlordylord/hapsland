@@ -9,6 +9,9 @@ export type ResidentPaths = {
   readonly owner: string;
 };
 
+// The default directory is per OS user, not per repository: commands from different
+// worktrees or agent runtimes can reach the same resident. It holds connection and
+// ownership files, not source or ledger data.
 export const residentPaths = (override = process.env.REVIEW_RESIDENT_DIR): ResidentPaths => {
   const uid = typeof process.getuid === "function" ? process.getuid() : process.pid;
   const trustedRuntime = process.env.XDG_RUNTIME_DIR;
