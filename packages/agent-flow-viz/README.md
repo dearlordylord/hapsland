@@ -205,23 +205,23 @@ The separate import exploration section uses `ImportGraph.bend` through
 position. Grey boxes represent supplied native resolution/capture facts; blue
 boxes represent Bend decisions; the green downstream boundary identifies Jev
 outcomes without simulating a request or result. Two source-free examples show
-the A → B → excluded C path and a branching A → B,C → D,E,F,G tree in which
-E and G do not fit the remaining 20 KiB tree budget. These are synthetic policy examples, not
+the A → B → excluded C path and a branching A → B,C,X → D,E,F,G tree. X.ts
+is denied by file permissions and skipped before a source read; E and G do
+not fit the remaining 20 KiB tree budget. These are synthetic policy examples, not
 observed filesystem or production execution traces. The build checks the shared
 adapter projections and Foldkit controls; `test:browser` checks the rendered
 independent replay controls as well.
 
 In the branching-tree example, A and B each contribute 5 KiB, so the accepted
-total reaches 10 KiB. C adds 5 KiB and D adds 4 KiB, reaching 19 KiB. E's
+total reaches 10 KiB. C adds 5 KiB, then Bend skips X without reading it.
+D adds 4 KiB, reaching 19 KiB. E's
 2 KiB contribution does not fit the remaining 1 KiB, so Bend emits
 `SkipImport(TreeLimit)`. F adds 1 KiB, filling the 20 KiB tree; G's 2 KiB
-contribution is skipped too. Bend then ends A's unit incomplete with no Jev
+contribution is skipped too. Bend then ends A's unit incomplete with
+`TreeLimit` taking precedence over `Excluded` and no Jev
 request. Each file box shows the accepted running total returned by Bend.
 File boxes display accepted or reported tree and source sizes; unread files
 show unknown sizes.
-The saved [tree overflow view](../../docs/assets/import-graph-tree-overflow.png)
-shows the rejected contribution at the final step.
-
 The [dashboard rules](DASHBOARD-RULES.md) allow presentation mappings and
 checked example traces, while requiring every displayed policy outcome to come
 from compiled Bend state or commands. The diagram contains no decision backbone.

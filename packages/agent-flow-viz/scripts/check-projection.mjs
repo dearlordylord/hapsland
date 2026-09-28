@@ -21,36 +21,39 @@ try {
     send(model, main.Message.TriggeredEvent({ event, itemId }));
   const initial = main.init().model;
   const imports = await server.ssrLoadModule("/src/import-graph-view.ts");
-  const excluded = imports.projectImportExample(0, 8);
+  const excluded = imports.projectImportExample(0, 9);
   assert.deepEqual(excluded.states.map((state) => state.phase), ["incomplete"]);
   assert.equal(excluded.states[0].reason.toLowerCase(), "excluded");
   assert.deepEqual(excluded.history.filter((entry) => entry.command.kind === "readSource").map((entry) => entry.command.target), [2], "excluded C never receives a read request");
+  assert.deepEqual(excluded.history.filter((entry) => entry.command.kind === "skipImport").map((entry) => [entry.command.target, entry.command.reason]), [[3, "Excluded"]]);
   assert.equal(imports.IMPORT_GRAPH_SCENARIOS.length, 2, "the dashboard shows only the two requested A-root traces");
-  const treeOverflow = imports.projectImportExample(1, 26);
-  assert.equal(treeOverflow.history.length, 26);
-  assert.deepEqual(treeOverflow.history.filter((entry) => entry.command.kind === "skipImport").map((entry) => entry.command.target), [5, 7]);
-  assert.equal(treeOverflow.history[16].state.phase, "ready", "E skip leaves later imports available");
+  const treeOverflow = imports.projectImportExample(1, 29);
+  assert.equal(treeOverflow.history.length, 29);
+  assert.deepEqual(treeOverflow.history.filter((entry) => entry.command.kind === "skipImport").map((entry) => [entry.command.target, entry.command.reason]), [[8, "Excluded"], [5, "TreeLimit"], [7, "TreeLimit"]]);
+  assert.deepEqual(treeOverflow.history.filter((entry) => entry.command.kind === "readSource").map((entry) => entry.command.target), [2, 3, 4, 5, 6, 7], "X receives no read request");
+  assert.equal(treeOverflow.history[19].state.phase, "ready", "E skip leaves later imports available");
   assert.equal(treeOverflow.history[4].state.treeBytes, 10240, "A and B use 10 KiB together");
-  assert.equal(treeOverflow.history[12].state.treeBytes, 19456, "A, B, C, and D use 19 KiB together");
-  assert.equal(treeOverflow.history[16].state.treeBytes, 19456, "E does not fit the remaining 1 KiB");
-  assert.equal(treeOverflow.history[20].state.treeBytes, 20480, "F is accepted after E and fills the tree");
-  assert.equal(treeOverflow.history[24].state.phase, "ready", "G skip leaves a finalization step");
+  assert.equal(treeOverflow.history[15].state.treeBytes, 19456, "A, B, C, and D use 19 KiB together");
+  assert.equal(treeOverflow.history[19].state.treeBytes, 19456, "E does not fit the remaining 1 KiB");
+  assert.equal(treeOverflow.history[23].state.treeBytes, 20480, "F is accepted after E and fills the tree");
+  assert.equal(treeOverflow.history[27].state.phase, "ready", "G skip leaves a finalization step");
   assert.equal(treeOverflow.states[0].reason, "TreeLimit");
   assert.equal(treeOverflow.states[0].treeBytes, 20480, "E and G are not charged to the accepted tree");
   assert.equal(treeOverflow.states[0].readBytes, 7000, "all seven source reads count toward the read budget");
   assert.equal(treeOverflow.states[0].files, 7, "all seven file reads count toward the file budget");
-  let importModel = send(initial, main.Message.MovedImportCursor({ cursor: 8 }));
+  assert.equal(treeOverflow.states[0].skippedExcluded, true);
+  let importModel = send(initial, main.Message.MovedImportCursor({ cursor: 9 }));
   assert.match(renderText(importModel), /A.ts · incomplete/);
   assert.doesNotMatch(renderText(importModel), /D.ts review unit/);
   importModel = send(importModel, main.Message.Reset());
-  assert.equal(importModel.importCursor, 8, "full-flow reset preserves separate import replay");
+  assert.equal(importModel.importCursor, 9, "full-flow reset preserves separate import replay");
   assert.equal(importModel.historyPosition, 0);
   Scene.scene({ update: main.update, view: main.view },
     Scene.given(initial),
     Scene.click(Scene.getByRole("button", { name: "Next import step", exact: true })),
-    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Import step 1 of 8/)),
+    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Import step 1 of 9/)),
     Scene.click(Scene.getByRole("button", { name: "Previous import step", exact: true })),
-    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Import step 0 of 8/)));
+    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Import step 0 of 9/)));
 
   assert.match(renderText(initial), /COMPILED BEND FLOW MODEL/);
   assert.match(renderText(initial), /IMPORT \/ REFERENCE GRAPH/);

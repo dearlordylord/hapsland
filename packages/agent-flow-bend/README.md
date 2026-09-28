@@ -8,6 +8,9 @@ Supporting tree contributions that do not fit the remaining budget emit `SkipImp
 later pending edges continue within the file, read, work, depth, and deadline
 limits. The accepted tree remains within 20 KiB, and a unit with any skipped
 import finishes incomplete with no Jev request.
+Denied import paths emit `SkipImport(Excluded)` before any source read and also leave
+later edges pending. If both a denied path and a tree-budget skip occur, the final
+incomplete reason is `TreeLimit`; otherwise a denied path finishes `Excluded`.
 
 `Flow.bend` drives the abstract discussion visualization. Its state holds all live review items, two
 independent capacities, the virtual round, finish wait, one delivery lease,

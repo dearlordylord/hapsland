@@ -20,7 +20,7 @@ must state that scope until #119–#137 change the production boundary.
   facts. A claim that a trace covers every state or transition needs a test
   for that coverage.
 - Static mappings from a Bend constructor, command, or state to a label, color,
-  icon, route, or layout. For example, `UnitIncomplete{Excluded}` can display
+  icon, route, or layout. For example, `SkipImport{X, Excluded}` can display
   “excluded · no read.” Native `Found` can display a resolved import edge.
 - File-size labels transcribed from source-free native capture facts. A size
   offered by a capture that Bend rejects must be labeled "reported"; only a
@@ -59,4 +59,6 @@ possible transitions and highlight the phase returned by Bend. The independent
 [`conformance/import-graph-v1.json`](../../conformance/import-graph-v1.json)
 fixture checks phases and commands at every step and final states. Projection and browser checks
 verify that the visible graph follows replay, including excluded C receiving
-no `ReadSource` command and no unrelated root appearing.
+no `ReadSource` command and no unrelated root appearing. The branching tree
+also shows denied X without a read, followed by E/G tree-budget skips and a
+`TreeLimit` terminal reason from Bend.

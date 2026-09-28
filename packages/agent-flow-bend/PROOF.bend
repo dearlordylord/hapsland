@@ -4,6 +4,15 @@ import ./LAWS.bend as Laws
 def Laws.import_graph_exclusion_has_no_read_command():
   {==}
 
+def Laws.import_graph_exclusion_keeps_remaining_edges():
+  {==}
+
+def Laws.import_graph_excluded_finishes_incomplete():
+  {==}
+
+def Laws.import_graph_tree_limit_precedes_exclusion():
+  {==}
+
 def Laws.import_graph_cycle_does_not_request_source():
   {==}
 

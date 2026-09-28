@@ -48,7 +48,7 @@ const projectFileGraphs = (unitCount: number, history: readonly HistoryStep[]): 
         if (command.kind === "readSource") {
           graph.reading = command.target;
           graph.nodes.set(command.target, { target: command.target, status: "read requested" });
-        } else if (command.kind === "unitIncomplete" && graph.checking !== undefined) {
+        } else if ((command.kind === "unitIncomplete" || command.kind === "skipImport") && graph.checking !== undefined) {
           graph.nodes.set(graph.checking, { target: graph.checking, status: "blocked", reason: command.reason });
         }
         break;
@@ -188,7 +188,7 @@ const fileGraph = <Message>(h: HtmlBuilder<Message>, units: readonly string[],
   ]);
 };
 const nodes = [
-  { id: "resolve", x: 30, y: 50, title: "Next pending edge", owner: "BEND DECISION", detail: "Keep exploring after a tree skip", role: "bend" },
+  { id: "resolve", x: 30, y: 50, title: "Next pending edge", owner: "BEND DECISION", detail: "Keep exploring after a skipped import", role: "bend" },
   { id: "gate", x: 330, y: 50, title: "Permission and budgets", owner: "BEND DECISION", detail: "Allow before any source read", role: "bend" },
   { id: "capture", x: 630, y: 50, title: "Capture allowed target", owner: "NATIVE FACT", detail: "Report source and tree bytes", role: "native" },
   { id: "expand", x: 630, y: 260, title: "Accept or skip import", owner: "BEND DECISION", detail: "20 KiB cap; keep later edges", role: "bend" },
@@ -200,14 +200,14 @@ export const importGraphDiagram = <Message>(h: HtmlBuilder<Message>, active: Imp
   h.div([h.Class("chart-scroll import-graph-diagram")], [
     fileGraph(h, units, names, history, states),
     h.p([h.Class("import-graph-diagram-caption")], [`Import process schematic · highlighted Bend phase for ${unitLabel}`]),
-    h.svg([h.ViewBox("0 0 920 505"), h.Role("img"), h.AriaLabel("Import process schematic. Bend accepts or skips captured import contributions against the 20 KiB tree bound, keeps later edges pending, and ends a unit with skipped imports incomplete.")], [
+    h.svg([h.ViewBox("0 0 920 505"), h.Role("img"), h.AriaLabel("Import process schematic. Bend skips denied paths before reading source and continues pending edges. It accepts or skips captured import contributions against the 20 KiB tree bound, then ends a unit with skipped imports incomplete.")], [
       h.defs([], [h.marker([h.Id("import-arrow"), h.ViewBox("0 0 10 10"), h.RefX("9"), h.RefY("5"), h.MarkerWidth("7"), h.MarkerHeight("7"), h.Orient("auto")], [h.path([h.D("M 0 0 L 10 5 L 0 10 z"), h.Fill("#687e98")], [])])]),
       ...[
         ["M 280 102 L 330 102", "found", 290, 88],
         ["M 580 102 L 630 102", "allow", 590, 88],
         ["M 755 155 L 755 260", "reported bytes", 765, 218],
         ["M 630 312 L 580 312", "done, no skips", 583, 298],
-        ["M 455 155 L 455 207 L 155 207 L 155 260", "excluded / exhausted", 206, 198],
+        ["M 455 155 L 455 207 L 155 207 L 155 260", "exhausted with skips", 206, 198],
         ["M 30 102 L 10 102 L 10 312 L 30 312", "", 0, 0],
         ["M 880 312 L 905 312 L 905 20 L 155 20 L 155 50", "more edges / cycle skipped", 590, 15],
       ].map(([path, label, x, y]) => h.g([], [
@@ -215,7 +215,8 @@ export const importGraphDiagram = <Message>(h: HtmlBuilder<Message>, active: Imp
         h.text([h.X(String(x)), h.Y(String(y)), h.FontSize("11"), h.Fill("#52647d")], [String(label)]),
       ])),
       h.text([h.X("40"), h.Y("182"), h.FontSize("11"), h.FontWeight("700"), h.Fill("#9a4229")], ["TreeLimit: skip that import, inspect later edges"]),
-      h.text([h.X("40"), h.Y("240"), h.FontSize("11"), h.Fill("#52647d")], ["Skipped imports make the final unit incomplete"]),
+      h.text([h.X("40"), h.Y("224"), h.FontSize("11"), h.FontWeight("700"), h.Fill("#9a4229")], ["Excluded: skip without reading, inspect later edges"]),
+      h.text([h.X("40"), h.Y("240"), h.FontSize("11"), h.Fill("#52647d")], ["TreeLimit takes precedence over Excluded at completion"]),
       ...nodes.map((node) => h.g([], [
         h.rect([h.X(String(node.x)), h.Y(String(node.y)), h.Width("250"), h.Height("105"), h.Rx("10"), h.Fill(node.role === "bend" ? "#e5efff" : "#edf1f6"), h.Stroke(active === node.id ? "#e66035" : node.role === "bend" ? "#527cc4" : "#738399"), h.StrokeWidth(active === node.id ? "4" : "2")], []),
         h.text([h.X(String(node.x + 14)), h.Y(String(node.y + 22)), h.FontSize("10"), h.FontWeight("700"), h.Fill("#52647d")], [node.owner]),

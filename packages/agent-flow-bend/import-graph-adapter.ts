@@ -101,6 +101,7 @@ export type ImportGraphProjection = {
   readonly treeBytes: number;
   readonly work: number;
   readonly skippedTree: boolean;
+  readonly skippedExcluded: boolean;
 };
 const phases = { Idle: "idle", Ready: "ready", Resolving: "resolving", Checking: "checking", Capturing: "capturing", Complete: "complete", Incomplete: "incomplete" } as const;
 export const projectImportGraph = (state: unknown): ImportGraphProjection => {
@@ -113,7 +114,8 @@ export const projectImportGraph = (state: unknown): ImportGraphProjection => {
   return { phase, ...(phase === "incomplete" ? { reason: reason(phaseObject.reason) } : {}),
     pending: readList(object.pending, (edge) => { if (kind(edge) !== "Edge") throw new TypeError("invalid Bend graph edge"); return number(record(edge).id); }),
     visited: readList(object.visited, number), files: number(object.files), readBytes: number(object.read_bytes),
-    treeBytes: number(object.tree_bytes), work: number(object.work), skippedTree: bool(object.skipped_tree) };
+    treeBytes: number(object.tree_bytes), work: number(object.work), skippedTree: bool(object.skipped_tree),
+    skippedExcluded: bool(object.skipped_excluded) };
 };
 export const initialImportGraph = (): unknown => {
   const state = bendImportGraphInitial();

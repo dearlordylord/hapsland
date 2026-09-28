@@ -11,11 +11,12 @@ const resolved = (target: number) => step(`Native: edge resolves to target #${ta
 const allowed = () => step("Native: target path allowed; Bend decides whether to request source", { kind: "pathChecked", allowed: true });
 const captured = (edges: number[] = [], treeBytes = 400, sourceBytes = 1000) => step("Native: bounded capture and ordered outgoing edges supplied", { kind: "captured", sourceBytes, treeBytes, edges });
 export const IMPORT_GRAPH_SCENARIOS = [
-  { title: "Excluded C stops A", description: "The only supplied root is A.ts. A imports B.ts, and B imports C.ts. A and B are allowed; C is excluded before a read request, so A's review unit ends incomplete.", units: ["A.ts"], targetNames: { 1: "A.ts", 2: "B.ts", 3: "C.ts" }, steps: [root([10]), next(), resolved(2), allowed(), captured([20]), next(), resolved(3), step("Native: C excluded; Bend marks A incomplete without requesting C source", { kind: "pathChecked", allowed: false })] },
-  { title: "Cumulative tree cap skips E and G", description: "A imports B and C; B imports D and E; C imports F and G. A and B contribute 5 KiB each, reaching 10 KiB of the 20 KiB tree limit. C adds 5 KiB and D adds 4 KiB, reaching 19 KiB. E needs 2 KiB and cannot fit; F adds the remaining 1 KiB; G needs 2 KiB and cannot fit. Bend skips E and G, then ends the unit incomplete.", units: ["A.ts"], targetNames: { 1: "A.ts", 2: "B.ts", 3: "C.ts", 4: "D.ts", 5: "E.ts", 6: "F.ts", 7: "G.ts" }, steps: [
-    root([10, 20], 5120),
+  { title: "Excluded C stops A", description: "The only supplied root is A.ts. A imports B.ts, and B imports C.ts. A and B are allowed; C is excluded before a read request. Bend skips C, then ends A's review unit incomplete when traversal finishes.", units: ["A.ts"], targetNames: { 1: "A.ts", 2: "B.ts", 3: "C.ts" }, steps: [root([10]), next(), resolved(2), allowed(), captured([20]), next(), resolved(3), step("Native: C permission denied; Bend skips C without requesting source", { kind: "pathChecked", allowed: false }), next()] },
+  { title: "Cumulative tree cap skips E and G", description: "A imports B, C, and X; B imports D and E; C imports F and G. X.ts is denied by file permissions, so Bend skips X without reading it and continues. A and B contribute 5 KiB each, C adds 5 KiB, and D adds 4 KiB, reaching 19 KiB of the 20 KiB limit. E's 2 KiB cannot fit; F adds the last 1 KiB; G's 2 KiB cannot fit. The final incomplete reason is TreeLimit.", units: ["A.ts"], targetNames: { 1: "A.ts", 2: "B.ts", 3: "C.ts", 4: "D.ts", 5: "E.ts", 6: "F.ts", 7: "G.ts", 8: "X.ts" }, steps: [
+    root([10, 20, 70], 5120),
     next(), resolved(2), allowed(), captured([30, 40], 5120),
     next(), resolved(3), allowed(), captured([50, 60], 5120),
+    next(), resolved(8), step("Native: X.ts permission denied; Bend skips X without requesting source", { kind: "pathChecked", allowed: false }),
     next(), resolved(4), allowed(), captured([], 4096),
     next(), resolved(5), allowed(), step("Native: E capture reports 1,000 B source and 2 KiB tree", { kind: "captured", sourceBytes: 1000, treeBytes: 2048, edges: [] }),
     next(), resolved(6), allowed(), captured([], 1024),
@@ -61,6 +62,7 @@ export const importGraphView = <Message>(h: HtmlBuilder<Message>, scenarioIndex:
       h.span([], [`Pending edges: ${ids(state.pending)} · visited targets: ${ids(state.visited)}`]),
       h.span([], [`Files read: ${state.files}/8 · read bytes: ${state.readBytes}/1572864 · accepted tree bytes: ${state.treeBytes}/20480 · work: ${state.work}/128`]),
       h.span([], [`Import skipped for remaining tree budget: ${state.skippedTree ? "yes" : "no"}`]),
+      h.span([], [`Import skipped for denied permission: ${state.skippedExcluded ? "yes" : "no"}`]),
       h.span([], [state.phase === "complete" ? "Jev: eligible; no request or result simulated" : state.phase === "incomplete" ? "Jev: no request for this unit" : state.skippedTree ? "Jev: waiting for remaining branches; unit will be incomplete" : "Jev: waiting for complete unit"]),
     ]))),
     h.p([h.Class("description")], ["The root is already allowed and captured at this boundary. Native code supplies deterministic edge order and stable declaration identities. Bend holds IDs and byte counts, never source or secrets. Supporting reads are requested only after the target permission fact passes the Bend gate."]),
