@@ -17,13 +17,14 @@ reading it, continues pending branches, and ends that trace with `TreeLimit`
 after E and G do not fit. The owner resumed the migration in a new session.
 #119's first canonical state, events, commands, checked adapter, and independent
 traces merged through PR #144 and #119 is closed. #120's resident capacity
-slice is merged at `b90a524`; the next migration slice is #121. Other resident
-decision paths under #121–#134 are still pending. Configurable graph limits and
+slice is merged at `b90a524`. #121's canonical permit admission is merged at
+`cdb00d9`; the next migration slice is #122. Other resident decision paths
+under #122–#134 are still pending. Configurable graph limits and
 general budget/termination proofs are tracked separately in
 [#142](https://github.com/dearlordylord/hapsland/issues/142).
 
 The integrated epic is in `/workspace/typescript/jev-worktrees/bend-full-flow`
-(`feat/bend-full-flow`, merge `b90a524`). Start #121 in a new task worktree
+(`feat/bend-full-flow`, merge `cdb00d9`). Start #122 in a new task worktree
 from the latest epic tip. The old `/tmp/hapsland-bend-handoff.md` predates #119
 and is no longer a valid resume point. The `/workspace/typescript/jev` checkout
 is older and is not the edit target.
@@ -101,7 +102,8 @@ or Jev-request-size claim.
    8 MiB resident and 16-item/2 MiB advicee limits for the 256 KiB file target;
    the installed capture cap remains 32 KiB. Keep accounting bounded and test
    concurrent advicees.
-4. **Migration:** #119 defined the first canonical transition; #121–#134 move the
+4. **Migration:** #119 defined the first canonical transition; #121 moved permit
+   admission; #122–#134 move the remaining
    production decision slices; #135–#137 complete visualization, host
    validation, and evidence-backed verification. The installed 32 KiB
    supported-profile remains the truthful runtime claim until code and
@@ -151,6 +153,20 @@ two tests skipped), typecheck, and the installed build passed before merge.
 The installed byte limits and 32 KiB source cap did not change in this slice;
 the 256 KiB target and cross-file evidence remain future work.
 
+## #121 permit and round admission (merged 2026-09-28)
+
+Installed pre-edit admission, exact native tool correlation, permit consumption,
+expiry, release, and round closure now advance through the same canonical Bend
+state as capacity. Canonical admission supplies the round fence; the resident
+keeps native ID/deadline lookup for callback correlation. Duplicate pre-edit
+IPC retries return a source-free refusal reason. Stop cutoff releases permits
+canonically. Legacy Stop continuation and output policy remains until #124–#126.
+`docs/issue-121-permit-evidence.md` records the child attribution host contract
+limitation: published schemas and available probes do not establish whether a
+fully markerless child tool callback is possible. Identifiable missing child IDs
+are rejected. Nine independent canonical traces, Bend proofs, 585 offline tests,
+typecheck, and build passed; two credential-gated live tests were skipped.
+
 ## Next autonomous migration run
 
 Use the GitHub issue bodies as the task contracts. Work in a dedicated task
@@ -161,7 +177,7 @@ the issue only when its criteria have evidence. Update this handoff after each
 merged slice. Do not treat the separate #141 import-graph diagram as the final
 production replay.
 
-One valid single-agent order from here is #121, #122, #123, #124, #125, #126,
+One valid single-agent order from here is #122, #123, #124, #125, #126,
 #127, #128, #129, #130, #131, #132, #133, #134, #135. Dependencies allow
 #132–#134 to proceed after their own blockers while the #123–#131 chain is in
 progress; #135 needs both #131 and #134. #135 delivers the build-generated
