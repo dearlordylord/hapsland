@@ -42,6 +42,10 @@ decision fence. `DeliveryState.bend` retains the exact selected Stop output
 slot, authorization phase, terminal result, and continuation count.
 `SubmissionState.bend` retains per finding leases and per output token batches;
 it grants one same round Stop reoffer for terminal background advice.
+`RevisionState.bend` retains source-free subject/input identities, the current
+generation, and live same-input member counts. The resident uses its canonical
+register, release, and supersession commands to fence older review callbacks
+and retire their advice without changing another advicee's work.
 The resident reserves the selected batch before the final IPC barrier and can
 release an unwritten provisional slot.
 Other

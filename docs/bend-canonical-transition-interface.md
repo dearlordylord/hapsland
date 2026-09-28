@@ -89,6 +89,14 @@ Resident-wide and per-agent limits are passed to `initial`; Bend checks both whe
 
 The installed sequence joins native hook and attribution facts; Bend admission and round/work reservation; native source capture and Jev effects; Bend outcome and logical release; Stop's Bend wait/cutoff fence; native cancellation and final evidence/writer checks; Bend selection/continuation reservation; native output attempt; Bend acknowledgement/unknown disposition. The resident routes capacity, permits, observation and review work, dispatch, grouped Stop waiting/cutoff, selected output slots, and per finding submission leases through `Canonical.step`. `Handoff` and `Delivery` supply reusable policy functions inside that state machine. Native code retains payloads and clock facts and uses canonical commands at the host handoff barrier.
 
+The #127 revision events also retain one current canonical input identity and
+generation per semantic subject, with a count of live same-input members.
+`RevisionRegister` reuses that generation or replaces it; `RevisionRelease`
+decrements only the matching current generation. Current and supersession
+queries fence older callbacks after replacement. Native code maps the exact
+canonical input to a numeric identity before crossing this boundary and
+keeps source-bearing input and random tokens outside Bend.
+
 ## Checked TypeScript boundary
 
 [`src/canonical/adapter.ts`](../src/canonical/adapter.ts) is the only TypeScript entry for this model. It maps semantic event tags to compiled Bend constructors, validates positive numeric bounds, limits list length, and rejects unknown event and outcome tags. It checks every returned constructor and field set, state list, ledger charge, round, work kind, command, and rejection tag. An opaque state returned by `initialCanonical` or `stepCanonical` is required; a forged state is rejected. The build script verifies the compiled `Canonical.initial` and `Canonical.step` symbols before writing `src/canonical/canonical.generated.js`.

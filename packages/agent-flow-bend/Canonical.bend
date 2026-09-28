@@ -9,6 +9,7 @@ import ./CollectionState.bend as CollectionState
 import ./Handoff.bend as Handoff
 import ./Delivery.bend as Delivery
 import ./DeliveryState.bend as DeliveryState
+import ./RevisionState.bend as RevisionState
 
 # #119 boundary: one resident lifetime, shared ledger, active advicee rounds.
 # Native IDs are bijectively mapped to positive Nat values before entry.
@@ -138,6 +139,12 @@ type CanonicalEvent is Data:
     surface: Handoff.Surface}
   SubmissionReofferCheck{advice: Nat, token: Nat}
   SubmissionExpiryCheck{advice: Nat, token: Nat, elapsed: Nat, lifetime: Nat}
+  RevisionRegister{subject: Nat, input: Nat, add_member: Bool}
+  RevisionRelease{subject: Nat, generation: Nat}
+  RevisionCurrentCheck{subject: Nat, input: Nat, generation: Nat}
+  RevisionSupersededCheck{subject: Nat, candidate_subject: Nat, generation: Nat}
+  RevisionGenerationCheck{subject: Nat}
+  RevisionCountCheck{}
   OutputStarted{partition: Nat, lifetime: Nat, round: Nat}
   OutputTerminal{partition: Nat, lifetime: Nat, round: Nat,
     operation: Nat, outcome: WriteOutcome}
@@ -252,6 +259,15 @@ type Command is Data:
   SubmissionNotReofferable{}
   SubmissionExpired{}
   SubmissionCurrent{}
+  RevisionReused{generation: Nat}
+  RevisionReplaced{generation: Nat}
+  RevisionReleased{}
+  RevisionCurrent{}
+  RevisionStale{}
+  RevisionSuperseded{}
+  RevisionNotSuperseded{}
+  RevisionGeneration{generation: Nat}
+  RevisionCount{count: Nat}
   WriteAuthorized{operation: Nat}
   WriteRecorded{outcome: WriteOutcome}
   WaitForOutput{}
@@ -2053,6 +2069,54 @@ def submission_expiry_check(+state: State, advice: Nat, token: Nat,
         CollectionState.submission_expired(collection, advice, token,
           elapsed, lifetime), SubmissionExpired{}, SubmissionCurrent{}) <> Nil{}}
 
+def revision_register_result(+state: State, result: RevisionState.Registration) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, _, +collection}:
+      match result:
+        case RevisionState.Reused{replacement, generation}:
+          Advanced{with_collection(state, CollectionState.revision_replace(collection, replacement)),
+            RevisionReused{generation} <> Nil{}}
+        case RevisionState.Replaced{replacement, generation}:
+          Advanced{with_collection(state, CollectionState.revision_replace(collection, replacement)),
+            RevisionReplaced{generation} <> Nil{}}
+
+def revision_register(+state: State, subject: Nat, input: Nat, add_member: Bool) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, _, collection}:
+      revision_register_result(state, CollectionState.revision_register(collection,
+        subject, input, add_member))
+
+def revision_release(+state: State, subject: Nat, generation: Nat) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, _, collection}:
+      Advanced{with_collection(state, CollectionState.revision_release(collection,
+        subject, generation)), RevisionReleased{} <> Nil{}}
+
+def revision_current_check(+state: State, subject: Nat, input: Nat,
+    generation: Nat) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, _, collection}:
+      Advanced{state, Bool.pick(Command, CollectionState.revision_current(collection,
+        subject, input, generation), RevisionCurrent{}, RevisionStale{}) <> Nil{}}
+
+def revision_superseded_check(+state: State, subject: Nat,
+    candidate_subject: Nat, generation: Nat) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, _, collection}:
+      Advanced{state, Bool.pick(Command, CollectionState.revision_superseded(collection,
+        subject, candidate_subject, generation), RevisionSuperseded{}, RevisionNotSuperseded{}) <> Nil{}}
+
+def revision_generation_check(+state: State, subject: Nat) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, _, collection}:
+      Advanced{state, RevisionGeneration{CollectionState.revision_generation(collection,
+        subject)} <> Nil{}}
+
+def revision_count_check(+state: State) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, _, collection}:
+      Advanced{state, RevisionCount{CollectionState.revision_count(collection)} <> Nil{}}
+
 def step(state: State, event: CanonicalEvent) -> Step:
   match event:
     case ReserveCapacity{partition, bytes, purpose}:
@@ -2193,6 +2257,18 @@ def step(state: State, event: CanonicalEvent) -> Step:
       submission_reoffer_check(state, advice, token)
     case SubmissionExpiryCheck{advice, token, elapsed, lifetime}:
       submission_expiry_check(state, advice, token, elapsed, lifetime)
+    case RevisionRegister{subject, input, add_member}:
+      revision_register(state, subject, input, add_member)
+    case RevisionRelease{subject, generation}:
+      revision_release(state, subject, generation)
+    case RevisionCurrentCheck{subject, input, generation}:
+      revision_current_check(state, subject, input, generation)
+    case RevisionSupersededCheck{subject, candidate_subject, generation}:
+      revision_superseded_check(state, subject, candidate_subject, generation)
+    case RevisionGenerationCheck{subject}:
+      revision_generation_check(state, subject)
+    case RevisionCountCheck{}:
+      revision_count_check(state)
     case OutputStarted{partition, lifetime, round}:
       output_start(state, partition, lifetime, round)
     case OutputTerminal{partition, lifetime, round, operation, outcome}:

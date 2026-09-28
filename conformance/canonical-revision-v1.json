@@ -1,0 +1,184 @@
+{
+  "traces": [
+    {
+      "name": "same input shares one generation and final release clears it",
+      "events": [
+        {
+          "kind": "revisionRegister",
+          "subject": 1,
+          "input": 10,
+          "addMember": true,
+          "expect": "revisionReplaced:1"
+        },
+        {
+          "kind": "revisionRegister",
+          "subject": 1,
+          "input": 10,
+          "addMember": true,
+          "expect": "revisionReused:1"
+        },
+        {
+          "kind": "revisionCurrentCheck",
+          "subject": 1,
+          "input": 10,
+          "generation": 1,
+          "expect": "revisionCurrent"
+        },
+        {
+          "kind": "revisionRelease",
+          "subject": 1,
+          "generation": 1,
+          "expect": "revisionReleased"
+        },
+        {
+          "kind": "revisionCountCheck",
+          "expect": "revisionCount:1"
+        },
+        {
+          "kind": "revisionRelease",
+          "subject": 1,
+          "generation": 1,
+          "expect": "revisionReleased"
+        },
+        {
+          "kind": "revisionCurrentCheck",
+          "subject": 1,
+          "input": 10,
+          "generation": 1,
+          "expect": "revisionStale"
+        },
+        {
+          "kind": "revisionCountCheck",
+          "expect": "revisionCount:0"
+        }
+      ],
+      "revision": {
+        "entries": [],
+        "nextGeneration": 2
+      }
+    },
+    {
+      "name": "new input replaces one subject and stale release leaves another intact",
+      "events": [
+        {
+          "kind": "revisionRegister",
+          "subject": 1,
+          "input": 10,
+          "addMember": true,
+          "expect": "revisionReplaced:1"
+        },
+        {
+          "kind": "revisionRegister",
+          "subject": 2,
+          "input": 20,
+          "addMember": true,
+          "expect": "revisionReplaced:2"
+        },
+        {
+          "kind": "revisionRegister",
+          "subject": 1,
+          "input": 11,
+          "addMember": true,
+          "expect": "revisionReplaced:3"
+        },
+        {
+          "kind": "revisionSupersededCheck",
+          "subject": 1,
+          "generation": 1,
+          "expect": "revisionSuperseded",
+          "candidateSubject": 1
+        },
+        {
+          "kind": "revisionSupersededCheck",
+          "subject": 2,
+          "generation": 2,
+          "expect": "revisionNotSuperseded",
+          "candidateSubject": 2
+        },
+        {
+          "kind": "revisionSupersededCheck",
+          "subject": 1,
+          "candidateSubject": 2,
+          "generation": 1,
+          "expect": "revisionNotSuperseded"
+        },
+        {
+          "kind": "revisionRelease",
+          "subject": 1,
+          "generation": 1,
+          "expect": "revisionReleased"
+        },
+        {
+          "kind": "revisionCurrentCheck",
+          "subject": 1,
+          "input": 11,
+          "generation": 3,
+          "expect": "revisionCurrent"
+        },
+        {
+          "kind": "revisionCurrentCheck",
+          "subject": 2,
+          "input": 20,
+          "generation": 2,
+          "expect": "revisionCurrent"
+        },
+        {
+          "kind": "revisionGenerationCheck",
+          "subject": 1,
+          "expect": "revisionGeneration:3"
+        }
+      ],
+      "revision": {
+        "entries": [
+          {
+            "subject": 1,
+            "input": 11,
+            "generation": 3,
+            "members": 1
+          },
+          {
+            "subject": 2,
+            "input": 20,
+            "generation": 2,
+            "members": 1
+          }
+        ],
+        "nextGeneration": 4
+      }
+    },
+    {
+      "name": "restored same-input identity does not duplicate a member",
+      "events": [
+        {
+          "kind": "revisionRegister",
+          "subject": 7,
+          "input": 70,
+          "addMember": true,
+          "expect": "revisionReplaced:1"
+        },
+        {
+          "kind": "revisionRegister",
+          "subject": 7,
+          "input": 70,
+          "addMember": false,
+          "expect": "revisionReused:1"
+        },
+        {
+          "kind": "revisionRelease",
+          "subject": 7,
+          "generation": 1,
+          "expect": "revisionReleased"
+        },
+        {
+          "kind": "revisionGenerationCheck",
+          "subject": 7,
+          "expect": "revisionGeneration:0"
+        }
+      ],
+      "revision": {
+        "entries": [],
+        "nextGeneration": 2
+      }
+    }
+  ]
+}

@@ -1785,6 +1785,7 @@ describe("resident delivery lease", () => {
     const metadata = server.pendingAdviceMetadata();
     expect(metadata).toHaveLength(1);
     expect(metadata[0]?.generation).toBe(2);
+    expect(server.stats().currentWork).toBe(1);
     const delivered = await server.collect(
       root,
       advicee({ turnId: "later", toolUseId: "replacement-collect" }),
@@ -1945,6 +1946,7 @@ describe("resident delivery lease", () => {
     const replacementAdvice = server.pendingAdviceMetadata();
     expect(replacementAdvice).toHaveLength(1);
     expect(replacementAdvice[0]?.generation).toBe(2);
+    expect(server.stats().currentWork).toBe(1);
     const replacementBytes = replacementAdvice[0]?.retainedBytes ?? 0;
     expect(server.stats().retainedBytes).toBeGreaterThan(replacementBytes);
 
@@ -1952,6 +1954,7 @@ describe("resident delivery lease", () => {
     await expect(collecting).resolves.toMatchObject({ status: "empty" });
     expect(server.stats()).toMatchObject({
       pendingAdvice: 1,
+      currentWork: 1,
       retainedBytes: replacementBytes + server.accountingMetrics().successfulCacheBytes,
     });
     const delivered = await server.collect(
@@ -1965,6 +1968,7 @@ describe("resident delivery lease", () => {
     expect(server.finalize(delivered.token).status).toBe("finalized");
     expect(server.stats()).toMatchObject({
       pendingAdvice: 0,
+      currentWork: 0,
       retainedBytes: server.accountingMetrics().successfulCacheBytes,
     });
   });
@@ -2659,6 +2663,7 @@ describe("resident bounded advice batches", () => {
     expect(server.admit(replacement, dispatch).status).toBe("accepted");
     await server.whenIdle();
     expect(server.pendingAdviceMetadata().some(({ id, path }) => path === "a.ts" && id !== oldAId)).toBe(true);
+    expect(server.stats().currentWork).toBe(2);
     release.resolve();
 
     const collected = await collecting;
@@ -2667,6 +2672,7 @@ describe("resident bounded advice batches", () => {
     expect(collected.output.hookSpecificOutput.additionalContext).not.toContain("a.ts :: ACount");
     expect(collected.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
     expect(server.pendingAdviceMetadata().some(({ id }) => id === oldAId)).toBe(false);
+    expect(server.stats().currentWork).toBe(2);
   });
 
   it("ages each dispatch cycle independently when older overflow remains", async () => {

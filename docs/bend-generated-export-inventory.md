@@ -2,6 +2,10 @@
 
 Static source inventory at the #117 audit checkpoint. A listed call is a lexical call in non-test application source; it does not prove a supported runtime witness or that every branch executes. Build generators and test scripts are excluded. Installed-host reachability is classified in the [authority map](bend-logic-authority-map.md).
 
+The two direct `bendRevision*` server calls listed below are historical: #127
+replaced them with `Canonical.step` revision events. The row positions remain
+the #117 snapshot, not current source locations.
+
 ## Resident policy (114)
 
 Generated artifact: [`src/resident/bend-policy.generated.js`](../src/resident/bend-policy.generated.js).

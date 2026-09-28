@@ -115,6 +115,12 @@ export type CanonicalEvent =
   | { readonly kind: "submissionForget"; readonly advice: number }
   | { readonly kind: "submissionSuppressCheck"; readonly advice: number; readonly fingerprint: number; readonly round: number; readonly surface: "edit" | "background" | "stop" }
   | { readonly kind: "submissionExpiryCheck"; readonly advice: number; readonly token: number; readonly elapsed: number; readonly lifetime: number }
+  | { readonly kind: "revisionRegister"; readonly subject: number; readonly input: number; readonly addMember: boolean }
+  | { readonly kind: "revisionRelease"; readonly subject: number; readonly generation: number }
+  | { readonly kind: "revisionSupersededCheck"; readonly subject: number; readonly candidateSubject: number; readonly generation: number }
+  | { readonly kind: "revisionCurrentCheck"; readonly subject: number; readonly input: number; readonly generation: number }
+  | { readonly kind: "revisionGenerationCheck"; readonly subject: number }
+  | { readonly kind: "revisionCountCheck" }
   | { readonly kind: "outputStarted"; readonly partition: number; readonly lifetime: number; readonly round: number }
   | { readonly kind: "outputTerminal"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly outcome: "acknowledged" | "failed" | "unknown" }
   | { readonly kind: "retirePartition"; readonly partition: number; readonly lifetime: number; readonly round: number };
@@ -154,6 +160,9 @@ export type CanonicalCommand =
   | { readonly kind: "finishReserved" | "finishNotices" | "finishAllowedNoAdvice" | "finishAllowedDeadline" | "finishAllowedUnavailable" | "finishRefused" | "finishReleased" | "finishAuthorized" | "finishEnded" | "continuationConsumed" | "continuationRefused" }
   | { readonly kind: "finishRecorded"; readonly outcome: "acknowledged" | "failed" | "unknown" }
   | { readonly kind: "submissionBegun" | "submissionAuthorized" | "submissionRecorded" | "submissionReleased" | "submissionRefused" | "submissionForgotten" | "submissionSuppresses" | "submissionUnsuppressed" | "submissionReofferable" | "submissionNotReofferable" | "submissionExpired" | "submissionCurrent" }
+  | { readonly kind: "revisionReused" | "revisionReplaced" | "revisionGeneration"; readonly generation: number }
+  | { readonly kind: "revisionCount"; readonly count: number }
+  | { readonly kind: "revisionReleased" | "revisionCurrent" | "revisionStale" | "revisionSuperseded" | "revisionNotSuperseded" }
   | { readonly kind: "writeAuthorized"; readonly operation: number }
   | { readonly kind: "writeRecorded"; readonly outcome: "acknowledged" | "failed" | "unknown" }
   | { readonly kind: "waitForOutput" }
@@ -286,6 +295,12 @@ const encode = (event: CanonicalEvent): unknown => {
     case "submissionForget": inputFields(event, ["kind", "advice"]); return { $: "Canonical.SubmissionForget", advice: nat(event.advice, true) };
     case "submissionSuppressCheck": inputFields(event, ["kind", "advice", "fingerprint", "round", "surface"]); return { $: "Canonical.SubmissionSuppressCheck", advice: nat(event.advice, true), fingerprint: nat(event.fingerprint, true), round: nat(event.round, true), surface: submissionSurface(event.surface) };
     case "submissionExpiryCheck": inputFields(event, ["kind", "advice", "token", "elapsed", "lifetime"]); return { $: "Canonical.SubmissionExpiryCheck", advice: nat(event.advice, true), token: nat(event.token, true), elapsed: nat(event.elapsed), lifetime: nat(event.lifetime, true) };
+    case "revisionRegister": inputFields(event, ["kind", "subject", "input", "addMember"]); return { $: "Canonical.RevisionRegister", subject: nat(event.subject, true), input: nat(event.input, true), add_member: bool(event.addMember) };
+    case "revisionRelease": inputFields(event, ["kind", "subject", "generation"]); return { $: "Canonical.RevisionRelease", subject: nat(event.subject, true), generation: nat(event.generation, true) };
+    case "revisionSupersededCheck": inputFields(event, ["kind", "subject", "candidateSubject", "generation"]); return { $: "Canonical.RevisionSupersededCheck", subject: nat(event.subject, true), candidate_subject: nat(event.candidateSubject, true), generation: nat(event.generation, true) };
+    case "revisionCurrentCheck": inputFields(event, ["kind", "subject", "input", "generation"]); return { $: "Canonical.RevisionCurrentCheck", subject: nat(event.subject, true), input: nat(event.input, true), generation: nat(event.generation, true) };
+    case "revisionGenerationCheck": inputFields(event, ["kind", "subject"]); return { $: "Canonical.RevisionGenerationCheck", subject: nat(event.subject, true) };
+    case "revisionCountCheck": inputFields(event, ["kind"]); return { $: "Canonical.RevisionCountCheck" };
     case "outputStarted": inputFields(event, ["kind", "partition", "lifetime", "round"]); return { $: "Canonical.OutputStarted", ...identity(event), round: nat(event.round, true) };
     case "outputTerminal": {
       inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "outcome"]);
@@ -451,6 +466,15 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
       fields(value, name, []);
       return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Extract<CanonicalCommand, { kind: `submission${string}` }>["kind"] };
     }
+    case "Canonical.RevisionReused": case "Canonical.RevisionReplaced": case "Canonical.RevisionGeneration": {
+      const name = tag(value); return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "revisionReused" | "revisionReplaced" | "revisionGeneration", generation: nat(fields(value, name, ["generation"]).generation) };
+    }
+    case "Canonical.RevisionCount": return { kind: "revisionCount", count: nat(fields(value, "Canonical.RevisionCount", ["count"]).count) };
+    case "Canonical.RevisionReleased": case "Canonical.RevisionCurrent": case "Canonical.RevisionStale":
+    case "Canonical.RevisionSuperseded": case "Canonical.RevisionNotSuperseded": {
+      const name = tag(value); fields(value, name, []);
+      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "revisionReleased" | "revisionCurrent" | "revisionStale" | "revisionSuperseded" | "revisionNotSuperseded" };
+    }
     case "Canonical.WriteAuthorized": return { kind: "writeAuthorized", operation: nat(fields(value, "Canonical.WriteAuthorized", ["operation"]).operation, true) };
     case "Canonical.WriteRecorded": return { kind: "writeRecorded", outcome: writeOutcome(fields(value, "Canonical.WriteRecorded", ["outcome"]).outcome) };
     case "Canonical.WaitForOutput": fields(value, "Canonical.WaitForOutput", []); return { kind: "waitForOutput" };
@@ -472,6 +496,7 @@ export type CanonicalProjection = {
   readonly pendingFindings: readonly { readonly operation: number; readonly count: number }[];
   readonly dispatch: { readonly pending: readonly DispatchEntry[]; readonly active: readonly DispatchEntry[]; readonly running: readonly DispatchEntry[]; readonly nextSequence: number; readonly cycle: number; readonly closed: boolean };
   readonly collection: { readonly ready: readonly number[]; readonly leases: readonly { readonly advice: number; readonly owner: number }[]; readonly claims: readonly { readonly group: number; readonly owner: number }[] };
+  readonly revision: { readonly entries: readonly { readonly subject: number; readonly input: number; readonly generation: number; readonly members: number }[]; readonly nextGeneration: number };
   readonly delivery: { readonly slots: readonly { readonly group: number; readonly round: number; readonly attempt: number; readonly token: number; readonly selected: readonly number[]; readonly phase: "reserved" | "authorized" | "submitted" | "failed" | "uncertain" }[]; readonly counters: readonly { readonly group: number; readonly round: number; readonly used: number }[]; readonly submissions: { readonly batches: readonly { readonly advice: number; readonly group: number; readonly round: number; readonly token: number; readonly surface: "edit" | "background" | "stop"; readonly phase: "reserved" | "authorized" | "submitted" | "uncertain"; readonly fingerprints: readonly number[]; readonly units: readonly number[] }[]; readonly leases: readonly { readonly advice: number; readonly fingerprint: number; readonly round: number; readonly phase: "available" | "reserved" | "authorized" | "submitted" | "uncertain"; readonly reoffered: boolean }[] } };
 };
 type DispatchEntry = { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly sequence: number; readonly cycle: number; readonly cancelled: boolean };
@@ -490,7 +515,13 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
     running: readList(rawDispatch.running, dispatchEntry), nextSequence: nat(rawDispatch.next_sequence),
     cycle: nat(rawDispatch.cycle), closed: bool(rawDispatch.closed) };
   const dispatchEntries = [...dispatch.pending, ...dispatch.active, ...dispatch.running];
-  const collectionState = fields(s.collection, "CollectionState.State", ["ready", "leases", "claims", "delivery"]);
+  const collectionState = fields(s.collection, "CollectionState.State", ["ready", "leases", "claims", "delivery", "revision"]);
+  const rawRevision = fields(collectionState.revision, "RevisionState.State", ["entries", "next_generation"]);
+  const revision = { entries: readList(rawRevision.entries, (value) => {
+    const entry = fields(value, "RevisionState.Entry", ["subject", "input", "generation", "members"]);
+    return { subject: nat(entry.subject, true), input: nat(entry.input, true), generation: nat(entry.generation, true), members: nat(entry.members, true) };
+  }), nextGeneration: nat(rawRevision.next_generation, true) };
+  if (new Set(revision.entries.map((entry) => entry.subject)).size !== revision.entries.length) throw new TypeError("duplicate canonical revision subject");
   const collection = {
     ready: readList(collectionState.ready, (id) => nat(id, true)),
     leases: readList(collectionState.leases, (value) => {
@@ -665,7 +696,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
     limits: { globalItems: nat(limits.global_items, true), globalBytes: nat(limits.global_bytes, true),
       partitionItems: nat(limits.partition_items, true), partitionBytes: nat(limits.partition_bytes, true) },
     partitions, charges, inventory, rounds, admissions, work, pendingFindings,
-    dispatch, collection, delivery };
+    dispatch, collection, revision, delivery };
 };
 export const initialCanonical = (limits: { readonly globalItems: number; readonly globalBytes: number; readonly partitionItems: number; readonly partitionBytes: number }): unknown => {
   const values = Object.values(limits);
