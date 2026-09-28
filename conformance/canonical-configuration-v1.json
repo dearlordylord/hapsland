@@ -27,6 +27,19 @@
       { "kind": "reviewAdmissionCheck", "rootValid": false, "configurationValid": false, "credentialReady": false, "selected": false, "expect": "reviewAdmission:refuseRoot" },
       { "kind": "reviewAdmissionCheck", "rootValid": true, "configurationValid": false, "credentialReady": false, "selected": false, "expect": "reviewAdmission:refuseConfiguration" },
       { "kind": "reviewAdmissionCheck", "rootValid": true, "configurationValid": true, "credentialReady": false, "selected": true, "expect": "reviewAdmission:refuseCredential" }
+    ] },
+    { "name": "protection priority is boundary privacy generated kind", "events": [
+      { "kind": "fileProtectionInvalid", "expect": "fileProtection:repositoryBoundary" },
+      { "kind": "fileProtectionCheck", "sensitiveName": true, "generatedOrVendor": true, "allowedExtension": false, "expect": "fileProtection:sensitivePath" },
+      { "kind": "fileProtectionCheck", "sensitiveName": false, "generatedOrVendor": true, "allowedExtension": false, "expect": "fileProtection:generatedOrVendor" },
+      { "kind": "fileProtectionCheck", "sensitiveName": false, "generatedOrVendor": false, "allowedExtension": false, "expect": "fileProtection:fileExtension" },
+      { "kind": "fileProtectionCheck", "sensitiveName": false, "generatedOrVendor": false, "allowedExtension": true, "expect": "fileProtection:allowedPath" }
+    ] },
+    { "name": "candidate file rejects admin before physical and ignore", "events": [
+      { "kind": "candidateFileCheck", "gitAdmin": true, "physicalSafe": false, "gitAllowed": false, "expect": "candidateFile:refuseGitAdmin" },
+      { "kind": "candidateFileCheck", "gitAdmin": false, "physicalSafe": false, "gitAllowed": false, "expect": "candidateFile:refuseFileKind" },
+      { "kind": "candidateFileCheck", "gitAdmin": false, "physicalSafe": true, "gitAllowed": false, "expect": "candidateFile:refuseGitIgnore" },
+      { "kind": "candidateFileCheck", "gitAdmin": false, "physicalSafe": true, "gitAllowed": true, "expect": "candidateFile:candidateAllowed" }
     ] }
   ]
 }

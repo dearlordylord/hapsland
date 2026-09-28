@@ -54,6 +54,8 @@ export type DirectReviewContext = {
   readonly rules?: ReadonlyArray<CompiledRule> | (() => ReadonlyArray<CompiledRule>);
   readonly inputContract?: string | (() => string);
   readonly captureHooks?: CaptureHooks;
+  /** Fixture-only source effect; production uses the stable native capture. */
+  readonly captureSource?: typeof captureStable;
   readonly beforePrepare?: Effect.Effect<void>;
   /** Reserve bounded analyzer/input materialization after capture, before parsing. */
   readonly beforeAnalyze?: (
@@ -235,7 +237,7 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
       outcomes.push({ status: "skipped", path: eligible.relativePath });
       continue;
     }
-    const captured = yield* captureStable(
+    const captured = yield* (context.captureSource ?? captureStable)(
       observation.root,
       eligible,
       context.captureHooks,

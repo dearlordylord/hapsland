@@ -136,6 +136,9 @@ export type CanonicalEvent =
   | { readonly kind: "deliveryReleaseCheck"; readonly acknowledged: boolean }
   | { readonly kind: "includeLayerCheck"; readonly supplied: boolean; readonly currentRank: number; readonly candidateRank: number }
   | { readonly kind: "fileSelectionCheck"; readonly protected: boolean; readonly excluded: boolean; readonly includesEmpty: boolean; readonly included: boolean }
+  | { readonly kind: "fileProtectionInvalid" }
+  | { readonly kind: "fileProtectionCheck"; readonly sensitiveName: boolean; readonly generatedOrVendor: boolean; readonly allowedExtension: boolean }
+  | { readonly kind: "candidateFileCheck"; readonly gitAdmin: boolean; readonly physicalSafe: boolean; readonly gitAllowed: boolean }
   | { readonly kind: "reviewAdmissionCheck"; readonly rootValid: boolean; readonly configurationValid: boolean; readonly credentialReady: boolean; readonly selected: boolean }
   | { readonly kind: "reuseRoute"; readonly id: number; readonly liveAdvice: boolean }
   | { readonly kind: "reuseClaim" | "reuseAttach" | "reuseRelease" | "reuseTouch"; readonly id: number }
@@ -216,6 +219,8 @@ export type CanonicalCommand =
   | { readonly kind: "noticeSelected"; readonly ids: readonly number[] }
   | { readonly kind: "includeChoice"; readonly choice: "replaceIncludes" | "keepIncludes" }
   | { readonly kind: "fileSelection"; readonly selection: "protected" | "excluded" | "emptyIncludes" | "notIncluded" | "selected" }
+  | { readonly kind: "fileProtection"; readonly protection: "allowedPath" | "repositoryBoundary" | "sensitivePath" | "generatedOrVendor" | "fileExtension" }
+  | { readonly kind: "candidateFile"; readonly candidate: "candidateAllowed" | "refuseGitAdmin" | "refuseFileKind" | "refuseGitIgnore" }
   | { readonly kind: "reviewAdmission"; readonly admission: "admitReview" | "refuseRoot" | "refuseConfiguration" | "refuseCredential" | "refuseSelection" }
   | { readonly kind: "noticeRejectedFull" | "noticeCreateKey" | "noticeKeepLeased" | "noticeRefused" | "noticeCommitted" | "noticeDropped" | "noticeLeased" | "noticePendingCleared" }
   | { readonly kind: "writeAuthorized"; readonly operation: number }
@@ -394,6 +399,9 @@ const encode = (event: CanonicalEvent): unknown => {
     case "deliveryReleaseCheck": inputFields(event, ["kind", "acknowledged"]); return { $: "Canonical.DeliveryReleaseCheck", acknowledged: bool(event.acknowledged) };
     case "includeLayerCheck": inputFields(event, ["kind", "supplied", "currentRank", "candidateRank"]); return { $: "Canonical.IncludeLayerCheck", supplied: bool(event.supplied), current_rank: nat(event.currentRank), candidate_rank: nat(event.candidateRank) };
     case "fileSelectionCheck": inputFields(event, ["kind", "protected", "excluded", "includesEmpty", "included"]); return { $: "Canonical.FileSelectionCheck", protected: bool(event.protected), excluded: bool(event.excluded), includes_empty: bool(event.includesEmpty), included: bool(event.included) };
+    case "fileProtectionInvalid": inputFields(event, ["kind"]); return { $: "Canonical.FileProtectionInvalid" };
+    case "fileProtectionCheck": inputFields(event, ["kind", "sensitiveName", "generatedOrVendor", "allowedExtension"]); return { $: "Canonical.FileProtectionCheck", sensitive_name: bool(event.sensitiveName), generated_or_vendor: bool(event.generatedOrVendor), allowed_extension: bool(event.allowedExtension) };
+    case "candidateFileCheck": inputFields(event, ["kind", "gitAdmin", "physicalSafe", "gitAllowed"]); return { $: "Canonical.CandidateFileCheck", git_admin: bool(event.gitAdmin), physical_safe: bool(event.physicalSafe), git_allowed: bool(event.gitAllowed) };
     case "reviewAdmissionCheck": inputFields(event, ["kind", "rootValid", "configurationValid", "credentialReady", "selected"]); return { $: "Canonical.ReviewAdmissionCheck", root_valid: bool(event.rootValid), configuration_valid: bool(event.configurationValid), credential_ready: bool(event.credentialReady), selected: bool(event.selected) };
     case "reuseRoute": inputFields(event, ["kind", "id", "liveAdvice"]); return { $: "Canonical.ReuseRoute", id: nat(event.id, true), live_advice: bool(event.liveAdvice) };
     case "reuseClaim": case "reuseAttach": case "reuseRelease": case "reuseTouch": inputFields(event, ["kind", "id"]); return { $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`, id: nat(event.id, true) };
@@ -652,6 +660,22 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
       if (!names.some((item) => name === `Configuration.${item}`)) throw new TypeError("invalid file selection");
       fields(selection, name, []);
       return { kind: "fileSelection", selection: name.slice("Configuration.".length).replace(/^./, (first) => first.toLowerCase()) as "protected" | "excluded" | "emptyIncludes" | "notIncluded" | "selected" };
+    }
+    case "Canonical.FileProtection": {
+      const protection = fields(value, "Canonical.FileProtection", ["protection"]).protection;
+      const names = ["AllowedPath", "RepositoryBoundary", "SensitivePath", "GeneratedOrVendor", "FileExtension"];
+      const name = tag(protection);
+      if (!names.some((item) => name === `Configuration.${item}`)) throw new TypeError("invalid file protection");
+      fields(protection, name, []);
+      return { kind: "fileProtection", protection: name.slice("Configuration.".length).replace(/^./, (first) => first.toLowerCase()) as "allowedPath" | "repositoryBoundary" | "sensitivePath" | "generatedOrVendor" | "fileExtension" };
+    }
+    case "Canonical.CandidateFile": {
+      const candidate = fields(value, "Canonical.CandidateFile", ["candidate"]).candidate;
+      const names = ["CandidateAllowed", "RefuseGitAdmin", "RefuseFileKind", "RefuseGitIgnore"];
+      const name = tag(candidate);
+      if (!names.some((item) => name === `Configuration.${item}`)) throw new TypeError("invalid candidate file");
+      fields(candidate, name, []);
+      return { kind: "candidateFile", candidate: name.slice("Configuration.".length).replace(/^./, (first) => first.toLowerCase()) as "candidateAllowed" | "refuseGitAdmin" | "refuseFileKind" | "refuseGitIgnore" };
     }
     case "Canonical.ReviewAdmission": {
       const admission = fields(value, "Canonical.ReviewAdmission", ["admission"]).admission;

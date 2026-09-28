@@ -14,6 +14,19 @@ type Selection is Data:
   NotIncluded{}
   Selected{}
 
+type Protection is Data:
+  AllowedPath{}
+  RepositoryBoundary{}
+  SensitivePath{}
+  GeneratedOrVendor{}
+  FileExtension{}
+
+type Candidate is Data:
+  CandidateAllowed{}
+  RefuseGitAdmin{}
+  RefuseFileKind{}
+  RefuseGitIgnore{}
+
 type Admission is Data:
   AdmitReview{}
   RefuseRoot{}
@@ -32,6 +45,21 @@ def select(protected: Bool, excluded: Bool, includes_empty: Bool,
     Bool.pick(Selection, excluded, Excluded{},
       Bool.pick(Selection, includes_empty, EmptyIncludes{},
         Bool.pick(Selection, included, Selected{}, NotIncluded{}))))
+
+def protection(sensitive_name: Bool,
+    generated_or_vendor: Bool, allowed_extension: Bool) -> Protection:
+  Bool.pick(Protection, sensitive_name, SensitivePath{},
+      Bool.pick(Protection, generated_or_vendor,
+        GeneratedOrVendor{},
+        Bool.pick(Protection, Bool.not(allowed_extension), FileExtension{},
+          AllowedPath{})))
+
+def candidate(git_admin: Bool, physical_safe: Bool,
+    git_allowed: Bool) -> Candidate:
+  Bool.pick(Candidate, git_admin, RefuseGitAdmin{},
+    Bool.pick(Candidate, Bool.not(physical_safe), RefuseFileKind{},
+      Bool.pick(Candidate, Bool.not(git_allowed), RefuseGitIgnore{},
+        CandidateAllowed{})))
 
 def admit(root_valid: Bool, configuration_valid: Bool,
     credential_ready: Bool, selected: Bool) -> Admission:

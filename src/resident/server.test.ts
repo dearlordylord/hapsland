@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import { addEvent, makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts";
@@ -90,6 +91,50 @@ const waitUntilIdle = async (server: ResidentServer): Promise<void> => {
 };
 
 describe("canonical resident capacity", () => {
+  it.each([
+    ["build/blocked.ts", "safe.ts"],
+    ["safe.ts", "build/blocked.ts"],
+  ])("refuses a protected sibling before resident review in callback order %j, %j", async (first, second) => {
+    const root = await makeGitFixture();
+    await put(root, "safe.ts", "type SafeCount = number\n");
+    await put(root, "build/blocked.ts", "type BlockedCount = number\n");
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, [first, second])));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const started = deferred();
+    const release = deferred();
+    const evaluated: Array<string> = [];
+    const captured: Array<string> = [];
+    let clock = 100;
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock, {
+      captureSource: (_root, path) => Effect.sync(() => {
+        captured.push(path.relativePath);
+        const text = "type SafeCount = number\n";
+        const bytes = new TextEncoder().encode(text);
+        return { text, bytes, byteLength: bytes.byteLength,
+          contentHash: createHash("sha256").update(bytes).digest("hex"), metadata: "fixture" };
+      }),
+      beforeEvaluate: async (prepared) => {
+        evaluated.push(prepared.input.path);
+        started.resolve();
+        await release.promise;
+      },
+    });
+    try {
+      expect(server.admit(observation, findingDispatch(join(root, "unused-grants"))).status).toBe("accepted");
+      clock = 101;
+      await started.promise;
+      expect(captured).toEqual(["safe.ts"]);
+      expect(evaluated).toEqual(["safe.ts"]);
+      release.resolve();
+      await server.whenIdle();
+      expect(captured).toEqual(["safe.ts"]);
+      expect(server.pendingAdviceMetadata().map(({ path }) => path)).toEqual(["safe.ts"]);
+    } finally {
+      release.resolve();
+      await server.close();
+    }
+  });
+
   it("keeps a finite review cycle open when the second Jev result arrives first", async () => {
     const root = await makeGitFixture();
     await put(root, "first.ts", "type FirstCount = number\n");

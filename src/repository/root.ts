@@ -1,10 +1,22 @@
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
 import { realpath } from "node:fs/promises";
-import { relative, resolve, sep } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import * as Effect from "effect/Effect";
 
 const execFileAsync = promisify(execFile);
+
+/** Native marker observation for distinguishing a missing Git command from a non-repository path. */
+export const hasGitMetadata = (path: string): boolean => {
+  let current = resolve(path);
+  while (true) {
+    if (existsSync(join(current, ".git"))) return true;
+    const parent = dirname(current);
+    if (parent === current) return false;
+    current = parent;
+  }
+};
 
 /** Discover a physical Git working-tree root without consulting saved grants. */
 export const discoverWorkingTreeRoot = Effect.fn("Repository.discoverWorkingTreeRoot")(function* (cwd: string) {
