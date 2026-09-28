@@ -1,31 +1,18 @@
 import { createHash } from "node:crypto";
 import { monotonicNow, PRE_EDIT_ADMISSION_DEADLINE_MS } from "./hook-clock.ts";
 import { canonicalValue } from "../direct-event/model.ts";
-import { BendWorkTracker } from "./bend-work.ts";
 import { CapacityLedger } from "./capacity.ts";
 import { DELIVERY_LEASE_MS } from "./protocol.ts";
-import {
-  bendRoundActive, bendRoundBeginStop, bendRoundBeginDecision, bendRoundBudget,
-  bendRoundConsume, bendRoundFinishStop, bendRoundInitial, bendRoundOwnsStop,
-  bendRoundStopTerminal, bendRoundExpireClose,
-  bendRoundReopen, bendRoundMaxContinuations, type BendRound,
-  bendDeliverySubmissionAllowed, bendDeliveryLegacyStopAllowed,
-  bendDeliveryExistingTokenAllowed,
-  type BendLeaseSurface,
-} from "./bend-policy.generated.js";
 
 /** Shared round and source-free handoff state for every agent runtime. */
-export const MAX_STOP_CONTINUATIONS = Number(bendRoundMaxContinuations());
 export const MAX_COMPOSED_ROUNDS = 64;
 export const EDIT_PERMIT_EXPIRY_MS = 30_000;
 export const BACKGROUND_WAITER_EXPIRY_MS = 20_000;
 
 type Round = {
-  readonly marker: string;
-  readonly lastSeenAt: number;
-  readonly policy: BendRound;
+  // Native event identities prevent one host callback from claiming two permits.
+  // Admission, Stop phase, and continuation authority remain canonical.
   readonly events: ReadonlySet<string>;
-  readonly continuationDigest?: string;
 };
 
 export type DeliverySurface = "edit" | "background" | "stop";
@@ -55,7 +42,8 @@ export class ComposedDelivery {
     readonly expiresAt: number; readonly token: number; readonly tool: number }>();
   readonly #toolIds = new Map<string, number>();
   #nextToolId = 1;
-  readonly #stops = new Map<string, { token: string; id: number; generation: number; outputToken?: string }>();
+  readonly #stops = new Map<string, { token: string; id: number; generation: number;
+    continuationsAtStart: number; outputToken?: string }>();
   #nextStopId = 1;
   readonly #submissions = new Map<string, Submission>();
   readonly #finishPermits = new Map<string, {
@@ -98,15 +86,14 @@ export class ComposedDelivery {
     this.expire(now);
     const previous = this.#rounds.get(partition);
     // Neither a prompt nor a native runtime turn resets an active round.
-    if (previous !== undefined) return previous.policy.active;
+    if (previous !== undefined) return this.isActive(partition);
     // A notification without an admitted edit carries no round authority.
     return true;
   }
 
-  #startRound(partition: string, marker: string, now: number): Round | undefined {
+  #startRound(partition: string): Round | undefined {
     if (this.#rounds.size >= MAX_COMPOSED_ROUNDS) return undefined;
-    const round: Round = { marker, lastSeenAt: now,
-      policy: bendRoundInitial(), events: new Set() };
+    const round: Round = { events: new Set() };
     this.#rounds.set(partition, round);
     return round;
   }
@@ -191,7 +178,7 @@ export class ComposedDelivery {
       return { accepted: false, reason: "StaleRound" };
     }
     if (round === undefined) {
-      round = this.#startRound(partition, event, now);
+      round = this.#startRound(partition);
       if (round === undefined) return { accepted: false, reason: "RoundLimit" };
     }
     this.#rounds.set(partition, { ...round, events: new Set([...round.events, event]) });
@@ -210,7 +197,9 @@ export class ComposedDelivery {
       const permit = this.#permits.get(key);
       this.#permits.delete(key);
       if (previous === undefined || permit === undefined) return undefined;
-      if (permit.generation !== Number(previous.policy.generation) + (previous.policy.active ? 0 : 1)) {
+      const admission = this.canonical.canonicalProjection().admissions.find(
+        (item) => item.partition === this.canonical.partitionId(partition));
+      if (admission === undefined || permit.generation !== admission.round + (admission.active ? 0 : 1)) {
         this.#releaseAdmissionPermit(partition, permit.token);
         return undefined;
       }
@@ -228,27 +217,18 @@ export class ComposedDelivery {
         this.#releaseAdmissionPermit(partition, permit.token);
         return undefined;
       }
-      if (!previous.policy.active) {
-        const reopened = bendRoundReopen(previous.policy, permit.generation);
-        if (reopened.$ !== "Granted") {
-          throw new Error("legacy Stop round disagrees with canonical admission");
-        }
-        this.#rounds.set(partition, { marker: event, policy: reopened.state,
-          lastSeenAt: now, events: previous.events });
-      }
       return this.generation(partition);
     }
     // Internal deterministic fixtures and the non-installed API may start a
     // first round; reopening always requires the runtime's prospective permit.
-    if ((previous !== undefined && (!previous.policy.active || previous.events.has(event) || previous.events.size >= 4096)) ||
-        (previous === undefined && this.#rounds.size >= MAX_COMPOSED_ROUNDS)) return undefined;
     const partitionId = this.canonical.partitionId(partition);
     const tool = this.#toolId(partition, event);
     const syntheticNow = this.#bendTime(Math.max(1, now));
     const issued = this.canonical.transition({ kind: "issuePermit", partition: partitionId,
       lifetime: 1, tool, started: syntheticNow, deadline: syntheticNow + this.#bendTime(EDIT_PERMIT_EXPIRY_MS),
       now: syntheticNow, facts: { clockValid: true, withinHookWindow: true,
-        startedAfterClosure: true, duplicateEvent: false,
+        startedAfterClosure: previous === undefined || this.isActive(partition),
+        duplicateEvent: previous?.events.has(event) ?? false,
         permitCount: this.#permits.size, permitLimit: 1024,
         roundCount: this.#rounds.size, roundLimit: MAX_COMPOSED_ROUNDS,
         newRound: previous === undefined, eventCount: previous?.events.size ?? 0, eventLimit: 4096 } });
@@ -261,12 +241,12 @@ export class ComposedDelivery {
       return undefined;
     }
     if (previous === undefined) {
-      previous = this.#startRound(partition, event, now);
+      previous = this.#startRound(partition);
       if (previous === undefined) return undefined;
     }
-    if (consumed.commands[0].round !== Number(previous.policy.generation)) return undefined;
+    if (consumed.commands[0].round !== this.generation(partition)) return undefined;
     this.#rounds.set(partition, { ...previous, events: new Set([...previous.events, event]) });
-    return Number(previous.policy.generation);
+    return this.generation(partition);
   }
 
   expirePermits(now = monotonicNow()): void {
@@ -286,31 +266,40 @@ export class ComposedDelivery {
   }
 
   isActive(partition: string, generation = this.generation(partition)): boolean {
-    const round = this.#rounds.get(partition);
-    return round !== undefined && bendRoundActive(round.policy, generation);
+    const admission = this.canonical.canonicalProjection().admissions.find(
+      (item) => item.partition === this.canonical.partitionId(partition));
+    // An issued first permit creates a virtual round before the edit callback
+    // consumes it. Its admission round remains zero until that callback.
+    const result = this.canonical.transition({ kind: "roundActivityCheck",
+      bound: this.#rounds.has(partition), hasAdmission: admission !== undefined,
+      round: admission?.round ?? 0, active: admission?.active ?? false,
+      closedAt: admission?.closedAt ?? 0, expectedGeneration: generation });
+    if (result.rejection !== undefined || result.commands.length !== 1) throw new Error("canonical round activity refused");
+    return result.commands[0]?.kind === "roundActive";
   }
 
   beginStop(partition: string, token: string): boolean {
-    const round = this.#rounds.get(partition);
-    if (round === undefined) return false;
     const id = this.#nextStopId++;
-    const result = bendRoundBeginStop(round.policy, id);
-    if (result.$ !== "Granted") return false;
-    this.#rounds.set(partition, { ...round, policy: result.state });
-    this.#stops.set(partition, { token, id, generation: this.generation(partition) });
+    const decision = this.canonical.transition({ kind: "roundBeginStopCheck",
+      active: this.isActive(partition), hasStop: this.#stops.has(partition), token: id });
+    if (decision.rejection !== undefined || decision.commands[0]?.kind !== "roundStopBegun") return false;
+    this.#stops.set(partition, { token, id, generation: this.generation(partition),
+      continuationsAtStart: this.#continuationCount(partition) });
     this.canonical.roundId(partition);
     return true;
   }
 
   ownsStop(partition: string, token: string): boolean {
     const stop = this.#stops.get(partition);
-    const round = this.#rounds.get(partition);
-    return stop?.token === token && round !== undefined &&
-      bendRoundOwnsStop(round.policy, stop.id) && this.isActive(partition, stop.generation);
+    const decision = this.canonical.transition({ kind: "roundOwnsStopCheck",
+      active: stop !== undefined && this.isActive(partition, stop.generation),
+      tokenMatches: stop?.token === token, deciding: this.isDeciding(partition) });
+    if (decision.rejection !== undefined || decision.commands.length !== 1) throw new Error("canonical Stop ownership refused");
+    return decision.commands[0]?.kind === "roundStopOwned";
   }
 
   finishGate(partition: string, token: string, extraUnfinished: number,
-    deadlineReached: boolean, work = new BendWorkTracker(), scopePartitions: readonly string[] = []):
+    deadlineReached: boolean, scopePartitions: readonly string[] = []):
     { readonly status: "waiting" } |
     { readonly status: "cutoff"; readonly cancelledSource: number[];
       readonly cancelledJev: number[]; readonly limited: boolean } | undefined {
@@ -339,9 +328,6 @@ export class ComposedDelivery {
     for (const command of cutoff.commands) if (command.kind === "reservationReleased") {
       this.canonical.acknowledgeStopRelease(command.id);
     }
-    work.cancelUnfinished(); // Keep the legacy output projection synchronized until #125.
-    const decision = bendRoundBeginDecision(round.policy, stop.id);
-    if (decision.$ !== "Granted") throw new Error("legacy output projection refused canonical Stop");
     for (const [key, permit] of this.#permits) if (permit.partition === partition) {
       const released = this.canonical.transition({ kind: "releasePermit",
         partition: this.canonical.partitionId(partition), lifetime: 1, token: permit.token });
@@ -350,7 +336,6 @@ export class ComposedDelivery {
       }
       this.#permits.delete(key);
     }
-    this.#rounds.set(partition, { ...round, policy: decision.state });
     return { status: "cutoff", cancelledSource: cancelled.filter((id) => source.has(id)),
       cancelledJev: cancelled.filter((id) => !source.has(id)), limited: terminal === "finishLimit" };
   }
@@ -475,8 +460,10 @@ export class ComposedDelivery {
     const permit = this.#finishPermits.get(token);
     // The non-installed legacy collector has no finish-decision permit.
     if (permit === undefined) {
-      const round = this.#rounds.get(partition)?.policy;
-      return round !== undefined && bendDeliveryLegacyStopAllowed(round);
+      const decision = this.canonical.transition({ kind: "deliveryLegacyStopCheck",
+        active: this.isActive(partition), deciding: this.isDeciding(partition) });
+      if (decision.rejection !== undefined || decision.commands.length !== 1) throw new Error("canonical legacy Stop gate refused");
+      return decision.commands[0]?.kind === "deliveryLegacyStopAllowed";
     }
     const stop = this.#stops.get(partition);
     if (permit.partition !== partition || !this.isActive(partition, permit.generation) ||
@@ -501,22 +488,21 @@ export class ComposedDelivery {
   finishStop(partition: string, token: string, close: boolean, closedAt = monotonicNow(),
     scopePartitions: readonly string[] = []): number | undefined {
     const stop = this.#stops.get(partition);
-    let round = this.#rounds.get(partition);
+    const round = this.#rounds.get(partition);
     if (stop?.token !== token || round === undefined) return undefined;
     // A provisional output has not crossed the IPC write boundary. If Stop
     // ends while that response is gated, release its slot and close the round.
-    const terminal = bendRoundStopTerminal(stop.outputToken !== undefined,
-      stop.outputToken !== undefined &&
-        this.#finishPermits.get(stop.outputToken)?.authorized === true, close);
-    if (terminal.$ !== "StopTerminal") return undefined;
-    if (terminal.revoke_provisional && stop.outputToken !== undefined) {
+    const terminal = this.canonical.transition({ kind: "roundStopTerminalCheck",
+      hasOutput: stop.outputToken !== undefined,
+      authorized: stop.outputToken !== undefined &&
+        this.#finishPermits.get(stop.outputToken)?.authorized === true,
+      requestedClose: close });
+    const command = terminal.commands[0];
+    if (terminal.rejection !== undefined || command?.kind !== "roundStopTerminal") return undefined;
+    if (command.revokeProvisional && stop.outputToken !== undefined) {
       if (!this.revokeProvisionalFinishOutput(partition, token, stop.outputToken)) return undefined;
-      round = this.#rounds.get(partition);
-      if (round === undefined) return undefined;
     }
-    close = terminal.close;
-    const result = bendRoundFinishStop(round.policy, stop.id, close, Math.floor(Math.max(0, closedAt)));
-    if (result.$ !== "Granted") return undefined;
+    close = command.close;
     const scopes = scopePartitions.map((name) => {
       const owner = this.canonical.partitionId(name);
       const current = this.canonical.canonicalProjection().rounds.find((item) => item.partition === owner);
@@ -536,7 +522,7 @@ export class ComposedDelivery {
       }
     }
     if (close) {
-      if (Number(round.policy.generation) !== stop.generation) return undefined;
+      if (this.generation(partition) !== stop.generation) return undefined;
       // Publish the canonical fence before changing the resident's Stop view.
       const admission = this.canonical.canonicalProjection().admissions.find(
         (item) => item.partition === this.canonical.partitionId(partition));
@@ -548,7 +534,6 @@ export class ComposedDelivery {
       if (closed.rejection !== undefined || closed.commands[0]?.kind !== "permitRoundClosed" ||
           closed.commands[0].round !== stop.generation) throw new Error("canonical permit closure disagrees with round");
     }
-    this.#rounds.set(partition, { ...round, policy: result.state });
     this.#stops.delete(partition);
     if (close) this.canonical.retireRound(partition);
     if (stop.outputToken !== undefined) {
@@ -563,7 +548,7 @@ export class ComposedDelivery {
     for (const [id, submission] of this.#submissions) {
       if (submission.partition === partition) this.forget(id);
     }
-    return Number(round.policy.generation);
+    return stop.generation;
   }
 
   closureCounts(partition: string): { reservedContinuations: number; submitted: number; uncertain: number; editPermits: number } {
@@ -584,53 +569,73 @@ export class ComposedDelivery {
     // and round; finishStop releases any provisional output before closing.
     const authorizedOutput = stop.outputToken !== undefined &&
       this.#finishPermits.get(stop.outputToken)?.authorized === true;
-    return this.finishStop(partition, token,
-      !authorizedOutput && bendRoundExpireClose(this.#rounds.get(partition)?.policy.barrier === true));
+    const expiry = this.canonical.transition({ kind: "roundExpireCloseCheck",
+      barrier: this.#stopBarrier(partition), authorizedOutput });
+    if (expiry.rejection !== undefined || expiry.commands.length !== 1) throw new Error("canonical Stop expiry refused");
+    return this.finishStop(partition, token, expiry.commands[0]?.kind === "roundExpireCloses");
   }
 
   isDeciding(partition: string): boolean {
-    return this.#rounds.get(partition)?.policy.deciding === true;
+    const owner = this.canonical.partitionId(partition);
+    return this.canonical.canonicalProjection().rounds.find((item) => item.partition === owner)?.deciding === true;
   }
 
   canSubmit(partition: string, surface: DeliverySurface): boolean {
-    const policy = this.#rounds.get(partition)?.policy;
-    return policy !== undefined && bendDeliverySubmissionAllowed(policy,
-      this.#leaseSurface(surface), false, false);
+    const result = this.canonical.transition({ kind: "deliverySubmissionAllowedCheck",
+      active: this.isActive(partition), barrier: this.#stopBarrier(partition),
+      deciding: this.isDeciding(partition), surface, existingToken: false, finishPermit: false });
+    if (result.rejection !== undefined || result.commands.length !== 1) throw new Error("canonical submission eligibility refused");
+    return result.commands[0]?.kind === "deliverySubmissionAllowed";
   }
 
   canBeginSubmission(partition: string, surface: DeliverySurface, token: string): boolean {
-    const policy = this.#rounds.get(partition)?.policy;
-    return policy !== undefined && bendDeliverySubmissionAllowed(policy,
-      this.#leaseSurface(surface), this.hasToken(token),
-      surface === "stop" && this.hasFinishPermit(token));
+    const result = this.canonical.transition({ kind: "deliverySubmissionAllowedCheck",
+      active: this.isActive(partition), barrier: this.#stopBarrier(partition),
+      deciding: this.isDeciding(partition), surface, existingToken: this.hasToken(token),
+      finishPermit: surface === "stop" && this.hasFinishPermit(token) });
+    if (result.rejection !== undefined || result.commands.length !== 1) throw new Error("canonical submission eligibility refused");
+    return result.commands[0]?.kind === "deliverySubmissionAllowed";
   }
 
   canBeginExistingToken(surface: DeliverySurface, token: string): boolean {
-    return bendDeliveryExistingTokenAllowed(this.#leaseSurface(surface),
-      this.hasToken(token), surface === "stop" && this.hasFinishPermit(token));
+    const result = this.canonical.transition({ kind: "deliveryExistingTokenCheck",
+      surface, existingToken: this.hasToken(token),
+      finishPermit: surface === "stop" && this.hasFinishPermit(token) });
+    if (result.rejection !== undefined || result.commands.length !== 1) throw new Error("canonical existing token gate refused");
+    return result.commands[0]?.kind === "deliveryExistingTokenAllowed";
   }
 
   generation(partition: string): number {
-    return Number(this.#rounds.get(partition)?.policy.generation ?? 0n);
+    if (!this.#rounds.has(partition)) return 0;
+    const admission = this.canonical.canonicalProjection().admissions.find(
+      (item) => item.partition === this.canonical.partitionId(partition));
+    return admission === undefined ? 0 : Math.max(1, admission.round);
   }
 
   /** Reserve one request from the active virtual round's continuation budget. */
   consumeStop(partition: string, continuationDigest?: string): boolean {
-    const chain = this.#rounds.get(partition);
-    if (chain === undefined) return false;
+    if (!this.hasVirtualRoundContinuationBudget(partition)) return false;
     const consumed = this.canonical.transition({ kind: "continuationConsume",
       group: this.canonical.partitionId(partition), round: this.canonical.roundId(partition) });
     if (consumed.rejection !== undefined || consumed.commands[0]?.kind !== "continuationConsumed") return false;
-    const result = bendRoundConsume(chain.policy);
-    if (result.$ !== "Granted") throw new Error("legacy round projection refused canonical continuation");
-    this.#rounds.set(partition, { ...chain, policy: result.state,
-      ...(continuationDigest === undefined ? {} : { continuationDigest }) });
     return true;
   }
 
   hasVirtualRoundContinuationBudget(partition: string): boolean {
-    const chain = this.#rounds.get(partition);
-    return chain !== undefined && chain.policy.active && this.#continuationCount(partition) < MAX_STOP_CONTINUATIONS;
+    if (!this.#rounds.has(partition)) return false;
+    const result = this.canonical.transition({ kind: "roundContinuationBudgetCheck",
+      active: this.isActive(partition), count: this.#continuationCount(partition) });
+    if (result.rejection !== undefined || result.commands.length !== 1) throw new Error("canonical continuation budget refused");
+    return result.commands[0]?.kind === "roundContinuationAvailable";
+  }
+
+  #stopBarrier(partition: string): boolean {
+    const stop = this.#stops.get(partition);
+    const result = this.canonical.transition({ kind: "roundBarrierCheck",
+      hasStop: stop !== undefined, usedAtStart: stop?.continuationsAtStart ?? 0,
+      usedNow: stop === undefined ? 0 : this.#continuationCount(partition) });
+    if (result.rejection !== undefined || result.commands.length !== 1) throw new Error("canonical Stop barrier refused");
+    return result.commands[0]?.kind === "roundBarrierRaised";
   }
 
   #continuationCount(partition: string): number {
@@ -647,10 +652,6 @@ export class ComposedDelivery {
 
   #submissionAdviceId(adviceId: string): number {
     return this.canonical.collectionTokenId(`submission-advice\0${adviceId}`);
-  }
-
-  #leaseSurface(surface: DeliverySurface): BendLeaseSurface {
-    return { $: surface === "edit" ? "Edit" : surface === "background" ? "Background" : "Stop" };
   }
 
   #fingerprintId(adviceId: string, digest: string): number {

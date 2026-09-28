@@ -8,6 +8,7 @@ import ./Collection.bend as Collection
 import ./CollectionState.bend as CollectionState
 import ./Handoff.bend as Handoff
 import ./Delivery.bend as Delivery
+import ./Round.bend as RoundPolicy
 import ./DeliveryState.bend as DeliveryState
 import ./SubmissionState.bend as SubmissionState
 import ./RevisionState.bend as RevisionState
@@ -170,6 +171,34 @@ type CanonicalEvent is Data:
   CleanupCheck{facts: Retention.CleanupFacts}
   CleanupCommit{}
   DeliveryReleaseCheck{acknowledged: Bool}
+  DeliveryAcknowledgeCheck{items: Nat, any_expired: Bool}
+  DeliveryFinalizeCheck{items: Nat, all_acknowledged: Bool, any_expired: Bool}
+  DeliveryFindingDispositionCheck{composed: Bool, remaining: Nat}
+  DeliverySubmissionCandidateCheck{facts: Delivery.SubmissionFacts}
+  DeliverySubmissionBatchCheck{count: Nat, all_valid: Bool}
+  DeliveryCredentialObserveCheck{invalid_seen: Bool, generation_valid: Bool,
+    authorized: Bool}
+  DeliveryFinalCredentialCheck{legacy_collect: Bool, invalid_seen: Bool}
+  ValidationRouteCheck{owner_current: Bool, status: Handoff.ValidationStatus}
+  PostValidationCheck{work_accepted: Bool, expired: Bool, has_fitting: Bool}
+  FinalCandidateCheck{owner_current: Bool, credential_generation: Bool,
+    credential_authorized: Bool, expired: Bool, work_current: Bool,
+    has_findings: Bool}
+  RoundBeginStopCheck{active: Bool, has_stop: Bool, token: Nat}
+  RoundActivityCheck{bound: Bool, has_admission: Bool, round: Nat,
+    active: Bool, closed_at: Nat, expected_generation: Nat}
+  RoundBarrierCheck{has_stop: Bool, used_at_start: Nat, used_now: Nat}
+  RoundOwnsStopCheck{active: Bool, token_matches: Bool, deciding: Bool}
+  RoundStopTerminalCheck{has_output: Bool, authorized: Bool,
+    requested_close: Bool}
+  RoundExpireCloseCheck{barrier: Bool, authorized_output: Bool}
+  RoundContinuationBudgetCheck{active: Bool, count: Nat}
+  DeliverySubmissionAllowedCheck{active: Bool, barrier: Bool,
+    deciding: Bool, surface: Delivery.Surface, existing_token: Bool,
+    finish_permit: Bool}
+  DeliveryExistingTokenCheck{surface: Delivery.Surface,
+    existing_token: Bool, finish_permit: Bool}
+  DeliveryLegacyStopCheck{active: Bool, deciding: Bool}
   IncludeLayerCheck{supplied: Bool, current_rank: Nat, candidate_rank: Nat}
   FileSelectionCheck{protected: Bool, excluded: Bool,
     includes_empty: Bool, included: Bool}
@@ -368,6 +397,45 @@ type Command is Data:
   CleanupCommitted{}
   DeliveryReleaseUnacknowledged{}
   DeliveryKeepAcknowledged{}
+  DeliveryAckReady{}
+  DeliveryAckExpired{}
+  DeliveryAckEmpty{}
+  DeliveryFinalReady{}
+  DeliveryFinalExpired{}
+  DeliveryFinalEmpty{}
+  DeliveryRetireAdvice{}
+  DeliveryKeepRemaining{}
+  DeliveryKeepForReoffer{}
+  DeliverySubmissionCandidate{}
+  DeliverySubmissionRefused{}
+  DeliveryBatchProceed{}
+  DeliveryBatchRelease{}
+  DeliveryCredentialInvalid{}
+  DeliveryCredentialValid{}
+  IgnoreCandidate{}
+  ReleaseCandidate{}
+  RetireCandidate{}
+  ContinueCandidate{}
+  RetainCandidate{}
+  RoundStopBegun{}
+  RoundStopRefused{}
+  RoundActive{}
+  RoundInactive{}
+  RoundBarrierRaised{}
+  RoundBarrierClear{}
+  RoundStopOwned{}
+  RoundStopNotOwned{}
+  RoundStopTerminal{revoke_provisional: Bool, close: Bool}
+  RoundExpireCloses{}
+  RoundExpireKeeps{}
+  RoundContinuationAvailable{}
+  RoundContinuationExhausted{}
+  DeliverySubmissionAllowed{}
+  DeliverySubmissionDenied{}
+  DeliveryExistingTokenAllowed{}
+  DeliveryExistingTokenDenied{}
+  DeliveryLegacyStopAllowed{}
+  DeliveryLegacyStopDenied{}
   ReuseJoinAdvice{}
   ReuseJoinPending{}
   ReuseJoinClaimed{}
@@ -2332,6 +2400,42 @@ def cleanup_check_result(+state: State, result: Retention.CleanupGate) -> Step:
         CleanupReady{}, CleanupBusy{}) <> Nil{}}
     case Retention.CleanupBusy{}: Advanced{state, CleanupBusy{} <> Nil{}}
 
+def delivery_ack_result(state: State, decision: Delivery.AckDecision) -> Step:
+  match decision:
+    case Delivery.AckReady{}: Advanced{state, DeliveryAckReady{} <> Nil{}}
+    case Delivery.AckExpired{}: Advanced{state, DeliveryAckExpired{} <> Nil{}}
+    case Delivery.AckEmpty{}: Advanced{state, DeliveryAckEmpty{} <> Nil{}}
+
+def delivery_final_result(state: State, decision: Delivery.FinalDecision) -> Step:
+  match decision:
+    case Delivery.FinalReady{}: Advanced{state, DeliveryFinalReady{} <> Nil{}}
+    case Delivery.FinalExpired{}: Advanced{state, DeliveryFinalExpired{} <> Nil{}}
+    case Delivery.FinalEmpty{}: Advanced{state, DeliveryFinalEmpty{} <> Nil{}}
+
+def delivery_disposition_result(state: State, decision: Delivery.FindingDisposition) -> Step:
+  match decision:
+    case Delivery.RetireAdvice{}: Advanced{state, DeliveryRetireAdvice{} <> Nil{}}
+    case Delivery.KeepRemaining{}: Advanced{state, DeliveryKeepRemaining{} <> Nil{}}
+    case Delivery.KeepForReoffer{}: Advanced{state, DeliveryKeepForReoffer{} <> Nil{}}
+
+def delivery_batch_result(state: State, decision: Delivery.BatchGate) -> Step:
+  match decision:
+    case Delivery.BatchProceed{}: Advanced{state, DeliveryBatchProceed{} <> Nil{}}
+    case Delivery.BatchRelease{}: Advanced{state, DeliveryBatchRelease{} <> Nil{}}
+
+def candidate_route_result(state: State, decision: Handoff.CandidateAction) -> Step:
+  match decision:
+    case Handoff.IgnoreCandidate{}: Advanced{state, IgnoreCandidate{} <> Nil{}}
+    case Handoff.ReleaseCandidate{}: Advanced{state, ReleaseCandidate{} <> Nil{}}
+    case Handoff.RetireCandidate{}: Advanced{state, RetireCandidate{} <> Nil{}}
+    case Handoff.ContinueCandidate{}: Advanced{state, ContinueCandidate{} <> Nil{}}
+    case Handoff.RetainCandidate{}: Advanced{state, RetainCandidate{} <> Nil{}}
+
+def stop_terminal_result(state: State, result: RoundPolicy.StopTerminal) -> Step:
+  match result:
+    case RoundPolicy.StopTerminal{revoke_provisional, close}:
+      Advanced{state, RoundStopTerminal{revoke_provisional, close} <> Nil{}}
+
 def cleanup_commit_eligible(state: State) -> Bool:
   match state:
     case State{Ledger.Ledger{_, _, Nil{}}, _, _, _, _, _, _,
@@ -2655,6 +2759,70 @@ def step(+state: State, event: CanonicalEvent) -> Step:
     case DeliveryReleaseCheck{acknowledged}:
       Advanced{state, Bool.pick(Command, Delivery.release_unacknowledged(acknowledged),
         DeliveryReleaseUnacknowledged{}, DeliveryKeepAcknowledged{}) <> Nil{}}
+    case DeliveryAcknowledgeCheck{items, any_expired}:
+      delivery_ack_result(state, Delivery.acknowledge(items, any_expired))
+    case DeliveryFinalizeCheck{items, all_acknowledged, any_expired}:
+      delivery_final_result(state, Delivery.finalize(items, all_acknowledged, any_expired))
+    case DeliveryFindingDispositionCheck{composed, remaining}:
+      delivery_disposition_result(state, Delivery.finding_disposition(composed, remaining))
+    case DeliverySubmissionCandidateCheck{facts}:
+      Advanced{state, Bool.pick(Command, Delivery.submission_candidate(facts),
+        DeliverySubmissionCandidate{}, DeliverySubmissionRefused{}) <> Nil{}}
+    case DeliverySubmissionBatchCheck{count, all_valid}:
+      delivery_batch_result(state, Delivery.submission_batch_gate(count, all_valid))
+    case DeliveryCredentialObserveCheck{invalid_seen, generation_valid, authorized}:
+      Advanced{state, Bool.pick(Command, Delivery.credential_observe(invalid_seen,
+        generation_valid, authorized), DeliveryCredentialInvalid{}, DeliveryCredentialValid{}) <> Nil{}}
+    case DeliveryFinalCredentialCheck{legacy_collect, invalid_seen}:
+      delivery_batch_result(state, Delivery.final_credential_gate(legacy_collect, invalid_seen))
+    case ValidationRouteCheck{owner_current, status}:
+      candidate_route_result(state, Handoff.validation_route(owner_current, status))
+    case PostValidationCheck{work_accepted, expired, has_fitting}:
+      candidate_route_result(state, Handoff.post_validation(work_accepted, expired, has_fitting))
+    case FinalCandidateCheck{owner_current, credential_generation,
+        credential_authorized, expired, work_current, has_findings}:
+      candidate_route_result(state, Handoff.final_candidate(owner_current,
+        credential_generation, credential_authorized, expired, work_current, has_findings))
+    case RoundBeginStopCheck{active, has_stop, token}:
+      Advanced{state, Bool.pick(Command, Bool.and(active,
+        Bool.and(Bool.not(has_stop), Nat.is_gt(token, 0n))),
+        RoundStopBegun{}, RoundStopRefused{}) <> Nil{}}
+    case RoundActivityCheck{bound, has_admission, +round, active, closed_at,
+        expected_generation}:
+      Advanced{state, Bool.pick(Command, Bool.and(bound, Bool.and(has_admission,
+        Bool.and(Nat.is_eq(expected_generation, Nat.max(1n, round)),
+          Bool.or(Bool.and(Nat.is_eq(round, 0n), Nat.is_eq(closed_at, 0n)), active)))),
+        RoundActive{}, RoundInactive{}) <> Nil{}}
+    case RoundBarrierCheck{has_stop, used_at_start, used_now}:
+      Advanced{state, Bool.pick(Command, Bool.and(has_stop,
+        Nat.is_gt(used_now, used_at_start)), RoundBarrierRaised{}, RoundBarrierClear{}) <> Nil{}}
+    case RoundOwnsStopCheck{active, token_matches, deciding}:
+      Advanced{state, Bool.pick(Command, Bool.and(active,
+        Bool.and(token_matches, Bool.not(deciding))),
+        RoundStopOwned{}, RoundStopNotOwned{}) <> Nil{}}
+    case RoundStopTerminalCheck{has_output, authorized, requested_close}:
+      stop_terminal_result(state, RoundPolicy.stop_terminal(has_output, authorized,
+        requested_close))
+    case RoundExpireCloseCheck{barrier, authorized_output}:
+      Advanced{state, Bool.pick(Command, Bool.and(Bool.not(authorized_output),
+        RoundPolicy.expire_close(barrier)),
+        RoundExpireCloses{}, RoundExpireKeeps{}) <> Nil{}}
+    case RoundContinuationBudgetCheck{active, count}:
+      Advanced{state, Bool.pick(Command, Bool.and(active,
+        Nat.is_lt(count, RoundPolicy.max_continuations())),
+        RoundContinuationAvailable{}, RoundContinuationExhausted{}) <> Nil{}}
+    case DeliverySubmissionAllowedCheck{active, barrier, deciding, surface,
+        existing_token, finish_permit}:
+      Advanced{state, Bool.pick(Command, Delivery.submission_allowed_facts(active,
+        barrier, deciding, surface, existing_token, finish_permit),
+        DeliverySubmissionAllowed{}, DeliverySubmissionDenied{}) <> Nil{}}
+    case DeliveryExistingTokenCheck{surface, existing_token, finish_permit}:
+      Advanced{state, Bool.pick(Command, Delivery.existing_token_allowed(surface,
+        existing_token, finish_permit), DeliveryExistingTokenAllowed{},
+        DeliveryExistingTokenDenied{}) <> Nil{}}
+    case DeliveryLegacyStopCheck{active, deciding}:
+      Advanced{state, Bool.pick(Command, Delivery.legacy_stop_allowed_facts(active,
+        deciding), DeliveryLegacyStopAllowed{}, DeliveryLegacyStopDenied{}) <> Nil{}}
     case IncludeLayerCheck{supplied, current_rank, candidate_rank}:
       Advanced{state, IncludeChoice{Configuration.include_choice(supplied,
         current_rank, candidate_rank)} <> Nil{}}

@@ -431,6 +431,128 @@ law noncomposed_partial_delivery_retains_remaining:
 law noncomposed_complete_delivery_retires_advice:
   {Delivery.finding_disposition(False{}, 0n) == Delivery.RetireAdvice{} : Delivery.FindingDisposition}
 
+law canonical_delivery_acknowledgement_uses_delivery_rule:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.DeliveryAcknowledgeCheck{1n, False{}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.DeliveryAckReady{} <> Nil{}} : Canonical.Step}
+
+law canonical_delivery_finalization_uses_delivery_rule:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.DeliveryFinalizeCheck{1n, True{}, True{}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.DeliveryFinalExpired{} <> Nil{}} : Canonical.Step}
+
+law canonical_delivery_disposition_uses_delivery_rule:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.DeliveryFindingDispositionCheck{False{}, 0n}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.DeliveryRetireAdvice{} <> Nil{}} : Canonical.Step}
+
+law canonical_delivery_submission_candidate_uses_delivery_rule:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.DeliverySubmissionCandidateCheck{Delivery.SubmissionFacts{
+      True{}, True{}, True{}, True{}, True{}, True{}, True{}, True{}}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.DeliverySubmissionCandidate{} <> Nil{}} : Canonical.Step}
+
+law canonical_delivery_submission_batch_uses_delivery_rule:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.DeliverySubmissionBatchCheck{0n, True{}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.DeliveryBatchRelease{} <> Nil{}} : Canonical.Step}
+
+law canonical_delivery_credential_fold_uses_delivery_rule:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.DeliveryCredentialObserveCheck{False{}, False{}, False{}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.DeliveryCredentialInvalid{} <> Nil{}} : Canonical.Step}
+
+law canonical_delivery_final_credential_uses_delivery_rule:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.DeliveryFinalCredentialCheck{True{}, True{}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.DeliveryBatchRelease{} <> Nil{}} : Canonical.Step}
+
+law canonical_validation_route_retires_stale_owner:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.ValidationRouteCheck{True{}, Handoff.Stale{}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.RetireCandidate{} <> Nil{}} : Canonical.Step}
+
+law canonical_post_validation_releases_unfitting_candidate:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.PostValidationCheck{True{}, False{}, False{}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.ReleaseCandidate{} <> Nil{}} : Canonical.Step}
+
+law canonical_final_candidate_retires_expired_work:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.FinalCandidateCheck{True{}, True{}, True{}, True{}, True{}, True{}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.RetireCandidate{} <> Nil{}} : Canonical.Step}
+
+law canonical_stop_begin_requires_active_unowned_round:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.RoundBeginStopCheck{True{}, False{}, 1n}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.RoundStopBegun{} <> Nil{}} : Canonical.Step}
+
+law canonical_prospective_first_round_is_active_before_callback:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.RoundActivityCheck{True{}, True{}, 0n, False{}, 0n, 1n}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.RoundActive{} <> Nil{}} : Canonical.Step}
+
+law canonical_stop_barrier_uses_continuations_since_claim:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.RoundBarrierCheck{True{}, 1n, 2n}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.RoundBarrierRaised{} <> Nil{}} : Canonical.Step}
+
+law canonical_deciding_stop_is_not_owned_for_new_decision:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.RoundOwnsStopCheck{True{}, True{}, True{}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.RoundStopNotOwned{} <> Nil{}} : Canonical.Step}
+
+law canonical_provisional_stop_terminal_revokes_and_closes:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.RoundStopTerminalCheck{True{}, False{}, False{}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.RoundStopTerminal{True{}, True{}} <> Nil{}} : Canonical.Step}
+
+law canonical_authorized_stop_expiry_keeps_round:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.RoundExpireCloseCheck{False{}, True{}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.RoundExpireKeeps{} <> Nil{}} : Canonical.Step}
+
+law canonical_continuation_budget_exhausts_at_four:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.RoundContinuationBudgetCheck{True{}, 4n}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.RoundContinuationExhausted{} <> Nil{}} : Canonical.Step}
+
+law canonical_background_submission_waits_behind_barrier:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.DeliverySubmissionAllowedCheck{True{}, True{}, False{},
+      Delivery.Background{}, False{}, False{}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.DeliverySubmissionDenied{} <> Nil{}} : Canonical.Step}
+
+law canonical_existing_stop_token_requires_finish_permit:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.DeliveryExistingTokenCheck{Delivery.Stop{}, True{}, False{}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.DeliveryExistingTokenDenied{} <> Nil{}} : Canonical.Step}
+
+law canonical_legacy_stop_output_denied_during_decision:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.DeliveryLegacyStopCheck{True{}, True{}}) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.DeliveryLegacyStopDenied{} <> Nil{}} : Canonical.Step}
+
 def reserved_output_selection() -> Lifecycle.OutputSelection:
   Lifecycle.OutputSelection{1n <> 2n <> Nil{}, False{}, False{}}
 

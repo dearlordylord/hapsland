@@ -60,12 +60,7 @@ import {
 import { DispatchCycles } from "./dispatch.ts";
 import { ComposedDelivery } from "./composed-delivery.ts";
 import { BendWorkTracker } from "./bend-work.ts";
-import type { CanonicalCommand, TicketReason, TicketUnitEvent } from "../canonical/adapter.ts";
-import { bendDeliveryAcknowledge, bendDeliveryFinalize, bendDeliveryFindingDisposition,
-  bendValidationRoute, bendPostValidation, bendFinalCandidate,
-  bendDeliverySubmissionCandidate, bendDeliverySubmissionBatchGate,
-  bendDeliveryCredentialObserve, bendDeliveryFinalCredentialGate,
-  type BendValidationStatus } from "./bend-policy.generated.js";
+import type { CanonicalCommand, CanonicalEvent, TicketReason, TicketUnitEvent } from "../canonical/adapter.ts";
 import {
   ADVICE_COLLECTION_WINDOW_MS,
   PENDING_ADVICE_EXPIRY_MS,
@@ -95,9 +90,6 @@ import { claimDemoBudget } from "../onboarding/demo-budget.ts";
 import { findingFromProbability } from "../rules/decision.ts";
 import { recordDemoTrace } from "../onboarding/demo-trace.ts";
 
-const validationStatus = (status: RevalidationResult["status"]): BendValidationStatus =>
-  ({ $: status === "current" ? "Current" : status === "stale" ? "Stale" :
-    status === "unavailable" ? "Unavailable" : "Unattributed" });
 const RESERVATION_OVERHEAD_BYTES = 1024;
 const MAX_PROBABILITY_ENCODING_BYTES = 24;
 export const OPERATIONAL_NOTICE_COOLDOWN_MS = 60_000;
@@ -724,9 +716,10 @@ export class ResidentServer {
     }
     let round = composed ? this.#rounds.get(group) : undefined;
     if (generation !== undefined && round?.generation !== generation) {
-      round = { group, generation, controller: new AbortController(), partitions: new Set(),
+      const partitions = new Set<string>();
+      round = { group, generation, controller: new AbortController(), partitions,
         work: { id: randomUUID(), controller: new AbortController() },
-        policyWork: new BendWorkTracker(), discarded: { queued: 0, running: 0 } };
+        policyWork: new BendWorkTracker(this.#ledger, partitions), discarded: { queued: 0, running: 0 } };
       this.#rounds.set(group, round);
     }
     const partition = adviceePartition(observation.root, observation.advicee) +
@@ -764,7 +757,7 @@ export class ResidentServer {
     const job = {
       kind: "ingress" as const,
       ...(round === undefined ? {} : { round, work: round.work,
-        workObservationId: round.policyWork.admit() }),
+        workObservationId: round.policyWork.admit(canonicalObservationId) }),
       observation,
       canonicalObservationId,
       partition,
@@ -775,9 +768,6 @@ export class ResidentServer {
     if (!this.#dispatcher.enqueue(partition, job)) {
       if (ticket !== undefined) this.#ledger.transition({ kind: "ticketForget", id: ticket.generation });
       this.#ledger.observation(partition, canonicalObservationId, "interruptObservation");
-      if (round !== undefined && job.workObservationId !== undefined) {
-        round.policyWork.interruptSource(job.workObservationId);
-      }
       this.#ledger.release(reservation);
       this.#rejectedCapacity += 1;
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
@@ -1049,27 +1039,29 @@ export class ResidentServer {
       await this.#beforeRevalidate?.(advice.id);
       const validity = await this.#revalidate(advice, dispatch);
       const retained = this.#advice.find((item) => item.id === advice.id);
-      const route = bendValidationRoute(retained === advice && retained.delivery?.token === token,
-        validationStatus(validity.status));
-      if (route.$ === "IgnoreCandidate") continue;
-      if (route.$ === "ReleaseCandidate") {
+      const route = this.#candidateRoute({ kind: "validationRouteCheck",
+        ownerCurrent: retained === advice && retained.delivery?.token === token,
+        status: validity.status });
+      if (route === "ignoreCandidate") continue;
+      if (route === "releaseCandidate") {
         this.#releaseAdviceLease(advice);
         continue;
       }
-      if (route.$ === "RetireCandidate") {
+      if (route === "retireCandidate") {
         this.#removeAdvice(advice.id, token);
         continue;
       }
-      if (route.$ !== "ContinueCandidate" || validity.status !== "current") {
+      if (route !== "continueCandidate" || validity.status !== "current") {
         this.#releaseAdviceLease(advice);
         continue;
       }
       const workAccepted = advice.round === undefined || advice.workUnitId === undefined ||
         advice.round.policyWork.reviseFinding(advice.workUnitId,
           validity.findings.length, logicalBytes(validity.findings));
-      const workRoute = bendPostValidation(workAccepted, false, true);
-      if (workRoute.$ !== "RetainCandidate") {
-        if (workRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
+      const workRoute = this.#candidateRoute({ kind: "postValidationCheck",
+        workAccepted, expired: false, hasFitting: true });
+      if (workRoute !== "retainCandidate") {
+        if (workRoute === "retireCandidate") this.#removeAdvice(advice.id, token);
         else this.#releaseAdviceLease(advice);
         continue;
       }
@@ -1078,18 +1070,20 @@ export class ResidentServer {
       if (advice.round !== undefined) this.#recordFindingCount(advice.partition,
         advice.canonicalOperationId, validity.findings.length);
       const handoffNow = this.#now();
-      const expiryRoute = bendPostValidation(true, this.#adviceExpired(advice, handoffNow), true);
-      if (expiryRoute.$ !== "RetainCandidate") {
-        if (expiryRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
+      const expiryRoute = this.#candidateRoute({ kind: "postValidationCheck",
+        workAccepted: true, expired: this.#adviceExpired(advice, handoffNow), hasFitting: true });
+      if (expiryRoute !== "retainCandidate") {
+        if (expiryRoute === "retireCandidate") this.#removeAdvice(advice.id, token);
         else this.#releaseAdviceLease(advice);
         continue;
       }
       const fitting = fittingFindings(selectedFindings, advice.findings.filter((finding) =>
         !this.#composedDelivery.suppresses(advice.id,
           adviceeGroup(advice.observation.root, advice.observation.advicee), finding, stopCollector ? "stop" : undefined)), advice, true);
-      const fittingRoute = bendPostValidation(true, false, fitting.length > 0);
-      if (fittingRoute.$ !== "RetainCandidate") {
-        if (fittingRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
+      const fittingRoute = this.#candidateRoute({ kind: "postValidationCheck",
+        workAccepted: true, expired: false, hasFitting: fitting.length > 0 });
+      if (fittingRoute !== "retainCandidate") {
+        if (fittingRoute === "retireCandidate") this.#removeAdvice(advice.id, token);
         else this.#releaseAdviceLease(advice);
         continue;
       }
@@ -1104,27 +1098,29 @@ export class ResidentServer {
         await this.#beforeFinalRevalidate?.(advice.id);
         const validity = await this.#revalidate(advice, dispatch);
         const retained = this.#advice.find((item) => item.id === advice.id);
-        const route = bendValidationRoute(retained === advice && retained.delivery?.token === token,
-          validationStatus(validity.status));
-        if (route.$ === "IgnoreCandidate") continue;
-        if (route.$ === "ReleaseCandidate") {
+        const route = this.#candidateRoute({ kind: "validationRouteCheck",
+          ownerCurrent: retained === advice && retained.delivery?.token === token,
+          status: validity.status });
+        if (route === "ignoreCandidate") continue;
+        if (route === "releaseCandidate") {
           this.#releaseAdviceLease(advice);
           continue;
         }
-        if (route.$ === "RetireCandidate") {
+        if (route === "retireCandidate") {
           this.#removeAdvice(advice.id, token);
           continue;
         }
-        if (route.$ !== "ContinueCandidate" || validity.status !== "current") {
+        if (route !== "continueCandidate" || validity.status !== "current") {
           this.#releaseAdviceLease(advice);
           continue;
         }
         const workAccepted = advice.round === undefined || advice.workUnitId === undefined ||
           advice.round.policyWork.reviseFinding(advice.workUnitId,
             validity.findings.length, logicalBytes(validity.findings));
-        const workRoute = bendPostValidation(workAccepted, false, true);
-        if (workRoute.$ !== "RetainCandidate") {
-          if (workRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
+        const workRoute = this.#candidateRoute({ kind: "postValidationCheck",
+          workAccepted, expired: false, hasFitting: true });
+        if (workRoute !== "retainCandidate") {
+          if (workRoute === "retireCandidate") this.#removeAdvice(advice.id, token);
           else this.#releaseAdviceLease(advice);
           continue;
         }
@@ -1133,18 +1129,20 @@ export class ResidentServer {
         if (advice.round !== undefined) this.#recordFindingCount(advice.partition,
           advice.canonicalOperationId, validity.findings.length);
         const handoffNow = this.#now();
-        const expiryRoute = bendPostValidation(true, this.#adviceExpired(advice, handoffNow), true);
-        if (expiryRoute.$ !== "RetainCandidate") {
-          if (expiryRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
+        const expiryRoute = this.#candidateRoute({ kind: "postValidationCheck",
+          workAccepted: true, expired: this.#adviceExpired(advice, handoffNow), hasFitting: true });
+        if (expiryRoute !== "retainCandidate") {
+          if (expiryRoute === "retireCandidate") this.#removeAdvice(advice.id, token);
           else this.#releaseAdviceLease(advice);
           continue;
         }
         const fitting = fittingFindings(finalFindings, advice.findings.filter((finding) =>
           !this.#composedDelivery.suppresses(advice.id,
             adviceeGroup(advice.observation.root, advice.observation.advicee), finding, stopCollector ? "stop" : undefined)), advice, true);
-        const fittingRoute = bendPostValidation(true, false, fitting.length > 0);
-        if (fittingRoute.$ !== "RetainCandidate") {
-          if (fittingRoute.$ === "RetireCandidate") this.#removeAdvice(advice.id, token);
+        const fittingRoute = this.#candidateRoute({ kind: "postValidationCheck",
+          workAccepted: true, expired: false, hasFitting: fitting.length > 0 });
+        if (fittingRoute !== "retainCandidate") {
+          if (fittingRoute === "retireCandidate") this.#removeAdvice(advice.id, token);
           else this.#releaseAdviceLease(advice);
           continue;
         }
@@ -1172,23 +1170,23 @@ export class ResidentServer {
               credentialState.generation === credentialGeneration &&
               (dispatch.credential.environmentOnly || !credentialState.savedUseSuspended);
           }
-          const route = bendFinalCandidate(ownerCurrent, credentialGenerationValid,
-            credentialAuthorized,
-            ownerCurrent && credentialGenerationValid && credentialAuthorized &&
+          const route = this.#candidateRoute({ kind: "finalCandidateCheck", ownerCurrent,
+            credentialGeneration: credentialGenerationValid, credentialAuthorized,
+            expired: ownerCurrent && credentialGenerationValid && credentialAuthorized &&
               this.#adviceExpired(advice, handoffNow),
-            ownerCurrent && credentialGenerationValid && credentialAuthorized &&
+            workCurrent: ownerCurrent && credentialGenerationValid && credentialAuthorized &&
               this.#isCurrentWork(advice.revision, advice.prepared),
-            delivery !== undefined && delivery.findings.length > 0);
-          if (route.$ === "IgnoreCandidate") continue;
-          if (route.$ === "RetireCandidate") {
+            hasFindings: delivery !== undefined && delivery.findings.length > 0 });
+          if (route === "ignoreCandidate") continue;
+          if (route === "retireCandidate") {
             this.#removeAdvice(advice.id, token);
             continue;
           }
-          if (route.$ === "ReleaseCandidate") {
+          if (route === "releaseCandidate") {
             this.#releaseAdviceLease(advice);
             continue;
           }
-          if (route.$ !== "RetainCandidate" || delivery === undefined) continue;
+          if (route !== "retainCandidate" || delivery === undefined) continue;
           delivery.leaseUntil = handoffNow + DELIVERY_LEASE_MS;
           handoff.push(advice);
         }
@@ -1222,6 +1220,19 @@ export class ResidentServer {
           output: combinedClaudeOutput(handoffFindings, notices.map((notice) => notice.value), ticket.claudeFeedbackMode) };
   }
 
+  #candidateRoute(event: Extract<CanonicalEvent, { readonly kind:
+    "validationRouteCheck" | "postValidationCheck" | "finalCandidateCheck" }>):
+    "ignoreCandidate" | "releaseCandidate" | "retireCandidate" | "continueCandidate" | "retainCandidate" {
+    const result = this.#ledger.transition(event);
+    const kind = result.commands[0]?.kind;
+    if (result.rejection !== undefined || result.commands.length !== 1 ||
+        (kind !== "ignoreCandidate" && kind !== "releaseCandidate" && kind !== "retireCandidate" &&
+          kind !== "continueCandidate" && kind !== "retainCandidate")) {
+      throw new Error("invalid canonical candidate route");
+    }
+    return kind;
+  }
+
   acknowledge(token: string): ResidentResponse {
     const now = this.#now();
     this.#expirePending(now);
@@ -1230,14 +1241,16 @@ export class ResidentServer {
     const notices = this.#noticesForToken(token);
     const expired = advice.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now) ||
       notices.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now);
-    const decision = bendDeliveryAcknowledge(advice.length + notices.length, expired);
-    if (decision.$ === "AckEmpty") return { status: "empty" };
-    if (decision.$ === "AckExpired") {
+    const decision = this.#ledger.transition({ kind: "deliveryAcknowledgeCheck",
+      items: advice.length + notices.length, anyExpired: expired });
+    if (decision.rejection !== undefined || decision.commands.length !== 1) throw new Error("canonical acknowledgement refused");
+    if (decision.commands[0]?.kind === "deliveryAckEmpty") return { status: "empty" };
+    if (decision.commands[0]?.kind === "deliveryAckExpired") {
       for (const item of advice) this.#releaseAdviceLease(item);
       for (const item of notices) { this.#setNoticeLeased(item.id, false); delete item.delivery; }
       return { status: "empty" };
     }
-    if (decision.$ !== "AckReady") return { status: "empty" };
+    if (decision.commands[0]?.kind !== "deliveryAckReady") throw new Error("invalid canonical acknowledgement");
     if (!this.#composedDelivery.markSubmitted(token,
       advice.flatMap((item) => (item.delivery?.findings ?? []).map(() => item.canonicalOperationId)))) {
       return { status: "empty" };
@@ -1261,24 +1274,28 @@ export class ResidentServer {
       notices.every((item) => item.delivery?.acknowledged === true);
     const expired = advice.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now) ||
       notices.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now);
-    const decision = bendDeliveryFinalize(advice.length + notices.length, allAcknowledged, expired);
-    if (decision.$ === "FinalEmpty") return { status: "empty" };
-    if (decision.$ === "FinalExpired") {
+    const decision = this.#ledger.transition({ kind: "deliveryFinalizeCheck",
+      items: advice.length + notices.length, allAcknowledged, anyExpired: expired });
+    if (decision.rejection !== undefined || decision.commands.length !== 1) throw new Error("canonical finalization refused");
+    if (decision.commands[0]?.kind === "deliveryFinalEmpty") return { status: "empty" };
+    if (decision.commands[0]?.kind === "deliveryFinalExpired") {
       for (const item of advice) this.#releaseAdviceLease(item);
       for (const item of notices) { this.#setNoticeLeased(item.id, false); delete item.delivery; }
       return { status: "empty" };
     }
-    if (decision.$ !== "FinalReady") return { status: "empty" };
+    if (decision.commands[0]?.kind !== "deliveryFinalReady") throw new Error("invalid canonical finalization");
     const composed = this.#composedDelivery.hasToken(token);
     for (const item of advice) {
       const delivered = item.delivery?.findings ?? [];
       const remaining = composed ? [] : withoutDeliveredFindings(item.findings, delivered);
-      const disposition = bendDeliveryFindingDisposition(composed, remaining.length);
-      if (disposition.$ === "KeepForReoffer") {
+      const disposition = this.#ledger.transition({ kind: "deliveryFindingDispositionCheck",
+        composed, remaining: remaining.length });
+      if (disposition.rejection !== undefined || disposition.commands.length !== 1) throw new Error("canonical finding disposition refused");
+      if (disposition.commands[0]?.kind === "deliveryKeepForReoffer") {
         this.#releaseAdviceLease(item);
         continue;
       }
-      if (disposition.$ === "RetireAdvice") {
+      if (disposition.commands[0]?.kind === "deliveryRetireAdvice") {
         for (const ticket of this.#tickets.values()) {
           for (const unit of ticket.units) {
             if (ticketUnitStage(unit).stage === "finding" && unit.current.adviceId === item.id) {
@@ -1289,7 +1306,7 @@ export class ResidentServer {
         this.#removeAdvice(item.id, token);
         continue;
       }
-      if (disposition.$ !== "KeepRemaining") throw new Error("invalid Bend delivery disposition");
+      if (disposition.commands[0]?.kind !== "deliveryKeepRemaining") throw new Error("invalid canonical delivery disposition");
       item.findings = remaining;
       item.evaluations = item.evaluations.map((evaluation) => ({
         ...evaluation,
@@ -1339,20 +1356,25 @@ export class ResidentServer {
       const round = item.round;
       const delivery = item.delivery;
       const unit = item.workUnitId;
-      return bendDeliverySubmissionCandidate({ $: "SubmissionFacts",
-        round_active: this.#roundActive(round),
-        has_round: round !== undefined,
-        has_unit: unit !== undefined,
-        has_delivery: delivery !== undefined,
-        pending_capacity: round !== undefined && unit !== undefined && delivery !== undefined &&
+      const decision = this.#ledger.transition({ kind: "deliverySubmissionCandidateCheck", facts: {
+        roundActive: this.#roundActive(round),
+        hasRound: round !== undefined,
+        hasUnit: unit !== undefined,
+        hasDelivery: delivery !== undefined,
+        pendingCapacity: round !== undefined && unit !== undefined && delivery !== undefined &&
           delivery.findings.length <= this.#pendingCanonicalFindings(item.canonicalOperationId),
-        submission_allowed: this.#composedDelivery.canBeginSubmission(
+        submissionAllowed: this.#composedDelivery.canBeginSubmission(
           adviceeGroup(item.observation.root, item.observation.advicee), surface, token),
-        current_work: this.#isCurrentWork(item.revision, item.prepared),
-        credential_authorized: this.#adviceCredentialAuthority(item),
-      }) === true;
+        currentWork: this.#isCurrentWork(item.revision, item.prepared),
+        credentialAuthorized: this.#adviceCredentialAuthority(item),
+      } });
+      if (decision.rejection !== undefined || decision.commands.length !== 1) throw new Error("canonical submission candidate refused");
+      return decision.commands[0]?.kind === "deliverySubmissionCandidate";
     });
-    if (bendDeliverySubmissionBatchGate(advice.length, allValid).$ !== "BatchProceed") {
+    const batch = this.#ledger.transition({ kind: "deliverySubmissionBatchCheck",
+      count: advice.length, allValid });
+    if (batch.rejection !== undefined || batch.commands.length !== 1) throw new Error("canonical submission batch refused");
+    if (batch.commands[0]?.kind !== "deliveryBatchProceed") {
       this.releaseComposedSubmission(token);
       return { status: "empty" };
     }
@@ -1917,12 +1939,6 @@ export class ResidentServer {
     if (job.kind === "ingress") {
       this.#ledger.observation(job.partition, job.canonicalObservationId, "interruptObservation");
     }
-    if (job.kind === "ingress" && job.round !== undefined && job.workObservationId !== undefined) {
-      job.round.policyWork.interruptSource(job.workObservationId);
-    }
-    if (job.kind === "unit" && job.round !== undefined && job.workUnitId !== undefined) {
-      job.round.policyWork.interruptUnit(job.workUnitId);
-    }
     if (job.ticket !== undefined) ticketFail(job.ticket, "lost");
     if (job.kind === "unit") {
       if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "lost");
@@ -1953,7 +1969,6 @@ export class ResidentServer {
     if (round === undefined || round.generation !== generation) return;
     // The admission/output fence is already published. Abort Effect fibers and
     // their provider connections before releasing all retained round resources.
-    round.policyWork.close();
     round.controller.abort();
     round.work.controller.abort();
     this.#rounds.delete(group);
@@ -2224,8 +2239,8 @@ export class ResidentServer {
           const workUnitId = job.round === undefined || job.workObservationId === undefined ? undefined
             : item.kind === "cached"
               ? job.round.policyWork.cachedFinding(job.workObservationId,
-                item.cached.evaluation.findings.length, logicalBytes(item.cached.evaluation.findings))
-              : job.round.policyWork.spawn(job.workObservationId);
+                item.cached.evaluation.findings.length, logicalBytes(item.cached.evaluation.findings), admitted.operation)
+              : job.round.policyWork.spawn(job.workObservationId, admitted.operation);
           if (job.round !== undefined && workUnitId === undefined) {
             if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "lost");
             if (item.kind === "owner") this.#releaseReuseClaim(item.evaluationKey);
@@ -2285,7 +2300,6 @@ export class ResidentServer {
           unassignedClaims.delete(item.evaluationKey);
           this.#attachClaimedJoined(item.evaluationKey, revision);
           if (!this.#dispatcher.enqueue(job.partition, unit)) {
-            if (job.round !== undefined && workUnitId !== undefined) job.round.policyWork.interruptUnit(workUnitId);
             if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "capacity");
             this.#releaseReuseClaim(item.evaluationKey, "capacity");
             this.#releaseUnit(unit);
@@ -2322,9 +2336,6 @@ export class ResidentServer {
       recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
     } finally {
       for (const key of unassignedClaims) this.#releaseReuseClaim(key);
-      if (!job.completed && job.round !== undefined && job.workObservationId !== undefined) {
-        job.round.policyWork.interruptSource(job.workObservationId);
-      }
       if (!job.completed) this.#ledger.observation(job.partition, job.canonicalObservationId, "interruptObservation");
       if (job.ticket !== undefined) ticketClose(job.ticket);
     }
@@ -2563,14 +2574,6 @@ export class ResidentServer {
       if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error("resident evaluation unavailable");
       recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
     } finally {
-      if (!job.completed && job.round !== undefined && job.workUnitId !== undefined) {
-        if (!job.round.policyWork.retire(job.workUnitId)) {
-          if (!this.#jobActive(job) ||
-              !job.round.policyWork.outcome(job.workUnitId, { $: "Unavailable" })) {
-            job.round.policyWork.interruptUnit(job.workUnitId);
-          }
-        }
-      }
     }
     this.#releaseReuseClaim(job.evaluationKey);
     this.#releaseUnit(job);
@@ -2858,8 +2861,7 @@ export class ResidentServer {
         const ownUnfinished = round?.policyWork.unfinished() ?? 0;
         const extraUnfinished = Math.max(0, totalUnfinished - ownUnfinished);
         const gate = this.#composedDelivery.finishGate(group, request.finish.token,
-          extraUnfinished, request.finish.deadlineReached, round?.policyWork,
-          [...(round?.partitions ?? [])]);
+          extraUnfinished, request.finish.deadlineReached, [...(round?.partitions ?? [])]);
         if (gate === undefined) return { status: "empty" };
         if (gate.status === "waiting") return { status: "pending" };
         if (round !== undefined && !this.#discardUnfinishedWork(round, gate)) {
@@ -3029,29 +3031,36 @@ export class ResidentServer {
     if (legacyCollect) for (const advice of this.#advice) {
       if (advice.delivery?.token !== response.token || invalidCredential) continue;
       const generationValid = advice.credentialGeneration === (request.dispatch.credential?.generation ?? null);
-      invalidCredential = bendDeliveryCredentialObserve(invalidCredential, generationValid,
-        generationValid && this.#adviceCredentialAuthority(advice)) !== false;
+      const observed = this.#ledger.transition({ kind: "deliveryCredentialObserveCheck",
+        invalidSeen: invalidCredential, generationValid,
+        authorized: generationValid && this.#adviceCredentialAuthority(advice) });
+      if (observed.rejection !== undefined || observed.commands.length !== 1) throw new Error("canonical credential observation refused");
+      invalidCredential = observed.commands[0]?.kind === "deliveryCredentialInvalid";
     }
-    if (bendDeliveryFinalCredentialGate(legacyCollect, invalidCredential).$ !== "BatchProceed") {
+    const credentialGate = this.#ledger.transition({ kind: "deliveryFinalCredentialCheck",
+      legacyCollect, invalidSeen: invalidCredential });
+    if (credentialGate.rejection !== undefined || credentialGate.commands.length !== 1) throw new Error("canonical final credential gate refused");
+    if (credentialGate.commands[0]?.kind !== "deliveryBatchProceed") {
       this.releaseComposedSubmission(response.token);
       return { status: "empty" };
     }
     const handoff: Array<Advice> = [];
     for (const advice of [...this.#advice]) {
       if (advice.delivery?.token !== response.token) continue;
-      const route = bendFinalCandidate(true, true, true,
-        !this.#roundActive(advice.round) || this.#adviceExpired(advice, now),
-        this.#isCurrentWork(advice.revision, advice.prepared),
-        advice.delivery.findings.length > 0);
-      if (route.$ === "RetireCandidate") {
+      const route = this.#candidateRoute({ kind: "finalCandidateCheck",
+        ownerCurrent: true, credentialGeneration: true, credentialAuthorized: true,
+        expired: !this.#roundActive(advice.round) || this.#adviceExpired(advice, now),
+        workCurrent: this.#isCurrentWork(advice.revision, advice.prepared),
+        hasFindings: advice.delivery.findings.length > 0 });
+      if (route === "retireCandidate") {
         this.#removeAdvice(advice.id, response.token);
         continue;
       }
-      if (route.$ === "ReleaseCandidate") {
+      if (route === "releaseCandidate") {
         this.#releaseAdviceLease(advice);
         continue;
       }
-      if (route.$ !== "RetainCandidate") continue;
+      if (route !== "retainCandidate") continue;
       advice.delivery.leaseUntil = now + DELIVERY_LEASE_MS;
       handoff.push(advice);
     }

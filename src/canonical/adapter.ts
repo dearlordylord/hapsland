@@ -166,6 +166,26 @@ export type CanonicalEvent =
   | { readonly kind: "cleanupCheck"; readonly facts: CleanupFacts }
   | { readonly kind: "cleanupCommit" }
   | { readonly kind: "deliveryReleaseCheck"; readonly acknowledged: boolean }
+  | { readonly kind: "deliveryAcknowledgeCheck"; readonly items: number; readonly anyExpired: boolean }
+  | { readonly kind: "deliveryFinalizeCheck"; readonly items: number; readonly allAcknowledged: boolean; readonly anyExpired: boolean }
+  | { readonly kind: "deliveryFindingDispositionCheck"; readonly composed: boolean; readonly remaining: number }
+  | { readonly kind: "deliverySubmissionCandidateCheck"; readonly facts: { readonly roundActive: boolean; readonly hasRound: boolean; readonly hasUnit: boolean; readonly hasDelivery: boolean; readonly pendingCapacity: boolean; readonly submissionAllowed: boolean; readonly currentWork: boolean; readonly credentialAuthorized: boolean } }
+  | { readonly kind: "deliverySubmissionBatchCheck"; readonly count: number; readonly allValid: boolean }
+  | { readonly kind: "deliveryCredentialObserveCheck"; readonly invalidSeen: boolean; readonly generationValid: boolean; readonly authorized: boolean }
+  | { readonly kind: "deliveryFinalCredentialCheck"; readonly legacyCollect: boolean; readonly invalidSeen: boolean }
+  | { readonly kind: "validationRouteCheck"; readonly ownerCurrent: boolean; readonly status: "current" | "stale" | "unavailable" | "unattributed" }
+  | { readonly kind: "postValidationCheck"; readonly workAccepted: boolean; readonly expired: boolean; readonly hasFitting: boolean }
+  | { readonly kind: "finalCandidateCheck"; readonly ownerCurrent: boolean; readonly credentialGeneration: boolean; readonly credentialAuthorized: boolean; readonly expired: boolean; readonly workCurrent: boolean; readonly hasFindings: boolean }
+  | { readonly kind: "roundBeginStopCheck"; readonly active: boolean; readonly hasStop: boolean; readonly token: number }
+  | { readonly kind: "roundActivityCheck"; readonly bound: boolean; readonly hasAdmission: boolean; readonly round: number; readonly active: boolean; readonly closedAt: number; readonly expectedGeneration: number }
+  | { readonly kind: "roundBarrierCheck"; readonly hasStop: boolean; readonly usedAtStart: number; readonly usedNow: number }
+  | { readonly kind: "roundOwnsStopCheck"; readonly active: boolean; readonly tokenMatches: boolean; readonly deciding: boolean }
+  | { readonly kind: "roundStopTerminalCheck"; readonly hasOutput: boolean; readonly authorized: boolean; readonly requestedClose: boolean }
+  | { readonly kind: "roundExpireCloseCheck"; readonly barrier: boolean; readonly authorizedOutput: boolean }
+  | { readonly kind: "roundContinuationBudgetCheck"; readonly active: boolean; readonly count: number }
+  | { readonly kind: "deliverySubmissionAllowedCheck"; readonly active: boolean; readonly barrier: boolean; readonly deciding: boolean; readonly surface: "edit" | "background" | "stop"; readonly existingToken: boolean; readonly finishPermit: boolean }
+  | { readonly kind: "deliveryExistingTokenCheck"; readonly surface: "edit" | "background" | "stop"; readonly existingToken: boolean; readonly finishPermit: boolean }
+  | { readonly kind: "deliveryLegacyStopCheck"; readonly active: boolean; readonly deciding: boolean }
   | { readonly kind: "includeLayerCheck"; readonly supplied: boolean; readonly currentRank: number; readonly candidateRank: number }
   | { readonly kind: "fileSelectionCheck"; readonly protected: boolean; readonly excluded: boolean; readonly includesEmpty: boolean; readonly included: boolean }
   | { readonly kind: "fileProtectionInvalid" }
@@ -249,6 +269,11 @@ export type CanonicalCommand =
   | { readonly kind: "ticketUnitMissing" }
   | { readonly kind: "ticketEvicted"; readonly id: number }
   | { readonly kind: "ticketKept" | "cleanupReady" | "cleanupBusy" | "cleanupCommitted" | "deliveryReleaseUnacknowledged" | "deliveryKeepAcknowledged" }
+  | { readonly kind: "deliveryAckReady" | "deliveryAckExpired" | "deliveryAckEmpty" | "deliveryFinalReady" | "deliveryFinalExpired" | "deliveryFinalEmpty" | "deliveryRetireAdvice" | "deliveryKeepRemaining" | "deliveryKeepForReoffer" }
+  | { readonly kind: "deliverySubmissionCandidate" | "deliverySubmissionRefused" | "deliveryBatchProceed" | "deliveryBatchRelease" | "deliveryCredentialInvalid" | "deliveryCredentialValid" }
+  | { readonly kind: "ignoreCandidate" | "releaseCandidate" | "retireCandidate" | "continueCandidate" | "retainCandidate" }
+  | { readonly kind: "roundStopBegun" | "roundStopRefused" | "roundActive" | "roundInactive" | "roundBarrierRaised" | "roundBarrierClear" | "roundStopOwned" | "roundStopNotOwned" | "roundExpireCloses" | "roundExpireKeeps" | "roundContinuationAvailable" | "roundContinuationExhausted" | "deliverySubmissionAllowed" | "deliverySubmissionDenied" | "deliveryExistingTokenAllowed" | "deliveryExistingTokenDenied" | "deliveryLegacyStopAllowed" | "deliveryLegacyStopDenied" }
+  | { readonly kind: "roundStopTerminal"; readonly revokeProvisional: boolean; readonly close: boolean }
   | { readonly kind: "reuseJoinAdvice" | "reuseJoinPending" | "reuseJoinClaimed" | "reuseCached" | "reuseOwn" | "reuseClaimed" | "reuseAttached" | "reuseReleased" | "reuseRefused" | "cacheAlready" | "cacheRejected" | "cacheCommitted" }
   | { readonly kind: "cachePrepared"; readonly evicted: readonly number[] }
   | { readonly kind: "cacheDiscarded"; readonly ids: readonly number[] }
@@ -300,6 +325,11 @@ const identity = (event: Extract<CanonicalEvent, { readonly partition: number; r
 const submissionSurface = (surface: "edit" | "background" | "stop"): unknown => {
   const name = { edit: "Handoff.Edit", background: "Handoff.Background", stop: "Handoff.Stop" }[surface];
   if (name === undefined) throw new TypeError("invalid submission surface");
+  return { $: name };
+};
+const deliverySurface = (surface: "edit" | "background" | "stop"): unknown => {
+  const name = { edit: "Delivery.Edit", background: "Delivery.Background", stop: "Delivery.Stop" }[surface];
+  if (name === undefined) throw new TypeError("invalid delivery surface");
   return { $: name };
 };
 const ticketReason = (reason: TicketReason): unknown => {
@@ -437,6 +467,40 @@ const encode = (event: CanonicalEvent): unknown => {
     }
     case "cleanupCommit": inputFields(event, ["kind"]); return { $: "Canonical.CleanupCommit" };
     case "deliveryReleaseCheck": inputFields(event, ["kind", "acknowledged"]); return { $: "Canonical.DeliveryReleaseCheck", acknowledged: bool(event.acknowledged) };
+    case "deliveryAcknowledgeCheck": inputFields(event, ["kind", "items", "anyExpired"]); return { $: "Canonical.DeliveryAcknowledgeCheck", items: nat(event.items), any_expired: bool(event.anyExpired) };
+    case "deliveryFinalizeCheck": inputFields(event, ["kind", "items", "allAcknowledged", "anyExpired"]); return { $: "Canonical.DeliveryFinalizeCheck", items: nat(event.items), all_acknowledged: bool(event.allAcknowledged), any_expired: bool(event.anyExpired) };
+    case "deliveryFindingDispositionCheck": inputFields(event, ["kind", "composed", "remaining"]); return { $: "Canonical.DeliveryFindingDispositionCheck", composed: bool(event.composed), remaining: nat(event.remaining) };
+    case "deliverySubmissionCandidateCheck": {
+      inputFields(event, ["kind", "facts"]);
+      const facts = event.facts;
+      inputFields(facts, ["roundActive", "hasRound", "hasUnit", "hasDelivery", "pendingCapacity", "submissionAllowed", "currentWork", "credentialAuthorized"]);
+      return { $: "Canonical.DeliverySubmissionCandidateCheck", facts: { $: "Delivery.SubmissionFacts",
+        round_active: bool(facts.roundActive), has_round: bool(facts.hasRound),
+        has_unit: bool(facts.hasUnit), has_delivery: bool(facts.hasDelivery),
+        pending_capacity: bool(facts.pendingCapacity), submission_allowed: bool(facts.submissionAllowed),
+        current_work: bool(facts.currentWork), credential_authorized: bool(facts.credentialAuthorized) } };
+    }
+    case "deliverySubmissionBatchCheck": inputFields(event, ["kind", "count", "allValid"]); return { $: "Canonical.DeliverySubmissionBatchCheck", count: nat(event.count), all_valid: bool(event.allValid) };
+    case "deliveryCredentialObserveCheck": inputFields(event, ["kind", "invalidSeen", "generationValid", "authorized"]); return { $: "Canonical.DeliveryCredentialObserveCheck", invalid_seen: bool(event.invalidSeen), generation_valid: bool(event.generationValid), authorized: bool(event.authorized) };
+    case "deliveryFinalCredentialCheck": inputFields(event, ["kind", "legacyCollect", "invalidSeen"]); return { $: "Canonical.DeliveryFinalCredentialCheck", legacy_collect: bool(event.legacyCollect), invalid_seen: bool(event.invalidSeen) };
+    case "validationRouteCheck": {
+      inputFields(event, ["kind", "ownerCurrent", "status"]);
+      if (!["current", "stale", "unavailable", "unattributed"].includes(event.status)) throw new TypeError("invalid validation status");
+      return { $: "Canonical.ValidationRouteCheck", owner_current: bool(event.ownerCurrent),
+        status: { $: `Handoff.${event.status.slice(0, 1).toUpperCase()}${event.status.slice(1)}` } };
+    }
+    case "postValidationCheck": inputFields(event, ["kind", "workAccepted", "expired", "hasFitting"]); return { $: "Canonical.PostValidationCheck", work_accepted: bool(event.workAccepted), expired: bool(event.expired), has_fitting: bool(event.hasFitting) };
+    case "finalCandidateCheck": inputFields(event, ["kind", "ownerCurrent", "credentialGeneration", "credentialAuthorized", "expired", "workCurrent", "hasFindings"]); return { $: "Canonical.FinalCandidateCheck", owner_current: bool(event.ownerCurrent), credential_generation: bool(event.credentialGeneration), credential_authorized: bool(event.credentialAuthorized), expired: bool(event.expired), work_current: bool(event.workCurrent), has_findings: bool(event.hasFindings) };
+    case "roundBeginStopCheck": inputFields(event, ["kind", "active", "hasStop", "token"]); return { $: "Canonical.RoundBeginStopCheck", active: bool(event.active), has_stop: bool(event.hasStop), token: nat(event.token, true) };
+    case "roundActivityCheck": inputFields(event, ["kind", "bound", "hasAdmission", "round", "active", "closedAt", "expectedGeneration"]); return { $: "Canonical.RoundActivityCheck", bound: bool(event.bound), has_admission: bool(event.hasAdmission), round: nat(event.round), active: bool(event.active), closed_at: nat(event.closedAt), expected_generation: nat(event.expectedGeneration) };
+    case "roundBarrierCheck": inputFields(event, ["kind", "hasStop", "usedAtStart", "usedNow"]); return { $: "Canonical.RoundBarrierCheck", has_stop: bool(event.hasStop), used_at_start: nat(event.usedAtStart), used_now: nat(event.usedNow) };
+    case "roundOwnsStopCheck": inputFields(event, ["kind", "active", "tokenMatches", "deciding"]); return { $: "Canonical.RoundOwnsStopCheck", active: bool(event.active), token_matches: bool(event.tokenMatches), deciding: bool(event.deciding) };
+    case "roundStopTerminalCheck": inputFields(event, ["kind", "hasOutput", "authorized", "requestedClose"]); return { $: "Canonical.RoundStopTerminalCheck", has_output: bool(event.hasOutput), authorized: bool(event.authorized), requested_close: bool(event.requestedClose) };
+    case "roundExpireCloseCheck": inputFields(event, ["kind", "barrier", "authorizedOutput"]); return { $: "Canonical.RoundExpireCloseCheck", barrier: bool(event.barrier), authorized_output: bool(event.authorizedOutput) };
+    case "roundContinuationBudgetCheck": inputFields(event, ["kind", "active", "count"]); return { $: "Canonical.RoundContinuationBudgetCheck", active: bool(event.active), count: nat(event.count) };
+    case "deliverySubmissionAllowedCheck": inputFields(event, ["kind", "active", "barrier", "deciding", "surface", "existingToken", "finishPermit"]); return { $: "Canonical.DeliverySubmissionAllowedCheck", active: bool(event.active), barrier: bool(event.barrier), deciding: bool(event.deciding), surface: deliverySurface(event.surface), existing_token: bool(event.existingToken), finish_permit: bool(event.finishPermit) };
+    case "deliveryExistingTokenCheck": inputFields(event, ["kind", "surface", "existingToken", "finishPermit"]); return { $: "Canonical.DeliveryExistingTokenCheck", surface: deliverySurface(event.surface), existing_token: bool(event.existingToken), finish_permit: bool(event.finishPermit) };
+    case "deliveryLegacyStopCheck": inputFields(event, ["kind", "active", "deciding"]); return { $: "Canonical.DeliveryLegacyStopCheck", active: bool(event.active), deciding: bool(event.deciding) };
     case "includeLayerCheck": inputFields(event, ["kind", "supplied", "currentRank", "candidateRank"]); return { $: "Canonical.IncludeLayerCheck", supplied: bool(event.supplied), current_rank: nat(event.currentRank), candidate_rank: nat(event.candidateRank) };
     case "fileSelectionCheck": inputFields(event, ["kind", "protected", "excluded", "includesEmpty", "included"]); return { $: "Canonical.FileSelectionCheck", protected: bool(event.protected), excluded: bool(event.excluded), includes_empty: bool(event.includesEmpty), included: bool(event.included) };
     case "fileProtectionInvalid": inputFields(event, ["kind"]); return { $: "Canonical.FileProtectionInvalid" };
@@ -684,9 +748,39 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
     case "Canonical.TicketUnitMissing": fields(value, "Canonical.TicketUnitMissing", []); return { kind: "ticketUnitMissing" };
     case "Canonical.TicketEvicted": return { kind: "ticketEvicted", id: nat(fields(value, "Canonical.TicketEvicted", ["id"]).id, true) };
     case "Canonical.TicketKept": case "Canonical.CleanupReady": case "Canonical.CleanupBusy": case "Canonical.CleanupCommitted":
-    case "Canonical.DeliveryReleaseUnacknowledged": case "Canonical.DeliveryKeepAcknowledged": {
+    case "Canonical.DeliveryReleaseUnacknowledged": case "Canonical.DeliveryKeepAcknowledged":
+    case "Canonical.DeliveryAckReady": case "Canonical.DeliveryAckExpired": case "Canonical.DeliveryAckEmpty":
+    case "Canonical.DeliveryFinalReady": case "Canonical.DeliveryFinalExpired": case "Canonical.DeliveryFinalEmpty":
+    case "Canonical.DeliveryRetireAdvice": case "Canonical.DeliveryKeepRemaining": case "Canonical.DeliveryKeepForReoffer": {
       const name = tag(value); fields(value, name, []);
-      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "ticketKept" | "cleanupReady" | "cleanupBusy" | "cleanupCommitted" | "deliveryReleaseUnacknowledged" | "deliveryKeepAcknowledged" };
+      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "ticketKept" | "cleanupReady" | "cleanupBusy" | "cleanupCommitted" | "deliveryReleaseUnacknowledged" | "deliveryKeepAcknowledged" | "deliveryAckReady" | "deliveryAckExpired" | "deliveryAckEmpty" | "deliveryFinalReady" | "deliveryFinalExpired" | "deliveryFinalEmpty" | "deliveryRetireAdvice" | "deliveryKeepRemaining" | "deliveryKeepForReoffer" };
+    }
+    case "Canonical.DeliverySubmissionCandidate": case "Canonical.DeliverySubmissionRefused":
+    case "Canonical.DeliveryBatchProceed": case "Canonical.DeliveryBatchRelease":
+    case "Canonical.DeliveryCredentialInvalid": case "Canonical.DeliveryCredentialValid": {
+      const name = tag(value); fields(value, name, []);
+      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "deliverySubmissionCandidate" | "deliverySubmissionRefused" | "deliveryBatchProceed" | "deliveryBatchRelease" | "deliveryCredentialInvalid" | "deliveryCredentialValid" };
+    }
+    case "Canonical.IgnoreCandidate": case "Canonical.ReleaseCandidate": case "Canonical.RetireCandidate":
+    case "Canonical.ContinueCandidate": case "Canonical.RetainCandidate": {
+      const name = tag(value); fields(value, name, []);
+      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "ignoreCandidate" | "releaseCandidate" | "retireCandidate" | "continueCandidate" | "retainCandidate" };
+    }
+    case "Canonical.RoundStopBegun": case "Canonical.RoundStopRefused":
+    case "Canonical.RoundActive": case "Canonical.RoundInactive":
+    case "Canonical.RoundBarrierRaised": case "Canonical.RoundBarrierClear":
+    case "Canonical.RoundStopOwned": case "Canonical.RoundStopNotOwned":
+    case "Canonical.RoundExpireCloses": case "Canonical.RoundExpireKeeps":
+    case "Canonical.RoundContinuationAvailable": case "Canonical.RoundContinuationExhausted":
+    case "Canonical.DeliverySubmissionAllowed": case "Canonical.DeliverySubmissionDenied":
+    case "Canonical.DeliveryExistingTokenAllowed": case "Canonical.DeliveryExistingTokenDenied":
+    case "Canonical.DeliveryLegacyStopAllowed": case "Canonical.DeliveryLegacyStopDenied": {
+      const name = tag(value); fields(value, name, []);
+      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "roundStopBegun" | "roundStopRefused" | "roundActive" | "roundInactive" | "roundBarrierRaised" | "roundBarrierClear" | "roundStopOwned" | "roundStopNotOwned" | "roundExpireCloses" | "roundExpireKeeps" | "roundContinuationAvailable" | "roundContinuationExhausted" | "deliverySubmissionAllowed" | "deliverySubmissionDenied" | "deliveryExistingTokenAllowed" | "deliveryExistingTokenDenied" | "deliveryLegacyStopAllowed" | "deliveryLegacyStopDenied" };
+    }
+    case "Canonical.RoundStopTerminal": {
+      const command = fields(value, "Canonical.RoundStopTerminal", ["revoke_provisional", "close"]);
+      return { kind: "roundStopTerminal", revokeProvisional: bool(command.revoke_provisional), close: bool(command.close) };
     }
     case "Canonical.NoticeSuppressed": case "Canonical.NoticeCreatePending": case "Canonical.NoticeMergePending": {
       const name = tag(value); return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "noticeSuppressed" | "noticeCreatePending" | "noticeMergePending", count: nat(fields(value, name, ["count"]).count) };

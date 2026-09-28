@@ -2,6 +2,109 @@ import { describe, expect, it } from "vitest";
 import { CapacityLedger, encodedBytesWithin } from "./capacity.ts";
 
 describe("resident logical capacity ledger", () => {
+  it("routes delivery terminal and finding decisions through canonical Bend", () => {
+    const ledger = new CapacityLedger();
+    for (const [event, kind] of [
+      [{ kind: "deliveryAcknowledgeCheck", items: 0, anyExpired: false }, "deliveryAckEmpty"],
+      [{ kind: "deliveryAcknowledgeCheck", items: 1, anyExpired: true }, "deliveryAckExpired"],
+      [{ kind: "deliveryAcknowledgeCheck", items: 1, anyExpired: false }, "deliveryAckReady"],
+      [{ kind: "deliveryFinalizeCheck", items: 1, allAcknowledged: false, anyExpired: false }, "deliveryFinalEmpty"],
+      [{ kind: "deliveryFinalizeCheck", items: 1, allAcknowledged: true, anyExpired: true }, "deliveryFinalExpired"],
+      [{ kind: "deliveryFinalizeCheck", items: 1, allAcknowledged: true, anyExpired: false }, "deliveryFinalReady"],
+      [{ kind: "deliveryFindingDispositionCheck", composed: true, remaining: 0 }, "deliveryKeepForReoffer"],
+      [{ kind: "deliveryFindingDispositionCheck", composed: false, remaining: 1 }, "deliveryKeepRemaining"],
+      [{ kind: "deliveryFindingDispositionCheck", composed: false, remaining: 0 }, "deliveryRetireAdvice"],
+    ] as const) {
+      expect(ledger.transition(event).commands).toEqual([{ kind }]);
+    }
+  });
+
+  it("routes composed submission and credential gates through canonical Bend", () => {
+    const ledger = new CapacityLedger();
+    const valid = { roundActive: true, hasRound: true, hasUnit: true,
+      hasDelivery: true, pendingCapacity: true, submissionAllowed: true,
+      currentWork: true, credentialAuthorized: true };
+    expect(ledger.transition({ kind: "deliverySubmissionCandidateCheck", facts: valid }).commands)
+      .toEqual([{ kind: "deliverySubmissionCandidate" }]);
+    expect(ledger.transition({ kind: "deliverySubmissionCandidateCheck",
+      facts: { ...valid, currentWork: false } }).commands)
+      .toEqual([{ kind: "deliverySubmissionRefused" }]);
+    expect(ledger.transition({ kind: "deliverySubmissionBatchCheck", count: 0, allValid: true }).commands)
+      .toEqual([{ kind: "deliveryBatchRelease" }]);
+    expect(ledger.transition({ kind: "deliverySubmissionBatchCheck", count: 1, allValid: true }).commands)
+      .toEqual([{ kind: "deliveryBatchProceed" }]);
+    expect(ledger.transition({ kind: "deliveryCredentialObserveCheck",
+      invalidSeen: false, generationValid: true, authorized: true }).commands)
+      .toEqual([{ kind: "deliveryCredentialValid" }]);
+    expect(ledger.transition({ kind: "deliveryCredentialObserveCheck",
+      invalidSeen: false, generationValid: false, authorized: false }).commands)
+      .toEqual([{ kind: "deliveryCredentialInvalid" }]);
+    expect(ledger.transition({ kind: "deliveryFinalCredentialCheck",
+      legacyCollect: true, invalidSeen: true }).commands)
+      .toEqual([{ kind: "deliveryBatchRelease" }]);
+    expect(ledger.transition({ kind: "deliveryFinalCredentialCheck",
+      legacyCollect: false, invalidSeen: true }).commands)
+      .toEqual([{ kind: "deliveryBatchProceed" }]);
+  });
+
+  it("routes revalidation and final handoff candidates through canonical Bend", () => {
+    const ledger = new CapacityLedger();
+    expect(ledger.transition({ kind: "validationRouteCheck",
+      ownerCurrent: false, status: "current" }).commands)
+      .toEqual([{ kind: "ignoreCandidate" }]);
+    expect(ledger.transition({ kind: "validationRouteCheck",
+      ownerCurrent: true, status: "stale" }).commands)
+      .toEqual([{ kind: "retireCandidate" }]);
+    expect(ledger.transition({ kind: "validationRouteCheck",
+      ownerCurrent: true, status: "current" }).commands)
+      .toEqual([{ kind: "continueCandidate" }]);
+    expect(ledger.transition({ kind: "postValidationCheck",
+      workAccepted: true, expired: false, hasFitting: false }).commands)
+      .toEqual([{ kind: "releaseCandidate" }]);
+    expect(ledger.transition({ kind: "postValidationCheck",
+      workAccepted: true, expired: false, hasFitting: true }).commands)
+      .toEqual([{ kind: "retainCandidate" }]);
+    expect(ledger.transition({ kind: "finalCandidateCheck", ownerCurrent: true,
+      credentialGeneration: true, credentialAuthorized: true,
+      expired: true, workCurrent: true, hasFindings: true }).commands)
+      .toEqual([{ kind: "retireCandidate" }]);
+  });
+
+  it("routes Stop ownership, expiry, and submission through canonical Bend", () => {
+    const ledger = new CapacityLedger();
+    expect(ledger.transition({ kind: "roundBeginStopCheck", active: true,
+      hasStop: false, token: 1 }).commands).toEqual([{ kind: "roundStopBegun" }]);
+    expect(ledger.transition({ kind: "roundBeginStopCheck", active: true,
+      hasStop: true, token: 2 }).commands).toEqual([{ kind: "roundStopRefused" }]);
+    expect(ledger.transition({ kind: "roundActivityCheck", bound: true,
+      hasAdmission: true, round: 0, active: false, closedAt: 0,
+      expectedGeneration: 1 }).commands).toEqual([{ kind: "roundActive" }]);
+    expect(ledger.transition({ kind: "roundActivityCheck", bound: true,
+      hasAdmission: true, round: 1, active: false, closedAt: 100,
+      expectedGeneration: 1 }).commands).toEqual([{ kind: "roundInactive" }]);
+    expect(ledger.transition({ kind: "roundBarrierCheck", hasStop: true,
+      usedAtStart: 1, usedNow: 2 }).commands).toEqual([{ kind: "roundBarrierRaised" }]);
+    expect(ledger.transition({ kind: "roundBarrierCheck", hasStop: false,
+      usedAtStart: 1, usedNow: 2 }).commands).toEqual([{ kind: "roundBarrierClear" }]);
+    expect(ledger.transition({ kind: "roundOwnsStopCheck", active: true,
+      tokenMatches: true, deciding: true }).commands).toEqual([{ kind: "roundStopNotOwned" }]);
+    expect(ledger.transition({ kind: "roundStopTerminalCheck", hasOutput: true,
+      authorized: false, requestedClose: false }).commands)
+      .toEqual([{ kind: "roundStopTerminal", revokeProvisional: true, close: true }]);
+    expect(ledger.transition({ kind: "roundExpireCloseCheck", barrier: false,
+      authorizedOutput: true }).commands).toEqual([{ kind: "roundExpireKeeps" }]);
+    expect(ledger.transition({ kind: "roundContinuationBudgetCheck", active: true,
+      count: 4 }).commands).toEqual([{ kind: "roundContinuationExhausted" }]);
+    expect(ledger.transition({ kind: "deliverySubmissionAllowedCheck", active: true,
+      barrier: true, deciding: false, surface: "background", existingToken: false,
+      finishPermit: false }).commands).toEqual([{ kind: "deliverySubmissionDenied" }]);
+    expect(ledger.transition({ kind: "deliveryExistingTokenCheck", surface: "stop",
+      existingToken: true, finishPermit: false }).commands)
+      .toEqual([{ kind: "deliveryExistingTokenDenied" }]);
+    expect(ledger.transition({ kind: "deliveryLegacyStopCheck", active: true,
+      deciding: true }).commands).toEqual([{ kind: "deliveryLegacyStopDenied" }]);
+  });
+
   it("keeps permit and capacity transitions in one canonical resident state", () => {
     const ledger = new CapacityLedger();
     const partition = ledger.partitionId("agent");
