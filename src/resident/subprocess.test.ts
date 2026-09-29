@@ -174,6 +174,48 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     expect(() => process.kill(owner.pid, 0)).not.toThrow();
   });
 
+  it("exits after SIGTERM with gated review work and permits a new owner", async () => {
+    const root = await makeGitFixture();
+    const temporary = await mkdtemp(join(tmpdir(), "product-resident-signal-"));
+    directories.push(root, temporary);
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const statePath = join(temporary, "consent");
+    const gate = join(temporary, "backend.gate");
+    const paths = residentPaths(join(temporary, "runtime"));
+    await enable(root, statePath);
+    const launched = spawn(process.execPath, ["--input-type=module", "-e",
+      "import {ensureResident} from './src/resident/client.ts'; console.log(JSON.stringify(await ensureResident()));",
+    ], {
+      cwd: process.cwd(),
+      env: { ...process.env, REVIEW_RESIDENT_DIR: paths.directory,
+        REVIEW_RESIDENT_BACKEND_GATE_PATH: gate, REVIEW_RESIDENT_CONTROLLED: "1" },
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    const owner = JSON.parse(await childResult(launched)) as { pid: number; lifetime: string };
+    processes.push(owner.pid);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    expect((await residentRequest(paths, { version: 1, operation: "admit",
+      lifetime: owner.lifetime, observation, controlledWriter: true,
+      dispatch: dispatchFor(statePath) })).status).toBe("accepted");
+    await waitFor(async () => {
+      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
+      return stats.status === "stats" && stats.running > 0 ? true : undefined;
+    });
+    expect(existsSync(gate)).toBe(false);
+    process.kill(owner.pid, "SIGTERM");
+    await waitFor(async () => {
+      try { process.kill(owner.pid, 0); return undefined; }
+      catch { return !existsSync(paths.owner) && !existsSync(paths.lock) ? true : undefined; }
+    }, 5_000);
+    const restarted = await ensureResident(paths, 5_000);
+    processes.push(restarted.pid);
+    expect(restarted.pid).not.toBe(owner.pid);
+    expect(restarted.lifetime).not.toBe(owner.lifetime);
+    expect((await residentRequest(paths, { version: 1, operation: "hello" })).status).toBe("ready");
+  });
+
   it("ignores and removes an orphaned pre-portability startup marker", async () => {
     const temporary = await mkdtemp(join(tmpdir(), "r-"));
     directories.push(temporary);
