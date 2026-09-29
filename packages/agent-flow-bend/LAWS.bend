@@ -772,19 +772,19 @@ law notice_available_table_creates_new_key:
     Notice.CreateKey{} : Notice.Advance}
 
 law fitting_notice_is_included:
-  {Handoff.notice_offer(5n, 2048n, False{}) ==
+  {Handoff.notice_offer(5n, 10240n, False{}) ==
     Handoff.IncludeNotice{} : Handoff.NoticeOffer}
 
-law sixth_notice_stops_codex_prefix:
+law sixth_notice_fits_when_bytes_fit:
   {Handoff.notice_offer(6n, 100n, False{}) ==
-    Handoff.StopNotices{} : Handoff.NoticeOffer}
+    Handoff.IncludeNotice{} : Handoff.NoticeOffer}
 
 law oversized_notice_skips_in_claude:
-  {Handoff.notice_offer(2n, 2049n, True{}) ==
+  {Handoff.notice_offer(2n, 10241n, True{}) ==
     Handoff.SkipNotice{} : Handoff.NoticeOffer}
 
 law oversized_notice_stops_codex_prefix:
-  {Handoff.notice_offer(2n, 2049n, False{}) ==
+  {Handoff.notice_offer(2n, 10241n, False{}) ==
     Handoff.StopNotices{} : Handoff.NoticeOffer}
 
 def permit_facts(duplicate: Bool, permit_count: Nat, round_count: Nat,
@@ -1290,14 +1290,14 @@ law handoff_selects_fitting_findings:
   {Handoff.select(Handoff.initial(9n, 1n), current_advice(), 2048n) ==
     Handoff.Selected{Handoff.Selection{9n, 1n, 7n <> Nil{}, Nil{}, 1n, 2048n}} : Handoff.SelectResult}
 
-law fifth_finding_fits_exact_byte_ceiling:
-  {Handoff.fits_batch(5n, 2048n) == True{} : Bool}
+law findings_fit_exact_byte_ceiling:
+  {Handoff.fits_batch(5n, 10240n) == True{} : Bool}
 
-law sixth_finding_exceeds_item_ceiling:
-  {Handoff.fits_batch(6n, 1n) == False{} : Bool}
+law sixth_finding_has_no_separate_item_ceiling:
+  {Handoff.fits_batch(6n, 1n) == True{} : Bool}
 
 law handoff_retains_oversized_item:
-  {Handoff.select(Handoff.initial(9n, 1n), current_advice(), 2049n) ==
+  {Handoff.select(Handoff.initial(9n, 1n), current_advice(), 10241n) ==
     Handoff.Retained{Handoff.Selection{9n, 1n, Nil{}, 7n <> Nil{}, 0n, 0n}} : Handoff.SelectResult}
 
 law handoff_rejects_stale_generation:
@@ -1316,7 +1316,7 @@ law handoff_rejects_stale_credential:
 
 law individually_oversized_finding_has_limitation:
   {Handoff.select(Handoff.initial(9n, 1n),
-    Handoff.Advice{8n, 4n, 9n, 1n, 2n, 2n, 3n, 3n, 25n, 2049n, True{}}, 2049n) ==
+    Handoff.Advice{8n, 4n, 9n, 1n, 2n, 2n, 3n, 3n, 25n, 10241n, True{}}, 10241n) ==
     Handoff.Limited{Handoff.Selection{9n, 1n, Nil{}, 8n <> Nil{}, 0n, 0n}, 8n} : Handoff.SelectResult}
 
 law same_finding_cannot_be_selected_twice:
@@ -1324,12 +1324,12 @@ law same_finding_cannot_be_selected_twice:
     current_advice(), 400n) ==
     Handoff.Duplicate{Handoff.Selection{9n, 1n, 7n <> Nil{}, Nil{}, 1n, 300n}} : Handoff.SelectResult}
 
-law sixth_finding_from_same_unit_is_retained:
+law sixth_finding_from_same_unit_is_selected_when_bytes_fit:
   {Handoff.select(Handoff.Selection{9n, 1n,
       1n <> 2n <> 3n <> 4n <> 5n <> Nil{}, Nil{}, 5n, 1800n},
     Handoff.Advice{6n, 4n, 9n, 1n, 2n, 2n, 3n, 3n, 25n, 300n, True{}}, 1900n) ==
-    Handoff.Retained{Handoff.Selection{9n, 1n,
-      1n <> 2n <> 3n <> 4n <> 5n <> Nil{}, 6n <> Nil{}, 5n, 1800n}} : Handoff.SelectResult}
+    Handoff.Selected{Handoff.Selection{9n, 1n,
+      1n <> 2n <> 3n <> 4n <> 5n <> 6n <> Nil{}, Nil{}, 6n, 1900n}} : Handoff.SelectResult}
 
 law finish_waits_for_review_work:
   {Handoff.finish.decide(Handoff.finish.initial(1n), 1n, False{}, 1n) ==

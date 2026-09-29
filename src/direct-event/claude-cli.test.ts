@@ -12,6 +12,7 @@ import { makeGitFixture, put } from "./test-fixtures.ts";
 import { ensureResident, residentRequest } from "../resident/client.ts";
 import { residentPaths } from "../resident/paths.ts";
 import { encodeCurrentResidentRequest } from "../resident/protocol.ts";
+import { MAX_COMBINED_RESPONSE_BYTES } from "../resident/collection.ts";
 
 const roots: Array<string> = [];
 afterEach(() => {
@@ -80,7 +81,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     expect(JSON.parse(after.stdout)).toMatchObject({ hookSpecificOutput: {
       hookEventName: "PostToolUse", additionalContext: expect.stringContaining("OrderCount"),
     } });
-    expect(Buffer.byteLength(after.stdout, "utf8")).toBeLessThanOrEqual(2_048);
+    expect(Buffer.byteLength(after.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
   });
 
   it("returns quietly when the admitted review finishes clear", async () => {
@@ -179,7 +180,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     expect(advice.decision).toBeUndefined();
     expect(advice.hookSpecificOutput?.additionalContext).toContain("Please repair each finding");
     expect(advice.hookSpecificOutput?.additionalContext).toContain("r6_bare_domain_value");
-    expect(Buffer.byteLength(result.stdout, "utf8")).toBeLessThanOrEqual(2 * 1024);
+    expect(Buffer.byteLength(result.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
 
     const userConfigPath = await put(root, "user-config.jsonc", '{"version":1,"claudeFeedbackMode":"block-current-findings"}');
     const blockResult = invoke({ ...event, tool_use_id: "tool-two" }, {
@@ -195,7 +196,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     expect(block.reason).toContain("Repair the listed finding(s)");
     expect(blockResult.stdout).toBe(`${JSON.stringify(block)}\n`);
     expect(Object.keys(block).sort()).toEqual(["decision", "reason"]);
-    expect(Buffer.byteLength(blockResult.stdout, "utf8")).toBeLessThanOrEqual(2 * 1024);
+    expect(Buffer.byteLength(blockResult.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
 
     await put(root, ".review.jsonc", '{"version":1,"claudeFeedbackMode":"advisory"}');
     const narrowedResult = invoke({ ...event, tool_use_id: "tool-three" }, {
@@ -462,8 +463,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const context = output.hookSpecificOutput?.additionalContext ?? "";
     const findingCount = [...context.matchAll(/\[r6_bare_domain_value/g)].length;
     expect(findingCount).toBeGreaterThan(0);
-    expect(findingCount).toBeLessThan(5);
-    expect(Buffer.byteLength(result.stdout, "utf8")).toBeLessThanOrEqual(2_048);
+    expect(Buffer.byteLength(result.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
     expect(readFileSync(path, "utf8")).toBe(source);
   });
 
@@ -640,7 +640,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     expect(outputs.filter(containsFinding).length).toBeLessThanOrEqual(2);
     expect([outputs[0], outputs[1]].filter(containsFinding).length).toBeLessThanOrEqual(1);
     for (const result of [sync, background, stop]) {
-      expect(Buffer.byteLength(result.stdout, "utf8")).toBeLessThanOrEqual(2_048);
+      expect(Buffer.byteLength(result.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
     }
     expect(readFileSync(path, "utf8")).toBe("type ConcurrentCount = number\n");
   }, 40_000);
@@ -716,7 +716,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
       });
     expect(stop.status).toBe(0);
     expect(JSON.parse(stop.stdout)).toMatchObject({ decision: "block", reason: expect.stringContaining("StopCount") });
-    expect(Buffer.byteLength(stop.stdout, "utf8")).toBeLessThanOrEqual(2_048);
+    expect(Buffer.byteLength(stop.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
     expect(readFileSync(path, "utf8")).toBe("type StopCount = number\n");
   });
 

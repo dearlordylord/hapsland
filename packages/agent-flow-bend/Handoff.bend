@@ -77,8 +77,7 @@ def current(advice: Advice, partition: Nat, round: Nat) -> Bool:
         Bool.and(Nat.is_lt(age_ms, 600000n), ready)))))
 
 def fits_batch(+items: Nat, bytes: Nat) -> Bool:
-  Bool.and(Nat.is_gt(items, 0n),
-    Bool.and(Nat.is_le(items, 5n), Nat.is_le(bytes, 2048n)))
+  Bool.and(Nat.is_gt(items, 0n), Nat.is_le(bytes, 10240n))
 
 # Claude may skip a notice that does not fit and consider later candidates;
 # Codex preserves a prefix and stops at the first one that does not fit.
@@ -117,7 +116,7 @@ def select.valid(state: Selection, id: Nat, prospective_bytes: Nat, solo_bytes: 
     count: Nat, valid: Bool) -> SelectResult:
   match valid:
     case True{}:
-      select.solo(state, id, prospective_bytes, count, Nat.is_gt(solo_bytes, 2048n))
+      select.solo(state, id, prospective_bytes, count, Nat.is_gt(solo_bytes, 10240n))
     case False{}:
       Expired{state}
 

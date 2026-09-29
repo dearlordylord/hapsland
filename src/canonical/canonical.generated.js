@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:e02eb5a123523a250155e84ccab30851375f1f020202d4900b230a95ec9bef69
+// hapsland-bend-source-sha256:702cc717b96c7b23dd9f1d8645f007f843be5904709a0ea29efc677a6fa1dc85
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -1251,7 +1251,7 @@ function $Canonical$collection_fit$(_state_0, _items_0, _bytes_0) {
 }
 
 function $Canonical$collection_finding$(_state_0, _selection_partition_0, _selection_round_0, _unit_0, _partition_0, _round_0, _snapshot_0, _current_snapshot_0, _credential_0, _current_credential_0, _age_ms_0, _solo_bytes_0, _collection_ready_0, _selected_count_0, _prospective_bytes_0) {
-  return $Canonical$collection_finding_result$(_state_0, ($Handoff$current$({$: "Handoff.Advice", "id": 1, "unit": _unit_0, "partition": _partition_0, "round": _round_0, "snapshot": _snapshot_0, "current_snapshot": _current_snapshot_0, "credential": _credential_0, "current_credential": _current_credential_0, "age_ms": _age_ms_0, "solo_bytes": _solo_bytes_0, "collection_ready": _collection_ready_0}, _selection_partition_0, _selection_round_0)), ($Nat$is_gt$(_solo_bytes_0, 2048)), ($Handoff$fits_batch$(nat_chk(_selected_count_0 + 1), _prospective_bytes_0)));
+  return $Canonical$collection_finding_result$(_state_0, ($Handoff$current$({$: "Handoff.Advice", "id": 1, "unit": _unit_0, "partition": _partition_0, "round": _round_0, "snapshot": _snapshot_0, "current_snapshot": _current_snapshot_0, "credential": _credential_0, "current_credential": _current_credential_0, "age_ms": _age_ms_0, "solo_bytes": _solo_bytes_0, "collection_ready": _collection_ready_0}, _selection_partition_0, _selection_round_0)), ($Nat$is_gt$(_solo_bytes_0, 10240)), ($Handoff$fits_batch$(nat_chk(_selected_count_0 + 1), _prospective_bytes_0)));
 }
 
 function $Canonical$collection_notice_result$(_state_0, _result_0) {
@@ -2987,7 +2987,7 @@ function $Collection$expired$(_elapsed_0, _lifetime_0) {
 }
 
 function $Handoff$fits_batch$(_items_0, _bytes_0) {
-  return $Bool$and$(($Nat$is_gt$(_items_0, 0)), ($Bool$and$(($Nat$is_le$(_items_0, 5)), ($Nat$is_le$(_bytes_0, 2048)))));
+  return $Bool$and$(($Nat$is_gt$(_items_0, 0)), ($Nat$is_le$(_bytes_0, 10240)));
 }
 
 function $Canonical$collection_finding_result$(_state_0, _current_0, _oversized_0, _fits_0) {
@@ -5966,7 +5966,7 @@ function $DeliveryState$reserve$(_state_0, _group_0, _round_0, _attempt_0, _toke
   const _counters_0 = _state_0["counters"];
   const _submissions_0 = _state_0["submissions"];
   const _used_0 = ($DeliveryState$count$(_group_0, _round_0, _counters_0));
-  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_group_0, 0)), ($Bool$and$(($Nat$is_gt$(_round_0, 0)), ($Bool$and$(($Nat$is_gt$(_attempt_0, 0)), ($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($Bool$not$(($DeliveryState$has_group$(_group_0, _slots_0)))), ($Bool$and$((_used_0 < 4), ($Bool$and$(($Nat$is_gt$(($List$length$(_selected_0)), 0)), ($Nat$is_le$(($List$length$(_selected_0)), 5)))))))))))))))), {$: "DeliveryState.Granted", "state": ($DeliveryState$set_count$({$: "DeliveryState.State", "slots": {$: "Con", "head": {$: "DeliveryState.Slot", "group": _group_0, "round": _round_0, "attempt": _attempt_0, "token": _token_0, "selected": _selected_0, "phase": {$: "DeliveryState.Reserved"}}, "tail": _slots_0}, "counters": _counters_0, "submissions": _submissions_0}, _group_0, _round_0, nat_chk(_used_0 + 1)))}, {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": _counters_0, "submissions": _submissions_0}});
+  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_group_0, 0)), ($Bool$and$(($Nat$is_gt$(_round_0, 0)), ($Bool$and$(($Nat$is_gt$(_attempt_0, 0)), ($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($Bool$not$(($DeliveryState$has_group$(_group_0, _slots_0)))), ($Bool$and$((_used_0 < 4), ($Nat$is_gt$(($List$length$(_selected_0)), 0)))))))))))))), {$: "DeliveryState.Granted", "state": ($DeliveryState$set_count$({$: "DeliveryState.State", "slots": {$: "Con", "head": {$: "DeliveryState.Slot", "group": _group_0, "round": _round_0, "attempt": _attempt_0, "token": _token_0, "selected": _selected_0, "phase": {$: "DeliveryState.Reserved"}}, "tail": _slots_0}, "counters": _counters_0, "submissions": _submissions_0}, _group_0, _round_0, nat_chk(_used_0 + 1)))}, {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": _counters_0, "submissions": _submissions_0}});
 }
 
 function $DeliveryState$count$(_group_0, _round_0, _counters_0) {
@@ -6207,7 +6207,7 @@ function $DeliveryState$submission_result$(_state_0, _result_0) {
 function $SubmissionState$begin$(_state_0, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0) {
   const _leases_0 = _state_0["leases"];
   const _batches_0 = _state_0["batches"];
-  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_advice_0, 0)), ($Bool$and$(($Nat$is_gt$(_group_0, 0)), ($Bool$and$(($Nat$is_gt$(_round_0, 0)), ($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($Bool$not$(($SubmissionState$has_batch$(_advice_0, _token_0, _batches_0)))), ($Bool$and$(($Nat$is_gt$(($List$length$(_fingerprints_0)), 0)), ($Bool$and$(($Nat$is_le$(($List$length$(_fingerprints_0)), 5)), ($Nat$is_le$(($List$length$(_units_0)), 5)))))))))))))))), ($SubmissionState$begin_result$({$: "SubmissionState.State", "leases": _leases_0, "batches": _batches_0}, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0, ($SubmissionState$begin_many$(_fingerprints_0, {$: "Some", "value": {$: "SubmissionState.State", "leases": _leases_0, "batches": _batches_0}}, _advice_0, _round_0, _token_0, _surface_0, _authorize_now_0)))), {$: "SubmissionState.Denied", "state": {$: "SubmissionState.State", "leases": _leases_0, "batches": _batches_0}});
+  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_advice_0, 0)), ($Bool$and$(($Nat$is_gt$(_group_0, 0)), ($Bool$and$(($Nat$is_gt$(_round_0, 0)), ($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($Bool$not$(($SubmissionState$has_batch$(_advice_0, _token_0, _batches_0)))), ($Nat$is_gt$(($List$length$(_fingerprints_0)), 0)))))))))))), ($SubmissionState$begin_result$({$: "SubmissionState.State", "leases": _leases_0, "batches": _batches_0}, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0, ($SubmissionState$begin_many$(_fingerprints_0, {$: "Some", "value": {$: "SubmissionState.State", "leases": _leases_0, "batches": _batches_0}}, _advice_0, _round_0, _token_0, _surface_0, _authorize_now_0)))), {$: "SubmissionState.Denied", "state": {$: "SubmissionState.State", "leases": _leases_0, "batches": _batches_0}});
 }
 
 function $SubmissionState$authorize$(_state_0, _advice_0, _token_0) {

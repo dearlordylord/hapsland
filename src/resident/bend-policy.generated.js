@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:4ab95f4a60cc4de1dca17745f95c3acd0ea86c72f533511d70f32afc5d08546c
+// hapsland-bend-source-sha256:1afc9a9da4affdebfb1565c4561b8e7682256cec67b14fc8550ac656fa376ed9
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -452,7 +452,7 @@ function $Handoff$initial$(_partition_0, _round_0) {
 }
 
 function $Handoff$fits_batch$(_items_0, _bytes_0) {
-  return $Bool$and$(($Nat$is_gt$(_items_0, 0)), ($Bool$and$(($Nat$is_le$(_items_0, 5)), ($Nat$is_le$(_bytes_0, 2048)))));
+  return $Bool$and$(($Nat$is_gt$(_items_0, 0)), ($Nat$is_le$(_bytes_0, 10240)));
 }
 
 function $Handoff$notice_offer$(_items_0, _bytes_0, _skip_unfitting_0) {
@@ -918,7 +918,7 @@ function $Lifecycle$finish_gate$(_round_0, _work_0, _token_0, _extra_unfinished_
 }
 
 function $Lifecycle$reserve_selected$(_round_0, _work_0, _token_0, _selected_0) {
-  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(($List$length$(_selected_0)), 0)), ($Bool$and$(($Nat$is_le$(($List$length$(_selected_0)), 5)), ($Lifecycle$selected_valid$(_work_0, _selected_0, _selected_0)))))), ($Round$reserve_output$(_round_0, _token_0)), {$: "Round.Denied", "state": _round_0});
+  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(($List$length$(_selected_0)), 0)), ($Lifecycle$selected_valid$(_work_0, _selected_0, _selected_0)))), ($Round$reserve_output$(_round_0, _token_0)), {$: "Round.Denied", "state": _round_0});
 }
 
 function $Lifecycle$release_unwritten$(_round_0, _token_0) {
@@ -938,7 +938,7 @@ function $Lifecycle$finish_output$(_round_0, _work_0, _token_0, _selected_0, _ha
 }
 
 function $Lifecycle$selection_reserve$(_work_0, _selected_0) {
-  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(($List$length$(_selected_0)), 0)), ($Bool$and$(($Nat$is_le$(($List$length$(_selected_0)), 5)), ($Lifecycle$selected_valid$(_work_0, _selected_0, _selected_0)))))), {$: "Lifecycle.SelectionReserved", "state": {$: "Lifecycle.OutputSelection", "selected": _selected_0, "authorized": false, "consumed": false}}, {$: "Lifecycle.SelectionRejected"});
+  return $Bool$pick$(($Bool$and$(($Nat$is_gt$(($List$length$(_selected_0)), 0)), ($Lifecycle$selected_valid$(_work_0, _selected_0, _selected_0)))), {$: "Lifecycle.SelectionReserved", "state": {$: "Lifecycle.OutputSelection", "selected": _selected_0, "authorized": false, "consumed": false}}, {$: "Lifecycle.SelectionRejected"});
 }
 
 function $Lifecycle$selection_authorize$(_state_0) {
@@ -2367,7 +2367,7 @@ function $Work$retire$apply$(_work_0, _id_0) {
 
 function $Handoff$select$valid$(_state_0, _id_0, _prospective_bytes_0, _solo_bytes_0, _count_0, _valid_0) {
   if (_valid_0) {
-    return $Handoff$select$solo$(_state_0, _id_0, _prospective_bytes_0, _count_0, ($Nat$is_gt$(_solo_bytes_0, 2048)));
+    return $Handoff$select$solo$(_state_0, _id_0, _prospective_bytes_0, _count_0, ($Nat$is_gt$(_solo_bytes_0, 10240)));
   } else {
     return {$: "Handoff.Expired", "state": _state_0};
   }
@@ -2444,7 +2444,7 @@ function $Notice$refresh$leased$(_count_0, _suppressed_0, _maximum_0, _leased_0)
 }
 
 function $Lifecycle$finish_disposition$selected$(_work_0, _selected_0, _binding_valid_0) {
-  return $Bool$pick$(($Bool$and$(_binding_valid_0, ($Bool$and$(($Nat$is_le$(($List$length$(_selected_0)), 5)), ($Lifecycle$selected_valid$(_work_0, _selected_0, _selected_0)))))), {$: "Lifecycle.ReserveFindings"}, {$: "Lifecycle.AllowUnavailable"});
+  return $Bool$pick$(($Bool$and$(_binding_valid_0, ($Lifecycle$selected_valid$(_work_0, _selected_0, _selected_0)))), {$: "Lifecycle.ReserveFindings"}, {$: "Lifecycle.AllowUnavailable"});
 }
 
 function $Lifecycle$finish_output$reservation$(_round_0, _work_0, _token_0, _selected_0, _reservation_0) {

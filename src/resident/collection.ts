@@ -8,8 +8,7 @@ export type { ClaudeBlockOutput, ClaudeHostOutput } from "../direct-event/claude
 
 export const ADVICE_COLLECTION_WINDOW_MS = 50;
 export const PENDING_ADVICE_EXPIRY_MS = 600_000;
-export const MAX_COMBINED_RESPONSE_ITEMS = 5;
-export const MAX_COMBINED_RESPONSE_BYTES = 2 * 1024;
+export const MAX_COMBINED_RESPONSE_BYTES = 10 * 1024;
 
 export type OperationalNoticeKind = "capacity" | "backend" | "credential" | "output-limit";
 

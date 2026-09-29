@@ -220,7 +220,7 @@ function $Lifecycle$finish_check$(state_0, partition_0, lifetime_0, round_0, ori
   const admission_0 = state_0.admission;
   const work_0 = state_0.work;
   const __0 = state_0.finish;
-  return run_jump($Lifecycle$finish$guard$, [{$: "Lifecycle", ["admission"]: admission_0, ["work"]: work_0, ["finish"]: __0}, original_deadline_0, actionable_0, at_0, collector_0, run_loop($Bool$and$(run_loop($Admission$callback_current$(admission_0, partition_0, lifetime_0, round_0)), run_loop($Bool$and$(run_loop($Nat$is_gt$(original_deadline_0, 0n)), run_loop($Bool$and$(run_loop($Nat$is_gt$(collector_0, 0n)), run_loop($Bool$and$(run_loop($Nat$is_le$(actionable_0, run_loop($Work$pending_findings$(work_0)))), run_loop($Nat$is_le$(actionable_0, 5n))))))))))]);
+  return run_jump($Lifecycle$finish$guard$, [{$: "Lifecycle", ["admission"]: admission_0, ["work"]: work_0, ["finish"]: __0}, original_deadline_0, actionable_0, at_0, collector_0, run_loop($Bool$and$(run_loop($Admission$callback_current$(admission_0, partition_0, lifetime_0, round_0)), run_loop($Bool$and$(run_loop($Nat$is_gt$(original_deadline_0, 0n)), run_loop($Bool$and$(run_loop($Nat$is_gt$(collector_0, 0n)), run_loop($Nat$is_le$(actionable_0, run_loop($Work$pending_findings$(work_0))))))))))]);
 }
 
 function $Lifecycle$write_terminal$(state_0, partition_0, lifetime_0, round_0, slot_0, token_0, collector_0) {

@@ -10,6 +10,7 @@ import { Consent } from "../runtime/consent.ts";
 import { residentPaths } from "./paths.ts";
 import { ResidentServer } from "./server.ts";
 import { residentRequest } from "./client.ts";
+import { MAX_COMBINED_RESPONSE_BYTES } from "./collection.ts";
 import { monotonicNow } from "./hook-clock.ts";
 import type { ResidentDispatchContext } from "./protocol.ts";
 
@@ -20,7 +21,7 @@ const enable = (root: string, statePath: string) => Effect.runPromise(Effect.gen
 }).pipe(Effect.provide(Consent.layer({ statePath }))));
 
 describe("Claude advicee scoped resident delivery", () => {
-  it("offers a failed earlier admission's notice at the next composed edit opportunity", async () => {
+  it("keeps an earlier admission's failure out of the next composed edit output", async () => {
     const root = await makeGitFixture();
     const statePath = join(root, "consent");
     await enable(root, statePath);
@@ -52,7 +53,7 @@ describe("Claude advicee scoped resident delivery", () => {
     if (latest === undefined) throw new Error("expected second admission");
     const result = await server.handle({ version: 2, operation: "collect", lifetime: server.lifetime,
       ticket: latest.ticket, root, advicee: latest.advicee, dispatch, composed: true });
-    expect(result).toMatchObject({ version: 2, status: "advice", findingCount: 0 });
+    expect(result).toMatchObject({ version: 2, status: "empty" });
   });
 
   it("batches eligible findings from two composed admissions in one Claude edit response", async () => {
@@ -190,7 +191,7 @@ describe("Claude advicee scoped resident delivery", () => {
     expect(delivered).toMatchObject({ version: 2, status: "advice", findingCount: 1,
       output: { decision: "block" } });
     if (delivered.status !== "advice" || !("version" in delivered) || delivered.version !== 2) return;
-    expect(Buffer.byteLength(`${JSON.stringify(delivered.output)}\n`, "utf8")).toBeLessThanOrEqual(2_048);
+    expect(Buffer.byteLength(`${JSON.stringify(delivered.output)}\n`, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
     expect(delivered.output).not.toHaveProperty("hookSpecificOutput");
     expect(JSON.stringify(delivered.output)).not.toContain(accepted.ticket.nonce);
     server.releaseDelivery(delivered.token);

@@ -170,8 +170,8 @@ Overlapping collectors cannot own that item together. The collector releases a
 lease on a known pre-output failure; a completed advice submission records only
 submission to the runtime. Lost acknowledgements and uncertain submissions
 remain uncertain; lease recovery requires revalidation. Current self-imposed
-response limits are five findings and 2 KiB of final encoded host output,
-including Claude-specific wrapping. An individually oversized finding yields a bounded
+response budget is 10 KiB of final encoded host output, including Claude-specific
+wrapping. There is no separate finding-count cap. An individually oversized finding yields a bounded
 limitation rather than an endless retry.
 
 At most one finish collector owns an advicee's active finish attempt. A

@@ -496,7 +496,7 @@ def Laws.notice_available_table_creates_new_key():
 def Laws.fitting_notice_is_included():
   {==}
 
-def Laws.sixth_notice_stops_codex_prefix():
+def Laws.sixth_notice_fits_when_bytes_fit():
   {==}
 
 def Laws.oversized_notice_skips_in_claude():
@@ -796,10 +796,10 @@ def Laws.wrong_stop_cannot_release_output():
 def Laws.handoff_selects_fitting_findings():
   {==}
 
-def Laws.fifth_finding_fits_exact_byte_ceiling():
+def Laws.findings_fit_exact_byte_ceiling():
   {==}
 
-def Laws.sixth_finding_exceeds_item_ceiling():
+def Laws.sixth_finding_has_no_separate_item_ceiling():
   {==}
 
 def Laws.handoff_retains_oversized_item():
@@ -820,7 +820,7 @@ def Laws.individually_oversized_finding_has_limitation():
 def Laws.same_finding_cannot_be_selected_twice():
   {==}
 
-def Laws.sixth_finding_from_same_unit_is_retained():
+def Laws.sixth_finding_from_same_unit_is_selected_when_bytes_fit():
   {==}
 
 def Laws.finish_waits_for_review_work():

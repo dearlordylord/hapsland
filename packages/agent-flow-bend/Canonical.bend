@@ -1982,7 +1982,7 @@ def collection_finding(state: State, selection_partition: Nat,
     Handoff.current(Handoff.Advice{1n, unit, partition, round,
       snapshot, current_snapshot, credential, current_credential,
       age_ms, solo_bytes, collection_ready}, selection_partition, selection_round),
-    Nat.is_gt(solo_bytes, 2048n),
+    Nat.is_gt(solo_bytes, 10240n),
     Handoff.fits_batch((selected_count + 1n : Nat), prospective_bytes))
 
 def collection_notice_result(state: State, result: Handoff.NoticeOffer) -> Step:

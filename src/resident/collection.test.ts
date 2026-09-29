@@ -3,7 +3,6 @@ import type { Finding } from "../direct-event/pipeline.ts";
 import {
   ADVICE_COLLECTION_WINDOW_MS,
   MAX_COMBINED_RESPONSE_BYTES,
-  MAX_COMBINED_RESPONSE_ITEMS,
   PENDING_ADVICE_EXPIRY_MS,
   collectionOrder,
   combinedFindingOutput,
@@ -81,11 +80,10 @@ describe("resident advice collection policy", () => {
     expect(ordered.map(({ cycle, sequence }) => [cycle, sequence])).toEqual([[2, 4], [2, 9], [3, 1]]);
   });
 
-  it("enforces five items and the exact 2 KiB host encoding", () => {
-    const five = Array.from({ length: MAX_COMBINED_RESPONSE_ITEMS }, (_, index) => [finding(index)]);
-    expect(fitsCombinedResponse(five)).toBe(true);
-    expect(fitsCombinedResponse([...five, [finding(5)]])).toBe(false);
-    expect(encodedHostOutputBytes(combinedFindingOutput(five))).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
+  it("enforces the exact 10 KiB host encoding without an item cap", () => {
+    const six = Array.from({ length: 6 }, (_, index) => [finding(index)]);
+    expect(fitsCombinedResponse(six)).toBe(true);
+    expect(encodedHostOutputBytes(combinedFindingOutput(six))).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
 
     const oversized = [[finding(0, "x".repeat(MAX_COMBINED_RESPONSE_BYTES))]];
     expect(fitsCombinedResponse(oversized)).toBe(false);
@@ -93,14 +91,11 @@ describe("resident advice collection policy", () => {
     expect(fitsCombinedResponse([])).toBe(false);
   });
 
-  it("counts and selects flattened findings rather than unit groups", () => {
+  it("selects flattened findings from a unit until the byte bound", () => {
     const nineFromOneUnit = Array.from({ length: 9 }, (_, index) => finding(index));
-    expect(fitsCombinedResponse([nineFromOneUnit])).toBe(false);
+    expect(fitsCombinedResponse([nineFromOneUnit])).toBe(true);
     const selected = selectFittingFindings([], nineFromOneUnit);
-    expect(selected).toHaveLength(5);
-    expect(selected.map(({ declaration }) => declaration)).toEqual([
-      "Count0", "Count1", "Count2", "Count3", "Count4",
-    ]);
+    expect(selected).toHaveLength(9);
     expect(fitsCombinedResponse([selected])).toBe(true);
   });
 
@@ -137,12 +132,14 @@ describe("resident advice collection policy", () => {
     expect(selectFittingCurrentFindingIndices(offers, "block-current-findings")).toEqual([1]);
   });
 
-  it("shares item and byte bounds without allowing notices to displace findings", () => {
-    const findings = Array.from({ length: MAX_COMBINED_RESPONSE_ITEMS }, (_, index) => finding(index));
+  it("keeps the legacy notice helper within the byte bound", () => {
+    const findings = Array.from({ length: 6 }, (_, index) => finding(index));
     const notice = { kind: "backend" as const, suppressedCount: 2 };
-    expect(selectFittingNotices(findings, [], [notice])).toEqual([]);
-    expect(selectFittingNotices(findings.slice(0, 4), [], [notice])).toEqual([notice]);
-    const output = combinedReviewOutput(findings.slice(0, 4), [notice]);
+    const baseline = encodedHostOutputBytes(combinedReviewOutput([finding(0, "")], []));
+    const full = finding(0, "x".repeat(MAX_COMBINED_RESPONSE_BYTES - baseline));
+    expect(selectFittingNotices([full], [], [notice])).toEqual([]);
+    expect(selectFittingNotices(findings, [], [notice])).toEqual([notice]);
+    const output = combinedReviewOutput(findings, [notice]);
     expect(output.hookSpecificOutput.additionalContext).toContain("Jev was unavailable");
     expect(output.hookSpecificOutput.additionalContext).toContain("2 similar failures were suppressed");
     expect(encodedHostOutputBytes(output)).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
@@ -156,9 +153,9 @@ describe("resident advice collection policy", () => {
   });
 
   it("selects whole Claude findings against the exact serialized block line", () => {
-    const five = Array.from({ length: MAX_COMBINED_RESPONSE_ITEMS }, (_, index) => finding(index));
-    expect(selectFittingClaudeFindings([], [...five, finding(5)], "block-current-findings")).toEqual(five);
-    const output = combinedClaudeOutput(five, [], "block-current-findings");
+    const six = Array.from({ length: 6 }, (_, index) => finding(index));
+    expect(selectFittingClaudeFindings([], six, "block-current-findings")).toEqual(six);
+    const output = combinedClaudeOutput(six, [], "block-current-findings");
     expect(output).toMatchObject({ decision: "block" });
     expect(encodedClaudeHostOutputBytes(output)).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
     const smallest = encodedClaudeHostOutputBytes(combinedClaudeOutput([finding(0, "")], [], "block-current-findings"));

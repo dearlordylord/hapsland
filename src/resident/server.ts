@@ -66,7 +66,6 @@ import type { CanonicalCommand, CanonicalEvent, TicketReason, TicketUnitEvent } 
 import {
   ADVICE_COLLECTION_WINDOW_MS,
   MAX_COMBINED_RESPONSE_BYTES,
-  MAX_COMBINED_RESPONSE_ITEMS,
   PENDING_ADVICE_EXPIRY_MS,
   combinedClaudeOutput,
   combinedReviewOutput,
@@ -3108,8 +3107,7 @@ export class ResidentServer {
     if (request.operation === "collect" && request.version === 1 && request.composed === true &&
         request.advicee.host === "claude-code") {
       const surface = request.mode === "turn-end" ? "stop" : "background";
-      if (findings.length + notices.length > MAX_COMBINED_RESPONSE_ITEMS ||
-          encodedComposedClaudeOutputBytes(findings, notices.map((notice) => notice.value), surface) >
+      if (encodedComposedClaudeOutputBytes(findings, notices.map((notice) => notice.value), surface) >
             MAX_COMBINED_RESPONSE_BYTES) {
         this.releaseDelivery(response.token);
         return { status: "empty" };

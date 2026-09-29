@@ -105,8 +105,7 @@ def reserve_selected(+round: Round.Round, work: Work.Work, token: Nat,
     +selected: List<&2, Nat>) -> Round.Step:
   Bool.pick(Round.Step,
     Bool.and(Nat.is_gt(List.length(&2, Nat, selected), 0n),
-      Bool.and(Nat.is_le(List.length(&2, Nat, selected), 5n),
-        selected_valid(work, selected, selected))),
+      selected_valid(work, selected, selected)),
     Round.reserve_output(round, token), Round.Denied{round})
 
 def release_unwritten(round: Round.Round, token: Nat) -> Round.Step:
@@ -129,8 +128,7 @@ type OutputSelectionReservation is Data:
 def selection_reserve(+work: Work.Work, +selected: List<&2, Nat>) -> OutputSelectionReservation:
   Bool.pick(OutputSelectionReservation,
     Bool.and(Nat.is_gt(List.length(&2, Nat, selected), 0n),
-      Bool.and(Nat.is_le(List.length(&2, Nat, selected), 5n),
-        selected_valid(work, selected, selected))),
+      selected_valid(work, selected, selected)),
     SelectionReserved{OutputSelection{selected, False{}, False{}}}, SelectionRejected{})
 
 def selection_authorize(+state: OutputSelection) -> OutputSelectionStep:
@@ -176,8 +174,7 @@ def finish_disposition.empty(has_notice: Bool, pass_notices: Bool,
 def finish_disposition.selected(+work: Work.Work, +selected: List<&2, Nat>,
     binding_valid: Bool) -> FinishDisposition:
   Bool.pick(FinishDisposition,
-    Bool.and(binding_valid, Bool.and(Nat.is_le(List.length(&2, Nat, selected), 5n),
-      selected_valid(work, selected, selected))),
+    Bool.and(binding_valid, selected_valid(work, selected, selected)),
     ReserveFindings{}, AllowUnavailable{})
 
 # The adapter supplies the exact final Handoff selection and native writer
@@ -443,7 +440,7 @@ def finish_check(+state: Lifecycle, partition: Nat, lifetime: Nat, round: Nat,
         Bool.and(Admission.callback_current(admission, partition, lifetime, round),
           Bool.and(Nat.is_gt(original_deadline, 0n),
             Bool.and(Nat.is_gt(collector, 0n),
-              Bool.and(Nat.is_le(actionable, Work.pending_findings(work)), Nat.is_le(actionable, 5n))))))
+              Nat.is_le(actionable, Work.pending_findings(work))))))
 
 def write.guard(state: Lifecycle, round: Nat, slot: Nat, token: Nat, collector: Nat, current: Bool) -> LifecycleResult:
   match state:

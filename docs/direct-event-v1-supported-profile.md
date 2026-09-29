@@ -36,7 +36,7 @@ secret- or source-bearing fields in the new evidence records.
 | 4 | TypeScript analyzer and `DecisionModel` | `.ts/.tsx/.mts/.cts` applicability; unique interface/type roots; 64 declarations inclusive; exactly 16 referenced names excluding root; finite same-file evidence; imports, merging, schema-only and unresolved shapes unsupported; one request per unit | 3 obligations |
 | 5 | Join and reuse identity | Complete partition/path/evidence/rules/contract input; event ID excluded; pending join independent of cache; success-only 8-entry/128 KiB LRU reuse; failure/malformed non-reuse; A→B→A restoration | 3 obligations |
 | 6 | Revalidation and publication authority | Relevant root/reference/rule/contract changes stale; unrelated comments/siblings remain current; no whole-file fallback; late/superseded work and uncertain writer attribution do not publish | 3 obligations |
-| 7 | Resident dispatch and collection | Prompt lone dispatch; finite cycles; 8 concurrent preparation/evaluation jobs; completion or 50 ms collection; deterministic 5-finding/2 KiB response; overflow retained; expiry at 600,000 ms equality | 4 obligations |
+| 7 | Resident dispatch and collection | Prompt lone dispatch; finite cycles; 8 concurrent preparation/evaluation jobs; completion or 50 ms collection; deterministic 10 KiB response with no separate finding-count cap; overflow retained; expiry at 600,000 ms equality | 4 obligations |
 | 8 | Logical capacity and transport | Global 512 items/64 MiB; partition 16 items/2 MiB; accounting through work/cache/outcomes/advice; bounded 256 KiB IPC before decode; explicit rejection and terminal cleanup; no RSS claim | 4 obligations |
 | 9 | Operational failure diagnostics | First capacity/backend failure recorded; same kind/partition suppressed before 60,000 ms and refreshed at equality; 64 bounded keys; restart reset; never included in agent output | 3 obligations |
 | 10 | Singleton lifecycle | 10 s readiness; 1.5 s client deadline; 100 starters/eight processes converge; timeout/disconnect does not cancel accepted work; kill/restart loses memory; old lifetime rejected; cleanup only idle; worktree roots distinct | 4 obligations |
@@ -90,7 +90,7 @@ unverified rather than inferred from the packaged hook run.
 | Logical capacity | 512 items and 64 MiB per resident; 16 items and 2 MiB per partition. Children have separate partitions. Claude partitions also separate tool calls; composed rounds separate generations. All partitions share the resident limit. |
 | Successful cache | 8 entries and 128 KiB, charged to capacity |
 | Resident job concurrency | 8 shared preparation/evaluation slots; at most 8 Jev calls if every running job is evaluating |
-| Host handoff | 5 findings and 2 KiB; Hapsland's own response budget |
+| Host handoff | 10 KiB encoded response, with no separate finding-count cap; Hapsland's own budget |
 | Readiness / client request | 10 seconds / 1.5 seconds |
 | Jev request / retries | 15 seconds / zero automatic retries |
 | Collection / relevance / notice | 50 ms / 600,000 ms (expired at equality) / 60,000 ms per kind/partition |

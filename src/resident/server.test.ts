@@ -68,7 +68,7 @@ const allFindingsDispatch = (statePath: string): ResidentDispatchContext => ({
 const singleFindingDispatch = findingDispatch;
 
 // Darwin's PATH_MAX requires shorter real paths. Linux keeps the original
-// >2 KiB path so its response-envelope assertion still crosses that boundary.
+// long path for revalidation workspace pressure.
 const longNestedPath = process.platform === "darwin"
   ? `${Array.from({ length: 8 }, (_, index) => `segment-${index}-${"x".repeat(88)}`).join("/")}/types.ts`
   : `${Array.from({ length: 14 }, (_, index) => `segment-${index}-${"x".repeat(180)}`).join("/")}/types.ts`;
@@ -1771,8 +1771,7 @@ describe("resident delivery lease", () => {
     expect(existsSync(capturePath)).toBe(false);
   });
 
-  // The response-envelope assertion needs a single relative path over 2 KiB;
-  // Darwin's PATH_MAX prevents creating that fixture as a real filesystem path.
+  // Darwin's PATH_MAX prevents creating this long fixture as a real path.
   it.skipIf(process.platform === "darwin")("retains advice when revalidation expansion cannot reserve workspace", async () => {
     const root = await makeGitFixture();
     const original = "type Type0 = number\n";
@@ -1816,13 +1815,15 @@ describe("resident delivery lease", () => {
       advicee({ turnId: "recovered", toolUseId: "recovered" }),
       dispatch,
     );
-    // The restored advice is current but its long path cannot fit the 2 KiB
-    // response envelope. The bounded limitation is informational; advice stays owned.
-    expect(recovered).toMatchObject({ status: "advice", findingCount: 0 });
+    // The restored advice is current; the larger response envelope can carry
+    // whole findings from this long path without an operational notice.
+    expect(recovered.status).toBe("advice");
     if (recovered.status === "advice") {
-      expect(recovered.output.hookSpecificOutput.additionalContext).toContain("exceeded the host response limit");
+      expect(recovered.findingCount).toBeGreaterThan(0);
+      expect(recovered.output.hookSpecificOutput.additionalContext).not.toContain("Operational notice");
+      expect(encodedHostOutputBytes(recovered.output)).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
     }
-    expect(server.stats()).toMatchObject({ pendingAdvice: 2 });
+    expect(server.stats().pendingAdvice).toBeGreaterThanOrEqual(1);
     expect(server.stats().retainedBytes).toBeGreaterThan(before.retainedBytes);
   });
 
@@ -2579,7 +2580,7 @@ describe("resident delivery lease", () => {
 });
 
 describe("resident bounded advice batches", () => {
-  it("delivers at most five findings from one unit and retains the unsent portion", async () => {
+  it("delivers all nine short findings from one unit when they fit", async () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
@@ -2591,31 +2592,17 @@ describe("resident bounded advice batches", () => {
     const server = new ResidentServer(residentPaths(join(root, "runtime")), () => 100);
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
-    const retainedBytes = server.stats().retainedBytes;
-
     const first = await server.collect(root, advicee({ turnId: "first", toolUseId: "first" }), dispatch);
     expect(first.status).toBe("advice");
     if (first.status !== "advice") return;
-    expect(first.output.hookSpecificOutput.additionalContext.split("\n").slice(1)).toHaveLength(5);
+    expect(first.output.hookSpecificOutput.additionalContext.split("\n").slice(1)).toHaveLength(9);
     expect(server.pendingAdviceMetadata()).toMatchObject([{
       pendingFindings: 9,
-      deliveryFindings: 5,
+      deliveryFindings: 9,
     }]);
     expect(server.acknowledge(first.token).status).toBe("acknowledged");
     expect(server.finalize(first.token).status).toBe("finalized");
-    expect(server.stats()).toMatchObject({ pendingAdvice: 1, retainedBytes });
-    expect(server.pendingAdviceMetadata()).toMatchObject([{
-      pendingFindings: 4,
-      deliveryFindings: 0,
-      delivery: "available",
-    }]);
-
-    const second = await server.collect(root, advicee({ turnId: "second", toolUseId: "second" }), dispatch);
-    expect(second.status).toBe("advice");
-    if (second.status !== "advice") return;
-    expect(second.output.hookSpecificOutput.additionalContext.split("\n").slice(1)).toHaveLength(4);
-    expect(server.acknowledge(second.token).status).toBe("acknowledged");
-    expect(server.finalize(second.token).status).toBe("finalized");
+    expect(server.pendingAdviceMetadata()).toEqual([]);
     expect(server.stats()).toMatchObject({
       pendingAdvice: 0,
       retainedBytes: server.accountingMetrics().successfulCacheBytes,
@@ -2962,7 +2949,7 @@ describe("resident bounded advice batches", () => {
     await server.whenIdle();
   });
 
-  it("combines five deterministic items and retains count overflow for a later reply", async () => {
+  it("combines six deterministic findings when they fit within the byte bound", async () => {
     const root = await makeGitFixture();
     const paths = Array.from({ length: 6 }, (_, index) => `type-${index}.ts`);
     for (const [index, path] of paths.entries()) await put(root, path, `type Count${index} = number\n`);
@@ -2980,11 +2967,10 @@ describe("resident bounded advice batches", () => {
     expect(first.status).toBe("advice");
     if (first.status !== "advice") return;
     expect(encodedHostOutputBytes(first.output)).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
-    for (let index = 0; index < 5; index += 1) {
+    for (let index = 0; index < 6; index += 1) {
       expect(first.output.hookSpecificOutput.additionalContext).toContain(`type-${index}.ts :: Count${index}`);
     }
-    expect(first.output.hookSpecificOutput.additionalContext).not.toContain("type-5.ts :: Count5");
-    expect(server.pendingAdviceMetadata().filter(({ delivery }) => delivery !== "available")).toHaveLength(5);
+    expect(server.pendingAdviceMetadata().filter(({ delivery }) => delivery !== "available")).toHaveLength(6);
     server.releaseDelivery(first.token);
     expect(server.pendingAdviceMetadata().every(({ delivery }) => delivery === "available")).toBe(true);
     const retried = await server.collect(
@@ -2997,13 +2983,10 @@ describe("resident bounded advice batches", () => {
     expect(retried.output).toEqual(first.output);
     expect(server.acknowledge(retried.token).status).toBe("acknowledged");
     expect(server.finalize(retried.token).status).toBe("finalized");
-    expect(server.pendingAdviceMetadata()).toMatchObject([{ path: "type-5.ts", delivery: "available" }]);
+    expect(server.pendingAdviceMetadata()).toEqual([]);
 
     const second = await server.collect(root, advicee({ turnId: "batch-2", toolUseId: "batch-2" }), dispatch);
-    expect(second.status).toBe("advice");
-    if (second.status === "advice") {
-      expect(second.output.hookSpecificOutput.additionalContext).toContain("type-5.ts :: Count5");
-    }
+    expect(second.status).toBe("empty");
   });
 
   it("expires pending advice just before, at, and after the relevance boundary", async () => {
