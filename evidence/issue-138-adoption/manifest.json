@@ -1,0 +1,1183 @@
+{
+  "schemaVersion": 1,
+  "status": "proposal-unapproved-no-live-egress",
+  "contractIds": [
+    "direct-event/type-shape/v2",
+    "direct-event/function/v1"
+  ],
+  "rulePackStatus": "v2-rule-definitions-not-frozen",
+  "labelPolicy": "Proposed bands are unverified human-check items, not ground truth; null band excludes paid run.",
+  "hashAlgorithm": "sha256-utf8",
+  "cases": [
+    {
+      "id": "T01",
+      "branch": "type-shape/v2",
+      "category": "context-required-positive",
+      "event": {
+        "kind": "Add",
+        "tool": "Codex apply_patch",
+        "patch": "*** Begin Patch\n*** Add File: root.ts\n+type Status = \"pending\" | \"delivered\";\n+export interface Receipt { state: Status; deliveredAt?: Date }\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 2
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "interface",
+        "name": "Receipt",
+        "declarationStart": {
+          "line": 2,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r2_meaningless_combinations",
+        "contract": "direct-event/type-shape/v2",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "complete-candidate",
+      "expectedBand": ">0.70",
+      "labelStatus": "proposed-unverified",
+      "rationale": "Status defines a pending case while deliveredAt remains settable.",
+      "sources": [
+        {
+          "path": "cases/T01/root.ts",
+          "sha256": "bbaab266f69f1d0f9b13e6bba6688ee51f894bb02f7e81d143b8d2355d1d9fec",
+          "bytes": 102
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": true
+      },
+      "notes": null
+    },
+    {
+      "id": "T02",
+      "branch": "type-shape/v2",
+      "category": "context-required-positive",
+      "event": {
+        "kind": "Add",
+        "tool": "Codex apply_patch",
+        "patch": "*** Begin Patch\n*** Add File: root.ts\n+import type { DeliveryStatus } from \"./support\";\n+export type Receipt = { state: DeliveryStatus; deliveredAt?: Date };\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 2
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "type-alias",
+        "name": "Receipt",
+        "declarationStart": {
+          "line": 2,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r2_meaningless_combinations",
+        "contract": "direct-event/type-shape/v2",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "complete-candidate",
+      "expectedBand": ">0.70",
+      "labelStatus": "proposed-unverified",
+      "rationale": "Imported status defines pending, which can carry a meaningless deliveredAt.",
+      "sources": [
+        {
+          "path": "cases/T02/root.ts",
+          "sha256": "9f83d2c8a8653a7c8b9126970fbc04311d128d06f226d7ab246f2e823bbe1451",
+          "bytes": 118
+        },
+        {
+          "path": "cases/T02/support.ts",
+          "sha256": "db866f3674628ab1c1b17307d09b5190031e13510d4ad0d7b4298ca12af82433",
+          "bytes": 54
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": false
+      },
+      "notes": null
+    },
+    {
+      "id": "T03",
+      "branch": "type-shape/v2",
+      "category": "context-required-positive",
+      "event": {
+        "kind": "Add",
+        "tool": "Codex apply_patch",
+        "patch": "*** Begin Patch\n*** Add File: root.ts\n+import type { SelectionMode } from \"./support\";\n+export interface Picker { mode: SelectionMode; selections: string[] }\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 2
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "interface",
+        "name": "Picker",
+        "declarationStart": {
+          "line": 2,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r2_meaningless_combinations",
+        "contract": "direct-event/type-shape/v2",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "complete-candidate",
+      "expectedBand": ">0.70",
+      "labelStatus": "proposed-unverified",
+      "rationale": "Imported mode admits single while selections admits several entries.",
+      "sources": [
+        {
+          "path": "cases/T03/root.ts",
+          "sha256": "786c60904afdf582deaff4256d3b3a611db5443d1f12e61432aea6920d80b354",
+          "bytes": 118
+        },
+        {
+          "path": "cases/T03/support.ts",
+          "sha256": "8d8d512299e6c71e7ab30c590ccc0ed4bc5aceb220ecf7609445aca747a41634",
+          "bytes": 63
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": false
+      },
+      "notes": null
+    },
+    {
+      "id": "T04",
+      "branch": "type-shape/v2",
+      "category": "multi-root-add-positive",
+      "event": {
+        "kind": "Add",
+        "tool": "Codex apply_patch",
+        "patch": "*** Begin Patch\n*** Add File: root.ts\n+export interface Session { authenticated: boolean; userId?: string }\n+export type Unrelated = { token: string };\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 2
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "interface",
+        "name": "Session",
+        "declarationStart": {
+          "line": 1,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r2_meaningless_combinations",
+        "contract": "direct-event/type-shape/v2",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "complete-candidate",
+      "expectedBand": ">0.70",
+      "labelStatus": "proposed-unverified",
+      "rationale": "Authenticated false can still carry userId; Unrelated is an offline-only second root.",
+      "sources": [
+        {
+          "path": "cases/T04/root.ts",
+          "sha256": "9fd170187d170f5d779d980c9cbac7b4b9119b791e79e89334dea7c641a0f23b",
+          "bytes": 112
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": true
+      },
+      "notes": "Second Add root is not a paid semantic pair."
+    },
+    {
+      "id": "T05",
+      "branch": "type-shape/v2",
+      "category": "clear-negative",
+      "event": {
+        "kind": "Add",
+        "tool": "Codex apply_patch",
+        "patch": "*** Begin Patch\n*** Add File: root.ts\n+export type Receipt = { state: \"pending\" } | { state: \"delivered\"; deliveredAt: Date };\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 1
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "type-alias",
+        "name": "Receipt",
+        "declarationStart": {
+          "line": 1,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r2_meaningless_combinations",
+        "contract": "direct-event/type-shape/v2",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "complete-candidate",
+      "expectedBand": "<0.30",
+      "labelStatus": "proposed-unverified",
+      "rationale": "Timestamp exists only in delivered variant.",
+      "sources": [
+        {
+          "path": "cases/T05/root.ts",
+          "sha256": "c2986dcf6956cf859ac5b1815c56676839036b7e09493771b7306417439fdbee",
+          "bytes": 88
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": true
+      },
+      "notes": null
+    },
+    {
+      "id": "T06",
+      "branch": "type-shape/v2",
+      "category": "clear-negative",
+      "event": {
+        "kind": "Add",
+        "tool": "Codex apply_patch",
+        "patch": "*** Begin Patch\n*** Add File: root.ts\n+export interface Customer { nickname?: string; phone?: string }\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 1
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "interface",
+        "name": "Customer",
+        "declarationStart": {
+          "line": 1,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r2_meaningless_combinations",
+        "contract": "direct-event/type-shape/v2",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "complete-candidate",
+      "expectedBand": "<0.30",
+      "labelStatus": "proposed-unverified",
+      "rationale": "Optional attributes have independent meanings.",
+      "sources": [
+        {
+          "path": "cases/T06/root.ts",
+          "sha256": "aabd9d46df6b550e7240e4fd53fe1f0d7f3b8a94348e932890236ded1e24093b",
+          "bytes": 64
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": true
+      },
+      "notes": null
+    },
+    {
+      "id": "T07",
+      "branch": "type-shape/v2",
+      "category": "similar-clear-negative",
+      "event": {
+        "kind": "Add",
+        "tool": "Codex apply_patch",
+        "patch": "*** Begin Patch\n*** Add File: root.ts\n+type Status = { state: \"pending\" } | { state: \"delivered\"; deliveredAt: Date };\n+export type Receipt = Status;\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 2
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "type-alias",
+        "name": "Receipt",
+        "declarationStart": {
+          "line": 2,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r2_meaningless_combinations",
+        "contract": "direct-event/type-shape/v2",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "complete-candidate",
+      "expectedBand": "<0.30",
+      "labelStatus": "proposed-unverified",
+      "rationale": "Local alias already constrains timestamp by status.",
+      "sources": [
+        {
+          "path": "cases/T07/root.ts",
+          "sha256": "f48e97b1bc3e1ae8a0faa71bc0bccf7be6df7b5d710ee654d2bc1f407ab52f97",
+          "bytes": 110
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": true
+      },
+      "notes": null
+    },
+    {
+      "id": "T08",
+      "branch": "type-shape/v2",
+      "category": "similar-clear-negative",
+      "event": {
+        "kind": "Add",
+        "tool": "Codex apply_patch",
+        "patch": "*** Begin Patch\n*** Add File: root.ts\n+import type { ReceiptFields } from \"./support\";\n+export type Receipt = ReceiptFields;\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 2
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "type-alias",
+        "name": "Receipt",
+        "declarationStart": {
+          "line": 2,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r2_meaningless_combinations",
+        "contract": "direct-event/type-shape/v2",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "complete-candidate",
+      "expectedBand": "<0.30",
+      "labelStatus": "proposed-unverified",
+      "rationale": "Imported fields are a discriminated union and carry no invalid combination.",
+      "sources": [
+        {
+          "path": "cases/T08/root.ts",
+          "sha256": "c1bad6de3a23a86f8dc332424d521f1ab26673d7cd2250dca0f4935b277726e1",
+          "bytes": 85
+        },
+        {
+          "path": "cases/T08/support.ts",
+          "sha256": "5a075f562c4a215c0affb37ac92b14ff85ece2d0b6167831c11871ee1bbf4314",
+          "bytes": 94
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": false
+      },
+      "notes": null
+    },
+    {
+      "id": "T09",
+      "branch": "type-shape/v2",
+      "category": "diff-control-positive",
+      "event": {
+        "kind": "Update",
+        "tool": "Codex apply_patch",
+        "confirmedSuccessRequired": true,
+        "patch": "*** Begin Patch\n*** Update File: root.ts\n@@ -1,1 +1,1 @@\n-export interface Session { authenticated: true; userId: string }\n+export interface Session { authenticated: boolean; userId?: string }\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 1
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "interface",
+        "name": "Session",
+        "declarationStart": {
+          "line": 1,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r2_meaningless_combinations",
+        "contract": "direct-event/type-shape/v2",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "complete-candidate",
+      "expectedBand": ">0.70",
+      "labelStatus": "proposed-unverified",
+      "rationale": "Complete changed root itself admits false with userId.",
+      "sources": [
+        {
+          "path": "cases/T09/root.ts",
+          "sha256": "e44e55c87109b5446a002b6724da9a9cfd85a6c329c1cacd2e29c29388d5271a",
+          "bytes": 69
+        },
+        {
+          "path": "cases/T09/root.before.ts",
+          "sha256": "4fb6db4e05d4cc2d95d21dba3e69acbfc590b9e1390baca87989f57086ac75a6",
+          "bytes": 65
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": true
+      },
+      "notes": null
+    },
+    {
+      "id": "T10",
+      "branch": "type-shape/v2",
+      "category": "diff-control-clear",
+      "event": {
+        "kind": "Update",
+        "tool": "Codex apply_patch",
+        "confirmedSuccessRequired": true,
+        "patch": "*** Begin Patch\n*** Update File: root.ts\n@@ -1,1 +1,1 @@\n-export type Session = { authenticated: boolean; userId?: string };\n+export type Session = { authenticated: false } | { authenticated: true; userId: string };\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 1
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "type-alias",
+        "name": "Session",
+        "declarationStart": {
+          "line": 1,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r2_meaningless_combinations",
+        "contract": "direct-event/type-shape/v2",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "complete-candidate",
+      "expectedBand": "<0.30",
+      "labelStatus": "proposed-unverified",
+      "rationale": "Changed root itself excludes false with userId.",
+      "sources": [
+        {
+          "path": "cases/T10/root.ts",
+          "sha256": "bcffd334d3edf86396676747d84312590f5aee1543305d42a8bf95a1dea34f39",
+          "bytes": 90
+        },
+        {
+          "path": "cases/T10/root.before.ts",
+          "sha256": "6e20142ad0f0bde0a56b27472318cc98bcd6e408dac3f46008b8ebf4ee8e6912",
+          "bytes": 67
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": true
+      },
+      "notes": null
+    },
+    {
+      "id": "T11",
+      "branch": "type-shape/v2",
+      "category": "whole-file-dilution-positive",
+      "event": {
+        "kind": "Add",
+        "tool": "Codex apply_patch",
+        "patch": "*** Begin Patch\n*** Add File: root.ts\n+export interface Session { authenticated: boolean; userId?: string }\n+interface Unrelated01 { value: string; index: 1 }\n+interface Unrelated02 { value: string; index: 2 }\n+interface Unrelated03 { value: string; index: 3 }\n+interface Unrelated04 { value: string; index: 4 }\n+interface Unrelated05 { value: string; index: 5 }\n+interface Unrelated06 { value: string; index: 6 }\n+interface Unrelated07 { value: string; index: 7 }\n+interface Unrelated08 { value: string; index: 8 }\n+interface Unrelated09 { value: string; index: 9 }\n+interface Unrelated10 { value: string; index: 10 }\n+interface Unrelated11 { value: string; index: 11 }\n+interface Unrelated12 { value: string; index: 12 }\n+interface Unrelated13 { value: string; index: 13 }\n+interface Unrelated14 { value: string; index: 14 }\n+interface Unrelated15 { value: string; index: 15 }\n+interface Unrelated16 { value: string; index: 16 }\n+interface Unrelated17 { value: string; index: 17 }\n+interface Unrelated18 { value: string; index: 18 }\n+interface Unrelated19 { value: string; index: 19 }\n+interface Unrelated20 { value: string; index: 20 }\n+interface Unrelated21 { value: string; index: 21 }\n+interface Unrelated22 { value: string; index: 22 }\n+interface Unrelated23 { value: string; index: 23 }\n+interface Unrelated24 { value: string; index: 24 }\n+interface Unrelated25 { value: string; index: 25 }\n+interface Unrelated26 { value: string; index: 26 }\n+interface Unrelated27 { value: string; index: 27 }\n+interface Unrelated28 { value: string; index: 28 }\n+interface Unrelated29 { value: string; index: 29 }\n+interface Unrelated30 { value: string; index: 30 }\n+interface Unrelated31 { value: string; index: 31 }\n+interface Unrelated32 { value: string; index: 32 }\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 33
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "interface",
+        "name": "Session",
+        "declarationStart": {
+          "line": 1,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r2_meaningless_combinations",
+        "contract": "direct-event/type-shape/v2",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "complete-candidate",
+      "expectedBand": ">0.70",
+      "labelStatus": "proposed-unverified",
+      "rationale": "Root admits invalid combination; fixed unrelated declarations create dilution arm.",
+      "sources": [
+        {
+          "path": "cases/T11/root.ts",
+          "sha256": "a9e9794197119511e900d88c67d34347c676f88378edbda598f2e566d9200a2c",
+          "bytes": 1692
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": true
+      },
+      "notes": null
+    },
+    {
+      "id": "T12",
+      "branch": "type-shape/v2",
+      "category": "whole-file-dilution-clear",
+      "event": {
+        "kind": "Add",
+        "tool": "Codex apply_patch",
+        "patch": "*** Begin Patch\n*** Add File: root.ts\n+export type Session = { authenticated: false } | { authenticated: true; userId: string };\n+interface Unrelated01 { value: string; index: 1 }\n+interface Unrelated02 { value: string; index: 2 }\n+interface Unrelated03 { value: string; index: 3 }\n+interface Unrelated04 { value: string; index: 4 }\n+interface Unrelated05 { value: string; index: 5 }\n+interface Unrelated06 { value: string; index: 6 }\n+interface Unrelated07 { value: string; index: 7 }\n+interface Unrelated08 { value: string; index: 8 }\n+interface Unrelated09 { value: string; index: 9 }\n+interface Unrelated10 { value: string; index: 10 }\n+interface Unrelated11 { value: string; index: 11 }\n+interface Unrelated12 { value: string; index: 12 }\n+interface Unrelated13 { value: string; index: 13 }\n+interface Unrelated14 { value: string; index: 14 }\n+interface Unrelated15 { value: string; index: 15 }\n+interface Unrelated16 { value: string; index: 16 }\n+interface Unrelated17 { value: string; index: 17 }\n+interface Unrelated18 { value: string; index: 18 }\n+interface Unrelated19 { value: string; index: 19 }\n+interface Unrelated20 { value: string; index: 20 }\n+interface Unrelated21 { value: string; index: 21 }\n+interface Unrelated22 { value: string; index: 22 }\n+interface Unrelated23 { value: string; index: 23 }\n+interface Unrelated24 { value: string; index: 24 }\n+interface Unrelated25 { value: string; index: 25 }\n+interface Unrelated26 { value: string; index: 26 }\n+interface Unrelated27 { value: string; index: 27 }\n+interface Unrelated28 { value: string; index: 28 }\n+interface Unrelated29 { value: string; index: 29 }\n+interface Unrelated30 { value: string; index: 30 }\n+interface Unrelated31 { value: string; index: 31 }\n+interface Unrelated32 { value: string; index: 32 }\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 33
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "type-alias",
+        "name": "Session",
+        "declarationStart": {
+          "line": 1,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r2_meaningless_combinations",
+        "contract": "direct-event/type-shape/v2",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "complete-candidate",
+      "expectedBand": "<0.30",
+      "labelStatus": "proposed-unverified",
+      "rationale": "Root excludes invalid combination; fixed unrelated declarations create dilution arm.",
+      "sources": [
+        {
+          "path": "cases/T12/root.ts",
+          "sha256": "8dd25221451df60055043693c842715da3bbd7e2bccf29ed2274d043fe875d93",
+          "bytes": 1713
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": true
+      },
+      "notes": null
+    },
+    {
+      "id": "F01",
+      "branch": "function/v1",
+      "category": "context-required-positive",
+      "event": {
+        "kind": "Add",
+        "tool": "Codex apply_patch",
+        "patch": "*** Begin Patch\n*** Add File: root.ts\n+function readClock(): number { return Date.now() }\n+export function current(): number { return readClock() }\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 2
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "function",
+        "name": "current",
+        "declarationStart": {
+          "line": 2,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r9_body_reaches_undeclared",
+        "contract": "direct-event/function/v1",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "incomplete-under-current-analyzer",
+      "expectedBand": null,
+      "labelStatus": "withheld-not-ground-truth",
+      "rationale": "Local helper reads ambient clock omitted from current signature. Date.now is currently an unsupported graph call; live label withheld.",
+      "sources": [
+        {
+          "path": "cases/F01/root.ts",
+          "sha256": "c76d7cb9c06450200f1ee0f05ce7a938fffbad19127b602ba5e5fc1554b4cb25",
+          "bytes": 108
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": false
+      },
+      "notes": null,
+      "blocker": "Date.now() member call is an unsupported callee in readClock; unit incomplete."
+    },
+    {
+      "id": "F02",
+      "branch": "function/v1",
+      "category": "context-required-positive",
+      "event": {
+        "kind": "Add",
+        "tool": "Codex apply_patch",
+        "patch": "*** Begin Patch\n*** Add File: root.ts\n+import { readClock } from \"./support\";\n+export function current(): number { return readClock() }\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 2
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "function",
+        "name": "current",
+        "declarationStart": {
+          "line": 2,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r9_body_reaches_undeclared",
+        "contract": "direct-event/function/v1",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "incomplete-under-current-analyzer",
+      "expectedBand": null,
+      "labelStatus": "withheld-not-ground-truth",
+      "rationale": "Imported helper reads ambient clock omitted from root signature. Member call in support is unsupported; label withheld.",
+      "sources": [
+        {
+          "path": "cases/F02/root.ts",
+          "sha256": "c1a3f46f5e18cb3e4de5f639e130cb30baeb6dd5b1eececbe913551433d333a4",
+          "bytes": 96
+        },
+        {
+          "path": "cases/F02/support.ts",
+          "sha256": "c28ae1c01184c1ff82624f49571dd6b13a98b0091d3b63c714f9183885d2c7aa",
+          "bytes": 58
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": false
+      },
+      "notes": null,
+      "blocker": "Imported readClock expands, then Date.now() member call is unsupported; unit incomplete."
+    },
+    {
+      "id": "F03",
+      "branch": "function/v1",
+      "category": "context-required-positive",
+      "event": {
+        "kind": "Add",
+        "tool": "Codex apply_patch",
+        "patch": "*** Begin Patch\n*** Add File: root.ts\n+import { fetchRemote } from \"./support\";\n+export function current(): number { return fetchRemote() }\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 2
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "function",
+        "name": "current",
+        "declarationStart": {
+          "line": 2,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r9_body_reaches_undeclared",
+        "contract": "direct-event/function/v1",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "incomplete-under-current-analyzer",
+      "expectedBand": null,
+      "labelStatus": "withheld-not-ground-truth",
+      "rationale": "Transitive helper uses a remote client in its body. The current analyzer cannot establish complete member-call evidence; label withheld.",
+      "sources": [
+        {
+          "path": "cases/F03/root.ts",
+          "sha256": "1b864ab13602e2ee871146b7161ae091269da9b34de9a02ddc99a27dce2b24fb",
+          "bytes": 100
+        },
+        {
+          "path": "cases/F03/support.ts",
+          "sha256": "1329368b0de0180282627bd2cd0cabe3ed6a58772b2f2c1c20107ffda3f0ee88",
+          "bytes": 132
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": false
+      },
+      "notes": null,
+      "blocker": "Transitive helper body accesses globalThis.fetch; member access is not a proved resource binding."
+    },
+    {
+      "id": "F04",
+      "branch": "function/v1",
+      "category": "update-positive",
+      "event": {
+        "kind": "Update",
+        "tool": "Codex apply_patch",
+        "confirmedSuccessRequired": true,
+        "patch": "*** Begin Patch\n*** Update File: root.ts\n@@ -1,1 +1,1 @@\n-export function readCounter(): number { return 0 }\n+export function readCounter(): number { return globalCounter }\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 1
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "function",
+        "name": "readCounter",
+        "declarationStart": {
+          "line": 1,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r9_body_reaches_undeclared",
+        "contract": "direct-event/function/v1",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "unknown-current-analyzer-gap",
+      "expectedBand": null,
+      "labelStatus": "withheld-not-ground-truth",
+      "rationale": "Ambient globalCounter is absent from signature, but analyzer does not bind bare global reads; no complete-unit claim or band.",
+      "sources": [
+        {
+          "path": "cases/F04/root.ts",
+          "sha256": "67091935f9abd45b45892f178e5d6789e2f7d10120fcc8f331fa41df6a51bebe",
+          "bytes": 131
+        },
+        {
+          "path": "cases/F04/root.before.ts",
+          "sha256": "b877e6f4115d61243e844e6ab6a5b0b1ae7bc468b10a86f8a975d04377fa49ff",
+          "bytes": 119
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": false
+      },
+      "notes": null,
+      "blocker": "Bare globalCounter read has no resolver binding fact; a complete graph would be unsound."
+    },
+    {
+      "id": "F05",
+      "branch": "function/v1",
+      "category": "clear-negative",
+      "event": {
+        "kind": "Add",
+        "tool": "Codex apply_patch",
+        "patch": "*** Begin Patch\n*** Add File: root.ts\n+export function addOne(value: number): number { return value + 1 }\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 1
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "function",
+        "name": "addOne",
+        "declarationStart": {
+          "line": 1,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r9_body_reaches_undeclared",
+        "contract": "direct-event/function/v1",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "complete-candidate",
+      "expectedBand": "<0.30",
+      "labelStatus": "proposed-unverified",
+      "rationale": "Pure computation of declared argument.",
+      "sources": [
+        {
+          "path": "cases/F05/root.ts",
+          "sha256": "3581fea7ea1256615e06f5c0d562d553fa09f93b058dbe16b045dc6540caada2",
+          "bytes": 67
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": false
+      },
+      "notes": null
+    },
+    {
+      "id": "F06",
+      "branch": "function/v1",
+      "category": "clear-negative",
+      "event": {
+        "kind": "Add",
+        "tool": "Codex apply_patch",
+        "patch": "*** Begin Patch\n*** Add File: root.ts\n+export function count(items: readonly number[]): number { return items.length }\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 1
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "function",
+        "name": "count",
+        "declarationStart": {
+          "line": 1,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r9_body_reaches_undeclared",
+        "contract": "direct-event/function/v1",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "complete-candidate",
+      "expectedBand": "<0.30",
+      "labelStatus": "proposed-unverified",
+      "rationale": "Body reads only parameter data.",
+      "sources": [
+        {
+          "path": "cases/F06/root.ts",
+          "sha256": "6c20301f50f070609a268109398b30beeaed009ead51908d591ada5cf36793bd",
+          "bytes": 80
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": false
+      },
+      "notes": null
+    },
+    {
+      "id": "F07",
+      "branch": "function/v1",
+      "category": "similar-clear-negative",
+      "event": {
+        "kind": "Add",
+        "tool": "Codex apply_patch",
+        "patch": "*** Begin Patch\n*** Add File: root.ts\n+function helper(value: number): number { return value + 1 }\n+export function addOne(value: number): number { return helper(value) }\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 2
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "function",
+        "name": "addOne",
+        "declarationStart": {
+          "line": 2,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r9_body_reaches_undeclared",
+        "contract": "direct-event/function/v1",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "complete-candidate",
+      "expectedBand": "<0.30",
+      "labelStatus": "proposed-unverified",
+      "rationale": "Local helper is pure and resource-free.",
+      "sources": [
+        {
+          "path": "cases/F07/root.ts",
+          "sha256": "76a21e84906d7e8f3300f9436941ef74e754bbce8597dffa11aaae9d651408eb",
+          "bytes": 131
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": false
+      },
+      "notes": null
+    },
+    {
+      "id": "F08",
+      "branch": "function/v1",
+      "category": "similar-clear-negative",
+      "event": {
+        "kind": "Add",
+        "tool": "Codex apply_patch",
+        "patch": "*** Begin Patch\n*** Add File: root.ts\n+import { helper } from \"./support\";\n+export function addOne(value: number): number { return helper(value) }\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 2
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "function",
+        "name": "addOne",
+        "declarationStart": {
+          "line": 2,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r9_body_reaches_undeclared",
+        "contract": "direct-event/function/v1",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "complete-candidate",
+      "expectedBand": "<0.30",
+      "labelStatus": "proposed-unverified",
+      "rationale": "Imported helper is pure and resource-free.",
+      "sources": [
+        {
+          "path": "cases/F08/root.ts",
+          "sha256": "547fc1437faa1fcd5a7b9fbd7ed4aa46abcbad1b35e47f6fbfe25ba05fa8d829",
+          "bytes": 107
+        },
+        {
+          "path": "cases/F08/support.ts",
+          "sha256": "4c3780e77b4ec4c0a7ff50f795f539cb09d43df0c9f444cc9dbd649aa54ee15a",
+          "bytes": 67
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": false
+      },
+      "notes": null
+    },
+    {
+      "id": "F09",
+      "branch": "function/v1",
+      "category": "diff-control-positive",
+      "event": {
+        "kind": "Update",
+        "tool": "Codex apply_patch",
+        "confirmedSuccessRequired": true,
+        "patch": "*** Begin Patch\n*** Update File: root.ts\n@@ -1,1 +1,1 @@\n-export function readCounter(): number { return 0 }\n+export function readCounter(): number { return globalCounter }\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 1
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "function",
+        "name": "readCounter",
+        "declarationStart": {
+          "line": 1,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r9_body_reaches_undeclared",
+        "contract": "direct-event/function/v1",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "unknown-current-analyzer-gap",
+      "expectedBand": null,
+      "labelStatus": "withheld-not-ground-truth",
+      "rationale": "Positive ambient read, but global binding is outside graph and label withheld.",
+      "sources": [
+        {
+          "path": "cases/F09/root.ts",
+          "sha256": "fe9422c3146866d00462c7aae2af05a9737e6c7cb8f99f8da850563651fbaf23",
+          "bytes": 63
+        },
+        {
+          "path": "cases/F09/root.before.ts",
+          "sha256": "e56443b7642e2f82cda57385bd0b04e5b452b7d4c84b59e0e98aee20f5c33927",
+          "bytes": 51
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": false
+      },
+      "notes": null,
+      "blocker": "Bare globalCounter read has no resolver binding fact; a complete graph would be unsound."
+    },
+    {
+      "id": "F10",
+      "branch": "function/v1",
+      "category": "diff-control-clear",
+      "event": {
+        "kind": "Update",
+        "tool": "Codex apply_patch",
+        "confirmedSuccessRequired": true,
+        "patch": "*** Begin Patch\n*** Update File: root.ts\n@@ -1,1 +1,1 @@\n-export function addOne(value: number): number { return value }\n+export function addOne(value: number): number { return value + 1 }\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 1
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "function",
+        "name": "addOne",
+        "declarationStart": {
+          "line": 1,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r9_body_reaches_undeclared",
+        "contract": "direct-event/function/v1",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "complete-candidate",
+      "expectedBand": "<0.30",
+      "labelStatus": "proposed-unverified",
+      "rationale": "Changed body is pure computation of parameter.",
+      "sources": [
+        {
+          "path": "cases/F10/root.ts",
+          "sha256": "3581fea7ea1256615e06f5c0d562d553fa09f93b058dbe16b045dc6540caada2",
+          "bytes": 67
+        },
+        {
+          "path": "cases/F10/root.before.ts",
+          "sha256": "0188db552b0ff58dffdb696b4b6552b474c0b107e1d5e7215eba018f08f5a38e",
+          "bytes": 63
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": false
+      },
+      "notes": null
+    },
+    {
+      "id": "F11",
+      "branch": "function/v1",
+      "category": "whole-file-dilution-positive",
+      "event": {
+        "kind": "Add",
+        "tool": "Codex apply_patch",
+        "patch": "*** Begin Patch\n*** Add File: root.ts\n+export function readCounter(): number { return globalCounter }\n+interface Unrelated01 { value: string; index: 1 }\n+interface Unrelated02 { value: string; index: 2 }\n+interface Unrelated03 { value: string; index: 3 }\n+interface Unrelated04 { value: string; index: 4 }\n+interface Unrelated05 { value: string; index: 5 }\n+interface Unrelated06 { value: string; index: 6 }\n+interface Unrelated07 { value: string; index: 7 }\n+interface Unrelated08 { value: string; index: 8 }\n+interface Unrelated09 { value: string; index: 9 }\n+interface Unrelated10 { value: string; index: 10 }\n+interface Unrelated11 { value: string; index: 11 }\n+interface Unrelated12 { value: string; index: 12 }\n+interface Unrelated13 { value: string; index: 13 }\n+interface Unrelated14 { value: string; index: 14 }\n+interface Unrelated15 { value: string; index: 15 }\n+interface Unrelated16 { value: string; index: 16 }\n+interface Unrelated17 { value: string; index: 17 }\n+interface Unrelated18 { value: string; index: 18 }\n+interface Unrelated19 { value: string; index: 19 }\n+interface Unrelated20 { value: string; index: 20 }\n+interface Unrelated21 { value: string; index: 21 }\n+interface Unrelated22 { value: string; index: 22 }\n+interface Unrelated23 { value: string; index: 23 }\n+interface Unrelated24 { value: string; index: 24 }\n+interface Unrelated25 { value: string; index: 25 }\n+interface Unrelated26 { value: string; index: 26 }\n+interface Unrelated27 { value: string; index: 27 }\n+interface Unrelated28 { value: string; index: 28 }\n+interface Unrelated29 { value: string; index: 29 }\n+interface Unrelated30 { value: string; index: 30 }\n+interface Unrelated31 { value: string; index: 31 }\n+interface Unrelated32 { value: string; index: 32 }\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 33
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "function",
+        "name": "readCounter",
+        "declarationStart": {
+          "line": 1,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r9_body_reaches_undeclared",
+        "contract": "direct-event/function/v1",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "unknown-current-analyzer-gap",
+      "expectedBand": null,
+      "labelStatus": "withheld-not-ground-truth",
+      "rationale": "Positive ambient read with unrelated tail; binding gap prevents live semantic label.",
+      "sources": [
+        {
+          "path": "cases/F11/root.ts",
+          "sha256": "bd36654198eedf76ee7a489a1d8cb37920f076f994449461964e583930ada851",
+          "bytes": 1686
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": false
+      },
+      "notes": null,
+      "blocker": "Bare globalCounter read has no resolver binding fact; a complete graph would be unsound."
+    },
+    {
+      "id": "F12",
+      "branch": "function/v1",
+      "category": "whole-file-dilution-clear",
+      "event": {
+        "kind": "Add",
+        "tool": "Codex apply_patch",
+        "patch": "*** Begin Patch\n*** Add File: root.ts\n+export function addOne(value: number): number { return value + 1 }\n+interface Unrelated01 { value: string; index: 1 }\n+interface Unrelated02 { value: string; index: 2 }\n+interface Unrelated03 { value: string; index: 3 }\n+interface Unrelated04 { value: string; index: 4 }\n+interface Unrelated05 { value: string; index: 5 }\n+interface Unrelated06 { value: string; index: 6 }\n+interface Unrelated07 { value: string; index: 7 }\n+interface Unrelated08 { value: string; index: 8 }\n+interface Unrelated09 { value: string; index: 9 }\n+interface Unrelated10 { value: string; index: 10 }\n+interface Unrelated11 { value: string; index: 11 }\n+interface Unrelated12 { value: string; index: 12 }\n+interface Unrelated13 { value: string; index: 13 }\n+interface Unrelated14 { value: string; index: 14 }\n+interface Unrelated15 { value: string; index: 15 }\n+interface Unrelated16 { value: string; index: 16 }\n+interface Unrelated17 { value: string; index: 17 }\n+interface Unrelated18 { value: string; index: 18 }\n+interface Unrelated19 { value: string; index: 19 }\n+interface Unrelated20 { value: string; index: 20 }\n+interface Unrelated21 { value: string; index: 21 }\n+interface Unrelated22 { value: string; index: 22 }\n+interface Unrelated23 { value: string; index: 23 }\n+interface Unrelated24 { value: string; index: 24 }\n+interface Unrelated25 { value: string; index: 25 }\n+interface Unrelated26 { value: string; index: 26 }\n+interface Unrelated27 { value: string; index: 27 }\n+interface Unrelated28 { value: string; index: 28 }\n+interface Unrelated29 { value: string; index: 29 }\n+interface Unrelated30 { value: string; index: 30 }\n+interface Unrelated31 { value: string; index: 31 }\n+interface Unrelated32 { value: string; index: 32 }\n*** End Patch\n",
+        "postEditSpan": {
+          "startLine": 1,
+          "endLine": 33
+        }
+      },
+      "selectedRoot": {
+        "path": "root.ts",
+        "kind": "function",
+        "name": "addOne",
+        "declarationStart": {
+          "line": 1,
+          "column": 1
+        }
+      },
+      "rule": {
+        "id": "r9_body_reaches_undeclared",
+        "contract": "direct-event/function/v1",
+        "ruleDefinitionStatus": "proposed-v2-target-copy-of-bundled-v1"
+      },
+      "expectedCompleteness": "complete-candidate",
+      "expectedBand": "<0.30",
+      "labelStatus": "proposed-unverified",
+      "rationale": "Pure root with unrelated tail for dilution comparison.",
+      "sources": [
+        {
+          "path": "cases/F12/root.ts",
+          "sha256": "7c7ea2b5715241e5ecbf70c0e342bcb932285197e63e7760cb8ce14225d98c28",
+          "bytes": 1690
+        }
+      ],
+      "comparators": {
+        "candidate": true,
+        "focusedDiff": true,
+        "wholeFile": true,
+        "v1Type": false
+      },
+      "notes": null
+    }
+  ]
+}
