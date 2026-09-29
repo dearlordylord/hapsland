@@ -7,6 +7,7 @@ import { MAX_FULL_JEV_REQUEST_BYTES, encodedFullJevRequestBytes,
   encodedPreparedProviderHttpBodyBytes, evaluatePrepared } from "./pipeline.ts";
 import type { PreparedUnit } from "./model.ts";
 import { encodedProviderHttpBodyBytes } from "./provider-body-size.ts";
+import { V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
 
 describe("finite complete Jev request", () => {
   it("fails closed for unsupported or invalid provider bodies", () => {
@@ -29,10 +30,10 @@ describe("finite complete Jev request", () => {
       root: "/fixture", advicee: { host: "codex-cli", hostVersion: "0.155.1", sessionId: "s",
         turnId: "t", toolUseId: "u", subagentId: null },
       identity: "fixture",
-      input: { contract: "fixture", completeness: "complete", path: "a.ts",
-        declaration: { id: "a.ts:type-alias:A", kind: "type-alias", name: "A",
+      input: { contract: V2_TYPE_CONTRACT, candidateProjection: true, completeness: "complete", path: "a.ts",
+        declaration: { path: "a.ts", id: "a.ts:type-alias:A", kind: "type-alias", name: "A",
           source: "type A = number", sourceHash: "fixture" },
-        unit: { root: { artifact: { id: "a.ts:type-alias:A", kind: "type-alias", name: "A",
+        unit: { root: { artifact: { path: "a.ts", id: "a.ts:type-alias:A", kind: "type-alias", name: "A",
           source: "type A = number", sourceHash: "fixture" }, references: [] } },
         rules: [{ ...rule, decision }], interpretation: "probability-strictly-greater-than-threshold" },
     };
@@ -51,10 +52,10 @@ describe("finite complete Jev request", () => {
       root: "/fixture", advicee: { host: "codex-cli", hostVersion: "0.155.1", sessionId: "s",
         turnId: "t", toolUseId: "u", subagentId: null },
       identity: "fixture",
-      input: { contract: "fixture", completeness: "complete", path: "a.ts",
-        declaration: { id: "a.ts:type-alias:A", kind: "type-alias", name: "A",
+      input: { contract: V2_TYPE_CONTRACT, candidateProjection: true, completeness: "complete", path: "a.ts",
+        declaration: { path: "a.ts", id: "a.ts:type-alias:A", kind: "type-alias", name: "A",
           source: "type A = number", sourceHash: "fixture" },
-        unit: { root: { artifact: { id: "a.ts:type-alias:A", kind: "type-alias", name: "A",
+        unit: { root: { artifact: { path: "a.ts", id: "a.ts:type-alias:A", kind: "type-alias", name: "A",
           source: "type A = number", sourceHash: "fixture" }, references: [] } },
         rules: [{ ...rule, decision: Decision.probability({ instructions: "",
           criteria: { false: "No", true: "Yes" } }) }],

@@ -68,5 +68,6 @@ export const updateEvent = (
       "*** End Patch",
     ].join("\n"),
   },
+  tool_response: { success: true },
   ...overrides,
 });

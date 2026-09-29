@@ -22,7 +22,7 @@ import { analyzeFunctionFile } from "./function-analyzer.ts";
 import { renderCandidateReviewInput, type CandidateReviewInput } from "./v2-renderer.ts";
 import {
   analyzeTypeFile,
-  analyzerMaterializationPreflight,
+  combinedAnalyzerMaterializationPreflight,
   type AnalyzerMaterializationPreflight,
   type TypeFileAnalysis,
   type UnitAnalysis,
@@ -32,7 +32,6 @@ import { MAX_OBSERVATION_GRAPH_FILES, MAX_OBSERVATION_GRAPH_READ_BYTES,
   MAX_OBSERVATION_GRAPH_UNITS, resolveGraphUnit } from "./graph-resolver.ts";
 import { captureStable, type CaptureHooks } from "./capture.ts";
 import {
-  DIRECT_EVENT_INPUT_CONTRACT,
   canonicalValue,
   freezeInput,
   freezeRules,
@@ -72,8 +71,6 @@ export type DirectReviewContext = {
   readonly captureHooks?: CaptureHooks;
   /** Fixture-only source effect; production uses the stable native capture. */
   readonly captureSource?: typeof captureStable;
-  /** Test-only candidate gate; accepted cross-file egress approval is still open. */
-  readonly allowCandidateCrossFileEgress?: boolean;
   /** Fixture-only graph clock for deterministic deadline checks. */
   readonly graphNow?: () => number;
   readonly beforePrepare?: Effect.Effect<void>;
@@ -147,8 +144,11 @@ export type CodexDirectEventOutput = {
 const sameAdvicee = (left: DirectAdvicee, right: DirectAdvicee): boolean =>
   canonicalValue(left) === canonicalValue(right);
 
-const sameInput = (left: ReviewInput, right: ReviewInput): boolean =>
-  canonicalValue(left) === canonicalValue(right);
+const sameInput = (left: ReviewInput, right: ReviewInput): boolean => {
+  const { sourceFingerprints: _leftCapture, rootLocation: _leftLocation, ...leftReview } = left;
+  const { sourceFingerprints: _rightCapture, rootLocation: _rightLocation, ...rightReview } = right;
+  return canonicalValue(leftReview) === canonicalValue(rightReview);
+};
 
 export const hasCrossFileEvidence = (prepared: PreparedUnit): boolean => {
   const pending = [prepared.input.unit.root];
@@ -160,12 +160,6 @@ export const hasCrossFileEvidence = (prepared: PreparedUnit): boolean => {
   }
   return false;
 };
-
-/** The accepted v1 egress profile is limited to 32 KiB and same-file evidence. */
-export const requiresCandidateEgressAuthorization = (prepared: PreparedUnit): boolean =>
-  prepared.input.candidateProjection === true ||
-  Buffer.byteLength(prepared.input.declaration.source, "utf8") > 32 * 1024 ||
-  hasCrossFileEvidence(prepared);
 
 const unitSourceFingerprints = (
   unit: ReviewUnit,
@@ -217,7 +211,7 @@ const currentRules = (context: DirectReviewContext): ReadonlyArray<CompiledRule>
 
 const currentInputContract = (context: DirectReviewContext): string =>
   context.inputContract === undefined
-    ? DIRECT_EVENT_INPUT_CONTRACT
+    ? V2_TYPE_CONTRACT
     : current(context.inputContract);
 
 const linesOf = (source: string): ReadonlySet<string> =>
@@ -262,16 +256,19 @@ export const measuredRootSourceDecision = (sourceBytes: number, limits: GraphLim
     kind: "root", target: 1, sourceBytes, treeBytes: 0, edges: [],
   }).command;
 
-export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(function* (
+const prepareObservationForContract = Effect.fn("DirectEvent.prepareObservationForContract")(function* (
   observation: DirectObservation,
   context: DirectReviewContext,
+  contract: string,
+  supportingCaptures: Map<string, import("./capture.ts").StableCapture>,
+  materializedPaths: Set<string>,
+  rejectedPaths: Set<string>,
+  selectedCount: { value: number },
   frozenNames: ReadonlyMap<string, ReadonlySet<string>> | undefined = undefined,
 ) {
   const outcomes: Array<PrepareOutcome> = [];
   const pathOutcomes: Array<PathObservationOutcome> = [];
   const observedUnits: Array<ReviewUnit> = [];
-  const supportingCaptures = new Map<string, import("./capture.ts").StableCapture>();
-  let selectedGraphUnits = 0;
   for (const candidate of observation.candidates) {
     if (candidate.operation === "delete" || candidate.operation === "move") {
       pathOutcomes.push({ status: "incomplete", path: candidate.path, reason: "unsupported-operation" });
@@ -305,7 +302,6 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
     const graphLimits = context.settings.configuration === undefined
       ? GRAPH_LIMIT_CEILINGS
       : effectiveGraphLimits(context.settings.configuration.policy);
-    const contract = currentInputContract(context);
     const graphContract = contract === V2_TYPE_CONTRACT || contract === V2_FUNCTION_CONTRACT;
     let captured = supportingCaptures.get(eligible.relativePath);
     if (captured === undefined) {
@@ -344,31 +340,36 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
         continue;
       }
     }
-    if (context.beforeAnalyze !== undefined && !(yield* context.beforeAnalyze(
-      eligible.relativePath,
-      captured.byteLength,
-      analyzerMaterializationPreflight(eligible.relativePath, captured.text, true),
-    ))) {
+    if (rejectedPaths.has(eligible.relativePath)) {
       pathOutcomes.push({ status: "incomplete", path: eligible.relativePath, reason: "capture-unavailable" });
       outcomes.push({ status: "skipped", path: eligible.relativePath });
       continue;
     }
+    if (!materializedPaths.has(eligible.relativePath) && context.beforeAnalyze !== undefined && !(yield* context.beforeAnalyze(
+      eligible.relativePath,
+      captured.byteLength,
+      combinedAnalyzerMaterializationPreflight(eligible.relativePath, captured.text),
+    ))) {
+      rejectedPaths.add(eligible.relativePath);
+      pathOutcomes.push({ status: "incomplete", path: eligible.relativePath, reason: "capture-unavailable" });
+      outcomes.push({ status: "skipped", path: eligible.relativePath });
+      continue;
+    }
+    materializedPaths.add(eligible.relativePath);
     const functionFile = contract === V2_FUNCTION_CONTRACT && captured.byteLength <= graphLimits.sourceBytes
       ? analyzeFunctionFile(eligible.relativePath, captured.text) : undefined;
     const graphFile = contract !== V2_FUNCTION_CONTRACT && captured.byteLength <= graphLimits.sourceBytes
       ? inspectGraphFile(eligible.relativePath, captured.text)
       : undefined;
     const analysis = analyzeTypeFile(eligible.relativePath, captured.text);
-    const legacyV1 = captured.byteLength <= 32 * 1024 &&
-      contract === DIRECT_EVENT_INPUT_CONTRACT && analysis.status === "analyzed";
     const analyses: ReadonlyArray<UnitAnalysis> = functionFile !== undefined
       ? [...functionFile.functions.values()].map(({ artifact }) => ({
           status: "unsupported" as const, root: artifact,
           unit: { root: { artifact, references: [] } }, reason: "missing-evidence" as const,
         }))
       : contract === V2_FUNCTION_CONTRACT ? []
-      : legacyV1 || graphFile === undefined
-      ? analysis.status === "analyzed" ? analysis.units : []
+      : graphFile === undefined
+      ? []
       : [...graphFile.declarations.values()].map(({ artifact }) => ({
           status: "unsupported" as const,
           root: artifact,
@@ -386,9 +387,14 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
           if (Buffer.byteLength(captured.text, "utf8") !== captured.text.length) {
             return { selected: [] as UnitAnalysis[], ambiguous: true };
           }
-          const hunks = candidate.operation === "update" && observation.nativePatchCommand !== undefined
-            ? verifyCodexPostEditHunks(observation.nativePatchCommand, eligible.relativePath, captured.text)
-            : candidate.operation === "add" ? [] : undefined;
+          const claudeHunks = observation.verifiedPostEditHunks;
+          const hunks = candidate.operation === "update" &&
+            claudeHunks?.path === eligible.relativePath &&
+            claudeHunks.contentHash === captured.contentHash
+            ? claudeHunks.hunks
+            : candidate.operation === "update" && observation.nativePatchCommand !== undefined
+              ? verifyCodexPostEditHunks(observation.nativePatchCommand, eligible.relativePath, captured.text)
+              : candidate.operation === "add" ? [] : undefined;
           if (hunks === undefined) return { selected: [] as UnitAnalysis[], ambiguous: true };
           const declarations = candidateDeclarations.map(({ artifact, location }) => ({
             path: eligible.relativePath, kind: artifact.kind, name: artifact.name, location,
@@ -415,12 +421,12 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
     const graphFailures: AnalysisFailure[] = [];
     for (const item of selected) {
       const root = analysisRoot(item);
-      if (selectedGraphUnits >= MAX_OBSERVATION_GRAPH_UNITS) {
+      if (selectedCount.value >= MAX_OBSERVATION_GRAPH_UNITS) {
         graphFailures.push({ root: root.name, reason: "reference-limit" });
         continue;
       }
-      selectedGraphUnits += 1;
-      const unit = legacyV1 ? item.status === "ready" ? item.unit : undefined : yield* resolveGraphUnit(eligible.relativePath, captured, root.name, {
+      selectedCount.value += 1;
+      const unit = yield* resolveGraphUnit(eligible.relativePath, captured, root.name, {
         root: observation.root,
         rootIdentity: observation.rootIdentity,
         policy: currentPolicy(context),
@@ -466,16 +472,13 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
     }
     for (const unit of units) {
       const declaration = unit.root.artifact;
-      // Candidate graph evidence has a distinct contract. Schema-v1 rules must
-      // never evaluate it under the unchanged same-file v1 identifier.
-      if (!legacyV1 && contract === DIRECT_EVENT_INPUT_CONTRACT) continue;
       const rootLocation = contract === V2_TYPE_CONTRACT || contract === V2_FUNCTION_CONTRACT
         ? candidateDeclarations.find((candidate) => candidate.artifact.kind === declaration.kind &&
           candidate.artifact.name === declaration.name)?.location
         : undefined;
       if ((contract === V2_TYPE_CONTRACT || contract === V2_FUNCTION_CONTRACT) && rootLocation === undefined) continue;
-      const sourceFingerprints = legacyV1 ? undefined : unitSourceFingerprints(unit, supportingCaptures);
-      if (!legacyV1 && sourceFingerprints === undefined) continue;
+      const sourceFingerprints = unitSourceFingerprints(unit, supportingCaptures);
+      if (sourceFingerprints === undefined) continue;
       const artifactKind = declaration.kind === "function" ? "function" as const : "typeShape" as const;
       const capabilities = contract === V2_TYPE_CONTRACT
         ? ["root-declaration", "resolved-outbound-types", "selected-source-type-closure"] as const
@@ -492,7 +495,7 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
       const input = freezeInput({
         contract,
         graphLimits,
-        candidateProjection: !legacyV1,
+        candidateProjection: true,
         ...(rootLocation === undefined ? {} : { rootLocation }),
         ...(sourceFingerprints === undefined ? {} : { sourceFingerprints }),
         completeness: "complete",
@@ -530,6 +533,64 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
   return { observation: result, outcomes } satisfies PreparedObservation;
 });
 
+/** One observation can yield type and function review units under distinct input contracts. */
+export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(function* (
+  observation: DirectObservation,
+  context: DirectReviewContext,
+  frozenNames: ReadonlyMap<string, ReadonlySet<string>> | undefined = undefined,
+) {
+  const captures = new Map<string, import("./capture.ts").StableCapture>();
+  const materializedPaths = new Set<string>();
+  const rejectedPaths = new Set<string>();
+  const selectedCount = { value: 0 };
+  const requested = context.inputContract === undefined
+    ? [V2_TYPE_CONTRACT, V2_FUNCTION_CONTRACT]
+    : [currentInputContract(context)];
+  const branches: PreparedObservation[] = [];
+  for (const contract of requested) {
+    branches.push(yield* prepareObservationForContract(observation, context, contract,
+      captures, materializedPaths, rejectedPaths, selectedCount, frozenNames));
+  }
+  if (branches.length === 1) return branches[0]!;
+  const ready = branches.flatMap((branch) => branch.outcomes.filter(
+    (item): item is Extract<PrepareOutcome, { status: "ready" }> => item.status === "ready"));
+  const byPath = new Map<string, PathObservationOutcome>();
+  for (const branch of branches) for (const outcome of branch.observation.outcomes) {
+    const prior = byPath.get(outcome.path);
+    if (prior === undefined) { byPath.set(outcome.path, outcome); continue; }
+    if (prior.status !== "observed" || outcome.status !== "observed") {
+      byPath.set(outcome.path, prior.status === "incomplete" ? prior : outcome);
+      continue;
+    }
+    byPath.set(outcome.path, {
+      ...prior,
+      units: [...prior.units, ...outcome.units],
+      analysis: prior.analysis.status === "complete" && outcome.analysis.status === "complete"
+        ? { status: "complete" }
+        : { status: "incomplete", failures: [
+            ...(prior.analysis.status === "incomplete" ? prior.analysis.failures : []),
+            ...(outcome.analysis.status === "incomplete" ? outcome.analysis.failures : []),
+          ] },
+    });
+  }
+  const pathOutcomes = [...byPath.values()];
+  const readyPaths = new Set(ready.map((item) => item.path));
+  const outcomes: PrepareOutcome[] = [...ready, ...pathOutcomes.flatMap((item) =>
+    readyPaths.has(item.path) ? [] : [{ status: "skipped" as const, path: item.path }])];
+  const units = branches.flatMap((branch) => branch.observation.status === "complete"
+    ? branch.observation.changeSet.units : branch.observation.units);
+  const complete = pathOutcomes.every((item) => item.status === "observed" && item.analysis.status === "complete");
+  return {
+    observation: complete ? {
+      status: "complete" as const,
+      changeSet: { status: "complete" as const,
+        changes: pathOutcomes.flatMap((item) => item.status === "observed" ? [item.snapshot] : []), units },
+      outcomes: pathOutcomes,
+    } : { status: "incomplete" as const, outcomes: pathOutcomes, units },
+    outcomes,
+  } satisfies PreparedObservation;
+});
+
 /** Rebuild only the named complete unit under current file policy before a Jev request. */
 export const preparedUnitStillCurrent = Effect.fn("DirectEvent.preparedUnitStillCurrent")(function* (
   observation: DirectObservation,
@@ -542,7 +603,9 @@ export const preparedUnitStillCurrent = Effect.fn("DirectEvent.preparedUnitStill
   return latest.outcomes.some((outcome) => outcome.status === "ready" &&
     outcome.prepared.input.path === prepared.input.path &&
     outcome.prepared.identity === prepared.identity &&
-    sameInput(outcome.prepared.input, prepared.input));
+    sameInput(outcome.prepared.input, prepared.input) &&
+    canonicalValue(outcome.prepared.input.sourceFingerprints) ===
+      canonicalValue(prepared.input.sourceFingerprints));
 });
 
 type Evaluation =
@@ -596,17 +659,7 @@ export const preparedProviderInput = (prepared: PreparedUnit) => {
     const candidate = candidateReviewInput(prepared.input);
     return candidate === undefined ? undefined : renderCandidateReviewInput(candidate);
   }
-  return {
-  artifact: {
-    domain: prepared.input.path,
-    source: prepared.input.declaration.source,
-  },
-  evidence: prepared.input.unit.root.references,
-  inputContract: {
-    id: prepared.input.contract,
-    evidence: "complete named direct-event unit",
-  },
-  };
+  return undefined;
 };
 
 /** UTF-8 bytes in the exact JSON representation supplied as the provider input value. */
@@ -737,7 +790,6 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
       return { status: "unavailable", reason: "stale", output: undefined } satisfies DirectReviewResult;
     }
     if (admission !== "admitReview") continue;
-    if (requiresCandidateEgressAuthorization(outcome.prepared) && context.allowCandidateCrossFileEgress !== true) continue;
     if (!(yield* preparedUnitStillCurrent(observation, outcome.prepared, context))) continue;
     const evaluation = yield* evaluatePrepared(outcome.prepared);
     if (evaluation.status !== "evaluated") {

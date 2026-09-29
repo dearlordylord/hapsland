@@ -1,7 +1,17 @@
 # Direct-event v1 supported production profile
 
-This document describes the product's implemented support boundary. Jev is the external
-review backend. The supported adapter profile is **Codex CLI 0.155.1 / Linux arm64 /
+**Purpose:** Preserve the measured direct-event v1 conformance record.
+**Status:** Historical validation evidence; superseded as the active input by the 2026-09-29 owner decision.
+**Authority:** Implementation and validation evidence, not the current product contract.
+**Expected use:** Compare prior measured behavior with the active #93 type/function contract.
+**Lifecycle:** Temporary; consolidate still-useful host evidence into the replacement direct-event conformance record and delete this snapshot when that record is accepted.
+
+The matrix below records the earlier one-file input. Hapsland now selects the
+bounded cross-file type/function path in production code. The new path has not
+yet inherited the matrix's host or live Jev validation claims.
+
+This document records the previously measured support boundary. Jev is the external
+review backend. The measured v1 adapter profile was **Codex CLI 0.155.1 / Linux arm64 /
 headless command hooks / controlled writer**. Node `v24.20.0` and Git `2.39.5` are the
 recorded conformance environment, not broader runtime guarantees. The installed package
 profile is narrower and exact: Node `v24.20.0`, Linux arm64, Git on `PATH`, and procfs mounted
@@ -12,15 +22,13 @@ backend, including native interactive trust review. This does not establish a re
 for Codex CLI 0.155.1 or other platform profiles. Package metadata and `hapsland-doctor`
 reject undeclared versions and other platform profiles rather than inferring support.
 
-The accepted [target review specification](type-function-review-proposal.md)
+The accepted [review specification](type-function-review-proposal.md)
 now requires checked cross-file supporting evidence, a 256 KiB per-source-file
-ceiling, and a 20 KiB evidence-tree ceiling. Candidate code can capture up to
-256 KiB and prepare bounded cross-file type/function units, but it requires
-distinct v2/function contracts and explicit v2 rule targets. Expanded source
-egress remains disabled by default pending the specification's adoption gates.
-The current v1 Jev path still uses the same-file profile with a 32 KiB file
-ceiling. This matrix is the validated v1 record, not validation of candidate
-cross-file egress. The candidate resident uses 32 MiB per partition and
+ceiling, and a 20 KiB evidence-tree ceiling. The active path prepares bounded
+type/function units under distinct contracts and explicit schema-2 rule targets.
+Expanded source egress is enabled by the 2026-09-29 owner decision.
+This matrix is the validated v1 record, not validation of cross-file Jev
+results. The resident uses 32 MiB per partition and
 256 MiB globally as logical admission limits; those figures do not establish
 an RSS bound or supersede this v1 conformance record. Keep this matrix until a
 new validated support record replaces it.

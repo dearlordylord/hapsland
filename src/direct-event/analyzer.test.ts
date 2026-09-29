@@ -2,12 +2,28 @@ import { describe, expect, it } from "vitest";
 import {
   analyzeSingleType,
   analyzeTypeFile,
+  combinedAnalyzerMaterializationPreflight,
   MAX_REFERENCED_NAMES,
   MAX_TYPE_DECLARATIONS,
   readyTypeUnits,
 } from "./analyzer.ts";
 
 describe("initial direct-event TypeScript analyzer", () => {
+  it("reserves all type and function roots in a mixed file", () => {
+    const oneType = "interface Account { id: string }";
+    const functions = Array.from({ length: 63 }, (_, index) => `function f${index}() { return ${index} }`);
+    const mixed = combinedAnalyzerMaterializationPreflight("a.ts", [oneType, ...functions].join("\n"));
+    const typeOnly = combinedAnalyzerMaterializationPreflight("a.ts", oneType);
+    expect(mixed?.declarations).toBe(64);
+    expect(mixed?.expandedUnitBytes).toBeGreaterThan(typeOnly?.expandedUnitBytes ?? 0);
+    expect(combinedAnalyzerMaterializationPreflight("a.ts", [oneType, ...functions, "function extra() {}"].join("\n"))).toBeUndefined();
+  });
+
+  it("reserves function-only input and rejects malformed source", () => {
+    expect(combinedAnalyzerMaterializationPreflight("a.ts", "function run() { return 1 }")).toMatchObject({ declarations: 1 });
+    expect(combinedAnalyzerMaterializationPreflight("a.ts", "function run( {")).toBeUndefined();
+  });
+
   it.each(["ts", "tsx", "mts", "cts"])("accepts one named reference-free .%s declaration", (extension) => {
     expect(analyzeSingleType(`a.${extension}`, "interface Account { count: number }")).toMatchObject({
       kind: "interface",

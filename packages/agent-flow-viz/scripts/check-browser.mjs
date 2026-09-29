@@ -27,7 +27,7 @@ try {
 
   assert.match(await page.locator(".page-header").innerText(), /CANONICAL BEND PRODUCTION MODEL/);
   assert.equal(await page.locator(".topology-node").count(), 13);
-  assert.match(await page.locator(".production-flow").innerText(), /Native Jev effect attempt/);
+  assert.match(await page.locator(".production-flow").innerText(), /Jev request attempt/);
   assert.match(await page.locator(".production-flow").innerText(), /Jev in-flight: 0\/8 · no Jev wait queue/);
   const canonical = page.locator("#canonical-replay");
   const applyManual = async ({ expect: _expect, ...event }, position) => {
@@ -44,10 +44,10 @@ try {
   }
   assert.match(await canonical.innerText(), /Unit 1: accepted.*Unit 2: no capacity.*Unit 3: accepted/s);
   assert.match(await canonical.locator(".capacity-rows").innerText(), /Agent 1 · 2\/2 work items · 30\/60 reserved bytes/);
-  const beforeRejection = await page.locator(".topology-grid").innerText();
+  const beforeRejection = await page.locator(".topology-scroll svg").textContent();
   await canonical.getByRole("button", { name: /^Next canonical step:/ }).click();
   await waitForText(".canonical-progress", "Guided step 4 of 11");
-  assert.equal(await page.locator(".topology-grid").innerText(), beforeRejection);
+  assert.equal(await page.locator(".topology-scroll svg").textContent(), beforeRejection);
   assert.equal(await page.locator(".topology-route.active").count(), 0);
   assert.match(await page.locator(".topology-step").innerText(), /rejected: StaleOperation/);
   await canonical.getByRole("button", { name: "Previous canonical step" }).click();
@@ -106,13 +106,13 @@ try {
   await waitForText(".canonical-progress", "Guided step 7 of 8");
   assert.match(await page.locator(".topology-capacities").innerText(), /Jev in-flight: 0\/8 · no Jev wait queue/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "clear / stale / unavailable" }).count(), 1);
-  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "finding retained" }).count(), 0);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "retain finding command" }).count(), 0);
 
   await canonical.getByRole("button", { name: "finding is a distinct observed request result and duplicate is rejected", exact: true }).click();
   await waitForText(".canonical-progress", "Guided step 0 of 8");
   await advanceGuided(1, 7, 8);
   await waitForText(".canonical-progress", "Guided step 7 of 8");
-  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "finding retained" }).count(), 1);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "retain finding command" }).count(), 1);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "clear / stale / unavailable" }).count(), 0);
 
   await canonical.getByRole("button", { name: "Reset canonical replay" }).click();
@@ -124,7 +124,7 @@ try {
   await waitForText(".topology-step", "retireStaleFinding");
   assert.match(await page.locator(".topology-step").innerText(), /retireStaleFinding/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "clear / stale / unavailable" }).count(), 1);
-  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "finding retained" }).count(), 0);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "retain finding command" }).count(), 0);
   await applyManual(staleTrace.events[12], 13);
   assert.match(await page.locator(".topology-step").innerText(), /rejected: StaleOperation/);
   assert.equal(await page.locator(".topology-route.active").count(), 0);
@@ -134,7 +134,7 @@ try {
   await advanceGuided(1, 26, 34);
   await waitForText(".canonical-progress", "Guided step 26 of 34");
   assert.match(await page.locator(".topology-capacities").innerText(), /Jev in-flight: 8\/8 · no Jev wait queue/);
-  assert.match(await page.locator(".topology-node").nth(6).innerText(), /observed started requests/);
+  assert.match(await page.locator(".topology-node").nth(6).textContent(), /observed started requests/);
   await advanceGuided(27, 29, 34);
   await waitForText(".canonical-progress", "Guided step 29 of 34");
   assert.match(await page.locator(".topology-step").innerText(), /jevRequestReady accepted.*jevRequestUnavailable/);
@@ -186,11 +186,11 @@ try {
   assert.ok(dispatchTrace);
   for (let index = 0; index < 5; index++) await applyManual(dispatchTrace.events[index], index + 1);
   assert.match(await page.locator(".topology-capacities").innerText(), /Preparation running: 1\/8/);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Preparation queue" }).innerText(), /pending 1:#2\/agent 1\/seq 1/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Preparation queue" }).textContent(), /pending 1:#2\/agent 1\/seq 1/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "dispatch cycle starts" }).count(), 0);
   for (let index = 5; index < 10; index++) await applyManual(dispatchTrace.events[index], index + 1);
   await waitForText(".topology-step", "dispatchStarted");
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Source preparation" }).innerText(), /running 1:#2\/agent 1\/seq 1, 2:#3\/agent 1\/seq 2/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Source preparation" }).textContent(), /running 1:#2\/agent 1\/seq 1, 2:#3\/agent 1\/seq 2/);
   assert.match(await page.locator(".topology-capacities").innerText(), /Preparation running: 2\/8/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "dispatch cycle starts" }).count(), 1);
 
@@ -206,17 +206,17 @@ try {
       assert.equal(await page.locator(".topology-route.active").filter({ hasText: "background or Stop select" }).count(), 1);
     }
   }
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Pending advice" }).innerText(), /leases #9/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Pending advice" }).textContent(), /leases #9/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "background or Stop select" }).count(), 0);
   await applyManual(leaseTrace.events[4], 5);
   assert.match(await page.locator(".topology-step").innerText(), /collectionLeaseRefused/);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Pending advice" }).innerText(), /leases #9/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Pending advice" }).textContent(), /leases #9/);
   for (let index = 5; index < 10; index++) {
     await applyManual(leaseTrace.events[index], index + 1);
-    if (index === 8) assert.match(await page.locator(".topology-node").filter({ hasText: "Pending advice" }).innerText(), /leases none/);
+    if (index === 8) assert.match(await page.locator(".topology-node").filter({ hasText: "Pending advice" }).textContent(), /leases none/);
   }
   assert.match(await page.locator(".topology-step").innerText(), /collectionLeaseReserved/);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Pending advice" }).innerText(), /leases #9/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Pending advice" }).textContent(), /leases #9/);
 
   await canonical.getByRole("button", { name: "Reset canonical replay" }).click();
   await waitForText(".canonical-progress", "history 0/0");
@@ -262,6 +262,27 @@ try {
   assert.match(await coverage.innerText(), /Native facts and effects outside Bend/);
   assert.equal(await coverage.getByRole("link", { name: "Bend source" }).count(), 12);
 
+  await canonical.getByRole("button", { name: "Reset canonical replay" }).click();
+  await waitForText(".canonical-progress", "history 0/0");
+  await applyManual({ kind: "collectionFindingCheck", selectionPartition: 1, selectionRound: 1,
+    unit: 1, partition: 1, round: 1, snapshot: 1, currentSnapshot: 1,
+    credential: 0, currentCredential: 0, ageMs: 0, soloBytes: 100,
+    collectionReady: true, selectedCount: 6, prospectiveBytes: 10241 }, 1);
+  assert.match(await page.locator(".topology-step").innerText(), /collectionFindingRetained/);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "finding kept for a later collection batch" }).count(), 1);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "retain finding command" }).count(), 0);
+  for (const deadlineReached of [false, true]) {
+    await canonical.getByRole("button", { name: "Reset canonical replay" }).click();
+    await waitForText(".canonical-progress", "history 0/0");
+    await applyManual({ kind: "finishReserve", group: 1, lifetime: 1, round: 1,
+      attempt: 7, token: 8, selected: [], hasNotice: false, passNotices: true,
+      canWrite: true, bindingValid: true, deadlineReached }, 1);
+    assert.match(await page.locator(".topology-step").innerText(),
+      deadlineReached ? /finishAllowedDeadline/ : /finishAllowedNoAdvice/);
+    assert.equal(await page.locator(".topology-route.active").filter({ hasText: "allow finish decision; no host output or round change" }).count(), 1);
+    assert.equal(await page.locator(".topology-route.active").filter({ hasText: "output fact changed round state" }).count(), 0);
+    assert.equal(await page.locator(".topology-route.active").filter({ hasText: "authorize output" }).count(), 0);
+  }
   const imports = page.locator("#import-graph");
   assert.match(await imports.innerText(), /Native: resolution, permission facts, source capture/);
   for (let step = 1; step <= 9; step++) {

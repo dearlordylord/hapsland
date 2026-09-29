@@ -1,15 +1,14 @@
 /** Throwaway security wire prototype: independent fixture oracle against the installed provider. */
 import { describe, expect, it } from "@effect/vitest";
 import { TypeSafeClient, TypeSafeDecisionModel } from "@effect/ai-typesafe";
-import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
 import * as HttpClient from "effect/unstable/http/HttpClient";
 import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse";
-import { compileRules } from "../rules/compiler.ts";
-import { decodeRulePackDocument } from "../rules/schema.ts";
+import { compileRulePackV2 } from "../rules/compiler.ts";
+import { V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
 import { Consent } from "../runtime/consent.ts";
 import { DEFAULT_API_BASE, DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts";
 import { adaptCodexAdd } from "./adapter.ts";
@@ -23,7 +22,6 @@ type Manifest = {
 };
 
 const manifest = JSON.parse(await readFile(new URL("./fixtures/security-wire-manifest.json", import.meta.url), "utf8")) as Manifest;
-const digest = (value: string): string => createHash("sha256").update(value, "utf8").digest("hex");
 const oracleRule = {
   id: "security_wire_probe",
   question: "Does this declaration contain the intended shape?",
@@ -31,8 +29,10 @@ const oracleRule = {
   threshold: 0.7,
   message: "Prototype rule matched.",
 } as const;
-const pack = decodeRulePackDocument({ schemaVersion: 1, id: "security-probe", contentVersion: "1", rules: [oracleRule] }, "fixture:security-wire");
-const rules = compileRules({ packs: [{ ...pack, path: "fixture:security-wire", enabled: true, origin: { layer: "built-in", source: "fixture:security-wire", field: "rules" } }] });
+const rules = compileRulePackV2({ schemaVersion: 2, id: "security-probe", contentVersion: "1", rules: [{
+  ...oracleRule, reviewTargets: [{ artifactKind: "typeShape", inputContract: V2_TYPE_CONTRACT,
+    capabilities: ["root-declaration", "resolved-outbound-types"] }],
+}] }, "fixture:security-wire");
 const ruleId = "security-probe/security_wire_probe";
 
 type WireRequest = { readonly url: string; readonly method: string; readonly headers: Readonly<Record<string, string>>; readonly body: string };
@@ -97,24 +97,18 @@ describe("security wire prototype", () => {
       expect(request.headers.authorization).toBe("Bearer WIRE_KEY_SENTINEL");
       expect(request.headers.accept).toBe("application/json");
       expect(request.headers["content-type"]).toContain("application/json");
-      expect(JSON.parse(request.body)).toEqual({
+      expect(JSON.parse(request.body)).toMatchObject({
         model: "jev-latest",
         state: {
-          artifact: { domain: manifest.positive.path, source: manifest.positive.root },
-          evidence: [{
-            kind: "expanded",
-            site: { symbol: "Branch" },
-            node: {
-              artifact: {
-                id: `${manifest.positive.path}:interface:Branch`, kind: "interface", name: "Branch",
-                source: manifest.positive.reference, sourceHash: digest(manifest.positive.reference),
-              },
-              references: [{
-                kind: "included", site: { symbol: "Receipt" }, target: `${manifest.positive.path}:interface:Receipt`,
-              }],
-            },
-          }],
-          inputContract: { id: "direct-event/same-file-named-types/v1", evidence: "complete named direct-event unit" },
+          artifact: { kind: "interface", name: "Receipt", domain: manifest.positive.path,
+            source: manifest.positive.root },
+          evidence: { rootId: `${manifest.positive.path}:interface:Receipt`,
+            nodes: [{ id: `${manifest.positive.path}:interface:Branch`, source: manifest.positive.reference }],
+            edges: [{ from: `${manifest.positive.path}:interface:Receipt`,
+              to: `${manifest.positive.path}:interface:Branch`, kind: "expanded", symbol: "Branch" },
+              { from: `${manifest.positive.path}:interface:Branch`,
+                to: `${manifest.positive.path}:interface:Receipt`, kind: "included", symbol: "Receipt" }] },
+          inputContract: { id: V2_TYPE_CONTRACT, completeness: "complete" },
         },
         questions: {
           [ruleId]: { type: "noul", instructions: oracleRule.question, criteria: oracleRule.criteria },

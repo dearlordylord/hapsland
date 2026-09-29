@@ -5,6 +5,7 @@ import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ConfigurationDocument, CONFIGURATION_VERSION } from "../src/configuration/types.ts";
 import { RulePack, RULE_PACK_SCHEMA_VERSION } from "../src/rules/schema.ts";
+import { V2_FUNCTION_CONTRACT, V2_TYPE_CONTRACT } from "../src/rules/v2-targets.ts";
 
 type JsonObject = Record<string, unknown>;
 type GeneratedTarget = {
@@ -24,7 +25,7 @@ const configurationExample = JSON.stringify({
 }, null, 2);
 
 const rulePackExample = JSON.stringify({
-  schemaVersion: RULE_PACK_SCHEMA_VERSION,
+  schemaVersion: 2,
   id: "team",
   contentVersion: "1.0.0",
   rules: [{
@@ -36,6 +37,11 @@ const rulePackExample = JSON.stringify({
     },
     message: "Review this declaration's representable states.",
     applicability: { includes: ["src/**"] },
+    reviewTargets: [{
+      artifactKind: "typeShape",
+      inputContract: V2_TYPE_CONTRACT,
+      capabilities: ["root-declaration", "resolved-outbound-types", "selected-source-type-closure"],
+    }],
   }],
 }, null, 2);
 
@@ -52,6 +58,72 @@ const toJsonSchema = (schema: Schema.Constraint): JsonObject => {
     ...document.schema,
     ...(Object.keys(definitions).length === 0 ? {} : { $defs: definitions }),
   };
+};
+
+/** Derive shared rule fields from the v1 Effect schema, then describe the strict v2 target boundary. */
+export const renderRulePackV2Schema = (): JsonObject => {
+  const schema = structuredClone(toJsonSchema(RulePack));
+  const definitions = objectValue(schema.$defs);
+  const pack = objectValue(definitions?.RulePackDocument);
+  const rule = objectValue(definitions?.RuleDefinition);
+  const packProperties = objectValue(pack?.properties);
+  const ruleProperties = objectValue(rule?.properties);
+  const version = objectValue(packProperties?.schemaVersion);
+  if (definitions === undefined || pack === undefined || rule === undefined ||
+    packProperties === undefined || ruleProperties === undefined || version === undefined) {
+    throw new Error("unexpected rule-pack Effect schema shape");
+  }
+  if (RULE_PACK_SCHEMA_VERSION !== 1) throw new Error("review v2 schema derivation after v1 changes");
+  version.enum = [2];
+  pack.title = "Rule pack v2";
+  ruleProperties.reviewTargets = {
+    type: "array",
+    minItems: 1,
+    maxItems: 2,
+    items: {
+      type: "object",
+      properties: {
+        artifactKind: { type: "string", enum: ["typeShape", "function"], description: "Semantic artifact kind." },
+        inputContract: { type: "string", enum: [V2_TYPE_CONTRACT, V2_FUNCTION_CONTRACT],
+          description: "Exact versioned review input contract; it must match the artifact kind." },
+        capabilities: { type: "array", minItems: 1, uniqueItems: true,
+          items: { type: "string", enum: ["root-declaration", "resolved-outbound-types",
+            "selected-source-type-closure", "signature", "body", "resolved-local-calls"] },
+          description: "Evidence that must be complete for this target before Jev review." },
+      },
+      required: ["artifactKind", "inputContract", "capabilities"],
+      additionalProperties: false,
+      oneOf: [
+        { $ref: "#/$defs/TypeShapeReviewTarget" },
+        { $ref: "#/$defs/FunctionReviewTarget" },
+      ],
+    },
+    allOf: [
+      { contains: { $ref: "#/$defs/TypeShapeReviewTarget" }, minContains: 0, maxContains: 1 },
+      { contains: { $ref: "#/$defs/FunctionReviewTarget" }, minContains: 0, maxContains: 1 },
+    ],
+    description: "Exact review input contracts and evidence required by this rule. At most one target of each kind is allowed.",
+  };
+  rule.required = [...(rule.required as string[]), "reviewTargets"];
+  const target = (artifactKind: string, inputContract: string, capabilities: readonly string[]): JsonObject => ({
+    type: "object",
+    properties: {
+      artifactKind: { const: artifactKind, description: "Semantic artifact kind." },
+      inputContract: { const: inputContract, description: "Exact versioned review input contract." },
+      capabilities: {
+        type: "array", minItems: 1, uniqueItems: true,
+        items: { type: "string", enum: capabilities },
+        description: "Evidence that must be complete for this target before Jev review.",
+      },
+    },
+    required: ["artifactKind", "inputContract", "capabilities"],
+    additionalProperties: false,
+  });
+  definitions.TypeShapeReviewTarget = target("typeShape", V2_TYPE_CONTRACT,
+    ["root-declaration", "resolved-outbound-types", "selected-source-type-closure"]);
+  definitions.FunctionReviewTarget = target("function", V2_FUNCTION_CONTRACT,
+    ["signature", "body", "resolved-local-calls", "resolved-outbound-types"]);
+  return schema;
 };
 
 const getDefinitions = (schema: JsonObject): JsonObject =>
@@ -88,6 +160,8 @@ const objectBranches = (schema: JsonObject, definitions: JsonObject): ReadonlyAr
 const typeForBranch = (schema: JsonObject, definitions: JsonObject): string => {
   const branch = dereference(schema, definitions);
   if (branch.type === "object") {
+    const kind = objectValue(objectValue(branch.properties)?.artifactKind)?.const;
+    if (typeof kind === "string") return `${kind} target`;
     const required = Array.isArray(branch.required)
       ? branch.required.filter((key): key is string => typeof key === "string")
       : [];
@@ -114,6 +188,7 @@ const typeSummary = (schema: JsonObject, definitions: JsonObject): string => {
   if (Array.isArray(resolved.enum) && resolved.enum.length === 1) {
     return `fixed value ${JSON.stringify(resolved.enum[0])}`;
   }
+  if (Object.hasOwn(resolved, "const")) return `fixed value ${JSON.stringify(resolved.const)}`;
   if (resolved.type === "array") {
     const itemSchema = objectValue(resolved.items) ?? {};
     const constraints = [
@@ -315,6 +390,10 @@ const fullRulePackReference = (schema: JsonObject): string => [
   "### Rule-pack fields",
   "",
   markdownTable(schema),
+  "",
+  "A type target uses `typeShape` with `direct-event/type-shape/v2`. Its capabilities may be `root-declaration`, `resolved-outbound-types`, and `selected-source-type-closure`.",
+  "A function target uses `function` with `direct-event/function/v1`. Its capabilities may be `signature`, `body`, `resolved-local-calls`, and `resolved-outbound-types`.",
+  "Each target must name at least one capability. A rule may name one target of each kind. Hapsland sends a review unit to Jev only when the required evidence is complete.",
 ].join("\n");
 
 const replaceMarkedSection = (
@@ -355,7 +434,8 @@ const readMarkdown = async (path: string): Promise<string | undefined> => {
 const makeTargets = async (root: string): Promise<ReadonlyArray<GeneratedTarget>> => {
   const configurationArtifacts = renderConfigurationArtifacts(ConfigurationDocument);
   const configurationSchema = configurationArtifacts.jsonSchema;
-  const rulePackSchema = toJsonSchema(RulePack);
+  const rulePackV1Schema = toJsonSchema(RulePack);
+  const rulePackSchema = renderRulePackV2Schema();
   const readmePath = resolve(root, "README.md");
   const guidePath = resolve(root, "docs/configuration.md");
   const [readme, guide] = await Promise.all([readMarkdown(readmePath), readMarkdown(guidePath)]);
@@ -399,6 +479,10 @@ const makeTargets = async (root: string): Promise<ReadonlyArray<GeneratedTarget>
     },
     {
       path: resolve(root, "schemas/review-rule-pack-v1.schema.json"),
+      content: `${JSON.stringify(rulePackV1Schema, null, 2)}\n`,
+    },
+    {
+      path: resolve(root, "schemas/review-rule-pack-v2.schema.json"),
       content: `${JSON.stringify(rulePackSchema, null, 2)}\n`,
     },
   );

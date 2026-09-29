@@ -2,8 +2,8 @@
   "profile": "codex-direct-event-typescript-prototype-v1",
   "positive": {
     "path": "src/contract.ts",
-    "source": "// OUTSIDE_LEADING_MARK\nexport interface Receipt { next: Branch; /* INNER_MARK */ label: \"CAFÉ_VALUE\" }\n// OUTSIDE_REFERENCE_MARK\ninterface Branch { back: Receipt; count: number }\nconst OUTSIDE_SIBLING_MARK = \"must-stay-local\";\n",
-    "root": "export interface Receipt { next: Branch; /* INNER_MARK */ label: \"CAFÉ_VALUE\" }",
+    "source": "// OUTSIDE_LEADING_MARK\nexport interface Receipt { next: Branch; /* INNER_MARK */ label: \"CAFE_VALUE\" }\n// OUTSIDE_REFERENCE_MARK\ninterface Branch { back: Receipt; count: number }\nconst OUTSIDE_SIBLING_MARK = \"must-stay-local\";\n",
+    "root": "export interface Receipt { next: Branch; /* INNER_MARK */ label: \"CAFE_VALUE\" }",
     "reference": "interface Branch { back: Receipt; count: number }",
     "unrelated": ["OUTSIDE_LEADING_MARK", "OUTSIDE_REFERENCE_MARK", "OUTSIDE_SIBLING_MARK", "must-stay-local"]
   },

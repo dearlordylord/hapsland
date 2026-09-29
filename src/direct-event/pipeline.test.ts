@@ -30,7 +30,7 @@ import { claimDemoBudget, readDemoBudgetUsage, writeDemoBudget } from "../onboar
 import { attemptCodexHostOutput } from "./writer.ts";
 import { addEvent, makeGitFixture, put, advicee, updateEvent } from "./test-fixtures.ts";
 import { adaptCodexAdd } from "./adapter.ts";
-import { DIRECT_EVENT_INPUT_CONTRACT } from "./model.ts";
+import { V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -133,13 +133,11 @@ describe("direct-event vertical slice", () => {
       if (result.status !== "ready") return;
       expect(result.findings.length).toBeGreaterThan(0);
       expect(result.output).toMatchObject({ hookSpecificOutput: { hookEventName: "PostToolUse" } });
-      expect(state).toEqual({
-        artifact: { domain: "type.ts", source: "type OrderCount = number" },
-        evidence: [],
-        inputContract: {
-          id: "direct-event/same-file-named-types/v1",
-          evidence: "complete named direct-event unit",
-        },
+      expect(state).toMatchObject({
+        artifact: { domain: "type.ts", kind: "type-alias", name: "OrderCount",
+          source: "type OrderCount = number" },
+        evidence: { rootId: "type.ts:type-alias:OrderCount", nodes: [], edges: [] },
+        inputContract: { id: "direct-event/type-shape/v2", completeness: "complete" },
       });
     }),
   );
@@ -295,7 +293,8 @@ describe("direct-event vertical slice", () => {
       }
       expect(states[0]).toMatchObject({
         artifact: { domain: "types.ts", source: "interface Account { owner: Owner }" },
-        evidence: [{ kind: "expanded", node: { artifact: { name: "Owner" } } }],
+        evidence: { rootId: "types.ts:interface:Account",
+          nodes: [{ name: "Owner" }], edges: [{ kind: "expanded", symbol: "Owner" }] },
       });
     }),
   );
@@ -967,7 +966,7 @@ describe("direct-event vertical slice", () => {
         expect(result).toEqual({ status: "unavailable", reason: "stale", output: undefined });
       }
 
-      let contract: string = DIRECT_EVENT_INPUT_CONTRACT;
+      let contract: string = V2_TYPE_CONTRACT;
       const changedContract = yield* enabledReview(root, addEvent(root), undefined, (base) => ({
         ...base,
         inputContract: () => contract,

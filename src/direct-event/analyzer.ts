@@ -337,6 +337,58 @@ export const analyzerMaterializationPreflight = (
     ...(allowImports ? { hasImports: /\bimport\b/u.test(source) } : {}) };
 };
 
+/**
+ * Reserve both graph branches before either creates declaration facts or units.
+ * The function bound counts syntax sites without constructing function facts.
+ * Each site can produce several tagged references during binding; the per-site
+ * allowance includes its escaped text, target ID, and object structure.
+ */
+export const combinedAnalyzerMaterializationPreflight = (
+  path: string,
+  source: string,
+): AnalyzerMaterializationPreflight | undefined => {
+  const extension = extname(path).toLowerCase();
+  if (!supported.has(extension)) return undefined;
+  try {
+    const parser = new Parser();
+    parser.setLanguage(extension === ".tsx" ? TypeScript.tsx : TypeScript.typescript);
+    const root = (parser.parse(source) as unknown as { readonly rootNode: SyntaxNode }).rootNode;
+    if (root.hasError) return undefined;
+    const top = root.namedChildren.flatMap((node) => node.type === "export_statement"
+      ? node.namedChildren.filter((child) => kindOf(child) !== undefined || child.type === "function_declaration")
+      : [node]);
+    const declarations = top.filter((node) => kindOf(node) !== undefined || node.type === "function_declaration");
+    if (declarations.length === 0 || declarations.length > MAX_TYPE_DECLARATIONS) return undefined;
+    const typeBound = analyzerMaterializationPreflight(path, source, true);
+    const functions = declarations.filter((node) => node.type === "function_declaration");
+    // A source with types must have a valid type preflight. Function-only files
+    // legitimately have no type units, so their type estimate is zero.
+    if (declarations.length !== functions.length && typeBound === undefined) return undefined;
+    let functionBytes = 0;
+    for (const node of functions) {
+      const rendered = node.parent?.type === "export_statement" ? node.parent : node;
+      const name = declarationNameNode(node)?.text;
+      if (name === undefined) return undefined;
+      const artifact = { path, id: `${path}:function:${name}`, kind: "function", name,
+        source: rendered.text, sourceHash: "0".repeat(64) };
+      functionBytes += encodedBytes(artifact) + 1024;
+      for (const site of descendants(node)) {
+        // Binding may emit multiple facts for one syntax site. JSON escaping
+        // can expand a source character by at most six ASCII bytes.
+        functionBytes += 4 * (1024 + 6 * Buffer.byteLength(site.text, "utf8") +
+          2 * Buffer.byteLength(path, "utf8"));
+      }
+    }
+    return {
+      declarations: declarations.length,
+      expandedUnitBytes: (typeBound?.expandedUnitBytes ?? 0) + functionBytes,
+      hasImports: root.namedChildren.some((node) => node.type === "import_statement") || typeBound?.hasImports === true,
+    };
+  } catch {
+    return undefined;
+  }
+};
+
 export const typeDeclarationCount = (path: string, source: string): number | undefined =>
   analyzerMaterializationPreflight(path, source)?.declarations;
 

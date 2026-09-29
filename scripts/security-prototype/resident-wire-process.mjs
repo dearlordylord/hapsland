@@ -30,7 +30,9 @@ try {
   const path = securityWireManifest.positive.path;
   await put(root, path, securityWireManifest.positive.source);
   await put(root, "rules.jsonc", JSON.stringify({
-    schemaVersion: 1, id: "security-probe", contentVersion: "1", rules: [securityWireRule],
+    schemaVersion: 2, id: "security-probe", contentVersion: "1", rules: [{ ...securityWireRule,
+      reviewTargets: [{ artifactKind: "typeShape", inputContract: "direct-event/type-shape/v2",
+        capabilities: ["root-declaration", "resolved-outbound-types"] }] }],
   }));
   const config = { version: 1, packs: [{ id: "noul", enabled: false }, "rules.jsonc"] };
   if (scenario === "exclude-at-admission") config.excludes = [path];

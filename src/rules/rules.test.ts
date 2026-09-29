@@ -10,6 +10,7 @@ import { compileRules, selectApplicableRules } from "./compiler.ts";
 import { loadRulePacks } from "./loader.ts";
 import { decodeRulePackText, digestRulePack } from "./schema.ts";
 import { selectGlobalPath } from "../policy/file-policy.ts";
+import { decodeRulePackV2, V2_TYPE_CONTRACT } from "./v2-targets.ts";
 
 const origin = (layer: ConfigurationLayer["name"], source: string) => ({
   layer,
@@ -28,6 +29,16 @@ const packText = (id = "team", version = "1.0.0") => JSON.stringify({
     threshold: 0.7,
     message: "Review the authored problem.",
     applicability: { includes: ["src/**"], excludes: ["src/generated/**"] },
+  }],
+});
+
+const activePackText = (id = "team", version = "1.0.0") => JSON.stringify({
+  ...JSON.parse(packText(id, version)),
+  schemaVersion: 2,
+  rules: [{
+    ...JSON.parse(packText(id, version)).rules[0],
+    reviewTargets: [{ artifactKind: "typeShape", inputContract: V2_TYPE_CONTRACT,
+      capabilities: ["root-declaration", "resolved-outbound-types", "selected-source-type-closure"] }],
   }],
 });
 
@@ -160,7 +171,7 @@ describe("layered local pack loading and compilation", () => {
       const source = join(root, "rules");
       const { mkdirSync } = await import("node:fs");
       mkdirSync(source);
-      writeFileSync(packPath, packText());
+      writeFileSync(packPath, activePackText());
       const layer: ConfigurationLayer = {
         name: "project",
         source: configPath,
@@ -174,7 +185,7 @@ describe("layered local pack loading and compilation", () => {
       expect(selectApplicableRules(localRules, "const x = 1", "src/generated/a.ts")).toHaveLength(0);
       expect(selectApplicableRules(localRules, "const x = 1", "docs/a.ts")).toHaveLength(0);
       expect(selectApplicableRules(localRules, "const x = 1", "src/a.ts", {
-        artifactKind: "typeShape", inputContract: "direct-event/same-file-named-types/v1", complete: false,
+        artifactKind: "typeShape", inputContract: V2_TYPE_CONTRACT, complete: false,
       })).toHaveLength(0);
       expect(selectApplicableRules(localRules, "const x = 1", "src/a.ts", {
         artifactKind: "function", inputContract: "direct-event/function/v1", complete: true,
@@ -193,7 +204,7 @@ describe("layered local pack loading and compilation", () => {
       const packPath = join(packDirectory, "team.jsonc");
       const { mkdirSync } = await import("node:fs");
       mkdirSync(packDirectory, { recursive: true });
-      writeFileSync(packPath, packText());
+      writeFileSync(packPath, activePackText());
       const layer: ConfigurationLayer = {
         name: "project",
         source: configPath,
@@ -280,8 +291,8 @@ describe("layered local pack loading and compilation", () => {
 
 describe("bounded rule selection combinations", () => {
   it("executes all 128 Boolean gates through production configuration, compilation, and selection", () => {
-    const pack = decodeRulePackText(JSON.stringify({
-      schemaVersion: 1,
+    const rawPack = {
+      schemaVersion: 2,
       id: "selection",
       contentVersion: "1",
       rules: [{
@@ -289,8 +300,18 @@ describe("bounded rule selection combinations", () => {
         question: "Does this candidate require review?",
         criteria: { false: "No.", true: "Yes." },
         message: "Review this candidate.",
+        reviewTargets: [{ artifactKind: "typeShape", inputContract: V2_TYPE_CONTRACT,
+          capabilities: ["root-declaration", "resolved-outbound-types", "selected-source-type-closure"] }],
       }],
-    }), "selection.jsonc");
+    };
+    const facts = decodeRulePackV2(rawPack);
+    const pack = {
+      ...decodeRulePackText(JSON.stringify({ ...rawPack, schemaVersion: 1,
+        rules: rawPack.rules.map(({ reviewTargets: _targets, ...rule }) => rule) }), "selection.jsonc"),
+      schemaVersion: 2 as const,
+      contentDigest: facts.contentDigest,
+      v2Raw: rawPack,
+    };
     const source = "const candidate = true;";
     const path = "src/candidate.ts";
     for (let mask = 0; mask < 128; mask += 1) {

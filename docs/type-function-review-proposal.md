@@ -1,14 +1,19 @@
 # Issue #93: diff-selected type and function review target specification
 
-Status: **Owner decision (2026-09-27): this is the target type/function
-specification, including bounded cross-file supporting evidence.** The
-2026-09-24 same-file-only boundary is superseded below. This specification
-does not claim that the target is implemented or authorize live Jev evaluation
-or expanded source egress. The prototype and adoption gates below remain open.
-The running profile remains `direct-event/same-file-named-types/v1` until its
-implementation is changed and validated. Contract identifiers distinguish
-incompatible backend inputs; they are not product release names. Jev is the
-external review backend.
+**Purpose:** Define the direct-edit type and function review behavior.
+**Status:** Accepted target, amended by owner decision on 2026-09-29.
+**Authority:** Accepted product contract. Implementation and tests are separate evidence.
+**Expected use:** Build and review the supported direct-edit path.
+**Lifecycle:** Maintained as that path changes; review after a new owner decision or a changed runtime boundary.
+
+The owner approved the bounded cross-file type and function path for users on
+2026-09-29. The one-file named-type input is retired as a production route.
+The owner did not require a comparative study before this change. A later study
+can measure advice quality as a separate task. The file-selection, complete-evidence,
+source-size, request-size, freshness, and Jev-request limits below still apply.
+This decision is about product behavior; it is not a claim that live Jev results
+have been measured. Contract identifiers distinguish incompatible backend inputs;
+they are not product release names. Jev is the external review backend.
 
 ## Decision boundary and prior evidence
 
@@ -25,11 +30,9 @@ evidence. Queues and pending advice are memory-only and may be lost on restart.
 Issue #16's **final** input comparison was `reject-or-narrow`: declaration plus
 bounded context passed context-required accuracy, focused-diff controls, negative
 controls, timing, and request size, but failed both required paired superiority
-gates (context-only 0/3 and whole-file-dilution 0/2). Thus neither that experiment
-nor this specification authorizes a production extractor, new source egress, or a
-claim that declaration input is superior. The current same-file named-type profile
-is an implemented, separately bounded direct-event path; its existence does not
-turn #16's outcome into approval of the broader branches proposed here.
+gates (context-only 0/3 and whole-file-dilution 0/2). The 2026-09-29 owner
+decision authorizes bounded cross-file source use despite that result. The result
+still does not show that the new input gives better advice.
 
 ### Accepted constraints carried into this specification
 
@@ -47,20 +50,18 @@ turn #16's outcome into approval of the broader branches proposed here.
 - Directly changed roots are the only targets. Checkpoint reconciliation,
   shell/Stop discovery, and re-review of unchanged dependents are outside #93.
 
-The remaining sections specify the target behavior. Open design details and
-prototype/adoption checks are named at the end. They are not statements of
-current runtime behavior.
+The remaining sections specify the accepted behavior. Validation and later
+study work are named at the end. Runtime claims require separate test evidence.
 
 ## Supported event and selection contract
 
 `direct-root-selection/v2` takes an attributed, completed direct edit event,
 canonical working root, eligible repository-relative named paths, stable post-edit
-snapshots, and bounded patch structure. The only currently evidenced native event
-mapping is the controlled-writer Codex CLI `PostToolUse` `apply_patch` Add and Update
-path in the version/platform profile named in the supported-profile document.
-Claude Code and OpenCode mappings require their own #94 evidence and explicit
-host-profile declarations; this contract does not presume those hosts expose the
-same patch or delivery semantics. Delete, move, metadata-only, unattributed writes,
+snapshots, and bounded patch structure. Codex CLI `apply_patch` supplies checked
+post-edit hunks. Claude Code `Edit` and `Write` derive exact changed spans from
+the verified before and after text captured by the adapter. Host delivery
+behavior still needs host-specific evidence; OpenCode mapping remains separate.
+Delete, move, metadata-only, unattributed writes,
 and paths outside the existing capture/selection boundary are inapplicable.
 
 The adapter must preserve each patch hunk's file and changed-line coordinates or
@@ -80,8 +81,7 @@ the path is quietly `no-supported-root`. A change only to a reference declaratio
 selects that declaration; it does not automatically select unchanged users of it.
 Selections are deduplicated by canonical path, branch, root identity, and captured
 snapshot within the event. Selection must not infer a complete change set from a
-partial or unstable capture. Existing v1 matching remains unchanged until an
-accepted migration explicitly replaces it.
+partial or unstable capture.
 
 ## Branch contracts
 
@@ -90,8 +90,8 @@ accepted migration explicitly replaces it.
 | `direct-event/type-shape/v2` | One uniquely named TypeScript `interface` or `type` alias in `.ts`, `.tsx`, `.mts`, or `.cts` | Exact root declaration and complete finite outbound named-type reference graph, following supported local imports across selected files | Declaration merging, ambiguous binding, unsupported graph syntax, unresolved or excluded required imports |
 | `direct-event/function/v1` | One uniquely named, top-level TypeScript function declaration in those extensions | Exact signature and body and complete finite directly referenced type and named-function graph, following supported local imports across selected files | Anonymous functions, methods, overload groups without unique implementation, dynamic/computed calls, unresolved or excluded required imports |
 
-These contract IDs are distinct from the current
-`direct-event/same-file-named-types/v1`. A type declaration and function with the
+These contract IDs replace the former production
+`direct-event/same-file-named-types/v1` input. A type declaration and function with the
 same spelling remain different artifacts. Function-like values assigned to
 variables, class methods, callbacks, constructors, accessors, schemas, namespaces,
 and independently selected cross-file roots are deferred. A referenced declaration
@@ -132,7 +132,7 @@ an allowed file's review input.
 The target per-source-file stable-capture ceiling is **256 KiB inclusive**. The
 target evidence-tree ceiling is **20 KiB of canonical UTF-8 encoded root, nodes,
 edges, and required metadata per review unit**, including evidence reached from
-multiple files. The exact canonical encoding is an adoption gate. Check the
+multiple files. Use the checked canonical encoding. Check the
 remaining tree budget before accepting a captured contribution. If a supporting
 node cannot fit, skip that import's tree contribution, record the skipped target,
 and continue inspecting later pending edges within the finite file, read, work,
@@ -140,8 +140,8 @@ depth, and deadline budgets. Keep the accepted tree at or below 20 KiB. A unit
 with any skipped import remains incomplete after its pending edges are examined
 and makes no Jev request. Keep at most
 64 parsed declarations per file, 16 distinct outbound targets per root, and four
-reference edges in a path as initial ceilings; fix finite total-file, total-read,
-and analysis-work/deadline ceilings before activation. The complete serialized
+reference edges in a path as initial ceilings; enforce finite total-file,
+total-read, analysis-work, and deadline ceilings. The complete serialized
 Jev request has a **separate** bound covering the tree, root source, questions,
 options, and provider overhead. The earlier 64 KiB draft value is not a proven
 wire limit; [#140](https://github.com/dearlordylord/hapsland/issues/140)
@@ -160,12 +160,12 @@ An incomplete candidate produces no `ReviewWorkItem`, `ReviewInput`, or backend
 request. It never becomes a clear/no-finding result. Only complete units proceed
 to applicable rule selection; if no rule remains, there is no backend request.
 This retains an all-or-nothing evidence gate rather than introducing per-rule
-partial evaluation. The prototype must specify and test the graph boundary so
+partial evaluation. The implementation must test the graph boundary so
 "complete" is a checkable claim, not an assumption about unparsed syntax.
 
 ## Rule pack and configuration contract
 
-The proposed `rule-pack/v2` adds a required, explicit `reviewTargets` declaration
+`rule-pack/v2` adds a required, explicit `reviewTargets` declaration
 to each rule. Each target names `artifactKind` (`typeShape` or `function`), exact
 `inputContract`, and an enumerated set of evidence capabilities the rule expects
 from an already complete branch unit. These declarations select compatible
@@ -218,19 +218,19 @@ evidence. A review work item still records the observation, the advicee, the
 selected rules, and the exact input format so the result goes to the right
 agent.
 
-`ReviewInput` is versioned separately for each branch. The proposed Jev payload is
+`ReviewInput` is versioned separately for each branch. The Jev payload is
 a JSON value containing `artifact` (`kind`, `name`, repository-relative `domain`,
 exact root `source`), `evidence` (complete bounded ordered nodes and typed edges),
 and `inputContract` (`id`, `completeness: "complete"`, projection fingerprint).
 For a function, `artifact.source` contains the full declaration including body;
 its evidence may contain local function and type nodes. Rule questions and criteria
 remain in the one provider-neutral Effect `DecisionModel` call, using
-`Decision.probability` for this branch prototype. A different typed result form
+`Decision.probability` for the active branches. A different typed result form
 requires a separate #96 contract decision. No before-source, raw patch, task transcript, unrelated
 file, or absolute path is sent. The renderer must have a deterministic version and
 digest; UTF-8 request bytes are checked at the final JSON representation before
-dispatch. The exact wire shape is a prototype acceptance item, not an invitation
-to serialize current internal `ReviewUnit` records by accident.
+dispatch. The versioned renderer defines the exact wire shape; changes to it
+require contract review. Internal `ReviewUnit` records are not serialized directly.
 
 Before Hapsland sends a review unit to Jev, it checks that the root and every
 supporting file are still allowed and still match the captured source. Before
@@ -262,7 +262,7 @@ source, symbol names, patch text, absolute paths, or source-derived hashes inten
 for display. Operational backend/capacity notices remain governed by the current
 delivery policy. Coverage is never reported as a clean semantic judgment.
 
-## Prototype and adoption checks
+## Validation and later study
 
 1. Freeze synthetic positive, valid negative, superficially similar negative,
    ambiguous, and intentionally incomplete fixtures for both branches before live
@@ -281,8 +281,8 @@ delivery policy. Coverage is never reported as a clean semantic judgment.
    accepted tree size at or below 20 KiB, stale suppression, and source-free
    coverage. A controlled backend checks one request per eligible unit and no
    request for any incomplete or rule-empty unit. Typecheck and run the
-   focused and full suites before any adoption claim.
-3. A paired, pre-registered live plan compares each proposed branch input with
+   focused and full suites as implementation validation.
+3. A later paired, pre-registered live plan can compare each branch input with
    the currently supported input where applicable and an honest focused-diff or
    whole-file baseline on the *same* fixtures, rules, backend, and rule batch.
    Incomplete units and other inapplicable arms are marked before execution and
@@ -292,26 +292,19 @@ delivery policy. Coverage is never reported as a clean semantic judgment.
    bytes, and source-egress scope separately. Require an explicit finite call and
    retry ceiling against remaining authorization. Keep ordinary tests offline and
    retain only sanitized aggregate live evidence.
-4. Before production adoption, approve the fixture corpus, acceptance thresholds,
-   capability vocabulary, exact renderer/wire contract, budgets, clear
-   documentation of cross-file source use, and host delivery strategy.
-   A result that lacks coverage or available
-   repetitions is inconclusive; failure of pre-registered semantic or safety gates
-   rejects or narrows the branch. #16's failed paired gates cannot be silently
-   replaced with retrospective easier thresholds. An approved branch then needs
-   a separate implementation decision and host-profile conformance evidence.
+4. Record the exact renderer/wire contract, budgets, cross-file source use, and
+   host delivery behavior in implementation evidence. A later study must state
+   its fixture corpus and thresholds before live calls. It may lead to a later
+   product change, but it is not a prerequisite for the 2026-09-29 decision.
 
-## Open choices requiring review
+## Later work
 
-- Prototype planning adopts the proposed narrow function scope and unit-wide
-  completeness policy. The prototype must establish which capabilities are
-  sufficiently checkable for each maintained rule; a rule cannot exempt an
-  omitted edge.
-- Exact total-file/read and analysis-work/deadline ceilings, canonical 20 KiB
-  tree encoding, and resident ledger limits compatible with 256 KiB capture.
-- Exact v2 schema syntax and renderer JSON shape after prototype fixtures expose
-  the required fields. These must be frozen before implementation or live calls.
-- Pre-registered paired semantic thresholds and permissible added egress for each
-  branch. The final #16 outcome makes this a real adoption decision.
-- Host-specific Add/Update mapping and advice delivery for Claude Code and
+- Keep the narrow function scope and unit-wide completeness policy. Tests must
+  establish the capabilities claimed for each maintained rule; a rule cannot
+  exempt an omitted edge.
+- Revisit graph, request, and resident limits only with bounded evidence and
+  contract review.
+- If a later paired study is run, declare its thresholds and source scope
+  before live calls. The final #16 outcome remains prior evidence.
+- Continue host-specific advice delivery validation for Claude Code and
   OpenCode, informed by #97 and #94 rather than inferred from Codex.

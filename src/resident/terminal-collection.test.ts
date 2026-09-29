@@ -90,10 +90,14 @@ describe("Claude terminal collection", () => {
     const blockersEntered = deferred();
     const releaseBlockers = deferred();
     let evaluationCount = 0;
+    const evaluatedIdentities = new Set<string>();
+    const evaluatedContracts = new Set<string>();
     let holdOwner = false;
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")), () => 1_000, {
-      beforeEvaluate: async () => {
+      beforeEvaluate: async (prepared) => {
         evaluationCount += 1;
+        evaluatedIdentities.add(prepared.identity);
+        evaluatedContracts.add(prepared.input.contract);
         if (evaluationCount === 1) {
           primerEntered.resolve();
           await releasePrimer.promise;
@@ -140,7 +144,11 @@ describe("Claude terminal collection", () => {
     expect(await collect(server, first.ticket, data, dispatch)).toEqual({ version: 2, status: "empty" });
     expect(await collect(server, second.ticket, data, dispatch))
       .toEqual({ version: 2, status: "empty" });
-    expect(server.accountingMetrics()).toMatchObject({ successfulCacheEntries: 3, pendingEvaluations: 0 });
+      expect(evaluationCount).toBe(4);
+      expect(evaluatedIdentities.size).toBe(1);
+      expect([...evaluatedContracts]).toEqual(["direct-event/type-shape/v2"]);
+      // Primer, both blockers, and owner occupy four distinct session partitions.
+      expect(server.accountingMetrics()).toMatchObject({ successfulCacheEntries: 4, pendingEvaluations: 0 });
     const activity = readActivity({ statePath: activityPath, root: data.root,
       sessionId: data.observation.advicee.sessionId,
       resident: { available: true, lifetime: server.lifetime } });

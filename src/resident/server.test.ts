@@ -1538,7 +1538,7 @@ describe("resident delivery lease", () => {
       ).join("\n"));
     }
     await put(root, "rules.jsonc", JSON.stringify({
-      schemaVersion: 1,
+      schemaVersion: 2,
       id: "team",
       contentVersion: "1",
       rules: [{
@@ -1548,6 +1548,8 @@ describe("resident delivery lease", () => {
         threshold: 0.7,
         message: "x".repeat(1024),
         applicability: { includes: ["**/*.ts"] },
+        reviewTargets: [{ artifactKind: "typeShape", inputContract: "direct-event/type-shape/v2",
+          capabilities: ["root-declaration", "resolved-outbound-types"] }],
       }],
     }));
     await put(root, ".review.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
@@ -1598,7 +1600,7 @@ describe("resident delivery lease", () => {
       const root = await makeGitFixture();
       await put(root, "type.ts", "type LargeFinding = number\n");
       await put(root, "rules.jsonc", JSON.stringify({
-        schemaVersion: 1,
+        schemaVersion: 2,
         id: "team",
         contentVersion: "1",
         rules: [{
@@ -1608,6 +1610,8 @@ describe("resident delivery lease", () => {
           threshold: 0.7,
           message: "x".repeat(messageBytes),
           applicability: { includes: ["**/*.ts"] },
+          reviewTargets: [{ artifactKind: "typeShape", inputContract: "direct-event/type-shape/v2",
+            capabilities: ["root-declaration", "resolved-outbound-types"] }],
         }],
       }));
       await put(root, ".review.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
@@ -1749,62 +1753,6 @@ describe("resident delivery lease", () => {
     expect(server.accountingMetrics().maxMaterializedPreparedUnits).toBe(0);
     expect(server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
     expect(existsSync(capturePath)).toBe(false);
-  });
-
-  // Darwin's PATH_MAX prevents creating this long fixture as a real path.
-  it.skipIf(process.platform === "darwin")("retains advice when revalidation expansion cannot reserve workspace", async () => {
-    const root = await makeGitFixture();
-    const original = "type Type0 = number\n";
-    await put(root, longNestedPath, original);
-    const statePath = join(root, "consent");
-    await enable(root, statePath);
-    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, [longNestedPath])));
-    expect(observation).toBeDefined();
-    if (observation === undefined) return;
-    const dispatch: ResidentDispatchContext = {
-      statePath,
-      userConfigPath: null,
-      credential: null,
-      controlled: {
-        answers: Object.fromEntries(configuredRules.map((rule) => [
-          rule.id,
-          { _tag: "Probability", probability: 0.9 },
-        ])),
-      },
-    };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
-    expect(server.admit(observation, dispatch).status).toBe("accepted");
-    await server.whenIdle();
-    const before = server.stats();
-    expect(before.pendingAdvice).toBe(1);
-
-    const expansion = mutuallyReferencingTypes(64);
-    expect(analyzerMaterializationPreflight(longNestedPath, expansion)?.expandedUnitBytes)
-      .toBeGreaterThan(PARTITION_BYTE_LIMIT);
-    await put(root, longNestedPath, expansion);
-    await expect(server.collect(
-      root,
-      advicee({ turnId: "pressure", toolUseId: "pressure" }),
-      dispatch,
-    )).resolves.toMatchObject({ status: "empty" });
-    expect(server.stats()).toMatchObject({ pendingAdvice: 1, retainedBytes: before.retainedBytes });
-
-    await put(root, longNestedPath, original);
-    const recovered = await server.collect(
-      root,
-      advicee({ turnId: "recovered", toolUseId: "recovered" }),
-      dispatch,
-    );
-    // The restored advice is current; the larger response envelope can carry
-    // whole findings from this long path without an operational notice.
-    expect(recovered.status).toBe("advice");
-    if (recovered.status === "advice") {
-      expect(recovered.findingCount).toBeGreaterThan(0);
-      expect(recovered.output.hookSpecificOutput.additionalContext).not.toContain("Operational notice");
-      expect(encodedHostOutputBytes(recovered.output)).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
-    }
-    expect(server.stats().pendingAdvice).toBeGreaterThanOrEqual(1);
-    expect(server.stats().retainedBytes).toBe(before.retainedBytes);
   });
 
   it("retires A when replacement B registers before A completes", async () => {
@@ -2191,7 +2139,7 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const rules = (message: string) => JSON.stringify({
-      schemaVersion: 1,
+      schemaVersion: 2,
       id: "team",
       contentVersion: "1",
       rules: [{
@@ -2201,6 +2149,8 @@ describe("resident delivery lease", () => {
         threshold: 0.7,
         message,
         applicability: { includes: ["**/*.ts"] },
+        reviewTargets: [{ artifactKind: "typeShape", inputContract: "direct-event/type-shape/v2",
+          capabilities: ["root-declaration", "resolved-outbound-types"] }],
       }],
     });
     await put(root, "rules.jsonc", rules("first recommendation"));

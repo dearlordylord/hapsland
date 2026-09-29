@@ -1,4 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import * as Effect from "effect/Effect";
+import { loadReviewSettings } from "../runtime/review-config.ts";
 import { compileRulePackV2, selectApplicableRules } from "./compiler.ts";
 import { V2_FUNCTION_CONTRACT, V2_TYPE_CONTRACT } from "./v2-targets.ts";
 
@@ -13,6 +18,24 @@ const pack = () => ({ schemaVersion: 2, id: "team", contentVersion: "1", rules: 
 }] });
 
 describe("explicit v2 rule target compilation", () => {
+  it("loads an authored v2 pack for both active review branches", async () => {
+    const root = mkdtempSync(join(tmpdir(), "hapsland-v2-pack-"));
+    try {
+      writeFileSync(join(root, ".review.jsonc"), JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
+      writeFileSync(join(root, "rules.jsonc"), JSON.stringify(pack()));
+      const settings = await Effect.runPromise(loadReviewSettings(root));
+      const authored = settings.rules?.filter((rule) => rule.packId === "team") ?? [];
+      expect(authored).toHaveLength(1);
+      expect(selectApplicableRules(authored, "type A = number", "a.ts", {
+        artifactKind: "typeShape", inputContract: V2_TYPE_CONTRACT, complete: true,
+        capabilities: ["root-declaration", "resolved-outbound-types", "selected-source-type-closure"],
+      })).toHaveLength(1);
+      expect(selectApplicableRules(authored, "function run() {}", "a.ts", {
+        artifactKind: "function", inputContract: V2_FUNCTION_CONTRACT, complete: true,
+        capabilities: ["signature", "body", "resolved-local-calls", "resolved-outbound-types"],
+      })).toHaveLength(1);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
   it("selects only the exact branch and complete declared capabilities", () => {
     const rules = compileRulePackV2(pack(), "fixture-v2");
     expect(rules).toHaveLength(1);

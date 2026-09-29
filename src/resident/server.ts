@@ -14,7 +14,6 @@ import {
   encodedPreparedProviderInputBytes,
   encodedPreparedProviderHttpBodyBytes,
   MAX_FULL_JEV_REQUEST_BYTES,
-  requiresCandidateEgressAuthorization,
   prepareObservation,
   preparedUnitStillCurrent,
   revalidateEvaluations,
@@ -572,7 +571,6 @@ export class ResidentServer {
   #nextDispatchAuthoritySequence = 1;
   readonly #offlineHttpClient: HttpClient.HttpClient | undefined;
   readonly #controlledRequestEffect: (() => Promise<void>) | undefined;
-  readonly #allowCandidateCrossFileEgress: boolean;
   readonly #beforeResponseHandoff: (() => Promise<void>) | undefined;
   readonly paths: ResidentPaths;
 
@@ -601,8 +599,6 @@ export class ResidentServer {
       readonly offlineHttpClient?: HttpClient.HttpClient;
       /** Fixture-only gate entered by the controlled DecisionModel call. */
       readonly controlledRequestEffect?: () => Promise<void>;
-      /** Fixture-only; broader source egress awaits the accepted adoption gate. */
-      readonly allowCandidateCrossFileEgress?: boolean;
       readonly beforeResponseHandoff?: () => Promise<void>;
       readonly maximumTickets?: number;
     } = {},
@@ -616,7 +612,6 @@ export class ResidentServer {
       throw new RangeError(`maximumOperationalNoticeKeys must be an integer from 1 to ${MAX_OPERATIONAL_NOTICE_KEYS}`);
     }
     this.paths = paths;
-    this.#allowCandidateCrossFileEgress = options.allowCandidateCrossFileEgress === true;
     const maximumTickets = options.maximumTickets ?? MAX_TICKETS;
     if (!Number.isSafeInteger(maximumTickets) || maximumTickets < 1 || maximumTickets > MAX_TICKETS) {
       throw new RangeError(`maximumTickets must be an integer from 1 to ${MAX_TICKETS}`);
@@ -2433,7 +2428,6 @@ export class ResidentServer {
       const controlledRequestEffect = this.#controlledRequestEffect;
       const ledger = this.#ledger;
       const isCurrentWork = () => this.#isCurrentWork(job.revision, job.prepared);
-      const allowCandidateCrossFileEgress = this.#allowCandidateCrossFileEgress;
       const isJobActive = () => this.#jobActive(job);
       const observeDispatchAuthority = (details: DispatchAuthorityObservationDetails): void =>
         this.#observeDispatchAuthority(job, details);
@@ -2526,8 +2520,7 @@ export class ResidentServer {
           credentialStatus: credential?.status ?? "not-required",
           credentialGeneration: credential?.generation ?? null,
         });
-        if ((requiresCandidateEgressAuthorization(job.prepared) && !allowCandidateCrossFileEgress) ||
-          encodedPreparedProviderHttpBodyBytes(job.prepared) > MAX_FULL_JEV_REQUEST_BYTES) {
+        if (encodedPreparedProviderHttpBodyBytes(job.prepared) > MAX_FULL_JEV_REQUEST_BYTES) {
           return { status: "input-limit" as const };
         }
         const ready = requestReady({

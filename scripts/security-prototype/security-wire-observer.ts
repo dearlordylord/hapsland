@@ -30,28 +30,34 @@ export const securityWireRule = {
 } as const;
 const sha256 = (value: string | Uint8Array): string => createHash("sha256").update(value).digest("hex");
 const path = securityWireManifest.positive.path;
+const rootId = `${path}:interface:Receipt`;
+const branchId = `${path}:interface:Branch`;
+const tree = {
+  artifact: { kind: "interface", name: "Receipt", domain: path,
+    source: securityWireManifest.positive.root },
+  evidence: { rootId,
+    nodes: [{ id: branchId, kind: "interface", name: "Branch", domain: path,
+      source: securityWireManifest.positive.reference, order: 0 }],
+    edges: [{ from: rootId, to: branchId, kind: "expanded", symbol: "Branch", order: 0 },
+      { from: branchId, to: rootId, kind: "included", symbol: "Receipt", order: 1 }] },
+};
+const canonical = (value: unknown): string => {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  if (value !== null && typeof value === "object") {
+    const fields = value as Record<string, unknown>;
+    return `{${Object.keys(fields).sort().map((key) => `${JSON.stringify(key)}:${canonical(fields[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value) ?? "null";
+};
 export const securityWireExpectedBody = {
   model: "jev-latest",
   state: {
-    artifact: { domain: path, source: securityWireManifest.positive.root },
-    evidence: [{
-      kind: "expanded",
-      site: { symbol: "Branch" },
-      node: {
-        artifact: {
-          id: `${path}:interface:Branch`, kind: "interface", name: "Branch",
-          source: securityWireManifest.positive.reference,
-          sourceHash: sha256(securityWireManifest.positive.reference),
-        },
-        references: [{
-          kind: "included", site: { symbol: "Receipt" },
-          target: `${path}:interface:Receipt`,
-        }],
-      },
-    }],
+    ...tree,
     inputContract: {
-      id: "direct-event/same-file-named-types/v1",
-      evidence: "complete named direct-event unit",
+      id: "direct-event/type-shape/v2", completeness: "complete",
+      projectionFingerprint: sha256(canonical(tree)),
+      rendererVersion: "candidate-semantic-evidence/1",
+      rendererDigest: "5755d7abe997a57c952111ef2e0ac2e85c3a0e7f84fb39b11bd7a576ae5c01de",
     },
   },
   questions: {

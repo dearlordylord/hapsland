@@ -8,7 +8,6 @@ import { compileRulePackV2 } from "../rules/compiler.ts";
 import { V2_FUNCTION_CONTRACT, V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
 import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts";
 import { adaptCodexDirectEvent } from "./adapter.ts";
-import { DIRECT_EVENT_INPUT_CONTRACT } from "./model.ts";
 import { measuredRootSourceDecision, prepareObservation, reviewObservation } from "./pipeline.ts";
 import { addEvent, makeGitFixture, put } from "./test-fixtures.ts";
 
@@ -72,27 +71,4 @@ describe("configured v2 root source cap", () => {
     }));
   }
 
-  it.effect("retains the legacy same-file v1 path under a lower graph source cap", () => Effect.gen(function* () {
-    const root = yield* Effect.promise(makeGitFixture);
-    yield* Effect.promise(() => put(root, "a.ts", `// ${"x".repeat(100)}\ninterface A { value: string }\n`));
-    const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]));
-    if (observation === undefined) throw new Error("fixture adaptation failed");
-    const configuration = { policy: resolveConfiguration([{
-      name: "user", source: "fixture:root-cap",
-      document: { version: 1, graphLimits: { version: 1, sourceBytes: 80, readBytes: 80 } },
-    }], root) };
-    let preflightCalls = 0;
-    const prepared = yield* prepareObservation(observation, {
-      controlledWriter: true, advicee: observation.advicee,
-      inputContract: DIRECT_EVENT_INPUT_CONTRACT,
-      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION, configuration },
-      rules: configuredRules,
-      beforeAnalyze: () => Effect.sync(() => { preflightCalls += 1; return true; }),
-    });
-    expect(preflightCalls).toBe(1);
-    expect(prepared.observation.outcomes[0]).toMatchObject({
-      status: "observed", analysis: { status: "complete" },
-      units: [{ root: { artifact: { name: "A" } } }],
-    });
-  }));
 });

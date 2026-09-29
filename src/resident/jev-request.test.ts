@@ -10,6 +10,7 @@ import { residentPaths } from "./paths.ts";
 import { ResidentServer, type JevRequestObservation } from "./server.ts";
 import { CapacityLedger } from "./capacity.ts";
 import { captureStable } from "../direct-event/capture.ts";
+import { V2_FUNCTION_CONTRACT, V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
 
 const deferred = () => {
   let resolve!: () => void;
@@ -18,6 +19,34 @@ const deferred = () => {
 };
 
 describe("canonical Jev request boundary", () => {
+  it("uses configured v2 rules for complete type and function units", async () => {
+    const root = await makeGitFixture();
+    await put(root, "a.ts", "export type Count = number;\nexport function count(): Count { return 1; }\n");
+    await put(root, "rules.jsonc", JSON.stringify({ schemaVersion: 2, id: "team", contentVersion: "1", rules: [{
+      id: "check", question: "Is this clear?", criteria: { false: "No", true: "Yes" },
+      message: "Clarify", reviewTargets: [
+        { artifactKind: "typeShape", inputContract: V2_TYPE_CONTRACT,
+          capabilities: ["root-declaration", "resolved-outbound-types"] },
+        { artifactKind: "function", inputContract: V2_FUNCTION_CONTRACT,
+          capabilities: ["signature", "body"] },
+      ],
+    }] }));
+    await put(root, ".review.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])));
+    if (observation === undefined) throw new Error("fixture observation missing");
+    const seen: string[] = [];
+    const capturePath = join(root, "provider-calls.txt");
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+      beforeEvaluate: async (prepared) => { if (prepared.input.rules.some((rule) => rule.id === "team/check")) seen.push(prepared.input.contract); },
+    });
+    try {
+      expect(server.admit(observation, { statePath: join(root, "consent"), userConfigPath: null,
+        credential: null, controlled: { capturePath } }).status).toBe("accepted");
+      await server.whenIdle();
+      expect(new Set(seen)).toEqual(new Set([V2_TYPE_CONTRACT, V2_FUNCTION_CONTRACT]));
+      expect(existsSync(capturePath)).toBe(true);
+    } finally { await server.close(); }
+  });
   it("captures an over-32 KiB same-file candidate without sending a v1 request", async () => {
     const root = await makeGitFixture();
     const source = `export type LargeName = { value: "${"x".repeat(33_000)}" };\n`;
@@ -79,7 +108,7 @@ describe("canonical Jev request boundary", () => {
       expect(server.accountingMetrics().pendingOperationalNotices).toBe(0);
     } finally { await server.close(); }
   });
-  it("keeps candidate cross-file evidence off v1 Jev even with a fixture egress override", async () => {
+  it("sends complete selected cross-file evidence and excludes denied supporting source", async () => {
     const root = await makeGitFixture();
     await put(root, "a.ts", "import type { B } from './b'; interface A { b: B }");
     await put(root, "b.ts", "import type { C } from './c'; export interface B { c: C }");
@@ -97,12 +126,12 @@ describe("canonical Jev request boundary", () => {
     const capturePath = join(root, "provider-calls.txt");
     const dispatch = { statePath, userConfigPath: null, credential: null, controlled: { capturePath } };
     const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
-      captureSource, allowCandidateCrossFileEgress: true,
+      captureSource,
     });
     try {
       expect(server.admit(observation, dispatch).status).toBe("accepted");
       await server.whenIdle();
-      expect(existsSync(capturePath)).toBe(false);
+      expect(existsSync(capturePath)).toBe(true);
       expect(reads).toContain("c.ts");
     } finally { await server.close(); }
 
@@ -111,7 +140,7 @@ describe("canonical Jev request boundary", () => {
     try {
       expect(gatedServer.admit(observation, { ...dispatch, controlled: { capturePath: gatedCalls } }).status).toBe("accepted");
       await gatedServer.whenIdle();
-      expect(existsSync(gatedCalls)).toBe(false);
+      expect(existsSync(gatedCalls)).toBe(true);
       expect(gatedServer.accountingMetrics().pendingOperationalNotices).toBe(0);
     } finally { await gatedServer.close(); }
 

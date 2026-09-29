@@ -1,11 +1,8 @@
 import { createHash } from "node:crypto";
 import type { CompiledRule } from "../rules/compiler.ts";
 import type { ReviewTargetV2 } from "../rules/v2-targets.ts";
-import type { PostEditLocation } from "./attribution-v2.ts";
+import type { PostEditLocation, VerifiedPatchHunkV2 } from "./attribution-v2.ts";
 import type { GraphLimits } from "../configuration/graph-limits.ts";
-import { V1_DIRECT_TYPE_INPUT_CONTRACT } from "../rules/contracts.ts";
-
-export const DIRECT_EVENT_INPUT_CONTRACT = V1_DIRECT_TYPE_INPUT_CONTRACT;
 
 export const CODEX_HOST_VERSIONS = ["0.155.1", "0.156.0"] as const;
 export type CodexHostVersion = typeof CODEX_HOST_VERSIONS[number];
@@ -65,6 +62,12 @@ export type DirectObservation = {
   readonly candidates: ReadonlyArray<DirectCandidate>;
   /** Bounded Codex patch retained only to verify v2 Update coordinates after capture. */
   readonly nativePatchCommand?: string;
+  /** Claude's exact pre/post image establishes these ranges for one captured snapshot. */
+  readonly verifiedPostEditHunks?: {
+    readonly path: string;
+    readonly contentHash: string;
+    readonly hunks: ReadonlyArray<VerifiedPatchHunkV2>;
+  };
 };
 
 export type TypeDeclaration = {
@@ -188,9 +191,9 @@ export type FrozenRule = {
 export type ReviewInput = {
   readonly contract: string;
   readonly graphLimits?: GraphLimits;
-  /** Candidate graph/source profile requires explicit egress authorization. */
+  /** Complete graph projection uses the type/function renderer. */
   readonly candidateProjection?: boolean;
-  /** Parser-derived selected root range, retained in candidate identity only. */
+  /** Parser-derived selected root range for attribution and freshness. */
   readonly rootLocation?: PostEditLocation;
   readonly sourceFingerprints?: ReadonlyArray<{
     readonly path: string; readonly contentHash: string; readonly byteLength: number;
@@ -223,8 +226,10 @@ export const canonicalValue = (value: unknown): string => {
   return JSON.stringify(value) ?? "null";
 };
 
-export const semanticIdentity = (input: ReviewInput): string =>
-  createHash("sha256").update(canonicalValue(input), "utf8").digest("hex");
+export const semanticIdentity = (input: ReviewInput): string => {
+  const { sourceFingerprints: _capture, rootLocation: _location, ...reviewInput } = input;
+  return createHash("sha256").update(canonicalValue(reviewInput), "utf8").digest("hex");
+};
 
 const deepFreeze = <A>(value: A): A => {
   if (typeof value === "object" && value !== null && !Object.isFrozen(value)) {

@@ -221,6 +221,20 @@ const observation = (value: unknown): value is DirectObservation => {
     !string(identity?.rootDevice) || !string(identity.rootInode) ||
     !string(identity.gitDirectory) || !string(identity.gitDevice) || !string(identity.gitInode)
   ) return false;
+  if (item?.verifiedPostEditHunks !== undefined) {
+    const verified = record(item.verifiedPostEditHunks);
+    if (!string(verified?.path) || !/^[a-f0-9]{64}$/.test(String(verified.contentHash)) ||
+      !Array.isArray(verified.hunks) || verified.hunks.length < 1 || verified.hunks.length > 64 ||
+      !verified.hunks.every((raw) => {
+        const hunk = record(raw);
+        const location = record(hunk?.location);
+        const start = record(location?.start);
+        const end = record(location?.end);
+        return hunk?.verified === true && hunk.path === verified.path &&
+          [start?.line, start?.column, end?.line, end?.column].every((part) =>
+            typeof part === "number" && Number.isSafeInteger(part) && part >= 1);
+      })) return false;
+  }
   return item.candidates.length > 0 && item.candidates.length <= 16 && item.candidates.every((candidate) => {
     const entry = record(candidate);
     if (entry === undefined || !string(entry.path)) return false;

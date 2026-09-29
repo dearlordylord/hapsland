@@ -171,7 +171,7 @@ describe("cross-file graph preparation", () => {
     expect(reads).toEqual(["b.ts", "b.ts"]);
   }));
 
-  it.effect("retains the legacy v1 namespace root behavior below 32 KiB", () => Effect.gen(function* () {
+  it.effect("does not select a declaration nested in a namespace for the active review", () => Effect.gen(function* () {
     const root = yield* Effect.promise(makeGitFixture);
     yield* Effect.promise(() => put(root, "a.ts", "namespace N { export interface A { x: string } }"));
     const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]));
@@ -181,14 +181,14 @@ describe("cross-file graph preparation", () => {
       settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: configuredRules,
     });
     expect(prepared.outcomes.some((outcome) => outcome.status === "ready" &&
-      outcome.prepared.input.declaration.name === "A" && !outcome.prepared.input.candidateProjection)).toBe(true);
+      outcome.prepared.input.declaration.name === "A")).toBe(false);
   }));
 
   it("does not select a declaration nested in a namespace as a direct graph root", () => {
     expect(inspectGraphFile("a.ts", "namespace N { export interface A { x: string } }")).toBeUndefined();
   });
 
-  it.effect("retains the accepted v1 same-file profile below 32 KiB", () => Effect.gen(function* () {
+  it.effect("applies the evidence-tree limit to a large one-file declaration", () => Effect.gen(function* () {
     const root = yield* Effect.promise(makeGitFixture);
     yield* Effect.promise(() => put(root, "a.ts", `type A = "${"x".repeat(24_000)}";\n`));
     const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]));
@@ -198,7 +198,7 @@ describe("cross-file graph preparation", () => {
       settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: configuredRules,
     });
     expect(prepared.outcomes.some((outcome) => outcome.status === "ready" &&
-      outcome.prepared.input.declaration.name === "A" && !outcome.prepared.input.candidateProjection)).toBe(true);
+      outcome.prepared.input.declaration.name === "A")).toBe(false);
   }));
 
   it.effect("expands allowed imported evidence and omits excluded supporting source", () => Effect.gen(function* () {

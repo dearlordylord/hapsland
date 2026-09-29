@@ -6,6 +6,8 @@ import { adaptClaudeDirectEvent } from "./adapter.ts";
 import { makeGitFixture } from "./test-fixtures.ts";
 import { decodeResidentRequest } from "../resident/protocol.ts";
 import { MAX_SOURCE_BYTES } from "./capture.ts";
+import { prepareObservation } from "./pipeline.ts";
+import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts";
 
 const base = (root: string, path: string) => ({
   hook_event_name: "PostToolUse",
@@ -21,6 +23,42 @@ const base = (root: string, path: string) => ({
 });
 
 describe("Claude Code 2.1.218 direct adapter", () => {
+  it("reviews only the declaration changed by a verified Edit", async () => {
+    const root = await makeGitFixture();
+    const path = join(root, "types.ts");
+    const original = "interface A { value: string }\ninterface B { count: string }\n";
+    const expected = "interface A { value: string }\ninterface B { count: number }\n";
+    await writeFile(path, expected);
+    const event = { ...base(root, path),
+      tool_input: { file_path: path, old_string: "count: string", new_string: "count: number", replace_all: false },
+      tool_response: { filePath: path, oldString: "count: string", newString: "count: number",
+        originalFile: original, replaceAll: false, userModified: false },
+    };
+    const observation = await Effect.runPromise(adaptClaudeDirectEvent(event));
+    expect(observation?.verifiedPostEditHunks?.hunks).toHaveLength(1);
+    if (observation === undefined) throw new Error("fixture observation missing");
+    const prepared = await Effect.runPromise(prepareObservation(observation, {
+      controlledWriter: true, advicee: observation.advicee,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
+    }));
+    expect(prepared.outcomes.filter((item) => item.status === "ready").map((item) =>
+      item.status === "ready" ? item.prepared.input.declaration.name : "")).toEqual(["B"]);
+  });
+  it("bounds replace_all attribution before materializing frequent-token hunks", async () => {
+    const root = await makeGitFixture();
+    const path = join(root, "many.ts");
+    const original = "a".repeat(65);
+    await writeFile(path, "b".repeat(65));
+    const event = { ...base(root, path),
+      tool_input: { file_path: path, old_string: "a", new_string: "b", replace_all: true },
+      tool_response: { filePath: path, oldString: "a", newString: "b",
+        originalFile: original, replaceAll: true, userModified: false },
+    };
+    expect(await Effect.runPromise(adaptClaudeDirectEvent(event))).toBeUndefined();
+    await writeFile(path, "b".repeat(64));
+    const accepted = { ...event, tool_response: { ...event.tool_response, originalFile: "a".repeat(64) } };
+    expect((await Effect.runPromise(adaptClaudeDirectEvent(accepted)))?.verifiedPostEditHunks?.hunks).toHaveLength(64);
+  });
   it("selects configured files before the first source read", async () => {
     const root = await makeGitFixture();
     await writeFile(join(root, ".review.jsonc"), '{"version":1,"excludes":["excluded.ts"]}\n');

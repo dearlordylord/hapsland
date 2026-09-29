@@ -10,9 +10,15 @@ This page replays source-free example events through the same checked
 `src/canonical/adapter.ts` and compiled `Canonical.step` used by the resident.
 The main flow has 13 distinct places from agent-runtime observation through
 preparation, Jev authorization/attempt/response, advice, delivery, and round
-closure. Connected source → destination route cards mark active data and control
-movement from the current accepted canonical event and emitted commands. The
-Stop fork separately shows waiting, decision readiness, continuation, allowance,
+closure. A connected SVG draws numbered paths between those places, following
+the earlier Flow.bend diagram's spatial layout. The highlighted paths come from
+the current accepted canonical event and its emitted commands. Dashed paths
+show commands, which do not prove that a native effect happened or that the
+destination holds data. `collectionFindingRetained` stays at the collection
+step because it keeps an existing finding for a later batch. The `finishAllowed`
+commands also stay at collection: they do not authorize host output or change
+the round in that Bend step. Node contents come from the checked canonical state;
+the Stop fork shows waiting, decision readiness, continuation, allowance,
 and cancellation from their respective checked commands. Rejected events leave every
 place and route inactive while showing the Bend reason. The three capacity
 figures come from the checked Bend projection: preparation running places,
@@ -48,13 +54,13 @@ The import graph remains a separate checked Bend model for source reference
 exploration. Native timing panels retain the recorded host observations and
 unknown intervals without mapping old simplified Flow states onto production.
 
-The retired pre-#119 flow diagram had twelve process/storage/boundary places,
-numbered routes, packet counts, and a separate finish decision view. The
-current production view replaces those with thirteen canonical places, checked
-operation/request identities and queue order, highlighted routes, outcome
-branches, and a finish/output decision card. Source capture and Jev/host I/O
-remain labeled native boundaries; the import traversal remains a separate
-model pending production integration. The dashboard's coverage disclosure
+The pre-#119 Flow.bend diagram's connected routes, numbered arrows, and
+separate finish decision view informed this production diagram. The current
+view projects thirteen canonical places, checked operation/request identities
+and queue order, highlighted paths, outcome branches, and a finish/output
+decision card. Source capture and Jev/host I/O remain labeled native boundaries.
+The separate import section replays ImportGraph.bend decisions from source-free
+fixtures; it is not a second production reducer. The dashboard's coverage disclosure
 calculates guided event-kind coverage per transition family from the loaded
 fixtures, names manual-only families, and links Bend source and native
 boundaries.

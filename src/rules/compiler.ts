@@ -5,7 +5,6 @@ import type { ConfigurationLayer } from "../configuration/resolve.ts";
 import { matchesAnyGlob } from "../matcher/glob.ts";
 import { BUNDLED_NOUL_PACK, isNoulRuleApplicable } from "./bundled.ts";
 import { applicableRule, includeRule } from "./decision.ts";
-import { V1_DIRECT_TYPE_INPUT_CONTRACT, V1_LEGACY_FILE_INPUT_CONTRACT } from "./contracts.ts";
 import type { ReviewTargetV2, V2Capability } from "./v2-targets.ts";
 import { decodeRulePackV2, V2_FUNCTION_CONTRACT, V2_TYPE_CONTRACT } from "./v2-targets.ts";
 import { validateGlobPattern } from "../matcher/glob.ts";
@@ -71,10 +70,11 @@ export type RuleTargetContext = {
   readonly capabilities?: ReadonlyArray<V2Capability>;
 };
 
-const currentV1Target: RuleTargetContext = {
+const currentTypeTarget: RuleTargetContext = {
   artifactKind: "typeShape",
-  inputContract: V1_DIRECT_TYPE_INPUT_CONTRACT,
+  inputContract: V2_TYPE_CONTRACT,
   complete: true,
+  capabilities: ["root-declaration", "resolved-outbound-types", "selected-source-type-closure"],
 };
 
 /** Independent Boolean gate used by conformance tests and future orchestration. */
@@ -196,6 +196,7 @@ export const compileRules = (
   const compiled: Array<CompiledRule> = [];
   let rank = 0;
   for (const pack of options.packs) {
+    const explicitV2 = pack.v2Raw === undefined ? undefined : compileRulePackV2(pack.v2Raw, pack.source);
     const packOverride = overrides[pack.id];
     const packEnabled = includeRule(pack.enabled, packOverride?.enabled !== false);
     for (const rule of pack.rules) {
@@ -227,14 +228,15 @@ export const compileRules = (
       }
       const runtimeId = pack.id === BUNDLED_NOUL_PACK.id ? rule.id : qualifiedId;
       const builtIn = pack.id === BUNDLED_NOUL_PACK.id;
+      const v2Rule = explicitV2?.find((candidate) => candidate.ruleId === rule.id);
       compiled.push({
-        id: RuleId.make(runtimeId),
+        id: v2Rule?.id ?? RuleId.make(runtimeId),
         qualifiedId,
         packId: pack.id,
         packVersion: pack.contentVersion,
         packDigest: pack.contentDigest,
         ruleId: rule.id,
-        definitionDigest: digestRuleDefinition(pack, rule),
+        definitionDigest: v2Rule?.definitionDigest ?? digestRuleDefinition(pack, rule),
         decision: Decision.probability({ instructions: rule.question, criteria: rule.criteria }),
         threshold,
         message,
@@ -244,6 +246,7 @@ export const compileRules = (
         enabled,
         source: pack.source,
         semanticMatches: (source) => !builtIn || isNoulRuleApplicable(rule.id, source),
+        ...(v2Rule === undefined ? {} : { reviewTargets: v2Rule.reviewTargets }),
       });
       rank += 1;
     }
@@ -255,21 +258,21 @@ export const selectApplicableRules = (
   rules: ReadonlyArray<CompiledRule>,
   source: string,
   path?: string,
-  target: RuleTargetContext = currentV1Target,
+  target: RuleTargetContext = currentTypeTarget,
 ): ReadonlyArray<CompiledRule> => rules.filter((rule) => {
   const authoredTarget = rule.reviewTargets?.find((candidate) =>
     candidate.artifactKind === target.artifactKind && candidate.inputContract === target.inputContract &&
     candidate.capabilities.every((capability) => target.capabilities?.includes(capability) === true));
-  if (rule.reviewTargets === undefined ? target.inputContract !== V1_DIRECT_TYPE_INPUT_CONTRACT &&
-    target.inputContract !== V1_LEGACY_FILE_INPUT_CONTRACT : authoredTarget === undefined) return false;
+  if (rule.reviewTargets === undefined
+    ? !(target.inputContract === V2_TYPE_CONTRACT && rule.builtIn) &&
+      !(target.inputContract === V2_FUNCTION_CONTRACT && rule.builtIn && rule.ruleId === "r9_body_reaches_undeclared")
+    : authoredTarget === undefined) return false;
   return applicableRule({
   consent: true,
   complete: target.complete,
   target: target.inputContract === V2_FUNCTION_CONTRACT ? "directFunctionV1"
     : target.inputContract === V2_TYPE_CONTRACT ? "directTypeShapeV2"
     : target.artifactKind === "function" ? "functionTarget"
-    : target.inputContract === V1_DIRECT_TYPE_INPUT_CONTRACT ? "directTypeShape"
-    : target.inputContract === V1_LEGACY_FILE_INPUT_CONTRACT ? "legacyFileTypeShape"
     : "otherTypeShape",
   globalIncluded: true,
   globalExcluded: false,

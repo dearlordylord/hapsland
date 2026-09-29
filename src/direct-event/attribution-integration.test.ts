@@ -41,7 +41,7 @@ describe("v2 Codex root attribution", () => {
       expect(semanticIdentity({ ...ready.prepared.input, rootLocation: {
         start: { line: location.start.line + 1, column: location.start.column },
         end: { line: location.end.line + 1, column: location.end.column },
-      } })).not.toBe(ready.prepared.identity);
+      } })).toBe(ready.prepared.identity);
       expect(ready.prepared.input.sourceFingerprints?.map((item) => item.path)).toEqual(["a.ts", "b.ts"]);
       const rendered = preparedProviderInput(ready.prepared);
       expect(rendered).toMatchObject({
@@ -94,7 +94,9 @@ describe("v2 Codex root attribution", () => {
   it.effect("requires a confirmed successful Codex Update before v2 attribution", () => Effect.gen(function* () {
     const root = yield* Effect.promise(makeGitFixture);
     yield* Effect.promise(() => put(root, "a.ts", "interface B { value: number }\n"));
-    const observation = yield* adaptCodexDirectEvent(updateEvent(root, "a.ts", ["interface B { value: number }"]));
+    const observation = yield* adaptCodexDirectEvent(updateEvent(root, "a.ts", ["interface B { value: number }"], {
+      tool_response: {},
+    }));
     if (observation === undefined) throw new Error("fixture adaptation failed");
     const prepared = yield* prepareObservation(observation, {
       controlledWriter: true, advicee: observation.advicee,

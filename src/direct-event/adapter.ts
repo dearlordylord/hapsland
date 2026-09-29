@@ -11,6 +11,7 @@ import type {
   PhysicalRootIdentity,
   CodexHostVersion,
 } from "./model.ts";
+import type { PostEditLocation, VerifiedPatchHunkV2 } from "./attribution-v2.ts";
 import { MAX_SOURCE_BYTES, captureStable, type CaptureHooks } from "./capture.ts";
 import { eligibleNamedPath, resolvedDirectFilePolicy } from "./selection.ts";
 
@@ -286,6 +287,61 @@ const changedWholeLines = (before: string, after: string): ReadonlyArray<string>
 const boundedSource = (value: unknown): value is string =>
   typeof value === "string" && Buffer.byteLength(value, "utf8") <= MAX_SOURCE_BYTES;
 
+const sourcePosition = (source: string, offset: number) => {
+  const before = source.slice(0, offset);
+  const line = before.split("\n").length;
+  return { line, column: offset - before.lastIndexOf("\n") };
+};
+
+/** Exact post-image ranges from a verified Claude replacement. */
+const replacementHunks = (
+  path: string, original: string, expected: string,
+  oldText: string, newText: string, replaceAll: boolean,
+): ReadonlyArray<VerifiedPatchHunkV2> | undefined => {
+  const hunks: VerifiedPatchHunkV2[] = [];
+  let search = 0;
+  let shift = 0;
+  let cursor = 0;
+  let line = 1;
+  let column = 1;
+  const advance = (target: number) => {
+    for (; cursor < target; cursor += 1) {
+      if (expected[cursor] === "\n") { line += 1; column = 1; }
+      else column += 1;
+    }
+    return { line, column };
+  };
+  while (true) {
+    const beforeStart = original.indexOf(oldText, search);
+    if (beforeStart < 0) break;
+    // Match the resident IPC bound before allocating more hunk objects. A
+    // frequent-token replace_all can otherwise grow work quadratically.
+    if (hunks.length === 64) return undefined;
+    const start = beforeStart + shift;
+    const end = start + newText.length;
+    const location: PostEditLocation = { start: advance(start), end: advance(end) };
+    hunks.push({ path, verified: true, location });
+    if (!replaceAll) break;
+    search = beforeStart + oldText.length;
+    shift += newText.length - oldText.length;
+  }
+  return hunks;
+};
+
+/** A Write has one exact changed envelope; multiple roots inside it stay ambiguous. */
+const writeHunks = (path: string, original: string, expected: string): ReadonlyArray<VerifiedPatchHunkV2> => {
+  let start = 0;
+  while (start < original.length && start < expected.length && original[start] === expected[start]) start += 1;
+  let oldEnd = original.length;
+  let newEnd = expected.length;
+  while (oldEnd > start && newEnd > start && original[oldEnd - 1] === expected[newEnd - 1]) {
+    oldEnd -= 1;
+    newEnd -= 1;
+  }
+  return [{ path, verified: true, location: { start: sourcePosition(expected, start),
+    end: sourcePosition(expected, newEnd) } }];
+};
+
 /** Claude has no observed turn ID; preserve supplied child identity. */
 export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEvent")(function* (
   value: unknown,
@@ -340,6 +396,7 @@ export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEv
   const content = yield* captureStable(root.value.root, eligible, options.captureHooks, root.value.rootIdentity);
   if (content === undefined) return undefined;
   let candidate: DirectCandidate;
+  let verifiedHunks: ReadonlyArray<VerifiedPatchHunkV2> | undefined;
   if (event.tool_name === "Edit") {
     if (!nonEmpty(input.old_string) || !nonEmpty(input.new_string) ||
       typeof response.originalFile !== "string" ||
@@ -359,6 +416,9 @@ export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEv
       : original.replace(input.old_string, input.new_string);
     if (!boundedSource(expected) || content.text !== expected || expected === original) return undefined;
     candidate = { operation: "update", path, addedLines: changedWholeLines(original, expected) };
+    verifiedHunks = replacementHunks(relativePath, original, expected,
+      input.old_string, input.new_string, input.replace_all === true);
+    if (verifiedHunks === undefined) return undefined;
   } else {
     if (typeof input.content !== "string" || input.content !== response.content ||
       content.text !== input.content ||
@@ -367,6 +427,9 @@ export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEv
     candidate = response.originalFile === null
       ? { operation: "add", path, addedLines: input.content.split(/\r?\n/u) }
       : { operation: "update", path, addedLines: changedWholeLines(response.originalFile, input.content) };
+    if (typeof response.originalFile === "string") {
+      verifiedHunks = writeHunks(relativePath, response.originalFile, input.content);
+    }
   }
   return Object.freeze({
     root: root.value.root,
@@ -377,5 +440,9 @@ export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEv
       subagentId: event.agent_id ?? null,
     } satisfies DirectAdvicee),
     candidates: Object.freeze([Object.freeze({ ...candidate, path: relativePath })]),
+    ...(verifiedHunks === undefined ? {} : { verifiedPostEditHunks: Object.freeze({
+      path: relativePath, contentHash: content.contentHash,
+      hunks: Object.freeze(verifiedHunks.map((hunk) => Object.freeze(hunk))),
+    }) }),
   } satisfies DirectObservation);
 });

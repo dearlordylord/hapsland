@@ -12,6 +12,15 @@ visualization's replay. Run `npm run test:import-graph` for its laws and
 independent traces. `import-graph-proof/LAWS.bend` and
 `import-graph-proof/PROOF.bend` contain the general budget and finite-event
 termination theorems; this command checks their BendTT kernel verdict.
+The model holds pending edges, visited declaration IDs, phase, counters, and
+the complete or incomplete result. Native code supplies syntax and import
+binding, path eligibility, and stable capture facts. Bend chooses the next
+edge and whether the measured work fits its limits. Before each supporting
+source read, native code checks the path against containment, protected paths,
+Git ignore, and user file selection. A denied path is never read; a unit that
+needs it is incomplete and makes no Jev request. The separate dashboard import
+view replays this checked model; production review uses the shared checked
+`Canonical.step` adapter for its decisions.
 Supporting tree contributions that do not fit the remaining budget emit `SkipImport(TreeLimit)` while
 later pending edges continue within the file, read, work, depth, and deadline
 limits. The accepted tree remains within its effective configured cap (20 KiB

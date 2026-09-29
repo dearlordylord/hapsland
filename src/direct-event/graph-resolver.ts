@@ -60,7 +60,7 @@ const mayCaptureForObservation = (captures: ReadonlyMap<string, StableCapture>, 
     [...captures.values()].reduce((sum, source) => sum + source.byteLength, 0) + GRAPH_LIMIT_CEILINGS.sourceBytes <=
       MAX_OBSERVATION_GRAPH_READ_BYTES);
 
-/** Materialize same-file evidence without turning imported declarations into edited roots. */
+/** Materialize complete supporting evidence without turning imports into edited roots. */
 const buildLocal = (file: FactFile, path: string, name: string, visited: Set<string>, budget: LocalBudget, depth: number,
   expectedKind: "type" | "function" | undefined = undefined): Built | undefined => {
   const declaration = declarationFor(file, name, expectedKind);

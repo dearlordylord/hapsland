@@ -9,6 +9,7 @@ import {
 } from "../direct-event/model.ts";
 import { advicee } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
+import { V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
 import { CapacityLedger } from "./capacity.ts";
 import {
   EvaluationReuse,
@@ -28,7 +29,7 @@ const artifact = (source: string): TypeDeclaration => ({
 const input = (overrides: Partial<ReviewInput> = {}): ReviewInput => {
   const declaration = artifact("type OrderCount = number");
   return freezeInput({
-    contract: "direct-event/same-file-named-types/v1",
+    contract: V2_TYPE_CONTRACT,
     completeness: "complete",
     path: "type.ts",
     declaration,
@@ -74,6 +75,23 @@ describe("resident evaluation identity", () => {
     expect(residentEvaluationIdentity(partition, prepared(input({
       rules: base.rules.map((rule, index) => index === 0 ? { ...rule, message: `${rule.message} changed` } : rule),
     })))).not.toBe(residentEvaluationIdentity(partition, prepared(base)));
+  });
+
+  it("reuses unchanged semantic evidence after location and source capture move", () => {
+    const base = input({
+      rootLocation: { start: { line: 1, column: 1 }, end: { line: 1, column: 25 } },
+      sourceFingerprints: [{ path: "type.ts", contentHash: "first", byteLength: 25 }],
+    });
+    const moved = input({
+      rootLocation: { start: { line: 2, column: 1 }, end: { line: 2, column: 25 } },
+      sourceFingerprints: [{ path: "type.ts", contentHash: "second", byteLength: 36 }],
+    });
+    expect(semanticIdentity(moved)).toBe(semanticIdentity(base));
+    expect(residentEvaluationIdentity("same-partition", prepared(moved))).toBe(
+      residentEvaluationIdentity("same-partition", prepared(base)),
+    );
+    const changed = input({ declaration: artifact("type OrderCount = string") });
+    expect(semanticIdentity(changed)).not.toBe(semanticIdentity(base));
   });
 
   it("evicts successful LRU entries without disturbing pending joins", () => {

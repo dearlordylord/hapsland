@@ -12,7 +12,7 @@ export const SUCCESS_CACHE_BYTE_LIMIT = 128 * 1024;
 export const residentEvaluationIdentity = (
   partition: string,
   prepared: PreparedUnit,
-): string => canonicalValue({ partition, input: prepared.input });
+): string => canonicalValue({ partition, input: prepared.identity });
 
 export type CachedEvaluation = {
   readonly evaluation: EvaluatedUnit;

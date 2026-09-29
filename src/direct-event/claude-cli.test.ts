@@ -439,7 +439,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     roots.push(root);
     const statePath = join(root, "consent");
     await enable(root, statePath);
-    const names = Array.from({ length: 6 }, (_, index) => `Count${"X".repeat(350)}${index}`);
+    const names = Array.from({ length: 6 }, (_, index) => `Count${"X".repeat(200)}${index}`);
     const source = `${names.map((name) => `type ${name} = number`).join("\n")}\n`;
     const path = await put(root, "type.ts", source);
     const event = {

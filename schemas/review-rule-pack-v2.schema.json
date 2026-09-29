@@ -1,0 +1,275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/RulePackDocument",
+  "$defs": {
+    "RuleCriteria": {
+      "type": "object",
+      "properties": {
+        "false": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Text rendered when the evaluated criterion is false."
+        },
+        "true": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Text rendered when the evaluated criterion is true."
+        }
+      },
+      "required": [
+        "false",
+        "true"
+      ],
+      "additionalProperties": false,
+      "description": "String-valued evidence criteria for both probability outcomes."
+    },
+    "RuleApplicability": {
+      "type": "object",
+      "properties": {
+        "includes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A non-empty repository-relative glob pattern using forward slashes."
+          },
+          "description": "Optional repository-relative patterns a path must match for this rule to apply."
+        },
+        "excludes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A non-empty repository-relative glob pattern using forward slashes."
+          },
+          "description": "Optional repository-relative patterns that prevent this rule from applying."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Rule-level path filters, intersected with global file selection."
+    },
+    "RuleDefinition": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^/:\\\\\\s]+$",
+          "description": "Stable rule identity within this pack; it cannot contain separators or whitespace."
+        },
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Question evaluated against the available review input."
+        },
+        "criteria": {
+          "$ref": "#/$defs/RuleCriteria"
+        },
+        "threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Probability threshold from 0 through 1. Omission uses the built-in rule threshold.",
+          "default": 0.7
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Authored advice text attached to a qualifying result."
+        },
+        "applicability": {
+          "$ref": "#/$defs/RuleApplicability"
+        },
+        "reviewTargets": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "properties": {
+              "artifactKind": {
+                "type": "string",
+                "enum": [
+                  "typeShape",
+                  "function"
+                ],
+                "description": "Semantic artifact kind."
+              },
+              "inputContract": {
+                "type": "string",
+                "enum": [
+                  "direct-event/type-shape/v2",
+                  "direct-event/function/v1"
+                ],
+                "description": "Exact versioned review input contract; it must match the artifact kind."
+              },
+              "capabilities": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "root-declaration",
+                    "resolved-outbound-types",
+                    "selected-source-type-closure",
+                    "signature",
+                    "body",
+                    "resolved-local-calls"
+                  ]
+                },
+                "description": "Evidence that must be complete for this target before Jev review."
+              }
+            },
+            "required": [
+              "artifactKind",
+              "inputContract",
+              "capabilities"
+            ],
+            "additionalProperties": false,
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TypeShapeReviewTarget"
+              },
+              {
+                "$ref": "#/$defs/FunctionReviewTarget"
+              }
+            ]
+          },
+          "allOf": [
+            {
+              "contains": {
+                "$ref": "#/$defs/TypeShapeReviewTarget"
+              },
+              "minContains": 0,
+              "maxContains": 1
+            },
+            {
+              "contains": {
+                "$ref": "#/$defs/FunctionReviewTarget"
+              },
+              "minContains": 0,
+              "maxContains": 1
+            }
+          ],
+          "description": "Exact review input contracts and evidence required by this rule. At most one target of each kind is allowed."
+        }
+      },
+      "required": [
+        "id",
+        "question",
+        "criteria",
+        "message",
+        "reviewTargets"
+      ],
+      "additionalProperties": false,
+      "description": "One declarative rule in a rule pack."
+    },
+    "RulePackDocument": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "number",
+          "enum": [
+            2
+          ],
+          "description": "Rule-pack wire-format version."
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^/:\\\\\\s]+$",
+          "description": "Stable pack identity; it cannot contain separators or whitespace."
+        },
+        "contentVersion": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Authored content version, independent of the wire schema version."
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RuleDefinition"
+          },
+          "description": "Rules declared by this pack. Rule identities must be unique within the pack."
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "id",
+        "contentVersion",
+        "rules"
+      ],
+      "additionalProperties": false,
+      "title": "Rule pack v2",
+      "description": "Canonical JSONC wire format for a declarative rule pack."
+    },
+    "TypeShapeReviewTarget": {
+      "type": "object",
+      "properties": {
+        "artifactKind": {
+          "const": "typeShape",
+          "description": "Semantic artifact kind."
+        },
+        "inputContract": {
+          "const": "direct-event/type-shape/v2",
+          "description": "Exact versioned review input contract."
+        },
+        "capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "root-declaration",
+              "resolved-outbound-types",
+              "selected-source-type-closure"
+            ]
+          },
+          "description": "Evidence that must be complete for this target before Jev review."
+        }
+      },
+      "required": [
+        "artifactKind",
+        "inputContract",
+        "capabilities"
+      ],
+      "additionalProperties": false
+    },
+    "FunctionReviewTarget": {
+      "type": "object",
+      "properties": {
+        "artifactKind": {
+          "const": "function",
+          "description": "Semantic artifact kind."
+        },
+        "inputContract": {
+          "const": "direct-event/function/v1",
+          "description": "Exact versioned review input contract."
+        },
+        "capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "signature",
+              "body",
+              "resolved-local-calls",
+              "resolved-outbound-types"
+            ]
+          },
+          "description": "Evidence that must be complete for this target before Jev review."
+        }
+      },
+      "required": [
+        "artifactKind",
+        "inputContract",
+        "capabilities"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

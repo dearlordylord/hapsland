@@ -62,7 +62,7 @@ describe("T-case candidate HTTP body and source scope", () => {
         controlledWriter: true, advicee: observation.advicee,
         inputContract: V2_TYPE_CONTRACT,
         settings: {backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION},
-        rules, allowCandidateCrossFileEgress: true,
+        rules,
       }));
       const ready = prepared.outcomes.filter((item) => item.status === "ready");
       expect(ready).toHaveLength(1);

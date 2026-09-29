@@ -63,6 +63,72 @@ try {
   assert.match(text(initial), /What uses review capacity/);
   assert.match(text(initial), /Native Jev effect attempt/);
   assert.match(text(initial), /Jev response/);
+  const descendants = (node) => node == null ? [] : [node, ...(node.children ?? []).flatMap(descendants)];
+  const elements = (model, name) => descendants(main.view(model, inertHtml).body)
+    .filter((node) => node.data?.class?.[name]);
+  const labels = (node) => descendants(node).map((child) => child.text ?? "").join(" ");
+  assert.equal(elements(initial, "topology-node").length, 13);
+  assert.equal(elements(initial, "topology-route").length, 24);
+  assert.equal(elements(initial, "topology-route").filter((node) => node.data.class.active).length, 0);
+  const replayAt = (name, count) => {
+    const index = canonical.CANONICAL_SCENARIOS.findIndex((scenario) => scenario.name === name);
+    assert.notEqual(index, -1, `${name}: source-free scenario exists`);
+    let state = send(initial, main.Message.SelectedScenario({ index }));
+    for (let step = 0; step < count; step += 1) state = send(state, main.Message.Advanced());
+    return state;
+  };
+  const findingView = replayAt("finding is a distinct observed request result and duplicate is rejected", 7);
+  const findingRoutes = elements(findingView, "topology-route").filter((node) => node.data.class.active);
+  assert.ok(findingRoutes.some((node) => labels(node).includes("retain finding command; storage not observed")));
+  assert.equal(elements(findingView, "topology-node").filter((node) =>
+    node.data.class.active && labels(node).includes("Pending advice")).length, 0,
+  "retainFinding command alone cannot mark advice as stored");
+  const refusalView = replayAt("eight active request permits; ninth settles immediately and release permits another", 29);
+  const refusalRoutes = elements(refusalView, "topology-route").filter((node) => node.data.class.active);
+  assert.ok(refusalRoutes.some((node) => labels(node).includes("immediate unavailable")));
+  assert.ok(!refusalRoutes.some((node) => labels(node).includes("attempt observed")));
+  const manualEvent = (event) => send(
+    send(initial, main.Message.DraftChanged({ raw: JSON.stringify(event) })), main.Message.Submitted());
+  const retainedFinding = manualEvent({ kind: "collectionFindingCheck", selectionPartition: 1,
+    selectionRound: 1, unit: 1, partition: 1, round: 1, snapshot: 1, currentSnapshot: 1,
+    credential: 0, currentCredential: 0, ageMs: 0, soloBytes: 100, collectionReady: true,
+    selectedCount: 6, prospectiveBytes: 10241 });
+  const retainedStep = canonical.replayCanonical(retainedFinding.history, retainedFinding.position).steps.at(-1);
+  assert.deepEqual(retainedStep.commands.map((command) => command.kind), ["collectionFindingRetained"]);
+  assert.deepEqual(retainedStep.after.collection, retainedStep.before.collection);
+  const retainedRoutes = elements(retainedFinding, "topology-route").filter((node) => node.data.class.active);
+  assert.ok(retainedRoutes.some((node) => labels(node).includes("finding kept for a later collection batch")));
+  assert.ok(!retainedRoutes.some((node) => labels(node).includes("retain finding command")),
+    "collectionFindingRetained does not create advice");
+  for (const deadlineReached of [false, true]) {
+    const allowed = manualEvent({ kind: "finishReserve", group: 1, lifetime: 1, round: 1,
+      attempt: 7, token: 8, selected: [], hasNotice: false, passNotices: true,
+      canWrite: true, bindingValid: true, deadlineReached });
+    const step = canonical.replayCanonical(allowed.history, allowed.position).steps.at(-1);
+    assert.deepEqual(step.commands.map((command) => command.kind),
+      [deadlineReached ? "finishAllowedDeadline" : "finishAllowedNoAdvice"]);
+    assert.deepEqual(step.after.rounds, step.before.rounds);
+    assert.deepEqual(step.after.delivery, step.before.delivery);
+    const active = elements(allowed, "topology-route").filter((node) => node.data.class.active);
+    assert.ok(active.some((node) => labels(node).includes("allow finish decision; no host output or round change")));
+    assert.ok(!active.some((node) => labels(node).includes("output fact changed round state")));
+    assert.ok(!active.some((node) => labels(node).includes("authorize output")));
+  }
+  const cancellationRoute = elements(initial, "topology-route").find((node) =>
+    labels(node).includes("cancel unfinished work command"));
+  assert.ok(cancellationRoute);
+  assert.match(cancellationRoute.children.find((child) => child.sel === "path").data.attrs.d, /L 12 650 L 12 22/,
+    "cancellation command goes around agent and advice nodes");
+  const directPreparationView = replayAt("many units admit in order and Stop waits", 2);
+  const directRoutes = elements(directPreparationView, "topology-route").filter((node) => node.data.class.active);
+  assert.ok(directRoutes.some((node) => labels(node).includes("preparation admitted directly")));
+  assert.ok(!directRoutes.some((node) => labels(node).includes("dispatch item queued")),
+    "beginPreparation did not add a dispatch queue entry");
+  const waitingView = replayAt("many units admit in order and Stop waits", 4);
+  assert.ok(elements(waitingView, "topology-route").some((node) =>
+    node.data.class.active && labels(node).includes("Stop waits for work or output")));
+  assert.ok(!elements(waitingView, "topology-route").some((node) =>
+    node.data.class.active && labels(node).includes("attempt interrupted / cancelled")));
   let model = initial;
   for (let index = 0; index < fixture.capacityTrace.events.length; index += 1) {
     model = send(model, main.Message.Advanced());

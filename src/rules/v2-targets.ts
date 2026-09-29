@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-/** Proposed rule-pack/v2 target facts; no loader or egress path consumes these yet. */
+/** Exact rule-pack/v2 target facts used by the active type/function path. */
 export const V2_TYPE_CONTRACT = "direct-event/type-shape/v2" as const;
 export const V2_FUNCTION_CONTRACT = "direct-event/function/v1" as const;
 export type V2Capability = "root-declaration" | "resolved-outbound-types" | "selected-source-type-closure" |

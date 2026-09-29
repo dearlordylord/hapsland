@@ -8,6 +8,7 @@ import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 import { decodeConfigurationText } from "../src/configuration/decode.ts";
 import { decodeRulePackText } from "../src/rules/schema.ts";
+import { decodeRulePackV2, V2_FUNCTION_CONTRACT, V2_TYPE_CONTRACT } from "../src/rules/v2-targets.ts";
 import { renderConfigurationArtifacts } from "./generate-configuration.ts";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -43,6 +44,7 @@ const generatedFiles = (root: string): ReadonlyArray<string> => [
   join(root, "docs/configuration.md"),
   join(root, "schemas/review-config-v1.schema.json"),
   join(root, "schemas/review-rule-pack-v1.schema.json"),
+  join(root, "schemas/review-rule-pack-v2.schema.json"),
 ];
 
 const codeBlocks = (markdown: string): ReadonlyArray<string> =>
@@ -70,7 +72,7 @@ describe("configuration documentation generator", () => {
     expect(generated.documentation).toContain("Declared on the Effect Schema for this test.");
   });
 
-  it("updates the four artifacts deterministically and preserves authored guide text", () => {
+  it("updates the five artifacts deterministically and preserves authored guide text", () => {
     withFixture((root) => {
       const first = runGenerator(root, "--update");
       expect(first.status, first.stderr).toBe(0);
@@ -105,13 +107,16 @@ describe("configuration documentation generator", () => {
         .toBe(1);
       const packExample = codeBlocks(guide).find((example) => example.includes("schemaVersion"));
       expect(packExample).toBeDefined();
-      expect(decodeRulePackText(packExample ?? "", "rule-pack guide example").rules[0]?.threshold)
-        .toBe(0.7);
+      expect(decodeRulePackV2(JSON.parse(packExample ?? "{}")).rules[0]?.reviewTargets[0]).toMatchObject({
+        artifactKind: "typeShape", inputContract: V2_TYPE_CONTRACT,
+      });
 
       const configurationSchema = JSON.parse(readFileSync(files[2]!, "utf8")) as Record<string, unknown>;
       const rulePackSchema = JSON.parse(readFileSync(files[3]!, "utf8")) as Record<string, unknown>;
+      const v2Schema = JSON.parse(readFileSync(files[4]!, "utf8")) as Record<string, unknown>;
       const configurationValidator = fromJSONSchema(configurationSchema);
       const rulePackValidator = fromJSONSchema(rulePackSchema);
+      const v2Validator = fromJSONSchema(v2Schema);
       expect(configurationSchema).toMatchObject({
         $schema: "https://json-schema.org/draft/2020-12/schema",
         required: ["version"],
@@ -186,6 +191,36 @@ describe("configuration documentation generator", () => {
         contentVersion: "1.0.0",
         rules: [],
       }).success).toBe(true);
+      const v2Type = {
+        artifactKind: "typeShape", inputContract: V2_TYPE_CONTRACT,
+        capabilities: ["root-declaration", "resolved-outbound-types"],
+      };
+      const v2Function = {
+        artifactKind: "function", inputContract: V2_FUNCTION_CONTRACT,
+        capabilities: ["signature", "body"],
+      };
+      const v2Pack = {
+        schemaVersion: 2, id: "team", contentVersion: "1.0.0", rules: [{
+          id: "check", question: "Is the rule satisfied?", criteria: { false: "No", true: "Yes" },
+          message: "Check this rule.", reviewTargets: [v2Type, v2Function],
+        }],
+      };
+      expect(v2Validator.safeParse(v2Pack).success).toBe(true);
+      expect(decodeRulePackV2(v2Pack).schemaVersion).toBe(2);
+      for (const invalid of [
+        { ...v2Pack, schemaVersion: 1 },
+        { ...v2Pack, rules: [{ ...v2Pack.rules[0], reviewTargets: [] }] },
+        { ...v2Pack, rules: [{ ...v2Pack.rules[0], reviewTargets: [{ ...v2Type, inputContract: V2_FUNCTION_CONTRACT }] }] },
+        { ...v2Pack, rules: [{ ...v2Pack.rules[0], reviewTargets: [{ ...v2Function, capabilities: ["root-declaration"] }] }] },
+        { ...v2Pack, rules: [{ ...v2Pack.rules[0], reviewTargets: [{ ...v2Type, capabilities: ["root-declaration", "root-declaration"] }] }] },
+      ]) {
+        expect(v2Validator.safeParse(invalid).success).toBe(false);
+        expect(() => decodeRulePackV2(invalid)).toThrow();
+      }
+      // The runtime also enforces one target per kind. Zod's JSON Schema converter
+      // does not currently apply the draft 2020-12 `maxContains` keyword.
+      expect(() => decodeRulePackV2({ ...v2Pack, rules: [{ ...v2Pack.rules[0],
+        reviewTargets: [v2Type, v2Type] }] })).toThrow();
       expect(rulePackValidator.safeParse({
         schemaVersion: 1,
         id: "team",

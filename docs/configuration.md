@@ -1,10 +1,9 @@
-# Configuration v1
+# Configuration and rule packs
 
-This is the supported configuration and rule-pack format. The
-[review contract compatibility assessment](./review-contract-compatibility.md) records
-the proposed v2 path for explicit type/function targets. Choice and Score
-remain separate, undecided result-form work. Those declarations are unsupported
-today; v1 files retain their present probability behavior.
+The configuration file uses version 1. Authored rule packs use schema version 2.
+Each rule names the TypeScript type or function input it can review and the
+supporting evidence it needs. Jev returns a probability for the rule's binary
+question. Choice and Score are not supported result forms.
 
 File settings select reviewable files. With no file settings, all otherwise
 eligible files are selected when Jev credentials are available. User exclusions
@@ -91,9 +90,10 @@ rejects that root otherwise. Native capture must measure canonical encoded
 contributions and enforce physical read bounds. These graph limits do not
 bound the complete serialized Jev request; #140 owns that separate cap.
 
-The graph profile is the model and dashboard input. Production cross-file
-capture is tracked separately in #138; adding graph configuration does not
-enable import resolution in the native review path.
+The graph profile bounds the active direct-edit type and function review path.
+Hapsland follows supported local imports only after each supporting path passes
+file selection. A missing, excluded, ambiguous, or oversized required source
+makes that review unit incomplete and prevents its Jev request.
 
 Policy layers are built-in, user, then project. A supplied include list replaces the
 lower-precedence list; exclusions accumulate, and any exclusion wins. Thus a project
@@ -132,13 +132,15 @@ keys (`r1_inferred_case` through `r9_body_reaches_undeclared`) and the built-in
 source-rung applicability checks. Effective file settings and credentials govern
 selected source dispatch to Jev.
 
-Local packs use [`../schemas/review-rule-pack-v1.schema.json`](../schemas/review-rule-pack-v1.schema.json):
+Local packs use [`../schemas/review-rule-pack-v2.schema.json`](../schemas/review-rule-pack-v2.schema.json).
+The [v1 schema](../schemas/review-rule-pack-v1.schema.json) is retained as a
+historical reference. Authored v1 packs cannot enter the active type and
+function review path.
 
 The pack file declares a schema version, stable ID, exact content version, and
 binary rules. `question` and the `true`/`false` criteria are authored content;
 configuration can change only activation, path filters, threshold, and advice
-message. A rule's qualified ID is `pack-id/rule-id` (the legacy Noul keys remain
-bare for version-1 process compatibility).
+message. A rule's qualified ID is `pack-id/rule-id`.
 
 <!-- rule-pack-guide:start -->
 
@@ -146,7 +148,7 @@ bare for version-1 process compatibility).
 
 ```jsonc
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "team",
   "contentVersion": "1.0.0",
   "rules": [
@@ -162,7 +164,18 @@ bare for version-1 process compatibility).
         "includes": [
           "src/**"
         ]
-      }
+      },
+      "reviewTargets": [
+        {
+          "artifactKind": "typeShape",
+          "inputContract": "direct-event/type-shape/v2",
+          "capabilities": [
+            "root-declaration",
+            "resolved-outbound-types",
+            "selected-source-type-closure"
+          ]
+        }
+      ]
     }
   ]
 }
@@ -172,7 +185,7 @@ bare for version-1 process compatibility).
 
 | Field | Type and bounds | Presence | Default | Description |
 |---|---|---|---|---|
-| `schemaVersion` | fixed value 1 | Required | — | Rule-pack wire-format version. |
+| `schemaVersion` | fixed value 2 | Required | — | Rule-pack wire-format version. |
 | `id` | non-empty string matching a pattern | Required | — | Stable pack identity; it cannot contain separators or whitespace. |
 | `contentVersion` | non-empty string | Required | — | Authored content version, independent of the wire schema version. |
 | `rules` | array of object (may be empty) | Required | — | Rules declared by this pack. Rule identities must be unique within the pack. |
@@ -189,6 +202,16 @@ bare for version-1 process compatibility).
 | `rules[].applicability.includes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
 | `rules[].applicability.excludes` | array of non-empty string (may be empty) | Optional | — | Optional repository-relative patterns that prevent this rule from applying. |
 | `rules[].applicability.excludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
+| `rules[].reviewTargets` | array of typeShape target or function target (at least 1 item, at most 2 items) | Required | — | Exact review input contracts and evidence required by this rule. At most one target of each kind is allowed. |
+| `rules[].reviewTargets[]` | typeShape target or function target | Array item (array may be empty) | — | — |
+| `rules[].reviewTargets[].artifactKind` | string | Required (object form) | — | Semantic artifact kind. |
+| `rules[].reviewTargets[].inputContract` | string | Required (object form) | — | Exact versioned review input contract; it must match the artifact kind. |
+| `rules[].reviewTargets[].capabilities` | array of string (at least 1 item) | Required (object form) | — | Evidence that must be complete for this target before Jev review. |
+| `rules[].reviewTargets[].capabilities[]` | string | Array item (array may be empty) | — | — |
+
+A type target uses `typeShape` with `direct-event/type-shape/v2`. Its capabilities may be `root-declaration`, `resolved-outbound-types`, and `selected-source-type-closure`.
+A function target uses `function` with `direct-event/function/v1`. Its capabilities may be `signature`, `body`, `resolved-local-calls`, and `resolved-outbound-types`.
+Each target must name at least one capability. A rule may name one target of each kind. Hapsland sends a review unit to Jev only when the required evidence is complete.
 
 <!-- rule-pack-guide:end -->
 
@@ -210,11 +233,14 @@ egress. A fork must use a distinct pack ID. Rule filters intersect global
 eligibility: they can narrow a review, but cannot re-include a globally excluded
 or protected path.
 
-Rule authors should state the available input explicitly. The supported resident path
-reviews one named TypeScript `interface` or `type` declaration per unit, with bounded,
-complete same-file named-type reference evidence and the repository-relative path.
-Its Jev input does not contain the whole file, a before/after diff, task or
-transcript context, or other files. Findings may describe pre-existing content.
+Rule authors must use rule-pack schema 2 and name an exact type or function
+input contract and required capabilities. The resident reviews one changed
+TypeScript type or function per unit, with bounded, complete supporting evidence
+from selected files reached through supported local imports. Its Jev input does
+not contain a whole file, a before/after diff, or task or transcript context.
+Schema-1 authored packs fail configuration before source capture; migrate them
+to explicit schema-2 targets. Findings may describe
+pre-existing content.
 Do not author a rule that promises to judge evidence its request cannot contain.
 Advice is local authored text attached to the validated probability, rule ID,
 path, and snapshot hash; no extra model call generates a message.
