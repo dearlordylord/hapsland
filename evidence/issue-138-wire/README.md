@@ -1,10 +1,10 @@
 # Issue #138 candidate v2 review input
 
-**Purpose:** Make the proposed rendered type/function input and type-only comparator inputs reviewable with deterministic examples and byte counts.
+**Purpose:** Make the proposed rendered type/function input and type-only comparator inputs reviewable with deterministic examples, local byte counts, and pinned provider HTTP body observations.
 **Status:** Unapproved wire proposal; no live Jev validation or expanded source egress approval.
 **Authority:** Implementation and offline validation evidence. The accepted target remains `docs/type-function-review-proposal.md` (#93); these examples do not amend it.
-**Expected use:** Inspect `type-candidate.json`, `function-candidate.json`, and `comparators-proposal.json`, then run their offline verifier/tests and `npm run typecheck`. Review and freeze fields, encoding, limits, rules, comparator scope, and fixture labels before any paid study.
-**Lifecycle:** Temporary until the #93/#138 wire and adoption decision. At that decision, consolidate approved wire and comparator fields, encoding, version and digest rules into `docs/type-function-review-proposal.md` and a versioned conformance fixture owner; delete this proposal snapshot if superseded or rejected. Recheck this evidence whenever the renderer, request sizing, rule-pack compiler, fixture corpus, or relevant graph contract changes.
+**Expected use:** Inspect `type-candidate.json`, `function-candidate.json`, `comparators-proposal.json`, and `provider-http-observations.json`, then run their offline verifier/tests and `npm run typecheck`. Review and freeze fields, encoding, limits, rules, comparator scope, and fixture labels before any paid study.
+**Lifecycle:** Temporary until the #93/#138 wire and adoption decision. At that decision, consolidate approved wire and comparator fields, encoding, version and digest rules into `docs/type-function-review-proposal.md` and a versioned conformance fixture owner; delete this proposal snapshot if superseded or rejected. Recheck this evidence whenever the renderer, request sizing, rule-pack compiler, fixture corpus, Effect provider cohort, or relevant graph contract changes.
 
 ## Candidate renderer goldens
 
@@ -61,3 +61,34 @@ the current v1 rule has its existing bare key; both carry the same authored
 question, criteria, and threshold. An owner-reviewed comparator plan must settle
 that identity difference before a paired live study. No source-bearing live
 responses or credentials were used or retained here.
+
+## Later offline provider HTTP observation
+
+`provider-http-observations.json` records a later, independent observation for the
+two synthetic candidate goldens and all 33 proposed comparator arms. Run
+`npx vitest run src/direct-event/provider-http-wire.test.ts --maxWorkers=1` to
+replay it. The test feeds each checked-in `{input, decisions}` value through
+Effect `Decision.make` and `DecisionModel.decide` with the installed,
+exact-pinned `@effect/ai-typesafe@4.0.0-rc.116` client. An injected `HttpClient`
+records the generated request and returns a synthetic response; it cannot call
+the network. The test checks the POST URL, auth/accept/content-type header
+values, content-length/body-size equality, body field structure, and all 35
+SHA-256/UTF-8 byte observations. The
+checked-in file contains only sanitized header names, decision keys, input
+contract names, body hashes, and byte counts; it contains neither source text
+nor bearer value.
+
+For this pinned client and these fixtures, the body is
+`{model:"jev-latest",state:<input>,questions:<Noul definitions>}`. Candidate
+type/function HTTP **body** sizes are 956/1,040 bytes, compared with 942/1,026
+bytes at the local `{input,decisions}` gate. Every measured comparator arm also
+adds exactly 14 bytes. The fixture decision `_tag` becomes provider `type:"noul"`;
+its instructions and criteria remain unchanged. The exact size of HTTP headers,
+transport framing, real backend behavior, and any other provider/model version
+were not measured. The test rehydrates already proposed local inputs; it does
+not prove that the runtime emits every comparator arm, or that the backend
+accepts these candidate contracts. #140 still owns production provider-aware
+full-request sizing. This observation does not approve source egress or satisfy
+the #93/#138 live-study and adoption gates. The earlier unverified declaration
+in `comparators-proposal.json` is preserved as the proposal's pre-observation
+state; this later evidence records what the pinned local provider actually sent.
