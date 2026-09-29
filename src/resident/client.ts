@@ -490,22 +490,6 @@ export const markComposedUserPrompt = async (
   return response.status === "advanced";
 };
 
-export const reserveComposedVirtualRoundContinuation = async (
-  root: string,
-  advicee: DirectAdvicee,
-  paths = residentPaths(),
-  continuationDigest?: string,
-): Promise<boolean> => {
-  const owner = await inspectResident(paths);
-  if (!owner.available || owner.lifetime === undefined) return false;
-  const response = await residentRequest(paths, {
-    requestRoute: "shared", operation: "consume-stop", lifetime: owner.lifetime,
-    root, advicee,
-    ...(continuationDigest === undefined ? {} : { continuationDigest }),
-  });
-  return response.status === "continuation-allowed";
-};
-
 export const claimComposedBackground = async (
   root: string, advicee: DirectAdvicee, token: string,
   paths = residentPaths(),

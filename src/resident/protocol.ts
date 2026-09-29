@@ -64,8 +64,6 @@ export type ResidentRequest =
       readonly close?: boolean; readonly reason?: RoundCloseReason }
   | { readonly requestRoute: "shared"; readonly operation: "register-edit"; readonly lifetime: string;
       readonly root: string; readonly advicee: DirectAdvicee; readonly startedAt: number; readonly activityPath?: string }
-  | { readonly requestRoute: "shared"; readonly operation: "consume-stop"; readonly lifetime: string;
-      readonly root: string; readonly advicee: DirectAdvicee; readonly continuationDigest?: string }
   | { readonly requestRoute: "shared"; readonly operation: "claim-background" | "release-background";
       readonly lifetime: string; readonly root: string; readonly advicee: DirectAdvicee;
       readonly token: string }
@@ -126,8 +124,6 @@ export type ResidentResponse =
         | "empty"
         | "pending"
         | "advanced"
-        | "continuation-allowed"
-        | "continuation-denied"
         | "background-claimed"
         | "submitting"
         | "released"
@@ -303,13 +299,6 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
       root: value.root, advicee: value.advicee, startedAt: value.startedAt,
       ...(typeof value.activityPath === "string" ? { activityPath: value.activityPath } : {}) };
   }
-  if (value.operation === "consume-stop" && string(value.root) && advicee(value.advicee) &&
-      (value.continuationDigest === undefined ||
-        (typeof value.continuationDigest === "string" && /^[a-f0-9]{64}$/.test(value.continuationDigest)))) {
-    return { requestRoute: "shared", operation: "consume-stop", lifetime: value.lifetime,
-      root: value.root, advicee: value.advicee,
-      ...(typeof value.continuationDigest === "string" ? { continuationDigest: value.continuationDigest } : {}) };
-  }
   if ((value.operation === "claim-background" || value.operation === "release-background") &&
       string(value.root) && advicee(value.advicee) &&
       typeof value.token === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value.token)) {
@@ -388,7 +377,7 @@ const ResidentResponseSchema = Schema.Union([
   Schema.Struct({ status: Schema.Literal("ready"), lifetime: Schema.NonEmptyString, pid: Schema.Int }),
   Schema.Struct({ status: Schema.Literals([
     "accepted", "rejected-capacity", "rejected-stale", "obsolete-lifetime", "empty", "pending", "advanced",
-    "continuation-allowed", "continuation-denied", "background-claimed", "submitting", "released",
+    "background-claimed", "submitting", "released",
     "acknowledged", "finalized", "unsupported",
     "busy", "cleaned",
   ]), reason: Schema.optionalKey(Schema.String.check(Schema.isMaxLength(64))) }),

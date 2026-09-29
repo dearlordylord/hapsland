@@ -2982,13 +2982,6 @@ export class ResidentServer {
       if (closed !== undefined) this.#closeRound(group, closed, request.reason ?? "no-advice", counts);
       return { status: "advanced" };
     }
-    if (request.operation === "consume-stop") {
-      return this.#composedDelivery.consumeStop(
-        adviceePartition(request.root, request.advicee), request.continuationDigest,
-      )
-        ? { status: "continuation-allowed" }
-        : { status: "continuation-denied" };
-    }
     if (request.operation === "claim-background") {
       return this.#composedDelivery.claimBackground(
         adviceePartition(request.root, request.advicee), request.token, this.#now(),
