@@ -10,6 +10,7 @@ material only beside the plain-language meaning it represents.
 | Product | Hapsland, the runtime-neutral system we are designing around realtime coding-agent reviews. |
 | Jev | TypeSafe's external tool used by the product for typed, realtime review judgments. Jev is not the product name. |
 | Review integration | The product's integration boundary around agent runtimes, rules, findings, and review backends. |
+| Flow stage | A conceptual location in the observed Hapsland review and advice process, such as preparation or pending advice. A stage groups checked state and facts for explanation; it is not a state in the reducer. |
 | Runtime installation | The product integration made available to a particular agent runtime for a user. When the runtime executes it and Jev credentials are available, review can run for files allowed by file selection. |
 | Runtime trust | The agent runtime's approval to execute an installed integration. It is separate from Hapsland's file selection and credential availability. |
 | Agent runtime | A program that runs an agent's tool and edit loop and reports its events, such as Codex CLI or Claude Code. |

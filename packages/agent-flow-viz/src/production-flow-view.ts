@@ -1,7 +1,8 @@
 import type { HtmlBuilder } from "foldkit/html";
 import type { CanonicalCommand, CanonicalProjection } from "../../../src/canonical/adapter";
 import type { ReplayStep } from "./canonical-replay";
-import { CONNECTIONS, PLACE_ORDER, SQUARES, projectFlowStep, type Place } from "./production-flow-projection";
+import { projectFlowStep, type FlowStage as Place } from "@hapsland/agent-flow-projection";
+import { CONNECTIONS, PLACE_ORDER, SQUARES } from "./production-flow-presentation";
 
 type Route = { readonly from: Place; readonly to: Place; readonly label: string; readonly active: boolean;
   readonly command: boolean; readonly mixed: boolean; readonly evidence: string };
@@ -113,7 +114,7 @@ export const productionFlowView = <Message>(
     const hasCommand = evidence.some((item) => item.source === "command");
     const hasFact = evidence.some((item) => item.source !== "command");
     return { ...connection, active: evidence.length > 0, command: hasCommand && !hasFact, mixed: hasCommand && hasFact,
-      evidence: evidence.map((item) => `${item.source}: ${item.label}`).join("; ") };
+      evidence: evidence.map((item) => `${item.source}: ${item.description}`).join("; ") };
   });
   const routeMultiplicity = new Map<string, number>();
   const routeOffsets = routes.map((route) => {
@@ -158,11 +159,11 @@ export const productionFlowView = <Message>(
           const palette = node.owner.includes("EXTERNAL") ? { fill: "#fff0c8", stroke: "#ad7524" }
             : node.owner.includes("NATIVE") ? { fill: "#edf1f6", stroke: "#7d8da2" }
             : { fill: "#e9f1ff", stroke: "#547dc0" };
-          return h.g([h.Class(`topology-node ${flow.changedSquares.includes(node.id) ? "active" : ""}`)], [
+          return h.g([h.Class(`topology-node ${flow.changedStages.includes(node.id) ? "active" : ""}`)], [
             h.title([], [`${node.title}: ${node.detail}`]),
             h.rect([h.X(String(point.x)), h.Y(String(point.y)), h.Width(String(NODE_WIDTH)),
               h.Height(String(NODE_HEIGHT)), h.Rx("12"), h.Fill(palette.fill),
-              h.Stroke(palette.stroke), h.StrokeWidth(flow.changedSquares.includes(node.id) ? "4" : "2")], []),
+              h.Stroke(palette.stroke), h.StrokeWidth(flow.changedStages.includes(node.id) ? "4" : "2")], []),
             h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 25)), h.FontSize("10"),
               h.FontWeight("700"), h.Fill("#52647d")], [node.owner]),
             h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 49)), h.FontSize("14"),
@@ -201,7 +202,13 @@ export const productionFlowView = <Message>(
       h.p([], [last === undefined ? "Choose a guided or manual canonical event." : last.rejection !== undefined
         ? `${last.event.kind} rejected: ${last.rejection}. Canonical state and item locations did not change.`
         : `${last.event.kind} accepted · ${commands.length} command(s): ${commands.map((command) => command.kind).join(", ") || "none"}`]),
-      h.p([], [flow.explanation]),
+      h.p([], [last === undefined ? "Choose a reducer event to inspect its checked effects."
+        : flow.rejection !== undefined ? `Rejected: ${flow.rejection}. No movement is shown.`
+          : flow.evidence.length ? `${flow.evidence.length} connection(s) have checked evidence.`
+            : flow.changedStages.length ? `State changed in ${flow.changedStages.map((stage) => SQUARES[stage].title).join(", ")}; no item crossed a displayed connection.`
+              : flow.projectionChanged ? "Checked reducer state changed outside the displayed square details; no displayed movement is established."
+                : commands.length ? `Decision emitted ${commands.map((command) => command.kind).join(", ")}; no displayed item movement is established.`
+                  : "Accepted event; no displayed item movement or square change is established."]),
       h.p([], ["A Jev command authorizes an attempt; only a request-start fact records an attempt. A submitted host output does not establish agent receipt or use."]),
       h.p([], [`Branches at this step: ${commands.filter((command) => /Refused|Unavailable|Interrupted|Ignored|Stale|Cancel|Clear|Finding|Waiting|Allowed|Expired|Lease|Reoffer|Unknown|Recorded|Terminal/.test(command.kind)).map((command) => command.kind).join(", ") || "none"}.`]),
     ]),
