@@ -413,20 +413,31 @@ try {
   if (artifactName === undefined) throw new Error("npm pack did not produce a tarball");
   const tarball = join(artifacts, artifactName);
   const artifactSha256 = createHash("sha256").update(await readFile(tarball)).digest("hex");
-  if (writeEvidence && process.platform === "darwin" && process.env.GITHUB_RUN_ID !== undefined) {
-    const helperPath = join(root, "native/prebuilt/darwin-arm64/capture-open");
-    const helper = await readFile(helperPath);
-    const source = await readFile(join(root, "native/capture-open.c"));
-    await mkdir(dirname(outputPath), { recursive: true });
-    await writeFile(outputPath.replace(/\.json$/, "-capture-helper.json"), `${JSON.stringify({
-      commit: process.env.GITHUB_SHA,
-      platform: `${process.platform}-${process.arch}`,
-      sourceSha256: createHash("sha256").update(source).digest("hex"),
-      binarySha256: createHash("sha256").update(helper).digest("hex"),
-      binaryBase64: helper.toString("base64"),
-    })}\n`, { mode: 0o600 });
-    await mustRun("npx", ["vitest", "run", "src/direct-event/selection-capture.test.ts", "--maxWorkers=1"], { cwd: root });
-    progress("macOS bounded capture test passed");
+  if (process.platform === "darwin" && process.env.GITHUB_RUN_ID !== undefined) {
+    await mustRun(process.execPath, ["--experimental-strip-types", "--input-type=module", "-e", `
+      import { mkdtemp, writeFile, symlink, rm } from 'node:fs/promises';
+      import { tmpdir } from 'node:os';
+      import { join } from 'node:path';
+      import * as Effect from 'effect/Effect';
+      import { captureStable, MAX_SOURCE_BYTES } from './src/direct-event/capture.ts';
+      const root = await mkdtemp(join(tmpdir(), 'hapsland-mac-cap-'));
+      const selected = (name) => ({ relativePath: name, absolutePath: join(root, name) });
+      try {
+        await writeFile(join(root, 'exact.ts'), 'x'.repeat(80));
+        await writeFile(join(root, 'over.ts'), 'x'.repeat(81));
+        await writeFile(join(root, 'default.ts'), 'x'.repeat(MAX_SOURCE_BYTES));
+        await symlink(join(root, 'exact.ts'), join(root, 'link.ts'));
+        const exact = await Effect.runPromise(captureStable(root, selected('exact.ts'), {}, undefined, 80));
+        const over = await Effect.runPromise(captureStable(root, selected('over.ts'), {}, undefined, 80));
+        const normal = await Effect.runPromise(captureStable(root, selected('default.ts')));
+        const link = await Effect.runPromise(captureStable(root, selected('link.ts')));
+        if (exact?.byteLength !== 80 || over !== undefined || normal?.byteLength !== MAX_SOURCE_BYTES || link !== undefined) {
+          throw new Error('macOS bounded capture smoke failed');
+        }
+        process.stdout.write('macOS default and lower capture bounds passed\\n');
+      } finally { await rm(root, { recursive: true, force: true }); }
+    `], { cwd: root });
+    progress("macOS bounded capture smoke passed");
   }
   if (registryArtifact && artifactSha256 !== expectedSha256) {
     throw new Error(`registry archive SHA-256 differs from reviewed artifact: ${artifactSha256}`);
