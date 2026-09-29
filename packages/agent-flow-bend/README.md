@@ -42,6 +42,8 @@ skip occur, the final graph reason is `TreeLimit`; otherwise a denied path finis
 
 `Canonical.bend` is the production transition model and drives the main
 visualization through the checked TypeScript adapter.
+The maintained [TypeScript decision boundary ledger](../../docs/typescript-decision-boundary-ledger.md)
+records reviewed product choices intentionally made outside this reducer.
 `Flow.bend` remains only as a shared capacity-type dependency of the existing
 Work policy artifact; no page or production path invokes `Flow.step`.
 The older `Advicing.bend` is a small proof slice retained for continuity.
