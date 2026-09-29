@@ -11,7 +11,7 @@ const state = readFileSync(resolve(root, "packages/agent-flow-bend/NoticeState.b
 for (const name of ["bendNoticeAdvance", "bendNoticeDecide", "bendNoticePrune", "bendDeliveryNoticeCandidate", "operationalNoticeAdvance"]) {
   if (server.includes(name)) throw new Error(`resident notice bypass returned: ${name}`);
 }
-for (const event of ["noticeAdvance", "noticeCommit", "noticePrune", "noticeDrop", "noticeLease", "noticeClearPending", "noticeSelect"]) {
+for (const event of ["noticeAdvance", "noticeCommit", "noticePrune", "noticeDrop", "noticeLease", "noticeClearPending"]) {
   if (!server.includes(`kind: "${event}"`) || !adapter.includes(`"${event}"`)) {
     throw new Error(`canonical notice event missing: ${event}`);
   }

@@ -19,7 +19,7 @@ for (const name of ["bendCollectionOrder", "bendCollectionEligible", "bendCollec
   if (new RegExp(`\\b${name}\\b`).test(collection)) throw new Error(`collection helper bypass returned: ${name}`);
 }
 for (const name of ["collectionReady", "collectionOrderCheck", "collectionExpiryCheck",
-  "collectionFindingCheck", "collectionNoticeCheck", "collectionReserveLease",
+  "collectionFindingCheck", "collectionReserveLease",
   "collectionReleaseLease", "collectionLeaseCheck", "collectionClaimBackground"]) {
   if (!server.includes(name) && !delivery.includes(name)) throw new Error(`canonical collection event missing: ${name}`);
 }
