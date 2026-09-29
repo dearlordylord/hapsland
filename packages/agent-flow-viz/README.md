@@ -11,10 +11,16 @@ This page replays source-free example events through the same checked
 The main flow has 13 distinct places from agent-runtime observation through
 preparation, Jev authorization/attempt/response, advice, delivery, and round
 closure. A connected SVG draws numbered paths between those places, following
-the earlier Flow.bend diagram's spatial layout. The highlighted paths come from
-the current accepted canonical event and its emitted commands. Dashed paths
-show commands, which do not prove that a native effect happened or that the
-destination holds data. `collectionFindingRetained` stays at the collection
+the earlier Flow.bend diagram's spatial layout. A single presentation registry
+defines each square's checked-state detail and where identified items appear.
+The view compares the checked state before and after each replay step to locate
+work, dispatch entries, requests, advice, and delivery by stable identity.
+Connections that cannot be established from that comparison use explicit
+event, command, or supplied-fact rules in the view, with their evidence type
+shown to the viewer. Dashed paths show commands, which do not prove that a
+native effect happened or that the destination holds data. A step with no
+cross-square movement explains its changed square or decision instead of
+inventing an arrow. `collectionFindingRetained` stays at the collection
 step because it keeps an existing finding for a later batch. The `finishAllowed`
 commands also stay at collection: they do not authorize host output or change
 the round in that Bend step. Node contents come from the checked canonical state;
@@ -55,7 +61,9 @@ exploration. Native timing panels retain the recorded host observations and
 unknown intervals without mapping old simplified Flow states onto production.
 
 The pre-#119 Flow.bend diagram's connected routes, numbered arrows, and
-separate finish decision view informed this production diagram. The current
+separate finish decision view informed this production diagram. Its retired
+illustrative reducer and TypeScript page were removed from the active source.
+The current
 view projects thirteen canonical places, checked operation/request identities
 and queue order, highlighted paths, outcome branches, and a finish/output
 decision card. Source capture and Jev/host I/O remain labeled native boundaries.
@@ -65,6 +73,21 @@ calculates guided event-kind coverage per transition family from the loaded
 fixtures, names manual-only families, and links Bend source and native
 boundaries.
 
-Run `npm run build` for TypeScript, projection, compiled inventory, and Vite
+## Inspecting the changed connection
+
+In the default guided example, inspect step 25, `collectionReady` for advice
+`#10`: [before the inferred projection](docs/assets/production-flow-before-inference-step-25.png)
+and [after](docs/assets/production-flow-inferred-step-25.png). The earlier view
+showed `ready #10` but left the Review outcomes → Pending advice connection
+inactive. The current view lights connection 14 from the checked new ready
+advice and labels its source as a supplied native fact. Connection 16 separately
+shows Bend's `collectionEligible` command. [Step 24](docs/assets/production-flow-inferred-step-24.png)
+shows the preceding `retainFinding` command as purple while Pending advice
+still says `ready none`; it does not claim storage happened yet. The exact
+producing work ID for advice `#10` is not projected, so that relationship is
+disclosed rather than inferred. These images document this code change; #147
+design acceptance still requires owner inspection of the interactive cases.
+
+Run `npm run build` for TypeScript, checked connection evidence, projection, compiled inventory, and Vite
 checks. Run `npm run test:browser` for Chromium controls. The workspace may
 need the Chromium system libraries listed by Playwright.

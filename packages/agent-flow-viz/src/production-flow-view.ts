@@ -1,34 +1,16 @@
 import type { HtmlBuilder } from "foldkit/html";
 import type { CanonicalCommand, CanonicalProjection } from "../../../src/canonical/adapter";
 import type { ReplayStep } from "./canonical-replay";
+import { CONNECTIONS, PLACE_ORDER, SQUARES, projectFlowStep, type Place } from "./production-flow-projection";
 
-type Place = "observation" | "admission" | "queued" | "preparation" | "units" |
-  "authorization" | "effect" | "jev" | "outcomes" | "advice" | "collection" |
-  "delivery" | "round";
-type Route = { readonly from: Place; readonly to: Place; readonly label: string; readonly active: boolean; readonly command?: true };
+type Route = { readonly from: Place; readonly to: Place; readonly label: string; readonly active: boolean;
+  readonly command: boolean; readonly mixed: boolean; readonly evidence: string };
 const has = (commands: readonly CanonicalCommand[], ...kinds: CanonicalCommand["kind"][]) =>
   commands.some((command) => kinds.includes(command.kind));
-const ids = (items: readonly number[]) => items.length ? items.map((id) => `#${id}`).join(", ") : "none";
 
-// The old Flow.bend chart used one SVG route for each reducer transition. The
-// production chart keeps that spatial grammar; only checked canonical output
-// supplies state and active routes.
-const NODE_TITLES: Record<Place, string> = {
-  observation: "Agent observation", admission: "Capacity check", queued: "Preparation queue",
-  preparation: "Source preparation", units: "Review work items", authorization: "Jev ready check",
-  effect: "Jev request attempt", jev: "Jev response", outcomes: "Review outcomes",
-  advice: "Pending advice", collection: "Advice collection", delivery: "Host output",
-  round: "Round state",
-};
 const NODE_WIDTH = 224;
 const NODE_HEIGHT = 116;
-const PLACES: Record<Place, { readonly x: number; readonly y: number }> = {
-  observation: { x: 32, y: 52 }, admission: { x: 310, y: 52 }, queued: { x: 588, y: 52 },
-  preparation: { x: 866, y: 52 }, units: { x: 1144, y: 52 },
-  authorization: { x: 1144, y: 322 }, effect: { x: 866, y: 322 }, jev: { x: 588, y: 322 },
-  outcomes: { x: 310, y: 322 }, advice: { x: 32, y: 322 },
-  collection: { x: 32, y: 592 }, delivery: { x: 310, y: 592 }, round: { x: 588, y: 592 },
-};
+const PLACES = SQUARES;
 const arrowHead = (tip: { readonly x: number; readonly y: number }, toward: { readonly x: number; readonly y: number }) => {
   const length = Math.hypot(toward.x, toward.y);
   const ux = toward.x / length;
@@ -42,11 +24,11 @@ const routeGeometry = (route: Route, offset: number) => {
   const to = PLACES[route.to];
   const fx = from.x + NODE_WIDTH / 2;
   const fy = from.y + NODE_HEIGHT / 2;
-  if (route.from === "collection" && route.to === "collection" && route.label !== "Stop waits for work or output") {
+  if (route.from === "collection" && route.to === "collection") {
     const x = from.x + NODE_WIDTH / 2;
     const y = from.y;
-    const high = route.label.startsWith("finding kept") ? 505 : 535;
-    const shift = route.label.startsWith("finding kept") ? -23 : 23;
+    const high = 535;
+    const shift = 23;
     return { path: `M ${x + shift - 42} ${y - 9} C ${x + shift - 65} ${high}, ${x + shift + 65} ${high}, ${x + shift + 42} ${y - 9}`,
       badge: { x: x + shift, y: high + 14 }, tip: { x: x + shift + 42, y: y - 9 }, toward: { x: -1, y: 1 } };
   }
@@ -123,59 +105,16 @@ export const productionFlowView = <Message>(
   const commands = last?.rejection === undefined ? last?.commands ?? [] : [];
   const event = last?.rejection === undefined ? last?.event.kind : undefined;
   const stopEvent = event === "stopPolled" || event === "stopGroupPolled";
-  const work = (kind: CanonicalProjection["work"][number]["kind"]) =>
-    projection.work.filter((item) => item.kind === kind).map((item) => item.operation);
-  const entries = (place: "pending" | "active" | "running") =>
-    projection.dispatch[place].map((item, index) => `${index + 1}:#${item.operation}/agent ${item.partition}/seq ${item.sequence}`).join(", ") || "none";
   const requests = projection.dispatch.requests;
-  const started = requests.filter((item) => item.started).map((item) => item.request);
-  const issued = requests.filter((item) => !item.started).map((item) => item.request);
-  const pendingAdvice = projection.collection.ready;
-  const slots = projection.delivery.slots;
-  const batches = projection.delivery.submissions.batches;
-  const nodes: readonly { id: Place; title: string; owner: string; detail: string }[] = [
-    { id: "observation", title: "Agent-runtime observation", owner: "NATIVE FACT", detail: `rounds ${ids(projection.rounds.map((item) => item.id))} · source queued ${ids(work("sourceQueued"))}` },
-    { id: "admission", title: "Observation and capacity admission", owner: "BEND DECISION", detail: `observation charges ${projection.charges.filter((item) => item.purpose === "observationDispatch").length}` },
-    { id: "queued", title: "Preparation queue", owner: "BEND STATE", detail: `pending ${entries("pending")} · active ${entries("active")}` },
-    { id: "preparation", title: "Source preparation", owner: "NATIVE EFFECT + BEND STATE", detail: `running ${entries("running")} · source reading ${ids(work("sourceReading"))} · preparing ${ids(work("preparing"))}` },
-    { id: "units", title: "Admitted review work items", owner: "BEND STATE", detail: `reviewing ${ids(work("reviewing"))} · unit charges ${projection.charges.filter((item) => item.purpose === "reviewUnit").length}` },
-    { id: "authorization", title: "Ready check and Jev command", owner: "BEND DECISION", detail: `issued, not observed started ${ids(issued)}` },
-    { id: "effect", title: "Native Jev effect attempt", owner: "NATIVE FACT", detail: `observed started requests ${ids(started)}` },
-    { id: "jev", title: "Jev response", owner: "EXTERNAL FACT", detail: `at Jev work ${ids(work("atJev"))} · reserved request permits ${ids(requests.map((item) => item.request))}` },
-    { id: "outcomes", title: "Review outcomes", owner: "BEND DECISION", detail: `pending finding operations ${ids(work("pendingFinding"))} · ticket units ${projection.tickets.flatMap((item) => item.units).map((item) => `#${item.id}:${item.stage}`).join(", ") || "none"}` },
-    { id: "advice", title: "Pending advice", owner: "BEND STATE", detail: `ready ${ids(pendingAdvice)} · leases ${ids(projection.collection.leases.map((item) => item.advice))}` },
-    { id: "collection", title: "Background or Stop collection", owner: "BEND DECISION", detail: `waiting rounds ${ids(projection.rounds.filter((item) => item.waiting).map((item) => item.id))}` },
-    { id: "delivery", title: "Host output authorization and write", owner: "BEND + NATIVE EFFECT", detail: `finish ${slots.map((item) => `#${item.group}:${item.phase}`).join(", ") || "none"} · advice ${batches.map((item) => `#${item.advice}:${item.surface}:${item.phase}`).join(", ") || "none"}` },
-    { id: "round", title: "Round continuation or closure", owner: "BEND STATE", detail: `active ${ids(projection.rounds.map((item) => item.id))} · uncertain ${ids(projection.rounds.filter((item) => item.uncertain).map((item) => item.id))}` },
-  ];
-  const routes: readonly Route[] = [
-    { from: "observation", to: "admission", label: "observation supplied", active: event === "admitObservation" || event === "beginObservedPreparation" || event === "beginPreparation" },
-    { from: "admission", to: "queued", label: "dispatch item queued", active: last?.rejection === undefined &&
-      (projection.dispatch.pending.length + projection.dispatch.active.length) >
-      ((last?.before.dispatch.pending.length ?? 0) + (last?.before.dispatch.active.length ?? 0)) },
-    { from: "admission", to: "preparation", label: "preparation admitted directly", active: has(commands, "prepare") },
-    { from: "queued", to: "preparation", label: "dispatch cycle starts", active: has(commands, "dispatchStarted", "observationStarted") },
-    { from: "preparation", to: "units", label: "review unit admitted", active: has(commands, "unitAdmitted", "capacityUnitAdmitted") },
-    { from: "units", to: "authorization", label: "ready facts supplied", active: event === "jevRequestReady" },
-    { from: "authorization", to: "effect", label: "Jev request commanded", active: has(commands, "jevRequestIssued"), command: true },
-    { from: "authorization", to: "outcomes", label: "immediate unavailable / command refused", active: has(commands, "jevRequestUnavailable", "reviewRecorded") && event === "jevRequestReady" },
-    { from: "effect", to: "jev", label: "attempt observed", active: has(commands, "jevRequestStartRecorded") },
-    { from: "authorization", to: "outcomes", label: "command never sent", active: event === "jevRequestSettled" && last?.event.kind === "jevRequestSettled" && last.event.outcome === "neverSent" && has(commands, "jevRequestOutcomeRecorded") },
-    { from: "effect", to: "outcomes", label: "attempt interrupted / cancelled", active: has(commands, "jevInterruptionRecorded") || (event === "jevRequestSettled" && last?.event.kind === "jevRequestSettled" && last.event.outcome === "interrupted") || (event === "reviewCompleted" && last?.event.kind === "reviewCompleted" && last.event.outcome === "interrupted") },
-    { from: "effect", to: "outcomes", label: "native failure or timeout fact", active: (event === "jevRequestSettled" && last?.event.kind === "jevRequestSettled" && (last.event.outcome === "backendFailure" || last.event.outcome === "timeout")) || (event === "reviewCompleted" && last?.event.kind === "reviewCompleted" && (last.event.outcome === "unavailable" || last.event.outcome === "discarded")) },
-    { from: "jev", to: "outcomes", label: "external finding or clear response supplied", active: (event === "jevRequestSettled" && last?.event.kind === "jevRequestSettled" && (last.event.outcome === "finding" || last.event.outcome === "clear")) || (event === "reviewCompleted" && last?.event.kind === "reviewCompleted" && (last.event.outcome === "finding" || last.event.outcome === "clear")) || event === "reviewObserved" },
-    { from: "outcomes", to: "advice", label: "retain finding command; storage not observed", active: has(commands, "retainFinding"), command: true },
-    { from: "outcomes", to: "outcomes", label: "clear / stale / unavailable status recorded; round can stay active", active: has(commands, "settleClear", "settleStaleClear", "retireStaleFinding", "failureBackend") || commands.some((command) => command.kind === "reviewRecorded" && command.outcome !== "finding") },
-    { from: "advice", to: "collection", label: "background or Stop selection command", active: has(commands, "collectionEligible", "collectionBackgroundClaimed", "collectionFindingSelected"), command: true },
-    { from: "collection", to: "collection", label: "finding kept for a later collection batch", active: has(commands, "collectionFindingRetained"), command: true },
-    { from: "collection", to: "collection", label: "Stop waits for work or output", active: has(commands, "waitForWork", "waitForOutput") },
-    { from: "collection", to: "collection", label: "allow finish decision; no host output or round change", active: has(commands, "finishAllowedNoAdvice", "finishAllowedDeadline", "finishAllowedUnavailable"), command: true },
-    { from: "collection", to: "preparation", label: "cancel unfinished work command; native effect not observed", active: stopEvent && has(commands, "cancelWork", "discardAllUnfinished", "discardNamedOnly"), command: true },
-    { from: "collection", to: "round", label: "Stop decision ready or reoffer; round state changed", active: has(commands, "finishReady", "reofferAtStop") && last?.rejection === undefined && JSON.stringify(last?.before.rounds) !== JSON.stringify(projection.rounds) },
-    { from: "collection", to: "delivery", label: "authorize output", active: has(commands, "finishAuthorized", "submissionAuthorized", "writeAuthorized"), command: true },
-    { from: "delivery", to: "delivery", label: "output or delivery result recorded", active: has(commands, "finishRecorded", "submissionRecorded", "finishEnded", "continuationConsumed") && last?.rejection === undefined && JSON.stringify(last?.before.delivery) !== JSON.stringify(projection.delivery) },
-    { from: "delivery", to: "round", label: "output fact changed round state", active: has(commands, "writeRecorded") && last?.rejection === undefined && JSON.stringify(last?.before.rounds) !== JSON.stringify(projection.rounds) },
-  ];
+  const flow = projectFlowStep(last);
+  const nodes = PLACE_ORDER.map((id) => ({ id, ...SQUARES[id], detail: SQUARES[id].detail(projection) }));
+  const routes: readonly Route[] = CONNECTIONS.map((connection): Route => {
+    const evidence = flow.evidence.filter((item) => item.from === connection.from && item.to === connection.to);
+    const hasCommand = evidence.some((item) => item.source === "command");
+    const hasFact = evidence.some((item) => item.source !== "command");
+    return { ...connection, active: evidence.length > 0, command: hasCommand && !hasFact, mixed: hasCommand && hasFact,
+      evidence: evidence.map((item) => `${item.source}: ${item.label}`).join("; ") };
+  });
   const routeMultiplicity = new Map<string, number>();
   const routeOffsets = routes.map((route) => {
     const key = `${route.from}:${route.to}`;
@@ -201,10 +140,11 @@ export const productionFlowView = <Message>(
           const { path, badge, tip, toward } = routeGeometry(route, offset);
           const color = route.active ? route.command ? "#794aa0" : "#e66035" : "#91a4ba";
           return h.g([h.Class(`topology-route ${route.active ? "active" : ""}`)], [
-            h.title([], [`${index + 1}. ${nodes.find((node) => node.id === route.from)?.title} → ${nodes.find((node) => node.id === route.to)?.title}: ${route.label}`]),
+            h.title([], [`${index + 1}. ${nodes.find((node) => node.id === route.from)?.title} → ${nodes.find((node) => node.id === route.to)?.title}: ${route.active ? route.evidence : `possible: ${route.label}`}`]),
             h.path([h.D(path), h.Fill("none"), h.Stroke(color),
               h.StrokeWidth(route.active ? "4" : "2"),
               ...(route.command ? [h.StrokeDasharray("7 5")] : [])], []),
+            ...(route.mixed ? [h.path([h.D(path), h.Fill("none"), h.Stroke("#794aa0"), h.StrokeWidth("2"), h.StrokeDasharray("7 5")], [])] : []),
             h.path([h.D(arrowHead(tip, toward)), h.Fill(color)], []),
             h.circle([h.Cx(String(badge.x)), h.Cy(String(badge.y)), h.R("11"),
               h.Fill(route.active ? color : "#fff"), h.Stroke(color)], []),
@@ -215,18 +155,18 @@ export const productionFlowView = <Message>(
         }),
         ...nodes.map((node) => {
           const point = PLACES[node.id];
-          const palette = node.owner === "EXTERNAL FACT" ? { fill: "#fff0c8", stroke: "#ad7524" }
+          const palette = node.owner.includes("EXTERNAL") ? { fill: "#fff0c8", stroke: "#ad7524" }
             : node.owner.includes("NATIVE") ? { fill: "#edf1f6", stroke: "#7d8da2" }
             : { fill: "#e9f1ff", stroke: "#547dc0" };
-          return h.g([h.Class("topology-node")], [
+          return h.g([h.Class(`topology-node ${flow.changedSquares.includes(node.id) ? "active" : ""}`)], [
             h.title([], [`${node.title}: ${node.detail}`]),
             h.rect([h.X(String(point.x)), h.Y(String(point.y)), h.Width(String(NODE_WIDTH)),
               h.Height(String(NODE_HEIGHT)), h.Rx("12"), h.Fill(palette.fill),
-              h.Stroke(palette.stroke), h.StrokeWidth("2")], []),
+              h.Stroke(palette.stroke), h.StrokeWidth(flow.changedSquares.includes(node.id) ? "4" : "2")], []),
             h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 25)), h.FontSize("10"),
               h.FontWeight("700"), h.Fill("#52647d")], [node.owner]),
             h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 49)), h.FontSize("14"),
-              h.FontWeight("700"), h.Fill("#1e3048")], [NODE_TITLES[node.id]]),
+              h.FontWeight("700"), h.Fill("#1e3048")], [node.title]),
             ...node.detail.split(" · ").slice(0, 2).map((part, index) =>
               h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 77 + index * 18)), h.FontSize("10"),
                 h.Fill("#435670")], [part.length > 33 ? `${part.slice(0, 30)}…` : part])),
@@ -240,7 +180,7 @@ export const productionFlowView = <Message>(
     h.details([h.Class("topology-route-key")], [
       h.summary([], ["Numbered route key"]),
       h.ol([], routes.map((route) => h.li([h.Class(`${route.active ? "active" : ""} ${route.command ? "command" : ""}`)], [
-        `${route.command ? "Command: " : ""}${nodes.find((node) => node.id === route.from)?.title} → ${nodes.find((node) => node.id === route.to)?.title}: ${route.label}`,
+        `${nodes.find((node) => node.id === route.from)?.title} → ${nodes.find((node) => node.id === route.to)?.title}: ${route.active ? route.evidence : `possible: ${route.label}`}`,
       ]))),
     ]),
     h.div([h.Class("finish-decision")], [
@@ -261,6 +201,7 @@ export const productionFlowView = <Message>(
       h.p([], [last === undefined ? "Choose a guided or manual canonical event." : last.rejection !== undefined
         ? `${last.event.kind} rejected: ${last.rejection}. Canonical state and item locations did not change.`
         : `${last.event.kind} accepted · ${commands.length} command(s): ${commands.map((command) => command.kind).join(", ") || "none"}`]),
+      h.p([], [flow.explanation]),
       h.p([], ["A Jev command authorizes an attempt; only a request-start fact records an attempt. A submitted host output does not establish agent receipt or use."]),
       h.p([], [`Branches at this step: ${commands.filter((command) => /Refused|Unavailable|Interrupted|Ignored|Stale|Cancel|Clear|Finding|Waiting|Allowed|Expired|Lease|Reoffer|Unknown|Recorded|Terminal/.test(command.kind)).map((command) => command.kind).join(", ") || "none"}.`]),
     ]),

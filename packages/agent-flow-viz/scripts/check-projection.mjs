@@ -61,14 +61,14 @@ try {
     compiled.inventory.map((entry) => Object.keys(entry.limits)));
   assert.match(text(initial), /CANONICAL BEND PRODUCTION MODEL/);
   assert.match(text(initial), /What uses review capacity/);
-  assert.match(text(initial), /Native Jev effect attempt/);
-  assert.match(text(initial), /Jev response/);
+  assert.match(text(initial), /Jev request attempt/);
+  assert.match(text(initial), /Awaiting Jev result/);
   const descendants = (node) => node == null ? [] : [node, ...(node.children ?? []).flatMap(descendants)];
   const elements = (model, name) => descendants(main.view(model, inertHtml).body)
     .filter((node) => node.data?.class?.[name]);
   const labels = (node) => descendants(node).map((child) => child.text ?? "").join(" ");
   assert.equal(elements(initial, "topology-node").length, 13);
-  assert.equal(elements(initial, "topology-route").length, 24);
+  assert.equal(elements(initial, "topology-route").length, 22);
   assert.equal(elements(initial, "topology-route").filter((node) => node.data.class.active).length, 0);
   assert.equal(canonical.CANONICAL_SCENARIOS[initial.scenario].name, canonical.SHOWCASE_SCENARIO.name);
   let showcase = initial;
@@ -82,19 +82,19 @@ try {
     for (const route of active) showcasedRoutes.add(labels(route));
     if (index === 4) {
       assert.equal(step.after.dispatch.pending.length, 1, "the second edit waits in the queue");
-      assert.ok(active.some((route) => labels(route).includes("dispatch item queued")));
+      assert.ok(active.some((route) => labels(route).includes("dispatch #2 entered pending")));
     }
-    if (index === 9) assert.ok(active.some((route) => labels(route).includes("dispatch cycle starts")));
-    if (index === 17) assert.ok(active.some((route) => labels(route).includes("Jev request commanded")));
+    if (index === 9) assert.ok(active.some((route) => labels(route).includes("dispatch #2 (pending) → dispatch #2 (running)")));
+    if (index === 17) assert.ok(active.some((route) => labels(route).includes("request permitted; native attempt not yet observed")));
     if (index === 22) assert.equal(step.after.dispatch.requests.length, 2, "two Jev requests are in flight");
     if (index === 23) assert.ok(active.some((route) => labels(route).includes("retain finding command")));
     if (index === 24) {
       assert.deepEqual(step.after.collection.ready, [10], "ready advice follows its native storage fact");
-      assert.ok(active.some((route) => labels(route).includes("background or Stop selection command")));
+      assert.ok(active.some((route) => labels(route).includes("advice #10 supplied ready by native storage")));
     }
     if (index === 27) assert.deepEqual(step.after.collection.ready, [11, 10]);
-    if (index === 33) assert.ok(active.some((route) => labels(route).includes("authorize output")));
-    if (index === 34) assert.ok(active.some((route) => labels(route).includes("output or delivery result recorded")));
+    if (index === 33) assert.ok(active.some((route) => labels(route).includes("output authorized; host write not established")));
+    if (index === 34) assert.ok(active.some((route) => labels(route).includes("authorized → submitted")));
   }
   assert.ok(showcasedRoutes.size >= 12, "the opening replay should expose a broad connected route set");
   const replayAt = (name, count) => {
@@ -112,7 +112,7 @@ try {
   "retainFinding command alone cannot mark advice as stored");
   const refusalView = replayAt("eight active request permits; ninth settles immediately and release permits another", 29);
   const refusalRoutes = elements(refusalView, "topology-route").filter((node) => node.data.class.active);
-  assert.ok(refusalRoutes.some((node) => labels(node).includes("immediate unavailable")));
+  assert.ok(refusalRoutes.some((node) => labels(node).includes("request unavailable or refused")));
   assert.ok(!refusalRoutes.some((node) => labels(node).includes("attempt observed")));
   const manualEvent = (event) => send(
     send(initial, main.Message.DraftChanged({ raw: JSON.stringify(event) })), main.Message.Submitted());
@@ -124,7 +124,7 @@ try {
   assert.deepEqual(retainedStep.commands.map((command) => command.kind), ["collectionFindingRetained"]);
   assert.deepEqual(retainedStep.after.collection, retainedStep.before.collection);
   const retainedRoutes = elements(retainedFinding, "topology-route").filter((node) => node.data.class.active);
-  assert.ok(retainedRoutes.some((node) => labels(node).includes("finding kept for a later collection batch")));
+  assert.ok(retainedRoutes.some((node) => labels(node).includes("collection waits or retains advice")));
   assert.ok(!retainedRoutes.some((node) => labels(node).includes("retain finding command")),
     "collectionFindingRetained does not create advice");
   for (const deadlineReached of [false, true]) {
@@ -137,23 +137,23 @@ try {
     assert.deepEqual(step.after.rounds, step.before.rounds);
     assert.deepEqual(step.after.delivery, step.before.delivery);
     const active = elements(allowed, "topology-route").filter((node) => node.data.class.active);
-    assert.ok(active.some((node) => labels(node).includes("allow finish decision; no host output or round change")));
+    assert.ok(active.some((node) => labels(node).includes("collection waits or retains advice")));
     assert.ok(!active.some((node) => labels(node).includes("output fact changed round state")));
-    assert.ok(!active.some((node) => labels(node).includes("authorize output")));
+    assert.ok(!active.some((node) => labels(node).includes("output authorized")));
   }
   const cancellationRoute = elements(initial, "topology-route").find((node) =>
-    labels(node).includes("cancel unfinished work command"));
+    labels(node).includes("cancel work command"));
   assert.ok(cancellationRoute);
   assert.match(cancellationRoute.children.find((child) => child.sel === "path").data.attrs.d, /L 12 650 L 12 22/,
     "cancellation command goes around agent and advice nodes");
   const directPreparationView = replayAt("many units admit in order and Stop waits", 2);
   const directRoutes = elements(directPreparationView, "topology-route").filter((node) => node.data.class.active);
-  assert.ok(directRoutes.some((node) => labels(node).includes("preparation admitted directly")));
-  assert.ok(!directRoutes.some((node) => labels(node).includes("dispatch item queued")),
+  assert.ok(directRoutes.some((node) => labels(node).includes("prepare command emitted")));
+  assert.ok(!directRoutes.some((node) => labels(node).includes("entered pending")),
     "beginPreparation did not add a dispatch queue entry");
   const waitingView = replayAt("many units admit in order and Stop waits", 4);
   assert.ok(elements(waitingView, "topology-route").some((node) =>
-    node.data.class.active && labels(node).includes("Stop waits for work or output")));
+    node.data.class.active && labels(node).includes("collection waits or retains advice")));
   assert.ok(!elements(waitingView, "topology-route").some((node) =>
     node.data.class.active && labels(node).includes("attempt interrupted / cancelled")));
   let model = send(initial, main.Message.SelectedScenario({
