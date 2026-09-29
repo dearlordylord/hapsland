@@ -56,8 +56,8 @@ export const securityWireExpectedBody = {
     inputContract: {
       id: "direct-event/type-shape/v2", completeness: "complete",
       projectionFingerprint: sha256(canonical(tree)),
-      rendererVersion: "candidate-semantic-evidence/1",
-      rendererDigest: "5755d7abe997a57c952111ef2e0ac2e85c3a0e7f84fb39b11bd7a576ae5c01de",
+      rendererVersion: "candidate-semantic-evidence/2",
+      rendererDigest: "16eb76ad99f9e13efeb921b45fb36196c36c8d7d127cced101a16ce478dece10",
     },
   },
   questions: {

@@ -2,8 +2,7 @@ import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import { put, makeGitFixture, addEvent } from "./test-fixtures.ts";
 import { adaptCodexAdd } from "./adapter.ts";
-import { prepareObservation } from "./pipeline.ts";
-import { preparedProviderInput } from "./pipeline.ts";
+import { evaluatePrepared, prepareObservation, preparedProviderInput, preparedUnitStillCurrent } from "./pipeline.ts";
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { inspectGraphFile } from "./analyzer.ts";
@@ -14,6 +13,7 @@ import { GRAPH_LIMIT_CEILINGS } from "../configuration/graph-limits.ts";
 import { compileRulePackV2 } from "../rules/compiler.ts";
 import { V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
 import type { ReviewNode } from "./model.ts";
+import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts";
 
 const hasOmitted = (node: ReviewNode): boolean => node.references.some((reference) =>
   reference.kind === "omitted" || reference.kind === "expanded" && hasOmitted(reference.node));
@@ -257,6 +257,16 @@ describe("cross-file graph preparation", () => {
     });
     expect(JSON.stringify(preparedProviderInput(ready.prepared))).not.toContain("secret");
     expect(reads).toEqual(["a.ts", "a.ts"]);
+    expect(yield* preparedUnitStillCurrent(observation, ready.prepared, {
+      controlledWriter: true, advicee: observation.advicee,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
+      rules: rootOnlyRules, inputContract: V2_TYPE_CONTRACT,
+      policy: { includes: ["a.ts"], excludes: ["b.ts"] },
+    })).toBe(true);
+    const evaluated = yield* evaluatePrepared(ready.prepared).pipe(Effect.provide(controlledDecisionModelLayer({
+      answers: { "root-only/shape": { _tag: "Probability", probability: 0.91 } },
+    })));
+    expect(evaluated.status).toBe("evaluated");
   }));
 
   it.effect("keeps a later resolved import when an earlier import is missing", () => Effect.gen(function* () {
