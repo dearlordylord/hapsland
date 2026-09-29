@@ -168,7 +168,6 @@ const parsedDeclarations = (path: string, source: string, allowImports = false):
       const sourceNode = node.parent?.type === "export_statement" ? node.parent : node;
       const rendered = sourceNode.text;
       const artifact: TypeDeclaration = {
-        path,
         id: `${path}:${kind}:${nameNode.text}`,
         kind,
         name: nameNode.text,
@@ -214,7 +213,7 @@ export const inspectGraphFile = (path: string, source: string): GraphFile | unde
   }
   return {
     declarations: new Map(parsed.map(({ artifact, references, node }) => [artifact.name, {
-      artifact, references, exported: node.parent?.type === "export_statement",
+      artifact: { ...artifact, path }, references, exported: node.parent?.type === "export_statement",
       location: {
         start: { line: (node.parent?.type === "export_statement" ? node.parent : node).startPosition.row + 1,
           column: (node.parent?.type === "export_statement" ? node.parent : node).startPosition.column + 1 },
