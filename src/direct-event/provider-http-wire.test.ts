@@ -12,6 +12,7 @@ import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse";
 import * as Decision from "effect/unstable/ai/Decision";
 import * as DecisionModel from "effect/unstable/ai/DecisionModel";
 import { DEFAULT_API_BASE, DEFAULT_DESTINATION } from "../runtime/review-config.ts";
+import { encodedProviderHttpBodyBytes } from "./provider-body-size.ts";
 
 type LocalRequest = {
   readonly input: unknown;
@@ -47,6 +48,8 @@ const observe = async (id: string, local: LocalRequest, localRequestBytes: numbe
     return [key, Decision.probability({ instructions: decision.instructions, criteria: decision.criteria })];
   }));
   const definition = Decision.make({ input: Schema.Json, decisions });
+  const predictedBodyBytes = encodedProviderHttpBodyBytes(local.input,
+    Object.entries(decisions).map(([id, decision]) => ({ id, decision })));
   const input = await Effect.runPromise(Schema.decodeUnknownEffect(Schema.Json)(local.input));
   let requestBody: string | undefined;
   let headerNames: ReadonlyArray<string> | undefined;
@@ -74,6 +77,7 @@ const observe = async (id: string, local: LocalRequest, localRequestBytes: numbe
     yield* service.decide(definition, { input });
   }).pipe(Effect.provide(model)));
   if (requestBody === undefined) throw new Error(`no HTTP request for ${id}`);
+  expect(predictedBodyBytes).toBe(bytes(requestBody));
   if (headerNames === undefined) throw new Error(`no HTTP headers for ${id}`);
   expect(requestBody).not.toContain(sentinel);
   const body = JSON.parse(requestBody) as { readonly model: string; readonly state: unknown; readonly questions: unknown };
@@ -93,6 +97,19 @@ const observe = async (id: string, local: LocalRequest, localRequestBytes: numbe
 };
 
 describe("offline provider HTTP framing for proposed #138 study arms", () => {
+  it("matches escaped UTF-8, multiple keys, and v1/v2 state shapes", async () => {
+    const decision = { _tag: "Probability" as const, instructions: "quote \" slash \\ café 🦊",
+      criteria: { false: "Non\n", true: "Oui 🦊" } };
+    for (const input of [
+      { artifact: { domain: "a.ts", source: "type Café = \"🦊\"" }, evidence: [],
+        inputContract: { id: "direct-event-v1", evidence: "complete named direct-event unit" } },
+      { inputContract: { id: "type-v2" }, artifact: { domain: "a.ts", source: "type Café = \"🦊\"" },
+        nodes: [], edges: [] },
+    ]) {
+      const local = { input, decisions: { "rule-1": decision, "other.rule": decision } };
+      await observe("escaped-synthetic", local, bytes(JSON.stringify(local)));
+    }
+  });
   it("matches pinned provider request metadata and all 35 sanitized byte observations", async () => {
     const packageJson = await readFixture<{ readonly dependencies: Readonly<Record<string, string>> }>("../../package.json");
     expect(packageJson.dependencies["@effect/ai-typesafe"]).toBe("4.0.0-rc.116");

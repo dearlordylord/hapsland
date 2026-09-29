@@ -12,7 +12,7 @@ import { canonicalValue, isCodexHostVersion, type DirectObservation, type Direct
 import {
   evaluatePrepared,
   encodedPreparedProviderInputBytes,
-  encodedFullJevRequestBytes,
+  encodedPreparedProviderHttpBodyBytes,
   MAX_FULL_JEV_REQUEST_BYTES,
   requiresCandidateEgressAuthorization,
   prepareObservation,
@@ -2527,7 +2527,7 @@ export class ResidentServer {
           credentialGeneration: credential?.generation ?? null,
         });
         if ((requiresCandidateEgressAuthorization(job.prepared) && !allowCandidateCrossFileEgress) ||
-          encodedFullJevRequestBytes(job.prepared) > MAX_FULL_JEV_REQUEST_BYTES) {
+          encodedPreparedProviderHttpBodyBytes(job.prepared) > MAX_FULL_JEV_REQUEST_BYTES) {
           return { status: "input-limit" as const };
         }
         const ready = requestReady({

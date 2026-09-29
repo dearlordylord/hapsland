@@ -6,6 +6,7 @@ import { Decision, DecisionModel } from "effect/unstable/ai";
 import type { CompiledRule } from "../rules/compiler.ts";
 import { applicableRules, configuredRules } from "../policy/rules.ts";
 import { compareRuleRank, findingFromProbability } from "../rules/decision.ts";
+import { encodedProviderHttpBodyBytes } from "./provider-body-size.ts";
 import type { Consent } from "../runtime/consent.ts";
 import { admitReview } from "../configuration/decision.ts";
 import { effectiveGraphLimits } from "../configuration/resolve.ts";
@@ -53,7 +54,7 @@ import {
 } from "./selection.ts";
 
 export const DIRECT_EVENT_DEADLINE_MS = 15_000 as const;
-/** Initial finite request gate; #140 will replace this with provider-aware sizing. */
+/** Finite pinned System One HTTP body gate; #140 owns broader transport sizing. */
 export const MAX_FULL_JEV_REQUEST_BYTES = 131_072;
 
 export type DirectReviewContext = {
@@ -622,12 +623,19 @@ export const encodedFullJevRequestBytes = (prepared: PreparedUnit): number => {
   }), "utf8");
 };
 
+/** Pinned provider's encoded JSON HTTP body, distinct from the local proposal shape. */
+export const encodedPreparedProviderHttpBodyBytes = (prepared: PreparedUnit): number => {
+  const input = preparedProviderInput(prepared);
+  return input === undefined ? Number.POSITIVE_INFINITY :
+    encodedProviderHttpBodyBytes(input, prepared.input.rules);
+};
+
 /** One DecisionModel call, no retry wrapper, with a fixed total call deadline. */
 export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(function* (
   prepared: PreparedUnit,
   beforeDispatch: Effect.Effect<void, unknown> = Effect.void,
 ) {
-  if (encodedFullJevRequestBytes(prepared) > MAX_FULL_JEV_REQUEST_BYTES) {
+  if (encodedPreparedProviderHttpBodyBytes(prepared) > MAX_FULL_JEV_REQUEST_BYTES) {
     return { status: "input-limit" } as const;
   }
   const providerInput = preparedProviderInput(prepared);
