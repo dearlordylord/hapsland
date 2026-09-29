@@ -523,7 +523,7 @@ export class ComposedDelivery {
       const at = Math.max(this.#bendTime(closedAt + 1), admission.closedAt);
       const closed = this.canonical.transition({ kind: "closePermitRound",
         partition: admission.partition, lifetime: admission.lifetime,
-        round: stop.generation, at, prospective: false });
+        round: stop.generation, at });
       if (closed.rejection !== undefined || closed.commands[0]?.kind !== "permitRoundClosed" ||
           closed.commands[0].round !== stop.generation) throw new Error("canonical permit closure disagrees with round");
     }

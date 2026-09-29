@@ -100,7 +100,7 @@ export type CanonicalEvent =
   | { readonly kind: "consumePermit"; readonly partition: number; readonly lifetime: number; readonly token: number; readonly tool: number; readonly now: number }
   | { readonly kind: "releasePermit"; readonly partition: number; readonly lifetime: number; readonly token: number }
   | { readonly kind: "expirePermit"; readonly partition: number; readonly lifetime: number; readonly token: number; readonly deadlineReached: boolean }
-  | { readonly kind: "closePermitRound"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly at: number; readonly prospective: boolean }
+  | { readonly kind: "closePermitRound"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly at: number }
   | { readonly kind: "openRound"; readonly partition: number; readonly lifetime: number }
   | { readonly kind: "admitObservation"; readonly partition: number; readonly lifetime: number; readonly round: number }
   | { readonly kind: "startObservation" | "completeObservation" | "interruptObservation"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly observation: number }
@@ -383,7 +383,7 @@ const encode = (event: CanonicalEvent): unknown => {
     case "consumePermit": inputFields(event, ["kind", "partition", "lifetime", "token", "tool", "now"]); return { $: "Canonical.ConsumePermit", ...identity(event), token: nat(event.token, true), tool: nat(event.tool, true), now: nat(event.now) };
     case "releasePermit": inputFields(event, ["kind", "partition", "lifetime", "token"]); return { $: "Canonical.ReleasePermit", ...identity(event), token: nat(event.token, true) };
     case "expirePermit": inputFields(event, ["kind", "partition", "lifetime", "token", "deadlineReached"]); return { $: "Canonical.ExpirePermit", ...identity(event), token: nat(event.token, true), deadline_reached: bool(event.deadlineReached) };
-    case "closePermitRound": inputFields(event, ["kind", "partition", "lifetime", "round", "at", "prospective"]); return { $: "Canonical.ClosePermitRound", ...identity(event), round: nat(event.round, true), at: nat(event.at), prospective: bool(event.prospective) };
+    case "closePermitRound": inputFields(event, ["kind", "partition", "lifetime", "round", "at"]); return { $: "Canonical.ClosePermitRound", ...identity(event), round: nat(event.round, true), at: nat(event.at) };
     case "openRound": inputFields(event, ["kind", "partition", "lifetime"]); return { $: "Canonical.OpenRound", ...identity(event) };
     case "admitObservation": inputFields(event, ["kind", "partition", "lifetime", "round"]); return { $: "Canonical.AdmitObservation", ...identity(event), round: nat(event.round, true) };
     case "startObservation": case "completeObservation": case "interruptObservation": {
