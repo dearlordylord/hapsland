@@ -238,7 +238,9 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
       } else {
         let source = context.captureCache?.get(selected.relativePath);
         if (source === undefined) {
-          source = yield* (context.captureSource ?? captureStable)(context.root, selected, context.captureHooks, context.rootIdentity);
+          source = yield* (context.captureSource ?? captureStable)(
+            context.root, selected, context.captureHooks, context.rootIdentity, limits.sourceBytes,
+          );
           if (source !== undefined) context.captureCache?.set(selected.relativePath, source);
         }
         if (source === undefined) {

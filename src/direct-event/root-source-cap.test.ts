@@ -55,12 +55,11 @@ describe("configured v2 root source cap", () => {
         beforeAnalyze: () => Effect.sync(() => { preflightCalls += 1; return true; }),
       } as const;
       const prepared = yield* prepareObservation(observation, context);
-      expect(reads).toEqual(["a.ts", "a.ts"]);
+      expect(reads).toEqual([]);
       expect(preflightCalls).toBe(0);
       expect(prepared.outcomes).toEqual([{ status: "skipped", path: "a.ts" }]);
       expect(prepared.observation.outcomes).toMatchObject([{
-        status: "observed", path: "a.ts", units: [],
-        analysis: { status: "incomplete", failures: [{ root: undefined, reason: "missing-evidence" }] },
+        status: "incomplete", path: "a.ts", reason: "capture-unavailable",
       }]);
       let providerCalls = 0;
       const reviewed = yield* reviewObservation(observation, context).pipe(

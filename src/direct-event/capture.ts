@@ -37,7 +37,11 @@ const readOnceDarwin = async (
   path: EligiblePath,
   hooks: CaptureHooks,
   expectedRoot: PhysicalRootIdentity | undefined,
+  maxSourceBytes: number,
 ): Promise<{ readonly bytes: Buffer; readonly metadata: string; readonly hash: string }> => {
+  // The shipped helper has a fixed ceiling. Do not invoke it for a lower
+  // configured bound, because checking its output would happen after the read.
+  if (maxSourceBytes < MAX_SOURCE_BYTES) throw new Error("macOS capture helper cannot enforce configured source cap");
   const helper = fileURLToPath(new URL("../../native/prebuilt/darwin-arm64/capture-open", import.meta.url));
   if (!existsSync(helper)) throw new Error("macOS descriptor capture helper is unavailable");
   const { stdout } = await execFileAsync(helper, [
@@ -62,8 +66,9 @@ const readOnce = async (
   path: EligiblePath,
   hooks: CaptureHooks,
   expectedRoot: PhysicalRootIdentity | undefined,
+  maxSourceBytes: number,
 ): Promise<{ readonly bytes: Buffer; readonly metadata: string; readonly hash: string }> => {
-  if (process.platform === "darwin") return readOnceDarwin(root, path, hooks, expectedRoot);
+  if (process.platform === "darwin") return readOnceDarwin(root, path, hooks, expectedRoot, maxSourceBytes);
   const descriptorRoot = descriptorDirectory();
   if (descriptorRoot === undefined) throw new Error("descriptor-anchored capture is unavailable");
   const directoryFlags = constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW;
@@ -101,10 +106,10 @@ const readOnce = async (
     );
     try {
       const before = await file.stat({ bigint: true });
-      if (!before.isFile() || before.size > BigInt(MAX_SOURCE_BYTES)) {
+      if (!before.isFile() || before.size > BigInt(maxSourceBytes)) {
         throw new Error("oversized or nonregular source");
       }
-      const buffer = Buffer.alloc(MAX_SOURCE_BYTES + 1);
+      const buffer = Buffer.alloc(maxSourceBytes);
       let offset = 0;
       while (offset < buffer.length) {
         const result = await file.read(buffer, offset, buffer.length - offset, offset);
@@ -114,7 +119,6 @@ const readOnce = async (
       hooks.sourceRead?.(path.relativePath);
       const after = await file.stat({ bigint: true });
       if (
-        offset > MAX_SOURCE_BYTES ||
         BigInt(offset) !== after.size ||
         signature(before) !== signature(after)
       ) throw new Error("unstable capture");
@@ -138,12 +142,16 @@ export const captureStable = Effect.fn("DirectEvent.captureStable")(function* (
   path: EligiblePath,
   hooks: CaptureHooks = {},
   expectedRoot: PhysicalRootIdentity | undefined = undefined,
+  maxSourceBytes: number = MAX_SOURCE_BYTES,
 ) {
   const captured = yield* Effect.tryPromise({
     try: async () => {
-      const first = await readOnce(root, path, hooks, expectedRoot);
+      if (!Number.isSafeInteger(maxSourceBytes) || maxSourceBytes < 1 || maxSourceBytes > MAX_SOURCE_BYTES) {
+        throw new Error("invalid source cap");
+      }
+      const first = await readOnce(root, path, hooks, expectedRoot, maxSourceBytes);
       await hooks.betweenReads?.();
-      const second = await readOnce(root, path, hooks, expectedRoot);
+      const second = await readOnce(root, path, hooks, expectedRoot, maxSourceBytes);
       if (
         first.metadata !== second.metadata ||
         first.hash !== second.hash ||

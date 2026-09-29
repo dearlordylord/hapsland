@@ -301,6 +301,11 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
       outcomes.push({ status: "skipped", path: eligible.relativePath });
       continue;
     }
+    const graphLimits = context.settings.configuration === undefined
+      ? GRAPH_LIMIT_CEILINGS
+      : effectiveGraphLimits(context.settings.configuration.policy);
+    const contract = currentInputContract(context);
+    const graphContract = contract === V2_TYPE_CONTRACT || contract === V2_FUNCTION_CONTRACT;
     let captured = supportingCaptures.get(eligible.relativePath);
     if (captured === undefined) {
       const admittedBytes = [...supportingCaptures.values()].reduce((sum, source) => sum + source.byteLength, 0);
@@ -315,6 +320,7 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
         eligible,
         context.captureHooks,
         observation.rootIdentity,
+        graphContract ? graphLimits.sourceBytes : undefined,
       );
       if (captured !== undefined) supportingCaptures.set(eligible.relativePath, captured);
     }
@@ -323,11 +329,7 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
       outcomes.push({ status: "skipped", path: eligible.relativePath });
       continue;
     }
-    const graphLimits = context.settings.configuration === undefined
-      ? GRAPH_LIMIT_CEILINGS
-      : effectiveGraphLimits(context.settings.configuration.policy);
-    const contract = currentInputContract(context);
-    if (contract === V2_TYPE_CONTRACT || contract === V2_FUNCTION_CONTRACT) {
+    if (graphContract) {
       // Stable capture has measured the root. Bend owns the configured source
       // limit; a denied root never reaches parser/preflight materialization.
       const decision = measuredRootSourceDecision(captured.byteLength, graphLimits);
