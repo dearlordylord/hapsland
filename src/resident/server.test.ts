@@ -130,7 +130,8 @@ describe("canonical resident capacity", () => {
       if (response.status === "advice") {
         expect("hookSpecificOutput" in response.output).toBe(true);
         if ("hookSpecificOutput" in response.output) {
-          expect(response.output.hookSpecificOutput.additionalContext.split("\n").slice(1)).toHaveLength(5);
+          expect(response.output.hookSpecificOutput.additionalContext.split("\n").slice(1))
+            .toHaveLength(configuredRules.length);
         }
         expect(server.beginComposedSubmission(response.token, "background").status).toBe("submitting");
         expect(server.acknowledge(response.token).status).toBe("acknowledged");
@@ -361,7 +362,6 @@ describe("resident delivery lease", () => {
       const activity = readActivity({ statePath: activityPath, root,
         sessionId: observation.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
       expect(activity.roundClosures?.[0]?.reason).toBe("deadline");
-      expect(activity.roundClosures?.[0]?.discarded?.queued).toBeGreaterThan(0);
       expect(activity.roundClosures?.[0]?.discarded?.running).toBeGreaterThan(0);
       gate.resolve();
       await server.whenIdle();
@@ -530,7 +530,7 @@ describe("resident delivery lease", () => {
     } finally { gate.resolve(); await server.close(); }
   });
 
-  it("decides a settled round immediately after an abandoned notice lease expires", async () => {
+  it("decides a settled round after a diagnostic-only backend failure", async () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
@@ -545,13 +545,12 @@ describe("resident delivery lease", () => {
       await server.whenIdle();
       const collect = { version: 1 as const, operation: "collect" as const, lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "turn-end" as const, composed: true as const };
-      expect((await server.handle(collect)).status).toBe("advice");
-      now += DELIVERY_LEASE_MS + 1;
+      expect((await server.handle(collect)).status).toBe("empty");
+      expect(server.accountingMetrics().pendingOperationalNotices).toBeGreaterThan(0);
       await server.handle({ version: 1, operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "finish" });
       const decision = await server.handle({ ...collect, finish: { token: "finish", deadlineReached: false } });
-      expect(decision.status).toBe("advice");
-      if (decision.status === "advice") expect(decision.findingCount).toBe(0);
+      expect(decision.status).toBe("empty");
     } finally { await server.close(); }
   });
 
@@ -702,7 +701,7 @@ describe("resident delivery lease", () => {
     }
   });
 
-  it("leases one composed finding to one concurrent collector and preserves the next opportunity", async () => {
+  it("leases one composed finding to one concurrent collector and consumes successful delivery", async () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
@@ -731,14 +730,10 @@ describe("resident delivery lease", () => {
       root, advicee: observation.advicee, token: "reoffer" });
     const reoffer = await server.handle({ ...request,
       finish: { token: "reoffer", deadlineReached: true } });
-    expect(reoffer.status).toBe("advice");
-    if (reoffer.status === "advice") {
-      server.beginComposedSubmission(reoffer.token, "stop");
-      server.acknowledge(reoffer.token); server.finalize(reoffer.token);
-      await server.handle({ version: 1, operation: "finish-stop", lifetime: server.lifetime,
-        root, advicee: observation.advicee, token: "reoffer", close: false });
-      expect((await server.handle(request)).status).toBe("empty");
-    }
+    expect(reoffer.status).toBe("empty");
+    await server.handle({ version: 1, operation: "finish-stop", lifetime: server.lifetime,
+      root, advicee: observation.advicee, token: "reoffer", close: false });
+    expect((await server.handle(request)).status).toBe("empty");
   });
 
   it("keeps composed findings addressed across Codex and Claude in one working root", async () => {
@@ -975,7 +970,8 @@ describe("resident delivery lease", () => {
       expect(mixed.status).toBe("advice");
       if (mixed.status !== "advice") return;
       expect(mixed.findingCount).toBe(1);
-      expect(claudeHostOutputText(mixed.output)).toMatch(/unavailable/i);
+      expect(claudeHostOutputText(mixed.output)).not.toMatch(/unavailable/i);
+      expect(server.accountingMetrics().pendingOperationalNotices).toBeGreaterThan(0);
       server.releaseDelivery(mixed.token);
       expect(await server.handle({ version: 1, operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: finding.advicee, token: "finish" })).toEqual({ status: "advanced" });
@@ -1168,7 +1164,7 @@ describe("resident delivery lease", () => {
     }
   });
 
-  it("reports composed backend failure as an operational notice rather than clean", async () => {
+  it("retains composed backend failure in diagnostics without agent output", async () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
@@ -1182,11 +1178,8 @@ describe("resident delivery lease", () => {
     await server.whenIdle();
     const collected = await server.handle({ version: 1, operation: "collect", lifetime: server.lifetime,
       root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true });
-    expect(collected.status).toBe("advice");
-    if (collected.status === "advice") {
-      expect(collected.findingCount).toBe(0);
-      expect(claudeHostOutputText(collected.output)).toMatch(/unavailable/i);
-    }
+    expect(collected.status).toBe("empty");
+    expect(server.accountingMetrics().pendingOperationalNotices).toBeGreaterThan(0);
   });
 
   it("keeps submitted advice suppressed across prompt notifications in the same round", async () => {
@@ -1648,10 +1641,8 @@ describe("resident delivery lease", () => {
       advicee({ turnId: "later", toolUseId: "large" }),
       retained.dispatch,
     );
-    expect(delivered).toMatchObject({ status: "advice", findingCount: 0 });
-    if (delivered.status === "advice") {
-      expect(delivered.output.hookSpecificOutput.additionalContext).toContain("exceeded the host response limit");
-    }
+    expect(delivered).toMatchObject({ status: "empty" });
+    expect(retained.server.accountingMetrics().pendingOperationalNotices).toBeGreaterThan(0);
     expect(retained.server.stats()).toMatchObject({ pendingAdvice: 2 });
 
     const rejected = await run(2 * 1024 * 1024);
@@ -1808,7 +1799,7 @@ describe("resident delivery lease", () => {
       expect(encodedHostOutputBytes(recovered.output)).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
     }
     expect(server.stats().pendingAdvice).toBeGreaterThanOrEqual(1);
-    expect(server.stats().retainedBytes).toBeGreaterThan(before.retainedBytes);
+    expect(server.stats().retainedBytes).toBe(before.retainedBytes);
   });
 
   it("retires A when replacement B registers before A completes", async () => {
@@ -2259,8 +2250,7 @@ describe("resident delivery lease", () => {
     await server.whenIdle();
     const saturated = server.stats();
     expect(saturated).toMatchObject({ pendingAdvice: 16 });
-    const firstBatchBytes = server.pendingAdviceMetadata().slice(0, 5)
-      .reduce((total, item) => total + item.retainedBytes, 0);
+    const beforeItems = server.pendingAdviceMetadata();
 
     const collected = await server.collect(
       root,
@@ -2271,8 +2261,9 @@ describe("resident delivery lease", () => {
     if (collected.status !== "advice") return;
     expect(server.acknowledge(collected.token).status).toBe("acknowledged");
     expect(server.finalize(collected.token).status).toBe("finalized");
-    expect(server.stats()).toMatchObject({ pendingAdvice: 11 });
-    expect(server.stats().retainedBytes).toBe(saturated.retainedBytes - firstBatchBytes);
+    expect(server.stats()).toMatchObject({ pendingAdvice: saturated.pendingAdvice - collected.findingCount });
+    expect(server.stats().retainedBytes).toBe(saturated.retainedBytes - beforeItems
+      .slice(0, collected.findingCount).reduce((total, item) => total + item.retainedBytes, 0));
   });
 
   // The 64 real repository parses exercise the declared global saturation limit and
@@ -2299,9 +2290,8 @@ describe("resident delivery lease", () => {
     }
     const saturated = server.stats();
     expect(saturated).toMatchObject({ pendingAdvice: 64 });
-    const firstBatchBytes = server.pendingAdviceMetadata().filter(({ partition }) =>
-      partition.includes('"subagentId":"agent-0"')).slice(0, 5)
-      .reduce((total, item) => total + item.retainedBytes, 0);
+    const beforeItems = server.pendingAdviceMetadata().filter(({ partition }) =>
+      partition.includes('"subagentId":"agent-0"'));
 
     const collected = await server.collect(
       root,
@@ -2312,8 +2302,9 @@ describe("resident delivery lease", () => {
     if (collected.status !== "advice") return;
     expect(server.acknowledge(collected.token).status).toBe("acknowledged");
     expect(server.finalize(collected.token).status).toBe("finalized");
-    expect(server.stats()).toMatchObject({ pendingAdvice: 59 });
-    expect(server.stats().retainedBytes).toBe(saturated.retainedBytes - firstBatchBytes);
+    expect(server.stats()).toMatchObject({ pendingAdvice: saturated.pendingAdvice - collected.findingCount });
+    expect(server.stats().retainedBytes).toBe(saturated.retainedBytes - beforeItems
+      .slice(0, collected.findingCount).reduce((total, item) => total + item.retainedBytes, 0));
   }, 10_000);
 
   it("scans past unavailable advice to independently current advice once per collection", async () => {
@@ -2742,7 +2733,7 @@ describe("resident bounded advice batches", () => {
     expect(server.stats().currentWork).toBe(2);
   });
 
-  it("ages each dispatch cycle independently when older overflow remains", async () => {
+  it("ages each dispatch cycle independently after an earlier batch is consumed", async () => {
     const root = await makeGitFixture();
     await put(root, "a.ts", "type ACount = number\n");
     await put(root, "b.ts", "type BCount = number\n");
@@ -2783,26 +2774,17 @@ describe("resident bounded advice batches", () => {
     if (first.status !== "advice") return;
     expect(server.acknowledge(first.token).status).toBe("acknowledged");
     expect(server.finalize(first.token).status).toBe("finalized");
-    expect(server.pendingAdviceMetadata()).toMatchObject([{
-      path: "a.ts",
-      pendingFindings: 4,
-      collectionEligible: true,
-    }]);
+    expect(server.pendingAdviceMetadata()).toEqual([]);
 
     expect(server.admit(secondObservation, singleFindingDispatch(statePath)).status).toBe("accepted");
     await cEntered.promise;
     await bPending.promise;
-    const overflow = await server.collect(
+    const overlap = await server.collect(
       root,
       advicee({ turnId: "overlap", toolUseId: "overlap" }),
       singleFindingDispatch(statePath),
     );
-    expect(overflow.status).toBe("advice");
-    if (overflow.status !== "advice") return;
-    expect(overflow.output.hookSpecificOutput.additionalContext).toContain("a.ts :: ACount");
-    expect(overflow.output.hookSpecificOutput.additionalContext).not.toContain("b.ts :: BCount");
-    expect(server.acknowledge(overflow.token).status).toBe("acknowledged");
-    expect(server.finalize(overflow.token).status).toBe("finalized");
+    expect(overlap.status).toBe("empty");
     await expect(server.collect(
       root,
       advicee({ turnId: "too-early", toolUseId: "too-early" }),
