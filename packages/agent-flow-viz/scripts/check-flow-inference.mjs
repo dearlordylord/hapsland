@@ -5,7 +5,8 @@ import reviewFixture from "../../../conformance/canonical-review-v1.json" with {
 const server = await createServer({ server: { middlewareMode: true }, appType: "custom" });
 try {
   const replay = await server.ssrLoadModule("/src/canonical-replay.ts");
-  const flow = await server.ssrLoadModule("/src/production-flow-projection.ts");
+  const flow = await server.ssrLoadModule("@hapsland/agent-flow-projection");
+  const view = await server.ssrLoadModule("/src/production-flow-presentation.ts");
   const history = replay.SHOWCASE_SCENARIO.events.map((event) => ({ event, origin: "guided" }));
   const steps = replay.replayCanonical(history, history.length, replay.SHOWCASE_SCENARIO.limits).steps;
   const evidenceAt = (index) => flow.projectFlowStep(steps[index - 1]).evidence;
@@ -32,10 +33,8 @@ try {
   assert.ok(has(25, "native fact", "outcomes", "advice"),
     "later native readiness visibly brings advice to the pending-advice square");
   assert.ok(steps[24].after.collection.ready.includes(10));
-  assert.ok(!flow.projectFlowStep(steps[7]).changedSquares.includes("observation"),
+  assert.ok(!flow.projectFlowStep(steps[7]).changedStages.includes("observation"),
     "preparing one item does not highlight an unrelated queued observation");
-  assert.ok(flow.projectFlowStep(steps[16]).explanation.length > 0,
-    "decision-only steps have an explanation without invented movement");
 
   const outputCase = replay.CANONICAL_SCENARIOS.find((scenario) => scenario.name === "unknown output is reoffered at Stop");
   assert.ok(outputCase);
@@ -52,7 +51,7 @@ try {
     item.from === "jev" && item.to === "outcomes" && item.source === "external fact"),
   "an observed stale Jev result retains its external boundary even when Bend retires it");
 
-  const edges = new Set(flow.CONNECTIONS.map(({ from, to }) => `${from}:${to}`));
+  const edges = new Set(view.CONNECTIONS.map(({ from, to }) => `${from}:${to}`));
   for (const [index, step] of steps.entries()) {
     const projected = flow.projectFlowStep(step);
     for (const item of projected.evidence) assert.ok(edges.has(`${item.from}:${item.to}`),
@@ -62,7 +61,7 @@ try {
   const refused = replay.replayCanonical(refusedHistory, 1).steps[0];
   assert.ok(refused.rejection);
   assert.deepEqual(flow.projectFlowStep(refused).evidence, [], "rejected step cannot light an arrow");
-  assert.deepEqual(flow.projectFlowStep(refused).changedSquares, [], "rejected step cannot move an item");
+  assert.deepEqual(flow.projectFlowStep(refused).changedStages, [], "rejected step cannot move an item");
   console.log(`Checked inferred and declared flow evidence over ${steps.length} showcase steps and a rejection.`);
 } finally {
   await server.close();

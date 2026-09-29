@@ -11,12 +11,14 @@ This page replays source-free example events through the same checked
 The main flow has 13 distinct places from agent-runtime observation through
 preparation, Jev authorization/attempt/response, advice, delivery, and round
 closure. A connected SVG draws numbered paths between those places, following
-the earlier Flow.bend diagram's spatial layout. A single presentation registry
-defines each square's checked-state detail and where identified items appear.
-The view compares the checked state before and after each replay step to locate
+the earlier Flow.bend diagram's spatial layout. The
+[`agent-flow-projection`](../agent-flow-projection/README.md) package reads checked
+reducer projections and assigns identified items to conceptual flow stages.
+The FoldKit view maps those stages to named, positioned squares and draws
+possible connections. The package compares checked state before and after each replay step to locate
 work, dispatch entries, requests, advice, and delivery by stable identity.
 Connections that cannot be established from that comparison use explicit
-event, command, or supplied-fact rules in the view, with their evidence type
+event, command, or supplied-fact rules in the projection package, with their evidence type
 shown to the viewer. Dashed paths show commands, which do not prove that a
 native effect happened or that the destination holds data. A step with no
 cross-square movement explains its changed square or decision instead of

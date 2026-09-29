@@ -8,6 +8,7 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "skipLibCheck": true,
+    "paths": { "@hapsland/agent-flow-projection": ["../agent-flow-projection/src/index.ts"] },
     "types": ["vite/client"]
   },
   "include": ["src/**/*.ts"]
