@@ -12,7 +12,11 @@ import { canonicalValue, isCodexHostVersion, type DirectObservation, type Direct
 import {
   evaluatePrepared,
   encodedPreparedProviderInputBytes,
+  encodedFullJevRequestBytes,
+  MAX_FULL_JEV_REQUEST_BYTES,
+  hasCrossFileEvidence,
   prepareObservation,
+  preparedUnitStillCurrent,
   revalidateEvaluations,
   toCodexDirectEventOutput,
   type EvaluatedUnit,
@@ -99,6 +103,8 @@ export const OPERATIONAL_NOTICE_COOLDOWN_MS = 60_000;
 export const MAX_OPERATIONAL_NOTICE_KEYS = 64;
 /** Covers bounded dual capture buffers/text plus declaration-count preflight payload. */
 const CAPTURE_WORKSPACE_BYTES = 8 * MAX_SOURCE_BYTES;
+/** Includes retained supporting parse facts under the 1.5 MiB graph read ceiling. */
+const IMPORT_GRAPH_WORKSPACE_BYTES = 8 * 1024 * 1024;
 
 const captureWorkspaceBytes = (path: string): number =>
   CAPTURE_WORKSPACE_BYTES + MAX_TYPE_DECLARATIONS * (logicalBytes(path) + 512);
@@ -111,6 +117,7 @@ const analysisWorkspaceBytes = (
 ): number => {
   const declarations = preflight?.declarations ?? MAX_TYPE_DECLARATIONS;
   return captureWorkspaceBytes(path) +
+    (preflight?.hasImports ? IMPORT_GRAPH_WORKSPACE_BYTES : 0) +
     (preflight?.expandedUnitBytes ?? MAX_TYPE_DECLARATIONS * MAX_SOURCE_BYTES) +
     declarations * (
       logicalBytes(rules) + sourceBytes + 4 * logicalBytes(path) + 4096
@@ -563,6 +570,7 @@ export class ResidentServer {
   #nextDispatchAuthoritySequence = 1;
   readonly #offlineHttpClient: HttpClient.HttpClient | undefined;
   readonly #controlledRequestEffect: (() => Promise<void>) | undefined;
+  readonly #allowCandidateCrossFileEgress: boolean;
   readonly #beforeResponseHandoff: (() => Promise<void>) | undefined;
   readonly paths: ResidentPaths;
 
@@ -591,6 +599,8 @@ export class ResidentServer {
       readonly offlineHttpClient?: HttpClient.HttpClient;
       /** Fixture-only gate entered by the controlled DecisionModel call. */
       readonly controlledRequestEffect?: () => Promise<void>;
+      /** Fixture-only; broader source egress awaits the accepted adoption gate. */
+      readonly allowCandidateCrossFileEgress?: boolean;
       readonly beforeResponseHandoff?: () => Promise<void>;
       readonly maximumTickets?: number;
     } = {},
@@ -604,6 +614,7 @@ export class ResidentServer {
       throw new RangeError(`maximumOperationalNoticeKeys must be an integer from 1 to ${MAX_OPERATIONAL_NOTICE_KEYS}`);
     }
     this.paths = paths;
+    this.#allowCandidateCrossFileEgress = options.allowCandidateCrossFileEgress === true;
     const maximumTickets = options.maximumTickets ?? MAX_TICKETS;
     if (!Number.isSafeInteger(maximumTickets) || maximumTickets < 1 || maximumTickets > MAX_TICKETS) {
       throw new RangeError(`maximumTickets must be an integer from 1 to ${MAX_TICKETS}`);
@@ -2413,6 +2424,7 @@ export class ResidentServer {
       const controlledRequestEffect = this.#controlledRequestEffect;
       const ledger = this.#ledger;
       const isCurrentWork = () => this.#isCurrentWork(job.revision, job.prepared);
+      const allowCandidateCrossFileEgress = this.#allowCandidateCrossFileEgress;
       const isJobActive = () => this.#jobActive(job);
       const observeDispatchAuthority = (details: DispatchAuthorityObservationDetails): void =>
         this.#observeDispatchAuthority(job, details);
@@ -2484,9 +2496,20 @@ export class ResidentServer {
         const admission = admitReview({ rootValid: dispatchRootVerified,
           configurationValid: true, credentialReady: !credentialRequired || credential?.status === "present",
           selected });
+        const unitCurrent = admission === "admitReview" && (yield* preparedUnitStillCurrent(
+          job.observation,
+          job.prepared,
+          {
+            controlledWriter: true,
+            advicee: job.observation.advicee,
+            settings: { ...settings, configuration: dispatchConfiguration },
+            policy: resolvedDirectFilePolicy(dispatchConfiguration.policy),
+          },
+        ));
         observeDispatchAuthority({
-          decision: admission === "admitReview" ? "allow" : "deny",
-          reason: admission === "admitReview" ? "selected-by-file-policy" : "excluded-by-file-policy",
+          decision: admission === "admitReview" && unitCurrent ? "allow" : "deny",
+          reason: admission === "admitReview" && unitCurrent ? "selected-by-file-policy" :
+            admission === "admitReview" ? "stale-complete-unit" : "excluded-by-file-policy",
           policyDigest: dispatchConfiguration.policy.digest,
           selected,
           admission,
@@ -2494,10 +2517,14 @@ export class ResidentServer {
           credentialStatus: credential?.status ?? "not-required",
           credentialGeneration: credential?.generation ?? null,
         });
+        if ((hasCrossFileEvidence(job.prepared) && !allowCandidateCrossFileEgress) ||
+          encodedFullJevRequestBytes(job.prepared) > MAX_FULL_JEV_REQUEST_BYTES) {
+          return { status: "input-limit" as const };
+        }
         const ready = requestReady({
             rootValid: dispatchRootVerified, configurationValid: true,
             credentialReady: !credentialRequired || credential?.status === "present",
-            selected, currentWork: isCurrentWork(),
+            selected: selected && unitCurrent, currentWork: isCurrentWork(),
             physicalAvailable: isJobActive(),
           });
         if (ready.status !== "issued") return { status: "notAuthorized" as const, reason: undefined };

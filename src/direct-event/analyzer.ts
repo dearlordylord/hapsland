@@ -33,6 +33,17 @@ type ParsedDeclaration = {
   >;
 };
 
+export type GraphDeclaration = {
+  readonly artifact: TypeDeclaration;
+  readonly references: ParsedDeclaration["references"];
+  readonly exported: boolean;
+};
+
+export type GraphFile = {
+  readonly declarations: ReadonlyMap<string, GraphDeclaration>;
+  readonly imports: ReadonlyMap<string, { readonly path: string; readonly name: string }>;
+};
+
 export type UnitAnalysis =
   | { readonly status: "ready"; readonly unit: ReviewUnit }
   | {
@@ -124,7 +135,7 @@ const referencesOf = (declaration: SyntaxNode, nameNode: SyntaxNode): ParsedDecl
   });
 };
 
-const parsedDeclarations = (path: string, source: string): TypeFileAnalysis | ReadonlyArray<ParsedDeclaration> => {
+const parsedDeclarations = (path: string, source: string, allowImports = false): TypeFileAnalysis | ReadonlyArray<ParsedDeclaration> => {
   const extension = extname(path).toLowerCase();
   if (!supported.has(extension)) return { status: "unsupported", reason: "extension", units: [] };
   try {
@@ -133,7 +144,7 @@ const parsedDeclarations = (path: string, source: string): TypeFileAnalysis | Re
     const tree = parser.parse(source) as unknown as { readonly rootNode: SyntaxNode };
     if (tree.rootNode.hasError) return { status: "unsupported", reason: "parse", units: [] };
     const nodes = [tree.rootNode, ...descendants(tree.rootNode)];
-    if (nodes.some((node) => importSyntax.has(node.type))) {
+    if (!allowImports && nodes.some((node) => importSyntax.has(node.type))) {
       return { status: "unsupported", reason: "import", units: [] };
     }
     const declarations = nodes.filter((node) => kindOf(node) !== undefined);
@@ -166,6 +177,40 @@ const parsedDeclarations = (path: string, source: string): TypeFileAnalysis | Re
   } catch {
     return { status: "unsupported", reason: "parse", units: [] };
   }
+};
+
+/** Native syntax facts for the Bend-owned graph. Only static relative named type imports are admitted. */
+export const inspectGraphFile = (path: string, source: string): GraphFile | undefined => {
+  const parsed = parsedDeclarations(path, source, true);
+  if ("status" in parsed) return undefined;
+  const parser = new Parser();
+  parser.setLanguage(extname(path).toLowerCase() === ".tsx" ? TypeScript.tsx : TypeScript.typescript);
+  const tree = parser.parse(source) as unknown as { readonly rootNode: SyntaxNode };
+  if (tree.rootNode.hasError) return undefined;
+  const imports = new Map<string, { path: string; name: string }>();
+  for (const node of tree.rootNode.namedChildren) {
+    if (node.type !== "import_statement") continue;
+    const match = /^import\s+(type\s+)?\{([^{}]+)\}\s*from\s*["'](\.[^"']+)["']\s*;?\s*$/.exec(node.text);
+    if (match?.[2] === undefined || match[3] === undefined) return undefined;
+    for (const specifier of match[2].split(",")) {
+      const part = /^\s*(type\s+)?([A-Za-z_$][\w$]*)(?:\s+as\s+([A-Za-z_$][\w$]*))?\s*$/.exec(specifier);
+      if (part?.[2] === undefined || (match[1] === undefined && part[1] === undefined)) return undefined;
+      const local = part[3] ?? part[2];
+      if (imports.has(local)) return undefined;
+      imports.set(local, { path: match[3], name: part[2] });
+    }
+  }
+  // Imports in expressions, aliases, require calls, and nested syntax remain unsupported.
+  for (const node of descendants(tree.rootNode)) {
+    if (importSyntax.has(node.type) && node.type !== "import_statement" &&
+      node.parent?.type !== "import_statement") return undefined;
+  }
+  return {
+    declarations: new Map(parsed.map(({ artifact, references, node }) => [artifact.name, {
+      artifact, references, exported: node.parent?.type === "export_statement",
+    }])),
+    imports,
+  };
 };
 
 const unitFor = (root: ParsedDeclaration, declarations: ReadonlyMap<string, ParsedDeclaration>): UnitAnalysis => {
@@ -223,6 +268,7 @@ export const analyzeTypeFile = (path: string, source: string): TypeFileAnalysis 
 export type AnalyzerMaterializationPreflight = {
   readonly declarations: number;
   readonly expandedUnitBytes: number;
+  readonly hasImports?: boolean;
 };
 
 const encodedBytes = (value: unknown): number =>
@@ -237,8 +283,9 @@ const encodedBytes = (value: unknown): number =>
 export const analyzerMaterializationPreflight = (
   path: string,
   source: string,
+  allowImports = false,
 ): AnalyzerMaterializationPreflight | undefined => {
-  const parsed = parsedDeclarations(path, source);
+  const parsed = parsedDeclarations(path, source, allowImports);
   if ("status" in parsed) return undefined;
   const byName = new Map(parsed.map((declaration) => [declaration.artifact.name, declaration]));
   let expandedUnitBytes = 0;
@@ -270,7 +317,8 @@ export const analyzerMaterializationPreflight = (
     };
     expandedUnitBytes += visit(root);
   }
-  return { declarations: parsed.length, expandedUnitBytes };
+  return { declarations: parsed.length, expandedUnitBytes,
+    ...(allowImports ? { hasImports: /\bimport\b/u.test(source) } : {}) };
 };
 
 export const typeDeclarationCount = (path: string, source: string): number | undefined =>

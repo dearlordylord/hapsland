@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { CompiledRule } from "../rules/compiler.ts";
+import type { GraphLimits } from "../configuration/graph-limits.ts";
 import { V1_DIRECT_TYPE_INPUT_CONTRACT } from "../rules/contracts.ts";
 
 export const DIRECT_EVENT_INPUT_CONTRACT = V1_DIRECT_TYPE_INPUT_CONTRACT;
@@ -178,6 +179,7 @@ export type FrozenRule = {
 
 export type ReviewInput = {
   readonly contract: string;
+  readonly graphLimits?: GraphLimits;
   /** Only complete semantic units are eligible for evaluation or reuse. */
   readonly completeness: "complete";
   readonly path: string;

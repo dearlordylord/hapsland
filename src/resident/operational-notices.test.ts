@@ -348,7 +348,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     const server = new ResidentServer(residentPaths(join(root, "runtime")), () => 10);
     const oversized = dispatch(statePath, { answers: { oversized: "x".repeat(2 * 1024 * 1024) } });
     const unknown = { ...observation, advicee: { ...observation.advicee, sessionId: "" } };
-    expect(server.admit(unknown, oversized).status).toBe("rejected-capacity");
+    expect(server.admit(unknown, oversized).status).toBe("accepted");
     expect(server.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 0 });
 
     await installCapacityRule(root);

@@ -399,7 +399,7 @@ describe("direct-event vertical slice", () => {
       const root = yield* Effect.promise(makeGitFixture);
       const cases = [
         ["interface Good { value: string }\ninterface Broken { missing: Missing }", "missing-evidence"],
-        ["import type { Missing } from './missing'; interface Broken { value: Missing }", "import"],
+        ["import type { Missing } from './missing'; interface Broken { value: Missing }", "missing-evidence"],
         ["type Broken = import('./missing').Value", "import"],
         ["export import Broken = Missing.Value", "import"],
         ["type Broken = typeof import('./missing')", "import"],
@@ -437,7 +437,7 @@ describe("direct-event vertical slice", () => {
             expect(observed.analysis.failures.some((failure) => failure.reason === reason)).toBe(true);
           }
         }
-        if (reason === "missing-evidence" && prepared.observation.status === "incomplete") {
+        if (source.startsWith("interface Good") && prepared.observation.status === "incomplete") {
           expect(prepared.observation.units.map(({ root: unitRoot }) => unitRoot.artifact.name)).toEqual(["Good"]);
         }
       }

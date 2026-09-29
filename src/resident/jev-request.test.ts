@@ -9,6 +9,7 @@ import { configuredRules } from "../policy/rules.ts";
 import { residentPaths } from "./paths.ts";
 import { ResidentServer, type JevRequestObservation } from "./server.ts";
 import { CapacityLedger } from "./capacity.ts";
+import { captureStable } from "../direct-event/capture.ts";
 
 const deferred = () => {
   let resolve!: () => void;
@@ -17,6 +18,83 @@ const deferred = () => {
 };
 
 describe("canonical Jev request boundary", () => {
+  it("refuses oversized full input before issuing a Jev permit", async () => {
+    const root = await makeGitFixture();
+    await put(root, "a.ts", "type A = number\n");
+    await put(root, "rules.jsonc", JSON.stringify({ version: 1, id: "team", rules: [{
+      id: "large", question: "x".repeat(140_000),
+      criteria: { false: "No", true: "Yes" }, threshold: 0.7,
+      message: "Large", applicability: { includes: ["**/*.ts"] },
+    }] }));
+    await put(root, ".review.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
+    const statePath = join(root, "consent");
+    await Effect.runPromise(Effect.gen(function* () {
+      const consent = yield* Consent.Service;
+      yield* consent.enable(yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone"));
+    }).pipe(Effect.provide(Consent.layer({ statePath }))));
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])));
+    if (observation === undefined) throw new Error("fixture observation missing");
+    const capturePath = join(root, "provider-calls.txt");
+    const commands: JevRequestObservation[] = [];
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+      jevRequestObserver: (value) => { commands.push(value); },
+    });
+    try {
+      expect(server.admit(observation, { statePath, userConfigPath: null, credential: null,
+        controlled: { capturePath } }).status).toBe("accepted");
+      await server.whenIdle();
+      expect(commands).toEqual([]);
+      expect(existsSync(capturePath)).toBe(false);
+      expect(server.accountingMetrics().pendingOperationalNotices).toBe(0);
+    } finally { await server.close(); }
+  });
+  it("dispatches a complete cross-file unit and never reads excluded C", async () => {
+    const root = await makeGitFixture();
+    await put(root, "a.ts", "import type { B } from './b'; interface A { b: B }");
+    await put(root, "b.ts", "import type { C } from './c'; export interface B { c: C }");
+    await put(root, "c.ts", "export interface C { value: string }");
+    const statePath = join(root, "consent");
+    await Effect.runPromise(Effect.gen(function* () {
+      const consent = yield* Consent.Service;
+      yield* consent.enable(yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone"));
+    }).pipe(Effect.provide(Consent.layer({ statePath }))));
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])));
+    if (observation === undefined) throw new Error("fixture observation missing");
+    const reads: string[] = [];
+    const captureSource: typeof captureStable = (sourceRoot, path, hooks, identity) =>
+      captureStable(sourceRoot, path, { ...hooks, sourceRead: (name) => { reads.push(name); } }, identity);
+    const capturePath = join(root, "provider-calls.txt");
+    const dispatch = { statePath, userConfigPath: null, credential: null, controlled: { capturePath } };
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+      captureSource, allowCandidateCrossFileEgress: true,
+    });
+    try {
+      expect(server.admit(observation, dispatch).status).toBe("accepted");
+      await server.whenIdle();
+      expect(existsSync(capturePath)).toBe(true);
+      expect(reads).toContain("c.ts");
+    } finally { await server.close(); }
+
+    const gatedCalls = join(root, "gated-provider-calls.txt");
+    const gatedServer = new ResidentServer(residentPaths(join(root, "gated-runtime")));
+    try {
+      expect(gatedServer.admit(observation, { ...dispatch, controlled: { capturePath: gatedCalls } }).status).toBe("accepted");
+      await gatedServer.whenIdle();
+      expect(existsSync(gatedCalls)).toBe(false);
+      expect(gatedServer.accountingMetrics().pendingOperationalNotices).toBe(0);
+    } finally { await gatedServer.close(); }
+
+    await put(root, ".review.jsonc", JSON.stringify({ version: 1, excludes: ["c.ts"] }));
+    reads.length = 0;
+    const excludedCalls = join(root, "excluded-provider-calls.txt");
+    const excludedServer = new ResidentServer(residentPaths(join(root, "excluded-runtime")), undefined, { captureSource });
+    try {
+      expect(excludedServer.admit(observation, { ...dispatch, controlled: { capturePath: excludedCalls } }).status).toBe("accepted");
+      await excludedServer.whenIdle();
+      expect(existsSync(excludedCalls)).toBe(false);
+      expect(reads).not.toContain("c.ts");
+    } finally { await excludedServer.close(); }
+  });
   it("records an issued command that failed before provider dispatch and releases its permit", async () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");

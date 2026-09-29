@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { adaptClaudeDirectEvent } from "./adapter.ts";
 import { makeGitFixture } from "./test-fixtures.ts";
 import { decodeResidentRequest } from "../resident/protocol.ts";
+import { MAX_SOURCE_BYTES } from "./capture.ts";
 
 const base = (root: string, path: string) => ({
   hook_event_name: "PostToolUse",
@@ -102,7 +103,7 @@ describe("Claude Code 2.1.218 direct adapter", () => {
     await symlink(outside, linked);
     expect(await Effect.runPromise(adaptClaudeDirectEvent(eventFor(linked)))).toBeUndefined();
     const oversized = join(root, "oversized.ts");
-    const large = `export type Huge = "${"x".repeat(32_768)}";\n`;
+    const large = `export type Huge = "${"x".repeat(MAX_SOURCE_BYTES)}";\n`;
     await writeFile(oversized, large);
     expect(await Effect.runPromise(adaptClaudeDirectEvent(eventFor(oversized, large)))).toBeUndefined();
     expect(await Effect.runPromise(adaptClaudeDirectEvent(eventFor(oversized, content)))).toBeUndefined();

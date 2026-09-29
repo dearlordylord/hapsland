@@ -5,6 +5,7 @@ import { join } from "node:path";
 import * as Effect from "effect/Effect";
 import { afterEach, describe, expect, it } from "vitest";
 import { adaptOpenCodeDirectEvent } from "./adapter.ts";
+import { MAX_SOURCE_BYTES } from "../../direct-event/capture.ts";
 
 const dirs: string[] = [];
 const fixture = () => {
@@ -53,8 +54,8 @@ describe("OpenCode 1.14.44 direct event adaptation", () => {
     writeFileSync(join(outside, "outside.ts"), content);
     symlinkSync(join(outside, "outside.ts"), join(cwd, "src", "link.ts"));
     expect(await adapt(event(cwd, "write", { filePath: "src/link.ts", content }, { exists: false }))).toBeUndefined();
-    writeFileSync(join(cwd, "src", "large.ts"), "x".repeat(256_001));
-    expect(await adapt(event(cwd, "write", { filePath: "src/large.ts", content: "x".repeat(256_001) },
+    writeFileSync(join(cwd, "src", "large.ts"), "x".repeat(MAX_SOURCE_BYTES + 1));
+    expect(await adapt(event(cwd, "write", { filePath: "src/large.ts", content: "x".repeat(MAX_SOURCE_BYTES + 1) },
       { exists: false }))).toBeUndefined();
     writeFileSync(join(cwd, "src", "item.ts"), content);
     expect(await adapt(event(cwd, "write", { filePath: "src/item.ts", content },

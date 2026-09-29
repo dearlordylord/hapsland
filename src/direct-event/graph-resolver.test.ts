@@ -1,0 +1,154 @@
+import { describe, expect, it } from "@effect/vitest";
+import * as Effect from "effect/Effect";
+import { put, makeGitFixture, addEvent } from "./test-fixtures.ts";
+import { adaptCodexAdd } from "./adapter.ts";
+import { prepareObservation } from "./pipeline.ts";
+import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts";
+import { configuredRules } from "../policy/rules.ts";
+
+describe("cross-file graph preparation", () => {
+  it.effect("expands allowed imported evidence and omits excluded supporting source", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; interface A { b: B }"));
+    yield* Effect.promise(() => put(root, "b.ts", "export interface B { value: string }"));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    const base = { controlledWriter: true, advicee: observation.advicee,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: configuredRules } as const;
+    const prepared = yield* prepareObservation(observation, base);
+    const a = prepared.outcomes.find((outcome) => outcome.status === "ready");
+    expect(a?.status).toBe("ready");
+    if (a?.status !== "ready") return;
+    expect(a.prepared.input.unit.root.references[0]).toMatchObject({ kind: "expanded", node: { artifact: { id: "b.ts:interface:B" } } });
+    const reads: string[] = [];
+    const excluded = yield* prepareObservation(observation, { ...base,
+      policy: { includes: ["a.ts"], excludes: [] },
+      captureHooks: { sourceRead: (path) => { reads.push(path); } },
+    });
+    expect(excluded.outcomes.some((outcome) => outcome.status === "ready")).toBe(false);
+    expect(reads).toEqual(["a.ts", "a.ts"]);
+  }));
+
+  it.effect("does not read C when A imports B and B imports excluded C", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; interface A { b: B }"));
+    yield* Effect.promise(() => put(root, "b.ts", "import type { C } from './c'; export interface B { c: C }"));
+    yield* Effect.promise(() => put(root, "c.ts", "export interface C { value: string }"));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    const reads: string[] = [];
+    const prepared = yield* prepareObservation(observation, {
+      controlledWriter: true,
+      advicee: observation.advicee,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
+      rules: configuredRules,
+      policy: { includes: ["a.ts", "b.ts"], excludes: ["c.ts"] },
+      captureHooks: { sourceRead: (path) => { reads.push(path); } },
+    });
+    expect(prepared.outcomes.some((outcome) => outcome.status === "ready")).toBe(false);
+    expect(reads).toEqual(["a.ts", "a.ts", "b.ts", "b.ts"]);
+  }));
+
+  it.effect("captures a source above the old 32 KiB limit when its evidence tree fits", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "a.ts", `${"/".repeat(40_000)}\ninterface A { value: string }`));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    const prepared = yield* prepareObservation(observation, {
+      controlledWriter: true, advicee: observation.advicee,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: configuredRules,
+    });
+    expect(prepared.outcomes.some((outcome) => outcome.status === "ready")).toBe(true);
+  }));
+  it.effect("resolves inline type imports and TypeScript sources named through .js", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "a.ts", "import { type B as Renamed } from './b.js'; interface A { b: Renamed }"));
+    yield* Effect.promise(() => put(root, "b.ts", "export interface B { value: string }"));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]));
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const prepared = yield* prepareObservation(observation, {
+      controlledWriter: true, advicee: observation.advicee,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: configuredRules,
+    });
+    expect(prepared.outcomes.some((outcome) => outcome.status === "ready")).toBe(true);
+  }));
+  it.effect("closes a cross-file cycle with an included root reference", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; export interface A { b: B }"));
+    yield* Effect.promise(() => put(root, "b.ts", "import type { A } from './a'; export interface B { a: A }"));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]));
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const prepared = yield* prepareObservation(observation, {
+      controlledWriter: true, advicee: observation.advicee,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: configuredRules,
+    });
+    const a = prepared.outcomes.find((outcome) => outcome.status === "ready");
+    expect(a?.status).toBe("ready");
+    if (a?.status !== "ready") return;
+    const b = a.prepared.input.unit.root.references[0];
+    expect(b?.kind).toBe("expanded");
+    if (b?.kind === "expanded") expect(b.node.references[0]).toMatchObject({ kind: "included", target: "a.ts:interface:A" });
+  }));
+  it.effect("does not treat a private declaration in another file as imported evidence", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; interface A { b: B }"));
+    yield* Effect.promise(() => put(root, "b.ts", "interface B { value: string }"));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]));
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const prepared = yield* prepareObservation(observation, {
+      controlledWriter: true, advicee: observation.advicee,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: configuredRules,
+    });
+    expect(prepared.outcomes.some((outcome) => outcome.status === "ready")).toBe(false);
+  }));
+  it.effect("refuses a fifth local edge even when the encoded tree fits", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    const source = Array.from({ length: 6 }, (_, i) => `interface T${i} { next: ${i === 5 ? "string" : `T${i + 1}`} }`).join("\n");
+    yield* Effect.promise(() => put(root, "a.ts", source));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]));
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const prepared = yield* prepareObservation(observation, {
+      controlledWriter: true, advicee: observation.advicee,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: configuredRules,
+    });
+    expect(prepared.outcomes.some((outcome) => outcome.status === "ready" &&
+      outcome.prepared.input.declaration.name === "T0")).toBe(false);
+    expect(prepared.outcomes.some((outcome) => outcome.status === "ready" &&
+      outcome.prepared.input.declaration.name === "T1")).toBe(true);
+  }));
+  it.effect("stops graph analysis at its deadline before reading support", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; interface A { b: B }"));
+    yield* Effect.promise(() => put(root, "b.ts", "export interface B { value: string }"));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]));
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const reads: string[] = [];
+    let clock = 0;
+    const prepared = yield* prepareObservation(observation, {
+      controlledWriter: true, advicee: observation.advicee,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: configuredRules,
+      graphNow: () => { const value = clock; clock += 5_000; return value; },
+      captureHooks: { sourceRead: (path) => { reads.push(path); } },
+    });
+    expect(prepared.outcomes.some((outcome) => outcome.status === "ready")).toBe(false);
+    expect(reads).toEqual(["a.ts", "a.ts"]);
+  }));
+  it.effect("shares one stable supporting capture across independently edited roots", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; interface A { b: B }\ninterface D { b: B }"));
+    yield* Effect.promise(() => put(root, "b.ts", "export interface B { value: string }"));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]));
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const reads: string[] = [];
+    const prepared = yield* prepareObservation(observation, {
+      controlledWriter: true, advicee: observation.advicee,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: configuredRules,
+      captureHooks: { sourceRead: (path) => { reads.push(path); } },
+    });
+    expect(prepared.outcomes.filter((outcome) => outcome.status === "ready")).toHaveLength(2);
+    expect(reads.filter((path) => path === "b.ts")).toHaveLength(2);
+  }));
+});

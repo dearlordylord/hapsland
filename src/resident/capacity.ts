@@ -3,9 +3,12 @@ import { randomUUID } from "node:crypto";
 export type { CapacityPurpose } from "../canonical/adapter.ts";
 
 export const GLOBAL_ITEM_LIMIT = 512;
-export const GLOBAL_BYTE_LIMIT = 64 * 1024 * 1024;
+// A 256 KiB source requires 2 MiB of capture workspace before path overhead.
+// Eight concurrent graph preparations can each reserve the conservative
+// 18+ MiB analyzer fallback. These are logical reservations, not an RSS claim.
+export const GLOBAL_BYTE_LIMIT = 256 * 1024 * 1024;
 export const PARTITION_ITEM_LIMIT = 16;
-export const PARTITION_BYTE_LIMIT = 2 * 1024 * 1024;
+export const PARTITION_BYTE_LIMIT = 32 * 1024 * 1024;
 // A retired partition has no mapped round. This positive candidate lets
 // QueueDispatch reject it by missing canonical Work instead of native policy.
 const RETIRED_DISPATCH_ROUND_CANDIDATE = 1;

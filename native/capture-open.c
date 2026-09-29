@@ -8,7 +8,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define MAX_SOURCE_BYTES 32768
+#define MAX_SOURCE_BYTES 262144
 
 static int matches_identity(int fd, const char *device, const char *inode) {
   if (strcmp(device, "-") == 0 && strcmp(inode, "-") == 0) return 1;

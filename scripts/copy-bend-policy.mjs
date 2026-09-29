@@ -9,3 +9,6 @@ copyFileSync(resolve(root, "src/resident/bend-policy.generated.js"),
 mkdirSync(resolve(root, "dist/canonical"), { recursive: true });
 copyFileSync(resolve(root, "src/canonical/canonical.generated.js"),
   resolve(root, "dist/canonical/canonical.generated.js"));
+
+copyFileSync(resolve(root, "src/canonical/import-graph.generated.js"),
+  resolve(root, "dist/canonical/import-graph.generated.js"));

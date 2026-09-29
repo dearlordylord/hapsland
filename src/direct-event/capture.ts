@@ -9,7 +9,7 @@ import * as Effect from "effect/Effect";
 import type { EligiblePath } from "./selection.ts";
 import type { PhysicalRootIdentity } from "./model.ts";
 
-export const MAX_SOURCE_BYTES = 32_768;
+export const MAX_SOURCE_BYTES = 262_144;
 
 export type StableCapture = {
   readonly bytes: Uint8Array;

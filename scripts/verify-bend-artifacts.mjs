@@ -4,6 +4,11 @@ import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
 const packageRoot = resolve(root, "packages/agent-flow-bend");
+for (const name of ["import-graph.generated.js", "import-graph.generated.d.ts"]) {
+  if (!readFileSync(resolve(packageRoot, name)).equals(readFileSync(resolve(root, "src/canonical", name)))) {
+    throw new Error(`${name} production copy is stale; copy the checked Bend artifact into src/canonical`);
+  }
+}
 for (const [artifact, sources] of [
   ["bend-policy.generated.js", ["Admission.bend", "Work.bend", "Handoff.bend", "Round.bend", "Background.bend", "Notice.bend", "Collection.bend", "Delivery.bend", "Cache.bend", "Ticket.bend", "Revision.bend", "Reuse.bend", "Retention.bend", "Lifecycle.bend", "PolicyRuntime.bend", "scripts/build-policy.mjs"]],
 ]) {
