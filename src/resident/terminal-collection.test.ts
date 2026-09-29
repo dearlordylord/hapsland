@@ -228,7 +228,8 @@ describe("Claude terminal collection", () => {
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
     await server.whenIdle();
     const result = await collect(server, admission.ticket, data, dispatch);
-    expect(["advice", "unavailable"]).toContain(result.status);
+    expect(result).toEqual({ version: 2, status: "empty" });
+    expect(server.stats().pendingOperationalNotices).toBeGreaterThan(0);
     expect(await collect(server, { nonce: "unknown", lifetime: server.lifetime }, data, dispatch))
       .toEqual({ version: 2, status: "unavailable", reason: "lost" });
     const replacement = new ResidentServer(residentPaths(join(data.root, "replacement")));
@@ -559,7 +560,7 @@ describe("Claude terminal collection", () => {
     expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ version: 2, status: "empty" });
   });
 
-  it("leases a failure notice from either admission without a terminal result", async () => {
+  it("keeps failure diagnostics out of ticketed Claude output", async () => {
     const data = await fixture();
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
     const failed = data.dispatch(0, "controlled backend failure");
@@ -572,15 +573,10 @@ describe("Claude terminal collection", () => {
       observation: data.observation, controlledWriter: true, dispatch: failed });
     if (second.status !== "accepted" || !("ticket" in second)) throw new Error("second not admitted");
     await server.whenIdle();
-    const advice = await collect(server, second.ticket, data, failed);
-    expect(advice.status).toBe("advice");
-    if (advice.status !== "advice") return;
-    expect(advice.findingCount).toBe(0);
-    expect((await collect(server, first.ticket, data, failed)).status).toBe("pending");
-    expect(server.acknowledge(advice.token).status).toBe("acknowledged");
-    expect(server.finalize(advice.token).status).toBe("finalized");
+    expect(await collect(server, second.ticket, data, failed)).toEqual({ version: 2, status: "empty" });
+    expect(server.stats().pendingOperationalNotices).toBeGreaterThan(0);
     expect(await collect(server, first.ticket, data, failed)).toEqual({ version: 2, status: "empty" });
-    expect((await collect(server, second.ticket, data, failed)).status).toBe("empty");
+    expect(await collect(server, second.ticket, data, failed)).toEqual({ version: 2, status: "empty" });
   });
 
   it("keeps a prior admission valid when a later tool-use edits the same subject", async () => {

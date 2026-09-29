@@ -112,10 +112,13 @@ describe("Claude advicee scoped resident delivery", () => {
     expect(observation).toBeDefined();
     if (observation === undefined) return;
     const dispatch: ResidentDispatchContext = { statePath, userConfigPath: null, credential: null,
-      controlled: { syntheticR6BrandedRepair: "finding" } };
+      controlled: { answers: Object.fromEntries(configuredRules.map((rule) => [
+        rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
+      ])) } };
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
-    expect(server.admit(observation, dispatch)).toEqual({ status: "accepted" });
+    expect(server.admit(observation, dispatch, false, true)).toEqual({ status: "accepted" });
     await server.whenIdle();
+    expect(server.stats().pendingFindingBatches).toBe(1);
     const collect = (advicee: typeof observation.advicee, composed: true) => server.handle({
       version: 1, operation: "collect", lifetime: server.lifetime,
       root, advicee, dispatch, mode: "turn-end", composed,
