@@ -22,7 +22,7 @@ export const includeRule = (packEnabled: boolean, ruleEnabled: boolean): boolean
 export const applicableRule = (facts: {
   readonly consent: boolean;
   readonly complete: boolean;
-  readonly target: "directTypeShape" | "legacyFileTypeShape" | "otherTypeShape" | "functionTarget" | "directTypeShapeV2" | "directFunctionV1";
+  readonly target: "typeShape" | "functionTarget" | "unsupportedTarget";
   readonly globalIncluded: boolean;
   readonly globalExcluded: boolean;
   readonly packEnabled: boolean;

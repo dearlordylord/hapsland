@@ -132,7 +132,7 @@ describe("resident advice collection policy", () => {
     expect(selectFittingCurrentFindingIndices(offers, "block-current-findings")).toEqual([1]);
   });
 
-  it("keeps the legacy notice helper within the byte bound", () => {
+  it("keeps notices within the byte bound", () => {
     const findings = Array.from({ length: 6 }, (_, index) => finding(index));
     const notice = { kind: "backend" as const, suppressedCount: 2 };
     const baseline = encodedHostOutputBytes(combinedReviewOutput([finding(0, "")], []));

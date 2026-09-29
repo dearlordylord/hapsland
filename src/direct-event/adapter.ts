@@ -11,7 +11,7 @@ import type {
   PhysicalRootIdentity,
   CodexHostVersion,
 } from "./model.ts";
-import type { PostEditLocation, VerifiedPatchHunkV2 } from "./attribution-v2.ts";
+import type { PostEditLocation, VerifiedPatchHunk } from "./edit-attribution.ts";
 import { MAX_SOURCE_BYTES, captureStable, type CaptureHooks } from "./capture.ts";
 import { eligibleNamedPath, resolvedDirectFilePolicy } from "./selection.ts";
 
@@ -297,8 +297,8 @@ const sourcePosition = (source: string, offset: number) => {
 const replacementHunks = (
   path: string, original: string, expected: string,
   oldText: string, newText: string, replaceAll: boolean,
-): ReadonlyArray<VerifiedPatchHunkV2> | undefined => {
-  const hunks: VerifiedPatchHunkV2[] = [];
+): ReadonlyArray<VerifiedPatchHunk> | undefined => {
+  const hunks: VerifiedPatchHunk[] = [];
   let search = 0;
   let shift = 0;
   let cursor = 0;
@@ -329,7 +329,7 @@ const replacementHunks = (
 };
 
 /** A Write has one exact changed envelope; multiple roots inside it stay ambiguous. */
-const writeHunks = (path: string, original: string, expected: string): ReadonlyArray<VerifiedPatchHunkV2> => {
+const writeHunks = (path: string, original: string, expected: string): ReadonlyArray<VerifiedPatchHunk> => {
   let start = 0;
   while (start < original.length && start < expected.length && original[start] === expected[start]) start += 1;
   let oldEnd = original.length;
@@ -396,7 +396,7 @@ export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEv
   const content = yield* captureStable(root.value.root, eligible, options.captureHooks, root.value.rootIdentity);
   if (content === undefined) return undefined;
   let candidate: DirectCandidate;
-  let verifiedHunks: ReadonlyArray<VerifiedPatchHunkV2> | undefined;
+  let verifiedHunks: ReadonlyArray<VerifiedPatchHunk> | undefined;
   if (event.tool_name === "Edit") {
     if (!nonEmpty(input.old_string) || !nonEmpty(input.new_string) ||
       typeof response.originalFile !== "string" ||

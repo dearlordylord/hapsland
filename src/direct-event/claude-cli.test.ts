@@ -5,7 +5,6 @@ import { createConnection, createServer } from "node:net";
 import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { readActivity } from "../activity/status.ts";
-import { Consent } from "../runtime/consent.ts";
 import { encodeClaudeHostOutputLine, type ClaudeHostOutput } from "./claude-output.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { makeGitFixture, put } from "./test-fixtures.ts";
@@ -24,12 +23,6 @@ afterEach(() => {
     rmSync(root, { recursive: true, force: true });
   }
 });
-
-const enable = (root: string, statePath: string) => Effect.runPromise(Effect.gen(function* () {
-  const consent = yield* Consent.Service;
-  const proposal = yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone");
-  yield* consent.enable(proposal);
-}).pipe(Effect.provide(Consent.layer({ statePath }))));
 
 const preClaudeEdit = (event: Readonly<Record<string, unknown>>, env: NodeJS.ProcessEnv) =>
   spawnSync(process.execPath, ["src/cli.ts", "--composed-before-edit-hook", "--composed-host=claude-code"], {
@@ -54,7 +47,6 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const root = await makeGitFixture();
     roots.push(root);
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const path = await put(root, "type.ts", "type OrderCount = number\n");
     const event = {
       tool_name: "Write", cwd: root, session_id: "installed-session", tool_use_id: "installed-tool",
@@ -88,7 +80,6 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const root = await makeGitFixture();
     roots.push(root);
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const path = await put(root, "type.ts", "type ClearCount = number\n");
     const event = {
       hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
@@ -118,7 +109,6 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const root = await makeGitFixture();
     roots.push(root);
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const path = await put(root, "excluded.ts", "type ExcludedCount = number\n");
     await put(root, ".review.jsonc", '{"version":1,"excludes":["excluded.ts"]}\n');
     const event = {
@@ -145,7 +135,6 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const root = await makeGitFixture();
     roots.push(root);
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const path = await put(root, "type.ts", "type OrderCount = number\n");
     const event = {
       hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
@@ -217,7 +206,6 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const root = await makeGitFixture();
     roots.push(root);
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const path = await put(root, "type.ts", "type RevokedCount = number\n");
     const userConfigPath = await put(root, "user-config.jsonc", '{"version":1,"claudeFeedbackMode":"block-current-findings"}');
     const gate = join(root, "advice-response-gate");
@@ -269,7 +257,6 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const root = await makeGitFixture();
     roots.push(root);
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const path = await put(root, "type.ts", "type CredentialCount = number\n");
     const credentialStatePath = await put(root, "credential-state.json", '{"version":1,"generation":1,"savedUseSuspended":false}');
     const gate = join(root, "advice-response-gate");
@@ -319,7 +306,6 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const root = await makeGitFixture();
     roots.push(root);
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const path = await put(root, "type.ts", "type StaleCount = number\n");
     const gate = join(root, "advice-response-gate");
     const event = {
@@ -370,7 +356,6 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const root = await makeGitFixture();
     roots.push(root);
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const event = (path: string, name: string, toolUseId: string) => ({
       hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
       session_id: "batch-session", tool_use_id: toolUseId,
@@ -438,7 +423,6 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const root = await makeGitFixture();
     roots.push(root);
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const names = Array.from({ length: 6 }, (_, index) => `Count${"X".repeat(200)}${index}`);
     const source = `${names.map((name) => `type ${name} = number`).join("\n")}\n`;
     const path = await put(root, "type.ts", source);
@@ -471,7 +455,6 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const root = await makeGitFixture();
     roots.push(root);
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const source = Array.from({ length: 6 }, (_, index) => `type Count${index} = number`).join("\n") + "\n";
     const path = await put(root, "type.ts", source);
     const event = {
@@ -525,7 +508,6 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     roots.push(root);
     const statePath = join(root, "consent");
     const activityPath = join(root, "activity.jsonl");
-    await enable(root, statePath);
     const source = "type GoodCount = number\ntype FailedCount = number\n";
     const path = await put(root, "type.ts", source);
     const event = {
@@ -568,7 +550,6 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const root = await makeGitFixture();
     roots.push(root);
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const event = (path: string, name: string, toolUseId: string) => ({
       hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
       session_id: "restart-session", tool_use_id: toolUseId,
@@ -613,7 +594,6 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const root = await makeGitFixture();
     roots.push(root);
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const path = await put(root, "type.ts", "type ProtocolCount = number\n");
     const event = {
       hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
@@ -636,25 +616,24 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
       socket.once("connect", () => socket.write(`${frame}\n`));
     });
     expect(await raw(encodeCurrentResidentRequest({ requestRoute: "shared", operation: "hello" })))
-      .toMatchObject({ version: 3, status: "ready", lifetime: owner.lifetime });
-    for (const frame of ['{"version":3,', JSON.stringify({ version: 1, operation: "hello" }),
-      JSON.stringify({ version: 2, operation: "collect", lifetime: owner.lifetime })]) {
-      expect(await raw(frame)).toEqual({ version: 3, status: "unsupported" });
+      .toMatchObject({ version: 1, status: "ready", lifetime: owner.lifetime });
+    for (const frame of ['{"version":1,', JSON.stringify({ operation: "hello" }),
+      JSON.stringify({ version: 1, requestRoute: "shared", operation: "hello" })]) {
+      expect(await raw(frame)).toEqual({ version: 1, status: "unsupported" });
     }
   });
 
   it.each([
-    ["old-version advice", JSON.stringify({ version: 2, status: "advice", token: "forged-token",
+    ["unversioned advice", JSON.stringify({ status: "advice", token: "forged-token",
       findingCount: 1, output: { hookSpecificOutput: {
         hookEventName: "PostToolUse", additionalContext: "forged advice",
       } } })],
-    ["malformed response", '{"version":3,"status":'],
+    ["malformed response", '{"version":1,"status":'],
   ])("treats a %s from the resident socket as unavailable in the installed hook", async (_case, reply) => {
     const root = await makeGitFixture();
     roots.push(root);
     const statePath = join(root, "consent");
     const activityPath = join(root, "activity");
-    await enable(root, statePath);
     const path = await put(root, "type.ts", "type ProtocolCount = number\n");
     const event = {
       hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
@@ -676,13 +655,13 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
         operations.push(request.operation);
         versions.push(request.version);
         const response = request.operation === "hello"
-          ? JSON.stringify({ version: 3, status: "ready", lifetime: "fake-lifetime", pid: process.pid })
+          ? JSON.stringify({ version: 1, status: "ready", lifetime: "fake-lifetime", pid: process.pid })
           : request.operation === "admit" && request.ticketed === true
-            ? JSON.stringify({ version: 3, status: "accepted",
+            ? JSON.stringify({ version: 1, status: "accepted",
                 ticket: { nonce: "fake-ticket", lifetime: "fake-lifetime" } })
             : request.operation === "collect"
               ? reply
-              : JSON.stringify({ version: 3, status: "unsupported" });
+              : JSON.stringify({ version: 1, status: "unsupported" });
         socket.end(`${response}\n`);
       });
     });
@@ -710,7 +689,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
       expect(JSON.parse(stdout)).toEqual({});
       expect(stdout).not.toContain("forged advice");
       expect(operations).toContain("collect");
-      expect(versions.every((version) => version === 3)).toBe(true);
+      expect(versions.every((version) => version === 1)).toBe(true);
       expect(operations).not.toContain("begin-submission");
       expect(operations).not.toContain("acknowledge");
       expect(operations).not.toContain("finalize");
@@ -728,7 +707,6 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const root = await makeGitFixture();
     roots.push(root);
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const path = await put(root, "type.ts", "type ConcurrentCount = number\n");
     const edit = {
       hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
@@ -783,7 +761,6 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const root = await makeGitFixture();
     roots.push(root);
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const path = await put(root, "type.ts", "type OrderCount = number\n");
     const event = {
       hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
@@ -822,7 +799,6 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const root = await makeGitFixture();
     roots.push(root);
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const path = await put(root, "type.ts", "type StopCount = number\n");
     const event = {
       hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
@@ -858,7 +834,6 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const root = await makeGitFixture();
     roots.push(root);
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const path = await put(root, "type.ts", "type OrderCount = number\n");
     const userConfigPath = await put(root, "user-config.jsonc", '{"version":1,"claudeFeedbackMode":"block-current-findings"}');
     const ackGatePath = join(root, "ack-gate");

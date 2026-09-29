@@ -6,7 +6,6 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as Effect from "effect/Effect";
 import { configuredRules } from "../../src/policy/rules.ts";
-import { Consent } from "../../src/runtime/consent.ts";
 import { adaptCodexDirectEvent } from "../../src/direct-event/adapter.ts";
 import { addEvent, makeGitFixture, put } from "../../src/direct-event/test-fixtures.ts";
 import type { DirectObservation, DirectAdvicee } from "../../src/direct-event/model.ts";
@@ -47,11 +46,6 @@ const fixture = async (host: Host, controlled: ResidentDispatchContext["controll
   const statePath = join(root, ".probe-consent");
   const activityPath = join(root, ".probe-activity");
   const capturePath = join(root, ".probe-call-count");
-  await Effect.runPromise(Effect.gen(function* () {
-    const consent = yield* Consent.Service;
-    const proposal = yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone");
-    yield* consent.enable(proposal);
-  }).pipe(Effect.provide(Consent.layer({ statePath }))));
   const paths = residentPaths(join(root, ".probe-resident"));
   const server = new ResidentServer(paths, () => performance.now(), options);
   await server.listen();

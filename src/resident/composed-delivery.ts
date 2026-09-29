@@ -458,12 +458,11 @@ export class ComposedDelivery {
 
   authorizeFinishOutput(partition: string, token: string): boolean {
     const permit = this.#finishPermits.get(token);
-    // The non-installed legacy collector has no finish-decision permit.
     if (permit === undefined) {
-      const decision = this.canonical.transition({ kind: "deliveryLegacyStopCheck",
+      const decision = this.canonical.transition({ kind: "deliveryUnreservedStopCheck",
         active: this.isActive(partition), deciding: this.isDeciding(partition) });
-      if (decision.rejection !== undefined || decision.commands.length !== 1) throw new Error("canonical legacy Stop gate refused");
-      return decision.commands[0]?.kind === "deliveryLegacyStopAllowed";
+      if (decision.rejection !== undefined || decision.commands.length !== 1) throw new Error("canonical unreserved Stop gate refused");
+      return decision.commands[0]?.kind === "deliveryUnreservedStopAllowed";
     }
     const stop = this.#stops.get(partition);
     if (permit.partition !== partition || !this.isActive(partition, permit.generation) ||

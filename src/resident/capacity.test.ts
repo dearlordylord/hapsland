@@ -40,10 +40,10 @@ describe("resident logical capacity ledger", () => {
       invalidSeen: false, generationValid: false, authorized: false }).commands)
       .toEqual([{ kind: "deliveryCredentialInvalid" }]);
     expect(ledger.transition({ kind: "deliveryFinalCredentialCheck",
-      legacyCollect: true, invalidSeen: true }).commands)
+      sharedCollect: true, invalidSeen: true }).commands)
       .toEqual([{ kind: "deliveryBatchRelease" }]);
     expect(ledger.transition({ kind: "deliveryFinalCredentialCheck",
-      legacyCollect: false, invalidSeen: true }).commands)
+      sharedCollect: false, invalidSeen: true }).commands)
       .toEqual([{ kind: "deliveryBatchProceed" }]);
   });
 
@@ -101,8 +101,8 @@ describe("resident logical capacity ledger", () => {
     expect(ledger.transition({ kind: "deliveryExistingTokenCheck", surface: "stop",
       existingToken: true, finishPermit: false }).commands)
       .toEqual([{ kind: "deliveryExistingTokenDenied" }]);
-    expect(ledger.transition({ kind: "deliveryLegacyStopCheck", active: true,
-      deciding: true }).commands).toEqual([{ kind: "deliveryLegacyStopDenied" }]);
+    expect(ledger.transition({ kind: "deliveryUnreservedStopCheck", active: true,
+      deciding: true }).commands).toEqual([{ kind: "deliveryUnreservedStopDenied" }]);
   });
 
   it("keeps permit and capacity transitions in one canonical resident state", () => {

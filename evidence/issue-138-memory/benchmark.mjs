@@ -17,7 +17,6 @@ import { compileRulePackV2 } from "../../src/rules/compiler.ts";
 import { V2_TYPE_CONTRACT } from "../../src/rules/v2-targets.ts";
 import { ResidentServer } from "../../src/resident/server.ts";
 import { residentPaths } from "../../src/resident/paths.ts";
-import { Consent } from "../../src/runtime/consent.ts";
 
 const execFileAsync = promisify(execFile);
 const ITEMS = 8;
@@ -128,15 +127,8 @@ const makeWorkspace = async () => {
   return { root: canonicalRoot, observations, primer };
 };
 
-const enableConsent = (root, statePath) => Effect.runPromise(Effect.gen(function* () {
-  const consent = yield* Consent.Service;
-  const proposal = yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone");
-  yield* consent.enable(proposal);
-}).pipe(Effect.provide(Consent.layer({ statePath }))));
-
 const residentV1 = async ({ root, observations, primer }) => {
   const statePath = join(root, "consent");
-  await enableConsent(root, statePath);
   const dispatch = { statePath, userConfigPath: null, credential: null, controlled: { answers: {} } };
   const held = gate(ITEMS);
   const sample = sampler();

@@ -8,7 +8,6 @@ import { join } from "node:path";
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import { addEvent, makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
-import { Consent } from "../runtime/consent.ts";
 import { analyzerMaterializationPreflight } from "../direct-event/analyzer.ts";
 import { readActivity } from "../activity/status.ts";
 import { claudeHostOutputText } from "../direct-event/claude-output.ts";
@@ -27,12 +26,6 @@ import {
   PENDING_ADVICE_EXPIRY_MS,
   encodedHostOutputBytes,
 } from "./collection.ts";
-
-const enable = (root: string, statePath: string) => Effect.runPromise(Effect.gen(function* () {
-  const consent = yield* Consent.Service;
-  const proposal = yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone");
-  yield* consent.enable(proposal);
-}).pipe(Effect.provide(Consent.layer({ statePath }))));
 
 const deferred = <A = void>() => {
   let resolve!: (value: A | PromiseLike<A>) => void;
@@ -194,7 +187,6 @@ describe("canonical resident capacity", () => {
     await put(root, "first.ts", "type FirstCount = number\n");
     await put(root, "second.ts", "type SecondCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root,
       ["first.ts", "second.ts"])));
     if (observation === undefined) throw new Error("missing fixture observation");
@@ -241,7 +233,6 @@ describe("canonical resident capacity", () => {
     await put(root, "first.ts", "type FirstCount = number\n");
     await put(root, "second.ts", "type SecondCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root,
       ["first.ts", "second.ts"])));
     if (observation === undefined) throw new Error("missing fixture observation");
@@ -272,7 +263,6 @@ describe("canonical resident capacity", () => {
     await put(root, "agent-a.ts", "type AgentACount = number\n");
     await put(root, "agent-b.ts", "type AgentBCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const a = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["agent-a.ts"],
       { session_id: "agent-a", tool_use_id: "edit-a" })));
     const b = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["agent-b.ts"],
@@ -305,7 +295,6 @@ describe("resident delivery lease", () => {
     await put(root, "held.ts", "type HeldCount = number\n");
     const statePath = join(root, "consent");
     const activityPath = join(root, "activity");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["held.ts"])));
     if (observation === undefined) throw new Error("missing fixture observation");
     const entered = deferred();
@@ -343,7 +332,6 @@ describe("resident delivery lease", () => {
     for (const [index, path] of paths.entries()) await put(root, path, `type Item${index}Count = number\n`);
     const statePath = join(root, "consent");
     const activityPath = join(root, "activity");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, paths)));
     if (observation === undefined) throw new Error("missing fixture observation");
     const started = deferred();
@@ -382,7 +370,6 @@ describe("resident delivery lease", () => {
     await put(root, "type.ts", "type OrderCount = number\n");
     await put(root, "second.ts", "type InvoiceCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
     const started = deferred();
@@ -422,7 +409,6 @@ describe("resident delivery lease", () => {
     await put(root, "type.ts", "type OrderCount = number\n");
     await put(root, "second.ts", "type InvoiceCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
     const gate = deferred();
@@ -470,7 +456,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
@@ -505,7 +490,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
     const gate = deferred(), started = deferred();
@@ -539,7 +523,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
     let now = 0;
@@ -563,7 +546,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
@@ -590,7 +572,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
     const started = deferred();
@@ -630,7 +611,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
@@ -682,7 +662,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
@@ -710,7 +689,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -746,7 +724,6 @@ describe("resident delivery lease", () => {
     await put(root, "codex.ts", "type CodexCount = number\n");
     await put(root, "claude.ts", "type ClaudeCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const codex = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["codex.ts"], {
       session_id: "codex-session", tool_use_id: "codex-tool",
     })));
@@ -800,7 +777,6 @@ describe("resident delivery lease", () => {
     const statePath = join(root, "consent");
     const credentialStatePath = join(root, "credential-state.json");
     writeFileSync(credentialStatePath, JSON.stringify({ version: 1, generation: 1, savedUseSuspended: false }));
-    await enable(root, statePath);
     const base = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(base).toBeDefined();
     if (base === undefined) return;
@@ -832,7 +808,6 @@ describe("resident delivery lease", () => {
     const credentialState = (generation: number) =>
       JSON.stringify({ version: 1, generation, savedUseSuspended: false });
     writeFileSync(credentialStatePath, credentialState(1));
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
     const dispatch: ResidentDispatchContext = { ...findingDispatch(statePath), credential: {
@@ -878,7 +853,6 @@ describe("resident delivery lease", () => {
     const credentialState = (generation: number) =>
       JSON.stringify({ version: 1, generation, savedUseSuspended: false });
     writeFileSync(credentialStatePath, credentialState(1));
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
     const dispatch: ResidentDispatchContext = { ...findingDispatch(statePath), activityPath, credential: {
@@ -912,7 +886,6 @@ describe("resident delivery lease", () => {
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
     const activityPath = join(root, "activity");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
     const dispatch = { ...findingDispatch(statePath), activityPath };
@@ -946,7 +919,6 @@ describe("resident delivery lease", () => {
     await put(root, "failure.ts", "type FailureCount = number\n");
     const statePath = join(root, "consent");
     const activityPath = join(root, "activity");
-    await enable(root, statePath);
     const finding = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["type.ts"], {
       tool_use_id: "finding-tool", turn_id: "same-turn",
     })));
@@ -996,7 +968,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "first.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const first = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["first.ts"], {
       tool_use_id: "first-tool", turn_id: "first-turn",
     })));
@@ -1020,7 +991,6 @@ describe("resident delivery lease", () => {
     await put(root, "a.ts", "type ACount = number\n");
     await put(root, "b.ts", "type BCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const first = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"], {
       tool_use_id: "first", turn_id: "same-turn",
     })));
@@ -1059,7 +1029,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -1102,7 +1071,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -1131,7 +1099,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -1151,7 +1118,6 @@ describe("resident delivery lease", () => {
     await put(root, "first.ts", "type FirstCount = number\n");
     await put(root, "second.ts", "type SecondCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["first.ts", "second.ts"])));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -1173,7 +1139,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -1191,7 +1156,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -1292,7 +1256,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -1322,7 +1285,6 @@ describe("resident delivery lease", () => {
     const credentialStatePath = join(root, "credential-state.json");
     const capturePath = join(root, "provider-calls.txt");
     writeFileSync(credentialStatePath, JSON.stringify({ version: 1, generation: 1, savedUseSuspended: false }));
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -1370,7 +1332,6 @@ describe("resident delivery lease", () => {
     await put(root, "b.ts", "type BCount = number\n");
     const statePath = join(root, "consent");
     const activityPath = join(root, "activity");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts", "b.ts"])));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -1451,7 +1412,6 @@ describe("resident delivery lease", () => {
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
     const capturePath = join(root, "backend-called");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -1506,7 +1466,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -1555,7 +1514,6 @@ describe("resident delivery lease", () => {
     await put(root, ".review.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
     const statePath = join(root, "consent");
     const capturePath = join(root, "backend-calls");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, paths)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -1617,7 +1575,6 @@ describe("resident delivery lease", () => {
       await put(root, ".review.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
       const statePath = join(root, "consent");
       const capturePath = join(root, "backend-calls");
-      await enable(root, statePath);
       const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
       expect(observation).toBeDefined();
       if (observation === undefined) throw new Error("fixture adaptation failed");
@@ -1673,7 +1630,6 @@ describe("resident delivery lease", () => {
     await put(root, "a.ts", "type FirstShape = number\n");
     await put(root, "b.ts", "type SecondShape = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts", "b.ts"])));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -1736,7 +1692,6 @@ describe("resident delivery lease", () => {
     expect(preflight?.expandedUnitBytes).toBeGreaterThan(PARTITION_BYTE_LIMIT);
     const statePath = join(root, "consent");
     const capturePath = join(root, "backend-calls");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, [longNestedPath])));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -1759,7 +1714,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const first = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(first).toBeDefined();
     if (first === undefined) return;
@@ -1823,7 +1777,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const first = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(first).toBeDefined();
     if (first === undefined) return;
@@ -1879,7 +1832,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const first = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(first).toBeDefined();
     if (first === undefined) return;
@@ -1931,7 +1883,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const first = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(first).toBeDefined();
     if (first === undefined) return;
@@ -2002,7 +1953,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     const statePath = join(root, "consent");
     const capturePath = join(root, "backend-calls");
-    await enable(root, statePath);
     const clearDispatch: ResidentDispatchContext = {
       statePath,
       userConfigPath: null,
@@ -2084,7 +2034,6 @@ describe("resident delivery lease", () => {
     await put(root, "b.ts", "type BCount = number\n");
     await put(root, "a.ts", "type ACount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["b.ts", "a.ts"])));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -2112,7 +2061,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -2156,7 +2104,6 @@ describe("resident delivery lease", () => {
     await put(root, "rules.jsonc", rules("first recommendation"));
     await put(root, ".review.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -2195,7 +2142,6 @@ describe("resident delivery lease", () => {
       await put(root, path, `type Count${index} = number\n`);
     }
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, paths)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -2229,7 +2175,6 @@ describe("resident delivery lease", () => {
   it("revalidates and finalizes across four saturated partitions", async () => {
     const root = await makeGitFixture();
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const dispatch = findingDispatch(statePath);
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
     for (let partition = 0; partition < 4; partition += 1) {
@@ -2271,7 +2216,6 @@ describe("resident delivery lease", () => {
     await put(root, "a.ts", "type ACount = number\n");
     await put(root, "b.ts", "type BCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts", "b.ts"])));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -2309,7 +2253,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
     const clearCalls = join(root, "clear-calls");
     const clearDispatch: ResidentDispatchContext = {
@@ -2361,7 +2304,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     const statePath = join(root, "consent");
     const capturePath = join(root, "backend-calls");
-    await enable(root, statePath);
     const dispatch: ResidentDispatchContext = {
       statePath,
       userConfigPath: null,
@@ -2406,7 +2348,6 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     const statePath = join(root, "consent");
     const capturePath = join(root, "backend-calls");
-    await enable(root, statePath);
     const dispatch: ResidentDispatchContext = {
       statePath,
       userConfigPath: null,
@@ -2440,7 +2381,6 @@ describe("resident delivery lease", () => {
     ).join("\n"));
     const statePath = join(root, "consent");
     const capturePath = join(root, "backend-calls");
-    await enable(root, statePath);
     const base = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(base).toBeDefined();
     if (base === undefined) return;
@@ -2517,7 +2457,6 @@ describe("resident bounded advice batches", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -2547,7 +2486,6 @@ describe("resident bounded advice batches", () => {
     await put(root, "a.ts", "type ACount = number\n");
     await put(root, "b.ts", "type BCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts", "b.ts"])));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -2591,7 +2529,6 @@ describe("resident bounded advice batches", () => {
     await put(root, "a.ts", "type ACount = number\n");
     await put(root, "b.ts", "type BCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const firstObservation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])));
     const secondObservation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["b.ts"], {
       tool_use_id: "expiry-b",
@@ -2641,7 +2578,6 @@ describe("resident bounded advice batches", () => {
     await put(root, "a.ts", "type ACount = number\n");
     await put(root, "b.ts", "type BCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts", "b.ts"])));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -2697,7 +2633,6 @@ describe("resident bounded advice batches", () => {
     await put(root, "b.ts", "type BCount = number\n");
     await put(root, "c.ts", "type CCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const firstObservation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])));
     const secondObservation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["b.ts", "c.ts"], {
       tool_use_id: "second-cycle",
@@ -2769,7 +2704,6 @@ describe("resident bounded advice batches", () => {
     await put(root, "b.ts", "type BCount = number\n");
     await put(root, "c.ts", "type CCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts", "b.ts", "c.ts"])));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -2833,7 +2767,6 @@ describe("resident bounded advice batches", () => {
     await put(root, "a.ts", "type ACount = number\n");
     await put(root, "b.ts", "type BCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts", "b.ts"])));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -2878,7 +2811,6 @@ describe("resident bounded advice batches", () => {
     const paths = Array.from({ length: 6 }, (_, index) => `type-${index}.ts`);
     for (const [index, path] of paths.entries()) await put(root, path, `type Count${index} = number\n`);
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, paths)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
@@ -2918,7 +2850,6 @@ describe("resident bounded advice batches", () => {
       const root = await makeGitFixture();
       await put(root, "type.ts", "type OrderCount = number\n");
       const statePath = join(root, "consent");
-      await enable(root, statePath);
       const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
       expect(observation).toBeDefined();
       if (observation === undefined) throw new Error("fixture adaptation failed");

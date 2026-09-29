@@ -55,7 +55,7 @@ study work are named at the end. Runtime claims require separate test evidence.
 
 ## Supported event and selection contract
 
-`direct-root-selection/v2` takes an attributed, completed direct edit event,
+`direct-root-selection` takes an attributed, completed direct edit event,
 canonical working root, eligible repository-relative named paths, stable post-edit
 snapshots, and bounded patch structure. Codex CLI `apply_patch` supplies patch
 hunks; Hapsland verifies their location against the captured post-edit snapshot.

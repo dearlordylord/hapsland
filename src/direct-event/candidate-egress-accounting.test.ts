@@ -40,7 +40,7 @@ describe("T-case candidate HTTP body and source scope", () => {
     const pack = { schemaVersion: 1, id: "noul-type", contentVersion: "1", rules: [rule] };
     const rules = compileRulePack(pack, "proposal:issue-138-candidate-egress");
     const measured: Array<{ readonly id: string; readonly candidate: CandidateRecord }> = [];
-    for (const fixture of manifest.cases.filter((item) => item.branch === "type-shape/v2")) {
+    for (const fixture of manifest.cases.filter((item) => item.branch.split("/")[0] === "type-shape")) {
       const root = await makeGitFixture();
       const sourceByPath = new Map<string, { source: Source; text: string }>();
       for (const source of fixture.sources) {

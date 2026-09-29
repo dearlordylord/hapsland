@@ -79,7 +79,7 @@ const currentTypeTarget: RuleTargetContext = {
 
 /** Independent Boolean gate used by conformance tests and future orchestration. */
 export const shouldDispatchRule = (gates: RuleSelectionGates): boolean =>
-  applicableRule({ ...gates, complete: true, target: "directTypeShape",
+  applicableRule({ ...gates, complete: true, target: "typeShape",
     semanticApplicable: true });
 
 const qualified = (packId: string, ruleId: string): string => `${packId}/${ruleId}`;
@@ -265,10 +265,9 @@ export const selectApplicableRules = (
   return applicableRule({
   consent: true,
   complete: target.complete,
-  target: target.inputContract === FUNCTION_INPUT_CONTRACT ? "directFunctionV1"
-    : target.inputContract === TYPE_INPUT_CONTRACT ? "directTypeShapeV2"
-    : target.artifactKind === "function" ? "functionTarget"
-    : "otherTypeShape",
+  target: target.inputContract === FUNCTION_INPUT_CONTRACT ? "functionTarget"
+    : target.inputContract === TYPE_INPUT_CONTRACT ? "typeShape"
+    : "unsupportedTarget",
   globalIncluded: true,
   globalExcluded: false,
   packEnabled: true,

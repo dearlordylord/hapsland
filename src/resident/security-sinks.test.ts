@@ -9,7 +9,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import { makeGitFixture, put, updateEvent } from "../direct-event/test-fixtures.ts";
-import { Consent } from "../runtime/consent.ts";
 import { ensureResident, residentRequest } from "./client.ts";
 import { residentPaths } from "./paths.ts";
 import type { ResidentDispatchContext } from "./protocol.ts";
@@ -54,10 +53,6 @@ describe("security sink prototype", { timeout: 15_000 }, () => {
     const statePath = join(temporary, "consent");
     const activityPath = join(temporary, "activity");
     const runtime = join(temporary, "runtime");
-    await Effect.runPromise(Effect.gen(function* () {
-      const consent = yield* Consent.Service;
-      yield* consent.enable(yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone"));
-    }).pipe(Effect.provide(Consent.layer({ statePath }))));
 
     const launchScript = "import {ensureResident} from './src/resident/client.ts'; console.log(JSON.stringify(await ensureResident()));";
     const child = spawn(process.execPath, ["--input-type=module", "-e", launchScript], {
@@ -97,7 +92,7 @@ describe("security sink prototype", { timeout: 15_000 }, () => {
     };
     // Write the observed frame through the real resident Unix socket.
     const admissionFrame = `${JSON.stringify({
-      version: 3, operation: "admit", lifetime: owner.lifetime,
+      version: 1, operation: "admit", lifetime: owner.lifetime,
       observation, controlledWriter: true, dispatch,
     })}\n`;
     expect(admissionFrame).toContain(marker);
@@ -114,7 +109,7 @@ describe("security sink prototype", { timeout: 15_000 }, () => {
       });
       socket.once("close", () => resolve(response));
     });
-    expect(JSON.parse(admissionResponse)).toEqual({ version: 3, status: "accepted" });
+    expect(JSON.parse(admissionResponse)).toEqual({ version: 1, status: "accepted" });
     await waitFor(async () => {
       if (!existsSync(join(temporary, "called"))) return false;
       const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
@@ -136,10 +131,6 @@ describe("security sink prototype", { timeout: 15_000 }, () => {
     directories.push(root, temporary);
     await put(root, "type.ts", `type OrderCount = number // ${marker}\n`);
     const statePath = join(temporary, "consent");
-    await Effect.runPromise(Effect.gen(function* () {
-      const consent = yield* Consent.Service;
-      yield* consent.enable(yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone"));
-    }).pipe(Effect.provide(Consent.layer({ statePath }))));
     const script = [
       "import * as Effect from 'effect/Effect';",
       "import {adaptCodexDirectEvent} from './src/direct-event/adapter.ts';",

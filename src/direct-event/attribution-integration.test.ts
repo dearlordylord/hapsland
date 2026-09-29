@@ -9,7 +9,7 @@ import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "../rules/targets.t
 import { compileRulePack } from "../rules/compiler.ts";
 import { semanticIdentity } from "./model.ts";
 
-describe("v2 Codex root attribution", () => {
+describe("Codex root attribution", () => {
   it.effect("selects a complete named function Add root through the Bend graph", () => Effect.gen(function* () {
     const root = yield* Effect.promise(makeGitFixture);
     yield* Effect.promise(() => put(root, "a.ts", "import { helper } from './b'; export function run(): number { return helper() }"));
@@ -24,7 +24,7 @@ describe("v2 Codex root attribution", () => {
         id: "function", question: "Is this function clear?", criteria: { false: "No", true: "Yes" },
         message: "Clarify it", reviewTargets: [{ artifactKind: "function",
           inputContract: FUNCTION_INPUT_CONTRACT, capabilities: ["signature", "body"] }],
-      }] }, "fixture-v2"),
+      }] }, "fixture-current"),
     } as const;
     const prepared = yield* prepareObservation(observation, context);
     expect(prepared.observation.outcomes[0]?.status).toBe("observed");
@@ -91,7 +91,7 @@ describe("v2 Codex root attribution", () => {
     if (prepared.observation.status === "incomplete") expect(prepared.observation.units).toEqual([]);
   }));
 
-  it.effect("requires a confirmed successful Codex Update before v2 attribution", () => Effect.gen(function* () {
+  it.effect("requires a confirmed successful Codex Update before attribution", () => Effect.gen(function* () {
     const root = yield* Effect.promise(makeGitFixture);
     yield* Effect.promise(() => put(root, "a.ts", "interface B { value: number }\n"));
     const observation = yield* adaptCodexDirectEvent(updateEvent(root, "a.ts", ["interface B { value: number }"], {

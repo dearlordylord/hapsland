@@ -10,7 +10,7 @@ const fail = (message) => {
   process.exitCode = 1;
 };
 
-if (manifest.schemaVersion !== 2 || manifest.ordinaryTests !== "deterministic-offline") {
+if (manifest.schemaVersion !== 1 || manifest.ordinaryTests !== "deterministic-offline") {
   fail("manifest identity or offline policy is missing");
 }
 if (!Array.isArray(manifest.groups) || manifest.groups.length !== 12) {

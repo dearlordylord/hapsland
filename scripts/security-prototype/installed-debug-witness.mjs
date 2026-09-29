@@ -21,7 +21,6 @@ if (process.argv[2] === "child") {
   const installed = async (path) => import(pathToFileURL(join(packageRoot, "dist", path)).href);
   const Effect = await import(pathToFileURL(join(installation, "node_modules", "effect", "dist", "Effect.js")).href);
   const { adaptCodexDirectEvent } = await installed("direct-event/adapter.js");
-  const { Consent } = await installed("runtime/consent.js");
   const { ResidentServer } = await installed("resident/server.js");
   const { residentPaths } = await installed("resident/paths.js");
   await command("git", ["init", "-q", root]);
@@ -29,10 +28,6 @@ if (process.argv[2] === "child") {
   await command("git", ["-C", root, "config", "user.name", "Test"]);
   await writeFile(join(root, "type.ts"), `type OrderCount = number // ${marker}\n`);
   const statePath = join(root, "consent");
-  await Effect.runPromise(Effect.gen(function* () {
-    const consent = yield* Consent.Service;
-    yield* consent.enable(yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone"));
-  }).pipe(Effect.provide(Consent.layer({ statePath }))));
   const event = {
     hook_event_name: "PostToolUse", tool_name: "apply_patch", session_id: "session", turn_id: "turn", tool_use_id: "tool-use", cwd: root,
     tool_input: { command: `*** Begin Patch\n*** Add File: type.ts\n+type OrderCount = number // ${marker}\n*** End Patch` },

@@ -49,7 +49,7 @@ try {
       !source.includes("function $Notice$prune$(") ||
       ["order", "eligible", "expired", "credential_disposition"]
         .some((name) => !source.includes(`function $Collection$${name}$(`)) ||
-      ["transition", "expired", "background_reofferable", "existing_token_allowed", "submission_allowed", "legacy_stop_allowed",
+      ["transition", "expired", "background_reofferable", "existing_token_allowed", "submission_allowed", "unreserved_stop_allowed",
         "acknowledge", "finalize", "finding_disposition", "release_unacknowledged",
         "submission_candidate", "submission_batch_gate", "credential_observe", "final_credential_gate",
         "collection_lease", "advice_candidate", "notice_candidate", "reserve_candidate"]
@@ -234,8 +234,8 @@ export const bendDeliverySubmissionAllowed = (round, surface, existingToken, fin
   run_loop($Delivery$submission_allowed$(normalize(round), normalize(surface), existingToken, finishPermit));
 export const bendDeliveryExistingTokenAllowed = (surface, existingToken, finishPermit) =>
   run_loop($Delivery$existing_token_allowed$(normalize(surface), existingToken, finishPermit));
-export const bendDeliveryLegacyStopAllowed = (round) =>
-  run_loop($Delivery$legacy_stop_allowed$(normalize(round)));
+export const bendDeliveryUnreservedStopAllowed = (round) =>
+  run_loop($Delivery$unreserved_stop_allowed$(normalize(round)));
 export const bendDeliveryAcknowledge = (items, anyExpired) =>
   run_loop($Delivery$acknowledge$(nat(items), anyExpired));
 export const bendDeliveryFinalize = (items, allAcknowledged, anyExpired) =>
@@ -250,8 +250,8 @@ export const bendDeliverySubmissionBatchGate = (count, allValid) =>
   run_loop($Delivery$submission_batch_gate$(nat(count), allValid));
 export const bendDeliveryCredentialObserve = (invalidSeen, generationValid, authorized) =>
   run_loop($Delivery$credential_observe$(invalidSeen, generationValid, authorized));
-export const bendDeliveryFinalCredentialGate = (legacyCollect, invalidSeen) =>
-  run_loop($Delivery$final_credential_gate$(legacyCollect, invalidSeen));
+export const bendDeliveryFinalCredentialGate = (sharedCollect, invalidSeen) =>
+  run_loop($Delivery$final_credential_gate$(sharedCollect, invalidSeen));
 export const bendDeliveryCollectionLease = (hasLease, expired, stopCollector, sameGroup, reofferable) =>
   run_loop($Delivery$collection_lease$(hasLease, expired, stopCollector, sameGroup, reofferable));
 export const bendDeliveryAdviceCandidate = (samePartition, unleased, hasUnsuppressed, ticketOwns) =>

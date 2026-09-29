@@ -1,4 +1,4 @@
-import type { PostEditLocation, VerifiedPatchHunkV2 } from "./attribution-v2.ts";
+import type { PostEditLocation, VerifiedPatchHunk } from "./edit-attribution.ts";
 
 type PatchLine = { readonly kind: " " | "+" | "-"; readonly text: string };
 type PatchSection = { readonly path: string; readonly operation: "add" | "update" | "delete" | "move"; readonly hunks: ReadonlyArray<ReadonlyArray<PatchLine>> };
@@ -58,14 +58,14 @@ export const verifyCodexPostEditHunks = (
   command: string,
   relativePath: string,
   stableSource: string,
-): ReadonlyArray<VerifiedPatchHunkV2> | undefined => {
+): ReadonlyArray<VerifiedPatchHunk> | undefined => {
   if (!relativePath || relativePath.startsWith("/") || relativePath.includes("\\") || relativePath.includes("\0") ||
     relativePath.split("/").some((part) => !part || part === "." || part === "..") || stableSource.includes("\r")) return undefined;
   const sections = parsePatch(command);
   const section = sections?.find((candidate) => candidate.path === relativePath);
   if (section?.operation !== "update") return undefined;
   const sourceLines = stableSource.split("\n");
-  const result: VerifiedPatchHunkV2[] = [];
+  const result: VerifiedPatchHunk[] = [];
   let previousEnd = 0;
   for (const hunk of section.hunks) {
     const postLines = hunk.filter((entry) => entry.kind !== "-").map((entry) => entry.text);

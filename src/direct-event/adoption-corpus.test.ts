@@ -11,7 +11,7 @@ import { controlledDecisionModelLayer } from "../test-support/controlled-decisio
 
 type Case = {
   id: string;
-  branch: "type-shape/v2" | "function/v1";
+  branch: string;
   event: { kind: "Add" | "Update"; patch: string };
   selectedRoot: { name: string };
   expectedCompleteness: string;
@@ -65,7 +65,7 @@ describe("proposed adoption corpus native completeness", () => {
       if (observation === undefined) return;
       const prepared = yield* prepareObservation(observation, {
         controlledWriter: true, advicee: observation.advicee,
-        inputContract: fixture.branch === "type-shape/v2" ? TYPE_INPUT_CONTRACT : FUNCTION_INPUT_CONTRACT,
+        inputContract: fixture.branch.split("/")[0] === "type-shape" ? TYPE_INPUT_CONTRACT : FUNCTION_INPUT_CONTRACT,
         settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
         rules,
       });
@@ -101,7 +101,7 @@ describe("proposed adoption corpus native completeness", () => {
       const reads: string[] = [];
       const context = {
         controlledWriter: true, advicee: observation.advicee,
-        inputContract: fixture.branch === "type-shape/v2" ? TYPE_INPUT_CONTRACT : FUNCTION_INPUT_CONTRACT,
+        inputContract: fixture.branch.split("/")[0] === "type-shape" ? TYPE_INPUT_CONTRACT : FUNCTION_INPUT_CONTRACT,
         settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
         rules: fixture.category === "no-target-rule" ? [] : rules,
         ...(fixture.policy === null ? {} : { policy: fixture.policy }),
@@ -119,7 +119,7 @@ describe("proposed adoption corpus native completeness", () => {
       const partialRoot = ["excluded-transitive", "private-support", "tree-overflow-continue"].includes(fixture.category) ||
         fixture.category === "package-import" && fixture.branch === "function/v1";
       expect(selected).toEqual(multiRoot ? ["A", "B"] :
-        completeCycle || stale || noRule || partialRoot ? [fixture.branch === "type-shape/v2" ? "A" : "run"] : []);
+        completeCycle || stale || noRule || partialRoot ? [fixture.branch.split("/")[0] === "type-shape" ? "A" : "run"] : []);
       expect(ready).toHaveLength(multiRoot ? 2 : completeCycle || stale ? 1 : 0);
       if (completeCycle) {
         const current = ready[0];
@@ -128,7 +128,7 @@ describe("proposed adoption corpus native completeness", () => {
         expect(rootNode.references).toMatchObject([{
           kind: "expanded",
           node: {
-            artifact: { id: `b.ts:${fixture.branch === "type-shape/v2" ? "interface" : "function"}:B` },
+            artifact: { id: `b.ts:${fixture.branch.split("/")[0] === "type-shape" ? "interface" : "function"}:B` },
             references: [{ kind: "included", target: rootNode.artifact.id }],
           },
         }]);
@@ -143,9 +143,9 @@ describe("proposed adoption corpus native completeness", () => {
       } else if (!completeCycle && !multiRoot && !stale && !noRule) {
         const observed = prepared.observation.outcomes.find((outcome) => outcome.status === "observed");
         const reason = fixture.category === "duplicate-update-location" ? "ambiguous-update" :
-          fixture.category === "package-import" && fixture.branch === "type-shape/v2" ? "import" :
-          fixture.category === "declaration-cap" ? fixture.branch === "type-shape/v2" ? "declaration-limit" : "no-declarations" :
-          fixture.category === "unsupported-binding" ? fixture.branch === "type-shape/v2" ? "declaration-merge" : "no-declarations" :
+          fixture.category === "package-import" && fixture.branch.split("/")[0] === "type-shape" ? "import" :
+          fixture.category === "declaration-cap" ? fixture.branch.split("/")[0] === "type-shape" ? "declaration-limit" : "no-declarations" :
+          fixture.category === "unsupported-binding" ? fixture.branch.split("/")[0] === "type-shape" ? "declaration-merge" : "no-declarations" :
           "missing-evidence";
         expect(observed?.analysis).toMatchObject({ status: "incomplete",
           failures: [expect.objectContaining({ reason })] });

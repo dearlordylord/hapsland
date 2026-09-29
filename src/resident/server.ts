@@ -2122,7 +2122,7 @@ export class ResidentServer {
           return accepted;
         });
         const planned = deliverable.map((outcome) => {
-          const generationPartition = `${job.partition}\0work:${job.work?.id ?? "legacy"}\0credential-generation:${job.dispatch.credential?.generation ?? "controlled"}`;
+          const generationPartition = `${job.partition}\0work:${job.work?.id ?? "standalone"}\0credential-generation:${job.dispatch.credential?.generation ?? "controlled"}`;
           const evaluationKey = this.#reuse.key(generationPartition, outcome.prepared);
           const liveAdvice = this.#advice.some((advice) => advice.evaluationKey === evaluationKey);
           switch (this.#reuse.route(evaluationKey, liveAdvice)) {
@@ -3223,9 +3223,9 @@ export class ResidentServer {
     const now = this.#now();
     this.#expirePending(now);
     this.#pruneNoticeCooldowns(now);
-    const legacyCollect = request.operation === "collect" && request.requestRoute !== "ticketed";
+    const sharedCollect = request.operation === "collect" && request.requestRoute !== "ticketed";
     let invalidCredential = false;
-    if (legacyCollect) for (const advice of this.#advice) {
+    if (sharedCollect) for (const advice of this.#advice) {
       if (advice.delivery?.token !== response.token || invalidCredential) continue;
       const generationValid = advice.credentialGeneration === (request.dispatch.credential?.generation ?? null);
       const observed = this.#ledger.transition({ kind: "deliveryCredentialObserveCheck",
@@ -3235,7 +3235,7 @@ export class ResidentServer {
       invalidCredential = observed.commands[0]?.kind === "deliveryCredentialInvalid";
     }
     const credentialGate = this.#ledger.transition({ kind: "deliveryFinalCredentialCheck",
-      legacyCollect, invalidSeen: invalidCredential });
+      sharedCollect, invalidSeen: invalidCredential });
     if (credentialGate.rejection !== undefined || credentialGate.commands.length !== 1) throw new Error("canonical final credential gate refused");
     if (credentialGate.commands[0]?.kind !== "deliveryBatchProceed") {
       this.releaseComposedSubmission(response.token);

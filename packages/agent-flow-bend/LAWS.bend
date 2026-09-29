@@ -222,11 +222,11 @@ law valid_composed_submission_batch_proceeds:
 law final_credential_mismatch_is_retained_in_fold:
   {Delivery.credential_observe(True{}, True{}, True{}) == True{} : Bool}
 
-law final_legacy_credential_mismatch_releases_batch:
+law final_shared_credential_mismatch_releases_batch:
   {Delivery.final_credential_gate(True{}, True{}) ==
     Delivery.BatchRelease{} : Delivery.BatchGate}
 
-law ticket_credential_mismatch_does_not_use_legacy_gate:
+law ticket_credential_mismatch_does_not_use_shared_gate:
   {Delivery.final_credential_gate(False{}, True{}) ==
     Delivery.BatchProceed{} : Delivery.BatchGate}
 
@@ -572,11 +572,11 @@ law canonical_existing_stop_token_requires_finish_permit:
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
       Canonical.DeliveryExistingTokenDenied{} <> Nil{}} : Canonical.Step}
 
-law canonical_legacy_stop_output_denied_during_decision:
+law canonical_unreserved_stop_output_denied_during_decision:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-    Canonical.DeliveryLegacyStopCheck{True{}, True{}}) ==
+    Canonical.DeliveryUnreservedStopCheck{True{}, True{}}) ==
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.DeliveryLegacyStopDenied{} <> Nil{}} : Canonical.Step}
+      Canonical.DeliveryUnreservedStopDenied{} <> Nil{}} : Canonical.Step}
 
 def reserved_output_selection() -> Lifecycle.OutputSelection:
   Lifecycle.OutputSelection{1n <> 2n <> Nil{}, False{}, False{}}
@@ -681,8 +681,8 @@ law existing_stop_token_accepts_finish_permit:
 law existing_background_token_is_denied_before_advice_lookup:
   {Delivery.existing_token_allowed(Delivery.Background{}, True{}, False{}) == False{} : Bool}
 
-law legacy_stop_blocked_during_decision:
-  {Delivery.legacy_stop_allowed(
+law unreserved_stop_blocked_during_decision:
+  {Delivery.unreserved_stop_allowed(
       Round.Round{1n, True{}, 0n, 0n, 1n, False{}, True{}, False{}}) == False{} : Bool}
 
 law ticket_collect_gate_proceeds_with_valid_authority:
@@ -1490,7 +1490,7 @@ law git_admin_precedes_file_kind_and_ignore:
     Configuration.RefuseGitAdmin{} : Configuration.Candidate}
 
 law incomplete_rule_unit_is_omitted:
-  {RulePolicy.applicable(True{}, False{}, RulePolicy.DirectTypeShape{}, True{}, False{},
+  {RulePolicy.applicable(True{}, False{}, RulePolicy.TypeShape{}, True{}, False{},
     True{}, True{}, True{}, False{}, True{}) ==
     RulePolicy.Omit{} : RulePolicy.Gate}
 

@@ -676,32 +676,6 @@ responses_websockets_v2 = true`);
     expect(JSON.parse(readFileSync(join(home, "hooks.json"), "utf8"))).toEqual({ hooks: { PostToolUse: [independent] } });
   });
 
-  it("rejects an incompatible target protocol before changing the working installation", () => {
-    const { root, home, bin } = fixture();
-    const firstEntrypoint = localPackage(root, "1.0.0", 1);
-    const incompatibleEntrypoint = localPackage(root, "2.0.0", 2);
-    previewAndInstall(home, bin, { ...process.env, REVIEW_INSTALL_ENTRYPOINT: firstEntrypoint });
-    const beforeHooks = readFileSync(join(home, "hooks.json"), "utf8");
-    const beforeOwnership = readFileSync(join(home, ".realtime-review-tool", "installation-v1.json"), "utf8");
-
-    const result = invoke(
-      { operation: "update-preview", codexHome: home, codexExecutable: bin },
-      { ...process.env, REVIEW_INSTALL_ENTRYPOINT: incompatibleEntrypoint },
-    );
-    expect(result).toMatchObject({
-      operation: "update-preview",
-      status: "conflict",
-      error: {
-        code: "resident_protocol_incompatible",
-        message: expect.stringContaining("protocol 1 is incompatible with target protocol 2"),
-        installed: 1,
-        target: 2,
-      },
-    });
-    expect(readFileSync(join(home, "hooks.json"), "utf8")).toBe(beforeHooks);
-    expect(readFileSync(join(home, ".realtime-review-tool", "installation-v1.json"), "utf8")).toBe(beforeOwnership);
-  });
-
   it("retains the previous working hook on partial update and resumes with an exact recovery request", () => {
     const { root, home, bin } = fixture();
     const firstEntrypoint = localPackage(root, "1.0.0");

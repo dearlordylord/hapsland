@@ -7,7 +7,7 @@ const delivery = readFileSync(resolve(root, "src/resident/composed-delivery.ts")
 const work = readFileSync(resolve(root, "src/resident/bend-work.ts"), "utf8");
 for (const name of ["bendLifecycleFinishGate", "bendLifecycleCutoff"]) {
   if (server.includes(name) || delivery.includes(name) || work.includes(name)) {
-    throw new Error(`legacy Stop decision owner returned: ${name}`);
+    throw new Error(`retired Stop decision owner returned: ${name}`);
   }
 }
 for (const name of ["stopGroupPolled", "stopGroupEnded", "cancelWork", "finishLimit"]) {

@@ -1,4 +1,4 @@
-/** Prototype facts for direct-root-selection/v2. No source or patch text escapes this module. */
+/** Prototype facts for direct-root-selection. No source or patch text escapes this module. */
 export type PostEditSnapshot = {
   readonly path: string;
   readonly operation: "add" | "update";
@@ -8,25 +8,25 @@ export type PostEditSnapshot = {
 
 export type PostEditPosition = { readonly line: number; readonly column: number };
 export type PostEditLocation = { readonly start: PostEditPosition; readonly end: PostEditPosition };
-export type SupportedRootDeclarationV2 = {
+export type SupportedRootDeclaration = {
   readonly path: string;
   readonly kind: "interface" | "type-alias" | "function";
   readonly name: string;
   /** Half-open range of the complete root, including signature/header. */
   readonly location: PostEditLocation;
 };
-export type VerifiedPatchHunkV2 = {
+export type VerifiedPatchHunk = {
   readonly path: string;
   /** Explicit adapter assertion: coordinates were checked against this snapshot. */
   readonly verified: true;
   /** Changed post-edit range, half-open. Empty deletions cannot identify a root. */
   readonly location: PostEditLocation;
 };
-export type SelectedRootV2 = Pick<SupportedRootDeclarationV2, "path" | "kind" | "name" | "location">;
-export type AmbiguousSpanV2 = { readonly path: string; readonly location: PostEditLocation; readonly reason: "ambiguous-attribution" };
-export type RootSelectionV2 = {
-  readonly selected: ReadonlyArray<SelectedRootV2>;
-  readonly ambiguous: ReadonlyArray<AmbiguousSpanV2>;
+export type SelectedRoot = Pick<SupportedRootDeclaration, "path" | "kind" | "name" | "location">;
+export type AmbiguousSpan = { readonly path: string; readonly location: PostEditLocation; readonly reason: "ambiguous-attribution" };
+export type RootSelection = {
+  readonly selected: ReadonlyArray<SelectedRoot>;
+  readonly ambiguous: ReadonlyArray<AmbiguousSpan>;
 };
 
 const validPath = (path: string): boolean => path.length > 0 && !path.startsWith("/") &&
@@ -54,11 +54,11 @@ const frozenLocation = (location: PostEditLocation): PostEditLocation => Object.
 });
 
 /** Select uniquely enclosed roots from verified coordinates only. Invalid facts fail closed. */
-export const selectEditedRootsV2 = (
+export const selectEditedRoots = (
   snapshot: PostEditSnapshot,
-  patchHunks: ReadonlyArray<VerifiedPatchHunkV2>,
-  declarations: ReadonlyArray<SupportedRootDeclarationV2>,
-): RootSelectionV2 => {
+  patchHunks: ReadonlyArray<VerifiedPatchHunk>,
+  declarations: ReadonlyArray<SupportedRootDeclaration>,
+): RootSelection => {
   if (!validPath(snapshot.path)) throw new Error("invalid snapshot path");
   const starts = linesOf(snapshot.source);
   const roots = declarations.map((declaration) => {
@@ -72,9 +72,9 @@ export const selectEditedRootsV2 = (
     const key = `${declaration.kind}:${declaration.name}`;
     identities.set(key, (identities.get(key) ?? 0) + 1);
   }
-  const selected = new Map<string, SelectedRootV2>();
-  const ambiguous: AmbiguousSpanV2[] = [];
-  const select = (declaration: SupportedRootDeclarationV2): void => {
+  const selected = new Map<string, SelectedRoot>();
+  const ambiguous: AmbiguousSpan[] = [];
+  const select = (declaration: SupportedRootDeclaration): void => {
     const key = `${declaration.kind}:${declaration.name}`;
     selected.set(key, Object.freeze({ path: declaration.path, kind: declaration.kind, name: declaration.name, location: frozenLocation(declaration.location) }));
   };

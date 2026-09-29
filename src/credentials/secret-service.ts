@@ -93,7 +93,7 @@ const writeCredentialState = (statePath: string, state: CredentialState): void =
 };
 
 type StateLockOwner = {
-  readonly version: 2;
+  readonly version: 1;
   readonly pid: number;
   readonly machineIdentity: string;
   readonly bootIdentity: string;
@@ -103,9 +103,8 @@ type StateLockOwner = {
 };
 
 const STATE_LOCK_WAIT_MS = 1_000;
-// An ownerless directory can come from the previous release, whose native
-// mutation deadline was 15 seconds. Do not reclaim it while that process could
-// still be live; a crashed legacy lock becomes recoverable after this bound.
+// A creator can crash between making the lock directory and publishing its
+// owner. Give that incomplete state time to finish before recovery.
 const OWNERLESS_LOCK_GRACE_MS = 30_000;
 
 const systemErrorCode = (cause: unknown): string | undefined =>
@@ -177,7 +176,7 @@ const readStateLockOwner = (lock: string): StateLockOwner | undefined => {
     const value = JSON.parse(readFileSync(join(lock, "owner.json"), "utf8")) as unknown;
     if (
       typeof value === "object" && value !== null &&
-      "version" in value && value.version === 2 &&
+      "version" in value && value.version === 1 &&
       "pid" in value && typeof value.pid === "number" && Number.isSafeInteger(value.pid) && value.pid > 0 &&
       "machineIdentity" in value && typeof value.machineIdentity === "string" && value.machineIdentity.length > 0 &&
       "bootIdentity" in value && typeof value.bootIdentity === "string" && value.bootIdentity.length > 0 &&
@@ -217,7 +216,7 @@ const recoverStaleStateLock = (lock: string): boolean => {
     try {
       const stat = statSync(lock);
       if (Date.now() - stat.mtimeMs < OWNERLESS_LOCK_GRACE_MS) return false;
-      retirementIdentity = `legacy-${stat.dev.toString(36)}-${stat.ino.toString(36)}`;
+      retirementIdentity = `ownerless-${stat.dev.toString(36)}-${stat.ino.toString(36)}`;
       // Make the deterministic retirement directory nonempty before rename.
       // A delayed second reclaimer then cannot rename a successor over it.
       try {
@@ -248,7 +247,7 @@ const withStateLock = async (
 ): Promise<CredentialLifecycleResult> => {
   const lock = `${statePath}.lock`;
   const owner: StateLockOwner = {
-    version: 2,
+    version: 1,
     pid: process.pid,
     machineIdentity,
     bootIdentity,
@@ -288,7 +287,7 @@ const withStateLock = async (
       // valid owner, so it cannot be a successfully acquired competing lock.
       try {
         rmSync(lock, { recursive: true, force: true });
-      } catch { /* It remains an ownerless lock with bounded legacy recovery. */ }
+      } catch { /* It remains an ownerless lock with bounded recovery. */ }
       return { status: "unavailable", state: readCredentialState(statePath), stateLock: "unavailable" };
     }
   }

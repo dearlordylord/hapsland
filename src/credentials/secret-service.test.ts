@@ -275,15 +275,15 @@ int main(void) {
     expect(existsSync(`${lifecycle}.lock`)).toBe(false);
   }, 10_000);
 
-  it("reclaims an ownerless lock left by a crashed previous release after its safety window", async () => {
-    const legacyLock = `${lifecycle}.lock`;
-    mkdirSync(legacyLock, { mode: 0o700 });
+  it("reclaims an incomplete ownerless lock after its safety window", async () => {
+    const ownerlessLock = `${lifecycle}.lock`;
+    mkdirSync(ownerlessLock, { mode: 0o700 });
     const safelyStale = new Date(Date.now() - 31_000);
-    utimesSync(legacyLock, safelyStale, safelyStale);
+    utimesSync(ownerlessLock, safelyStale, safelyStale);
 
-    const result = await saveCredential("legacy-recovery-marker", lifecycle);
+    const result = await saveCredential("ownerless-recovery-marker", lifecycle);
     expect(result).toMatchObject({ status: "stored", stateLock: "recovered" });
-    expect(readFileSync(vault, "utf8")).toBe("legacy-recovery-marker");
+    expect(readFileSync(vault, "utf8")).toBe("ownerless-recovery-marker");
   });
 
   it("returns structured unavailable results when lock storage cannot be created", async () => {

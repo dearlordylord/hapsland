@@ -69,7 +69,7 @@ describe("resident evaluation identity", () => {
         },
       },
     })))).not.toBe(residentEvaluationIdentity(partition, prepared(base)));
-    expect(residentEvaluationIdentity(partition, prepared(input({ contract: "contract/v2" })))).not.toBe(
+    expect(residentEvaluationIdentity(partition, prepared(input({ contract: "other-contract" })))).not.toBe(
       residentEvaluationIdentity(partition, prepared(base)),
     );
     expect(residentEvaluationIdentity(partition, prepared(input({

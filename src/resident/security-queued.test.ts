@@ -5,7 +5,6 @@ import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts";
-import { Consent } from "../runtime/consent.ts";
 import { residentPaths } from "./paths.ts";
 import { ResidentServer } from "./server.ts";
 import type { ResidentDispatchContext } from "./protocol.ts";
@@ -23,11 +22,6 @@ afterEach(async () => {
   for (const directory of directories.splice(0)) await rm(directory, { recursive: true, force: true });
 });
 
-const grant = (root: string, statePath: string) => Effect.runPromise(Effect.gen(function* () {
-  const consent = yield* Consent.Service;
-  yield* consent.enable(yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone"));
-}).pipe(Effect.provide(Consent.layer({ statePath }))));
-
 const setup = async (initiallyExcluded: boolean) => {
   const root = await makeGitFixture();
   directories.push(root);
@@ -35,7 +29,6 @@ const setup = async (initiallyExcluded: boolean) => {
   if (initiallyExcluded) await put(root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
   const statePath = join(root, "consent");
   const capturePath = join(root, "provider-attempts");
-  await grant(root, statePath);
   const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
   if (observation === undefined) throw new Error("synthetic event adaptation failed");
   const dispatch: ResidentDispatchContext = {

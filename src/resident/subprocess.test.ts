@@ -2,14 +2,13 @@ import { afterEach, describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
 import { execFile, spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import { addEvent, makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
-import { Consent } from "../runtime/consent.ts";
 import { acknowledgeAdvice, collectReady, ensureResident, residentRequest } from "./client.ts";
 import { residentPaths } from "./paths.ts";
 import { DELIVERY_LEASE_MS, type ResidentDispatchContext } from "./protocol.ts";
@@ -48,12 +47,6 @@ const waitFor = async <A>(read: () => Promise<A | undefined>, milliseconds = 5_0
   }
   throw new Error("condition did not become ready");
 };
-
-const enable = (root: string, statePath: string) => Effect.runPromise(Effect.gen(function* () {
-  const consent = yield* Consent.Service;
-  const proposal = yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone");
-  yield* consent.enable(proposal);
-}).pipe(Effect.provide(Consent.layer({ statePath }))));
 
 const answers = Object.fromEntries(configuredRules.map((rule) => [
   rule.id,
@@ -142,7 +135,6 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     const statePath = join(temporary, "consent");
     const gate = join(temporary, "backend.gate");
     const paths = residentPaths(join(temporary, "runtime"));
-    await enable(root, statePath);
     const launched = spawn(process.execPath, ["--input-type=module", "-e",
       "import {ensureResident} from './src/resident/client.ts'; console.log(JSON.stringify(await ensureResident()));",
     ], {
@@ -182,7 +174,6 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     const statePath = join(temporary, "consent");
     const gate = join(temporary, "backend.gate");
     const paths = residentPaths(join(temporary, "runtime"));
-    await enable(root, statePath);
     const launched = spawn(process.execPath, ["--input-type=module", "-e",
       "import {ensureResident} from './src/resident/client.ts'; console.log(JSON.stringify(await ensureResident()));",
     ], {
@@ -216,38 +207,6 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     expect((await residentRequest(paths, { requestRoute: "shared", operation: "hello" })).status).toBe("ready");
   });
 
-  it("ignores and removes an orphaned pre-portability startup marker", async () => {
-    const temporary = await mkdtemp(join(tmpdir(), "r-"));
-    directories.push(temporary);
-    const runtime = join(temporary, "runtime");
-    await mkdir(runtime, { mode: 0o700 });
-    const paths = residentPaths(runtime);
-    await writeFile(`${paths.lock}.startup`, "orphan\n", { mode: 0o600 });
-    const owner = await ensureResident(paths, 5_000);
-    processes.push(owner.pid);
-    expect(existsSync(`${paths.lock}.startup`)).toBe(false);
-  });
-  it("bridges a live legacy Linux flock owner before starting portable ownership", async () => {
-    if (process.platform !== "linux") return;
-    const temporary = await mkdtemp(join(tmpdir(), "product-resident-legacy-"));
-    directories.push(temporary);
-    const runtime = join(temporary, "runtime");
-    await mkdir(runtime, { mode: 0o700 });
-    const paths = residentPaths(runtime);
-    await writeFile(paths.lock, "", { mode: 0o600 });
-    const holder = spawn("flock", [paths.lock, process.execPath, "-e", "setTimeout(()=>{},30000)"], {
-      detached: true, stdio: ["ignore", "ignore", "ignore"],
-    });
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    await expect(ensureResident(paths, 300)).rejects.toThrow("did not become ready");
-    expect((await stat(paths.lock)).isFile()).toBe(true);
-    process.kill(-holder.pid!, "SIGTERM");
-    await new Promise<void>((resolve) => holder.once("close", () => resolve()));
-    const owner = await ensureResident(paths, 5_000);
-    processes.push(owner.pid);
-    expect((await stat(paths.lock)).isFile()).toBe(true);
-    expect((await stat(`${paths.lock}.v2`)).isDirectory()).toBe(true);
-  });
   it("converges 100 starters across eight clients and keeps timed-out/disconnected work resident-owned", async () => {
     const root = await makeGitFixture();
     const otherRoot = await makeGitFixture();
@@ -263,7 +222,6 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     const ackGate = join(temporary, "ack-response");
     const clockPath = join(temporary, "clock");
     await writeFile(clockPath, "100\n");
-    await enable(root, statePath);
     const env = {
       ...process.env,
       REVIEW_RESIDENT_DIR: runtime,
@@ -348,7 +306,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       `const lifetime=${JSON.stringify(identities[0]!.lifetime)};`,
       "const observation=await Effect.runPromise(adaptCodexDirectEvent(event));",
       "const socket=connect(socketPath);",
-      "socket.once('connect',()=>socket.write(JSON.stringify({version:3,operation:'admit',lifetime,observation,controlledWriter:true,dispatch})+'\\n',()=>process.exit(0)));",
+      "socket.once('connect',()=>socket.write(JSON.stringify({version:1,operation:'admit',lifetime,observation,controlledWriter:true,dispatch})+'\\n',()=>process.exit(0)));",
     ].join("");
     const admitGate = env.REVIEW_RESIDENT_ADMIT_RESPONSE_GATE_PATH;
     await writeFile(`${admitGate}.enabled`, "enabled\n");
@@ -464,7 +422,6 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     const runtime = join(temporary, "runtime");
     const gate = join(temporary, "backend.gate");
     const capturePath = join(temporary, "backend-called");
-    await enable(root, statePath);
     const env = {
       ...process.env,
       REVIEW_RESIDENT_DIR: runtime,
@@ -507,7 +464,6 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     const runtime = join(temporary, "runtime");
     const gate = join(temporary, "backend.gate");
     const capturePath = join(temporary, "backend-called");
-    await enable(root, statePath);
     const env = {
       ...process.env,
       REVIEW_RESIDENT_DIR: runtime,
@@ -555,8 +511,6 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     const runtime = join(temporary, "runtime");
     const backendGate = join(temporary, "backend.gate");
     const cleanupGate = join(temporary, "cleanup-response");
-    await enable(root, statePath);
-    await enable(otherRoot, statePath);
     await writeFile(backendGate, "release\n");
     const env = {
       ...process.env,

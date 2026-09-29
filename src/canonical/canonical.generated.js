@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:bb72beb6d8066e2e5417dcacf0d528821c8861ac51a41b7e3cb9ca12d08cb7b8
+// hapsland-bend-source-sha256:b904d94bab0766588f2982e51dac88b473be562a58cec1ab09c8ac4eac06e705
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -149,7 +149,6 @@ function run_lib(f, n) {
 // Effect
 // ======
 
-// An effect source registers each effect under its def's key, as in C.
 const $0eff = Object.create(null);
 
 function io_eff(k, run, need) {
@@ -665,9 +664,9 @@ function $Canonical$step$(_state_0, _event_0) {
     const _authorized_0 = _event_0["authorized"];
     return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Delivery$credential_observe$(_invalid_seen_0, _generation_valid_1, _authorized_0)), {$: "Canonical.DeliveryCredentialInvalid"}, {$: "Canonical.DeliveryCredentialValid"})), "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.DeliveryFinalCredentialCheck") {
-    const _legacy_collect_0 = _event_0["legacy_collect"];
+    const _shared_collect_0 = _event_0["shared_collect"];
     const _invalid_seen_1 = _event_0["invalid_seen"];
-    return $Canonical$delivery_batch_result$(_state_0, ($Delivery$final_credential_gate$(_legacy_collect_0, _invalid_seen_1)));
+    return $Canonical$delivery_batch_result$(_state_0, ($Delivery$final_credential_gate$(_shared_collect_0, _invalid_seen_1)));
   } else if (_event_0.$ === "Canonical.ValidationRouteCheck") {
     const _owner_current_0 = _event_0["owner_current"];
     const _status_0 = _event_0["status"];
@@ -736,10 +735,10 @@ function $Canonical$step$(_state_0, _event_0) {
     const _existing_token_1 = _event_0["existing_token"];
     const _finish_permit_1 = _event_0["finish_permit"];
     return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Delivery$existing_token_allowed$(_surface_3, _existing_token_1, _finish_permit_1)), {$: "Canonical.DeliveryExistingTokenAllowed"}, {$: "Canonical.DeliveryExistingTokenDenied"})), "tail": {$: "Nil"}}};
-  } else if (_event_0.$ === "Canonical.DeliveryLegacyStopCheck") {
+  } else if (_event_0.$ === "Canonical.DeliveryUnreservedStopCheck") {
     const _active_6 = _event_0["active"];
     const _deciding_2 = _event_0["deciding"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Delivery$legacy_stop_allowed_facts$(_active_6, _deciding_2)), {$: "Canonical.DeliveryLegacyStopAllowed"}, {$: "Canonical.DeliveryLegacyStopDenied"})), "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Delivery$unreserved_stop_allowed_facts$(_active_6, _deciding_2)), {$: "Canonical.DeliveryUnreservedStopAllowed"}, {$: "Canonical.DeliveryUnreservedStopDenied"})), "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.IncludeLayerCheck") {
     const _supplied_0 = _event_0["supplied"];
     const _current_rank_0 = _event_0["current_rank"];
@@ -1932,8 +1931,8 @@ function $Delivery$credential_observe$(_invalid_seen_0, _generation_valid_0, _au
   return (_invalid_seen_0 || _x_0);
 }
 
-function $Delivery$final_credential_gate$(_legacy_collect_0, _invalid_seen_0) {
-  return $Bool$pick$(($Bool$and$(_legacy_collect_0, _invalid_seen_0)), {$: "Delivery.BatchRelease"}, {$: "Delivery.BatchProceed"});
+function $Delivery$final_credential_gate$(_shared_collect_0, _invalid_seen_0) {
+  return $Bool$pick$(($Bool$and$(_shared_collect_0, _invalid_seen_0)), {$: "Delivery.BatchRelease"}, {$: "Delivery.BatchProceed"});
 }
 
 function $Canonical$candidate_route_result$(_state_0, _decision_0) {
@@ -2036,7 +2035,7 @@ function $Delivery$existing_token_allowed$(_surface_0, _existing_token_0, _finis
   }
 }
 
-function $Delivery$legacy_stop_allowed_facts$(_live_0, _deciding_0) {
+function $Delivery$unreserved_stop_allowed_facts$(_live_0, _deciding_0) {
   return $Bool$and$(_live_0, ($Bool$not$(_deciding_0)));
 }
 
@@ -3793,19 +3792,15 @@ function $Canonical$cleanup_commit_eligible$(_state_0) {
 }
 
 function $Cmp$is_gt$(_c_0) {
-  if (_c_0.$ === "LT") {
-    return false;
-  } else if (_c_0.$ === "EQ") {
-    return false;
-  } else {
+  if (_c_0.$ === "GT") {
     return true;
+  } else {
+    return false;
   }
 }
 
 function $Cmp$is_eq$(_c_0) {
-  if (_c_0.$ === "LT") {
-    return false;
-  } else if (_c_0.$ === "EQ") {
+  if (_c_0.$ === "EQ") {
     return true;
   } else {
     return false;
@@ -3817,18 +3812,12 @@ function $Nat$is_ge$(_a_0, _b_0) {
 }
 
 function $RulePolicy$target_compatible$(_target_0) {
-  if (_target_0.$ === "RulePolicy.DirectTypeShape") {
+  if (_target_0.$ === "RulePolicy.TypeShape") {
     return true;
-  } else if (_target_0.$ === "RulePolicy.LegacyFileTypeShape") {
-    return true;
-  } else if (_target_0.$ === "RulePolicy.OtherTypeShape") {
-    return false;
   } else if (_target_0.$ === "RulePolicy.FunctionTarget") {
-    return false;
-  } else if (_target_0.$ === "RulePolicy.DirectTypeShapeV2") {
     return true;
   } else {
-    return true;
+    return false;
   }
 }
 
@@ -5394,8 +5383,6 @@ function $Canonical$cleanup_closed$(_state_0, _result_0) {
 function $Cmp$is_ge$(_c_0) {
   if (_c_0.$ === "LT") {
     return false;
-  } else if (_c_0.$ === "EQ") {
-    return true;
   } else {
     return true;
   }
@@ -6370,12 +6357,10 @@ function $Canonical$end_scope_valid$(_found_0, _partition_0, _lifetime_0, _round
 }
 
 function $Cmp$is_le$(_c_0) {
-  if (_c_0.$ === "LT") {
-    return true;
-  } else if (_c_0.$ === "EQ") {
-    return true;
-  } else {
+  if (_c_0.$ === "GT") {
     return false;
+  } else {
+    return true;
   }
 }
 
@@ -8936,7 +8921,6 @@ function $Handoff$lease$terminal$match$(_item_0, _round_0, _closed_0, _reoffered
 // Cli
 // ===
 
-// A JS program runs one thread and no GPU: --threads and --gpu do nothing.
 let cli_args = [];
 
 function cli(argv) {
@@ -9096,8 +9080,8 @@ function io_text(b, n) {
 // either direction; io_unlist answers null if a value is past 255.
 function io_list(b, n) {
   let xs = { $: "Nil" };
-  for (let i = n; i > 0; i -= 1) {
-    xs = { $: "Con", head: b[i - 1], tail: xs };
+  while (n > 0) {
+    xs = { $: "Con", head: b[--n], tail: xs };
   }
   return xs;
 }
@@ -9129,7 +9113,7 @@ function io_push(fun, arg, fresh) {
 }
 
 function io_wait(io) {
-  const soon = io.waits.reduce((m, w) => Math.min(m, w.at ?? m), Infinity);
+  const soon = io.waits[0]?.at ?? Infinity;
   const ms = soon === Infinity ? -1
     : Math.max(0, Math.ceil(soon - performance.now()));
   const fds = io.waits.filter((w) => w.fd !== undefined);

@@ -278,7 +278,7 @@ export function bendDeliverySubmissionAllowed(round: BendRound, surface: BendDel
   existingToken: boolean, finishPermit: boolean): boolean;
 export function bendDeliveryExistingTokenAllowed(surface: BendDeliverySurface,
   existingToken: boolean, finishPermit: boolean): boolean;
-export function bendDeliveryLegacyStopAllowed(round: BendRound): boolean;
+export function bendDeliveryUnreservedStopAllowed(round: BendRound): boolean;
 export type BendDeliveryAckDecision = { readonly $: "AckReady" | "AckExpired" | "AckEmpty" };
 export type BendDeliveryFinalDecision = { readonly $: "FinalReady" | "FinalExpired" | "FinalEmpty" };
 export type BendDeliveryFindingDisposition = { readonly $: "RetireAdvice" | "KeepRemaining" | "KeepForReoffer" };
@@ -299,7 +299,7 @@ export function bendDeliverySubmissionBatchGate(count: number | bigint,
   allValid: boolean): BendDeliveryBatchGate;
 export function bendDeliveryCredentialObserve(invalidSeen: boolean,
   generationValid: boolean, authorized: boolean): boolean;
-export function bendDeliveryFinalCredentialGate(legacyCollect: boolean,
+export function bendDeliveryFinalCredentialGate(sharedCollect: boolean,
   invalidSeen: boolean): BendDeliveryBatchGate;
 export type BendCollectionLeaseAction = { readonly $: "KeepLease" | "DropLease" };
 export function bendDeliveryCollectionLease(hasLease: boolean, expired: boolean,

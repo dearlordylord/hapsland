@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { verifyCodexPostEditHunks } from "./codex-v2-hunks.ts";
+import { verifyCodexPostEditHunks } from "./codex-patch-hunks.ts";
 
 const patch = (body: string) => `*** Begin Patch\n${body}\n*** End Patch`;
 const update = (body: string) => patch(`*** Update File: src/example.ts\n@@\n${body}`);
 const spans = (command: string, source: string) =>
   verifyCodexPostEditHunks(command, "src/example.ts", source)?.map(({ location }) => location);
 
-describe("Codex v2 post-edit hunk verification", () => {
+describe("Codex post-edit hunk verification", () => {
   it("checks ordered context and additions and returns half-open coordinates", () => {
     const command = update(" export type A = 1;\n-export type B = 1;\n+export type B = 2;\n export type C = 1;");
     expect(spans(command, "export type A = 1;\nexport type B = 2;\nexport type C = 1;\n")).toEqual([{

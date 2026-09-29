@@ -1,24 +1,14 @@
 #!/usr/bin/env node
 import { join } from "node:path";
 import { readFileSync } from "node:fs";
-import { lstat, mkdir, rm } from "node:fs/promises";
+import { mkdir, rm } from "node:fs/promises";
 import { acquireResidentOwnership, releaseResidentOwnership } from "./ownership.ts";
 
 const directory = process.argv[2];
 if (directory === undefined) throw new Error("resident runtime directory is required");
 await mkdir(directory, { recursive: true, mode: 0o700 });
 
-const declaredLock = join(directory, "owner.lock");
-const legacyBridge = process.argv.includes("--legacy-flock");
-let lock = declaredLock;
-try {
-  if ((await lstat(declaredLock)).isFile()) {
-    if (!legacyBridge) throw new Error("legacy Linux resident lock requires the flock compatibility launcher");
-    lock = `${declaredLock}.v2`;
-  }
-} catch (cause) {
-  if (!(typeof cause === "object" && cause !== null && "code" in cause && cause.code === "ENOENT")) throw cause;
-}
+const lock = join(directory, "owner.lock");
 const acquired = await acquireResidentOwnership(lock);
 if (!acquired) process.exit(0);
 

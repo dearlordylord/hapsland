@@ -226,7 +226,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
   it("returns a bounded protocol error for malformed input", () => {
     const child = spawnSync(process.execPath, ["src/cli.ts", "--controlled-reviewer"], {
       cwd: process.cwd(),
-      input: '{"version":2,"unexpected":true}',
+      input: '{"version":null,"unexpected":true}',
       encoding: "utf8",
     });
     const output = JSON.parse(child.stdout) as { error: { code: string; message: string } };

@@ -143,7 +143,7 @@ to one edit or store a second ticket-wide outcome. Operational failure records u
 same advicee scope across those opportunities, but are retained for diagnostics
 instead of being included in agent output. The installed edit path
 automatically starts a bounded background advice wait.
-CLI and resident exchange one version 3 local IPC envelope across admission,
+CLI and resident exchange one version 1 local IPC envelope across admission,
 collection, lifecycle, and delivery operations. An older peer's response cannot
 establish readiness, successful review, or submission.
 One waiter per advicee coalesces matching triggers, holds no advice lease while

@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 export class ResidentCleanupLimitation extends Error {}
 
-const RESIDENT_WIRE_VERSION = 3;
+const RESIDENT_WIRE_VERSION = 1;
 
 export const probeScopedResident = (directory, timeoutMs = 1_000) => new Promise((resolve, reject) => {
   const socket = connect(join(directory, "resident.sock"));

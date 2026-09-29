@@ -58,7 +58,7 @@ describe("configuration v1 decoding", () => {
   });
 
   it.each([
-    ["unsupported version", '{"version":2}', "version"],
+    ["unsupported version", '{"version":null}', "version"],
     ["unknown field", '{"version":1,"nope":true}', "nope"],
     ["configuration cannot grant consent", '{"version":1,"consent":true}', "consent"],
     ["configuration cannot enable review", '{"version":1,"enabled":true}', "enabled"],
@@ -67,7 +67,7 @@ describe("configuration v1 decoding", () => {
     ["credential value", '{"version":1,"credentials":{"value":"secret"}}', "credentials"],
     ["invalid pattern array", '{"version":1,"includes":"src/**"}', "includes"],
     ["retired runtime settings", '{"version":1,"settings":{"deadlineMs":0}}', "settings"],
-    ["invalid graph version", '{"version":1,"graphLimits":{"version":2}}', "graphLimits.version"],
+    ["invalid graph version", '{"version":1,"graphLimits":{"version":null}}', "graphLimits.version"],
     ["zero graph file cap", '{"version":1,"graphLimits":{"version":1,"files":0}}', "graphLimits.files"],
     ["oversized graph tree cap", '{"version":1,"graphLimits":{"version":1,"treeBytes":20481}}', "graphLimits.treeBytes"],
     ["fractional graph work cap", '{"version":1,"graphLimits":{"version":1,"work":1.5}}', "graphLimits.work"],
@@ -200,6 +200,16 @@ describe("layered selection and provenance", () => {
     expect(explanation.policyDigest).toBe(policy.digest);
   });
 
+  it("applies each working tree's own project file settings", () => {
+    const user = source("user", '{"version":1,"includes":["src/**"]}');
+    const first = resolveConfiguration([builtIn(), user, source("project", '{"version":1,"includes":["lib/**"]}')], "/first");
+    const second = resolveConfiguration([builtIn(), user, source("project", '{"version":1,"excludes":["src/private/**"]}')], "/second");
+    expect(selectGlobalPath(first, "lib/a.ts").selected).toBe(true);
+    expect(selectGlobalPath(first, "src/a.ts").selected).toBe(false);
+    expect(selectGlobalPath(second, "src/a.ts").selected).toBe(true);
+    expect(selectGlobalPath(second, "src/private/a.ts").selected).toBe(false);
+  });
+
   it("distinguishes omitted and empty includes", () => {
     const inherited = resolveConfiguration(
       [builtIn(), source("user", '{"version":1,"includes":["src/**"]}')],
@@ -261,7 +271,7 @@ describe("configuration composition properties", () => {
         .map((parts) => `src/[${parts.join("")}`),
     );
     const invalidText = fc.oneof(
-      fc.constant('{"version":2}'),
+      fc.constant('{"version":null}'),
       fc.constant('{"version":1,"unknown":true}'),
       fc.constant('{"version":1,"includes":["!src/**"]}'),
       fc.constant('{"version":1,"includes":["../src/**"]}'),

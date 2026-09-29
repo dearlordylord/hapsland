@@ -6,7 +6,6 @@ import { adaptClaudeDirectEvent } from "../direct-event/adapter.ts";
 import type { DirectAdvicee } from "../direct-event/model.ts";
 import { makeGitFixture, put } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
-import { Consent } from "../runtime/consent.ts";
 import { residentPaths } from "./paths.ts";
 import { ResidentServer } from "./server.ts";
 import { residentRequest } from "./client.ts";
@@ -14,17 +13,10 @@ import { MAX_COMBINED_RESPONSE_BYTES } from "./collection.ts";
 import { monotonicNow } from "./hook-clock.ts";
 import type { ResidentDispatchContext } from "./protocol.ts";
 
-const enable = (root: string, statePath: string) => Effect.runPromise(Effect.gen(function* () {
-  const consent = yield* Consent.Service;
-  const proposal = yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone");
-  yield* consent.enable(proposal);
-}).pipe(Effect.provide(Consent.layer({ statePath }))));
-
 describe("Claude advicee scoped resident delivery", () => {
   it("keeps an earlier admission's failure out of the next composed edit output", async () => {
     const root = await makeGitFixture();
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const dispatch: ResidentDispatchContext = { statePath, userConfigPath: null, credential: null,
       controlled: { answers: Object.fromEntries(configuredRules.map((rule) => [
         rule.id, { _tag: "Probability", probability: 0 },
@@ -59,7 +51,6 @@ describe("Claude advicee scoped resident delivery", () => {
   it("batches eligible findings from two composed admissions in one Claude edit response", async () => {
     const root = await makeGitFixture();
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const dispatch: ResidentDispatchContext = { statePath, userConfigPath: null, credential: null,
       controlled: { answers: Object.fromEntries(configuredRules.map((rule) => [
         rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
@@ -102,7 +93,6 @@ describe("Claude advicee scoped resident delivery", () => {
     const root = await makeGitFixture();
     const path = await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptClaudeDirectEvent({
       hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
       session_id: "session", tool_use_id: "tool-one",
@@ -133,7 +123,6 @@ describe("Claude advicee scoped resident delivery", () => {
     const root = await makeGitFixture();
     const path = await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptClaudeDirectEvent({
       hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
       session_id: "session", tool_use_id: "tool-one",
@@ -164,7 +153,6 @@ describe("Claude advicee scoped resident delivery", () => {
     const root = await makeGitFixture();
     const path = await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptClaudeDirectEvent({
       hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
       session_id: "session", tool_use_id: "tool-one",
@@ -216,7 +204,6 @@ describe("Claude advicee scoped resident delivery", () => {
     const root = await makeGitFixture();
     const path = await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptClaudeDirectEvent({
       hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
       session_id: "source-handoff", tool_use_id: "source-edit",
@@ -255,7 +242,6 @@ describe("Claude advicee scoped resident delivery", () => {
     const root = await makeGitFixture();
     const path = await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await enable(root, statePath);
     const observation = await Effect.runPromise(adaptClaudeDirectEvent({
       hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
       session_id: "session", tool_use_id: "tool-one",

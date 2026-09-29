@@ -88,7 +88,7 @@ type Smoke is Data:
     background_reofferable: Bool
     submission_allowed: Bool
     existing_token_allowed: Bool
-    legacy_stop_allowed: Bool
+    unreserved_stop_allowed: Bool
     delivery_ack: Delivery.AckDecision
     delivery_final: Delivery.FinalDecision
     delivery_finding: Delivery.FindingDisposition
@@ -222,7 +222,7 @@ def main() -> Smoke:
     Delivery.background_reofferable(Delivery.Uncertain{}, Delivery.Background{}),
     Delivery.submission_allowed(Round.initial(), Delivery.Edit{}, False{}, False{}),
     Delivery.existing_token_allowed(Delivery.Edit{}, False{}, False{}),
-    Delivery.legacy_stop_allowed(Round.initial()),
+    Delivery.unreserved_stop_allowed(Round.initial()),
     Delivery.acknowledge(1n, False{}),
     Delivery.finalize(1n, True{}, False{}),
     Delivery.finding_disposition(False{}, 0n),

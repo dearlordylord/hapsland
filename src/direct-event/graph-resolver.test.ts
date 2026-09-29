@@ -22,12 +22,12 @@ const candidateRules = compileRulePack({ schemaVersion: 1, id: "graph", contentV
   id: "shape", question: "Is the type clear?", criteria: { false: "No", true: "Yes" },
   message: "Clarify type", reviewTargets: [{ artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT,
     capabilities: ["root-declaration", "resolved-outbound-types"] }],
-}] }, "fixture-v2");
+}] }, "fixture-current");
 const rootOnlyRules = compileRulePack({ schemaVersion: 1, id: "root-only", contentVersion: "1", rules: [{
   id: "shape", question: "Is the declaration clear?", criteria: { false: "No", true: "Yes" },
   message: "Clarify declaration", reviewTargets: [{ artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT,
     capabilities: ["root-declaration"] }],
-}] }, "fixture-v2");
+}] }, "fixture-current");
 
 describe("cross-file graph preparation", () => {
   it.effect("does not physically read an oversized supporting source", () => Effect.gen(function* () {

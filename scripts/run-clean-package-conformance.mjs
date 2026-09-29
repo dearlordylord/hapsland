@@ -450,12 +450,6 @@ try {
     version: "0.0.1-local",
     residentProtocol: 1,
   });
-  const incompatiblePackage = await installLocalPackageVariant({
-    sourcePackage: packageDirectory,
-    temporary,
-    version: "0.0.2-incompatible-local",
-    residentProtocol: 2,
-  });
   // npm can return ELSPROBLEMS for tree-sitter's optional peer layout even
   // when the exact production dependencies are installed and loadable. The
   // JSON tree remains authoritative for the dev-dependency exclusion below;
@@ -742,18 +736,6 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   await mkdir(state, { recursive: true, mode: 0o700 });
   const consentBeforeUpdate = await snapshotJsonDirectory(state);
   progress("exercise-local-package-update");
-  const hooksBeforeIncompatible = await readFile(join(codexHome, "hooks.json"), "utf8");
-  const incompatiblePreviewRun = await run(incompatiblePackage.cli, ["--update-preview"], {
-    cwd: temporary,
-    env,
-    input: JSON.stringify({ version: 1, operation: "update-preview", codexHome, codexExecutable: fakeCodex }),
-  });
-  const incompatiblePreview = parseJson(incompatiblePreviewRun.stdout, "incompatible update preview");
-  if (incompatiblePreviewRun.code !== 4 || incompatiblePreview.status !== "conflict" ||
-      !incompatiblePreview.error?.message?.includes("protocol 1 is incompatible with target protocol 2") ||
-      await readFile(join(codexHome, "hooks.json"), "utf8") !== hooksBeforeIncompatible) {
-    throw new Error("incompatible local package update did not preserve the installed version");
-  }
   const updatePreviewRun = await mustRun(targetPackage.cli, ["--update-preview"], {
     cwd: temporary,
     env,

@@ -22,7 +22,7 @@ const rules = compileRulePack({
   ],
 }, "fixture:root-cap");
 
-describe("configured v2 root source cap", () => {
+describe("configured root source cap", () => {
   for (const branch of [
     { contract: TYPE_INPUT_CONTRACT, declaration: "export interface A { value: string }" },
     { contract: FUNCTION_INPUT_CONTRACT, declaration: "export function A(): number { return 1 }" },

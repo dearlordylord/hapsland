@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import type { CompiledRule } from "../rules/compiler.ts";
 import type { ReviewTarget } from "../rules/targets.ts";
-import type { PostEditLocation, VerifiedPatchHunkV2 } from "./attribution-v2.ts";
+import type { PostEditLocation, VerifiedPatchHunk } from "./edit-attribution.ts";
 import type { GraphLimits } from "../configuration/graph-limits.ts";
 
 export const CODEX_HOST_VERSIONS = ["0.155.1", "0.156.0"] as const;
@@ -60,13 +60,13 @@ export type DirectObservation = {
   readonly rootIdentity: PhysicalRootIdentity;
   readonly advicee: DirectAdvicee;
   readonly candidates: ReadonlyArray<DirectCandidate>;
-  /** Bounded Codex patch retained only to verify v2 Update coordinates after capture. */
+  /** Bounded Codex patch retained only to verify Update coordinates after capture. */
   readonly nativePatchCommand?: string;
   /** Claude's exact pre/post image establishes these ranges for one captured snapshot. */
   readonly verifiedPostEditHunks?: {
     readonly path: string;
     readonly contentHash: string;
-    readonly hunks: ReadonlyArray<VerifiedPatchHunkV2>;
+    readonly hunks: ReadonlyArray<VerifiedPatchHunk>;
   };
 };
 

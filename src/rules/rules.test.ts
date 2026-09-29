@@ -50,7 +50,7 @@ describe("rule-pack schema and identity", () => {
         expect.objectContaining({ source: "future.jsonc", field: `rules[0].${field}` }),
       );
     }
-    expect(() => decodeRulePackText(JSON.stringify({ ...document, schemaVersion: 2 }), "future.jsonc"))
+    expect(() => decodeRulePackText(JSON.stringify({ ...document, schemaVersion: "unsupported" }), "future.jsonc"))
       .toThrowError(expect.objectContaining({ source: "future.jsonc", field: "schemaVersion" }));
   });
 
@@ -85,7 +85,7 @@ describe("rule-pack schema and identity", () => {
     expect(one.rules[0]?.criteria).toEqual(two.rules[0]?.criteria);
     expect(one.contentDigest).toBe(two.contentDigest);
     expect(digestRulePack(one)).toBe(one.contentDigest);
-    expect(() => decodeRulePackText('{"schemaVersion":2}', "bad.jsonc")).toThrow(ConfigurationError);
+    expect(() => decodeRulePackText('{"schemaVersion":null}', "bad.jsonc")).toThrow(ConfigurationError);
     expect(() => decodeRulePackText('{"schemaVersion":1,"id":"x","contentVersion":"1","rules":[],"other":true}', "bad.jsonc")).toThrow(ConfigurationError);
     for (const alias of [
       '{"version":1,"id":"team","contentVersion":"1","rules":[]}',

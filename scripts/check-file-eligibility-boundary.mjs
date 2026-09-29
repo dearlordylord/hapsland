@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 const root = resolve(import.meta.dirname, "..");
 const source = (path) => readFileSync(resolve(root, path), "utf8");
 if (existsSync(resolve(root, "src/policy/eligibility.ts"))) {
-  throw new Error("unused legacy eligibility owner returned");
+  throw new Error("retired eligibility owner returned");
 }
 const filePolicy = source("src/policy/file-policy.ts");
 const direct = source("src/direct-event/selection.ts");

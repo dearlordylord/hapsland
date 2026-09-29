@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
+import { existsSync } from "node:fs";
 import { symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import type { DirectObservation, DirectAdvicee } from "../direct-event/model.ts";
 import { addEvent, makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
-import { Consent } from "../runtime/consent.ts";
 import type { ResidentDispatchContext } from "./protocol.ts";
 import {
   MAX_OPERATIONAL_NOTICE_KEYS,
@@ -16,12 +16,6 @@ import {
 import { residentPaths } from "./paths.ts";
 import { PENDING_ADVICE_EXPIRY_MS } from "./collection.ts";
 import { initialCanonical, projectCanonical, stepCanonical } from "../canonical/adapter.ts";
-
-const enable = (root: string, statePath: string) => Effect.runPromise(Effect.gen(function* () {
-  const consent = yield* Consent.Service;
-  const proposal = yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone");
-  yield* consent.enable(proposal);
-}).pipe(Effect.provide(Consent.layer({ statePath }))));
 
 const answers = Object.fromEntries(configuredRules.map((rule) => [
   rule.id,
@@ -42,7 +36,6 @@ const fixture = async () => {
   const root = await makeGitFixture();
   await put(root, "type.ts", "type OrderCount = number\n");
   const statePath = join(root, "consent");
-  await enable(root, statePath);
   const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
   if (observation === undefined) throw new Error("fixture adaptation failed");
   return { root, statePath, observation };
@@ -127,6 +120,7 @@ describe("resident operational notices", () => {
     const { root, statePath, observation } = await fixture();
     const helper = join(root, "credential-helper.mjs");
     const credentialStatePath = join(root, "credential-state.json");
+    const capturePath = join(root, "backend-called.json");
     await writeFile(helper, `#!/usr/bin/env node
 console.log('{"version":1,"status":"interaction-required"}');
 `, { mode: 0o700 });
@@ -147,7 +141,7 @@ console.log('{"version":1,"status":"interaction-required"}');
         generation: 1,
         statePath: credentialStatePath,
       },
-      controlled: { answers, requireCredential: true },
+      controlled: { answers, requireCredential: true, capturePath },
     };
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
     try {
@@ -155,6 +149,7 @@ console.log('{"version":1,"status":"interaction-required"}');
       await server.whenIdle();
       const result = await collectAndFinalize(server, observation, context);
       expect(result.status).toBe("empty");
+      expect(existsSync(capturePath)).toBe(false);
       expect(server.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 1, pendingOperationalNotices: 1 });
     } finally {
       await server.close();

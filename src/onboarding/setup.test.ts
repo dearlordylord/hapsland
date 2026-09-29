@@ -243,19 +243,6 @@ describe("public resumable setup operation", { timeout: 30_000 }, () => {
     expect(existsSync(join(test.codexHome, ".realtime-review-tool", "journal-v1.json"))).toBe(false);
   });
 
-  it("keeps legacy grant files untouched during setup", () => {
-    const test = fixture();
-    mkdirSync(join(test.root, "consent"));
-    const oldGrant = join(test.root, "consent", "legacy.json");
-    writeFileSync(oldGrant, "legacy-grant-sentinel\n");
-    const preview = invoke(test, {});
-    const installed = invoke(test, authorization(preview));
-    expect(installed.stages).toEqual(expect.arrayContaining([
-      expect.objectContaining({ stage: "repository", status: "complete" }),
-    ]));
-    expect(readFileSync(oldGrant, "utf8")).toBe("legacy-grant-sentinel\n");
-  });
-
   it("asks for user exclude-all when review disabled is requested", () => {
     const test = fixture();
     const pending = invoke(test, { scope: { cwd: test.repository, review: "disabled" }, credential: "skip" });

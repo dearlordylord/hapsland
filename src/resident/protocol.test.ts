@@ -23,8 +23,8 @@ describe("resident protocol bounds", () => {
       advicee: { ...advicee(), host: "claude-code" as const, hostVersion: "2.1.218", turnId: null },
       dispatch: { statePath: "/tmp/consent", userConfigPath: null, credential: null, controlled: {} } } as const;
     const lifecycle = { requestRoute: "shared", operation: "hello" } as const;
-    expect(CURRENT_IPC_VERSION).toBe(3);
-    expect(JSON.parse(encodeCurrentResidentRequest(ticketed))).toMatchObject({ version: 3, operation: "collect" });
+    expect(CURRENT_IPC_VERSION).toBe(1);
+    expect(JSON.parse(encodeCurrentResidentRequest(ticketed))).toMatchObject({ version: 1, operation: "collect" });
     expect(JSON.parse(encodeCurrentResidentRequest(ticketed))).not.toHaveProperty("requestRoute");
     expect(decodeCurrentResidentRequest(encodeCurrentResidentRequest(ticketed))).toEqual(ticketed);
     expect(decodeCurrentResidentRequest(encodeCurrentResidentRequest(lifecycle))).toEqual(lifecycle);
@@ -36,8 +36,8 @@ describe("resident protocol bounds", () => {
       .toEqual({ requestRoute: "ticketed", status: "empty" });
     expect(decodeCurrentResidentResponse(JSON.parse(encodeCurrentResidentResponse({ status: "ready", lifetime: "owner", pid: 12 })), lifecycle))
       .toEqual({ status: "ready", lifetime: "owner", pid: 12 });
-    expect(decodeCurrentResidentResponse({ version: 2, status: "empty" }, ticketed)).toBeUndefined();
-    expect(decodeCurrentResidentResponse({ version: 3, requestRoute: "ticketed", status: "empty" }, ticketed)).toBeUndefined();
+    expect(decodeCurrentResidentResponse({ status: "empty" }, ticketed)).toBeUndefined();
+    expect(decodeCurrentResidentResponse({ version: 1, requestRoute: "ticketed", status: "empty" }, ticketed)).toBeUndefined();
     expect(decodeCurrentResidentResponse({ status: "ready", lifetime: "owner", pid: 12 }, lifecycle)).toBeUndefined();
   });
   it("accepts finish decisions only on composed turn-end collection with an attempt and deadline signal", () => {

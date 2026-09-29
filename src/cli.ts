@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
-import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import { homedir } from "node:os";
@@ -18,8 +17,6 @@ import {
   type ReviewSettings,
 } from "./runtime/review-config.ts";
 import { explainPath, formatPathExplanation } from "./explanation/index.ts";
-import { ReceiptStore } from "./ports/receipt-store.ts";
-import { formatHuman as formatReceiptStatus, read as readReceiptStatus } from "./receipts/status.ts";
 import type { ControlledDecisionModelOptions } from "./test-support/controlled-decision-model.ts";
 import { runEvaluationCommand } from "./evaluation/command.ts";
 import {
@@ -138,23 +135,7 @@ const controlledOptions = Config.String("REVIEW_CONTROL_JSON").pipe(
   ),
 );
 
-const ConsentOperation = Schema.Union([
-  Schema.Struct({
-    version: Schema.Literal(1),
-    operation: Schema.Literal("enable"),
-    cwd: Schema.String,
-  }),
-  Schema.Struct({
-    version: Schema.Literal(1),
-    operation: Schema.Literal("enable-confirm"),
-    cwd: Schema.String,
-    proposalDigest: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)),
-  }),
-  Schema.Struct({
-    version: Schema.Literal(1),
-    operation: Schema.Literal("disable"),
-    cwd: Schema.String,
-  }),
+const ReviewOperation = Schema.Union([
   Schema.Struct({
     version: Schema.Literal(1),
     operation: Schema.Literal("credentials"),
@@ -174,7 +155,7 @@ const ConsentOperation = Schema.Union([
     path: Schema.String,
   }),
 ]);
-type ConsentOperation = typeof ConsentOperation.Type;
+type ReviewOperation = typeof ReviewOperation.Type;
 
 const installationOperationsFor = <const Fields extends Schema.Struct.Fields>(fields: Fields) => Schema.Union([
   Schema.Struct({ version: Schema.Literal(1), operation: Schema.Literal("doctor"), cwd: Schema.String, ...fields }),
@@ -245,21 +226,13 @@ const statePathConfig = Config.String("REVIEW_STATE_PATH").pipe(
   Config.withDefault(join(homedir(), ".config", "realtime-review-tool", "consent")),
 );
 
-const receiptPathConfig = Config.String("REVIEW_RECEIPT_PATH").pipe(
-  Config.orElse(() => Config.String("REVIEW_RECEIPTS_PATH")),
-  Config.withDefault(join(homedir(), ".local", "state", "realtime-review-tool", "receipts")),
-);
-
 const activityPathConfig = Config.String("REVIEW_ACTIVITY_PATH").pipe(
   Config.withDefault(join(homedir(), ".local", "state", "realtime-review-tool", "activity")),
 );
 
 const userConfigPathConfig = Config.option(Config.String("REVIEW_USER_CONFIG_PATH"));
 
-const forcedOperation = (): ConsentOperation["operation"] | undefined => {
-  if (process.argv.includes("--enable-confirm")) return "enable-confirm";
-  if (process.argv.includes("--enable")) return "enable";
-  if (process.argv.includes("--disable")) return "disable";
+const forcedOperation = (): ReviewOperation["operation"] | undefined => {
   if (
     process.argv.includes("--inspect-credentials") ||
     process.argv.includes("--credentials")
@@ -324,10 +297,10 @@ const forcedStatusFormat = (): "human" | undefined =>
     ? "human"
     : undefined;
 
-const decodeOperation = (input: string, forced: ConsentOperation["operation"] | undefined) =>
+const decodeOperation = (input: string, forced: ReviewOperation["operation"] | undefined) =>
   decodeJson(input).pipe(
     Effect.flatMap((value) =>
-      Schema.decodeUnknownEffect(ConsentOperation, {
+      Schema.decodeUnknownEffect(ReviewOperation, {
         onExcessProperty: "error",
       })(value),
     ),
@@ -568,9 +541,8 @@ const isDirectEventReady = (
   "value" in value;
 
 const runOperation = (
-  operation: ConsentOperation,
+  operation: ReviewOperation,
   statePath: string,
-  receiptPath: string,
   activityPath: string,
   userConfigPath: string | undefined,
 ) =>
@@ -603,10 +575,6 @@ const runOperation = (
         credentials && !selectionOff
           ? "ready"
           : "not-ready";
-      const activity =
-        operation.sessionId === undefined
-          ? yield* readReceiptStatus("")
-          : yield* readReceiptStatus(operation.sessionId);
       const resident = yield* Effect.promise(() => inspectResident());
       const residentActivity = readActivity({
         statePath: activityPath,
@@ -614,7 +582,6 @@ const runOperation = (
         sessionId: operation.sessionId ?? "",
         resident,
       });
-      const primaryActivity = residentActivity.observed ? residentActivity : activity;
       const output = {
         version: 1,
         operation: "status",
@@ -632,19 +599,11 @@ const runOperation = (
             status: credentialResolution.status,
           },
         },
-        activity: primaryActivity,
-        activitySource: residentActivity.observed ? "resident-v1" : "legacy-receipt-v1",
-        evidence: {
-          resident: residentActivity,
-          legacyReceipt: activity,
-        },
+        activity: residentActivity,
+        activitySource: "resident-v1",
       };
       return operation.format === "human"
-        ? `${formatReceiptStatus(
-            operation.sessionId ?? "<session id required>",
-            `${readinessStatus} (configuration=${configurationStatus}, files=${output.readiness.fileSelection}, credentials=${credentials ? "present" : "absent"})`,
-            activity,
-          )}${formatActivityHuman(operation.sessionId ?? "<session id required>", residentActivity)}`
+        ? `readiness: ${readinessStatus} (configuration=${configurationStatus}, files=${output.readiness.fileSelection}, credentials=${credentials ? "present" : "absent"})\n${formatActivityHuman(operation.sessionId ?? "<session id required>", residentActivity)}`
         : output;
     }
     const settings = yield* loadReviewSettings(
@@ -655,33 +614,6 @@ const runOperation = (
     const destination = settings.destination;
     const credentialEnvVar = settings.credentialEnvVar;
     switch (operation.operation) {
-      case "enable": {
-        return {
-          version: 1,
-          operation: "enable",
-          status: "retired",
-          repository: { canonicalRoot: root },
-          action: "configure includes and excludes in user review settings",
-        };
-      }
-      case "enable-confirm": {
-        return {
-          version: 1,
-          operation: "enable-confirm",
-          status: "retired",
-          repository: { canonicalRoot: root },
-          action: "configure includes and excludes in user review settings",
-        };
-      }
-      case "disable": {
-        return {
-          version: 1,
-          operation: "disable",
-          status: "retired",
-          repository: { canonicalRoot: root },
-          action: "set user excludes to [\"**/*\"] to disable review",
-        };
-      }
       case "credentials": {
         const resolution = yield* Effect.promise(() => resolveCredential({
           envVar: credentialEnvVar,
@@ -712,18 +644,11 @@ const runOperation = (
       default:
         return assertNever(operation);
     }
-  }).pipe(
-    Effect.provide(
-      Layer.mergeAll(
-        ReceiptStore.layer({ statePath: receiptPath }),
-      ),
-    ),
-  );
+  });
 
 const program = Effect.gen(function* () {
   const input = yield* readStdin;
   const statePath = yield* statePathConfig;
-  const receiptPath = yield* receiptPathConfig;
   const activityPath = yield* activityPathConfig;
   const userConfigPathOption = yield* userConfigPathConfig;
   const userConfigPath = Option.isSome(userConfigPathOption)
@@ -747,7 +672,7 @@ const program = Effect.gen(function* () {
     return undefined;
   }
 
-  const inputRequestsOperation = /"operation"\s*:\s*"(?:enable|enable-confirm|disable|credentials|status|explain)"/.test(
+  const inputRequestsOperation = /"operation"\s*:\s*"(?:credentials|status|explain)"/.test(
     input,
   );
   const inputRequestsInstallation = /"operation"\s*:\s*"(?:doctor|install-preview|install|update-preview|update|uninstall)"/.test(input);
@@ -972,7 +897,7 @@ const program = Effect.gen(function* () {
         ? { ...decodedOperation, format: "human" as const }
         : decodedOperation;
     if (operation.operation !== undefined) {
-      return yield* runOperation(operation, statePath, receiptPath, activityPath, userConfigPath);
+      return yield* runOperation(operation, statePath, activityPath, userConfigPath);
     }
   }
 

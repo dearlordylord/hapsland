@@ -26,7 +26,7 @@ describe("current rule-pack targets", () => {
     const base = pack();
     const rule = base.rules[0]!;
     const invalid = [
-      { ...base, schemaVersion: 2 },
+      { ...base, schemaVersion: "unsupported" },
       { ...base, rules: [{ ...rule, reviewTargets: [] }] },
       { ...base, rules: [{ ...rule, reviewTargets: [{ ...rule.reviewTargets[0], inputContract: FUNCTION_INPUT_CONTRACT }] }] },
       { ...base, rules: [{ ...rule, reviewTargets: [{ ...rule.reviewTargets[0], capabilities: ["body"] }] }] },

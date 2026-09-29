@@ -39,7 +39,7 @@ export type ResidentDispatchContext = {
 
 export type ResidentCollectionTicket = { readonly nonce: string; readonly lifetime: string };
 /** The sole on-socket CLI/resident message version. Internal response shapes remain operation-specific. */
-export const CURRENT_IPC_VERSION = 3 as const;
+export const CURRENT_IPC_VERSION = 1 as const;
 export type ResidentRequestRoute = "shared" | "ticketed";
 export type ResidentUnavailableReason = "backend" | "credential" | "capacity" | "stale" | "lost" | "expired";
 

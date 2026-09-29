@@ -7,7 +7,6 @@ import { readActivity } from "../activity/status.ts";
 import { adaptClaudeDirectEvent } from "../direct-event/adapter.ts";
 import { makeGitFixture, put } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
-import { Consent } from "../runtime/consent.ts";
 import { residentPaths } from "./paths.ts";
 import { ResidentServer } from "./server.ts";
 import { PENDING_ADVICE_EXPIRY_MS } from "./collection.ts";
@@ -23,11 +22,6 @@ const fixture = async () => {
   const root = await makeGitFixture();
   const path = await put(root, "type.ts", "type OrderCount = number\n");
   const statePath = join(root, "consent");
-  await Effect.runPromise(Effect.gen(function* () {
-    const consent = yield* Consent.Service;
-    const proposal = yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone");
-    yield* consent.enable(proposal);
-  }).pipe(Effect.provide(Consent.layer({ statePath }))));
   const observation = await Effect.runPromise(adaptClaudeDirectEvent({
     hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
     session_id: "session", tool_use_id: "tool-one",
@@ -52,7 +46,7 @@ const collect = (server: ResidentServer, ticket: ResidentCollectionTicket,
   } satisfies ResidentRequest);
 
 const collectOverSocket = (server: ResidentServer, ticket: ResidentCollectionTicket,
-  data: Awaited<ReturnType<typeof fixture>>, dispatch: ResidentDispatchContext, version = 3) =>
+  data: Awaited<ReturnType<typeof fixture>>, dispatch: ResidentDispatchContext, version: number | null = 1) =>
   new Promise<{ status: string; reason?: string }>((resolve, reject) => {
     const socket = createConnection(server.paths.socket);
     let response = "";
@@ -69,13 +63,13 @@ const collectOverSocket = (server: ResidentServer, ticket: ResidentCollectionTic
   });
 
 describe("Claude terminal collection", () => {
-  it("rejects an older socket collection request without reporting a review result", async () => {
+  it("rejects an invalid socket collection version without reporting a review result", async () => {
     const data = await fixture();
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
     await server.listen();
     try {
-      expect(await collectOverSocket(server, { nonce: "old", lifetime: server.lifetime },
-        data, data.dispatch(0.9), 2)).toEqual({ version: 3, status: "unsupported" });
+      expect(await collectOverSocket(server, { nonce: "invalid", lifetime: server.lifetime },
+        data, data.dispatch(0.9), null)).toEqual({ version: 1, status: "unsupported" });
     } finally {
       await server.close();
     }
@@ -316,7 +310,7 @@ describe("Claude terminal collection", () => {
       evaluateGate.resolve();
       await server.whenIdle();
       responseGate.resolve();
-      expect(await result).toEqual({ version: 3, status: "empty" });
+      expect(await result).toEqual({ version: 1, status: "empty" });
     } finally {
       evaluateGate.resolve();
       responseGate.resolve();
@@ -382,7 +376,7 @@ describe("Claude terminal collection", () => {
       expect(server.admit(second, dispatch).status).toBe("accepted");
       await server.whenIdle();
       responseGate.resolve();
-      expect(await result).toEqual({ version: 3, status: "empty" });
+      expect(await result).toEqual({ version: 1, status: "empty" });
     } finally {
       responseGate.resolve();
       await server.close();
@@ -510,7 +504,7 @@ describe("Claude terminal collection", () => {
       await entered.promise;
       writeFileSync(statePath, JSON.stringify({ version: 1, generation: 2, savedUseSuspended: false }));
       gate.resolve();
-      expect(await result).toEqual({ version: 3, status: "unavailable", reason: "credential" });
+      expect(await result).toEqual({ version: 1, status: "unavailable", reason: "credential" });
       expect(server.stats().pendingAdvice).toBeGreaterThan(0);
     } finally {
       gate.resolve();

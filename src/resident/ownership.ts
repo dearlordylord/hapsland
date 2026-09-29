@@ -12,7 +12,7 @@ const readOwner = async (directory: string): Promise<OwnerRecord | undefined> =>
   try {
     const value: unknown = JSON.parse(await readFile(`${directory}/owner.json`, "utf8"));
     if (typeof value === "object" && value !== null && "pid" in value && Number.isSafeInteger(value.pid)) {
-      const token = "token" in value && typeof value.token === "string" ? value.token : "legacy-directory-owner";
+      const token = "token" in value && typeof value.token === "string" ? value.token : "unknown-directory-owner";
       return { pid: value.pid as number, token };
     }
   } catch { /* incomplete owner */ }
@@ -82,7 +82,7 @@ export const acquireResidentOwnership = async (lock: string, hooks: OwnershipHoo
         if (typeof value === "object" && value !== null && "pid" in value && Number.isSafeInteger(value.pid)) {
           guardOwner = {
             pid: value.pid as number,
-            token: "token" in value && typeof value.token === "string" ? value.token : "legacy-retirement-guard",
+            token: "token" in value && typeof value.token === "string" ? value.token : "unknown-retirement-guard",
           };
         }
       } catch { /* an interrupted guard is treated as crashed after identity revalidation */ }

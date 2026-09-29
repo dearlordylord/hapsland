@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import * as Effect from "effect/Effect";
 import { connect } from "node:net";
 import { resolve } from "node:path";
-import { closeSync, existsSync, lstatSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { DirectObservation, DirectAdvicee } from "../direct-event/model.ts";
 import type { CodexDirectEventOutput } from "../direct-event/pipeline.ts";
@@ -123,9 +123,6 @@ const within = async <A>(effect: Promise<A>, timeoutMs: number, message: string)
 
 const launches = new Map<string, number>();
 const launchResident = (paths: ResidentPaths, _timeoutMs: number) => {
-  // Pre-portability versions used this file as a launch gate. It carries no
-  // ownership authority and is safe to discard inside the private runtime.
-  rmSync(`${paths.lock}.startup`, { force: true });
   const now = Date.now();
   if ((launches.get(paths.lock) ?? 0) > now) return;
   const expires = now + 2_000;
@@ -139,14 +136,7 @@ const launchResident = (paths: ResidentPaths, _timeoutMs: number) => {
   const main = import.meta.url.endsWith(".js") && existsSync(compiled) ? compiled : source;
   const diagnostic = `${paths.lock}.startup-error`;
   const diagnosticDescriptor = openSync(diagnostic, "a", 0o600);
-  const legacy = process.platform === "linux" && (() => {
-    try { return lstatSync(paths.lock).isFile(); } catch { return false; }
-  })();
-  const command = legacy ? "flock" : process.execPath;
-  const args = legacy
-    ? ["--nonblock", paths.lock, process.execPath, main, paths.directory, "--legacy-flock"]
-    : [main, paths.directory];
-  const child = spawn(command, args, {
+  const child = spawn(process.execPath, [main, paths.directory], {
     detached: true,
     stdio: ["ignore", "ignore", diagnosticDescriptor],
     env: process.env,

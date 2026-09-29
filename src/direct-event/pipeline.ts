@@ -13,8 +13,8 @@ import { GRAPH_LIMIT_CEILINGS, type GraphLimits } from "../configuration/graph-l
 import { initialImportGraph, stepImportGraph } from "../canonical/graph-adapter.ts";
 import type { ReviewSettings } from "../runtime/review-config.ts";
 import { adaptCodexDirectEvent, verifyObservationRoot } from "./adapter.ts";
-import { selectEditedRootsV2 } from "./attribution-v2.ts";
-import { verifyCodexPostEditHunks } from "./codex-v2-hunks.ts";
+import { selectEditedRoots } from "./edit-attribution.ts";
+import { verifyCodexPostEditHunks } from "./codex-patch-hunks.ts";
 import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
 import { FUNCTION_INPUT_CONTRACT } from "../rules/targets.ts";
 import { analyzeFunctionFile } from "./function-analyzer.ts";
@@ -399,7 +399,7 @@ const prepareObservationForContract = Effect.fn("DirectEvent.prepareObservationF
             path: eligible.relativePath, kind: artifact.kind, name: artifact.name, location,
           }));
           try {
-            const attribution = selectEditedRootsV2({ path: eligible.relativePath,
+            const attribution = selectEditedRoots({ path: eligible.relativePath,
               operation: candidate.operation, source: captured.text }, hunks, declarations);
             const names = new Set(attribution.selected.map((root) => root.name));
             return { selected: analyses.filter((item) => names.has(analysisRoot(item).name)),

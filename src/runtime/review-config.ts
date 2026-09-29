@@ -39,7 +39,7 @@ export interface ReviewSettings {
   readonly credentialEnvVar: string;
   /** Captured once for the event and shared by explanation and runtime selection. */
   readonly configuration: ConfigurationCapture;
-  /** Fully validated, captured rule set. Omitted by legacy in-memory callers. */
+  /** Fully validated, captured rule set. Callers may supply rules separately. */
   readonly rules?: ReadonlyArray<CompiledRule>;
 }
 

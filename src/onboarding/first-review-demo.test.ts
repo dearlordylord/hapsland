@@ -5,7 +5,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
-import { Consent } from "../runtime/consent.ts";
 import {
   DEMO_PROVIDER_CALL_BUDGET,
   DEMO_SOURCE_BYTE_BUDGET,
@@ -32,14 +31,13 @@ const fixture = () => {
   return {
     root,
     demoStatePath: join(root, "demos"),
-    consentStatePath: join(root, "consent"),
   };
 };
 
-const run = <A>(
-  test: ReturnType<typeof fixture>,
-  effect: Effect.Effect<A, unknown, Consent.Service>,
-) => Effect.runPromise(effect.pipe(Effect.provide(Consent.layer({ statePath: test.consentStatePath }))));
+const run = <A, E>(
+  _test: ReturnType<typeof fixture>,
+  effect: Effect.Effect<A, E>,
+) => Effect.runPromise(effect);
 
 type Preview = Awaited<ReturnType<typeof preview>>;
 const preview = (test: ReturnType<typeof fixture>) => run(test, runFirstReviewDemo({
@@ -248,10 +246,6 @@ describe("installed-product first-review demo", () => {
     expect(result.reviewLatencyMs).toBe(420);
     expect(result.cleanup).toEqual({ disposableRootRemoved: true });
     expect(existsSync(proposal.demo.disposableRoot)).toBe(false);
-    const grants = await run(test, Effect.gen(function* () {
-      return yield* (yield* Consent.Service).list();
-    }));
-    expect(grants).toEqual([]);
   });
 
   it("does not pass when either independent reaction or post-repair terminal evidence is unavailable", async () => {

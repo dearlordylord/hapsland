@@ -97,10 +97,10 @@ def Laws.valid_composed_submission_batch_proceeds():
 def Laws.final_credential_mismatch_is_retained_in_fold():
   {==}
 
-def Laws.final_legacy_credential_mismatch_releases_batch():
+def Laws.final_shared_credential_mismatch_releases_batch():
   {==}
 
-def Laws.ticket_credential_mismatch_does_not_use_legacy_gate():
+def Laws.ticket_credential_mismatch_does_not_use_shared_gate():
   {==}
 
 def Laws.provisional_stop_output_revokes_and_closes():
@@ -349,7 +349,7 @@ def Laws.canonical_background_submission_waits_behind_barrier():
 def Laws.canonical_existing_stop_token_requires_finish_permit():
   {==}
 
-def Laws.canonical_legacy_stop_output_denied_during_decision():
+def Laws.canonical_unreserved_stop_output_denied_during_decision():
   {==}
 
 def Laws.output_selection_reserves_pending_unit():
@@ -406,7 +406,7 @@ def Laws.existing_stop_token_accepts_finish_permit():
 def Laws.existing_background_token_is_denied_before_advice_lookup():
   {==}
 
-def Laws.legacy_stop_blocked_during_decision():
+def Laws.unreserved_stop_blocked_during_decision():
   {==}
 
 def Laws.selected_findings_require_continuation():

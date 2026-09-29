@@ -4,7 +4,6 @@ import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts";
-import { Consent } from "../runtime/consent.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { residentPaths } from "./paths.ts";
 import { ResidentServer, type JevRequestObservation } from "./server.ts";
@@ -19,7 +18,7 @@ const deferred = () => {
 };
 
 describe("canonical Jev request boundary", () => {
-  it("uses configured v2 rules for complete type and function units", async () => {
+  it("uses configured rules for complete type and function units", async () => {
     const root = await makeGitFixture();
     await put(root, "a.ts", "export type Count = number;\nexport function count(): Count { return 1; }\n");
     await put(root, "rules.jsonc", JSON.stringify({ schemaVersion: 1, id: "team", contentVersion: "1", rules: [{
@@ -52,10 +51,6 @@ describe("canonical Jev request boundary", () => {
     const source = `export type LargeName = { value: "${"x".repeat(33_000)}" };\n`;
     await put(root, "large.ts", source);
     const statePath = join(root, "consent");
-    await Effect.runPromise(Effect.gen(function* () {
-      const consent = yield* Consent.Service;
-      yield* consent.enable(yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone"));
-    }).pipe(Effect.provide(Consent.layer({ statePath }))));
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["large.ts"])));
     if (observation === undefined) throw new Error("fixture observation missing");
     const reads: string[] = [];
@@ -88,10 +83,6 @@ describe("canonical Jev request boundary", () => {
     }] }));
     await put(root, ".review.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
     const statePath = join(root, "consent");
-    await Effect.runPromise(Effect.gen(function* () {
-      const consent = yield* Consent.Service;
-      yield* consent.enable(yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone"));
-    }).pipe(Effect.provide(Consent.layer({ statePath }))));
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])));
     if (observation === undefined) throw new Error("fixture observation missing");
     const capturePath = join(root, "provider-calls.txt");
@@ -114,10 +105,6 @@ describe("canonical Jev request boundary", () => {
     await put(root, "b.ts", "import type { C } from './c'; export interface B { c: C }");
     await put(root, "c.ts", "export interface C { value: string }");
     const statePath = join(root, "consent");
-    await Effect.runPromise(Effect.gen(function* () {
-      const consent = yield* Consent.Service;
-      yield* consent.enable(yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone"));
-    }).pipe(Effect.provide(Consent.layer({ statePath }))));
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])));
     if (observation === undefined) throw new Error("fixture observation missing");
     const reads: string[] = [];
@@ -159,10 +146,6 @@ describe("canonical Jev request boundary", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    await Effect.runPromise(Effect.gen(function* () {
-      const consent = yield* Consent.Service;
-      yield* consent.enable(yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone"));
-    }).pipe(Effect.provide(Consent.layer({ statePath }))));
     const event = async () => {
       const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["type.ts"])));
       if (observation === undefined) throw new Error("fixture observation missing");
@@ -223,11 +206,6 @@ describe("canonical Jev request boundary", () => {
       await put(root, path, `type Item${index}Count = number\n`);
     }
     const statePath = join(root, "consent");
-    await Effect.runPromise(Effect.gen(function* () {
-      const consent = yield* Consent.Service;
-      const proposal = yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone");
-      yield* consent.enable(proposal);
-    }).pipe(Effect.provide(Consent.layer({ statePath }))));
     const observe = async (selected: readonly string[]) => {
       const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, [...selected])));
       if (observation === undefined) throw new Error("fixture observation missing");
@@ -294,10 +272,6 @@ describe("canonical Jev request boundary", () => {
     const paths = Array.from({ length: 11 }, (_, index) => `item-${index}.ts`);
     for (const [index, path] of paths.entries()) await put(root, path, `type Item${index}Count = number\n`);
     const statePath = join(root, "consent");
-    await Effect.runPromise(Effect.gen(function* () {
-      const consent = yield* Consent.Service;
-      yield* consent.enable(yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone"));
-    }).pipe(Effect.provide(Consent.layer({ statePath }))));
     const observe = async (index: number) => {
       const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, [paths[index]!], {
         agent_id: `agent-${index}`, tool_use_id: `tool-${index}`,
@@ -382,10 +356,6 @@ describe("canonical Jev request boundary", () => {
     const paths = Array.from({ length: 11 }, (_, index) => `item-${index}.ts`);
     for (const [index, path] of paths.entries()) await put(root, path, `type Item${index}Count = number\n`);
     const statePath = join(root, "consent");
-    await Effect.runPromise(Effect.gen(function* () {
-      const consent = yield* Consent.Service;
-      yield* consent.enable(yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone"));
-    }).pipe(Effect.provide(Consent.layer({ statePath }))));
     const observe = async (index: number) => {
       const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, [paths[index]!], {
         tool_use_id: `timeout-${index}`,

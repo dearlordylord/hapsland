@@ -8,12 +8,9 @@ type Gate is Data:
   Omit{}
 
 type Target is Data:
-  DirectTypeShape{}
-  LegacyFileTypeShape{}
-  OtherTypeShape{}
+  TypeShape{}
   FunctionTarget{}
-  DirectTypeShapeV2{}
-  DirectFunctionV1{}
+  UnsupportedTarget{}
 
 type Order is Data:
   Before{}
@@ -35,12 +32,9 @@ def enabled(pack_enabled: Bool, rule_enabled: Bool) -> Gate:
 
 def target_compatible(target: Target) -> Bool:
   match target:
-    case DirectTypeShape{}: True{}
-    case LegacyFileTypeShape{}: True{}
-    case OtherTypeShape{}: False{}
-    case FunctionTarget{}: False{}
-    case DirectTypeShapeV2{}: True{}
-    case DirectFunctionV1{}: True{}
+    case TypeShape{}: True{}
+    case FunctionTarget{}: True{}
+    case UnsupportedTarget{}: False{}
 
 def applicable(consent: Bool, complete: Bool, target: Target,
     global_included: Bool, global_excluded: Bool,

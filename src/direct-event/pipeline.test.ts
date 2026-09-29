@@ -921,7 +921,7 @@ describe("direct-event vertical slice", () => {
       const changedContract = yield* enabledReview(root, addEvent(root), undefined, (base) => ({
         ...base,
         inputContract: () => contract,
-        beforeHandoff: Effect.sync(() => { contract = "direct-event/same-file-single-named-type/v2"; }),
+        beforeHandoff: Effect.sync(() => { contract = "unsupported-input-contract"; }),
       }));
       expect(changedContract).toEqual({ status: "unavailable", reason: "stale", output: undefined });
     }),

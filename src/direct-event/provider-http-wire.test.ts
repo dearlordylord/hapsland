@@ -97,13 +97,13 @@ const observe = async (id: string, local: LocalRequest, localRequestBytes: numbe
 };
 
 describe("offline provider HTTP framing for proposed #138 study arms", () => {
-  it("matches escaped UTF-8, multiple keys, and v1/v2 state shapes", async () => {
+  it("matches escaped UTF-8, multiple keys, and both state shapes", async () => {
     const decision = { _tag: "Probability" as const, instructions: "quote \" slash \\ café 🦊",
       criteria: { false: "Non\n", true: "Oui 🦊" } };
     for (const input of [
       { artifact: { domain: "a.ts", source: "type Café = \"🦊\"" }, evidence: [],
         inputContract: { id: "direct-event-v1", evidence: "complete named direct-event unit" } },
-      { inputContract: { id: "type-v2" }, artifact: { domain: "a.ts", source: "type Café = \"🦊\"" },
+      { inputContract: { id: "type-shape-test" }, artifact: { domain: "a.ts", source: "type Café = \"🦊\"" },
         nodes: [], edges: [] },
     ]) {
       const local = { input, decisions: { "rule-1": decision, "other.rule": decision } };

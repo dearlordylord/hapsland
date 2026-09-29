@@ -93,7 +93,7 @@ describe("portable resident ownership", () => {
     await releaseResidentOwnership(lock);
   });
 
-  it("leaves a legacy regular-file lock untouched for the compatibility launcher", async () => {
+  it("leaves a malformed regular-file lock untouched", async () => {
     const lock = await fixture();
     await writeFile(lock, "");
     await expect(acquireResidentOwnership(lock)).resolves.toBe(false);

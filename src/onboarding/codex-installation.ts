@@ -30,17 +30,6 @@ const PRODUCT_DIRECTORY = ".realtime-review-tool";
 
 type JsonObject = { [key: string]: unknown };
 
-class ResidentProtocolIncompatible extends Error {
-  readonly installed: number;
-  readonly target: number;
-
-  constructor(installed: number, target: number) {
-    super(`resident protocol ${installed} is incompatible with target protocol ${target}; active work was left on the installed version`);
-    this.installed = installed;
-    this.target = target;
-  }
-}
-
 class TargetPackageMetadataInvalid extends Error {}
 
 export interface InstallationRequest {
@@ -446,9 +435,7 @@ const readOwnership = (path: string): OwnershipRecord | undefined => {
       typeof value.hookFingerprint !== "string" || !Array.isArray(value.owned) ||
       typeof value.executable !== "string" || typeof value.entrypoint !== "string" ||
       typeof value.runtimeVersion !== "string" || typeof value.codexHome !== "string" ||
-      (value.packageVersion !== undefined && typeof value.packageVersion !== "string") ||
-      (value.residentProtocol !== undefined && (typeof value.residentProtocol !== "number" ||
-        !Number.isSafeInteger(value.residentProtocol) || value.residentProtocol <= 0)) ||
+      typeof value.packageVersion !== "string" || value.residentProtocol !== 1 ||
       (value.composedFingerprints !== undefined && (!isObject(value.composedFingerprints) ||
         typeof value.composedFingerprints.stop !== "string" ||
         typeof value.composedFingerprints.prompt !== "string" ||
@@ -470,8 +457,8 @@ const readOwnership = (path: string): OwnershipRecord | undefined => {
     adapter: "codex",
     codexHome: value.codexHome,
     runtimeVersion: value.runtimeVersion,
-    packageVersion: typeof value.packageVersion === "string" ? value.packageVersion : "legacy",
-    residentProtocol: typeof value.residentProtocol === "number" ? value.residentProtocol : 1,
+    packageVersion: value.packageVersion,
+    residentProtocol: 1,
     executable: value.executable,
     entrypoint: value.entrypoint,
     marker: OWNED_MARKER,
@@ -682,9 +669,8 @@ const resolveInputs = (request: InstallationRequest) => {
     if (!isObject(declaration) || declaration.schemaVersion !== 1 || !isObject(declaration.runtime) ||
         declaration.runtime.name !== "node" || typeof declaration.runtime.version !== "string" ||
         !Array.isArray(declaration.profiles) || declaration.profiles.length === 0 ||
-        typeof declaration.residentProtocol !== "number" || !Number.isSafeInteger(declaration.residentProtocol) ||
-        declaration.residentProtocol <= 0) {
-      throw new Error("package-runtime.json must declare Node runtime, nonempty profiles, and a positive residentProtocol");
+        declaration.residentProtocol !== 1) {
+      throw new Error("package-runtime.json must declare Node runtime, nonempty profiles, and residentProtocol 1");
     }
     const profiles = declaration.profiles.map((profile) => {
       if (!isObject(profile) || typeof profile.operatingSystem !== "string" ||
@@ -812,9 +798,6 @@ const makeUpdatePlan = (request: InstallationRequest) => {
   const record = readOwnership(inputs.paths.ownership);
   if (record === undefined) throw new Error("no owned Codex installation exists; run install first");
   if (record.codexHome !== inputs.home) throw new Error("ownership record targets another Codex home");
-  if (record.residentProtocol !== inputs.residentProtocol) {
-    throw new ResidentProtocolIncompatible(record.residentProtocol, inputs.residentProtocol);
-  }
   const config = snapshot(inputs.paths.config);
   const parsedConfig = validateToml(config);
   const ownedFeature = record.owned.find((entry) => entry.kind === "feature" && entry.file === inputs.paths.config);
@@ -900,26 +883,6 @@ const conflictResult = (operation: string, reason: string, home?: string) => ({
   error: { code: "configuration_conflict", message: reason },
   completed: [],
   pending: ["resolve the reported conflict and preview again"],
-});
-
-const protocolConflictResult = (
-  operation: "update-preview" | "update",
-  cause: ResidentProtocolIncompatible,
-  home: string,
-) => ({
-  version: RESULT_VERSION,
-  operation,
-  status: "conflict",
-  host: { adapter: "codex", home },
-  error: {
-    code: "resident_protocol_incompatible",
-    message: cause.message,
-    installed: cause.installed,
-    target: cause.target,
-  },
-  preserved: ["installed hook", "old grant files", "credentials", "user rules", "independent hooks", "in-flight work"],
-  completed: [],
-  pending: ["choose a target package with a compatible resident protocol or finish current work before a separately supported migration"],
 });
 
 const packageMetadataConflictResult = (
@@ -1695,9 +1658,6 @@ export const previewCodexUpdate = (request: InstallationRequest): InstallationRe
     if (cause instanceof TargetPackageMetadataInvalid) {
       return packageMetadataConflictResult("update-preview", cause, home);
     }
-    if (cause instanceof ResidentProtocolIncompatible) {
-      return protocolConflictResult("update-preview", cause, home);
-    }
     return conflictResult("update-preview", cause instanceof Error ? cause.message : "update preview failed", home);
   }
 };
@@ -1836,9 +1796,6 @@ export const updateCodexIntegration = async (request: InstallationRequest): Prom
       };
     });
   } catch (cause) {
-    if (cause instanceof ResidentProtocolIncompatible) {
-      return protocolConflictResult("update", cause, inputs.home);
-    }
     return conflictResult("update", cause instanceof Error ? cause.message : "update failed", inputs.home);
   }
 };

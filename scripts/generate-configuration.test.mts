@@ -205,7 +205,7 @@ describe("configuration documentation generator", () => {
       expect(rulePackValidator.safeParse(pack).success).toBe(true);
       expect(decodeRulePackText(JSON.stringify(pack), "pack.jsonc").schemaVersion).toBe(1);
       for (const invalid of [
-        { ...pack, schemaVersion: 2 },
+        { ...pack, schemaVersion: "unsupported" },
         { ...pack, rules: [{ ...pack.rules[0], reviewTargets: [] }] },
         { ...pack, rules: [{ ...pack.rules[0], reviewTargets: [{ ...typeTarget, inputContract: FUNCTION_INPUT_CONTRACT }] }] },
         { ...pack, rules: [{ ...pack.rules[0], reviewTargets: [{ ...functionTarget, capabilities: ["root-declaration"] }] }] },

@@ -63,8 +63,8 @@ def credential_observe(invalid_seen: Bool, generation_valid: Bool,
     authorized: Bool) -> Bool:
   Bool.or(invalid_seen, Bool.not(Bool.and(generation_valid, authorized)))
 
-def final_credential_gate(legacy_collect: Bool, invalid_seen: Bool) -> BatchGate:
-  Bool.pick(BatchGate, Bool.and(legacy_collect, invalid_seen),
+def final_credential_gate(shared_collect: Bool, invalid_seen: Bool) -> BatchGate:
+  Bool.pick(BatchGate, Bool.and(shared_collect, invalid_seen),
     BatchRelease{}, BatchProceed{})
 
 def collection_lease(has_lease: Bool, expired: Bool, stop_collector: Bool,
@@ -132,14 +132,13 @@ def submission_allowed(round: Round.Round, surface: Surface,
       submission_allowed_facts(live, barrier, deciding, surface,
         existing_token, finish_permit)
 
-# Legacy Stop collection predates the finish permit protocol.
-def legacy_stop_allowed_facts(live: Bool, deciding: Bool) -> Bool:
+def unreserved_stop_allowed_facts(live: Bool, deciding: Bool) -> Bool:
   Bool.and(live, Bool.not(deciding))
 
-def legacy_stop_allowed(round: Round.Round) -> Bool:
+def unreserved_stop_allowed(round: Round.Round) -> Bool:
   match round:
     case Round.Round{_, live, _, _, _, _, deciding, _}:
-      legacy_stop_allowed_facts(live, deciding)
+      unreserved_stop_allowed_facts(live, deciding)
 
 def transition(current: Phase, requested: Phase) -> Step:
   match current:
