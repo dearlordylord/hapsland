@@ -9,6 +9,7 @@ import { makeGitFixture, put } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { residentPaths } from "./paths.ts";
 import { ResidentServer } from "./server.ts";
+import { monotonicNow } from "./hook-clock.ts";
 import { PENDING_ADVICE_EXPIRY_MS } from "./collection.ts";
 import type { ResidentDispatchContext, ResidentRequest, ResidentCollectionTicket } from "./protocol.ts";
 
@@ -62,6 +63,8 @@ const collectOverSocket = (server: ResidentServer, ticket: ResidentCollectionTic
     })}\n`));
   });
 
+// Direct admission isolates ticket evaluation and collection from the pre-edit IPC lifecycle.
+// Public permit enforcement is covered by the server and Claude delivery socket tests.
 describe("Claude terminal collection", () => {
   it("rejects an invalid socket collection version without reporting a review result", async () => {
     const data = await fixture();
@@ -178,8 +181,10 @@ describe("Claude terminal collection", () => {
       beforeEvaluate: async () => { entered.resolve(); await gate.promise; },
     });
     const dispatch = data.dispatch(0);
+    expect((await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
+      root: data.root, advicee: data.observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
     const admission = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation: data.observation, controlledWriter: true, dispatch });
+      observation: data.observation, controlledWriter: true, dispatch, composed: true });
     expect(admission.status).toBe("accepted");
     if (admission.status !== "accepted" || !("ticket" in admission)) return;
     expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "pending" });
@@ -206,8 +211,7 @@ describe("Claude terminal collection", () => {
     const data = await fixture();
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
     const dispatch = data.dispatch(0.9);
-    const admission = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation: data.observation, controlledWriter: true, dispatch });
+    const admission = server.admit(data.observation, dispatch, true);
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
     await server.whenIdle();
     for (let index = 0; index < 16; index += 1) {
@@ -225,8 +229,7 @@ describe("Claude terminal collection", () => {
     const data = await fixture();
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
     const dispatch = data.dispatch(0, "backend failed");
-    const admission = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation: data.observation, controlledWriter: true, dispatch });
+    const admission = server.admit(data.observation, dispatch, true);
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
     await server.whenIdle();
     const result = await collect(server, admission.ticket, data, dispatch);
@@ -244,8 +247,7 @@ describe("Claude terminal collection", () => {
     let now = 1_000;
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")), () => now);
     const dispatch = data.dispatch(0);
-    const admission = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation: data.observation, controlledWriter: true, dispatch });
+    const admission = server.admit(data.observation, dispatch, true);
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
     await server.whenIdle();
     expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "empty" });
@@ -270,8 +272,7 @@ describe("Claude terminal collection", () => {
     let now = admittedAt;
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")), () => now);
     const dispatch = data.dispatch(0);
-    const admission = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation: data.observation, controlledWriter: true, dispatch });
+    const admission = server.admit(data.observation, dispatch, true);
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
     await server.whenIdle();
     const expiresAt = admittedAt + 600_000;
@@ -301,8 +302,7 @@ describe("Claude terminal collection", () => {
     await server.listen();
     try {
       const dispatch = data.dispatch(0);
-      const admission = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-        observation: data.observation, controlledWriter: true, dispatch });
+      const admission = server.admit(data.observation, dispatch, true);
       if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
       await evaluating.promise;
       const result = collectOverSocket(server, admission.ticket, data, dispatch);
@@ -331,8 +331,7 @@ describe("Claude terminal collection", () => {
     await server.listen();
     try {
       const dispatch = data.dispatch(0.9);
-      const admission = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-        observation: data.observation, controlledWriter: true, dispatch });
+      const admission = server.admit(data.observation, dispatch, true);
       if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
       await evaluating.promise;
       const result = collectOverSocket(server, admission.ticket, data, dispatch);
@@ -359,8 +358,7 @@ describe("Claude terminal collection", () => {
     await server.listen();
     try {
       const dispatch = data.dispatch(0);
-      const admission = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-        observation: data.observation, controlledWriter: true, dispatch });
+      const admission = server.admit(data.observation, dispatch, true);
       if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
       await server.whenIdle();
       const result = collectOverSocket(server, admission.ticket, data, dispatch);
@@ -398,8 +396,7 @@ describe("Claude terminal collection", () => {
     });
     const activityPath = join(data.root, "mixed-activity");
     const dispatch = { ...data.dispatch(0.9), activityPath };
-    const admission = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation, controlledWriter: true, dispatch });
+    const admission = server.admit(observation, dispatch, true);
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
     await server.whenIdle();
     let delivered = false;
@@ -423,8 +420,7 @@ describe("Claude terminal collection", () => {
     const data = await fixture();
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")), () => 1_000);
     const dispatch = data.dispatch(0.9);
-    const admission = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation: data.observation, controlledWriter: true, dispatch });
+    const admission = server.admit(data.observation, dispatch, true);
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
     await server.whenIdle();
     const outcomes = await Promise.all([
@@ -443,11 +439,8 @@ describe("Claude terminal collection", () => {
     const data = await fixture();
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
     const dispatch = data.dispatch(0.9);
-    const finding = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation: data.observation, controlledWriter: true, dispatch });
-    const skipped = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation: { ...data.observation, candidates: [{ operation: "delete", path: "type.ts", addedLines: [] }] },
-      controlledWriter: true, dispatch });
+    const finding = server.admit(data.observation, dispatch, true);
+    const skipped = server.admit({ ...data.observation, candidates: [{ operation: "delete", path: "type.ts", addedLines: [] }] }, dispatch, true);
     if (finding.status !== "accepted" || !("ticket" in finding) ||
         skipped.status !== "accepted" || !("ticket" in skipped)) throw new Error("not admitted");
     await server.whenIdle();
@@ -462,12 +455,10 @@ describe("Claude terminal collection", () => {
     const data = await fixture();
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
     const dispatch = data.dispatch(0.9);
-    const first = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation: data.observation, controlledWriter: true, dispatch });
+    const first = server.admit(data.observation, dispatch, true);
     if (first.status !== "accepted" || !("ticket" in first)) throw new Error("first not admitted");
     await server.whenIdle();
-    const second = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation: data.observation, controlledWriter: true, dispatch });
+    const second = server.admit(data.observation, dispatch, true);
     if (second.status !== "accepted" || !("ticket" in second)) throw new Error("second not admitted");
     await server.whenIdle();
     let advice = await collect(server, second.ticket, data, dispatch);
@@ -498,8 +489,7 @@ describe("Claude terminal collection", () => {
     });
     await server.listen();
     try {
-      const admission = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-        observation: data.observation, controlledWriter: true, dispatch });
+      const admission = server.admit(data.observation, dispatch, true);
       if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
       await server.whenIdle();
       const result = collectOverSocket(server, admission.ticket, data, dispatch);
@@ -525,8 +515,7 @@ describe("Claude terminal collection", () => {
       controlled: { ...data.dispatch(0).controlled, requireCredential: true },
     };
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
-    const admission = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation: data.observation, controlledWriter: true, dispatch });
+    const admission = server.admit(data.observation, dispatch, true);
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
     await server.whenIdle();
     expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "empty" });
@@ -540,13 +529,11 @@ describe("Claude terminal collection", () => {
     const data = await fixture();
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
     const dispatch = data.dispatch(0);
-    const first = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation: data.observation, controlledWriter: true, dispatch });
+    const first = server.admit(data.observation, dispatch, true);
     if (first.status !== "accepted" || !("ticket" in first)) throw new Error("first not admitted");
     await server.whenIdle();
     expect(await collect(server, first.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "empty" });
-    const second = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation: data.observation, controlledWriter: true, dispatch });
+    const second = server.admit(data.observation, dispatch, true);
     if (second.status !== "accepted" || !("ticket" in second)) throw new Error("second not admitted");
     await server.whenIdle();
     expect(await collect(server, second.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "empty" });
@@ -557,8 +544,7 @@ describe("Claude terminal collection", () => {
     await put(data.root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
     const dispatch = data.dispatch(0);
-    const admission = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation: data.observation, controlledWriter: true, dispatch });
+    const admission = server.admit(data.observation, dispatch, true);
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
     await server.whenIdle();
     expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "empty" });
@@ -568,13 +554,11 @@ describe("Claude terminal collection", () => {
     const data = await fixture();
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
     const failed = data.dispatch(0, "controlled backend failure");
-    const first = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation: data.observation, controlledWriter: true, dispatch: failed });
+    const first = server.admit(data.observation, failed, true);
     if (first.status !== "accepted" || !("ticket" in first)) throw new Error("first not admitted");
     await server.whenIdle();
     await put(data.root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
-    const second = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation: data.observation, controlledWriter: true, dispatch: failed });
+    const second = server.admit(data.observation, failed, true);
     if (second.status !== "accepted" || !("ticket" in second)) throw new Error("second not admitted");
     await server.whenIdle();
     expect(await collect(server, second.ticket, data, failed)).toEqual({ requestRoute: "ticketed", status: "empty" });
@@ -587,8 +571,7 @@ describe("Claude terminal collection", () => {
     const data = await fixture();
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
     const dispatch = data.dispatch(0);
-    const first = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation: data.observation, controlledWriter: true, dispatch });
+    const first = server.admit(data.observation, dispatch, true);
     if (first.status !== "accepted" || !("ticket" in first)) throw new Error("first not admitted");
     await server.whenIdle();
     expect(await collect(server, first.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "empty" });
@@ -603,16 +586,14 @@ describe("Claude terminal collection", () => {
     let now = 1_000;
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")), () => now, { maximumTickets: 1 });
     const dispatch = data.dispatch(0.9);
-    const first = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation: data.observation, controlledWriter: true, dispatch });
+    const first = server.admit(data.observation, dispatch, true);
     if (first.status !== "accepted" || !("ticket" in first)) throw new Error("first not admitted");
     await server.whenIdle();
     now += PENDING_ADVICE_EXPIRY_MS + 1;
     expect(await collect(server, first.ticket, data, dispatch)).toEqual({
       requestRoute: "ticketed", status: "unavailable", reason: "expired",
     });
-    const second = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation: data.observation, controlledWriter: true, dispatch });
+    const second = server.admit(data.observation, dispatch, true);
     if (second.status !== "accepted" || !("ticket" in second)) throw new Error("second not admitted");
     expect(await collect(server, first.ticket, data, dispatch)).toEqual({
       requestRoute: "ticketed", status: "unavailable", reason: "lost",

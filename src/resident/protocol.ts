@@ -46,7 +46,7 @@ export type ResidentUnavailableReason = "backend" | "credential" | "capacity" | 
 export type ResidentRequest =
   | {
       readonly requestRoute: "ticketed"; readonly operation: "admit"; readonly lifetime: string;
-      readonly observation: DirectObservation; readonly controlledWriter: true; readonly composed?: true;
+      readonly observation: DirectObservation; readonly controlledWriter: true; readonly composed: true;
       readonly dispatch: ResidentDispatchContext;
     }
   | {
@@ -79,7 +79,7 @@ export type ResidentRequest =
       readonly lifetime: string;
       readonly observation: DirectObservation;
       readonly controlledWriter: true;
-      readonly composed?: true;
+      readonly composed: true;
       readonly dispatch: ResidentDispatchContext;
     }
   | {
@@ -260,11 +260,10 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
       value.version !== undefined || typeof value.operation !== "string") return undefined;
   if (value.requestRoute === "ticketed") {
     if (!string(value.lifetime)) return undefined;
-    if (value.operation === "admit" && value.controlledWriter === true && observation(value.observation) &&
+    if (value.operation === "admit" && value.composed === true && value.controlledWriter === true && observation(value.observation) &&
         value.observation.advicee.host === "claude-code" && dispatch(value.dispatch)) {
       return { requestRoute: "ticketed", operation: "admit", lifetime: value.lifetime,
-        observation: value.observation, controlledWriter: true, dispatch: value.dispatch,
-        ...(value.composed === true ? { composed: true } : {}) };
+        observation: value.observation, controlledWriter: true, dispatch: value.dispatch, composed: true };
     }
     const ticket = record(value.ticket);
     if (value.operation === "collect" && string(ticket?.nonce) && string(ticket.lifetime) &&
@@ -326,9 +325,8 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
   if (value.operation === "release" && string(value.token)) {
     return { requestRoute: "shared", operation: "release", lifetime: value.lifetime, token: value.token };
   }
-  if (value.operation === "admit" && value.controlledWriter === true && observation(value.observation) && dispatch(value.dispatch)) {
-    return { requestRoute: "shared", operation: "admit", lifetime: value.lifetime, observation: value.observation, controlledWriter: true, dispatch: value.dispatch,
-        ...(value.composed === true ? { composed: true } : {}) };
+  if (value.operation === "admit" && value.composed === true && value.controlledWriter === true && observation(value.observation) && dispatch(value.dispatch)) {
+    return { requestRoute: "shared", operation: "admit", lifetime: value.lifetime, observation: value.observation, controlledWriter: true, dispatch: value.dispatch, composed: true };
   }
   const finish = record(value.finish);
   const finishToken = finish?.token;

@@ -288,8 +288,9 @@ export const admitObservation = async (
   controlledWriter: boolean,
   dispatch: ResidentDispatchContext,
   paths = residentPaths(),
-  composed = false,
+  composed = true,
 ) => {
+  if (!composed) return { status: "unsupported" } as const;
   const owner = await ensureResident(paths);
   if (!controlledWriter) return { status: "empty" } as const;
   return residentRequest(paths, {
@@ -298,7 +299,7 @@ export const admitObservation = async (
     lifetime: owner.lifetime,
     observation,
     controlledWriter: true,
-    ...(composed ? { composed: true as const } : {}),
+    composed: true,
     dispatch,
   });
 };
@@ -322,9 +323,9 @@ export const admitTicketedObservation = async (
   observation: DirectObservation,
   dispatch: ResidentDispatchContext,
   paths = residentPaths(),
-  composed = false,
+  composed = true,
 ): Promise<TicketedAdmissionResult> => {
-  if (observation.advicee.host !== "claude-code") return { status: "unsupported" };
+  if (!composed || observation.advicee.host !== "claude-code") return { status: "unsupported" };
   const owner = await ensureResident(paths);
   const response = await residentRequest(paths, {
     requestRoute: "ticketed",
@@ -332,7 +333,7 @@ export const admitTicketedObservation = async (
     lifetime: owner.lifetime,
     observation,
     controlledWriter: true,
-    ...(composed ? { composed: true as const } : {}),
+    composed: true,
     dispatch,
   });
   if (!("requestRoute" in response) || response.requestRoute !== "ticketed" || response.status === "unsupported") return { status: "unsupported" };

@@ -103,7 +103,7 @@ describe("resident protocol bounds", () => {
     if (observation === undefined) return;
     const decoded = decodeResidentRequest(JSON.stringify({
       requestRoute: "shared",
-      operation: "admit",
+      operation: "admit", composed: true,
       lifetime: "lifetime",
       controlledWriter: true,
       observation,
@@ -116,6 +116,14 @@ describe("resident protocol bounds", () => {
     }));
     expect(decoded?.operation).toBe("admit");
     if (decoded?.operation !== "admit") throw new Error("expected admission");
+    for (const requestRoute of ["shared", "ticketed"]) {
+      const admission = { ...decoded, requestRoute, observation: { ...decoded.observation,
+        advicee: { ...decoded.observation.advicee, host: "claude-code", hostVersion: "2.1.218", turnId: null } } };
+      expect(decodeResidentRequest(JSON.stringify(admission))).toBeDefined();
+      for (const composed of [undefined, false, "true"]) {
+        expect(decodeResidentRequest(JSON.stringify({ ...admission, composed }))).toBeUndefined();
+      }
+    }
     const synthetic = { ...decoded, dispatch: { ...decoded.dispatch,
       controlled: { syntheticR6BrandedRepair: "finding" } } };
     expect(decodeResidentRequest(JSON.stringify(synthetic))?.operation).toBe("admit");
@@ -125,7 +133,7 @@ describe("resident protocol bounds", () => {
     if (decoded?.operation === "admit") expect(decoded.observation.advicee.subagentId).toBe("child-7");
     expect(decodeResidentRequest(JSON.stringify({
       requestRoute: "shared",
-      operation: "admit",
+      operation: "admit", composed: true,
       lifetime: "lifetime",
       controlledWriter: true,
       observation: { ...observation, advicee: { ...observation.advicee, hostVersion: "0.156.0" } },
@@ -133,7 +141,7 @@ describe("resident protocol bounds", () => {
     }))?.operation).toBe("admit");
     expect(decodeResidentRequest(JSON.stringify({
       requestRoute: "shared",
-      operation: "admit",
+      operation: "admit", composed: true,
       lifetime: "lifetime",
       controlledWriter: true,
       observation,
@@ -147,7 +155,7 @@ describe("resident protocol bounds", () => {
     }))).toMatchObject({ operation: "admit" });
     expect(decodeResidentRequest(JSON.stringify({
       requestRoute: "shared",
-      operation: "admit",
+      operation: "admit", composed: true,
       lifetime: "lifetime",
       controlledWriter: true,
       observation,

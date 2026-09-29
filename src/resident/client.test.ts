@@ -8,6 +8,7 @@ import {
   ResidentIpcError,
   ensureResident,
   admitTicketedObservation,
+  admitObservation,
   collectOutcome,
   residentRequest,
   type EnsureResidentDependencies,
@@ -73,8 +74,12 @@ describe("resident client trust boundary", () => {
       server.listen(paths.socket, resolve);
     });
     await chmod(paths.socket, 0o600);
+    expect(await admitObservation(observation, true, dispatch, paths, false)).toEqual({ status: "unsupported" });
+    expect(await admitTicketedObservation(observation, dispatch, paths, false)).toEqual({ status: "unsupported" });
+    expect(requests).toEqual([]);
     const accepted = await admitTicketedObservation(observation, dispatch, paths);
     expect(accepted.status).toBe("accepted");
+    expect(requests.find((request) => request.operation === "admit")).toMatchObject({ composed: true });
     if (accepted.status !== "accepted") return;
     expect(await collectOutcome(accepted.admission)).toEqual({ status: "pending" });
     expect(await collectOutcome(accepted.admission)).toEqual({ status: "advice", advice: {

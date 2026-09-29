@@ -168,8 +168,10 @@ describe("Claude advicee scoped resident delivery", () => {
       ])) },
     };
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    expect((await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
+      root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
     const accepted = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation, controlledWriter: true, dispatch });
+      observation, controlledWriter: true, dispatch, composed: true });
     expect(accepted.status).toBe("accepted");
     if (accepted.status !== "accepted" || !("requestRoute" in accepted) || accepted.requestRoute !== "ticketed") return;
     await server.whenIdle();
@@ -187,8 +189,10 @@ describe("Claude advicee scoped resident delivery", () => {
     server.releaseDelivery(delivered.token);
     writeFileSync(userConfigPath, '{"version":1,"claudeFeedbackMode":"advisory"}');
     const laterObservation = { ...observation, advicee: { ...observation.advicee, toolUseId: "tool-two" } };
+    expect((await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
+      root, advicee: laterObservation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
     const later = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation: laterObservation, controlledWriter: true, dispatch });
+      observation: laterObservation, controlledWriter: true, dispatch, composed: true });
     if (later.status !== "accepted" || !("requestRoute" in later) || later.requestRoute !== "ticketed") throw new Error("expected later ticket");
     await server.whenIdle();
     writeFileSync(userConfigPath, '{"version":1,"claudeFeedbackMode":"block-current-findings"}');
@@ -223,8 +227,10 @@ describe("Claude advicee scoped resident delivery", () => {
     } });
     await server.listen();
     try {
+      expect((await residentRequest(paths, { requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
+        root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
       const accepted = await residentRequest(paths, { requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-        observation, controlledWriter: true, dispatch });
+        observation, controlledWriter: true, dispatch, composed: true });
       if (accepted.status !== "accepted" || !("requestRoute" in accepted) || accepted.requestRoute !== "ticketed") throw new Error("expected ticket");
       await server.whenIdle();
       changeAtHandoff = true;
@@ -265,8 +271,10 @@ describe("Claude advicee scoped resident delivery", () => {
     });
     await server.listen();
     try {
+      expect((await residentRequest(paths, { requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
+        root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
       const accepted = await residentRequest(paths, { requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-        observation, controlledWriter: true, dispatch });
+        observation, controlledWriter: true, dispatch, composed: true });
       if (accepted.status !== "accepted" || !("requestRoute" in accepted) || accepted.requestRoute !== "ticketed") throw new Error("expected ticket");
       await server.whenIdle();
       revoke = true;

@@ -17,6 +17,7 @@ import {
   DELIVERY_LEASE_MS,
   decodeResidentRequest,
   type ResidentDispatchContext,
+  type ResidentRequest,
 } from "./protocol.ts";
 import { ResidentServer } from "./server.ts";
 import { PARTITION_BYTE_LIMIT } from "./capacity.ts";
@@ -539,6 +540,40 @@ describe("resident delivery lease", () => {
         root, advicee: observation.advicee, token: "finish" });
       const decision = await server.handle({ ...collect, finish: { token: "finish", deadlineReached: false } });
       expect(decision.status).toBe("empty");
+    } finally { await server.close(); }
+  });
+
+  it.each(["shared", "ticketed"] as const)("rejects noncomposed %s socket admission before any review", async (requestRoute) => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const base = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    if (base === undefined) throw new Error("missing fixture observation");
+    const observation = { ...base, advicee: { ...base.advicee,
+      host: "claude-code" as const, hostVersion: "2.1.218" as const, turnId: null } };
+    let reviews = 0;
+    const paths = residentPaths(join(root, "runtime"));
+    const server = new ResidentServer(paths, undefined, { beforeEvaluate: async () => { reviews += 1; } });
+    await server.listen();
+    try {
+      const admission = { requestRoute, operation: "admit" as const, lifetime: server.lifetime,
+        observation, dispatch: findingDispatch(join(root, "consent")), controlledWriter: true as const, composed: true as const } as ResidentRequest;
+      for (const composed of [undefined, false]) {
+        const unsupported = { ...admission, composed } as unknown as ResidentRequest;
+        expect((await residentRequest(paths, unsupported)).status).toBe("unsupported");
+        expect((await server.handle(unsupported)).status).toBe("unsupported");
+      }
+      expect((await residentRequest(paths, admission)).status).toBe("rejected-stale");
+      await server.whenIdle();
+      expect(reviews).toBe(0);
+      expect(server.stats()).toMatchObject({ queued: 0, running: 0, pendingEvaluations: 0 });
+      expect((await residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
+        lifetime: server.lifetime, root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
+      expect((await residentRequest(paths, { ...admission, composed: false } as unknown as ResidentRequest)).status)
+        .toBe("unsupported");
+      expect((await residentRequest(paths, admission)).status).toBe("accepted");
+      expect((await residentRequest(paths, admission)).status).toBe("rejected-stale");
+      await server.whenIdle();
+      expect(reviews).toBeGreaterThan(0);
     } finally { await server.close(); }
   });
 
@@ -1473,7 +1508,7 @@ describe("resident delivery lease", () => {
       .toEqual({ status: "obsolete-lifetime" });
     expect(await server.handle({
       requestRoute: "shared",
-      operation: "admit",
+      operation: "admit", composed: true,
       lifetime: server.lifetime,
       observation,
       controlledWriter: true,
@@ -2519,7 +2554,7 @@ describe("resident delivery lease", () => {
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
     const encoded = JSON.stringify({
       requestRoute: "shared",
-      operation: "admit",
+      operation: "admit", composed: true,
       lifetime: server.lifetime,
       observation,
       controlledWriter: true,

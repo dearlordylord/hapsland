@@ -3009,8 +3009,8 @@ export class ResidentServer {
       return { status: "advanced" };
     }
     if (request.operation === "admit") {
-      return this.admit(request.observation, request.dispatch, request.requestRoute === "ticketed",
-        request.composed === true, request.composed === true);
+      if (request.composed !== true) return { status: "unsupported" };
+      return this.admit(request.observation, request.dispatch, request.requestRoute === "ticketed", true, true);
     }
     if (request.operation === "collect") {
       if (request.requestRoute === "ticketed") {
