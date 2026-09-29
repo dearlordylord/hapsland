@@ -119,7 +119,7 @@ describe("Claude advicee scoped resident delivery", () => {
     expect((await collect({ ...stopAdvicee, sessionId: "other" }, true)).status).toBe("empty");
   });
 
-  it("delivers only to the initiating tool call and drops stale content", async () => {
+  it("delivers to a later tool call for the same advicee and drops stale content", async () => {
     const root = await makeGitFixture();
     const path = await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
@@ -141,8 +141,7 @@ describe("Claude advicee scoped resident delivery", () => {
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
     expect(server.stats().pendingAdvice).toBe(1);
-    expect(await server.collect(root, { ...observation.advicee, toolUseId: "tool-two" }, dispatch)).toMatchObject({ status: "empty" });
-    const delivered = await server.collect(root, observation.advicee, dispatch);
+    const delivered = await server.collect(root, { ...observation.advicee, toolUseId: "tool-two" }, dispatch);
     expect(delivered.status).toBe("advice");
     if (delivered.status === "advice") expect(delivered.output.hookSpecificOutput.additionalContext).toContain("OrderCount");
     await put(root, "type.ts", "type OrderCount = string\n");

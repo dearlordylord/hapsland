@@ -439,7 +439,7 @@ describe("Claude terminal collection", () => {
     expect((await collect(server, admission.ticket, data, dispatch)).status).toBe("advice");
   });
 
-  it("does not lease another ticket's advice for the same Claude advicee", async () => {
+  it("leases eligible advice from another admission for the same Claude advicee", async () => {
     const data = await fixture();
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
     const dispatch = data.dispatch(0.9);
@@ -452,7 +452,9 @@ describe("Claude terminal collection", () => {
         skipped.status !== "accepted" || !("ticket" in skipped)) throw new Error("not admitted");
     await server.whenIdle();
     const other = await collect(server, skipped.ticket, data, dispatch);
-    expect(other).toEqual({ requestRoute: "ticketed", status: "pending" });
+    expect(other.status).toBe("advice");
+    expect((await collect(server, finding.ticket, data, dispatch)).status).toBe("pending");
+    if (other.status === "advice") server.releaseDelivery(other.token);
     expect((await collect(server, finding.ticket, data, dispatch)).status).toBe("advice");
   });
 

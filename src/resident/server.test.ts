@@ -607,6 +607,47 @@ describe("resident delivery lease", () => {
     expect(server.stats().retainedBytes).toBe(0);
   });
 
+  it("fences a delayed preparation callback after a successor round opens", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const entered = deferred();
+    const release = deferred();
+    let hold = true;
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+      afterReuseBoundary: async (stage) => {
+        if (stage === "ownerClaimed" && hold) {
+          hold = false;
+          entered.resolve();
+          await release.promise;
+        }
+      },
+    });
+    const dispatch = findingDispatch(join(root, "state"));
+    try {
+      expect(server.admit(observation, dispatch, false, true).status).toBe("accepted");
+      await entered.promise;
+      expect(await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "old-stop" })).toEqual({ status: "advanced" });
+      await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "old-stop", close: true });
+      const successor = { ...observation, advicee: { ...observation.advicee, toolUseId: "successor-edit" } };
+      expect(await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
+        root, advicee: successor.advicee, startedAt: monotonicNow() })).toEqual({ status: "advanced" });
+      expect(server.admit(successor, dispatch, false, true, true).status).toBe("accepted");
+      release.resolve();
+      await server.whenIdle();
+      expect(server.stats().pendingFindingBatches).toBe(1);
+      expect(server.stats().pendingEvaluations).toBe(0);
+      expect((await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+        root, advicee: successor.advicee, dispatch, mode: "turn-end", composed: true })).status).toBe("advice");
+    } finally {
+      release.resolve();
+      await server.close();
+    }
+  });
+
   it("reoffers uncertain background advice once at Stop and clears every record on allow", async () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
@@ -964,7 +1005,7 @@ describe("resident delivery lease", () => {
     }
   });
 
-  it("lets a later edit collect earlier advice through the same composed advicee group", async () => {
+  it("lets a later edit collect earlier advice through the same composed advicee partition", async () => {
     const root = await makeGitFixture();
     await put(root, "first.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
@@ -983,6 +1024,52 @@ describe("resident delivery lease", () => {
     expect(collected.status).toBe("advice");
     if (collected.status === "advice") {
       expect(claudeHostOutputText(collected.output)).toContain("first.ts");
+    }
+  });
+
+  it("shares Claude capacity and canonical round across edits while keeping ticket authority", async () => {
+    const root = await makeGitFixture();
+    await put(root, "first.ts", "type FirstCount = number\n");
+    await put(root, "second.ts", "type SecondCount = number\n");
+    const base = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["first.ts"])));
+    if (base === undefined) throw new Error("missing fixture observation");
+    const first = { ...base, advicee: {
+      host: "claude-code" as const, hostVersion: "2.1.218" as const,
+      sessionId: "claude-session", turnId: null, subagentId: null, toolUseId: "first",
+    } };
+    const second = { ...first, candidates: [{ ...first.candidates[0]!, path: "second.ts" }],
+      advicee: { ...first.advicee, toolUseId: "second" } };
+    const issued: Array<{ partition: string; round: number }> = [];
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+      jevRequestObserver: (event) => { if (event.stage === "issued") issued.push(event); },
+    });
+    const dispatch = findingDispatch(join(root, "state"));
+    try {
+      const admittedFirst = server.admit(first, dispatch, true, true);
+      expect(admittedFirst.status).toBe("accepted");
+      await server.whenIdle();
+      const admittedSecond = server.admit(second, dispatch, true, true);
+      expect(admittedSecond.status).toBe("accepted");
+      await server.whenIdle();
+      expect(issued).toHaveLength(2);
+      expect(new Set(issued.map(({ partition }) => partition)).size).toBe(1);
+      expect(new Set(issued.map(({ round }) => round)).size).toBe(1);
+      expect(issued[0]?.partition).not.toContain("toolUseId");
+      expect(issued[0]?.partition).not.toContain("round:");
+      if (!("ticket" in admittedFirst) || !("ticket" in admittedSecond)) throw new Error("missing ticket");
+      const request = { requestRoute: "ticketed" as const, operation: "collect" as const,
+        lifetime: server.lifetime, root, advicee: second.advicee, dispatch,
+        mode: "turn-end" as const, composed: true as const };
+      expect(await server.handle({ ...request, ticket: admittedFirst.ticket }))
+        .toEqual({ requestRoute: "ticketed", status: "unavailable", reason: "lost" });
+      const collected = await server.handle({ ...request, ticket: admittedSecond.ticket });
+      expect(collected.status).toBe("advice");
+      if (collected.status !== "advice") throw new Error("missing advice");
+      const text = claudeHostOutputText(collected.output);
+      expect(text).toContain("first.ts");
+      expect(text).toContain("second.ts");
+    } finally {
+      await server.close();
     }
   });
 
