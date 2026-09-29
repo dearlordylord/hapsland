@@ -6,9 +6,9 @@
 **Expected use:** Inspect `type-candidate.json`, `function-candidate.json`, and `comparators-proposal.json`, then run their offline verifier/tests and `npm run typecheck`. Review and freeze fields, encoding, limits, rules, comparator scope, and fixture labels before any paid study.
 **Lifecycle:** Temporary until the #93/#138 wire and adoption decision. At that decision, consolidate approved wire and comparator fields, encoding, version and digest rules into `docs/type-function-review-proposal.md` and a versioned conformance fixture owner; delete this proposal snapshot if superseded or rejected. Recheck this evidence whenever the renderer, request sizing, rule-pack compiler, fixture corpus, or relevant graph contract changes.
 
-## Proposed content
+## Candidate renderer goldens
 
-Each JSON file records two nested values from the current candidate pipeline: `providerInput`, the exact value supplied to `Decision.make`/`DecisionModel.evaluate`, and `completeRequest`, the `{input, decisions}` JSON envelope counted by the current finite pre-egress gate. The latter is a **local gate representation**, not a claim about byte-for-byte HTTP serialization by `@effect/ai-typesafe` or Jev. Both cases are constructed complete graph inputs passed through `candidateReviewInput` and `preparedProviderInput`; they are synthetic evidence facts and do not prove parser or host event behavior.
+`type-candidate.json` and `function-candidate.json` each record two nested values from the current candidate pipeline: `providerInput`, the exact value supplied to `Decision.make`/`DecisionModel.evaluate`, and `completeRequest`, the `{input, decisions}` JSON envelope counted by the current finite pre-egress gate. The latter is a **local gate representation**, not a claim about byte-for-byte HTTP serialization by `@effect/ai-typesafe` or Jev. These two golden cases are constructed complete graph inputs passed through `candidateReviewInput` and `preparedProviderInput`; they are synthetic evidence facts and do not prove parser or host event behavior.
 
 | Golden | Contract | Canonical tree bytes | Provider input JSON bytes | Complete local gate JSON bytes |
 | --- | --- | ---: | ---: | ---: |
