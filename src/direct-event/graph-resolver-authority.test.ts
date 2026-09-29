@@ -109,7 +109,9 @@ describe("checked local graph budget authority", () => {
       limits: { ...GRAPH_LIMIT_CEILINGS, sourceBytes: 80 },
       captureHooks: { sourceRead: (path) => { reads.push(path); } },
       captureSource: ((...args: Parameters<typeof captureStable>) => Effect.gen(function* () {
-        const source = yield* captureStable(...args);
+        // Fixture-only capture deliberately bypasses the native configured cap
+        // so this test can exercise Bend's measured-overlimit decision.
+        const source = yield* captureStable(args[0], args[1], args[2], args[3]);
         if (source === undefined) return undefined;
         return { ...source, get text(): string { throw new Error("oversized source was parsed"); } };
       })) as typeof captureStable,
