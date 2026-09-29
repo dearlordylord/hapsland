@@ -19,7 +19,6 @@ type Smoke is Data:
   Smoke{
     admission: Admission.AdmissionResult,
     prospective_gate: Admission.ProspectiveDecision,
-    prospective_close: Admission.AdmissionResult,
     expired_permit: Admission.ExpiryResult,
     callback: Bool,
     admitted: Work.WorkStep,
@@ -149,8 +148,6 @@ def main() -> Smoke:
     Admission.step(Admission.initial(1n, 1n), 1n, 1n, Admission.Issue{1n, 1n, 2n, 1n}),
     Admission.prospective_gate(Admission.ProspectiveFacts{True{}, True{}, True{}, False{},
       0n, 1024n, 0n, 64n, True{}, 0n, 4096n}),
-    Admission.close_prospective(Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n,
-      Admission.Permit{1n, 1n, 1n, 1n, 2n} <> Nil{}, Nil{}}, 3n),
     Admission.expire(Admission.initial(1n, 1n), 1n, True{}),
     Admission.callback_current(Admission.initial(1n, 1n), 1n, 1n, 0n),
     Work.admit(Work.initial()),

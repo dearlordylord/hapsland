@@ -664,7 +664,7 @@ def Laws.uncertain_background_may_reoffer_at_stop():
 def Laws.edit_submission_cannot_reoffer_at_stop():
   {==}
 
-def Laws.unconsumed_permit_cannot_close_a_round(state, at):
+def Laws.unconsumed_permit_cannot_close_a_round():
   {==}
 
 def Laws.finding_enters_pending_advice(item):
@@ -920,4 +920,16 @@ def Laws.advice_budget_is_exclusive():
   {==}
 
 def Laws.canonical_edit_open_failure_is_atomic(state, provisional, round, reason):
+  {==}
+
+def Laws.released_permit_does_not_open_round():
+  {==}
+
+def Laws.expired_permit_does_not_open_round():
+  {==}
+
+def Laws.retired_tool_cannot_get_second_permit():
+  {==}
+
+def Laws.retired_permit_does_not_prevent_fresh_tool():
   {==}

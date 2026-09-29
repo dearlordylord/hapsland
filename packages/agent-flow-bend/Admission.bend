@@ -5,6 +5,8 @@ import Base
 type Permit is Data:
   Permit{token: Nat, tool: Nat, round: Nat, started: Nat, deadline: Nat}
 
+# Terminal permit identities fence replay after consumption, release, or expiry.
+# This list is not a count of accepted edits; only consume opens a round.
 type Used is Data:
   Used{token: Nat, tool: Nat}
 
@@ -214,15 +216,15 @@ def consume(+state: AdmissionState, +token: Nat, tool: Nat, now: Nat) -> Admissi
     case AdmissionState{_, _, _, _, _, _, permits, used}:
       consume.used(state, token, tool, now, has_token(token, used), find_permit(token, permits))
 
-def release.found(state: AdmissionState, token: Nat, found: Maybe<&2, Permit>) -> AdmissionResult:
+def release.found(state: AdmissionState, +token: Nat, found: Maybe<&2, Permit>) -> AdmissionResult:
   match state:
-    case AdmissionState{partition, lifetime, round, active, closed_at, next_token, permits, used}:
+    case AdmissionState{partition, lifetime, round, active, closed_at, next_token, +permits, used}:
       match found:
         case None{}:
           Rejected{AdmissionState{partition, lifetime, round, active, closed_at, next_token, permits, used}, NoPermit{}}
         case Some{_}:
           Accepted{AdmissionState{partition, lifetime, round, active, closed_at, next_token,
-            remove_permit(token, permits), used}, None{}, None{}}
+            remove_permit(token, permits), record_used(token, permits, used)}, None{}, None{}}
 
 def release.used(state: AdmissionState, token: Nat, used: Bool, found: Maybe<&2, Permit>) -> AdmissionResult:
   match used:
@@ -238,12 +240,12 @@ def release(+state: AdmissionState, +token: Nat) -> AdmissionResult:
 
 # The adapter measures the exact fractional deadline comparison. Bend decides
 # whether to keep the native permit and removes the matching source-free token.
-def expire.due(state: AdmissionState, token: Nat) -> ExpiryResult:
+def expire.due(state: AdmissionState, +token: Nat) -> ExpiryResult:
   match state:
     case AdmissionState{partition, lifetime, round, active, closed_at, next_token,
-        permits, used}:
+        +permits, used}:
       RemovePermit{AdmissionState{partition, lifetime, round, active, closed_at,
-        next_token, remove_permit(token, permits), used}}
+        next_token, remove_permit(token, permits), record_used(token, permits, used)}}
 
 def expire(+state: AdmissionState, token: Nat, deadline_reached: Bool) -> ExpiryResult:
   match deadline_reached:
@@ -270,11 +272,6 @@ def close_round(+state: AdmissionState, at: Nat) -> AdmissionResult:
   match state:
     case AdmissionState{partition, lifetime, round, active, closed_at, next_token, _, used}:
       close_round.active(state, partition, lifetime, round, active, closed_at, next_token, used, at)
-
-# A native permit is provenance only. Without an accepted edit there is no
-# product round for Stop to close; preserve its generation and freshness fence.
-def close_prospective(state: AdmissionState, at: Nat) -> AdmissionResult:
-  Rejected{state, RoundAlreadyClosed{}}
 
 def restart.fresh(state: AdmissionState, partition: Nat, lifetime: Nat, closed_at: Nat, new_lifetime: Nat, at: Nat, valid: Bool) -> AdmissionResult:
   match valid:

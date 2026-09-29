@@ -90,6 +90,7 @@ assert.deepEqual(capacityCommands, fixture.capacityTrace.commands, "resident cap
 assert.deepEqual(projectCanonical(capacityState).global, fixture.capacityTrace.finalGlobal, "exact capacity release");
 const permitFixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-permits-v1.json"), "utf8"));
 for (const trace of permitFixture.traces) {
+  let consumedEdits = 0;
   let current = initialCanonical(fixture.limits);
   for (const item of trace.events) {
     const { expect: expected, kind, ...input } = item;
@@ -103,13 +104,15 @@ for (const trace of permitFixture.traces) {
         roundCount: 0, roundLimit: 64, newRound: true, eventCount: 0, eventLimit: 4096 } };
     else if (kind === "consume") event = { kind: "consumePermit", partition, lifetime,
       token: input.token, tool: input.tool, now: input.now };
+    else if (kind === "release") event = { kind: "releasePermit", partition, lifetime, token: input.token };
     else if (kind === "expire") event = { kind: "expirePermit", partition, lifetime,
       token: input.token, deadlineReached: input.due };
     else if (kind === "close") event = { kind: "closePermitRound", partition, lifetime,
-      round: input.round, at: input.at, prospective: input.prospective };
+      round: input.round, at: input.at };
     else throw new Error(`unknown permit fixture event ${kind}`);
     const result = stepCanonical(current, event);
     current = result.state;
+    consumedEdits += result.commands.filter((command) => command.kind === "permitConsumed").length;
     const actual = result.rejection ? `rejected:${result.rejection}` : result.commands.map((command) => {
       if (command.kind === "permitIssued") return `permitIssued:${command.token}:${command.round}`;
       if (command.kind === "permitConsumed" || command.kind === "permitRoundClosed") return `${command.kind}:${command.round}`;
@@ -119,8 +122,9 @@ for (const trace of permitFixture.traces) {
   }
   assert.deepEqual(projectCanonical(current).admissions.map((entry) => ({
     partition: entry.partition, round: entry.round, active: entry.active,
-    permits: entry.permits.length, used: entry.used.length,
+    permits: entry.permits.length, retiredTokens: entry.used.length,
   })), trace.rounds, trace.name);
+  assert.equal(consumedEdits, trace.consumedEdits, `${trace.name}: accepted edits`);
 }
 // Opening a canonical round and consuming its first edit are one transaction.
 let fullRounds = initialCanonical(fixture.limits);

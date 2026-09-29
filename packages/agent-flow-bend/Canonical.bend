@@ -76,7 +76,7 @@ type CanonicalEvent is Data:
   ConsumePermit{partition: Nat, lifetime: Nat, token: Nat, tool: Nat, now: Nat}
   ReleasePermit{partition: Nat, lifetime: Nat, token: Nat}
   ExpirePermit{partition: Nat, lifetime: Nat, token: Nat, deadline_reached: Bool}
-  ClosePermitRound{partition: Nat, lifetime: Nat, round: Nat, at: Nat, prospective: Bool}
+  ClosePermitRound{partition: Nat, lifetime: Nat, round: Nat, at: Nat}
   OpenRound{partition: Nat, lifetime: Nat}
   AdmitObservation{partition: Nat, lifetime: Nat, round: Nat}
   StartObservation{partition: Nat, lifetime: Nat, round: Nat, observation: Nat}
@@ -642,30 +642,21 @@ def expire_permit(+state: State, +partition: Nat, +lifetime: Nat,
   expire_permit_checked(state, partition, lifetime, token, deadline_reached,
     current_admission(state, partition, lifetime))
 
-def close_permit_apply(+state: State, +partition: Nat, +lifetime: Nat,
-    +at: Nat, prospective: Bool, admission: Admission.AdmissionState) -> Step:
-  match prospective:
-    case True{}:
-      close_permit_result(state, partition, Admission.close_prospective(admission, at))
-    case False{}:
-      close_permit_result(state, partition,
-        Admission.step(admission, partition, lifetime, Admission.CloseRound{at}))
-
-
 def close_permit_checked(+state: State, +partition: Nat, +lifetime: Nat,
-    +expected: Nat, +at: Nat, prospective: Bool,
+    +expected: Nat, +at: Nat,
     admission: Admission.AdmissionState) -> Step:
   match admission:
     case Admission.AdmissionState{_, +owner_lifetime, +round, +active, _, _, _, _}:
       Bool.pick(Step, Nat.is_eq(owner_lifetime, lifetime),
         Bool.pick(Step, Nat.is_eq(expected, Admission.candidate_round(round, active)),
-          close_permit_apply(state, partition, lifetime, at, prospective, admission),
+          close_permit_result(state, partition,
+            Admission.step(admission, partition, lifetime, Admission.CloseRound{at})),
           Rejected{state, StaleRound{}}),
         Rejected{state, PermitDenied{Admission.WrongLifetime{}}})
 
 def close_permit_round(+state: State, +partition: Nat, +lifetime: Nat,
-    +round: Nat, +at: Nat, prospective: Bool) -> Step:
-  close_permit_checked(state, partition, lifetime, round, at, prospective,
+    +round: Nat, +at: Nat) -> Step:
+  close_permit_checked(state, partition, lifetime, round, at,
     current_admission(state, partition, lifetime))
 
 def find_round(+partition: Nat, rounds: List<&2, Round>) -> Maybe<&2, Round>:
@@ -2740,8 +2731,8 @@ def step(+state: State, event: CanonicalEvent) -> Step:
       release_permit(state, partition, lifetime, token)
     case ExpirePermit{partition, lifetime, token, deadline_reached}:
       expire_permit(state, partition, lifetime, token, deadline_reached)
-    case ClosePermitRound{partition, lifetime, round, at, prospective}:
-      close_permit_round(state, partition, lifetime, round, at, prospective)
+    case ClosePermitRound{partition, lifetime, round, at}:
+      close_permit_round(state, partition, lifetime, round, at)
     case OpenRound{partition, lifetime}:
       open(state, partition, lifetime)
     case AdmitObservation{partition, lifetime, round}:

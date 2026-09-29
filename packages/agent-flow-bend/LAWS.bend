@@ -98,7 +98,7 @@ law canonical_expired_permit_does_not_create_round:
   {Canonical.step(Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Nil{}, Nil{}, 1n, 1n,
     Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n, Nil{}, Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial()},
-    Canonical.ClosePermitRound{1n, 1n, 1n, 200n, True{}}) ==
+    Canonical.ClosePermitRound{1n, 1n, 1n, 200n}) ==
     Canonical.Rejected{Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
       Nil{}, Nil{}, 1n, 1n,
       Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n, Nil{}, Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial()},
@@ -736,7 +736,7 @@ law permit_before_deadline_is_retained:
 law permit_at_deadline_is_removed:
   {Admission.expire(expirable_permit(), 1n, True{}) ==
     Admission.RemovePermit{Admission.AdmissionState{1n, 1n, 0n, False{}, 0n,
-      2n, Nil{}, Nil{}}} : Admission.ExpiryResult}
+      2n, Nil{}, Admission.Used{1n, 1n} <> Nil{}}} : Admission.ExpiryResult}
 
 law expiry_does_not_remove_another_token:
   {Admission.expire(expirable_permit(), 2n, True{}) ==
@@ -1002,10 +1002,8 @@ law edit_submission_cannot_reoffer_at_stop:
       Handoff.Submitted{Handoff.Edit{}}}} : Handoff.LeaseResult}
 
 law unconsumed_permit_cannot_close_a_round:
-  for state: Admission.AdmissionState
-  for at: Nat
-  {Admission.close_prospective(state, at) ==
-    Admission.Rejected{state, Admission.RoundAlreadyClosed{}} : Admission.AdmissionResult}
+  {Admission.close_round(permit_issued(), 21n) ==
+    Admission.Rejected{permit_issued(), Admission.RoundAlreadyClosed{}} : Admission.AdmissionResult}
 
 # A Jev finding ends the item's Jeview and produces pending advice for the
 # same item in one transition.
@@ -1045,6 +1043,28 @@ law permit_consumption_opens_round_once:
 law consumed_permit_cannot_repeat:
   {Admission.step(permit_consumed(), 7n, 3n, Admission.Consume{1n, 42n, 13n}) ==
     Admission.Rejected{permit_consumed(), Admission.UsedPermit{}} : Admission.AdmissionResult}
+
+def permit_retired() -> Admission.AdmissionState:
+  Admission.AdmissionState{7n, 3n, 0n, False{}, 0n, 2n,
+    Nil{}, Admission.Used{1n, 42n} <> Nil{}}
+
+law released_permit_does_not_open_round:
+  {Admission.release(permit_issued(), 1n) ==
+    Admission.Accepted{permit_retired(), None{}, None{}} : Admission.AdmissionResult}
+
+law expired_permit_does_not_open_round:
+  {Admission.expire(permit_issued(), 1n, True{}) ==
+    Admission.RemovePermit{permit_retired()} : Admission.ExpiryResult}
+
+law retired_tool_cannot_get_second_permit:
+  {Admission.issue(permit_retired(), 42n, 21n, 30n, 22n) ==
+    Admission.Rejected{permit_retired(), Admission.DuplicateTool{}} : Admission.AdmissionResult}
+
+law retired_permit_does_not_prevent_fresh_tool:
+  {Admission.issue(permit_retired(), 43n, 21n, 30n, 22n) ==
+    Admission.Accepted{Admission.AdmissionState{7n, 3n, 0n, False{}, 0n, 3n,
+      Admission.Permit{2n, 43n, 1n, 21n, 30n} <> Nil{},
+      Admission.Used{1n, 42n} <> Nil{}}, Some{2n}, Some{1n}} : Admission.AdmissionResult}
 
 law unknown_permit_cannot_be_released:
   {Admission.step(permit_issued(), 7n, 3n, Admission.Release{2n}) ==

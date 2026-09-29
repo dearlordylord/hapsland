@@ -12,7 +12,8 @@
         {"kind": "consume", "partition": 1, "token": 1, "tool": 11, "now": 1300, "expect": "rejected:UsedPermit"},
         {"kind": "issue", "partition": 1, "tool": 11, "started": 1400, "now": 1500, "deadline": 31400, "expect": "rejected:DuplicateTool"}
       ],
-      "rounds": [{"partition": 1, "round": 1, "active": true, "permits": 0, "used": 1}]
+      "rounds": [{"partition": 1, "round": 1, "active": true, "permits": 0, "retiredTokens": 1}],
+      "consumedEdits": 1
     },
     {
       "name": "expiry, closure, and a fresh edit advance the virtual round",
@@ -21,29 +22,31 @@
         {"kind": "expire", "partition": 1, "token": 1, "due": false, "expect": "permitKept"},
         {"kind": "expire", "partition": 1, "lifetime": 2, "token": 1, "due": true, "expect": "rejected:WrongLifetime"},
         {"kind": "expire", "partition": 1, "token": 1, "due": true, "expect": "permitExpired"},
-        {"kind": "consume", "partition": 1, "token": 1, "tool": 11, "now": 2001, "expect": "rejected:NoPermit"},
+        {"kind": "consume", "partition": 1, "token": 1, "tool": 11, "now": 2001, "expect": "rejected:UsedPermit"},
         {"kind": "issue", "partition": 1, "tool": 12, "started": 2100, "now": 2200, "deadline": 32000, "expect": "permitIssued:2:1"},
         {"kind": "consume", "partition": 1, "token": 2, "tool": 12, "now": 2250, "expect": "permitConsumed:1,roundStarted"},
-        {"kind": "close", "partition": 1, "lifetime": 2, "round": 1, "at": 2300, "prospective": false, "expect": "rejected:WrongLifetime"},
-        {"kind": "close", "partition": 1, "round": 1, "at": 2300, "prospective": false, "expect": "permitRoundClosed:1"},
+        {"kind": "close", "partition": 1, "lifetime": 2, "round": 1, "at": 2300, "expect": "rejected:WrongLifetime"},
+        {"kind": "close", "partition": 1, "round": 1, "at": 2300, "expect": "permitRoundClosed:1"},
         {"kind": "consume", "partition": 1, "token": 2, "tool": 12, "now": 2400, "expect": "rejected:UsedPermit"},
         {"kind": "issue", "partition": 1, "tool": 13, "started": 2200, "now": 2500, "deadline": 32000, "afterClosure": false, "expect": "rejected:ProspectiveDenied"},
         {"kind": "issue", "partition": 1, "tool": 14, "started": 2400, "now": 2500, "deadline": 32000, "expect": "permitIssued:3:2"},
         {"kind": "consume", "partition": 1, "token": 3, "tool": 14, "now": 2600, "expect": "permitConsumed:2"}
       ],
-      "rounds": [{"partition": 1, "round": 2, "active": true, "permits": 0, "used": 2}]
+      "rounds": [{"partition": 1, "round": 2, "active": true, "permits": 0, "retiredTokens": 3}],
+      "consumedEdits": 2
     },
     {
       "name": "expired permit creates no round; first accepted edit starts round one",
       "events": [
         {"kind": "issue", "partition": 1, "tool": 21, "started": 1000, "now": 1100, "deadline": 2000, "expect": "permitIssued:1:1"},
         {"kind": "expire", "partition": 1, "token": 1, "due": true, "expect": "permitExpired"},
-        {"kind": "close", "partition": 1, "round": 1, "at": 2200, "prospective": true, "expect": "rejected:RoundAlreadyClosed"},
-        {"kind": "close", "partition": 1, "round": 1, "at": 2300, "prospective": true, "expect": "rejected:RoundAlreadyClosed"},
+        {"kind": "close", "partition": 1, "round": 1, "at": 2200, "expect": "rejected:RoundAlreadyClosed"},
+        {"kind": "close", "partition": 1, "round": 1, "at": 2300, "expect": "rejected:RoundAlreadyClosed"},
         {"kind": "issue", "partition": 1, "tool": 22, "started": 2400, "now": 2500, "deadline": 3000, "expect": "permitIssued:2:1"},
         {"kind": "consume", "partition": 1, "token": 2, "tool": 22, "now": 2600, "expect": "permitConsumed:1,roundStarted"}
       ],
-      "rounds": [{"partition": 1, "round": 1, "active": true, "permits": 0, "used": 1}]
+      "rounds": [{"partition": 1, "round": 1, "active": true, "permits": 0, "retiredTokens": 2}],
+      "consumedEdits": 1
     },
     {
       "name": "concurrent eligible edits share one round and closure fences the unused permit",
@@ -53,11 +56,26 @@
         {"kind": "issue", "partition": 1, "tool": 33, "started": 1002, "now": 1102, "deadline": 3000, "expect": "permitIssued:3:1"},
         {"kind": "consume", "partition": 1, "token": 1, "tool": 31, "now": 1200, "expect": "permitConsumed:1,roundStarted"},
         {"kind": "consume", "partition": 1, "token": 2, "tool": 32, "now": 1201, "expect": "permitConsumed:1"},
-        {"kind": "close", "partition": 1, "round": 1, "at": 1300, "prospective": false, "expect": "permitRoundClosed:1"},
+        {"kind": "close", "partition": 1, "round": 1, "at": 1300, "expect": "permitRoundClosed:1"},
         {"kind": "consume", "partition": 1, "token": 3, "tool": 33, "now": 1400, "expect": "rejected:NoPermit"},
         {"kind": "consume", "partition": 1, "token": 1, "tool": 31, "now": 1401, "expect": "rejected:UsedPermit"}
       ],
-      "rounds": [{"partition": 1, "round": 1, "active": false, "permits": 0, "used": 2}]
+      "rounds": [{"partition": 1, "round": 1, "active": false, "permits": 0, "retiredTokens": 2}],
+      "consumedEdits": 2
+    },
+    {
+      "name": "expiry and release fence replay without accepting edits",
+      "events": [
+        {"kind": "issue", "partition": 1, "tool": 41, "started": 100, "now": 110, "deadline": 200, "expect": "permitIssued:1:1"},
+        {"kind": "expire", "partition": 1, "token": 1, "due": true, "expect": "permitExpired"},
+        {"kind": "issue", "partition": 1, "tool": 41, "started": 210, "now": 220, "deadline": 300, "expect": "rejected:DuplicateTool"},
+        {"kind": "issue", "partition": 1, "tool": 42, "started": 210, "now": 220, "deadline": 300, "expect": "permitIssued:2:1"},
+        {"kind": "release", "partition": 1, "token": 2, "expect": "permitReleased"},
+        {"kind": "issue", "partition": 1, "tool": 42, "started": 230, "now": 240, "deadline": 300, "expect": "rejected:DuplicateTool"},
+        {"kind": "close", "partition": 1, "round": 1, "at": 250, "expect": "rejected:RoundAlreadyClosed"}
+      ],
+      "rounds": [{"partition": 1, "round": 0, "active": false, "permits": 0, "retiredTokens": 2}],
+      "consumedEdits": 0
     }
   ]
 }

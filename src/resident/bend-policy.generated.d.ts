@@ -96,8 +96,6 @@ export function bendAdmissionInitial(partition: number | bigint,
   lifetime: number | bigint): BendAdmissionState;
 export function bendAdmissionStep(state: BendAdmissionState, partition: number | bigint,
   lifetime: number | bigint, event: BendAdmissionEvent): BendAdmissionResult;
-export function bendAdmissionCloseProspective(state: BendAdmissionState,
-  at: number | bigint): BendAdmissionResult;
 export function bendWorkFinishWait(unfinished: number | bigint,
   deadlineReached: boolean, continuationBudget: boolean): boolean;
 export type BendPreparedOffer = { readonly $: "SkipPrepared" | "AdmitPrepared" | "RejectPreparedCapacity" };
