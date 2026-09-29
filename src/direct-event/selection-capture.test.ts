@@ -142,10 +142,10 @@ describe("stable bounded source capture", () => {
     const reads: string[] = [];
     const captured = await Effect.runPromise(captureStable(root, exact,
       { sourceRead: (path) => { reads.push(path); } }, undefined, 80));
-    expect(captured?.byteLength).toBe(process.platform === "darwin" ? undefined : 80);
+    expect(captured?.byteLength).toBe(80);
     expect(await Effect.runPromise(captureStable(root, over,
       { sourceRead: (path) => { reads.push(path); } }, undefined, 80))).toBeUndefined();
-    expect(reads).toEqual(process.platform === "darwin" ? [] : ["exact.ts", "exact.ts"]);
+    expect(reads).toEqual(["exact.ts", "exact.ts"]);
   });
 
   it("contains oversize, malformed UTF-8, and NUL input", async () => {

@@ -28,7 +28,16 @@ static int same_stat(const struct stat *left, const struct stat *right) {
 }
 
 int main(int argc, char **argv) {
-  if (argc != 8) return 64;
+  if (argc != 9) return 64;
+  if (argv[8][0] == '\0') return 64;
+  for (const char *digit = argv[8]; *digit != '\0'; digit++) {
+    if (*digit < '0' || *digit > '9') return 64;
+  }
+  errno = 0;
+  char *cap_end = NULL;
+  unsigned long requested_cap = strtoul(argv[8], &cap_end, 10);
+  if (errno != 0 || *cap_end != '\0' || requested_cap < 1 || requested_cap > MAX_SOURCE_BYTES) return 64;
+  size_t source_cap = (size_t)requested_cap;
   int root = open(argv[1], O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
   if (root < 0 || !matches_identity(root, argv[3], argv[4])) return 65;
   if (strcmp(argv[5], "-") != 0) {
@@ -59,16 +68,16 @@ int main(int argc, char **argv) {
   if (file < 0) return 71;
   struct stat before;
   struct stat after;
-  if (fstat(file, &before) != 0 || !S_ISREG(before.st_mode) || before.st_size > MAX_SOURCE_BYTES) return 72;
-  unsigned char bytes[MAX_SOURCE_BYTES + 1];
+  if (fstat(file, &before) != 0 || !S_ISREG(before.st_mode) || before.st_size > (off_t)source_cap) return 72;
+  unsigned char bytes[MAX_SOURCE_BYTES];
   ssize_t total = 0;
-  while (total < MAX_SOURCE_BYTES + 1) {
-    ssize_t amount = read(file, bytes + total, (size_t)(MAX_SOURCE_BYTES + 1 - total));
+  while ((size_t)total < source_cap) {
+    ssize_t amount = read(file, bytes + total, source_cap - (size_t)total);
     if (amount < 0) return 73;
     if (amount == 0) break;
     total += amount;
   }
-  if (fstat(file, &after) != 0 || total > MAX_SOURCE_BYTES || total != after.st_size || !same_stat(&before, &after)) return 74;
+  if (fstat(file, &after) != 0 || (size_t)total > source_cap || total != after.st_size || !same_stat(&before, &after)) return 74;
   close(file);
   free(relative);
   if (printf("%llu:%llu:%llu:%llu:%lld:%ld:%lld:%ld\n",

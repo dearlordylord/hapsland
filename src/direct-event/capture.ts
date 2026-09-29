@@ -39,9 +39,6 @@ const readOnceDarwin = async (
   expectedRoot: PhysicalRootIdentity | undefined,
   maxSourceBytes: number,
 ): Promise<{ readonly bytes: Buffer; readonly metadata: string; readonly hash: string }> => {
-  // The shipped helper has a fixed ceiling. Do not invoke it for a lower
-  // configured bound, because checking its output would happen after the read.
-  if (maxSourceBytes < MAX_SOURCE_BYTES) throw new Error("macOS capture helper cannot enforce configured source cap");
   const helper = fileURLToPath(new URL("../../native/prebuilt/darwin-arm64/capture-open", import.meta.url));
   if (!existsSync(helper)) throw new Error("macOS descriptor capture helper is unavailable");
   const { stdout } = await execFileAsync(helper, [
@@ -52,7 +49,8 @@ const readOnceDarwin = async (
     expectedRoot?.gitDirectory ?? "-",
     expectedRoot?.gitDevice ?? "-",
     expectedRoot?.gitInode ?? "-",
-  ], { encoding: "buffer", maxBuffer: MAX_SOURCE_BYTES + 4_096 });
+    String(maxSourceBytes),
+  ], { encoding: "buffer", maxBuffer: maxSourceBytes + 4_096 });
   const newline = stdout.indexOf(0x0a);
   if (newline <= 0) throw new Error("macOS descriptor capture helper returned an invalid frame");
   const metadata = stdout.subarray(0, newline).toString("utf8");

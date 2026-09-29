@@ -1329,6 +1329,18 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   if (writeEvidence) {
     await mkdir(dirname(outputPath), { recursive: true });
     await writeFile(outputPath, `${JSON.stringify(evidence, null, 2)}\n`, { mode: 0o600 });
+    if (process.platform === "darwin" && process.env.GITHUB_RUN_ID !== undefined) {
+      const helperPath = join(root, "native/prebuilt/darwin-arm64/capture-open");
+      const helper = await readFile(helperPath);
+      const source = await readFile(join(root, "native/capture-open.c"));
+      await writeFile(outputPath.replace(/\.json$/, "-capture-helper.json"), `${JSON.stringify({
+        commit: process.env.GITHUB_SHA,
+        platform: `${process.platform}-${process.arch}`,
+        sourceSha256: createHash("sha256").update(source).digest("hex"),
+        binarySha256: createHash("sha256").update(helper).digest("hex"),
+        binaryBase64: helper.toString("base64"),
+      })}\n`, { mode: 0o600 });
+    }
   }
   progress("passed");
   process.stdout.write(`${JSON.stringify(evidence, null, 2)}\n`);
