@@ -87,6 +87,11 @@ still says `ready none`; it does not claim storage happened yet. The exact
 producing work ID for advice `#10` is not projected, so that relationship is
 disclosed rather than inferred. These images document this code change; #147
 design acceptance still requires owner inspection of the interactive cases.
+The other named owner-review panels are [ninth Jev request refusal](docs/assets/production-flow-inferred-jev-refusal.png)
+(guided step 29/34: eight in flight, immediate unavailable command, no Jev
+queue) and [Stop wait](docs/assets/production-flow-inferred-stop-wait.png)
+("many units admit in order and Stop waits," step 4/7: `waitForWork`
+at collection while the round remains active).
 
 Run `npm run build` for TypeScript, checked connection evidence, projection, compiled inventory, and Vite
 checks. Run `npm run test:browser` for Chromium controls. The workspace may
