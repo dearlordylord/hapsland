@@ -1,7 +1,8 @@
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import { adaptCodexDirectEvent } from "./adapter.ts";
-import { prepareObservation, preparedUnitStillCurrent } from "./pipeline.ts";
+import { encodedFullJevRequestBytes, prepareObservation, preparedProviderInput,
+  preparedUnitStillCurrent } from "./pipeline.ts";
 import { addEvent, makeGitFixture, put, updateEvent } from "./test-fixtures.ts";
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts";
 import { V2_FUNCTION_CONTRACT, V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
@@ -35,6 +36,14 @@ describe("v2 Codex root attribution", () => {
       expect(ready.prepared.input.rules[0]?.target?.inputContract).toBe(V2_FUNCTION_CONTRACT);
       expect(ready.prepared.input.candidateProjection).toBe(true);
       expect(ready.prepared.input.sourceFingerprints?.map((item) => item.path)).toEqual(["a.ts", "b.ts"]);
+      const rendered = preparedProviderInput(ready.prepared);
+      expect(rendered).toMatchObject({
+        artifact: { kind: "function", name: "run", domain: "a.ts" },
+        evidence: { rootId: "a.ts:function:run", nodes: [{ id: "b.ts:function:helper" }],
+          edges: [{ from: "a.ts:function:run", to: "b.ts:function:helper", kind: "expanded", order: 0 }] },
+        inputContract: { id: V2_FUNCTION_CONTRACT, completeness: "complete" },
+      });
+      expect(encodedFullJevRequestBytes(ready.prepared)).toBeLessThan(131_072);
       yield* Effect.promise(() => put(root, "b.ts", "// changed outside declaration\nexport function helper(): number { return 1 }"));
       expect(yield* preparedUnitStillCurrent(observation, ready.prepared, context)).toBe(false);
     }

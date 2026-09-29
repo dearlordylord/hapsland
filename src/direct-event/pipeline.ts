@@ -17,6 +17,7 @@ import { verifyCodexPostEditHunks } from "./codex-v2-hunks.ts";
 import { V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
 import { V2_FUNCTION_CONTRACT } from "../rules/v2-targets.ts";
 import { analyzeFunctionFile } from "./function-analyzer.ts";
+import { renderCandidateReviewInput, type CandidateReviewInput } from "./v2-renderer.ts";
 import {
   analyzeTypeFile,
   analyzerMaterializationPreflight,
@@ -517,8 +518,52 @@ type Evaluation =
   | { readonly status: "backend" }
   | { readonly status: "timeout" };
 
+/** Flatten only Bend-authorized, fully represented graph edges in traversal order. */
+export const candidateReviewInput = (input: ReviewInput): CandidateReviewInput | undefined => {
+  if (input.completeness !== "complete" || input.candidateProjection !== true ||
+    (input.contract !== V2_TYPE_CONTRACT && input.contract !== V2_FUNCTION_CONTRACT)) return undefined;
+  const root = input.unit.root;
+  const path = root.artifact.path;
+  if (path === undefined || path !== input.path || root.artifact.id !== input.declaration.id) return undefined;
+  const artifact = { id: root.artifact.id, kind: root.artifact.kind, name: root.artifact.name,
+    domain: path, source: root.artifact.source };
+  const nodes: CandidateReviewInput["nodes"][number][] = [];
+  const edges: CandidateReviewInput["edges"][number][] = [];
+  const seen = new Set([artifact.id]);
+  const visit = (owner: typeof root): boolean => {
+    for (const reference of owner.references) {
+      if (reference.kind === "omitted") return false;
+      if (reference.kind === "included") {
+        if (!seen.has(reference.target)) return false;
+        edges.push({ from: owner.artifact.id, to: reference.target, kind: "included",
+          symbol: reference.site.symbol, order: edges.length });
+        continue;
+      }
+      const child = reference.node;
+      const domain = child.artifact.path;
+      if (domain === undefined || seen.has(child.artifact.id)) return false;
+      seen.add(child.artifact.id);
+      nodes.push({ id: child.artifact.id, kind: child.artifact.kind, name: child.artifact.name,
+        domain, source: child.artifact.source, order: nodes.length });
+      edges.push({ from: owner.artifact.id, to: child.artifact.id, kind: "expanded",
+        symbol: reference.site.symbol, order: edges.length });
+      if (!visit(child)) return false;
+    }
+    return true;
+  };
+  if (!visit(root)) return undefined;
+  return { contract: input.contract, completeness: "complete",
+    treeBytesLimit: input.graphLimits?.treeBytes ?? GRAPH_LIMIT_CEILINGS.treeBytes,
+    artifact, nodes, edges };
+};
+
 /** Exact source-bearing `DecisionModel` input before provider serialization. */
-export const preparedProviderInput = (prepared: PreparedUnit) => ({
+export const preparedProviderInput = (prepared: PreparedUnit) => {
+  if (prepared.input.contract === V2_TYPE_CONTRACT || prepared.input.contract === V2_FUNCTION_CONTRACT) {
+    const candidate = candidateReviewInput(prepared.input);
+    return candidate === undefined ? undefined : renderCandidateReviewInput(candidate);
+  }
+  return {
   artifact: {
     domain: prepared.input.path,
     source: prepared.input.declaration.source,
@@ -528,17 +573,22 @@ export const preparedProviderInput = (prepared: PreparedUnit) => ({
     id: prepared.input.contract,
     evidence: "complete named direct-event unit",
   },
-});
+  };
+};
 
 /** UTF-8 bytes in the exact JSON representation supplied as the provider input value. */
 export const encodedPreparedProviderInputBytes = (prepared: PreparedUnit): number =>
-  Buffer.byteLength(JSON.stringify(preparedProviderInput(prepared)), "utf8");
+  preparedProviderInput(prepared) === undefined ? Number.POSITIVE_INFINITY :
+    Buffer.byteLength(JSON.stringify(preparedProviderInput(prepared)), "utf8");
 
-export const encodedFullJevRequestBytes = (prepared: PreparedUnit): number =>
-  Buffer.byteLength(JSON.stringify({
-    input: preparedProviderInput(prepared),
+export const encodedFullJevRequestBytes = (prepared: PreparedUnit): number => {
+  const input = preparedProviderInput(prepared);
+  if (input === undefined) return Number.POSITIVE_INFINITY;
+  return Buffer.byteLength(JSON.stringify({
+    input,
     decisions: Object.fromEntries(prepared.input.rules.map(({ id, decision }) => [id, decision])),
   }), "utf8");
+};
 
 /** One DecisionModel call, no retry wrapper, with a fixed total call deadline. */
 export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(function* (
@@ -548,11 +598,13 @@ export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(functi
   if (encodedFullJevRequestBytes(prepared) > MAX_FULL_JEV_REQUEST_BYTES) {
     return { status: "input-limit" } as const;
   }
+  const providerInput = preparedProviderInput(prepared);
+  if (providerInput === undefined) return { status: "input-limit" } as const;
   const decisions: Record<string, Decision.Probability> = {};
   for (const rule of prepared.input.rules) decisions[rule.id] = rule.decision;
   const definition = Decision.make({ input: Schema.Json, decisions });
   const input = yield* Schema.decodeUnknownEffect(Schema.Json)(
-    preparedProviderInput(prepared),
+    providerInput,
   ).pipe(Effect.orDie);
   const model = yield* DecisionModel.DecisionModel;
   const evaluated = yield* beforeDispatch.pipe(
