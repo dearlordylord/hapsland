@@ -50,6 +50,10 @@ export const bendCanonicalPartitionUsage = (state, partition) =>
   run_loop($Ledger$partition_usage$(state.ledger.charges, nat(partition)));
 export const bendCanonicalInventory = (state) =>
   run_loop($Ledger$inventory$(state.ledger.limits));
+export const bendPreparationLimit = () =>
+  run_loop($Dispatch$max_running$());
+export const bendJevRequestLimit = () =>
+  run_loop($Dispatch$max_requests$());
 `);
   writeFileSync(join(productRoot, "src/canonical/canonical.generated.js"),
     `// hapsland-bend-source-sha256:${sourceHash}\n${source}`);

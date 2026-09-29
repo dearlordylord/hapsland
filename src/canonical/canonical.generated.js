@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:8e903f7a44733899c6fae2eaaf9378d83220b9f76ad9def80f09ea4303990c66
+// hapsland-bend-source-sha256:bb72beb6d8066e2e5417dcacf0d528821c8861ac51a41b7e3cb9ca12d08cb7b8
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -9251,3 +9251,7 @@ export const bendCanonicalPartitionUsage = (state, partition) =>
   run_loop($Ledger$partition_usage$(state.ledger.charges, nat(partition)));
 export const bendCanonicalInventory = (state) =>
   run_loop($Ledger$inventory$(state.ledger.limits));
+export const bendPreparationLimit = () =>
+  run_loop($Dispatch$max_running$());
+export const bendJevRequestLimit = () =>
+  run_loop($Dispatch$max_requests$());

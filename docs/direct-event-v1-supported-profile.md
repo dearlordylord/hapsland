@@ -95,10 +95,29 @@ unverified rather than inferred from the packaged hook run.
 | Jev request / retries | 15 seconds / zero automatic retries |
 | Collection / relevance / notice | 50 ms / 600,000 ms (expired at equality) / 60,000 ms per kind/partition |
 | IPC | 256 KiB frame, 32 connections |
+| Empty resident retirement | Five seconds after the last resident connection activity; a busy resident retries every five seconds |
 
 These are supported profile boundaries, not latency or process-memory service levels.
 Configuration may narrow paths and select applicable rules; it cannot broaden host,
 platform, extraction, attribution, or safety boundaries.
+
+## Resident process lifetime
+
+Commands using the same resident connection directory share one resident across
+agents and worktrees. Opening or closing a resident connection starts a fresh
+five-second idle period. At its end, the resident attempts the existing cleanup
+transition only when no client is connected. A failed cleanup check is retried
+after another five seconds. An empty resident therefore retires within five
+seconds of its last connection closing, plus process shutdown time. The next
+hook starts a new lifetime through the same ownership directory.
+
+Running or queued reviews, pending evaluations, current work, pending advice,
+delivery leases, operational notices and cooldowns prevent cleanup. Successful
+reuse entries are discarded only after the cleanup transition commits. A
+single agent's Stop or process exit does not declare other agents finished.
+Retained state can keep a resident alive indefinitely when no later hook clears
+it; this policy sets a bound only for an empty resident. The resident's state
+is in memory, so a forced process death can still lose pending review work.
 
 ## File selection and asynchronous delivery
 

@@ -17,8 +17,9 @@ try {
     document.querySelector(target)?.textContent?.includes(expected), [selector, text]);
 
   assert.match(await page.locator(".page-header").innerText(), /CANONICAL BEND PRODUCTION MODEL/);
-  assert.match(await page.locator(".production-flow").innerText(), /Native Hapsland effects/);
-  assert.match(await page.locator(".production-flow").innerText(), /Jev response · external/);
+  assert.equal(await page.locator(".topology-node").count(), 13);
+  assert.match(await page.locator(".production-flow").innerText(), /Native Jev effect attempt/);
+  assert.match(await page.locator(".production-flow").innerText(), /Jev in-flight: 0\/8 · no Jev wait queue/);
   const canonical = page.locator("#canonical-replay");
   assert.match(await canonical.innerText(), /What uses review capacity/);
   assert.match(await canonical.innerText(), /All agents in this Hapsland process · 0\/3 work items/);
@@ -28,6 +29,14 @@ try {
   }
   assert.match(await canonical.innerText(), /Unit 1: accepted.*Unit 2: no capacity.*Unit 3: accepted/s);
   assert.match(await canonical.locator(".capacity-rows").innerText(), /Agent 1 · 2\/2 work items · 30\/60 reserved bytes/);
+  const beforeRejection = await page.locator(".topology-grid").innerText();
+  await canonical.getByRole("button", { name: /^Next canonical step:/ }).click();
+  await waitForText(".canonical-progress", "Guided step 4 of 11");
+  assert.equal(await page.locator(".topology-grid").innerText(), beforeRejection);
+  assert.equal(await page.locator(".topology-route.active").count(), 0);
+  assert.match(await page.locator(".topology-step").innerText(), /rejected: StaleOperation/);
+  await canonical.getByRole("button", { name: "Previous canonical step" }).click();
+  await waitForText(".canonical-progress", "Guided step 3 of 11");
   await canonical.getByRole("button", { name: /Unit 2: no capacity/ }).click();
   await waitForText(".capacity-frames", "Frame 3 of 4");
   assert.match(await canonical.innerText(), /Frame 3 of 4 · 2 shared items · 50 shared bytes/);
@@ -70,7 +79,59 @@ try {
     await waitForText(".canonical-progress", `Guided step ${step} of 7`);
   }
   assert.match(await canonical.innerText(), /reviewRecorded · outcome: unavailable/);
-  assert.match(await page.locator(".production-flow").innerText(), /Observed unavailable result supplied to Bend/);
+  assert.match(await page.locator(".production-flow").innerText(), /reviewCompleted accepted/);
+
+  await canonical.getByRole("button", { name: "eight active request permits; ninth settles immediately and release permits another", exact: true }).click();
+  for (let step = 1; step <= 26; step++) await canonical.getByRole("button", { name: /^Next canonical step:/ }).click();
+  await waitForText(".canonical-progress", "Guided step 26 of 34");
+  assert.match(await page.locator(".topology-capacities").innerText(), /Jev in-flight: 8\/8 · no Jev wait queue/);
+  assert.match(await page.locator(".topology-node").nth(6).innerText(), /observed started requests/);
+  for (let step = 27; step <= 29; step++) await canonical.getByRole("button", { name: /^Next canonical step:/ }).click();
+  await waitForText(".canonical-progress", "Guided step 29 of 34");
+  assert.match(await page.locator(".topology-step").innerText(), /jevRequestReady accepted.*jevRequestUnavailable/);
+  assert.match(await page.locator(".topology-capacities").innerText(), /Jev in-flight: 8\/8 · no Jev wait queue/);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "immediate unavailable" }).count(), 1);
+  await canonical.getByRole("button", { name: "Previous canonical step" }).click();
+  await waitForText(".canonical-progress", "Guided step 28 of 34");
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "immediate unavailable" }).count(), 0);
+  await canonical.getByRole("button", { name: "Redo canonical step" }).click();
+  await waitForText(".canonical-progress", "Guided step 29 of 34");
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "immediate unavailable" }).count(), 1);
+
+  await canonical.getByRole("button", { name: "neverSent is a distinct observed request result and duplicate is rejected", exact: true }).click();
+  for (let step = 1; step <= 6; step++) await canonical.getByRole("button", { name: /^Next canonical step:/ }).click();
+  await waitForText(".canonical-progress", "Guided step 6 of 7");
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "command never sent" }).count(), 1);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "external finding or clear response" }).count(), 0);
+  assert.equal(await page.locator(".topology-node.active").filter({ hasText: "Jev response" }).count(), 0);
+
+  await canonical.getByRole("button", { name: "interrupted is a distinct observed request result and duplicate is rejected", exact: true }).click();
+  for (let step = 1; step <= 7; step++) await canonical.getByRole("button", { name: /^Next canonical step:/ }).click();
+  await waitForText(".canonical-progress", "Guided step 7 of 9");
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "attempt interrupted / cancelled" }).count(), 1);
+  await canonical.getByRole("button", { name: /^Next canonical step:/ }).click();
+  await waitForText(".canonical-progress", "Guided step 8 of 9");
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "attempt interrupted / cancelled" }).count(), 1);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "external finding or clear response" }).count(), 0);
+
+  await canonical.getByRole("button", { name: "many units admit in order and Stop waits", exact: true }).click();
+  for (let step = 1; step <= 4; step++) await canonical.getByRole("button", { name: /^Next canonical step:/ }).click();
+  await waitForText(".canonical-progress", "Guided step 4 of 7");
+  assert.equal(await page.locator(".finish-branch.active").filter({ hasText: "Wait for work" }).count(), 1);
+  assert.match(await page.locator(".finish-decision").innerText(), /Continue with advice.*Allow finish.*Cancel unfinished work/s);
+  await canonical.getByRole("button", { name: "deadline requests exact cancellations", exact: true }).click();
+  for (let step = 1; step <= 3; step++) await canonical.getByRole("button", { name: /^Next canonical step:/ }).click();
+  await waitForText(".canonical-progress", "Guided step 3 of 4");
+  assert.equal(await page.locator(".finish-branch.active").filter({ hasText: "Cancel unfinished work" }).count(), 1);
+  assert.equal(await page.locator(".finish-branch.active").filter({ hasText: "Decision ready" }).count(), 1);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "attempt interrupted / cancelled" }).count(), 0);
+  assert.equal(await page.locator(".topology-node.active").filter({ hasText: "Native Jev effect attempt" }).count(), 0);
+  const coverage = page.locator(".flow-coverage");
+  await coverage.locator("summary").click();
+  assert.match(await coverage.innerText(), /Jev ready, command, attempt and terminal facts · guided:/);
+  assert.match(await coverage.innerText(), /Background and Stop collection, leases and expiry · manual replay only/);
+  assert.match(await coverage.innerText(), /Native facts and effects outside Bend/);
+  assert.equal(await coverage.getByRole("link", { name: "Bend source" }).count(), 12);
 
   const imports = page.locator("#import-graph");
   assert.match(await imports.innerText(), /Native: resolution, permission facts, source capture/);
@@ -82,7 +143,7 @@ try {
   assert.doesNotMatch(await imports.locator(".import-graph-facts").innerText(), /D.ts/);
   assert.match(await page.locator("#timing-diagrams").innerText(), /Native timing evidence/);
   assert.deepEqual(errors, []);
-  console.log("Browser controls passed: canonical guided/manual replay, command frames, rewind/redo, capacity rows, independent import graph, and native timing.");
+  console.log("Browser controls passed: canonical replay/history, ordered capacity, ninth Jev refusal, unsent/interrupted routes, Stop fork, coverage inventory, import graph, and native timing.");
 } finally {
   await browser?.close();
   await server.close();

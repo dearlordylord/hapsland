@@ -72,11 +72,12 @@ const longNestedPath = process.platform === "darwin"
   ? `${Array.from({ length: 8 }, (_, index) => `segment-${index}-${"x".repeat(88)}`).join("/")}/types.ts`
   : `${Array.from({ length: 14 }, (_, index) => `segment-${index}-${"x".repeat(180)}`).join("/")}/types.ts`;
 
-const mutuallyReferencingTypes = () => Array.from({ length: 17 }, (_, index) => {
+const mutuallyReferencingTypes = (count = 17) => Array.from({ length: count }, (_, index) => {
   const typeName = (target: number) => `Type${target}${process.platform === "darwin" ? "n".repeat(100) : ""}`;
-  const fields = Array.from({ length: 17 }, (_unused, target) => target === index
-    ? undefined
-    : `p${target}: ${typeName(target)}`).filter((value) => value !== undefined).join("; ");
+  const fields = Array.from({ length: 16 }, (_unused, offset) => {
+    const target = (index + offset + 1) % count;
+    return `p${target}: ${typeName(target)}`;
+  }).join("; ");
   return `interface ${typeName(index)} { ${fields} }`;
 }).join("\n");
 
@@ -336,7 +337,7 @@ describe("resident delivery lease", () => {
     }
   });
 
-  it("cancels a queued and running review fanout using Bend work identities", async () => {
+  it("cancels a running review fanout without inventing a Jev wait queue", async () => {
     const root = await makeGitFixture();
     const paths = Array.from({ length: 12 }, (_, index) => `item-${index}.ts`);
     for (const [index, path] of paths.entries()) await put(root, path, `type Item${index}Count = number\n`);
@@ -363,7 +364,9 @@ describe("resident delivery lease", () => {
       const activity = readActivity({ statePath: activityPath, root,
         sessionId: observation.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
       expect(activity.roundClosures?.[0]?.reason).toBe("deadline");
-      expect(activity.roundClosures?.[0]?.discarded?.queued).toBeGreaterThanOrEqual(0);
+      // #148 refuses ready Jev work beyond eight permits immediately; it
+      // does not retain those requests in a Jev wait queue.
+      expect(activity.roundClosures?.[0]?.discarded?.queued).toBe(0);
       expect(activity.roundClosures?.[0]?.discarded?.running).toBeGreaterThan(0);
       gate.resolve();
       await server.whenIdle();
@@ -1647,10 +1650,11 @@ describe("resident delivery lease", () => {
     expect(retained.server.accountingMetrics().pendingOperationalNotices).toBeGreaterThan(0);
     expect(retained.server.stats()).toMatchObject({ pendingAdvice: 2 });
 
-    const enlarged = await run(2 * 1024 * 1024);
-    expect(enlarged.server.stats().pendingAdvice).toBeGreaterThan(0);
-    expect(existsSync(enlarged.capturePath)).toBe(false);
-    expect(enlarged.server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
+    const rejected = await run(2 * 1024 * 1024);
+    expect(rejected.server.stats().rejectedCapacity).toBeGreaterThan(0);
+    expect(existsSync(rejected.capturePath)).toBe(false);
+    expect(rejected.server.accountingMetrics().maxMaterializedPreparedUnits).toBeLessThanOrEqual(1);
+    expect(rejected.server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
 
     const transportRejected = await run(300 * 1024);
     expect(transportRejected.server.stats()).toMatchObject({ pendingAdvice: 1, rejectedCapacity: 1 });
@@ -1721,11 +1725,11 @@ describe("resident delivery lease", () => {
 
   it("rejects adversarial long-ID expansion before recursive unit materialization", async () => {
     const root = await makeGitFixture();
-    const source = mutuallyReferencingTypes();
+    const source = mutuallyReferencingTypes(64);
     await put(root, longNestedPath, source);
     const preflight = analyzerMaterializationPreflight(longNestedPath, source);
-    expect(preflight?.declarations).toBe(17);
-    expect(preflight?.expandedUnitBytes).toBeGreaterThan(8 * 1024 * 1024);
+    expect(preflight?.declarations).toBe(64);
+    expect(preflight?.expandedUnitBytes).toBeGreaterThan(PARTITION_BYTE_LIMIT);
     const statePath = join(root, "consent");
     const capturePath = join(root, "backend-calls");
     await enable(root, statePath);
@@ -1741,7 +1745,7 @@ describe("resident delivery lease", () => {
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
-    expect(server.stats()).toMatchObject({ pendingAdvice: 0, retainedBytes: 0 });
+    expect(server.stats()).toMatchObject({ pendingAdvice: 0, rejectedCapacity: 1, retainedBytes: 0 });
     expect(server.accountingMetrics().maxMaterializedPreparedUnits).toBe(0);
     expect(server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
     expect(existsSync(capturePath)).toBe(false);
@@ -1774,9 +1778,9 @@ describe("resident delivery lease", () => {
     const before = server.stats();
     expect(before.pendingAdvice).toBe(1);
 
-    const expansion = mutuallyReferencingTypes();
+    const expansion = mutuallyReferencingTypes(64);
     expect(analyzerMaterializationPreflight(longNestedPath, expansion)?.expandedUnitBytes)
-      .toBeGreaterThan(8 * 1024 * 1024);
+      .toBeGreaterThan(PARTITION_BYTE_LIMIT);
     await put(root, longNestedPath, expansion);
     await expect(server.collect(
       root,
@@ -2250,7 +2254,10 @@ describe("resident delivery lease", () => {
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
     const saturated = server.stats();
-    expect(saturated.pendingAdvice + saturated.successfulCacheEntries).toBe(16);
+    // Every attempted unit either retains advice or is refused by the
+    // partition ledger, whose successful cache entries also consume space.
+    expect(saturated.pendingAdvice + saturated.rejectedCapacity).toBe(16);
+    expect(saturated.pendingAdvice).toBeGreaterThan(0);
     const beforeItems = server.pendingAdviceMetadata();
 
     const collected = await server.collect(
@@ -2267,9 +2274,9 @@ describe("resident delivery lease", () => {
       .slice(0, collected.findingCount).reduce((total, item) => total + item.retainedBytes, 0));
   });
 
-  // The 64 real repository parses exercise the declared global saturation limit and
-  // take about five seconds on the supported arm64 host.
-  it("revalidates and finalizes under global admission pressure", async () => {
+  // Four 16-item partitions attempt 64 real repository parses; the shared
+  // global limit is 512 and is covered by the capacity ledger tests.
+  it("revalidates and finalizes across four saturated partitions", async () => {
     const root = await makeGitFixture();
     const statePath = join(root, "consent");
     await enable(root, statePath);
@@ -2290,8 +2297,8 @@ describe("resident delivery lease", () => {
       await server.whenIdle();
     }
     const saturated = server.stats();
+    expect(saturated.pendingAdvice + saturated.rejectedCapacity).toBe(64);
     expect(saturated.pendingAdvice).toBeGreaterThan(0);
-    expect(saturated.rejectedCapacity).toBeGreaterThan(0);
     const beforeItems = server.pendingAdviceMetadata().filter(({ partition }) =>
       partition.includes('"subagentId":"agent-0"'));
 
@@ -2475,7 +2482,7 @@ describe("resident delivery lease", () => {
 
   // Large near-frame identities and full revalidation batches measure at 5.0-5.2
   // seconds on the supported arm64 host, so only these stress cases get 10 seconds.
-  it("charges a valid near-frame identity for every unit and rejects excess truthfully", async () => {
+  it("charges a valid near-frame identity for every admitted unit", async () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", Array.from(
       { length: 8 },
@@ -2528,8 +2535,8 @@ describe("resident delivery lease", () => {
     await server.whenIdle();
 
     const metadata = server.pendingAdviceMetadata();
-    expect(metadata.length).toBeGreaterThan(0);
-    expect(metadata.length).toBeLessThanOrEqual(8);
+    expect(metadata).toHaveLength(8);
+    expect(server.stats().rejectedCapacity).toBe(0);
     expect(server.stats().retainedBytes).toBe(
       metadata.reduce((total, item) => total + item.retainedBytes, 0) +
         server.accountingMetrics().successfulCacheBytes +

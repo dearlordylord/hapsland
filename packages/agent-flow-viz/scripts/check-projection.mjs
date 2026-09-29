@@ -61,8 +61,8 @@ try {
     compiled.inventory.map((entry) => Object.keys(entry.limits)));
   assert.match(text(initial), /CANONICAL BEND PRODUCTION MODEL/);
   assert.match(text(initial), /What uses review capacity/);
-  assert.match(text(initial), /Native Hapsland effects/);
-  assert.match(text(initial), /Jev response · external/);
+  assert.match(text(initial), /Native Jev effect attempt/);
+  assert.match(text(initial), /Jev response/);
   let model = initial;
   for (let index = 0; index < fixture.capacityTrace.events.length; index += 1) {
     model = send(model, main.Message.Advanced());

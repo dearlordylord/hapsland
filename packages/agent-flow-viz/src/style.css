@@ -131,6 +131,34 @@ p { line-height: 1.5; }
 
 .canonical-replay { margin: 18px 0; }
 .production-flow-rail { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.flow-legend { margin: 0 0 15px; color: #52647d; font-size: .82rem; }
+.topology-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.topology-node { position: relative; min-height: 110px; padding: 12px; border: 2px solid #a5b8ce; border-radius: 8px; background: #f0f5ff; }
+.topology-node:nth-child(1), .topology-node:nth-child(4), .topology-node:nth-child(7), .topology-node:nth-child(12) { background: #f1f3f6; border-color: #a8b0bc; }
+.topology-node:nth-child(8) { background: #fff1d9; border-color: #c59a52; }
+.topology-node.active { border-color: #ec6a35; box-shadow: 0 0 0 2px #ffd7bb; }
+.topology-node small { display: block; color: #52647d; font-size: .63rem; font-weight: 800; letter-spacing: .06em; }
+.topology-node strong { display: block; margin: 6px 0; font-size: .86rem; }
+.topology-node p { margin: 0; color: #435670; font-size: .73rem; overflow-wrap: anywhere; }
+.topology-routes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 7px; margin: 14px 0; }
+.topology-route { display: grid; grid-template-columns: minmax(0,1fr) 28px minmax(0,1fr); gap: 4px; align-items: center; padding: 6px; border: 1px solid #cad5e2; border-radius: 7px; background: #f8fafc; color: #65748a; font-size: .71rem; }
+.topology-route .route-origin, .topology-route .route-destination { padding: 6px; border: 1px solid #d5deea; border-radius: 4px; background: #fff; font-weight: 700; }
+.topology-route .route-arrow, .finish-branch .route-arrow { font-size: 1.35rem; font-weight: 800; text-align: center; }
+.topology-route small { grid-column: 1 / -1; padding: 0 6px; font-size: .68rem; }
+.topology-route.active { border-color: #ec6a35; background: #fff0e7; color: #7c341c; }
+.topology-route.active .route-arrow { color: #e85b28; }
+.finish-decision { margin: 12px 0; padding: 12px; border: 1px solid #c9d6e4; border-radius: 8px; background: #fbfcff; }
+.finish-decision p { margin: 5px 0 12px; font-size: .8rem; color: #52647d; }
+.finish-branches { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.finish-branch { display: flex; align-items: center; justify-content: space-between; gap: 5px; min-height: 58px; padding: 8px; border: 1px solid #bfcddd; border-radius: 7px; background: #fff; font-size: .73rem; }
+.finish-branch.active { border: 2px solid #e85b28; background: #fff0e7; color: #7c341c; }
+.finish-branch.active .route-arrow { color: #e85b28; }
+.topology-capacities { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 12px; border: 1px solid #cfdeed; border-radius: 8px; font-size: .82rem; }
+.topology-capacities strong { flex-basis: 100%; }
+.topology-step { margin-top: 10px; padding: 12px; border-left: 4px solid #245bb8; background: #f5f8ff; }
+.topology-step p { margin: 6px 0 0; font-size: .81rem; }
+@media (max-width: 950px) { .topology-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .finish-branches { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .topology-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .flow-stage { padding: 14px; border: 1px solid #a8b8cc; border-radius: 8px; background: #f7f9fd; }
 .flow-stage.bend { border-color: #8962ae; background: #f1e9fa; }
 .flow-stage.external { border-color: #a87929; background: #fff0c8; }

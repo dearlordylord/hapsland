@@ -37,7 +37,7 @@ describe("canonical work projection", () => {
     expect(ready.status).toBe("issued");
     if (ready.status !== "issued") return;
     expect(ledger.startJevRequest("agent", unit.operation, ready.request)).toBe(true);
-    expect(view.outcome(unit.operation, { $: "Finding", count: 1, bytes: 20 })).toBe(true);
+    expect(view.outcome(unit.operation, { $: "Finding" })).toBe(true);
     expect(ledger.settleJevRequest("agent", unit.operation, ready.request,
       unit.reservation, "finding", true)).toBe("retainFinding");
     expect(view.reviseFinding(unit.operation, 2, 20)).toBe(true);
