@@ -1,4 +1,4 @@
-import { bendImportGraphInitial, bendImportGraphStep } from "./import-graph.generated.js";
+import { bendImportGraphInitial, bendImportGraphStep, bendImportGraphLocalBudget } from "./import-graph.generated.js";
 import { GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimits } from "../configuration/graph-limits.ts";
 export { GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimits } from "../configuration/graph-limits.ts";
 
@@ -149,6 +149,18 @@ export const initialImportGraph = (limits: GraphLimits = GRAPH_LIMIT_CEILINGS): 
   });
   projectImportGraph(state);
   return freezeState(state);
+};
+
+/** Bend checks native local-reference facts against the same frozen graph profile. */
+export const permitLocalGraphFacts = (limits: GraphLimits, localWork: number,
+  localDepth: number, distinctTargets: number, graphWork: number): boolean => {
+  const effective = validateGraphLimits(limits);
+  return bendImportGraphLocalBudget({
+    $: "ImportGraph.Limits", version: nat(effective.version),
+    source_bytes: nat(effective.sourceBytes), tree_bytes: nat(effective.treeBytes),
+    files: nat(effective.files), read_bytes: nat(effective.readBytes),
+    outgoing_edges: nat(effective.outgoingEdges), depth: nat(effective.depth), work: nat(effective.work),
+  }, nat(localWork), nat(localDepth), nat(distinctTargets), nat(graphWork));
 };
 export const stepImportGraph = (state: unknown, event: ImportGraphEvent): { readonly state: unknown; readonly command: ImportGraphCommand } => {
   projectImportGraph(state);

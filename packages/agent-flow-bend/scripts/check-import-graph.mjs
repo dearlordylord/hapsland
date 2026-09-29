@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { initialImportGraph, projectImportGraph, stepImportGraph } from "../import-graph-adapter.ts";
+import { initialImportGraph, permitLocalGraphFacts, projectImportGraph, stepImportGraph } from "../import-graph-adapter.ts";
 
 const fixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/import-graph-v1.json"), "utf8"));
 for (const trace of fixture.traces) {
@@ -39,6 +39,10 @@ assert.throws(() => stepImportGraph(initialImportGraph(), { kind: "root", target
 assert.throws(() => initialImportGraph({ ...projectImportGraph(initialImportGraph()).limits, sourceBytes: 0 }), /graphLimits.sourceBytes/);
 assert.throws(() => initialImportGraph({ ...projectImportGraph(initialImportGraph()).limits, readBytes: 1 }), /graphLimits.readBytes/);
 const defaults = projectImportGraph(initialImportGraph()).limits;
+assert.equal(permitLocalGraphFacts(defaults, 4, 4, 16, 124), true);
+assert.equal(permitLocalGraphFacts(defaults, 5, 4, 16, 124), false);
+assert.equal(permitLocalGraphFacts(defaults, 4, 5, 16, 0), false);
+assert.equal(permitLocalGraphFacts(defaults, 4, 4, 17, 0), false);
 const rootAt = (overrides, sourceBytes, treeBytes, edges = []) => {
   const state = initialImportGraph({ ...defaults, ...overrides });
   return stepImportGraph(state, { kind: "root", target: 1, sourceBytes, treeBytes, edges });

@@ -103,6 +103,14 @@ def work_cap(limits: Limits) -> Nat:
     case Limits{_, _, _, _, _, _, _, work}:
       work
 
+# Native syntax supplies local-reference counts and path depth. This predicate
+# is the source-free Bend authority for admitting those facts into a graph.
+def local_budget(+limits: Limits, +local_work: Nat, +local_depth: Nat,
+    +distinct_targets: Nat, +graph_work: Nat) -> Bool:
+  Bool.and(Bool.not(Nat.is_gt(local_depth, depth_cap(limits))),
+    Bool.and(Bool.not(Nat.is_gt(distinct_targets, edge_cap(limits))),
+      Bool.not(Nat.is_gt((local_work + graph_work : Nat), work_cap(limits)))))
+
 # The same arithmetic gate is used for accepted encoded contributions.
 def tree_after(+total: Nat, +contribution: Nat, +cap: Nat) -> Nat:
   Bool.pick(Nat, Nat.is_gt((total + contribution : Nat), cap),

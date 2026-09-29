@@ -1,7 +1,7 @@
 import { dirname, extname, isAbsolute, join, normalize, sep } from "node:path";
 import { lstat } from "node:fs/promises";
 import * as Effect from "effect/Effect";
-import { initialImportGraph, projectImportGraph, stepImportGraph, type ImportGraphCommand } from "../canonical/graph-adapter.ts";
+import { initialImportGraph, permitLocalGraphFacts, projectImportGraph, stepImportGraph, type ImportGraphCommand } from "../canonical/graph-adapter.ts";
 import { GRAPH_LIMIT_CEILINGS, type GraphLimits } from "../configuration/graph-limits.ts";
 import { inspectGraphFile, type GraphDeclaration, type GraphFile } from "./analyzer.ts";
 import { captureStable, type CaptureHooks, type StableCapture } from "./capture.ts";
@@ -11,7 +11,7 @@ import { eligibleNamedPath, type DirectFilePolicy } from "./selection.ts";
 type MutableNode = { artifact: ReviewNode["artifact"]; references: ArtifactReference[] };
 type Pending = { readonly owner: MutableNode; readonly index: number; readonly from: string; readonly importPath: string; readonly name: string; readonly depth: number };
 type Built = { readonly node: ReviewNode; readonly pending: ReadonlyArray<Pending>; readonly complete: boolean };
-type LocalBudget = { readonly limits: GraphLimits; readonly targets: Set<string>; work: number };
+type LocalBudget = { readonly limits: GraphLimits; readonly targets: Set<string>; work: number; maxDepth: number };
 export const GRAPH_ANALYSIS_DEADLINE_MS = 5_000;
 const bytes = (value: unknown): number => Buffer.byteLength(JSON.stringify(value), "utf8");
 const sourceExtensions = [".ts", ".tsx", ".mts", ".cts"] as const;
@@ -26,6 +26,7 @@ const buildLocal = (file: GraphFile, path: string, name: string, visited: Set<st
   const pending: Pending[] = [];
   let complete = true;
   for (const reference of declaration.references) {
+    budget.maxDepth = Math.max(budget.maxDepth, depth + 1);
     if (depth >= budget.limits.depth) {
       complete = false; break;
     }
@@ -87,12 +88,13 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
   if (rootDeclaration === undefined) return undefined;
   if (rootDeclaration.references.length > limits.outgoingEdges) return undefined;
   const visited = new Set([rootDeclaration.artifact.id]);
-  const budget: LocalBudget = { limits, targets: new Set(), work: 0 };
+  const budget: LocalBudget = { limits, targets: new Set(), work: 0, maxDepth: 0 };
   const now = context.now ?? (() => performance.now());
   const started = now();
   const expired = () => now() - started >= GRAPH_ANALYSIS_DEADLINE_MS;
   const built = buildLocal(rootFile, rootPath, name, visited, budget, 0);
-  if (built === undefined || !built.complete) return undefined;
+  if (built === undefined || !built.complete ||
+    !permitLocalGraphFacts(limits, budget.work, budget.maxDepth, budget.targets.size, 0)) return undefined;
   const unit: ReviewUnit = { root: built.node };
   let nextId = 1;
   const pending = new Map<number, Pending>();
@@ -194,7 +196,8 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
           } else {
             const child = buildLocal(file, selected.relativePath, target.name, visited, budget, target.edge.depth + 1);
             if (child === undefined || !child.complete ||
-              budget.work + projectImportGraph(state).work > limits.work) {
+              !permitLocalGraphFacts(limits, budget.work, budget.maxDepth,
+                budget.targets.size, projectImportGraph(state).work)) {
               transition = stepImportGraph(state, { kind: "captureFailed" });
             } else {
               const previous = bytes(unit);

@@ -42,6 +42,8 @@ const normalize = (value) => {
 export const bendImportGraphInitial = (limits) => run_loop($ImportGraph$bounded_initial$(normalize(limits)));
 export const bendImportGraphStep = (state, event) =>
   run_loop($ImportGraph$bounded_step$(state, normalize(event)));
+export const bendImportGraphLocalBudget = (limits, localWork, localDepth, distinctTargets, graphWork) =>
+  run_loop($ImportGraph$local_budget$(normalize(limits), nat(localWork), nat(localDepth), nat(distinctTargets), nat(graphWork)));
 `);
   writeFileSync(join(root, "import-graph.generated.js"), source);
 } finally {
