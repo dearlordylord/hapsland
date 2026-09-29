@@ -123,8 +123,15 @@ const namedTypeReferences = (node: SyntaxNode, ownName: string, importedNames: R
   return references;
 };
 
-const functionReferences = (node: SyntaxNode, name: string, boundTypes: ReadonlySet<string>, boundFunctions: ReadonlySet<string>): FunctionReference[] => {
+const functionReferences = (
+  node: SyntaxNode,
+  name: string,
+  boundTypes: ReadonlySet<string>,
+  boundFunctions: ReadonlySet<string>,
+  valueFunctions: ReadonlySet<string>,
+): FunctionReference[] => {
   const localBindings = new Set<string>();
+  localBindings.add("arguments");
   const unsupportedBindings: { readonly offset: number; readonly reference: FunctionReference }[] = [];
   let uncertainBinding = false;
   for (const child of descendants(node)) {
@@ -164,12 +171,34 @@ const functionReferences = (node: SyntaxNode, name: string, boundTypes: Readonly
     const supported = callee.type === "identifier" && !uncertainBinding && !localBindings.has(callee.text);
     calls.push({ offset: child.startIndex, reference: { kind: supported ? "named-function" : "unsupported", name: callee.text } });
   }
+  const declarationName = node.namedChildren.find((child) => child.type === "identifier");
+  const values: { readonly offset: number; readonly reference: FunctionReference }[] = [];
+  for (const child of descendants(node)) {
+    if (child.type === "this" || child.type === "super" || child.type === "meta_property") {
+      values.push({ offset: child.startIndex, reference: { kind: "unsupported", name: child.text } });
+      continue;
+    }
+    if (child.type !== "identifier" || child === declarationName) continue;
+    const parent = child.parent;
+    if (parent === undefined || parent === null) continue;
+    // The direct callee is already represented by the call edge. Parameter and
+    // variable names are declarations; member property names have a different
+    // syntax kind and are never mistaken for value reads here.
+    if (parent.type === "call_expression" && parent.namedChildren[0] === child) continue;
+    if (["required_parameter", "optional_parameter", "variable_declarator"].includes(parent.type) && parent.namedChildren[0] === child) continue;
+    const kind = localBindings.has(child.text)
+      ? undefined
+      : valueFunctions.has(child.text) && !uncertainBinding
+        ? "named-function"
+        : "unsupported";
+    if (kind !== undefined) values.push({ offset: child.startIndex, reference: { kind, name: child.text } });
+  }
   // Type references and calls both carry offsets in the source tree. Recollect the
   // type sites here so the graph adapter sees one deterministic lexical order.
   // A function may share its name with a type. Its return annotation can be
   // that type, so the function name is not an own-name type exclusion.
   const types = namedTypeReferencesWithOffsets(node, "", boundTypes);
-  return [...types, ...calls, ...unsupportedBindings].sort((a, b) => a.offset - b.offset).map(({ reference }) => reference);
+  return [...types, ...calls, ...values, ...unsupportedBindings].sort((a, b) => a.offset - b.offset).map(({ reference }) => reference);
 };
 
 const namedTypeReferencesWithOffsets = (node: SyntaxNode, ownName: string, importedNames: ReadonlySet<string>): { readonly offset: number; readonly reference: FunctionReference }[] => {
@@ -222,6 +251,7 @@ export const analyzeFunctionFile = (path: string, source: string): FunctionFileA
     }
     const boundTypes = new Set(imports.keys());
     const boundFunctions = new Set(imports.keys());
+    const valueFunctions = new Set([...imports].filter(([, binding]) => !binding.typeOnly).map(([name]) => name));
     const otherTopLevelBindings = new Set<string>();
     for (const node of top) {
       if (node.type !== "interface_declaration" && node.type !== "type_alias_declaration") continue;
@@ -231,7 +261,10 @@ export const analyzeFunctionFile = (path: string, source: string): FunctionFileA
     for (const node of top) {
       if (node.type !== "function_declaration") continue;
       const name = node.namedChildren.find((child) => child.type === "identifier")?.text;
-      if (name !== undefined) boundFunctions.add(name);
+      if (name !== undefined) {
+        boundFunctions.add(name);
+        valueFunctions.add(name);
+      }
     }
     for (const node of top) {
       if (node.type === "class_declaration") {
@@ -258,7 +291,7 @@ export const analyzeFunctionFile = (path: string, source: string): FunctionFileA
         const body = node.namedChildren.find((child) => child.type === "statement_block");
         if (identifier === undefined || body === undefined || signatures.has(identifier.text) || functions.has(identifier.text) || imports.has(identifier.text) || otherTopLevelBindings.has(identifier.text)) return undefined;
         const rendered = exportSource(node);
-        functions.set(identifier.text, { artifact: artifact(path, "function", identifier.text, rendered.source), references: functionReferences(node, identifier.text, boundTypes, boundFunctions), exported: rendered.exported, location: rendered.location });
+        functions.set(identifier.text, { artifact: artifact(path, "function", identifier.text, rendered.source), references: functionReferences(node, identifier.text, boundTypes, boundFunctions, valueFunctions), exported: rendered.exported, location: rendered.location });
         if (functions.size + types.size > 64) return undefined;
         continue;
       }

@@ -32,9 +32,76 @@ describe("function native facts", () => {
     const file = analyzeFunctionFile("a.ts", "function f(helper: () => void) { helper(); obj.method(); factory()[key](); missing() }");
     expect(file).toBeDefined();
     if (file === undefined) return;
-    expect(resolveFunctionUnit(file, "f")?.references.map((edge) => edge.target.kind)).toEqual([
-      "unsupported", "unsupported", "unsupported", "unresolved", "unresolved",
+    const facts = resolveFunctionUnit(file, "f")?.references ?? [];
+    expect(facts.some((edge) => edge.reference.name === "helper" && edge.target.kind === "unsupported")).toBe(true);
+    expect(facts.some((edge) => edge.reference.name === "missing" && edge.target.kind === "unresolved")).toBe(true);
+    expect(facts.some((edge) => edge.reference.name === "obj" && edge.target.kind === "unsupported")).toBe(true);
+  });
+
+  it("emits no outbound facts for constants and bound parameter reads", () => {
+    for (const source of ["function run() { return 1 }", "function run(value: number) { return value }"]) {
+      const file = analyzeFunctionFile("a.ts", source);
+      expect(file).toBeDefined();
+      if (file === undefined) continue;
+      expect(resolveFunctionUnit(file, "run")?.references).toEqual([]);
+    }
+  });
+
+  it("keeps a named helper call as supported evidence", () => {
+    const file = analyzeFunctionFile("a.ts", "function helper() { return 1 } function run() { return helper() }");
+    expect(file).toBeDefined();
+    if (file === undefined) return;
+    expect(resolveFunctionUnit(file, "run")?.references.map((edge) => [edge.reference.kind, edge.reference.name, edge.target.kind])).toEqual([
+      ["named-function", "helper", "local"],
     ]);
+  });
+
+  it("keeps a bare named function value as supporting evidence", () => {
+    const file = analyzeFunctionFile("a.ts", "function helper() { return 1 } function run() { return helper }");
+    expect(file).toBeDefined();
+    if (file === undefined) return;
+    expect(resolveFunctionUnit(file, "run")?.references.map((edge) => [edge.reference.kind, edge.reference.name, edge.target.kind])).toEqual([
+      ["named-function", "helper", "local"],
+    ]);
+  });
+
+  it("keeps a named imported function value and rejects a type-only value use", () => {
+    const valueFile = analyzeFunctionFile("a.ts", "import { helper } from './helper'; function run() { return helper }");
+    expect(valueFile).toBeDefined();
+    if (valueFile !== undefined) {
+      expect(resolveFunctionUnit(valueFile, "run")?.references.map((edge) => edge.target.kind)).toEqual(["import"]);
+    }
+    const typeFile = analyzeFunctionFile("a.ts", "import type { helper } from './helper'; function run() { return helper }");
+    expect(typeFile).toBeDefined();
+    if (typeFile !== undefined) {
+      expect(resolveFunctionUnit(typeFile, "run")?.references.map((edge) => edge.target.kind)).toEqual(["unsupported"]);
+    }
+  });
+
+  it("marks ambient member and bare value reads unsupported", () => {
+    for (const [source, name] of [
+      ["function helper() { return globalThis.fetch }", "globalThis"],
+      ["function helper() { return globalCounter }", "globalCounter"],
+      ["function helper() { return Math.random() }", "Math"],
+      ["function helper() { return Date.now() }", "Date"],
+      ["function helper() { return this.fetch }", "this"],
+      ["function helper() { return import.meta.env }", "import.meta"],
+    ] as const) {
+      const file = analyzeFunctionFile("a.ts", source);
+      expect(file).toBeDefined();
+      if (file === undefined) continue;
+      expect(resolveFunctionUnit(file, "helper")?.references.some((edge) =>
+        edge.reference.name === name && edge.target.kind === "unsupported"
+      )).toBe(true);
+    }
+  });
+
+  it("exposes an ambient helper as incomplete supporting evidence for its caller", () => {
+    const file = analyzeFunctionFile("a.ts", "function helper() { return globalThis.fetch } function run() { return helper() }");
+    expect(file).toBeDefined();
+    if (file === undefined) return;
+    expect(resolveFunctionUnit(file, "run")?.references.map((edge) => edge.target.kind)).toEqual(["local"]);
+    expect(resolveFunctionUnit(file, "helper")?.references.some((edge) => edge.target.kind === "unsupported")).toBe(true);
   });
 
   it("retains imports whose local names also name intrinsic types", () => {
