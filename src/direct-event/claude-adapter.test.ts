@@ -124,10 +124,12 @@ describe("Claude Code 2.1.218 direct adapter", () => {
       advicee: { host: "claude-code", hostVersion: "2.1.218", sessionId: "session-a", turnId: null, toolUseId: "tool-a", subagentId: null },
       candidates: [{ operation: "update", path: "item.ts", addedLines: ["export interface Item { value: number }"] }],
     });
-    expect(decodeResidentRequest(JSON.stringify({
+    const admission = {
       requestRoute: "shared", operation: "admit", lifetime: "lifetime", observation, controlledWriter: true,
       dispatch: { statePath: "/tmp/state", userConfigPath: null, credential: null, controlled: null },
-    }))?.operation).toBe("admit");
+    };
+    expect(decodeResidentRequest(JSON.stringify({ ...admission, composed: true }))?.operation).toBe("admit");
+    expect(decodeResidentRequest(JSON.stringify(admission))).toBeUndefined();
     expect(await Effect.runPromise(adaptClaudeDirectEvent({ ...event, tool_use_id: "" }))).toBeUndefined();
     expect(await Effect.runPromise(adaptClaudeDirectEvent({ ...event, turn_id: "invented" }))).toBeUndefined();
   });
