@@ -7,33 +7,56 @@ const limits = { globalItems: 8, globalBytes: 1000, partitionItems: 8, partition
 describe("canonical work projection", () => {
   it("reads source stages from the shared ledger without advancing another state", () => {
     const ledger = new CapacityLedger(limits);
-    const partitions = new Set(["agent"]);
-    const view = new BendWorkTracker(ledger, partitions);
+    const round = ledger.roundId("agent");
+    const view = new BendWorkTracker(ledger, "agent", round);
     const source = ledger.admitObservation("agent");
     expect(view.admit(source)).toBe(source);
     expect(view.startSource(source)).toBe(true);
     expect(view.unfinished()).toBe(1);
-    expect(ledger.observation("agent", source, "startObservation")).toBe(true);
+    expect(ledger.observation("agent", source, "startObservation", round)).toBe(true);
     expect(view.completeSource(source)).toBe(true);
-    expect(ledger.observation("agent", source, "completeObservation")).toBe(true);
+    expect(ledger.observation("agent", source, "completeObservation", round)).toBe(true);
     expect(view.unfinished()).toBe(0);
     expect(view.pendingFindings()).toBe(0);
   });
 
+  it("keeps a retired round view separate from successor work on the same advicee", () => {
+    const ledger = new CapacityLedger(limits);
+    const oldRound = ledger.roundId("agent");
+    const oldView = new BendWorkTracker(ledger, "agent", oldRound);
+    ledger.admitObservation("agent", oldRound);
+    ledger.retireRound("agent", oldRound);
+    const nextRound = ledger.roundId("agent");
+    const nextView = new BendWorkTracker(ledger, "agent", nextRound);
+    const source = ledger.admitObservation("agent", nextRound);
+    expect(oldView.unfinished()).toBe(0);
+    expect(oldView.startSource(source)).toBe(false);
+    expect(nextView.unfinished()).toBe(1);
+    ledger.observation("agent", source, "startObservation", nextRound);
+    const preparation = ledger.beginObservedPreparation("agent", source, 100, nextRound)!;
+    const unit = ledger.completePreparation("agent", preparation.operation,
+      preparation.reservation, [20], nextRound)[0]!;
+    ledger.completeReview("agent", unit.operation, unit.reservation, "finding", nextRound);
+    expect(oldView.pendingFor(unit.operation)).toBe(0);
+    expect(oldView.pendingFindings()).toBe(0);
+    expect(nextView.pendingFindings()).toBe(1);
+  });
+
   it("uses canonical review identities and pending finding counts", () => {
     const ledger = new CapacityLedger(limits);
-    const view = new BendWorkTracker(ledger, new Set(["agent"]));
+    const round = ledger.roundId("agent");
+    const view = new BendWorkTracker(ledger, "agent", round);
     const source = ledger.admitObservation("agent");
-    ledger.observation("agent", source, "startObservation");
-    const preparation = ledger.beginObservedPreparation("agent", source, 100)!;
-    const unit = ledger.completePreparation("agent", preparation.operation, preparation.reservation, [20])[0]!;
+    ledger.observation("agent", source, "startObservation", round);
+    const preparation = ledger.beginObservedPreparation("agent", source, 100, round)!;
+    const unit = ledger.completePreparation("agent", preparation.operation, preparation.reservation, [20], round)[0]!;
     expect(view.spawn(source, unit.operation)).toBe(unit.operation);
     expect(view.startUnit(unit.operation)).toBe(true);
-    expect(ledger.startReview("agent", unit.operation)).toBe(true);
+    expect(ledger.startReview("agent", unit.operation, round)).toBe(true);
     const ready = ledger.readyJevRequest("agent", unit.operation, unit.reservation, {
       rootValid: true, configurationValid: true, credentialReady: true,
       selected: true, currentWork: true, physicalAvailable: true,
-    });
+    }, round);
     expect(ready.status).toBe("issued");
     if (ready.status !== "issued") return;
     expect(ledger.startJevRequest("agent", unit.operation, ready.request)).toBe(true);

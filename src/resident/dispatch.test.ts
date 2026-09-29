@@ -6,11 +6,11 @@ const createDispatch = (
   run: (entry: { readonly key: string; readonly value: number; readonly sequence: number; readonly cycle: number }) => Promise<void>,
   onCycleComplete?: (cycle: number) => void) => {
   const ledger = new CapacityLedger();
-  const ids = new Map<number, number>();
+  const ids = new Map<number, { operation: number; round: number }>();
   const dispatch = new DispatchCycles<string, number>(ledger, (value) => ids.get(value)!, run, onCycleComplete);
   return {
     enqueue: (key: string, value: number) => {
-      ids.set(value, ledger.admitObservation(key));
+      ids.set(value, { operation: ledger.admitObservation(key), round: ledger.roundId(key) });
       return dispatch.enqueue(key, value);
     },
     hasWork: (key: string) => dispatch.hasWork(key),
@@ -34,6 +34,21 @@ const eventually = async (predicate: () => boolean) => {
 };
 
 describe("resident finite dispatch cycles", () => {
+  it("uses the queued job's originating round after a successor opens", async () => {
+    const ledger = new CapacityLedger();
+    const oldRound = ledger.roundId("agent");
+    ledger.retireRound("agent", oldRound);
+    const round = ledger.roundId("agent");
+    const operation = ledger.admitObservation("agent", round);
+    const seen: number[] = [];
+    const dispatch = new DispatchCycles<string, { operation: number; round: number }>(
+      ledger, (job) => job, async ({ value }) => { seen.push(value.operation); });
+    expect(dispatch.enqueue("agent", { operation, round: oldRound })).toBe(false);
+    expect(dispatch.enqueue("agent", { operation, round })).toBe(true);
+    await dispatch.whenIdle();
+    expect(seen).toEqual([operation]);
+  });
+
   it("reports work only for the advicee with queued or running entries", async () => {
     const first = gate();
     const dispatcher = createDispatch(async ({ value }) => {

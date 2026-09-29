@@ -3,17 +3,18 @@ import type { CapacityLedger } from "./capacity.ts";
 /** Read-only work view over the shared canonical state for one composed round. */
 export class BendWorkTracker {
   private readonly ledger: CapacityLedger;
-  private readonly partitions: ReadonlySet<string>;
+  private readonly partition: number;
+  private readonly round: number;
 
-  constructor(ledger: CapacityLedger, partitions: ReadonlySet<string>) {
+  constructor(ledger: CapacityLedger, partition: string, round: number) {
     this.ledger = ledger;
-    this.partitions = partitions;
+    this.partition = ledger.partitionId(partition);
+    this.round = round;
   }
 
   #work(operation: number) {
-    const ids = new Set([...this.partitions].map((partition) => this.ledger.partitionId(partition)));
     return this.ledger.canonicalProjection().work.find((item) =>
-      ids.has(item.partition) && item.operation === operation);
+      item.partition === this.partition && item.round === this.round && item.operation === operation);
   }
 
   admit(observation: number): number {
@@ -41,9 +42,8 @@ export class BendWorkTracker {
   retire(operation: number): boolean { return this.#work(operation)?.kind === "pendingFinding"; }
 
   unfinished(): number {
-    const ids = new Set([...this.partitions].map((partition) => this.ledger.partitionId(partition)));
     return this.ledger.canonicalProjection().work.filter((item) =>
-      ids.has(item.partition) && item.kind !== "pendingFinding").length;
+      item.partition === this.partition && item.round === this.round && item.kind !== "pendingFinding").length;
   }
   pendingFindings(): number {
     return this.ledger.canonicalProjection().pendingFindings.reduce((count, entry) =>

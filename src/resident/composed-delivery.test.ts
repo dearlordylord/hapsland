@@ -264,18 +264,19 @@ describe("shared Hapsland rounds", () => {
     expect(state.canonical.canonicalProjection().admissions[0]?.permits).toHaveLength(0);
   });
 
-  it("waits across exact edit partitions and resets their decision fences on continuation", () => {
+  it("waits across edits in one advicee round and resets its decision fence on continuation", () => {
     const state = new ComposedDelivery();
     state.admitEdit("agent", "edit", 0);
-    const first = state.canonical.admitObservation("agent\0edit-1");
-    const second = state.canonical.admitObservation("agent\0edit-2");
+    const first = state.canonical.admitObservation("agent");
+    const second = state.canonical.admitObservation("agent");
     expect(state.beginStop("agent", "stop")).toBe(true);
-    const scopes = ["agent\0edit-1", "agent\0edit-2"];
+    const scopes = ["agent"];
+    const round = state.canonical.roundId("agent");
     expect(state.finishGate("agent", "stop", 0, false, scopes))
       .toMatchObject({ status: "waiting" });
-    expect(state.canonical.observation(scopes[0]!, first, "completeObservation")).toBe(false);
-    expect(state.canonical.observation(scopes[0]!, first, "startObservation")).toBe(true);
-    expect(state.canonical.observation(scopes[0]!, first, "completeObservation")).toBe(true);
+    expect(state.canonical.observation(scopes[0]!, first, "completeObservation", round)).toBe(false);
+    expect(state.canonical.observation(scopes[0]!, first, "startObservation", round)).toBe(true);
+    expect(state.canonical.observation(scopes[0]!, first, "completeObservation", round)).toBe(true);
     expect(state.finishGate("agent", "stop", 0, false, scopes))
       .toMatchObject({ status: "waiting" });
     const cutoff = state.finishGate("agent", "stop", 0, true, scopes);
@@ -287,7 +288,7 @@ describe("shared Hapsland rounds", () => {
     expect(state.canonical.canonicalProjection().rounds.filter((item) =>
       scopes.some((scope) => item.partition === state.canonical.partitionId(scope)))
       .every((item) => !item.deciding)).toBe(true);
-    expect(state.canonical.admitObservation(scopes[1]!)).toBeGreaterThan(second);
+    expect(state.canonical.admitObservation(scopes[0]!)).toBeGreaterThan(second);
   });
 
   it("keeps an external Stop owner waiting until deadline", () => {

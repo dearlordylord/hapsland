@@ -9,9 +9,6 @@ export const GLOBAL_ITEM_LIMIT = 512;
 export const GLOBAL_BYTE_LIMIT = 256 * 1024 * 1024;
 export const PARTITION_ITEM_LIMIT = 16;
 export const PARTITION_BYTE_LIMIT = 32 * 1024 * 1024;
-// A retired partition has no mapped round. This positive candidate lets
-// QueueDispatch reject it by missing canonical Work instead of native policy.
-const RETIRED_DISPATCH_ROUND_CANDIDATE = 1;
 
 export type CapacityLimits = {
   readonly globalItems: number;
@@ -137,8 +134,8 @@ export class CapacityLedger {
     return id;
   }
 
-  dispatchIdentity(partition: string): { readonly partition: number; readonly round: number } {
-    return { partition: this.partitionId(partition), round: this.#roundIds.get(partition) ?? RETIRED_DISPATCH_ROUND_CANDIDATE };
+  dispatchIdentity(partition: string, round: number): { readonly partition: number; readonly round: number } {
+    return { partition: this.partitionId(partition), round };
   }
 
   dispatchScope(namedCount: number, cancelledCount: number, hasUnnamed: boolean): boolean {
@@ -177,17 +174,15 @@ export class CapacityLedger {
     return command.id;
   }
 
-  admitObservation(partition: string): number {
+  admitObservation(partition: string, round: number = this.roundId(partition)): number {
     const result = this.transition({ kind: "admitObservation", partition: this.partitionId(partition),
-      lifetime: 1, round: this.roundId(partition) });
+      lifetime: 1, round });
     const command = result.commands[0];
     if (result.rejection !== undefined || command?.kind !== "observationAdmitted") throw new Error("canonical observation admission refused");
     return command.id;
   }
 
-  observation(partition: string, id: number, kind: "startObservation" | "completeObservation" | "interruptObservation"): boolean {
-    const round = this.#roundIds.get(partition);
-    if (round === undefined) return false;
+  observation(partition: string, id: number, kind: "startObservation" | "completeObservation" | "interruptObservation", round: number): boolean {
     const result = this.transition({ kind, partition: this.partitionId(partition), lifetime: 1,
       round, observation: id });
     return result.rejection === undefined && result.commands[0]?.kind ===
@@ -195,15 +190,14 @@ export class CapacityLedger {
         interruptObservation: "observationInterrupted" } as const)[kind];
   }
 
-  beginObservedPreparation(partition: string, observation: number, bytes: number):
+  beginObservedPreparation(partition: string, observation: number, bytes: number, round: number):
     { readonly operation: number; readonly reservation: CapacityReservation } | undefined {
     if (!Number.isSafeInteger(bytes) || bytes <= 0 || bytes > CANONICAL_MAX_BYTES) return undefined;
-    const round = this.#roundIds.get(partition);
-    if (round === undefined) return undefined;
     const result = this.transition({ kind: "beginObservedPreparation", partition: this.partitionId(partition),
       lifetime: 1, round, observation, bytes });
     const command = result.commands[0];
-    if (result.rejection !== undefined || command === undefined) throw new Error("invalid canonical preparation admission");
+    if (result.rejection !== undefined) return undefined;
+    if (command === undefined) throw new Error("invalid canonical preparation admission");
     if (command.kind === "preparationRefused") return undefined;
     if (command.kind !== "prepare") throw new Error("unexpected canonical preparation command");
     const reservation: CapacityReservation = { id: command.reservation, partition, bytes, purpose: "preparation" };
@@ -212,13 +206,11 @@ export class CapacityLedger {
   }
 
   completePreparation(partition: string, operation: number, reservation: CapacityReservation,
-    sizes: readonly number[]): ReadonlyArray<{ readonly operation: number; readonly reservation: CapacityReservation } | undefined> {
+    sizes: readonly number[], round: number): ReadonlyArray<{ readonly operation: number; readonly reservation: CapacityReservation } | undefined> {
     if (this.#reservations.get(reservation.id) !== reservation || sizes.length > CANONICAL_MAX_UNITS ||
         sizes.some((size) => !Number.isSafeInteger(size) || size <= 0 || size > CANONICAL_MAX_BYTES)) {
       throw new TypeError("invalid canonical preparation completion");
     }
-    const round = this.#roundIds.get(partition);
-    if (round === undefined) throw new Error("canonical preparation round retired");
     const result = this.transition({ kind: "preparationCompleted", partition: this.partitionId(partition),
       lifetime: 1, round, operation, unitBytes: sizes });
     if (result.rejection !== undefined || result.commands[0]?.kind !== "preparationReleased") {
@@ -237,9 +229,7 @@ export class CapacityLedger {
     return units;
   }
 
-  startReview(partition: string, operation: number): boolean {
-    const round = this.#roundIds.get(partition);
-    if (round === undefined) return false;
+  startReview(partition: string, operation: number, round: number): boolean {
     const result = this.transition({ kind: "startReview", partition: this.partitionId(partition),
       lifetime: 1, round, operation });
     return result.rejection === undefined && result.commands[0]?.kind === "reviewStarted";
@@ -248,12 +238,10 @@ export class CapacityLedger {
   readyJevRequest(partition: string, operation: number, reservation: CapacityReservation,
     facts: { readonly rootValid: boolean; readonly configurationValid: boolean;
       readonly credentialReady: boolean; readonly selected: boolean;
-      readonly currentWork: boolean; readonly physicalAvailable: boolean }):
+      readonly currentWork: boolean; readonly physicalAvailable: boolean }, round: number):
     { readonly status: "issued"; readonly request: number; readonly round: number } |
     { readonly status: "unavailable"; readonly round: number } | { readonly status: "stale" } {
     if (this.#reservations.get(reservation.id) !== reservation) return { status: "stale" };
-    const round = this.#roundIds.get(partition);
-    if (round === undefined) return { status: "stale" };
     const result = this.transition({ kind: "jevRequestReady", partition: this.partitionId(partition),
       lifetime: 1, round, operation, ...facts });
     if (result.rejection !== undefined) return { status: "stale" };
@@ -309,10 +297,8 @@ export class CapacityLedger {
   }
 
   completeReview(partition: string, operation: number, reservation: CapacityReservation,
-    outcome: "finding" | "clear" | "unavailable" | "interrupted" | "discarded"): boolean {
+    outcome: "finding" | "clear" | "unavailable" | "interrupted" | "discarded", round: number): boolean {
     if (this.#reservations.get(reservation.id) !== reservation) return false;
-    const round = this.#roundIds.get(partition);
-    if (round === undefined) return false;
     const result = this.transition({ kind: "reviewCompleted", partition: this.partitionId(partition),
       lifetime: 1, round, operation, outcome });
     if (result.rejection !== undefined || result.commands.at(-1)?.kind !== "reviewRecorded") return false;
@@ -322,11 +308,9 @@ export class CapacityLedger {
   }
 
   observeReview(partition: string, operation: number, reservation: CapacityReservation,
-    outcome: "finding" | "clear", currentWork: boolean):
+    outcome: "finding" | "clear", currentWork: boolean, round: number):
     "retainFinding" | "settleClear" | "settleStaleClear" | "retireStaleFinding" {
     if (this.#reservations.get(reservation.id) !== reservation) throw new Error("unknown review reservation");
-    const round = this.#roundIds.get(partition);
-    if (round === undefined) throw new Error("canonical review round retired");
     const result = this.transition({ kind: "reviewObserved", partition: this.partitionId(partition),
       lifetime: 1, round, operation, outcome, currentWork });
     const disposition = result.commands.at(-1)?.kind;
@@ -362,9 +346,8 @@ export class CapacityLedger {
     return command;
   }
 
-  retireRound(partition: string): void {
-    const round = this.#roundIds.get(partition);
-    if (round === undefined) return;
+  retireRound(partition: string, round: number): void {
+    if (this.#roundIds.get(partition) !== round) return;
     const result = this.transition({ kind: "retirePartition", partition: this.partitionId(partition),
       lifetime: 1, round });
     if (result.rejection !== undefined || result.commands.at(-1)?.kind !== "partitionRetired") {

@@ -42,7 +42,7 @@ export class ComposedDelivery {
     readonly expiresAt: number; readonly token: number; readonly tool: number }>();
   readonly #toolIds = new Map<string, number>();
   #nextToolId = 1;
-  readonly #stops = new Map<string, { token: string; id: number; generation: number;
+  readonly #stops = new Map<string, { token: string; id: number; generation: number; canonicalRound: number;
     continuationsAtStart: number; outputToken?: string }>();
   #nextStopId = 1;
   readonly #submissions = new Map<string, Submission>();
@@ -283,7 +283,7 @@ export class ComposedDelivery {
     const decision = this.canonical.transition({ kind: "roundBeginStopCheck",
       active: this.isActive(partition), hasStop: this.#stops.has(partition), token: id });
     if (decision.rejection !== undefined || decision.commands[0]?.kind !== "roundStopBegun") return false;
-    this.#stops.set(partition, { token, id, generation: this.generation(partition),
+    this.#stops.set(partition, { token, id, generation: this.generation(partition), canonicalRound: this.canonical.roundId(partition),
       continuationsAtStart: this.#continuationCount(partition) });
     this.canonical.roundId(partition);
     return true;
@@ -534,7 +534,7 @@ export class ComposedDelivery {
           closed.commands[0].round !== stop.generation) throw new Error("canonical permit closure disagrees with round");
     }
     this.#stops.delete(partition);
-    if (close) this.canonical.retireRound(partition);
+    if (close) this.canonical.retireRound(partition, stop.canonicalRound);
     if (stop.outputToken !== undefined) {
       const permit = this.#finishPermits.get(stop.outputToken);
       if (permit !== undefined) permit.revoked = true;

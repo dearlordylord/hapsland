@@ -130,16 +130,47 @@ describe("resident logical capacity ledger", () => {
 
   it("fences late work callbacks after round retirement without opening a new round", () => {
     const ledger = new CapacityLedger();
+    const round = ledger.roundId("agent");
     const observation = ledger.admitObservation("agent");
-    expect(ledger.observation("agent", observation, "startObservation")).toBe(true);
-    const preparation = ledger.beginObservedPreparation("agent", observation, 10);
+    expect(ledger.observation("agent", observation, "startObservation", round)).toBe(true);
+    const preparation = ledger.beginObservedPreparation("agent", observation, 10, round);
     expect(preparation).toBeDefined();
-    ledger.retireRound("agent");
-    expect(ledger.observation("agent", observation, "completeObservation")).toBe(false);
-    expect(ledger.beginObservedPreparation("agent", observation, 10)).toBeUndefined();
+    ledger.retireRound("agent", round);
+    expect(ledger.observation("agent", observation, "completeObservation", round)).toBe(false);
+    expect(ledger.beginObservedPreparation("agent", observation, 10, round)).toBeUndefined();
     expect(ledger.canonicalProjection().rounds).toEqual([]);
     expect(ledger.canonicalProjection().work).toEqual([]);
     expect(ledger.snapshot()).toEqual({ items: 0, bytes: 0, partitions: {} });
+  });
+
+  it("fences old callbacks and retirement after a successor round opens", () => {
+    const ledger = new CapacityLedger();
+    const oldRound = ledger.roundId("agent");
+    const oldSource = ledger.admitObservation("agent", oldRound);
+    ledger.retireRound("agent", oldRound);
+    const nextRound = ledger.roundId("agent");
+    const source = ledger.admitObservation("agent", nextRound);
+    ledger.retireRound("agent", oldRound);
+    expect(ledger.roundId("agent")).toBe(nextRound);
+    expect(ledger.observation("agent", oldSource, "startObservation", oldRound)).toBe(false);
+    expect(ledger.observation("agent", source, "startObservation", oldRound)).toBe(false);
+    expect(ledger.beginObservedPreparation("agent", source, 10, oldRound)).toBeUndefined();
+    expect(ledger.observation("agent", source, "startObservation", nextRound)).toBe(true);
+    const preparation = ledger.beginObservedPreparation("agent", source, 10, nextRound);
+    expect(preparation).toBeDefined();
+    if (preparation === undefined) throw new Error("preparation missing");
+    const [unit] = ledger.completePreparation("agent", preparation.operation,
+      preparation.reservation, [5], nextRound);
+    if (unit === undefined) throw new Error("unit missing");
+    expect(ledger.startReview("agent", unit.operation, oldRound)).toBe(false);
+    expect(ledger.completeReview("agent", unit.operation, unit.reservation, "clear", oldRound)).toBe(false);
+    expect(ledger.startReview("agent", unit.operation, nextRound)).toBe(true);
+    expect(ledger.readyJevRequest("agent", unit.operation, unit.reservation, {
+      rootValid: true, configurationValid: true, credentialReady: true,
+      selected: true, currentWork: true, physicalAvailable: true,
+    }, oldRound)).toEqual({ status: "stale" });
+    expect(ledger.canonicalProjection().rounds).toHaveLength(1);
+    expect(ledger.snapshot()).toMatchObject({ items: 1, bytes: 5 });
   });
 
   it("enforces the profile's exact item and revised byte boundaries", () => {

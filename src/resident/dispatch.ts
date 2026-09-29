@@ -22,14 +22,14 @@ type NativeEntry<K, A> = {
 export class DispatchCycles<K, A> {
   readonly #entries = new Map<number, NativeEntry<K, A>>();
   readonly #ledger: CapacityLedger;
-  readonly #operation: (value: A) => number;
+  readonly #operation: (value: A) => { readonly operation: number; readonly round: number };
   readonly #run: (entry: DispatchEntry<K, A>) => Promise<void>;
   readonly #onCycleComplete: ((cycle: number) => void) | undefined;
   readonly #idleWaiters: Array<() => void> = [];
   readonly #terminalRunning = new Set<number>();
   #terminal = false;
 
-  constructor(ledger: CapacityLedger, operation: (value: A) => number,
+  constructor(ledger: CapacityLedger, operation: (value: A) => { readonly operation: number; readonly round: number },
     run: (entry: DispatchEntry<K, A>) => Promise<void>,
     onCycleComplete?: (cycle: number) => void) {
     this.#ledger = ledger;
@@ -40,8 +40,8 @@ export class DispatchCycles<K, A> {
 
   enqueue(key: K, value: A): boolean {
     if (typeof key !== "string") throw new TypeError("dispatch partition must be a string");
-    const identity = this.#ledger.dispatchIdentity(key);
-    const operation = this.#operation(value);
+    const { operation, round } = this.#operation(value);
+    const identity = this.#ledger.dispatchIdentity(key, round);
     const entry = { key, value, operation, ...identity };
     const result = this.#ledger.transition({ kind: "queueDispatch", partition: identity.partition,
       lifetime: 1, round: identity.round, operation });
