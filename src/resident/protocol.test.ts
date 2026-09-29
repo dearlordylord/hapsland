@@ -18,7 +18,7 @@ import {
 
 describe("resident protocol bounds", () => {
   it("uses one current wire version for ticketed admission and lifecycle collection", () => {
-    const ticketed = { requestRoute: "ticketed", operation: "collect", lifetime: "owner",
+    const ticketed = { requestRoute: "ticketed", operation: "collect", composed: true, lifetime: "owner",
       ticket: { nonce: "nonce", lifetime: "owner" }, root: "/tmp/repository",
       advicee: { ...advicee(), host: "claude-code" as const, hostVersion: "2.1.218", turnId: null },
       dispatch: { statePath: "/tmp/consent", userConfigPath: null, credential: null, controlled: {} } } as const;
@@ -28,6 +28,15 @@ describe("resident protocol bounds", () => {
     expect(JSON.parse(encodeCurrentResidentRequest(ticketed))).not.toHaveProperty("requestRoute");
     expect(decodeCurrentResidentRequest(encodeCurrentResidentRequest(ticketed))).toEqual(ticketed);
     expect(decodeCurrentResidentRequest(encodeCurrentResidentRequest(lifecycle))).toEqual(lifecycle);
+    for (const composed of [undefined, false]) {
+      expect(decodeResidentRequest(JSON.stringify({ ...ticketed, composed }))).toBeUndefined();
+      expect(decodeResidentRequest(JSON.stringify({ ...ticketed, requestRoute: "shared", composed }))).toBeUndefined();
+    }
+    expect(decodeResidentRequest(JSON.stringify({ ...ticketed, mode: "turn-end" }))).toBeUndefined();
+    expect(decodeResidentRequest(JSON.stringify({ ...ticketed, requestRoute: "shared", mode: "turn-end" }))).toBeUndefined();
+    expect(decodeResidentRequest(JSON.stringify({ ...ticketed, requestRoute: "shared", advicee: {
+      ...ticketed.advicee, host: "opencode", hostVersion: "1.14.44", subagentId: null,
+    } }))).toBeUndefined();
     expect(decodeCurrentResidentRequest(JSON.stringify(ticketed))).toBeUndefined();
     expect(decodeCurrentResidentRequest(JSON.stringify(lifecycle))).toBeUndefined();
     expect(decodeCurrentResidentRequest(JSON.stringify({ ...JSON.parse(encodeCurrentResidentRequest(ticketed)),
@@ -169,14 +178,14 @@ describe("resident protocol bounds", () => {
     }))).toBeUndefined();
     expect(decodeResidentRequest(JSON.stringify({
       requestRoute: "shared",
-      operation: "collect",
+      operation: "collect", composed: true,
       lifetime: "lifetime",
       root,
       advicee: { ...observation.advicee, sessionId: "" },
     }))).toBeUndefined();
     const collect = {
       requestRoute: "shared",
-      operation: "collect",
+      operation: "collect", composed: true,
       lifetime: "lifetime",
       root,
       advicee: observation.advicee,
@@ -187,8 +196,9 @@ describe("resident protocol bounds", () => {
         controlled: {},
       },
     };
-    expect(decodeResidentRequest(JSON.stringify({ ...collect, mode: "turn-end" })))
-      .toMatchObject({ operation: "collect", mode: "turn-end" });
+    expect(decodeResidentRequest(JSON.stringify({ ...collect, mode: "turn-end" }))).toBeUndefined();
+    expect(decodeResidentRequest(JSON.stringify({ ...collect, mode: "turn-end",
+      finish: { token: "stop", deadlineReached: false } }))).toMatchObject({ operation: "collect", mode: "turn-end" });
     expect(decodeResidentRequest(JSON.stringify({ ...collect, reportWorkState: true })))
       .toMatchObject({ operation: "collect", reportWorkState: true });
     expect(decodeResidentRequest(JSON.stringify({ ...collect, reportWorkState: false }))).toBeUndefined();

@@ -247,7 +247,7 @@ describe("resident client trust boundary", () => {
     await chmod(paths.socket, 0o600);
     await expect(residentRequest(paths, {
       requestRoute: "shared",
-      operation: "collect",
+      operation: "collect", composed: true,
       lifetime: "lifetime",
       root: "/tmp/root",
       advicee: {
@@ -287,7 +287,7 @@ describe("resident client trust boundary", () => {
     await chmod(paths.socket, 0o600);
     await expect(residentRequest(paths, {
       requestRoute: "shared",
-      operation: "collect",
+      operation: "collect", composed: true,
       lifetime: "lifetime",
       root: "/tmp/root",
       advicee: {

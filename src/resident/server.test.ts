@@ -477,12 +477,12 @@ describe("resident delivery lease", () => {
       expect((await server.handle(request)).status).toBe("pending");
       expect(server.acknowledge(background.token).status).toBe("acknowledged");
       expect(server.finalize(background.token).status).toBe("finalized");
-      expect((await server.handle({ ...request, finish: { token: "finish", deadlineReached: true } })).status).toBe("empty");
+      expect((await server.handle({ ...request, mode: "turn-end", finish: { token: "finish", deadlineReached: true } })).status).toBe("empty");
       await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "finish", close: true });
       await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "second-finish" });
-      expect((await server.handle({ ...request, finish: { token: "second-finish", deadlineReached: false } })).status).toBe("empty");
+      expect((await server.handle({ ...request, mode: "turn-end", finish: { token: "second-finish", deadlineReached: false } })).status).toBe("empty");
       expect(server.stats().pendingAdvice).toBe(0);
     } finally { await server.close(); }
   });
@@ -533,12 +533,12 @@ describe("resident delivery lease", () => {
       server.admit(observation, dispatch, false, true);
       await server.whenIdle();
       const collect = { requestRoute: "shared" as const, operation: "collect" as const, lifetime: server.lifetime,
-        root, advicee: observation.advicee, dispatch, mode: "turn-end" as const, composed: true as const };
+        root, advicee: observation.advicee, dispatch, mode: "ordinary" as const, composed: true as const };
       expect((await server.handle(collect)).status).toBe("empty");
       expect(server.accountingMetrics().pendingOperationalNotices).toBeGreaterThan(0);
       await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "finish" });
-      const decision = await server.handle({ ...collect, finish: { token: "finish", deadlineReached: false } });
+      const decision = await server.handle({ ...collect, mode: "turn-end", finish: { token: "finish", deadlineReached: false } });
       expect(decision.status).toBe("empty");
     } finally { await server.close(); }
   });
@@ -574,6 +574,89 @@ describe("resident delivery lease", () => {
       expect((await residentRequest(paths, admission)).status).toBe("rejected-stale");
       await server.whenIdle();
       expect(reviews).toBeGreaterThan(0);
+    } finally { await server.close(); }
+  });
+
+  it("rejects unsupported collection shapes and unreserved acknowledgements while preserving authorized Stop output", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const base = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    if (base === undefined) throw new Error("missing fixture observation");
+    const observation = { ...base, advicee: { ...base.advicee,
+      host: "claude-code" as const, hostVersion: "2.1.218" as const, turnId: null } };
+    const paths = residentPaths(join(root, "runtime"));
+    const server = new ResidentServer(paths);
+    const dispatch = findingDispatch(join(root, "consent"));
+    await server.listen();
+    try {
+      expect((await residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
+        lifetime: server.lifetime, root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
+      const admission = await residentRequest(paths, { requestRoute: "ticketed", operation: "admit",
+        lifetime: server.lifetime, observation, dispatch, controlledWriter: true, composed: true });
+      if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("missing ticket");
+      await server.whenIdle();
+      const collect = { requestRoute: "shared" as const, operation: "collect" as const,
+        lifetime: server.lifetime, root, advicee: observation.advicee, dispatch, composed: true as const };
+      const ordinary = await residentRequest(paths, collect);
+      if (ordinary.status !== "advice") throw new Error("missing ordinary advice");
+      for (const operation of ["acknowledge", "finalize"] as const) {
+        expect((await residentRequest(paths, { requestRoute: "shared", operation,
+          lifetime: server.lifetime, token: ordinary.token })).status).toBe("empty");
+      }
+      server.releaseDelivery(ordinary.token);
+      for (const requestRoute of ["shared", "ticketed"] as const) {
+        for (const composed of [undefined, false, true]) {
+          const unsupported = { ...collect, requestRoute, ticket: admission.ticket, composed,
+            mode: "turn-end" } as unknown as ResidentRequest;
+          expect((await residentRequest(paths, unsupported)).status).toBe("unsupported");
+          expect((await server.handle(unsupported)).status).toBe("unsupported");
+        }
+      }
+      expect((await residentRequest(paths, { requestRoute: "shared", operation: "begin-stop",
+        lifetime: server.lifetime, root, advicee: observation.advicee, token: "finish" })).status).toBe("advanced");
+      const finished = await residentRequest(paths, { ...collect, mode: "turn-end",
+        finish: { token: "finish", deadlineReached: false } });
+      if (finished.status !== "advice") throw new Error("missing authorized Stop advice");
+      expect((await residentRequest(paths, collect)).status).toBe("empty");
+      expect((await residentRequest(paths, { requestRoute: "shared", operation: "begin-submission",
+        lifetime: server.lifetime, token: finished.token, surface: "stop" })).status).toBe("submitting");
+      expect((await residentRequest(paths, { requestRoute: "shared", operation: "acknowledge",
+        lifetime: server.lifetime, token: finished.token })).status).toBe("acknowledged");
+      expect((await residentRequest(paths, { requestRoute: "shared", operation: "finalize",
+        lifetime: server.lifetime, token: finished.token })).status).toBe("finalized");
+    } finally { await server.close(); }
+  });
+
+  it("rejects OpenCode review IPC before permitting or evaluating work", async () => {
+    const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const base = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    if (base === undefined) throw new Error("missing fixture observation");
+    const observation = { ...base, advicee: { ...base.advicee, host: "opencode" as const,
+      hostVersion: "1.14.44" as const, turnId: null, subagentId: null } };
+    const paths = residentPaths(join(root, "runtime"));
+    let reviews = 0;
+    const server = new ResidentServer(paths, undefined, { beforeEvaluate: async () => { reviews += 1; } });
+    const dispatch = findingDispatch(join(root, "consent"));
+    await server.listen();
+    try {
+      const requests: ResidentRequest[] = [
+        { requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
+          root, advicee: observation.advicee, startedAt: monotonicNow() },
+        { requestRoute: "shared", operation: "admit", lifetime: server.lifetime,
+          observation, dispatch, controlledWriter: true, composed: true },
+        { requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+          root, advicee: observation.advicee, dispatch, composed: true },
+        { requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+          root, advicee: observation.advicee, token: "unsupported" },
+      ];
+      for (const request of requests) {
+        expect((await residentRequest(paths, request)).status).toBe("unsupported");
+        expect((await server.handle(request)).status).toBe("unsupported");
+      }
+      await server.whenIdle();
+      expect(reviews).toBe(0);
+      expect(server.stats()).toMatchObject({ queued: 0, running: 0, pendingEvaluations: 0 });
     } finally { await server.close(); }
   });
 
@@ -631,7 +714,7 @@ describe("resident delivery lease", () => {
     expect(server.admit({ ...observation, advicee: { ...observation.advicee, toolUseId: "late" } }, dispatch, false, true).status)
       .toBe("rejected-stale");
     expect((await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-      root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true })).status).toBe("empty");
+      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true })).status).toBe("empty");
     const activity = readActivity({ statePath: activityPath, root,
       sessionId: observation.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
     expect(activity.roundClosures).toHaveLength(1);
@@ -678,7 +761,7 @@ describe("resident delivery lease", () => {
       expect(server.stats().pendingFindingBatches).toBe(1);
       expect(server.stats().pendingEvaluations).toBe(0);
       expect((await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-        root, advicee: successor.advicee, dispatch, mode: "turn-end", composed: true })).status).toBe("advice");
+        root, advicee: successor.advicee, dispatch, mode: "ordinary", composed: true })).status).toBe("advice");
     } finally {
       release.resolve();
       await server.close();
@@ -697,7 +780,7 @@ describe("resident delivery lease", () => {
     server.admit(observation, dispatch, false, true);
     await server.whenIdle();
     const collect = () => server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-      root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true });
+      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
     const background = await collect();
     expect(background.status).toBe("advice");
     if (background.status !== "advice") return;
@@ -776,7 +859,7 @@ describe("resident delivery lease", () => {
     await server.whenIdle();
     const request = { requestRoute: "shared" as const, operation: "collect" as const,
       lifetime: server.lifetime, root, advicee: observation.advicee,
-      dispatch, mode: "turn-end" as const, composed: true as const, reportWorkState: true as const };
+      dispatch, mode: "ordinary" as const, composed: true as const, reportWorkState: true as const };
     const [background, stop] = await Promise.all([server.handle(request), server.handle(request)]);
     expect([background.status, stop.status].filter((status) => status === "advice")).toHaveLength(1);
     const winner = background.status === "advice" ? background : stop;
@@ -790,7 +873,7 @@ describe("resident delivery lease", () => {
     await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
       root, advicee: observation.advicee, token: "reoffer" });
     const reoffer = await server.handle({ ...request,
-      finish: { token: "reoffer", deadlineReached: true } });
+      mode: "turn-end", finish: { token: "reoffer", deadlineReached: true } });
     expect(reoffer.status).toBe("empty");
     await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
       root, advicee: observation.advicee, token: "reoffer", close: false });
@@ -828,7 +911,7 @@ describe("resident delivery lease", () => {
       advicee: adviceeValue, dispatch, mode, composed: true,
     });
     const [codexReply, claudeReply] = await Promise.all([
-      collect(codex.advicee, "ordinary"), collect(claude.advicee, "turn-end"),
+      collect(codex.advicee, "ordinary"), collect(claude.advicee, "ordinary"),
     ]);
     expect(codexReply.status).toBe("advice");
     expect(claudeReply.status).toBe("advice");
@@ -874,7 +957,7 @@ describe("resident delivery lease", () => {
     const rotated = { ...dispatch, credential: { ...dispatch.credential!, generation: 2 } };
     const result = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
       root, advicee: { ...observation.advicee, toolUseId: "later-tool" },
-      dispatch: rotated, mode: "turn-end", composed: true });
+      dispatch: rotated, mode: "ordinary", composed: true });
     expect(result.status).toBe("empty");
   });
 
@@ -897,7 +980,7 @@ describe("resident delivery lease", () => {
     expect(server.admit(observation, dispatch, false, true)).toEqual({ status: "accepted" });
     await server.whenIdle();
     const collected = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-      root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true });
+      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
     if (collected.status !== "advice") throw new Error("missing fixture advice");
     writeFileSync(credentialStatePath, credentialState(2));
     expect(server.beginComposedSubmission(collected.token, "background")).toEqual({ status: "empty" });
@@ -915,7 +998,7 @@ describe("resident delivery lease", () => {
       await gated.whenIdle();
       await gated.listen();
       const result = await residentRequest(paths, { requestRoute: "shared", operation: "collect", lifetime: gated.lifetime,
-        root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true });
+        root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
       expect(result).toEqual({ status: "empty" });
     } finally {
       await gated.close();
@@ -1020,7 +1103,7 @@ describe("resident delivery lease", () => {
       await server.whenIdle();
       await server.listen();
       const request = { requestRoute: "shared" as const, operation: "collect" as const, lifetime: server.lifetime,
-        root, advicee: finding.advicee, dispatch, mode: "turn-end" as const, composed: true as const };
+        root, advicee: finding.advicee, dispatch, mode: "ordinary" as const, composed: true as const };
       const mixed = await residentRequest(paths, request);
       expect(mixed.status).toBe("advice");
       if (mixed.status !== "advice") return;
@@ -1032,7 +1115,7 @@ describe("resident delivery lease", () => {
         root, advicee: finding.advicee, token: "finish" })).toEqual({ status: "advanced" });
       invalidate = true;
       const final = await residentRequest(paths, { ...request,
-        finish: { token: "finish", deadlineReached: true } });
+        mode: "turn-end", finish: { token: "finish", deadlineReached: true } });
       expect(final).toEqual({ status: "empty" });
       const activity = readActivity({ statePath: activityPath, root,
         sessionId: finding.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
@@ -1057,7 +1140,7 @@ describe("resident delivery lease", () => {
     await server.whenIdle();
     const later = { ...first.advicee, toolUseId: "later-tool", turnId: "later-turn" };
     const collected = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-      root, advicee: later, dispatch, mode: "turn-end", composed: true });
+      root, advicee: later, dispatch, mode: "ordinary", composed: true });
     expect(collected.status).toBe("advice");
     if (collected.status === "advice") {
       expect(claudeHostOutputText(collected.output)).toContain("first.ts");
@@ -1096,7 +1179,7 @@ describe("resident delivery lease", () => {
       if (!("ticket" in admittedFirst) || !("ticket" in admittedSecond)) throw new Error("missing ticket");
       const request = { requestRoute: "ticketed" as const, operation: "collect" as const,
         lifetime: server.lifetime, root, advicee: second.advicee, dispatch,
-        mode: "turn-end" as const, composed: true as const };
+        mode: "ordinary" as const, composed: true as const };
       expect(await server.handle({ ...request, ticket: admittedFirst.ticket }))
         .toEqual({ requestRoute: "ticketed", status: "unavailable", reason: "lost" });
       const collected = await server.handle({ ...request, ticket: admittedSecond.ticket });
@@ -1160,7 +1243,7 @@ describe("resident delivery lease", () => {
     const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock);
     const dispatch = findingDispatch(statePath);
     const collect = () => server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-      root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true });
+      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
     const mark = (marker: string) => server.handle({ requestRoute: "shared", operation: "prompt-marker",
       lifetime: server.lifetime, root, advicee: observation.advicee, marker });
     expect(await mark("a".repeat(64))).toEqual({ status: "advanced" });
@@ -1204,7 +1287,7 @@ describe("resident delivery lease", () => {
     await server.whenIdle();
     const request = { requestRoute: "shared" as const, operation: "collect" as const,
       lifetime: server.lifetime, root, advicee: observation.advicee, dispatch,
-      mode: "turn-end" as const, composed: true as const };
+      mode: "ordinary" as const, composed: true as const };
     const first = await server.handle(request);
     expect(first.status).toBe("advice");
     if (first.status !== "advice") return;
@@ -1232,7 +1315,7 @@ describe("resident delivery lease", () => {
     await server.whenIdle();
     await put(root, "type.ts", 'type OrderCount = number & { readonly __brand: "OrderCount" }\n');
     expect(await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-      root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true }))
+      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true }))
       .toEqual({ status: "empty" });
     expect(server.stats().pendingAdvice).toBe(0);
   });
@@ -1250,7 +1333,7 @@ describe("resident delivery lease", () => {
     expect(server.admit(observation, dispatch)).toEqual({ status: "accepted" });
     await server.whenIdle();
     const collected = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-      root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true });
+      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
     expect(collected.status).toBe("advice");
     if (collected.status === "advice") {
       expect(collected.findingCount).toBe(2);
@@ -1271,7 +1354,7 @@ describe("resident delivery lease", () => {
     expect(server.admit(observation, dispatch)).toEqual({ status: "accepted" });
     await server.whenIdle();
     const collected = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-      root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true });
+      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
     expect(collected.status).toBe("empty");
     expect(server.accountingMetrics().pendingOperationalNotices).toBeGreaterThan(0);
   });
@@ -1286,7 +1369,7 @@ describe("resident delivery lease", () => {
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
     const collect = () => server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-      root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true, reportWorkState: true });
+      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true, reportWorkState: true });
     const mark = (marker: string) => server.handle({ requestRoute: "shared", operation: "prompt-marker",
       lifetime: server.lifetime, root, advicee: observation.advicee, marker });
     expect(await mark("a".repeat(64))).toEqual({ status: "advanced" });
@@ -1407,10 +1490,10 @@ describe("resident delivery lease", () => {
       afterPrepare: () => held.promise,
     });
     const dispatch = findingDispatch(statePath);
-    expect(server.admit(observation, dispatch)).toEqual({ status: "accepted" });
+    expect(server.admit(observation, dispatch, false, true)).toEqual({ status: "accepted" });
     const collect = (adviceeValue: typeof observation.advicee, reportWorkState?: true) => server.handle({
       requestRoute: "shared", operation: "collect", lifetime: server.lifetime, root,
-      advicee: adviceeValue, dispatch, mode: "turn-end",
+      advicee: adviceeValue, dispatch, composed: true,
       ...(reportWorkState === true ? { reportWorkState: true as const } : {}),
     });
     expect(await collect(observation.advicee)).toEqual({ status: "empty" });
@@ -1516,7 +1599,7 @@ describe("resident delivery lease", () => {
     })).toEqual({ status: "obsolete-lifetime" });
     expect(await server.handle({
       requestRoute: "shared",
-      operation: "collect",
+      operation: "collect", composed: true,
       lifetime: server.lifetime,
       root,
       advicee: advicee(),

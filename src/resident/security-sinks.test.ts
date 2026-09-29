@@ -11,6 +11,7 @@ import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import { makeGitFixture, put, updateEvent } from "../direct-event/test-fixtures.ts";
 import { ensureResident, residentRequest } from "./client.ts";
 import { residentPaths } from "./paths.ts";
+import { monotonicNow } from "./hook-clock.ts";
 import type { ResidentDispatchContext } from "./protocol.ts";
 
 const marker = "SYNTHETIC_SOURCE_MARKER_7fb741a1";
@@ -92,11 +93,13 @@ describe("security sink prototype", { timeout: 15_000 }, () => {
     };
     // Write the observed frame through the real resident Unix socket.
     const admissionFrame = `${JSON.stringify({
-      version: 1, operation: "admit", lifetime: owner.lifetime,
+      version: 1, operation: "admit", lifetime: owner.lifetime, composed: true,
       observation, controlledWriter: true, dispatch,
     })}\n`;
     expect(admissionFrame).toContain(marker);
     const paths = residentPaths(runtime);
+    expect((await residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
+      lifetime: owner.lifetime, root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
     const admissionResponse = await new Promise<string>((resolve, reject) => {
       const socket = connect(paths.socket);
       let response = "";
@@ -116,7 +119,7 @@ describe("security sink prototype", { timeout: 15_000 }, () => {
       return stats.status === "stats" && stats.running === 0;
     });
     const response = await residentRequest(paths, {
-      requestRoute: "shared", operation: "collect", lifetime: owner.lifetime,
+      requestRoute: "shared", operation: "collect", composed: true, lifetime: owner.lifetime,
       root, advicee: observation.advicee, dispatch,
     });
     expect(JSON.stringify(response)).not.toContain(marker);
