@@ -178,7 +178,8 @@ const functionReferences = (
       values.push({ offset: child.startIndex, reference: { kind: "unsupported", name: child.text } });
       continue;
     }
-    if (child.type !== "identifier" || child === declarationName) continue;
+    if (child.type !== "identifier" && child.type !== "shorthand_property_identifier") continue;
+    if (child === declarationName) continue;
     const parent = child.parent;
     if (parent === undefined || parent === null) continue;
     // The direct callee is already represented by the call edge. Parameter and

@@ -39,7 +39,7 @@ describe("function native facts", () => {
   });
 
   it("emits no outbound facts for constants and bound parameter reads", () => {
-    for (const source of ["function run() { return 1 }", "function run(value: number) { return value }"]) {
+    for (const source of ["function run() { return 1 }", "function run(value: number) { return value }", "function run(value: number) { return { value } }"]) {
       const file = analyzeFunctionFile("a.ts", source);
       expect(file).toBeDefined();
       if (file === undefined) continue;
@@ -82,6 +82,7 @@ describe("function native facts", () => {
     for (const [source, name] of [
       ["function helper() { return globalThis.fetch }", "globalThis"],
       ["function helper() { return globalCounter }", "globalCounter"],
+      ["function helper() { return { globalCounter } }", "globalCounter"],
       ["function helper() { return Math.random() }", "Math"],
       ["function helper() { return Date.now() }", "Date"],
       ["function helper() { return this.fetch }", "this"],
