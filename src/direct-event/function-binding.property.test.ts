@@ -35,6 +35,14 @@ const shadowOrWrite = (name: string, form: typeof localForm extends fc.Arbitrary
 };
 
 describe("function binding safety property", () => {
+  it("rejects top-level destructuring that could shadow a named import", () => {
+    fc.assert(fc.property(identifier, fc.constantFrom("object", "array"), (name, form) => {
+      const pattern = form === "object" ? `{ ${name} }` : `[${name}]`;
+      const source = `import { ${name} } from './helper'; const ${pattern} = values; function run() { ${name}() }`;
+      expect(analyzeFunctionFile("a.ts", source)).toBeUndefined();
+    }), { seed: 0x13894, numRuns: 64 });
+  });
+
   it("never treats a local shadow or write as a complete edge to a same-named top-level function", () => {
     fc.assert(fc.property(identifier, localForm, (name, form) => {
       const source = `function ${name}() {} ${shadowOrWrite(name, form)}`;

@@ -227,7 +227,12 @@ export const analyzeFunctionFile = (path: string, source: string): FunctionFileA
       }
       if (node.type === "lexical_declaration" || node.type === "variable_declaration") {
         for (const declarator of node.namedChildren.filter((child) => child.type === "variable_declarator")) {
-          const name = declarator.namedChildren.find((child) => child.type === "identifier")?.text;
+          const binding = declarator.namedChildren[0];
+          // Destructured top-level bindings can shadow an import or a named
+          // declaration. We do not claim a graph from a file whose top-level
+          // scope contains an unsupported binding pattern.
+          if (binding?.type !== "identifier") return undefined;
+          const name = binding.text;
           if (name !== undefined) otherTopLevelBindings.add(name);
         }
       }
