@@ -1,2 +1,2 @@
 type Status = "pending" | "delivered";
-export interface Receipt { state: Status; deliveredAt?: Date }
+export interface Receipt { state: Status; deliveredAt?: number }

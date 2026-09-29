@@ -263,7 +263,7 @@
       "sources": [
         {
           "path": "offline/TI09/root.ts",
-          "sha256": "6386f147bf283376b0240b568ce67f3a7340ec791974a772116e5e1b56fab001",
+          "sha256": "8c505976be84375fee5c5a8dc0b82100e4c0e1cb0603dcd9a603c5e67966a7d1",
           "bytes": 72
         },
         {
@@ -622,7 +622,7 @@
       "sources": [
         {
           "path": "offline/FI09/root.ts",
-          "sha256": "c1db432a82967bbec008df17e11bca401d92253fe3e3d241678317fa33d1146c",
+          "sha256": "bf0ae424ce9664b3d92ad1fc99eace87d839dd53f4dd78c187e2e99e64edd8e7",
           "bytes": 88
         },
         {
@@ -717,6 +717,58 @@
           "path": "offline/FI12/root.ts",
           "sha256": "cf0733afb70c0a3fbf474b9668188a2aa957b5dc171d7014bca9e60263d24110",
           "bytes": 52
+        }
+      ],
+      "status": "proposed-offline-assertion-unverified"
+    },
+    {
+      "id": "TI13",
+      "branch": "type-shape/v2",
+      "category": "multi-root-add-control",
+      "event": {
+        "kind": "Add",
+        "rootPath": "root.ts",
+        "patch": "*** Begin Patch\n*** Add File: root.ts\n+export interface A { x: string }\n+export type B = { y: number };\n*** End Patch\n",
+        "verifiedPostEditSpan": {
+          "startLine": 1,
+          "endLine": 2
+        }
+      },
+      "expected": "two independently selected complete units; no paid call in this corpus",
+      "rationale": "Add selects each named top-level root independently; this is an offline unit-count control.",
+      "policy": null,
+      "limits": null,
+      "sources": [
+        {
+          "path": "offline/TI13/root.ts",
+          "sha256": "de4385a5bf851e3f5d14c023b88a4bad1e902be8dcea51aa35d29774ca106b08",
+          "bytes": 64
+        }
+      ],
+      "status": "proposed-offline-assertion-unverified"
+    },
+    {
+      "id": "FI13",
+      "branch": "function/v1",
+      "category": "multi-root-add-control",
+      "event": {
+        "kind": "Add",
+        "rootPath": "root.ts",
+        "patch": "*** Begin Patch\n*** Add File: root.ts\n+export function A(x: number): number { return x }\n+export function B(y: number): number { return y + 1 }\n*** End Patch\n",
+        "verifiedPostEditSpan": {
+          "startLine": 1,
+          "endLine": 2
+        }
+      },
+      "expected": "two independently selected complete units; no paid call in this corpus",
+      "rationale": "Add selects each named top-level root independently; this is an offline unit-count control.",
+      "policy": null,
+      "limits": null,
+      "sources": [
+        {
+          "path": "offline/FI13/root.ts",
+          "sha256": "0cbdf99a0c8529254d69ad5e29eb7045dc1dd40303ec47b87ad4c2def76b9ae0",
+          "bytes": 104
         }
       ],
       "status": "proposed-offline-assertion-unverified"

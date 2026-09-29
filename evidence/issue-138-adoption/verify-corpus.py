@@ -4,10 +4,32 @@ from hashlib import sha256
 from pathlib import Path
 import json
 import re
+import shutil
+import subprocess
+import tempfile
 
 ROOT = Path(__file__).resolve().parent
 SEMANTIC = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8"))
 OFFLINE = json.loads((ROOT / "offline-manifest.json").read_text(encoding="utf-8"))
+APPLY_PATCH = shutil.which("apply_patch")
+assert APPLY_PATCH is not None, "apply_patch executable required; fixture patches are unverified"
+
+
+def apply_patch_exact(case, folder):
+    with tempfile.TemporaryDirectory(prefix="issue-138-patch-") as temp:
+        sandbox = Path(temp)
+        before = folder / "root.before.ts"
+        if case["event"]["kind"] == "Update":
+            assert before.exists(), case["id"]
+            (sandbox / "root.ts").write_bytes(before.read_bytes())
+        else:
+            assert not before.exists(), case["id"]
+        result = subprocess.run(
+            [APPLY_PATCH], input=case["event"]["patch"], text=True, cwd=sandbox,
+            capture_output=True, check=False, timeout=5,
+        )
+        assert result.returncode == 0, (case["id"], result.stdout, result.stderr)
+        assert (sandbox / "root.ts").read_bytes() == (folder / "root.ts").read_bytes(), case["id"]
 
 
 def source_records(case):
@@ -23,7 +45,9 @@ def source_records(case):
 
 def semantic_case(case):
     source_records(case)
-    source = (ROOT / "cases" / case["id"] / "root.ts").read_text(encoding="utf-8")
+    folder = ROOT / "cases" / case["id"]
+    apply_patch_exact(case, folder)
+    source = (folder / "root.ts").read_text(encoding="utf-8")
     event = case["event"]
     assert event["tool"] == "Codex apply_patch"
     patch = event["patch"]
@@ -42,7 +66,7 @@ def semantic_case(case):
                    if pair[0] != pair[1]]
         assert len(before.splitlines()) == len(source.splitlines()) and len(changed) == 1, case["id"]
         index = changed[0]
-        assert f"@@ -{index},1 +{index},1 @@" in patch, case["id"]
+        assert "@@\n" in patch, case["id"]
         assert f"-{before.splitlines()[index - 1]}\n+{source.splitlines()[index - 1]}\n" in patch, case["id"]
         assert event["postEditSpan"] == {"startLine": index, "endLine": index}, case["id"]
         assert source.splitlines().count(source.splitlines()[index - 1]) == 1, case["id"]
@@ -70,14 +94,15 @@ def semantic_case(case):
 
 assert SEMANTIC["schemaVersion"] == OFFLINE["schemaVersion"] == 1
 assert SEMANTIC["status"] == "proposal-unapproved-no-live-egress"
-assert len(SEMANTIC["cases"]) == len(OFFLINE["cases"]) == 24
-assert len({case["id"] for case in SEMANTIC["cases"] + OFFLINE["cases"]}) == 48
+assert len(SEMANTIC["cases"]) == 24 and len(OFFLINE["cases"]) == 26
+assert len({case["id"] for case in SEMANTIC["cases"] + OFFLINE["cases"]}) == 50
 assert sum(case["branch"] == "type-shape/v2" for case in SEMANTIC["cases"]) == 12
 assert sum(case["branch"] == "function/v1" for case in SEMANTIC["cases"]) == 12
 for case in SEMANTIC["cases"]:
     semantic_case(case)
 for case in OFFLINE["cases"]:
     source_records(case)
+    apply_patch_exact(case, ROOT / "offline" / case["id"])
     assert case["status"] == "proposed-offline-assertion-unverified"
     assert case["rationale"] and case["expected"] and case["event"]["kind"] in {"Add", "Update"}
     source = (ROOT / "offline" / case["id"] / "root.ts").read_text(encoding="utf-8")
@@ -98,4 +123,4 @@ for case in OFFLINE["cases"]:
         else:
             assert case["id"].endswith("07") and source != before
             assert event["verifiedPostEditSpan"] is not None, case["id"]
-print("verified 24 proposed semantic cases, 24 offline cases, all hashes and semantic patch shapes")
+print("verified 24 proposed semantic cases, 26 offline cases, all hashes and executable patches")

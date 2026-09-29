@@ -1,1 +1,1 @@
-export type ReceiptFields = { state: "pending" } | { state: "delivered"; deliveredAt: Date };
+export type ReceiptFields = { state: "pending" } | { state: "delivered"; deliveredAt: number };

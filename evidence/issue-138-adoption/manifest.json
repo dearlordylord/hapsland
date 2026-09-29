@@ -14,13 +14,14 @@
       "branch": "type-shape/v2",
       "category": "context-required-positive",
       "event": {
-        "kind": "Add",
+        "kind": "Update",
         "tool": "Codex apply_patch",
-        "patch": "*** Begin Patch\n*** Add File: root.ts\n+type Status = \"pending\" | \"delivered\";\n+export interface Receipt { state: Status; deliveredAt?: Date }\n*** End Patch\n",
+        "patch": "*** Begin Patch\n*** Update File: root.ts\n@@\n-export interface Receipt { state: Status }\n+export interface Receipt { state: Status; deliveredAt?: number }\n*** End Patch\n",
         "postEditSpan": {
-          "startLine": 1,
+          "startLine": 2,
           "endLine": 2
-        }
+        },
+        "confirmedSuccessRequired": true
       },
       "selectedRoot": {
         "path": "root.ts",
@@ -39,12 +40,17 @@
       "expectedCompleteness": "complete-candidate",
       "expectedBand": ">0.70",
       "labelStatus": "proposed-unverified",
-      "rationale": "Status defines a pending case while deliveredAt remains settable.",
+      "rationale": "Local Status defines pending, while Receipt leaves deliveredAt settable; Update hunk changes only Receipt, so focused diff omits Status.",
       "sources": [
         {
           "path": "cases/T01/root.ts",
-          "sha256": "bbaab266f69f1d0f9b13e6bba6688ee51f894bb02f7e81d143b8d2355d1d9fec",
-          "bytes": 102
+          "sha256": "21cf7e43ea225f1014075c59aae99c9706a43008f84aa1942ad68955d47fea25",
+          "bytes": 104
+        },
+        {
+          "path": "cases/T01/root.before.ts",
+          "sha256": "1b7ae451556628191a09befff487ed6c516a5c93d15e19ae840a77f01b2eff57",
+          "bytes": 82
         }
       ],
       "comparators": {
@@ -62,7 +68,7 @@
       "event": {
         "kind": "Add",
         "tool": "Codex apply_patch",
-        "patch": "*** Begin Patch\n*** Add File: root.ts\n+import type { DeliveryStatus } from \"./support\";\n+export type Receipt = { state: DeliveryStatus; deliveredAt?: Date };\n*** End Patch\n",
+        "patch": "*** Begin Patch\n*** Add File: root.ts\n+import type { DeliveryStatus } from \"./support\";\n+export type Receipt = { state: DeliveryStatus; deliveredAt?: number };\n*** End Patch\n",
         "postEditSpan": {
           "startLine": 1,
           "endLine": 2
@@ -89,8 +95,8 @@
       "sources": [
         {
           "path": "cases/T02/root.ts",
-          "sha256": "9f83d2c8a8653a7c8b9126970fbc04311d128d06f226d7ab246f2e823bbe1451",
-          "bytes": 118
+          "sha256": "e9534447c6507332facb0181a3bc9618a14b6bc8d308ebe92f978fca8920ea1b",
+          "bytes": 120
         },
         {
           "path": "cases/T02/support.ts",
@@ -160,15 +166,16 @@
     {
       "id": "T04",
       "branch": "type-shape/v2",
-      "category": "multi-root-add-positive",
+      "category": "multi-root-update-positive",
       "event": {
-        "kind": "Add",
+        "kind": "Update",
         "tool": "Codex apply_patch",
-        "patch": "*** Begin Patch\n*** Add File: root.ts\n+export interface Session { authenticated: boolean; userId?: string }\n+export type Unrelated = { token: string };\n*** End Patch\n",
+        "patch": "*** Begin Patch\n*** Update File: root.ts\n@@\n-export interface Session { authenticated: true; userId: string }\n+export interface Session { authenticated: boolean; userId?: string }\n*** End Patch\n",
         "postEditSpan": {
           "startLine": 1,
-          "endLine": 2
-        }
+          "endLine": 1
+        },
+        "confirmedSuccessRequired": true
       },
       "selectedRoot": {
         "path": "root.ts",
@@ -187,12 +194,17 @@
       "expectedCompleteness": "complete-candidate",
       "expectedBand": ">0.70",
       "labelStatus": "proposed-unverified",
-      "rationale": "Authenticated false can still carry userId; Unrelated is an offline-only second root.",
+      "rationale": "Session admits false with userId; the unchanged sibling is not an independently edited root.",
       "sources": [
         {
           "path": "cases/T04/root.ts",
           "sha256": "9fd170187d170f5d779d980c9cbac7b4b9119b791e79e89334dea7c641a0f23b",
           "bytes": 112
+        },
+        {
+          "path": "cases/T04/root.before.ts",
+          "sha256": "bd06ce749bad8dc6d32fa82065be0f776589280a45eb32fcfe99d9e569324cd6",
+          "bytes": 108
         }
       ],
       "comparators": {
@@ -201,7 +213,7 @@
         "wholeFile": true,
         "v1Type": true
       },
-      "notes": "Second Add root is not a paid semantic pair."
+      "notes": "The second declaration is unchanged; only Session is selected on verified Update."
     },
     {
       "id": "T05",
@@ -210,7 +222,7 @@
       "event": {
         "kind": "Add",
         "tool": "Codex apply_patch",
-        "patch": "*** Begin Patch\n*** Add File: root.ts\n+export type Receipt = { state: \"pending\" } | { state: \"delivered\"; deliveredAt: Date };\n*** End Patch\n",
+        "patch": "*** Begin Patch\n*** Add File: root.ts\n+export type Receipt = { state: \"pending\" } | { state: \"delivered\"; deliveredAt: number };\n*** End Patch\n",
         "postEditSpan": {
           "startLine": 1,
           "endLine": 1
@@ -237,8 +249,8 @@
       "sources": [
         {
           "path": "cases/T05/root.ts",
-          "sha256": "c2986dcf6956cf859ac5b1815c56676839036b7e09493771b7306417439fdbee",
-          "bytes": 88
+          "sha256": "b1e5b9dfe3eaa1a731dd5b31daaace7b86bba15f962561638e02d36ba8a5bd62",
+          "bytes": 90
         }
       ],
       "comparators": {
@@ -300,13 +312,14 @@
       "branch": "type-shape/v2",
       "category": "similar-clear-negative",
       "event": {
-        "kind": "Add",
+        "kind": "Update",
         "tool": "Codex apply_patch",
-        "patch": "*** Begin Patch\n*** Add File: root.ts\n+type Status = { state: \"pending\" } | { state: \"delivered\"; deliveredAt: Date };\n+export type Receipt = Status;\n*** End Patch\n",
+        "patch": "*** Begin Patch\n*** Update File: root.ts\n@@\n-export type Receipt = { state: string; deliveredAt?: number };\n+export type Receipt = Status;\n*** End Patch\n",
         "postEditSpan": {
-          "startLine": 1,
+          "startLine": 2,
           "endLine": 2
-        }
+        },
+        "confirmedSuccessRequired": true
       },
       "selectedRoot": {
         "path": "root.ts",
@@ -325,12 +338,17 @@
       "expectedCompleteness": "complete-candidate",
       "expectedBand": "<0.30",
       "labelStatus": "proposed-unverified",
-      "rationale": "Local alias already constrains timestamp by status.",
+      "rationale": "Local Status constrains deliveredAt by state; Update hunk changes only Receipt alias, so focused diff omits Status.",
       "sources": [
         {
           "path": "cases/T07/root.ts",
-          "sha256": "f48e97b1bc3e1ae8a0faa71bc0bccf7be6df7b5d710ee654d2bc1f407ab52f97",
-          "bytes": 110
+          "sha256": "1306515a5ebe2d4b243a38cb5a1be9fd469abca86dfa4592725fd5b139e8383c",
+          "bytes": 112
+        },
+        {
+          "path": "cases/T07/root.before.ts",
+          "sha256": "9c0e70cdb560973f8eb55ee5359ec734317ba24a2425346976a1a6472d930b88",
+          "bytes": 145
         }
       ],
       "comparators": {
@@ -380,8 +398,8 @@
         },
         {
           "path": "cases/T08/support.ts",
-          "sha256": "5a075f562c4a215c0affb37ac92b14ff85ece2d0b6167831c11871ee1bbf4314",
-          "bytes": 94
+          "sha256": "ded9101aee17b8718506c97ec7e43ed2905eb0e7256d2f29a8d49d5c458f5dd0",
+          "bytes": 96
         }
       ],
       "comparators": {
@@ -400,7 +418,7 @@
         "kind": "Update",
         "tool": "Codex apply_patch",
         "confirmedSuccessRequired": true,
-        "patch": "*** Begin Patch\n*** Update File: root.ts\n@@ -1,1 +1,1 @@\n-export interface Session { authenticated: true; userId: string }\n+export interface Session { authenticated: boolean; userId?: string }\n*** End Patch\n",
+        "patch": "*** Begin Patch\n*** Update File: root.ts\n@@\n-export interface Session { authenticated: true; userId: string }\n+export interface Session { authenticated: boolean; userId?: string }\n*** End Patch\n",
         "postEditSpan": {
           "startLine": 1,
           "endLine": 1
@@ -452,7 +470,7 @@
         "kind": "Update",
         "tool": "Codex apply_patch",
         "confirmedSuccessRequired": true,
-        "patch": "*** Begin Patch\n*** Update File: root.ts\n@@ -1,1 +1,1 @@\n-export type Session = { authenticated: boolean; userId?: string };\n+export type Session = { authenticated: false } | { authenticated: true; userId: string };\n*** End Patch\n",
+        "patch": "*** Begin Patch\n*** Update File: root.ts\n@@\n-export type Session = { authenticated: boolean; userId?: string };\n+export type Session = { authenticated: false } | { authenticated: true; userId: string };\n*** End Patch\n",
         "postEditSpan": {
           "startLine": 1,
           "endLine": 1
@@ -501,13 +519,14 @@
       "branch": "type-shape/v2",
       "category": "whole-file-dilution-positive",
       "event": {
-        "kind": "Add",
+        "kind": "Update",
         "tool": "Codex apply_patch",
-        "patch": "*** Begin Patch\n*** Add File: root.ts\n+export interface Session { authenticated: boolean; userId?: string }\n+interface Unrelated01 { value: string; index: 1 }\n+interface Unrelated02 { value: string; index: 2 }\n+interface Unrelated03 { value: string; index: 3 }\n+interface Unrelated04 { value: string; index: 4 }\n+interface Unrelated05 { value: string; index: 5 }\n+interface Unrelated06 { value: string; index: 6 }\n+interface Unrelated07 { value: string; index: 7 }\n+interface Unrelated08 { value: string; index: 8 }\n+interface Unrelated09 { value: string; index: 9 }\n+interface Unrelated10 { value: string; index: 10 }\n+interface Unrelated11 { value: string; index: 11 }\n+interface Unrelated12 { value: string; index: 12 }\n+interface Unrelated13 { value: string; index: 13 }\n+interface Unrelated14 { value: string; index: 14 }\n+interface Unrelated15 { value: string; index: 15 }\n+interface Unrelated16 { value: string; index: 16 }\n+interface Unrelated17 { value: string; index: 17 }\n+interface Unrelated18 { value: string; index: 18 }\n+interface Unrelated19 { value: string; index: 19 }\n+interface Unrelated20 { value: string; index: 20 }\n+interface Unrelated21 { value: string; index: 21 }\n+interface Unrelated22 { value: string; index: 22 }\n+interface Unrelated23 { value: string; index: 23 }\n+interface Unrelated24 { value: string; index: 24 }\n+interface Unrelated25 { value: string; index: 25 }\n+interface Unrelated26 { value: string; index: 26 }\n+interface Unrelated27 { value: string; index: 27 }\n+interface Unrelated28 { value: string; index: 28 }\n+interface Unrelated29 { value: string; index: 29 }\n+interface Unrelated30 { value: string; index: 30 }\n+interface Unrelated31 { value: string; index: 31 }\n+interface Unrelated32 { value: string; index: 32 }\n*** End Patch\n",
+        "patch": "*** Begin Patch\n*** Update File: root.ts\n@@\n-export type Session = { authenticated: false } | { authenticated: true; userId: string };\n+export interface Session { authenticated: boolean; userId?: string }\n*** End Patch\n",
         "postEditSpan": {
           "startLine": 1,
-          "endLine": 33
-        }
+          "endLine": 1
+        },
+        "confirmedSuccessRequired": true
       },
       "selectedRoot": {
         "path": "root.ts",
@@ -532,6 +551,11 @@
           "path": "cases/T11/root.ts",
           "sha256": "a9e9794197119511e900d88c67d34347c676f88378edbda598f2e566d9200a2c",
           "bytes": 1692
+        },
+        {
+          "path": "cases/T11/root.before.ts",
+          "sha256": "8dd25221451df60055043693c842715da3bbd7e2bccf29ed2274d043fe875d93",
+          "bytes": 1713
         }
       ],
       "comparators": {
@@ -540,20 +564,21 @@
         "wholeFile": true,
         "v1Type": true
       },
-      "notes": null
+      "notes": "Unrelated sibling declarations are unchanged in the Update; only Session is selected."
     },
     {
       "id": "T12",
       "branch": "type-shape/v2",
       "category": "whole-file-dilution-clear",
       "event": {
-        "kind": "Add",
+        "kind": "Update",
         "tool": "Codex apply_patch",
-        "patch": "*** Begin Patch\n*** Add File: root.ts\n+export type Session = { authenticated: false } | { authenticated: true; userId: string };\n+interface Unrelated01 { value: string; index: 1 }\n+interface Unrelated02 { value: string; index: 2 }\n+interface Unrelated03 { value: string; index: 3 }\n+interface Unrelated04 { value: string; index: 4 }\n+interface Unrelated05 { value: string; index: 5 }\n+interface Unrelated06 { value: string; index: 6 }\n+interface Unrelated07 { value: string; index: 7 }\n+interface Unrelated08 { value: string; index: 8 }\n+interface Unrelated09 { value: string; index: 9 }\n+interface Unrelated10 { value: string; index: 10 }\n+interface Unrelated11 { value: string; index: 11 }\n+interface Unrelated12 { value: string; index: 12 }\n+interface Unrelated13 { value: string; index: 13 }\n+interface Unrelated14 { value: string; index: 14 }\n+interface Unrelated15 { value: string; index: 15 }\n+interface Unrelated16 { value: string; index: 16 }\n+interface Unrelated17 { value: string; index: 17 }\n+interface Unrelated18 { value: string; index: 18 }\n+interface Unrelated19 { value: string; index: 19 }\n+interface Unrelated20 { value: string; index: 20 }\n+interface Unrelated21 { value: string; index: 21 }\n+interface Unrelated22 { value: string; index: 22 }\n+interface Unrelated23 { value: string; index: 23 }\n+interface Unrelated24 { value: string; index: 24 }\n+interface Unrelated25 { value: string; index: 25 }\n+interface Unrelated26 { value: string; index: 26 }\n+interface Unrelated27 { value: string; index: 27 }\n+interface Unrelated28 { value: string; index: 28 }\n+interface Unrelated29 { value: string; index: 29 }\n+interface Unrelated30 { value: string; index: 30 }\n+interface Unrelated31 { value: string; index: 31 }\n+interface Unrelated32 { value: string; index: 32 }\n*** End Patch\n",
+        "patch": "*** Begin Patch\n*** Update File: root.ts\n@@\n-export interface Session { authenticated: boolean; userId?: string }\n+export type Session = { authenticated: false } | { authenticated: true; userId: string };\n*** End Patch\n",
         "postEditSpan": {
           "startLine": 1,
-          "endLine": 33
-        }
+          "endLine": 1
+        },
+        "confirmedSuccessRequired": true
       },
       "selectedRoot": {
         "path": "root.ts",
@@ -578,6 +603,11 @@
           "path": "cases/T12/root.ts",
           "sha256": "8dd25221451df60055043693c842715da3bbd7e2bccf29ed2274d043fe875d93",
           "bytes": 1713
+        },
+        {
+          "path": "cases/T12/root.before.ts",
+          "sha256": "a9e9794197119511e900d88c67d34347c676f88378edbda598f2e566d9200a2c",
+          "bytes": 1692
         }
       ],
       "comparators": {
@@ -586,7 +616,7 @@
         "wholeFile": true,
         "v1Type": true
       },
-      "notes": null
+      "notes": "Unrelated sibling declarations are unchanged in the Update; only Session is selected."
     },
     {
       "id": "F01",
@@ -737,7 +767,7 @@
         "v1Type": false
       },
       "notes": null,
-      "blocker": "Transitive helper body accesses globalThis.fetch; member access is not a proved resource binding."
+      "blocker": "Transitive helper reads globalThis.fetch; reviewed ambient-read analyzer marks it unsupported, so unit incomplete."
     },
     {
       "id": "F04",
@@ -747,7 +777,7 @@
         "kind": "Update",
         "tool": "Codex apply_patch",
         "confirmedSuccessRequired": true,
-        "patch": "*** Begin Patch\n*** Update File: root.ts\n@@ -1,1 +1,1 @@\n-export function readCounter(): number { return 0 }\n+export function readCounter(): number { return globalCounter }\n*** End Patch\n",
+        "patch": "*** Begin Patch\n*** Update File: root.ts\n@@\n-export function readCounter(): number { return 0 }\n+export function readCounter(): number { return globalCounter }\n*** End Patch\n",
         "postEditSpan": {
           "startLine": 1,
           "endLine": 1
@@ -790,7 +820,7 @@
         "v1Type": false
       },
       "notes": null,
-      "blocker": "Bare globalCounter read has no resolver binding fact; a complete graph would be unsound."
+      "blocker": "Bare globalCounter read is marked unsupported by reviewed ambient-read analyzer; unit incomplete."
     },
     {
       "id": "F05",
@@ -889,11 +919,12 @@
       "branch": "function/v1",
       "category": "similar-clear-negative",
       "event": {
-        "kind": "Add",
+        "kind": "Update",
         "tool": "Codex apply_patch",
-        "patch": "*** Begin Patch\n*** Add File: root.ts\n+function helper(value: number): number { return value + 1 }\n+export function addOne(value: number): number { return helper(value) }\n*** End Patch\n",
+        "confirmedSuccessRequired": true,
+        "patch": "*** Begin Patch\n*** Update File: root.ts\n@@\n-export function addOne(value: number): number { return value }\n+export function addOne(value: number): number { return helper(value) }\n*** End Patch\n",
         "postEditSpan": {
-          "startLine": 1,
+          "startLine": 2,
           "endLine": 2
         }
       },
@@ -914,12 +945,17 @@
       "expectedCompleteness": "complete-candidate",
       "expectedBand": "<0.30",
       "labelStatus": "proposed-unverified",
-      "rationale": "Local helper is pure and resource-free.",
+      "rationale": "Unchanged local helper is pure and resource-free; Update hunk changes only addOne, so focused diff omits helper definition.",
       "sources": [
         {
           "path": "cases/F07/root.ts",
           "sha256": "76a21e84906d7e8f3300f9436941ef74e754bbce8597dffa11aaae9d651408eb",
           "bytes": 131
+        },
+        {
+          "path": "cases/F07/root.before.ts",
+          "sha256": "3e7bbe7949e4c97ebf8f5b1c024e516fb0902be845194a3c8f364d324949cdd9",
+          "bytes": 123
         }
       ],
       "comparators": {
@@ -989,7 +1025,7 @@
         "kind": "Update",
         "tool": "Codex apply_patch",
         "confirmedSuccessRequired": true,
-        "patch": "*** Begin Patch\n*** Update File: root.ts\n@@ -1,1 +1,1 @@\n-export function readCounter(): number { return 0 }\n+export function readCounter(): number { return globalCounter }\n*** End Patch\n",
+        "patch": "*** Begin Patch\n*** Update File: root.ts\n@@\n-export function readCounter(): number { return 0 }\n+export function readCounter(): number { return globalCounter }\n*** End Patch\n",
         "postEditSpan": {
           "startLine": 1,
           "endLine": 1
@@ -1032,7 +1068,7 @@
         "v1Type": false
       },
       "notes": null,
-      "blocker": "Bare globalCounter read has no resolver binding fact; a complete graph would be unsound."
+      "blocker": "Bare globalCounter read is marked unsupported by reviewed ambient-read analyzer; unit incomplete."
     },
     {
       "id": "F10",
@@ -1042,7 +1078,7 @@
         "kind": "Update",
         "tool": "Codex apply_patch",
         "confirmedSuccessRequired": true,
-        "patch": "*** Begin Patch\n*** Update File: root.ts\n@@ -1,1 +1,1 @@\n-export function addOne(value: number): number { return value }\n+export function addOne(value: number): number { return value + 1 }\n*** End Patch\n",
+        "patch": "*** Begin Patch\n*** Update File: root.ts\n@@\n-export function addOne(value: number): number { return value }\n+export function addOne(value: number): number { return value + 1 }\n*** End Patch\n",
         "postEditSpan": {
           "startLine": 1,
           "endLine": 1
@@ -1131,7 +1167,7 @@
         "v1Type": false
       },
       "notes": null,
-      "blocker": "Bare globalCounter read has no resolver binding fact; a complete graph would be unsound."
+      "blocker": "Bare globalCounter read is marked unsupported by reviewed ambient-read analyzer; unit incomplete."
     },
     {
       "id": "F12",
