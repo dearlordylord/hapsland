@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { createServer } from "vite";
+import reviewFixture from "../../../conformance/canonical-review-v1.json" with { type: "json" };
 
 const server = await createServer({ server: { host: "127.0.0.1", port: 0 } });
 let browser;
@@ -95,20 +96,17 @@ try {
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "clear / stale / unavailable" }).count(), 0);
 
   await canonical.getByRole("button", { name: "Reset canonical replay" }).click();
-  const staleEvents = [
-    { kind: "openRound", partition: 1, lifetime: 1 },
-    { kind: "beginPreparation", partition: 1, lifetime: 1, round: 1, bytes: 10 },
-    { kind: "preparationCompleted", partition: 1, lifetime: 1, round: 1, operation: 1, unitBytes: [10] },
-    { kind: "startReview", partition: 1, lifetime: 1, round: 1, operation: 2 },
-    { kind: "reviewObserved", partition: 1, lifetime: 1, round: 1, operation: 2, outcome: "finding", currentWork: false },
-  ];
-  for (const [index, event] of staleEvents.entries()) {
+  await waitForText(".canonical-progress", "history 0/0");
+  const staleTrace = reviewFixture.traces.find((trace) => trace.name === "stale completed finding never becomes pending advice");
+  assert.ok(staleTrace);
+  const staleEvents = staleTrace.events.slice(0, 12);
+  for (const [index, { expect: _expect, ...event }] of staleEvents.entries()) {
     await canonical.getByLabel("Manual source-free canonical event (JSON)").fill(JSON.stringify(event));
     await canonical.getByLabel("Manual source-free canonical event (JSON)").press("Tab");
     await canonical.getByRole("button", { name: "Apply canonical event" }).click();
     await waitForText(".canonical-progress", `history ${index + 1}/${index + 1}`);
   }
-  await waitForText(".canonical-progress", "history 5/5");
+  await waitForText(".topology-step", "retireStaleFinding");
   assert.match(await page.locator(".topology-step").innerText(), /retireStaleFinding/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "clear / stale / unavailable" }).count(), 1);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "finding retained" }).count(), 0);
