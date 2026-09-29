@@ -111,6 +111,14 @@ pending actionable advice at the decision point and selects a bounded batch.
 Jev error behavior is not specified by this refinement beyond truthful
 unavailable/incomplete status.
 
+The wait exists to give unfinished reviews a chance to become advice before
+the agent finishes. Hapsland cannot hold a runtime hook open without limit, so
+it waits only within the safe hook deadline and decides with the results then
+available. A result that misses that boundary is a cost of the bounded wait,
+not a reason to skip the wait. When the continuation budget is exhausted,
+Hapsland may allow finish immediately because it cannot present another
+continue-with-advice response.
+
 If actionable advice can be presented and a continuation remains, Hapsland
 returns a **continue-with-advice response** (`block`). This asks the runtime to
 let the agent work on the advice in the same virtual round. Otherwise it returns
@@ -128,6 +136,12 @@ repair edits after a `block` create new work in that round. A late result from
 cancelled work cannot create advice for that repair or a later round. The pure reducer can
 emit the decision, response command, and cancellation IDs; the runtime side
 performs output and cancellation. No output command proves agent reception.
+
+Cancellation is the current simplification at this decision boundary. It is
+not the purpose of Stop: Hapsland first waits as far as the safe deadline and
+the continuation budget permit. Cancellation can lose useful unfinished
+reviews, but gives the decided response a definite set of eligible advice and
+prevents late pre-decision work from appearing as advice after that response.
 
 The installed Claude `PostToolUse` hook also collects current advice within its
 safe synchronous deadline. If no eligible advice is ready, it returns quietly
@@ -202,8 +216,10 @@ No submitted advice crosses a closed-round boundary.
 ## Closure, restart, and evidence
 
 Hapsland closes its virtual round when it issues an allow-finish response, even
-if another runtime hook keeps the actual agent round going. Before emitting
-`allow`, the resident fences new admission, collection, output authorization,
+if another runtime hook keeps the actual agent round going. This closure follows
+the bounded finish-decision wait described above; the wait gives reviews their
+available chance to become advice before cleanup discards unfinished work.
+Before emitting `allow`, the resident fences new admission, collection, output authorization,
 and queue transitions for that round and invalidates its pre-edit permits.
 Then it resolves waiters, revokes leases and unreleased permits, removes queued
 work, interrupts owned preparation and Jev tasks, and releases captured source,

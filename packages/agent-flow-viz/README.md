@@ -27,7 +27,11 @@ step because it keeps an existing finding for a later batch. The `finishAllowed`
 commands also stay at collection: they do not authorize host output or change
 the round in that Bend step. Node contents come from the checked canonical state;
 the Stop fork shows waiting, decision readiness, continuation, allowance,
-and cancellation from their respective checked commands. Rejected events leave every
+and cancellation from their respective checked commands. Waiting gives unfinished
+reviews time to become advice before the safe deadline; cancellation is requested for
+work still unfinished when Hapsland makes its finish decision. The
+[accepted advicee contract](../../docs/advicing-target-contract.md) explains
+why this bounded wait exists. Rejected events leave every
 place and route inactive while showing the Bend reason. The three capacity
 figures come from the checked Bend projection: preparation running places,
 Jev request permits, and the review capacity ledger's item/byte limits.

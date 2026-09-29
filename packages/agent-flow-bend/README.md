@@ -70,7 +70,10 @@ independently. The generated artifacts are checked against source hashes and
 their consumed constructors before the app builds or tests.
 `Canonical.step` provides the resident's aggregate Stop wait and cutoff for an
 explicit set of edit partitions, with exact dispatch cancellation IDs and a
-decision fence. `DeliveryState.bend` retains the exact selected Stop output
+decision fence. The wait gives unfinished reviews a chance to become advice
+before the safe deadline; the cutoff requests cancellation of remaining work only when a finish
+decision is made, as specified in the [accepted advicee contract](../../docs/advicing-target-contract.md).
+`DeliveryState.bend` retains the exact selected Stop output
 slot, authorization phase, terminal result, and continuation count.
 `SubmissionState.bend` retains per finding leases and per output token batches;
 it grants one same round Stop reoffer for terminal background advice.
