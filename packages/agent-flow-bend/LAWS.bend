@@ -1552,3 +1552,52 @@ law closure_retires_pending_permits:
 law closure_prevents_pending_tool_reissue:
   {Admission.issue(closed_round_with_retired_permit(), 43n, 21n, 30n, 22n) ==
     Admission.Rejected{closed_round_with_retired_permit(), Admission.DuplicateTool{}} : Admission.AdmissionResult}
+
+# The insertion guard is universal over the existing round and whole state.
+# Trace checks separately exercise lookup and complete lifecycle transitions.
+law canonical_open_rejects_existing_partition:
+  for state: Canonical.State
+  for partition: Nat
+  for lifetime: Nat
+  for existing: Canonical.Round
+  {Canonical.open_found(state, partition, lifetime, Some{existing}) ==
+    Canonical.Rejected{state, Canonical.StaleRound{}} : Canonical.Step}
+
+law canonical_edit_joins_existing_round_without_insertion:
+  for original: Canonical.State
+  for updated: Canonical.State
+  for partition: Nat
+  for round: Nat
+  for existing_round: Nat
+  {Canonical.consume_existing(original, updated, partition, 1n, round,
+    Some{Canonical.Round{partition, 1n, existing_round, False{}, False{}, None{}, False{}}}) ==
+    Canonical.Advanced{updated, Canonical.PermitConsumed{round} <> Nil{}} : Canonical.Step}
+
+law canonical_round_invariant_failure_rolls_back:
+  for original: Canonical.State
+  for updated: Canonical.State
+  for commands: List<&2, Canonical.Command>
+  {Canonical.check_round_invariant(original, updated, commands, False{}) ==
+    Canonical.Rejected{original, Canonical.InconsistentLedger{}} : Canonical.Step}
+
+law canonical_duplicate_partitions_fail_even_across_lifetimes:
+  {Canonical.unique_rounds(
+    Canonical.Round{1n, 1n, 1n, False{}, False{}, None{}, False{}} <>
+    Canonical.Round{1n, 2n, 2n, False{}, False{}, None{}, False{}} <> Nil{}) == False{} : Bool}
+
+law canonical_post_state_duplicates_roll_back:
+  for original: Canonical.State
+  for commands: List<&2, Canonical.Command>
+  {Canonical.check_step(original, Canonical.Advanced{
+    Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.Round{1n, 1n, 1n, False{}, False{}, None{}, False{}} <>
+      Canonical.Round{1n, 2n, 2n, False{}, False{}, None{}, False{}} <> Nil{},
+      Nil{}, 3n, 1n, Nil{}, Dispatch.initial(), CollectionState.initial()}, commands}) ==
+    Canonical.Rejected{original, Canonical.InconsistentLedger{}} : Canonical.Step}
+
+law canonical_round_guard_preserves_rejections:
+  for original: Canonical.State
+  for rejected: Canonical.State
+  for reason: Canonical.Reason
+  {Canonical.check_step(original, Canonical.Rejected{rejected, reason}) ==
+    Canonical.Rejected{rejected, reason} : Canonical.Step}

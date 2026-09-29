@@ -2713,7 +2713,7 @@ def notice_commit(+state: State, +key: Nat, +partition: Nat, +group: Nat,
         sequence, maximum_keys,
         notice_charge_valid(Ledger.find(reservation, charges), partition))
 
-def step(+state: State, event: CanonicalEvent) -> Step:
+def step_unchecked(+state: State, event: CanonicalEvent) -> Step:
   match event:
     case ReserveCapacity{partition, bytes, purpose}:
       capacity_reserve(state, partition, bytes, purpose)
@@ -3064,6 +3064,43 @@ def step(+state: State, event: CanonicalEvent) -> Step:
       output_terminal(state, partition, lifetime, round, operation, outcome)
     case RetirePartition{partition, lifetime, round}:
       retire(state, partition, lifetime, round)
+
+# Rounds use a List, so uniqueness is not a type-level guarantee. Every accepted
+# transition is checked here: a partition may own at most one canonical round,
+# regardless of lifetime. Invalid post-states roll back to the original state.
+def round_not_found(found: Maybe<&2, Round>) -> Bool:
+  match found:
+    case None{}:
+      True{}
+    case Some{_}:
+      False{}
+
+def unique_rounds(rounds: List<&2, Round>) -> Bool:
+  match rounds:
+    case Nil{}:
+      True{}
+    case Round{partition, _, _, _, _, _, _} <> +rest:
+      Bool.and(round_not_found(find_round(partition, rest)), unique_rounds(rest))
+
+def check_round_invariant(original: State, updated: State,
+    commands: List<&2, Command>, valid: Bool) -> Step:
+  match valid:
+    case True{}:
+      Advanced{updated, commands}
+    case False{}:
+      Rejected{original, InconsistentLedger{}}
+
+def check_step(original: State, result: Step) -> Step:
+  match result:
+    case Advanced{+updated, commands}:
+      match updated:
+        case State{_, rounds, _, _, _, _, _, _}:
+          check_round_invariant(original, updated, commands, unique_rounds(rounds))
+    case Rejected{state, reason}:
+      Rejected{state, reason}
+
+def step(+state: State, event: CanonicalEvent) -> Step:
+  check_step(state, step_unchecked(state, event))
 
 def main() -> Step:
   step(initial(Ledger.Limits{4n, 100n, 2n, 60n}), OpenRound{1n, 1n})

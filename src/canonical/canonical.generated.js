@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:e14ea65966f6d51a1e49b0c924b8ef644658c816d069cbe1d12e95d0ecf5680b
+// hapsland-bend-source-sha256:4442ea7b128d5e7ed851768e863b9dc6ea78b83dc46d7b3bd3b9777d37089a03
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -165,6 +165,38 @@ function $main$() {
 }
 
 function $Canonical$step$(_state_0, _event_0) {
+  return $Canonical$check_step$(_state_0, ($Canonical$step_unchecked$(_state_0, _event_0)));
+}
+
+function $Canonical$initial$(_limits_0) {
+  return {$: "Canonical.State", "ledger": ($Ledger$initial$(_limits_0)), "rounds": {$: "Nil"}, "work": {$: "Nil"}, "next_round": 1, "next_operation": 1, "admissions": {$: "Nil"}, "dispatch": ($Dispatch$initial$()), "collection": ($CollectionState$initial$())};
+}
+
+function $Ledger$inventory$(_limits_0) {
+  return {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.ObservationDispatch"}, "limits": ($Ledger$limits_for$({$: "Ledger.ObservationDispatch"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.Preparation"}, "limits": ($Ledger$limits_for$({$: "Ledger.Preparation"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.ReviewUnit"}, "limits": ($Ledger$limits_for$({$: "Ledger.ReviewUnit"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.StoredResult"}, "limits": ($Ledger$limits_for$({$: "Ledger.StoredResult"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.OperationalNotice"}, "limits": ($Ledger$limits_for$({$: "Ledger.OperationalNotice"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.AdviceRecheck"}, "limits": ($Ledger$limits_for$({$: "Ledger.AdviceRecheck"}, _limits_0))}, "tail": {$: "Nil"}}}}}}};
+}
+
+function $Canonical$check_step$(_original_0, _result_0) {
+  if (_result_0.$ === "Canonical.Advanced") {
+    const _t_0 = _result_0["state"];
+    const __0 = _t_0["ledger"];
+    const _rounds_0 = _t_0["rounds"];
+    const __1 = _t_0["work"];
+    const __2 = _t_0["next_round"];
+    const __3 = _t_0["next_operation"];
+    const __4 = _t_0["admissions"];
+    const __5 = _t_0["dispatch"];
+    const __6 = _t_0["collection"];
+    const _commands_0 = _result_0["commands"];
+    return $Canonical$check_round_invariant$(_original_0, {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": __5, "collection": __6}, _commands_0, ($Canonical$unique_rounds$(_rounds_0)));
+  } else {
+    const _state_0 = _result_0["state"];
+    const _reason_0 = _result_0["reason"];
+    return {$: "Canonical.Rejected", "state": _state_0, "reason": _reason_0};
+  }
+}
+
+function $Canonical$step_unchecked$(_state_0, _event_0) {
   if (_event_0.$ === "Canonical.ReserveCapacity") {
     const _partition_0 = _event_0["partition"];
     const _bytes_0 = _event_0["bytes"];
@@ -897,12 +929,51 @@ function $Canonical$step$(_state_0, _event_0) {
   }
 }
 
-function $Canonical$initial$(_limits_0) {
-  return {$: "Canonical.State", "ledger": ($Ledger$initial$(_limits_0)), "rounds": {$: "Nil"}, "work": {$: "Nil"}, "next_round": 1, "next_operation": 1, "admissions": {$: "Nil"}, "dispatch": ($Dispatch$initial$()), "collection": ($CollectionState$initial$())};
+function $Ledger$initial$(_limits_0) {
+  return {$: "Ledger.Ledger", "limits": _limits_0, "next_id": 1, "charges": {$: "Nil"}};
 }
 
-function $Ledger$inventory$(_limits_0) {
-  return {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.ObservationDispatch"}, "limits": ($Ledger$limits_for$({$: "Ledger.ObservationDispatch"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.Preparation"}, "limits": ($Ledger$limits_for$({$: "Ledger.Preparation"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.ReviewUnit"}, "limits": ($Ledger$limits_for$({$: "Ledger.ReviewUnit"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.StoredResult"}, "limits": ($Ledger$limits_for$({$: "Ledger.StoredResult"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.OperationalNotice"}, "limits": ($Ledger$limits_for$({$: "Ledger.OperationalNotice"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.AdviceRecheck"}, "limits": ($Ledger$limits_for$({$: "Ledger.AdviceRecheck"}, _limits_0))}, "tail": {$: "Nil"}}}}}}};
+function $Dispatch$initial$() {
+  return {$: "Dispatch.State", "pending": {$: "Nil"}, "active": {$: "Nil"}, "running": {$: "Nil"}, "next_sequence": 0, "cycle": 0, "closed": false, "requests": {$: "Nil"}};
+}
+
+function $CollectionState$initial$() {
+  return {$: "CollectionState.State", "ready": {$: "Nil"}, "leases": {$: "Nil"}, "claims": {$: "Nil"}, "delivery": ($DeliveryState$initial$()), "revision": ($RevisionState$initial$()), "tickets": ($TicketState$initial$()), "reuse": ($ReuseState$initial$()), "notices": ($NoticeState$initial$())};
+}
+
+function $Ledger$limits_for$(_purpose_0, _limits_0) {
+  if (_purpose_0.$ === "Ledger.ObservationDispatch") {
+    return _limits_0;
+  } else if (_purpose_0.$ === "Ledger.Preparation") {
+    return _limits_0;
+  } else if (_purpose_0.$ === "Ledger.ReviewUnit") {
+    return _limits_0;
+  } else if (_purpose_0.$ === "Ledger.StoredResult") {
+    return _limits_0;
+  } else if (_purpose_0.$ === "Ledger.OperationalNotice") {
+    return _limits_0;
+  } else {
+    return _limits_0;
+  }
+}
+
+function $Canonical$check_round_invariant$(_original_0, _updated_0, _commands_0, _valid_0) {
+  if (_valid_0) {
+    return {$: "Canonical.Advanced", "state": _updated_0, "commands": _commands_0};
+  } else {
+    return {$: "Canonical.Rejected", "state": _original_0, "reason": {$: "Canonical.InconsistentLedger"}};
+  }
+}
+
+function $Canonical$unique_rounds$(_rounds_0) {
+  if (_rounds_0.$ === "Nil") {
+    return true;
+  } else {
+    const _t_0 = _rounds_0["head"];
+    const _partition_0 = _t_0["partition"];
+    const _rest_0 = _rounds_0["tail"];
+    return $Bool$and$(($Canonical$round_not_found$(($Canonical$find_round$(_partition_0, _rest_0)))), ($Canonical$unique_rounds$(_rest_0)));
+  }
 }
 
 function $Canonical$capacity_reserve$(_state_0, _partition_0, _bytes_0, _purpose_0) {
@@ -2335,31 +2406,41 @@ function $Canonical$retire$(_state_0, _partition_0, _lifetime_0, _round_0) {
   return $Canonical$retire_found$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": _dispatch_0, "collection": _collection_0}, _partition_0, _lifetime_0, _round_0, ($Canonical$find_round$(_partition_0, _rounds_0)));
 }
 
-function $Ledger$initial$(_limits_0) {
-  return {$: "Ledger.Ledger", "limits": _limits_0, "next_id": 1, "charges": {$: "Nil"}};
+function $DeliveryState$initial$() {
+  return {$: "DeliveryState.State", "slots": {$: "Nil"}, "counters": {$: "Nil"}, "submissions": ($SubmissionState$initial$())};
 }
 
-function $Dispatch$initial$() {
-  return {$: "Dispatch.State", "pending": {$: "Nil"}, "active": {$: "Nil"}, "running": {$: "Nil"}, "next_sequence": 0, "cycle": 0, "closed": false, "requests": {$: "Nil"}};
+function $RevisionState$initial$() {
+  return {$: "RevisionState.State", "entries": {$: "Nil"}, "next_generation": 1};
 }
 
-function $CollectionState$initial$() {
-  return {$: "CollectionState.State", "ready": {$: "Nil"}, "leases": {$: "Nil"}, "claims": {$: "Nil"}, "delivery": ($DeliveryState$initial$()), "revision": ($RevisionState$initial$()), "tickets": ($TicketState$initial$()), "reuse": ($ReuseState$initial$()), "notices": ($NoticeState$initial$())};
+function $TicketState$initial$() {
+  return {$: "TicketState.State", "records": {$: "Nil"}, "units": {$: "Nil"}};
 }
 
-function $Ledger$limits_for$(_purpose_0, _limits_0) {
-  if (_purpose_0.$ === "Ledger.ObservationDispatch") {
-    return _limits_0;
-  } else if (_purpose_0.$ === "Ledger.Preparation") {
-    return _limits_0;
-  } else if (_purpose_0.$ === "Ledger.ReviewUnit") {
-    return _limits_0;
-  } else if (_purpose_0.$ === "Ledger.StoredResult") {
-    return _limits_0;
-  } else if (_purpose_0.$ === "Ledger.OperationalNotice") {
-    return _limits_0;
+function $ReuseState$initial$() {
+  return {$: "ReuseState.State", "claims": {$: "Nil"}, "cache": {$: "Nil"}};
+}
+
+function $NoticeState$initial$() {
+  return {$: "NoticeState.State", "records": {$: "Nil"}};
+}
+
+function $Canonical$round_not_found$(_found_0) {
+  if (_found_0.$ === "None") {
+    return true;
   } else {
-    return _limits_0;
+    return false;
+  }
+}
+
+function $Canonical$find_round$(_partition_0, _rounds_0) {
+  if (_rounds_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _round_0 = _rounds_0["head"];
+    const _rest_0 = _rounds_0["tail"];
+    return $Bool$pick$(($Canonical$same_partition$(_partition_0, _round_0)), {$: "Some", "value": _round_0}, ($Canonical$find_round$(_partition_0, _rest_0)));
   }
 }
 
@@ -2574,16 +2655,6 @@ function $Canonical$open_found$(_state_0, _partition_0, _lifetime_0, _found_0) {
   } else {
     const _x_0 = ($List$length$(_rounds_0));
     return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_partition_0, 0)), ($Bool$and$(($Nat$is_gt$(_lifetime_0, 0)), (_x_0 < 256))))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _next_round_0, "waiting": false, "deciding": false, "write": {$: "None"}, "uncertain": false}, "tail": _rounds_0}, "work": _work_0, "next_round": nat_chk(_next_round_0 + 1), "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0}, "commands": {$: "Con", "head": {$: "Canonical.RoundStarted", "id": _next_round_0}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0}, "reason": ($Bool$pick$(($Bool$and$(($Nat$is_gt$(_partition_0, 0)), ($Nat$is_gt$(_lifetime_0, 0)))), {$: "Canonical.RoundLimit"}, {$: "Canonical.InvalidIdentity"}))});
-  }
-}
-
-function $Canonical$find_round$(_partition_0, _rounds_0) {
-  if (_rounds_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _round_0 = _rounds_0["head"];
-    const _rest_0 = _rounds_0["tail"];
-    return $Bool$pick$(($Canonical$same_partition$(_partition_0, _round_0)), {$: "Some", "value": _round_0}, ($Canonical$find_round$(_partition_0, _rest_0)));
   }
 }
 
@@ -3990,10 +4061,6 @@ function $ReuseState$discard_partition$(_cache_0, _partition_0) {
   }
 }
 
-function $ReuseState$initial$() {
-  return {$: "ReuseState.State", "claims": {$: "Nil"}, "cache": {$: "Nil"}};
-}
-
 function $ReuseState$entry_ids$(_cache_0) {
   if (_cache_0.$ === "Nil") {
     return {$: "Nil"};
@@ -4195,20 +4262,13 @@ function $Canonical$retire_found$(_state_0, _partition_0, _lifetime_0, _round_0,
   }
 }
 
-function $DeliveryState$initial$() {
-  return {$: "DeliveryState.State", "slots": {$: "Nil"}, "counters": {$: "Nil"}, "submissions": ($SubmissionState$initial$())};
+function $SubmissionState$initial$() {
+  return {$: "SubmissionState.State", "leases": {$: "Nil"}, "batches": {$: "Nil"}};
 }
 
-function $RevisionState$initial$() {
-  return {$: "RevisionState.State", "entries": {$: "Nil"}, "next_generation": 1};
-}
-
-function $TicketState$initial$() {
-  return {$: "TicketState.State", "records": {$: "Nil"}, "units": {$: "Nil"}};
-}
-
-function $NoticeState$initial$() {
-  return {$: "NoticeState.State", "records": {$: "Nil"}};
+function $Canonical$same_partition$(_partition_0, _round_0) {
+  const _owner_0 = _round_0["partition"];
+  return $Nat$is_eq$(_owner_0, _partition_0);
 }
 
 function $Canonical$capacity_view$(_ledger_0, _partition_0) {
@@ -4438,11 +4498,6 @@ function $Canonical$close_permit_result$(_state_0, _partition_0, _result_0) {
     const _reason_0 = _result_0["reason"];
     return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.PermitDenied", "reason": _reason_0}};
   }
-}
-
-function $Canonical$same_partition$(_partition_0, _round_0) {
-  const _owner_0 = _round_0["partition"];
-  return $Nat$is_eq$(_owner_0, _partition_0);
 }
 
 function $Canonical$same_round$(_partition_0, _lifetime_0, _id_0, _round_0) {
@@ -5687,10 +5742,6 @@ function $Canonical$retire_current$(_state_0, _partition_0, _lifetime_0, _round_
   const _dispatch_0 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($Canonical$release_round_charges$(_work_0, _ledger_0, _partition_0, _lifetime_0, _round_0)), "rounds": ($Canonical$remove_round$(_partition_0, _rounds_0)), "work": ($Canonical$retain_other_work$(_work_0, _partition_0, _lifetime_0, _round_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0}, "commands": ($List$append$(($Canonical$release_all_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), ($List$append$(($Canonical$cancel_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), {$: "Con", "head": {$: "Canonical.PartitionRetired", "round": _round_0}, "tail": {$: "Nil"}}))))};
-}
-
-function $SubmissionState$initial$() {
-  return {$: "SubmissionState.State", "leases": {$: "Nil"}, "batches": {$: "Nil"}};
 }
 
 function $Ledger$fit_decision$(_limits_0, _global_0, _local_0, _bytes_0) {

@@ -939,3 +939,23 @@ def Laws.closure_retires_pending_permits():
 
 def Laws.closure_prevents_pending_tool_reissue():
   {==}
+
+def Laws.canonical_open_rejects_existing_partition(state, partition, lifetime, existing):
+  match state:
+    case Canonical.State{ledger, rounds, work, next_round, next_operation, admissions, dispatch, collection}:
+      {==}
+
+def Laws.canonical_edit_joins_existing_round_without_insertion(original, updated, partition, round, existing_round):
+  {==}
+
+def Laws.canonical_round_invariant_failure_rolls_back(original, updated, commands):
+  {==}
+
+def Laws.canonical_duplicate_partitions_fail_even_across_lifetimes():
+  {==}
+
+def Laws.canonical_post_state_duplicates_roll_back(original, commands):
+  {==}
+
+def Laws.canonical_round_guard_preserves_rejections(original, rejected, reason):
+  {==}

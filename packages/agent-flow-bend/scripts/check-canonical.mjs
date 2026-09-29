@@ -1,7 +1,22 @@
 import assert from "node:assert/strict";
+import { bendCanonicalStep } from "../../../src/canonical/canonical.generated.js";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { initialCanonical, projectCanonical, stepCanonical } from "../../../src/canonical/adapter.ts";
+import { initialCanonical, projectCanonical, stepCanonical as rawStepCanonical } from "../../../src/canonical/adapter.ts";
+
+// Assert the partition uniqueness invariant after every checked transition,
+// including rejected events and transitions unrelated to round admission.
+const uniquenessCheckedKinds = new Set();
+let uniquenessCheckedTransitions = 0;
+const stepCanonical = (state, event) => {
+  const result = rawStepCanonical(state, event);
+  const rounds = projectCanonical(result.state).rounds;
+  assert.equal(new Set(rounds.map((round) => round.partition)).size, rounds.length,
+    `${event.kind}: at most one canonical round per partition`);
+  uniquenessCheckedKinds.add(event.kind);
+  uniquenessCheckedTransitions++;
+  return result;
+};
 
 const fixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-v1.json"), "utf8"));
 const format = (commands) => commands.map((item) => {
@@ -125,6 +140,60 @@ for (const trace of permitFixture.traces) {
     permits: entry.permits.length, retiredTokens: entry.used.length,
   })), trace.rounds, trace.name);
   assert.equal(consumedEdits, trace.consumedEdits, `${trace.name}: accepted edits`);
+}
+// Bypass TypeScript validation to exercise Bend's own invariant boundary.
+const singleRound = stepCanonical(initialCanonical(fixture.limits),
+  { kind: "openRound", partition: 1, lifetime: 1 }).state;
+const invalidRounds = { ...singleRound, rounds: { $: "Con",
+  head: { ...singleRound.rounds.head, lifetime: 2, id: 2 }, tail: singleRound.rounds } };
+const refusedDuplicates = bendCanonicalStep(invalidRounds,
+  { $: "Canonical.OpenRound", partition: 2, lifetime: 1 });
+assert.equal(refusedDuplicates.$, "Canonical.Rejected");
+assert.equal(refusedDuplicates.reason.$, "Canonical.InconsistentLedger");
+assert.deepEqual(refusedDuplicates.state, invalidRounds, "invalid post-state rolls back instead of committing new round");
+// Exercise multiple partitions and generations, checking uniqueness after every
+// transition above. A second edit joins, and even a different lifetime cannot
+// open another round while the partition still owns its current round.
+let uniqueRounds = initialCanonical(fixture.limits);
+const applyUnique = (event, expectedKinds, expectedRejection) => {
+  const result = stepCanonical(uniqueRounds, event);
+  assert.equal(result.rejection, expectedRejection, `round uniqueness: ${event.kind}`);
+  assert.deepEqual(result.commands.map((command) => command.kind), expectedKinds,
+    `round uniqueness: ${event.kind}`);
+  uniqueRounds = result.state;
+};
+for (let generation = 1; generation <= 3; generation++) {
+  for (let partition = 1; partition <= 3; partition++) {
+    const started = generation * 100;
+    for (let edit = 1; edit <= 2; edit++) {
+      const token = (generation - 1) * 2 + edit;
+      applyUnique({ kind: "issuePermit", partition, lifetime: 1, tool: token,
+        started, now: started + edit, deadline: started + 50,
+        facts: { clockValid: true, withinHookWindow: true, startedAfterClosure: true,
+          duplicateEvent: false, permitCount: 0, permitLimit: 1024,
+          roundCount: 0, roundLimit: 64, newRound: edit === 1, eventCount: 0, eventLimit: 4096 } },
+        ["permitIssued"]);
+      const before = projectCanonical(uniqueRounds).rounds;
+      applyUnique({ kind: "consumePermit", partition, lifetime: 1, token,
+        tool: token, now: started + 3 }, edit === 1 ? ["permitConsumed", "roundStarted"] : ["permitConsumed"]);
+      if (edit === 2) assert.deepEqual(projectCanonical(uniqueRounds).rounds, before,
+        "second accepted edit preserves existing round identity");
+      for (const lifetime of [1, 2]) {
+        applyUnique({ kind: "openRound", partition, lifetime }, [], "StaleRound");
+      }
+    }
+  }
+  assert.equal(projectCanonical(uniqueRounds).rounds.length, 3);
+  for (let partition = 1; partition <= 3; partition++) {
+    const current = projectCanonical(uniqueRounds).rounds.find((round) => round.partition === partition);
+    applyUnique({ kind: "closePermitRound", partition, lifetime: 1,
+      round: generation, at: generation * 100 + 60 }, ["permitRoundClosed"]);
+    // Admission closure alone cannot create a second canonical round before
+    // the existing round is retired by the lifecycle owner.
+    applyUnique({ kind: "openRound", partition, lifetime: 1 }, [], "StaleRound");
+    applyUnique({ kind: "retirePartition", partition, lifetime: 1, round: current.id }, ["partitionRetired"]);
+  }
+  assert.equal(projectCanonical(uniqueRounds).rounds.length, 0);
 }
 // Opening a canonical round and consuming its first edit are one transaction.
 let fullRounds = initialCanonical(fixture.limits);
@@ -376,3 +445,5 @@ for (const trace of ruleFixture.traces) {
   assert.deepEqual(current, initialCanonical(fixture.limits), `${trace.name}: canonical state is unchanged`);
 }
 console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length + stopFixture.traces.length + collectionFixture.traces.length + deliveryFixture.traces.length + submissionFixture.traces.length + revisionFixture.traces.length + ticketFixture.traces.length + reuseFixture.traces.length + noticeFixture.traces.length + retentionFixture.traces.length + configurationFixture.traces.length + ruleFixture.traces.length} independent source-free canonical traces`);
+
+console.log(`checked round uniqueness after ${uniquenessCheckedTransitions} transitions across ${uniquenessCheckedKinds.size} event kinds`);
