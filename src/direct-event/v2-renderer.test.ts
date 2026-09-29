@@ -6,14 +6,14 @@ import {
 
 const fixture = (): CandidateReviewInput => ({
   contract: "direct-event/type-shape/v2", completeness: "complete", treeBytesLimit: 20 * 1024,
-  artifact: { id: "root", kind: "interface", name: "A", domain: "src/a.ts", source: "interface A { b: B }" },
+  artifact: { id: "src/a.ts:interface:A", kind: "interface", name: "A", domain: "src/a.ts", source: "interface A { b: B }" },
   nodes: [
-    { id: "c", kind: "type-alias", name: "C", domain: "src/c.ts", source: "type C = string", order: 2 },
-    { id: "b", kind: "interface", name: "B", domain: "src/b.ts", source: "interface B { c: C }", order: 1 },
+    { id: "src/c.ts:type-alias:C", kind: "type-alias", name: "C", domain: "src/c.ts", source: "type C = string", order: 2 },
+    { id: "src/b.ts:interface:B", kind: "interface", name: "B", domain: "src/b.ts", source: "interface B { c: C }", order: 1 },
   ],
   edges: [
-    { from: "b", to: "c", kind: "expanded", symbol: "C", order: 2 },
-    { from: "root", to: "b", kind: "expanded", symbol: "B", order: 1 },
+    { from: "src/b.ts:interface:B", to: "src/c.ts:type-alias:C", kind: "expanded", symbol: "C", order: 2 },
+    { from: "src/a.ts:interface:A", to: "src/b.ts:interface:B", kind: "expanded", symbol: "B", order: 1 },
   ],
 });
 
@@ -23,7 +23,7 @@ describe("candidate review input renderer", () => {
     const rendered = renderCandidateReviewInput(input);
     expect(rendered).toBeDefined();
     expect(rendered?.artifact).toEqual({ kind: "interface", name: "A", domain: "src/a.ts", source: "interface A { b: B }" });
-    expect(rendered?.evidence.nodes.map((node) => node.id)).toEqual(["b", "c"]);
+    expect(rendered?.evidence.nodes.map((node) => node.id)).toEqual(["src/b.ts:interface:B", "src/c.ts:type-alias:C"]);
     expect(rendered?.evidence.edges.map((edge) => edge.symbol)).toEqual(["B", "C"]);
     expect(rendered?.inputContract).toMatchObject({ id: input.contract, completeness: "complete",
       rendererVersion: CANDIDATE_RENDERER_VERSION, rendererDigest: CANDIDATE_RENDERER_DIGEST });
@@ -37,7 +37,8 @@ describe("candidate review input renderer", () => {
     const input = fixture();
     expect(renderCandidateReviewInput({ ...input, contract: "direct-event/function/v1" })).toBeUndefined();
     const functionInput = { ...input, contract: "direct-event/function/v1",
-      artifact: { ...input.artifact, kind: "function", source: "function A() { return B }" } };
+      artifact: { ...input.artifact, id: "src/a.ts:function:A", kind: "function", source: "function A() { return B }" },
+      edges: input.edges.map((item) => ({ ...item, from: item.from === input.artifact.id ? "src/a.ts:function:A" : item.from })) };
     expect(renderCandidateReviewInput(functionInput)?.inputContract.id).toBe("direct-event/function/v1");
   });
 
@@ -51,10 +52,14 @@ describe("candidate review input renderer", () => {
     expect(renderCandidateReviewInput({ ...input, edges: [{ ...input.edges[0], to: "missing" }] })).toBeUndefined();
     expect(renderCandidateReviewInput({ ...input, edges: [{ ...input.edges[0], kind: "omitted" }] })).toBeUndefined();
     expect(renderCandidateReviewInput({ ...input, nodes: [...input.nodes, input.nodes[0]] })).toBeUndefined();
-    expect(renderCandidateReviewInput({ ...input, edges: [{ from: "root", to: "b", kind: "expanded", symbol: "B", order: 1 }] })).toBeUndefined();
+    expect(renderCandidateReviewInput({ ...input, edges: [{ from: input.artifact.id, to: input.nodes[1]!.id, kind: "expanded", symbol: "B", order: 1 }] })).toBeUndefined();
     expect(renderCandidateReviewInput({ ...input, edges: [
-      { from: "root", to: "c", kind: "included", symbol: "C", order: 1 },
+      { from: input.artifact.id, to: input.nodes[0]!.id, kind: "included", symbol: "C", order: 1 },
       ...input.edges,
     ] })).toBeUndefined();
+    expect(renderCandidateReviewInput({ ...input, artifact: { ...input.artifact, id: "/private/project/a.ts:interface:A" } })).toBeUndefined();
+    expect(renderCandidateReviewInput({ ...input, nodes: [
+      { ...input.nodes[0], id: "src/c.ts:function:C", kind: "function" }, input.nodes[1],
+    ], edges: input.edges.map((item) => ({ ...item, to: item.to === input.nodes[0]!.id ? "src/c.ts:function:C" : item.to })) })).toBeUndefined();
   });
 });

@@ -48,6 +48,9 @@ const relativeDomain = (value: unknown): value is string =>
   posix.normalize(value) === value;
 const identifier = (value: unknown): value is string =>
   typeof value === "string" && value.length > 0 && value.length <= 256 && !value.includes("\0");
+const declarationName = (value: unknown): value is string =>
+  typeof value === "string" && value.length <= 256 &&
+  /^[\p{ID_Start}_$][\p{ID_Continue}$\u200C\u200D]*$/u.test(value);
 const kind = (value: unknown): value is Kind =>
   value === "interface" || value === "type-alias" || value === "function";
 const source = (value: unknown): value is string =>
@@ -56,15 +59,16 @@ const artifact = (value: unknown, ordered: boolean): Artifact | Node | undefined
   const item = record(value);
   if (item === undefined || !exactKeys(item,
     ordered ? ["id", "kind", "name", "domain", "source", "order"] : ["id", "kind", "name", "domain", "source"]) ||
-    !identifier(item.id) || !kind(item.kind) || !identifier(item.name) ||
+    !identifier(item.id) || !kind(item.kind) || !declarationName(item.name) ||
     !relativeDomain(item.domain) || !source(item.source) ||
+    item.id !== `${item.domain}:${item.kind}:${item.name}` ||
     (ordered && (!Number.isSafeInteger(item.order) || Number(item.order) < 0))) return undefined;
   return item as Artifact | Node;
 };
 const edge = (value: unknown): Edge | undefined => {
   const item = record(value);
   if (item === undefined || !exactKeys(item, ["from", "to", "kind", "symbol", "order"]) ||
-    !identifier(item.from) || !identifier(item.to) || !identifier(item.symbol) ||
+    !identifier(item.from) || !identifier(item.to) || !declarationName(item.symbol) ||
     (item.kind !== "expanded" && item.kind !== "included") ||
     !Number.isSafeInteger(item.order) || Number(item.order) < 0) return undefined;
   return item as Edge;
@@ -93,6 +97,7 @@ export const renderCandidateReviewInput = (value: unknown): RenderedCandidateRev
   const nodes = input.nodes.map((item) => artifact(item, true));
   const edges = input.edges.map(edge);
   if (nodes.some((item) => item === undefined) || edges.some((item) => item === undefined)) return undefined;
+  if (input.contract === "direct-event/type-shape/v2" && nodes.some((item) => item?.kind === "function")) return undefined;
   const orderedNodes = (nodes as Node[]).sort((a, b) => a.order - b.order || a.domain.localeCompare(b.domain) ||
     a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
   const orderedEdges = (edges as Edge[]).sort((a, b) => a.order - b.order || a.from.localeCompare(b.from) ||
@@ -119,8 +124,7 @@ export const renderCandidateReviewInput = (value: unknown): RenderedCandidateRev
     evidence: { rootId: root.id, nodes: orderedNodes, edges: orderedEdges },
   };
   const encodedTree = canonicalValue(tree);
-  if (Buffer.byteLength(encodedTree, "utf8") > Number(input.treeBytesLimit)) return undefined;
-  return freeze({
+  const rendered: RenderedCandidateReviewInput = {
     ...tree,
     inputContract: {
       id: input.contract, completeness: "complete" as const,
@@ -128,5 +132,7 @@ export const renderCandidateReviewInput = (value: unknown): RenderedCandidateRev
       rendererVersion: CANDIDATE_RENDERER_VERSION,
       rendererDigest: CANDIDATE_RENDERER_DIGEST,
     },
-  });
+  };
+  if (Buffer.byteLength(canonicalValue(rendered), "utf8") > Number(input.treeBytesLimit)) return undefined;
+  return freeze(rendered);
 };
