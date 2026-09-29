@@ -94,6 +94,7 @@ p { line-height: 1.5; }
 .topology-scroll svg { display: block; min-width: 1200px; width: 100%; height: auto; }
 .topology-route path { opacity: .55; }
 .topology-route.active path { opacity: 1; filter: drop-shadow(0 0 3px #f8b693); }
+.topology-route.active.external path { filter: drop-shadow(0 0 3px #d8b35c); }
 .topology-node text { pointer-events: none; }
 .topology-route-key { margin: 12px 0; padding: 9px 12px; border: 1px solid #dce5ef; border-radius: 7px; font-size: .8rem; }
 .topology-route-key summary { cursor: pointer; font-weight: 700; }
@@ -101,6 +102,7 @@ p { line-height: 1.5; }
 .topology-route-key li { break-inside: avoid; margin-bottom: 5px; color: #52647d; }
 .topology-route-key li.active { color: #a9431f; font-weight: 700; }
 .topology-route-key li.active.command { color: #794aa0; }
+.topology-route-key li.active.external { color: #8a5a00; }
 .finish-decision { margin: 12px 0; padding: 12px; border: 1px solid #c9d6e4; border-radius: 8px; background: #fbfcff; }
 .finish-decision p { margin: 5px 0 12px; font-size: .8rem; color: #52647d; }
 .finish-branches { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }

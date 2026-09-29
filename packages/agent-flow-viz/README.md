@@ -77,6 +77,16 @@ boundaries.
 
 ## Inspecting the changed connection
 
+For the Jev result color, inspect the "clear is a distinct observed request
+result" guided case at step 7/8 in the [connected diagram](index.html):
+[before](docs/assets/production-flow-jev-clear-before-color.png) and
+[after](docs/assets/production-flow-jev-clear-after-color.png). The Awaiting
+Jev result square changes from gold to blue because it displays checked Bend
+work and request permits. Connection 13 into Review outcomes changes from
+orange to gold when the external clear result is supplied. A `neverSent` result
+does not light that gold connection. This color change does not alter reducer
+state, stage inference, or possible routes.
+
 In the default guided example, inspect step 25, `collectionReady` for advice
 `#10`: [before the inferred projection](docs/assets/production-flow-before-inference-step-25.png)
 and [after](docs/assets/production-flow-inferred-step-25.png). The earlier view

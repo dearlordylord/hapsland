@@ -113,6 +113,10 @@ try {
   await canonical.getByRole("button", { name: /^Next canonical step:/ }).click();
   await waitForText(".canonical-progress", "Guided step 7 of 8");
   assert.match(await page.locator(".topology-capacities").innerText(), /Jev in-flight: 0\/8 · no Jev wait queue/);
+  const suppliedJevResult = page.locator(".topology-route.active.external").filter({ hasText: "Awaiting Jev result → Review outcomes" });
+  assert.equal(await suppliedJevResult.count(), 1);
+  assert.equal(await suppliedJevResult.locator("path").first().getAttribute("stroke"), "#8a5a00");
+  assert.equal(await page.locator(".topology-node").filter({ hasText: "Awaiting Jev result" }).locator("rect").getAttribute("fill"), "#e9f1ff");
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "nonfinding review outcome recorded" }).count(), 1);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "retain finding command" }).count(), 0);
 
@@ -160,6 +164,7 @@ try {
   await advanceGuided(1, 6, 7);
   await waitForText(".canonical-progress", "Guided step 6 of 7");
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "Jev result supplied: neverSent" }).count(), 1);
+  assert.equal(await page.locator(".topology-route.active.external").count(), 0);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "Jev result supplied: finding" }).count(), 0);
   const awaitingJev = page.locator(".topology-node").filter({ hasText: "Awaiting Jev result" });
   assert.equal(await awaitingJev.count(), 1);
