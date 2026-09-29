@@ -260,6 +260,133 @@ describe("canonical Jev request boundary", () => {
     }
   }, 15_000);
 
+  it("holds started Jev permits through round interruption until settlement, then reuses one", async () => {
+    const root = await makeGitFixture();
+    const paths = Array.from({ length: 11 }, (_, index) => `item-${index}.ts`);
+    for (const [index, path] of paths.entries()) await put(root, path, `type Item${index}Count = number\n`);
+    const statePath = join(root, "consent");
+    await Effect.runPromise(Effect.gen(function* () {
+      const consent = yield* Consent.Service;
+      yield* consent.enable(yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone"));
+    }).pipe(Effect.provide(Consent.layer({ statePath }))));
+    const observe = async (index: number) => {
+      const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, [paths[index]!], {
+        agent_id: `agent-${index}`, tool_use_id: `tool-${index}`,
+      })));
+      if (observation === undefined) throw new Error("fixture observation missing");
+      return observation;
+    };
+    const dispatch = { statePath, userConfigPath: null, credential: null,
+      controlled: { answers: Object.fromEntries(configuredRules.map((rule) => [rule.id,
+        { _tag: "Probability" as const, probability: 0 },
+      ])) } };
+    const eightStarted = deferred();
+    const reusedStarted = deferred();
+    const saturatedUnavailable = deferred();
+    const afterReuseUnavailable = deferred();
+    const release = deferred();
+    const observations: JevRequestObservation[] = [];
+    let effectsEntered = 0;
+    let unavailableCount = 0;
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+      controlledRequestEffect: async () => {
+        effectsEntered += 1;
+        if (effectsEntered === 8) eightStarted.resolve();
+        if (effectsEntered === 9) reusedStarted.resolve();
+        await release.promise;
+      },
+      jevRequestObserver: (observation) => {
+        observations.push(observation);
+        if (observation.stage === "unavailable") {
+          unavailableCount += 1;
+          if (unavailableCount === 1) saturatedUnavailable.resolve();
+          if (unavailableCount === 2) afterReuseUnavailable.resolve();
+        }
+      },
+    });
+    try {
+      const first = await observe(0);
+      for (let index = 0; index < 8; index += 1) {
+        expect(server.admit(index === 0 ? first : await observe(index), dispatch, false, true).status)
+          .toBe("accepted");
+      }
+      await eightStarted.promise;
+      expect(observations.filter((item) => item.stage === "started")).toHaveLength(8);
+      expect(observations.filter((item) => item.stage === "settled")).toHaveLength(0);
+      expect(server.admit(await observe(8), dispatch, false, true).status).toBe("accepted");
+      await saturatedUnavailable.promise;
+      expect(effectsEntered).toBe(8);
+      expect(observations.filter((item) => item.stage === "settled")).toHaveLength(0);
+
+      expect(await server.handle({ version: 1, operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: first.advicee, token: "interrupt-first" })).toEqual({ status: "advanced" });
+      expect(await server.handle({ version: 1, operation: "finish-stop", lifetime: server.lifetime,
+        root, advicee: first.advicee, token: "interrupt-first", close: true })).toEqual({ status: "advanced" });
+
+      expect(server.admit(await observe(9), dispatch, false, true).status).toBe("accepted");
+      await reusedStarted.promise;
+      const interruptionIndex = observations.findIndex((item) => item.stage === "interrupted");
+      expect(interruptionIndex).toBeGreaterThanOrEqual(0);
+      const interrupted = observations[interruptionIndex]!;
+      const settlementIndex = observations.findIndex((item) => item.stage === "settled" &&
+        item.request === interrupted.request);
+      const startIndices = observations.flatMap((item, index) => item.stage === "started" ? [index] : []);
+      const reusedStartIndex = startIndices[8] ?? -1;
+      expect(settlementIndex).toBeGreaterThan(interruptionIndex);
+      expect(reusedStartIndex).toBeGreaterThan(settlementIndex);
+      expect(observations[settlementIndex]?.outcome).toBe("interrupted");
+      expect(observations.filter((item) => item.stage === "settled")).toHaveLength(1);
+
+      expect(server.admit(await observe(10), dispatch, false, true).status).toBe("accepted");
+      await afterReuseUnavailable.promise;
+      expect(effectsEntered).toBe(9);
+      expect(observations.filter((item) => item.stage === "started")).toHaveLength(9);
+    } finally {
+      release.resolve();
+      await server.whenIdle();
+      await server.close();
+    }
+  }, 15_000);
+
+  it("settles a started Jev timeout before reusing its permit", async () => {
+    const root = await makeGitFixture();
+    await put(root, "slow.ts", "type SlowCount = number\n");
+    await put(root, "next.ts", "type NextCount = number\n");
+    const statePath = join(root, "consent");
+    await Effect.runPromise(Effect.gen(function* () {
+      const consent = yield* Consent.Service;
+      yield* consent.enable(yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone"));
+    }).pipe(Effect.provide(Consent.layer({ statePath }))));
+    const observe = async (path: string) => {
+      const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, [path])));
+      if (observation === undefined) throw new Error("fixture observation missing");
+      return observation;
+    };
+    const observations: JevRequestObservation[] = [];
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+      jevRequestObserver: (item) => { observations.push(item); },
+    });
+    const dispatch = { statePath, userConfigPath: null, credential: null };
+    try {
+      expect(server.admit(await observe("slow.ts"), { ...dispatch, controlled: { delayMs: 16_000 } }).status)
+        .toBe("accepted");
+      await server.whenIdle();
+      expect(observations.map((item) => [item.stage, item.outcome])).toEqual([
+        ["issued", undefined], ["started", undefined], ["settled", "timeout"],
+      ]);
+      const timedOut = observations[2]!;
+
+      expect(server.admit(await observe("next.ts"), { ...dispatch, controlled: {} }).status).toBe("accepted");
+      await server.whenIdle();
+      expect(observations.slice(3).map((item) => [item.stage, item.outcome])).toEqual([
+        ["issued", undefined], ["started", undefined], ["settled", "clear"],
+      ]);
+      expect(observations[3]?.request).not.toBe(timedOut.request);
+    } finally {
+      await server.close();
+    }
+  }, 25_000);
+
   it("binds local canonical lifetime 1 to each resident UUID and rotates canonical rounds", () => {
     const first = new CapacityLedger(undefined, "resident-a");
     const second = new CapacityLedger(undefined, "resident-b");
