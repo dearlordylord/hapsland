@@ -8,6 +8,8 @@ export type ControlledDecisionModelOptions = {
   readonly answers?: Readonly<Record<string, DecisionModel.ProviderAnswer>>;
   readonly delayMs?: number;
   readonly failure?: string;
+  /** Test-only failure for one prepared unit selected by its declaration source. */
+  readonly failureOnSourceIncludes?: string;
   readonly onRequest?: Effect.Effect<void>;
   readonly inspectRequest?: (
     request: DecisionModel.ProviderOptions,
@@ -63,6 +65,9 @@ export const controlledDecisionModelLayer = (
     DecisionModel.DecisionModel,
     DecisionModel.make({
       decide: (request) => {
+        const failure = options.failure ?? (options.failureOnSourceIncludes !== undefined &&
+          JSON.stringify(request).includes(options.failureOnSourceIncludes)
+          ? "controlled unit failure" : undefined);
         const answers = options.syntheticR6BrandedRepair === undefined
           ? Effect.succeed(options.answers ?? Object.fromEntries(
             Object.keys(request.decisions).map((key) => [
@@ -72,7 +77,7 @@ export const controlledDecisionModelLayer = (
           ))
           : syntheticAnswers(request, options.syntheticR6BrandedRepair);
         const result =
-          options.failure === undefined
+          failure === undefined
             ? answers.pipe(Effect.map((answers) => ({
                 answers,
                 usage: { inputTokens: 0, outputTokens: 0 },
@@ -81,7 +86,7 @@ export const controlledDecisionModelLayer = (
                 AiError.make({
                   module: "ControlledDecisionModel",
                   method: "decide",
-                  reason: new AiError.UnknownError({ description: options.failure }),
+                  reason: new AiError.UnknownError({ description: failure }),
                 }),
               );
         const delayed =

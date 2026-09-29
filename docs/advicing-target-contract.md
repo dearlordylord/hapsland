@@ -1,9 +1,15 @@
 # Advicing target contract
 
+**Purpose:** Define accepted Hapsland behavior at the agent-runtime boundary.
+**Status:** Accepted target; implementation and installed support are separately evidenced.
+**Authority:** Accepted product contract.
+**Expected use:** Resolve intended behavior and assess implementation against the accepted advice, work, and delivery contract.
+**Lifecycle:** Maintained through explicit accepted behavior amendments. Review whenever an owner changes advicee identity, admission, review, delivery, or finish semantics; update linked implementation/support evidence without treating it as a contract amendment.
+
 **Status: accepted target behavior, not an implementation or support claim.** This
 document says what Hapsland must do at the agent-runtime boundary. The candidate
 production path implements parts of it; the [implementation and evidence
-status](../evidence/advicing-linux/README.md) identifies observed behavior and
+status](https://github.com/dearlordylord/hapsland/blob/6d6f1617c1942faa56e39781684bf0e6c78f62f5/evidence/advicing-linux/README.md) identifies observed behavior and
 remaining gaps. Exact installed-release support is declared separately in
 [installed release compatibility](installed-release-compatibility.md). Terms have
 their canonical meanings in the [product vocabulary](../CONTEXT.md).
@@ -21,7 +27,7 @@ The installed composed path uses the same resident delivery module for Codex CLI
 and Claude Code. Native hooks translate runtime events and response formats; they
 do not own another review queue, reconstruct reviews from the filesystem, or call
 Jev to produce delivery output. The resident owns admitted work, pending advice,
-leases, notices, expiry, finish decisions, and virtual-round resources. There is
+leases, source-free operational failure records, expiry, finish decisions, and virtual-round resources. There is
 one installed delivery behavior, without a legacy/composed mode selector.
 
 ### Agent response is controlled by its instructions
@@ -47,8 +53,12 @@ failed delivery.
 Review and advice belong to an exact advicee partition: canonical physical
 working root, agent runtime and supported version, session ID, and supplied
 subagent ID or null. Native `agent_id` maps to Hapsland's `subagentId` at the
-adapter boundary. Main and child agents use the same review and delivery rules;
-the resident does not need a parent-child tree. Separate sessions and isolated
+adapter boundary. Today an omitted ID maps to null, the main-agent scope. That
+mapping does not prove an event came from the main agent. If a runtime can omit
+the ID for a child event, Hapsland needs another reliable attribution fact or
+must withhold child-specific advice. Main and identified child agents use the
+same review and delivery rules; the resident does not need a parent-child tree.
+Separate sessions and isolated
 working roots remain separate. A shared-root change of unknown origin has no
 advicee and cannot produce addressed advice. Native turn IDs are event metadata,
 not advicee or virtual-round identity.
@@ -87,7 +97,7 @@ An admitted edit is unfinished while it waits for source reading, while source
 is read and analyzed, while any derived review work item waits for Jev, and
 while Jev evaluates that item. One observation may yield several review units.
 A Jev finding completes its item and enters pending advice in the same logical
-step. A clear result completes the item and records clear status in that step;
+step. A clear result completes the item and can be observed as clear activity;
 there is no separate stored Jev-result queue. All unfinished items in the
 virtual round count, not just the first or latest edit.
 
@@ -106,8 +116,8 @@ returns a **continue-with-advice response** (`block`). This asks the runtime to
 let the agent work on the advice in the same virtual round. Otherwise it returns
 an **allow-finish response** (`allow`) and closes the virtual round. The wait
 does not itself continue the agent, and `allow` does not prove that every other
-hook let the actual agent round end. Operational notices alone cannot justify a
-repair continuation.
+hook let the actual agent round end. Operational failures do not produce agent
+output or justify a repair continuation.
 
 **At either decision,** Hapsland selects the available advice batch, discards
 queued unfinished pre-decision work, requests cancellation of pre-decision
@@ -119,47 +129,72 @@ cancelled work cannot create advice for that repair or a later round. The pure r
 emit the decision, response command, and cancellation IDs; the runtime side
 performs output and cancellation. No output command proves agent reception.
 
-The installed edit path automatically starts a bounded background advice wait.
+The installed Claude `PostToolUse` hook also collects current advice within its
+safe synchronous deadline. If no eligible advice is ready, it returns quietly
+and leaves later opportunities to background or Stop. Advisory output is the
+default. A synchronous `block-current-findings` response requires a user-owned
+opt-in that remains valid at the final handoff; project policy may narrow it to
+advisory. The collector may batch eligible findings from several admissions in
+the same advicee and virtual round. For example, edit B's synchronous response
+may include a still-current finding from edit A in that round, even when the
+finding was not ready during edit A's hook. An admission identifies each
+derived review unit and carries authorization and lifetime facts; it does not limit the batch
+to one edit or store a second ticket-wide outcome. Operational failure records use the
+same advicee scope across those opportunities, but are retained for diagnostics
+instead of being included in agent output. The installed edit path
+automatically starts a bounded background advice wait.
+CLI and resident exchange one version 3 local IPC envelope across admission,
+collection, lifecycle, and delivery operations. An older peer's response cannot
+establish readiness, successful review, or submission.
 One waiter per advicee coalesces matching triggers, holds no advice lease while
 waiting, and exits quietly if no eligible advice becomes ready. A background
 wait with no reserved advice cannot prolong a settled finish decision. A
-reserved background write can finish during the open finish call; its submitted
-or uncertain advice can then be considered for a same-round reoffer. Background
+reserved background advice submission can finish during the open finish call; only
+an uncertain write can then be considered for a same-round reoffer. Background
 output does not interrupt an in-flight model request or tool call and does not
 guarantee a later model-visible opportunity.
 
 ## Handoff, reoffer, and continuation count
 
-Every collection revalidates root and advicee identity, enablement, credential
-generation, source eligibility, current work and snapshot, and advice age at the
-final handoff barrier. Transient revalidation failure leaves current advice
+Before Hapsland gives advice, it checks the working root and advicee, the
+current Jev credential generation, file settings, each file needed by the review unit,
+whether the work is still current, and the advice age. A temporary failure
+of this check leaves current advice
 eligible until a later valid attempt or expiry; stale or unattributed advice is
 suppressed. The resident grants one tokenized lease per selected advice item.
+At the final IPC handoff, the resident takes a bounded, descriptor-anchored
+capture of each selected source file and supplies its freshness as a fact to
+the Bend candidate decision. A changed or unreadable source retires its
+selected finding.
 Overlapping collectors cannot own that item together. The collector releases a
-lease on a known pre-output failure; a completed write records only host
-submission. Lost acknowledgements and uncertain writes remain uncertain;
-lease recovery requires revalidation. Current response limits are five findings
-and 2 KiB of encoded output. An individually oversized finding yields a bounded
+lease on a known pre-output failure; a completed advice submission records only
+submission to the runtime. Lost acknowledgements and uncertain submissions
+remain uncertain; lease recovery requires revalidation. Current self-imposed
+response budget is 10 KiB of final encoded host output, including Claude-specific
+wrapping. There is no separate finding-count cap. An individually oversized finding yields a bounded
 limitation rather than an endless retry.
 
 At most one finish collector owns an advicee's active finish attempt. A
 continue-with-advice response reserves one of four continuation numbers in
 resident state **before** output authorization. The output permit binds the
 round, attempt, collector, and advice IDs; reuse cannot authorize another
-write. Once output may have reached the writer, partial or uncertain writes,
-process death, and lost acknowledgement consume that reservation. A proven
+submission. Once output may have reached the runtime, partial or uncertain
+submissions, process death, and lost acknowledgement consume that reservation. A proven
 failure before authorization may release a provisional reservation. A later
 finish attempt cannot replay that attempt or spend a new slot on the same
 advice. When four are reserved, the next finish attempt may allow immediately,
 without waiting for work whose advice cannot be presented.
 
-Background-submitted or uncertain advice may be offered **once** at a finish
-attempt in the same active virtual round when model consumption is unproven.
+Successful stdout submission counts as delivery. Stop does not repeat a
+background finding after that submission, even though the runtime does not
+acknowledge model visibility. An uncertain background write may be offered
+**once** at a finish attempt in the same active virtual round.
 This uses its existing advice identity and a fresh eligibility check, never a
-second Jev evaluation. A live background writer keeps its lease; the finish
-collector may wait within its existing deadline or revoke an output permit
-that has not reached that writer. Only resolved or explicitly uncertain
-handoffs enter final selection. An uncertain finish write consumes the reoffer.
+second Jev evaluation. A live background advice submission keeps its lease;
+the finish collector may wait within its existing deadline or revoke an output
+permit that has not reached the runtime output boundary. Only resolved or
+explicitly uncertain handoffs enter final selection. An uncertain advice
+submission at Stop consumes the reoffer.
 The resident reserves each item's one reoffer atomically with the finish output
 permit.
 No submitted advice crosses a closed-round boundary.
@@ -181,8 +216,9 @@ closure, not exactly-once external output. Emit `allow` within the original
 hook deadline; cleanup can finish asynchronously after the fence takes effect,
 without producing new review or delivery work.
 
-Retain only a source-free closure marker, identity digests needed to reject old
-events, and aggregate counts and reasons. Count discarded queued, running,
+Retain only a source-free closure marker and identity digests needed to reject old
+events. Derive diagnostic counts and reasons from work and delivery facts rather
+than retaining a ticket-wide terminal result. Count discarded queued, running,
 pending, submitted, and uncertain work by lifecycle stage, without treating one
 item as several completed reviews. An interrupted or dropped result is
 incomplete, not clear. The marker contains no source, advice text, raw runtime
@@ -197,15 +233,15 @@ is promised across repeated restarts. Old work and leases are lost, and old
 lifetime IPC is rejected. Fresh events first seen after restart have an
 explicit attribution limitation rather than assumed old-round history.
 
-The [sidecar reducer](../packages/agent-flow-viz/README.md) models the
-all-unfinished-work finish rule and logical cancellation in one-agent state.
-The [Bend slice](../packages/agent-flow-bend/README.md) currently proves only
-finding-to-pending-advice transitions. Neither establishes production/native
-hook behavior. The production candidate now implements the all-work/deadline
-finish decision in the shared resident. That implementation has its own
-[contract and Linux validation record](../evidence/advicing-linux/finish-decision-linux.md);
-it does not import the sidecar reducer or extend the Bend proof to production.
+The [canonical Bend transition](../packages/agent-flow-bend/README.md) models
+the resident's Stop wait, cutoff, cancellation IDs, and output decisions. The
+[visualization](../packages/agent-flow-viz/README.md) replays that checked
+transition from source-free examples; it does not establish native hook behavior.
+The resident implements the all-work/deadline finish decision. Its earlier
+implementation has a
+[contract and Linux validation record](https://github.com/dearlordylord/hapsland/blob/6d6f1617c1942faa56e39781684bf0e6c78f62f5/evidence/advicing-linux/finish-decision-linux.md);
+the current resident calls the checked canonical adapter at decision barriers.
 Native scheduling, actual runtime visibility, and physical cancellation require
-separate evidence; see the [Linux evidence index](../evidence/advicing-linux/README.md).
+separate evidence; see the [Linux evidence index](https://github.com/dearlordylord/hapsland/blob/6d6f1617c1942faa56e39781684bf0e6c78f62f5/evidence/advicing-linux/README.md).
 Owner visual review and Linux adoption were accepted on 2026-09-27 within the
 recorded evidence boundary. macOS validation remains a separate follow-up.

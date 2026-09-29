@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "runtime": "Claude Code",
+  "version": "2.1.218 (Claude Code)",
+  "recordedAt": "2026-09-28T13:44:54.611Z",
+  "declaration": {
+    "maximumProviderRequests": 8,
+    "automaticRetries": 0,
+    "sessionCeilingMs": 240000,
+    "claudeFeedbackMode": "block-current-findings",
+    "mode": "controlled-offline",
+    "fixture": "order-count"
+  },
+  "hostExitCode": 0,
+  "hostSignal": null,
+  "elapsedMs": 10551,
+  "providerRequests": 0,
+  "timeline": [
+    {
+      "kind": "composed-prompt",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "atMs": 1066
+    },
+    {
+      "kind": "composed-before-edit",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "atMs": 6855
+    },
+    {
+      "kind": "hook",
+      "tool": "Write",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "sourceHash": "5b5ebee2216aefb14e5eec1ac28cedb6f067ebf6d3886aefe0ebeee31d241052",
+      "sourceBytes": 32,
+      "draft": true,
+      "atMs": 7243
+    },
+    {
+      "kind": "composed-background",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": true,
+      "atMs": 7242
+    },
+    {
+      "kind": "composed-stop",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "atMs": 9405
+    }
+  ],
+  "activityStages": [
+    {
+      "stage": "pending",
+      "atMs": 7610
+    },
+    {
+      "stage": "pending",
+      "atMs": 7650
+    },
+    {
+      "stage": "unavailable",
+      "atMs": 7672
+    }
+  ],
+  "checks": {
+    "initialDraftObserved": true,
+    "findingSubmitted": false,
+    "editAfterFinding": false,
+    "finalSourceChanged": false,
+    "validSourceCompiles": true,
+    "invalidStatesRejected": false,
+    "followupClearObserved": false
+  },
+  "resident": {
+    "queued": 0,
+    "running": 0,
+    "pendingFindingBatches": 0,
+    "pendingOperationalNotices": 0
+  },
+  "rawHostOutputRetained": false,
+  "rawBackendMaterialRetained": false,
+  "credentialRetained": false,
+  "hostOutputBytesDiscarded": 135042,
+  "verdict": "incomplete"
+}

@@ -1,6 +1,5 @@
 import * as Effect from "effect/Effect";
 import { appendFileSync, readFileSync } from "node:fs";
-import { Consent } from "../src/runtime/consent.ts";
 import { claimDemoBudget } from "../src/onboarding/demo-budget.ts";
 import { runFirstReviewDemo } from "../src/onboarding/first-review-demo.ts";
 
@@ -34,6 +33,6 @@ const result = await Effect.runPromise(runFirstReviewDemo(input.request, {
       repair: { changed: true, rejectsInvalidStates: true },
     };
   },
-}).pipe(Effect.provide(Consent.layer({ statePath: input.consentStatePath }))));
+}));
 
 process.stdout.write(`${JSON.stringify(result)}\n`);

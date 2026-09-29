@@ -41,25 +41,6 @@ describe("production resident activity subprocess", { timeout: 30_000 }, () => {
       REVIEW_RESIDENT_BACKEND_GATE_PATH: gate,
       REVIEW_CONTROL_JSON: "{}",
     };
-    const preview = spawnSync(process.execPath, ["src/cli.ts", "--enable"], {
-      cwd: process.cwd(),
-      env: environment,
-      input: JSON.stringify({ version: 1, operation: "enable", cwd: repository }),
-      encoding: "utf8",
-    });
-    const proposal = JSON.parse(preview.stdout) as { proposal: { digest: string } };
-    const enabled = spawnSync(process.execPath, ["src/cli.ts", "--enable-confirm"], {
-      cwd: process.cwd(),
-      env: environment,
-      input: JSON.stringify({
-        version: 1,
-        operation: "enable-confirm",
-        cwd: repository,
-        proposalDigest: proposal.proposal.digest,
-      }),
-      encoding: "utf8",
-    });
-    expect(enabled.status).toBe(0);
     const source = "export interface PendingReview { id: string }\n";
     writeFileSync(join(repository, "pending.ts"), source);
     const event = {

@@ -917,7 +917,7 @@ const protocolConflictResult = (
     installed: cause.installed,
     target: cause.target,
   },
-  preserved: ["installed hook", "repository grants", "credentials", "user rules", "independent hooks", "in-flight work"],
+  preserved: ["installed hook", "old grant files", "credentials", "user rules", "independent hooks", "in-flight work"],
   completed: [],
   pending: ["choose a target package with a compatible resident protocol or finish current work before a separately supported migration"],
 });
@@ -1514,8 +1514,7 @@ export const previewCodexInstallation = (request: InstallationRequest): Installa
           changes: previewChanges(pendingJournal.mutations),
           ownedChanges: ownedChanges(inputs),
         },
-        sourceEgressAuthorized: false,
-        recovery: {
+                recovery: {
           required: true,
           operation: pendingJournal.operation,
           proposalDigest: pendingJournal.proposalDigest,
@@ -1538,14 +1537,13 @@ export const previewCodexInstallation = (request: InstallationRequest): Installa
         ownedChanges: ownedChanges(plan.inputs),
       },
       installed: plan.alreadyInstalled,
-      sourceEgressAuthorized: false,
-      recovery: { required: false },
+            recovery: { required: false },
       trust: {
         status: "native-confirmation-required",
         guidance: "Start Codex normally in the repository and approve its native repository and hook review prompts. No trust record or bypass flag was changed.",
       },
       completed: [],
-      pending: ["install using this proposal digest", "enable each repository separately"],
+      pending: ["install using this proposal digest", "configure file includes/excludes if you want to narrow or turn off review"],
     };
   } catch (cause) {
     const inputs = resolveInputs(request);
@@ -1647,7 +1645,7 @@ export const previewCodexUpdate = (request: InstallationRequest): InstallationRe
           totalFiles: pendingJournal.mutations.length,
           command: updateRecoveryCommand(inputs, pendingJournal.proposalDigest),
         },
-        preserved: ["repository grants", "credentials", "user rules", "independent hooks", "in-flight work"],
+        preserved: ["old grant files", "credentials", "user rules", "independent hooks", "in-flight work"],
         completed: pendingJournal.completed
           .map((index) => pendingJournal.mutations[index]?.description)
           .filter((value) => value !== undefined),
@@ -1681,8 +1679,7 @@ export const previewCodexUpdate = (request: InstallationRequest): InstallationRe
       },
       alreadyCurrent: plan.alreadyCurrent,
       automaticUpdate: false,
-      sourceEgressAuthorized: false,
-      preserved: ["repository grants", "credentials", "user rules", "independent hooks", "in-flight work"],
+            preserved: ["old grant files", "credentials", "user rules", "independent hooks", "in-flight work"],
       trust: {
         modified: false,
         status: plan.alreadyCurrent ? "unchanged" : "renewal-required",
@@ -1764,7 +1761,7 @@ export const updateCodexIntegration = async (request: InstallationRequest): Prom
           status: "updated",
           host: { adapter: "codex", home: inputs.home },
           resumed: true,
-          preserved: ["repository grants", "credentials", "user rules", "independent hooks", "in-flight work"],
+          preserved: ["old grant files", "credentials", "user rules", "independent hooks", "in-flight work"],
           trust: { modified: false, status: "renewal-required", bypassUsed: false },
           restart: { required: true, processesStopped: false },
           completed: existingJournal.mutations.map((change) => change.description),
@@ -1789,7 +1786,7 @@ export const updateCodexIntegration = async (request: InstallationRequest): Prom
           operation: "update",
           status: "already-current",
           host: { adapter: "codex", home: inputs.home },
-          preserved: ["repository grants", "credentials", "user rules", "independent hooks", "in-flight work"],
+          preserved: ["old grant files", "credentials", "user rules", "independent hooks", "in-flight work"],
           trust: { modified: false, status: "unchanged", bypassUsed: false },
           restart: { required: false, processesStopped: false },
           completed: [],
@@ -1819,7 +1816,7 @@ export const updateCodexIntegration = async (request: InstallationRequest): Prom
             totalFiles: plan.mutations.length,
             command: updateRecoveryCommand(inputs, plan.digest),
           },
-          preserved: ["repository grants", "credentials", "user rules", "independent hooks", "in-flight work"],
+          preserved: ["old grant files", "credentials", "user rules", "independent hooks", "in-flight work"],
           completed: (current?.completed ?? [])
             .map((index) => plan.mutations[index]?.description)
             .filter((value) => value !== undefined),
@@ -1831,7 +1828,7 @@ export const updateCodexIntegration = async (request: InstallationRequest): Prom
         operation: "update",
         status: "updated",
         host: { adapter: "codex", home: inputs.home },
-        preserved: ["repository grants", "credentials", "user rules", "independent hooks", "in-flight work"],
+        preserved: ["old grant files", "credentials", "user rules", "independent hooks", "in-flight work"],
         trust: { modified: false, status: "renewal-required", bypassUsed: false },
         restart: { required: true, processesStopped: false },
         completed: plan.mutations.map((change) => change.description),
@@ -1884,9 +1881,8 @@ export const installCodexIntegration = async (request: InstallationRequest): Pro
           status: "installed",
           host: { adapter: "codex", home: inputs.home },
           resumed: true,
-          sourceEgressAuthorized: false,
-          completed: existingJournal.mutations.map((change) => change.description),
-          pending: ["enable a canonical repository with matching-digest approval", "approve native Codex trust prompts when shown"],
+                    completed: existingJournal.mutations.map((change) => change.description),
+          pending: ["make Jev credentials available and configure file settings if desired", "approve native Codex trust prompts when shown"],
         };
       }
       const plan = makeInstallPlan(request);
@@ -1911,9 +1907,8 @@ export const installCodexIntegration = async (request: InstallationRequest): Pro
           operation: "install",
           status: "already-installed",
           host: { adapter: "codex", home: inputs.home },
-          sourceEgressAuthorized: false,
-          completed: [],
-          pending: ["enable a canonical repository separately"],
+                    completed: [],
+          pending: ["make Jev credentials available and configure file settings if desired"],
         };
       }
       const journal: Journal = { version: 1, operation: "install", proposalDigest: plan.digest, completed: [], mutations: plan.mutations };
@@ -1937,9 +1932,8 @@ export const installCodexIntegration = async (request: InstallationRequest): Pro
         operation: "install",
         status: "installed",
         host: { adapter: "codex", home: inputs.home },
-        sourceEgressAuthorized: false,
-        completed: plan.mutations.map((change) => change.description),
-        pending: ["enable a canonical repository with matching-digest approval", "approve native Codex trust prompts when shown"],
+                completed: plan.mutations.map((change) => change.description),
+        pending: ["make Jev credentials available and configure file settings if desired", "approve native Codex trust prompts when shown"],
         trust: { modified: false, bypassUsed: false },
       };
     });
@@ -1973,7 +1967,7 @@ export const uninstallCodexIntegration = async (request: InstallationRequest): P
             resumed: true,
             completed: existingJournal.mutations.map((change) => change.description),
             pending: [],
-            remaining: ["repository grants", "credentials", "user rules", "already dispatched requests cannot be recalled"],
+            remaining: ["old grant files", "credentials", "user rules", "already dispatched requests cannot be recalled"],
           };
         }
         throw new Error("another journaled operation requires recovery before uninstall");
@@ -1988,7 +1982,7 @@ export const uninstallCodexIntegration = async (request: InstallationRequest): P
           proposal: { digest: plan.digest, changes: [] },
           completed: [],
           pending: [],
-          remaining: ["repository grants", "credentials", "user rules", "already dispatched requests cannot be recalled"],
+          remaining: ["old grant files", "credentials", "user rules", "already dispatched requests cannot be recalled"],
         };
       }
       if (request.proposalDigest === undefined) {
@@ -2000,7 +1994,7 @@ export const uninstallCodexIntegration = async (request: InstallationRequest): P
           proposal: { digest: plan.digest, changes: previewChanges(plan.mutations) },
           completed: [],
           pending: ["rerun uninstall with this proposal digest"],
-          remaining: ["repository grants", "credentials", "user rules", "already dispatched requests cannot be recalled"],
+          remaining: ["old grant files", "credentials", "user rules", "already dispatched requests cannot be recalled"],
         };
       }
       if (request.proposalDigest !== plan.digest) {
@@ -2037,7 +2031,7 @@ export const uninstallCodexIntegration = async (request: InstallationRequest): P
         host: { adapter: "codex", home: inputs.home },
         completed: plan.mutations.map((change) => change.description),
         pending: [],
-        remaining: ["repository grants", "credentials", "user rules", "already dispatched requests cannot be recalled"],
+        remaining: ["old grant files", "credentials", "user rules", "already dispatched requests cannot be recalled"],
       };
     });
   } catch (cause) {

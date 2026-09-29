@@ -104,7 +104,7 @@ else console.log('{"version":1,"status":"available"}');
     ]));
     const result = await diagnoseInstalledIntegration({
       installation: request,
-      repository: readyCheck("repository-enablement"),
+      repository: readyCheck("file-selection"),
       credential: {
         stage: "credential-accessibility",
         status: "ready",
@@ -126,7 +126,7 @@ else console.log('{"version":1,"status":"available"}');
         expect.objectContaining({ stage: "resident", status: "unknown" }),
         expect.objectContaining({ stage: "host-trust", status: "unknown" }),
         expect.objectContaining({ stage: "credential-accessibility", status: "ready" }),
-        expect.objectContaining({ stage: "repository-enablement", status: "ready" }),
+        expect.objectContaining({ stage: "file-selection", status: "ready" }),
       ]),
     });
     expect(result.nextSteps.map((step) => step.stage)).toEqual(expect.arrayContaining(["resident", "host-trust"]));
@@ -139,7 +139,7 @@ else console.log('{"version":1,"status":"available"}');
     writeFileSync(join(codexHome, "hooks.json"), `${JSON.stringify(hooks)}\n`);
     const drift = await diagnoseInstalledIntegration({
       installation: request,
-      repository: readyCheck("repository-enablement"),
+      repository: readyCheck("file-selection"),
       credential: readyCheck("credential-accessibility"),
     });
     expect(drift).toMatchObject({
@@ -150,7 +150,7 @@ else console.log('{"version":1,"status":"available"}');
     });
     const unsupportedWithDrift = await diagnoseInstalledIntegration({
       installation: { ...request, codexExecutable: "/bin/true" },
-      repository: readyCheck("repository-enablement"),
+      repository: readyCheck("file-selection"),
       credential: readyCheck("credential-accessibility"),
     });
     expect(unsupportedWithDrift).toMatchObject({

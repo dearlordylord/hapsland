@@ -11,6 +11,6 @@ through configuration explanation.
 The decision adopts the bounded recommendation in
 [the file-filter research](https://github.com/dearlordylord/hapsland-research/blob/master/PRODUCT-CONFIG-FILE-FILTER-RESEARCH-2026-09-19.md).
 
-Implementation is tracked by Phase F issue #3.
-The later directory-consent follow-up (issue #2)
-must preserve these exclusion constraints.
+Implementation is tracked by Phase F issue #3. The target uses file
+selection without a separate repository or directory grant. Any later
+file-selection change must preserve these exclusion constraints.

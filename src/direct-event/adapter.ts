@@ -3,6 +3,7 @@ import { realpath, stat } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import * as Effect from "effect/Effect";
+import { loadConfiguration } from "../configuration/load.ts";
 import type {
   DirectCandidate,
   DirectObservation,
@@ -10,8 +11,8 @@ import type {
   PhysicalRootIdentity,
   CodexHostVersion,
 } from "./model.ts";
-import { MAX_SOURCE_BYTES, captureStable } from "./capture.ts";
-import { eligibleNamedPath } from "./selection.ts";
+import { MAX_SOURCE_BYTES, captureStable, type CaptureHooks } from "./capture.ts";
+import { eligibleNamedPath, resolvedDirectFilePolicy } from "./selection.ts";
 
 const execFileAsync = promisify(execFile);
 export const MAX_CODEX_COMMAND_BYTES = 65_536;
@@ -24,6 +25,11 @@ const record = (value: unknown): Readonly<Record<string, unknown>> | undefined =
 
 const nonEmpty = (value: unknown): value is string =>
   typeof value === "string" && value.length > 0;
+
+// A child marker without a usable child ID cannot safely become parent advice.
+const ambiguousAgentIdentity = (event: Readonly<Record<string, unknown>>): boolean =>
+  !nonEmpty(event.agent_id) &&
+  (nonEmpty(event.agent_type) || nonEmpty(event.agent_transcript_path));
 
 export const isCodexNativeApplyPatch = (value: unknown): boolean => {
   const event = record(value);
@@ -157,7 +163,7 @@ export const adaptCodexDirectEvent = Effect.fn("DirectEvent.adaptCodexDirectEven
     !nonEmpty(event.turn_id) ||
     !nonEmpty(event.tool_use_id) ||
     !nonEmpty(event.cwd) ||
-    (event.agent_id !== undefined && !nonEmpty(event.agent_id))
+    ((event.agent_id !== undefined && !nonEmpty(event.agent_id)) || ambiguousAgentIdentity(event))
   ) return undefined;
   const input = record(event.tool_input);
   if (input === undefined || !nonEmpty(input.command)) return undefined;
@@ -216,7 +222,7 @@ export const adaptCodexReply = Effect.fn("DirectEvent.adaptCodexReply")(function
     event === undefined || event.hook_event_name !== "PostToolUse" ||
     !nonEmpty(event.session_id) || !nonEmpty(event.turn_id) ||
     !nonEmpty(event.tool_use_id) || !nonEmpty(event.cwd) ||
-    (event.agent_id !== undefined && !nonEmpty(event.agent_id))
+    ((event.agent_id !== undefined && !nonEmpty(event.agent_id)) || ambiguousAgentIdentity(event))
   ) return undefined;
   const rootOption = yield* canonicalGitRoot(event.cwd);
   if (rootOption._tag === "None") return undefined;
@@ -243,7 +249,7 @@ export const adaptComposedHookIdentity = Effect.fn("DirectEvent.adaptComposedHoo
   const event = record(value);
   if (event?.hook_event_name !== eventName || !nonEmpty(event.session_id) ||
       !nonEmpty(event.cwd) ||
-      (event.agent_id !== undefined && !nonEmpty(event.agent_id))) return undefined;
+      ((event.agent_id !== undefined && !nonEmpty(event.agent_id)) || ambiguousAgentIdentity(event))) return undefined;
   if (eventName === "SubagentStop" && !nonEmpty(event.agent_id)) return undefined;
   if (eventName === "PostToolUse" || eventName === "PreToolUse") {
     if (!nonEmpty(event.tool_use_id)) return undefined;
@@ -280,13 +286,20 @@ const boundedSource = (value: unknown): value is string =>
   typeof value === "string" && Buffer.byteLength(value, "utf8") <= MAX_SOURCE_BYTES;
 
 /** Claude has no observed turn ID; preserve supplied child identity. */
-export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEvent")(function* (value: unknown) {
+export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEvent")(function* (
+  value: unknown,
+  options: {
+    readonly userConfigPath?: string;
+    /** Test observation of the attribution capture. */
+    readonly captureHooks?: CaptureHooks;
+  } = {},
+) {
   const event = record(value);
   if (event?.hook_event_name !== "PostToolUse" ||
     (event.tool_name !== "Edit" && event.tool_name !== "Write") ||
     !nonEmpty(event.session_id) || !nonEmpty(event.tool_use_id) || !nonEmpty(event.cwd) ||
     event.turn_id !== undefined ||
-    (event.agent_id !== undefined && !nonEmpty(event.agent_id))) return undefined;
+    ((event.agent_id !== undefined && !nonEmpty(event.agent_id)) || ambiguousAgentIdentity(event))) return undefined;
   const input = record(event.tool_input);
   const response = record(event.tool_response);
   if (input === undefined || response === undefined ||
@@ -310,9 +323,20 @@ export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEv
   const fromCwd = relative(resolve(event.cwd), resolve(path));
   if (fromCwd === ".." || fromCwd.startsWith(`..${sep}`) || isAbsolute(fromCwd)) return undefined;
   const relativePath = [fromRoot, fromCwd].filter(Boolean).join(sep).replaceAll(sep, "/");
-  const eligible = yield* eligibleNamedPath(root.value.root, relativePath, undefined, root.value.rootIdentity);
+  // Exact edit attribution needs a current file snapshot. Apply the same
+  // configured selection as resident preparation before taking that snapshot.
+  const configuration = yield* loadConfiguration(
+    root.value.root,
+    options.userConfigPath === undefined ? {} : { userConfigPath: options.userConfigPath },
+  );
+  const eligible = yield* eligibleNamedPath(
+    root.value.root,
+    relativePath,
+    resolvedDirectFilePolicy(configuration.policy),
+    root.value.rootIdentity,
+  );
   if (eligible === undefined) return undefined;
-  const content = yield* captureStable(root.value.root, eligible, undefined, root.value.rootIdentity);
+  const content = yield* captureStable(root.value.root, eligible, options.captureHooks, root.value.rootIdentity);
   if (content === undefined) return undefined;
   let candidate: DirectCandidate;
   if (event.tool_name === "Edit") {

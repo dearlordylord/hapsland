@@ -8,13 +8,17 @@ import type {
   ReviewResult,
   SnapshotRef,
 } from "../domain/contracts.ts";
-import { Consent, rootRelativePath } from "./consent.ts";
+import { discoverWorkingTreeRoot, hasGitMetadata, rootRelativePath } from "../repository/root.ts";
+import { eligibleNamedPath } from "../direct-event/selection.ts";
+import type { Consent } from "./consent.ts";
 import type { ReviewSettings } from "./review-config.ts";
 import { resolveConfiguration } from "../configuration/resolve.ts";
 import { DEFAULT_RUNTIME_SETTINGS } from "../configuration/types.ts";
 import type { ResolvedPolicy } from "../configuration/types.ts";
 import { selectGlobalPath } from "../policy/file-policy.ts";
 import { applicableRules, deriveAdvice } from "../policy/rules.ts";
+import { compareAdviceOrder, withinAdviceBudget } from "../rules/decision.ts";
+import { V1_LEGACY_FILE_INPUT_CONTRACT } from "../rules/contracts.ts";
 import { ReviewBackend } from "../ports/review-backend.ts";
 import { DedupeStore } from "../ports/dedupe-store.ts";
 import { SnapshotReader } from "../ports/snapshot-reader.ts";
@@ -25,8 +29,11 @@ export type ReviewContext =
   | {
       readonly _tag: "authorized";
       readonly root: string;
-      readonly consent: Consent.Interface;
+      /** Retained only for callers that still supply the retired grant service. */
+      readonly consent?: Consent.Interface;
       readonly settings: ReviewSettings;
+      /** Reload file settings at egress and advice boundaries in installed entry points. */
+      readonly reloadPolicy?: () => Effect.Effect<ResolvedPolicy, unknown>;
     };
 
 type CapturedRuntimeSettings = {
@@ -132,10 +139,50 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
     };
   }
 
+  const currentSelection = () => Effect.gen(function* () {
+    const policy = context._tag === "authorized" && context.reloadPolicy !== undefined
+      ? yield* context.reloadPolicy().pipe(Effect.result)
+      : Result.succeed(runtime.policy);
+    if (Result.isFailure(policy)) return "unavailable" as const;
+    return selectGlobalPath(policy.success, relativePath).selected ? "selected" as const : "excluded" as const;
+  });
+  const beforeRead = yield* currentSelection();
+  if (beforeRead === "excluded") return {
+    status: "skipped" as const,
+    path: relativePath,
+    reason: "file is no longer selected by current settings",
+    code: "excluded" as const,
+  };
+  if (beforeRead === "unavailable") return {
+    status: "unavailable" as const,
+    path: relativePath,
+    reason: "review configuration is unavailable before source read",
+    retryable: true,
+    code: "invalid_configuration" as const,
+  };
+
+  const readRoot = context._tag === "authorized" ? context.root : request.event.cwd;
+  const workingTree = yield* discoverWorkingTreeRoot(readRoot).pipe(Effect.option);
+  if (Option.isNone(workingTree) && hasGitMetadata(readRoot)) return {
+    status: "unavailable" as const,
+    path: relativePath,
+    reason: "Git eligibility is unavailable before source read",
+    retryable: true,
+    code: "invalid_configuration" as const,
+  };
+  if (Option.isSome(workingTree)) {
+    const candidate = yield* eligibleNamedPath(readRoot, relativePath);
+    if (candidate === undefined) return {
+      status: "skipped" as const,
+      path: relativePath,
+      reason: "file is ignored by Git or is not a safe regular path",
+      code: "excluded" as const,
+    };
+  }
+
   const snapshots = yield* SnapshotReader.Service;
   const backend = yield* ReviewBackend.Service;
   const dedupe = yield* DedupeStore.Service;
-  const readRoot = context._tag === "authorized" ? context.root : request.event.cwd;
   const initial = yield* snapshots.read(readRoot, relativePath).pipe(Effect.option);
   if (Option.isNone(initial)) {
     return {
@@ -152,6 +199,8 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
     context._tag === "authorized" && context.settings.rules !== undefined
       ? context.settings.rules
       : undefined,
+    { artifactKind: "typeShape", inputContract: V1_LEGACY_FILE_INPUT_CONTRACT,
+      complete: true },
   );
   if (rules.length === 0) {
     return {
@@ -162,27 +211,20 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
     };
   }
 
-  if (context._tag === "authorized") {
-    const authorization = yield* context.consent.authorize(
-      readRoot,
-      context.settings.backend,
-      context.settings.destination,
-    );
-    if (authorization.status !== "approved") {
-      return {
-        status: "skipped" as const,
-        path: initial.value.path,
-        reason:
-          authorization.status === "unsupported"
-            ? authorization.reason
-            : "repository review consent is required; run the explicit enable operation",
-        code:
-          authorization.status === "unsupported"
-            ? ("unsupported_repository" as const)
-            : ("missing_consent" as const),
-      };
-    }
-  }
+  const beforeDispatch = yield* currentSelection();
+  if (beforeDispatch === "excluded") return {
+    status: "skipped" as const,
+    path: relativePath,
+    reason: "file is no longer selected by current settings",
+    code: "excluded" as const,
+  };
+  if (beforeDispatch === "unavailable") return {
+    status: "unavailable" as const,
+    path: relativePath,
+    reason: "review configuration is unavailable before dispatch",
+    retryable: true,
+    code: "invalid_configuration" as const,
+  };
 
   const evaluated = yield* backend
     .evaluate({
@@ -245,6 +287,17 @@ const reviewPath = Effect.fn("Review.reviewPath")(function* (
       code: "stale_snapshot" as const,
     };
   }
+
+  const beforeAdvice = yield* currentSelection();
+  if (beforeAdvice !== "selected") return {
+    status: "unavailable" as const,
+    path: initial.value.path,
+    reason: beforeAdvice === "excluded"
+      ? "file is no longer selected by current settings; advice is stale"
+      : "review configuration is unavailable before advice",
+    retryable: true,
+    code: beforeAdvice === "excluded" ? "stale_snapshot" as const : "invalid_configuration" as const,
+  };
 
   const snapshot = {
     path: initial.value.path,
@@ -321,15 +374,10 @@ export const review = Effect.fn("Review.run")(function* (
   );
   const advice = results
     .flatMap((result) => (result.status === "reviewed" ? result.advice : []))
-    .sort(
-      (left, right) =>
-        right.probability - left.probability ||
-        left.snapshot.path.localeCompare(right.snapshot.path) ||
-        left.ruleId.localeCompare(right.ruleId),
-    )
-    .slice(
-      0,
-      runtime.adviceBudget,
-    );
+    .sort((left, right) => compareAdviceOrder(
+      { probability: left.probability, path: left.snapshot.path, ruleId: left.ruleId },
+      { probability: right.probability, path: right.snapshot.path, ruleId: right.ruleId },
+    ))
+    .filter((_, position) => withinAdviceBudget(position, runtime.adviceBudget));
   return { version: 1 as const, eventId: request.event.id, results, advice } satisfies ReviewResponse;
 });

@@ -11,7 +11,8 @@ import { closeSync, constants, openSync, readFileSync, readSync } from "node:fs"
 import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
-import { Consent, rootRelativePath } from "./runtime/consent.ts";
+import { discoverWorkingTreeRoot, rootRelativePath } from "./repository/root.ts";
+import { admitReview, selectFile } from "./configuration/decision.ts";
 import {
   DEFAULT_BACKEND,
   DEFAULT_CREDENTIAL_ENV_VAR,
@@ -143,6 +144,7 @@ const ControlledOptions = Schema.Struct({
   ),
   delayMs: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
   failure: Schema.optionalKey(Schema.String),
+  failureOnSourceIncludes: Schema.optionalKey(Schema.String),
   capturePath: Schema.optionalKey(Schema.String),
   outcomePath: Schema.optionalKey(Schema.String),
   requireCredential: Schema.optionalKey(Schema.Boolean),
@@ -172,7 +174,7 @@ const ConsentOperation = Schema.Union([
     version: Schema.Literal(1),
     operation: Schema.Literal("enable-confirm"),
     cwd: Schema.String,
-    proposalDigest: Consent.ProposalDigest,
+    proposalDigest: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)),
   }),
   Schema.Struct({
     version: Schema.Literal(1),
@@ -249,7 +251,6 @@ const SetupOperation = Schema.Struct({
   codexHome: Schema.optionalKey(Schema.NonEmptyString),
   codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
   installProposalDigest: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/))),
-  consentProposalDigest: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/))),
   interactive: Schema.optionalKey(Schema.Boolean),
 });
 type SetupOperation = typeof SetupOperation.Type;
@@ -262,7 +263,6 @@ const FirstReviewDemoOperation = Schema.Struct({
   codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
   demoId: Schema.optionalKey(Schema.NonEmptyString),
   selectionDigest: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/))),
-  consentProposalDigest: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/))),
 });
 type FirstReviewDemoOperation = typeof FirstReviewDemoOperation.Type;
 
@@ -392,24 +392,17 @@ const assertNever = (value: never): never => {
 
 const preflight = (
   request: ReviewRequest,
-  statePath: string,
   userConfigPath: string | undefined,
 ) =>
   Effect.gen(function* () {
-    const consent = yield* Consent.Service;
-    const discovered = yield* consent.discoverRoot(request.event.cwd).pipe(Effect.result);
+    const discovered = yield* discoverWorkingTreeRoot(request.event.cwd).pipe(Effect.result);
     if (discovered._tag === "Failure") {
       return {
-        consent,
         root: undefined,
         settings: {
           backend: DEFAULT_BACKEND,
           destination: DEFAULT_DESTINATION,
           credentialEnvVar: DEFAULT_CREDENTIAL_ENV_VAR,
-        },
-        authorization: {
-          status: "unsupported" as const,
-          reason: "review is unsupported outside a discoverable Git working tree",
         },
       };
     }
@@ -418,34 +411,41 @@ const preflight = (
       root,
       userConfigPath === undefined ? {} : { userConfigPath },
     );
-    const authorization = yield* consent.authorize(
-      request.event.cwd,
-      settings.backend,
-      settings.destination,
-    );
-    return { consent, root, settings, authorization };
-  }).pipe(Effect.provide(Consent.layer({ statePath })));
+    return { root, settings };
+  });
 
-const noConsentResponse = (
+const unsupportedRepositoryResponse = (
   request: ReviewRequest,
-  authorization: Extract<Consent.Authorization, { status: "missing-consent" | "unsupported" }>,
 ) => ({
   version: 1 as const,
   eventId: request.event.id,
   results: request.event.paths.map((path) => ({
     status: "skipped" as const,
     path,
-    reason:
-      authorization.status === "unsupported"
-        ? authorization.reason
-        : "repository review consent is required; run the explicit enable operation",
-    code:
-      authorization.status === "unsupported"
-        ? ("unsupported_repository" as const)
-        : ("missing_consent" as const),
+    reason: "review is unsupported outside a discoverable Git working tree",
+    code: "unsupported_repository" as const,
   })),
   advice: [],
 });
+
+const fileSelectionReadiness = (settings: ReviewSettings) => {
+  const includesEmpty = settings.configuration.policy.includes.length === 0;
+  const userExcludeAll = settings.configuration.policy.excludes.some((entry) =>
+    entry.origin.layer === "user" && entry.value === "**/*");
+  const excludeAll = settings.configuration.policy.excludes.some((entry) => entry.value === "**/*");
+  const selected = selectFile({ protected: false, excluded: excludeAll,
+    includesEmpty, included: true }) === "selected";
+  return {
+    selected,
+    observed: includesEmpty
+      ? "effective include list selects no files"
+      : userExcludeAll
+        ? "user file settings exclude all files"
+        : excludeAll
+          ? "effective file settings exclude all files"
+        : "effective file settings loaded",
+  };
+};
 
 const runtimeLayer = (
   controlled: ControlledDecisionModelOptions | undefined,
@@ -717,9 +717,8 @@ const runOperation = (
   userConfigPath: string | undefined,
 ) =>
   Effect.gen(function* () {
-    const consent = yield* Consent.Service;
     const cwd = operation.cwd;
-    const root = yield* consent.discoverRoot(cwd);
+    const root = yield* discoverWorkingTreeRoot(cwd);
     /**
      * Status is observational: a malformed current configuration must be
      * reported as readiness state, not prevent an explicit session receipt
@@ -732,13 +731,7 @@ const runOperation = (
         userConfigPath === undefined ? {} : { userConfigPath },
       ).pipe(Effect.result);
       const settings = configuration._tag === "Success" ? configuration.success : undefined;
-      const backend = settings?.backend ?? DEFAULT_BACKEND;
-      const destination = settings?.destination ?? DEFAULT_DESTINATION;
       const credentialEnvVar = settings?.credentialEnvVar ?? DEFAULT_CREDENTIAL_ENV_VAR;
-      const grants = yield* consent.list();
-      const authorization = yield* consent
-        .authorize(cwd, backend, destination)
-        .pipe(Effect.result);
       const credentialResolution = yield* Effect.promise(() => resolveCredential({
         envVar: credentialEnvVar,
         environmentOnly: settings !== undefined &&
@@ -746,11 +739,10 @@ const runOperation = (
       }));
       const credentials = credentialResolution.status === "present";
       const configurationStatus = settings === undefined ? "invalid" : "ready";
+      const selectionOff = settings !== undefined && !fileSelectionReadiness(settings).selected;
       const readinessStatus =
         configurationStatus === "ready" &&
-        authorization._tag === "Success" &&
-        authorization.success.status === "approved" &&
-        credentials
+        credentials && !selectionOff
           ? "ready"
           : "not-ready";
       const activity =
@@ -773,10 +765,8 @@ const runOperation = (
         readiness: {
           status: readinessStatus,
           configuration: configurationStatus,
-          consent:
-            authorization._tag === "Failure"
-              ? "unavailable"
-              : authorization.success.status,
+          fileSelection: settings === undefined ? "unavailable" :
+            selectionOff ? "none" : "configured",
           credentials: {
             envVar: credentialEnvVar,
             present: credentials,
@@ -790,16 +780,11 @@ const runOperation = (
           resident: residentActivity,
           legacyReceipt: activity,
         },
-        grants: grants.map((grant) => ({
-          backend: grant.backend,
-          destination: grant.destination,
-          scope: "repository-wide eligible source files",
-        })),
       };
       return operation.format === "human"
         ? `${formatReceiptStatus(
             operation.sessionId ?? "<session id required>",
-            `${readinessStatus} (configuration=${configurationStatus}, consent=${output.readiness.consent}, credentials=${credentials ? "present" : "absent"})`,
+            `${readinessStatus} (configuration=${configurationStatus}, files=${output.readiness.fileSelection}, credentials=${credentials ? "present" : "absent"})`,
             activity,
           )}${formatActivityHuman(operation.sessionId ?? "<session id required>", residentActivity)}`
         : output;
@@ -813,54 +798,30 @@ const runOperation = (
     const credentialEnvVar = settings.credentialEnvVar;
     switch (operation.operation) {
       case "enable": {
-        const proposal = yield* consent.preview(cwd, backend, destination);
         return {
           version: 1,
           operation: "enable",
-          status: "preview",
-          proposal: {
-            digest: proposal.digest,
-            repository: { canonicalRoot: proposal.target.root },
-            backend: {
-              id: proposal.target.backend,
-              destination: proposal.target.destination,
-            },
-            scope: proposal.scope,
-          },
+          status: "retired",
+          repository: { canonicalRoot: root },
+          action: "configure includes and excludes in user review settings",
         };
       }
       case "enable-confirm": {
-        const proposal = yield* consent.preview(cwd, backend, destination);
-        if (proposal.digest !== operation.proposalDigest) {
-          return {
-            version: 1,
-            operation: "enable-confirm",
-            status: "proposal-mismatch",
-            proposalDigest: operation.proposalDigest,
-            currentProposalDigest: proposal.digest,
-            repository: { canonicalRoot: proposal.target.root },
-            scope: proposal.scope,
-          };
-        }
-        const identity = yield* consent.enable(proposal);
         return {
           version: 1,
           operation: "enable-confirm",
-          status: "enabled",
-          repository: { canonicalRoot: identity.root },
-          backend: { id: identity.backend, destination: identity.destination },
-          scope: proposal.scope,
+          status: "retired",
+          repository: { canonicalRoot: root },
+          action: "configure includes and excludes in user review settings",
         };
       }
       case "disable": {
-        const revoked = yield* consent.disable(cwd, backend, destination);
         return {
           version: 1,
           operation: "disable",
-          status: revoked ? "disabled" : "already-disabled",
+          status: "retired",
           repository: { canonicalRoot: root },
-          backend: { id: backend, destination },
-          scope: "future dispatches only",
+          action: "set user excludes to [\"**/*\"] to disable review",
         };
       }
       case "credentials": {
@@ -896,7 +857,6 @@ const runOperation = (
   }).pipe(
     Effect.provide(
       Layer.mergeAll(
-        Consent.layer({ statePath }),
         ReceiptStore.layer({ statePath: receiptPath }),
       ),
     ),
@@ -909,9 +869,9 @@ const runReviewRequestCore = (
   userConfigPath: string | undefined,
 ) =>
   Effect.gen(function* () {
-    const authorization = yield* preflight(request, statePath, userConfigPath).pipe(Effect.result);
+    const authorization = yield* preflight(request, userConfigPath).pipe(Effect.result);
     if (authorization._tag === "Failure") {
-      const failure = authorization.failure;
+      const failure: unknown = authorization.failure;
       const detail =
         typeof failure === "object" && failure !== null &&
         "source" in failure && "field" in failure && "reason" in failure
@@ -924,7 +884,7 @@ const runReviewRequestCore = (
           request,
           "invalid_configuration",
           detail === undefined
-            ? "review configuration or consent state is unavailable"
+            ? "review configuration is unavailable"
             : `review configuration is invalid (${detail})`,
         ),
         diagnosticScope: makeDiagnosticScope(
@@ -939,9 +899,10 @@ const runReviewRequestCore = (
       authorization.success.root ?? request.event.cwd,
       authorization.success.settings.backend,
     );
-    if (authorization.success.authorization.status !== "approved") {
+    if (admitReview({ rootValid: authorization.success.root !== undefined,
+      configurationValid: true, credentialReady: true, selected: true }) !== "admitReview") {
       return {
-        response: noConsentResponse(request, authorization.success.authorization),
+        response: unsupportedRepositoryResponse(request),
         diagnosticScope,
       };
     }
@@ -955,7 +916,9 @@ const runReviewRequestCore = (
           ...(credentialStatePath === undefined ? {} : { statePath: credentialStatePath }),
         }))
       : undefined;
-    if (controlled === undefined && credential?.status !== "present") {
+    const credentialAdmission = admitReview({ rootValid: true, configurationValid: true,
+      credentialReady: controlled !== undefined || credential?.status === "present", selected: true });
+    if (credentialAdmission === "refuseCredential") {
         return {
           response: defaultResponse(
             request,
@@ -977,6 +940,7 @@ const runReviewRequestCore = (
         diagnosticScope,
       };
     }
+    const repositoryRoot = authorization.success.root;
     if (credential?.status === "present") {
       const current = readCredentialState(credentialStatePath);
       if (current.generation !== credential.generation ||
@@ -997,9 +961,12 @@ const runReviewRequestCore = (
       authorization.success.settings,
       {
         _tag: "authorized",
-        root: authorization.success.root,
-        consent: authorization.success.consent,
+        root: repositoryRoot,
         settings: authorization.success.settings,
+        reloadPolicy: () => loadReviewSettings(
+          repositoryRoot,
+          userConfigPath === undefined ? {} : { userConfigPath },
+        ).pipe(Effect.map((settings) => settings.configuration.policy)),
       },
       credential?.status === "present"
         ? {
@@ -1172,15 +1139,13 @@ const program = Effect.gen(function* () {
       statePath,
       ...(userConfigPath === undefined ? {} : { userConfigPath }),
       ...(operation.interactive === true ? { readCredential: readMaskedCredential } : {}),
-    }).pipe(Effect.provide(Consent.layer({ statePath })));
+    });
   }
   if (process.argv.includes("--demo") || inputRequestsFirstReviewDemo) {
     const operation: FirstReviewDemoOperation = yield* decodeFirstReviewDemoOperation(input);
     const demoStatePath = process.env.REVIEW_DEMO_STATE_PATH ??
       join(homedir(), ".local", "state", "realtime-review-tool", "demos");
-    return yield* runFirstReviewDemo(operation, { statePath: demoStatePath }).pipe(
-      Effect.provide(Consent.layer({ statePath })),
-    );
+    return yield* runFirstReviewDemo(operation, { statePath: demoStatePath });
   }
   if (requestedInstallationOperation !== undefined || inputRequestsInstallation) {
     const operation = yield* decodeInstallationOperation(input, requestedInstallationOperation);
@@ -1230,12 +1195,11 @@ const program = Effect.gen(function* () {
     switch (operation.operation) {
       case "doctor": {
         const repositoryResult = yield* Effect.gen(function* () {
-          const consent = yield* Consent.Service;
-          const rootResult = yield* consent.discoverRoot(operation.cwd).pipe(Effect.result);
+          const rootResult = yield* discoverWorkingTreeRoot(operation.cwd).pipe(Effect.result);
           if (rootResult._tag === "Failure") {
             return {
               repository: {
-                stage: "repository-enablement",
+                stage: "file-selection",
                 status: "unsupported",
                 observed: "working tree could not be discovered",
                 action: "run doctor from a supported Git working tree",
@@ -1262,7 +1226,7 @@ const program = Effect.gen(function* () {
           if (settingsResult._tag === "Failure") {
             return {
               repository: {
-                stage: "repository-enablement",
+                stage: "file-selection",
                 status: "conflict",
                 observed: "review configuration is invalid",
                 action: "repair the reported review configuration, then rerun doctor",
@@ -1283,11 +1247,6 @@ const program = Effect.gen(function* () {
             };
           }
           const settings = settingsResult.success;
-          const authorization = yield* consent.authorize(
-            operation.cwd,
-            settings.backend,
-            settings.destination,
-          ).pipe(Effect.result);
           const doctorEnvironmentCredential = yield* Config.option(Config.String(settings.credentialEnvVar)).pipe(
             Effect.map((value) => Option.isSome(value) && value.value.length > 0),
           );
@@ -1315,15 +1274,14 @@ const program = Effect.gen(function* () {
             : credential.status === "invalid" || credential.status === "suspended"
               ? "conflict" as const
               : "missing" as const;
+          const fileSelection = fileSelectionReadiness(settings);
           return {
-            repository: authorization._tag === "Success" && authorization.success.status === "approved"
-              ? { stage: "repository-enablement", status: "ready", observed: "enabled for the canonical repository" } satisfies DoctorCheck
-              : {
-                  stage: "repository-enablement",
-                  status: authorization._tag === "Failure" ? "unknown" : "missing",
-                  observed: authorization._tag === "Failure" ? "consent state unavailable" : authorization.success.status,
-                  action: "preview and explicitly enable review for this canonical repository",
-                } satisfies DoctorCheck,
+            repository: {
+              stage: "file-selection",
+              status: fileSelection.selected ? "ready" : "missing",
+              observed: fileSelection.observed,
+              ...(!fileSelection.selected ? { action: "adjust user file includes or excludes to select the files you want reviewed" } : {}),
+            } satisfies DoctorCheck,
             credential: {
               stage: "credential-accessibility",
               status: credentialStatus,
@@ -1344,7 +1302,7 @@ const program = Effect.gen(function* () {
               ...(credentialAction === undefined ? {} : { action: credentialAction }),
             } satisfies DoctorCheck,
           };
-        }).pipe(Effect.provide(Consent.layer({ statePath })));
+        });
         return yield* Effect.promise(() => diagnoseInstalledIntegration({
           installation: request,
           repository: repositoryResult.repository,
@@ -1377,9 +1335,10 @@ const program = Effect.gen(function* () {
   const controlled = isControlledReviewer ? yield* controlledOptions : undefined;
 
   if (isClaudeHook || isOpenCodeHook) {
+    if (isClaudeHook && !isComposedEditHook) return {};
     const nativeEvent = yield* decodeJson(input);
     const observation = isClaudeHook
-      ? yield* adaptClaudeDirectEvent(nativeEvent)
+      ? yield* adaptClaudeDirectEvent(nativeEvent, userConfigPath === undefined ? {} : { userConfigPath })
       : yield* adaptOpenCodeDirectEvent(nativeEvent);
     return yield* Effect.tryPromise(() => runDirectBoundedHook(
       observation, controlled, statePath, activityPath, userConfigPath,
@@ -1618,14 +1577,14 @@ const isCredentialCommand = process.argv.includes("--login") || process.argv.inc
 const printHelp = () => {
   process.stdout.write(`Hapsland — Codex review integration
 
-  hapsland --pilot            Guided opt-in setup in a terminal
+  hapsland --pilot            Guided setup in a terminal
   hapsland --login            Save a Jev key with masked entry
   hapsland --doctor           Offline readiness check (JSON request on stdin)
-  hapsland --disable          Revoke repository review (JSON request on stdin)
   hapsland --logout           Remove the saved Jev key
 
-Hapsland uses Jev as its external review backend. Installation
-does not permit sending source. --pilot asks separately before enabling a repository.
+Hapsland uses Jev as its external review backend. With an installed runtime
+and Jev credentials, effective file settings select eligible files by default.
+Set user excludes to ["**/*"] to turn review off.
 For automation, use the versioned --setup operation documented in docs/codex-installation.md.
 `);
 };
@@ -1664,7 +1623,7 @@ const pilotSetup = async () => {
       credentialEntered = true;
       return value;
     },
-  }).pipe(Effect.provide(Consent.layer({ statePath }))));
+  }));
   const stage = (result: Awaited<ReturnType<typeof run>>, name: string) =>
     result.stages.find((item) => item.stage === name);
   const action = (result: Awaited<ReturnType<typeof run>>, code: string) =>
@@ -1705,19 +1664,6 @@ const pilotSetup = async () => {
       for (const item of result.actions) process.stderr.write(`Next: ${item.action}.\n`);
       process.exitCode = result.status === "partial" ? 5 : 6;
       return;
-    }
-    const consent = action(result, "approve-repository-consent");
-    if (consent !== undefined) {
-      process.stderr.write(`Repository enablement preview: ${JSON.stringify(stage(result, "repository")?.observed, null, 2)}\n`);
-      process.stderr.write("Enabling permits eligible source from this canonical repository to be sent to Jev.\n");
-      if (!await ask("Enable review for this repository and destination?")) {
-        process.stderr.write("Repository review remains disabled. Run hapsland --pilot to resume.\n");
-        return;
-      }
-      const digest = consent.authorization?.consentProposalDigest;
-      if (digest === undefined) throw new Error("repository preview omitted its approval digest");
-      request = { ...request, consentProposalDigest: digest };
-      result = await run(request);
     }
     process.stderr.write(`Repository: ${stage(result, "repository")?.summary ?? "unavailable"}.\n`);
     if (stage(result, "repository")?.status !== "complete") {
@@ -1828,7 +1774,7 @@ if (isDirectEventReady(output)) {
       process.stdout.write(`Jev key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}. No Jev request or review was sent.\nNext: complete Codex sign-in and native trust, then run hapsland --pilot or the offline doctor.\n`);
     } else {
       const next = result.action ?? (result.operation === "logout"
-        ? "Repository grants remain; disable review separately if needed."
+        ? "Use user file exclusions to stop future review dispatches if needed."
         : result.status === "invalid"
           ? "Enter a nonempty Jev key and retry hapsland --login. The previous saved key was preserved."
           : result.status === "cancelled"
@@ -1839,7 +1785,7 @@ if (isDirectEventReady(output)) {
       process.stdout.write(`${result.operation === "logout" ? "Logout" : "Login"}: ${String(result.status)}. ${String(next)}\n`);
       if (result.operation === "logout") {
         const environment = result.environmentOverride as { envVar?: string; active?: boolean } | undefined;
-        if (environment?.active === true) process.stdout.write(`${environment.envVar ?? "The selected environment credential"} remains active; disable repository review to stop dispatch.\n`);
+        if (environment?.active === true) process.stdout.write(`${environment.envVar ?? "The selected environment credential"} remains active; set user excludes to ["**/*"] to stop dispatch.\n`);
       }
     }
   } else {

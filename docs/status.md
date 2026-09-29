@@ -14,7 +14,7 @@ Run the offline, read-only doctor with an explicit repository and selected Codex
 The equivalent command is `hapsland --doctor`. Doctor checks the packaged runtime,
 parser and resident entry point, exact Codex version, selected configuration, the owned
 feature/hook record, duplicates and local drift, resident reachability, credential
-presence in the doctor process, and enablement for the canonical repository. The doctor
+presence in the doctor process, and effective file settings for the canonical repository. The doctor
 names that inspected context; actual-hook and saved-credential accessibility remain
 `unknown` until an independent, nonprompting probe verifies them. It
 does not prompt, repair configuration, launch the resident, read source, or call Jev.
@@ -72,7 +72,7 @@ Use an explicit session ID with the status operation:
 }
 ```
 
-The JSON response keeps `readiness` (current configuration, consent, and credential
+The JSON response keeps `readiness` (current configuration, file selection, and credential
 presence) separate from `activity`. `activitySource` identifies `resident-v1` or the
 explicitly named `legacy-receipt-v1`; `evidence` exposes both views without claiming the
 legacy receipt observes the resident path. Legacy activity is classified as

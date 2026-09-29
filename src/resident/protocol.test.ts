@@ -7,11 +7,34 @@ import {
   MAX_IPC_CONNECTIONS,
   MAX_IPC_FRAME_BYTES,
   STARTUP_READINESS_DEADLINE_MS,
+  CURRENT_IPC_VERSION,
+  encodeCurrentResidentRequest,
+  decodeCurrentResidentRequest,
+  encodeCurrentResidentResponse,
+  decodeCurrentResidentResponse,
   decodeResidentRequest,
   decodeResidentResponse,
 } from "./protocol.ts";
 
 describe("resident protocol bounds", () => {
+  it("uses one current wire version for ticketed admission and lifecycle collection", () => {
+    const ticketed = { version: 2, operation: "collect", lifetime: "owner",
+      ticket: { nonce: "nonce", lifetime: "owner" }, root: "/tmp/repository",
+      advicee: { ...advicee(), host: "claude-code" as const, hostVersion: "2.1.218", turnId: null },
+      dispatch: { statePath: "/tmp/consent", userConfigPath: null, credential: null, controlled: {} } } as const;
+    const lifecycle = { version: 1, operation: "hello" } as const;
+    expect(CURRENT_IPC_VERSION).toBe(3);
+    expect(decodeCurrentResidentRequest(encodeCurrentResidentRequest(ticketed))).toEqual(ticketed);
+    expect(decodeCurrentResidentRequest(encodeCurrentResidentRequest(lifecycle))).toEqual(lifecycle);
+    expect(decodeCurrentResidentRequest(JSON.stringify(ticketed))).toBeUndefined();
+    expect(decodeCurrentResidentRequest(JSON.stringify(lifecycle))).toBeUndefined();
+    expect(decodeCurrentResidentResponse(JSON.parse(encodeCurrentResidentResponse({ version: 2, status: "empty" })), ticketed))
+      .toEqual({ version: 2, status: "empty" });
+    expect(decodeCurrentResidentResponse(JSON.parse(encodeCurrentResidentResponse({ status: "ready", lifetime: "owner", pid: 12 })), lifecycle))
+      .toEqual({ status: "ready", lifetime: "owner", pid: 12 });
+    expect(decodeCurrentResidentResponse({ version: 2, status: "empty" }, ticketed)).toBeUndefined();
+    expect(decodeCurrentResidentResponse({ status: "ready", lifetime: "owner", pid: 12 }, lifecycle)).toBeUndefined();
+  });
   it("accepts finish decisions only on composed turn-end collection with an attempt and deadline signal", () => {
     const request = { version: 1, operation: "collect", lifetime: "lifetime", root: "/tmp/repository",
       advicee: advicee(), dispatch: { statePath: "/tmp/consent", userConfigPath: null, credential: null, controlled: {} },
@@ -23,13 +46,14 @@ describe("resident protocol bounds", () => {
     }
   });
 
-  it("strictly decodes source-free v2 terminal statuses", () => {
-    expect(decodeResidentResponse({ version: 2, status: "clear" })).toEqual({ version: 2, status: "clear" });
+  it("strictly decodes Claude collection responses without ticket-wide terminal statuses", () => {
+    expect(decodeResidentResponse({ version: 2, status: "empty" })).toEqual({ version: 2, status: "empty" });
     expect(decodeResidentResponse({ version: 2, status: "unavailable", reason: "stale" }))
       .toEqual({ version: 2, status: "unavailable", reason: "stale" });
-    expect(decodeResidentResponse({ version: 2, status: "clear", path: "source.ts" })).toBeUndefined();
+    expect(decodeResidentResponse({ version: 2, status: "clear" })).toBeUndefined();
+    expect(decodeResidentResponse({ version: 2, status: "empty", path: "source.ts" })).toBeUndefined();
     expect(decodeResidentResponse({ version: 2, status: "unavailable", reason: "other" })).toBeUndefined();
-    expect(decodeResidentResponse({ version: 2, status: "empty" })).toBeUndefined();
+    expect(decodeResidentResponse({ version: 2, status: "no-work" })).toBeUndefined();
   });
   it("decodes the opt-in advicee work state without changing ordinary collection", () => {
     expect(decodeResidentResponse({ status: "pending" })).toEqual({ status: "pending" });

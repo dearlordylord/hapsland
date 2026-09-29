@@ -1,5 +1,5 @@
 import type { HtmlBuilder } from "foldkit/html";
-import { EVIDENCE_BASE, LANES, REDUCER_SEGMENTS, TIMELINE_CASES, type Lane, type TimelinePanel } from "./timeline";
+import { EVIDENCE_BASE, LANES, TIMELINE_CASES, type Lane, type TimelinePanel } from "./timeline";
 
 const LEFT = 375;
 const RIGHT = 1130;
@@ -62,7 +62,6 @@ const panelView = <Message>(h: HtmlBuilder<Message>, panel: TimelinePanel, maxim
 
 export const timelineView = <Message>(h: HtmlBuilder<Message>, selected: number, select: (index: number) => Message) => {
   const scenario = TIMELINE_CASES[selected] ?? TIMELINE_CASES[0];
-  const segment = REDUCER_SEGMENTS[selected] ?? REDUCER_SEGMENTS[0];
   const maximum = Math.max(5000, Math.ceil(Math.max(...scenario.panels.flatMap((panel) => panel.entries.map((entry) => entry.until ?? entry.at))) / 5000) * 5000);
   return h.section([h.Id("timing-diagrams"), h.Class("card timeline-section")], [
     h.h2([], ["When advice can reach the agent"]),
@@ -76,17 +75,8 @@ export const timelineView = <Message>(h: HtmlBuilder<Message>, selected: number,
     h.div([h.Class("trace-options timeline-options"), h.Role("group"), h.AriaLabel("Select timing scenario")], TIMELINE_CASES.map((item, index) =>
       h.button([h.OnClick(select(index)), h.Class(index === selected ? "trace selected" : "trace")], [item.title]))),
     h.div([h.Class("timeline-reducer")], [
-      h.h3([], [scenario.reducerTitle ?? "Reducer companion"]),
-      h.p([h.Class("description")], ["Event order only · no measured seconds. Waiting for review is separate from returning advice that blocks finish."]),
-      h.p([h.Class("timeline-badge partial")], [segment.length ? "PARTIAL REDUCER COVERAGE" : "NATIVE OBSERVATIONS ONLY"]),
-      h.p([h.Class("description")], [scenario.reducerScope]),
-      ...(segment.length ? [
-        h.ol([h.Class("timeline-steps")], segment.map((entry) => h.li([], [
-          h.strong([], [`${entry.order + 1}. ${entry.label}`]),
-          h.span([], [`${entry.virtualRoundActive ? "round active" : "round closed"} · ${entry.packets} live data item${entry.packets === 1 ? "" : "s"}`]),
-        ]))),
-        h.p([h.Class("description")], ["These steps use accepted reducer changes and presentation labels keyed to typed events. Native timestamps, unknown intervals and repair outcomes above are separate evidence, not reducer-verified facts."]),
-      ] : []),
+      h.h3([], ["Native timing evidence"]),
+      h.p([h.Class("description")], ["These timestamps are retained host observations. The separate canonical replay above shows source-free Bend decisions without assigning measured times to them."]),
     ]),
     h.div([h.Class("timeline-sources")], [
       h.strong([], ["Retained evidence: "]),

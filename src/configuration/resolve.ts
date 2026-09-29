@@ -14,6 +14,7 @@ import {
   type ResolvedPolicy,
 } from "./types.ts";
 import { ConfigurationError } from "./errors.ts";
+import { replaceIncludes } from "./decision.ts";
 
 export type ConfigurationLayer = {
   readonly name: ConfigurationLayerName;
@@ -83,8 +84,7 @@ const dedupePatterns = (
 
 const allLayers = (layers: ReadonlyArray<ConfigurationLayer>): ReadonlyArray<ConfigurationLayer> => {
   const builtIn = layers.find((layer) => layer.name === "built-in");
-  if (builtIn !== undefined) return layers;
-  return [
+  const ordered: Array<ConfigurationLayer> = builtIn !== undefined ? [...layers] : [
     {
       name: "built-in",
       source: "built-in",
@@ -92,7 +92,11 @@ const allLayers = (layers: ReadonlyArray<ConfigurationLayer>): ReadonlyArray<Con
     },
     ...layers,
   ];
+  return ordered.sort((left, right) => layerRank(left.name) - layerRank(right.name));
 };
+
+const layerRank = (name: ConfigurationLayerName): number =>
+  name === "built-in" ? 0 : name === "user" ? 1 : 2;
 
 const effectiveSetting = (
   layers: ReadonlyArray<ConfigurationLayer>,
@@ -130,6 +134,7 @@ export const resolveConfiguration = (
     BUILT_IN_INCLUDES,
   );
   let overriddenIncludes: ReadonlyArray<PatternOrigin> = [];
+  let includeRank = 0;
   let excludes: ReadonlyArray<PatternOrigin> = [];
   const protectedExcludes: Array<PatternOrigin> = [];
   for (const pattern of BUILT_IN_PROTECTED_EXCLUDES) {
@@ -142,12 +147,15 @@ export const resolveConfiguration = (
 
   for (const layer of layers) {
     const suppliedIncludes = includeValues(layer.document);
-    if (suppliedIncludes !== undefined) {
+    const rank = layerRank(layer.name);
+    if (replaceIncludes(suppliedIncludes !== undefined, includeRank, rank)) {
+      if (suppliedIncludes === undefined) throw new Error("canonical include choice lacks patterns");
       overriddenIncludes = dedupePatterns([
         ...overriddenIncludes,
         ...includes.map((entry) => ({ ...entry, active: false })),
       ]);
       includes = dedupePatterns(patternsFor(layer, suppliedIncludes.field, suppliedIncludes.values));
+      includeRank = rank;
     }
     const suppliedExcludes = excludeValues(layer.document);
     if (suppliedExcludes !== undefined) {

@@ -1,4 +1,3 @@
-import { extname } from "node:path";
 import type {
   ConfigurationOrigin,
   PatternOrigin,
@@ -6,21 +5,9 @@ import type {
 } from "../configuration/types.ts";
 import {
   matchesAnyGlob,
-  normalizeRepositoryPath,
 } from "../matcher/glob.ts";
-
-const allowedExtensions = new Set([
-  ".c", ".cc", ".cpp", ".cs", ".css", ".go", ".h", ".hpp", ".html", ".java",
-  ".js", ".jsx", ".json", ".kt", ".md", ".php", ".py", ".rb", ".rs", ".scala",
-  ".sh", ".sql", ".swift", ".toml", ".ts", ".tsx", ".yaml", ".yml",
-]);
-
-const sensitiveNames = /(^|\/)(\.env(?:\..*)?|.*\.(?:key|pem|p12|pfx)|credentials(?:\..*)?|secrets?(?:\..*)?)$/i;
-const generatedNames = /(?:^|\/)(?:package-lock\.json|bun\.lock|yarn\.lock|pnpm-lock\.yaml)$/i;
-const generatedSegments = new Set([
-  ".git", ".idea", ".vscode", "build", "coverage", "dist", "generated", "node_modules",
-  "target", "vendor",
-]);
+import { classifyFileProtection, selectFile } from "../configuration/decision.ts";
+import { pathFacts } from "./path-facts.ts";
 
 export type ProtectedGate =
   | "repository-boundary"
@@ -45,19 +32,21 @@ export type SelectionDecision =
       readonly gate: ProtectedGate;
     });
 
-const normalized = (path: string): string | undefined => normalizeRepositoryPath(path);
-
 /** Filesystem-independent gates. SnapshotReader repeats regular/size/symlink checks. */
 export const protectedPathReason = (path: string): ProtectedGate | undefined => {
-  const value = normalized(path);
-  if (value === undefined || value === ".") return "repository-boundary";
-  if (sensitiveNames.test(value)) return "sensitive";
-  if (generatedNames.test(value)) return "generated-or-vendor";
-  if (value.split("/").some((segment) => generatedSegments.has(segment))) {
-    return "generated-or-vendor";
+  const observed = pathFacts(path);
+  const protection = observed.kind === "invalid"
+    ? classifyFileProtection({ kind: "invalid" })
+    : classifyFileProtection({ kind: "valid", sensitiveName: observed.sensitiveName,
+      generatedOrVendor: observed.generatedOrVendor,
+      allowedExtension: observed.allowedExtension });
+  switch (protection) {
+    case "allowedPath": return undefined;
+    case "repositoryBoundary": return "repository-boundary";
+    case "sensitivePath": return "sensitive";
+    case "generatedOrVendor": return "generated-or-vendor";
+    case "fileExtension": return "file-extension";
   }
-  if (!allowedExtensions.has(extname(value).toLowerCase())) return "file-extension";
-  return undefined;
 };
 
 const matching = (
@@ -69,7 +58,8 @@ export const selectGlobalPath = (
   policy: ResolvedPolicy,
   path: string,
 ): SelectionDecision => {
-  const value = normalized(path);
+  const observed = pathFacts(path);
+  const value = observed.kind === "valid" ? observed.normalized : undefined;
   // Compute configured matches before protected gates so explain can account for
   // an attempted sensitive/generated path without implying that it was eligible.
   const matchingIncludes = value === undefined ? [] : matching(policy.includes, value);
@@ -77,36 +67,23 @@ export const selectGlobalPath = (
     ? []
     : matching([...policy.excludes, ...policy.protectedExcludes], value);
   const gate = protectedPathReason(path);
-  if (value === undefined || gate === "repository-boundary") {
-    return {
-      path,
-      selected: false,
-      reason: "protected",
-      gate: "repository-boundary",
-      matchingIncludes,
-      matchingExcludes,
-    };
-  }
-  if (gate !== undefined) {
-    return {
-      path: value,
-      selected: false,
-      reason: "protected",
-      gate,
-      matchingIncludes,
-      matchingExcludes,
-    };
-  }
-  if (matchingExcludes.length > 0) {
-    return { path: value, selected: false, reason: "excluded", matchingIncludes, matchingExcludes };
-  }
-  if (policy.includes.length === 0) {
-    return { path: value, selected: false, reason: "empty-includes", matchingIncludes, matchingExcludes };
-  }
-  if (matchingIncludes.length === 0) {
-    return { path: value, selected: false, reason: "not-included", matchingIncludes, matchingExcludes };
-  }
-  return { path: value, selected: true, reason: "selected", matchingIncludes, matchingExcludes };
+  const reason = selectFile({
+    protected: gate !== undefined,
+    excluded: matchingExcludes.length > 0,
+    includesEmpty: policy.includes.length === 0,
+    included: matchingIncludes.length > 0,
+  });
+  if (reason === "protected") return {
+    path: value ?? path, selected: false, reason,
+    gate: gate ?? "repository-boundary", matchingIncludes, matchingExcludes,
+  };
+  return {
+    path: value ?? path,
+    selected: reason === "selected",
+    reason,
+    matchingIncludes,
+    matchingExcludes,
+  } as SelectionDecision;
 };
 
 export const originLabel = (value: ConfigurationOrigin): string =>

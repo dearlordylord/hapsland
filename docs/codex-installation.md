@@ -1,11 +1,9 @@
 # Codex installation lifecycle
 
-The versioned operations below apply to an already obtained and verified package
-artifact. For a normal Codex profile, `hapsland --pilot` starts its guided setup;
-the JSON operations provide the automation interface. Public npm installation is
-pending; the [release installation plan](../evidence/release/npm-install-plan.md)
-records the intended registry flow. `hapsland` is the product command; Jev is the
-external backend.
+For a person using a normal Codex profile, start with the
+[npm quickstart](../evidence/release/npm-install-plan.md) and `hapsland --pilot` after the
+registry release. The JSON operations below remain the versioned automation
+interface. `hapsland` is the product command; Jev is the external backend.
 
 After installation, diagnose the selected host and repository without mutation or a
 provider call:
@@ -71,44 +69,37 @@ The default nonempty `TYPESAFE_API_KEY` takes precedence over the saved item. Se
 `credentialEnvVar` in user or project configuration is an explicit environment-only choice;
 missing, empty or invalid selected values do not fall back to the saved default. Replacement and
 logout advance a nonsecret generation file. Resident work captured under an older generation is
-dropped before a provider call. Logout deletes only the owned item and preserves repository grants.
+dropped before a provider call. Logout deletes only the owned credential item.
 If deletion fails, saved-key use is suspended until a later successful login or logout. Logout
 reports when `TYPESAFE_API_KEY` remains active and cannot recall a request already sent to Jev.
 
-Installation and repository enablement are separate. Installation writes the adapter hook and
-an ownership record into the selected Codex home, but grants no permission to send repository
-source. Enablement separately previews the canonical Git root, Jev backend and destination, and
-eligible-source scope. Both mutations require the digest returned by their preview.
-The composed candidate installation adds synchronous `PreToolUse` admission,
-an async background command to the owned `PostToolUse` group, and separately
-owned `Stop`, `SubagentStop`, and `UserPromptSubmit` groups.
-All delivery triggers collect from the same resident work and advice state.
-The matched Linux headless outcome is recorded in
-[the Linux evidence](../evidence/advicing-linux/README.md); remaining conformance
-gates are open, so this is not a new installed-release support declaration.
+Installation writes the adapter hook and an ownership record into the selected Codex home.
+Once the installed runtime runs with Jev credentials, effective file settings select
+otherwise eligible files by default. User exclusions can narrow the set or turn review off.
+Installation requires the digest returned by its preview.
 The install preview's `proposal.ownedChanges` identifies the exact runtime executable,
 entrypoint, Node/platform/architecture, feature key, hook event, matcher, command, timeout, and
 ownership-record path. It does not echo unrelated configuration values.
 
 ## Primary setup flow
 
-`--setup` composes installation, credential selection, repository enablement, execution-context
+`--setup` composes installation, credential selection, file-settings inspection, execution-context
 diagnosis, and native-trust handoff without calling Jev. Start with no approval digests. A headless
 request returns `needs-user-action` with at most four ordered actions and exits 6. The installation
-and repository actions contain the exact proposal digests needed for the next request:
+action contains the exact proposal digest needed for the next request:
 
 ```sh
 printf '%s\n' '{"version":1,"operation":"setup","host":"codex","scope":{"cwd":"/absolute/repository","review":"enabled"},"credential":"environment","codexHome":"/absolute/codex-home"}' \
   | hapsland --setup
 
-printf '%s\n' '{"version":1,"operation":"setup","host":"codex","scope":{"cwd":"/absolute/repository","review":"enabled"},"credential":"environment","codexHome":"/absolute/codex-home","installProposalDigest":"<install-digest>","consentProposalDigest":"<consent-digest>"}' \
+printf '%s\n' '{"version":1,"operation":"setup","host":"codex","scope":{"cwd":"/absolute/repository","review":"enabled"},"credential":"environment","codexHome":"/absolute/codex-home","installProposalDigest":"<install-digest>"}' \
   | TYPESAFE_API_KEY=... hapsland --setup
 ```
 
 Do not substitute a digest from another preview. If installation stops after a write, setup reports
 `partial`, exits 5, and returns `resume-installation` with the original digest. Repeat the same
 request and digest; recovery revalidates completed state before continuing. Repeating completed
-setup is idempotent and does not duplicate the owned hook or repository grant.
+setup is idempotent and does not duplicate the owned hook.
 
 For a saved credential, set `credential` to `saved` and `interactive` to `true`. Setup reads the
 credential through the same masked `/dev/tty` path as `--login`; it never echoes the value. A
@@ -116,10 +107,10 @@ headless caller instead performs `--login --credential-stdin` explicitly, then r
 does not claim native trust is complete: restart Codex normally after current work and accept its
 native repository and exact hook-definition review when prompted.
 
-To finish setup while keeping repository review off, set `scope.review` to `disabled` and
-`credential` to `skip`. This can complete installation and report execution context as unknown,
-but it does not revoke an existing grant until the repository-disable stage itself succeeds. A
-partial installation does not silently turn an enabled repository off.
+To finish setup while keeping review off, set user `excludes` to `["**/*"]`, then
+set `scope.review` to `disabled` and `credential` to `skip`. Setup checks that
+user-owned exclusion and reports execution context as unknown. It leaves old
+grant files untouched.
 
 The lower-level operations below remain available for diagnosis and explicit lifecycle control.
 
@@ -129,15 +120,6 @@ printf '%s\n' '{"version":1,"operation":"install-preview","codexHome":"/absolute
 
 printf '%s\n' '{"version":1,"operation":"install","codexHome":"/absolute/codex-home","proposalDigest":"<preview-digest>"}' \
   | hapsland --install
-
-printf '%s\n' '{"version":1,"operation":"enable","cwd":"/absolute/repository"}' \
-  | hapsland --enable
-
-printf '%s\n' '{"version":1,"operation":"enable-confirm","cwd":"/absolute/repository","proposalDigest":"<enable-digest>"}' \
-  | hapsland --enable-confirm
-
-printf '%s\n' '{"version":1,"operation":"disable","cwd":"/absolute/repository"}' \
-  | hapsland --disable
 
 printf '%s\n' '{"version":1,"operation":"uninstall","codexHome":"/absolute/codex-home"}' \
   | hapsland --uninstall
@@ -159,7 +141,7 @@ The preview names both package versions, runtime and entrypoint paths, resident 
 new owned hook, and the exact files that would change. Update accepts only a compatible resident
 protocol and requires the target package to contain a nonempty package version plus valid,
 versioned runtime metadata; missing or malformed metadata is rejected before any mutation.
-Update changes only the ownership record and owned hook group. Repository grants,
+Update changes only the ownership record and owned hook group. Old grant files,
 credentials, user rules, independent hooks, current source work and running resident processes
 remain untouched. A changed hook reports that Codex must be restarted after current work finishes
 and that native hook trust may need renewal; the updater does not edit trust state or stop a
@@ -176,9 +158,9 @@ concurrent user edits rather than restoring an old whole-file snapshot. A later 
 the updated fingerprint normally.
 
 The first uninstall call is a preview. Repeat it with its `proposalDigest` to remove only the
-owned hook and ownership record. Uninstall preserves repository grants, credentials, user rules,
-unrelated hooks, native trust records, and settings required by remaining hooks. Disable grants
-before uninstall when future review dispatch must stop; uninstall alone does not revoke them.
+owned hook and ownership record. Uninstall preserves old grant files, credentials, user rules,
+unrelated hooks, native trust records, and settings required by remaining hooks. Set user
+`excludes` to `["**/*"]` when future review dispatch must stop.
 Requests already sent to Jev cannot be recalled.
 
 Before writing configuration, the installer executes a bounded probe through the selected
@@ -229,14 +211,12 @@ printf '%s\n' '{"version":1,"operation":"demo","selection":"preview","codexHome"
 The preview declares a 4,096-byte limit for the JSON-encoded provider input (declaration source
 plus metadata), at most two provider calls, and a 180-second wall-clock limit. These bounds
 limit source transmission and prevent an unattended run from growing indefinitely; they are
-not a reason to avoid useful live validation. The preview returns both a
-live-selection digest and an independent repository-consent
-digest for the exact disposable root. Live execution requires both values; an existing grant for
-the current project is never reused. A matching confirmation is consumed atomically before consent
-or budget setup, so concurrent or replayed confirmations cannot start another live execution.
+not a reason to avoid useful live validation. The preview returns a live-selection
+digest for the exact disposable root. A matching confirmation is consumed atomically
+before budget setup, so concurrent or replayed confirmations cannot start another live execution.
 
 ```sh
-printf '%s\n' '{"version":1,"operation":"demo","selection":"live","demoId":"<id>","selectionDigest":"<selection-digest>","consentProposalDigest":"<consent-digest>","codexHome":"/absolute/codex-home"}' \
+printf '%s\n' '{"version":1,"operation":"demo","selection":"live","demoId":"<id>","selectionDigest":"<selection-digest>","codexHome":"/absolute/codex-home"}' \
   | hapsland --demo
 ```
 
@@ -251,7 +231,7 @@ instrumentation, both stages remain `unavailable` and the result is `inconclusiv
 unavailable response, invalid repair, or exceeded budget is also `inconclusive`; it is never
 replaced with a controlled backend.
 Only bounded counts, versions, timestamps and stage outcomes are returned. The provider response
-and synthetic source are not retained. The disposable grant and root are removed after every live
+and synthetic source are not retained. The disposable root is removed after every live
 attempt. To abandon a preview without a Jev call, send `selection: "cancel"` with its `demoId`.
 
 The preview reports fixture setup actions and time independently from live review latency. A live

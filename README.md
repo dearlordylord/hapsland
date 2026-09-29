@@ -6,17 +6,6 @@
 
 ## What is Hapsland
 
-For the domain language and accepted agent-advice behavior, read the
-[product vocabulary](./CONTEXT.md) and
-[Advicing target contract](./docs/advicing-target-contract.md).
-
-For exact installed support, see [installed release compatibility](./docs/installed-release-compatibility.md).
-Current documentation also separates the future [type and function review proposal](./docs/type-function-review-proposal.md)
-and [compatibility assessment](./docs/review-contract-compatibility.md),
-the [Claude host evidence and decisions](./evidence/host-94/decision-and-evidence.md),
-the [historical Codex delivery measurement](./evidence/delivery-97/measurement.md),
-and the [paired evaluation archive](./evidence/evaluation/paired-pilot/README.md).
-
 With Jev-like AI backends, we can get real-time feedback on certain questions about our code.
 
 We can customize and write our own questions and rules,
@@ -65,13 +54,6 @@ The agent who makes bad API and data structure decisions despite you instructing
 
 Right after the file been modified. The agent gets almost immediate *non-blocking* feedback. It makes its own decision whether to follow it.
 
-Hapsland delivers advice; your agent's instructions govern whether it acts on
-that advice. You can instruct it to address actionable review findings, or to
-ignore reviews. A request to continue with advice does not force a repair.
-Our native repair tests explicitly instruct the agent to follow received
-findings so they exercise delivery under a cooperative policy. See the
-[agent-response boundary](docs/advicing-target-contract.md#agent-response-is-controlled-by-its-instructions).
-
 ### Who's slapping the hand?
 
 The system works as agent hooks. Each agent host has its own implementation. TODO contribution. There is a background job that manages all queuing and async communication with Jev.
@@ -98,21 +80,36 @@ operate on a complete file or use the same evidence boundary.
 
 ## Installation
 
-The public npm package is not available: a registry lookup for
-`@hapsland/hapsland@0.1.0` returned E404 during this documentation pass.
-The [installed release compatibility record](./docs/installed-release-compatibility.md)
-describes exact profiles verified from a locally packed, pinned artifact; it is
-not a public-registry installation claim. The
-[npm installation plan](./evidence/release/npm-install-plan.md) contains commands
-for use after publication and validation. The
-[Codex installation lifecycle](./docs/codex-installation.md) documents the
-versioned operations for an already obtained, verified Hapsland artifact.
+The locally packed candidate has been checked for Codex CLI 0.155.1 on Linux arm64
+and Codex CLI 0.156.0 on macOS arm64. The [local release preflight](./evidence/release/npm-0.1.0-preflight.md)
+records that `@hapsland/hapsland@0.1.0` was not available on the public registry
+when checked on 2026-09-26. The steps below apply after publication and registry
+artifact verification.
+
+1. Install Hapsland into a user-writable prefix. Keep optional dependencies enabled; the package
+   supplies its own Node 24.20.0 runtime.
+
+   ```sh
+   npm install --global --prefix "$HOME/.local" --ignore-scripts=true --include=optional @hapsland/hapsland@0.1.0
+   "$HOME/.local/bin/hapsland-doctor"
+   ```
+
+2. In the Git repository you want reviewed, run `"$HOME/.local/bin/hapsland" --pilot`.
+   The guided setup previews the Codex hook changes, accepts a Jev key through masked terminal
+   input. Effective file settings select otherwise eligible files; with no file settings,
+   all otherwise eligible files are selected when Jev credentials are available.
+3. Start Codex normally, review its repository and hook trust prompts, and make a supported
+   TypeScript edit. Follow the [status guide](./docs/status.md) to check observed review activity
+   with the host session ID; installation alone does not establish that a review ran.
+
+The [Codex installation guide](./docs/codex-installation.md) covers update, disable, logout,
+uninstall, and an optional first-review demo.
 
 <!-- configuration-readme:start -->
 
 ## Configuration
 
-Configure file selection and exclusions, whole-file JSON request settings, local rule packs, per-rule overrides, and the credential environment-variable reference. The product accepts layered JSONC files; repository enablement remains a separate user-owned grant.
+Configure file selection and exclusions, whole-file JSON request settings, local rule packs, per-rule overrides, and the credential environment-variable reference. The product accepts layered JSONC files. With no file settings, all otherwise eligible files are selected; user exclusions can turn review off.
 
 A small project configuration:
 
@@ -160,13 +157,13 @@ The packaged CLI's preview/install/enable/disable/uninstall contract, ownership 
 behavior, and native trust handoff are documented in
 [`docs/codex-installation.md`](./docs/codex-installation.md).
 For the proposed registry release, use the
-[`npm installation plan`](./evidence/release/npm-install-plan.md). The public command is
+[`Codex npm installation plan`](./evidence/release/npm-install-plan.md). The public command is
 `hapsland`. The product is Hapsland and Jev is the external backend. The
-[local archive preflight evidence](./evidence/release/npm-0.1.0-preflight.md)
-does not establish a public registry release.
+[local release preflight](./evidence/release/npm-0.1.0-preflight.md) is not a registry release record.
 After setup completes, the [installation guide](./docs/codex-installation.md) also documents the separate `hapsland --demo` preview and
-live-confirmation flow. Its default preview is offline; a live run requires a new consent
-digest for a generated disposable repository and explicit request, source, and time limits.
+live-confirmation flow. Its default preview is offline; a live run requires an exact
+selection digest for a generated disposable repository and has explicit request,
+source, and time limits.
 
 `npm run conformance:package` packs into an isolated temporary prefix, installs with production
 dependencies only, and runs the parser and controlled offline review outside the checkout. Add
@@ -183,21 +180,14 @@ gaps are published in
 [`docs/installed-release-compatibility.md`](./docs/installed-release-compatibility.md). The command
 does not call Jev or perform an authenticated Codex retry.
 The local single-repository opt-in pilot is scoped in
-[`evidence/codex-pilot/owner-procedure.md`](./evidence/codex-pilot/owner-procedure.md).
+[`docs/codex-opt-in-pilot.md`](./evidence/codex-pilot/README.md).
 
-Review dispatch is repository opt-in. The explicit enable operation first previews the
-canonical Git working-tree root, fixed Jev backend, actual destination, and
-repository-wide eligible-source scope. Confirm that proposal with its digest to record
-a user-owned grant; project configuration cannot create that grant. For a temporary
-state directory (useful in tests), set `REVIEW_STATE_PATH`:
+Review dispatch uses effective file settings. With no file settings, every otherwise
+eligible file is selected. User `excludes` accumulate with project exclusions and
+`["**/*"]` turns review off even when a project supplies includes. Protected paths,
+Git ignore rules, and invalid configuration still stop the relevant work.
 
 ```sh
-printf '%s\n' '{"version":1,"operation":"enable","cwd":"/absolute/repo"}' \\
-  | REVIEW_STATE_PATH="$HOME/.config/realtime-review-tool/consent" node src/cli.ts --enable
-printf '%s\n' '{"version":1,"operation":"enable-confirm","cwd":"/absolute/repo","proposalDigest":"<digest-from-preview>"}' \\
-  | REVIEW_STATE_PATH="$HOME/.config/realtime-review-tool/consent" node src/cli.ts --enable-confirm
-printf '%s\n' '{"version":1,"operation":"disable","cwd":"/absolute/repo"}' \\
-  | node src/cli.ts --disable
 printf '%s\n' '{"version":1,"operation":"credentials","cwd":"/absolute/repo"}' \\
   | node src/cli.ts --inspect-credentials
 ```
@@ -209,10 +199,9 @@ terminal input with the platform's native credential store;
 `hapsland --logout` removes the owned saved item. Project configuration refers to a
 credential environment-variable name; secret values and environment files are never
 stored in project files or printed. The Jev backend and `/v1/systemone` destination are
-fixed in this phase; arbitrary endpoint routing is not supported. Configuration cannot
-grant repository approval. Hooks do not prompt: without a matching root/backend/destination
-grant, review returns a bounded `skipped` result and makes no provider request. Disabling
-affects future dispatches and does not claim to recall a request already sent.
+fixed in this phase; arbitrary endpoint routing is not supported. Hooks do not prompt.
+An unavailable credential prevents provider dispatch. Changing effective exclusions
+affects future dispatches and cannot recall a request already sent.
 
 The supported Codex event boundary is documented in the
 [direct-event profile](./docs/direct-event-v1-supported-profile.md). During development, a

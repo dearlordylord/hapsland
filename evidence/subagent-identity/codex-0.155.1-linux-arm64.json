@@ -1,0 +1,280 @@
+{
+  "host": "codex",
+  "version": "0.155.1",
+  "platform": "linux",
+  "arch": "arm64",
+  "mode": "exec, inline hooks, danger-full-access sandbox, isolated fixture",
+  "assertions": {
+    "hostCompleted": true,
+    "bothEditsCompleted": true,
+    "childIdentityConsistent": true,
+    "childMarkersPresent": true,
+    "parentUnmarked": true,
+    "sharedSession": true,
+    "separateCodexTurns": true
+  },
+  "events": [
+    {
+      "event": "PreToolUse",
+      "tool": "collaborationspawn_agent",
+      "fields": {
+        "agent_id": false,
+        "agent_type": false,
+        "agent_transcript_path": false,
+        "session_id": true,
+        "turn_id": true,
+        "tool_use_id": true
+      },
+      "session": "bd3f9554243a",
+      "turn": "1a2b109eac7f",
+      "agent": null,
+      "agentType": null,
+      "toolUse": "de452e922d9b"
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "collaborationspawn_agent",
+      "fields": {
+        "agent_id": false,
+        "agent_type": false,
+        "agent_transcript_path": false,
+        "session_id": true,
+        "turn_id": true,
+        "tool_use_id": true
+      },
+      "session": "bd3f9554243a",
+      "turn": "1a2b109eac7f",
+      "agent": null,
+      "agentType": null,
+      "toolUse": "de452e922d9b"
+    },
+    {
+      "event": "SubagentStart",
+      "tool": null,
+      "fields": {
+        "agent_id": true,
+        "agent_type": true,
+        "agent_transcript_path": false,
+        "session_id": true,
+        "turn_id": true,
+        "tool_use_id": false
+      },
+      "session": "bd3f9554243a",
+      "turn": "56a390ac2f25",
+      "agent": "219bbfec8cec",
+      "agentType": "default",
+      "toolUse": null
+    },
+    {
+      "event": "PreToolUse",
+      "tool": "collaborationwait_agent",
+      "fields": {
+        "agent_id": false,
+        "agent_type": false,
+        "agent_transcript_path": false,
+        "session_id": true,
+        "turn_id": true,
+        "tool_use_id": true
+      },
+      "session": "bd3f9554243a",
+      "turn": "1a2b109eac7f",
+      "agent": null,
+      "agentType": null,
+      "toolUse": "1693f98eda04"
+    },
+    {
+      "event": "PreToolUse",
+      "tool": "apply_patch",
+      "fields": {
+        "agent_id": true,
+        "agent_type": true,
+        "agent_transcript_path": false,
+        "session_id": true,
+        "turn_id": true,
+        "tool_use_id": true
+      },
+      "session": "bd3f9554243a",
+      "turn": "56a390ac2f25",
+      "agent": "219bbfec8cec",
+      "agentType": "default",
+      "toolUse": "c940f571b359"
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "fields": {
+        "agent_id": true,
+        "agent_type": true,
+        "agent_transcript_path": false,
+        "session_id": true,
+        "turn_id": true,
+        "tool_use_id": true
+      },
+      "session": "bd3f9554243a",
+      "turn": "56a390ac2f25",
+      "agent": "219bbfec8cec",
+      "agentType": "default",
+      "toolUse": "c940f571b359"
+    },
+    {
+      "event": "SubagentStop",
+      "tool": null,
+      "fields": {
+        "agent_id": true,
+        "agent_type": true,
+        "agent_transcript_path": true,
+        "session_id": true,
+        "turn_id": true,
+        "tool_use_id": false
+      },
+      "session": "bd3f9554243a",
+      "turn": "56a390ac2f25",
+      "agent": "219bbfec8cec",
+      "agentType": "default",
+      "toolUse": null
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "collaborationwait_agent",
+      "fields": {
+        "agent_id": false,
+        "agent_type": false,
+        "agent_transcript_path": false,
+        "session_id": true,
+        "turn_id": true,
+        "tool_use_id": true
+      },
+      "session": "bd3f9554243a",
+      "turn": "1a2b109eac7f",
+      "agent": null,
+      "agentType": null,
+      "toolUse": "1693f98eda04"
+    },
+    {
+      "event": "PreToolUse",
+      "tool": "apply_patch",
+      "fields": {
+        "agent_id": false,
+        "agent_type": false,
+        "agent_transcript_path": false,
+        "session_id": true,
+        "turn_id": true,
+        "tool_use_id": true
+      },
+      "session": "bd3f9554243a",
+      "turn": "1a2b109eac7f",
+      "agent": null,
+      "agentType": null,
+      "toolUse": "b08103beedf3"
+    },
+    {
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "fields": {
+        "agent_id": false,
+        "agent_type": false,
+        "agent_transcript_path": false,
+        "session_id": true,
+        "turn_id": true,
+        "tool_use_id": true
+      },
+      "session": "bd3f9554243a",
+      "turn": "1a2b109eac7f",
+      "agent": null,
+      "agentType": null,
+      "toolUse": "b08103beedf3"
+    },
+    {
+      "event": "Stop",
+      "tool": null,
+      "fields": {
+        "agent_id": false,
+        "agent_type": false,
+        "agent_transcript_path": false,
+        "session_id": true,
+        "turn_id": true,
+        "tool_use_id": false
+      },
+      "session": "bd3f9554243a",
+      "turn": "1a2b109eac7f",
+      "agent": null,
+      "agentType": null,
+      "toolUse": null
+    }
+  ],
+  "hostOutput": {
+    "stdoutBytes": 2000,
+    "stderrBytes": 39,
+    "eventTypes": [
+      {
+        "type": "thread.started",
+        "itemType": null,
+        "itemName": null,
+        "itemStatus": null
+      },
+      {
+        "type": "item.completed",
+        "itemType": "error",
+        "itemName": null,
+        "itemStatus": null
+      },
+      {
+        "type": "item.completed",
+        "itemType": "error",
+        "itemName": null,
+        "itemStatus": null
+      },
+      {
+        "type": "turn.started",
+        "itemType": null,
+        "itemName": null,
+        "itemStatus": null
+      },
+      {
+        "type": "item.completed",
+        "itemType": "agent_message",
+        "itemName": null,
+        "itemStatus": null
+      },
+      {
+        "type": "item.started",
+        "itemType": "collab_tool_call",
+        "itemName": null,
+        "itemStatus": "in_progress"
+      },
+      {
+        "type": "item.completed",
+        "itemType": "collab_tool_call",
+        "itemName": null,
+        "itemStatus": "completed"
+      },
+      {
+        "type": "item.started",
+        "itemType": "file_change",
+        "itemName": null,
+        "itemStatus": "in_progress"
+      },
+      {
+        "type": "item.completed",
+        "itemType": "file_change",
+        "itemName": null,
+        "itemStatus": "completed"
+      },
+      {
+        "type": "item.completed",
+        "itemType": "agent_message",
+        "itemName": null,
+        "itemStatus": null
+      },
+      {
+        "type": "turn.completed",
+        "itemType": null,
+        "itemName": null,
+        "itemStatus": null
+      }
+    ],
+    "stderrHasError": false,
+    "stderrHasWarning": false,
+    "stderrTopics": []
+  }
+}

@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import type { CompiledRule } from "../rules/compiler.ts";
+import { V1_DIRECT_TYPE_INPUT_CONTRACT } from "../rules/contracts.ts";
 
-export const DIRECT_EVENT_INPUT_CONTRACT =
-  "direct-event/same-file-named-types/v1" as const;
+export const DIRECT_EVENT_INPUT_CONTRACT = V1_DIRECT_TYPE_INPUT_CONTRACT;
 
 export const CODEX_HOST_VERSIONS = ["0.155.1", "0.156.0"] as const;
 export type CodexHostVersion = typeof CODEX_HOST_VERSIONS[number];

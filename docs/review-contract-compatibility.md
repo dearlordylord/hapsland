@@ -1,6 +1,6 @@
-# Review contract compatibility before new branches
+# Issue #96: contract compatibility before new review branches
 
-Status: compatibility assessment of the proposed [#93 type and function branches](./type-function-review-proposal.md). Owner decision (2026-09-24): accept the revised complete-evidence contract as the basis for future prototype planning only. This does not authorize branch implementation, live Jev evaluation, or expanded source egress. Existing v1 behavior remains in force, and all prototype and adoption gates remain open. Neither branch, a rule-pack v2 reader, nor another result form is implemented or authorized for production egress.
+Status: compatibility assessment of the [#93 target type and function specification](./type-function-review-proposal.md). The 2026-09-27 owner decision changes its evidence boundary to checked, bounded cross-file supporting references and its target source ceiling to 256 KiB. Existing installed behavior is still same-file and 32 KiB until migration and validation; this assessment does not claim that branch implementation, live Jev evaluation, or expanded source egress has occurred. The #93 prototype and adoption gates remain open.
 
 ## Current contract and compatibility decision
 
@@ -10,13 +10,21 @@ Status: compatibility assessment of the proposed [#93 type and function branches
 | Rule packs | Strict `schemaVersion: 1`; omitted threshold becomes 0.7; Boolean criteria, question, and message compile to `Decision.probability` | Preserve v1 decoding, digests, and supported whole-file and named-type behavior. V1 packs do not acquire new targets by omission. Use a separately versioned, strict reader for explicit #93 targets. |
 | Overrides | Qualified `pack/rule` IDs, enablement, path filters, probability threshold, and message | Preserve v1 identities and override meaning. Path filters only narrow global selection. Target-specific policy and non-probability controls need an explicit later contract. |
 | Review identity and findings | Pack-content and rule-definition digests identify compiled rules; existing advice/direct-event findings carry probability | Keep v1 identities and findings stable. New evaluation identity must include exact target, input/renderer contract, complete projection, selected rule definitions, and effective policy. Never encode Score as probability. |
-| Direct-event input | `direct-event/same-file-named-types/v1` and its existing capture and probability interpretation | Keep v1 input bytes and behavior fixed. Proposed `direct-event/type-shape/v2` and `direct-event/function/v1` need distinct exact IDs, complete evidence projections, renderers, and conformance evidence. |
-| Setup, doctor, and consent | Version-1 Codex setup/doctor responses; repository-wide eligible-source consent bound to canonical root, backend, destination, and scope | Installed grants remain valid for their existing scope. Before an enlarged source or host scope is used, preview it and obtain authorization when required. Setup/doctor must identify the supported host and input profile before claiming branch readiness. |
+| Direct-event input | `direct-event/same-file-named-types/v1`, 32 KiB source capture, and its existing probability interpretation | Migrate deliberately to the #93 cross-file target and 256 KiB per-source-file ceiling. The named type/function inputs need distinct exact IDs, complete evidence projections, renderers, and conformance evidence. Existing source-bearing requests must not change silently during migration. |
+| Setup and doctor | Current setup asks for a separate repository enable confirmation; doctor reports its grant state. | Remove that extra confirmation and grant check. When the installed agent runtime runs Hapsland and Jev credentials are available, file selection controls review. With no file settings, all otherwise eligible files are selected. Update setup and doctor to state this plainly. |
 | Published schemas and guide | Generated config-v1 and rule-pack-v1 schemas reject unknown fields | Keep v1 artifacts and [configuration guidance](./configuration.md) as the supported contract. Publish a separate v2 pack schema only after its syntax is accepted. |
 
 ## Reader and migration boundary
 
-Configuration v1 requires no new field for the proposed branches. Existing user and project files continue to resolve the same includes, exclusions, pack references, rule overrides, and credential reference. Configuration cannot grant consent or enlarge source eligibility, host support, destination, or analysis limits. A future opt-in, if required, needs its own explicit versioned contract; the current configuration must not appear to enable unsupported review.
+Configuration v1 needs no new field for the target branches. Existing user
+and project files keep their include/exclude precedence, pack references,
+rule overrides, and credential reference. No file settings means the
+built-in include pattern selects all otherwise eligible files. Every root
+and supporting file still passes containment, protected-path, Git-ignore,
+and file selection checks before its source is read. The target removes
+the separate repository enable and confirmation steps. Setup and doctor
+must explain when an installed runtime can send selected source to Jev;
+they must not show a grant as a required readiness gate.
 
 The proposed `rule-pack/v2` makes `reviewTargets` required on each rule. Every target names `artifactKind` (`typeShape` or `function`), an exact `inputContract`, and enumerated required evidence capabilities. The #93 contract IDs are `direct-event/type-shape/v2` and `direct-event/function/v1`; no wildcard kind or unversioned contract alias is accepted. A rule shared across branches declares both targets, with branch-specific criteria/message represented by separate rule IDs or an explicitly specified target-specific definition. A v1 pack has only its existing implicit applicability; migration to either #93 branch requires an authored v2 target. Neither v1 configuration nor a v1 pack opts in silently.
 
@@ -26,14 +34,41 @@ A future pack reader must dispatch on `schemaVersion` before decoding: v1 throug
 
 ## Evidence gate and evaluation order
 
-The #93 completeness decision applies to the **entire candidate review unit before any rule is selected**. The branch extractor must resolve and represent the root and every discovered outbound graph edge within the branch's bounds. Missing, unresolved, ambiguous, unsupported, capped, or unknown evidence makes the whole unit incomplete, even if one rule would not inspect the omitted edge. An incomplete unit produces no `ReviewWorkItem`, `ReviewInput`, or Jev request; it is neither a clear result nor a finding. No partial projection or omission metadata is sent to Jev, and no per-rule incomplete/irrelevant state is introduced.
+The #93 rule applies to the **whole review unit** before Hapsland selects a
+rule. Hapsland must find the root and every required reference. Before it
+reads a supporting file, it checks that file's path against containment,
+protected/privacy paths, Git ignore, and file selection. If a required
+reference is excluded, missing, ambiguous, unsupported, or over the 20 KiB
+tree limit, the dependent unit is incomplete. Hapsland sends nothing for
+that unit to Jev and does not call it clear. Other complete units can proceed.
+No partial tree or omission report is sent to Jev.
 
-Only a complete unit can reach rule selection. Its exact artifact kind, input contract, declared capabilities, path applicability, and built-in semantic applicability select rules; a rule's required capabilities cannot waive the completeness gate. If the complete unit has no applicable rules, it makes no backend request. Each surviving unit still passes global selection, protected and privacy exclusions, repository consent, host attribution, stable capture, source-egress limits, and publication revalidation. Source-free local status may count incomplete or rule-empty skips, but must never report skipped coverage as a clean semantic judgment.
+Only a complete unit can reach rule selection. Hapsland selects rules from
+the root kind, exact input format, available evidence, rule path settings,
+and the rule's own conditions. A rule cannot excuse a missing reference.
+If no rule applies, Hapsland sends no Jev request. Every unit still needs
+an attributed edit, selected files, stable source, size limits, and a fresh
+check before advice. Local status may count skipped units without source
+text. It must not call a skipped unit clear.
 
-The proposed semantic evaluation key includes exact contract and renderer identity, canonical path, branch/root identity, complete projection fingerprint, selected rule-definition and effective-policy identities, and complete evidence state. The exact file snapshot fingerprint remains for observation and recapture. A future result can be published only after rechecking current authority, extraction, rule selection, rendering, and that semantic key, as specified by #93. Existing whole-file and named-type contracts keep their current behavior until an accepted migration changes them.
+Hapsland may reuse a Jev result only if the same selected root, complete
+evidence tree, rules, effective file settings, and exact Jev input format
+still apply. Before advice, it checks every source file that contributed
+to the review unit and rebuilds the unit. If a required file is now
+excluded or relevant content changed, it drops the old result. The current
+same-file code does this only for event-named files; cross-file checks
+remain to be implemented.
 
 ## Acceptance fixtures and remaining decisions
 
 Current offline tests in `src/configuration/configuration.test.ts` cover layered v1 files, inherited pack references, exclusion precedence, and rejection of future config controls. `src/rules/rules.test.ts` covers v1 defaults and digests and rejects representative targets, result forms, and schema v2. Existing setup, doctor, loader, direct-event, and consent tests exercise the installed contract; they do not establish v2 branch support.
 
-Before adoption, #93 must freeze complete/incomplete fixture labels, the graph boundary, exact v2 schema and capability vocabulary, renderer/wire bytes, ceilings and deadline, consent/egress preview, host profiles, and paired evaluation gates. Offline checks must prove that incomplete units skip before rule selection and make zero requests, that complete rule-empty units make zero requests, and that strict v1 isolation and v2 target validation hold. The exact v2 pack schema and any target-specific criteria/message structure remain open. Choice/Score syntax, result and override semantics, and any finding/process version change remain separate #96 follow-up decisions. No new branch readiness may be claimed from the present v1 setup or doctor response.
+Before adoption, #93 must fix the expected complete/incomplete examples,
+supported import forms, rule-pack fields, exact Jev input, file/read/work
+limits, setup wording, host profiles, and evaluation checks. Remove the
+current grant gate from setup, doctor, CLI, and resident as part of the
+file-settings migration in #132; keep current instructions truthful until
+that code lands. Raise or rework resident capacity with the 256 KiB file
+limit. Offline tests must show that Hapsland never reads an excluded
+supporting file and never sends an incomplete unit to Jev. Choice/Score
+results remain a separate #96 decision.

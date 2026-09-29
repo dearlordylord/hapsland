@@ -2,14 +2,15 @@ import type { CodexDirectEventOutput, Finding } from "../direct-event/pipeline.t
 import { DIRECT_EVENT_ADVISORY_HEADING, toCodexDirectEventOutput } from "../direct-event/pipeline.ts";
 import { encodedCodexHostOutputBytes } from "../direct-event/writer.ts";
 import { encodeClaudeHostOutputLine, type ClaudeHostOutput } from "../direct-event/claude-output.ts";
+import { initialCanonical, stepCanonical, type CanonicalEvent } from "../canonical/adapter.ts";
+import { GLOBAL_BYTE_LIMIT, GLOBAL_ITEM_LIMIT, PARTITION_BYTE_LIMIT, PARTITION_ITEM_LIMIT } from "./capacity.ts";
 export type { ClaudeBlockOutput, ClaudeHostOutput } from "../direct-event/claude-output.ts";
 
 export const ADVICE_COLLECTION_WINDOW_MS = 50;
 export const PENDING_ADVICE_EXPIRY_MS = 600_000;
-export const MAX_COMBINED_RESPONSE_ITEMS = 5;
-export const MAX_COMBINED_RESPONSE_BYTES = 2 * 1024;
+export const MAX_COMBINED_RESPONSE_BYTES = 10 * 1024;
 
-export type OperationalNoticeKind = "capacity" | "backend" | "credential";
+export type OperationalNoticeKind = "capacity" | "backend" | "credential" | "output-limit";
 
 export type OperationalNotice = {
   readonly kind: OperationalNoticeKind;
@@ -32,23 +33,53 @@ export type CollectionCandidate = {
 
 export type CollectionMode = "ordinary" | "turn-end";
 
+const standaloneLimits = { globalItems: GLOBAL_ITEM_LIMIT, globalBytes: GLOBAL_BYTE_LIMIT,
+  partitionItems: PARTITION_ITEM_LIMIT, partitionBytes: PARTITION_BYTE_LIMIT };
+
+const canonicalCollectionCommand = (event: CanonicalEvent): string => {
+  const result = stepCanonical(initialCanonical(standaloneLimits), event);
+  if (result.rejection !== undefined || result.commands.length !== 1) {
+    throw new Error("canonical collection decision refused");
+  }
+  return result.commands[0]!.kind;
+};
+
 export const collectionOrder = <A extends Pick<CollectionCandidate, "cycle" | "sequence">>(
   left: A,
   right: A,
-): number => left.cycle - right.cycle || left.sequence - right.sequence;
+): number => {
+  switch (canonicalCollectionCommand({ kind: "collectionOrderCheck",
+    leftCycle: left.cycle, leftSequence: left.sequence,
+    rightCycle: right.cycle, rightSequence: right.sequence })) {
+    case "collectionBefore": return -1;
+    case "collectionEqual": return 0;
+    case "collectionAfter": return 1;
+    default: throw new Error("invalid canonical collection order");
+  }
+};
+
+const elapsedForBend = (now: number, started: number, limit: number): number => {
+  const bounded = Math.min(limit, Math.max(0, now - started));
+  return Number.isNaN(bounded) ? 0 : Math.floor(bounded);
+};
 
 export const isCollectionEligible = (
   candidate: CollectionCandidate,
   now: number,
   mode: CollectionMode = "ordinary",
   oldestPendingAt: number = candidate.pendingAt,
-): boolean => candidate.collectionEligible === true || mode === "turn-end" ||
-  candidate.cycleComplete || now - oldestPendingAt >= ADVICE_COLLECTION_WINDOW_MS;
+): boolean => canonicalCollectionCommand({ kind: "collectionReady", advice: 1,
+  already: candidate.collectionEligible === true, turnEnd: mode === "turn-end",
+  cycleComplete: candidate.cycleComplete,
+  elapsed: elapsedForBend(now, oldestPendingAt, ADVICE_COLLECTION_WINDOW_MS),
+  window: ADVICE_COLLECTION_WINDOW_MS }) === "collectionEligible";
 
 export const isPendingAdviceExpired = (
   candidate: Pick<CollectionCandidate, "pendingAt">,
   now: number,
-): boolean => now - candidate.pendingAt >= PENDING_ADVICE_EXPIRY_MS;
+): boolean => canonicalCollectionCommand({ kind: "collectionExpiryCheck",
+  elapsed: elapsedForBend(now, candidate.pendingAt, PENDING_ADVICE_EXPIRY_MS),
+  lifetime: PENDING_ADVICE_EXPIRY_MS }) === "collectionExpired";
 
 /** Bytes actually handed to the host writer, including its line terminator. */
 export const encodedHostOutputBytes = (output: CodexDirectEventOutput): number =>
@@ -63,6 +94,8 @@ const noticeText = (notice: OperationalNotice): string => {
     ? "Operational notice: review capacity was unavailable; some eligible edits were not reviewed."
     : notice.kind === "credential"
       ? "Operational notice: the saved review credential was unavailable; run hapsland --login in a user terminal to unlock or approve native access, then retry. Background hooks never prompt."
+      : notice.kind === "output-limit"
+        ? "Operational notice: a review finding exceeded the host response limit and could not be delivered."
       : "Operational notice: Jev was unavailable; some eligible edits were not reviewed.";
   return notice.suppressedCount === 0
     ? message
@@ -116,35 +149,197 @@ export const combinedClaudeOutput = (
 export const encodedClaudeHostOutputBytes = (output: ClaudeHostOutput): number =>
   Buffer.byteLength(encodeClaudeHostOutputLine(output), "utf8");
 
+export type ComposedClaudeSurface = "background" | "stop";
+
+/** Match the final JSONL object written by the composed Claude hook. */
+export const composedClaudeHostOutput = (
+  output: CodexDirectEventOutput,
+  findingCount: number,
+  surface: ComposedClaudeSurface,
+): CodexDirectEventOutput | { readonly decision: "block"; readonly reason: string } |
+  { readonly systemMessage: string } => {
+  if (surface === "background") return output;
+  const message = output.hookSpecificOutput.additionalContext;
+  return findingCount > 0 ? { decision: "block", reason: message } : { systemMessage: message };
+};
+
+export const encodedComposedClaudeOutputBytes = (
+  findings: ReadonlyArray<Finding>, notices: ReadonlyArray<OperationalNotice>,
+  surface: ComposedClaudeSurface,
+): number => Buffer.byteLength(`${JSON.stringify(composedClaudeHostOutput(
+  combinedReviewOutput(findings, notices), findings.length, surface,
+))}\n`, "utf8");
+
+const fitsBendBatch = (items: number, bytes: number): boolean => {
+  try {
+    return canonicalCollectionCommand({ kind: "collectionFitCheck", items, bytes }) === "collectionFits";
+  } catch {
+    return false;
+  }
+};
+
+/** The exact host encoding is measured here; Bend owns the inclusion rule. */
+export type FindingSelectionFacts = {
+  readonly partition: number;
+  readonly round: number;
+  readonly unit: number;
+  readonly snapshot: number;
+  readonly currentSnapshot: number;
+  readonly credential: number;
+  readonly currentCredential: number;
+  readonly ageMs: number;
+  readonly collectionReady: boolean;
+};
+
+const previouslyValidated: FindingSelectionFacts = {
+  partition: 1, round: 1, unit: 1, snapshot: 1, currentSnapshot: 1,
+  credential: 1, currentCredential: 1, ageMs: 0, collectionReady: true,
+};
+
+export type CanonicalFindingOffer = (input: {
+  readonly selectionPartition: number; readonly selectionRound: number;
+  readonly facts: FindingSelectionFacts; readonly selectedCount: number;
+  readonly soloBytes: number; readonly prospectiveBytes: number;
+}) => "selected" | "retained" | "limited" | "expired";
+
+export type CanonicalNoticeOffer = (items: number, bytes: number,
+  skipUnfitting: boolean) => "include" | "skip" | "stop";
+
+const standaloneFindingOffer: CanonicalFindingOffer = (input) => {
+  const facts = input.facts;
+  const command = canonicalCollectionCommand({ kind: "collectionFindingCheck",
+    selectionPartition: input.selectionPartition, selectionRound: input.selectionRound,
+    unit: facts.unit, partition: facts.partition, round: facts.round,
+    snapshot: facts.snapshot, currentSnapshot: facts.currentSnapshot,
+    credential: facts.credential, currentCredential: facts.currentCredential,
+    ageMs: facts.ageMs, soloBytes: input.soloBytes,
+    collectionReady: facts.collectionReady, selectedCount: input.selectedCount,
+    prospectiveBytes: input.prospectiveBytes });
+  switch (command) {
+    case "collectionFindingSelected": return "selected";
+    case "collectionFindingRetained": return "retained";
+    case "collectionFindingLimited": return "limited";
+    case "collectionFindingExpired": return "expired";
+    default: throw new Error("invalid canonical finding offer");
+  }
+};
+
+const standaloneNoticeOffer: CanonicalNoticeOffer = (items, bytes, skipUnfitting) => {
+  const command = canonicalCollectionCommand({ kind: "collectionNoticeCheck",
+    items, bytes, skipUnfitting });
+  switch (command) {
+    case "collectionNoticeIncluded": return "include";
+    case "collectionNoticeSkipped": return "skip";
+    case "collectionNoticeStopped": return "stop";
+    default: throw new Error("invalid canonical notice offer");
+  }
+};
+
+const selectBendFindings = (
+  retained: ReadonlyArray<Finding>,
+  candidates: ReadonlyArray<Finding>,
+  encodedBytes: (findings: ReadonlyArray<Finding>) => number,
+  facts: FindingSelectionFacts = previouslyValidated,
+  onLimited?: (finding: Finding) => void,
+  canonicalOffer?: CanonicalFindingOffer,
+): ReadonlyArray<Finding> => {
+  try {
+    const staged: Array<Finding> = [];
+    const selected: Array<Finding> = [];
+    const offer = (finding: Finding, validated: boolean): boolean => {
+      const prospectiveBytes = encodedBytes([...staged, finding]);
+      const current = validated ? previouslyValidated : facts;
+      const soloBytes = encodedBytes([finding]);
+      const decision = (canonicalOffer ?? standaloneFindingOffer)({ selectionPartition: facts.partition,
+        selectionRound: facts.round, facts: { ...current, partition: facts.partition,
+          round: facts.round }, selectedCount: staged.length, soloBytes, prospectiveBytes });
+      if (decision === "limited" && !validated) onLimited?.(finding);
+      if (decision !== "selected") return false;
+      staged.push(finding);
+      return true;
+    };
+    for (const finding of retained) if (!offer(finding, true)) return [];
+    for (const finding of candidates) if (offer(finding, false)) selected.push(finding);
+    return selected;
+  } catch {
+    return [];
+  }
+};
+
+/** Final writer barrier: every offered finding carries its own current facts. */
+export const selectFittingCurrentFindingIndices = (
+  offers: ReadonlyArray<{ readonly finding: Finding; readonly facts: FindingSelectionFacts }>,
+  mode: ClaudeOutputMode | "codex" | "claude-background" | "claude-stop",
+  onLimited?: (index: number) => void,
+  canonicalOffer?: CanonicalFindingOffer,
+): ReadonlyArray<number> => {
+  if (offers.length === 0) return [];
+  try {
+    const first = offers[0]!.facts;
+    const staged: Array<Finding> = [];
+    const selected: Array<number> = [];
+    for (const [index, { finding, facts }] of offers.entries()) {
+      const next = [...staged, finding];
+      const prospectiveBytes = mode === "codex"
+        ? encodedHostOutputBytes(combinedReviewOutput(next, []))
+        : mode === "claude-background" || mode === "claude-stop"
+          ? encodedComposedClaudeOutputBytes(next, [], mode === "claude-stop" ? "stop" : "background")
+        : encodedClaudeHostOutputBytes(combinedClaudeOutput(next, [], mode));
+      const soloBytes = mode === "codex"
+        ? encodedHostOutputBytes(combinedReviewOutput([finding], []))
+        : mode === "claude-background" || mode === "claude-stop"
+          ? encodedComposedClaudeOutputBytes([finding], [], mode === "claude-stop" ? "stop" : "background")
+        : encodedClaudeHostOutputBytes(combinedClaudeOutput([finding], [], mode));
+      const decision = (canonicalOffer ?? standaloneFindingOffer)({ selectionPartition: first.partition,
+        selectionRound: first.round, facts, selectedCount: staged.length,
+        soloBytes, prospectiveBytes });
+      if (decision === "limited") onLimited?.(index);
+      if (decision !== "selected") continue;
+      staged.push(finding);
+      selected.push(index);
+    }
+    return selected;
+  } catch {
+    return [];
+  }
+};
+
 export const fitsClaudeReviewResponse = (
   findings: ReadonlyArray<Finding>,
   notices: ReadonlyArray<OperationalNotice>,
   mode: ClaudeOutputMode,
-): boolean => findings.length + notices.length > 0 &&
-  findings.length + notices.length <= MAX_COMBINED_RESPONSE_ITEMS &&
-  encodedClaudeHostOutputBytes(combinedClaudeOutput(findings, notices, mode)) <= MAX_COMBINED_RESPONSE_BYTES;
+): boolean => fitsBendBatch(findings.length + notices.length,
+  encodedClaudeHostOutputBytes(combinedClaudeOutput(findings, notices, mode)));
 
 export const selectFittingClaudeFindings = (
   retained: ReadonlyArray<Finding>,
   candidates: ReadonlyArray<Finding>,
   mode: ClaudeOutputMode,
-): ReadonlyArray<Finding> => {
-  const selected: Array<Finding> = [];
-  for (const finding of candidates) {
-    if (retained.length + selected.length >= MAX_COMBINED_RESPONSE_ITEMS) break;
-    if (fitsClaudeReviewResponse([...retained, ...selected, finding], [], mode)) selected.push(finding);
-  }
-  return selected;
-};
+  facts?: FindingSelectionFacts,
+  onLimited?: (finding: Finding) => void,
+  canonicalOffer?: CanonicalFindingOffer,
+): ReadonlyArray<Finding> => selectBendFindings(retained, candidates,
+  (findings) => encodedClaudeHostOutputBytes(combinedClaudeOutput(findings, [], mode)), facts, onLimited, canonicalOffer);
 
 export const selectFittingClaudeNotices = (
   findings: ReadonlyArray<Finding>,
   candidates: ReadonlyArray<OperationalNotice>,
   mode: ClaudeOutputMode,
+  canonicalOffer?: CanonicalNoticeOffer,
 ): ReadonlyArray<OperationalNotice> => {
   const selected: Array<OperationalNotice> = [];
-  for (const notice of candidates) {
-    if (fitsClaudeReviewResponse(findings, [...selected, notice], mode)) selected.push(notice);
+  try {
+    for (const notice of candidates) {
+      const next = [...selected, notice];
+      const items = findings.length + next.length;
+      const bytes = encodedClaudeHostOutputBytes(combinedClaudeOutput(findings, next, mode));
+      const offer = (canonicalOffer ?? standaloneNoticeOffer)(items, bytes, true);
+      if (offer === "include") selected.push(notice);
+      else if (offer === "stop") break;
+      else if (offer !== "skip") return [];
+    }
+  } catch {
+    return [];
   }
   return selected;
 };
@@ -152,9 +347,8 @@ export const selectFittingClaudeNotices = (
 export const fitsCombinedReviewResponse = (
   findings: ReadonlyArray<Finding>,
   notices: ReadonlyArray<OperationalNotice>,
-): boolean => findings.length + notices.length > 0 &&
-  findings.length + notices.length <= MAX_COMBINED_RESPONSE_ITEMS &&
-  encodedHostOutputBytes(combinedReviewOutput(findings, notices)) <= MAX_COMBINED_RESPONSE_BYTES;
+): boolean => fitsBendBatch(findings.length + notices.length,
+  encodedHostOutputBytes(combinedReviewOutput(findings, notices)));
 
 export const fitsCombinedResponse = (
   groups: ReadonlyArray<ReadonlyArray<Finding>>,
@@ -164,13 +358,36 @@ export const fitsCombinedResponse = (
 export const selectFittingFindings = (
   retained: ReadonlyArray<Finding>,
   candidates: ReadonlyArray<Finding>,
-): ReadonlyArray<Finding> => {
-  const selected: Array<Finding> = [];
-  for (const finding of candidates) {
-    if (retained.length + selected.length >= MAX_COMBINED_RESPONSE_ITEMS) break;
-    const next = [...selected, finding];
-    if (fitsCombinedResponse([retained, next])) selected.push(finding);
-  }
+  facts?: FindingSelectionFacts,
+  onLimited?: (finding: Finding) => void,
+  canonicalOffer?: CanonicalFindingOffer,
+): ReadonlyArray<Finding> => selectBendFindings(retained, candidates,
+  (findings) => encodedHostOutputBytes(combinedReviewOutput(findings, [])), facts, onLimited, canonicalOffer);
+
+export const selectFittingComposedClaudeFindings = (
+  retained: ReadonlyArray<Finding>, candidates: ReadonlyArray<Finding>,
+  surface: ComposedClaudeSurface, facts?: FindingSelectionFacts,
+  onLimited?: (finding: Finding) => void, canonicalOffer?: CanonicalFindingOffer,
+): ReadonlyArray<Finding> => selectBendFindings(retained, candidates,
+  (findings) => encodedComposedClaudeOutputBytes(findings, [], surface),
+  facts, onLimited, canonicalOffer);
+
+export const selectFittingComposedClaudeNotices = (
+  findings: ReadonlyArray<Finding>, candidates: ReadonlyArray<OperationalNotice>,
+  surface: ComposedClaudeSurface, canonicalOffer?: CanonicalNoticeOffer,
+): ReadonlyArray<OperationalNotice> => {
+  const selected: Array<OperationalNotice> = [];
+  try {
+    for (const notice of candidates) {
+      const next = [...selected, notice];
+      const items = findings.length + next.length;
+      const bytes = encodedComposedClaudeOutputBytes(findings, next, surface);
+      const offer = (canonicalOffer ?? standaloneNoticeOffer)(items, bytes, true);
+      if (offer === "include") selected.push(notice);
+      else if (offer === "stop") break;
+      else if (offer !== "skip") return [];
+    }
+  } catch { return []; }
   return selected;
 };
 
@@ -179,12 +396,21 @@ export const selectFittingNotices = (
   findings: ReadonlyArray<Finding>,
   retained: ReadonlyArray<OperationalNotice>,
   candidates: ReadonlyArray<OperationalNotice>,
+  canonicalOffer?: CanonicalNoticeOffer,
 ): ReadonlyArray<OperationalNotice> => {
   const selected: Array<OperationalNotice> = [];
-  for (const notice of candidates) {
-    const next = [...retained, ...selected, notice];
-    if (!fitsCombinedReviewResponse(findings, next)) break;
-    selected.push(notice);
+  try {
+    for (const notice of candidates) {
+      const next = [...retained, ...selected, notice];
+      const items = findings.length + next.length;
+      const bytes = encodedHostOutputBytes(combinedReviewOutput(findings, next));
+      const offer = (canonicalOffer ?? standaloneNoticeOffer)(items, bytes, false);
+      if (offer === "include") selected.push(notice);
+      else if (offer === "stop") break;
+      else if (offer !== "skip") return [];
+    }
+  } catch {
+    return [];
   }
   return selected;
 };

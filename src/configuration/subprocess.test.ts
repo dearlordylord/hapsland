@@ -39,22 +39,7 @@ const run = (
   return JSON.parse(child.stdout) as Record<string, unknown>;
 };
 
-const enable = (root: string, statePath: string): void => {
-  const preview = run(["--enable"], { version: 1, operation: "enable", cwd: root }, {
-    REVIEW_STATE_PATH: statePath,
-    REVIEW_USER_CONFIG_PATH: join(root, "missing-user.jsonc"),
-  }) as { proposal: { digest: string } };
-  run(
-    ["--enable-confirm"],
-    {
-      version: 1,
-      operation: "enable-confirm",
-      cwd: root,
-      proposalDigest: preview.proposal.digest,
-    },
-    { REVIEW_STATE_PATH: statePath, REVIEW_USER_CONFIG_PATH: join(root, "missing-user.jsonc") },
-  );
-};
+const enable = (_root: string, _statePath: string): void => {};
 
 const request = (cwd: string, paths: ReadonlyArray<string>, id = "configuration-test") => ({
   version: 1,

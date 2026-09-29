@@ -1,11 +1,14 @@
-# Diff-selected type and function review proposal
+# Issue #93: diff-selected type and function review target specification
 
-Status: **Owner decision (2026-09-24): accepted as the complete-evidence
-type/function contract for future prototype planning only.** This does not
-authorize implementation, live Jev evaluation, or expanded source egress. All
-prototype and adoption gates below remain open. The current profile remains
-`direct-event/same-file-named-types/v1` until implementation and adoption are
-separately decided after those gates. Jev is the external review backend.
+Status: **Owner decision (2026-09-27): this is the target type/function
+specification, including bounded cross-file supporting evidence.** The
+2026-09-24 same-file-only boundary is superseded below. This specification
+does not claim that the target is implemented or authorize live Jev evaluation
+or expanded source egress. The prototype and adoption gates below remain open.
+The running profile remains `direct-event/same-file-named-types/v1` until its
+implementation is changed and validated. Contract identifiers distinguish
+incompatible backend inputs; they are not product release names. Jev is the
+external review backend.
 
 ## Decision boundary and prior evidence
 
@@ -28,22 +31,25 @@ claim that declaration input is superior. The current same-file named-type profi
 is an implemented, separately bounded direct-event path; its existence does not
 turn #16's outcome into approval of the broader branches proposed here.
 
-### Accepted constraints carried into this proposal
+### Accepted constraints carried into this specification
 
 - A review is advisory after an edit; it never blocks or rolls back the edit.
 - One selected root with complete evidence yields one review unit and at most one
   logical Jev evaluation for its selected rule batch. Several complete changed
   roots yield independent units.
-- Stable eligible capture, exact advicee attribution, repository consent at
-  dispatch, bounded source egress, and publication revalidation are mandatory.
+- Stable eligible capture, exact advicee attribution, file selection before
+  every source read, bounded source sent to Jev, and a fresh check before
+  advice are mandatory. There is no separate repository approval step in
+  the target behavior.
 - Unsupported analysis, uncertain attribution, any incomplete candidate graph,
   and clear assessments yield no agent-facing advice. Human status retains only
   bounded, source-free reason codes and counts.
 - Directly changed roots are the only targets. Checkpoint reconciliation,
   shell/Stop discovery, and re-review of unchanged dependents are outside #93.
 
-The remaining sections are **proposed requirements**, subject to the acceptance
-decisions at the end. They are not statements of current behavior.
+The remaining sections specify the target behavior. Open design details and
+prototype/adoption checks are named at the end. They are not statements of
+current runtime behavior.
 
 ## Supported event and selection contract
 
@@ -81,36 +87,69 @@ accepted migration explicitly replaces it.
 
 | Contract | Artifact root | Proposed evidence projection | Inapplicable examples |
 | --- | --- | --- | --- |
-| `direct-event/type-shape/v2` | One uniquely named TypeScript `interface` or `type` alias in `.ts`, `.tsx`, `.mts`, or `.cts` | Exact root declaration and complete finite same-file outbound named-type reference graph | Declaration merging, ambiguous binding, unsupported graph syntax, imported/cross-file graph evidence |
-| `direct-event/function/v1` | One uniquely named, top-level TypeScript function declaration in those extensions | Exact signature and body and complete finite same-file directly referenced type and named local-function graph | Anonymous functions, methods, overload groups without unique implementation, dynamic/computed calls, imported/cross-file graph evidence |
+| `direct-event/type-shape/v2` | One uniquely named TypeScript `interface` or `type` alias in `.ts`, `.tsx`, `.mts`, or `.cts` | Exact root declaration and complete finite outbound named-type reference graph, following supported local imports across selected files | Declaration merging, ambiguous binding, unsupported graph syntax, unresolved or excluded required imports |
+| `direct-event/function/v1` | One uniquely named, top-level TypeScript function declaration in those extensions | Exact signature and body and complete finite directly referenced type and named-function graph, following supported local imports across selected files | Anonymous functions, methods, overload groups without unique implementation, dynamic/computed calls, unresolved or excluded required imports |
 
 These contract IDs are distinct from the current
 `direct-event/same-file-named-types/v1`. A type declaration and function with the
 same spelling remain different artifacts. Function-like values assigned to
 variables, class methods, callbacks, constructors, accessors, schemas, namespaces,
-and cross-file roots are deferred. The function branch must identify its body and
+and independently selected cross-file roots are deferred. A referenced declaration
+in another file is supporting evidence, not a new changed root. The function branch must identify its body and
 signature together; signature-only input cannot answer body-dependent rules.
 
-The candidate projection walks outbound references from the root. A first visit
-to a same-file target is `expanded`; a later visit or back-edge is `included`.
-The root is not counted as a reference. Cycles terminate. Branch-specific
-reference binding must be syntax-aware and deterministic; a text-name match
-does not establish a binding. Imports and external declarations are never loaded
-implicitly. If any graph edge is unresolved, ambiguous, unsupported, capped, or
-unknown, the **whole candidate unit is incomplete** and is not evaluated.
-Omission reasons may be kept only as bounded, source-free local status; no
-partial graph or omission metadata is rendered for Jev.
+The candidate projection walks outbound references from the root, including
+statically bound local imports of supported declarations. Resolve an import to a
+canonical repository-relative path and declaration identity; a text-name match
+alone never establishes a binding. Before reading **each** newly discovered
+source file, check root containment,
+protected/privacy exclusions, Git ignore, and configured file selection. Capture
+an eligible file stably, at most once per observation snapshot, without treating
+it as an independently edited root. Unsupported package/external resolution,
+ambiguous binding, or unavailable authority makes the dependent unit incomplete.
+Process edges in deterministic source order with canonical path/symbol tie-breaks.
+A first visit to a target is `expanded`; a later visit or back-edge is `included`.
+The root is not counted as a reference. A visited key includes canonical path,
+declaration kind, and declaration identity. Cycles terminate.
 
-The initial proposed ceilings are the present 32 KiB stable source capture and
-64 parsed declarations per file, at most 16 distinct outbound targets per root,
-at most four reference edges in a path, and at most 64 KiB encoded Jev input per
-unit. Count the root, expanded nodes, edge metadata, path/domain text, and JSON
-encoding toward the input bound. Apply caps before recursive materialization and
-before source egress. Record extraction elapsed time and stop at a separately
-configured finite analysis deadline; the prototype must choose and test its exact
-value before live evaluation. The existing 15-second Jev deadline, zero automatic
-retries, queue capacity, and host response limits remain independent ceilings.
-No candidate budget is a production default merely because it appears here.
+After #117/#118 reconciliation, specify this traversal policy as Bend
+transitions before implementing the cross-file pipeline. Native code supplies
+syntax, import-binding, path, identity, and capture facts; Bend decides the
+next eligible edge, budget progression, and complete/incomplete outcome
+without retaining source. [#141](https://github.com/dearlordylord/hapsland/issues/141)
+tracks the precise supported resolution scope and a separate dashboard
+state-machine diagram. That diagram uses the same checked transition adapter
+as production and distinguishes native facts from Bend decisions.
+
+For example, if A.ts refers to B.ts, B.ts refers to C.ts, A and B are selected,
+and C is excluded, capture A and B in that order after their individual checks.
+Check C's path but never read C's source. Record the blocked edge as a bounded,
+source-free local reason; A's dependent unit is incomplete and makes no Jev
+request. An independently selected B root is likewise incomplete if it requires
+C. Independent complete roots may continue. No excluded source is copied into
+an allowed file's review input.
+
+The target per-source-file stable-capture ceiling is **256 KiB inclusive**. The
+target evidence-tree ceiling is **20 KiB of canonical UTF-8 encoded root, nodes,
+edges, and required metadata per review unit**, including evidence reached from
+multiple files. The exact canonical encoding is an adoption gate. Check the
+remaining tree budget before accepting a captured contribution. If a supporting
+node cannot fit, skip that import's tree contribution, record the skipped target,
+and continue inspecting later pending edges within the finite file, read, work,
+depth, and deadline budgets. Keep the accepted tree at or below 20 KiB. A unit
+with any skipped import remains incomplete after its pending edges are examined
+and makes no Jev request. Keep at most
+64 parsed declarations per file, 16 distinct outbound targets per root, and four
+reference edges in a path as initial ceilings; fix finite total-file, total-read,
+and analysis-work/deadline ceilings before activation. The complete serialized
+Jev request has a **separate** bound covering the tree, root source, questions,
+options, and provider overhead. The earlier 64 KiB draft value is not a proven
+wire limit; [#140](https://github.com/dearlordylord/hapsland/issues/140)
+owns the later query/provider-aware refinement. Check the
+actual encoded request before egress. The existing 15-second Jev deadline,
+zero automatic retries, queue capacity, and host response limits remain
+independent ceilings. Source and ledger limits must be reconciled so the
+256 KiB target can be admitted without an unbounded parser or resident workspace.
 
 `EvidenceCompleteness` is a gate on the **entire candidate review unit** before
 rule selection. `complete` means its branch-defined root and every discovered
@@ -132,10 +171,10 @@ to each rule. Each target names `artifactKind` (`typeShape` or `function`), exac
 from an already complete branch unit. These declarations select compatible
 rules; they cannot relax the unit-wide completeness gate. Type
 capabilities include `root-declaration`, `resolved-outbound-types`, and
-`same-file-type-closure`; function capabilities include `signature`, `body`,
+`selected-source-type-closure`; function capabilities include `signature`, `body`,
 `resolved-local-calls`, and `resolved-outbound-types`. These capabilities describe
-what a complete branch projection can support; absence of any discovered graph
-evidence still skips the entire unit. A rule applying to both branches declares
+what a complete branch projection can support; a root with no outbound references
+can still be complete. A rule applying to both branches declares
 two targets and branch-specific requirements. Neither a broad
 kind wildcard nor an unversioned contract alias is allowed. Unknown target or
 capability makes the selected pack invalid before egress.
@@ -151,24 +190,33 @@ share a question across branches, but branch-specific criteria and messages need
 separate rule IDs or explicit target-specific definitions so evidence promises
 remain honest.
 
-Schema-v1 packs and existing user configurations retain their present supported
-behavior. They do not silently opt into either new contract. A migration must
-produce explicit v2 targets, update documentation/setup previews, and preserve
-unknown-version rejection. Project configuration cannot grant consent or enlarge
-source eligibility, host support, egress destination, or analysis ceilings.
+Schema-v1 packs keep their current rule meaning. The target uses the existing
+file settings: absent settings include all otherwise eligible files, and
+configured includes/excludes narrow or replace that selection under the
+documented precedence. There is no separate repository grant. A migration
+must produce explicit targets for new rule inputs, update setup and file
+settings documentation, and continue to reject unknown configuration
+versions. Project settings cannot bypass protected paths, containment,
+Git ignore, supported host boundaries, or analysis limits.
 
 ## Review unit, identity, input, and publication
 
-The type branch's unit is one type-shape root and its type projection. The function
-branch's unit is one function root (signature plus body) and its function/type
-projection. Both retain stable repository-relative path, branch kind, exact file
-snapshot fingerprint, root span/identity, artifact source fingerprints, canonical
-projection fingerprint, `complete` evidence state, and evidence capabilities. The
-snapshot fingerprint identifies exact captured file bytes; each artifact source fingerprint
-identifies its exact declaration source; the projection fingerprint identifies the
-sorted, canonical root/edge/source projection. Neither event ID nor advicee is part of
-semantic reuse identity. `ReviewWorkItem` additionally freezes observation and
-advicee, selected rule identities, and exact input contract.
+One review unit has one selected root. Its supporting evidence can come from
+several files. A type root contains its declaration and referenced types. A
+function root contains its full signature and body, plus required functions
+and types. For each unit, record:
+
+- The root's repository-relative path, kind, name, and location.
+- A fingerprint of the exact bytes captured from each contributing file and
+  each declaration used in the unit.
+- One fingerprint of the complete, ordered evidence tree that Jev will see.
+- Whether all required evidence is present, and which evidence types the unit
+  supports.
+
+The event ID and advicee do not change the meaning of identical review
+evidence. A review work item still records the observation, the advicee, the
+selected rules, and the exact input format so the result goes to the right
+agent.
 
 `ReviewInput` is versioned separately for each branch. The proposed Jev payload is
 a JSON value containing `artifact` (`kind`, `name`, repository-relative `domain`,
@@ -184,20 +232,22 @@ digest; UTF-8 request bytes are checked at the final JSON representation before
 dispatch. The exact wire shape is a prototype acceptance item, not an invitation
 to serialize current internal `ReviewUnit` records by accident.
 
-The semantic evaluation key includes exact contract/renderer identity, canonical
-path, branch/root identity, projection fingerprint, selected rule-definition and
-effective-policy identities, and the complete evidence state. The exact file fingerprint
-is retained for observation and revalidation even if a harmless unrelated edit
-leaves the projection unchanged. Before backend dispatch, recheck consent,
-advicee/working-root authority, and captured snapshot validity. Before advice
-publication, recapture the named path and re-run selection, extraction, rule
-selection, and rendering under current configuration. Publish only if the same
-root remains attributable and the semantic evaluation key matches. A changed
-root, referenced evidence, rule, renderer, contract, consent, or advicee makes
-the result stale. An unrelated comment or sibling edit may retain a result only
-when the canonical projection and all authority checks still match. An uncertain
-recapture or root mapping suppresses publication. No whole-file equality shortcut
-or raw-diff fallback substitutes for this check.
+Before Hapsland sends a review unit to Jev, it checks that the root and every
+supporting file are still allowed and still match the captured source. Before
+Hapsland gives advice, it reads those files again and rebuilds the review
+unit under the current file settings and rules. If a required file, root,
+rule, or review input has changed, Hapsland discards the old Jev result.
+It also discards the result if it can no longer identify the advicee or
+working root with confidence.
+
+Hapsland may reuse an earlier result only when the selected root, complete
+evidence tree, selected rules, effective settings, and exact Jev input format
+are the same. A comment outside the review unit can change the file's exact
+bytes without changing the review question; reuse is allowed only after the
+fresh checks above confirm that the complete unit is still the same. The
+unit's exact input identity must include the input format, renderer, root,
+evidence-tree fingerprint, rules, effective settings, and complete state.
+Keep each contributing file's fingerprint so Hapsland can perform the checks.
 
 ## Quiet skip and human coverage
 
@@ -224,7 +274,11 @@ delivery policy. Coverage is never reported as a clean semantic judgment.
    probability bands.
 2. Deterministic offline checks establish unique attribution, finite expansion,
    unit-wide completeness, schema-v1 isolation and strict v2 target validation,
-   exact request shape, consent/egress gating, stale suppression, and source-free
+   exact request shape, per-path file selection before any source read
+   (including A → B → excluded C),
+   no read of excluded C, continued bounded traversal after a contribution
+   exceeds the remaining tree budget,
+   accepted tree size at or below 20 KiB, stale suppression, and source-free
    coverage. A controlled backend checks one request per eligible unit and no
    request for any incomplete or rule-empty unit. Typecheck and run the
    focused and full suites before any adoption claim.
@@ -239,8 +293,9 @@ delivery policy. Coverage is never reported as a clean semantic judgment.
    retry ceiling against remaining authorization. Keep ordinary tests offline and
    retain only sanitized aggregate live evidence.
 4. Before production adoption, approve the fixture corpus, acceptance thresholds,
-   capability vocabulary, exact renderer/wire contract, budgets, consent/egress
-   preview, and host delivery strategy. A result that lacks coverage or available
+   capability vocabulary, exact renderer/wire contract, budgets, clear
+   documentation of cross-file source use, and host delivery strategy.
+   A result that lacks coverage or available
    repetitions is inconclusive; failure of pre-registered semantic or safety gates
    rejects or narrows the branch. #16's failed paired gates cannot be silently
    replaced with retrospective easier thresholds. An approved branch then needs
@@ -252,8 +307,8 @@ delivery policy. Coverage is never reported as a clean semantic judgment.
   completeness policy. The prototype must establish which capabilities are
   sufficiently checkable for each maintained rule; a rule cannot exempt an
   omitted edge.
-- Exact analysis deadline, depth/reference/input ceilings, and whether the
-  current 32 KiB/64-declaration capture envelope is enough for useful fixtures.
+- Exact total-file/read and analysis-work/deadline ceilings, canonical 20 KiB
+  tree encoding, and resident ledger limits compatible with 256 KiB capture.
 - Exact v2 schema syntax and renderer JSON shape after prototype fixtures expose
   the required fields. These must be frozen before implementation or live calls.
 - Pre-registered paired semantic thresholds and permissible added egress for each

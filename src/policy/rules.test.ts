@@ -32,4 +32,26 @@ describe("advice policy", () => {
       configuredRules.slice(0, 3).map((rule) => rule.id),
     );
   });
+
+  it("keeps adjacent binary64 values on opposite sides of a strict threshold", () => {
+    const rule = configuredRules[0];
+    if (rule === undefined) throw new Error("expected a configured rule");
+    const words = new DataView(new ArrayBuffer(8));
+    words.setFloat64(0, rule.threshold, false);
+    words.setUint32(4, words.getUint32(4, false) + 1, false);
+    const next = words.getFloat64(0, false);
+    expect(deriveAdvice([rule], { [rule.id]: Probability.make(rule.threshold) }, snapshot, 1)).toEqual([]);
+    expect(deriveAdvice([rule], { [rule.id]: Probability.make(next) }, snapshot, 1)).toHaveLength(1);
+  });
+
+  it("ranks a higher probability ahead of an earlier configured rule", () => {
+    const first = configuredRules[0];
+    const second = configuredRules[1];
+    if (first === undefined || second === undefined) throw new Error("expected two rules");
+    const advice = deriveAdvice([first, second], {
+      [first.id]: Probability.make(0.8),
+      [second.id]: Probability.make(0.9),
+    }, snapshot, 1);
+    expect(advice.map(({ ruleId }) => ruleId)).toEqual([second.id]);
+  });
 });

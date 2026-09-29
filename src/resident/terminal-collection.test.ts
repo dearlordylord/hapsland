@@ -3,6 +3,7 @@ import * as Effect from "effect/Effect";
 import { join } from "node:path";
 import { createConnection } from "node:net";
 import { writeFileSync } from "node:fs";
+import { readActivity } from "../activity/status.ts";
 import { adaptClaudeDirectEvent } from "../direct-event/adapter.ts";
 import { makeGitFixture, put } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
@@ -51,7 +52,7 @@ const collect = (server: ResidentServer, ticket: ResidentCollectionTicket,
   } satisfies ResidentRequest);
 
 const collectOverSocket = (server: ResidentServer, ticket: ResidentCollectionTicket,
-  data: Awaited<ReturnType<typeof fixture>>, dispatch: ResidentDispatchContext) =>
+  data: Awaited<ReturnType<typeof fixture>>, dispatch: ResidentDispatchContext, version = 3) =>
   new Promise<{ status: string; reason?: string }>((resolve, reject) => {
     const socket = createConnection(server.paths.socket);
     let response = "";
@@ -62,13 +63,112 @@ const collectOverSocket = (server: ResidentServer, ticket: ResidentCollectionTic
       catch (error) { reject(error); }
     });
     socket.on("connect", () => socket.write(`${JSON.stringify({
-      version: 2, operation: "collect", lifetime: server.lifetime, ticket,
+      version, operation: "collect", lifetime: server.lifetime, ticket,
       root: data.root, advicee: data.observation.advicee, dispatch,
     })}\n`));
   });
 
 describe("Claude terminal collection", () => {
-  it("waits for admitted work and returns clear only after a successful zero-finding evaluation", async () => {
+  it("rejects an older socket collection request without reporting a review result", async () => {
+    const data = await fixture();
+    const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
+    await server.listen();
+    try {
+      expect(await collectOverSocket(server, { nonce: "old", lifetime: server.lifetime },
+        data, data.dispatch(0.9), 2)).toEqual({ version: 3, status: "unsupported" });
+    } finally {
+      await server.close();
+    }
+  });
+  it("joins a claimed evaluation before its owner attaches the request", async () => {
+    const data = await fixture();
+    const ownerClaimed = deferred();
+    const claimJoined = deferred();
+    const releaseOwner = deferred();
+    const primerEntered = deferred();
+    const releasePrimer = deferred();
+    const blockersEntered = deferred();
+    const releaseBlockers = deferred();
+    let evaluationCount = 0;
+    let holdOwner = false;
+    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), () => 1_000, {
+      beforeEvaluate: async () => {
+        evaluationCount += 1;
+        if (evaluationCount === 1) {
+          primerEntered.resolve();
+          await releasePrimer.promise;
+        } else if (evaluationCount <= 3) {
+          if (evaluationCount === 3) blockersEntered.resolve();
+          await releaseBlockers.promise;
+        }
+      },
+      afterReuseBoundary: async (phase) => {
+        if (phase === "ownerClaimed" && holdOwner) {
+          holdOwner = false;
+          ownerClaimed.resolve();
+          await releaseOwner.promise;
+        }
+        if (phase === "claimJoined") claimJoined.resolve();
+      },
+    });
+    const activityPath = join(data.root, "joined-activity");
+    const dispatch = { ...data.dispatch(0), activityPath };
+    const primer = { ...data.observation, advicee: { ...data.observation.advicee, sessionId: "primer" } };
+    expect(server.admit(primer, dispatch).status).toBe("accepted");
+    await primerEntered.promise;
+    for (const sessionId of ["blocker-a", "blocker-b"]) {
+      const blocker = { ...data.observation, advicee: { ...data.observation.advicee, sessionId } };
+      expect(server.admit(blocker, dispatch).status).toBe("accepted");
+    }
+    releasePrimer.resolve();
+    await blockersEntered.promise;
+    holdOwner = true;
+    const first = server.admit(data.observation, dispatch, true);
+    if (first.status !== "accepted" || !("ticket" in first)) throw new Error("owner not admitted");
+    const second = server.admit(data.observation, dispatch, true);
+    if (second.status !== "accepted" || !("ticket" in second)) throw new Error("repeat not admitted");
+    releaseBlockers.resolve();
+    await ownerClaimed.promise;
+    try {
+      await claimJoined.promise;
+      expect(await collect(server, second.ticket, data, dispatch))
+        .toEqual({ version: 2, status: "pending" });
+    } finally {
+      releaseOwner.resolve();
+    }
+    await server.whenIdle();
+    expect(await collect(server, first.ticket, data, dispatch)).toEqual({ version: 2, status: "empty" });
+    expect(await collect(server, second.ticket, data, dispatch))
+      .toEqual({ version: 2, status: "empty" });
+    expect(server.accountingMetrics()).toMatchObject({ successfulCacheEntries: 3, pendingEvaluations: 0 });
+    const activity = readActivity({ statePath: activityPath, root: data.root,
+      sessionId: data.observation.advicee.sessionId,
+      resident: { available: true, lifetime: server.lifetime } });
+    expect(activity.counts.unavailable).toBe(0);
+    expect(activity.counts.clear).toBeGreaterThan(0);
+  });
+
+  it("releases an owner claim if preparation exits before attachment", async () => {
+    const data = await fixture();
+    let failOnce = true;
+    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), () => 1_000, {
+      afterReuseBoundary: () => {
+        if (failOnce) { failOnce = false; throw new Error("fixture interruption"); }
+      },
+    });
+    const dispatch = data.dispatch(0);
+    const first = server.admit(data.observation, dispatch, true);
+    if (first.status !== "accepted" || !("ticket" in first)) throw new Error("first not admitted");
+    await server.whenIdle();
+    expect(server.accountingMetrics().pendingEvaluations).toBe(0);
+    const second = server.admit(data.observation, dispatch, true);
+    if (second.status !== "accepted" || !("ticket" in second)) throw new Error("second not admitted");
+    await server.whenIdle();
+    expect(await collect(server, second.ticket, data, dispatch)).toEqual({ version: 2, status: "empty" });
+    expect(server.accountingMetrics()).toMatchObject({ successfulCacheEntries: 1, pendingEvaluations: 0 });
+  });
+
+  it("waits for admitted work and leaves clear evidence in activity after completion", async () => {
     const data = await fixture();
     const gate = deferred();
     const entered = deferred();
@@ -85,7 +185,7 @@ describe("Claude terminal collection", () => {
     expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ version: 2, status: "pending" });
     gate.resolve();
     await server.whenIdle();
-    expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ version: 2, status: "clear" });
+    expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ version: 2, status: "empty" });
     expect(await collect(server, admission.ticket, data, {
       ...dispatch, credential: { name: "TYPESAFE_API_KEY", environmentValue: null,
         environmentOnly: true, generation: 1, statePath: join(data.root, "credential") },
@@ -100,7 +200,7 @@ describe("Claude terminal collection", () => {
       .toEqual({ version: 2, status: "unavailable", reason: "lost" });
   });
 
-  it("delivers findings and never reinterprets them as clear", async () => {
+  it("delivers findings without returning a ticket-wide terminal result", async () => {
     const data = await fixture();
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
     const dispatch = data.dispatch(0.9);
@@ -113,8 +213,10 @@ describe("Claude terminal collection", () => {
       if (advice.status !== "advice") break;
       expect(server.acknowledge(advice.token).status).toBe("acknowledged");
       expect(server.finalize(advice.token).status).toBe("finalized");
+      expect(server.acknowledge(advice.token).status).toBe("empty");
+      expect(server.finalize(advice.token).status).toBe("empty");
     }
-    expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ version: 2, status: "delivered" });
+    expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ version: 2, status: "empty" });
   });
 
   it("reports backend failure and missing or replacement tickets conservatively", async () => {
@@ -134,7 +236,7 @@ describe("Claude terminal collection", () => {
       .toEqual({ version: 2, status: "unavailable", reason: "lost" });
   });
 
-  it("expires tickets and invalidates a completed clear on same-tool revision supersession", async () => {
+  it("expires admission capabilities after a same-tool revision", async () => {
     const data = await fixture();
     let now = 1_000;
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")), () => now);
@@ -143,7 +245,7 @@ describe("Claude terminal collection", () => {
       observation: data.observation, controlledWriter: true, dispatch });
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
     await server.whenIdle();
-    expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ version: 2, status: "clear" });
+    expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ version: 2, status: "empty" });
     const path = await put(data.root, "type.ts", "type OrderCount = string\n");
     const second = await Effect.runPromise(adaptClaudeDirectEvent({
       hook_event_name: "PostToolUse", tool_name: "Write", cwd: data.root,
@@ -154,12 +256,36 @@ describe("Claude terminal collection", () => {
     if (second === undefined) throw new Error("second edit not adapted");
     expect(server.admit(second, dispatch).status).toBe("accepted");
     await server.whenIdle();
-    expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ version: 2, status: "unavailable", reason: "stale" });
+    expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ version: 2, status: "empty" });
     now += 600_001;
     expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ version: 2, status: "unavailable", reason: "expired" });
   });
 
-  it("observes a clear that completes while the collection response is gated", async () => {
+  it("keeps an admission capability valid until the exact fractional expiry", async () => {
+    const data = await fixture();
+    const admittedAt = 1_000.00095;
+    let now = admittedAt;
+    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), () => now);
+    const dispatch = data.dispatch(0);
+    const admission = await server.handle({ version: 2, operation: "admit", lifetime: server.lifetime,
+      observation: data.observation, controlledWriter: true, dispatch });
+    if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
+    await server.whenIdle();
+    const expiresAt = admittedAt + 600_000;
+    now = expiresAt - 0.00005;
+    expect(now).toBeLessThan(expiresAt);
+    expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ version: 2, status: "empty" });
+    now = expiresAt;
+    expect(await collect(server, admission.ticket, data, dispatch)).toEqual({
+      version: 2, status: "unavailable", reason: "expired",
+    });
+    expect(await collect(server, admission.ticket, data, {
+      ...dispatch, credential: { name: "TYPESAFE_API_KEY", environmentValue: null,
+        environmentOnly: true, generation: 1, statePath: join(data.root, "credential") },
+    })).toEqual({ version: 2, status: "unavailable", reason: "expired" });
+  });
+
+  it("observes settled work while the collection response is gated", async () => {
     const data = await fixture();
     const evaluating = deferred();
     const evaluateGate = deferred();
@@ -181,7 +307,7 @@ describe("Claude terminal collection", () => {
       evaluateGate.resolve();
       await server.whenIdle();
       responseGate.resolve();
-      expect(await result).toEqual({ version: 2, status: "clear" });
+      expect(await result).toEqual({ version: 3, status: "empty" });
     } finally {
       evaluateGate.resolve();
       responseGate.resolve();
@@ -189,7 +315,7 @@ describe("Claude terminal collection", () => {
     }
   });
 
-  it("cannot return clear when findings arrive at the response gate", async () => {
+  it("keeps collection pending when findings arrive at the response gate", async () => {
     const data = await fixture();
     const evaluating = deferred();
     const evaluateGate = deferred();
@@ -220,7 +346,7 @@ describe("Claude terminal collection", () => {
     }
   });
 
-  it("invalidates an evaluated clear when the same tool revision changes before handoff", async () => {
+  it("does not claim a terminal outcome when the same tool revision changes before handoff", async () => {
     const data = await fixture();
     const handingOff = deferred();
     const responseGate = deferred();
@@ -247,14 +373,14 @@ describe("Claude terminal collection", () => {
       expect(server.admit(second, dispatch).status).toBe("accepted");
       await server.whenIdle();
       responseGate.resolve();
-      expect(await result).toEqual({ version: 2, status: "unavailable", reason: "stale" });
+      expect(await result).toEqual({ version: 3, status: "empty" });
     } finally {
       responseGate.resolve();
       await server.close();
     }
   });
 
-  it("keeps a mixed finding and failed unit unavailable after all advice is finalized", async () => {
+  it("keeps a mixed finding and failed unit separately visible after advice finalization", async () => {
     const data = await fixture();
     const secondPath = await put(data.root, "second.ts", "type SecondCount = number\n");
     const firstCandidate = data.observation.candidates[0];
@@ -267,7 +393,8 @@ describe("Claude terminal collection", () => {
         if (prepared.input.path.endsWith("second.ts")) throw new Error("controlled unit failure");
       },
     });
-    const dispatch = data.dispatch(0.9);
+    const activityPath = join(data.root, "mixed-activity");
+    const dispatch = { ...data.dispatch(0.9), activityPath };
     const admission = await server.handle({ version: 2, operation: "admit", lifetime: server.lifetime,
       observation, controlledWriter: true, dispatch });
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
@@ -281,9 +408,12 @@ describe("Claude terminal collection", () => {
       expect(server.finalize(outcome.token).status).toBe("finalized");
     }
     expect(delivered).toBe(true);
-    expect(await collect(server, admission.ticket, data, dispatch)).toEqual({
-      version: 2, status: "unavailable", reason: "backend",
-    });
+    expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ version: 2, status: "empty" });
+    const activity = readActivity({ statePath: activityPath, root: data.root,
+      sessionId: data.observation.advicee.sessionId,
+      resident: { available: true, lifetime: server.lifetime } });
+    expect(activity.findings).toBeGreaterThan(0);
+    expect(activity.counts.unavailable).toBeGreaterThan(0);
   });
 
   it("keeps advice pending for simultaneous collectors and failed acknowledgement", async () => {
@@ -319,11 +449,11 @@ describe("Claude terminal collection", () => {
         skipped.status !== "accepted" || !("ticket" in skipped)) throw new Error("not admitted");
     await server.whenIdle();
     const other = await collect(server, skipped.ticket, data, dispatch);
-    expect(other).toEqual({ version: 2, status: "no-work" });
+    expect(other).toEqual({ version: 2, status: "pending" });
     expect((await collect(server, finding.ticket, data, dispatch)).status).toBe("advice");
   });
 
-  it("shares one identical finding with two tickets and marks both delivered after finalization", async () => {
+  it("shares one identical finding with two admissions and does not return a terminal result", async () => {
     const data = await fixture();
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
     const dispatch = data.dispatch(0.9);
@@ -342,8 +472,8 @@ describe("Claude terminal collection", () => {
       expect(server.finalize(advice.token).status).toBe("finalized");
       advice = await collect(server, second.ticket, data, dispatch);
     }
-    expect(advice).toEqual({ version: 2, status: "delivered" });
-    expect(await collect(server, first.ticket, data, dispatch)).toEqual({ version: 2, status: "delivered" });
+    expect(advice).toEqual({ version: 2, status: "empty" });
+    expect(await collect(server, first.ticket, data, dispatch)).toEqual({ version: 2, status: "empty" });
   });
 
   it("withdraws preselected advice when credential generation rotates at the response gate", async () => {
@@ -371,7 +501,7 @@ describe("Claude terminal collection", () => {
       await entered.promise;
       writeFileSync(statePath, JSON.stringify({ version: 1, generation: 2, savedUseSuspended: false }));
       gate.resolve();
-      expect(await result).toEqual({ version: 2, status: "unavailable", reason: "credential" });
+      expect(await result).toEqual({ version: 3, status: "unavailable", reason: "credential" });
       expect(server.stats().pendingAdvice).toBeGreaterThan(0);
     } finally {
       gate.resolve();
@@ -394,7 +524,7 @@ describe("Claude terminal collection", () => {
       observation: data.observation, controlledWriter: true, dispatch });
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
     await server.whenIdle();
-    expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ version: 2, status: "clear" });
+    expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ version: 2, status: "empty" });
     writeFileSync(statePath, JSON.stringify({ version: 1, generation: 2, savedUseSuspended: false }));
     expect(await collect(server, admission.ticket, data, dispatch)).toEqual({
       version: 2, status: "unavailable", reason: "credential",
@@ -409,15 +539,15 @@ describe("Claude terminal collection", () => {
       observation: data.observation, controlledWriter: true, dispatch });
     if (first.status !== "accepted" || !("ticket" in first)) throw new Error("first not admitted");
     await server.whenIdle();
-    expect(await collect(server, first.ticket, data, dispatch)).toEqual({ version: 2, status: "clear" });
+    expect(await collect(server, first.ticket, data, dispatch)).toEqual({ version: 2, status: "empty" });
     const second = await server.handle({ version: 2, operation: "admit", lifetime: server.lifetime,
       observation: data.observation, controlledWriter: true, dispatch });
     if (second.status !== "accepted" || !("ticket" in second)) throw new Error("second not admitted");
     await server.whenIdle();
-    expect(await collect(server, second.ticket, data, dispatch)).toEqual({ version: 2, status: "clear" });
+    expect(await collect(server, second.ticket, data, dispatch)).toEqual({ version: 2, status: "empty" });
   });
 
-  it("returns no-work when file policy excludes the admitted edit", async () => {
+  it("returns quietly when file policy excludes the admitted edit", async () => {
     const data = await fixture();
     await put(data.root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
@@ -426,10 +556,10 @@ describe("Claude terminal collection", () => {
       observation: data.observation, controlledWriter: true, dispatch });
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
     await server.whenIdle();
-    expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ version: 2, status: "no-work" });
+    expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ version: 2, status: "empty" });
   });
 
-  it("leases a failure notice only to its admission and stays unavailable after finalization", async () => {
+  it("leases a failure notice from either admission without a terminal result", async () => {
     const data = await fixture();
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
     const failed = data.dispatch(0, "controlled backend failure");
@@ -442,20 +572,18 @@ describe("Claude terminal collection", () => {
       observation: data.observation, controlledWriter: true, dispatch: failed });
     if (second.status !== "accepted" || !("ticket" in second)) throw new Error("second not admitted");
     await server.whenIdle();
-    expect((await collect(server, second.ticket, data, failed)).status).toBe("pending");
-    const advice = await collect(server, first.ticket, data, failed);
+    const advice = await collect(server, second.ticket, data, failed);
     expect(advice.status).toBe("advice");
     if (advice.status !== "advice") return;
     expect(advice.findingCount).toBe(0);
+    expect((await collect(server, first.ticket, data, failed)).status).toBe("pending");
     expect(server.acknowledge(advice.token).status).toBe("acknowledged");
     expect(server.finalize(advice.token).status).toBe("finalized");
-    expect(await collect(server, first.ticket, data, failed)).toEqual({
-      version: 2, status: "unavailable", reason: "backend",
-    });
-    expect((await collect(server, second.ticket, data, failed)).status).toBe("no-work");
+    expect(await collect(server, first.ticket, data, failed)).toEqual({ version: 2, status: "empty" });
+    expect((await collect(server, second.ticket, data, failed)).status).toBe("empty");
   });
 
-  it("keeps a prior tool-use clear valid when a later tool-use edits the same subject", async () => {
+  it("keeps a prior admission valid when a later tool-use edits the same subject", async () => {
     const data = await fixture();
     const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
     const dispatch = data.dispatch(0);
@@ -463,11 +591,11 @@ describe("Claude terminal collection", () => {
       observation: data.observation, controlledWriter: true, dispatch });
     if (first.status !== "accepted" || !("ticket" in first)) throw new Error("first not admitted");
     await server.whenIdle();
-    expect(await collect(server, first.ticket, data, dispatch)).toEqual({ version: 2, status: "clear" });
+    expect(await collect(server, first.ticket, data, dispatch)).toEqual({ version: 2, status: "empty" });
     const later = { ...data.observation, advicee: { ...data.observation.advicee, toolUseId: "later-tool" } };
     expect(server.admit(later, dispatch).status).toBe("accepted");
     await server.whenIdle();
-    expect(await collect(server, first.ticket, data, dispatch)).toEqual({ version: 2, status: "clear" });
+    expect(await collect(server, first.ticket, data, dispatch)).toEqual({ version: 2, status: "empty" });
   });
 
   it("reports expired advice and evicted tickets without claiming clear", async () => {

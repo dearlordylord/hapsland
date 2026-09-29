@@ -1,6 +1,6 @@
 import { canonicalValue, type PreparedUnit } from "../direct-event/model.ts";
 import type { EvaluatedUnit } from "../direct-event/pipeline.ts";
-import type { CapacityReservation } from "./capacity.ts";
+import type { CapacityLedger, CapacityReservation } from "./capacity.ts";
 
 export const SUCCESS_CACHE_ENTRY_LIMIT = 8;
 export const SUCCESS_CACHE_BYTE_LIMIT = 128 * 1024;
@@ -25,16 +25,18 @@ type CacheEntry = CachedEvaluation & {
 };
 
 type EvaluationReuseOptions = {
-  readonly reserve: (partition: string, bytes: number) => CapacityReservation | undefined;
-  readonly release: (reservation: CapacityReservation) => void;
+  readonly ledger: CapacityLedger;
   readonly logicalBytes: (value: unknown) => number;
 };
 
-/** Pending ownership is intentionally independent from successful-cache LRU. */
+/** Native payloads and request handles follow canonical claim and LRU state. */
 export class EvaluationReuse<Pending = never> {
   readonly #pending = new Map<string, Pending | undefined>();
   readonly #cache = new Map<string, CacheEntry>();
+  readonly #keyIds = new Map<string, number>();
+  readonly #idKeys = new Map<number, string>();
   readonly #options: EvaluationReuseOptions;
+  #nextId = 1;
   #cacheBytes = 0;
 
   constructor(options: EvaluationReuseOptions) {
@@ -45,16 +47,74 @@ export class EvaluationReuse<Pending = never> {
     return residentEvaluationIdentity(partition, prepared);
   }
 
+  #id(key: string): number {
+    const existing = this.#keyIds.get(key);
+    if (existing !== undefined) return existing;
+    const id = this.#nextId++;
+    if (!Number.isSafeInteger(id)) throw new Error("canonical evaluation identity exhausted");
+    this.#keyIds.set(key, id);
+    this.#idKeys.set(id, key);
+    return id;
+  }
+
+  #forgetUnused(key: string): void {
+    if (this.#pending.has(key) || this.#cache.has(key)) return;
+    const id = this.#keyIds.get(key);
+    if (id === undefined) return;
+    this.#keyIds.delete(key);
+    this.#idKeys.delete(id);
+  }
+
+  route(key: string, liveAdvice: boolean): "joinedAdvice" | "joinedPending" | "joinedClaimed" | "cached" | "owner" {
+    const command = this.#options.ledger.transition({ kind: "reuseRoute", id: this.#id(key),
+      liveAdvice }).commands[0]?.kind;
+    switch (command) {
+      case "reuseJoinAdvice":
+        this.#forgetUnused(key);
+        return "joinedAdvice";
+      case "reuseJoinPending":
+        if (this.#pending.get(key) === undefined) throw new Error("canonical pending evaluation lacks native owner");
+        return "joinedPending";
+      case "reuseJoinClaimed":
+        if (!this.#pending.has(key)) throw new Error("canonical evaluation claim lacks native owner");
+        return "joinedClaimed";
+      case "reuseCached": {
+        const entry = this.#cache.get(key);
+        if (entry === undefined) throw new Error("canonical cached evaluation lacks native payload");
+        this.#cache.delete(key);
+        this.#cache.set(key, entry);
+        return "cached";
+      }
+      case "reuseOwn":
+        if (this.#pending.has(key)) throw new Error("canonical evaluation owner already native");
+        this.#pending.set(key, undefined);
+        return "owner";
+      default: throw new Error("canonical evaluation route refused");
+    }
+  }
+
   claim(key: string): boolean {
-    if (this.#pending.has(key)) return false;
-    this.#pending.set(key, undefined);
-    return true;
+    const command = this.#options.ledger.transition({ kind: "reuseClaim", id: this.#id(key) }).commands[0]?.kind;
+    if (command === "reuseClaimed") {
+      if (this.#pending.has(key)) throw new Error("duplicate native evaluation claim");
+      this.#pending.set(key, undefined);
+      return true;
+    }
+    if (command === "reuseRefused") return false;
+    throw new Error("canonical evaluation claim refused");
   }
 
   attachPending(key: string, pending: Pending): boolean {
-    if (!this.#pending.has(key)) return false;
-    this.#pending.set(key, pending);
-    return true;
+    const id = this.#keyIds.get(key);
+    if (id === undefined) return false;
+    const command = this.#options.ledger.transition({ kind: "reuseAttach", id }).commands[0]?.kind;
+    if (command === "reuseAttached") {
+      if (!this.#pending.has(key)) throw new Error("canonical attached evaluation lacks native claim");
+      this.#pending.set(key, pending);
+      return true;
+    }
+    if (command === "reuseRefused") return false;
+    throw new Error("canonical evaluation attachment refused");
   }
 
   pending(key: string): Pending | undefined {
@@ -62,7 +122,13 @@ export class EvaluationReuse<Pending = never> {
   }
 
   releaseClaim(key: string): void {
+    const id = this.#keyIds.get(key);
+    if (id === undefined) return;
+    if (this.#options.ledger.transition({ kind: "reuseRelease", id }).commands[0]?.kind !== "reuseReleased") {
+      throw new Error("canonical evaluation release refused");
+    }
     this.#pending.delete(key);
+    this.#forgetUnused(key);
   }
 
   hasPending(key: string): boolean {
@@ -70,54 +136,85 @@ export class EvaluationReuse<Pending = never> {
   }
 
   get(key: string): CachedEvaluation | undefined {
-    const retained = this.#cache.get(key);
-    if (retained === undefined) return undefined;
+    const id = this.#keyIds.get(key);
+    if (id === undefined) return undefined;
+    const command = this.#options.ledger.transition({ kind: "reuseTouch", id }).commands[0]?.kind;
+    if (command === "reuseOwn") return undefined;
+    if (command !== "reuseCached") throw new Error("canonical cache lookup refused");
+    const entry = this.#cache.get(key);
+    if (entry === undefined) throw new Error("canonical cached evaluation lacks native payload");
     this.#cache.delete(key);
-    this.#cache.set(key, retained);
-    return { evaluation: retained.evaluation, logicalBytes: retained.logicalBytes };
+    this.#cache.set(key, entry);
+    return { evaluation: entry.evaluation, logicalBytes: entry.logicalBytes };
+  }
+
+  cached(key: string): CachedEvaluation {
+    const entry = this.#cache.get(key);
+    if (entry === undefined) throw new Error("canonical cached evaluation lacks native payload");
+    return { evaluation: entry.evaluation, logicalBytes: entry.logicalBytes };
   }
 
   put(partition: string, key: string, evaluation: EvaluatedUnit): boolean {
-    if (this.#cache.has(key)) return true;
+    const id = this.#id(key);
     const logicalBytes = this.#options.logicalBytes({ key, evaluation });
-    if (logicalBytes > SUCCESS_CACHE_BYTE_LIMIT) return false;
-    while (
-      this.#cache.size >= SUCCESS_CACHE_ENTRY_LIMIT ||
-      this.#cacheBytes + logicalBytes > SUCCESS_CACHE_BYTE_LIMIT
-    ) this.#evictOldest();
-    const reservation = this.#options.reserve(partition, logicalBytes);
-    if (reservation === undefined) return false;
+    const plan = this.#options.ledger.transition({ kind: "cachePrepare", id, bytes: logicalBytes,
+      entryLimit: SUCCESS_CACHE_ENTRY_LIMIT, byteLimit: SUCCESS_CACHE_BYTE_LIMIT }).commands[0];
+    if (plan?.kind === "cacheAlready") {
+      if (!this.#cache.has(key)) throw new Error("canonical cached evaluation lacks native payload");
+      return true;
+    }
+    if (plan?.kind === "cacheRejected") { this.#forgetUnused(key); return false; }
+    if (plan?.kind !== "cachePrepared") throw new Error("canonical cache admission refused");
+    for (const evicted of plan.evicted) this.#removeCachedId(evicted);
+    const reservation = this.#options.ledger.reserve(partition, logicalBytes, "storedResult");
+    if (reservation === undefined) { this.#forgetUnused(key); return false; }
+    const command = this.#options.ledger.transition({ kind: "cacheCommit", id,
+      partition: this.#options.ledger.partitionId(partition), bytes: logicalBytes,
+      reservation: reservation.id,
+      entryLimit: SUCCESS_CACHE_ENTRY_LIMIT, byteLimit: SUCCESS_CACHE_BYTE_LIMIT }).commands[0]?.kind;
+    if (command !== "cacheCommitted") {
+      this.#options.ledger.release(reservation);
+      throw new Error("canonical cache commit refused");
+    }
     this.#cache.set(key, { key, evaluation, logicalBytes, reservation });
     this.#cacheBytes += logicalBytes;
     return true;
   }
 
   snapshot(): { readonly entries: number; readonly bytes: number; readonly pending: number } {
-    return { entries: this.#cache.size, bytes: this.#cacheBytes, pending: this.#pending.size };
+    const canonical = this.#options.ledger.canonicalProjection().reuse;
+    const bytes = canonical.cache.reduce((sum, entry) => sum + entry.bytes, 0);
+    if (canonical.cache.length !== this.#cache.size || bytes !== this.#cacheBytes ||
+        canonical.claims.length !== this.#pending.size) {
+      throw new Error("native evaluation handles differ from canonical state");
+    }
+    return { entries: canonical.cache.length, bytes, pending: canonical.claims.length };
   }
 
   discardPartition(partition: string): void {
-    for (const [key, entry] of this.#cache) {
-      if (entry.reservation.partition !== partition) continue;
-      this.#cache.delete(key);
-      this.#cacheBytes -= entry.logicalBytes;
-      this.#options.release(entry.reservation);
-    }
+    const command = this.#options.ledger.transition({ kind: "cacheDiscardPartition",
+      partition: this.#options.ledger.partitionId(partition) }).commands[0];
+    if (command?.kind !== "cacheDiscarded") throw new Error("canonical cache expiry refused");
+    for (const id of command.ids) this.#removeCachedId(id);
   }
 
   clear(): void {
+    const command = this.#options.ledger.transition({ kind: "cacheClear" }).commands[0];
+    if (command?.kind !== "cacheDiscarded") throw new Error("canonical cache clear refused");
+    for (const id of command.ids) this.#removeCachedId(id);
     this.#pending.clear();
-    for (const entry of this.#cache.values()) this.#options.release(entry.reservation);
-    this.#cache.clear();
-    this.#cacheBytes = 0;
+    this.#keyIds.clear();
+    this.#idKeys.clear();
   }
 
-  #evictOldest(): void {
-    const next = this.#cache.values().next();
-    if (next.done) return;
-    const oldest = next.value;
-    this.#cache.delete(oldest.key);
-    this.#cacheBytes -= oldest.logicalBytes;
-    this.#options.release(oldest.reservation);
+  #removeCachedId(id: number): void {
+    const key = this.#idKeys.get(id);
+    if (key === undefined) throw new Error("canonical cache eviction lacks native identity");
+    const entry = this.#cache.get(key);
+    if (entry === undefined) throw new Error("canonical cache eviction lacks native payload");
+    this.#cache.delete(key);
+    this.#cacheBytes -= entry.logicalBytes;
+    this.#options.ledger.release(entry.reservation);
+    this.#forgetUnused(key);
   }
 }

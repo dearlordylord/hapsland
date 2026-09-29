@@ -15,7 +15,7 @@ import {
 } from "./server.ts";
 import { residentPaths } from "./paths.ts";
 import { PENDING_ADVICE_EXPIRY_MS } from "./collection.ts";
-import { operationalNoticeAdmission } from "./operational-notice-policy.ts";
+import { initialCanonical, projectCanonical, stepCanonical } from "../canonical/adapter.ts";
 
 const enable = (root: string, statePath: string) => Effect.runPromise(Effect.gen(function* () {
   const consent = yield* Consent.Service;
@@ -111,17 +111,17 @@ const fillAndFinalizeCooldownTable = async (
   });
   for (const scoped of scopes) {
     const notice = await collectAndFinalize(server, scoped, context);
-    expect(notice.status).toBe("advice");
+    expect(notice.status).toBe("empty");
   }
   expect(server.accountingMetrics()).toMatchObject({
     operationalNoticeKeys: maximumKeys,
-    pendingOperationalNotices: 0,
+    pendingOperationalNotices: maximumKeys,
   });
   return scopes;
 };
 
 describe("resident operational notices", () => {
-  it("returns bounded actionable advice when native credential access requires interaction", async () => {
+  it("keeps credential failures in diagnostics instead of agent output", async () => {
     const { root, statePath, observation } = await fixture();
     const helper = join(root, "credential-helper.mjs");
     const credentialStatePath = join(root, "credential-state.json");
@@ -152,13 +152,8 @@ console.log('{"version":1,"status":"interaction-required"}');
       expect(server.admit(observation, context).status).toBe("accepted");
       await server.whenIdle();
       const result = await collectAndFinalize(server, observation, context);
-      expect(result.status).toBe("advice");
-      if (result.status === "advice") {
-        const text = result.output.hookSpecificOutput.additionalContext;
-        expect(text).toContain("saved review credential was unavailable");
-        expect(text).toContain("Background hooks never prompt");
-        expect(Buffer.byteLength(JSON.stringify(result.output))).toBeLessThanOrEqual(2 * 1024);
-      }
+      expect(result.status).toBe("empty");
+      expect(server.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 1, pendingOperationalNotices: 1 });
     } finally {
       await server.close();
       if (previousHelper === undefined) delete process.env.REVIEW_CREDENTIAL_HELPER;
@@ -175,10 +170,8 @@ console.log('{"version":1,"status":"interaction-required"}');
     expect(server.admit(observation, failed).status).toBe("accepted");
     await server.whenIdle();
     const first = await collectAndFinalize(server, observation, failed);
-    expect(first.status).toBe("advice");
-    if (first.status === "advice") {
-      expect(first.output.hookSpecificOutput.additionalContext).toContain("Jev was unavailable");
-    }
+    expect(first.status).toBe("empty");
+    expect(server.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 1, pendingOperationalNotices: 1 });
 
     now += OPERATIONAL_NOTICE_COOLDOWN_MS - 1;
     expect(await server.collect(root, observation.advicee, failed)).toMatchObject({ status: "empty" });
@@ -190,10 +183,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     expect(server.admit(observation, failed).status).toBe("accepted");
     await server.whenIdle();
     const boundary = await collectAndFinalize(server, observation, failed);
-    expect(boundary.status).toBe("advice");
-    if (boundary.status === "advice") {
-      expect(boundary.output.hookSpecificOutput.additionalContext).toContain("Jev was unavailable");
-    }
+    expect(boundary.status).toBe("empty");
 
     now += OPERATIONAL_NOTICE_COOLDOWN_MS;
     expect(await server.collect(root, observation.advicee, failed)).toMatchObject({ status: "empty" });
@@ -201,12 +191,31 @@ console.log('{"version":1,"status":"interaction-required"}');
     const restarted = new ResidentServer(residentPaths(join(root, "runtime-b")), () => now);
     expect(restarted.admit(observation, failed).status).toBe("accepted");
     await restarted.whenIdle();
-    expect((await restarted.collect(root, observation.advicee, failed)).status).toBe("advice");
+    expect((await restarted.collect(root, observation.advicee, failed)).status).toBe("empty");
     await server.close();
     await restarted.close();
   });
 
-  it("keeps capacity/backend and advicee partitions independent and batches with fresh findings", async () => {
+  it("keeps repeated failures in internal cooldown state without agent output", async () => {
+    const { root, statePath, observation } = await fixture();
+    const failed = dispatch(statePath, { failure: "offline backend" });
+    let now = 100;
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => now);
+    expect(server.admit(observation, failed).status).toBe("accepted");
+    await server.whenIdle();
+    now += OPERATIONAL_NOTICE_COOLDOWN_MS - 1;
+    expect(server.admit(observation, failed).status).toBe("accepted");
+    await server.whenIdle();
+    now += 1;
+    expect(server.admit(observation, failed).status).toBe("accepted");
+    await server.whenIdle();
+    const result = await collectAndFinalize(server, observation, failed);
+    expect(result.status).toBe("empty");
+    expect(server.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 1, pendingOperationalNotices: 1 });
+    await server.close();
+  });
+
+  it("keeps capacity/backend records separate while emitting only fresh findings", async () => {
     const { root, statePath, observation } = await fixture();
     const failed = dispatch(statePath, { failure: "offline backend" });
     const server = new ResidentServer(residentPaths(join(root, "runtime")), () => 1_000);
@@ -224,9 +233,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     if (combined.status === "advice") {
       const text = combined.output.hookSpecificOutput.additionalContext;
       expect(text).toContain("type.ts :: OrderCount");
-      expect(text).toContain("review capacity was unavailable");
-      expect(text).toContain("Jev was unavailable");
-      expect(text.indexOf("type.ts :: OrderCount")).toBeLessThan(text.indexOf("Operational notice"));
+      expect(text).not.toContain("Operational notice");
       expect(server.acknowledge(combined.token).status).toBe("acknowledged");
       expect(server.finalize(combined.token).status).toBe("finalized");
     }
@@ -240,14 +247,14 @@ console.log('{"version":1,"status":"interaction-required"}');
     expect(server.admit(otherObservation, failed).status).toBe("accepted");
     await server.whenIdle();
     const otherAdviceeNotice = await collectAndFinalize(server, otherObservation, failed);
-    expect(otherAdviceeNotice.status).toBe("advice");
+    expect(otherAdviceeNotice.status).toBe("empty");
 
     const second = await fixture();
     const secondFailed = dispatch(second.statePath, { failure: "offline backend" });
     expect(server.admit(second.observation, secondFailed).status).toBe("accepted");
     await server.whenIdle();
     expect(await server.collect(root, observation.advicee, failed)).toMatchObject({ status: "empty" });
-    expect((await server.collect(second.root, second.observation.advicee, secondFailed)).status).toBe("advice");
+    expect((await server.collect(second.root, second.observation.advicee, secondFailed)).status).toBe("empty");
     await server.close();
   });
 
@@ -263,7 +270,7 @@ console.log('{"version":1,"status":"interaction-required"}');
 
     await fillAndFinalizeCooldownTable(server, observation, capacity, maximumKeys);
 
-    now += OPERATIONAL_NOTICE_COOLDOWN_MS;
+    now += PENDING_ADVICE_EXPIRY_MS;
     await installCapacityRule(root, 0.7, 32);
     expect(server.admit(observation, capacityDispatch(statePath)).status).toBe("accepted");
     expect(server.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 0 });
@@ -286,9 +293,9 @@ console.log('{"version":1,"status":"interaction-required"}');
     expect(await excludedServer.collect(root, excluded.advicee, capacity)).toMatchObject({ status: "empty" });
     expect(excludedServer.accountingMetrics()).toMatchObject({
       operationalNoticeKeys: maximumKeys,
-      pendingOperationalNotices: 0,
+      pendingOperationalNotices: maximumKeys,
     });
-    excludedNow += OPERATIONAL_NOTICE_COOLDOWN_MS;
+    excludedNow += PENDING_ADVICE_EXPIRY_MS;
     expect(excludedServer.admit(excluded, capacity).status).toBe("accepted");
     await excludedServer.whenIdle();
     expect(await excludedServer.collect(root, excluded.advicee, capacity)).toMatchObject({ status: "empty" });
@@ -296,32 +303,28 @@ console.log('{"version":1,"status":"interaction-required"}');
     await excludedServer.close();
   });
 
-  it("preserves active suppression under full-table pressure from another eligible key", () => {
-    const nextAllowedByKey = new Map<string, number>(
-      Array.from({ length: MAX_OPERATIONAL_NOTICE_KEYS }, (_, index) => [
-        `eligible-partition-${index}`,
-        OPERATIONAL_NOTICE_COOLDOWN_MS,
-      ] as const),
-    );
-    const pressure = operationalNoticeAdmission({
-      now: 1,
-      existingNextAllowedAt: nextAllowedByKey.get("another-eligible-partition"),
-      keyCount: nextAllowedByKey.size,
-      maximumKeys: MAX_OPERATIONAL_NOTICE_KEYS,
+  it("saturates canonical suppression counts and keeps a leased pending notice stable", () => {
+    let state = initialCanonical({ globalItems: 4, globalBytes: 1000, partitionItems: 4, partitionBytes: 1000 });
+    const apply = (event: Parameters<typeof stepCanonical>[1]) => {
+      const result = stepCanonical(state, event);
+      state = result.state;
+      return result.commands[0];
+    };
+    expect(apply({ kind: "reserveCapacity", partition: 1, bytes: 20,
+      purpose: "operationalNotice" })?.kind).toBe("capacityGranted");
+    expect(apply({ kind: "noticeCommit", key: 1, partition: 1, group: 1,
+      reservation: 1, pending: 1, sequence: 1, maximumKeys: 4 })?.kind).toBe("noticeCommitted");
+    const suppressed = { kind: "noticeAdvance" as const, key: 1, remaining: 1,
+      maximumKeys: 4, proposed: 2, sequence: 2, maxCount: 2 };
+    expect(apply(suppressed)).toEqual({ kind: "noticeSuppressed", count: 1 });
+    expect(apply(suppressed)).toEqual({ kind: "noticeSuppressed", count: 2 });
+    expect(apply(suppressed)).toEqual({ kind: "noticeSuppressed", count: 2 });
+    expect(apply({ ...suppressed, remaining: 0 })).toEqual({ kind: "noticeMergePending", count: 2 });
+    expect(apply({ kind: "noticeLease", key: 1, leased: true })?.kind).toBe("noticeLeased");
+    expect(apply({ ...suppressed, remaining: 0 })?.kind).toBe("noticeKeepLeased");
+    expect(projectCanonical(state).notices[0]).toMatchObject({
+      suppressed: 0, pending: { id: 1, count: 2, leased: true },
     });
-    expect(pressure).toEqual({ action: "reject-full", emit: false });
-    expect(nextAllowedByKey.size).toBe(MAX_OPERATIONAL_NOTICE_KEYS);
-
-    const existingKey = "eligible-partition-0";
-    const repeated = operationalNoticeAdmission({
-      now: OPERATIONAL_NOTICE_COOLDOWN_MS - 1,
-      existingNextAllowedAt: nextAllowedByKey.get(existingKey),
-      keyCount: nextAllowedByKey.size,
-      maximumKeys: MAX_OPERATIONAL_NOTICE_KEYS,
-    });
-    expect(repeated).toEqual({ action: "suppress", emit: false });
-    expect(nextAllowedByKey.get(existingKey)).toBe(OPERATIONAL_NOTICE_COOLDOWN_MS);
-    expect(nextAllowedByKey.size).toBe(MAX_OPERATIONAL_NOTICE_KEYS);
   });
 
   it("reclaims pending notice state at the exact expiry boundary", async () => {

@@ -79,6 +79,82 @@ const run = (
   );
 
 describe("review orchestration", () => {
+  it.effect("refuses a Git-ignored file before the older source reader", () =>
+    Effect.scoped(Effect.gen(function* () {
+      const root = yield* fixture;
+      execFileSync("git", ["init", "--quiet", root]);
+      yield* Effect.promise(() => writeFile(join(root, ".gitignore"), "src/example.ts\n"));
+      const settings = yield* loadReviewSettings(root);
+      const noRead = Layer.succeed(SnapshotReader.Service, SnapshotReader.Service.of({
+        read: () => Effect.die(new Error("ignored source was read")),
+      }));
+      const backend = Layer.succeed(ReviewBackend.Service, ReviewBackend.Service.of({
+        evaluate: () => Effect.die(new Error("ignored source reached Jev")),
+      }));
+      const result = yield* review(request(root), { _tag: "authorized", root, settings }).pipe(
+        Effect.provide(Layer.mergeAll(noRead, DedupeStore.testLayer, backend)),
+      );
+      expect(result.results[0]).toMatchObject({ status: "skipped", code: "excluded" });
+      const unscoped = yield* review(request(root), { _tag: "unscoped" }).pipe(
+        Effect.provide(Layer.mergeAll(noRead, DedupeStore.testLayer, backend)),
+      );
+      expect(unscoped.results[0]).toMatchObject({ status: "skipped", code: "excluded" });
+      const priorPath = process.env.PATH;
+      try {
+        process.env.PATH = "";
+        const unavailable = yield* review(request(root), { _tag: "unscoped" }).pipe(
+          Effect.provide(Layer.mergeAll(noRead, DedupeStore.testLayer, backend)),
+        );
+        expect(unavailable.results[0]).toMatchObject({ status: "unavailable", code: "invalid_configuration" });
+      } finally {
+        if (priorPath === undefined) delete process.env.PATH;
+        else process.env.PATH = priorPath;
+      }
+    })),
+  );
+
+  it.effect("rechecks current file settings before dispatch and advice", () =>
+    Effect.scoped(Effect.gen(function* () {
+      const root = yield* fixture;
+      execFileSync("git", ["init", "--quiet", root]);
+      const settings = yield* loadReviewSettings(root);
+      const exclusionSource = join(root, "user-settings.jsonc");
+      const excluded = resolveConfiguration([{ name: "user", source: exclusionSource,
+        document: decodeConfigurationText('{"version":1,"excludes":["**/*"]}', exclusionSource) }], root);
+      let requests = 0;
+      const backend = Layer.succeed(ReviewBackend.Service, ReviewBackend.Service.of({
+        evaluate: ({ rules }) => Effect.sync(() => {
+          requests += 1;
+          return { answers: Object.fromEntries(rules.map((rule) => [rule.id, { probability: 0.8 }])),
+            backend: { id: "offline", durationMs: 0, retries: 0, usage: {} } };
+        }),
+      }));
+      const services = Layer.mergeAll(SnapshotReader.layer, DedupeStore.testLayer, backend);
+      const refuseSourceRead = Layer.succeed(SnapshotReader.Service, SnapshotReader.Service.of({
+        read: () => Effect.die(new Error("excluded source was read")),
+      }));
+      const beforeDispatch = yield* review(request(root), { _tag: "authorized", root, settings,
+        reloadPolicy: () => Effect.succeed(excluded) }).pipe(Effect.provide(
+          Layer.mergeAll(refuseSourceRead, DedupeStore.testLayer, backend),
+        ));
+      expect(beforeDispatch.results[0]).toMatchObject({ status: "skipped", code: "excluded" });
+      expect(requests).toBe(0);
+      let dispatchChecks = 0;
+      const changedAfterRead = yield* review(request(root), { _tag: "authorized", root, settings,
+        reloadPolicy: () => Effect.sync(() => ++dispatchChecks === 1 ? settings.configuration.policy : excluded),
+      }).pipe(Effect.provide(services));
+      expect(changedAfterRead.results[0]).toMatchObject({ status: "skipped", code: "excluded" });
+      expect(requests).toBe(0);
+      let checks = 0;
+      const beforeAdvice = yield* review(request(root), { _tag: "authorized", root, settings,
+        reloadPolicy: () => Effect.sync(() => ++checks <= 2 ? settings.configuration.policy : excluded),
+      }).pipe(Effect.provide(services));
+      expect(requests).toBe(1);
+      expect(beforeAdvice.advice).toEqual([]);
+      expect(beforeAdvice.results[0]).toMatchObject({ status: "unavailable", code: "stale_snapshot" });
+    })),
+  );
+
   it.effect("reviews the exact post-write snapshot without modifying it", () =>
     Effect.scoped(
       Effect.gen(function* () {
@@ -621,10 +697,10 @@ describe("review orchestration", () => {
           );
         }).pipe(Effect.provide(Consent.layer({ statePath })));
         expect(output.results[0]).toMatchObject({
-          status: "skipped",
-          code: "missing_consent",
+          status: "unavailable",
+          code: "backend_unavailable",
         });
-        expect(yield* Ref.get(calls)).toBe(0);
+        expect(yield* Ref.get(calls)).toBe(1);
       }),
     ),
   );

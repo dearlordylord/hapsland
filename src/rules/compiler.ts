@@ -4,6 +4,8 @@ import { ConfigurationError } from "../configuration/errors.ts";
 import type { ConfigurationLayer } from "../configuration/resolve.ts";
 import { matchesAnyGlob } from "../matcher/glob.ts";
 import { BUNDLED_NOUL_PACK, isNoulRuleApplicable } from "./bundled.ts";
+import { applicableRule, includeRule } from "./decision.ts";
+import { V1_DIRECT_TYPE_INPUT_CONTRACT, V1_LEGACY_FILE_INPUT_CONTRACT } from "./contracts.ts";
 import {
   DEFAULT_RULE_THRESHOLD,
   digestRuleDefinition,
@@ -38,7 +40,8 @@ export type CompiledRule = {
   readonly builtIn: boolean;
   readonly enabled: boolean;
   readonly source: string;
-  readonly isApplicable: (source: string, path?: string) => boolean;
+  /** Native semantic observation; canonical Bend owns the applicability gate. */
+  readonly semanticMatches: (source: string) => boolean;
 };
 
 export type RuleCompilationOptions = {
@@ -57,15 +60,22 @@ export type RuleSelectionGates = {
   readonly ruleExcluded: boolean;
 };
 
+export type RuleTargetContext = {
+  readonly artifactKind: "typeShape" | "function";
+  readonly inputContract: string;
+  readonly complete: boolean;
+};
+
+const currentV1Target: RuleTargetContext = {
+  artifactKind: "typeShape",
+  inputContract: V1_DIRECT_TYPE_INPUT_CONTRACT,
+  complete: true,
+};
+
 /** Independent Boolean gate used by conformance tests and future orchestration. */
 export const shouldDispatchRule = (gates: RuleSelectionGates): boolean =>
-  gates.consent &&
-  gates.globalIncluded &&
-  !gates.globalExcluded &&
-  gates.packEnabled &&
-  gates.ruleEnabled &&
-  gates.ruleIncluded &&
-  !gates.ruleExcluded;
+  applicableRule({ ...gates, complete: true, target: "directTypeShape",
+    semanticApplicable: true });
 
 const qualified = (packId: string, ruleId: string): string => `${packId}/${ruleId}`;
 
@@ -136,14 +146,15 @@ const mergedApplicability = (
   };
 };
 
-const pathApplicability = (
+const pathApplicabilityFacts = (
   applicability: RuleApplicability | undefined,
   path: string | undefined,
-): boolean => {
-  if (applicability === undefined || path === undefined) return true;
-  if (applicability.excludes !== undefined && matchesAnyGlob(applicability.excludes, path)) return false;
-  return applicability.includes === undefined || matchesAnyGlob(applicability.includes, path);
-};
+): { readonly ruleIncluded: boolean; readonly ruleExcluded: boolean } => ({
+  ruleIncluded: applicability?.includes === undefined || path === undefined ||
+    matchesAnyGlob(applicability.includes, path),
+  ruleExcluded: applicability?.excludes !== undefined && path !== undefined &&
+    matchesAnyGlob(applicability.excludes, path),
+});
 
 const unknownOverrideIds = (
   packs: ReadonlyArray<LoadedRulePack>,
@@ -181,11 +192,11 @@ export const compileRules = (
   let rank = 0;
   for (const pack of options.packs) {
     const packOverride = overrides[pack.id];
-    const packEnabled = pack.enabled && packOverride?.enabled !== false;
+    const packEnabled = includeRule(pack.enabled, packOverride?.enabled !== false);
     for (const rule of pack.rules) {
       const qualifiedId = qualified(pack.id, rule.id);
       const override = overrideFor(rule, pack, overrides);
-      const enabled = packEnabled && override?.enabled !== false;
+      const enabled = includeRule(packEnabled, override?.enabled !== false);
       const applicability = mergedApplicability(rule, override);
       validatePatterns(applicability?.includes, pack.source, `${qualifiedId}.applicability.includes`);
       validatePatterns(applicability?.excludes, pack.source, `${qualifiedId}.applicability.excludes`);
@@ -227,9 +238,7 @@ export const compileRules = (
         builtIn,
         enabled,
         source: pack.source,
-        isApplicable: (source, path) =>
-          pathApplicability(applicability, path) &&
-          (!builtIn || isNoulRuleApplicable(rule.id, source)),
+        semanticMatches: (source) => !builtIn || isNoulRuleApplicable(rule.id, source),
       });
       rank += 1;
     }
@@ -241,4 +250,18 @@ export const selectApplicableRules = (
   rules: ReadonlyArray<CompiledRule>,
   source: string,
   path?: string,
-): ReadonlyArray<CompiledRule> => rules.filter((rule) => rule.isApplicable(source, path));
+  target: RuleTargetContext = currentV1Target,
+): ReadonlyArray<CompiledRule> => rules.filter((rule) => applicableRule({
+  consent: true,
+  complete: target.complete,
+  target: target.artifactKind === "function" ? "functionTarget"
+    : target.inputContract === V1_DIRECT_TYPE_INPUT_CONTRACT ? "directTypeShape"
+    : target.inputContract === V1_LEGACY_FILE_INPUT_CONTRACT ? "legacyFileTypeShape"
+    : "otherTypeShape",
+  globalIncluded: true,
+  globalExcluded: false,
+  packEnabled: true,
+  ruleEnabled: rule.enabled,
+  ...pathApplicabilityFacts(rule.applicability, path),
+  semanticApplicable: rule.semanticMatches(source),
+}));

@@ -44,16 +44,20 @@ describe("direct-event named-path selection", () => {
 
   it("applies replacement includes, accumulated exclusions, and the hard floor", async () => {
     const root = await makeGitFixture();
-    for (const path of ["src/a.ts", "src/no.ts", "build/a.ts", "generated/a.ts", "vendor/a.ts", ".env.local", "node_modules/a.ts"] ) {
+    for (const path of ["src/a.ts", "src/no.ts", "src/a.mts", "src/a.cts", "build/a.ts", "generated/a.ts", "vendor/a.ts", ".env.local", "node_modules/a.ts", "README.md", "program.exe"] ) {
       await put(root, path, "type A = number");
     }
     const policy = { includes: ["src/**"], excludes: ["src/no.ts"] };
     expect(await Effect.runPromise(eligibleNamedPath(root, "src/a.ts", policy))).toBeDefined();
+    expect(await Effect.runPromise(eligibleNamedPath(root, "src/a.mts", policy))).toBeDefined();
+    expect(await Effect.runPromise(eligibleNamedPath(root, "src/a.cts", policy))).toBeDefined();
     expect(await Effect.runPromise(eligibleNamedPath(root, "src/a.ts", { includes: [], excludes: [] }))).toBeUndefined();
     expect(await Effect.runPromise(eligibleNamedPath(root, "src/no.ts", policy))).toBeUndefined();
-    expect(await Effect.runPromise(eligibleNamedPath(root, "build/a.ts"))).toBeDefined();
-    expect(await Effect.runPromise(eligibleNamedPath(root, "generated/a.ts"))).toBeDefined();
-    expect(await Effect.runPromise(eligibleNamedPath(root, "vendor/a.ts"))).toBeDefined();
+    expect(await Effect.runPromise(eligibleNamedPath(root, "build/a.ts"))).toBeUndefined();
+    expect(await Effect.runPromise(eligibleNamedPath(root, "generated/a.ts"))).toBeUndefined();
+    expect(await Effect.runPromise(eligibleNamedPath(root, "vendor/a.ts"))).toBeUndefined();
+    expect(await Effect.runPromise(eligibleNamedPath(root, "README.md"))).toBeDefined();
+    expect(await Effect.runPromise(eligibleNamedPath(root, "program.exe"))).toBeUndefined();
     expect(await Effect.runPromise(eligibleNamedPath(root, ".env.local"))).toBeUndefined();
     expect(await Effect.runPromise(eligibleNamedPath(root, "node_modules/a.ts"))).toBeUndefined();
     expect(await Effect.runPromise(eligibleNamedPath(root, ".git/config"))).toBeUndefined();

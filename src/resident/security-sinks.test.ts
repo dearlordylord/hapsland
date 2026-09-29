@@ -97,7 +97,7 @@ describe("security sink prototype", { timeout: 15_000 }, () => {
     };
     // Write the observed frame through the real resident Unix socket.
     const admissionFrame = `${JSON.stringify({
-      version: 1, operation: "admit", lifetime: owner.lifetime,
+      version: 3, operation: "admit", lifetime: owner.lifetime,
       observation, controlledWriter: true, dispatch,
     })}\n`;
     expect(admissionFrame).toContain(marker);
@@ -114,7 +114,7 @@ describe("security sink prototype", { timeout: 15_000 }, () => {
       });
       socket.once("close", () => resolve(response));
     });
-    expect(JSON.parse(admissionResponse)).toEqual({ status: "accepted" });
+    expect(JSON.parse(admissionResponse)).toEqual({ version: 3, status: "accepted" });
     await waitFor(async () => {
       if (!existsSync(join(temporary, "called"))) return false;
       const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });

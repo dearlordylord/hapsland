@@ -1,0 +1,195 @@
+{
+  "schemaVersion": 1,
+  "runtime": "Claude Code",
+  "version": "2.1.218 (Claude Code)",
+  "recordedAt": "2026-09-28T14:03:37.905Z",
+  "declaration": {
+    "maximumProviderRequests": 8,
+    "automaticRetries": 0,
+    "sessionCeilingMs": 240000,
+    "claudeFeedbackMode": "block-current-findings",
+    "mode": "real-jev",
+    "fixture": "order-count"
+  },
+  "hostExitCode": 0,
+  "hostSignal": null,
+  "elapsedMs": 30111,
+  "providerRequests": 2,
+  "timeline": [
+    {
+      "kind": "composed-prompt",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "ruleIds": [],
+      "atMs": 1222
+    },
+    {
+      "kind": "composed-before-edit",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "ruleIds": [],
+      "atMs": 8406
+    },
+    {
+      "kind": "hook",
+      "tool": "Write",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "sourceHash": "cae206a9c36f719eaea8c03197c45a7f43317facf631994e0f4cf58b21f3a877",
+      "sourceBytes": 25,
+      "draft": true,
+      "atMs": 8797
+    },
+    {
+      "kind": "provider-response",
+      "durationMs": 257,
+      "status": 200,
+      "atMs": 9470
+    },
+    {
+      "kind": "composed-background",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "ruleIds": [
+        "r7_name_wider_than_type"
+      ],
+      "atMs": 8794
+    },
+    {
+      "kind": "composed-stop",
+      "exitCode": 0,
+      "decision": "block",
+      "finding": true,
+      "notice": false,
+      "ruleIds": [
+        "r7_name_wider_than_type"
+      ],
+      "atMs": 13392
+    },
+    {
+      "kind": "composed-before-edit",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "ruleIds": [],
+      "atMs": 19338
+    },
+    {
+      "kind": "hook",
+      "tool": "Write",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "sourceHash": "3177755e4e9f7e11f9bb9f0a36de227fbd2db83d63c088c1b39d067730a5658a",
+      "sourceBytes": 62,
+      "draft": false,
+      "atMs": 19778
+    },
+    {
+      "kind": "provider-response",
+      "durationMs": 1848,
+      "status": 200,
+      "atMs": 22040
+    },
+    {
+      "kind": "composed-background",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "ruleIds": [
+        "r7_name_wider_than_type"
+      ],
+      "atMs": 19776
+    },
+    {
+      "kind": "composed-stop",
+      "exitCode": 0,
+      "decision": "block",
+      "finding": true,
+      "notice": false,
+      "ruleIds": [
+        "r7_name_wider_than_type"
+      ],
+      "atMs": 23346
+    },
+    {
+      "kind": "composed-stop",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "ruleIds": [],
+      "atMs": 28759
+    }
+  ],
+  "activityStages": [
+    {
+      "stage": "pending",
+      "atMs": 9152
+    },
+    {
+      "stage": "pending",
+      "atMs": 9190
+    },
+    {
+      "stage": "findings",
+      "atMs": 9479
+    },
+    {
+      "stage": "pending",
+      "atMs": 20148
+    },
+    {
+      "stage": "pending",
+      "atMs": 20172
+    },
+    {
+      "stage": "findings",
+      "atMs": 22050
+    }
+  ],
+  "checks": {
+    "initialDraftObserved": true,
+    "findingSubmitted": true,
+    "editAfterFinding": true,
+    "finalSourceChanged": true,
+    "validSourceCompiles": true,
+    "invalidStatesRejected": true,
+    "agentAcknowledgesAdvice": false,
+    "agentNamesDeliveredRule": false,
+    "followupClearObserved": false,
+    "followupFindingObserved": true,
+    "stopFindingDelivered": true
+  },
+  "resident": {
+    "queued": 0,
+    "running": 0,
+    "pendingFindingBatches": 0,
+    "pendingOperationalNotices": 0
+  },
+  "acknowledgement": {
+    "agentAffirmsAdvice": false,
+    "agentDeniesAdvice": false,
+    "deliveredRuleIds": [
+      "r7_name_wider_than_type"
+    ],
+    "agentNamesDeliveredRule": false
+  },
+  "rawHostOutputRetained": false,
+  "rawBackendMaterialRetained": false,
+  "credentialRetained": false,
+  "hostOutputBytesDiscarded": 146239,
+  "verdict": "demonstrated",
+  "visibilityBasis": "conditional-unprescribed-repair-after-stop"
+}

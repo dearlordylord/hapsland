@@ -47,7 +47,7 @@ describe("Claude installation lifecycle", () => {
     const request = { claudeHome: home, claudeExecutable };
     const preview = previewClaudeInstallation(request);
     expect(preview.status).toBe("preview");
-    expect((preview as { sourceEgressAuthorized?: boolean }).sourceEgressAuthorized).toBe(false);
+    expect(preview).not.toHaveProperty("sourceEgressAuthorized");
     expect(settings(home)).toEqual(original);
     expect((await installClaudeIntegration({ ...request, proposalDigest: digestOf(preview) })).status).toBe("complete");
     const installed = settings(home);
@@ -147,6 +147,6 @@ describe("Claude installation lifecycle", () => {
     const doctor = diagnoseClaudeIntegration(request);
     expect(doctor.providerCalls).toBe(0);
     expect(doctor.checks.find((check) => check.stage === "native-trust")?.status).toBe("unknown");
-    expect(doctor.checks.find((check) => check.stage === "repository-egress-consent")?.status).toBe("unknown");
+    expect(doctor.checks.find((check) => check.stage === "file-selection")?.status).toBe("unknown");
   });
 });

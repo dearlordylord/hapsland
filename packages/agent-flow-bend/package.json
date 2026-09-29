@@ -1,0 +1,12 @@
+{
+  "name": "@hapsland/agent-flow-bend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-lifecycle.mjs && node scripts/build-policy.mjs && node scripts/build-import-graph.mjs && node scripts/build-canonical.mjs",
+    "test": "node scripts/build-import-graph.mjs && node scripts/build-canonical.mjs && bend PROOF.bend && bend PolicyRuntime.bend && node scripts/check-lifecycle.mjs && node --experimental-strip-types scripts/check-import-graph.mjs && node --experimental-strip-types scripts/check-canonical.mjs",
+    "test:import-graph": "node scripts/build-import-graph.mjs && bend PROOF.bend && node --experimental-strip-types scripts/check-import-graph.mjs",
+    "test:canonical": "node scripts/build-canonical.mjs && bend PROOF.bend && node --experimental-strip-types scripts/check-canonical.mjs"
+  }
+}
