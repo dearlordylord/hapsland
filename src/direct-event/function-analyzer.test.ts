@@ -68,6 +68,39 @@ describe("function native facts", () => {
     }
   });
 
+  it("marks catch, for-in/of, and nested declarations uncertain", () => {
+    for (const body of [
+      "try {} catch (helper) { helper() }",
+      "for (const helper of values) helper()",
+      "for (helper in values) helper()",
+      "{ function helper() {} helper() }",
+      "{ class helper {} helper() }",
+    ]) {
+      const file = analyzeFunctionFile("a.ts", `function helper() {} function run(values: any) { ${body} }`);
+      expect(file).toBeDefined();
+      if (file === undefined) continue;
+      const edges = resolveFunctionUnit(file, "run")?.references ?? [];
+      expect(edges.some((edge) => edge.target.kind === "unsupported")).toBe(true);
+      expect(edges.filter((edge) => edge.reference.name === "helper").every((edge) => edge.target.kind !== "local")).toBe(true);
+    }
+  });
+
+  it("rejects top-level value collisions and preserves named import aliases", () => {
+    expect(analyzeFunctionFile("a.ts", "const helper = 1; function helper() {} function run() { helper() }" )).toBeUndefined();
+    const file = analyzeFunctionFile("a.ts", "import { helper as localHelp } from './helper'; function run() { localHelp() }");
+    expect(file).toBeDefined();
+    if (file === undefined) return;
+    expect(resolveFunctionUnit(file, "run")?.references.map((edge) => edge.target.kind)).toEqual(["import"]);
+  });
+
+  it("marks reassigned top-level function bindings uncertain", () => {
+    const file = analyzeFunctionFile("a.ts", "function helper() {} function run(other: () => void) { helper = other; helper() }");
+    expect(file).toBeDefined();
+    if (file === undefined) return;
+    expect(resolveFunctionUnit(file, "run")?.references.map((edge) => edge.target.kind)).toContain("unsupported");
+    expect(resolveFunctionUnit(file, "run")?.references.some((edge) => edge.reference.name === "helper" && edge.target.kind === "local")).toBe(false);
+  });
+
   it("rejects inapplicable files, malformed syntax, and nested-only functions", () => {
     expect(analyzeFunctionFile("a.js", "function f() {}" )).toBeUndefined();
     expect(analyzeFunctionFile("a.ts", "function f( {" )).toBeUndefined();

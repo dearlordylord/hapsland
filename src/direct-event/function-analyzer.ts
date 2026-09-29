@@ -112,11 +112,25 @@ const namedTypeReferences = (node: SyntaxNode, ownName: string, importedNames: R
   return references;
 };
 
-const functionReferences = (node: SyntaxNode, name: string, importedNames: ReadonlySet<string>): FunctionReference[] => {
+const functionReferences = (node: SyntaxNode, name: string, boundTypes: ReadonlySet<string>, boundFunctions: ReadonlySet<string>): FunctionReference[] => {
   const localBindings = new Set<string>();
   const unsupportedBindings: { readonly offset: number; readonly reference: FunctionReference }[] = [];
   let uncertainBinding = false;
   for (const child of descendants(node)) {
+    // Catch and for-in/of bind or assign names outside the ordinary parameter /
+    // variable-declarator nodes. Nested declarations also introduce lexical
+    // names. Without a scope checker, any such form makes the root incomplete.
+    if (["catch_clause", "for_in_statement", "function_declaration", "generator_function_declaration", "class_declaration", "class_expression"].includes(child.type)) {
+      uncertainBinding = true;
+      unsupportedBindings.push({ offset: child.startIndex, reference: { kind: "unsupported", name: child.text } });
+    }
+    if (child.type === "assignment_expression" || child.type === "augmented_assignment_expression" || child.type === "update_expression") {
+      const target = child.namedChildren[0];
+      if (target?.type === "identifier" && boundFunctions.has(target.text)) {
+        uncertainBinding = true;
+        unsupportedBindings.push({ offset: child.startIndex, reference: { kind: "unsupported", name: child.text } });
+      }
+    }
     if (child.type === "required_parameter" || child.type === "optional_parameter" || child.type === "variable_declarator") {
       const binding = child.namedChildren.find((part) => part.type === "identifier");
       if (binding !== undefined) localBindings.add(binding.text);
@@ -139,7 +153,7 @@ const functionReferences = (node: SyntaxNode, name: string, importedNames: Reado
   }
   // Type references and calls both carry offsets in the source tree. Recollect the
   // type sites here so the graph adapter sees one deterministic lexical order.
-  const types = namedTypeReferencesWithOffsets(node, name, importedNames);
+  const types = namedTypeReferencesWithOffsets(node, name, boundTypes);
   return [...types, ...calls, ...unsupportedBindings].sort((a, b) => a.offset - b.offset).map(({ reference }) => reference);
 };
 
@@ -192,19 +206,38 @@ export const analyzeFunctionFile = (path: string, source: string): FunctionFileA
       }
     }
     const boundTypes = new Set(imports.keys());
+    const boundFunctions = new Set(imports.keys());
+    const otherTopLevelBindings = new Set<string>();
     for (const node of top) {
       if (node.type !== "interface_declaration" && node.type !== "type_alias_declaration") continue;
       const name = node.namedChildren.find((child) => child.type === "type_identifier")?.text;
       if (name !== undefined) boundTypes.add(name);
     }
     for (const node of top) {
+      if (node.type !== "function_declaration") continue;
+      const name = node.namedChildren.find((child) => child.type === "identifier")?.text;
+      if (name !== undefined) boundFunctions.add(name);
+    }
+    for (const node of top) {
+      if (node.type === "class_declaration") {
+        const name = node.namedChildren.find((child) => child.type === "type_identifier")?.text;
+        if (name !== undefined) otherTopLevelBindings.add(name);
+      }
+      if (node.type === "lexical_declaration" || node.type === "variable_declaration") {
+        for (const declarator of node.namedChildren.filter((child) => child.type === "variable_declarator")) {
+          const name = declarator.namedChildren.find((child) => child.type === "identifier")?.text;
+          if (name !== undefined) otherTopLevelBindings.add(name);
+        }
+      }
+    }
+    for (const node of top) {
       if (node.type === "import_statement") continue;
       if (node.type === "function_declaration") {
         const identifier = node.namedChildren.find((child) => child.type === "identifier");
         const body = node.namedChildren.find((child) => child.type === "statement_block");
-        if (identifier === undefined || body === undefined || signatures.has(identifier.text) || functions.has(identifier.text) || types.has(identifier.text) || imports.has(identifier.text)) return undefined;
+        if (identifier === undefined || body === undefined || signatures.has(identifier.text) || functions.has(identifier.text) || types.has(identifier.text) || imports.has(identifier.text) || otherTopLevelBindings.has(identifier.text)) return undefined;
         const rendered = exportSource(node);
-        functions.set(identifier.text, { artifact: artifact(path, "function", identifier.text, rendered.source), references: functionReferences(node, identifier.text, boundTypes), exported: rendered.exported });
+        functions.set(identifier.text, { artifact: artifact(path, "function", identifier.text, rendered.source), references: functionReferences(node, identifier.text, boundTypes, boundFunctions), exported: rendered.exported });
         if (functions.size + types.size > 64) return undefined;
         continue;
       }
