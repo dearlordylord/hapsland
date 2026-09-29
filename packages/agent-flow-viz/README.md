@@ -50,6 +50,19 @@ events use the same adapter. Rewind, redo, and history jumps replay every event
 from the checked initial state; rejected Bend events remain in the history with
 unchanged state. Malformed events are refused before reaching Bend.
 
+The default guided case starts with `openRound` for the first edit. Its step
+panel explains the production cause: the resident receives an attributed edit,
+checks and consumes an edit permit, then observation admission asks the canonical
+ledger for a round. The ledger emits `openRound` if that partition has no round
+ID yet. The source-free trace supplies `openRound` directly and omits the native
+arrival and permit events.
+It then follows both findings through advice leases, acknowledged output,
+finalization, and round retirement. At its last step, the checked projection
+has no active round, work, capacity charges, ready advice, leases, submission
+batches, or output slot. Retained source-free counters are separate from those
+active resources. The round retirement connection is shown only when the
+checked round disappears; an output authorization alone does not close it.
+
 The **What uses review capacity** inventory is generated during `npm run build`
 from compiled Bend admission output. It lists all six current reservation
 purposes and their shared resident and per-agent item and byte limits. The

@@ -21,7 +21,7 @@ const showcaseReady = { ...showcaseScope, rootValid: true, configurationValid: t
   credentialReady: true, selected: true, currentWork: true, physicalAvailable: true } as const;
 export const SHOWCASE_SCENARIO = {
   name: "Two edits through a queue, Jev findings, and Stop output",
-  description: "Two edits share one review round. The second waits in the dispatch queue, both reach Jev at once, findings become ready advice, and Hapsland records a Stop response.",
+  description: "Two edits share one review round. The second waits in the dispatch queue, both reach Jev at once, findings become ready advice, and an acknowledged Stop response is finalized before the round releases its work and advice.",
   limits: fixture.limits,
   events: [
     { kind: "openRound", partition: 1, lifetime: 1 },
@@ -56,6 +56,8 @@ export const SHOWCASE_SCENARIO = {
     { kind: "collectionReady", advice: 11, already: false, turnEnd: false, cycleComplete: true, elapsed: 0, window: 200 },
     { kind: "dispatchSettled", ...showcaseScope, operation: 6 },
     { kind: "stopPolled", ...showcaseScope, deadline: false },
+    { kind: "collectionReserveLease", advice: 10, token: 8 },
+    { kind: "collectionReserveLease", advice: 11, token: 8 },
     { kind: "finishReserve", group: 1, lifetime: 1, round: 1, attempt: 7, token: 8,
       selected: [4, 6], hasNotice: false, passNotices: true, canWrite: true,
       bindingValid: true, deadlineReached: true },
@@ -64,7 +66,24 @@ export const SHOWCASE_SCENARIO = {
     { kind: "submissionBegin", advice: 11, group: 1, round: 1, token: 8, surface: "stop",
       authorizeNow: false, fingerprints: [11], units: [6] },
     { kind: "finishAuthorize", group: 1, round: 1, attempt: 7, token: 8, selected: [4, 6] },
+    { kind: "submissionAuthorize", advice: 10, token: 8 },
+    { kind: "submissionAuthorize", advice: 11, token: 8 },
+    { kind: "deliveryAcknowledgeCheck", items: 2, anyExpired: false },
+    { kind: "submissionTerminal", advice: 10, token: 8, certain: true },
+    { kind: "submissionTerminal", advice: 11, token: 8, certain: true },
     { kind: "finishTerminal", group: 1, round: 1, attempt: 7, token: 8, selected: [4, 6], outcome: "acknowledged" },
+    { kind: "deliveryFinalizeCheck", items: 2, allAcknowledged: true, anyExpired: false },
+    { kind: "deliveryFindingDispositionCheck", composed: true, remaining: 0 },
+    { kind: "collectionReleaseLease", advice: 10, token: 8 },
+    { kind: "deliveryFindingDispositionCheck", composed: true, remaining: 0 },
+    { kind: "collectionReleaseLease", advice: 11, token: 8 },
+    { kind: "stopGroupEnded", group: 1, lifetime: 1, round: 1, scopes: [{ partition: 1, round: 1 }] },
+    { kind: "finishEnd", group: 1, round: 1, attempt: 7, token: 8 },
+    { kind: "retirePartition", ...showcaseScope },
+    { kind: "collectionRetireAdvice", advice: 10 },
+    { kind: "submissionForget", advice: 10 },
+    { kind: "collectionRetireAdvice", advice: 11 },
+    { kind: "submissionForget", advice: 11 },
   ] as CanonicalEvent[],
 };
 

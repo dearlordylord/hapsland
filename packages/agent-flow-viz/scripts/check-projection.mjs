@@ -68,7 +68,7 @@ try {
     .filter((node) => node.data?.class?.[name]);
   const labels = (node) => descendants(node).map((child) => child.text ?? "").join(" ");
   assert.equal(elements(initial, "topology-node").length, 13);
-  assert.equal(elements(initial, "topology-route").length, 22);
+  assert.equal(elements(initial, "topology-route").length, 23);
   assert.equal(elements(initial, "topology-route").filter((node) => node.data.class.active).length, 0);
   assert.equal(canonical.CANONICAL_SCENARIOS[initial.scenario].name, canonical.SHOWCASE_SCENARIO.name);
   let showcase = initial;
@@ -80,6 +80,7 @@ try {
     assert.equal(step.rejection, undefined, `showcase step ${index + 1} must be accepted`);
     const active = elements(showcase, "topology-route").filter((node) => node.data.class.active);
     for (const route of active) showcasedRoutes.add(labels(route));
+    if (index === 0) assert.match(labels(main.view(showcase, inertHtml).body), /Why this round opened.*first admitted edit.*edit permit check.*source-free trace starts at openRound/);
     if (index === 4) {
       assert.equal(step.after.dispatch.pending.length, 1, "the second edit waits in the queue");
       assert.ok(active.some((route) => labels(route).includes("dispatch #2 entered pending")));
@@ -93,8 +94,10 @@ try {
       assert.ok(active.some((route) => labels(route).includes("advice #10 supplied ready by native storage")));
     }
     if (index === 27) assert.deepEqual(step.after.collection.ready, [11, 10]);
-    if (index === 33) assert.ok(active.some((route) => labels(route).includes("output authorized; host write not established")));
-    if (index === 34) assert.ok(active.some((route) => labels(route).includes("authorized → submitted")));
+    if (index === 30) assert.ok(active.some((route) => labels(route).includes("advice #10 leased; still ready")));
+    if (index === 35) assert.ok(active.some((route) => labels(route).includes("output authorized; host write not established")));
+    if (index === 41) assert.ok(active.some((route) => labels(route).includes("authorized → submitted")));
+    if (index === 49) assert.ok(active.some((route) => labels(route).includes("round #1 retired")));
   }
   assert.ok(showcasedRoutes.size >= 12, "the opening replay should expose a broad connected route set");
   const replayAt = (name, count) => {
@@ -243,9 +246,9 @@ try {
   Scene.scene({ update: main.update, view: main.view },
     Scene.given(initial),
     Scene.click(Scene.getByRole("button", { name: "Next canonical step: openRound", exact: true })),
-    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 1 of 35/)),
+    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 1 of 54/)),
     Scene.click(Scene.getByRole("button", { name: "Previous canonical step", exact: true })),
-    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 0 of 35/)));
+    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 0 of 54/)));
   console.log("Checked the opening connected replay, compiled canonical inventory, full guided capacity trace, Bend command frames, replay, malformed variants, import graph, and native timing panels.");
 } finally {
   await server.close();

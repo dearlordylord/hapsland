@@ -150,7 +150,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
       ]),
       h.section([h.Class("chart-panel production-flow")], [
         h.h2([], ["Production decision flow"]),
-        productionFlowView(h, projection, last),
+        productionFlowView(h, projection, last, model.scenario === 0),
         h.p([], [activePurpose.length ? `Reserved purposes: ${activePurpose.join(", ")}` : "No active capacity reservations."]),
         h.details([h.Class("flow-coverage")], [
           h.summary([], ["Transition-family coverage and source boundaries"]),
