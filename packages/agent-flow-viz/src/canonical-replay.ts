@@ -40,7 +40,11 @@ export const CANONICAL_SCENARIOS = [CAPACITY_SCENARIO, ...fixture.traces.map((tr
   name: trace.name,
   description: "Independent #148 Jev request contract trace. Start, response, failure and physical availability are supplied source-free facts.",
   limits: requestFixture.limits,
-  events: trace.events.map(({ expect: _expect, requestAfter: _requestAfter, requestCount: _requestCount, ...event }) => event as CanonicalEvent),
+  events: trace.events.map(({ expect: _expect, ...raw }) => {
+    const { issuedRequest: _issuedRequest, requestAfter: _requestAfter, requestCount: _requestCount, ...event } =
+      raw as typeof raw & { issuedRequest?: unknown; requestAfter?: unknown; requestCount?: unknown };
+    return event as CanonicalEvent;
+  }),
 })), ALTERNATE_LEDGER_LIMITS_SCENARIO] as const;
 
 /** Replay only through the checked adapter also used by the resident. */
