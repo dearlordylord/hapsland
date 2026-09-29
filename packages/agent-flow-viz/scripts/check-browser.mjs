@@ -39,11 +39,23 @@ try {
   assert.match(await canonical.innerText(), /What uses review capacity/);
   assert.match(await canonical.innerText(), /All agents in this Hapsland process · 0\/3 work items/);
   assert.match(await canonical.innerText(), /Two edits through a queue, Jev findings, and Stop output/);
-  await advanceGuided(1, 5, 35);
+  await advanceGuided(1, 1, 54);
+  assert.match(await page.locator(".flow-provenance").innerText(), /first admitted edit.*edit permit check.*ledger supplies openRound.*runtime arrival and permit events are omitted/s);
+  await advanceGuided(2, 5, 54);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Preparation queue" }).textContent(), /pending 1:/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "entered pending" }).count(), 1);
-  await advanceGuided(6, 10, 35);
+  await advanceGuided(6, 10, 54);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "(pending) → dispatch" }).count(), 1);
+  await advanceGuided(11, 31, 54);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "advice #10 leased; still ready" }).count(), 1);
+  await advanceGuided(32, 50, 54);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "round #1 retired" }).count(), 1);
+  await advanceGuided(51, 54, 54);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Round state" }).textContent(), /active none/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Pending advice" }).textContent(), /ready none/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Review outcomes" }).textContent(), /pending finding operations none/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Host output" }).textContent(), /finish none.*advice none/s);
+  assert.match(await page.locator(".topology-capacities").innerText(), /Review capacity ledger: 0\/3 items; 0\/100 bytes/);
   await canonical.getByRole("button", { name: "Shared review capacity and partial unit admission", exact: true }).click();
   await waitForText(".canonical-progress", "Guided step 0 of 11");
   for (let step = 1; step <= 3; step++) {

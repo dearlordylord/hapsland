@@ -35,6 +35,19 @@ try {
   assert.ok(steps[24].after.collection.ready.includes(10));
   assert.ok(!flow.projectFlowStep(steps[7]).changedStages.includes("observation"),
     "preparing one item does not highlight an unrelated queued observation");
+  assert.ok(has(31, "state", "advice", "collection", "advice:10"),
+    "a new lease is linked to its ready advice even while readiness remains visible");
+  assert.ok(steps[30].after.collection.ready.includes(10),
+    "lease creation does not invent removal of the ready advice");
+  assert.ok(has(50, "state", "round", "round", "round:1"),
+    "checked retirement marks the round's end");
+  assert.ok(steps.every((step) => step.rejection === undefined), "the complete showcase is accepted");
+  const settled = steps.at(-1).after;
+  assert.deepEqual({ rounds: settled.rounds, work: settled.work, charges: settled.charges,
+    ready: settled.collection.ready, leases: settled.collection.leases,
+    slots: settled.delivery.slots, batches: settled.delivery.submissions.batches },
+  { rounds: [], work: [], charges: [], ready: [], leases: [], slots: [], batches: [] },
+  "the default replay ends with no round-owned work, advice, or output slot");
 
   const outputCase = replay.CANONICAL_SCENARIOS.find((scenario) => scenario.name === "unknown output is reoffered at Stop");
   assert.ok(outputCase);

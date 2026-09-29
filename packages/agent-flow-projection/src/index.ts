@@ -111,11 +111,13 @@ export const projectFlowStep = (step: FlowStepInput | undefined): FlowProjection
       changedStages.add("preparation"); changedStages.add("units");
     }
   }
-  // Ready and leased advice may coexist. Infer a transfer only when this step
-  // removes readiness and adds a lease for the same advice ID.
+  // Ready and leased advice may coexist. A newly checked lease for a ready
+  // advice ID establishes the collection link without claiming ready storage moved.
   for (const lease of step.after.collection.leases) if (!step.before.collection.leases.some((prior) => prior.advice === lease.advice) &&
-    step.before.collection.ready.includes(lease.advice) && !step.after.collection.ready.includes(lease.advice)) {
-    evidence.push({ from: "advice", to: "collection", source: "state", description: `advice #${lease.advice} leased`, identity: `advice:${lease.advice}` });
+    step.before.collection.ready.includes(lease.advice)) {
+    evidence.push({ from: "advice", to: "collection", source: "state",
+      description: `advice #${lease.advice} leased${step.after.collection.ready.includes(lease.advice) ? "; still ready" : ""}`,
+      identity: `advice:${lease.advice}` });
     changedStages.add("advice"); changedStages.add("collection");
   }
   if (step.event.kind === "collectionReady") for (const id of step.after.collection.ready) if (!step.before.collection.ready.includes(id)) {
@@ -165,6 +167,16 @@ export const projectFlowStep = (step: FlowStepInput | undefined): FlowProjection
   if (kinds.has("writeRecorded") && JSON.stringify(step.before.rounds) !== JSON.stringify(step.after.rounds)) {
     evidence.push({ from: "delivery", to: "round", source: "native fact", description: "host output result recorded; round changed (writeRecorded)" });
     changedStages.add("delivery"); changedStages.add("round");
+  }
+  if (step.event.kind === "retirePartition") {
+    const { partition, lifetime, round: roundId } = step.event;
+    const retired = step.before.rounds.find((round) => round.partition === partition &&
+      round.lifetime === lifetime && round.id === roundId);
+    if (retired !== undefined && !step.after.rounds.some((round) => round.partition === retired.partition && round.id === retired.id)) {
+      evidence.push({ from: "round", to: "round", source: "state",
+        description: `round #${retired.id} retired; its work and reservations released`, identity: `round:${retired.id}` });
+      changedStages.add("round");
+    }
   }
   const projectionChanged = JSON.stringify(step.before) !== JSON.stringify(step.after);
   return { evidence, changedStages: [...changedStages], projectionChanged };

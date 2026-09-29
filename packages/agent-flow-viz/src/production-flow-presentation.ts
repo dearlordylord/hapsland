@@ -65,4 +65,5 @@ export const CONNECTIONS: readonly Readonly<{ from: Place; to: Place; label: str
   { from: "collection", to: "delivery", label: "output authorized" },
   { from: "delivery", to: "delivery", label: "delivery phase recorded" },
   { from: "delivery", to: "round", label: "output fact changes round" },
+  { from: "round", to: "round", label: "round retirement and release" },
 ];
