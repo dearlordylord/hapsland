@@ -37,6 +37,37 @@ describe("function native facts", () => {
     ]);
   });
 
+  it("retains imports whose local names also name intrinsic types", () => {
+    const file = analyzeFunctionFile("a.ts", "import type { Map } from './custom'; export function read(value: Map): Map { return value }");
+    expect(file).toBeDefined();
+    if (file === undefined) return;
+    expect(resolveFunctionUnit(file, "read")?.references.map((edge) => [edge.reference.name, edge.target.kind])).toEqual([
+      ["Map", "import"], ["Map", "import"],
+    ]);
+  });
+
+  it("retains a local type whose name also names an intrinsic type", () => {
+    const file = analyzeFunctionFile("a.ts", "interface Map { value: string } function read(value: Map): Map { return value }");
+    expect(file).toBeDefined();
+    if (file === undefined) return;
+    expect(resolveFunctionUnit(file, "read")?.references.map((edge) => edge.target.kind)).toEqual(["local", "local"]);
+  });
+
+  it("marks destructured bindings uncertain instead of binding calls to a top-level function", () => {
+    for (const source of [
+      "function helper() {} function run({ helper }: { helper: () => void }) { helper() }",
+      "function helper() {} function run(value: unknown) { const { helper } = value as { helper: () => void }; helper() }",
+    ]) {
+      const file = analyzeFunctionFile("a.ts", source);
+      expect(file).toBeDefined();
+      if (file === undefined) continue;
+      const edges = resolveFunctionUnit(file, "run")?.references;
+      expect(edges?.some((edge) => edge.target.kind === "unsupported")).toBe(true);
+      expect(edges?.filter((edge) => edge.reference.kind === "named-function" && edge.reference.name === "helper")
+        .every((edge) => edge.target.kind === "unsupported")).toBe(true);
+    }
+  });
+
   it("rejects inapplicable files, malformed syntax, and nested-only functions", () => {
     expect(analyzeFunctionFile("a.js", "function f() {}" )).toBeUndefined();
     expect(analyzeFunctionFile("a.ts", "function f( {" )).toBeUndefined();
