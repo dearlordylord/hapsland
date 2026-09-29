@@ -9,7 +9,8 @@ import { compareRuleRank, findingFromProbability } from "../rules/decision.ts";
 import type { Consent } from "../runtime/consent.ts";
 import { admitReview } from "../configuration/decision.ts";
 import { effectiveGraphLimits } from "../configuration/resolve.ts";
-import { GRAPH_LIMIT_CEILINGS } from "../configuration/graph-limits.ts";
+import { GRAPH_LIMIT_CEILINGS, type GraphLimits } from "../configuration/graph-limits.ts";
+import { initialImportGraph, stepImportGraph } from "../canonical/graph-adapter.ts";
 import type { ReviewSettings } from "../runtime/review-config.ts";
 import { adaptCodexDirectEvent, verifyObservationRoot } from "./adapter.ts";
 import { selectEditedRootsV2 } from "./attribution-v2.ts";
@@ -254,6 +255,12 @@ const extractionFailures = (analysis: TypeFileAnalysis): ReadonlyArray<AnalysisF
     : []);
 };
 
+/** Ask the checked graph policy about measured root bytes before native parsing. */
+export const measuredRootSourceDecision = (sourceBytes: number, limits: GraphLimits) =>
+  stepImportGraph(initialImportGraph(limits), {
+    kind: "root", target: 1, sourceBytes, treeBytes: 0, edges: [],
+  }).command;
+
 export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(function* (
   observation: DirectObservation,
   context: DirectReviewContext,
@@ -316,6 +323,24 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
       outcomes.push({ status: "skipped", path: eligible.relativePath });
       continue;
     }
+    const graphLimits = context.settings.configuration === undefined
+      ? GRAPH_LIMIT_CEILINGS
+      : effectiveGraphLimits(context.settings.configuration.policy);
+    const contract = currentInputContract(context);
+    if (contract === V2_TYPE_CONTRACT || contract === V2_FUNCTION_CONTRACT) {
+      // Stable capture has measured the root. Bend owns the configured source
+      // limit; a denied root never reaches parser/preflight materialization.
+      const decision = measuredRootSourceDecision(captured.byteLength, graphLimits);
+      if (decision.kind !== "none") {
+        pathOutcomes.push({
+          status: "observed", path: eligible.relativePath,
+          snapshot: { path: eligible.relativePath, operation: candidate.operation, sourceHash: captured.contentHash },
+          units: [], analysis: { status: "incomplete", failures: [{ root: undefined, reason: "missing-evidence" }] },
+        });
+        outcomes.push({ status: "skipped", path: eligible.relativePath });
+        continue;
+      }
+    }
     if (context.beforeAnalyze !== undefined && !(yield* context.beforeAnalyze(
       eligible.relativePath,
       captured.byteLength,
@@ -325,10 +350,6 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
       outcomes.push({ status: "skipped", path: eligible.relativePath });
       continue;
     }
-    const graphLimits = context.settings.configuration === undefined
-      ? GRAPH_LIMIT_CEILINGS
-      : effectiveGraphLimits(context.settings.configuration.policy);
-    const contract = currentInputContract(context);
     const functionFile = contract === V2_FUNCTION_CONTRACT && captured.byteLength <= graphLimits.sourceBytes
       ? analyzeFunctionFile(eligible.relativePath, captured.text) : undefined;
     const graphFile = contract !== V2_FUNCTION_CONTRACT && captured.byteLength <= graphLimits.sourceBytes
